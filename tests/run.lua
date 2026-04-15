@@ -3,9 +3,14 @@
 
 local T = require("support")
 
--- Shared global stubs suites depend on. Individual suites may mutate Log
--- (e.g. TextFilter's warn-capture tests) and SpeechEngine.stop (pipeline
--- tests) in their own setup() — that's the seam.
+-- Load the production polyfill to populate engine globals (Locale, etc.).
+-- The polyfill's sentinel check keeps it a no-op in-game; here it fires.
+dofile("src/mod/UI/CivVAccess_Polyfill.lua")
+
+-- Log and SpeechEngine stay as test-owned capturing stubs so suites can
+-- monkey-patch them (warn-capture, stop() observation). They're deliberately
+-- not in the polyfill: production code owns the real implementations and
+-- tests want a seam for inspection.
 Log = {
     debug = function() end, info = function() end,
     warn  = function() end, error = function() end,
@@ -17,5 +22,6 @@ SpeechEngine = {
 
 T.register("text_filter", require("text_filter_test"))
 T.register("speech_pipeline", require("speech_pipeline_test"))
+T.register("text", require("text_test"))
 
 os.exit(T.run() and 0 or 1)

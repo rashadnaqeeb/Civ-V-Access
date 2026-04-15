@@ -4,7 +4,7 @@ Civ-V-Access is an accessibility mod for Sid Meier's Civilization V that makes t
 
 ## Build
 
-_TBD — build and deploy scripts will be added as the toolchain comes together. When they exist, always use the script, never invoke `cl.exe` / `lua` / copy commands directly._
+`build.ps1` at the repo root compiles the proxy DLL and deploys the proxy stack + Lua mod into the game install in one step. Always use the script; never invoke `cl.exe` / `lua` / copy commands directly. Use `-SkipBuild` when only the Lua mod changed (proxy stage is reused as-is). Use `-SkipDeploy` to validate a compile without touching the game install. Pass `-GameDir` to override auto-detection when the Civ V install is in an unusual location.
 
 When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs/` (see below) or read the game's own UI Lua under `Sid Meier's Civilization V\Assets\` before guessing at fixes. The SDK's `Civ5LuaAPI.html` is an unfinished stub — ignore it; the grep-extracted reference in `docs/llm-docs/lua-api/` supersedes it.
 
@@ -20,6 +20,7 @@ Implementation tree (proxy DLL, Lua mod, build scripts) will be filled out as it
 
 - All speech goes through the central announcement pipeline, never call `tolk.output` / `tolk.speak` directly from feature code
 - All logging goes through the mod's log wrapper, never use bare `print` or raw `Events.AppLog` calls
+- All user-facing text goes through `Text.key` / `Text.format`, never call `Locale.ConvertTextKey` directly. The wrapper logs missing keys; raw Locale silently returns the key name and the user hears it spelled out.
 - Lua files: one feature per file where possible; file name matches the `include` stem (Civ V's VFS indexes by bare stem).
 
 ## Test
@@ -31,8 +32,8 @@ Offline Lua harness lives at `tests/`, invoked by `test.ps1` against the bundled
 - Exception: text-filter / markup-stripping regression suites keep full coverage (chain of replacements where any change can break unrelated cases)
 - Guard speech-boundary code even when it looks simple — a wrong value reaching Tolk is a silent failure
 
-### Polyfill pattern for engine globals (planned)
-When a feature needs to be tested but depends on engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.), do **not** build a test-only mock. Ship a `CivVAccess_Polyfill.lua` inside the mod that populates stubs and self-disables in-game via a presence check on a reliably-game-only global (`if Game then return end` is the likely sentinel — confirm at implementation time). Production code `include`s the polyfill unconditionally; the game loads the real globals and the polyfill is a no-op, the test harness loads the stubs. This keeps production and test load paths identical and exercises the polyfill against real feature usage instead of only tests — catches divergence that a test-only shim would hide. Borrowed from FactorioAccess's `polyfill.lua`; their sentinel is `script` (game-only), ours needs to be a Civ V equivalent.
+### Polyfill pattern for engine globals
+When a feature needs to be tested but depends on engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.), do **not** build a test-only mock. The canonical polyfill lives at `src/mod/UI/CivVAccess_Polyfill.lua` and self-disables in-game via `if ContextPtr ~= nil then return end`. `ContextPtr` is present in every Civ V UI Context and absent from the offline test harness, so the guard fires in tests and no-ops in the game. Boot.lua `include`s the polyfill first, and `tests/run.lua` `dofile`s it before registering suites. Grow the polyfill only as new modules need new globals; every stub is a place production and test can diverge. Log and SpeechEngine intentionally stay as test-owned stubs in `run.lua` (not in the polyfill) because suites need a monkey-patch seam to inspect calls. Pattern borrowed from FactorioAccess's `polyfill.lua`; their sentinel is `script`, ours is `ContextPtr`.
 
 ## Project Rules
 

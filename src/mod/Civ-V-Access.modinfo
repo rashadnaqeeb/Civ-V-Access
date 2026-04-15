@@ -17,8 +17,10 @@
     <Files>
         <File md5="" import="0">UI/Boot.xml</File>
         <File md5="" import="0">UI/Boot.lua</File>
+        <File md5="" import="1">UI/CivVAccess_Polyfill.lua</File>
         <File md5="" import="1">UI/CivVAccess_Log.lua</File>
         <File md5="" import="1">UI/CivVAccess_TextFilter.lua</File>
+        <File md5="" import="1">UI/CivVAccess_Text.lua</File>
         <File md5="" import="1">UI/CivVAccess_SpeechEngine.lua</File>
         <File md5="" import="1">UI/CivVAccess_SpeechPipeline.lua</File>
         <File md5="" import="0">Text/CivVAccess_Text_en_US.xml</File>

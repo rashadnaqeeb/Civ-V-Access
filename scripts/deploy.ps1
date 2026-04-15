@@ -1,3 +1,5 @@
+# NOTE: Canonical entry point is now build.ps1 at the repo root. This script
+# is kept as a fallback; prefer `./build.ps1 -SkipBuild` for deploy-only runs.
 <#
 .SYNOPSIS
     Deploys the Civ-V-Access proxy DLL stack and Lua mod into the game install.
