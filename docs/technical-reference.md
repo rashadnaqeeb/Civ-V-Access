@@ -47,7 +47,7 @@ Civ V's Lua VM is **single-threaded**. Only coroutines exist for concurrency wit
 
 - **Version:** Lua 5.1.4, 32-bit.
 - **Sandbox denies:** `package`, `require`, `loadlib`, `dofile`, `loadfile`, `io`, `_G`.
-- **Sandbox provides:** `os`, `debug`, `string`, `table`, `math`, `coroutine`, plus engine tables: `Events`, `LuaEvents`, `Modding`, `ContextPtr`, `Controls`, `UIManager`, `Game`, `Players`, `Map`, `UI`, `Locale`, `GameInfo`, `Mouse`, `ContentManager`.
+- **Sandbox provides:** `os`, `debug`, `string`, `table`, `math`, `coroutine`, plus engine tables: `Events`, `LuaEvents`, `Modding`, `ContextPtr`, `Controls`, `UIManager`, `Game`, `Players`, `Map`, `UI`, `Locale`, `GameInfo`, `Mouse`, `Keys`, `ContentManager`.
 - **`include(name)`** uses **bare filename stem** only. `include("Foo")` works; `include("sub/Foo")` fails. The engine indexes by stem.
 - **`include()` requires `import="1"` in `.modinfo`.** Files with `import="0"` are copied into the mod folder but not registered in the VFS, so `include()` silently finds nothing. Entry-point files referenced by `<EntryPoints>` (e.g. `InGameUIAddin` Boot.xml/Boot.lua) work at `import="0"` because the engine loads them by path; everything pulled via `include()` must be `import="1"`.
 - **`_G` is blocked**, so global introspection is limited. Know what's there by name, or find it in game UI Lua.
@@ -222,5 +222,5 @@ For the record, so we don't relitigate:
 - **Tolk loads via `lua51_Win32.dll` proxy.** Rationale in §2.
 - **File-level game overrides only where mod VFS can't reach** (i.e. front-end). Where possible, observe and wrap via `Events.X` / `LuaEvents.X` / `ContextPtr` hooks rather than replacing files.
 - **Dev loop:** FireTuner2 for Lua discovery, MSVC debugger for the proxy, `Lua.log` + `APP.log` + `proxy_debug.log` for diagnostics.
-- **Recovery strategy** if install state becomes unclear: Steam "Verify integrity of game files" (reverts game-dir changes surgically), then reinstall our proxy + Tolk DLLs via `scripts/deploy.ps1`.
+- **Recovery strategy** if install state becomes unclear: Steam "Verify integrity of game files" (reverts game-dir changes surgically), then reinstall our proxy + Tolk DLLs via `./build.ps1 -SkipBuild` (canonical entry point; `scripts/deploy.ps1` is a legacy fallback).
 - **Distribution:** likely Workshop-shell Lua mod + GitHub-release DLL installer. Confirm policy before first submission.
