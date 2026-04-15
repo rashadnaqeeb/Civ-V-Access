@@ -11,8 +11,8 @@ local function setup()
     Log.error = function(msg) errors[#errors + 1] = msg end
     Log.warn  = function() end
     Log.debug = function() end
-    dofile("src/mod/UI/CivVAccess_HandlerStack.lua")
-    dofile("src/mod/UI/CivVAccess_TickPump.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_HandlerStack.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_TickPump.lua")
     HandlerStack._reset()
     TickPump._reset()
 end

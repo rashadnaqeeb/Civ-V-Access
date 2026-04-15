@@ -5,7 +5,7 @@ local T = require("support")
 
 -- Load the production polyfill to populate engine globals (Locale, etc.).
 -- The polyfill's sentinel check keeps it a no-op in-game; here it fires.
-dofile("src/mod/UI/CivVAccess_Polyfill.lua")
+dofile("src/dlc/UI/InGame/CivVAccess_Polyfill.lua")
 
 -- Shared state table that the proxy installs per-Context in-game.
 -- HandlerStack and others read it as a module-level reference.

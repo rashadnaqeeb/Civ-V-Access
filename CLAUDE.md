@@ -1,10 +1,10 @@
 # Civ-V-Access — Claude Code Instructions
 
-Civ-V-Access is an accessibility mod for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context, plus a Civ V mod that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
+Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context, plus a fake DLC (shipped as `Assets/DLC/CivVAccess/`) that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`. Packaging as a DLC (rather than a mod under `Documents/My Games/.../MODS/`) is what lets the engine natively ingest our `<GameData><Text>` XML and keeps the session off the mod-hash list for multiplayer. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
 
 ## Build
 
-`build.ps1` at the repo root compiles the proxy DLL and deploys the proxy stack + Lua mod into the game install in one step. Always use the script; never invoke `cl.exe` / `lua` / copy commands directly. Use `-SkipBuild` when only the Lua mod changed (proxy stage is reused as-is). Use `-SkipDeploy` to validate a compile without touching the game install. Pass `-GameDir` to override auto-detection when the Civ V install is in an unusual location.
+`build.ps1` at the repo root compiles the proxy DLL and deploys the proxy stack + DLC into the game install in one step. Always use the script; never invoke `cl.exe` / `lua` / copy commands directly. Use `-SkipBuild` when only the Lua payload changed (proxy stage is reused as-is). Use `-SkipDeploy` to validate a compile without touching the game install. Use `-Uninstall` to remove the DLC, restore the original `lua51_Win32.dll`, and clean up any legacy `MODS/Civ-V-Access (v 1)/` directory. Pass `-GameDir` to override auto-detection when the Civ V install is in an unusual location.
 
 When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs/` (see below) or read the game's own UI Lua under `Sid Meier's Civilization V\Assets\` before guessing at fixes. The SDK's `Civ5LuaAPI.html` is an unfinished stub — ignore it; the grep-extracted reference in `docs/llm-docs/lua-api/` supersedes it.
 
@@ -12,8 +12,8 @@ When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs
 
 - `docs/hotkey-reference.md` — every engine-defined keybinding across base / G&K / BNW, plus screen-reader collision notes and candidate-safe keys.
 - `docs/llm-docs/` — derived reference material (Lua API per class, Events / LuaEvents catalogs, screen inventory, external resource pointers). Load on demand. See `docs/llm-docs/CLAUDE.md` for what's in each file and when to consult it.
-
-Implementation tree (proxy DLL, Lua mod, build scripts) will be filled out as it lands.
+- `src/proxy/` — `lua51_Win32.dll` proxy source (C). Only job is injecting `tolk` + `luaL_openlibs` hooks; no mod activation.
+- `src/dlc/` — fake-DLC payload. `CivVAccess.Civ5Pkg` is the manifest. `Gameplay/XML/Text/en_US/CivVAccess_Text.xml` holds TXT_KEY rows (add new locales as sibling dirs: `de_DE/`, `fr_FR/`, etc.). `UI/InGame/` holds all `CivVAccess_*.lua` feature modules and a verbatim copy of the base-game override target that includes `CivVAccess_Boot`. `UI/FrontEnd/` holds the front-end override target and `CivVAccess_FrontendBoot.lua`.
 
 ## Code Style
 
@@ -32,7 +32,7 @@ Offline Lua harness lives at `tests/`, invoked by `test.ps1` against the bundled
 - Guard speech-boundary code even when it looks simple — a wrong value reaching Tolk is a silent failure
 
 ### Polyfill pattern for engine globals
-When a feature needs to be tested but depends on engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.), do **not** build a test-only mock. The canonical polyfill lives at `src/mod/UI/CivVAccess_Polyfill.lua` and self-disables in-game via `if ContextPtr ~= nil then return end`. `ContextPtr` is present in every Civ V UI Context and absent from the offline test harness, so the guard fires in tests and no-ops in the game. Boot.lua `include`s the polyfill first, and `tests/run.lua` `dofile`s it before registering suites. Grow the polyfill only as new modules need new globals; every stub is a place production and test can diverge. Log and SpeechEngine intentionally stay as test-owned stubs in `run.lua` (not in the polyfill) because suites need a monkey-patch seam to inspect calls. Pattern borrowed from FactorioAccess's `polyfill.lua`; their sentinel is `script`, ours is `ContextPtr`.
+When a feature needs to be tested but depends on engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.), do **not** build a test-only mock. The canonical polyfill lives at `src/dlc/UI/InGame/CivVAccess_Polyfill.lua` and self-disables in-game via `if ContextPtr ~= nil then return end`. `ContextPtr` is present in every Civ V UI Context and absent from the offline test harness, so the guard fires in tests and no-ops in the game. `CivVAccess_Boot.lua` `include`s the polyfill first, and `tests/run.lua` `dofile`s it before registering suites. Grow the polyfill only as new modules need new globals; every stub is a place production and test can diverge. Log and SpeechEngine intentionally stay as test-owned stubs in `run.lua` (not in the polyfill) because suites need a monkey-patch seam to inspect calls. Pattern borrowed from FactorioAccess's `polyfill.lua`; their sentinel is `script`, ours is `ContextPtr`.
 
 ## Project Rules
 
@@ -84,12 +84,13 @@ Push the handler onto `HandlerStack` when the screen opens; `removeByName` it wh
 - **`_G` is blocked by the sandbox.** Cannot enumerate globals for discovery — know what you're looking for by name, or find it in the game's UI Lua.
 - **`.Add(fn)` chains on both `Events.X` and `LuaEvents.X`.** Prefer adding listeners over replacing — multiple listeners coexist and we don't evict the game's own handlers. `.Remove(fn)` is unverified in the wild; assume best-effort.
 - **`Alt+Left/Right` sends `WM_SYSKEYDOWN` (msg 260)**, not `WM_KEYDOWN`. Input handlers must check both to catch Alt-chorded keys.
+- **The DLC bootstraps by overriding two base-game UI files**: `Assets/UI/InGame/TaskList.{lua,xml}` (in-game entry) and `Assets/UI/FrontEnd/ToolTips.{lua,xml}` (front-end entry). Both are copied verbatim into `src/dlc/UI/{InGame,FrontEnd}/` with an `include("CivVAccess_Boot")` or `include("CivVAccess_FrontendBoot")` appended. A pure `.Civ5Pkg` cannot declare a net-new Context, so the bootstrap has to piggy-back on an override. After any Civ V patch, re-diff our copy against the patched base file and re-apply the append.
 
 ## Game Log
 
 - `Lua.log` — Lua errors and `print` output, at `%USERPROFILE%\Documents\My Games\Sid Meier's Civilization 5\Logs\Lua.log`. Only populated when `config.ini` has `LoggingEnabled=1`.
 - `APP.log` — engine-level, same directory.
-- `proxy_debug.log` — our proxy's own log, written next to the DLL in the game install directory. Records export resolution, Tolk load, and auto-enable events.
+- `proxy_debug.log` — our proxy's own log, written next to the DLL in the game install directory. Records export resolution and Tolk load.
 
 ## Common LLM Antipatterns
 

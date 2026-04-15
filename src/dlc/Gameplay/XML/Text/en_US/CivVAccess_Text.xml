@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GameData>
     <Language_en_US>
+        <!-- Spoken once after the game finishes loading into a session. -->
         <Row Tag="TXT_KEY_CIVVACCESS_BOOT_INGAME">
             <Text>Civilization V accessibility loaded in-game.</Text>
         </Row>
+        <!-- Spoken once at the main menu when the front-end finishes loading. -->
         <Row Tag="TXT_KEY_CIVVACCESS_BOOT_FRONTEND">
             <Text>Accessibility mod ready.</Text>
         </Row>

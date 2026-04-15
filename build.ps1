@@ -3,24 +3,31 @@
     Unified build + deploy driver for Civ-V-Access.
 
 .DESCRIPTION
-    Compiles the proxy DLL and deploys the proxy stack + Lua mod into the game
-    install. Runs both steps by default; skip either with -SkipBuild or -SkipDeploy.
+    Compiles the proxy DLL and deploys the proxy stack + DLC payload into the
+    game install. Runs both steps by default; skip either with -SkipBuild or
+    -SkipDeploy. Use -Uninstall to remove the proxy stack, the DLC, and any
+    legacy MODS/ directory left over from earlier mod-packaged installs.
 
 .PARAMETER GameDir
     Explicit path to the Civilization V install directory. Overrides auto-detection.
 
 .PARAMETER SkipBuild
-    Skip the proxy compile step. Useful when only the Lua mod changed.
+    Skip the proxy compile step. Useful when only the Lua payload changed.
 
 .PARAMETER SkipDeploy
     Skip the deploy step. Useful when validating the compile without touching
     the game install.
+
+.PARAMETER Uninstall
+    Remove the DLC, restore the original lua51_Win32.dll, and delete any
+    legacy MODS/Civ-V-Access (v 1)/ directory from the user's Documents.
 #>
 [CmdletBinding()]
 param(
     [string]$GameDir,
     [switch]$SkipBuild,
-    [switch]$SkipDeploy
+    [switch]$SkipDeploy,
+    [switch]$Uninstall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,7 +35,9 @@ $ErrorActionPreference = 'Stop'
 $repoRoot  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $buildBat  = Join-Path $repoRoot 'src\proxy\build_proxy.bat'
 $stageDir  = Join-Path $repoRoot 'build\proxy\stage'
-$modSrcDir = Join-Path $repoRoot 'src\mod'
+$dlcSrcDir = Join-Path $repoRoot 'src\dlc'
+$dlcName   = 'CivVAccess'
+$legacyModDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
 
 $proxyFiles = @(
     'lua51_Win32.dll',
@@ -157,28 +166,92 @@ function Invoke-Deploy {
         Write-Host "  $dst"
     }
 
-    $modsRoot = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS"
-    $modDir   = Join-Path $modsRoot 'Civ-V-Access (v 1)'
-    if (-not (Test-Path $modDir)) {
-        New-Item -ItemType Directory -Path $modDir -Force | Out-Null
+    $dlcDir = Join-Path $gameDir "Assets\DLC\$dlcName"
+    if (Test-Path $dlcDir) {
+        Write-Host "  Removing existing DLC directory: $dlcDir"
+        Remove-Item -LiteralPath $dlcDir -Recurse -Force
     }
-    Write-Host "Deploying Lua mod to:"
-    Write-Host "  $modDir"
-    Copy-Item -Path (Join-Path $modSrcDir '*') -Destination $modDir -Recurse -Force
+    New-Item -ItemType Directory -Path $dlcDir -Force | Out-Null
+    Write-Host "Deploying DLC payload to:"
+    Write-Host "  $dlcDir"
+    Copy-Item -Path (Join-Path $dlcSrcDir '*') -Destination $dlcDir -Recurse -Force
 
-    # Sibling copy of the Lua modules into the game dir so the proxy can
-    # read them at runtime during front-end bootstrap (front-end Contexts
-    # load before any Civ V mod activates and cannot be reached via VFS).
-    $bootstrapDir = Join-Path $gameDir 'CivVAccess'
-    if (-not (Test-Path $bootstrapDir)) {
-        New-Item -ItemType Directory -Path $bootstrapDir -Force | Out-Null
+    # Clean up any orphan legacy install so the mod loader doesn't pick up
+    # stale entries from previous non-DLC deploys.
+    if (Test-Path $legacyModDir) {
+        Write-Host "Removing legacy mod directory:"
+        Write-Host "  $legacyModDir"
+        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
     }
-    Write-Host "Deploying bootstrap Lua to:"
-    Write-Host "  $bootstrapDir"
-    $uiSrc = Join-Path $modSrcDir 'UI'
-    Copy-Item -Path (Join-Path $uiSrc 'CivVAccess_*.lua') -Destination $bootstrapDir -Force
+    $legacyBootstrap = Join-Path $gameDir 'CivVAccess'
+    if ((Test-Path $legacyBootstrap) -and ($legacyBootstrap -ne $dlcDir)) {
+        Write-Host "Removing legacy bootstrap directory:"
+        Write-Host "  $legacyBootstrap"
+        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
+    }
 
-    return @{ GameDir = $gameDir; ModDir = $modDir; BootstrapDir = $bootstrapDir }
+    return @{ GameDir = $gameDir; DlcDir = $dlcDir }
+}
+
+function Invoke-Uninstall {
+    param([string]$ExplicitGameDir)
+
+    Write-Host "Locating Civilization V install..."
+    $gameDir = Resolve-CivVInstallDir -ExplicitPath $ExplicitGameDir
+    Write-Host "  Game dir: $gameDir"
+
+    $stockDll    = Join-Path $gameDir 'lua51_Win32.dll'
+    $originalDll = Join-Path $gameDir 'lua51_original.dll'
+    if (Test-Path $originalDll) {
+        if (Test-Path $stockDll) {
+            Write-Host "  Removing proxy lua51_Win32.dll"
+            Remove-Item -LiteralPath $stockDll -Force
+        }
+        Write-Host "  Restoring lua51_original.dll -> lua51_Win32.dll"
+        Rename-Item -LiteralPath $originalDll -NewName 'lua51_Win32.dll'
+    } else {
+        Write-Host "  No lua51_original.dll found; skipping proxy restore."
+    }
+
+    foreach ($f in @('Tolk.dll','SAAPI32.dll','dolapi32.dll','nvdaControllerClient32.dll')) {
+        $p = Join-Path $gameDir $f
+        if (Test-Path $p) {
+            Write-Host "  Removing $p"
+            Remove-Item -LiteralPath $p -Force
+        }
+    }
+
+    $dlcDir = Join-Path $gameDir "Assets\DLC\$dlcName"
+    if (Test-Path $dlcDir) {
+        Write-Host "  Removing DLC: $dlcDir"
+        Remove-Item -LiteralPath $dlcDir -Recurse -Force
+    }
+
+    $legacyBootstrap = Join-Path $gameDir 'CivVAccess'
+    if (Test-Path $legacyBootstrap) {
+        Write-Host "  Removing legacy bootstrap: $legacyBootstrap"
+        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
+    }
+
+    if (Test-Path $legacyModDir) {
+        Write-Host "  Removing legacy mod directory: $legacyModDir"
+        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
+    }
+
+    $proxyLog = Join-Path $gameDir 'proxy_debug.log'
+    if (Test-Path $proxyLog) {
+        Remove-Item -LiteralPath $proxyLog -Force
+    }
+
+    return @{ GameDir = $gameDir }
+}
+
+if ($Uninstall) {
+    $result = Invoke-Uninstall -ExplicitGameDir $GameDir
+    Write-Host ""
+    Write-Host "Uninstall complete."
+    Write-Host "  Game dir: $($result.GameDir)"
+    return
 }
 
 if (-not $SkipBuild) {
@@ -191,9 +264,8 @@ if (-not $SkipDeploy) {
     $result = Invoke-Deploy -ExplicitGameDir $GameDir
     Write-Host ""
     Write-Host "Deploy complete."
-    Write-Host "  Proxy:     $($result.GameDir)"
-    Write-Host "  Mod:       $($result.ModDir)"
-    Write-Host "  Bootstrap: $($result.BootstrapDir)"
+    Write-Host "  Proxy: $($result.GameDir)"
+    Write-Host "  DLC:   $($result.DlcDir)"
     Write-Host ""
     Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
     Write-Host "  $env:USERPROFILE\Documents\My Games\Sid Meier's Civilization 5\config.ini"

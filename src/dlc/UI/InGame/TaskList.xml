@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by Scott Lewis (Firaxis Games) -->
+<Context ColorSet="Beige_Black" Font="TwCenMT20" FontStyle="Shadow">
+  <Instance Name="TaskEntryInstance">
+    <Label ID="TaskLabel" Anchor="L,T" Offset="0,0" Font="TwCenMT16" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" WrapWidth="400" >
+      <Image ID="TaskEntryImage" Anchor="L,T" AnchorSide="O.I" Offset="0,-8" TextureOffset="0.0" Texture="assets\UI\Art\Icons\MarcPips.dds" Size="32.32" />  
+    </Label>
+    
+  </Instance>
+  
+  <Grid Size="400,270" Padding="20,26" Anchor="C.T" Offset="0,-9" Style="Grid9DetailSix140" ConsumeMouse="1" ID="TaskListGrid" Hidden="0">
+    
+    <Label ID="GoalLabel" String="TXT_KEY_TASK_LIST" Anchor="C,T" Offset="0,54" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" WrapWidth="320"/>
+    <Image Anchor="C,T" Offset="0,74" Texture="bar300x2.dds" Size="300.1"/>
+    
+    <Stack ID="TaskStack" Anchor="L,T" Offset="50,80" Padding="10" StackGrowth="Bottom" Color="255,255,255,0" />
+
+  </Grid>
+</Context>

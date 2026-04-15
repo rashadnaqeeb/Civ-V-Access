@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context ColorSet="Beige_Black" Font="TwCenMT16" FontStyle="Shadow" Name="ToolTips" >
+ 
+  <AlphaAnim Cycle="Once" Speed="5" AlphaStart="0" AlphaEnd="1" ID="ToolTipRoot" Hidden="1" >
+      <SlideAnim Start="20,0" End="0,0" Cycle="once" Speed="7" ID="ToolTipStore" Anchor="L,T" >
+          <Grid Offset="30,5" Size="60,12" Padding="8,8" Style="GridBlack8" Color="White,240" Anchor="L,T" ID="ToolTipGrid" >
+              <Label Anchor="c,c" ID="ToolTipText" String="words" WrapWidth="300" />
+          </Grid>
+      </SlideAnim>
+  </AlphaAnim>
+    
+    <!-- NOTE:     
+                    NEW TOOL TIP TYPES CANNOT BE DEFINED HERE
+                    
+         This file is loaded during the initialization of the ToolTipManager when new type storage is not ready
+     -->
+
+</Context>

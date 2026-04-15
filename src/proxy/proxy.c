@@ -2,9 +2,11 @@
  * Lua 5.1 Proxy DLL for Civilization V Accessibility
  *
  * Replaces lua51_Win32.dll. Forwards all calls to lua51_original.dll,
- * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua state,
- * hooks lua_setfenv to propagate tolk into sandboxed environments and auto-enable
- * the accessibility mod on the first environment where Modding is visible.
+ * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua
+ * state, and hooks lua_setfenv to propagate the tolk and civvaccess_shared
+ * tables into every sandboxed environment. The accessibility payload itself
+ * ships as a DLC at Assets/DLC/CivVAccess/ and is ingested natively by the
+ * engine at boot; the proxy does not activate any mod.
  */
 #pragma comment(lib, "User32.lib")
 
@@ -24,9 +26,10 @@ typedef int (*lua_CFunction)(lua_State *L);
 typedef void * (*lua_Alloc)(void *ud, void *ptr, size_t osize, size_t nsize);
 typedef struct luaL_Reg { const char *name; lua_CFunction func; } luaL_Reg;
 
-/* Accessibility mod GUID. Must match the .modinfo file. */
-static const char *CIVVACCESS_MOD_ID = "40a9df7b-ae9f-48db-abb5-44afe0420524";
-static const int   CIVVACCESS_MOD_VER = 1;
+/* Accessibility DLC GUID (Assets/DLC/CivVAccess/CivVAccess.Civ5Pkg).
+   Retained here only as a comment anchor; the proxy no longer activates
+   the DLC -- it is ingested natively by the engine at boot. */
+/* {40A9DF7B-AE9F-48DB-ABB5-44AFE0420524} */
 
 /* === Debug log === */
 static FILE *g_logfile = NULL;
@@ -43,9 +46,7 @@ static void proxy_log(const char *fmt, ...) {
 /* === Original DLL === */
 static HMODULE hOriginal = NULL;
 static HINSTANCE g_hProxyDll = NULL;
-static char g_bootstrapDir[MAX_PATH] = {0};
 static int g_stateCounter = 0;
-static lua_State *g_frontendState = NULL;
 
 /* === Function pointer table for ALL exports === */
 static FARPROC orig[128] = {0};
@@ -331,88 +332,11 @@ static void register_tolk(lua_State *L) {
 }
 
 static void register_civvaccess_shared(lua_State *L) {
-    typedef void (__cdecl *pfn_lua_pushinteger)(lua_State *, int);
-    pfn_lua_pushinteger pPushInt = (pfn_lua_pushinteger)orig[I_lua_pushinteger];
     int top = ORIG_lua_gettop(L);
     ORIG_lua_createtable(L, 0, 4);
-    /* stateIndex: 1 for front-end, 2+ for in-game. Lets Lua code
-       distinguish phases (Boot.lua fires in both; real in-game is 2). */
-    pPushInt(L, g_stateCounter);
-    ORIG_lua_setfield(L, -2, "stateIndex");
     ORIG_lua_setfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
     ORIG_lua_settop(L, top);
-    proxy_log("register_civvaccess_shared: L=%p stateIndex=%d done\n", (void*)L, g_stateCounter);
-}
-
-static int read_file_to_buffer(const char *path, char **outBuf, size_t *outLen) {
-    FILE *f = fopen(path, "rb");
-    long sz;
-    char *buf;
-    size_t n;
-    if (!f) {
-        proxy_log("read_file: fopen failed: %s\n", path);
-        return 1;
-    }
-    fseek(f, 0, SEEK_END);
-    sz = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    if (sz < 0) { fclose(f); proxy_log("read_file: ftell failed: %s\n", path); return 2; }
-    buf = (char *)malloc((size_t)sz);
-    if (!buf) { fclose(f); proxy_log("read_file: malloc failed\n"); return 3; }
-    n = fread(buf, 1, (size_t)sz, f);
-    fclose(f);
-    if (n != (size_t)sz) { free(buf); proxy_log("read_file: short read: %s\n", path); return 4; }
-    *outBuf = buf;
-    *outLen = n;
-    return 0;
-}
-
-static void bootstrap_load_module(lua_State *L, int env_idx, const char *stem) {
-    typedef int (__cdecl *pfn_luaL_loadbuffer)(lua_State *, const char *, size_t, const char *);
-    typedef int (__cdecl *pfn_lua_pcall)(lua_State *, int, int, int);
-    typedef const char * (__cdecl *pfn_lua_tolstring)(lua_State *, int, size_t *);
-    typedef void (__cdecl *pfn_lua_pushvalue)(lua_State *, int);
-    typedef int (__cdecl *pfn_lua_setfenv_raw)(lua_State *, int);
-    char path[MAX_PATH];
-    char *buf = NULL;
-    size_t len = 0;
-    int err;
-    pfn_luaL_loadbuffer pLoadBuf;
-    pfn_lua_pcall pPcall;
-    pfn_lua_tolstring pTolstr;
-    pfn_lua_pushvalue pPushV;
-    pfn_lua_setfenv_raw pSetfenv;
-
-    _snprintf(path, sizeof(path), "%s%s.lua", g_bootstrapDir, stem);
-    path[sizeof(path)-1] = '\0';
-
-    if (read_file_to_buffer(path, &buf, &len) != 0) {
-        proxy_log("bootstrap: skipping %s (read failed)\n", stem);
-        return;
-    }
-
-    pLoadBuf = (pfn_luaL_loadbuffer)orig[I_luaL_loadbuffer];
-    pPcall   = (pfn_lua_pcall)orig[I_lua_pcall];
-    pTolstr  = (pfn_lua_tolstring)orig[I_lua_tolstring];
-    pPushV   = (pfn_lua_pushvalue)orig[I_lua_pushvalue];
-    pSetfenv = (pfn_lua_setfenv_raw)orig[I_lua_setfenv];
-
-    err = pLoadBuf(L, buf, len, stem);
-    free(buf);
-    if (err != 0) {
-        const char *msg = pTolstr(L, -1, NULL);
-        proxy_log("bootstrap: loadbuffer error on %s: %s\n", stem, msg ? msg : "(no msg)");
-        ORIG_lua_settop(L, env_idx);
-        return;
-    }
-    pPushV(L, env_idx);
-    pSetfenv(L, -2);
-    err = pPcall(L, 0, 0, 0);
-    if (err != 0) {
-        const char *msg = pTolstr(L, -1, NULL);
-        proxy_log("bootstrap: pcall error on %s: %s\n", stem, msg ? msg : "(no msg)");
-        ORIG_lua_settop(L, env_idx);
-    }
+    proxy_log("register_civvaccess_shared: L=%p done\n", (void*)L);
 }
 
 /* === Hooked exports === */
@@ -421,7 +345,6 @@ __declspec(dllexport) lua_State * __cdecl luaL_newstate(void) {
     typedef lua_State * (__cdecl *fn)(void);
     lua_State *L = ((fn)orig[I_luaL_newstate])();
     g_stateCounter++;
-    if (g_frontendState == NULL) g_frontendState = L;
     proxy_log("luaL_newstate: L=%p count=%d\n", (void*)L, g_stateCounter);
     return L;
 }
@@ -430,7 +353,6 @@ __declspec(dllexport) lua_State * __cdecl lua_newstate(lua_Alloc f, void *ud) {
     typedef lua_State * (__cdecl *fn)(lua_Alloc, void *);
     lua_State *L = ((fn)orig[I_lua_newstate])(f, ud);
     g_stateCounter++;
-    if (g_frontendState == NULL) g_frontendState = L;
     proxy_log("lua_newstate: L=%p count=%d\n", (void*)L, g_stateCounter);
     return L;
 }
@@ -476,176 +398,10 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
         ORIG_lua_settop(L, -2);
     }
 
-    /* === Front-end Lua bootstrap ===
-       Runs once per sandbox env. In-game envs (those exposing Modding) are
-       bootstrapped by Boot.lua via include(); we only mark the sentinel so
-       this block skips there. Front-end envs have no Civ V mod entry point,
-       so the proxy loads the modules itself and pushes the baseline. */
-    {
-        int env_idx = ORIG_lua_gettop(L);
-        int bootstrapped;
-        int has_modding;
-        int has_os;
-        int has_type;
-        /* g_stateCounter == 1 means we're still in the front-end phase.
-           lua_newstate increments on truly new states; coroutines use
-           lua_newthread which does not, so coroutine setfenvs here still
-           register as front-end. */
-        int is_frontend_state = (g_stateCounter == 1);
-
-        ORIG_lua_getfield(L, env_idx, "civvaccess_bootstrapped");
-        bootstrapped = (ORIG_lua_type(L, -1) != LUA_TNIL);
-        ORIG_lua_settop(L, env_idx);
-
-        ORIG_lua_getfield(L, env_idx, "Modding");
-        has_modding = (ORIG_lua_type(L, -1) != LUA_TNIL);
-        ORIG_lua_settop(L, env_idx);
-
-        ORIG_lua_getfield(L, env_idx, "os");
-        has_os = (ORIG_lua_type(L, -1) != LUA_TNIL);
-        ORIG_lua_settop(L, env_idx);
-
-        ORIG_lua_getfield(L, env_idx, "type");
-        has_type = (ORIG_lua_type(L, -1) != LUA_TNIL);
-        ORIG_lua_settop(L, env_idx);
-
-        /* Bootstrap when we have a populated Lua sandbox env with standard
-           library + Modding visible. Empirical signal: front-end UI envs
-           have os/type/Modding/Locale but lack ContextPtr/Events/UIManager.
-           Modding alone doesn't distinguish front-end from in-game, so we
-           gate on the state being the first lua_State (front-end phase). */
-        if (!bootstrapped && has_os && has_type && has_modding) {
-            /* Sentinel set first: even if something errors, we don't thrash
-               re-bootstrapping the same env. */
-            ORIG_lua_pushboolean(L, 1);
-            ORIG_lua_setfield(L, env_idx, "civvaccess_bootstrapped");
-
-            if (!is_frontend_state) {
-                /* In-game state: Boot.lua handles module loading. */
-            } else if (g_bootstrapDir[0] != '\0') {
-                static const char *modules[] = {
-                    "CivVAccess_Polyfill",
-                    "CivVAccess_Log",
-                    "CivVAccess_TextFilter",
-                    "CivVAccess_Text",
-                    "CivVAccess_SpeechEngine",
-                    "CivVAccess_SpeechPipeline",
-                    "CivVAccess_HandlerStack",
-                    "CivVAccess_InputRouter",
-                    "CivVAccess_TickPump",
-                    "CivVAccess_BaselineHandler",
-                };
-                int nm = sizeof(modules) / sizeof(modules[0]);
-                int i;
-                typedef int (__cdecl *pfn_luaL_loadstring)(lua_State *, const char *);
-                typedef int (__cdecl *pfn_lua_pcall)(lua_State *, int, int, int);
-                typedef const char * (__cdecl *pfn_lua_tolstring)(lua_State *, int, size_t *);
-                typedef void (__cdecl *pfn_lua_pushvalue)(lua_State *, int);
-                typedef int (__cdecl *pfn_lua_setfenv_raw)(lua_State *, int);
-                pfn_luaL_loadstring pLoadStr;
-                pfn_lua_pcall       pPcall2;
-                pfn_lua_tolstring   pTolstr;
-                pfn_lua_pushvalue   pPushV;
-                pfn_lua_setfenv_raw pSetfenvRaw;
-                /* Baseline push + announce must be once-global, not once-per-env.
-                   civvaccess_shared is the single shared table across every env in
-                   this lua_State, so a flag there guards both.
-                   The front-end text XML isn't loaded yet (mod Text rows activate
-                   in-game only), so Text.key would return the raw TXT_KEY. Use a
-                   mod-authored literal; in-game boot still goes through Text.key. */
-                const char *finalCode =
-                    "if not civvaccess_shared.frontend_announced then\n"
-                    "  civvaccess_shared.frontend_announced = true\n"
-                    "  HandlerStack.push(BaselineHandler.create())\n"
-                    "  SpeechPipeline.speakInterrupt('Accessibility mod ready.')\n"
-                    "end\n";
-                int err;
-
-                for (i = 0; i < nm; i++) {
-                    bootstrap_load_module(L, env_idx, modules[i]);
-                }
-
-                pLoadStr    = (pfn_luaL_loadstring)orig[I_luaL_loadstring];
-                pPcall2     = (pfn_lua_pcall)orig[I_lua_pcall];
-                pTolstr     = (pfn_lua_tolstring)orig[I_lua_tolstring];
-                pPushV      = (pfn_lua_pushvalue)orig[I_lua_pushvalue];
-                pSetfenvRaw = (pfn_lua_setfenv_raw)orig[I_lua_setfenv];
-
-                err = pLoadStr(L, finalCode);
-                if (err == 0) {
-                    pPushV(L, env_idx);
-                    pSetfenvRaw(L, -2);
-                    err = pPcall2(L, 0, 0, 0);
-                    if (err != 0) {
-                        const char *msg = pTolstr(L, -1, NULL);
-                        proxy_log("bootstrap: final pcall error: %s\n", msg ? msg : "(no msg)");
-                    }
-                } else {
-                    proxy_log("bootstrap: final loadstring error: %d\n", err);
-                }
-                ORIG_lua_settop(L, env_idx);
-            }
-        }
-    }
-
-    /* === Auto-enable accessibility mod (once, on first env where Modding is visible) === */
-    {
-        static int g_mod_enabled = 0;
-        if (!g_mod_enabled) {
-            int env_idx = ORIG_lua_gettop(L);
-            ORIG_lua_getfield(L, env_idx, "Modding");
-            int mod_type = ORIG_lua_type(L, -1);
-            ORIG_lua_settop(L, env_idx);
-
-            if (mod_type != LUA_TNIL) {
-                typedef int (__cdecl *pfn_luaL_loadstring)(lua_State *, const char *);
-                typedef int (__cdecl *pfn_lua_pcall)(lua_State *, int, int, int);
-                typedef const char * (__cdecl *pfn_lua_tolstring)(lua_State *, int, size_t *);
-                typedef void (__cdecl *pfn_lua_pushvalue)(lua_State *, int);
-                typedef int (__cdecl *pfn_lua_setfenv_raw)(lua_State *, int);
-                pfn_luaL_loadstring pLoadString = (pfn_luaL_loadstring)orig[I_luaL_loadstring];
-                pfn_lua_pcall pPcall = (pfn_lua_pcall)orig[I_lua_pcall];
-                pfn_lua_tolstring pTolstring = (pfn_lua_tolstring)orig[I_lua_tolstring];
-                pfn_lua_pushvalue pPushValue = (pfn_lua_pushvalue)orig[I_lua_pushvalue];
-                pfn_lua_setfenv_raw pSetfenvRaw = (pfn_lua_setfenv_raw)orig[I_lua_setfenv];
-
-                g_mod_enabled = 1;
-
-                char code[1024];
-                _snprintf(code, sizeof(code),
-                    "local modID = '%s'\n"
-                    "local modVer = %d\n"
-                    "local enabled = Modding.GetEnabledModsByActivationOrder()\n"
-                    "local found = false\n"
-                    "for _, m in ipairs(enabled) do\n"
-                    "  if m.ModID == modID then found = true break end\n"
-                    "end\n"
-                    "if not found then\n"
-                    "  Modding.EnableMod(modID, modVer)\n"
-                    "end\n"
-                    "Modding.ActivateEnabledMods()\n",
-                    CIVVACCESS_MOD_ID, CIVVACCESS_MOD_VER);
-                code[sizeof(code)-1] = '\0';
-
-                int err = pLoadString(L, code);
-                if (err == 0) {
-                    pPushValue(L, env_idx);
-                    pSetfenvRaw(L, -2);
-                    err = pPcall(L, 0, 0, 0);
-                    if (err != 0) {
-                        const char *msg = pTolstring(L, -1, NULL);
-                        proxy_log("mod_enable: error %d: %s\n", err, msg ? msg : "(no message)");
-                        ORIG_lua_settop(L, env_idx);
-                    } else {
-                        proxy_log("mod_enable: accessibility mod auto-enabled\n");
-                        ORIG_lua_settop(L, env_idx);
-                    }
-                } else {
-                    proxy_log("mod_enable: loadstring failed %d\n", err);
-                }
-            }
-        }
-    }
+    /* Front-end and in-game bootstrap both happen inside Lua now, via the
+       DLC's override of base-game UI files (UI/FrontEnd/ToolTips.lua and
+       UI/InGame/TaskList.lua). The proxy's only job in this hook is the
+       tolk + civvaccess_shared injection performed above. */
 
     return ((fn)orig[I_lua_setfenv])(L, index);
 }
@@ -711,18 +467,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID reserved) {
                        (void*)pTolk_Load, (void*)pTolk_Output);
         } else {
             proxy_log("ERROR: could not load Tolk.dll from %s\n", path);
-        }
-
-        /* Compute bootstrap directory: sibling CivVAccess\ next to the DLL. */
-        GetModuleFileNameA(hinstDLL, path, MAX_PATH);
-        s = strrchr(path, '\\');
-        if (s) {
-            strcpy(s + 1, "CivVAccess\\");
-            strncpy(g_bootstrapDir, path, sizeof(g_bootstrapDir) - 1);
-            g_bootstrapDir[sizeof(g_bootstrapDir) - 1] = '\0';
-            proxy_log("Bootstrap dir: %s\n", g_bootstrapDir);
-        } else {
-            proxy_log("ERROR: could not compute bootstrap dir\n");
         }
 
         proxy_log("=== Proxy init complete ===\n");

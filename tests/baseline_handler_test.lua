@@ -4,7 +4,7 @@ local T = require("support")
 local M = {}
 
 local function setup()
-    dofile("src/mod/UI/CivVAccess_BaselineHandler.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 
 function M.test_create_returns_noop_shape()

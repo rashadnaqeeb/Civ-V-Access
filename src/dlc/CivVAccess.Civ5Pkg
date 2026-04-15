@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Civ V Access accessibility layer, packaged as a fake DLC so text XML is
+     ingested by the engine's native DLC pipeline and the session is not
+     flagged as modded for multiplayer hash checks. GUID matches the original
+     .modinfo so save games already touched by the mod remain recognized. -->
+<Civ5Package>
+    <GUID>{40A9DF7B-AE9F-48DB-ABB5-44AFE0420524}</GUID>
+    <Version>1</Version>
+    <Priority>250</Priority>
+    <Name>
+        <Value language="en_US">Civ V Access</Value>
+    </Name>
+    <Description>
+        <Value language="en_US">Accessibility layer for blind players.</Value>
+    </Description>
+    <Gameplay>
+        <TextData>CivVAccess_Text.xml</TextData>
+    </Gameplay>
+    <UISkin name="CivVAccess" set="CivVAccess" platform="Common">
+        <Skin>
+            <Directory>UI/FrontEnd</Directory>
+        </Skin>
+        <GameplaySkin>
+            <Directory>UI/InGame</Directory>
+        </GameplaySkin>
+    </UISkin>
+</Civ5Package>
