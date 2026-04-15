@@ -64,6 +64,18 @@ Civ V has extensive hotkeys, many engine-bound and some reassignable via `Assets
 ### No silent failures
 This mod runs on a C-level proxy, Lua `pcall`-susceptible callbacks, and engine events whose error reporting is weak (`Lua.log` only exists with `LoggingEnabled=1`, and even then some errors never reach it). A swallowed error in an event handler means the feature silently stops working and the user has no idea why. **Every `pcall` / error branch must log through the mod's log wrapper with enough context to locate the failure.** Never drop an error on the floor, never catch-and-return-default without logging. If something fails, the player log must say what and where. A logged failure is actionable; a silent one is invisible.
 
+### Handler conventions
+A handler is a plain Lua table describing a UI screen or mode on the `HandlerStack`. Shape:
+
+- `name` (string, required): unique-ish; used by `removeByName` and debug logs.
+- `capturesAllInput` (bool, default false): barrier for InputRouter's top-down walk. Defaults to false and should stay false for almost all handlers. Set true only for modal-like contexts (popups, confirmation dialogs, in-mod overlays) that should swallow unbound keys rather than let them fall through.
+- `bindings` (array, optional): `{key, mods, fn, description}` entries. The handler on the stack owns its bindings; there is no central binding registry.
+- `onActivate` / `onDeactivate` (fn(self), optional): fired on push / exposure and removal respectively.
+- `tick` (fn(self), optional): called every frame by TickPump on the active handler only.
+- `helpEntries` (array, optional): overrides `bindings` as the source for `collectHelpEntries`.
+
+Push the handler onto `HandlerStack` when the screen opens; `removeByName` it when the screen closes. `HandlerStack` state is per-Context until the proxy shared-state table lands (followup plan), so for now all handler pushes happen in the Boot Context.
+
 ## Architecture Gotchas
 
 - **`Controls.X` can be `nil` during early show** — XML layout parsing completes after the Lua Context is created but before input is enabled. Show-handler code must guard (`if Controls.X then ...`) or defer one tick via `ContextPtr:SetUpdate`. The game's own code does this — follow suit.

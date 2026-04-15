@@ -23,6 +23,10 @@
         <File md5="" import="1">UI/CivVAccess_Text.lua</File>
         <File md5="" import="1">UI/CivVAccess_SpeechEngine.lua</File>
         <File md5="" import="1">UI/CivVAccess_SpeechPipeline.lua</File>
+        <File md5="" import="1">UI/CivVAccess_HandlerStack.lua</File>
+        <File md5="" import="1">UI/CivVAccess_InputRouter.lua</File>
+        <File md5="" import="1">UI/CivVAccess_TickPump.lua</File>
+        <File md5="" import="1">UI/CivVAccess_BaselineHandler.lua</File>
         <File md5="" import="0">Text/CivVAccess_Text_en_US.xml</File>
     </Files>
     <EntryPoints>

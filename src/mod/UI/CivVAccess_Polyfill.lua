@@ -7,3 +7,9 @@ if ContextPtr ~= nil then return end
 Locale = Locale or {
     ConvertTextKey = function(key) return key end,
 }
+
+UI = UI or {
+    ShiftKeyDown = function() return false end,
+    CtrlKeyDown  = function() return false end,
+    AltKeyDown   = function() return false end,
+}

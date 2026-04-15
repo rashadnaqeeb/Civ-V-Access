@@ -4,6 +4,13 @@ include("CivVAccess_TextFilter")
 include("CivVAccess_Text")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
+include("CivVAccess_HandlerStack")
+include("CivVAccess_InputRouter")
+include("CivVAccess_TickPump")
+include("CivVAccess_BaselineHandler")
 
 Log.info("in-game boot")
+HandlerStack.push(BaselineHandler.create())
+TickPump.install(ContextPtr)
+
 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
