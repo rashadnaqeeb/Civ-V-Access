@@ -1,0 +1,159 @@
+# Unbinned method calls
+
+Top 100 `:Method(` calls in the shipped game Lua whose receiver name did not match a known class. If a method here is very common, consider adding its typical receiver name to the extractor's receiver map and re-running.
+
+Format: `count  method   sample`
+
+- 328  `:GetHeight`  -- hillsFrac:GetHeight(8) @ Maps/Great_Plains.lua:75
+- 245  `:ProcessResourceList`  -- self:ProcessResourceList(9, 1, self.marsh_list, resources_to_place) @ Maps/Great_Plains.lua:1404
+- 228  `:PlaceResourceImpact`  -- self:PlaceResourceImpact(x, y, 1, 0) @ Gameplay/Lua/AssignStartingPlots.lua:1866
+- 213  `:PlaceSpecificNumberOfResources`  -- self:PlaceSpecificNumberOfResources(self.oil_ID, sea_oil_amt, iNumToPlace, 0.2, 1, 4, 7, self.co) @ Maps/Great_Plains.lua:1382
+- 128  `:GetID`  -- biggest_area:GetID() @ Maps/Continents.lua:191
+- 100  `:GetX`  -- inlandCorner:GetX() @ Maps/Great_Plains.lua:849
+- 92  `:GetY`  -- inlandCorner:GetY() @ Maps/Great_Plains.lua:850
+- 77  `:GetProjectCount`  -- v:GetProjectCount(apolloProj) @ UI/InGame/Popups/VictoryProgress.lua:332
+- 73  `:GenerateRegions`  -- start_plot_database:GenerateRegions(args) @ Maps/Archipelago.lua:114
+- 73  `:BalanceAndAssign`  -- start_plot_database:BalanceAndAssign() @ Maps/Archipelago.lua:128
+- 73  `:GeneratePlotsByRegion`  -- MultilayeredFractal:GeneratePlotsByRegion() @ Maps/Four_Corners.lua:89
+- 70  `:GenerateFractalLayerWithoutHills`  -- self:GenerateFractalLayerWithoutHills(args) @ Maps/Terra.lua:150
+- 67  `:PlaceResourcesAndCityStates`  -- start_plot_database:PlaceResourcesAndCityStates() @ Maps/Archipelago.lua:134
+- 63  `:ChooseLocations`  -- start_plot_database:ChooseLocations(args) @ Maps/Archipelago.lua:125
+- 63  `:PlaceNaturalWonders`  -- start_plot_database:PlaceNaturalWonders() @ Maps/Archipelago.lua:131
+- 62  `:AddFeatures`  -- featuregen:AddFeatures(false) @ Maps/Archipelago.lua:95
+- 62  `:DivideIntoRegions`  -- self:DivideIntoRegions(iNumCivsInSouth, fert_table, rect_table) @ Maps/North_vs_South.lua:519
+- 57  `:GetOwner`  -- garrisonedUnit:GetOwner() @ UI/InGame/CityBannerManager.lua:975
+- 56  `:GetLatitudeAtPlot`  -- TerrainGenerator:GetLatitudeAtPlot(iX, iY) @ Maps/Four_Corners.lua:183
+- 55  `:GenerateTerrain`  -- terraingen:GenerateTerrain() @ Maps/Archipelago.lua:77
+- 52  `:GeneratePlotTypes`  -- fractal_world:GeneratePlotTypes(args) @ Maps/Archipelago.lua:57
+- 45  `:ApplyTectonics`  -- self:ApplyTectonics(args) @ Maps/Four_Corners.lua:119
+- 45  `:ApplyHexAdjustment`  -- AssignStartingPlots:ApplyHexAdjustment(x, y, plot_adjustments) @ Gameplay/Lua/AssignStartingPlots.lua:579
+- 42  `:GetTeam`  -- pThirdPlayer:GetTeam() @ UI/InGame/Popups/DiploGlobalRelationships.lua:153
+- 41  `:GetLeaderID`  -- UNHome:GetLeaderID() @ UI/InGame/Popups/VictoryProgress.lua:387
+- 40  `:PlaceImpactAndRipples`  -- AssignStartingPlots:PlaceImpactAndRipples(x, y) @ Gameplay/Lua/AssignStartingPlots.lua:1823
+- 39  `:GenerateLuxuryPlotListsAtCitySite`  -- self:GenerateLuxuryPlotListsAtCitySite(x, y, 1, true) @ Gameplay/Lua/AssignStartingPlots.lua:3584
+- 38  `:GetName`  -- rivalTeam:GetName() @ UI/InGame/PopupsGeneric/DeclareWarRangeStrikePopup.lua:13
+- 37  `:GetPlot`  -- thisUnit:GetPlot() @ UI/InGame/UnitFlagManager.lua:1034
+- 35  `:GetIndicesForLuxuryType`  -- AssignStartingPlots:GetIndicesForLuxuryType(resource_ID) @ Gameplay/Lua/AssignStartingPlots.lua:8212
+- 33  `:AddIceAtPlot`  -- FeatureGenerator:AddIceAtPlot(plot, iX, iY, lat) @ Maps/Four_Corners.lua:474
+- 32  `:GetNumTiles`  -- biggest_area:GetNumTiles() @ Maps/Continents.lua:187
+- 32  `:CanPlaceCityStateAt`  -- AssignStartingPlots:CanPlaceCityStateAt(x, y, area_ID, force_it, ignore_collisions) @ Maps/Four_Corners.lua:495
+- 30  `:AddJunglesAtPlot`  -- FeatureGenerator:AddJunglesAtPlot(plot, iX, iY, lat) @ Maps/Ring.lua:526
+- 30  `:GetNameKey`  -- newCity:GetNameKey() @ UI/InGame/PopupsGeneric/AnnexCityPopup.lua:12
+- 29  `:GetNickName`  -- pThirdPlayer:GetNickName() @ UI/InGame/Popups/DiploGlobalRelationships.lua:163
+- 28  `:IsAlive`  -- pThirdPlayer:IsAlive() @ UI/InGame/Popups/DiploGlobalRelationships.lua:152
+- 28  `:IsMinorCiv`  -- v:IsMinorCiv() @ UI/InGame/Popups/VictoryProgress.lua:467
+- 27  `:MeasureStartPlacementFertilityInRectangle`  -- self:MeasureStartPlacementFertilityInRectangle(self.inhabited_WestX, self.inhabited_SouthY, self.inhabited_) @ Maps/North_vs_South.lua:513
+- 27  `:UpdateVisibility`  -- o:UpdateVisibility() @ UI/InGame/UnitFlagManager.lua:252
+- 26  `:Plot`  -- lastCityEntered:Plot() @ UI/InGame/InGame.lua:310
+- 25  `:GetDomainType`  -- thingThatCanActuallyFire:GetDomainType() @ UI/InGame/Bombardment.lua:60
+- 24  `:GetMajorStrategicResourceQuantityValues`  -- AssignStartingPlots:GetMajorStrategicResourceQuantityValues() @ Maps/Great_Plains.lua:1385
+- 24  `:GenerateTerrainAtPlot`  -- TerrainGenerator:GenerateTerrainAtPlot(iX,iY) @ Maps/North_vs_South.lua:129
+- 24  `:AddAtolls`  -- self:AddAtolls() @ Gameplay/Lua/FeatureGenerator.lua:185
+- 24  `:GenerateWaterLayer`  -- MultilayeredFractal:GenerateWaterLayer(args) @ Gameplay/Lua/MultilayeredFractal.lua:529
+- 23  `:IsCombatUnit`  -- pHeadUnit:IsCombatUnit() @ UI/InGame/WorldView/EnemyUnitPanel.lua:1846
+- 22  `:ShiftPlotTypes`  -- self:ShiftPlotTypes() @ Maps/Continents.lua:180
+- 22  `:GetSmallStrategicResourceQuantityValues`  -- AssignStartingPlots:GetSmallStrategicResourceQuantityValues() @ Maps/Great_Plains.lua:1390
+- 22  `:IsRanged`  -- pHeadUnit:IsRanged() @ UI/InGame/WorldView/EnemyUnitPanel.lua:1846
+- 22  `:IsSelected`  -- v:IsSelected() @ Tutorial/lua/TutorialChecks.lua:417
+- 21  `:MeasureStartPlacementFertilityOfPlot`  -- self:MeasureStartPlacementFertilityOfPlot(x, y, true) @ Maps/Skirmish.lua:882
+- 21  `:UpdateFlagOffset`  -- o:UpdateFlagOffset() @ UI/InGame/UnitFlagManager.lua:251
+- 20  `:ExaminePlotForNaturalWondersEligibility`  -- AssignStartingPlots:ExaminePlotForNaturalWondersEligibility(x, y) @ Gameplay/Lua/AssignStartingPlots.lua:4920
+- 19  `:AttemptToPlaceBonusResourceAtPlot`  -- AssignStartingPlots:AttemptToPlaceBonusResourceAtPlot(x, y, bAllowOasis) @ Gameplay/Lua/AssignStartingPlots.lua:3220
+- 19  `:SetName`  -- pGeneral:SetName("TXT_KEY_CIVIL_WAR_SCENARIO_ULYSSES_GRANT") @ DLC/Expansion2/Scenarios/CivilWarScenario/TurnsRemaining.lua:405
+- 18  `:GetFeatureType`  -- pNaturalWonderPlot:GetFeatureType() @ UI/InGame/Popups/NaturalWonderPopup.lua:27
+- 18  `:EvaluateCandidatePlot`  -- AssignStartingPlots:EvaluateCandidatePlot(plotIndex, region_type) @ Gameplay/Lua/AssignStartingPlots.lua:2047
+- 18  `:AttemptToPlaceNaturalWonder`  -- AssignStartingPlots:AttemptToPlaceNaturalWonder(iNaturalWonderNumber) @ Gameplay/Lua/AssignStartingPlots.lua:5495
+- 18  `:GetCivilizationShortDescriptionKey`  -- pCityOwner:GetCivilizationShortDescriptionKey() @ DLC/Expansion2/UI/InGame/PlotMouseoverInclude.lua:388
+- 17  `:PlaceOilInTheSea`  -- AssignStartingPlots:PlaceOilInTheSea() @ Maps/Great_Plains.lua:1367
+- 17  `:PlaceStrategicAndBonusResources`  -- AssignStartingPlots:PlaceStrategicAndBonusResources() @ Maps/Great_Plains.lua:1395
+- 17  `:MeasureStartPlacementFertilityOfLandmass`  -- self:MeasureStartPlacementFertilityOfLandmass(iAreaID, iWestX, iEastX, iSouthY, iNorthY, wrapsX, wrapsY) @ Maps/North_vs_South.lua:556
+- 16  `:PlaceSmallQuantitiesOfStrategics`  -- self:PlaceSmallQuantitiesOfStrategics(32, self.land_list) @ Maps/Great_Plains.lua:1431
+- 16  `:AdjustTerrainTypes`  -- FeatureGenerator:AdjustTerrainTypes() @ Maps/Ring.lua:539
+- 16  `:ChopIntoTwoRegions`  -- self:ChopIntoTwoRegions(fertility_table, rectangle_data_table, bTaller, chopPercent) @ Gameplay/Lua/AssignStartingPlots.lua:1004
+- 15  `:PlaceSexyBonusAtCivStarts`  -- self:PlaceSexyBonusAtCivStarts() @ Maps/Great_Plains.lua:1487
+- 15  `:AddExtraBonusesToHillsRegions`  -- self:AddExtraBonusesToHillsRegions() @ Maps/Great_Plains.lua:1488
+- 15  `:__initFractals`  -- instance:__initFractals() @ Maps/Ice_Age.lua:429
+- 15  `:NormalizeTeamLocations`  -- self:NormalizeTeamLocations() @ Maps/North_vs_South.lua:659
+- 15  `:AssignCityStatesToRegionsOrToUninhabited`  -- AssignStartingPlots:AssignCityStatesToRegionsOrToUninhabited(args) @ Maps/Ring.lua:617
+- 15  `:GetTypeControlTable`  -- TTManager:GetTypeControlTable("TypeRoundImage", tipControlTable) @ UI/Civilopedia/CivilopediaScreen.lua:6502
+- 15  `:GetNumPolicyBranchesFinished`  -- v:GetNumPolicyBranchesFinished() @ UI/InGame/Popups/VictoryProgress.lua:467
+- 15  `:AddFeaturesAtPlot`  -- self:AddFeaturesAtPlot(x, y) @ Gameplay/Lua/FeatureGenerator.lua:193
+- 14  `:__InitLuxuryWeights`  -- AssignStartingPlots:__InitLuxuryWeights() @ Maps/Great_Plains.lua:877
+- 14  `:AssignLuxuryToRegion`  -- AssignStartingPlots:AssignLuxuryToRegion(region_number) @ Maps/Great_Plains.lua:1118
+- 14  `:PlaceFish`  -- self:PlaceFish(6, self.coast_list) @ Maps/Great_Plains.lua:1486
+- 14  `:InitFractals`  -- data:InitFractals() @ Maps/Ice_Age.lua:300
+- 14  `:NormalizeStartLocation`  -- self:NormalizeStartLocation(region_number) @ Maps/North_vs_South.lua:590
+- 14  `:IsHasMet`  -- pLocalTeam:IsHasMet(player:GetTeam()) @ UI/InGame/TurnProcessing.lua:50
+- 14  `:IsAtWar`  -- pUsTeam:IsAtWar(iOtherTeam) @ UI/InGame/WorldView/DiploCorner.lua:278
+- 13  `:SetFogState`  -- o:SetFogState(fogState) @ UI/InGame/UnitFlagManager.lua:250
+- 13  `:GetCivilizationType`  -- leadAI:GetCivilizationType() @ UI/InGame/Popups/VictoryProgress.lua:474
+- 13  `:PlaceCityState`  -- AssignStartingPlots:PlaceCityState(coastal_plot_list, inland_plot_list, check_proximity, check_) @ Gameplay/Lua/AssignStartingPlots.lua:6302
+- 13  `:GetListOfAllowableLuxuriesAtCitySite`  -- AssignStartingPlots:GetListOfAllowableLuxuriesAtCitySite(x, y, radius) @ Gameplay/Lua/AssignStartingPlots.lua:7842
+- 13  `:Meet`  -- spainTeam:Meet(englandTeamID) @ DLC/DLC_07/Scenarios/Conquest of the New World Deluxe/NewWorld_Scenario_MapScript.lua:3194
+- 12  `:AssignLuxuryRoles`  -- AssignStartingPlots:AssignLuxuryRoles() @ Maps/Great_Plains.lua:1246
+- 12  `:AddForestsAtPlot`  -- Ice_AgeFeatureGenerator:AddForestsAtPlot(plot, iX, iY, lat) @ Maps/Ice_Age.lua:494
+- 12  `:GetPlotCity`  -- unitPlot:GetPlotCity() @ UI/InGame/InGame.lua:147
+- 12  `:UpdateCargo`  -- o:UpdateCargo() @ UI/InGame/UnitFlagManager.lua:106
+- 12  `:SetEscort`  -- self:SetEscort(nil) @ UI/InGame/UnitFlagManager.lua:277
+- 12  `:GetUnitByID`  -- playerUnitList:GetUnitByID(unitID) @ UI/InGame/UnitMemberOverlay.lua:252
+- 12  `:IsHuman`  -- pThirdPlayer:IsHuman() @ UI/InGame/Popups/DiploGlobalRelationships.lua:162
+- 12  `:MovesLeft`  -- v:MovesLeft() @ Tutorial/lua/TutorialChecks.lua:124
+- 12  `:IsCanAttack`  -- v:IsCanAttack() @ Tutorial/lua/TutorialChecks.lua:1236
+- 12  `:IsEnemyInMovementRange`  -- v:IsEnemyInMovementRange(false, false) @ Tutorial/lua/TutorialChecks.lua:1237
+- 12  `:MeasureSinglePlot`  -- AssignStartingPlots:MeasureSinglePlot(x, y, region_type) @ Gameplay/Lua/AssignStartingPlots.lua:1937
+- 12  `:IterateThroughCandidatePlotList`  -- AssignStartingPlots:IterateThroughCandidatePlotList(plot_list, region_type) @ Gameplay/Lua/AssignStartingPlots.lua:2278
+- 12  `:FindStart`  -- AssignStartingPlots:FindStart(region_number) @ Gameplay/Lua/AssignStartingPlots.lua:2312
+- 12  `:ExamineCandidatePlotForNaturalWondersEligibility`  -- AssignStartingPlots:ExamineCandidatePlotForNaturalWondersEligibility(x, y) @ Gameplay/Lua/AssignStartingPlots.lua:4948
+
+## Top unbinned receiver names
+
+- 1657  `self`
+- 471  `v`
+- 399  `AssignStartingPlots`
+- 340  `g_ListItemManager`
+- 338  `thisButton`
+- 299  `start_plot_database`
+- 224  `g_ListHeadingManager`
+- 200  `Controls`
+- 182  `g_TheirCombatDataIM`
+- 181  `g_MyCombatDataIM`
+- 139  `FeatureGenerator`
+- 124  `g_BBTextManager`
+- 122  `pullDown`
+- 90  `controlTable`
+- 77  `hillsFrac`
+- 74  `g_InstanceManager`
+- 60  `controlTableTT`
+- 57  `g_PipeManager`
+- 56  `MultilayeredFractal`
+- 55  `featuregen`
+- 52  `buttonControl`
+- 51  `terraingen`
+- 51  `control`
+- 51  `button`
+- 50  `TerrainGenerator`
+- 50  `imageControl`
+- 48  `g_PrereqTechManager`
+- 48  `g_ResourcesFoundManager`
+- 45  `flag`
+- 43  `pThirdPlayer`
+- 39  `o`
+- 37  `biggest_area`
+- 37  `theirPlot`
+- 37  `pHeadUnit`
+- 37  `SEPlot`
+- 36  `layered_world`
+- 35  `pTeamA`
+- 35  `pTeamB`
+- 35  `regionHillsFrac`
+- 34  `pTheirPlayer`
+- 32  `fractal_world`
+- 32  `outerFrame`
+- 32  `g_CivilizationsManager`
+- 27  `g_PlotButtonIM`
+- 27  `selectionAnim`
+- 27  `automaticPurchasePullDown`
+- 26  `forests`
+- 26  `thisLockedBox`
+- 25  `label`
+- 24  `g_RequiredResourcesManager`

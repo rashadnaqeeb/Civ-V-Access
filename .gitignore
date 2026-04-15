@@ -1,0 +1,39 @@
+# Build artifacts (always regenerated)
+*.obj
+*.o
+*.exp
+*.pdb
+*.ilk
+*.res
+*.user
+*.suo
+
+# Build directories
+build/
+out/
+bin/
+x64/
+Debug/
+Release/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+
+# Tolk source-tree build outputs (keep source, drop artifacts).
+# The redistributable binaries live in third_party/tolk/dist/ and libs/ and are tracked.
+third_party/tolk/src/*.dll
+third_party/tolk/src/*.lib
+
+# Local-only config (game install path, personal overrides)
+local.config
+local.*.ini

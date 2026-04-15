@@ -1,0 +1,277 @@
+# Civ V Hotkey Reference
+
+Engine-defined keyboard bindings in Sid Meier's Civilization V, extracted from the game's action XML under `Assets/Gameplay/XML/` (base game) and `Assets/DLC/Expansion/` + `Assets/DLC/Expansion2/` (Gods & Kings, Brave New World). Purpose: know what the engine already owns, so every hotkey we reassign in the accessibility mod is a conscious choice.
+
+Authoritative source: the XML files listed at the bottom. Where the [fandom wiki's Control bindings page](https://civilization.fandom.com/wiki/Control_bindings_(Civ5)) disagrees with the XML, the XML wins. A few wiki claims describe keys that do not appear in any XML file and are probably hardcoded in the engine; those are flagged as "wiki, unverified" and should be confirmed at runtime before we assume anything.
+
+Scope notes:
+- Defaults only. The Options menu rebinds most of these at runtime — do not assume the user is on defaults in shipped builds; read the current binding where possible.
+- Context-sensitive entries (unit missions, interface modes, worker builds) only fire when the relevant unit or screen is active. Key reuse across contexts is normal (e.g. `F` means Wake / Sleep / Fortify / Garrison / Fishing Boats / Fort depending on state).
+
+---
+
+## Global controls (`CIV5Controls.xml`)
+
+### Unit selection & camera
+| Key | Action | Notes |
+|---|---|---|
+| `C` / `Numpad 5` | Center on selected unit | |
+| `Ctrl+C` / `Ctrl+Numpad 5` | Select units of same type on plot | |
+| `Alt+C` / `Alt+Numpad 5` | Select all units of same type | |
+| `Insert` | Select / cycle city | Conflicts with screen-reader modifier keys — see §Screen reader conflicts |
+| `Ctrl+F10` | Select capital city | |
+| `Home` / `Numpad +` | Next city | |
+| `End` / `Numpad -` | Previous city | |
+| `Ctrl+.` / `Numpad *` | Next unit needing orders | |
+| `Ctrl+,` / `Numpad /` | Previous unit needing orders | |
+| `W` / `Numpad Enter` | Cycle units on current plot | |
+| `.` / `Numpad 5` | Alternate cycle units | |
+| `,` | Reselect last active unit | |
+| `/` | Cycle workers | |
+
+Wiki additionally claims `Page Up` / `Page Down` and `+` / `-` zoom the camera and `G` toggles the hex grid. None appear in any XML — likely hardcoded. Verify at runtime before relying on them being available or unavailable.
+
+### Turn & automation
+| Key | Action |
+|---|---|
+| `Return` / `Numpad Enter` | End turn |
+| `Ctrl+Space` | End turn (alternate) |
+| `Shift+Return` / `Shift+Numpad Enter` | Force end turn |
+| `Ctrl+A` | Toggle unit automation (`CONTROL_AUTOMOVES`) |
+
+### Display overlays
+| Key | Action |
+|---|---|
+| `Y` | Toggle yield icons |
+| `Ctrl+R` | Toggle all resource icons |
+| `Alt+U` | Toggle unit icons |
+| `F10` | Toggle strategic view |
+
+### Advisor / info screens
+| Key | Action |
+|---|---|
+| `F1` | Civilopedia |
+| `F2` | Domestic (Economic) Advisor |
+| `F3` | Military Advisor |
+| `F4` | Foreign (Diplomacy) Advisor |
+| `F5` | Social Policies |
+| `F6` | Tech tree |
+| `F7` | Turn / event log |
+| `F8` | Victory progress |
+| `F9` | Info screen (demographics / top cities) |
+
+### Game management
+| Key | Action |
+|---|---|
+| `Ctrl+S` | Save game |
+| `Ctrl+Alt+S` | Save unit group (Hall of Fame) |
+| `F11` | Quick save |
+| `Ctrl+F11` | Quick load |
+| `Ctrl+L` | Load game |
+| `Ctrl+O` | Options menu |
+| `Alt+Q` | Retire from game |
+| `Ctrl+H` | Select healthy units |
+| `V` | Advisor counsel |
+| `Escape` | In-game menu / cancel current UI |
+
+---
+
+## Unit commands (`CIV5Commands.xml`)
+
+| Key | Action |
+|---|---|
+| `U` | Upgrade unit |
+| `F` | Wake sleeping unit |
+| `Backspace` | Cancel current action (`COMMAND_CANCEL`) |
+| `Backspace` | Stop automation (`COMMAND_STOP_AUTOMATION` — same key, different command, engine picks by unit state) |
+| `Shift+Backspace` | Cancel all queued actions |
+| `Delete` | Delete unit |
+
+---
+
+## Unit missions (`CIV5Missions.xml`)
+
+Fires only when the selected unit supports the mission. Many keys are reused across missions — the engine picks the mission matching the current unit's state.
+
+| Key | Mission(s) |
+|---|---|
+| `Space` / `Numpad 0` | Skip turn (unit) |
+| `F` / `Numpad .` | Sleep / Fortify / Garrison (context-dependent) |
+| `A` | Alert (wait for enemy in sight) |
+| `H` | Heal / rest |
+| `E` | Embark onto water |
+| `D` | Disembark |
+| `S` | Set up for ranged attack / Air sweep |
+| `B` | Ranged attack / Found city |
+| `Shift+P` | Pillage |
+| `I` | Air intercept patrol |
+| `R` | Rebase air unit |
+| `K` | Unit death animation (debug) |
+
+---
+
+## Unit automation (`CIV5Automates.xml`)
+
+| Key | Action |
+|---|---|
+| `A` | Automate worker build |
+| `E` | Automate explore |
+
+---
+
+## Worker builds (`CIV5Builds.xml` + DLC)
+
+Only active when a worker (or worker-equivalent Great Person) is selected and the selected plot supports the build. Many keys overlap with missions and with each other — the engine disambiguates by unit type and plot state.
+
+### Base game workers
+| Key | Build |
+|---|---|
+| `R` | Road |
+| `Alt+R` | Railroad |
+| `Ctrl+Alt+R` | Remove route |
+| `I` | Farm |
+| `N` | Mine |
+| `T` | Trading post |
+| `L` | Lumber mill |
+| `P` | Pasture |
+| `P` | Plantation |
+| `H` | Camp |
+| `Q` | Quarry |
+| `O` | Well |
+| `O` | Offshore platform |
+| `F` | Fishing boats |
+| `Ctrl+F` | Fort |
+| `Alt+C` | Remove jungle / forest / marsh (three builds, same key) |
+| `S` | Scrub fallout |
+| `Ctrl+P` | Repair improvement |
+
+### Great Person constructions
+| Key | Build | Great Person |
+|---|---|---|
+| `A` | Academy | Great Scientist |
+| `H` | Customs House | Great Merchant |
+| `M` | Manufactory | Great Engineer |
+| `Ctrl+C` | Citadel | Great General |
+| `L` | Landmark | Great Artist |
+| `L` | Holy Site (G&K / BNW) | Great Prophet |
+
+### BNW unique-improvement workers
+| Key | Build | Civilization |
+|---|---|---|
+| `Ctrl+A` | Archaeology dig | any (Archaeologist) |
+| `B` | Brazilwood camp | Brazil |
+| `K` | Kasbah | Morocco |
+| `Z` | Feitoria | Portugal |
+| `Z` | Chateau | France |
+| `F` | Fishing boats (no kill) | various |
+| `E` | Polder (G&K) | Netherlands |
+
+---
+
+## Interface modes (`CIV5InterfaceModes.xml`)
+
+Modal cursor states — the next click on the map is interpreted as the mode's target.
+
+| Key | Mode |
+|---|---|
+| `M` | Move to tile |
+| `Ctrl+M` | Move (same-type units on plot) |
+| `Alt+M` | Move (all units on plot) |
+| `Ctrl+A` | Attack |
+| `B` | Ranged attack (unit) |
+| `B` | City ranged attack (same key, distinct mode) |
+| `S` | Air strike |
+| `Alt+S` | Air sweep |
+| `Ctrl+Shift+R` | Establish trade / supply route |
+| `Shift+A` | Airlift |
+| `N` | Nuclear strike |
+| `P` | Paradrop |
+| `Alt+R` | Rebase air unit |
+| `K` | Embark / disembark |
+
+G&K and BNW ship empty `CIV5InterfaceModes_Expansion*.xml` files (no new mode bindings).
+
+---
+
+## Expansion additions (Controls)
+
+Both G&K and BNW redefine `CIV5Controls.xml` with the same contents plus these two entries. Neither key is "BNW-only" or "G&K-only" — both expansions define both.
+
+| Key | Action | Added in |
+|---|---|---|
+| `Ctrl+E` | Espionage Overview | G&K (kept in BNW) |
+| `Ctrl+P` | Religion Overview | G&K (kept in BNW) |
+
+Note that `Ctrl+P` here collides with `BUILD_REPAIR` in `CIV5Builds.xml`. The engine disambiguates by context (worker selected and standing on damaged improvement vs. anywhere else).
+
+---
+
+## Key conflicts inside the engine
+
+Some keys carry multiple meanings depending on unit, plot, or screen context. Not our problem to fix — just don't assume a key is "free" because one meaning doesn't apply today.
+
+- `F` — Wake (command), Sleep / Fortify / Garrison (mission), Fishing Boats (build), Fort (Ctrl build), Fishing Boats No Kill (BNW build)
+- `S` — Set up ranged / Air sweep (mission), Air strike (mode), Scrub fallout (build), Save (Ctrl)
+- `B` — Ranged attack / Found city (mission), Ranged-attack mode, City ranged-attack mode, Brazilwood (BNW build)
+- `K` — Embark / disembark (mode), unit die animation (mission), Kasbah (BNW build)
+- `A` — Alert (mission), Automate build (automate), Attack (Ctrl mode), Toggle automation (Ctrl control), Academy (build), Archaeology (Ctrl build, BNW), Airlift (Shift mode)
+- `E` — Embark (mission), Automate explore (automate), Espionage Overview (Ctrl control), Polder (G&K build)
+- `P` — Pillage (Shift mission), Paradrop (mode), Pasture / Plantation (build), Repair (Ctrl build), Religion Overview (Ctrl control)
+- `R` — Rebase (mission, also Alt mode), Road (build), Railroad (Alt build), Remove Route (Ctrl+Alt build), Resources (Ctrl control), Route-to (Ctrl+Shift mode)
+- `L` — Load game (Ctrl), Lumber mill / Landmark / Holy Site (build)
+- `H` — Heal (mission), Select healthy (Ctrl control), Camp / Customs House (build)
+- `C` — Center (control), Select type (Ctrl) / all (Alt) / Citadel (Ctrl build), Remove jungle/forest/marsh (Alt build)
+- `M` — Move mode, Manufactory (build)
+- `N` — Nuke (mode), Mine (build)
+- `O` — Options (Ctrl), Well / Offshore platform (build)
+
+---
+
+## Screen reader conflicts
+
+Blind users run a screen reader in the background while playing. Reader modifier keys must stay out of the game's way, and the game's use of those same keys can fire reader commands by accident.
+
+- `Insert` — NVDA and JAWS both use Insert as their primary modifier key ("NVDA key" / "JAWS key"). Civ V binds plain `Insert` to select-city cycling. Expect drive-by conflicts when a user presses Insert+anything to fire a reader command and the Civ input handler also sees the Insert. Mitigation: consider rebinding `CONTROL_SELECTCITY` away from Insert in our mod's default keymap, or documenting the conflict so users remap via Options.
+- `Caps Lock` — NVDA's secondary modifier (configurable, widely used) and JAWS's secondary modifier. Also Narrator's primary modifier (`CapsLock+arrows`, `CapsLock+Space`, etc.). Civ V does not bind Caps Lock by default — safe from the engine side, but any mod hotkey we pick with Caps Lock will collide with every screen reader on the planet. Do not bind anything to Caps Lock.
+- `Numpad Insert` (Numpad 0 with NumLock off) — NVDA's laptop-layout modifier. Civ V uses `Numpad 0` (NumLock on) as an alt for `MISSION_SKIP`, but the reader modifier form fires only with NumLock off. Reserve for reader use and avoid binding either variant ourselves.
+- Narrator — `CapsLock+arrows/space/Enter/Esc` trigger scan mode. Users on Narrator will conflict with any binding we put on those combos.
+
+---
+
+## Unbound keys (candidate safe keys for mod bindings)
+
+Letters that appear in NO XML binding, under any modifier. Verify at runtime before binding — engine-hardcoded keys and user remaps can still claim them.
+
+- **Letters:** `J`, `X` (only these two are truly absent from all XML). `G` is not in the XML either but is widely reported to toggle the hex grid — treat as unverified / probably engine-hardcoded.
+- **Numbers:** `1`–`0` (top row) — no default XML bindings.
+- **Numpad:** `Numpad 1`, `2`, `3`, `4`, `6`, `7`, `8`, `9` (NumLock on). `Numpad 0` and `Numpad 5` and `Numpad Enter` and `Numpad . / + / - / * / /` are all taken as Control / Mission alts.
+- **Punctuation:** `` ` ``, `[`, `]`, `\`, `;`, `'`
+- **`Tab`** — no default binding; candidate for screen-reader-style focus cycling
+
+**Previously listed as safe but actually bound** (removed from candidate list after XML audit): `G` (wiki claim of hex grid), `L` (Lumber mill / Landmark / Holy Site / Ctrl+L load), `O` (Well / Offshore / Options), `Q` (Quarry / Alt+Q retire), `T` (Trading post). `Z` is free in base and G&K but taken by BNW for Feitoria / Chateau — safe only if targeting no-BNW installs.
+
+Modifier-combined keys (`Ctrl+`, `Shift+`, `Alt+`) that are unused in the tables above are available, but audit case-by-case — many Ctrl-letter combos are claimed (see conflicts above).
+
+---
+
+## Source files
+
+Base game, under `C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization V\Assets\`:
+- `Gameplay\XML\Units\CIV5Controls.xml` — global UI controls, advisor screens
+- `Gameplay\XML\Units\CIV5Commands.xml` — direct unit commands
+- `Gameplay\XML\Units\CIV5Missions.xml` — unit mission hotkeys
+- `Gameplay\XML\Units\CIV5Automates.xml` — automation hotkeys
+- `Gameplay\XML\Units\CIV5Builds.xml` — worker / Great Person build hotkeys
+- `Gameplay\XML\Interface\CIV5InterfaceModes.xml` — interface-mode hotkeys
+
+Expansions (same `Assets\` root):
+- G&K Controls: `DLC\Expansion\Gameplay\XML\Units\CIV5Controls.xml`
+- G&K Missions: `DLC\Expansion\Gameplay\XML\Units\CIV5Missions.xml`
+- G&K Builds: `DLC\Expansion\Gameplay\XML\Units\CIV5Builds.xml` + `CIV5Builds_Expansion.xml`
+- G&K Interface Modes: `DLC\Expansion\Gameplay\XML\Interface\CIV5InterfaceModes_Expansion.xml` (empty)
+- BNW Controls: `DLC\Expansion2\Gameplay\XML\Units\CIV5Controls.xml`
+- BNW Missions: `DLC\Expansion2\Gameplay\XML\Units\CIV5Missions.xml`
+- BNW Builds: `DLC\Expansion2\Gameplay\XML\Units\CIV5Builds.xml` + `CIV5Builds_Expansion2.xml` + `CIV5Builds_Inherited_Expansion2.xml`
+- BNW Interface Modes: `DLC\Expansion2\Gameplay\XML\Interface\CIV5InterfaceModes_Expansion2.xml` (empty)
+
+When in doubt, grep these files for `<HotKey>`, `<HotKeyAlt>`, `<CtrlDown>`, `<ShiftDown>`, `<AltDown>` — the schema is consistent across all files. Engine-internal bindings (camera zoom, hex grid) are not in these XML files and can only be confirmed by runtime testing.
