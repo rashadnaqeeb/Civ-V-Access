@@ -61,6 +61,7 @@ Four approaches were considered. **Only one is viable for our use case.**
 - **Sandbox denies:** `package`, `require`, `loadlib`, `dofile`, `loadfile`, `io`, `_G`.
 - **Sandbox provides:** `os`, `debug`, `string`, `table`, `math`, `coroutine`, plus engine tables: `Events`, `LuaEvents`, `Modding`, `ContextPtr`, `Controls`, `UIManager`, `Game`, `Players`, `Map`, `UI`, `Locale`, `GameInfo`, `Mouse`, `ContentManager`.
 - **`include(name)`** uses **bare filename stem** only — no paths. `include("Foo")` works; `include("sub/Foo")` fails. The engine indexes by stem.
+- **`include()` requires `import="1"` in `.modinfo`.** Files with `import="0"` are copied into the mod folder but not registered in the VFS, so `include()` silently finds nothing and any globals the file would have defined stay `nil`. Entry-point files referenced by the `<EntryPoints>` block (e.g. the `InGameUIAddin` Boot.xml/Boot.lua) work at `import="0"` because the engine loads them by path, but everything pulled in via `include()` must be `import="1"`.
 - **`_G` is blocked**, so global introspection is limited. Must know what's there by name.
 - **Useful `config.ini` switches (dev only):** `LoggingEnabled=1`, `EnableLuaDebugLibrary=1`, `EnableTuner=1` (see §9), `QuickStart=1` (skip splash screens).
 - **Memory budget:** no documented hard ceiling. `DebugMenu.lua:280` calls `collectgarbage("count")` defensively — the engine is heap-aware but doesn't expose a mod-facing limit. Practical guidance: keep any precomputed per-turn cache under ~10 MB to stay well below typical era-appropriate Lua heap sizes (~100–200 MB). Profile on HUGE + 12 civs to establish real budget.
@@ -334,7 +335,7 @@ For the record, so we don't relitigate:
 
 ## 14. Known current install state
 
-Proxy stack and skeleton mod are deployed; end-to-end speech pipeline is verified.
+Proxy stack, skeleton mod, and central speech pipeline are deployed; end-to-end speech is verified.
 
 Deployed into the game directory (`C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization V\`):
 - Stock `lua51_Win32.dll` renamed to `lua51_original.dll` (one-time, by `scripts/deploy.ps1`).
@@ -342,13 +343,19 @@ Deployed into the game directory (`C:\Program Files (x86)\Steam\steamapps\common
 - Proxy writes `proxy_debug.log` next to itself on each launch.
 
 Deployed as a user mod at `%USERPROFILE%\Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)\`:
-- `Civ-V-Access.modinfo` (GUID `40a9df7b-ae9f-48db-abb5-44afe0420524`, version 1) with a single `InGameUIAddin` entry point.
-- `UI/Boot.xml` + `UI/Boot.lua` — bootstrap that `print`s to `Lua.log` and speaks an in-game confirmation via `tolk.output`. This is the only place in the codebase that calls `tolk.output` directly; the future announcement pipeline will replace it.
+- `Civ-V-Access.modinfo` (GUID `40a9df7b-ae9f-48db-abb5-44afe0420524`, version 1) with a single `InGameUIAddin` entry point. Version stays at 1 during development and only bumps on release; Civ V keys mod state on `(ModID, Version)`, so bumping strands prior enable state and ModUserData under the old row.
+- `UI/Boot.xml` + `UI/Boot.lua` — in-game entry point. Includes the four modules below, emits an info log line, and speaks a boot confirmation via the pipeline. No code in the mod calls `tolk.*` or bare `print` directly.
+- `UI/CivVAccess_Log.lua` — log wrapper. `Log.debug/info/warn/error` prefix `[CivVAccess] [LEVEL]` and forward to `print` (which the engine routes to `Lua.log` when `LoggingEnabled=1`).
+- `UI/CivVAccess_TextFilter.lua` — pure-function markup stripper. Strips `[NEWLINE]`, `[COLOR_*]`, `[ENDCOLOR]`, catch-all `[A-Z_0-9]+` tokens, emdash, and control chars; substitutes registered `[ICON_*]` tokens via `TextFilter.registerIcon(name, spoken)`; unregistered icons are stripped and logged once.
+- `UI/CivVAccess_SpeechEngine.lua` — thin wrapper over the injected `tolk` global. `SpeechEngine.say/stop/isAvailable`. Logs once and no-ops if `tolk` is absent.
+- `UI/CivVAccess_SpeechPipeline.lua` — the only module feature code should touch. `speakInterrupt` (filter, 50 ms dedupe, then `tolk.output(text, true)`), `speakQueued` (filter, no dedupe, `tolk.output(text, false)`), `stop`, `setEnabled/isActive`. Internals `_timeSource`, `_speakAction`, `_reset` are exposed as test seams.
+- `Text/CivVAccess_Text_en_US.xml` — mod-authored strings, registered via a `<GameData><Text>` block. Currently holds `TXT_KEY_CIVVACCESS_BOOT_INGAME`.
+- All five Lua modules and the text XML are declared `import="1"` in `.modinfo`; Boot.xml and Boot.lua stay `import="0"` since the engine loads them by path via the entry point.
 
 End-to-end verified:
 - Front-end speech fires from the proxy's `lua_setfenv` hook on the first sandboxed env that receives `tolk` (before any mod can activate). Logged as `frontend_announce: ok`.
 - Auto-enable fires on the first env where `Modding` is visible. Logged as `mod_enable: accessibility mod auto-enabled`.
-- In-game bootstrap runs from the mod's `InGameUIAddin` and speaks its confirmation. `Lua.log` shows `[CivVAccess] in-game boot` when `LoggingEnabled=1` is set in `config.ini`.
+- In-game bootstrap runs from the mod's `InGameUIAddin`, resolves `TXT_KEY_CIVVACCESS_BOOT_INGAME`, and speaks via the pipeline. `Lua.log` shows `[CivVAccess] [INFO] in-game boot`.
 
 Repo-side artifacts:
 - Proxy source and build at `src/proxy/` → `build/proxy/lua51_Win32.dll` (115 exports) plus staged payload at `build/proxy/stage/`.
