@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GameData>
+    <Language_en_US>
+        <Row Tag="TXT_KEY_CIVVACCESS_BOOT_INGAME">
+            <Text>Civilization V accessibility loaded in-game.</Text>
+        </Row>
+    </Language_en_US>
+</GameData>

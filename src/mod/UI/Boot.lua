@@ -1,4 +1,7 @@
--- Bootstrap for the in-game UI. This is the one place we call tolk.output
--- directly; the central announcement pipeline (future task) will replace it.
-print("[CivVAccess] in-game boot")
-tolk.output("Civilization V accessibility loaded in-game.", true)
+include("CivVAccess_Log")
+include("CivVAccess_TextFilter")
+include("CivVAccess_SpeechEngine")
+include("CivVAccess_SpeechPipeline")
+
+Log.info("in-game boot")
+SpeechPipeline.speakInterrupt(Locale.ConvertTextKey("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
