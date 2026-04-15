@@ -334,9 +334,26 @@ For the record, so we don't relitigate:
 
 ## 14. Known current install state
 
-As of session end:
-- Prior author's proxy is installed at `C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization V\lua51_Win32.dll`. Working (`proxy_debug.log` reports 115 exports resolved, Tolk loaded, auto-enable fired).
-- Prior author's 22 UI file overrides are deployed in `Assets/UI/` within the game install. **These need to be reverted** before we can develop cleanly.
-- Prior author's 32-bit Tolk + companion DLLs (`Tolk.dll`, `nvdaControllerClient32.dll`, `SAAPI32.dll`, `dolapi32.dll`) are in the game dir. **Safe to keep** — we built those ourselves and will reuse them.
-- Prior author's Civ V mod is in `Documents\My Games\Sid Meier's Civilization 5\MODS\CivVAccessibility (v 1)\`. **Should be deleted** so the auto-enable points at nothing.
-- Pending action: Steam "Verify integrity of game files" to restore the 22 overridden UI files, then delete the prior mod directory, then we have a clean baseline with the proxy still working.
+Proxy stack and skeleton mod are deployed; end-to-end speech pipeline is verified.
+
+Deployed into the game directory (`C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization V\`):
+- Stock `lua51_Win32.dll` renamed to `lua51_original.dll` (one-time, by `scripts/deploy.ps1`).
+- Proxy `lua51_Win32.dll` plus Tolk stack (`Tolk.dll`, `SAAPI32.dll`, `dolapi32.dll`, `nvdaControllerClient32.dll`).
+- Proxy writes `proxy_debug.log` next to itself on each launch.
+
+Deployed as a user mod at `%USERPROFILE%\Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)\`:
+- `Civ-V-Access.modinfo` (GUID `40a9df7b-ae9f-48db-abb5-44afe0420524`, version 1) with a single `InGameUIAddin` entry point.
+- `UI/Boot.xml` + `UI/Boot.lua` — bootstrap that `print`s to `Lua.log` and speaks an in-game confirmation via `tolk.output`. This is the only place in the codebase that calls `tolk.output` directly; the future announcement pipeline will replace it.
+
+End-to-end verified:
+- Front-end speech fires from the proxy's `lua_setfenv` hook on the first sandboxed env that receives `tolk` (before any mod can activate). Logged as `frontend_announce: ok`.
+- Auto-enable fires on the first env where `Modding` is visible. Logged as `mod_enable: accessibility mod auto-enabled`.
+- In-game bootstrap runs from the mod's `InGameUIAddin` and speaks its confirmation. `Lua.log` shows `[CivVAccess] in-game boot` when `LoggingEnabled=1` is set in `config.ini`.
+
+Repo-side artifacts:
+- Proxy source and build at `src/proxy/` → `build/proxy/lua51_Win32.dll` (115 exports) plus staged payload at `build/proxy/stage/`.
+- Mod source at `src/mod/` (mirrored into the MODS folder by deploy).
+- Deploy script at `scripts/deploy.ps1` (idempotent: DLL rename is skipped if `lua51_original.dll` already exists; proxy files are `Copy-Item -Force`'d).
+- Vendored 32-bit Tolk at `third_party/tolk/dist/x86/`.
+
+Recovery: no restore script. Run Steam's "Verify integrity of game files" to revert the install, then redeploy.

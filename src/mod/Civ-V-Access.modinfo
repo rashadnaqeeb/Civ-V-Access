@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="40a9df7b-ae9f-48db-abb5-44afe0420524" version="1">
+    <Properties>
+        <Name>Civ V Access</Name>
+        <Description>Accessibility mod for blind players. Speech output via Tolk.</Description>
+        <Teaser>Accessibility mod for blind players.</Teaser>
+        <Authors>Civ-V-Access</Authors>
+        <AffectsSavedGames>0</AffectsSavedGames>
+        <SupportsSinglePlayer>1</SupportsSinglePlayer>
+        <SupportsMultiplayer>0</SupportsMultiplayer>
+        <MinCompatibleSaveVersion>0</MinCompatibleSaveVersion>
+        <ReloadAudioSystem>0</ReloadAudioSystem>
+        <ReloadLandmarkSystem>0</ReloadLandmarkSystem>
+        <ReloadStrategicViewSystem>0</ReloadStrategicViewSystem>
+        <ReloadUnitSystem>0</ReloadUnitSystem>
+    </Properties>
+    <Files>
+        <File md5="" import="0">UI/Boot.xml</File>
+        <File md5="" import="0">UI/Boot.lua</File>
+    </Files>
+    <EntryPoints>
+        <EntryPoint type="InGameUIAddin" file="UI/Boot.xml">
+            <Name>CivVAccess Boot</Name>
+            <Description>Bootstraps the accessibility mod in the in-game UI.</Description>
+        </EntryPoint>
+    </EntryPoints>
+</Mod>

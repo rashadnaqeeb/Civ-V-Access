@@ -367,6 +367,37 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
         ORIG_lua_settop(L, -2); /* pop nil */
     }
 
+    /* === Front-end announce (once, on first env that now contains tolk) ===
+       Fires before any Civ V mod can activate and before Modding is visible,
+       giving the user confirmation the proxy + Tolk stack is live. */
+    {
+        static int g_frontend_announced = 0;
+        if (!g_frontend_announced) {
+            int env_idx = ORIG_lua_gettop(L);
+            ORIG_lua_getfield(L, env_idx, "tolk");
+            if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+                ORIG_lua_getfield(L, -1, "output");
+                if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+                    typedef int (__cdecl *pfn_lua_pcall)(lua_State *, int, int, int);
+                    typedef const char * (__cdecl *pfn_lua_tolstring)(lua_State *, int, size_t *);
+                    pfn_lua_pcall pPcall = (pfn_lua_pcall)orig[I_lua_pcall];
+
+                    ORIG_lua_pushstring(L, "Civilization V accessibility mod loaded.");
+                    ORIG_lua_pushboolean(L, 1);
+                    g_frontend_announced = 1;
+                    int err = pPcall(L, 2, 0, 0);
+                    if (err == 0) {
+                        proxy_log("frontend_announce: ok\n");
+                    } else {
+                        const char *msg = ((pfn_lua_tolstring)orig[I_lua_tolstring])(L, -1, NULL);
+                        proxy_log("frontend_announce: error %d: %s\n", err, msg ? msg : "(no message)");
+                    }
+                }
+            }
+            ORIG_lua_settop(L, env_idx);
+        }
+    }
+
     /* === Auto-enable accessibility mod (once, on first env where Modding is visible) === */
     {
         static int g_mod_enabled = 0;
