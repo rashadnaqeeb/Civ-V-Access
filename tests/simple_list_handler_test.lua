@@ -9,6 +9,7 @@ local M = {}
 
 local warns, errors, infos, debugs
 local speaks  -- { {text, interrupt}, ... }
+local sounds  -- { scriptID, ... }
 local ctrlState  -- map controlName -> { hidden = bool }
 
 -- Stub Controls entry matching the shape SimpleListHandler consumes.
@@ -36,6 +37,8 @@ local function setup()
     UI.ShiftKeyDown = function() return false end
     UI.CtrlKeyDown  = function() return false end
     UI.AltKeyDown   = function() return false end
+    sounds = {}
+    Events.AudioPlay2DSound = function(id) sounds[#sounds + 1] = id end
     speaks = {}
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
@@ -174,6 +177,20 @@ function M.test_enter_activate_error_caught_and_logged()
     local consumed = InputRouter.dispatch(13, 0, WM_KEYDOWN)
     T.truthy(consumed, "binding still consumed after error")
     T.truthy(#errors >= 1, "error logged")
+end
+
+function M.test_enter_plays_click_sound_only_when_item_valid()
+    setup()
+    setControls({"A", "B", "C"})
+    local h = SimpleListHandler.create(basicSpec())
+    HandlerStack.push(h)
+    InputRouter.dispatch(13, 0, WM_KEYDOWN)  -- valid item
+    T.eq(#sounds, 1)
+    T.eq(sounds[1], "AS2D_IF_SELECT")
+    ctrlState.A.hidden = true
+    sounds = {}
+    InputRouter.dispatch(13, 0, WM_KEYDOWN)  -- now invalid
+    T.eq(#sounds, 0, "no click on invalid Enter")
 end
 
 function M.test_enter_on_hidden_current_logs_warn_no_crash()

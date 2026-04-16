@@ -16,6 +16,10 @@ UI = UI or {
     AltKeyDown   = function() return false end,
 }
 
+Events = Events or {
+    AudioPlay2DSound = function(_scriptID) end,
+}
+
 -- Windows virtual-key codes. Subset that the mod's bindings actually name by
 -- Keys.* rather than numeric literal; grow this list as new bindings appear.
 Keys = Keys or {

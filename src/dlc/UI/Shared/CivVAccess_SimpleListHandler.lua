@@ -101,6 +101,9 @@ local function onEnter(self)
         Log.warn("SimpleListHandler '" .. self.name .. "': Enter on invalid item")
         return
     end
+    -- Engine plays this on mouse clicks; Enter-key activation bypasses that
+    -- path, so we play it here to keep the click feel for keyboard users.
+    Events.AudioPlay2DSound("AS2D_IF_SELECT")
     local ok, err = pcall(item.activate)
     if not ok then
         Log.error("SimpleListHandler '" .. self.name .. "' activate '"
