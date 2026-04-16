@@ -14,8 +14,8 @@ local function setup()
     UI.ShiftKeyDown = function() return false end
     UI.CtrlKeyDown  = function() return false end
     UI.AltKeyDown   = function() return false end
-    dofile("src/dlc/UI/InGame/CivVAccess_HandlerStack.lua")
-    dofile("src/dlc/UI/InGame/CivVAccess_InputRouter.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
     HandlerStack._reset()
 end
 

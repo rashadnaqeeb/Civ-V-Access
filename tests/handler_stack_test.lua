@@ -11,7 +11,7 @@ local function setup()
     Log.warn  = function(msg) warns[#warns + 1] = msg end
     Log.error = function(msg) errors[#errors + 1] = msg end
     Log.debug = function() end
-    dofile("src/dlc/UI/InGame/CivVAccess_HandlerStack.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     HandlerStack._reset()
 end
 

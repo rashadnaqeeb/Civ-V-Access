@@ -64,7 +64,7 @@ Civ V has extensive hotkeys, many engine-bound and some reassignable via `Assets
 This mod runs on a C-level proxy, Lua `pcall`-susceptible callbacks, and engine events whose error reporting is weak (`Lua.log` only exists with `LoggingEnabled=1`, and even then some errors never reach it). A swallowed error in an event handler means the feature silently stops working and the user has no idea why. **Every `pcall` / error branch must log through the mod's log wrapper with enough context to locate the failure.** Never drop an error on the floor, never catch-and-return-default without logging. If something fails, the player log must say what and where. A logged failure is actionable; a silent one is invisible.
 
 ### Handler conventions
-Handler table shape and push/pop rules are documented in the header of `src/dlc/UI/InGame/CivVAccess_HandlerStack.lua`. Read it before adding a new screen or mode.
+Handler table shape and push/pop rules are documented in the header of `src/dlc/UI/Shared/CivVAccess_HandlerStack.lua`. Read it before adding a new screen or mode.
 
 ## Architecture Gotchas
 
