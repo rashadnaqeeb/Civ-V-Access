@@ -1,7 +1,6 @@
 -- LIFO stack of active UI handlers. Top of stack is the currently focused
 -- screen; InputRouter walks from the top. State lives on the proxy-owned
--- civvaccess_shared table so every Context sandbox references the same
--- stack within a given lua_State (one per phase: front-end / in-game).
+-- civvaccess_shared table so every Context sandbox references the same stack.
 --
 -- Handler shape (a plain Lua table pushed onto the stack):
 --   name               (string, required) unique-ish; used by removeByName and logs.
@@ -18,8 +17,7 @@
 --   helpEntries        (array, optional) overrides `bindings` as the source for
 --                      collectHelpEntries.
 --
--- Push when a screen opens; removeByName when it closes. All pushes currently
--- happen in the Boot Context (state is per-Context until proxy sharing lands).
+-- Push when a screen opens; removeByName when it closes.
 
 HandlerStack = {}
 

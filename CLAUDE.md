@@ -1,6 +1,6 @@
 # Civ-V-Access — Claude Code Instructions
 
-Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context, plus a fake DLC (deployed to `Assets/DLC/CivVAccess/` in the game install) that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`. Packaging as a DLC (rather than a mod under `Documents/My Games/.../MODS/`) is what layers our UI files into the engine's Contexts via `<UISkin>` and keeps the session off the mod-hash list for multiplayer. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
+Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context, plus a fake DLC (deployed to `Assets/DLC/DLC_CivVAccess/` in the game install) that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`. Packaging as a DLC (rather than a mod under `Documents/My Games/.../MODS/`) is what layers our UI files into the engine's Contexts via `<UISkin>` and keeps the session off the mod-hash list for multiplayer. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
 
 ## Build
 
@@ -13,7 +13,7 @@ When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs
 - `docs/hotkey-reference.md` — every engine-defined keybinding across base / G&K / BNW, plus screen-reader collision notes and candidate-safe keys.
 - `docs/llm-docs/` — derived reference material (Lua API per class, Events / LuaEvents catalogs, screen inventory, external resource pointers). Load on demand. See `docs/llm-docs/CLAUDE.md` for what's in each file and when to consult it.
 - `src/proxy/` — `lua51_Win32.dll` proxy source (C). Only job is injecting `tolk` + `luaL_openlibs` hooks; no mod activation.
-- `src/dlc/` — fake-DLC payload. Three per-UISkin manifests (`CivVAccess_0/1/2.Civ5Pkg`), feature modules under `UI/InGame/` (in-game Context only) and `UI/FrontEnd/` (front-end Context only), cross-Context infra (Log, TextFilter, Text, SpeechEngine, SpeechPipeline) under `UI/Shared/` which both `<Skin>` and `<GameplaySkin>` reference, and per-Context locale strings files. The two strings files use distinct include stems (`CivVAccess_InGameStrings_<locale>`, `CivVAccess_FrontEndStrings_<locale>`) because `include()` caches by bare stem on the shared lua_State.
+- `src/dlc/` — fake-DLC payload. Three per-UISkin manifests (`CivVAccess_0/1/2.Civ5Pkg`), per-Context UI under `UI/InGame/` and `UI/FrontEnd/`, and cross-Context infra under `UI/Shared/` (listed under both `<Skin>` and `<GameplaySkin>` in every manifest so either Context can `include` from it). Mod-authored locale strings live in per-Context files with distinct include stems because `include()` caches by bare stem on the shared lua_State.
 
 ## Code Style
 
@@ -32,7 +32,7 @@ Offline Lua harness lives at `tests/`, invoked by `test.ps1` against the bundled
 - Guard speech-boundary code even when it looks simple — a wrong value reaching Tolk is a silent failure
 
 ### Polyfill pattern for engine globals
-Engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.) are polyfilled in `src/dlc/UI/InGame/CivVAccess_Polyfill.lua`. It self-disables in-game via `if ContextPtr ~= nil then return end`; `tests/run.lua` dofiles it before suites run. Never build a test-only mock instead — every stub is a place production and test can diverge. Grow the polyfill only as new modules need new globals. (Log and SpeechEngine stay as test-owned stubs in `run.lua` because suites need a monkey-patch seam to inspect calls.)
+Engine globals that tested modules touch are polyfilled in `src/dlc/UI/InGame/CivVAccess_Polyfill.lua`. It self-disables in-game via `if ContextPtr ~= nil then return end`; `tests/run.lua` dofiles it before suites run. Never build a test-only mock instead — every stub is a place production and test can diverge. Grow the polyfill only as new modules need new globals. (Log and SpeechEngine stay as test-owned stubs in `run.lua` because suites need a monkey-patch seam to inspect calls.)
 
 ## Project Rules
 
@@ -68,7 +68,7 @@ Handler table shape and push/pop rules are documented in the header of `src/dlc/
 
 ## Architecture Gotchas
 
-- **`civvaccess_shared` is the cross-Context state table** the proxy injects into every Lua sandbox within a given lua_State (one state per phase: front-end, in-game). Use it for listener-install idempotency and any state that must survive Context re-instantiation. HandlerStack lives on it; Boot uses `civvaccess_shared.ingameListenerInstalled` to guard multi-Context listener registration.
+- **`civvaccess_shared` is the cross-Context state table** the proxy injects into every Lua sandbox in the session's lua_State. Use it for listener-install idempotency and any state that must survive Context re-instantiation. HandlerStack lives on it; Boot uses `civvaccess_shared.ingameListenerInstalled` to guard multi-Context listener registration.
 - **`Events.LoadScreenClose` is the "really in a game" signal.** In-game Contexts boot during the pre-game setup flow too (one lua_State for the whole session, no state-level discriminator). Defer any "we are actually playing" work to `LoadScreenClose` rather than running it at Boot include time.
 - **`Controls.X` can be `nil` during early show** — XML layout parsing completes after the Lua Context is created but before input is enabled. Show-handler code must guard (`if Controls.X then ...`) or defer one tick via `ContextPtr:SetUpdate`. The game's own code does this — follow suit.
 - **`SetInputHandler(nil)` crashes.** To clear, pass `function() return false end`.
