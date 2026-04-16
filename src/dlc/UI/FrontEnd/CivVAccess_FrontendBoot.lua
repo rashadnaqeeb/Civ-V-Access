@@ -1,17 +1,10 @@
-include("CivVAccess_Log")
-include("CivVAccess_TextFilter")
-include("CivVAccess_FrontEndStrings_en_US")
-include("CivVAccess_Text")
-include("CivVAccess_SpeechEngine")
-include("CivVAccess_SpeechPipeline")
-include("CivVAccess_HandlerStack")
-include("CivVAccess_InputRouter")
-include("CivVAccess_TickPump")
+include("CivVAccess_FrontendCommon")
 
--- Front-end boot. Runs once per front-end Context instantiation via the
--- ToolTips.lua override. Guarded via civvaccess_shared so the announce fires
--- once per session even though ToolTips is re-included across Contexts.
-Log.info("FrontendBoot: ToolTips override fired")
+-- Front-end boot. Runs in the ToolTips Context (via the ToolTips.lua
+-- override) and in every overridden menu Context that includes this file.
+-- The announce is guarded on the cross-Context shared table so it fires
+-- exactly once per session even though this file runs per-Context.
+Log.info("FrontendBoot: Context '" .. tostring(ContextPtr:GetID()) .. "' initialized")
 
 if not civvaccess_shared.frontendAnnounced then
     civvaccess_shared.frontendAnnounced = true

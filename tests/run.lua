@@ -32,5 +32,6 @@ T.register("handler_stack", require("handler_stack_test"))
 T.register("input_router", require("input_router_test"))
 T.register("tick_pump", require("tick_pump_test"))
 T.register("baseline_handler", require("baseline_handler_test"))
+T.register("simple_list_handler", require("simple_list_handler_test"))
 
 os.exit(T.run() and 0 or 1)

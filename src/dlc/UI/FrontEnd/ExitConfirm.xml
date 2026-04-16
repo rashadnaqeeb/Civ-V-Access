@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context ColorSet="Beige_Black_Alpha" Font="TwCenMT22" FontStyle="Shadow" Name="MainMenu" >
+
+    <Box Color="Black.128" Size="Full.Full" ID="ExitConfirm" ConsumeMouseOver="1" >
+        <Grid Size="500,360" Anchor="C,C" Offset="0,0" Padding="0,20" Style="Grid9DetailFive140"  Hidden="0" >
+
+            <!-- Side treatments -->
+          <Box Style="PopupLeftSideTreatment"/>
+          <Box Style="PopupRightSideTreatment"/>
+          <Box Style="PopupNotificationTopTreatment"/>
+
+					<Label ID="Message" Anchor="C,T"  Offset="0,74"  WrapWidth="440" String="TXT_KEY_MENU_EXIT_WARN" Font="TwCenMT22" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+            <Stack Anchor="C,B" Offset="0,80" Padding="24" StackGrowth="Bottom" ID="ButtonStack">
+                <!-- Yes Button  -->
+                <GridButton Style="BaseButton"  ID="Yes" Size="400,42" Anchor="C,T" Offset="0,0"  Hidden="0">
+                    <Label Anchor="C,C" Offset="0,0" String="TXT_KEY_YES_BUTTON" ColorSet="Beige_Black" Font="TwCenMT24" FontStyle="Shadow" />
+                </GridButton>
+                <!-- No Button  -->
+                <GridButton  Style="BaseButton" ID="No" Size="400,42" Anchor="C,T" Offset="0,0"  Hidden="0">
+                    <Label Anchor="C,C" Offset="0,0" String="TXT_KEY_NO_BUTTON" ColorSet="Beige_Black" Font="TwCenMT24" FontStyle="Shadow" />
+                </GridButton>
+            </Stack>
+        </Grid>
+    </Box>
+
+</Context>

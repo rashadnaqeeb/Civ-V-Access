@@ -15,3 +15,16 @@ UI = UI or {
     CtrlKeyDown  = function() return false end,
     AltKeyDown   = function() return false end,
 }
+
+-- Windows virtual-key codes. Subset that the mod's bindings actually name by
+-- Keys.* rather than numeric literal; grow this list as new bindings appear.
+Keys = Keys or {
+    VK_RETURN = 13,
+    VK_ESCAPE = 27,
+    VK_END    = 35,
+    VK_HOME   = 36,
+    VK_LEFT   = 37,
+    VK_UP     = 38,
+    VK_RIGHT  = 39,
+    VK_DOWN   = 40,
+}
