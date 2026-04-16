@@ -15,9 +15,11 @@
     <UISkin name="BaseGame" set="BaseGame" platform="Common">
         <Skin>
             <Directory>UI/FrontEnd</Directory>
+            <Directory>UI/Shared</Directory>
         </Skin>
         <GameplaySkin>
             <Directory>UI/InGame</Directory>
+            <Directory>UI/Shared</Directory>
         </GameplaySkin>
     </UISkin>
 </Civ5Package>

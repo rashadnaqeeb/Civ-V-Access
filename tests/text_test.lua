@@ -14,7 +14,7 @@ local function setup()
     origWarn = Log.warn
     origConvert = Locale.ConvertTextKey
     Log.warn = function(msg) warnings[#warnings + 1] = msg end
-    dofile("src/dlc/UI/InGame/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
 end
 
 local function teardown()

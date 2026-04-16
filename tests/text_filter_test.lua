@@ -10,7 +10,7 @@ local capturedLogs
 local function setup()
     capturedLogs = {}
     Log.debug = function(msg) capturedLogs[#capturedLogs + 1] = msg end
-    dofile("src/dlc/UI/InGame/CivVAccess_TextFilter.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
 end
 
 -- nil / empty / type coercion ---------------------------------------------
