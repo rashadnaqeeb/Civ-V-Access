@@ -2,6 +2,24 @@
 -- screen; InputRouter walks from the top. State lives on the proxy-owned
 -- civvaccess_shared table so every Context sandbox references the same
 -- stack within a given lua_State (one per phase: front-end / in-game).
+--
+-- Handler shape (a plain Lua table pushed onto the stack):
+--   name               (string, required) unique-ish; used by removeByName and logs.
+--   capturesAllInput   (bool, default false) barrier for InputRouter's top-down
+--                      walk. Stays false for almost all handlers. Set true only
+--                      for modal-like contexts (popups, confirmations, overlays)
+--                      that should swallow unbound keys.
+--   bindings           (array, optional) {key, mods, fn, description} entries.
+--                      The handler owns its bindings; there is no central registry.
+--   onActivate         (fn(self), optional) fired on push / re-exposure.
+--   onDeactivate       (fn(self), optional) fired on removal.
+--   tick               (fn(self), optional) called every frame by TickPump on
+--                      the active handler only.
+--   helpEntries        (array, optional) overrides `bindings` as the source for
+--                      collectHelpEntries.
+--
+-- Push when a screen opens; removeByName when it closes. All pushes currently
+-- happen in the Boot Context (state is per-Context until proxy sharing lands).
 
 HandlerStack = {}
 
