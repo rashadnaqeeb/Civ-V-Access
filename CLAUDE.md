@@ -40,7 +40,7 @@ Engine globals that tested modules touch are polyfilled in `src/dlc/UI/InGame/Ci
 Use the game's localized text (`Locale.ConvertTextKey("TXT_KEY_*")`), UI state from live `Controls`, and entity data wherever possible. Hardcoded text becomes stale across game updates and DLC combinations, and blocks localization for non-English players. Only hardcode when no game data source exists.
 
 ### Never cache game state
-Do not copy game data into mod-side tables, fields, or upvalues for later use. Always re-query the game when you need a value. A sighted player can see when the screen contradicts itself; a blind player trusts speech absolutely. Stale data is worse than no data. The only acceptable "cache" is holding a reference to a live `Controls.X` userdata or a plot/unit/city handle and reading its properties at speech time. Per-turn derived catalogs (e.g. "all my improvements") are the sole exception — rebuild them on turn transition, never hold across turns.
+Do not copy game data into mod-side tables, fields, or upvalues for later use. Always re-query the game when you need a value. A sighted player can see when the screen contradicts itself; a blind player trusts speech absolutely. Stale data is worse than no data. The only acceptable "cache" is holding a reference to a live `Controls.X` userdata or a plot/unit/city handle and reading its properties at speech time.
 
 ### No inline non-punctuation string literals
 All user-facing text must come from a `TXT_KEY_*` lookup. Never inline string literals for text that gets spoken. Prefer the game's existing keys — check `docs/llm-docs/txt-keys/ui-text-keys.md` before adding a mod-authored one. Common labels ("Close", "Cancel", "Next Turn", etc.) already exist. Only add mod-authored strings when no game equivalent exists.
@@ -68,7 +68,7 @@ Handler table shape and push/pop rules are documented in the header of `src/dlc/
 
 ## Architecture Gotchas
 
-- **`civvaccess_shared` is the cross-Context state table** the proxy injects into every Lua sandbox in the session's lua_State. Use it for listener-install idempotency and any state that must survive Context re-instantiation. HandlerStack lives on it; Boot uses `civvaccess_shared.ingameListenerInstalled` to guard multi-Context listener registration.
+- **`civvaccess_shared` is the cross-Context state table** the proxy injects into every Lua sandbox in the session's lua_State. Use it for listener-install idempotency and any state that must survive Context re-instantiation. HandlerStack lives on it; Boot uses a flag on it to guard multi-Context listener registration.
 - **`Events.LoadScreenClose` is the "really in a game" signal.** In-game Contexts boot during the pre-game setup flow too (one lua_State for the whole session, no state-level discriminator). Defer any "we are actually playing" work to `LoadScreenClose` rather than running it at Boot include time.
 - **`Controls.X` can be `nil` during early show** — XML layout parsing completes after the Lua Context is created but before input is enabled. Show-handler code must guard (`if Controls.X then ...`) or defer one tick via `ContextPtr:SetUpdate`. The game's own code does this — follow suit.
 - **`SetInputHandler(nil)` crashes.** To clear, pass `function() return false end`.
