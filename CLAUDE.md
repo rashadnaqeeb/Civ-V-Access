@@ -1,25 +1,25 @@
 # Civ-V-Access — Claude Code Instructions
 
-Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context, plus a fake DLC (shipped as `Assets/DLC/CivVAccess/`) that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`. Packaging as a DLC (rather than a mod under `Documents/My Games/.../MODS/`) is what layers our UI files into the engine's Contexts via `<UISkin>` and keeps the session off the mod-hash list for multiplayer. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
+Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context, plus a fake DLC (deployed to `Assets/DLC/CivVAccess/` in the game install) that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`. Packaging as a DLC (rather than a mod under `Documents/My Games/.../MODS/`) is what layers our UI files into the engine's Contexts via `<UISkin>` and keeps the session off the mod-hash list for multiplayer. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
 
 ## Build
 
-`build.ps1` at the repo root compiles the proxy DLL and deploys the proxy stack + DLC into the game install in one step. Always use the script; never invoke `cl.exe` / `lua` / copy commands directly. Use `-SkipBuild` when only the Lua payload changed (proxy stage is reused as-is). Use `-SkipDeploy` to validate a compile without touching the game install. Use `-Uninstall` to remove the DLC, restore the original `lua51_Win32.dll`, and clean up any legacy `MODS/Civ-V-Access (v 1)/` directory. Pass `-GameDir` to override auto-detection when the Civ V install is in an unusual location.
+`build.ps1` at the repo root compiles the proxy DLL and deploys the proxy stack + DLC into the game install. Always use the script; never invoke `cl.exe` / `lua` / copy commands directly. Read the script for flag options (skip build, skip deploy, uninstall, override game dir).
 
-When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs/` (see below) or read the game's own UI Lua under `Sid Meier's Civilization V\Assets\` before guessing at fixes. The SDK's `Civ5LuaAPI.html` is an unfinished stub — ignore it; the grep-extracted reference in `docs/llm-docs/lua-api/` supersedes it.
+When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs/` or read the game's own UI Lua under `Sid Meier's Civilization V\Assets\` before guessing. The SDK's `Civ5LuaAPI.html` is an unfinished stub; the grep-extracted reference in `docs/llm-docs/lua-api/` supersedes it.
 
 ## Project Structure
 
 - `docs/hotkey-reference.md` — every engine-defined keybinding across base / G&K / BNW, plus screen-reader collision notes and candidate-safe keys.
 - `docs/llm-docs/` — derived reference material (Lua API per class, Events / LuaEvents catalogs, screen inventory, external resource pointers). Load on demand. See `docs/llm-docs/CLAUDE.md` for what's in each file and when to consult it.
 - `src/proxy/` — `lua51_Win32.dll` proxy source (C). Only job is injecting `tolk` + `luaL_openlibs` hooks; no mod activation.
-- `src/dlc/` — fake-DLC payload. `CivVAccess_0/1/2.Civ5Pkg` are the three per-UISkin manifests. `UI/InGame/` holds in-game-only feature modules, the in-game strings table `CivVAccess_InGameStrings_<locale>.lua`, and a verbatim copy of the base-game override target that includes `CivVAccess_Boot`. `UI/FrontEnd/` holds the front-end override target, `CivVAccess_FrontendBoot.lua`, and its own `CivVAccess_FrontEndStrings_<locale>.lua`. `UI/Shared/` holds cross-Context infra (`Log`, `TextFilter`, `Text`, `SpeechEngine`, `SpeechPipeline`) and is listed under both `<Skin>` and `<GameplaySkin>` in the manifests so either Context can `include` it. The two strings files use distinct include stems because Civ V's `include()` caches by bare stem across Contexts on the shared lua_State.
+- `src/dlc/` — fake-DLC payload. Three per-UISkin manifests (`CivVAccess_0/1/2.Civ5Pkg`), feature modules under `UI/InGame/` (in-game Context only) and `UI/FrontEnd/` (front-end Context only), cross-Context infra (Log, TextFilter, Text, SpeechEngine, SpeechPipeline) under `UI/Shared/` which both `<Skin>` and `<GameplaySkin>` reference, and per-Context locale strings files. The two strings files use distinct include stems (`CivVAccess_InGameStrings_<locale>`, `CivVAccess_FrontEndStrings_<locale>`) because `include()` caches by bare stem on the shared lua_State.
 
 ## Code Style
 
 - All speech goes through the central announcement pipeline, never call `tolk.output` / `tolk.speak` directly from feature code
 - All logging goes through the mod's log wrapper, never use bare `print` or raw `Events.AppLog` calls
-- All user-facing text goes through `Text.key` / `Text.format`, never call `Locale.ConvertTextKey` directly. The wrapper logs missing keys; raw Locale silently returns the key name and the user hears it spelled out. Game-authored keys (`TXT_KEY_*` from the engine or shipping DLCs) resolve via Locale; mod-authored `TXT_KEY_CIVVACCESS_*` keys resolve from `CivVAccess_Strings` populated by `UI/InGame/CivVAccess_InGameStrings_<locale>.lua` and `UI/FrontEnd/CivVAccess_FrontEndStrings_<locale>.lua`. Add new mod-authored keys by appending a row to whichever strings file(s) the consuming Context needs.
+- All user-facing text goes through `Text.key` / `Text.format`, never `Locale.ConvertTextKey` directly. The wrapper logs missing keys; raw Locale silently returns the key name and the user hears it spelled out. Mod-authored keys (`TXT_KEY_CIVVACCESS_*`) go in `UI/InGame/CivVAccess_InGameStrings_<locale>.lua` or `UI/FrontEnd/CivVAccess_FrontEndStrings_<locale>.lua`, whichever Context consumes them (both, if both do).
 - Lua files: one feature per file where possible; file name matches the `include` stem (Civ V's VFS indexes by bare stem).
 
 ## Test
@@ -32,7 +32,7 @@ Offline Lua harness lives at `tests/`, invoked by `test.ps1` against the bundled
 - Guard speech-boundary code even when it looks simple — a wrong value reaching Tolk is a silent failure
 
 ### Polyfill pattern for engine globals
-When a feature needs to be tested but depends on engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.), do **not** build a test-only mock. The canonical polyfill lives at `src/dlc/UI/InGame/CivVAccess_Polyfill.lua` and self-disables in-game via `if ContextPtr ~= nil then return end`. `ContextPtr` is present in every Civ V UI Context and absent from the offline test harness, so the guard fires in tests and no-ops in the game. `CivVAccess_Boot.lua` `include`s the polyfill first, and `tests/run.lua` `dofile`s it before registering suites. Grow the polyfill only as new modules need new globals; every stub is a place production and test can diverge. Log and SpeechEngine intentionally stay as test-owned stubs in `run.lua` (not in the polyfill) because suites need a monkey-patch seam to inspect calls. Pattern borrowed from FactorioAccess's `polyfill.lua`; their sentinel is `script`, ours is `ContextPtr`.
+Engine globals (`Game`, `Controls`, `Events`, `LuaEvents`, `Locale`, etc.) are polyfilled in `src/dlc/UI/InGame/CivVAccess_Polyfill.lua`. It self-disables in-game via `if ContextPtr ~= nil then return end`; `tests/run.lua` dofiles it before suites run. Never build a test-only mock instead — every stub is a place production and test can diverge. Grow the polyfill only as new modules need new globals. (Log and SpeechEngine stay as test-owned stubs in `run.lua` because suites need a monkey-patch seam to inspect calls.)
 
 ## Project Rules
 
@@ -43,7 +43,7 @@ Use the game's localized text (`Locale.ConvertTextKey("TXT_KEY_*")`), UI state f
 Do not copy game data into mod-side tables, fields, or upvalues for later use. Always re-query the game when you need a value. A sighted player can see when the screen contradicts itself; a blind player trusts speech absolutely. Stale data is worse than no data. The only acceptable "cache" is holding a reference to a live `Controls.X` userdata or a plot/unit/city handle and reading its properties at speech time. Per-turn derived catalogs (e.g. "all my improvements") are the sole exception — rebuild them on turn transition, never hold across turns.
 
 ### No inline non-punctuation string literals
-All user-facing text must come from a `TXT_KEY_*` lookup or a mod-authored string constant. Never inline string literals for text that gets spoken. Prefer the game's existing `TXT_KEY_*` entries — check `docs/llm-docs/txt-keys/ui-text-keys.md` (extracted index of UI labels across base + DLC) before adding mod-authored strings. The game already has keys for common labels ("Close", "Cancel", "Next Turn", etc.). Only add mod-authored strings when no game equivalent exists; namespace them `TXT_KEY_CIVVACCESS_*` and add them to `UI/InGame/CivVAccess_InGameStrings_<locale>.lua` or `UI/FrontEnd/CivVAccess_FrontEndStrings_<locale>.lua` depending on which Context consumes them (both, if both do).
+All user-facing text must come from a `TXT_KEY_*` lookup. Never inline string literals for text that gets spoken. Prefer the game's existing keys — check `docs/llm-docs/txt-keys/ui-text-keys.md` before adding a mod-authored one. Common labels ("Close", "Cancel", "Next Turn", etc.) already exist. Only add mod-authored strings when no game equivalent exists.
 
 ### Concise announcements
 **These rules apply to mod-authored text only; never alter, truncate, or reword game text beyond markup stripping.** Users are experienced screen reader users. Strip fluff, never strip information.
@@ -64,19 +64,12 @@ Civ V has extensive hotkeys, many engine-bound and some reassignable via `Assets
 This mod runs on a C-level proxy, Lua `pcall`-susceptible callbacks, and engine events whose error reporting is weak (`Lua.log` only exists with `LoggingEnabled=1`, and even then some errors never reach it). A swallowed error in an event handler means the feature silently stops working and the user has no idea why. **Every `pcall` / error branch must log through the mod's log wrapper with enough context to locate the failure.** Never drop an error on the floor, never catch-and-return-default without logging. If something fails, the player log must say what and where. A logged failure is actionable; a silent one is invisible.
 
 ### Handler conventions
-A handler is a plain Lua table describing a UI screen or mode on the `HandlerStack`. Shape:
-
-- `name` (string, required): unique-ish; used by `removeByName` and debug logs.
-- `capturesAllInput` (bool, default false): barrier for InputRouter's top-down walk. Defaults to false and should stay false for almost all handlers. Set true only for modal-like contexts (popups, confirmation dialogs, in-mod overlays) that should swallow unbound keys rather than let them fall through.
-- `bindings` (array, optional): `{key, mods, fn, description}` entries. The handler on the stack owns its bindings; there is no central binding registry.
-- `onActivate` / `onDeactivate` (fn(self), optional): fired on push / exposure and removal respectively.
-- `tick` (fn(self), optional): called every frame by TickPump on the active handler only.
-- `helpEntries` (array, optional): overrides `bindings` as the source for `collectHelpEntries`.
-
-Push the handler onto `HandlerStack` when the screen opens; `removeByName` it when the screen closes. `HandlerStack` state is per-Context until the proxy shared-state table lands (followup plan), so for now all handler pushes happen in the Boot Context.
+Handler table shape and push/pop rules are documented in the header of `src/dlc/UI/InGame/CivVAccess_HandlerStack.lua`. Read it before adding a new screen or mode.
 
 ## Architecture Gotchas
 
+- **`civvaccess_shared` is the cross-Context state table** the proxy injects into every Lua sandbox within a given lua_State (one state per phase: front-end, in-game). Use it for listener-install idempotency and any state that must survive Context re-instantiation. HandlerStack lives on it; Boot uses `civvaccess_shared.ingameListenerInstalled` to guard multi-Context listener registration.
+- **`Events.LoadScreenClose` is the "really in a game" signal.** In-game Contexts boot during the pre-game setup flow too (one lua_State for the whole session, no state-level discriminator). Defer any "we are actually playing" work to `LoadScreenClose` rather than running it at Boot include time.
 - **`Controls.X` can be `nil` during early show** — XML layout parsing completes after the Lua Context is created but before input is enabled. Show-handler code must guard (`if Controls.X then ...`) or defer one tick via `ContextPtr:SetUpdate`. The game's own code does this — follow suit.
 - **`SetInputHandler(nil)` crashes.** To clear, pass `function() return false end`.
 - **`Controls` is userdata, not a table.** `pairs()` does not iterate it. Look up children by name from XML via `ContextPtr:LookUpControl(path)`.
@@ -84,8 +77,8 @@ Push the handler onto `HandlerStack` when the screen opens; `removeByName` it wh
 - **`_G` is blocked by the sandbox.** Cannot enumerate globals for discovery — know what you're looking for by name, or find it in the game's UI Lua.
 - **`.Add(fn)` chains on both `Events.X` and `LuaEvents.X`.** Prefer adding listeners over replacing — multiple listeners coexist and we don't evict the game's own handlers. `.Remove(fn)` is unverified in the wild; assume best-effort.
 - **`Alt+Left/Right` sends `WM_SYSKEYDOWN` (msg 260)**, not `WM_KEYDOWN`. Input handlers must check both to catch Alt-chorded keys.
-- **The DLC bootstraps by overriding two base-game UI files**: `Assets/UI/InGame/TaskList.{lua,xml}` (in-game entry) and `Assets/UI/FrontEnd/ToolTips.{lua,xml}` (front-end entry). Both are copied verbatim into `src/dlc/UI/{InGame,FrontEnd}/` with an `include("CivVAccess_Boot")` or `include("CivVAccess_FrontendBoot")` appended. A pure `.Civ5Pkg` cannot declare a net-new Context, so the bootstrap has to piggy-back on an override. After any Civ V patch, re-diff our copy against the patched base file and re-apply the append.
-- **The DLC ships three sibling manifests** (`CivVAccess_0/1/2.Civ5Pkg`), one per UISkin set (BaseGame / Expansion1 / Expansion2). Only one activates per session based on the active expansion. They share a GUID so the engine treats them as one content unit. `<TextData>` is **not** declared - fake-DLC text ingestion is broken in Civ V's engine (no `Localization-*.db` is produced). Mod-authored strings live in `UI/InGame/CivVAccess_InGameStrings_<locale>.lua` and `UI/FrontEnd/CivVAccess_FrontEndStrings_<locale>.lua` and are served by `Text.key`/`Text.format`.
+- **Bootstrap piggy-backs on overriding `TaskList.{lua,xml}` (in-game) and `ToolTips.{lua,xml}` (front-end).** A pure `.Civ5Pkg` cannot declare a net-new Context. Our copies are verbatim base-game files with one `include()` appended. Re-diff against the patched base after any Civ V update.
+- **Three sibling `Civ5Pkg` manifests share one GUID**, one per UISkin (BaseGame / Expansion1 / Expansion2); only one activates per session. `<TextData>` is omitted — fake-DLC text ingestion is broken in the engine, so mod strings are served from Lua via `Text.key` / `Text.format`.
 
 ## Game Log
 
@@ -122,13 +115,3 @@ local name = unit and unit:GetUnitType() and GameInfo.Units[unit:GetUnitType()] 
 local name = GameInfo.Units[unit:GetUnitType()].Description or "default"
 ```
 
-## Response Formatting
-
-These rules govern how you write responses to me in chat, not how you write code or documentation.
-
-- No tables. Use prose or short bullet lists. Tables render poorly in the screen reader I use and force me to navigate cell by cell for information that reads fine as a sentence.
-- Minimize special characters. Avoid emdashes, smart quotes, fancy arrows, box-drawing characters, and ASCII art. Plain hyphens, straight quotes, and words for "to" / "leads to" / "maps to" are fine.
-- No emoji unless I ask.
-- Prefer prose over deeply nested bullets. One level of bullets is usually enough; two is the ceiling.
-- Don't pad. If there are no problems, say "no issues." Don't present two options as equally valid when one is clearly better. Recommend the better one and move on.
-- Don't invent concerns to appear thorough.
