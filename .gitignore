@@ -1,3 +1,6 @@
+# Local planning notes (not part of the shipped mod)
+.planning/
+
 # Build artifacts (always regenerated)
 *.obj
 *.o
