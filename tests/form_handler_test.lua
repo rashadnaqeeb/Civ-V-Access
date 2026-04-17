@@ -687,6 +687,28 @@ function M.test_install_push_on_show_pop_on_hide()
     T.eq(HandlerStack.count(), 0)
 end
 
+function M.test_install_show_parks_focus_on_named_control()
+    setup()
+    local a    = Polyfill.makeCheckBox()
+    local eb   = Polyfill.makeEditBox({ text = "" })
+    local park = Polyfill.makeButton()
+    populateControls({ A = a, E = eb, Cancel = park })
+    local ctx = makeContextPtr()
+    FormHandler.install(ctx, {
+        name = "T", displayName = "Screen",
+        focusParkControl = "Cancel",
+        -- Base-screen ShowHide focuses the EditBox, then our wrapper
+        -- should park focus on Cancel so arrow keys reach the form.
+        priorShowHide = function(bIsHide) if not bIsHide then eb:TakeFocus() end end,
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+            { kind = "checkbox",  controlName = "A", textKey = "LBL_A" },
+        },
+    })
+    ctx._sh(false, false)
+    T.eq(park._hasFocus, true, "focus parked on Cancel after base's TakeFocus")
+end
+
 function M.test_install_esc_bypasses_to_prior_input()
     setup()
     local a = Polyfill.makeCheckBox()

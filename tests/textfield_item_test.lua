@@ -119,6 +119,76 @@ function M.test_focus_announce_blank_when_empty()
     T.eq(speaks[2].text, "LBL, edit, blank")
 end
 
+-- Visibility proxy --------------------------------------------------
+
+function M.test_visibilityControlName_hidden_wrapper_skips_item()
+    setup()
+    local eb     = Polyfill.makeEditBox({ text = "" })
+    local wrap   = Polyfill.makeButton()  -- any IsHidden-capable stub
+    wrap:SetHide(true)
+    local after  = Polyfill.makeCheckBox()
+    populateControls({ E = eb, Wrapper = wrap, After = after })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E",
+              visibilityControlName = "Wrapper", textKey = "LBL_E" },
+            { kind = "checkbox", controlName = "After", textKey = "LBL_A" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(h._index, 2,
+        "first-navigable index skipped the textfield because its wrapper is hidden")
+end
+
+function M.test_visibilityControlName_visible_wrapper_allows_item()
+    setup()
+    local eb   = Polyfill.makeEditBox({ text = "hi" })
+    local wrap = Polyfill.makeButton()
+    wrap:SetHide(false)
+    populateControls({ E = eb, Wrapper = wrap })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E",
+              visibilityControlName = "Wrapper", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(h._index, 1)
+    T.eq(speaks[2].text, "LBL, edit, hi", "visible wrapper - item is navigable")
+end
+
+function M.test_missing_visibilityControl_logs_warn()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "" })
+    populateControls({ E = eb })
+    FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E",
+              visibilityControlName = "Missing", textKey = "LBL" },
+        },
+    })
+    local foundMissing = false
+    for _, w in ipairs(warns) do
+        if w:find("visibility control") then foundMissing = true end
+    end
+    T.truthy(foundMissing, "missing-visibility-control warn logged")
+end
+
+function M.test_checkbox_needs_setHide_present_to_be_navigable_proxy()
+    -- Guard: the polyfill's makeButton implements IsHidden/SetHide so we can
+    -- reuse it as a wrapper stub. Confirm both states flip correctly.
+    setup()
+    local b = Polyfill.makeButton()
+    T.eq(b:IsHidden(), false, "button starts visible (no Hidden default)")
+    b:SetHide(true)
+    T.eq(b:IsHidden(), true)
+    b:SetHide(false)
+    T.eq(b:IsHidden(), false)
+end
+
 function M.test_focus_announce_updates_when_text_changes_between_visits()
     setup()
     local a = Polyfill.makeEditBox({ text = "first" })

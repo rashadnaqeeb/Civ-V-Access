@@ -41,14 +41,23 @@
 --     registered or entries not yet built), Enter announces the current value
 --     and logs a Log.warn per the no-silent-failures rule.
 --
---   { kind = "textfield", controlName, textKey, [priorCallback] }
+--   { kind = "textfield", controlName, textKey, [priorCallback], [commitFn],
+--     [visibilityControlName] }
 --     Enter pushes a TextFieldSubHandler that clears the EditBox, calls
 --     TakeFocus so the engine routes typing there, and exits on Escape
---     (restoring the snapshot) or Enter (chained to the engine's native
---     callback fire). priorCallback, if given, is the EditBox's already-
---     registered callback (typically a validator or committer) so our
---     wrapper can chain through on every character and restore it on pop.
+--     (restoring the snapshot) or Enter (popping and -- if commitFn is
+--     given -- firing it to drive the screen's natural commit).
+--     priorCallback, if given, is the EditBox's already-registered
+--     callback (typically a validator) so our wrapper can chain through
+--     on every character and restore it on pop.
+--     visibilityControlName, if given, points at a wrapper Box whose
+--     SetHide controls whether the EditBox is visually present (common
+--     for MaxTurnsEditbox / TurnTimerEditbox containers). FormHandler's
+--     isNavigable skips the item when that wrapper is hidden.
 --     Announcement on focus: "<label>, edit, <current text or 'blank'>".
+--     The spec-level `focusParkControl` (a non-EditBox control name) is
+--     passed through to the sub-handler so it can TakeFocus on pop,
+--     releasing the EditBox's engine focus grab on the arrow keys.
 --
 -- Navigation: Up / Down wrap within the current tab. Tab / Shift+Tab cycle
 -- tabs when the spec has tabs. Home / End are reserved for slider snap,
@@ -107,7 +116,14 @@ local function appendTooltip(base, tooltip)
 end
 
 local function isNavigable(item)
-    return item._control ~= nil and not item._control:IsHidden()
+    if item._control == nil or item._control:IsHidden() then return false end
+    -- Wrapper-hide pattern: engine hides a parent Box rather than the child
+    -- widget (MaxTurnsEditbox, TurnTimerEditbox). Honor the wrapper so the
+    -- cursor does not stop on a widget the user cannot see.
+    if item._visibilityControl ~= nil and item._visibilityControl:IsHidden() then
+        return false
+    end
+    return true
 end
 
 local function isActivatable(item)
@@ -237,6 +253,15 @@ local function resolveItems(self, items, context)
                 context .. " item " .. i .. " (textfield) commitFn must be a function")
             resolved.priorCallback = item.priorCallback
             resolved.commitFn      = item.commitFn
+            if item.visibilityControlName ~= nil then
+                resolved.visibilityControlName = item.visibilityControlName
+                resolved._visibilityControl    = Controls[item.visibilityControlName]
+                if resolved._visibilityControl == nil then
+                    Log.warn("FormHandler '" .. self.name .. "': missing visibility control '"
+                        .. item.visibilityControlName .. "' for textfield '"
+                        .. item.controlName .. "'")
+                end
+            end
         end
         out[#out + 1] = resolved
     end
@@ -494,7 +519,8 @@ local function onActivate(self, item)
     elseif kind == "pulldown" then
         activatePullDown(self, item)
     elseif kind == "textfield" then
-        TextFieldSubHandler.push(self.name, item, labelOf(item))
+        TextFieldSubHandler.push(self.name, item, labelOf(item),
+            self._focusParkControl)
     elseif kind == "slider" then
         -- Slider Enter = no-op, just re-announce so the user can relocate.
         SpeechPipeline.speakInterrupt(buildSpeech(self, item))
@@ -577,6 +603,13 @@ function FormHandler.create(spec)
         capturesAllInput = true,
         _index           = 1,
         _tabIndex        = 1,
+        -- Name of a non-EditBox control for the textfield sub-handler to
+        -- TakeFocus on after pop. Without this, screens that let the user
+        -- return to the form (Escape without closing the popup) would leave
+        -- the EditBox holding engine focus and swallowing arrow keys. The
+        -- engine has no ClearFocus API; only way to defocus an EditBox is
+        -- to TakeFocus on a different widget.
+        _focusParkControl = spec.focusParkControl,
         -- _initialized gates the first-open setup (reset cursor to first
         -- item, speak displayName + tab + item). Re-activations from the
         -- same open (pulldown sub-handler pop) preserve cursor position
@@ -704,6 +737,19 @@ function FormHandler.install(ContextPtr, spec)
         if bIsHide then
             handler._initialized = false
             return
+        end
+        -- Park focus on a non-EditBox control before push so arrow keys are
+        -- not swallowed by a base-screen TakeFocus on an EditBox (e.g.,
+        -- ChangePassword's ShowHideHandler focuses the Old/New password box).
+        if handler._focusParkControl ~= nil then
+            local park = Controls[handler._focusParkControl]
+            if park ~= nil then
+                local ok, err = pcall(function() park:TakeFocus() end)
+                if not ok then
+                    Log.error("FormHandler '" .. handler.name
+                        .. "' show-time focus-park failed: " .. tostring(err))
+                end
+            end
         end
         HandlerStack.push(handler)
     end)

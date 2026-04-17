@@ -8,15 +8,17 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_FormHandler")
+include("CivVAccess_TextFieldSubHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
 FormHandler.install(ContextPtr, {
-    name          = "StagingRoom",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
-    priorShowHide = priorShowHide,
-    priorInput    = priorInput,
+    name             = "StagingRoom",
+    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
+    priorShowHide    = priorShowHide,
+    priorInput       = priorInput,
+    focusParkControl = "BackButton",
     items = {
         { kind = "pulldown", controlName = "MapTypePullDown",
           textKey = "TXT_KEY_AD_SETUP_MAP_TYPE" },
@@ -31,9 +33,17 @@ FormHandler.install(ContextPtr, {
         { kind = "checkbox", controlName = "MaxTurnsCheck",
           textKey    = "TXT_KEY_AD_SETUP_MAX_TURNS",
           tooltipKey = "TXT_KEY_AD_SETUP_MAX_TURNS_TT" },
+        { kind = "textfield", controlName = "MaxTurnsEdit",
+          visibilityControlName = "MaxTurnsEditbox",
+          textKey       = "TXT_KEY_AD_SETUP_MAX_TURNS",
+          priorCallback = OnMaxTurnsEditBoxChange },
         { kind = "checkbox", controlName = "TurnTimerCheck",
           textKey    = "TXT_KEY_GAME_OPTION_END_TURN_TIMER_ENABLED",
           tooltipKey = "TXT_KEY_GAME_OPTION_END_TURN_TIMER_ENABLED_HELP" },
+        { kind = "textfield", controlName = "TurnTimerEdit",
+          visibilityControlName = "TurnTimerEditbox",
+          textKey       = "TXT_KEY_GAME_OPTION_END_TURN_TIMER_ENABLED",
+          priorCallback = OnTurnTimerEditBoxChange },
         { kind = "checkbox", controlName = "ScenarioCheck",
           textKey = "TXT_KEY_LOAD_SCENARIO" },
         { kind = "button",   controlName = "InviteButton",

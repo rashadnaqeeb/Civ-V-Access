@@ -14,15 +14,17 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_FormHandler")
+include("CivVAccess_TextFieldSubHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
 FormHandler.install(ContextPtr, {
-    name          = "OptionsMenu",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"),
-    priorShowHide = priorShowHide,
-    priorInput    = priorInput,
+    name             = "OptionsMenu",
+    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"),
+    priorShowHide    = priorShowHide,
+    priorInput       = priorInput,
+    focusParkControl = "CancelButton",
     tabs = {
         {
             name      = "TXT_KEY_GAME_OPTIONS",
@@ -88,6 +90,14 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_INTERFACE_OPTIONS",
             showPanel = function() OnCategory(2) end,
             items     = {
+                { kind = "textfield", controlName = "AutosaveTurnsEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURNS_FOR_AUTOSAVES",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURNS_FOR_AUTOSAVES_TT",
+                  priorCallback = OnAutosaveTurnsChanged },
+                { kind = "textfield", controlName = "AutosaveMaxEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_MAX_AUTOSAVES_KEPT",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_MAX_AUTOSAVES_KEPT_TT",
+                  priorCallback = OnAutosaveMaxChanged },
                 { kind = "pulldown", controlName = "BindMousePull",
                   textKey    = "TXT_KEY_BIND_MOUSE",
                   tooltipKey = "TXT_KEY_BIND_MOUSE_TT" },
@@ -208,9 +218,39 @@ FormHandler.install(ContextPtr, {
                 { kind = "checkbox", controlName = "TurnNotifyEmailCheckbox",
                   textKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL",
                   tooltipKey = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL_TT" },
+                { kind = "textfield", controlName = "TurnNotifyEmailAddressEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL_ADDRESS",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL_ADDRESS_TT",
+                  priorCallback = OnTurnNotifyEmailAddressChanged },
+                { kind = "textfield", controlName = "TurnNotifySmtpEmailEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL_ADDRESS",
+                  priorCallback = OnTurnNotifySmtpEmailChanged },
+                { kind = "textfield", controlName = "TurnNotifySmtpHostEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_HOST",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_HOST_TT",
+                  priorCallback = OnTurnNotifySmtpHostChanged },
                 { kind = "checkbox", controlName = "TurnNotifySmtpTLS",
                   textKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_TLS",
                   tooltipKey = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_TLS_TT" },
+                { kind = "textfield", controlName = "TurnNotifySmtpPortEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_PORT",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_PORT_TT",
+                  priorCallback = OnTurnNotifySmtpPortChanged },
+                { kind = "textfield", controlName = "TurnNotifySmtpUserEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_USERNAME",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_USERNAME_TT",
+                  priorCallback = OnTurnNotifySmtpUsernameChanged },
+                { kind = "textfield", controlName = "TurnNotifySmtpPassEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_PASSWORD",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_PASSWORD_TT",
+                  priorCallback = ValidateSmtpPassword },
+                { kind = "textfield", controlName = "TurnNotifySmtpPassRetypeEdit",
+                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_RETYPE_PASSWORD",
+                  tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_RETYPE_PASSWORD_TT",
+                  priorCallback = ValidateSmtpPassword },
+                { kind = "textfield", controlName = "LANNickNameEdit",
+                  textKey       = "TXT_KEY_MP_NICK_NAME",
+                  priorCallback = OnLANNickNameChanged },
             },
         },
     },

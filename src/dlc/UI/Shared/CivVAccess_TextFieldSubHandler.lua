@@ -31,7 +31,7 @@ local function announce(key, labelText)
     SpeechPipeline.speakInterrupt(Text.format(key, labelText))
 end
 
-function TextFieldSubHandler.push(parentName, item, labelText)
+function TextFieldSubHandler.push(parentName, item, labelText, focusParkName)
     local editBox = item._control
     if editBox == nil then
         Log.warn("TextFieldSubHandler: missing EditBox for '"
@@ -124,6 +124,25 @@ function TextFieldSubHandler.push(parentName, item, labelText)
         if not ok then
             Log.error("TextFieldSubHandler '" .. subName
                 .. "' restore RegisterCallback failed: " .. tostring(err))
+        end
+        -- Park engine focus on a non-EditBox control so the form's arrow-key
+        -- bindings can receive input again. The engine has no ClearFocus API,
+        -- so TakeFocus on a different widget is the only way to defocus the
+        -- EditBox. If the screen closes on commit (common case) this is a
+        -- harmless no-op since the whole Context tears down next frame.
+        if focusParkName ~= nil then
+            local park = Controls[focusParkName]
+            if park == nil then
+                Log.warn("TextFieldSubHandler '" .. subName
+                    .. "' focus-park control '" .. tostring(focusParkName)
+                    .. "' not found")
+            else
+                local okPark, errPark = pcall(function() park:TakeFocus() end)
+                if not okPark then
+                    Log.error("TextFieldSubHandler '" .. subName
+                        .. "' focus-park TakeFocus failed: " .. tostring(errPark))
+                end
+            end
         end
     end
 

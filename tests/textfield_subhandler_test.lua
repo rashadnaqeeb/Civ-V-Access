@@ -279,6 +279,63 @@ function M.test_onDeactivate_restores_prior_callback()
     T.eq(eb._cb, prior, "prior restored on pop")
 end
 
+-- Focus parking --------------------------------------------------
+
+function M.test_sub_pop_parks_focus_on_named_control()
+    setup()
+    local eb   = Polyfill.makeEditBox({ text = "Athens" })
+    local park = Polyfill.makeButton()
+    populateControls({ E = eb, CancelButton = park })
+    local h = FormHandler.create({
+        name = "Screen", displayName = "Screen",
+        focusParkControl = "CancelButton",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(eb._hasFocus, true, "edit focused during edit")
+    park._hasFocus = nil
+    InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
+    T.eq(park._hasFocus, true, "park control received TakeFocus on sub pop")
+end
+
+function M.test_missing_park_control_logs_warn_but_does_not_crash()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "Screen", displayName = "Screen",
+        focusParkControl = "NotAThing",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
+    T.truthy(#warns >= 1, "missing-park warn logged")
+    T.eq(HandlerStack.count(), 1, "sub still popped cleanly")
+end
+
+function M.test_absent_focusParkControl_skips_TakeFocus()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "Screen", displayName = "Screen",
+        items = {  -- no focusParkControl
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    local before = #warns
+    InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
+    T.eq(#warns, before, "no warn fired when nothing was requested")
+end
+
 function M.test_reenter_after_commit_produces_fresh_wrapper()
     setup()
     local eb = Polyfill.makeEditBox({ text = "first" })

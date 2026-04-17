@@ -58,7 +58,10 @@ function Polyfill.makeLabel(initialText)
 end
 
 function Polyfill.makeButton()
-    local self = { _void1 = nil, _void2 = nil, _text = "" }
+    local self = {
+        _void1 = nil, _void2 = nil, _text = "",
+        _hasFocus = false, _hidden = false, _disabled = false,
+    }
     function self:SetText(s) self._text = s or "" end
     function self:GetText() return self._text end
     function self:LocalizeAndSetText(k, ...) self._text = Locale.ConvertTextKey(k, ...) end
@@ -69,8 +72,11 @@ function Polyfill.makeButton()
     function self:SetVoids(v1, v2) self._void1, self._void2 = v1, v2 end
     function self:GetVoid1() return self._void1 end
     function self:GetVoid2() return self._void2 end
-    function self:SetHide() end
-    function self:SetDisabled() end
+    function self:IsHidden() return self._hidden end
+    function self:IsDisabled() return self._disabled end
+    function self:SetHide(h) self._hidden = h and true or false end
+    function self:SetDisabled(d) self._disabled = d and true or false end
+    function self:TakeFocus() self._hasFocus = true end
     return self
 end
 

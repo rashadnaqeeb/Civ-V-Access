@@ -1,4 +1,14 @@
-include("CivVAccess_InGameCommon")
+include("CivVAccess_Polyfill")
+include("CivVAccess_Log")
+include("CivVAccess_TextFilter")
+include("CivVAccess_InGameStrings_en_US")
+include("CivVAccess_Text")
+include("CivVAccess_SpeechEngine")
+include("CivVAccess_SpeechPipeline")
+include("CivVAccess_HandlerStack")
+include("CivVAccess_InputRouter")
+include("CivVAccess_TickPump")
+include("CivVAccess_Nav")
 include("CivVAccess_BaselineHandler")
 
 -- Boot fires any time a new in-game Context loads, which may include the

@@ -8,15 +8,25 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_FormHandler")
+include("CivVAccess_TextFieldSubHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
+-- MaxTurnsEdit's base-game callback is an anonymous inline function, so we
+-- cannot capture the original by name. Re-declare the same one-liner as our
+-- priorCallback so per-character SetMaxTurns still happens while our wrapper
+-- is installed; on sub pop, RegisterCallback restores the engine's original.
+local function maxTurnsEditCallback()
+    PreGame.SetMaxTurns(Controls.MaxTurnsEdit:GetText())
+end
+
 FormHandler.install(ContextPtr, {
-    name          = "AdvancedSetup",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"),
-    priorShowHide = priorShowHide,
-    priorInput    = priorInput,
+    name             = "AdvancedSetup",
+    displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"),
+    priorShowHide    = priorShowHide,
+    priorInput       = priorInput,
+    focusParkControl = "BackButton",
     items = {
         { kind = "pulldown", controlName = "CivPulldown",
           textKey = "TXT_KEY_RANDOM_LEADER",
@@ -39,6 +49,13 @@ FormHandler.install(ContextPtr, {
         { kind = "checkbox", controlName = "MaxTurnsCheck",
           textKey    = "TXT_KEY_AD_SETUP_MAX_TURNS",
           tooltipKey = "TXT_KEY_AD_SETUP_MAX_TURNS_TT" },
+        -- The MaxTurnsEditbox wrapper Box is what SetHide is called on when
+        -- MaxTurnsCheck is toggled; the EditBox inside doesn't mirror that
+        -- state, so the visibilityControlName points at the wrapper.
+        { kind = "textfield", controlName = "MaxTurnsEdit",
+          visibilityControlName = "MaxTurnsEditbox",
+          textKey       = "TXT_KEY_AD_SETUP_MAX_TURNS",
+          priorCallback = maxTurnsEditCallback },
         { kind = "button",   controlName = "AddAIButton",
           textKey    = "TXT_KEY_AD_SETUP_ADD_AI_PLAYER",
           tooltipKey = "TXT_KEY_AD_SETUP_ADD_AI_PLAYER_TT",
