@@ -5,10 +5,9 @@
 -- StartGameButton carries a dynamic settings-summary tooltip set via
 -- Controls.StartGameButton:SetToolTipString inside the screen's own
 -- ShowHideHandler. There is no Lua API to read that string back, so we
--- recompute the same summary from PreGame at announce time. Ships with the
--- same pieces the game shows in the mouseover: map script, world size,
--- handicap, game speed. Leader/civ is omitted because Play Now defaults to
--- random and a dedicated "Your civ" announcement belongs on its own widget.
+-- recompute the same summary from PreGame at announce time: leader/civ,
+-- map script, world size, handicap, game speed. PreGame persists a civ
+-- pick made in Setup Game, so Play Now can launch as a specific leader.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_SimpleListHandler")
@@ -18,6 +17,14 @@ local priorInput    = InputHandler
 
 local function playNowSettingsSummary()
     local parts = {}
+    local civIndex = PreGame.GetCivilization(0)
+    if civIndex ~= -1 then
+        local civ = GameInfo.Civilizations[civIndex]
+        local leaderRow = GameInfo.Leaders("Type = '" .. GameInfo.Civilization_Leaders("CivilizationType = '" .. civ.Type .. "'")().LeaderheadType .. "'")()
+        parts[#parts + 1] = Text.key(leaderRow.Description) .. ", " .. Text.key(civ.ShortDescription)
+    else
+        parts[#parts + 1] = Text.key("TXT_KEY_RANDOM_LEADER")
+    end
     if PreGame.IsRandomMapScript() then
         parts[#parts + 1] = Text.key("TXT_KEY_RANDOM_MAP_SCRIPT")
     else
