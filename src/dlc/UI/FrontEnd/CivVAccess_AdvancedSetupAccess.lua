@@ -25,7 +25,7 @@ FormHandler.install(ContextPtr, {
     displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"),
     priorShowHide    = priorShowHide,
     priorInput       = priorInput,
-    focusParkControl = "BackButton",
+    focusParkControl = "CivVAccessFocusPark",
     items = {
         { kind = "pulldown", controlName = "CivPulldown",
           textKey = "TXT_KEY_RANDOM_LEADER",
@@ -53,7 +53,7 @@ FormHandler.install(ContextPtr, {
         -- state, so the visibilityControlName points at the wrapper.
         { kind = "textfield", controlName = "MaxTurnsEdit",
           visibilityControlName = "MaxTurnsEditbox",
-          textKey       = "TXT_KEY_AD_SETUP_MAX_TURNS",
+          textKey       = "TXT_KEY_CIVVACCESS_FIELD_MAX_TURNS",
           priorCallback = maxTurnsEditCallback },
         { kind = "button",   controlName = "AddAIButton",
           textKey    = "TXT_KEY_AD_SETUP_ADD_AI_PLAYER",

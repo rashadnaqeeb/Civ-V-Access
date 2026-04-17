@@ -23,7 +23,7 @@ FormHandler.install(ContextPtr, {
     displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"),
     priorShowHide    = priorShowHide,
     priorInput       = priorInput,
-    focusParkControl = "CancelButton",
+    focusParkControl = "CivVAccessFocusPark",
     tabs = {
         {
             name      = "TXT_KEY_GAME_OPTIONS",
@@ -149,9 +149,9 @@ FormHandler.install(ContextPtr, {
             showPanel = function() OnCategory(3) end,
             items     = {
                 { kind = "pulldown", controlName = "FSResolutionPull",
-                  textKey = "TXT_KEY_OPSCREEN_RESOLUTION" },
+                  textKey = "TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_FS" },
                 { kind = "pulldown", controlName = "WResolutionPull",
-                  textKey = "TXT_KEY_OPSCREEN_RESOLUTION" },
+                  textKey = "TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_W" },
                 { kind = "pulldown", controlName = "MSAAPull",
                   textKey = "TXT_KEY_OPSCREEN_MSAA" },
                 { kind = "checkbox", controlName = "FullscreenCheck",
@@ -222,7 +222,7 @@ FormHandler.install(ContextPtr, {
                   tooltipKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL_ADDRESS_TT",
                   priorCallback = OnTurnNotifyEmailAddressChanged },
                 { kind = "textfield", controlName = "TurnNotifySmtpEmailEdit",
-                  textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_EMAIL_ADDRESS",
+                  textKey       = "TXT_KEY_CIVVACCESS_OPSCREEN_SMTP_FROM_EMAIL",
                   priorCallback = OnTurnNotifySmtpEmailChanged },
                 { kind = "textfield", controlName = "TurnNotifySmtpHostEdit",
                   textKey       = "TXT_KEY_OPSCREEN_TURN_NOTIFY_SMTP_HOST",

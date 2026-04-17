@@ -31,3 +31,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]           = "blank"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]         = "editing {1_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"]        = "{1_Label} restored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOAD_MENU"]          = "Load game"
+-- Disambiguating labels: the game's UI reuses a single label for two visually-
+-- separated controls (grid header or fullscreen/windowed toggle distinguishes
+-- sighted users). Without that visual context the two items announce
+-- identically, so the mod relabels the second half of each pair.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPSCREEN_SMTP_FROM_EMAIL"]   = "Sender email address"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_FS"]     = "Fullscreen resolution"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_W"]      = "Windowed resolution"
+-- Checkbox-gated numeric fields: the checkbox labels the feature, the edit
+-- field sets the count. Distinct labels so back-to-back announcements
+-- ("Max Turns, on" -> "Max Turns, edit, 500") do not start with the same word.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_MAX_TURNS"]            = "Turn count"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER"]           = "Timer seconds"

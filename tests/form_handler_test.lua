@@ -978,6 +978,78 @@ function M.test_enter_during_edit_commits_without_restoring()
     T.eq(h.bindings, h._navBindings, "nav bindings restored")
 end
 
+-- Non-CallOnChar EditBoxes only fire their callback on Enter, and our edit
+-- binding intercepts that Enter before the engine forwards it. So the commit
+-- path has to call priorCallback manually; without it, OptionsMenu's email
+-- / autosave fields and the MP screens' MaxTurns / TurnTimer fields would
+-- accept typing into the widget but never persist to OptionsManager / PreGame.
+function M.test_commit_fires_priorCallback_with_final_text()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "old" })
+    populateControls({ E = eb })
+    local received = {}
+    local function prior(text, control, bIsEnter)
+        received[#received + 1] = { text = text, control = control, bIsEnter = bIsEnter }
+    end
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL",
+              priorCallback = prior },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit
+    eb:SetText("committed")
+    received = {}  -- ignore anything fired during editing
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit
+    T.eq(#received, 1, "priorCallback fired exactly once on commit")
+    T.eq(received[1].text, "committed", "final text passed")
+    T.eq(received[1].control, eb, "editbox passed as control")
+    T.eq(received[1].bIsEnter, true,
+        "bIsEnter=true so priorCallback mimics native Enter-triggered call")
+end
+
+function M.test_commit_without_priorCallback_is_safe()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "old" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },  -- no priorCallback
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit
+    eb:SetText("committed")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit
+    T.eq(h._editing, false, "commit succeeded with no callback")
+    T.eq(#errors, 0, "no error logged")
+end
+
+function M.test_restore_does_not_fire_priorCallback()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "original" })
+    populateControls({ E = eb })
+    local fired = 0
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL",
+              priorCallback = function() fired = fired + 1 end },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit
+    eb:SetText("partial")
+    fired = 0
+    InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)  -- cancel
+    T.eq(fired, 0,
+        "restore path must NOT fire priorCallback; the game never committed this text")
+    T.eq(eb:GetText(), "original")
+end
+
 function M.test_edit_mode_has_no_arrow_bindings()
     setup()
     local eb = Polyfill.makeEditBox({ text = "" })
@@ -1013,8 +1085,9 @@ function M.test_reenter_edit_installs_fresh_wrapping_callback()
     })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- enter
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- commit
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- commit (fires prior)
     T.eq(eb._cb, prior, "prior reinstated on exit")
+    priorCalls = 0
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)   -- re-enter
     T.truthy(eb._cb ~= prior, "new wrapping callback installed")
     eb._cb("x", eb, false)

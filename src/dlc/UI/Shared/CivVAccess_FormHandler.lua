@@ -608,6 +608,20 @@ local function exitEdit(self, restore)
             Log.error("FormHandler '" .. self.name .. "' textfield '"
                 .. tostring(item.controlName) .. "' restore SetText failed: " .. tostring(err))
         end
+    elseif priorCallback ~= nil then
+        -- Commit path: EditBoxes without CallOnChar only fire their callback
+        -- on Enter, and our VK_RETURN binding just intercepted that Enter to
+        -- exit edit mode, so the screen's Set*_Cached never ran. Invoke the
+        -- prior callback manually with the typed text and bIsEnter=true so
+        -- the screen commits the value the same way a native Enter would.
+        -- Safe for CallOnChar EditBoxes too: the setter/validator is
+        -- idempotent, so one extra call with the final text is a no-op.
+        local okGet, text = pcall(function() return editBox:GetText() end)
+        local ok, err = pcall(priorCallback, (okGet and text) or "", editBox, true)
+        if not ok then
+            Log.error("FormHandler '" .. self.name .. "' textfield '"
+                .. tostring(item.controlName) .. "' commit callback failed: " .. tostring(err))
+        end
     end
 
     local okReg, errReg = pcall(function() editBox:RegisterCallback(priorCallback) end)

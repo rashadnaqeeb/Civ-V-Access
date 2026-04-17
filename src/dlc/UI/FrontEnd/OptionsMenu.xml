@@ -430,4 +430,9 @@
     </Grid>
   </Box>
 
+  <!-- CivVAccess: off-screen EditBox used as a focus sink so the form can
+       release engine focus from an auto-focused EditBox. TakeFocus is
+       EditBox-only in Civ V, so parking on a button silently fails. -->
+  <EditBox EditMode="1" Size="1,1" Anchor="L,T" Offset="-999,-999" ID="CivVAccessFocusPark" />
+
 </Context>
