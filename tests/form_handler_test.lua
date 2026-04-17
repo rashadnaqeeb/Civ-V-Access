@@ -1164,4 +1164,137 @@ function M.test_tab_switch_reparks_focus_on_configured_control()
         "park control focused after tab switch so arrow keys reach the form")
 end
 
+-- Dynamic-item features --------------------------------------------------
+
+function M.test_labelText_overrides_textKey_lookup()
+    setup()
+    local cb = Polyfill.makeCheckBox()
+    populateControls({ C = cb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "C",
+              labelText = "PreLocalized Option" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "PreLocalized Option, off",
+        "labelText is used verbatim instead of Text.key lookup")
+end
+
+function M.test_control_ref_bypasses_controlName_lookup()
+    setup()
+    local cb = Polyfill.makeCheckBox({ checked = true })
+    -- Empty Controls: control ref should be the only path to the widget.
+    Controls = {}
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", control = cb, textKey = "DIRECT" },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(#warns, 0, "no missing-control warnings when control ref is supplied")
+    T.eq(speaks[2].text, "DIRECT, on", "direct control state reaches announce")
+end
+
+function M.test_tooltipFn_appends_dynamic_tooltip()
+    setup()
+    local cb = Polyfill.makeCheckBox()
+    populateControls({ C = cb })
+    local calls = 0
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "C", textKey = "LBL",
+              tooltipFn = function() calls = calls + 1; return "live tip" end },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "LBL, off, live tip", "tooltipFn result appended")
+    T.truthy(calls >= 1, "tooltipFn invoked at announce time")
+end
+
+function M.test_tooltipFn_error_is_logged_and_swallowed()
+    setup()
+    local cb = Polyfill.makeCheckBox()
+    populateControls({ C = cb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "C", textKey = "LBL",
+              tooltipFn = function() error("boom") end },
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(speaks[2].text, "LBL, off", "label still announces after tooltipFn error")
+    T.truthy(#errors >= 1, "tooltipFn error logged")
+end
+
+function M.test_setItems_replaces_items_single_tab()
+    setup()
+    local a = Polyfill.makeCheckBox()
+    local b = Polyfill.makeCheckBox()
+    populateControls({ A = a })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "A", textKey = "FIRST" },
+        },
+    })
+    HandlerStack.push(h)
+    speaks = {}
+    h.setItems({
+        { kind = "checkbox", control = a, labelText = "A2" },
+        { kind = "checkbox", control = b, labelText = "B2" },
+    })
+    T.eq(#h._items, 2, "items replaced")
+    T.eq(h._items[2].labelText, "B2")
+    T.eq(#speaks, 0, "setItems does not announce on swap")
+end
+
+function M.test_setItems_replaces_tab_items_by_index()
+    setup()
+    local a = Polyfill.makeCheckBox()
+    local b = Polyfill.makeCheckBox()
+    populateControls({ A = a, B = b })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A", items = { { kind = "checkbox", controlName = "A", textKey = "LA" } } },
+            { name = "TAB_B", items = { { kind = "checkbox", controlName = "B", textKey = "LB" } } },
+        },
+    })
+    HandlerStack.push(h)  -- on tab 1
+    h.setItems({
+        { kind = "checkbox", control = b, labelText = "B-NEW-1" },
+        { kind = "checkbox", control = b, labelText = "B-NEW-2" },
+    }, 2)
+    T.eq(#h.tabs[2]._items, 2, "tab 2 items replaced")
+    T.eq(h.tabs[2]._items[1].labelText, "B-NEW-1")
+    T.eq(#h.tabs[1]._items, 1, "tab 1 items untouched")
+end
+
+function M.test_setItems_clamps_cursor_when_out_of_range()
+    setup()
+    local a = Polyfill.makeCheckBox()
+    local b = Polyfill.makeCheckBox()
+    local c = Polyfill.makeCheckBox()
+    populateControls({ A = a, B = b, C = c })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "A", textKey = "LA" },
+            { kind = "checkbox", controlName = "B", textKey = "LB" },
+            { kind = "checkbox", controlName = "C", textKey = "LC" },
+        },
+    })
+    HandlerStack.push(h)
+    h._index = 3  -- last item
+    h.setItems({
+        { kind = "checkbox", control = a, labelText = "A" },
+    })
+    T.eq(h._index, 1, "cursor clamped to first valid item after shrink")
+end
+
 return M

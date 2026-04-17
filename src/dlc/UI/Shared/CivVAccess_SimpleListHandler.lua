@@ -12,6 +12,12 @@
 --                                   live control text (pre-localized or set
 --                                   by the screen after our items are built);
 --                                   called with item._control at announce time
+--   tooltipFn    (fn(control))      optional; read at announce time and
+--                                   appended after the label. For buttons
+--                                   whose tooltip is set dynamically via
+--                                   SetToolTipString (Play Now settings
+--                                   summary, disabled-reason hints) rather
+--                                   than declared in XML.
 --   activate     (fn, required)     fires on Enter; typically calls the
 --                                   game's own click handler global
 --
@@ -60,11 +66,26 @@ local function isActivatable(item)
     return isNavigable(item) and not item._control:IsDisabled()
 end
 
-local function announceLabel(item)
-    if isActivatable(item) then
-        return labelOf(item)
+local function tooltipOf(item)
+    if item.tooltipFn == nil then return nil end
+    local ok, result = pcall(item.tooltipFn, item._control)
+    if not ok then
+        Log.error("SimpleListHandler tooltipFn '"
+            .. tostring(item.controlName) .. "' failed: " .. tostring(result))
+        return nil
     end
-    return labelOf(item) .. " " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
+    if result == nil or result == "" then return nil end
+    return tostring(result)
+end
+
+local function announceLabel(item)
+    local parts = { labelOf(item) }
+    if not isActivatable(item) then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
+    end
+    local tip = tooltipOf(item)
+    if tip ~= nil then parts[#parts + 1] = tip end
+    return table.concat(parts, ", ")
 end
 
 local function nextValidIndex(items, start, step)
@@ -173,10 +194,13 @@ function SimpleListHandler.create(spec)
         assert(type(item.textKey) == "string" or type(item.labelFn) == "function",
             "item " .. i .. " needs textKey (string) or labelFn (function)")
         assert(type(item.activate) == "function", "item " .. i .. ".activate required")
+        assert(item.tooltipFn == nil or type(item.tooltipFn) == "function",
+            "item " .. i .. ".tooltipFn must be a function if provided")
         local resolved = {
             controlName = item.controlName,
             textKey     = item.textKey,
             labelFn     = item.labelFn,
+            tooltipFn   = item.tooltipFn,
             activate    = item.activate,
             _control    = Controls[item.controlName],
         }

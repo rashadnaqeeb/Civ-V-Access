@@ -536,7 +536,7 @@ function M.test_navigation_walks_disabled_items()
     speaks = {}
     InputRouter.dispatch(40, 0, WM_KEYDOWN)  -- VK_DOWN
     T.eq(h._index, 2, "disabled B is still navigable")
-    T.eq(speaks[1].text, "LABEL_B disabled", "disabled suffix appended")
+    T.eq(speaks[1].text, "LABEL_B, disabled", "disabled suffix appended")
 end
 
 function M.test_home_end_see_disabled_items()
@@ -568,7 +568,7 @@ function M.test_enter_on_disabled_is_noop_no_activate_no_sound()
     T.eq(fired, 0, "activate not fired on disabled item")
     T.eq(#sounds, 0, "no click sound on disabled Enter")
     T.eq(#speaks, 1)
-    T.eq(speaks[1].text, "LABEL_A disabled", "disabled label re-spoken")
+    T.eq(speaks[1].text, "LABEL_A, disabled", "disabled label re-spoken")
 end
 
 function M.test_onActivate_first_item_disabled_announces_with_suffix()
@@ -577,7 +577,7 @@ function M.test_onActivate_first_item_disabled_announces_with_suffix()
     ctrlState.A.disabled = true
     local h = SimpleListHandler.create(basicSpec())
     HandlerStack.push(h)
-    T.eq(speaks[#speaks].text, "LABEL_A disabled")
+    T.eq(speaks[#speaks].text, "LABEL_A, disabled")
 end
 
 -- Empty items list -----------------------------------------------------
@@ -722,6 +722,44 @@ function M.test_deferActivate_second_tick_is_noop()
     local speaksAfterFirst = #speaks
     TickPump.tick()  -- second tick: one-shot queue empty, no re-speak
     T.eq(#speaks, speaksAfterFirst, "one-shot does not re-run on subsequent ticks")
+end
+
+-- tooltipFn -----------------------------------------------------------
+
+function M.test_tooltipFn_appends_to_announcement()
+    setup()
+    setControls({"A"})
+    local calls = 0
+    local spec = basicSpec()
+    spec.items[1].tooltipFn = function() calls = calls + 1; return "dynamic hint" end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    T.eq(speaks[#speaks].text, "LABEL_A, dynamic hint",
+        "tooltip appended after label")
+    T.truthy(calls >= 1, "tooltipFn invoked at announce time")
+end
+
+function M.test_tooltipFn_error_is_logged_and_swallowed()
+    setup()
+    setControls({"A"})
+    local spec = basicSpec()
+    spec.items[1].tooltipFn = function() error("bad tooltip") end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    T.eq(speaks[#speaks].text, "LABEL_A",
+        "label still announces when tooltipFn throws")
+    T.truthy(#errors >= 1, "tooltipFn error logged")
+end
+
+function M.test_tooltipFn_nil_result_does_not_add_comma()
+    setup()
+    setControls({"A"})
+    local spec = basicSpec()
+    spec.items[1].tooltipFn = function() return nil end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    T.eq(speaks[#speaks].text, "LABEL_A",
+        "nil tooltipFn output leaves announcement clean")
 end
 
 return M

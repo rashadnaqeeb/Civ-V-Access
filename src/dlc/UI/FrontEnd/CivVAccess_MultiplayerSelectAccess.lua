@@ -6,13 +6,21 @@
 --
 -- ReconnectButton is shown only when Network.HasReconnectCache() is true;
 -- InternetButton is disabled when not connected to Steam but not hidden
--- (users can still hit Enter on it and the game's own handler no-ops).
+-- (users can still hit Enter on it and the game's own handler no-ops). The
+-- screen sets a "not connected to Steam" tooltip in that state via
+-- LocalizeAndSetToolTip; we re-check the same network flag at announce
+-- time since there is no Lua API to read the stored tooltip back.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
+
+local function internetTooltipFn()
+    if Network.IsConnectedToSteam() then return nil end
+    return Text.key("TXT_KEY_STEAM_CONNECTED_NO")
+end
 
 SimpleListHandler.install(ContextPtr, {
     name          = "MultiplayerSelect",
@@ -27,6 +35,7 @@ SimpleListHandler.install(ContextPtr, {
         { controlName = "PitbossButton",    textKey = "TXT_KEY_MULTIPLAYER_PITBOSS_GAME",
           activate    = function() PitbossButtonClick() end },
         { controlName = "InternetButton",   textKey = "TXT_KEY_MULTIPLAYER_INTERNET_GAME",
+          tooltipFn   = internetTooltipFn,
           activate    = function() InternetButtonClick() end },
         { controlName = "LANButton",        textKey = "TXT_KEY_MULTIPLAYER_LAN_GAME",
           activate    = function() LANButtonClick() end },

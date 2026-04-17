@@ -2,6 +2,9 @@
 -- Internet button is SetDisabled when Steam is offline; Reconnect is
 -- SetHide+SetDisabled when no reconnect cache exists — both states are
 -- handled by SimpleListHandler's hidden-skip and disabled-walk paths.
+-- Internet's "why disabled" tooltip mirrors MultiplayerSelect's wiring:
+-- the screen sets it via LocalizeAndSetToolTip, and we re-check
+-- Network.IsConnectedToSteam at announce time.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_SimpleListHandler")
@@ -9,6 +12,11 @@ include("CivVAccess_ModListPreamble")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
+
+local function internetTooltipFn()
+    if Network.IsConnectedToSteam() then return nil end
+    return Text.key("TXT_KEY_STEAM_CONNECTED_NO")
+end
 
 SimpleListHandler.install(ContextPtr, {
     name          = "ModsMultiplayer",
@@ -18,6 +26,7 @@ SimpleListHandler.install(ContextPtr, {
     priorInput    = priorInput,
     items = {
         { controlName = "InternetButton",  textKey = "TXT_KEY_MULTIPLAYER_INTERNET_GAME",
+          tooltipFn   = internetTooltipFn,
           activate    = function() InternetButtonClick() end },
         { controlName = "LANButton",       textKey = "TXT_KEY_MULTIPLAYER_LAN_GAME",
           activate    = function() LANButtonClick() end },

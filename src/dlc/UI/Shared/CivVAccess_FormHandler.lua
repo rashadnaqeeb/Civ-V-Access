@@ -19,7 +19,25 @@
 --                 (caller supplies so we do not re-implement the screen's own
 --                 OnCategory / tab-visibility logic).
 --
--- Item shapes (all require textKey for the spoken label):
+-- Common item fields (apply to every kind):
+--   controlName              XML ID on Controls; resolved at create() into
+--                            _control. Optional if `control` is passed.
+--   control                  direct userdata reference; wins over controlName.
+--                            For widgets built via InstanceManager that have
+--                            no stable Controls.X (dynamic GameOption
+--                            checkboxes, map-script DropDown options).
+--   textKey                  TXT_KEY_* for the spoken label. Mutually
+--                            exclusive with labelText.
+--   labelText                pre-localized literal for widgets whose label
+--                            comes from the engine (e.g. GameOption.Description
+--                            already run through Locale.ConvertTextKey).
+--   tooltipKey / tooltipText static tooltip sources (TXT_KEY vs literal).
+--   tooltipFn                fn(control) returning a string; evaluated at
+--                            announce time. Escape hatch for tooltips set
+--                            via SetToolTipString (Play Now settings summary,
+--                            disabled-reason hints).
+--
+-- Kind-specific fields:
 --   { kind = "button",   controlName, textKey, activate }
 --     Enter invokes activate(); same contract as SimpleListHandler items.
 --
@@ -68,6 +86,11 @@
 -- tabs when the spec has tabs. Home / End are reserved for slider snap,
 -- not list navigation, to avoid collision. Esc bypasses the
 -- capturesAllInput barrier and routes to priorInput (screen's own Back / OnNo).
+--
+-- Dynamic item lists: a screen whose widgets are rebuilt by the engine
+-- (InstanceManager stacks) should re-emit items via handler.setItems(items
+-- [, tabIndex]) after each rebuild. The cursor clamps silently if its slot
+-- no longer exists; no announcement on swap.
 
 FormHandler = {}
 
@@ -89,10 +112,30 @@ local STEP_BIG   = 0.10
 -- and tooltip are the same phrase does not get announced twice.
 
 local function labelOf(item)
+    -- labelText takes precedence: dynamic widgets built by the engine
+    -- (InstanceManager-backed GameOption checkboxes etc.) carry labels that
+    -- are already localized strings, not TXT_KEY lookups.
+    if item.labelText ~= nil then return item.labelText end
     return Text.key(item.textKey)
 end
 
-local function tooltipText(item)
+local function resolveTooltip(item)
+    -- Priority: tooltipFn (dynamic), tooltipText (pre-localized literal),
+    -- tooltipKey (static TXT_KEY). tooltipFn is the escape hatch for
+    -- buttons whose tooltip is assigned at runtime via SetToolTipString.
+    if item.tooltipFn ~= nil then
+        local ok, result = pcall(item.tooltipFn, item._control)
+        if not ok then
+            Log.error("FormHandler tooltipFn '"
+                .. tostring(item.controlName) .. "' failed: " .. tostring(result))
+            return nil
+        end
+        if result == nil or result == "" then return nil end
+        return tostring(result)
+    end
+    if item.tooltipText ~= nil and item.tooltipText ~= "" then
+        return item.tooltipText
+    end
     if item.tooltipKey == nil then return nil end
     local t = Text.key(item.tooltipKey)
     if t == nil or t == "" then return nil end
@@ -211,7 +254,7 @@ local function buildSpeech(self, item)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
     end
     local base = table.concat(parts, ", ")
-    return appendTooltip(base, tooltipText(item))
+    return appendTooltip(base, resolveTooltip(item))
 end
 
 local function speakItem(self, item, interrupt)
@@ -225,20 +268,34 @@ local function resolveItems(self, items, context)
     local out = {}
     for i, item in ipairs(items) do
         assert(type(item.kind) == "string", context .. " item " .. i .. ".kind required")
-        assert(type(item.textKey) == "string", context .. " item " .. i .. ".textKey required")
+        assert(type(item.textKey) == "string" or type(item.labelText) == "string",
+            context .. " item " .. i .. " needs textKey (TXT_KEY) or labelText (literal)")
+        assert(item.tooltipFn == nil or type(item.tooltipFn) == "function",
+            context .. " item " .. i .. ".tooltipFn must be a function if provided")
         local resolved = {
             kind         = item.kind,
             textKey      = item.textKey,
+            labelText    = item.labelText,
             tooltipKey   = item.tooltipKey,
+            tooltipText  = item.tooltipText,
+            tooltipFn    = item.tooltipFn,
             controlName  = item.controlName,
             activate     = item.activate,
         }
-        assert(type(item.controlName) == "string",
-            context .. " item " .. i .. ".controlName required")
-        resolved._control = Controls[item.controlName]
-        if resolved._control == nil then
-            Log.warn("FormHandler '" .. self.name .. "': missing control '"
-                .. item.controlName .. "' in " .. context)
+        -- A direct `control` userdata wins over a name lookup. Dynamic
+        -- widgets built via InstanceManager have no stable Controls.X
+        -- entry; the caller hands us the live handle. controlName is
+        -- still accepted as a descriptive label for logs.
+        if item.control ~= nil then
+            resolved._control = item.control
+        else
+            assert(type(item.controlName) == "string",
+                context .. " item " .. i .. " needs controlName or control")
+            resolved._control = Controls[item.controlName]
+            if resolved._control == nil then
+                Log.warn("FormHandler '" .. self.name .. "': missing control '"
+                    .. item.controlName .. "' in " .. context)
+            end
         end
         if item.kind == "slider" then
             assert(type(item.labelControlName) == "string",
@@ -250,7 +307,7 @@ local function resolveItems(self, items, context)
             if resolved._labelControl == nil then
                 Log.warn("FormHandler '" .. self.name .. "': missing label control '"
                     .. item.labelControlName .. "' for slider '"
-                    .. item.controlName .. "'")
+                    .. tostring(item.controlName or "(unnamed)") .. "'")
             end
         elseif item.kind == "button" then
             assert(type(item.activate) == "function",
@@ -265,7 +322,7 @@ local function resolveItems(self, items, context)
                 if resolved._visibilityControl == nil then
                     Log.warn("FormHandler '" .. self.name .. "': missing visibility control '"
                         .. item.visibilityControlName .. "' for textfield '"
-                        .. item.controlName .. "'")
+                        .. tostring(item.controlName or "(unnamed)") .. "'")
                 end
             end
         end
@@ -900,6 +957,41 @@ function FormHandler.create(spec)
     -- where they were. The ShowHide(hide=true) path clears _initialized
     -- so the next screen open starts fresh.
     function self.onDeactivate()
+    end
+
+    -- Replace the item list used for navigation. For single-tab forms,
+    -- tabIndex is ignored. For tabbed forms, it defaults to the currently
+    -- active tab. Intended for screens whose widgets are built by
+    -- InstanceManager (dynamic checkboxes, dependent pulldowns): the
+    -- access file walks the manager, produces fresh items with direct
+    -- `control` references, and calls setItems to swap them in.
+    --
+    -- No announcement on swap; if the cursor position is no longer valid
+    -- in the new list we silently clamp to the first valid item. Callers
+    -- should re-invoke whenever the engine re-populates the stack.
+    function self.setItems(items, tabIndex)
+        assert(type(items) == "table", "setItems: items must be a table")
+        if self.tabs then
+            tabIndex = tabIndex or self._tabIndex
+            assert(self.tabs[tabIndex] ~= nil,
+                "setItems: tab " .. tostring(tabIndex) .. " out of range")
+            self.tabs[tabIndex]._items = resolveItems(self, items,
+                "setItems tab " .. tabIndex)
+        else
+            self._items = resolveItems(self, items, "setItems")
+        end
+        -- Clamp the cursor if it now points past the end or at a hidden slot.
+        -- Only matters when the mutated list is the one the cursor is in;
+        -- swapping an inactive tab's items is invisible until the user
+        -- switches to it, and switchTab already re-validates on entry.
+        if not self.tabs or tabIndex == self._tabIndex then
+            local curr = currentItems(self)
+            local item = curr[self._index]
+            if item == nil or not isNavigable(item) then
+                local next = nextValidIndex(curr, (self._index or 1) - 1, 1)
+                self._index = next or 1
+            end
+        end
     end
 
     return self
