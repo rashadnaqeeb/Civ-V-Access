@@ -57,4 +57,44 @@ function M.test_install_rewires_setupdate_each_call()
     T.eq(calls, 2)
 end
 
+function M.test_runOnce_drained_on_next_tick_then_cleared()
+    setup()
+    local fires = 0
+    TickPump.runOnce(function() fires = fires + 1 end)
+    TickPump.tick()
+    T.eq(fires, 1)
+    TickPump.tick()
+    T.eq(fires, 1, "one-shot does not re-fire on subsequent ticks")
+end
+
+function M.test_runOnce_queues_multiple_drained_together()
+    setup()
+    local order = {}
+    TickPump.runOnce(function() order[#order + 1] = "a" end)
+    TickPump.runOnce(function() order[#order + 1] = "b" end)
+    TickPump.tick()
+    T.eq(order[1], "a")
+    T.eq(order[2], "b")
+end
+
+function M.test_runOnce_callback_can_schedule_next_tick()
+    setup()
+    local fires = {}
+    TickPump.runOnce(function()
+        fires[#fires + 1] = "first"
+        TickPump.runOnce(function() fires[#fires + 1] = "second" end)
+    end)
+    TickPump.tick()
+    T.eq(#fires, 1, "re-queued callback does not run this tick")
+    TickPump.tick()
+    T.eq(fires[2], "second", "re-queued callback runs next tick")
+end
+
+function M.test_runOnce_callback_error_caught_and_logged()
+    setup()
+    TickPump.runOnce(function() error("kaboom") end)
+    TickPump.tick()
+    T.truthy(#errors >= 1)
+end
+
 return M

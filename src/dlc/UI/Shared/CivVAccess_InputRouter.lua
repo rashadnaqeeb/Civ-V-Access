@@ -19,6 +19,11 @@ function InputRouter.currentModifierMask()
     return mask
 end
 
+-- Invariant: a binding's fn may push or pop handlers, but this loop bails
+-- (`return true`) the moment any binding fires, so the walk never sees a
+-- mutated stack under its own feet. Bindings that intend to keep the walk
+-- going after mutating the stack are not supported; add a new primitive
+-- before trying.
 function InputRouter.dispatch(keyCode, modMask, msg)
     if msg ~= WM_KEYDOWN and msg ~= WM_SYSKEYDOWN then
         return false

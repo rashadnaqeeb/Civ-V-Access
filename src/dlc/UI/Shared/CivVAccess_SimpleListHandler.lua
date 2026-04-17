@@ -53,16 +53,10 @@ local function announceLabel(item)
     return labelOf(item) .. " " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
 end
 
-local function firstValidIndex(items)
-    for i = 1, #items do
-        if isNavigable(items[i]) then return i end
-    end
-    return nil
-end
-
 -- Walk from `start` in direction `step` (+1 / -1), wrapping, looking for a
 -- navigable item. Cap iterations at #items so an all-invalid list terminates
--- instead of spinning.
+-- instead of spinning. Callers with no starting cursor pass start=0 (step=1)
+-- to find the first valid item, or start=#items+1 (step=-1) to find the last.
 local function nextValidIndex(items, start, step)
     local n = #items
     if n == 0 then return nil end
@@ -97,19 +91,11 @@ local function onDown(self)
 end
 
 local function onHome(self)
-    local i = firstValidIndex(self.items)
-    if i == nil then return end
-    moveTo(self, i)
+    moveTo(self, nextValidIndex(self.items, 0, 1))
 end
 
 local function onEnd(self)
-    local n = #self.items
-    for i = n, 1, -1 do
-        if isNavigable(self.items[i]) then
-            moveTo(self, i)
-            return
-        end
-    end
+    moveTo(self, nextValidIndex(self.items, #self.items + 1, -1))
 end
 
 local function onEnter(self)
@@ -175,8 +161,11 @@ function SimpleListHandler.create(spec)
         items = {},
         capturesAllInput = true,
         _index = 1,
-        _lastPreambleText = nil,
     }
+
+    -- Upvalue rather than handler field: only onActivate / onDeactivate /
+    -- refresh read it, and it is meaningless for string preambles.
+    local lastPreambleText = nil
 
     for i, item in ipairs(spec.items) do
         assert(type(item.controlName) == "string", "item " .. i .. ".controlName required")
@@ -209,14 +198,14 @@ function SimpleListHandler.create(spec)
     }
 
     function self.onActivate()
-        local first = firstValidIndex(self.items)
+        local first = nextValidIndex(self.items, 0, 1)
         self._index = first or 1
         SpeechPipeline.speakInterrupt(self.displayName)
         local preambleText = resolvePreamble(self)
         if preambleText ~= nil and preambleText ~= "" then
             SpeechPipeline.speakQueued(preambleText)
         end
-        self._lastPreambleText = preambleText
+        lastPreambleText = preambleText
         if first ~= nil then
             SpeechPipeline.speakQueued(announceLabel(self.items[first]))
         end
@@ -224,7 +213,7 @@ function SimpleListHandler.create(spec)
 
     function self.onDeactivate()
         self._index = 1
-        self._lastPreambleText = nil
+        lastPreambleText = nil
     end
 
     -- Re-evaluate a function preamble and speakInterrupt the result if it
@@ -234,8 +223,8 @@ function SimpleListHandler.create(spec)
         if type(self.preamble) ~= "function" then return end
         local text = resolvePreamble(self)
         if text == nil or text == "" then return end
-        if text == self._lastPreambleText then return end
-        self._lastPreambleText = text
+        if text == lastPreambleText then return end
+        lastPreambleText = text
         SpeechPipeline.speakInterrupt(text)
     end
 
@@ -257,11 +246,12 @@ function SimpleListHandler.install(ContextPtr, spec)
     -- ShowHide(true) within one frame. A synchronous push speaks before the
     -- hide cancels it. Deferring the push to the next Update runs both
     -- ShowHide events first, so pendingPush clears before the speech fires.
+    -- Routed through TickPump.runOnce so it composes with any other
+    -- SetUpdate owner on the Context instead of clobbering it.
     local deferActivate = spec.deferActivate == true
     local pendingPush   = false
 
     local function runDeferredPush()
-        ContextPtr:ClearUpdate()
         if not pendingPush then return end
         pendingPush = false
         if ContextPtr:IsHidden() then return end
@@ -276,16 +266,18 @@ function SimpleListHandler.install(ContextPtr, spec)
                     .. "' prior ShowHide: " .. tostring(err))
             end
         end
-        -- Idempotent: clears any prior push from a double-show (e.g.
-        -- SystemUpdateUI re-entry) before re-pushing.
-        HandlerStack.removeByName(handler.name)
+        -- Idempotent clear before re-push. reactivate=false so the handler
+        -- beneath doesn't spuriously re-announce during a SystemUpdateUI
+        -- re-entry; we're about to push this same handler back on.
+        HandlerStack.removeByName(handler.name, false)
         if bIsHide then
             pendingPush = false
             return
         end
         if deferActivate then
             pendingPush = true
-            ContextPtr:SetUpdate(runDeferredPush)
+            TickPump.install(ContextPtr)
+            TickPump.runOnce(runDeferredPush)
         else
             HandlerStack.push(handler)
         end

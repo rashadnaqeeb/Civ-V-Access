@@ -117,14 +117,19 @@ function HandlerStack.popAbove(target)
     return found
 end
 
-function HandlerStack.removeByName(name)
+-- reactivate defaults true. Pass false when the caller is about to push
+-- something (SimpleListHandler.install's idempotent clear before repush):
+-- firing onActivate on the handler underneath would spuriously announce a
+-- screen the user is about to be pulled off of.
+function HandlerStack.removeByName(name, reactivate)
+    if reactivate == nil then reactivate = true end
     for i = #_shared.stack, 1, -1 do
         if _shared.stack[i].name == name then
             local h = _shared.stack[i]
             local wasTop = (i == #_shared.stack)
             table.remove(_shared.stack, i)
             invoke(h, "onDeactivate")
-            if wasTop then
+            if wasTop and reactivate then
                 local newTop = _shared.stack[#_shared.stack]
                 if newTop ~= nil then
                     invoke(newTop, "onActivate")
