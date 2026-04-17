@@ -8,7 +8,6 @@
 -- future promo matters to players.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 
@@ -16,25 +15,32 @@ local priorShowHide = ShowHideHandler
 -- (DequeuePopup EULA, QueuePopup ModsBrowser), briefly firing MainMenu's
 -- ShowHide(false) then (true) within one frame. Deferral lets the hide
 -- cancel the push before the name + first item speaks.
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name          = "MainMenu",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"),
     deferActivate = true,
     priorShowHide = priorShowHide,
     items = {
-        { controlName = "SinglePlayerButton",    textKey = "TXT_KEY_MODDING_SINGLE_PLAYER",
-          activate    = function() SinglePlayerClick() end },
-        { controlName = "MultiplayerButton",     textKey = "TXT_KEY_MULTIPLAYER",
-          activate    = function() MultiplayerClick() end },
-        { controlName = "ModsButton",            textKey = "TXT_KEY_MODS",
-          activate    = function() ModsButtonClick() end },
-        { controlName = "OptionsButton",         textKey = "TXT_KEY_OPTIONS",
-          activate    = function() OptionsClick() end },
-        { controlName = "OtherButton",           textKey = "TXT_KEY_OTHER",
-          activate    = function() OtherClick() end },
-        { controlName = "ExpansionRulesSwitch",  textKey = "TXT_KEY_LOAD_MENU_DLC",
-          activate    = function() OnExpansionRulesSwitch() end },
-        { controlName = "ExitButton",            textKey = "TXT_KEY_EXIT_BUTTON",
-          activate    = function() OnExitGame() end },
+        MenuItems.Button({ controlName = "SinglePlayerButton",
+            textKey  = "TXT_KEY_MODDING_SINGLE_PLAYER",
+            activate = function() SinglePlayerClick() end }),
+        MenuItems.Button({ controlName = "MultiplayerButton",
+            textKey  = "TXT_KEY_MULTIPLAYER",
+            activate = function() MultiplayerClick() end }),
+        MenuItems.Button({ controlName = "ModsButton",
+            textKey  = "TXT_KEY_MODS",
+            activate = function() ModsButtonClick() end }),
+        MenuItems.Button({ controlName = "OptionsButton",
+            textKey  = "TXT_KEY_OPTIONS",
+            activate = function() OptionsClick() end }),
+        MenuItems.Button({ controlName = "OtherButton",
+            textKey  = "TXT_KEY_OTHER",
+            activate = function() OtherClick() end }),
+        MenuItems.Button({ controlName = "ExpansionRulesSwitch",
+            textKey  = "TXT_KEY_LOAD_MENU_DLC",
+            activate = function() OnExpansionRulesSwitch() end }),
+        MenuItems.Button({ controlName = "ExitButton",
+            textKey  = "TXT_KEY_EXIT_BUTTON",
+            activate = function() OnExitGame() end }),
     },
 })

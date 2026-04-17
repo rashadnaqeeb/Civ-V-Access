@@ -3,12 +3,11 @@
 -- populated (error text is set by the caller before the popup shows).
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name          = "ModsError",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_ERROR"),
     preamble      = function()
@@ -18,7 +17,8 @@ SimpleListHandler.install(ContextPtr, {
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        { controlName = "OKButton", textKey = "TXT_KEY_OK_BUTTON",
-          activate    = function() OnOK() end },
+        MenuItems.Button({ controlName = "OKButton",
+            textKey  = "TXT_KEY_OK_BUTTON",
+            activate = function() OnOK() end }),
     },
 })

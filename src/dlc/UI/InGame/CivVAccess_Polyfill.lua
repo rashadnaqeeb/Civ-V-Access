@@ -35,7 +35,7 @@ Keys = Keys or {
     VK_DOWN   = 40,
 }
 
--- Widget factories for FormHandler unit tests. The engine backs these with
+-- Widget factories for Menu + MenuItems unit tests. The engine backs these with
 -- userdata + metatables; offline we use plain tables with methods so tests
 -- can inspect and drive them. Real engine semantics mirrored:
 --   Slider  - SetValue clamps 0..1 then fires the slider callback
@@ -82,10 +82,10 @@ end
 
 -- Slider / CheckBox polyfills intentionally do NOT fire the registered
 -- callback from SetValue / SetCheck: the real engine only fires those on
--- mouse interaction, not on programmatic state changes. FormHandler
--- invokes the captured callback via PullDownProbe after each SetValue /
--- SetCheck, and the polyfill mirrors that so tests exercise the same
--- code path as the game.
+-- mouse interaction, not on programmatic state changes. MenuItems.Slider
+-- / MenuItems.Checkbox invoke the captured callback via PullDownProbe
+-- after each SetValue / SetCheck, and the polyfill mirrors that so tests
+-- exercise the same code path as the game.
 function Polyfill.makeSlider(opts)
     opts = opts or {}
     local self = {

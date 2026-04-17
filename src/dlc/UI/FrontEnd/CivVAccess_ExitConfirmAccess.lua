@@ -3,21 +3,20 @@
 -- PushModal / PopModal still fire the ShowHide handler per the game source.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = OnShowHide
 local priorInput    = InputHandler
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name          = "ExitConfirm",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"),
     preamble      = Text.key("TXT_KEY_MENU_EXIT_WARN"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        { controlName = "Yes", textKey = "TXT_KEY_YES_BUTTON",
-          activate    = function() OnYes() end },
-        { controlName = "No",  textKey = "TXT_KEY_NO_BUTTON",
-          activate    = function() OnNo() end },
+        MenuItems.Button({ controlName = "Yes", textKey = "TXT_KEY_YES_BUTTON",
+            activate = function() OnYes() end }),
+        MenuItems.Button({ controlName = "No",  textKey = "TXT_KEY_NO_BUTTON",
+            activate = function() OnNo() end }),
     },
 })

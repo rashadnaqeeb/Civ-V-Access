@@ -1,8 +1,8 @@
 -- MultiplayerSelect accessibility wiring. Standard and Pitboss don't
 -- navigate; they toggle visibility so Internet/LAN replace
--- Standard/HotSeat/Pitboss in place. SimpleListHandler's post-activate
--- revalidation catches the flipped-hidden item and announces the next
--- valid one so the user hears that something changed.
+-- Standard/HotSeat/Pitboss in place. Menu's post-activate revalidation
+-- catches the flipped-hidden item and announces the next valid one so the
+-- user hears that something changed.
 --
 -- ReconnectButton is shown only when Network.HasReconnectCache() is true;
 -- InternetButton is disabled when not connected to Steam but not hidden
@@ -12,7 +12,6 @@
 -- time since there is no Lua API to read the stored tooltip back.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
@@ -22,29 +21,36 @@ local function internetTooltipFn()
     return Text.key("TXT_KEY_STEAM_CONNECTED_NO")
 end
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name          = "MultiplayerSelect",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MULTIPLAYER_SELECT"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        { controlName = "StandardButton",   textKey = "TXT_KEY_MULTIPLAYER_STANDARD_GAME",
-          activate    = function() StandardButtonClick() end },
-        { controlName = "HotSeatButton",    textKey = "TXT_KEY_MULTIPLAYER_HOTSEAT_GAME",
-          activate    = function() HotSeatButtonClick() end },
-        { controlName = "PitbossButton",    textKey = "TXT_KEY_MULTIPLAYER_PITBOSS_GAME",
-          activate    = function() PitbossButtonClick() end },
-        { controlName = "InternetButton",   textKey = "TXT_KEY_MULTIPLAYER_INTERNET_GAME",
-          tooltipFn   = internetTooltipFn,
-          activate    = function() InternetButtonClick() end },
-        { controlName = "LANButton",        textKey = "TXT_KEY_MULTIPLAYER_LAN_GAME",
-          activate    = function() LANButtonClick() end },
-        { controlName = "ReconnectButton",  textKey = "TXT_KEY_MULTIPLAYER_RECONNECT",
-          activate    = function()
-              ReconnectButtonClick()
-              SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_MP_RECONNECTING"))
-          end },
-        { controlName = "BackButton",       textKey = "TXT_KEY_MODDING_MENU_BACK",
-          activate    = function() BackButtonClick() end },
+        MenuItems.Button({ controlName = "StandardButton",
+            textKey  = "TXT_KEY_MULTIPLAYER_STANDARD_GAME",
+            activate = function() StandardButtonClick() end }),
+        MenuItems.Button({ controlName = "HotSeatButton",
+            textKey  = "TXT_KEY_MULTIPLAYER_HOTSEAT_GAME",
+            activate = function() HotSeatButtonClick() end }),
+        MenuItems.Button({ controlName = "PitbossButton",
+            textKey  = "TXT_KEY_MULTIPLAYER_PITBOSS_GAME",
+            activate = function() PitbossButtonClick() end }),
+        MenuItems.Button({ controlName = "InternetButton",
+            textKey   = "TXT_KEY_MULTIPLAYER_INTERNET_GAME",
+            tooltipFn = internetTooltipFn,
+            activate  = function() InternetButtonClick() end }),
+        MenuItems.Button({ controlName = "LANButton",
+            textKey  = "TXT_KEY_MULTIPLAYER_LAN_GAME",
+            activate = function() LANButtonClick() end }),
+        MenuItems.Button({ controlName = "ReconnectButton",
+            textKey  = "TXT_KEY_MULTIPLAYER_RECONNECT",
+            activate = function()
+                ReconnectButtonClick()
+                SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_MP_RECONNECTING"))
+            end }),
+        MenuItems.Button({ controlName = "BackButton",
+            textKey  = "TXT_KEY_MODDING_MENU_BACK",
+            activate = function() BackButtonClick() end }),
     },
 })

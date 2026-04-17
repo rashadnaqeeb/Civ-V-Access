@@ -5,14 +5,14 @@
 -- so the user hears both before the Continue button is announced.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name        = "LegalScreen",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEGAL"),
     preamble    = Text.key("TXT_KEY_LEGAL_BODY") .. " " .. Text.key("TXT_KEY_ESRB_BODY"),
     items = {
-        { controlName = "ContinueButton", textKey = "TXT_KEY_LEGAL_CONTINUE",
-          activate    = function() UIManager:DequeuePopup(ContextPtr) end },
+        MenuItems.Button({ controlName = "ContinueButton",
+            textKey  = "TXT_KEY_LEGAL_CONTINUE",
+            activate = function() UIManager:DequeuePopup(ContextPtr) end }),
     },
 })

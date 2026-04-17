@@ -12,7 +12,6 @@
 -- the game's and reads the updated label.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
@@ -35,7 +34,7 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
     Events.MultiplayerNetRegistered.Add(doRefresh)
 end
 
-civvaccess_shared._joiningRoomHandler = SimpleListHandler.install(ContextPtr, {
+civvaccess_shared._joiningRoomHandler = Menu.install(ContextPtr, {
     name          = "JoiningRoom",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"),
     preamble      = function()

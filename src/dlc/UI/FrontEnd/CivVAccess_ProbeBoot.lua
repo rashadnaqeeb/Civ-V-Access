@@ -2,7 +2,7 @@
 -- MPGameSetupScreen, StagingRoom) so the widget probes are in place BEFORE
 -- the screen's own top-level code registers callbacks or builds entries.
 -- Patching the metatable after those calls would miss the one-time
--- Register*Callback, leaving FormHandler with no way to invoke the
+-- Register*Callback, leaving Menu with no way to invoke the
 -- engine's callback from keyboard activation.
 --
 -- include() is idempotent (engine caches by bare stem); multiple screens

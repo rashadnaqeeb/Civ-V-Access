@@ -5,7 +5,6 @@
 -- reproduces the original Esc -> NavigateBack routing.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 include("CivVAccess_ModListPreamble")
 
 local priorInput = function(uiMsg, wParam, lParam)
@@ -15,17 +14,20 @@ local priorInput = function(uiMsg, wParam, lParam)
     return true
 end
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name        = "ModsMenu",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_MENU"),
     preamble    = ModListPreamble.fn(),
     priorInput  = priorInput,
     items = {
-        { controlName = "SinglePlayerButton", textKey = "TXT_KEY_MODDING_SINGLE_PLAYER",
-          activate    = function() OnSinglePlayerClick() end },
-        { controlName = "MultiPlayerButton",  textKey = "TXT_KEY_MODDING_MULTIPLAYER",
-          activate    = function() OnMultiPlayerClick() end },
-        { controlName = "BackButton",         textKey = "TXT_KEY_MODDING_MENU_BACK",
-          activate    = function() NavigateBack() end },
+        MenuItems.Button({ controlName = "SinglePlayerButton",
+            textKey  = "TXT_KEY_MODDING_SINGLE_PLAYER",
+            activate = function() OnSinglePlayerClick() end }),
+        MenuItems.Button({ controlName = "MultiPlayerButton",
+            textKey  = "TXT_KEY_MODDING_MULTIPLAYER",
+            activate = function() OnMultiPlayerClick() end }),
+        MenuItems.Button({ controlName = "BackButton",
+            textKey  = "TXT_KEY_MODDING_MENU_BACK",
+            activate = function() NavigateBack() end }),
     },
 })

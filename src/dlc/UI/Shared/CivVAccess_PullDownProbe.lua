@@ -1,6 +1,6 @@
 -- Engine PullDowns and Sliders expose Register*Callback / BuildEntry /
 -- ClearEntries / SetValue, but no public accessor for the registered
--- callback. FormHandler needs both to:
+-- callback. MenuItems needs both to:
 --   * synthesize a keyboard sub-menu from a PullDown's entries
 --   * fire the screen's SliderCallback after programmatic SetValue, since
 --     the engine does not auto-fire it outside mouse drags

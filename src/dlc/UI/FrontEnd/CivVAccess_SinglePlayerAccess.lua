@@ -1,6 +1,6 @@
 -- SinglePlayer accessibility wiring. ScenariosButton is hidden when no
--- Firaxis scenarios are installed; SimpleListHandler's live :IsHidden()
--- check transparently skips it.
+-- Firaxis scenarios are installed; Menu's live :IsHidden() check
+-- transparently skips it.
 --
 -- StartGameButton carries a dynamic settings-summary tooltip set via
 -- Controls.StartGameButton:SetToolTipString inside the screen's own
@@ -10,7 +10,6 @@
 -- pick made in Setup Game, so Play Now can launch as a specific leader.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
@@ -58,24 +57,30 @@ local function playNowSettingsSummary()
     return table.concat(parts, ", ")
 end
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name          = "SinglePlayer",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SINGLE_PLAYER"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        { controlName = "StartGameButton",    textKey = "TXT_KEY_PLAY_NOW",
-          tooltipFn   = playNowSettingsSummary,
-          activate    = function() StartGameClick() end },
-        { controlName = "GameSetupButton",    textKey = "TXT_KEY_SETUP_GAME",
-          activate    = function() SetupGameClicked() end },
-        { controlName = "LoadGameButton",     textKey = "TXT_KEY_LOAD_GAME",
-          activate    = function() LoadGameClick() end },
-        { controlName = "ScenariosButton",    textKey = "TXT_KEY_SCENARIOS",
-          activate    = function() ScenariosClicked() end },
-        { controlName = "LoadTutorialButton", textKey = "TXT_KEY_TUTORIAL",
-          activate    = function() LoadTutorialClick() end },
-        { controlName = "BackButton",         textKey = "TXT_KEY_MODDING_MENU_BACK",
-          activate    = function() BackButtonClick() end },
+        MenuItems.Button({ controlName = "StartGameButton",
+            textKey   = "TXT_KEY_PLAY_NOW",
+            tooltipFn = playNowSettingsSummary,
+            activate  = function() StartGameClick() end }),
+        MenuItems.Button({ controlName = "GameSetupButton",
+            textKey  = "TXT_KEY_SETUP_GAME",
+            activate = function() SetupGameClicked() end }),
+        MenuItems.Button({ controlName = "LoadGameButton",
+            textKey  = "TXT_KEY_LOAD_GAME",
+            activate = function() LoadGameClick() end }),
+        MenuItems.Button({ controlName = "ScenariosButton",
+            textKey  = "TXT_KEY_SCENARIOS",
+            activate = function() ScenariosClicked() end }),
+        MenuItems.Button({ controlName = "LoadTutorialButton",
+            textKey  = "TXT_KEY_TUTORIAL",
+            activate = function() LoadTutorialClick() end }),
+        MenuItems.Button({ controlName = "BackButton",
+            textKey  = "TXT_KEY_MODDING_MENU_BACK",
+            activate = function() BackButtonClick() end }),
     },
 })

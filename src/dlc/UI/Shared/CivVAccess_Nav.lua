@@ -1,8 +1,6 @@
--- Small nav primitives shared by SimpleListHandler and FormHandler. Both
--- handlers walk a list of items with wrap-around, skipping non-navigable
--- entries and bounding iterations at #items so an all-invalid list
--- terminates instead of spinning. Keeping this in one place prevents the
--- two walkers from drifting apart when hidden / disabled semantics change.
+-- Small nav primitive used by Menu. Walks a list of items with wrap-around,
+-- skipping non-navigable entries and bounding iterations at #items so an
+-- all-invalid list terminates instead of spinning.
 --
 -- Nav.next(items, start, step, isNavigable)
 --   items        array of resolved item tables

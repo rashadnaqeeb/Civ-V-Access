@@ -6,7 +6,6 @@
 -- to the base OnBack; Enter is consumed by the handler's VK_RETURN binding.
 
 include("CivVAccess_FrontendCommon")
-include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
@@ -34,7 +33,7 @@ local function buildCreditsText()
     return table.concat(parts, ". ")
 end
 
-SimpleListHandler.install(ContextPtr, {
+Menu.install(ContextPtr, {
     name          = "Credits",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CREDITS"),
     preamble      = buildCreditsText,
