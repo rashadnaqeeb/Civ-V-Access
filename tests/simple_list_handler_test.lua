@@ -305,6 +305,13 @@ local function makeContextPtr()
     return {
         SetShowHideHandler = function(self, fn) self._sh = fn end,
         SetInputHandler    = function(self, fn) self._in = fn end,
+        -- deferActivate path uses these three. _hidden is read by IsHidden
+        -- and can be flipped by tests to simulate a same-frame re-cover.
+        _hidden    = false,
+        _update    = nil,
+        SetUpdate  = function(self, fn) self._update = fn end,
+        ClearUpdate = function(self)    self._update = nil end,
+        IsHidden   = function(self) return self._hidden end,
     }
 end
 
@@ -647,6 +654,68 @@ function M.test_install_prior_input_not_called_when_router_consumes()
     ctx._sh(false, false)
     ctx._in(WM_KEYDOWN, 40, 0)  -- VK_DOWN (bound)
     T.eq(priorFired, 0)
+end
+
+-- deferActivate --------------------------------------------------------
+
+function M.test_deferActivate_delays_push_to_update_tick()
+    setup()
+    setControls({"A", "B", "C"})
+    local ctx = makeContextPtr()
+    local spec = basicSpec()
+    spec.name = "Deferred"
+    spec.deferActivate = true
+    SimpleListHandler.install(ctx, spec)
+    ctx._sh(false, false)
+    T.eq(HandlerStack.count(), 0, "push not synchronous with show")
+    T.eq(#speaks, 0, "no speech yet")
+    T.truthy(ctx._update, "Update scheduled")
+    ctx._update()
+    T.eq(HandlerStack.count(), 1, "push runs on deferred tick")
+    T.eq(speaks[1].text, "Test Screen")
+end
+
+function M.test_deferActivate_hide_before_tick_cancels_push()
+    setup()
+    setControls({"A", "B", "C"})
+    local ctx = makeContextPtr()
+    local spec = basicSpec()
+    spec.name = "Deferred"
+    spec.deferActivate = true
+    SimpleListHandler.install(ctx, spec)
+    ctx._sh(false, false)  -- show, schedule push
+    ctx._sh(true, false)   -- same-frame hide cancels pending
+    ctx._update()          -- tick runs
+    T.eq(HandlerStack.count(), 0, "no push after cancel")
+    T.eq(#speaks, 0, "no speech")
+end
+
+function M.test_deferActivate_hidden_at_tick_skips_push()
+    setup()
+    setControls({"A", "B", "C"})
+    local ctx = makeContextPtr()
+    local spec = basicSpec()
+    spec.name = "Deferred"
+    spec.deferActivate = true
+    SimpleListHandler.install(ctx, spec)
+    ctx._sh(false, false)
+    ctx._hidden = true  -- simulate engine flipping Hidden after ShowHide(false)
+    ctx._update()
+    T.eq(HandlerStack.count(), 0, "IsHidden check blocks push")
+    T.eq(#speaks, 0)
+end
+
+function M.test_deferActivate_tick_clears_update_to_avoid_per_frame_noop()
+    setup()
+    setControls({"A", "B", "C"})
+    local ctx = makeContextPtr()
+    local spec = basicSpec()
+    spec.name = "Deferred"
+    spec.deferActivate = true
+    SimpleListHandler.install(ctx, spec)
+    ctx._sh(false, false)
+    ctx._update()
+    T.falsy(ctx._update, "ClearUpdate called after deferred push runs")
 end
 
 return M

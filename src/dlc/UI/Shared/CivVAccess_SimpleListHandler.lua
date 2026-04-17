@@ -251,6 +251,22 @@ function SimpleListHandler.install(ContextPtr, spec)
     local handler = SimpleListHandler.create(spec)
     local priorShowHide = spec.priorShowHide
     local priorInput    = spec.priorInput
+    -- spec.deferActivate: when a modal transition synchronously exposes a
+    -- base screen only to cover it again in the same flow (MainMenu during
+    -- EULA -> ModsBrowser accept), the engine fires ShowHide(false) then
+    -- ShowHide(true) within one frame. A synchronous push speaks before the
+    -- hide cancels it. Deferring the push to the next Update runs both
+    -- ShowHide events first, so pendingPush clears before the speech fires.
+    local deferActivate = spec.deferActivate == true
+    local pendingPush   = false
+
+    local function runDeferredPush()
+        ContextPtr:ClearUpdate()
+        if not pendingPush then return end
+        pendingPush = false
+        if ContextPtr:IsHidden() then return end
+        HandlerStack.push(handler)
+    end
 
     ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
         if priorShowHide then
@@ -263,7 +279,14 @@ function SimpleListHandler.install(ContextPtr, spec)
         -- Idempotent: clears any prior push from a double-show (e.g.
         -- SystemUpdateUI re-entry) before re-pushing.
         HandlerStack.removeByName(handler.name)
-        if not bIsHide then
+        if bIsHide then
+            pendingPush = false
+            return
+        end
+        if deferActivate then
+            pendingPush = true
+            ContextPtr:SetUpdate(runDeferredPush)
+        else
             HandlerStack.push(handler)
         end
     end)

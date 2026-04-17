@@ -12,9 +12,14 @@ include("CivVAccess_SimpleListHandler")
 
 local priorShowHide = ShowHideHandler
 
+-- deferActivate: the EULA-accept path transitions popups synchronously
+-- (DequeuePopup EULA, QueuePopup ModsBrowser), briefly firing MainMenu's
+-- ShowHide(false) then (true) within one frame. Deferral lets the hide
+-- cancel the push before the name + first item speaks.
 SimpleListHandler.install(ContextPtr, {
     name          = "MainMenu",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"),
+    deferActivate = true,
     priorShowHide = priorShowHide,
     items = {
         { controlName = "SinglePlayerButton",    textKey = "TXT_KEY_MODDING_SINGLE_PLAYER",
