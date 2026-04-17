@@ -19,8 +19,6 @@ include("CivVAccess_FormHandler")
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
-local tabstrip = { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" }
-
 FormHandler.install(ContextPtr, {
     name          = "OptionsMenu",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"),
@@ -31,7 +29,6 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_GAME_OPTIONS",
             showPanel = function() OnCategory(1) end,
             items     = {
-                tabstrip,
                 { kind = "slider",   controlName = "Tooltip1TimerSlider",
                   labelControlName = "Tooltip1TimerLength",
                   textKey    = "TXT_KEY_OPSCREEN_TOOLTIP_1_TIMER_LENGTH",
@@ -88,7 +85,6 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_INTERFACE_OPTIONS",
             showPanel = function() OnCategory(2) end,
             items     = {
-                tabstrip,
                 { kind = "pulldown", controlName = "BindMousePull",
                   textKey    = "TXT_KEY_BIND_MOUSE",
                   tooltipKey = "TXT_KEY_BIND_MOUSE_TT" },
@@ -137,7 +133,6 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_VIDEO_OPTIONS",
             showPanel = function() OnCategory(3) end,
             items     = {
-                tabstrip,
                 { kind = "pulldown", controlName = "FSResolutionPull",
                   textKey = "TXT_KEY_OPSCREEN_RESOLUTION" },
                 { kind = "pulldown", controlName = "WResolutionPull",
@@ -183,7 +178,6 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_AUDIO_OPTIONS",
             showPanel = function() OnCategory(4) end,
             items     = {
-                tabstrip,
                 { kind = "slider", controlName = "MusicVolumeSlider",
                   labelControlName = "MusicVolumeSliderValue",
                   textKey = "TXT_KEY_OPSCREEN_MUSIC_SLIDER" },
@@ -202,7 +196,6 @@ FormHandler.install(ContextPtr, {
             name      = "TXT_KEY_MULTIPLAYER_OPTIONS",
             showPanel = function() OnCategory(5) end,
             items     = {
-                tabstrip,
                 { kind = "checkbox", controlName = "TurnNotifySteamInviteCheckbox",
                   textKey    = "TXT_KEY_OPSCREEN_TURN_NOTIFY_STEAM_INVITE",
                   tooltipKey = "TXT_KEY_OPSCREEN_TURN_NOTIFY_STEAM_INVITE_TT" },

@@ -1,8 +1,9 @@
 -- Reusable handler for mixed-widget form screens (Options, AdvancedSetup,
 -- MPGameSetup, StagingRoom). Where SimpleListHandler assumes a flat list of
 -- buttons with one verb (Enter), FormHandler supports item kinds --
--- button, checkbox, slider, pulldown, tabstrip -- each with its own
--- activation and announcement.
+-- button, checkbox, slider, pulldown -- each with its own
+-- activation and announcement. Multi-tab screens use Tab / Shift+Tab to
+-- cycle through tabs.
 --
 -- Spec shape:
 --   name          (string, required) unique-ish handler name for the stack
@@ -40,13 +41,9 @@
 --     registered or entries not yet built), Enter announces the current value
 --     and logs a Log.warn per the no-silent-failures rule.
 --
---   { kind = "tabstrip", textKey }
---     One row with no backing Control. Focus announces "<tabstrip label>
---     <current tab name>"; Left / Right cycle the active tab (same effect as
---     global Tab / Shift+Tab). Only valid inside a tabs spec.
---
--- Navigation: Up / Down wrap within the current tab. Home / End are reserved
--- for slider snap, not list navigation, to avoid collision. Esc bypasses the
+-- Navigation: Up / Down wrap within the current tab. Tab / Shift+Tab cycle
+-- tabs when the spec has tabs. Home / End are reserved for slider snap,
+-- not list navigation, to avoid collision. Esc bypasses the
 -- capturesAllInput barrier and routes to priorInput (screen's own Back / OnNo).
 
 FormHandler = {}
@@ -101,12 +98,10 @@ local function appendTooltip(base, tooltip)
 end
 
 local function isNavigable(item)
-    if item.kind == "tabstrip" then return true end
     return item._control ~= nil and not item._control:IsHidden()
 end
 
 local function isActivatable(item)
-    if item.kind == "tabstrip" then return true end
     if not isNavigable(item) then return false end
     return not item._control:IsDisabled()
 end
@@ -135,12 +130,6 @@ local function pulldownValue(item)
     return tostring(text)
 end
 
-local function tabstripValue(self)
-    local tab = self.tabs and self.tabs[self._tabIndex]
-    if tab == nil then return nil end
-    return Text.key(tab.name)
-end
-
 local function buildSpeech(self, item)
     local parts = { labelOf(item) }
     local kind = item.kind
@@ -151,8 +140,6 @@ local function buildSpeech(self, item)
         value = sliderValue(item)
     elseif kind == "pulldown" then
         value = pulldownValue(item)
-    elseif kind == "tabstrip" then
-        value = tabstripValue(self)
     end
     if value ~= nil and value ~= "" then
         parts[#parts + 1] = value
@@ -185,30 +172,26 @@ local function resolveItems(self, items, context)
             step         = item.step or STEP_SMALL,
             bigStep      = item.bigStep or STEP_BIG,
         }
-        if item.kind == "tabstrip" then
-            -- no backing control
-        else
-            assert(type(item.controlName) == "string",
-                context .. " item " .. i .. ".controlName required")
-            resolved._control = Controls[item.controlName]
-            if resolved._control == nil then
-                Log.warn("FormHandler '" .. self.name .. "': missing control '"
-                    .. item.controlName .. "' in " .. context)
+        assert(type(item.controlName) == "string",
+            context .. " item " .. i .. ".controlName required")
+        resolved._control = Controls[item.controlName]
+        if resolved._control == nil then
+            Log.warn("FormHandler '" .. self.name .. "': missing control '"
+                .. item.controlName .. "' in " .. context)
+        end
+        if item.kind == "slider" then
+            assert(type(item.labelControlName) == "string",
+                context .. " item " .. i .. " (slider) needs labelControlName")
+            resolved.labelControlName = item.labelControlName
+            resolved._labelControl    = Controls[item.labelControlName]
+            if resolved._labelControl == nil then
+                Log.warn("FormHandler '" .. self.name .. "': missing label control '"
+                    .. item.labelControlName .. "' for slider '"
+                    .. item.controlName .. "'")
             end
-            if item.kind == "slider" then
-                assert(type(item.labelControlName) == "string",
-                    context .. " item " .. i .. " (slider) needs labelControlName")
-                resolved.labelControlName = item.labelControlName
-                resolved._labelControl    = Controls[item.labelControlName]
-                if resolved._labelControl == nil then
-                    Log.warn("FormHandler '" .. self.name .. "': missing label control '"
-                        .. item.labelControlName .. "' for slider '"
-                        .. item.controlName .. "'")
-                end
-            elseif item.kind == "button" then
-                assert(type(item.activate) == "function",
-                    context .. " item " .. i .. " (button) needs activate fn")
-            end
+        elseif item.kind == "button" then
+            assert(type(item.activate) == "function",
+                context .. " item " .. i .. " (button) needs activate fn")
         end
         out[#out + 1] = resolved
     end
@@ -469,10 +452,6 @@ local function onActivate(self, item)
         activateCheckbox(self, item)
     elseif kind == "pulldown" then
         activatePullDown(self, item)
-    elseif kind == "tabstrip" then
-        -- Tabstrip has no Enter verb; Left/Right cycles. Re-announce so
-        -- the user knows nothing happened.
-        SpeechPipeline.speakInterrupt(buildSpeech(self, item))
     elseif kind == "slider" then
         -- Slider Enter = no-op, just re-announce so the user can relocate.
         SpeechPipeline.speakInterrupt(buildSpeech(self, item))
@@ -494,10 +473,6 @@ local function onLeft(self, big)
     if item == nil then return end
     if item.kind == "slider" and isActivatable(item) then
         adjustSlider(self, item, -(big and item.bigStep or item.step))
-        return
-    end
-    if item.kind == "tabstrip" then
-        cycleTab(self, -1)
     end
 end
 
@@ -506,10 +481,6 @@ local function onRight(self, big)
     if item == nil then return end
     if item.kind == "slider" and isActivatable(item) then
         adjustSlider(self, item, (big and item.bigStep or item.step))
-        return
-    end
-    if item.kind == "tabstrip" then
-        cycleTab(self, 1)
     end
 end
 

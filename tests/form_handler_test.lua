@@ -72,7 +72,6 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]        = "on"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]       = "off"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TAB_STRIP"]       = "tabs"
 
     resetPDMetatable()
 end
@@ -545,14 +544,12 @@ function M.test_tabs_tab_key_cycles_and_resets_cursor()
             {
                 name      = "TAB_A", showPanel = function() shown = 1 end,
                 items     = {
-                    { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" },
                     { kind = "checkbox", controlName = "CA", textKey = "LBL_A" },
                 },
             },
             {
                 name      = "TAB_B", showPanel = function() shown = 2 end,
                 items     = {
-                    { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" },
                     { kind = "checkbox", controlName = "CB", textKey = "LBL_B" },
                 },
             },
@@ -569,13 +566,16 @@ end
 
 function M.test_tabs_shift_tab_cycles_backward_wraps()
     setup()
-    populateControls({})
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    local cbC = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB, CC = cbC })
     local h = FormHandler.create({
         name = "T", displayName = "Screen",
         tabs = {
-            { name = "A", items = { { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" } } },
-            { name = "B", items = { { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" } } },
-            { name = "C", items = { { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" } } },
+            { name = "A", items = { { kind = "checkbox", controlName = "CA", textKey = "L" } } },
+            { name = "B", items = { { kind = "checkbox", controlName = "CB", textKey = "L" } } },
+            { name = "C", items = { { kind = "checkbox", controlName = "CC", textKey = "L" } } },
         },
     })
     HandlerStack.push(h)  -- starts on tab 1
@@ -584,21 +584,23 @@ function M.test_tabs_shift_tab_cycles_backward_wraps()
     T.eq(h._tabIndex, 3, "wrapped from 1 backward to 3")
 end
 
-function M.test_tabstrip_left_right_cycles_tabs_too()
+function M.test_left_right_do_not_cycle_tabs()
     setup()
-    populateControls({})
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB })
     local h = FormHandler.create({
         name = "T", displayName = "Screen",
         tabs = {
-            { name = "A", items = { { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" } } },
-            { name = "B", items = { { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" } } },
+            { name = "A", items = { { kind = "checkbox", controlName = "CA", textKey = "L" } } },
+            { name = "B", items = { { kind = "checkbox", controlName = "CB", textKey = "L" } } },
         },
     })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
-    T.eq(h._tabIndex, 2, "Right on tabstrip cycles forward")
+    T.eq(h._tabIndex, 1, "Right on a non-slider is a no-op; tab unchanged")
     InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
-    T.eq(h._tabIndex, 1, "Left cycles back")
+    T.eq(h._tabIndex, 1, "Left on a non-slider is a no-op; tab unchanged")
 end
 
 -- Navigation -------------------------------------------------------
@@ -730,16 +732,17 @@ function M.test_tab_position_preserved_across_pulldown_sub()
     pd:BuildEntry("InstanceOne", inst)
     inst.Button:SetText("Entry")
 
+    local cbFiller = Polyfill.makeCheckBox()
+    Controls.Filler = cbFiller
     local h = FormHandler.create({
         name = "T", displayName = "Screen",
         tabs = {
             { name = "TAB_A",
               items = {
-                  { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" },
+                  { kind = "checkbox", controlName = "Filler", textKey = "L" },
               } },
             { name = "TAB_B",
               items = {
-                  { kind = "tabstrip", textKey = "TXT_KEY_CIVVACCESS_TAB_STRIP" },
                   { kind = "pulldown", controlName = "PD", textKey = "LBL_PD" },
               } },
         },
@@ -747,12 +750,11 @@ function M.test_tab_position_preserved_across_pulldown_sub()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(h._tabIndex, 2)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(h._index, 2, "on pulldown in tab B")
+    T.eq(h._index, 1, "on pulldown in tab B")
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- open sub
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- select entry
     T.eq(h._tabIndex, 2, "tab preserved")
-    T.eq(h._index, 2, "item index preserved")
+    T.eq(h._index, 1, "item index preserved")
 end
 
 function M.test_close_reopen_resets_cursor()

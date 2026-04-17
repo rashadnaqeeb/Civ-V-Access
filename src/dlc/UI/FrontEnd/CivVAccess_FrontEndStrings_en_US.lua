@@ -26,4 +26,3 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MP_GAME_SETUP"]      = "Multiplaye
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"]       = "Staging room"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]                  = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]                 = "off"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TAB_STRIP"]                 = "tabs"
