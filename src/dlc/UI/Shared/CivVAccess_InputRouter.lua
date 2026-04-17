@@ -1,5 +1,5 @@
 -- Dispatches keyboard events down the HandlerStack, top-first. Stateless.
--- Called from each screen's SetInputHandler (via Menu.install for
+-- Called from each screen's SetInputHandler (via BaseMenu.install for
 -- front-end screens, directly from in-game handlers).
 
 InputRouter = {}

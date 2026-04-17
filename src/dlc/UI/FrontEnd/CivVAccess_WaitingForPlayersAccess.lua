@@ -8,7 +8,7 @@ include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHide
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name           = "WaitingForPlayers",
     displayName    = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"),
     preamble       = Text.key("TXT_KEY_SOMEONE_STILL_LOADING"),

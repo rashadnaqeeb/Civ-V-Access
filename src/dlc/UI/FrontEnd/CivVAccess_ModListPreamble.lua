@@ -1,5 +1,5 @@
 -- Shared preamble builder for the three Mods* menus. Returns a function
--- the Access file can hand to Menu as spec.preamble so the
+-- the Access file can hand to BaseMenu as spec.preamble so the
 -- enabled-mods list is queried at speech time, never cached.
 
 ModListPreamble = {}

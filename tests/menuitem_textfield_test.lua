@@ -1,4 +1,4 @@
--- MenuItems.Textfield announcement + resolution tests. EditMode coverage
+-- BaseMenuItems.Textfield announcement + resolution tests. EditMode coverage
 -- lives in menu_test. This suite exercises the factory-level surface:
 -- control lookup, priorCallback validation, focus-announce composition,
 -- blank sentinel, and visibility-wrapper gating.
@@ -34,8 +34,8 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_MenuItems.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_Menu.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenu.lua")
     HandlerStack._reset()
 
     civvaccess_shared.pullDownProbeInstalled = false
@@ -62,7 +62,7 @@ end
 function M.test_missing_editbox_logs_warn()
     setup()
     populateControls({})
-    MenuItems.Textfield({ controlName = "Missing", textKey = "LBL" })
+    BaseMenuItems.Textfield({ controlName = "Missing", textKey = "LBL" })
     T.truthy(#warns >= 1, "missing-control warn logged")
 end
 
@@ -70,7 +70,7 @@ function M.test_non_function_priorCallback_is_rejected()
     setup()
     local eb = Polyfill.makeEditBox()
     populateControls({ E = eb })
-    local ok = pcall(MenuItems.Textfield, {
+    local ok = pcall(BaseMenuItems.Textfield, {
         controlName = "E", textKey = "LBL",
         priorCallback = "not a function",
     })
@@ -83,8 +83,8 @@ function M.test_focus_announce_includes_current_text()
     setup()
     local eb = Polyfill.makeEditBox({ text = "Athens" })
     populateControls({ E = eb })
-    local h = Menu.create({ name = "T", displayName = "Screen",
-        items = { MenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
     HandlerStack.push(h)
     T.eq(speaks[1].text, "Screen")
     T.eq(speaks[2].text, "LBL, edit, Athens")
@@ -94,8 +94,8 @@ function M.test_focus_announce_blank_when_empty()
     setup()
     local eb = Polyfill.makeEditBox({ text = "" })
     populateControls({ E = eb })
-    local h = Menu.create({ name = "T", displayName = "Screen",
-        items = { MenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) } })
     HandlerStack.push(h)
     T.eq(speaks[2].text, "LBL, edit, blank")
 end
@@ -105,10 +105,10 @@ function M.test_focus_announce_updates_when_text_changes_between_visits()
     local a = Polyfill.makeEditBox({ text = "first" })
     local b = Polyfill.makeEditBox({ text = "second" })
     populateControls({ A = a, B = b })
-    local h = Menu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
         items = {
-            MenuItems.Textfield({ controlName = "A", textKey = "LBL_A" }),
-            MenuItems.Textfield({ controlName = "B", textKey = "LBL_B" }),
+            BaseMenuItems.Textfield({ controlName = "A", textKey = "LBL_A" }),
+            BaseMenuItems.Textfield({ controlName = "B", textKey = "LBL_B" }),
         } })
     HandlerStack.push(h)
     speaks = {}
@@ -130,11 +130,11 @@ function M.test_visibilityControlName_hidden_wrapper_skips_item()
     wrap:SetHide(true)
     local after = Polyfill.makeCheckBox()
     populateControls({ E = eb, Wrapper = wrap, After = after })
-    local h = Menu.create({ name = "T", displayName = "Screen",
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
         items = {
-            MenuItems.Textfield({ controlName = "E",
+            BaseMenuItems.Textfield({ controlName = "E",
                 visibilityControlName = "Wrapper", textKey = "LBL_E" }),
-            MenuItems.Checkbox({ controlName = "After", textKey = "LBL_A" }),
+            BaseMenuItems.Checkbox({ controlName = "After", textKey = "LBL_A" }),
         } })
     HandlerStack.push(h)
     T.eq(h._index, 2,
@@ -147,8 +147,8 @@ function M.test_visibilityControlName_visible_wrapper_allows_item()
     local wrap = Polyfill.makeButton()
     wrap:SetHide(false)
     populateControls({ E = eb, Wrapper = wrap })
-    local h = Menu.create({ name = "T", displayName = "Screen",
-        items = { MenuItems.Textfield({ controlName = "E",
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E",
             visibilityControlName = "Wrapper", textKey = "LBL" }) } })
     HandlerStack.push(h)
     T.eq(h._index, 1)
@@ -159,7 +159,7 @@ function M.test_missing_visibilityControl_logs_warn()
     setup()
     local eb = Polyfill.makeEditBox({ text = "" })
     populateControls({ E = eb })
-    MenuItems.Textfield({ controlName = "E",
+    BaseMenuItems.Textfield({ controlName = "E",
         visibilityControlName = "Missing", textKey = "LBL" })
     local foundMissing = false
     for _, w in ipairs(warns) do

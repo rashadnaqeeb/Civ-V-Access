@@ -1,8 +1,8 @@
--- Polymorphic item factories for the Menu container. Each factory validates
+-- Polymorphic item factories for the BaseMenu container. Each factory validates
 -- its spec, resolves control references, and returns a table with a common
 -- method interface: isNavigable / isActivatable / announce / activate / adjust.
--- The Menu container calls these methods without knowing the item kind, so
--- new kinds (drill-in, production picker) slot in without touching Menu.
+-- The BaseMenu container calls these methods without knowing the item kind, so
+-- new kinds (drill-in, production picker) slot in without touching BaseMenu.
 --
 -- Shared speech composition: table.concat(parts, ", ") + optional "disabled"
 -- suffix + tooltip (deduped against existing segments). The tooltip dedupe
@@ -19,7 +19,7 @@
 --   tooltipKey / tooltipText static tooltip sources (TXT_KEY vs literal).
 --   tooltipFn                fn(control) returning a dynamic tooltip string.
 
-MenuItems = {}
+BaseMenuItems = {}
 
 local STEP_SMALL = 0.01
 local STEP_BIG   = 0.10
@@ -31,7 +31,7 @@ local function resolveLabel(item)
     if item.labelFn ~= nil then
         local ok, result = pcall(item.labelFn, item._control)
         if not ok then
-            Log.error("MenuItems labelFn '" .. tostring(item.controlName)
+            Log.error("BaseMenuItems labelFn '" .. tostring(item.controlName)
                 .. "' failed: " .. tostring(result))
             return ""
         end
@@ -44,7 +44,7 @@ local function resolveTooltip(item)
     if item.tooltipFn ~= nil then
         local ok, result = pcall(item.tooltipFn, item._control)
         if not ok then
-            Log.error("MenuItems tooltipFn '" .. tostring(item.controlName)
+            Log.error("BaseMenuItems tooltipFn '" .. tostring(item.controlName)
                 .. "' failed: " .. tostring(result))
             return nil
         end
@@ -85,8 +85,8 @@ local function appendTooltip(base, tooltip)
     return base .. ", " .. table.concat(novel, ", ")
 end
 
-MenuItems.appendTooltip = appendTooltip
-MenuItems.labelOf       = resolveLabel
+BaseMenuItems.appendTooltip = appendTooltip
+BaseMenuItems.labelOf       = resolveLabel
 
 -- Shared navigability / activability --------------------------------------
 
@@ -119,7 +119,7 @@ local function resolveControl(spec, kind)
         kind .. " needs controlName or control")
     local c = Controls[spec.controlName]
     if c == nil then
-        Log.warn("MenuItems " .. kind .. ": missing control '"
+        Log.warn("BaseMenuItems " .. kind .. ": missing control '"
             .. spec.controlName .. "'")
     end
     return c
@@ -149,7 +149,7 @@ end
 
 -- Button ------------------------------------------------------------------
 
-function MenuItems.Button(spec)
+function BaseMenuItems.Button(spec)
     assertLabel(spec, "Button")
     assertTooltip(spec, "Button")
     assert(type(spec.activate) == "function",
@@ -169,7 +169,7 @@ function MenuItems.Button(spec)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local ok, err = pcall(self._activate)
         if not ok then
-            Log.error("Menu '" .. tostring(menu.name) .. "' button '"
+            Log.error("BaseMenu '" .. tostring(menu.name) .. "' button '"
                 .. tostring(self.controlName) .. "' activate failed: "
                 .. tostring(err))
         end
@@ -186,7 +186,7 @@ local function checkboxValue(item)
                        or "TXT_KEY_CIVVACCESS_CHECK_OFF")
 end
 
-function MenuItems.Checkbox(spec)
+function BaseMenuItems.Checkbox(spec)
     assertLabel(spec, "Checkbox")
     assertTooltip(spec, "Checkbox")
     local item = {
@@ -205,12 +205,12 @@ function MenuItems.Checkbox(spec)
         c:SetCheck(newValue)
         local cb = PullDownProbe.checkBoxCallbackFor(c)
         if cb == nil then
-            Log.warn("Menu checkbox '" .. tostring(self.controlName)
+            Log.warn("BaseMenu checkbox '" .. tostring(self.controlName)
                 .. "': callback not captured, game state will not update")
         else
             local ok, err = pcall(cb, newValue)
             if not ok then
-                Log.error("Menu checkbox '" .. tostring(self.controlName)
+                Log.error("BaseMenu checkbox '" .. tostring(self.controlName)
                     .. "' callback failed: " .. tostring(err))
             end
         end
@@ -240,7 +240,7 @@ end
 local function fireSliderCallback(item, newValue)
     local cb = PullDownProbe.sliderCallbackFor(item._control)
     if cb == nil then
-        Log.warn("Menu slider '" .. tostring(item.controlName)
+        Log.warn("BaseMenu slider '" .. tostring(item.controlName)
             .. "': callback not captured, game state will not update")
         return
     end
@@ -249,19 +249,19 @@ local function fireSliderCallback(item, newValue)
     if okV then void1 = v end
     local ok, err = pcall(cb, newValue, void1)
     if not ok then
-        Log.error("Menu slider '" .. tostring(item.controlName)
+        Log.error("BaseMenu slider '" .. tostring(item.controlName)
             .. "' callback failed: " .. tostring(err))
     end
 end
 
-function MenuItems.Slider(spec)
+function BaseMenuItems.Slider(spec)
     assertLabel(spec, "Slider")
     assertTooltip(spec, "Slider")
     assert(type(spec.labelControlName) == "string",
         "Slider '" .. tostring(spec.controlName) .. "' needs labelControlName")
     local labelCtrl = Controls[spec.labelControlName]
     if labelCtrl == nil then
-        Log.warn("MenuItems Slider '" .. tostring(spec.controlName)
+        Log.warn("BaseMenuItems Slider '" .. tostring(spec.controlName)
             .. "': missing label control '" .. spec.labelControlName .. "'")
     end
     local item = {
@@ -334,7 +334,7 @@ local function buildChoice(button, callback, parentControlName)
     function choice:announce(menu)
         local ok, t = pcall(function() return self._button:GetText() end)
         if not ok or t == nil or t == "" then
-            Log.warn("Menu pulldown '" .. tostring(parentControlName)
+            Log.warn("BaseMenu pulldown '" .. tostring(parentControlName)
                 .. "' entry has no text")
             return ""
         end
@@ -346,7 +346,7 @@ local function buildChoice(button, callback, parentControlName)
         pcall(function() v1 = self._button:GetVoid1(); v2 = self._button:GetVoid2() end)
         local ok, err = pcall(self._callback, v1, v2)
         if not ok then
-            Log.error("Menu pulldown '" .. tostring(parentControlName)
+            Log.error("BaseMenu pulldown '" .. tostring(parentControlName)
                 .. "' callback failed: " .. tostring(err))
         end
         HandlerStack.removeByName(menu.name, true)
@@ -355,7 +355,7 @@ local function buildChoice(button, callback, parentControlName)
     return choice
 end
 
-function MenuItems.Pulldown(spec)
+function BaseMenuItems.Pulldown(spec)
     assertLabel(spec, "Pulldown")
     assertTooltip(spec, "Pulldown")
     local item = {
@@ -380,7 +380,7 @@ function MenuItems.Pulldown(spec)
         local callback = PullDownProbe.callbackFor(pulldown)
         local entries  = PullDownProbe.entriesFor(pulldown)
         if callback == nil or entries == nil or #entries == 0 then
-            Log.warn("Menu '" .. menu.name .. "' pulldown '"
+            Log.warn("BaseMenu '" .. menu.name .. "' pulldown '"
                 .. tostring(self.controlName) .. "': "
                 .. (callback == nil and "callback not captured"
                                      or "no entries captured"))
@@ -401,7 +401,7 @@ function MenuItems.Pulldown(spec)
                 end
             end
         end
-        local child = Menu.create({
+        local child = BaseMenu.create({
             name         = subName,
             displayName  = resolveLabel(self),
             items        = childItems,
@@ -424,10 +424,10 @@ local function textfieldCurrentValue(item)
     return tostring(text)
 end
 
--- Shared with EditMode in Menu.lua for commit-value announcement.
-MenuItems._textfieldCurrentValue = textfieldCurrentValue
+-- Shared with EditMode in BaseMenu.lua for commit-value announcement.
+BaseMenuItems._textfieldCurrentValue = textfieldCurrentValue
 
-function MenuItems.Textfield(spec)
+function BaseMenuItems.Textfield(spec)
     assertLabel(spec, "Textfield")
     assertTooltip(spec, "Textfield")
     assert(spec.priorCallback == nil or type(spec.priorCallback) == "function",
@@ -443,7 +443,7 @@ function MenuItems.Textfield(spec)
         item.visibilityControlName = spec.visibilityControlName
         item._visibilityControl    = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
-            Log.warn("MenuItems Textfield '" .. tostring(spec.controlName)
+            Log.warn("BaseMenuItems Textfield '" .. tostring(spec.controlName)
                 .. "': missing visibility control '"
                 .. spec.visibilityControlName .. "'")
         end
@@ -458,10 +458,10 @@ function MenuItems.Textfield(spec)
         })
     end
     function item:activate(menu)
-        Menu._pushEdit(menu, self)
+        BaseMenu._pushEdit(menu, self)
     end
     function item:adjust(menu, dir, big) end
     return item
 end
 
-return MenuItems
+return BaseMenuItems

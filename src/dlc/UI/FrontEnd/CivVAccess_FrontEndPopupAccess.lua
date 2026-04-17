@@ -10,7 +10,7 @@ include("CivVAccess_FrontendCommon")
 
 local priorInput = InputHandler
 
-civvaccess_shared._frontEndPopupHandler = Menu.install(ContextPtr, {
+civvaccess_shared._frontEndPopupHandler = BaseMenu.install(ContextPtr, {
     name        = "FrontEndPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"),
     preamble    = function()
@@ -19,7 +19,7 @@ civvaccess_shared._frontEndPopupHandler = Menu.install(ContextPtr, {
     end,
     priorInput  = priorInput,
     items = {
-        MenuItems.Button({ controlName = "CloseButton",
+        BaseMenuItems.Button({ controlName = "CloseButton",
             textKey  = "TXT_KEY_CLOSE",
             activate = function() OnBack() end }),
     },

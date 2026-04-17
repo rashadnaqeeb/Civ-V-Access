@@ -118,7 +118,7 @@ function HandlerStack.popAbove(target)
 end
 
 -- reactivate defaults true. Pass false when the caller is about to push
--- something (Menu.install's idempotent clear before repush):
+-- something (BaseMenu.install's idempotent clear before repush):
 -- firing onActivate on the handler underneath would spuriously announce a
 -- screen the user is about to be pulled off of.
 function HandlerStack.removeByName(name, reactivate)

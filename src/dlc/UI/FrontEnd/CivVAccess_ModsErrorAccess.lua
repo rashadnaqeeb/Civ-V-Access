@@ -7,7 +7,7 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "ModsError",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_ERROR"),
     preamble      = function()
@@ -17,7 +17,7 @@ Menu.install(ContextPtr, {
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        MenuItems.Button({ controlName = "OKButton",
+        BaseMenuItems.Button({ controlName = "OKButton",
             textKey  = "TXT_KEY_OK_BUTTON",
             activate = function() OnOK() end }),
     },

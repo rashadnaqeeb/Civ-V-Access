@@ -1,4 +1,4 @@
--- Small nav primitive used by Menu. Walks a list of items with wrap-around,
+-- Small nav primitive used by BaseMenu. Walks a list of items with wrap-around,
 -- skipping non-navigable entries and bounding iterations at #items so an
 -- all-invalid list terminates instead of spinning.
 --

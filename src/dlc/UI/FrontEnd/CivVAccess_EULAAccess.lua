@@ -5,16 +5,16 @@
 
 include("CivVAccess_FrontendCommon")
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name        = "EULA",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EULA"),
     preamble    = Text.key("TXT_KEY_MODDING_EULA_BODY"),
-    priorInput  = Menu.escOnlyInput(NavigateBack),
+    priorInput  = BaseMenu.escOnlyInput(NavigateBack),
     items = {
-        MenuItems.Button({ controlName = "DeclineButton",
+        BaseMenuItems.Button({ controlName = "DeclineButton",
             textKey  = "TXT_KEY_MODDING_EULA_DECLINE",
             activate = function() NavigateBack() end }),
-        MenuItems.Button({ controlName = "AcceptButton",
+        BaseMenuItems.Button({ controlName = "AcceptButton",
             textKey  = "TXT_KEY_MODDING_EULA_ACCEPT",
             activate = function() OnAccept() end }),
     },

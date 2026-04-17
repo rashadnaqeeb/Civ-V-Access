@@ -33,7 +33,7 @@ local function buildCreditsText()
     return table.concat(parts, ". ")
 end
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "Credits",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CREDITS"),
     preamble      = buildCreditsText,

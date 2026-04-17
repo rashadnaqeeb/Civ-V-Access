@@ -1,6 +1,6 @@
 -- MultiplayerSelect accessibility wiring. Standard and Pitboss don't
 -- navigate; they toggle visibility so Internet/LAN replace
--- Standard/HotSeat/Pitboss in place. Menu's post-activate revalidation
+-- Standard/HotSeat/Pitboss in place. BaseMenu's post-activate revalidation
 -- catches the flipped-hidden item and announces the next valid one so the
 -- user hears that something changed.
 --
@@ -21,35 +21,35 @@ local function internetTooltipFn()
     return Text.key("TXT_KEY_STEAM_CONNECTED_NO")
 end
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "MultiplayerSelect",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MULTIPLAYER_SELECT"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        MenuItems.Button({ controlName = "StandardButton",
+        BaseMenuItems.Button({ controlName = "StandardButton",
             textKey  = "TXT_KEY_MULTIPLAYER_STANDARD_GAME",
             activate = function() StandardButtonClick() end }),
-        MenuItems.Button({ controlName = "HotSeatButton",
+        BaseMenuItems.Button({ controlName = "HotSeatButton",
             textKey  = "TXT_KEY_MULTIPLAYER_HOTSEAT_GAME",
             activate = function() HotSeatButtonClick() end }),
-        MenuItems.Button({ controlName = "PitbossButton",
+        BaseMenuItems.Button({ controlName = "PitbossButton",
             textKey  = "TXT_KEY_MULTIPLAYER_PITBOSS_GAME",
             activate = function() PitbossButtonClick() end }),
-        MenuItems.Button({ controlName = "InternetButton",
+        BaseMenuItems.Button({ controlName = "InternetButton",
             textKey   = "TXT_KEY_MULTIPLAYER_INTERNET_GAME",
             tooltipFn = internetTooltipFn,
             activate  = function() InternetButtonClick() end }),
-        MenuItems.Button({ controlName = "LANButton",
+        BaseMenuItems.Button({ controlName = "LANButton",
             textKey  = "TXT_KEY_MULTIPLAYER_LAN_GAME",
             activate = function() LANButtonClick() end }),
-        MenuItems.Button({ controlName = "ReconnectButton",
+        BaseMenuItems.Button({ controlName = "ReconnectButton",
             textKey  = "TXT_KEY_MULTIPLAYER_RECONNECT",
             activate = function()
                 ReconnectButtonClick()
                 SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_MP_RECONNECTING"))
             end }),
-        MenuItems.Button({ controlName = "BackButton",
+        BaseMenuItems.Button({ controlName = "BackButton",
             textKey  = "TXT_KEY_MODDING_MENU_BACK",
             activate = function() BackButtonClick() end }),
     },

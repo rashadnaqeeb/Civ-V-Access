@@ -34,7 +34,7 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
     Events.MultiplayerNetRegistered.Add(doRefresh)
 end
 
-civvaccess_shared._joiningRoomHandler = Menu.install(ContextPtr, {
+civvaccess_shared._joiningRoomHandler = BaseMenu.install(ContextPtr, {
     name          = "JoiningRoom",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"),
     preamble      = function()

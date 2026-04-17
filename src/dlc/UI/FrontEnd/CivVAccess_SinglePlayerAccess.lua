@@ -1,5 +1,5 @@
 -- SinglePlayer accessibility wiring. ScenariosButton is hidden when no
--- Firaxis scenarios are installed; Menu's live :IsHidden() check
+-- Firaxis scenarios are installed; BaseMenu's live :IsHidden() check
 -- transparently skips it.
 --
 -- StartGameButton carries a dynamic settings-summary tooltip set via
@@ -57,29 +57,29 @@ local function playNowSettingsSummary()
     return table.concat(parts, ", ")
 end
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name          = "SinglePlayer",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SINGLE_PLAYER"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
     items = {
-        MenuItems.Button({ controlName = "StartGameButton",
+        BaseMenuItems.Button({ controlName = "StartGameButton",
             textKey   = "TXT_KEY_PLAY_NOW",
             tooltipFn = playNowSettingsSummary,
             activate  = function() StartGameClick() end }),
-        MenuItems.Button({ controlName = "GameSetupButton",
+        BaseMenuItems.Button({ controlName = "GameSetupButton",
             textKey  = "TXT_KEY_SETUP_GAME",
             activate = function() SetupGameClicked() end }),
-        MenuItems.Button({ controlName = "LoadGameButton",
+        BaseMenuItems.Button({ controlName = "LoadGameButton",
             textKey  = "TXT_KEY_LOAD_GAME",
             activate = function() LoadGameClick() end }),
-        MenuItems.Button({ controlName = "ScenariosButton",
+        BaseMenuItems.Button({ controlName = "ScenariosButton",
             textKey  = "TXT_KEY_SCENARIOS",
             activate = function() ScenariosClicked() end }),
-        MenuItems.Button({ controlName = "LoadTutorialButton",
+        BaseMenuItems.Button({ controlName = "LoadTutorialButton",
             textKey  = "TXT_KEY_TUTORIAL",
             activate = function() LoadTutorialClick() end }),
-        MenuItems.Button({ controlName = "BackButton",
+        BaseMenuItems.Button({ controlName = "BackButton",
             textKey  = "TXT_KEY_MODDING_MENU_BACK",
             activate = function() BackButtonClick() end }),
     },

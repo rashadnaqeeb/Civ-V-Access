@@ -1,7 +1,7 @@
 -- Polymorphic menu container. Navigates a list of items that implement the
--- MenuItems interface (isNavigable / isActivatable / announce / activate /
+-- BaseMenuItems interface (isNavigable / isActivatable / announce / activate /
 -- adjust), with optional tabbed grouping. No kind-discriminated dispatch in
--- this file: new item kinds plug in via MenuItems without touching Menu.
+-- this file: new item kinds plug in via BaseMenuItems without touching BaseMenu.
 --
 -- Key bindings:
 --   Up / Down           previous / next navigable item, wrapping
@@ -14,7 +14,7 @@
 -- Spec:
 --   name              (string, required) stack identity.
 --   displayName       (string, required) spoken on screen activation.
---   items   OR  tabs  array of item tables (see MenuItems), or per-tab array
+--   items   OR  tabs  array of item tables (see BaseMenuItems), or per-tab array
 --                     of { name = "TXT_KEY", showPanel = fn, items = {...} }.
 --   preamble          string | fn() -> string, spoken after displayName.
 --                     A function preamble is re-readable via refresh() so
@@ -40,7 +40,7 @@
 --                     TakeFocus, deferred pushes) fire.
 --   capturesAllInput  default true; the modal barrier for InputRouter.
 
-Menu = {}
+BaseMenu = {}
 
 local MOD_SHIFT = 1
 
@@ -71,7 +71,7 @@ local function parkFocus(self)
     if self._focusParkControl == nil then return end
     local park = Controls[self._focusParkControl]
     if park == nil then
-        Log.warn("Menu '" .. self.name .. "' focus-park control '"
+        Log.warn("BaseMenu '" .. self.name .. "' focus-park control '"
             .. tostring(self._focusParkControl)
             .. "' not found; disabling park for this handler")
         self._parkDisabled = true
@@ -79,7 +79,7 @@ local function parkFocus(self)
     end
     local ok, err = pcall(function() park:TakeFocus() end)
     if not ok then
-        Log.warn("Menu '" .. self.name
+        Log.warn("BaseMenu '" .. self.name
             .. "' focus-park TakeFocus failed, disabling park for this handler: "
             .. tostring(err))
         self._parkDisabled = true
@@ -94,7 +94,7 @@ local function resolvePreamble(self)
     if type(p) == "function" then
         local ok, result = pcall(p)
         if not ok then
-            Log.error("Menu '" .. self.name .. "' preamble fn failed: "
+            Log.error("BaseMenu '" .. self.name .. "' preamble fn failed: "
                 .. tostring(result))
             return nil
         end
@@ -117,7 +117,7 @@ local function switchTab(self, newTabIndex)
     if type(tab.showPanel) == "function" then
         local ok, err = pcall(tab.showPanel)
         if not ok then
-            Log.error("Menu '" .. self.name .. "' showPanel for tab '"
+            Log.error("BaseMenu '" .. self.name .. "' showPanel for tab '"
                 .. tostring(tab.name) .. "': " .. tostring(err))
         end
     end
@@ -166,7 +166,7 @@ local function onEnter(self)
     if #items == 0 then return end
     local item = items[self._index]
     if item == nil or not item:isNavigable() then
-        Log.warn("Menu '" .. self.name .. "': Enter on invalid item")
+        Log.warn("BaseMenu '" .. self.name .. "': Enter on invalid item")
         return
     end
     if not item:isActivatable() then
@@ -203,8 +203,8 @@ local function onShiftTab(self) cycleTab(self, -1) end
 
 -- Factory ------------------------------------------------------------------
 
-function Menu.create(spec)
-    assert(type(spec) == "table", "Menu.create requires a spec table")
+function BaseMenu.create(spec)
+    assert(type(spec) == "table", "BaseMenu.create requires a spec table")
     assert(type(spec.name) == "string" and spec.name ~= "",
         "spec.name required")
     assert(type(spec.displayName) == "string" and spec.displayName ~= "",
@@ -306,7 +306,7 @@ function Menu.create(spec)
                 if type(tab.showPanel) == "function" then
                     local ok, err = pcall(tab.showPanel)
                     if not ok then
-                        Log.error("Menu '" .. self.name
+                        Log.error("BaseMenu '" .. self.name
                             .. "' initial showPanel: " .. tostring(err))
                     end
                 end
@@ -353,7 +353,7 @@ function Menu.create(spec)
     -- Replace the item list used for navigation. Dynamic-item feature:
     -- screens whose widgets are built by InstanceManager (e.g. dependent
     -- pulldowns, GameOption checkboxes) rebuild their lists at runtime and
-    -- call setItems with freshly constructed MenuItems entries.
+    -- call setItems with freshly constructed BaseMenuItems entries.
     -- No announcement on swap; if the cursor no longer points at a valid
     -- slot it clamps silently to the first valid.
     function self.setItems(items, tabIndex)
@@ -392,8 +392,8 @@ end
 
 -- Install -----------------------------------------------------------------
 
-function Menu.install(ContextPtr, spec)
-    local handler        = Menu.create(spec)
+function BaseMenu.install(ContextPtr, spec)
+    local handler        = BaseMenu.create(spec)
     local priorShowHide  = spec.priorShowHide
     local priorInput     = spec.priorInput
     local deferActivate  = spec.deferActivate == true
@@ -416,7 +416,7 @@ function Menu.install(ContextPtr, spec)
         if priorShowHide then
             local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
             if not ok then
-                Log.error("Menu '" .. handler.name
+                Log.error("BaseMenu '" .. handler.name
                     .. "' prior ShowHide: " .. tostring(err))
             end
         end
@@ -432,7 +432,7 @@ function Menu.install(ContextPtr, spec)
         if shouldActivate ~= nil then
             local ok, should = pcall(shouldActivate)
             if not ok then
-                Log.error("Menu '" .. handler.name
+                Log.error("BaseMenu '" .. handler.name
                     .. "' shouldActivate: " .. tostring(should))
                 return
             end
@@ -486,7 +486,7 @@ end
 -- else (returns true). Convenience for screens whose only non-menu input
 -- contract is "Esc = go back".
 
-function Menu.escOnlyInput(backFn)
+function BaseMenu.escOnlyInput(backFn)
     return function(uiMsg, wParam)
         if (uiMsg == 256 or uiMsg == 260) and wParam == Keys.VK_ESCAPE then
             backFn()
@@ -506,14 +506,14 @@ end
 -- host, MaxTurns / TurnTimer fields) still persist to OptionsManager /
 -- PreGame, then parks focus + pops. Esc restores the snapshot.
 --
--- The pop triggers Menu.onActivate which re-announces the current item
+-- The pop triggers BaseMenu.onActivate which re-announces the current item
 -- (with its updated value). We then speakInterrupt the committed value or
 -- "<label> restored" so the user hears explicit confirmation.
 
-function Menu._pushEdit(menu, textfieldItem)
+function BaseMenu._pushEdit(menu, textfieldItem)
     local editBox       = textfieldItem._control
     local priorCallback = textfieldItem.priorCallback
-    local errCtx        = "Menu '" .. menu.name .. "' textfield '"
+    local errCtx        = "BaseMenu '" .. menu.name .. "' textfield '"
         .. tostring(textfieldItem.controlName) .. "'"
 
     local function safe(op, fn)
@@ -572,12 +572,12 @@ function Menu._pushEdit(menu, textfieldItem)
         if restore then
             SpeechPipeline.speakInterrupt(
                 Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED",
-                    MenuItems.labelOf(textfieldItem)))
+                    BaseMenuItems.labelOf(textfieldItem)))
         else
             -- Speak committed value (blank sentinel if empty) so the user
             -- hears explicit confirmation of what was saved.
             SpeechPipeline.speakInterrupt(
-                MenuItems._textfieldCurrentValue(textfieldItem))
+                BaseMenuItems._textfieldCurrentValue(textfieldItem))
         end
     end
 
@@ -590,7 +590,7 @@ function Menu._pushEdit(menu, textfieldItem)
 
     SpeechPipeline.speakInterrupt(
         Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING",
-            MenuItems.labelOf(textfieldItem)))
+            BaseMenuItems.labelOf(textfieldItem)))
 
     HandlerStack.push(sub)
 
@@ -609,4 +609,4 @@ function Menu._pushEdit(menu, textfieldItem)
     end)
 end
 
-return Menu
+return BaseMenu

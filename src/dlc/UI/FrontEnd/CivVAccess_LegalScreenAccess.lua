@@ -6,12 +6,12 @@
 
 include("CivVAccess_FrontendCommon")
 
-Menu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, {
     name        = "LegalScreen",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEGAL"),
     preamble    = Text.key("TXT_KEY_LEGAL_BODY") .. " " .. Text.key("TXT_KEY_ESRB_BODY"),
     items = {
-        MenuItems.Button({ controlName = "ContinueButton",
+        BaseMenuItems.Button({ controlName = "ContinueButton",
             textKey  = "TXT_KEY_LEGAL_CONTINUE",
             activate = function() UIManager:DequeuePopup(ContextPtr) end }),
     },
