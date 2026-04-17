@@ -22,7 +22,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"]       = "Joining ro
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"]            = "Options"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"]     = "Game setup"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MP_GAME_SETUP"]      = "Multiplayer game setup"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"]       = "Staging room"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"]                  = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"]                 = "off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"]            = "edit"
