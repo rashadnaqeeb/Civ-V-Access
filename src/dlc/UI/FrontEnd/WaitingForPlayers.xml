@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context>
+    <Box Size="Full,Full" Color="0,0,0,255" >
+        <Image Anchor="c,c" Size="512,512" Texture="Assets/UI/Art/WaitingForPlayers.dds" >
+            <Label Anchor="C,C" Offset="0,246" String="TXT_KEY_SOMEONE_STILL_LOADING" Color0="255,255,200,255" Color1="0,0,0,255" Font="TwCenMT20" FontStyle="Stroke"/>
+
+            
+
+        </Image>
+    </Box>
+</Context>

@@ -15,7 +15,8 @@ local ctrlState  -- map controlName -> { hidden = bool }
 -- Stub Controls entry matching the shape SimpleListHandler consumes.
 local function makeControl(name)
     return setmetatable({ _name = name }, { __index = {
-        IsHidden = function(self) return ctrlState[self._name].hidden end,
+        IsHidden   = function(self) return ctrlState[self._name].hidden   end,
+        IsDisabled = function(self) return ctrlState[self._name].disabled end,
     }})
 end
 
@@ -23,9 +24,17 @@ local function setControls(names)
     Controls = {}
     ctrlState = {}
     for _, name in ipairs(names) do
-        ctrlState[name] = { hidden = false }
+        ctrlState[name] = { hidden = false, disabled = false }
         Controls[name] = makeControl(name)
     end
+end
+
+-- Seed TXT_KEY_CIVVACCESS_BUTTON_DISABLED so announceLabel produces the
+-- suffix the tests expect. The Text wrapper logs a warn and returns the raw
+-- key otherwise, which would still work but muddies the suffix assertions.
+local function seedDisabledSuffix()
+    CivVAccess_Strings = CivVAccess_Strings or {}
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
 end
 
 local function setup()
@@ -51,6 +60,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SimpleListHandler.lua")
     HandlerStack._reset()
+    seedDisabledSuffix()
 end
 
 local WM_KEYDOWN = 256
@@ -398,6 +408,232 @@ function M.test_install_prior_input_nil_returns_false_on_unbound()
     ctx._sh(false, false)
     local consumed = ctx._in(WM_KEYDOWN, 27, 0)  -- VK_ESCAPE, unbound, no prior
     T.falsy(consumed)
+end
+
+-- Preamble function + refresh -----------------------------------------
+
+function M.test_preamble_function_called_at_onActivate_not_at_create()
+    setup()
+    setControls({"A", "B", "C"})
+    local calls = 0
+    local spec = basicSpec()
+    spec.preamble = function()
+        calls = calls + 1
+        return "dynamic body"
+    end
+    local h = SimpleListHandler.create(spec)
+    T.eq(calls, 0, "preamble fn not called at create time")
+    HandlerStack.push(h)
+    T.eq(calls, 1, "preamble fn called once at onActivate")
+    T.eq(speaks[1].text, "Test Screen")
+    T.eq(speaks[2].text, "dynamic body")
+    T.falsy(speaks[2].interrupt, "preamble queued after displayName")
+end
+
+function M.test_preamble_function_returning_empty_is_skipped()
+    setup()
+    setControls({"A", "B", "C"})
+    local spec = basicSpec()
+    spec.preamble = function() return "" end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    -- displayName + first item, no empty preamble between them
+    T.eq(#speaks, 2)
+    T.eq(speaks[1].text, "Test Screen")
+    T.eq(speaks[2].text, "LABEL_A")
+end
+
+function M.test_preamble_nil_unchanged_behavior()
+    setup()
+    setControls({"A", "B", "C"})
+    local h = SimpleListHandler.create(basicSpec())  -- no preamble
+    HandlerStack.push(h)
+    T.eq(#speaks, 2, "displayName + first item only")
+end
+
+function M.test_refresh_respeaks_when_function_preamble_changes()
+    setup()
+    setControls({"A", "B", "C"})
+    local body = "first"
+    local spec = basicSpec()
+    spec.preamble = function() return body end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    speaks = {}
+    body = "second"
+    h.refresh()
+    T.eq(#speaks, 1)
+    T.eq(speaks[1].text, "second")
+    T.truthy(speaks[1].interrupt, "refresh interrupts")
+end
+
+function M.test_refresh_is_noop_when_function_preamble_unchanged()
+    setup()
+    setControls({"A", "B", "C"})
+    local spec = basicSpec()
+    spec.preamble = function() return "same" end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    speaks = {}
+    h.refresh()
+    T.eq(#speaks, 0)
+end
+
+function M.test_refresh_is_noop_when_preamble_is_string()
+    setup()
+    setControls({"A", "B", "C"})
+    local spec = basicSpec()
+    spec.preamble = "static body"
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    speaks = {}
+    h.refresh()
+    T.eq(#speaks, 0, "string preamble never re-speaks")
+end
+
+function M.test_refresh_is_noop_when_no_preamble()
+    setup()
+    setControls({"A", "B", "C"})
+    local h = SimpleListHandler.create(basicSpec())
+    HandlerStack.push(h)
+    speaks = {}
+    h.refresh()
+    T.eq(#speaks, 0)
+end
+
+function M.test_refresh_fn_error_logged_no_crash()
+    setup()
+    setControls({"A", "B", "C"})
+    local spec = basicSpec()
+    spec.preamble = function() error("boom") end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    speaks = {}
+    h.refresh()  -- must not crash
+    T.truthy(#errors >= 1, "preamble fn error logged")
+    T.eq(#speaks, 0)
+end
+
+-- Disabled-but-visible walking -----------------------------------------
+
+function M.test_navigation_walks_disabled_items()
+    setup()
+    setControls({"A", "B", "C"})
+    ctrlState.B.disabled = true
+    local h = SimpleListHandler.create(basicSpec())
+    HandlerStack.push(h)
+    speaks = {}
+    InputRouter.dispatch(40, 0, WM_KEYDOWN)  -- VK_DOWN
+    T.eq(h._index, 2, "disabled B is still navigable")
+    T.eq(speaks[1].text, "LABEL_B disabled", "disabled suffix appended")
+end
+
+function M.test_home_end_see_disabled_items()
+    setup()
+    setControls({"A", "B", "C"})
+    ctrlState.A.disabled = true
+    ctrlState.C.disabled = true
+    local h = SimpleListHandler.create(basicSpec())
+    h._index = 2
+    HandlerStack.push(h)
+    InputRouter.dispatch(36, 0, WM_KEYDOWN)  -- VK_HOME
+    T.eq(h._index, 1, "A is disabled but navigable")
+    InputRouter.dispatch(35, 0, WM_KEYDOWN)  -- VK_END
+    T.eq(h._index, 3, "C is disabled but navigable")
+end
+
+function M.test_enter_on_disabled_is_noop_no_activate_no_sound()
+    setup()
+    setControls({"A", "B", "C"})
+    local fired = 0
+    local spec = basicSpec()
+    spec.items[1].activate = function() fired = fired + 1 end
+    ctrlState.A.disabled = true
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    sounds = {}
+    speaks = {}
+    InputRouter.dispatch(13, 0, WM_KEYDOWN)  -- VK_RETURN
+    T.eq(fired, 0, "activate not fired on disabled item")
+    T.eq(#sounds, 0, "no click sound on disabled Enter")
+    T.eq(#speaks, 1)
+    T.eq(speaks[1].text, "LABEL_A disabled", "disabled label re-spoken")
+end
+
+function M.test_onActivate_first_item_disabled_announces_with_suffix()
+    setup()
+    setControls({"A", "B", "C"})
+    ctrlState.A.disabled = true
+    local h = SimpleListHandler.create(basicSpec())
+    HandlerStack.push(h)
+    T.eq(speaks[#speaks].text, "LABEL_A disabled")
+end
+
+-- Empty items list -----------------------------------------------------
+
+local function emptySpec()
+    return {
+        name        = "Splash",
+        displayName = "Splash Screen",
+        items       = {},
+    }
+end
+
+function M.test_empty_items_create_succeeds()
+    setup()
+    setControls({})
+    local h = SimpleListHandler.create(emptySpec())
+    T.eq(#h.items, 0)
+end
+
+function M.test_empty_items_onActivate_speaks_displayName_only()
+    setup()
+    setControls({})
+    local h = SimpleListHandler.create(emptySpec())
+    HandlerStack.push(h)
+    T.eq(#speaks, 1)
+    T.eq(speaks[1].text, "Splash Screen")
+end
+
+function M.test_empty_items_onActivate_speaks_displayName_then_preamble()
+    setup()
+    setControls({})
+    local spec = emptySpec()
+    spec.preamble = "please wait"
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    T.eq(#speaks, 2)
+    T.eq(speaks[1].text, "Splash Screen")
+    T.eq(speaks[2].text, "please wait")
+end
+
+function M.test_empty_items_onEnter_is_safe_noop()
+    setup()
+    setControls({})
+    local h = SimpleListHandler.create(emptySpec())
+    HandlerStack.push(h)
+    sounds = {}
+    speaks = {}
+    local consumed = InputRouter.dispatch(13, 0, WM_KEYDOWN)
+    T.truthy(consumed, "Enter still consumed by barrier")
+    T.eq(#sounds, 0)
+    T.eq(#speaks, 0)
+    T.eq(#warns, 0, "empty Enter is silent, not warn-worthy")
+end
+
+function M.test_empty_items_refresh_works()
+    setup()
+    setControls({})
+    local body = "initial"
+    local spec = emptySpec()
+    spec.preamble = function() return body end
+    local h = SimpleListHandler.create(spec)
+    HandlerStack.push(h)
+    speaks = {}
+    body = "updated"
+    h.refresh()
+    T.eq(#speaks, 1)
+    T.eq(speaks[1].text, "updated")
 end
 
 function M.test_install_prior_input_not_called_when_router_consumes()

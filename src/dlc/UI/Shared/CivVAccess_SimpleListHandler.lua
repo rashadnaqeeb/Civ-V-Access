@@ -10,17 +10,23 @@
 --   activate     (fn, required)     fires on Enter; typically calls the
 --                                   game's own click handler global
 --
--- Spec may also carry an optional `preamble` string (already resolved by the
--- caller via Text.key / Text.format) that is queued after displayName on
--- entry, before the first item. Used for screens that carry static message
--- text on screen (e.g. ExitConfirm's "are you sure" prompt).
+-- Spec may also carry an optional `preamble` (string OR function returning
+-- string) spoken after displayName on entry, before the first item. A string
+-- preamble is for static message text (ExitConfirm's "are you sure"); a
+-- function preamble is for text that can change between enter and a later
+-- refresh call (FrontEndPopup body, JoiningRoom status).
 --
 -- Items whose Controls.X is missing at create() are permanently invalid
--- (logged once). Items whose :IsHidden() flips at runtime are transparently
--- skipped. After activate fires, if the just-activated item has flipped
--- hidden (MultiplayerSelect's Standard/Pitboss toggle case) we advance to
--- the next valid entry and speak it so the user gets feedback on the state
--- change.
+-- (logged once). Navigation skips items that are :IsHidden() but walks items
+-- that are :IsDisabled(); disabled items announce with a "disabled" suffix
+-- and Enter on them is a no-op (no activate, no click sound). After activate
+-- fires, if the just-activated item has flipped hidden (MultiplayerSelect's
+-- Standard/Pitboss toggle case) we advance to the next valid entry and
+-- speak it so the user gets feedback on the state change.
+--
+-- items may be an empty list: onActivate still speaks displayName + preamble
+-- so status-splash screens (ContentSwitch, WaitingForPlayers, JoiningRoom)
+-- can reuse this handler without a dedicated announce-only variant.
 --
 -- VK_ESCAPE is intentionally not bound here: each game screen's own
 -- InputHandler owns Esc (BackButtonClick / OnNo) and install's wrapper
@@ -32,19 +38,30 @@ local function labelOf(item)
     return Text.key(item.textKey)
 end
 
-local function isValid(item)
+local function isNavigable(item)
     return item._control ~= nil and not item._control:IsHidden()
+end
+
+local function isActivatable(item)
+    return isNavigable(item) and not item._control:IsDisabled()
+end
+
+local function announceLabel(item)
+    if isActivatable(item) then
+        return labelOf(item)
+    end
+    return labelOf(item) .. " " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
 end
 
 local function firstValidIndex(items)
     for i = 1, #items do
-        if isValid(items[i]) then return i end
+        if isNavigable(items[i]) then return i end
     end
     return nil
 end
 
 -- Walk from `start` in direction `step` (+1 / -1), wrapping, looking for a
--- valid item. Cap iterations at #items so an all-invalid list terminates
+-- navigable item. Cap iterations at #items so an all-invalid list terminates
 -- instead of spinning.
 local function nextValidIndex(items, start, step)
     local n = #items
@@ -54,7 +71,7 @@ local function nextValidIndex(items, start, step)
         i = i + step
         if i > n then i = 1 end
         if i < 1 then i = n end
-        if isValid(items[i]) then return i end
+        if isNavigable(items[i]) then return i end
     end
     return nil
 end
@@ -62,7 +79,7 @@ end
 local function speakIndex(self, index)
     local item = self.items[index]
     if item == nil then return end
-    SpeechPipeline.speakInterrupt(labelOf(item))
+    SpeechPipeline.speakInterrupt(announceLabel(item))
 end
 
 local function moveTo(self, newIndex)
@@ -88,7 +105,7 @@ end
 local function onEnd(self)
     local n = #self.items
     for i = n, 1, -1 do
-        if isValid(self.items[i]) then
+        if isNavigable(self.items[i]) then
             moveTo(self, i)
             return
         end
@@ -96,9 +113,14 @@ local function onEnd(self)
 end
 
 local function onEnter(self)
+    if #self.items == 0 then return end
     local item = self.items[self._index]
-    if item == nil or not isValid(item) then
+    if item == nil or not isNavigable(item) then
         Log.warn("SimpleListHandler '" .. self.name .. "': Enter on invalid item")
+        return
+    end
+    if not isActivatable(item) then
+        SpeechPipeline.speakInterrupt(announceLabel(item))
         return
     end
     -- Engine plays this on mouse clicks; Enter-key activation bypasses that
@@ -112,22 +134,39 @@ local function onEnter(self)
     end
     -- Post-activate revalidation: if the just-activated control is now hidden
     -- (MultiplayerSelect toggle), advance the cursor and speak the next valid.
-    if not isValid(item) then
+    if not isNavigable(item) then
         local next = nextValidIndex(self.items, self._index, 1)
         if next ~= nil then
             self._index = next
-            SpeechPipeline.speakQueued(labelOf(self.items[next]))
+            SpeechPipeline.speakQueued(announceLabel(self.items[next]))
         end
     end
+end
+
+local function resolvePreamble(self)
+    local p = self.preamble
+    if p == nil then return nil end
+    if type(p) == "function" then
+        local ok, result = pcall(p)
+        if not ok then
+            Log.error("SimpleListHandler '" .. self.name
+                .. "' preamble fn failed: " .. tostring(result))
+            return nil
+        end
+        return result
+    end
+    return p
 end
 
 function SimpleListHandler.create(spec)
     assert(type(spec) == "table", "SimpleListHandler.create requires a spec table")
     assert(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
     assert(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
-    assert(type(spec.items) == "table", "spec.items required")
-    assert(spec.preamble == nil or (type(spec.preamble) == "string" and spec.preamble ~= ""),
-        "spec.preamble must be a non-empty string if provided")
+    assert(type(spec.items) == "table", "spec.items required (may be empty)")
+    assert(spec.preamble == nil
+           or (type(spec.preamble) == "string" and spec.preamble ~= "")
+           or type(spec.preamble) == "function",
+        "spec.preamble must be a non-empty string or a function if provided")
 
     local self = {
         name = spec.name,
@@ -136,6 +175,7 @@ function SimpleListHandler.create(spec)
         items = {},
         capturesAllInput = true,
         _index = 1,
+        _lastPreambleText = nil,
     }
 
     for i, item in ipairs(spec.items) do
@@ -172,16 +212,31 @@ function SimpleListHandler.create(spec)
         local first = firstValidIndex(self.items)
         self._index = first or 1
         SpeechPipeline.speakInterrupt(self.displayName)
-        if self.preamble then
-            SpeechPipeline.speakQueued(self.preamble)
+        local preambleText = resolvePreamble(self)
+        if preambleText ~= nil and preambleText ~= "" then
+            SpeechPipeline.speakQueued(preambleText)
         end
+        self._lastPreambleText = preambleText
         if first ~= nil then
-            SpeechPipeline.speakQueued(labelOf(self.items[first]))
+            SpeechPipeline.speakQueued(announceLabel(self.items[first]))
         end
     end
 
     function self.onDeactivate()
         self._index = 1
+        self._lastPreambleText = nil
+    end
+
+    -- Re-evaluate a function preamble and speakInterrupt the result if it
+    -- differs from what was last spoken. No-op for string preambles (they
+    -- never change) and no-op if the text hasn't changed.
+    function self.refresh()
+        if type(self.preamble) ~= "function" then return end
+        local text = resolvePreamble(self)
+        if text == nil or text == "" then return end
+        if text == self._lastPreambleText then return end
+        self._lastPreambleText = text
+        SpeechPipeline.speakInterrupt(text)
     end
 
     return self

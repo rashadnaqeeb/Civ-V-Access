@@ -2,10 +2,21 @@
 -- The FrontEnd and InGame skin directories are separate VFS Contexts, so each
 -- needs its own strings file with the keys relevant to that Context.
 CivVAccess_Strings = CivVAccess_Strings or {}
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"]          = "Accessibility mod ready."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"]             = "Accessibility mod ready."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"]           = "disabled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"]          = "Main menu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_OTHER_MENU"]         = "Other"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SINGLE_PLAYER"]      = "Single player"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MULTIPLAYER_SELECT"] = "Multiplayer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"]       = "Exit game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEGAL"]              = "Legal notices"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EULA"]               = "End user license agreement"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WORLD_PICKER"]       = "World size"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_ERROR"]         = "Mod error"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"]    = "Notice"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_MENU"]          = "Mods"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_SINGLE_PLAYER"] = "Mods single player"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MODS_MULTIPLAYER"]   = "Mods multiplayer"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CONTENT_SWITCH"]     = "Updating game data"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"]    = "Waiting for players"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"]       = "Joining room"
