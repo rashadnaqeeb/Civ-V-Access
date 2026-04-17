@@ -295,6 +295,13 @@ function SimpleListHandler.install(ContextPtr, spec)
     -- SetUpdate owner on the Context instead of clobbering it.
     local deferActivate = spec.deferActivate == true
     local pendingPush   = false
+    -- spec.shouldActivate: predicate called on each non-hide ShowHide. Return
+    -- false to skip the handler push (and the announce) for this activation
+    -- while still letting the prior ShowHide run. Used when the engine shows
+    -- a screen in a context where our speech would be wrong (WaitingForPlayers
+    -- splash flashes during SP loads where the "someone still loading"
+    -- message doesn't apply).
+    local shouldActivate = spec.shouldActivate
 
     local function runDeferredPush()
         if not pendingPush then return end
@@ -318,6 +325,15 @@ function SimpleListHandler.install(ContextPtr, spec)
         if bIsHide then
             pendingPush = false
             return
+        end
+        if shouldActivate ~= nil then
+            local ok, should = pcall(shouldActivate)
+            if not ok then
+                Log.error("SimpleListHandler '" .. handler.name
+                    .. "' shouldActivate: " .. tostring(should))
+                return
+            end
+            if not should then return end
         end
         if deferActivate then
             pendingPush = true
