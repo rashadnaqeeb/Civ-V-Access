@@ -21,6 +21,10 @@ local function setup()
     civvaccess_shared.pullDownProbeInstalled = false
     civvaccess_shared.pullDownCallbacks      = {}
     civvaccess_shared.pullDownEntries        = {}
+    civvaccess_shared.sliderProbeInstalled   = false
+    civvaccess_shared.sliderCallbacks        = {}
+    civvaccess_shared.checkBoxProbeInstalled = false
+    civvaccess_shared.checkBoxCallbacks      = {}
 
     -- Fresh metatable per setup so one test's patched __index does not bleed
     -- into another. Instance factory strips methods so lookup falls through.
@@ -114,6 +118,90 @@ function M.test_install_without_sample_logs_warn()
     local ok = PullDownProbe.ensureInstalled(nil)
     T.falsy(ok)
     T.truthy(#warns >= 1)
+end
+
+-- Slider probe --------------------------------------------------------
+
+function M.test_slider_probe_captures_callback()
+    setup()
+    local protoS = Polyfill.makeSlider()
+    local sliderMt = { __index = {
+        SetValue                = protoS.SetValue,
+        GetValue                = protoS.GetValue,
+        RegisterSliderCallback  = protoS.RegisterSliderCallback,
+        SetVoid1                = protoS.SetVoid1,
+        GetVoid1                = protoS.GetVoid1,
+        IsHidden                = protoS.IsHidden,
+        IsDisabled              = protoS.IsDisabled,
+    }}
+    local function mkSlider()
+        local s = Polyfill.makeSlider()
+        s.SetValue, s.GetValue, s.RegisterSliderCallback = nil, nil, nil
+        s.SetVoid1, s.GetVoid1, s.IsHidden, s.IsDisabled = nil, nil, nil, nil
+        return setmetatable(s, sliderMt)
+    end
+
+    local sld = mkSlider()
+    T.truthy(PullDownProbe.ensureSliderInstalled(sld))
+    local fn = function() end
+    sld:RegisterSliderCallback(fn)
+    T.eq(PullDownProbe.sliderCallbackFor(sld), fn)
+end
+
+function M.test_slider_probe_with_function_index()
+    setup()
+    -- Engine userdata metatables expose __index as a function; verify the
+    -- probe handles that path by constructing an artificial function-index
+    -- metatable.
+    local protoS = Polyfill.makeSlider()
+    local methodTable = {
+        SetValue                = protoS.SetValue,
+        GetValue                = protoS.GetValue,
+        RegisterSliderCallback  = protoS.RegisterSliderCallback,
+    }
+    local sliderMt = {
+        __index = function(self, key) return methodTable[key] end,
+    }
+    local function mkSlider()
+        local s = Polyfill.makeSlider()
+        s.SetValue, s.GetValue, s.RegisterSliderCallback = nil, nil, nil
+        s.SetVoid1, s.GetVoid1, s.IsHidden, s.IsDisabled = nil, nil, nil, nil
+        s.SetHide, s.SetDisabled = nil, nil
+        return setmetatable(s, sliderMt)
+    end
+
+    local sld = mkSlider()
+    T.truthy(PullDownProbe.ensureSliderInstalled(sld))
+    local fn = function() end
+    sld:RegisterSliderCallback(fn)
+    T.eq(PullDownProbe.sliderCallbackFor(sld), fn)
+    -- Non-probed methods still work via the wrapped __index.
+    sld:SetValue(0.75)
+    T.eq(sld:GetValue(), 0.75)
+end
+
+-- CheckBox probe ------------------------------------------------------
+
+function M.test_checkbox_probe_captures_handler()
+    setup()
+    local proto = Polyfill.makeCheckBox()
+    local mt = { __index = {
+        IsChecked            = proto.IsChecked,
+        SetCheck             = proto.SetCheck,
+        RegisterCheckHandler = proto.RegisterCheckHandler,
+    }}
+    local function mkCB()
+        local c = Polyfill.makeCheckBox()
+        c.IsChecked, c.SetCheck, c.RegisterCheckHandler = nil, nil, nil
+        c.IsHidden, c.IsDisabled, c.SetHide, c.SetDisabled = nil, nil, nil, nil
+        return setmetatable(c, mt)
+    end
+
+    local cb = mkCB()
+    T.truthy(PullDownProbe.ensureCheckBoxInstalled(cb))
+    local fn = function() end
+    cb:RegisterCheckHandler(fn)
+    T.eq(PullDownProbe.checkBoxCallbackFor(cb), fn)
 end
 
 return M

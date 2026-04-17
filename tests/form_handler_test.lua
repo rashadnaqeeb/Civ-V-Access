@@ -63,6 +63,10 @@ local function setup()
     civvaccess_shared.pullDownProbeInstalled = false
     civvaccess_shared.pullDownCallbacks      = {}
     civvaccess_shared.pullDownEntries        = {}
+    civvaccess_shared.sliderProbeInstalled   = false
+    civvaccess_shared.sliderCallbacks        = {}
+    civvaccess_shared.checkBoxProbeInstalled = false
+    civvaccess_shared.checkBoxCallbacks      = {}
 
     CivVAccess_Strings = CivVAccess_Strings or {}
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
@@ -191,12 +195,26 @@ end
 
 -- Slider -----------------------------------------------------------
 
+-- Simulate what PullDownProbe does in-game: record the callback in
+-- civvaccess_shared so FormHandler's fireSliderCallback can find it. The
+-- probe-integration path itself is covered by pulldown_probe_test.
+local function registerSliderCallback(slider, fn)
+    slider:RegisterSliderCallback(fn)
+    civvaccess_shared.sliderCallbacks[slider] = fn
+end
+
+local function registerCheckHandler(cb, fn)
+    cb:RegisterCheckHandler(fn)
+    civvaccess_shared.checkBoxCallbacks = civvaccess_shared.checkBoxCallbacks or {}
+    civvaccess_shared.checkBoxCallbacks[cb] = fn
+end
+
 function M.test_slider_right_increments_by_small_step()
     setup()
     local slider = Polyfill.makeSlider({ value = 0.5 })
     local label  = Polyfill.makeLabel("50%")
     populateControls({ Sld = slider, Lbl = label })
-    slider:RegisterSliderCallback(function(v)
+    registerSliderCallback(slider, function(v)
         label:SetText(string.format("%d%%", math.floor(v * 100 + 0.5)))
     end)
     local h = FormHandler.create({
@@ -211,6 +229,71 @@ function M.test_slider_right_increments_by_small_step()
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(slider:GetValue(), 0.51)
     T.eq(speaks[1].text, "LBL_SLD, 51%")
+end
+
+function M.test_slider_fires_captured_callback_on_adjust()
+    setup()
+    local slider = Polyfill.makeSlider({ value = 0.5 })
+    local label  = Polyfill.makeLabel("50")
+    populateControls({ Sld = slider, Lbl = label })
+    local received = {}
+    registerSliderCallback(slider, function(v, void1)
+        received[#received + 1] = { v = v, void1 = void1 }
+        label:SetText(string.format("%d", math.floor(v * 100 + 0.5)))
+    end)
+    slider:SetVoid1(42)
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "slider", controlName = "Sld", labelControlName = "Lbl",
+              textKey = "LBL_SLD" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(#received, 1, "callback fired once on adjust")
+    T.truthy(math.abs(received[1].v - 0.51) < 1e-6)
+    T.eq(received[1].void1, 42, "void1 forwarded")
+end
+
+function M.test_slider_callback_missing_logs_warn()
+    setup()
+    local slider = Polyfill.makeSlider({ value = 0.5 })
+    local label  = Polyfill.makeLabel("0")
+    populateControls({ Sld = slider, Lbl = label })
+    -- No registerSliderCallback -> probe has no entry for this slider.
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "slider", controlName = "Sld", labelControlName = "Lbl",
+              textKey = "LBL_SLD" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(slider:GetValue(), 0.51, "value still changes")
+    T.truthy(#warns >= 1, "callback-missing warn logged")
+end
+
+function M.test_checkbox_fires_captured_handler_on_toggle()
+    setup()
+    local cb = Polyfill.makeCheckBox({ checked = false })
+    populateControls({ Foo = cb })
+    local received = {}
+    registerCheckHandler(cb, function(v) received[#received + 1] = v end)
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "checkbox", controlName = "Foo", textKey = "LBL_FOO" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#received, 1)
+    T.eq(received[1], true)
+    InputRouter.dispatch(Keys.VK_SPACE, 0, WM_KEYDOWN)
+    T.eq(#received, 2)
+    T.eq(received[2], false)
 end
 
 function M.test_slider_left_decrements()
@@ -431,7 +514,7 @@ function M.test_tooltip_appears_after_adjust_too()
     local slider = Polyfill.makeSlider({ value = 0.5 })
     local label  = Polyfill.makeLabel("50%")
     populateControls({ S = slider, L = label })
-    slider:RegisterSliderCallback(function(v)
+    registerSliderCallback(slider, function(v)
         label:SetText(string.format("%d%%", math.floor(v * 100 + 0.5)))
     end)
     local h = FormHandler.create({

@@ -287,15 +287,30 @@ local function activateButton(self, item)
     end
 end
 
+-- Invoke the checkbox's registered RegisterCheckHandler with the new
+-- state. The engine only fires it on user mouse interaction; a
+-- programmatic SetCheck flips the visual but leaves the game's own
+-- OptionsManager / PreGame setter unrun, so "Apply" would persist the
+-- pre-toggle value. We call the captured handler manually.
+local function fireCheckHandler(item, newValue)
+    local cb = PullDownProbe.checkBoxCallbackFor(item._control)
+    if cb == nil then
+        Log.warn("FormHandler checkbox '" .. tostring(item.controlName)
+            .. "': callback not captured, game state will not update")
+        return
+    end
+    local ok, err = pcall(cb, newValue)
+    if not ok then
+        Log.error("FormHandler checkbox '" .. tostring(item.controlName)
+            .. "' callback failed: " .. tostring(err))
+    end
+end
+
 local function activateCheckbox(self, item)
     local c = item._control
     local newValue = not c:IsChecked()
     c:SetCheck(newValue)
-    -- Engine's SetCheck does not always fire the registered check handler in
-    -- script-set paths; fire it ourselves if accessible. We cannot read the
-    -- registered fn, so we instead invoke by calling SetCheck first (many
-    -- implementations do fire) and leave a documented TODO only if we ever
-    -- find a screen where state diverges.
+    fireCheckHandler(item, newValue)
     Events.AudioPlay2DSound("AS2D_IF_SELECT")
     SpeechPipeline.speakInterrupt(buildSpeech(self, item))
 end
@@ -304,6 +319,29 @@ local function clampUnit(v)
     if v < 0 then return 0 end
     if v > 1 then return 1 end
     return v
+end
+
+-- Call the slider's registered callback with the new value. The engine
+-- fires RegisterSliderCallback only on mouse interaction; programmatic
+-- SetValue does not, so the game's OptionsManager / PreGame setter never
+-- runs and the label-side text never updates. We invoke the captured
+-- callback manually, with signature (newValue, void1) to match the game
+-- handlers (e.g. OnUIVolumeSliderValueChanged).
+local function fireSliderCallback(item, newValue)
+    local cb = PullDownProbe.sliderCallbackFor(item._control)
+    if cb == nil then
+        Log.warn("FormHandler slider '" .. tostring(item.controlName)
+            .. "': callback not captured, game state will not update")
+        return
+    end
+    local void1
+    local ok, v = pcall(function() return item._control:GetVoid1() end)
+    if ok then void1 = v end
+    local ok2, err = pcall(cb, newValue, void1)
+    if not ok2 then
+        Log.error("FormHandler slider '" .. tostring(item.controlName)
+            .. "' callback failed: " .. tostring(err))
+    end
 end
 
 local function adjustSlider(self, item, delta)
@@ -317,12 +355,14 @@ local function adjustSlider(self, item, delta)
         return
     end
     c:SetValue(next)
+    fireSliderCallback(item, next)
     SpeechPipeline.speakInterrupt(buildSpeech(self, item))
 end
 
 local function snapSlider(self, item, targetValue)
     local c = item._control
     c:SetValue(targetValue)
+    fireSliderCallback(item, targetValue)
     SpeechPipeline.speakInterrupt(buildSpeech(self, item))
 end
 

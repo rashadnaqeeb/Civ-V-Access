@@ -74,6 +74,12 @@ function Polyfill.makeButton()
     return self
 end
 
+-- Slider / CheckBox polyfills intentionally do NOT fire the registered
+-- callback from SetValue / SetCheck: the real engine only fires those on
+-- mouse interaction, not on programmatic state changes. FormHandler
+-- invokes the captured callback via PullDownProbe after each SetValue /
+-- SetCheck, and the polyfill mirrors that so tests exercise the same
+-- code path as the game.
 function Polyfill.makeSlider(opts)
     opts = opts or {}
     local self = {
@@ -86,7 +92,6 @@ function Polyfill.makeSlider(opts)
     function self:SetValue(v)
         if v < 0 then v = 0 elseif v > 1 then v = 1 end
         self._value = v
-        if self._cb then self._cb(v, self._void1) end
     end
     function self:GetValue() return self._value end
     function self:RegisterSliderCallback(fn) self._cb = fn end
@@ -110,7 +115,6 @@ function Polyfill.makeCheckBox(opts)
     function self:IsChecked() return self._checked end
     function self:SetCheck(v)
         self._checked = v and true or false
-        if self._cb then self._cb(self._checked) end
     end
     function self:RegisterCheckHandler(fn) self._cb = fn end
     function self:IsHidden() return self._hidden end
