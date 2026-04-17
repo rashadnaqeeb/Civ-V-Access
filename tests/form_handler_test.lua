@@ -918,6 +918,9 @@ function M.test_enter_on_textfield_enters_edit_mode()
     T.eq(h._editing, true, "form flipped to edit mode")
     T.eq(h._editingOriginal, "Athens", "original text snapshotted")
     T.eq(eb:GetText(), "", "editbox cleared")
+    -- TakeFocus is deferred to next tick so the engine's Enter-release
+    -- handling doesn't revoke it. Drain the queue to assert focus landed.
+    TickPump.tick()
     T.eq(eb._hasFocus, true, "engine focus taken for typing")
     T.eq(h.capturesAllInput, false,
         "capturesAllInput off so unbound keys fall through to the EditBox")
@@ -1008,6 +1011,43 @@ function M.test_commit_fires_priorCallback_with_final_text()
     T.eq(received[1].control, eb, "editbox passed as control")
     T.eq(received[1].bIsEnter, true,
         "bIsEnter=true so priorCallback mimics native Enter-triggered call")
+end
+
+function M.test_commit_announces_committed_value()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "old" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit
+    eb:SetText("new value")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit
+    T.eq(speaks[#speaks].text, "new value",
+        "commit should speak the just-saved value so the user hears confirmation")
+end
+
+function M.test_commit_on_empty_announces_blank()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "old" })
+    populateControls({ E = eb })
+    local h = FormHandler.create({
+        name = "T", displayName = "Screen",
+        items = {
+            { kind = "textfield", controlName = "E", textKey = "LBL" },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- enter edit (clears to "")
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)  -- commit empty
+    T.eq(speaks[#speaks].text, "blank",
+        "empty commit should speak the blank sentinel so silence is never the signal")
 end
 
 function M.test_commit_without_priorCallback_is_safe()

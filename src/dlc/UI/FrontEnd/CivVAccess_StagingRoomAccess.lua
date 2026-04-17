@@ -17,7 +17,7 @@ FormHandler.install(ContextPtr, {
     displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
     priorShowHide    = priorShowHide,
     priorInput       = priorInput,
-    focusParkControl = "CivVAccessFocusPark",
+    focusParkControl = "BackButton",
     items = {
         { kind = "pulldown", controlName = "MapTypePullDown",
           textKey = "TXT_KEY_AD_SETUP_MAP_TYPE" },

@@ -15,7 +15,7 @@ FormHandler.install(ContextPtr, {
     displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MP_GAME_SETUP"),
     priorShowHide    = priorShowHide,
     priorInput       = priorInput,
-    focusParkControl = "CivVAccessFocusPark",
+    focusParkControl = "BackButton",
     items = {
         { kind = "textfield", controlName = "NameBox",
           textKey = "TXT_KEY_MULTIPLAYER_GAME_NAME" },

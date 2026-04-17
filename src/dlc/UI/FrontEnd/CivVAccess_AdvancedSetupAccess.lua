@@ -25,7 +25,7 @@ FormHandler.install(ContextPtr, {
     displayName      = Text.key("TXT_KEY_CIVVACCESS_SCREEN_ADVANCED_SETUP"),
     priorShowHide    = priorShowHide,
     priorInput       = priorInput,
-    focusParkControl = "CivVAccessFocusPark",
+    focusParkControl = "BackButton",
     items = {
         { kind = "pulldown", controlName = "CivPulldown",
           textKey = "TXT_KEY_RANDOM_LEADER",

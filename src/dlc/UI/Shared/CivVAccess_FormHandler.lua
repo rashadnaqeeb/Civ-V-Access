@@ -529,18 +529,29 @@ end
 -- that motivated folding the sub in as a state.
 
 parkFocus = function(self)
+    -- parkFocus is called on show and on every tab switch. TakeFocus is
+    -- EditBox-only in Civ V, so most park targets (buttons) will make the
+    -- pcall fail. Log once per handler then set _parkDisabled so repeated
+    -- tab switches don't spam the log. A real "release EditBox focus"
+    -- strategy needs an XML-side parking EditBox, but adding one to the
+    -- focus chain creates its own arrow-key interception problems -- so
+    -- for now we prefer a silent no-op to a working-but-regression fix.
+    if self._parkDisabled then return end
     if self._focusParkControl == nil then return end
     local park = Controls[self._focusParkControl]
     if park == nil then
         Log.warn("FormHandler '" .. self.name
             .. "' focus-park control '" .. tostring(self._focusParkControl)
-            .. "' not found")
+            .. "' not found; disabling park for this handler")
+        self._parkDisabled = true
         return
     end
     local ok, err = pcall(function() park:TakeFocus() end)
     if not ok then
-        Log.error("FormHandler '" .. self.name
-            .. "' focus-park TakeFocus failed: " .. tostring(err))
+        Log.warn("FormHandler '" .. self.name
+            .. "' focus-park TakeFocus failed, disabling park for this handler: "
+            .. tostring(err))
+        self._parkDisabled = true
     end
 end
 
@@ -582,11 +593,24 @@ local function enterEdit(self, item)
             .. tostring(item.controlName) .. "' RegisterCallback failed: " .. tostring(errReg))
     end
 
-    local okFocus, errFocus = pcall(function() editBox:TakeFocus() end)
-    if not okFocus then
-        Log.error("FormHandler '" .. self.name .. "' textfield '"
-            .. tostring(item.controlName) .. "' TakeFocus failed: " .. tostring(errFocus))
-    end
+    -- Defer TakeFocus to the next tick: calling it synchronously from
+    -- inside a KEYDOWN handler seems to leave focus in a state the engine
+    -- revokes when the matching KEYUP runs ~1 frame later, so subsequent
+    -- WM_CHAR events arrive at our Context with no focused widget and the
+    -- typed characters go nowhere. Letting the Enter KEYDOWN/KEYUP pair
+    -- complete before we steal focus sidesteps that.
+    TickPump.runOnce(function()
+        if not self._editing or self._editingItem ~= item then
+            -- User exited edit mode before the tick fired (Esc before
+            -- the first frame). Don't steal focus.
+            return
+        end
+        local okFocus, errFocus = pcall(function() editBox:TakeFocus() end)
+        if not okFocus then
+            Log.error("FormHandler '" .. self.name .. "' textfield '"
+                .. tostring(item.controlName) .. "' TakeFocus failed: " .. tostring(errFocus))
+        end
+    end)
 
     self.bindings         = self._editBindings
     self.capturesAllInput = false
@@ -643,6 +667,11 @@ local function exitEdit(self, restore)
     if restore then
         SpeechPipeline.speakInterrupt(
             Text.format("TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED", labelText))
+    else
+        -- Commit: read the just-saved text back so the user hears confirmation
+        -- of the new value (rather than a silent exit). textfieldValue
+        -- substitutes "blank" when the field is empty.
+        SpeechPipeline.speakInterrupt(textfieldValue(item))
     end
 end
 
@@ -881,6 +910,10 @@ function FormHandler.install(ContextPtr, spec)
     local priorShowHide = spec.priorShowHide
     local priorInput    = spec.priorInput
 
+    -- enterEdit defers its TakeFocus to the next tick via TickPump.runOnce,
+    -- so the Context must be tick-driven for the deferred call to fire.
+    TickPump.install(ContextPtr)
+
     ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
         if priorShowHide then
             local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
@@ -902,6 +935,13 @@ function FormHandler.install(ContextPtr, spec)
     end)
 
     ContextPtr:SetInputHandler(function(msg, wp, lp)
+        -- During edit mode, claim the KEYUP of Enter so the engine's
+        -- default Enter-release handling doesn't revoke focus from the
+        -- EditBox we just took focus on. Symptom without this: WM_CHARs
+        -- reach the Context but the EditBox ends up empty on commit.
+        if handler._editing and msg == 257 and wp == Keys.VK_RETURN then
+            return true
+        end
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
             -- Esc has three meanings depending on state:
             --   on the form (non-edit): bypass to the screen's Back / OnNo.
