@@ -13,9 +13,58 @@
 -- hidden controls without special-casing mode in this file.
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_MapSizeSummary")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
+
+-- Map-type entries: supported-size suffix --------------------------------
+--
+-- MP uses SupportsMultiplayer=1 (no Hidden filter) and raw string compare
+-- for sort (base MPGameOptions.lua line 677). Cache refresh on show so
+-- DLC toggles between visits repopulate.
+
+local _mapSizeLabelsCache
+local function mapTypeSizeLabels()
+    if _mapSizeLabelsCache ~= nil then return _mapSizeLabelsCache end
+    _mapSizeLabelsCache = MapSizeSummary.labelsFor(
+        { SupportsMultiplayer = 1 },
+        function(a, b) return a.name < b.name end)
+    return _mapSizeLabelsCache
+end
+
+local function mapTypeEntryAnnounce(inst, index)
+    local text = safeText(function() return inst.Button:GetText() end,
+        "MapType entry GetText")
+    local parts = { text }
+    local sizeInfo = mapTypeSizeLabels()[index]
+    if sizeInfo ~= nil and sizeInfo ~= "" then
+        parts[#parts + 1] = sizeInfo
+    end
+    local combined = table.concat(parts, ", ")
+    local tip = safeText(function() return inst.Button:GetToolTipString() end,
+        "MapType entry GetToolTipString")
+    if tip ~= "" then
+        return BaseMenuItems.appendTooltip(combined, tip)
+    end
+    return combined
+end
+
+-- Read a widget string and surface pcall failures via Log.warn so a
+-- silently empty label points at the actual error. pcall returning
+-- (true, nil) is not a failure (a widget can legitimately have no text
+-- yet); only the error path logs.
+local function safeText(getter, context)
+    local ok, t = pcall(getter)
+    if not ok then
+        Log.warn("MPGameSetupAccess safeText"
+            .. (context and (" [" .. context .. "]") or "")
+            .. " failed: " .. tostring(t))
+        return ""
+    end
+    if t == nil then return "" end
+    return tostring(t)
+end
 
 -- Dynamic children --------------------------------------------------------
 --
@@ -167,7 +216,7 @@ end
 
 -- Top-level items ---------------------------------------------------------
 
-local function buildItems(handler)
+local function buildItems()
     local items = {
         -- Game name + privacy (hidden wholesale in hotseat via GameNameBox).
         BaseMenuItems.Textfield({ controlName = "NameBox",
@@ -178,7 +227,8 @@ local function buildItems(handler)
             activateCallback = function() OnPrivateGame() end }),
         -- Global settings.
         BaseMenuItems.Pulldown({ controlName = "MapTypePullDown",
-            textKey = "TXT_KEY_AD_SETUP_MAP_TYPE" }),
+            textKey         = "TXT_KEY_AD_SETUP_MAP_TYPE",
+            entryAnnounceFn = mapTypeEntryAnnounce }),
         BaseMenuItems.Pulldown({ controlName = "MapSizePullDown",
             textKey = "TXT_KEY_AD_SETUP_MAP_SIZE" }),
         BaseMenuItems.Pulldown({ controlName = "GameSpeedPullDown",
@@ -253,8 +303,15 @@ local function buildItems(handler)
         textKey    = "TXT_KEY_AD_SETUP_DEFAULT",
         tooltipKey = "TXT_KEY_AD_SETUP_ADD_DEFAULT_TT",
         activate   = function() OnDefaultButton() end })
+    -- Label dynamic: base swaps between TXT_KEY_HOST_GAME and
+    -- TXT_KEY_HOST_SCENARIO on the button itself per scenario state
+    -- (MPGameSetupScreen UpdateDisplay). Read the button's current text
+    -- at announce time so the announcement matches whichever label
+    -- the base last set.
     items[#items + 1] = BaseMenuItems.Button({ controlName = "LaunchButton",
-        textKey  = "TXT_KEY_HOST_GAME",
+        labelFn  = function() return safeText(
+            function() return Controls.LaunchButton:GetText() end,
+            "LaunchButton GetText") end,
         activate = function() OnStart() end })
     return items
 end
@@ -264,13 +321,12 @@ BaseMenu.install(ContextPtr, {
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MP_GAME_SETUP"),
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
-    onShow        = function(h)
-        h.setItems(buildItems(h))
+    -- Dynamic groups are cached=false and static items reference live
+    -- Controls, so no rebuild-on-show is needed. onShow just invalidates
+    -- the map-type size-suffix cache so DLC / mod toggles between visits
+    -- don't leave stale announcements.
+    onShow        = function()
+        _mapSizeLabelsCache = nil
     end,
-    items         = {
-        -- Placeholder; onShow rebuilds the real list before push + announce.
-        BaseMenuItems.Button({ controlName = "LaunchButton",
-            textKey  = "TXT_KEY_HOST_GAME",
-            activate = function() end }),
-    },
+    items         = buildItems(),
 })
