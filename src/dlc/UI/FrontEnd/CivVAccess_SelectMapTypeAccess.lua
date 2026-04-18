@@ -33,9 +33,14 @@ local function buildItemsForFolder(folder)
         })
     end
     for _, v in ipairs(folder.Items) do
-        -- Mirror base: hide empty folders.
-        if v.Items == nil or #v.Items > 0 then
-            local isSubFolder = (v.Items ~= nil)
+        -- Mirror base: hide empty folders. Also skip unpickable leaves --
+        -- the base renders these in red with no Callback (invalid WB maps
+        -- or similar); sighted users see them but cannot click, and for
+        -- speech surfacing a silent dead end is worse than omitting.
+        local isSubFolder = (v.Items ~= nil)
+        local isPickableLeaf = (not isSubFolder) and v.Callback ~= nil
+        local isNonEmptyFolder = isSubFolder and #v.Items > 0
+        if isPickableLeaf or isNonEmptyFolder then
             local callback = v.Callback
             local name = v.Name
             local desc = v.Description
