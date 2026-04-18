@@ -135,6 +135,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL"]            = "Cancel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE"]             = "Close"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT"]       = "Cancel edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"]       = "Commit edit"
+-- LoadMenu (PickerReader over the save picker). Saves-tab label, details-tab
+-- label, empty-list placeholder, delete confirmation (format key takes the
+-- save's display name), post-delete acknowledgement. The two PICKER_READER_
+-- keys are duplicated from InGame/CivVAccess_InGameStrings_en_US.lua so the
+-- Shared PickerReader resolves them from the front-end sandbox too (each
+-- Context has its own CivVAccess_Strings table).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SORT_BY"]                = "Sort by"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SAVES_TAB"]              = "Saves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DETAILS_TAB"]            = "Save details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_NO_SAVES"]               = "No saves in this list."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM"]         = "Delete {1_Name}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETED"]                = "Save deleted."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"]         = "No content for this entry."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"]  = "No save selected. Switch to the saves tab to pick one."
 -- Spoken replacements for [ICON_*] markup. Registered into TextFilter by
 -- CivVAccess_Icons.lua; the filter substitutes the bracket token inline
 -- with the spoken text. Duplicated into the in-game strings file because

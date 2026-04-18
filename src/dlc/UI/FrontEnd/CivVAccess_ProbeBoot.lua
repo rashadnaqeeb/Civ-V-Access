@@ -27,6 +27,8 @@ PullDownProbe.installFromControls(
         "GameSpeedPullDown", "EraPullDown", "CivPulldown", "TeamPullDown",
         -- MPGameSetupScreen / StagingRoom
         "TurnModePull", "TurnTimerPullDown", "MaxTurnsPullDown",
+        -- LoadMenu
+        "SortByPullDown",
     },
     {
         -- OptionsMenu
@@ -43,6 +45,8 @@ PullDownProbe.installFromControls(
         -- MPGameSetupScreen / StagingRoom / AdvancedSetup
         "MaxTurnsCheck", "TurnTimerCheck", "ScenarioCheck",
         "PrivateGameCheckbox",
+        -- LoadMenu
+        "AutoCheck", "CloudCheck",
     },
     {
         -- Buttons: shared metatable across GridButton / TextButton usages.
