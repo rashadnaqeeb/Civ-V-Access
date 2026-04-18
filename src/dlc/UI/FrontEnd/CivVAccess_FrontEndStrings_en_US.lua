@@ -149,6 +149,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_NO_SAVES"]               = "No saves
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM"]         = "Delete {1_Name}?"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETED"]                = "Save deleted."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION"]            = "{1_Name} version {2_Version}"
+-- LoadReplayMenu (PickerReader over the replay picker). Engine's
+-- TXT_KEY_NO_REPLAYS serves as the empty-list placeholder; delete confirm
+-- reuses TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM. Replay-specific tab names
+-- and post-delete acknowledgement below.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOAD_REPLAY"]          = "Load replay"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_LIST_TAB"]             = "Replays"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_DETAILS_TAB"]          = "Replay details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_DELETED"]              = "Replay deleted."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"]         = "No replay selected. Switch to the replays tab to pick one."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"]         = "No content for this entry."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"]  = "No save selected. Switch to the saves tab to pick one."
 -- InstalledPanel (PickerReader over the installed mods list, child of
