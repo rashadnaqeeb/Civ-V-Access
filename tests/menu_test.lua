@@ -2437,4 +2437,55 @@ function M.test_tab_without_onCtrl_hook_falls_back_to_default()
     T.eq(h._indices[1], 2, "default Ctrl+Down jumped to G2 (no tab hook)")
 end
 
+function M.test_tab_first_init_fires_tab_one_onActivate()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA })
+    local fired, gotHandler = false, nil
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A",
+              onActivate = function(handler) fired = true; gotHandler = handler end,
+              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) } },
+            { name = "TAB_B",
+              items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) } },
+        } })
+    HandlerStack.push(h)
+    T.eq(fired, true, "tab 1 onActivate fires on first open")
+    T.eq(gotHandler, h, "onActivate receives the handler")
+end
+
+function M.test_tab_first_init_applies_tab_one_autoDrillToLevel()
+    setup()
+    local inner = BaseMenuItems.Text({ labelText = "Inner" })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A", autoDrillToLevel = 2,
+              items = {
+                BaseMenuItems.Group({ labelText = "G", items = { inner } }),
+              } },
+        } })
+    HandlerStack.push(h)
+    T.eq(h._level, 2, "first open drilled into the first group on tab 1")
+    T.eq(h._indices[2], 1, "cursor lands on first child after drill")
+end
+
+function M.test_tab_first_init_onActivate_can_override_cursor()
+    setup()
+    local h = BaseMenu.create({ name = "T", displayName = "Screen",
+        tabs = {
+            { name = "TAB_A",
+              onActivate = function(handler) handler._indices = { 2 } end,
+              items = {
+                BaseMenuItems.Text({ labelText = "First" }),
+                BaseMenuItems.Text({ labelText = "Second" }),
+              } },
+        } })
+    HandlerStack.push(h)
+    T.eq(h._indices[1], 2, "tab 1 onActivate overrode the default cursor")
+    -- Final speech queues the cursor's current item, not the default first.
+    local lastSpoken = speaks[#speaks].text
+    T.eq(lastSpoken, "Second", "speech announces the overridden cursor item")
+end
+
 return M

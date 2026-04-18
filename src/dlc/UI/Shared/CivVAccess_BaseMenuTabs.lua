@@ -168,11 +168,13 @@ function BaseMenuTabs.cycle(self, step, nav)
     BaseMenuTabs.switch(self, self._tabIndex + step, false, nav)
 end
 
--- First-open setup: select tab 1, fire its showPanel, return the name text
--- the caller should speakQueued (or nil/"" to skip). Caller (Core's first-
--- init onActivate path) handles the displayName + preamble + first-item
--- speech around it.
-function BaseMenuTabs.openInitial(self)
+-- First-open setup for tab 1. Mirrors switch's post-showPanel lifecycle
+-- (cursor reset, tab.onActivate, autoDrillToLevel) so a tab whose
+-- onActivate or autoDrillToLevel is meaningful sees the same behavior on
+-- first open as on a subsequent Tab-key switch back. Returns the name
+-- text the caller should speakQueued (or nil/"" to skip); caller handles
+-- the displayName + preamble + first-item speech around it.
+function BaseMenuTabs.openInitial(self, nav)
     self._tabIndex = 1
     local tab = self.tabs[1]
     if type(tab.showPanel) == "function" then
@@ -181,6 +183,20 @@ function BaseMenuTabs.openInitial(self)
             Log.error("BaseMenu '" .. self.name
                 .. "' initial showPanel: " .. tostring(err))
         end
+    end
+    self._level = 1
+    local items = nav.currentItems(self)
+    local first = nav.nextValidIndex(items, 0, 1)
+    self._indices = { first or 1 }
+    if type(tab.onActivate) == "function" then
+        local ok, err = pcall(tab.onActivate, self)
+        if not ok then
+            Log.error("BaseMenu '" .. self.name .. "' onActivate for tab '"
+                .. tostring(tab.name) .. "': " .. tostring(err))
+        end
+    end
+    if type(tab.autoDrillToLevel) == "number" then
+        autoDrillTo(self, tab.autoDrillToLevel, nav)
     end
     return resolveNameText(self, tab)
 end

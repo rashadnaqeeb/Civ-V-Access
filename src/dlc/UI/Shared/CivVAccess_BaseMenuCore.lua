@@ -594,18 +594,24 @@ function BaseMenu.create(spec)
             resetSearch(self)
             local tabNameText
             if self.tabs then
-                tabNameText = BaseMenuTabs.openInitial(self)
-            end
-            items = currentItems(self)
-            local first = nextValidIndex(items, 0, 1)
-            local startIndex = first or 1
-            if self._initialIndex ~= nil then
-                local target = items[self._initialIndex]
-                if target ~= nil and target:isNavigable() then
-                    startIndex = self._initialIndex
+                -- openInitial owns the tab-1 cursor + lifecycle (showPanel,
+                -- tab.onActivate, autoDrillToLevel). _initialIndex is a
+                -- non-tabbed pulldown concept and isn't honored here; tab
+                -- specs that need a specific opening cursor express it via
+                -- tab.onActivate (which can mutate _level / _indices).
+                tabNameText = BaseMenuTabs.openInitial(self, nav)
+            else
+                items = currentItems(self)
+                local first = nextValidIndex(items, 0, 1)
+                local startIndex = first or 1
+                if self._initialIndex ~= nil then
+                    local target = items[self._initialIndex]
+                    if target ~= nil and target:isNavigable() then
+                        startIndex = self._initialIndex
+                    end
                 end
+                self._indices[1] = startIndex
             end
-            self._indices[1] = startIndex
             self._initialized = true
             SpeechPipeline.speakInterrupt(self.displayName)
             local preambleText = resolvePreamble(self)
@@ -616,8 +622,12 @@ function BaseMenu.create(spec)
             if tabNameText ~= nil and tabNameText ~= "" then
                 SpeechPipeline.speakQueued(tabNameText)
             end
-            if items[startIndex] ~= nil then
-                SpeechPipeline.speakQueued(items[startIndex]:announce(self))
+            -- Re-read after openInitial: tab.onActivate or autoDrillToLevel
+            -- may have moved _level / _indices off the level-1 first item.
+            items = currentItems(self)
+            local cur = items[currentIndex(self)]
+            if cur ~= nil then
+                SpeechPipeline.speakQueued(cur:announce(self))
             end
             return
         end
