@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mods Browser installed mods screen IconFrame32Check.dds-->
+<Context ColorSet="Beige_Black" Font="TwCenMT22" FontStyle="Shadow">
+
+	<Instance Name="ListingButtonInstance">
+		<Button Anchor="L,T" Size="896,72" Offset="0,0" Color="Black.0" StateOffsetIncrement="0,0" ID="Button">
+
+			<ShowOnMouseOver>
+				<AlphaAnim Anchor="L,T" Size="896,72" Offset="0,-3" Pause="0" Cycle="Bounce" Speed="1" AlphaStart="1.5" AlphaEnd="1"  ID="SelectHighlight">
+					<Grid   Size="896,77" Offset="0,0" Padding="0,0" Style="Grid9FrameTurnsHL" />
+				</AlphaAnim>
+			</ShowOnMouseOver>
+
+			<Stack  StackGrowth="Right" Offset="0,0" Padding="0">
+				<Box Anchor="L,T"   Offset="8,8" Size="175,24" Color="Black.0">
+					<Label Anchor="L,T" Offset="10,0" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="MOD TITLE" ID="Title" />
+				</Box>
+				<Box Anchor="L,T" Offset="0,0" Size="100,24" Color="Black.0">
+					<Label Anchor="C,C" Offset="0,0"  Font="TwCenMT14" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="5" Hidden="1" ID="Rating" />
+				</Box>
+			</Stack>
+
+			<Grid Size="390,27" Style="Grid9Frame27SquareBlack" Anchor="C,B" Offset="0,6" ID="ProgressBarGrid" Hidden="0">
+				<AlphaAnim Size="390.27"  Anchor="L,C" Offset="0,0"  Pause="0" Cycle="Bounce" Speed="1" AlphaStart="1" AlphaEnd=".6" Hidden="0">
+					<Image Anchor="L,C" Offset="1,0"  Texture="DownloadingMeter.dds" Size="390,25" Hidden="0" ID="ProgressBar"/>
+					<Label Anchor="C,C" Offset="0,-1"  Font="TwCenMT20" Color0="Beige.255" Color1="Black.255" FontStyle="Stroke" String="" ID="StatusLabel" Hidden="0"/>
+					<Label Anchor="C,C" Offset="0,-1"  Font="TwCenMT20" Color0="Red.255" Color1="Black.255" FontStyle="Stroke" String="" ID="RedStatusLabel" Hidden="1"/>
+				</AlphaAnim>
+
+			</Grid>
+
+			<Stack StackGrowth="Left" Anchor="R,B" Offset="3,4" Size="32,32">
+				<Button Anchor="L,C" Size="32,32"  Texture="assets/UI/Art/Icons/IconFrame32CheckOff.DDS"        ToolTip="TXT_KEY_MODDING_ENABLEMOD" ID="EnableButton" ConsumeMouse="1"   />
+				<Button Anchor="L,C" Size="32,32"  Texture="assets/UI/Art/Icons/IconFrame32Check.DDS"           ToolTip="TXT_KEY_MODDING_DISABLEMOD" ID="DisableButton" Hidden="1" ConsumeMouse="1"   />
+				<GridButton Anchor="L,C"  Style="SmallButton2" Size="100,27"  Offset="0,0" StateOffsetIncrement="0,0" ToolTip="TXT_KEY_MODDING_UPDATEMOD" ID="UpdateButton" ConsumeMouse="1"   >
+					<Label Anchor="C,C"  Offset="0,0"  String="TXT_KEY_MODDING_UPDATEMOD" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+				</GridButton>
+			</Stack>
+
+			<Label Anchor="L,T" Offset="18,26"  WrapWidth="800" LeadingOffset="-6" Font="TwCenMT14" Color="255,255,200,160" FontStyle="Base" ID="Teaser" String="The term mod derives from modernist, which was a term used in the 1950s to describe modern jazz musicians and fans. This usage contrasted with the term trad, which described traditional jazz players and fans." />
+			<Image Anchor="L,B" Offset="0,0" TextureOffset="0.0" Texture="bar900x2.dds" Size="900.1" />
+		</Button>
+	</Instance>
+
+	<Instance Name="DetailLabelInstance">
+		<Label ID="Label" Anchor="R,C"  Font="TwCenMT16"   ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="Detail" />
+	</Instance>
+
+	<Instance Name="DetailValueInstance">
+		<Label ID="Label" Anchor="L,C"  Font="TwCenMT16"   ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="Detail" />
+	</Instance>
+
+	<Instance Name="DetailsDependentModInstance">
+		<Label ID="Label" Anchor="L,T" Offset="200,0"  WrapWidth="660" LeadingOffset="-2" Font="TwCenMT16" Color="255,255,200,255" FontStyle="Base" String="This mod is exclusive." />
+	</Instance>
+
+	<Box ID="ListingsPanel" Offset="19,44" Color="0,0,0,0" Size="922,490">
+
+		<Label Anchor="L,T" Offset="10,12" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" String="TXT_KEY_MODDING_ENABLEINSTRUCTIONS" />
+
+		<GridButton Anchor="R,T"  Style="SmallButton" Size="110,32"  Offset="10,5" StateOffsetIncrement="0,0" ID="OptionsButton" >
+			<Label Anchor="C,C"  Offset="0,0"  ID="OptionsButtonLabel" String="TXT_KEY_MODDING_OPTIONS" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+		</GridButton>
+
+
+		<Box Color="0,0,0,0" Size="922,450" Offset="0,44">
+
+			<Image Anchor="L,T" Offset="0,0" Texture="HorizontalTrim.dds" Size="926.2" />
+
+
+			<Box Size="904,422" Offset="0,0" Color="0,0,0,0" ID="ListingsEmpty">
+				<Label Anchor="C,C" String="{TXT_KEY_MODDING_NOMODSINSTALLED:upper}" Font="TwCenMT22" FontStyle="Shadow" ColorSet="Beige_Black_Alpha" />
+			</Box>
+
+			<Box Size="904,422" Offset="0,0" Color="0,0,0,0" ID="ListingsResults">
+				<Stack StackGrowth="Right" Offset="0,0" Padding="0">
+
+					<Box Size="526,24" Color="Black.0">
+						<TextButton Offset="0,1" Anchor="C.C" Font="TwCenMT16" ColorSet="Beige_Black_Alpha" String="TXT_KEY_MODDING_SORT_TITLE" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="SortbyName" Hidden="0" >
+							<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" ID="SortbyNameImage" Size="18,18" />
+						</TextButton>
+					</Box>
+					<Box Size="400,24" Color="Black.0">
+						<TextButton Offset="0,1" Anchor="C.C" Font="TwCenMT16" ColorSet="Beige_Black_Alpha" String="TXT_KEY_MODDING_SORT_ENABLED" FontStyle="Shadow" MouseOverStyle="SoftShadow" ConsumeMouse="1" ID="SortByEnabled" Hidden="0" >
+							<Image Anchor="L,C" AnchorSide="O.I" Offset="2,0" Texture="assets/UI/Art/Controls/9 Grids/SelectedUp.dds" ID="SortbyEnabledImage" Size="18,18" />
+						</TextButton>
+					</Box>
+
+				</Stack>
+
+				<Image Anchor="L,T" Offset="0,0" Texture="HorizontalTrim.dds" Size="926.2" />
+
+				<!-- Listings Box -->
+				<ScrollPanel Anchor="L,T" ID="ListingScrollPanel" Vertical="1" Size="904,422" Offset="0,24" AutoScrollBar="1">
+
+					<!-- Scroll Controls -->
+					<ScrollBar  Anchor="R,T" AnchorSide="O,I" Offset="0,18" Length="388" Style="VertSlider"/>
+					<UpButton   Anchor="R,T" AnchorSide="O,I" Offset="0,0" Style="ScrollBarUp"/>
+					<DownButton Anchor="R,B" AnchorSide="O,I" Offset="0,0" Style="ScrollBarDown"/>
+
+					<!-- Listing Stack (Dynamic) -->
+					<Stack ID="ListingStack" StackGrowth="B" Offset="4,0" Padding="0" />
+				</ScrollPanel>
+			</Box>
+		</Box>
+	</Box>
+
+	<Box ID="DetailsResults" Offset="19,44" Size="922,490" Color="0,0,0,0" Hidden="1">
+
+		<ScrollPanel Anchor="L,T" ID="DescriptionScrollPanel" Vertical="1" Size="903,460" Offset="0,2" AutoScrollBar="1" >
+
+			<!-- Scroll Controls -->
+			<ScrollBar  Anchor="R,T" AnchorSide="O,I" Offset="0,18" Length="420" Style="VertSlider"/>
+			<UpButton   Anchor="R,T" AnchorSide="O,I" Offset="0,0" Style="ScrollBarUp"/>
+			<DownButton Anchor="R,T" AnchorSide="O,I" Offset="0,438" Style="ScrollBarDown"/>
+
+			<Stack Anchor="C,T" StackGrowth="Bottom" Offset="0,0" Padding="6" >
+
+				<Box Size="900,50" Anchor="L,C" Offset="0,0" Color="White.0" >
+					<Label ID="SelectedModName" Anchor="C,C" Offset="0,0" Font="TwCenMT24" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="Mod Title 1" />
+					<Label ID="SelectedModID" Anchor="C,C" Offset="0,20" Font="TwCenMT14" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="111111111111111" />
+				</Box>
+
+				<Image Anchor="C,C" Offset="0,0"  Texture="bar500x2.dds" Size="500.1" />
+
+				<Box Size="900,140" Anchor="C,T" Offset="0,0" Color="White.0" ID="DetailsBox" >
+					<!-- Listing Stack (Dynamic) -->
+					<Stack Anchor="L,T" ID="DetailLabelsStack" StackGrowth="Bottom" Offset="0,0" Padding="6" />
+					<Stack Anchor="L,T" ID="DetailValuesStack" StackGrowth="Bottom" Offset="0,0" Padding="6" />
+				</Box>
+
+				<Label Anchor="C,T" Offset="0,0"  WrapWidth="660" LeadingOffset="-2" Font="TwCenMT20" Color="255,255,200,255" FontStyle="Base" String="TXT_KEY_MODDING_DESCRIPTION" />
+
+				<Image Anchor="C,C" Offset="0,0"  Texture="bar500x2.dds" Size="500.1" />
+
+				<Box Size="10,10" Anchor="L,C" Offset="0,0" Color="White.0" />
+
+				<Label Anchor="C,T" Offset="0,0"  WrapWidth="660" LeadingOffset="-2" Font="TwCenMT16" Color="255,255,200,255" FontStyle="Base" ID="SelectedModDescription" String="" />
+
+				<Box Size="10,20" Anchor="L,C" Offset="0,0" Color="White.0" />
+
+				<Label Anchor="C,T" Offset="0,0"  WrapWidth="660" LeadingOffset="-2" Font="TwCenMT20" Color="255,255,200,255" FontStyle="Base" String="TXT_KEY_MODDING_DEPENDENCIES_HEADER" />
+
+				<Image Anchor="C,C" Offset="0,0"  Texture="bar500x2.dds" Size="500.1" />
+
+				<Box Size="10,10" Anchor="L,C" Offset="0,0" Color="White.0"/>
+
+				<Stack Anchor="L,T" StackGrowth="Bottom" Offset="0,0" Padding="6" ID="DetailsDependentModStack" />
+
+				<Box Size="10,10" Anchor="L,C" Offset="0,0" Color="White.0" />
+			</Stack>
+
+		</ScrollPanel>
+	</Box>
+
+
+	<Box Color="Black.200" Size="Full.Full" ID="DeleteConfirm" Hidden="1" >
+		<Grid Size="500,360" Anchor="C,C" Offset="0,0" Padding="0,20" Style="Grid9DetailFive140"  Hidden="0" >
+
+			<!-- Side treatments -->
+			<Box Style="PopupLeftSideTreatment"/>
+			<Box Style="PopupRightSideTreatment"/>
+			<Box Style="PopupNotificationTopTreatment"/>
+
+			<Label ID="ConfirmText" Anchor="L,T"  Offset="25,54"  WrapWidth="440" String="TXT_KEY_DELETE_MOD_TXT" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+			<!-- dependent mod ScrollPanel -->
+			<Box ID="EffectedModsElements" Anchor="L,T" Size="430,160" Offset="25,84" Color="225,225,180,0">
+				<Label ID="EffectedModsLabel" Anchor="L,T"  Offset="0,0"  WrapWidth="360" String="TXT_KEY_EFFECTED_MODS_TXT" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+				<Image Anchor="C,T" Offset="0,22" Texture="bar340x2.dds" Size="340.1" />
+				<ScrollPanel Anchor="L,T" Offset="0,28" Size="430,140"  Vertical="1" AutoScrollBar="1" ID="DependentModScroll" >
+
+					<!-- Scroll Controls -->
+					<ScrollBar  Anchor="R,C" AnchorSide="O,I" Length="104" Offset="0,0" Style="VertSlider"/>
+					<UpButton   Anchor="R,T" AnchorSide="O,I" Style="ScrollBarUp"/>
+					<DownButton Anchor="R,B" AnchorSide="O,I" Style="ScrollBarDown" Offset="0,0"/>
+
+					<!-- Listing Stack (Dynamic) -->
+					<Stack ID="DependentModStack" StackGrowth="B" Padding="4" />
+				</ScrollPanel>
+			</Box>
+
+			<CheckBox ButtonTexture="assets/UI/Art/Controls/CheckBox2TheBox.dds" TextAnchorSide="Right" Font="TwCenMT20" Offset="30,220" TextOffset="40,0" IsChecked="0" ID="DeleteUserData" String="Delete Userdata" ConsumeMouse="1"  />
+			<Container Size="400,42" Anchor="C,B" Offset="0,50">
+				<GridButton Anchor="R,T" Style="BaseButton"  ID="Yes" Size="150,42">
+					<Label Anchor="C,C" Offset="0,0" String="TXT_KEY_YES_BUTTON" ColorSet="Beige_Black" Font="TwCenMT18" FontStyle="Shadow" />
+				</GridButton>
+
+				<GridButton Anhor="L,T"  Style="BaseButton" ID="No" Size="150,42">
+					<Label Anchor="C,C" Offset="0,0" String="TXT_KEY_NO_BUTTON" ColorSet="Beige_Black" Font="TwCenMT18" FontStyle="Shadow" />
+				</GridButton>
+			</Container>
+		</Grid>
+	</Box>
+
+	<Box Color="Black.200" Size="Full.Full" ID="OptionsPopup" Hidden="1" >
+		<Grid Size="450,260" Anchor="C,C" Offset="0,0" Padding="0,20" Style="Grid9DetailFive140"  Hidden="0" >
+
+			<!-- Side treatments -->
+			<Box Style="PopupLeftSideTreatment"/>
+			<Box Style="PopupRightSideTreatment"/>
+			<Box Style="PopupNotificationTopTreatment"/>
+			
+			<Stack Size="340,110" Offset="30,50" StackGrowth="Bottom">
+				<CheckBox ButtonTexture="assets/UI/Art/Controls/CheckBox2TheBox.dds" TextAnchorSide="Right" Font="TwCenMT20" TextOffset="40,0" IsChecked="0" ID="ShowDLCMods" String="TXT_KEY_MODDING_SHOWDLCMODS" ConsumeMouse="1"  />
+			</Stack>
+			<Container Size="400,42" Anchor="C,B" Offset="0,50">
+				<GridButton Anchor="C,T" Style="BaseButton"  ID="OptionsOK" Size="150,42">
+					<Label Anchor="C,C" Offset="0,0" String="TXT_KEY_OK_BUTTON" ColorSet="Beige_Black" Font="TwCenMT18" FontStyle="Shadow" />
+				</GridButton>
+			</Container>
+		</Grid>
+	</Box>
+
+	<Instance Name="DependentModInstance">
+		<Label ID="Label" Anchor="L,T" Font="TwCenMT18" WrapWidth="360" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="Detail" />
+	</Instance>
+
+</Context>

@@ -47,6 +47,8 @@ PullDownProbe.installFromControls(
         "PrivateGameCheckbox",
         -- LoadMenu
         "AutoCheck", "CloudCheck",
+        -- InstalledPanel (Options popup)
+        "ShowDLCMods",
     },
     {
         -- Buttons: shared metatable across GridButton / TextButton usages.

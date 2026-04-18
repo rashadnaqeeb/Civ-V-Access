@@ -151,6 +151,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DELETED"]                = "Save del
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION"]            = "{1_Name} version {2_Version}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"]         = "No content for this entry."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"]  = "No save selected. Switch to the saves tab to pick one."
+-- InstalledPanel (PickerReader over the installed mods list, child of
+-- ModsBrowser). Picker-row label templates carry the mod name then state;
+-- confirmation formats take the display name and embed it in a question.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_INSTALLED_PANEL"]      = "Installed mods"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_LIST_TAB"]               = "Mods"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_DETAILS_TAB"]            = "Details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_NO_MODS"]                = "No mods installed."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_SORT_BY"]                = "Sort by"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_APPLY_OPTIONS"]          = "Apply"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_STATE"]                  = "State"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_STATE_ENABLED"]          = "enabled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_STATE_DISABLED"]         = "disabled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_ENABLE_BLOCKED"]         = "Cannot enable: {1_Reason}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_PICKER_ROW"]             = "{1_Name}, {2_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_PICKER_NEEDS_UPDATE"]    = "{1_Name}, {2_State}, needs update"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_VERSION_RANGE"]          = "{1_Name} version {2_MinVersion} to {3_MaxVersion}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_VERSION_SUFFIX"]         = "{1_Name} version {2_Version}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_DISABLE_CONFIRM"]        = "Disable {1_Name}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_DELETE_CONFIRM"]         = "Delete {1_Name}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_UNSUBSCRIBE_CONFIRM"]    = "Unsubscribe from {1_Name}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_DELETE_WITH_USER_DATA"]  = "Delete with user data"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MODS_DELETED"]                = "Mod removed."
 -- Spoken replacements for [ICON_*] markup. Registered into TextFilter by
 -- CivVAccess_Icons.lua; the filter substitutes the bracket token inline
 -- with the spoken text. Duplicated into the in-game strings file because
