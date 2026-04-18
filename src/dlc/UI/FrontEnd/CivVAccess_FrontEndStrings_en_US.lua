@@ -20,6 +20,26 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CONTENT_SWITCH"]     = "Updating g
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WAITING_PLAYERS"]    = "Waiting for players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"]       = "Joining room"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOBBY"]              = "Lobby"
+-- StagingRoom. Two tabs (Players / Game Options). SLOT_TYPE relabels the
+-- per-slot SlotTypePulldown, whose label in the base UI is purely visual
+-- positioning. Delta keys are spoken as remote players change state; each
+-- leads with the player name so the distinguishing word comes first. HOST
+-- is a tail tag appended to the host's slot summary; READY ditto.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"]       = "Multiplayer staging room"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB"]       = "Players"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_OPTIONS_TAB"]       = "Game options"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SLOT_TYPE"]                 = "Slot type"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_READY"]             = "ready"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST"]              = "host"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_STATUS"]      = "{1_Name}, {2_Status}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_CIV"]         = "{1_Name}, {2_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_TEAM"]        = "{1_Name}, {2_Team}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP"]    = "{1_Name}, {2_Handicap}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_READY"]       = "{1_Name} ready"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"]     = "{1_Name} not ready"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"]          = "chat, {1_Name}, {2_Text}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"]    = "{1_Name} is now the host"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"]        = "{1_Name} disconnected"
 -- Lobby (PickerReader over the server listing). Row format reads as
 -- "<server>, <members>, <map>" so the distinguishing server name comes
 -- first; Members format speaks "X of Y" instead of the engine's "X/Y"
