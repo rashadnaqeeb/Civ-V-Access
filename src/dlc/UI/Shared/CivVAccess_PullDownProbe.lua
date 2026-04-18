@@ -46,6 +46,15 @@ PullDownProbe = {}
 
 civvaccess_shared = civvaccess_shared or {}
 
+-- Capture `type` as an upvalue. The __index and RegisterCallback closures we
+-- install on shared engine userdata metatables outlive the Context that
+-- installed them (metatables are shared across the session's single
+-- lua_State; Contexts each have their own _ENV and are torn down
+-- independently). A global lookup from a dead Context's _ENV returns nil and
+-- crashes every subsequent widget method dispatch. The upvalue holds a
+-- direct reference to the function, surviving Context teardown.
+local type = type
+
 -- Resolve an original method from a metatable whose __index may be a
 -- table (tests, Polyfill) or a function (engine userdata). Returns nil
 -- if the method is not exposed.
