@@ -83,3 +83,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_GAME_NAME"]             = "Game nam
 -- single size label or a comma-separated list.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY"]               = "{1_Size} only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED"]            = "sizes: {1_Sizes}"
+-- Type-ahead search feedback. NO_MATCH is spoken when a buffer narrows to
+-- zero results; CLEARED fires on backspace-to-empty or Esc while search is
+-- active. Buffer is echoed raw so the user can hear what they typed.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"]             = "no match for {1_Buffer}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"]              = "search cleared"

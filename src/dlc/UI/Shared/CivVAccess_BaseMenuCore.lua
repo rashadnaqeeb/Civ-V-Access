@@ -24,8 +24,13 @@
 --   Tab / Shift+Tab       cycle tabs (when spec has tabs)
 --   F1                    re-speak displayName + preamble (re-reads the
 --                         live value of a function preamble)
---   Esc                   at level > 1 go back a level; at level 1 bypass
---                         to screen's priorInput
+--   A-Z / 0-9 / Space     type-ahead search (filters current level's items
+--                         by tiered match; see TypeAheadSearch). Up/Down/
+--                         Home/End navigate matches while active, Enter
+--                         activates, Backspace rewinds, Esc clears.
+--   Esc                   while a search is active: clear the search;
+--                         otherwise at level > 1 go back a level; at
+--                         level 1 bypass to screen's priorInput
 --
 -- Spec:
 --   name              (string, required) stack identity.
@@ -175,6 +180,14 @@ local function resolvePreamble(self)
     return p
 end
 
+-- Level-change boundary: the item list we were searching over just went
+-- away (drill in/out, tab switch, explicit setItems replacement), so drop
+-- the search state before any arrow-key or char event fires against stale
+-- result indices.
+local function resetSearch(self)
+    if self._search ~= nil then self._search:clear() end
+end
+
 -- Tabs --------------------------------------------------------------------
 
 local function switchTab(self, newTabIndex)
@@ -199,6 +212,7 @@ local function switchTab(self, newTabIndex)
     local items = currentItems(self)
     local first = nextValidIndex(items, 0, 1)
     self._indices = { first or 1 }
+    resetSearch(self)
     SpeechPipeline.speakInterrupt(Text.key(tab.name))
     if first ~= nil then
         SpeechPipeline.speakQueued(items[first]:announce(self))
@@ -235,6 +249,7 @@ local function drillInto(self)
     end
     self._level = self._level + 1
     self._indices[self._level] = first
+    resetSearch(self)
     SpeechPipeline.speakInterrupt(children[first]:announce(self))
 end
 
@@ -242,6 +257,7 @@ local function goBackLevel(self)
     if self._level <= 1 then return end
     self._indices[self._level] = nil
     self._level = self._level - 1
+    resetSearch(self)
     local item = currentItems(self)[currentIndex(self)]
     if item == nil then return end
     SpeechPipeline.speakInterrupt(item:announce(self))
@@ -281,6 +297,9 @@ local function jumpSiblingGroup(self, step, landOnLast)
 end
 
 local function onUp(self)
+    if self._search ~= nil and self._search:isSearchActive() then
+        self._search:navigateResults(-1); return
+    end
     local items = currentItems(self)
     if self._level == 1 then
         moveToIndex(self, nextValidIndex(items, currentIndex(self), -1))
@@ -295,6 +314,9 @@ local function onUp(self)
 end
 
 local function onDown(self)
+    if self._search ~= nil and self._search:isSearchActive() then
+        self._search:navigateResults(1); return
+    end
     local items = currentItems(self)
     if self._level == 1 then
         moveToIndex(self, nextValidIndex(items, currentIndex(self), 1))
@@ -309,10 +331,16 @@ local function onDown(self)
 end
 
 local function onHome(self)
+    if self._search ~= nil and self._search:isSearchActive() then
+        self._search:jumpToFirstResult(); return
+    end
     moveToIndex(self, nextValidIndex(currentItems(self), 0, 1))
 end
 
 local function onEnd(self)
+    if self._search ~= nil and self._search:isSearchActive() then
+        self._search:jumpToLastResult(); return
+    end
     local items = currentItems(self)
     moveToIndex(self, nextValidIndex(items, #items + 1, -1))
 end
@@ -397,6 +425,61 @@ end
 local function onTab(self)      cycleTab(self,  1) end
 local function onShiftTab(self) cycleTab(self, -1) end
 
+-- Search interface / input dispatch ---------------------------------------
+--
+-- Build a searchable view of the menu's current level for TypeAheadSearch.
+-- getLabel returns nil for non-navigable items so results only land the
+-- user on visible, active entries. moveTo is invoked by the search when it
+-- picks / cycles a result: it rewrites the level cursor (_indices[level])
+-- and announces the item via the existing composeSpeech path, exactly the
+-- same announcement the user would hear from arrow-key nav.
+local function buildSearchable(self)
+    return {
+        itemCount = function() return #currentItems(self) end,
+        getLabel  = function(i)
+            local item = currentItems(self)[i]
+            if item == nil or not item:isNavigable() then return nil end
+            local ok, text = pcall(function() return item:announce(self) end)
+            if not ok or text == nil then return nil end
+            return TextFilter.filter(text)
+        end,
+        moveTo = function(origIndex)
+            self._indices[self._level] = origIndex
+            local item = currentItems(self)[origIndex]
+            if item == nil then return end
+            SpeechPipeline.speakInterrupt(item:announce(self))
+        end,
+    }
+end
+
+-- Map a VK code / modifier mask to the character input layer. Returns true
+-- if the search consumed the event. Letters (A-Z) are lower-cased; digits
+-- (0-9) pass through as their char. Ctrl / Alt combinations do not feed
+-- the search (those are hotkey territory). Shift is ignored — Shift+letter
+-- is still "a letter" for search purposes.
+function BaseMenu._handleSearchInput(handler, vk, mods)
+    local hasCtrl = math.floor(mods / 2) % 2 == 1
+    local hasAlt  = math.floor(mods / 4) % 2 == 1
+    if hasCtrl or hasAlt then return false end
+
+    local searchable = buildSearchable(handler)
+    local search = handler._search
+
+    if vk >= 0x41 and vk <= 0x5A then
+        return search:handleChar(string.char(vk + 32), searchable)
+    end
+    if vk >= 0x30 and vk <= 0x39 then
+        return search:handleChar(string.char(vk), searchable)
+    end
+    if vk == Keys.VK_SPACE and search:isSearchActive() then
+        return search:handleKey(Keys.VK_SPACE, false, false, searchable)
+    end
+    if vk == Keys.VK_BACK then
+        return search:handleKey(Keys.VK_BACK, false, false, searchable)
+    end
+    return false
+end
+
 -- Factory ------------------------------------------------------------------
 
 function BaseMenu.create(spec)
@@ -430,6 +513,7 @@ function BaseMenu.create(spec)
         -- displayName + preamble + tab + item). Re-activations from a sub
         -- pop preserve cursor and just re-announce the current item.
         _initialized      = false,
+        _search           = TypeAheadSearch.new(),
     }
 
     if spec.tabs then
@@ -505,6 +589,7 @@ function BaseMenu.create(spec)
         if not self._initialized then
             self._level = 1
             self._indices = { 1 }
+            resetSearch(self)
             if self.tabs then
                 self._tabIndex = 1
                 local tab = self.tabs[1]
@@ -586,6 +671,7 @@ function BaseMenu.create(spec)
                 curr = nextValidIndex(newItems, (curr or 1) - 1, 1) or 1
             end
             self._indices = { curr }
+            resetSearch(self)
         end
     end
 
@@ -723,10 +809,17 @@ function BaseMenu.install(ContextPtr, spec)
             return true
         end
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
-            -- Esc on the menu itself: at level > 1 go up a level; at level 1
-            -- bypass to the screen's own Back / OnNo. Esc on a sub (pulldown
-            -- / edit mode) runs the sub's Esc binding via dispatch.
+            -- Esc on the menu itself: if a type-ahead search is live, clear
+            -- it and stay at the current level. Otherwise at level > 1 go
+            -- up a level; at level 1 bypass to the screen's own Back / OnNo.
+            -- Esc on a sub (pulldown / edit mode) runs the sub's binding.
             if top == handler then
+                if handler._search:isSearchActive() or handler._search:hasBuffer() then
+                    handler._search:clear()
+                    SpeechPipeline.speakInterrupt(
+                        Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+                    return true
+                end
                 if handler._level > 1 then
                     handler._goBackLevel()
                     return true
@@ -738,6 +831,16 @@ function BaseMenu.install(ContextPtr, spec)
             if InputRouter.dispatch(wp, mods, msg) then return true end
             if priorInput then return priorInput(msg, wp, lp) end
             return false
+        end
+        -- Type-ahead search: intercept printable and Backspace before the
+        -- binding dispatch so letters / digits / space / backspace don't
+        -- need 40+ redundant bindings. Only fires when this handler is on
+        -- top (a pulldown sub-menu or edit mode takes over ownership).
+        if msg == 256 and top == handler then
+            local mods = InputRouter.currentModifierMask()
+            if BaseMenu._handleSearchInput(handler, wp, mods) then
+                return true
+            end
         end
         local mods = InputRouter.currentModifierMask()
         if InputRouter.dispatch(wp, mods, msg) then return true end

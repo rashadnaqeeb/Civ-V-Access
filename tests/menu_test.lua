@@ -55,6 +55,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
     HandlerStack._reset()
     TickPump._reset()
@@ -77,6 +78,8 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"]    = "blank"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"]  = "editing {1_Label}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"]    = "no match for {1_Buffer}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"]     = "search cleared"
 
     resetPDMetatable()
 end
@@ -2046,6 +2049,150 @@ function M.test_level_reset_on_hide_then_reopen()
     ctx._sh(true, false)
     ctx._sh(false, false)
     T.eq(handler._level, 1, "level reset to 1 on reopen")
+end
+
+-- Type-ahead search ------------------------------------------------------
+
+local function installForSearch(labelledItems)
+    local ctx = makeContextPtr()
+    local names = {}
+    for _, it in ipairs(labelledItems) do names[#names + 1] = it.name end
+    setCtrls(names)
+    local specItems = {}
+    for _, it in ipairs(labelledItems) do
+        specItems[#specItems + 1] = BaseMenuItems.Button({
+            controlName = it.name, labelText = it.label,
+            activate = function() end,
+        })
+    end
+    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+        items = specItems })
+    ctx._sh(false, false)
+    return ctx, handler
+end
+
+local function keydown(ctx, vk) return ctx._in(WM_KEYDOWN, vk, 0) end
+local function vkLetter(c) return string.byte(string.upper(c)) end
+
+function M.test_search_letter_moves_to_first_match()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple"    },
+        { name = "B", label = "Banana"   },
+        { name = "C", label = "Cherry"   },
+    })
+    speaks = {}
+    T.truthy(keydown(ctx, vkLetter("b")), "letter consumed by search")
+    T.eq(h._indices[1], 2, "cursor moved to Banana")
+    T.truthy(h._search:isSearchActive())
+end
+
+function M.test_search_no_match_speaks_and_stays_active()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    })
+    speaks = {}
+    keydown(ctx, vkLetter("z"))
+    T.truthy(h._search:isSearchActive())
+    local saw = false
+    for _, s in ipairs(speaks) do
+        if s.text == "no match for z" then saw = true; break end
+    end
+    T.truthy(saw, "no-match announcement fired")
+end
+
+function M.test_search_escape_clears_instead_of_going_back()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    })
+    keydown(ctx, vkLetter("a"))
+    T.truthy(h._search:isSearchActive())
+    speaks = {}
+    keydown(ctx, Keys.VK_ESCAPE)
+    T.falsy(h._search:isSearchActive(), "Escape cleared search")
+    T.eq(h._level, 1, "Escape did not change level")
+    T.eq(speaks[1] and speaks[1].text, "search cleared")
+end
+
+function M.test_search_down_navigates_results_not_items()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Apricot" },
+        { name = "C", label = "Banana" },
+    })
+    keydown(ctx, vkLetter("a"))
+    T.eq(h._indices[1], 1, "first result: Apple")
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 2, "Down within results: Apricot")
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 3, "Down again: Banana (substring match)")
+end
+
+function M.test_search_backspace_to_empty_clears()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+    })
+    keydown(ctx, vkLetter("a"))
+    T.truthy(h._search:isSearchActive())
+    keydown(ctx, Keys.VK_BACK)
+    T.falsy(h._search:isSearchActive(), "backspace-to-empty clears search")
+end
+
+function M.test_search_enter_activates_current_result()
+    setup()
+    local ctx = makeContextPtr()
+    setCtrls({ "A", "B" })
+    local fired = 0
+    BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+        items = {
+            BaseMenuItems.Button({ controlName = "A", labelText = "Apple",
+                activate = function() end }),
+            BaseMenuItems.Button({ controlName = "B", labelText = "Banana",
+                activate = function() fired = fired + 1 end }),
+        } })
+    ctx._sh(false, false)
+    keydown(ctx, vkLetter("b"))
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(fired, 1, "Enter activates the search-selected item")
+end
+
+function M.test_search_clears_on_drill()
+    setup()
+    setCtrls({ "CHILD" })
+    local ctx = makeContextPtr()
+    local handler = BaseMenu.install(ctx, { name = "T", displayName = "Screen",
+        items = {
+            groupItem("PARENT", {
+                BaseMenuItems.Button({ controlName = "CHILD", labelText = "Apple",
+                    activate = function() end }),
+            }),
+        } })
+    ctx._sh(false, false)
+    keydown(ctx, vkLetter("p"))
+    T.truthy(handler._search:isSearchActive())
+    -- Right drills into the group (search was matching parent-level labels).
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(handler._level, 2)
+    T.falsy(handler._search:isSearchActive(), "search cleared on drill")
+end
+
+function M.test_search_ignored_when_ctrl_held()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+    })
+    UI.CtrlKeyDown = function() return true end
+    keydown(ctx, vkLetter("a"))
+    -- The modal capturesAllInput barrier still absorbs Ctrl+A, but the
+    -- critical guarantee is that it did not feed the search buffer.
+    T.falsy(h._search:isSearchActive(),
+        "Ctrl+A must not start a type-ahead search")
 end
 
 return M

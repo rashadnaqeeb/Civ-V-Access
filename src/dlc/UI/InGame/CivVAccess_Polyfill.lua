@@ -31,10 +31,11 @@ Mouse = Mouse or {
 -- Windows virtual-key codes. Subset that the mod's bindings actually name by
 -- Keys.* rather than numeric literal; grow this list as new bindings appear.
 Keys = Keys or {
-    VK_SPACE  = 32,
+    VK_BACK   =  8,
+    VK_TAB    =  9,
     VK_RETURN = 13,
     VK_ESCAPE = 27,
-    VK_TAB    =  9,
+    VK_SPACE  = 32,
     VK_END    = 35,
     VK_HOME   = 36,
     VK_LEFT   = 37,
