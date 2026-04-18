@@ -104,7 +104,10 @@ local function isActivatable(self)
 end
 
 local function composeSpeech(item, parts)
-    if not isActivatable(item) then
+    -- Dispatch through the method so item kinds without a _control (Choice,
+    -- future drill-in kinds) use their own isActivatable rather than the
+    -- shared control-based one which would always return false for them.
+    if not item:isActivatable() then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
     end
     local base = table.concat(parts, ", ")

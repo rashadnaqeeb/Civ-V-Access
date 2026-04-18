@@ -8,6 +8,19 @@ include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
+local handler
+-- Parallel to items[]: items[1] is the Random entry (id -1), items[i>1]
+-- corresponds to sizeIds[i]. Used by currentIndex to map PreGame's world
+-- size back to an item slot without re-iterating GameInfo.Worlds.
+local sizeIds = {}
+
+local function currentIndex()
+    if PreGame.IsRandomWorldSize() then return 1 end
+    local current = PreGame.GetWorldSize()
+    for i, id in ipairs(sizeIds) do
+        if id == current then return i + 1 end
+    end
+end
 
 local function buildItems()
     local items = {}
@@ -23,6 +36,7 @@ local function buildItems()
     })
     for info in GameInfo.Worlds() do
         local id = info.ID
+        sizeIds[#sizeIds + 1] = id
         local entry = g_WorldSizeControls[info.Type]
         items[#items + 1] = BaseMenuItems.Choice({
             labelText         = Text.key(info.Description),
@@ -34,10 +48,15 @@ local function buildItems()
     return items
 end
 
-BaseMenu.install(ContextPtr, {
+handler = BaseMenu.install(ContextPtr, {
     name          = "SelectMapSize",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_SIZE"),
-    priorShowHide = priorShowHide,
+    priorShowHide = function(bIsHide, bIsInit)
+        if priorShowHide ~= nil then priorShowHide(bIsHide, bIsInit) end
+        if not bIsHide and handler ~= nil then
+            handler.setInitialIndex(currentIndex())
+        end
+    end,
     priorInput    = priorInput,
     items         = buildItems(),
 })

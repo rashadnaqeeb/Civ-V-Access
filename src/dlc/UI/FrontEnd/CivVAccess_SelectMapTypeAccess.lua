@@ -14,8 +14,28 @@ local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 local handler
 
+-- Localized name of the currently selected map script, if PreGame's
+-- current script resolves to a known row. Used to point the cursor at
+-- the current selection when the screen opens.
+local function currentSelectionName()
+    if PreGame.IsRandomMapScript() then
+        return Text.key("TXT_KEY_RANDOM_MAP_SCRIPT")
+    end
+    local file = PreGame.GetMapScript()
+    for row in GameInfo.MapScripts{FileName = file} do
+        return Text.key(row.Name)
+    end
+    for row in GameInfo.Map_Sizes{FileName = file} do
+        local entry = GameInfo.Maps[row.MapType]
+        if entry ~= nil then return Text.key(entry.Name) end
+    end
+end
+
+-- Returns (items[], index-of-current-selection or nil).
 local function buildItemsForFolder(folder)
     local items = {}
+    local selectedIdx = nil
+    local selectionName = currentSelectionName()
     if folder.ParentFolder ~= nil then
         local parent = folder.ParentFolder
         items[#items + 1] = BaseMenuItems.Choice({
@@ -57,16 +77,24 @@ local function buildItemsForFolder(folder)
                     end
                 end,
             })
+            if not isSubFolder and selectionName ~= nil and name == selectionName then
+                selectedIdx = #items
+            end
         end
     end
-    return items
+    return items, selectedIdx
 end
 
 local originalView = View
 function View(folder)
     originalView(folder)
     if handler ~= nil then
-        handler.setItems(buildItemsForFolder(folder))
+        local items, selectedIdx = buildItemsForFolder(folder)
+        handler.setItems(items)
+        -- Takes effect on the next fresh open (install's ShowHide clears
+        -- _initialized on hide). On drill-in the handler stays active, so
+        -- the cursor just clamps via setItems.
+        handler.setInitialIndex(selectedIdx)
     end
 end
 

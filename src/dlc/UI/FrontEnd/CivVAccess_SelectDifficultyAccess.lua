@@ -7,6 +7,18 @@ include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
+local handler
+
+local function currentIndex()
+    local current = PreGame.GetHandicap(0)
+    local idx = 0
+    for info in GameInfo.HandicapInfos() do
+        if info.Type ~= "HANDICAP_AI_DEFAULT" then
+            idx = idx + 1
+            if info.ID == current then return idx end
+        end
+    end
+end
 
 local function buildItems()
     local items = {}
@@ -23,10 +35,15 @@ local function buildItems()
     return items
 end
 
-BaseMenu.install(ContextPtr, {
+handler = BaseMenu.install(ContextPtr, {
     name          = "SelectDifficulty",
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_DIFFICULTY"),
-    priorShowHide = priorShowHide,
+    priorShowHide = function(bIsHide, bIsInit)
+        if priorShowHide ~= nil then priorShowHide(bIsHide, bIsInit) end
+        if not bIsHide and handler ~= nil then
+            handler.setInitialIndex(currentIndex())
+        end
+    end,
     priorInput    = priorInput,
     items         = buildItems(),
 })

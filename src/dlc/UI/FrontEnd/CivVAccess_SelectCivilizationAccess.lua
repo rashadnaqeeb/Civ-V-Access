@@ -10,8 +10,21 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 local handler
+-- Parallel to the last-built items[]: civIds[i] is the civID committed by
+-- items[i]:activate (or -1 for Random / no civ). Rebuilt on every show
+-- alongside items so currentIndex can map PreGame.GetCivilization back
+-- to a slot.
+local civIds = {}
+
+local function currentIndex()
+    local current = PreGame.GetCivilization(0)
+    for i, id in ipairs(civIds) do
+        if id == current then return i end
+    end
+end
 
 local function buildRegularItems(traitsQuery)
+    civIds = { -1 }
     local items = {
         BaseMenuItems.Choice({
             labelText   = Text.key("TXT_KEY_RANDOM_LEADER") .. ", "
@@ -50,6 +63,7 @@ local function buildRegularItems(traitsQuery)
         if traitShort ~= nil and traitShort ~= "" then
             parts[#parts + 1] = traitShort
         end
+        civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
             labelText   = table.concat(parts, ", "),
             tooltipText = traitLong,
@@ -60,6 +74,7 @@ local function buildRegularItems(traitsQuery)
 end
 
 local function buildScenarioItems(traitsQuery)
+    civIds = {}
     local items = {}
     local civList = UI.GetMapPlayers(PreGame.GetMapScript())
     if civList == nil then return items end
@@ -99,6 +114,7 @@ local function buildScenarioItems(traitsQuery)
         if traitShort ~= nil and traitShort ~= "" then
             parts[#parts + 1] = traitShort
         end
+        civIds[#civIds + 1] = civID
         items[#items + 1] = BaseMenuItems.Choice({
             labelText   = table.concat(parts, ", "),
             tooltipText = traitLong,
@@ -129,7 +145,10 @@ handler = BaseMenu.install(ContextPtr, {
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CIVILIZATION"),
     priorShowHide = function(bIsHide, bIsInit)
         if priorShowHide ~= nil then priorShowHide(bIsHide, bIsInit) end
-        if not bIsHide then rebuildItems() end
+        if not bIsHide and handler ~= nil then
+            rebuildItems()
+            handler.setInitialIndex(currentIndex())
+        end
     end,
     priorInput    = priorInput,
     items         = rebuildItems(),

@@ -376,6 +376,16 @@ function BaseMenu.create(spec)
         end
     end
 
+    -- Update the cursor position that onActivate lands on the next time
+    -- _initialized is false. `_initialized` resets on every hide through
+    -- install's ShowHide wrapper, so a caller that recomputes the index
+    -- in priorShowHide before the next push will have it honored on open.
+    -- Clears back to `nil` when passed nil. Invalid / out-of-range values
+    -- fall through the same isNavigable check spec.initialIndex uses.
+    function self.setInitialIndex(idx)
+        self._initialIndex = idx
+    end
+
     -- Re-evaluate a function preamble; speakInterrupt if the result changed
     -- from what was last spoken. No-op for string preambles.
     function self.refresh()
