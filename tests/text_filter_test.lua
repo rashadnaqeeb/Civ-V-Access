@@ -127,6 +127,54 @@ function M.test_registered_icon_wins_over_catchall()
     T.eq(TextFilter.filter("[ICON_FOOD][COLOR_X]+2[ENDCOLOR]"), "food+2")
 end
 
+-- Adjacent-word dedup. Base-game text frequently pairs an icon with its
+-- English label (the glyph reinforces the word for sighted readers). We
+-- drop the spoken form when the same phrase already appears next to the
+-- icon; otherwise a screen reader says the phrase twice.
+
+function M.test_icon_dropped_when_spoken_form_follows()
+    setup()
+    TextFilter.registerIcon("ICON_STRENGTH", "combat strength")
+    T.eq(TextFilter.filter("higher [ICON_STRENGTH] Combat Strength than"),
+        "higher Combat Strength than")
+end
+
+function M.test_icon_dropped_when_spoken_form_precedes()
+    setup()
+    TextFilter.registerIcon("ICON_STRENGTH", "combat strength")
+    T.eq(TextFilter.filter("Combat Strength [ICON_STRENGTH]"),
+        "Combat Strength")
+end
+
+function M.test_icon_kept_when_adjacent_word_differs()
+    setup()
+    TextFilter.registerIcon("ICON_PRODUCTION", "production")
+    T.eq(TextFilter.filter("40 [ICON_PRODUCTION]"), "40 production")
+end
+
+function M.test_icon_kept_when_adjacent_word_is_longer_prefix_match()
+    setup()
+    -- "golden" must not trigger the dedup for spoken "gold"; the trailing
+    -- "en" fails the word-boundary check, so the icon speaks normally.
+    TextFilter.registerIcon("ICON_GOLD", "gold")
+    T.eq(TextFilter.filter("[ICON_GOLD] Golden Age bonus"),
+        "gold Golden Age bonus")
+end
+
+function M.test_icon_dedup_handles_trailing_punctuation()
+    setup()
+    TextFilter.registerIcon("ICON_STRENGTH", "combat strength")
+    T.eq(TextFilter.filter("the [ICON_STRENGTH] Combat Strength."),
+        "the Combat Strength.")
+end
+
+function M.test_icon_dedup_is_case_insensitive()
+    setup()
+    TextFilter.registerIcon("ICON_FAITH", "faith")
+    T.eq(TextFilter.filter("[ICON_FAITH] FAITH costs"), "FAITH costs")
+    T.eq(TextFilter.filter("[ICON_FAITH] faith costs"), "faith costs")
+end
+
 -- Control characters -----------------------------------------------------
 
 function M.test_control_chars_stripped()

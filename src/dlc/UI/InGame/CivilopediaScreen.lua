@@ -2588,7 +2588,11 @@ CivilopediaCategory[CategoryUnits].SelectArticle = function( unitID, shouldAddTo
 			costString = tostring(faithCost) .. " [ICON_PEACE]";
 			
 		elseif(cost > 0 and faithCost > 0) then
-			costString = Locale.Lookup("TXT_KEY_PEDIA_A_OR_B", tostring(cost) .. " [ICON_PRODUCTION]", tostring(faithCost) .. " [ICON_PEACE");
+			-- CivVAccess: base-game typo fix. Original shipped " [ICON_PEACE"
+			-- (unclosed bracket), leaving the token literal in the rendered
+			-- label; TextFilter can't substitute an unclosed token so screen
+			-- readers speak "[ICON_PEACE" verbatim.
+			costString = Locale.Lookup("TXT_KEY_PEDIA_A_OR_B", tostring(cost) .. " [ICON_PRODUCTION]", tostring(faithCost) .. " [ICON_PEACE]");
 		else
 			if(cost > 0) then
 				costString = tostring(cost) .. " [ICON_PRODUCTION]";
@@ -2596,7 +2600,7 @@ CivilopediaCategory[CategoryUnits].SelectArticle = function( unitID, shouldAddTo
 				costString = tostring(faithCost) .. " [ICON_PEACE]";
 			else
 				costString = Locale.Lookup("TXT_KEY_FREE");
-				
+
 				if(thisUnit.Type == "UNIT_SETTLER") then
 					Controls.CostFrame:SetHide(true);
 				end
@@ -3046,7 +3050,8 @@ function SelectBuildingOrWonderArticle( buildingID )
 		elseif(cost == 1 and faithCost > 0) then
 			costString = tostring(faithCost) .. " [ICON_PEACE]";
 		elseif(cost > 0 and faithCost > 0) then
-			costString = Locale.Lookup("TXT_KEY_PEDIA_A_OR_B", tostring(cost) .. " [ICON_PRODUCTION]", tostring(faithCost) .. " [ICON_PEACE");
+			-- CivVAccess: base-game typo fix (see notes above for the units branch).
+			costString = Locale.Lookup("TXT_KEY_PEDIA_A_OR_B", tostring(cost) .. " [ICON_PRODUCTION]", tostring(faithCost) .. " [ICON_PEACE]");
 		else
 			if(cost > 0) then
 				costString = tostring(cost).. " [ICON_PRODUCTION]";

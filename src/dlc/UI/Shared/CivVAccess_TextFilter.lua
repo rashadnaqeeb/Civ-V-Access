@@ -16,18 +16,66 @@ local function stripControl(s)
     return (s:gsub("[%z\1-\8\11\12\14-\31]", ""))
 end
 
+-- Escape Lua pattern metacharacters so a spoken form containing e.g. "."
+-- or "-" matches literally in the adjacency check below.
+local function escapePattern(s)
+    return (s:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1"))
+end
+
+-- Duplicate-speech guards. Base-game text often pairs an icon with its
+-- English label (e.g. "has higher [ICON_STRENGTH] Combat Strength") so
+-- the glyph visually reinforces the word for sighted readers. When we
+-- substitute the icon with its spoken form ("combat strength") the
+-- screen reader hears the same phrase twice. These helpers detect the
+-- overlap so substituteIcons can drop the token entirely in that case.
+-- Match is case-insensitive and whitespace-tolerant, and the adjacent
+-- phrase must sit on word boundaries (no false hit on "gold"/"golden").
+local function _matchesAfter(after, phrase)
+    if phrase == "" then return false end
+    local aligned = after:lower() .. "\0"
+    return aligned:find("^%s*" .. escapePattern(phrase:lower()) .. "[^%w]") ~= nil
+end
+
+local function _matchesBefore(before, phrase)
+    if phrase == "" then return false end
+    local aligned = "\0" .. before:lower()
+    return aligned:find("[^%w]" .. escapePattern(phrase:lower()) .. "%s*$") ~= nil
+end
+
 local function substituteIcons(s)
-    return (s:gsub("%[(ICON_[A-Z0-9_]+)%]", function(name)
+    local out = {}
+    local cursor = 1
+    while true do
+        local startIdx, endIdx, name = s:find("%[(ICON_[A-Z0-9_]+)%]", cursor)
+        if startIdx == nil then
+            out[#out + 1] = s:sub(cursor)
+            break
+        end
+        out[#out + 1] = s:sub(cursor, startIdx - 1)
+
         local spoken = _iconMap[name]
-        if spoken then return spoken end
-        if not _warnedIcons[name] then
-            _warnedIcons[name] = true
-            if Log and Log.debug then
-                Log.debug("TextFilter: stripping unregistered " .. name)
+        if spoken == nil then
+            if not _warnedIcons[name] then
+                _warnedIcons[name] = true
+                if Log and Log.debug then
+                    Log.debug("TextFilter: stripping unregistered " .. name)
+                end
+            end
+            spoken = ""
+        end
+
+        if spoken ~= "" then
+            local before = s:sub(1, startIdx - 1)
+            local after  = s:sub(endIdx + 1)
+            if _matchesAfter(after, spoken) or _matchesBefore(before, spoken) then
+                spoken = ""
             end
         end
-        return ""
-    end))
+
+        out[#out + 1] = spoken
+        cursor = endIdx + 1
+    end
+    return table.concat(out)
 end
 
 function TextFilter.filter(text)
