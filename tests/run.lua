@@ -38,5 +38,6 @@ T.register("menuitem_textfield", require("menuitem_textfield_test"))
 T.register("type_ahead", require("type_ahead_test"))
 T.register("help", require("help_test"))
 T.register("picker_reader", require("picker_reader_test"))
+T.register("icons", require("icons_test"))
 
 os.exit(T.run() and 0 or 1)
