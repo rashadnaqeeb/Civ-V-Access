@@ -37,6 +37,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WORLD_PICKER"]       = "World size
 -- that slot is set. LoadTutorial reads from g_TutorialEntries[i].
 -- CompletedIcon:IsHidden().
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TUTORIAL_COMPLETED"]        = "completed"
+-- Prepended to a Choice item's label when its selectedFn returns truthy.
+-- Used on browse-then-commit screens (ScenariosMenu, CustomMod,
+-- LoadTutorial) so the user knows which row Start / Enter will launch.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"]           = "selected"
 -- Civ-picker entry prefixes: colons are read by screen readers as a brief
 -- pause, so "Unique ability: Glory of Rome, +25% Wonder production" parses
 -- as prefix then value without needing extra connective words.

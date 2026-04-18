@@ -33,6 +33,7 @@ local function buildItems()
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText   = Text.key(entry.Name),
                 tooltipText = entry.Description and Text.key(entry.Description) or nil,
+                selectedFn  = function() return g_iSelected == index end,
                 activate    = function() SetSelected(index) end,
             })
         end

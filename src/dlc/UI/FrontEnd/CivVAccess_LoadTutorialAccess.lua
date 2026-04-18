@@ -33,6 +33,21 @@ local function completionSuffix(slot)
     return Text.key("TXT_KEY_CIVVACCESS_TUTORIAL_COMPLETED")
 end
 
+-- Base's g_iSelected is a file-local, unreachable from our sandbox. But
+-- base drives a SelectHighlight widget per row (Controls.LearnSelectHighlight
+-- for the intro, g_TutorialEntries[i].SelectHighlight for slots 1..5), so
+-- we read selection state off those widgets. A highlight that is visible
+-- (IsHidden false) is the currently-selected row.
+local function isSelected(slot)
+    if slot == -1 then
+        local c = Controls.LearnSelectHighlight
+        return c ~= nil and not c:IsHidden()
+    end
+    local entry = g_TutorialEntries and g_TutorialEntries[slot]
+    if entry == nil or entry.SelectHighlight == nil then return false end
+    return not entry.SelectHighlight:IsHidden()
+end
+
 local function buildItems()
     local items = {}
     for _, row in ipairs(TUTORIAL_ROWS) do
@@ -43,6 +58,7 @@ local function buildItems()
         items[#items + 1] = BaseMenuItems.Choice({
             labelText   = label,
             tooltipText = Text.key(row.descKey),
+            selectedFn  = function() return isSelected(slot) end,
             activate    = function() SetSelected(slot) end,
         })
     end

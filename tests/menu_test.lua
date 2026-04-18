@@ -80,6 +80,7 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"]    = "no match for {1_Buffer}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"]     = "search cleared"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"]    = "selected"
 
     resetPDMetatable()
 end
@@ -2193,6 +2194,76 @@ function M.test_search_ignored_when_ctrl_held()
     -- critical guarantee is that it did not feed the search buffer.
     T.falsy(h._search:isSearchActive(),
         "Ctrl+A must not start a type-ahead search")
+end
+
+-- Choice.selectedFn: browse-then-commit screens (ScenariosMenu, CustomMod,
+-- LoadTutorial) need the announce to include "selected" for the row that
+-- the screen's own selection state currently points at, and need activate
+-- to re-announce so the user gets audio confirmation when they commit
+-- (Enter on a Choice without selectedFn would rely on the screen's close
+-- path to speak, which browse screens don't trigger -- they just flip a
+-- flag and wait for Start).
+function M.test_choice_selectedfn_prepends_selected_and_reannounces()
+    setup()
+    populateControls({})
+    local currentSelection = nil
+    local choiceA = BaseMenuItems.Choice({
+        labelText  = "Apple",
+        selectedFn = function() return currentSelection == "A" end,
+        activate   = function() currentSelection = "A" end,
+    })
+    local choiceB = BaseMenuItems.Choice({
+        labelText  = "Banana",
+        selectedFn = function() return currentSelection == "B" end,
+        activate   = function() currentSelection = "B" end,
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Test",
+        items = { choiceA, choiceB } })
+    HandlerStack.push(h)
+
+    -- Nothing selected yet: neither announce prepends "selected".
+    T.eq(choiceA:announce(h), "Apple")
+    T.eq(choiceB:announce(h), "Banana")
+
+    -- Activate A; the activate fires, currentSelection flips, and the
+    -- item re-announces through speakInterrupt so the user hears
+    -- "selected, Apple" without having to arrow away and back.
+    speaks = {}
+    choiceA:activate(h)
+    T.eq(currentSelection, "A", "activate ran user fn")
+    local reannounce = speaks[#speaks]
+    T.truthy(reannounce ~= nil, "activate re-announces")
+    T.eq(reannounce.text, "selected, Apple")
+    T.eq(reannounce.interrupt, true)
+
+    -- B still announces plain (it's not the selection target anymore).
+    T.eq(choiceB:announce(h), "Banana")
+    -- A now announces with the prefix on subsequent nav too.
+    T.eq(choiceA:announce(h), "selected, Apple")
+end
+
+function M.test_choice_without_selectedfn_does_not_reannounce()
+    setup()
+    populateControls({})
+    local fired = false
+    local choice = BaseMenuItems.Choice({
+        labelText = "Apple",
+        activate  = function() fired = true end,
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Test",
+        items = { choice } })
+    HandlerStack.push(h)
+
+    speaks = {}
+    choice:activate(h)
+    T.eq(fired, true)
+    -- Select-and-close Choices (SelectCivilization, pulldown entries) pop
+    -- the handler synchronously; re-announcing before the screen's own
+    -- close path would speakInterrupt and get immediately overridden by
+    -- the next screen's onActivate. Skipping the re-announce when
+    -- selectedFn is nil preserves that behavior.
+    T.eq(#speaks, 0, "no re-announce without selectedFn")
+    T.eq(choice:announce(h), "Apple", "no 'selected' prefix without selectedFn")
 end
 
 return M

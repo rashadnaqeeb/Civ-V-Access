@@ -277,6 +277,16 @@ end
 --   textKey / labelText / labelFn   label source (one required)
 --   tooltipKey / tooltipText / tooltipFn  optional tooltip
 --   activate                         fn() called on Enter / Space
+--   selectedFn                       optional fn() -> bool. When truthy,
+--                                    the announcement prepends "selected"
+--                                    and activate re-announces after the
+--                                    spec's activate fires, so the user
+--                                    hears confirmation on a browse-then-
+--                                    commit screen (ScenariosMenu etc.
+--                                    where the list highlights a row and
+--                                    a separate Start commits). Leave nil
+--                                    for select-and-close screens where
+--                                    activation pops the handler anyway.
 --   visibilityControl                optional live userdata; isNavigable
 --                                    returns false while it IsHidden
 --   visibilityControlName            alternative: look up Controls.X
@@ -291,9 +301,12 @@ function BaseMenuItems.Choice(spec)
     assertTooltip(spec, "Choice")
     assert(type(spec.activate) == "function",
         "Choice needs activate fn")
+    assert(spec.selectedFn == nil or type(spec.selectedFn) == "function",
+        "Choice.selectedFn must be a function if provided")
     local item = {
         kind               = "choice",
         _activate          = spec.activate,
+        _selectedFn        = spec.selectedFn,
         _visibilityControl = spec.visibilityControl,
     }
     if item._visibilityControl == nil and spec.visibilityControlName ~= nil then
@@ -313,7 +326,18 @@ function BaseMenuItems.Choice(spec)
     end
     function item:isActivatable() return self:isNavigable() end
     function item:announce(menu)
-        return composeSpeech(self, { resolveLabel(self) })
+        local parts = {}
+        if self._selectedFn ~= nil then
+            local ok, sel = pcall(self._selectedFn)
+            if not ok then
+                Log.error("BaseMenuItems Choice selectedFn failed: "
+                    .. tostring(sel))
+            elseif sel then
+                parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CHOICE_SELECTED")
+            end
+        end
+        parts[#parts + 1] = resolveLabel(self)
+        return composeSpeech(self, parts)
     end
     function item:activate(menu)
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
@@ -321,6 +345,14 @@ function BaseMenuItems.Choice(spec)
         if not ok then
             Log.error("BaseMenu '" .. tostring(menu.name) .. "' choice activate failed: "
                 .. tostring(err))
+        end
+        -- On browse-then-commit screens the activate just flips a
+        -- selection flag; re-announce so the user hears the new state.
+        -- Select-and-close screens leave selectedFn nil and skip this to
+        -- avoid speaking right before the screen's own close handler
+        -- pops us and the next screen's onActivate speaks.
+        if self._selectedFn ~= nil then
+            SpeechPipeline.speakInterrupt(self:announce(menu))
         end
     end
     function item:adjust(menu, dir, big) end

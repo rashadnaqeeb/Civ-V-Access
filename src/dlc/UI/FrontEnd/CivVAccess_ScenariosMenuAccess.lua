@@ -56,6 +56,7 @@ local function buildItems()
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText   = entry.DisplayName,
                 tooltipText = entry.DisplayDescription,
+                selectedFn  = function() return g_iSelected == index end,
                 activate    = function() SetSelected(index) end,
             })
         end
