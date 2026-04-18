@@ -36,5 +36,6 @@ T.register("pulldown_probe", require("pulldown_probe_test"))
 T.register("menu", require("menu_test"))
 T.register("menuitem_textfield", require("menuitem_textfield_test"))
 T.register("type_ahead", require("type_ahead_test"))
+T.register("help", require("help_test"))
 
 os.exit(T.run() and 0 or 1)

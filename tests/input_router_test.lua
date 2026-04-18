@@ -103,4 +103,124 @@ function M.test_dispatch_no_handlers_returns_false()
     T.falsy(InputRouter.dispatch(65, 0, WM_KEYDOWN))
 end
 
+-- ? help overlay ------------------------------------------------------------
+
+local VK_OEM_2 = 191
+local MOD_SHIFT = 1
+
+function M.test_shift_question_opens_help()
+    setup()
+    local opened = 0
+    Help = { open = function() opened = opened + 1 end }
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    T.truthy(InputRouter.dispatch(VK_OEM_2, MOD_SHIFT, WM_KEYDOWN))
+    T.eq(opened, 1)
+    Help = nil
+end
+
+function M.test_shift_question_skipped_when_help_on_top()
+    setup()
+    local opened = 0
+    Help = { open = function() opened = opened + 1 end }
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    HandlerStack.push({ name = "Help", capturesAllInput = true, helpEntries = {} })
+    -- No binding on Help for VK_OEM_2 in this test, but the barrier swallows
+    -- it; the key point is Help.open isn't re-entered.
+    InputRouter.dispatch(VK_OEM_2, MOD_SHIFT, WM_KEYDOWN)
+    T.eq(opened, 0, "Help.open not called when Help is already on top")
+    Help = nil
+end
+
+function M.test_question_without_shift_not_intercepted()
+    setup()
+    local opened = 0
+    Help = { open = function() opened = opened + 1 end }
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    InputRouter.dispatch(VK_OEM_2, 0, WM_KEYDOWN)
+    T.eq(opened, 0, "bare / (no shift) is not the help hotkey")
+    Help = nil
+end
+
+function M.test_shift_question_without_Help_module_warns()
+    setup()
+    local warns = {}
+    Log.warn = function(msg) warns[#warns + 1] = msg end
+    Help = nil
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    T.truthy(InputRouter.dispatch(VK_OEM_2, MOD_SHIFT, WM_KEYDOWN),
+        "key still consumed even without Help module")
+    T.truthy(#warns >= 1)
+end
+
+-- Type-ahead search hook ----------------------------------------------------
+
+function M.test_search_hook_consumes_when_handler_consumes()
+    setup()
+    local seen = {}
+    HandlerStack.push({
+        name = "menu", capturesAllInput = true, helpEntries = {},
+        bindings = {},
+        handleSearchInput = function(self, vk, mods)
+            seen[#seen + 1] = { vk = vk, mods = mods }
+            return true
+        end,
+    })
+    T.truthy(InputRouter.dispatch(65, 0, WM_KEYDOWN))
+    T.eq(#seen, 1)
+    T.eq(seen[1].vk, 65)
+end
+
+function M.test_search_hook_falls_through_when_not_consumed()
+    setup()
+    local bindingFired = 0
+    HandlerStack.push({
+        name = "menu", capturesAllInput = true, helpEntries = {},
+        bindings = { { key = 65, mods = 0,
+            fn = function() bindingFired = bindingFired + 1 end } },
+        handleSearchInput = function() return false end,
+    })
+    T.truthy(InputRouter.dispatch(65, 0, WM_KEYDOWN))
+    T.eq(bindingFired, 1, "binding still fires when search declines")
+end
+
+function M.test_search_hook_only_on_top_handler()
+    setup()
+    local bottomSearch = 0
+    HandlerStack.push({
+        name = "bottom", helpEntries = {}, bindings = {},
+        handleSearchInput = function() bottomSearch = bottomSearch + 1; return true end,
+    })
+    HandlerStack.push({
+        name = "top", capturesAllInput = true, helpEntries = {}, bindings = {},
+    })
+    InputRouter.dispatch(65, 0, WM_KEYDOWN)
+    T.eq(bottomSearch, 0, "search hook only fires on the top handler")
+end
+
+function M.test_search_hook_not_called_on_syskeydown()
+    setup()
+    local called = 0
+    HandlerStack.push({
+        name = "menu", capturesAllInput = true, helpEntries = {}, bindings = {},
+        handleSearchInput = function() called = called + 1; return true end,
+    })
+    -- Alt-chorded keys arrive as WM_SYSKEYDOWN and must not feed type-ahead.
+    InputRouter.dispatch(65, 4, WM_SYSKEYDOWN)
+    T.eq(called, 0)
+end
+
+function M.test_search_hook_error_logged_and_falls_through()
+    setup()
+    local bindingFired = 0
+    HandlerStack.push({
+        name = "menu", capturesAllInput = true, helpEntries = {},
+        bindings = { { key = 65, mods = 0,
+            fn = function() bindingFired = bindingFired + 1 end } },
+        handleSearchInput = function() error("boom") end,
+    })
+    InputRouter.dispatch(65, 0, WM_KEYDOWN)
+    T.truthy(#errors >= 1)
+    T.eq(bindingFired, 1, "binding still fires after search hook error")
+end
+
 return M

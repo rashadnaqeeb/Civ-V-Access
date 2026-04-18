@@ -452,6 +452,75 @@ local function buildSearchable(self)
     }
 end
 
+-- Help entry templates ----------------------------------------------------
+--
+-- Authored keyLabel / description TXT_KEYs describing every binding that
+-- BaseMenu.create wires up. Concrete screens compose these via
+-- buildHelpEntries; the factory populates self.helpEntries automatically
+-- from its own spec (tabs? escapePops?). Direction-paired bindings collapse
+-- into a single human label ("Up/Down") so the dedupe in collectHelpEntries
+-- can drop equivalent entries from stacked handlers.
+
+BaseMenu.MenuHelpEntries = {
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_AZ09",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_SEARCH" },
+}
+
+BaseMenu.ListNavHelpEntries = {
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_UP_DOWN",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS" },
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST" },
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER_SPACE",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ACTIVATE" },
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST" },
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG" },
+}
+
+BaseMenu.NestedNavHelpEntries = {
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP" },
+}
+
+BaseMenu.TabbedHelpEntries = {
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_TAB",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB" },
+    { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB",
+      description = "TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB" },
+}
+
+BaseMenu.ReadHeaderHelpEntry = {
+    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_F1",
+    description = "TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER",
+}
+
+BaseMenu.EscapePopsHelpEntry = {
+    keyLabel    = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+    description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
+}
+
+local function appendAll(dst, src)
+    if type(src) ~= "table" then return end
+    for _, e in ipairs(src) do dst[#dst + 1] = e end
+end
+
+-- Compose the authored help list for a BaseMenu-backed handler, reading the
+-- spec to decide which templates apply. spec.helpExtras appends handler-
+-- specific extras at the tail (for the rare screen with a custom binding).
+function BaseMenu.buildHelpEntries(spec, extras)
+    local list = {}
+    appendAll(list, BaseMenu.MenuHelpEntries)
+    appendAll(list, BaseMenu.ListNavHelpEntries)
+    appendAll(list, BaseMenu.NestedNavHelpEntries)
+    if spec.tabs then appendAll(list, BaseMenu.TabbedHelpEntries) end
+    list[#list + 1] = BaseMenu.ReadHeaderHelpEntry
+    if spec.escapePops then list[#list + 1] = BaseMenu.EscapePopsHelpEntry end
+    appendAll(list, extras)
+    return list
+end
+
 -- Map a VK code / modifier mask to the character input layer. Returns true
 -- if the search consumed the event. Letters (A-Z) are lower-cased; digits
 -- (0-9) pass through as their char. Ctrl / Alt combinations do not feed
@@ -574,6 +643,20 @@ function BaseMenu.create(spec)
             key = Keys.VK_ESCAPE, mods = 0, description = "Cancel",
             fn  = function() HandlerStack.removeByName(self.name, true) end,
         }
+    end
+
+    -- Authored help list covering every binding the factory wired above.
+    -- Spec-driven: tabs/escapePops toggle their own entries. Extras append
+    -- at the tail for screens with a custom binding.
+    self.helpEntries = BaseMenu.buildHelpEntries(spec, spec.helpExtras)
+
+    -- Search-input hook surfaced on the handler so InputRouter can route
+    -- printable keys / Backspace / Space to type-ahead without needing a
+    -- ContextPtr-level SetInputHandler to own the menu. Used by HelpHandler
+    -- (pushed above an installed screen) and by every BaseMenu.install
+    -- screen equivalently.
+    function self:handleSearchInput(vk, mods)
+        return BaseMenu._handleSearchInput(self, vk, mods)
     end
 
     -- Upvalue: refresh() and onActivate both touch this; meaningless for
@@ -832,16 +915,6 @@ function BaseMenu.install(ContextPtr, spec)
             if priorInput then return priorInput(msg, wp, lp) end
             return false
         end
-        -- Type-ahead search: intercept printable and Backspace before the
-        -- binding dispatch so letters / digits / space / backspace don't
-        -- need 40+ redundant bindings. Only fires when this handler is on
-        -- top (a pulldown sub-menu or edit mode takes over ownership).
-        if msg == 256 and top == handler then
-            local mods = InputRouter.currentModifierMask()
-            if BaseMenu._handleSearchInput(handler, wp, mods) then
-                return true
-            end
-        end
         local mods = InputRouter.currentModifierMask()
         if InputRouter.dispatch(wp, mods, msg) then return true end
         if priorInput then return priorInput(msg, wp, lp) end
@@ -955,6 +1028,16 @@ function BaseMenu._pushEdit(menu, textfieldItem)
           fn  = function() exit(true)  end },
         { key = Keys.VK_RETURN, mods = 0, description = "Commit edit",
           fn  = function() exit(false) end },
+    }
+    -- Edit-mode overrides the menu's Esc binding with "Cancel edit" semantics.
+    -- Authoring these explicitly means ? help shows the edit-mode meaning
+    -- (not the menu's "Cancel") while edit mode is on top -- the keyLabel
+    -- dedupe in collectHelpEntries drops the menu's entry in favor of ours.
+    sub.helpEntries = {
+        { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+          description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT" },
+        { keyLabel   = "TXT_KEY_CIVVACCESS_HELP_KEY_ENTER",
+          description = "TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT" },
     }
 
     SpeechPipeline.speakInterrupt(

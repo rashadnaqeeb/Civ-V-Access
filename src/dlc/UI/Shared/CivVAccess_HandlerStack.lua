@@ -10,12 +10,18 @@
 --                      that should swallow unbound keys.
 --   bindings           (array, optional) {key, mods, fn, description} entries.
 --                      The handler owns its bindings; there is no central registry.
+--   helpEntries        (array, required when the handler has bindings) authored
+--                      {keyLabel, description} entries for the ? help overlay.
+--                      Handlers with no user-visible bindings (Baseline, transient
+--                      subs) should set this to an empty {} to opt in explicitly.
+--                      keyLabel is a TXT_KEY for a merged, human-readable chord
+--                      label ("Up/Down", "Ctrl+Shift+Left/Right"); description
+--                      is a TXT_KEY. See CivVAccess_Help.lua and BaseMenu's
+--                      MenuHelpEntries / ListNavHelpEntries templates.
 --   onActivate         (fn(self), optional) fired on push / re-exposure.
 --   onDeactivate       (fn(self), optional) fired on removal.
 --   tick               (fn(self), optional) called every frame by TickPump on
 --                      the active handler only.
---   helpEntries        (array, optional) overrides `bindings` as the source for
---                      collectHelpEntries.
 --
 -- Push when a screen opens; removeByName when it closes.
 
@@ -56,6 +62,12 @@ function HandlerStack.push(handler)
     if handler == nil then
         Log.warn("HandlerStack.push: nil handler")
         return false
+    end
+    if handler.helpEntries == nil and type(handler.bindings) == "table"
+            and #handler.bindings > 0 then
+        Log.warn("HandlerStack.push: '" .. tostring(handler.name)
+            .. "' has bindings but no helpEntries; ? help will not list it."
+            .. " Set helpEntries (or an explicit {}) to opt in.")
     end
     local fn = handler.onActivate
     if type(fn) == "function" then
@@ -153,21 +165,27 @@ function HandlerStack.clear()
     _shared.stack = {}
 end
 
+-- Always-on help entries appended at the bottom of every collected list.
+-- Empty for now; reserved for mod-wide hotkeys that exist at every depth of
+-- the stack (cross-screen toggles, config, etc. — see ONI's F12/Ctrl+Shift+
+-- F12 common entries). Authored as {keyLabel, description} TXT_KEYs.
+HandlerStack.commonHelpEntries = {}
+
+-- Walk the stack top-to-bottom (mirroring InputRouter's dispatch walk),
+-- collecting authored helpEntries from each reachable handler. Stops after
+-- the first capturesAllInput handler (inclusive). Deduplicates by the
+-- keyLabel string -- the topmost handler wins, so a lower handler's
+-- different meaning for the same chord is dropped (it wouldn't fire anyway).
+-- Convention: keyLabels must be canonically merged ("Up/Down" not "Up"),
+-- otherwise dedupe can't collapse equivalent entries from stacked handlers.
 function HandlerStack.collectHelpEntries()
     local seen = {}
     local out = {}
-    local function keyOf(e)
-        return tostring(e.key) .. ":" .. tostring(e.mods or 0)
-    end
     for i = #_shared.stack, 1, -1 do
         local h = _shared.stack[i]
-        local entries = h.helpEntries
-        if entries == nil and type(h.bindings) == "table" then
-            entries = h.bindings
-        end
-        if type(entries) == "table" then
-            for _, e in ipairs(entries) do
-                local k = keyOf(e)
+        if type(h.helpEntries) == "table" then
+            for _, e in ipairs(h.helpEntries) do
+                local k = tostring(e.keyLabel)
                 if not seen[k] then
                     seen[k] = true
                     out[#out + 1] = e
@@ -175,6 +193,13 @@ function HandlerStack.collectHelpEntries()
             end
         end
         if h.capturesAllInput then break end
+    end
+    for _, e in ipairs(HandlerStack.commonHelpEntries) do
+        local k = tostring(e.keyLabel)
+        if not seen[k] then
+            seen[k] = true
+            out[#out + 1] = e
+        end
     end
     return out
 end

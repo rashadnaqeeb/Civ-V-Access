@@ -181,6 +181,32 @@ function BaseMenuItems.Button(spec)
     return item
 end
 
+-- Text --------------------------------------------------------------------
+--
+-- Informational list entry with no widget backing. Navigable (Up/Down land
+-- on it) but activation is a no-op: Enter plays the standard click and
+-- returns. Used by the Help overlay where each entry is "keyLabel,
+-- description" read-only text -- there's no XML control, no disabled state,
+-- no tooltip dedup needed. Reuses composeSpeech would call _control:IsDisabled
+-- which would NPE, so announce builds the speech directly.
+
+function BaseMenuItems.Text(spec)
+    assertLabel(spec, "Text")
+    assertTooltip(spec, "Text")
+    local item = { kind = "text" }
+    copyCommonFields(spec, item)
+    function item:isNavigable() return true end
+    function item:isActivatable() return true end
+    function item:announce(menu)
+        return appendTooltip(resolveLabel(self), resolveTooltip(self))
+    end
+    function item:activate(menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+    end
+    function item:adjust(menu, dir, big) end
+    return item
+end
+
 -- Checkbox ----------------------------------------------------------------
 
 local function checkboxValue(item)

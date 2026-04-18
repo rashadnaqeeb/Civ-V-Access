@@ -9,5 +9,8 @@ function BaselineHandler.create()
         name = "Baseline",
         capturesAllInput = false,
         bindings = {},
+        -- Explicit empty: Baseline has no user-visible bindings, but the
+        -- push-time help audit expects every handler to declare a list.
+        helpEntries = {},
     }
 end

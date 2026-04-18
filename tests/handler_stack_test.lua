@@ -151,56 +151,110 @@ end
 
 -- collectHelpEntries ----------------------------------------------------
 
-function M.test_collectHelpEntries_derives_from_bindings()
+function M.test_collectHelpEntries_reads_helpEntries_only()
     setup()
-    local a = makeHandler("a", { bindings = {
-        { key = 1, mods = 0, description = "one" },
-        { key = 2, mods = 0, description = "two" },
-    }})
+    local a = makeHandler("a", {
+        helpEntries = {
+            { keyLabel = "Up/Down", description = "Navigate" },
+            { keyLabel = "Enter",   description = "Activate" },
+        },
+    })
     HandlerStack.push(a)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 2)
+    T.eq(entries[1].keyLabel, "Up/Down")
 end
 
-function M.test_collectHelpEntries_dedups_by_key_and_mods()
+function M.test_collectHelpEntries_ignores_bindings_without_helpEntries()
     setup()
     local a = makeHandler("a", { bindings = {
-        { key = 1, mods = 0, description = "lower" },
+        { key = 1, mods = 0, description = "one" },
     }})
-    local b = makeHandler("b", { bindings = {
-        { key = 1, mods = 0, description = "upper" },
-        { key = 2, mods = 0, description = "distinct" },
+    HandlerStack.push(a)
+    local entries = HandlerStack.collectHelpEntries()
+    T.eq(#entries, 0, "bindings are not a help source")
+end
+
+function M.test_push_warns_when_bindings_lack_helpEntries()
+    setup()
+    local a = makeHandler("a", { bindings = {
+        { key = 1, mods = 0, description = "one" },
+    }})
+    HandlerStack.push(a)
+    T.truthy(#warns >= 1, "bindings without helpEntries logs a warning")
+end
+
+function M.test_push_does_not_warn_when_empty_helpEntries_declared()
+    setup()
+    local a = makeHandler("a", {
+        bindings    = { { key = 1, mods = 0, description = "one" } },
+        helpEntries = {},
+    })
+    HandlerStack.push(a)
+    T.eq(#warns, 0, "explicit empty helpEntries opts out cleanly")
+end
+
+function M.test_collectHelpEntries_dedups_by_keyLabel_top_wins()
+    setup()
+    local a = makeHandler("a", { helpEntries = {
+        { keyLabel = "Escape", description = "Back to previous screen" },
+    }})
+    local b = makeHandler("b", { helpEntries = {
+        { keyLabel = "Escape", description = "Close" },
+        { keyLabel = "Enter",  description = "Activate" },
     }})
     HandlerStack.push(a); HandlerStack.push(b)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 2)
-    T.eq(entries[1].description, "upper", "top wins")
+    T.eq(entries[1].description, "Close", "topmost keyLabel wins")
 end
 
 function M.test_collectHelpEntries_stops_after_capture_barrier()
     setup()
-    local a = makeHandler("a", { bindings = { { key = 1, mods = 0 } } })
+    local a = makeHandler("a", { helpEntries = {
+        { keyLabel = "A", description = "a" },
+    }})
     local b = makeHandler("b", {
         capturesAllInput = true,
-        bindings = { { key = 2, mods = 0 } },
+        helpEntries = { { keyLabel = "B", description = "b" } },
     })
-    local c = makeHandler("c", { bindings = { { key = 3, mods = 0 } } })
+    local c = makeHandler("c", { helpEntries = {
+        { keyLabel = "C", description = "c" },
+    }})
     HandlerStack.push(a); HandlerStack.push(b); HandlerStack.push(c)
     local entries = HandlerStack.collectHelpEntries()
     -- c (top) and b (barrier, inclusive) contribute; a is masked.
     T.eq(#entries, 2)
 end
 
-function M.test_collectHelpEntries_prefers_helpEntries_override()
+function M.test_collectHelpEntries_appends_commonHelpEntries()
     setup()
-    local a = makeHandler("a", {
-        bindings = { { key = 1, mods = 0 } },
-        helpEntries = { { key = 99, mods = 0 }, { key = 100, mods = 0 } },
-    })
+    HandlerStack.commonHelpEntries = {
+        { keyLabel = "F12", description = "global toggle" },
+    }
+    local a = makeHandler("a", { helpEntries = {
+        { keyLabel = "Up/Down", description = "nav" },
+    }})
     HandlerStack.push(a)
     local entries = HandlerStack.collectHelpEntries()
     T.eq(#entries, 2)
-    T.eq(entries[1].key, 99)
+    T.eq(entries[2].keyLabel, "F12", "common entries append at tail")
+    HandlerStack.commonHelpEntries = {}
+end
+
+function M.test_collectHelpEntries_common_does_not_duplicate_handler_label()
+    setup()
+    HandlerStack.commonHelpEntries = {
+        { keyLabel = "Escape", description = "global esc" },
+    }
+    local a = makeHandler("a", { helpEntries = {
+        { keyLabel = "Escape", description = "handler esc" },
+    }})
+    HandlerStack.push(a)
+    local entries = HandlerStack.collectHelpEntries()
+    T.eq(#entries, 1)
+    T.eq(entries[1].description, "handler esc", "handler wins over common")
+    HandlerStack.commonHelpEntries = {}
 end
 
 return M

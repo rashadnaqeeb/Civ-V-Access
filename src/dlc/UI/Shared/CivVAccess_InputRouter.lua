@@ -1,6 +1,14 @@
 -- Dispatches keyboard events down the HandlerStack, top-first. Stateless.
 -- Called from each screen's SetInputHandler (via BaseMenu.install for
 -- front-end screens, directly from in-game handlers).
+--
+-- Pre-walk hooks (run before the binding walk):
+--   1. Shift+? opens the Help overlay built from HandlerStack.collectHelpEntries.
+--      Gated so pressing ? while Help is on top doesn't re-enter.
+--   2. Type-ahead search: if the top handler exposes handleSearchInput, route
+--      printable / Backspace / Space through it so every BaseMenu-backed
+--      handler (installed or pushed directly) gets search without needing 40+
+--      per-letter bindings.
 
 InputRouter = {}
 
@@ -10,6 +18,11 @@ local WM_SYSKEYDOWN = 260
 local MOD_SHIFT = 1
 local MOD_CTRL  = 2
 local MOD_ALT   = 4
+
+-- Windows VK for the US '/?' key. Shift+OEM_2 is what the user types to
+-- mean '?'. Non-US layouts produce '?' via a different VK; revisit if we
+-- localize the help hotkey.
+local VK_OEM_2 = 191
 
 function InputRouter.currentModifierMask()
     local mask = 0
@@ -28,6 +41,39 @@ function InputRouter.dispatch(keyCode, modMask, msg)
     if msg ~= WM_KEYDOWN and msg ~= WM_SYSKEYDOWN then
         return false
     end
+
+    -- Help overlay hotkey. Fires before the binding walk so every screen
+    -- that routes through InputRouter gets ? help uniformly, without each
+    -- handler having to bind it. Skips when Help is already on top.
+    if keyCode == VK_OEM_2 and modMask == MOD_SHIFT then
+        local top = HandlerStack.active()
+        if top == nil or top.name ~= "Help" then
+            if Help ~= nil and type(Help.open) == "function" then
+                Help.open()
+            else
+                Log.warn("InputRouter: Shift+? pressed but Help module not loaded")
+            end
+            return true
+        end
+    end
+
+    -- Type-ahead search. Handler-exposed hook so any handler with a search
+    -- instance participates (BaseMenu-created handlers, including HelpHandler).
+    -- Only keydowns route through search; WM_SYSKEYDOWN carries Alt-chorded
+    -- keys that don't feed type-ahead.
+    if msg == WM_KEYDOWN then
+        local top = HandlerStack.active()
+        if top ~= nil and type(top.handleSearchInput) == "function" then
+            local ok, consumed = pcall(top.handleSearchInput, top, keyCode, modMask)
+            if not ok then
+                Log.error("InputRouter search hook in '" .. tostring(top.name)
+                    .. "' failed: " .. tostring(consumed))
+            elseif consumed then
+                return true
+            end
+        end
+    end
+
     for i = HandlerStack.count(), 1, -1 do
         local h = HandlerStack.at(i)
         local bindings = h.bindings

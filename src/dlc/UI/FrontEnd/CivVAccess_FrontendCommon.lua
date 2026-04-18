@@ -25,3 +25,4 @@ include("CivVAccess_TypeAheadSearch")
 -- BaseMenu stem unreachable in every Context. "BaseMenuCore" is just a
 -- unique stem; the global it defines is still `BaseMenu`.
 include("CivVAccess_BaseMenuCore")
+include("CivVAccess_Help")
