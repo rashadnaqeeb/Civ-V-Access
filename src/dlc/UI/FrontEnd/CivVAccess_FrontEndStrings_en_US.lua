@@ -73,7 +73,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_AI_PLAYERS"]            = "AI playe
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_VICTORY_CONDITIONS"]    = "Victory conditions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_GAME_OPTIONS"]          = "Game options"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_DLC_ALLOWED"]           = "DLC allowed"
--- Status announced in place of the AI player listing while random world
--- size is on: slot count is determined by the chosen map size at launch.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNKNOWN_PLAYERS_STATUS"]      = "Number of AI players is determined by the random map size."
+-- Preamble for Advanced Setup when random world size is on. Engine hides
+-- every slot Root in that state, so the Players group collapses and Add
+-- AI is disabled. Tell the user why and point at the remedy.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNKNOWN_PLAYERS_STATUS"]      = "AI players cannot be customized while random map size is selected. Pick a specific map size to edit the player list."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_GAME_NAME"]             = "Game name"
