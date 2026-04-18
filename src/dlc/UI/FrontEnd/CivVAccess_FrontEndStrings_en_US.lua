@@ -78,3 +78,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GROUP_DLC_ALLOWED"]           = "DLC allo
 -- AI is disabled. Tell the user why and point at the remedy.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNKNOWN_PLAYERS_STATUS"]      = "AI players cannot be customized while random map size is selected. Pick a specific map size to edit the player list."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_GAME_NAME"]             = "Game name"
+-- Map-type entry suffix announced after the map's name/description when
+-- the map's Map_Sizes rows constrain the available world sizes. {1} is a
+-- single size label or a comma-separated list.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY"]               = "{1_Size} only"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED"]            = "sizes: {1_Sizes}"
