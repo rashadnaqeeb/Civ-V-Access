@@ -452,8 +452,11 @@ local function hasTable(name) return GameInfo[name] ~= nil end
 
 -- Harvesters ------------------------------------------------------------
 
-local function harvestTitleAndStats(leaves)
-    addLeaf(leaves, "", safeGetText(Controls.ArticleID))
+-- Title is deliberately skipped: the user already heard the article's
+-- name when they activated its Entry in the picker; repeating it as the
+-- first reader line is redundant. Stats keep their header prefix because
+-- bare values ("40", "+2") are meaningless without the label.
+local function harvestStats(leaves)
     for _, def in ipairs(STAT_FRAMES) do
         if not safeIsHidden(Controls[def.frame]) then
             addLeaf(leaves, def.header, safeGetText(Controls[def.label]))
@@ -461,10 +464,16 @@ local function harvestTitleAndStats(leaves)
     end
 end
 
+-- Text sections drop their header prefix: "Summary: ...", "Strategy: ...",
+-- "Historical Info: ..." add nothing the body prose doesn't already convey
+-- and just delay the content. Relationship links and stat frames keep
+-- their headers (they label an otherwise-ambiguous value). FFText/BBText
+-- keep per-instance headers because those vary per article and actually
+-- name the block (civ unique-ability title, home-page how-to, etc.).
 local function harvestTextSections(leaves)
     for _, def in ipairs(TEXT_FRAMES) do
         if not safeIsHidden(Controls[def.frame]) then
-            addLeaf(leaves, def.header, safeGetText(Controls[def.label]))
+            addLeaf(leaves, "", safeGetText(Controls[def.label]))
         end
     end
 end
@@ -543,7 +552,7 @@ end
 -- reading: title + stats, FFText (used by civs in place of the simple text
 -- frames), BBText (home pages), text sections, relationships.
 function Civilopedia._harvestInto(leaves, handler, currentCat)
-    harvestTitleAndStats(leaves)
+    harvestStats(leaves)
     harvestFreeFormText(leaves)
     harvestBBText(leaves)
     harvestTextSections(leaves)
