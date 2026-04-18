@@ -189,10 +189,22 @@ end
 function BaseMenuItems.Checkbox(spec)
     assertLabel(spec, "Checkbox")
     assertTooltip(spec, "Checkbox")
+    assert(spec.activateCallback == nil or type(spec.activateCallback) == "function",
+        "Checkbox.activateCallback must be a function if provided")
     local item = {
-        kind     = "checkbox",
-        _control = resolveControl(spec, "Checkbox"),
+        kind              = "checkbox",
+        _control          = resolveControl(spec, "Checkbox"),
+        _activateCallback = spec.activateCallback,
     }
+    if spec.visibilityControlName ~= nil then
+        item.visibilityControlName = spec.visibilityControlName
+        item._visibilityControl    = Controls[spec.visibilityControlName]
+        if item._visibilityControl == nil then
+            Log.warn("BaseMenuItems Checkbox '" .. tostring(spec.controlName)
+                .. "': missing visibility control '"
+                .. spec.visibilityControlName .. "'")
+        end
+    end
     copyCommonFields(spec, item)
     item.isNavigable   = isNavigable
     item.isActivatable = isActivatable
@@ -203,7 +215,10 @@ function BaseMenuItems.Checkbox(spec)
         local c = self._control
         local newValue = not c:IsChecked()
         c:SetCheck(newValue)
-        local cb = PullDownProbe.checkBoxCallbackFor(c)
+        -- Prefer an explicit activateCallback: base-game screens that wire
+        -- checkboxes via Controls.X:RegisterCallback(Mouse.eLClick, ...)
+        -- rather than RegisterCheckHandler are not captured by the probe.
+        local cb = self._activateCallback or PullDownProbe.checkBoxCallbackFor(c)
         if cb == nil then
             Log.warn("BaseMenu checkbox '" .. tostring(self.controlName)
                 .. "': callback not captured, game state will not update")
@@ -216,6 +231,69 @@ function BaseMenuItems.Checkbox(spec)
         end
         Events.AudioPlay2DSound("AS2D_IF_SELECT")
         SpeechPipeline.speakInterrupt(self:announce(menu))
+    end
+    function item:adjust(menu, dir, big) end
+    return item
+end
+
+-- Choice ------------------------------------------------------------------
+--
+-- Flat list entry for a selection screen (Select{MapType,MapSize,Difficulty,
+-- GameSpeed,Civilization}, pulldown-style sub-menus, scrollable picker
+-- screens). Unlike Button, Choice does not require a stable Controls.X
+-- reference: selection screens build their entries via InstanceManager and
+-- each entry's data lives in GameInfo / captured closures, not in a named
+-- control.
+--
+-- Spec:
+--   textKey / labelText / labelFn   label source (one required)
+--   tooltipKey / tooltipText / tooltipFn  optional tooltip
+--   activate                         fn() called on Enter / Space
+--   visibilityControl                optional live userdata; isNavigable
+--                                    returns false while it IsHidden
+--   visibilityControlName            alternative: look up Controls.X
+--
+-- No _control field: items without a widget are always navigable unless
+-- a visibility control gates them. Selection is expected to drive the
+-- screen's own close / commit path (e.g. OnBack), which fires ShowHide and
+-- pops the handler; Choice itself does not touch the handler stack.
+
+function BaseMenuItems.Choice(spec)
+    assertLabel(spec, "Choice")
+    assertTooltip(spec, "Choice")
+    assert(type(spec.activate) == "function",
+        "Choice needs activate fn")
+    local item = {
+        kind               = "choice",
+        _activate          = spec.activate,
+        _visibilityControl = spec.visibilityControl,
+    }
+    if item._visibilityControl == nil and spec.visibilityControlName ~= nil then
+        item.visibilityControlName = spec.visibilityControlName
+        item._visibilityControl    = Controls[spec.visibilityControlName]
+        if item._visibilityControl == nil then
+            Log.warn("BaseMenuItems Choice: missing visibility control '"
+                .. spec.visibilityControlName .. "'")
+        end
+    end
+    copyCommonFields(spec, item)
+    function item:isNavigable()
+        if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
+            return false
+        end
+        return true
+    end
+    function item:isActivatable() return self:isNavigable() end
+    function item:announce(menu)
+        return composeSpeech(self, { resolveLabel(self) })
+    end
+    function item:activate(menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local ok, err = pcall(self._activate)
+        if not ok then
+            Log.error("BaseMenu '" .. tostring(menu.name) .. "' choice activate failed: "
+                .. tostring(err))
+        end
     end
     function item:adjust(menu, dir, big) end
     return item

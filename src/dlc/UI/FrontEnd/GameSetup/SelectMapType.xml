@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context Color0="Beige" Color1="Black,256" Font="TwCenMT16" FontStyle="Shadow" >
+
+
+  <Instance Name="ItemInstance" >
+    <Box Anchor="L,C" Offset="0,0" Size="330,53" Color="255,255,255,0" ID="Root" >
+      <Button Anchor="L,C"  Size="330,53" Color="255,255,255,255"  Offset="0,0" StateOffsetIncrement="0,0" ID="Button" >
+        <ShowOnMouseOver>
+          <AlphaAnim Anchor="L,C" Size="330,56" Pause="0" Cycle="Bounce" Speed="1" AlphaStart="2" AlphaEnd="1">
+            <Grid   Size="330,56" Offset="0,0" Padding="0,0" Style="Grid9FrameTurnsHL" />
+          </AlphaAnim>
+        </ShowOnMouseOver>
+        <Image Anchor="L,C"  Size="64,64" Texture="Assets/UI/Art/Icons/MapTypeIcons256.dds" ID="Icon" />
+        <Label Anchor="L,C" Offset="64,0" Font="TwCenMT22" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" ID="Name" TruncateWidth="260"/>
+        <Image Anchor="C,B" Offset="0,0" Texture="bar340x2.dds" Size="340.1" />
+      </Button>
+    </Box>
+  </Instance>
+
+
+
+  <!--=======================================================================================================================-->
+  <!--=======================================================================================================================-->
+
+  <Container Size="1024,700" Anchor="c,c" >
+    <Box Anchor="R,T" Offset="72,204" Size="354,408" Color="255,255,255,0" >
+
+      <Grid Size="350,408" Padding="0,0" Style="GridBlackIndent8" Hidden="0" >
+        <Grid Size="354,408" Padding="0,0" Style="Grid9Frame" Hidden="0" >
+
+          <Image AnchorSide="O.I" Offset="-11,15" Size="32,64" Texture="Assets/UI/Art/Controls/9 Grids/Dec32x64Left.dds" />
+
+          <ScrollPanel Offset="0,32" Size="330,368" Vertical="1" ID="ScrollPanel" >
+            <!-- Scroll Controls -->
+            <ScrollBar Style="VertSlider" Length="332" Offset="0.18" Anchor="R,T" AnchorSide="O,I" />
+            <UpButton  Offset="0.0"  Style="ScrollBarUp"  Anchor="R,T" AnchorSide="O,I" />
+            <DownButton Offset="0.0" Style="ScrollBarDown"  Anchor="R,B" AnchorSide="O,I" />
+
+            <Stack StackGrowth="Bottom" Padding="0" ID="Stack" />
+
+          </ScrollPanel>
+        </Grid>
+      </Grid>
+
+      <Image Anchor="L,T" Offset="0,-1"  Size="354,45"   Texture="Assets/UI/Art/WorldView/SetupTab2.dds"  >
+        <Button Anchor="R,T" Size="32,32" Offset="0.0" TextureOffset="32,0" Texture="assets\UI\Art\Notification\CloseMinButtons.dds"  ToolTip="TXT_KEY_CLOSE"  ID="CloseButton" Hidden="0"/>"
+        <Label Anchor="C,C" Offset="0,-7" Font="TwCenMT20" ColorSet="Beige_Black_Alpha" String="TXT_KEY_MAP_TYPE_TITLE" FontStyle="Shadow" />
+      </Image>
+
+    </Box>
+  </Container>
+
+</Context>
