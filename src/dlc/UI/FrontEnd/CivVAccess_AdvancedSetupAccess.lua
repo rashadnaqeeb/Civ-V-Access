@@ -34,11 +34,11 @@ local priorInput    = InputHandler
 local handler
 local buildItems
 
--- Session-stable rich labels for the civ pulldown's sub-menu entries.
--- Leader + civ + unique ability / unit / building / improvement, in the
--- same leader-alphabetical order the base file uses for playableCivs.
--- Cached because the playable civ list doesn't change mid-session on
--- this screen.
+-- Rich labels for the civ pulldown's sub-menu entries: leader + civ +
+-- unique ability / unit / building / improvement, in the same leader-
+-- alphabetical order the base file uses for playableCivs. Cached only
+-- across drills within a single screen show; onShow invalidates because
+-- DLC / mod toggles between shows can reshape the playable-civ list.
 local _civLabelsCache
 local function civPulldownLabels()
     if _civLabelsCache == nil then
@@ -53,17 +53,19 @@ end
 
 -- Map-type entries: supported-size suffix --------------------------------
 --
--- Some maps are constrained to a single size (Japanese Mainland -> Tiny),
--- or a subset (a hypothetical Standard+Huge-only map). Pure map scripts
--- (Continents, Donut) work at every size; Maps() rows are constrained by
--- the set of Map_Sizes rows keyed to their MapType; WB files not in
--- Map_Sizes are pinned to their embedded wb.MapSize.
+-- Three shapes contribute entries to the Map Type pulldown:
+--   * Pure map scripts (Lua generators) -- work at every world size; the
+--     size is an input to the generator rather than a constraint.
+--   * Maps() rows -- may be constrained to a subset of world sizes by the
+--     Map_Sizes rows keyed to the row's MapType.
+--   * Loose WB map files not referenced by any Map_Sizes row -- pinned to
+--     the single world size embedded in their map preview (wb.MapSize).
 --
--- We replicate base's MapTypes.FullSync build order (map scripts + Maps
--- rows + loose WB files, sorted by name) to pair each entry with a size
--- summary. The summary is "Standard only" for single-size, a comma list
--- for few-size sets, and nil for all-sizes (skipped so the common case
--- stays concise).
+-- We replicate base's MapTypes.FullSync build order (scripts + Maps rows +
+-- loose WB files, sorted by name) to pair each entry with a size summary
+-- by sorted index. The summary is "<size> only" for single-size, a comma
+-- list for few-size sets, and nil for all-sizes (skipped so the common
+-- case stays concise).
 
 local function worldNameById(worldID)
     local w = GameInfo.Worlds[worldID]
@@ -155,28 +157,39 @@ local function mapTypeSizeLabels()
 end
 
 local function mapTypeEntryAnnounce(inst, index)
-    local text = ""
-    local ok, t = pcall(function() return inst.Button:GetText() end)
-    if ok and t ~= nil then text = tostring(t) end
+    local text  = safeText(function() return inst.Button:GetText() end,
+        "MapType entry GetText")
     local parts = { text }
     local sizeInfo = mapTypeSizeLabels()[index]
     if sizeInfo ~= nil and sizeInfo ~= "" then
         parts[#parts + 1] = sizeInfo
     end
     local combined = table.concat(parts, ", ")
-    local tipOk, tip = pcall(function() return inst.Button:GetToolTipString() end)
-    if tipOk and tip ~= nil and tip ~= "" then
-        return BaseMenuItems.appendTooltip(combined, tostring(tip))
+    local tip      = safeText(function() return inst.Button:GetToolTipString() end,
+        "MapType entry GetToolTipString")
+    if tip ~= "" then
+        return BaseMenuItems.appendTooltip(combined, tip)
     end
     return combined
 end
 
 -- Helpers -----------------------------------------------------------------
 
-local function safeText(getter)
+-- Read a widget string (label / tooltip / button text) and surface any
+-- pcall failure through Log.warn so a silently empty label points at the
+-- actual error rather than looking like "the widget has no text".
+-- pcall returning (true, nil) is not a failure -- a widget can legitimately
+-- have no text yet -- so only the error path logs.
+local function safeText(getter, context)
     local ok, t = pcall(getter)
-    if ok and t ~= nil then return tostring(t) end
-    return ""
+    if not ok then
+        Log.warn("AdvancedSetupAccess safeText"
+            .. (context and (" [" .. context .. "]") or "")
+            .. " failed: " .. tostring(t))
+        return ""
+    end
+    if t == nil then return "" end
+    return tostring(t)
 end
 
 local function pulldownButtonText(control)
@@ -529,11 +542,13 @@ handler = BaseMenu.install(ContextPtr, {
     end,
     priorShowHide = priorShowHide,
     priorInput    = priorInput,
-    -- onShow is not strictly required: all dynamic groups are cached=false
-    -- so they rebuild on every drill, and the top-level static items
-    -- reference live Controls that base updates via PerformPartialSync.
-    -- Keep the hook for symmetry with other screens and to make it
-    -- straightforward to add a setItems call if a future top-level item
-    -- ever needs rebuild-on-show.
+    -- onShow invalidates the two label caches so DLC / mod toggles that
+    -- happened since the prior show don't leave stale civ-detail or
+    -- map-size-constraint announcements. Dynamic groups are already
+    -- cached=false so they pick up widget-state changes on every drill.
+    onShow        = function()
+        _civLabelsCache     = nil
+        _mapSizeLabelsCache = nil
+    end,
     items         = buildItems(),
 })

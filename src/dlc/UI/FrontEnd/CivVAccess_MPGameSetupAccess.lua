@@ -18,80 +18,151 @@ local priorShowHide = ShowHideHandler
 local priorInput    = InputHandler
 
 -- Dynamic children --------------------------------------------------------
+--
+-- Each section iterates GameInfo (with the same filters + sort base uses
+-- in MPGameOptions) in parallel with the manager's allocated instances:
+-- instance[i] corresponds to the i-th row in our own iteration. Labels
+-- come from the row's TXT_KEY rather than from the widget's TextButton,
+-- because GetTextButton:GetText() round-trips empty on CheckBox widgets
+-- in this engine.
 
-local function victoryChildrenFn()
-    return function()
-        local items = {}
-        if g_VictoryCondtionsManager == nil then return items end
-        for _, inst in ipairs(g_VictoryCondtionsManager.m_AllocatedInstances) do
-            local cb = inst.GameOptionRoot
-            local label = ""
-            local ok, btn = pcall(function() return cb:GetTextButton() end)
-            if ok and btn then
-                local ok2, t = pcall(function() return btn:GetText() end)
-                if ok2 and t then label = tostring(t) end
-            end
-            items[#items + 1] = BaseMenuItems.Checkbox({
-                control   = cb,
-                labelText = label,
-            })
+-- Game options are filtered to hide the three Types MP builds its own UI
+-- for (turn-timer toggle + simultaneous-turn toggles), then split by the
+-- hotseat / multiplayer support flag base toggles between.
+local EXCLUDED_GAME_OPTION_TYPES = {
+    GAMEOPTION_END_TURN_TIMER_ENABLED = true,
+    GAMEOPTION_SIMULTANEOUS_TURNS     = true,
+    GAMEOPTION_DYNAMIC_TURNS          = true,
+}
+
+-- MP sorts by SortPriority first, then raw string compare on Name (not
+-- Locale.Compare, unlike AdvancedSetup). Mirror exactly so our indices
+-- match the manager's allocated-instance order.
+local function mpSortOptions(options)
+    table.sort(options, function(a, b)
+        if a.SortPriority == b.SortPriority then
+            return a.Name < b.Name
         end
-        return items
-    end
+        return a.SortPriority < b.SortPriority
+    end)
 end
 
-local function gameOptionsChildrenFn()
-    return function()
-        local items = {}
-        if g_DropDownOptionsManager ~= nil then
-            for _, inst in ipairs(g_DropDownOptionsManager.m_AllocatedInstances) do
-                local label = ""
-                local ok, t = pcall(function() return inst.OptionName:GetText() end)
-                if ok and t then label = tostring(t) end
-                items[#items + 1] = BaseMenuItems.Pulldown({
-                    control   = inst.OptionDropDown,
-                    labelText = label,
-                })
-            end
-        end
-        if g_GameOptionsManager ~= nil then
-            for _, inst in ipairs(g_GameOptionsManager.m_AllocatedInstances) do
-                local cb = inst.GameOptionRoot
-                local label = ""
-                local ok, btn = pcall(function() return cb:GetTextButton() end)
-                if ok and btn then
-                    local ok2, t = pcall(function() return btn:GetText() end)
-                    if ok2 and t then label = tostring(t) end
-                end
-                items[#items + 1] = BaseMenuItems.Checkbox({
-                    control   = cb,
-                    labelText = label,
-                })
-            end
-        end
-        return items
+local function victoryChildren()
+    local items = {}
+    local instances = (g_VictoryCondtionsManager
+        and g_VictoryCondtionsManager.m_AllocatedInstances) or {}
+    local i = 1
+    for row in GameInfo.Victories() do
+        local inst = instances[i]
+        if inst == nil then break end
+        items[#items + 1] = BaseMenuItems.Checkbox({
+            control = inst.GameOptionRoot,
+            textKey = row.Description,
+        })
+        i = i + 1
     end
+    return items
 end
 
-local function dlcChildrenFn()
-    return function()
-        local items = {}
-        if g_DLCAllowedManager == nil then return items end
-        for _, inst in ipairs(g_DLCAllowedManager.m_AllocatedInstances) do
-            local cb = inst.GameOptionRoot
-            local label = ""
-            local ok, btn = pcall(function() return cb:GetTextButton() end)
-            if ok and btn then
-                local ok2, t = pcall(function() return btn:GetText() end)
-                if ok2 and t then label = tostring(t) end
+local function gameOptionDropdownRows()
+    local rows = {}
+    for option in DB.Query(
+            [[select * from MapScriptOptions where exists (select 1 from
+              MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
+              and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
+              FileName = ?]], PreGame.GetMapScript()) do
+        rows[#rows + 1] = {
+            Name         = Locale.ConvertTextKey(option.Name),
+            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            SortPriority = option.SortPriority,
+        }
+    end
+    return rows
+end
+
+local function gameOptionCheckboxRows()
+    local rows = {}
+    local hotseat = PreGame.IsHotSeatGame()
+    for option in GameInfo.GameOptions{Visible = 1} do
+        if not EXCLUDED_GAME_OPTION_TYPES[option.Type] then
+            local supported = hotseat and option.SupportsSinglePlayer
+                                       or option.SupportsMultiplayer
+            if supported then
+                rows[#rows + 1] = {
+                    Name         = Locale.ConvertTextKey(option.Description),
+                    Help         = option.Help and Locale.ConvertTextKey(option.Help) or nil,
+                    SortPriority = 0,
+                }
             end
-            items[#items + 1] = BaseMenuItems.Checkbox({
-                control   = cb,
-                labelText = label,
+        end
+    end
+    for option in DB.Query(
+            [[select * from MapScriptOptions where not exists (select 1 from
+              MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
+              and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
+              FileName = ?]], PreGame.GetMapScript()) do
+        rows[#rows + 1] = {
+            Name         = Locale.ConvertTextKey(option.Name),
+            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
+            SortPriority = option.SortPriority,
+        }
+    end
+    return rows
+end
+
+local function gameOptionsChildren()
+    local items = {}
+    if g_DropDownOptionsManager ~= nil then
+        local instances = g_DropDownOptionsManager.m_AllocatedInstances
+        local rows      = gameOptionDropdownRows()
+        mpSortOptions(rows)
+        for i, opt in ipairs(rows) do
+            local inst = instances[i]
+            if inst == nil then break end
+            items[#items + 1] = BaseMenuItems.Pulldown({
+                control     = inst.OptionDropDown,
+                labelText   = opt.Name,
+                tooltipText = opt.Help,
             })
         end
-        return items
     end
+    if g_GameOptionsManager ~= nil then
+        local instances = g_GameOptionsManager.m_AllocatedInstances
+        local rows      = gameOptionCheckboxRows()
+        mpSortOptions(rows)
+        for i, opt in ipairs(rows) do
+            local inst = instances[i]
+            if inst == nil then break end
+            items[#items + 1] = BaseMenuItems.Checkbox({
+                control     = inst.GameOptionRoot,
+                labelText   = opt.Name,
+                tooltipText = opt.Help,
+            })
+        end
+    end
+    return items
+end
+
+local function dlcChildren()
+    local items = {}
+    local instances = (g_DLCAllowedManager
+        and g_DLCAllowedManager.m_AllocatedInstances) or {}
+    -- Base iterates DownloadableContent in SQL order, skipping rows where
+    -- IsBaseContentUpgrade == 1 (those are force-allowed, not user-editable);
+    -- mirror that filter to keep our indices in sync.
+    local i = 1
+    for row in GameInfo.DownloadableContent() do
+        if row.IsBaseContentUpgrade == 0 then
+            local inst = instances[i]
+            if inst == nil then break end
+            items[#items + 1] = BaseMenuItems.Checkbox({
+                control = inst.GameOptionRoot,
+                textKey = row.FriendlyNameKey,
+            })
+            i = i + 1
+        end
+    end
+    return items
 end
 
 -- Top-level items ---------------------------------------------------------
@@ -154,17 +225,17 @@ local function buildItems(handler)
     }
     items[#items + 1] = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_GROUP_VICTORY_CONDITIONS",
-        itemsFn = victoryChildrenFn(),
+        itemsFn = victoryChildren,
         cached  = false,
     })
     items[#items + 1] = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_GROUP_GAME_OPTIONS",
-        itemsFn = gameOptionsChildrenFn(),
+        itemsFn = gameOptionsChildren,
         cached  = false,
     })
     items[#items + 1] = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_GROUP_DLC_ALLOWED",
-        itemsFn = dlcChildrenFn(),
+        itemsFn = dlcChildren,
         cached  = false,
     })
     -- Action row.
