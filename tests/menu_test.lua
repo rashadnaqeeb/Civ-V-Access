@@ -55,7 +55,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenu.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
     HandlerStack._reset()
     TickPump._reset()
 

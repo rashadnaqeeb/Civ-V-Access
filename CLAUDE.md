@@ -74,6 +74,7 @@ Handler table shape and push/pop rules are documented in the header of `src/dlc/
 - **`SetInputHandler(nil)` crashes.** To clear, pass `function() return false end`.
 - **`Controls` is userdata, not a table.** `pairs()` does not iterate it. Look up children by name from XML via `ContextPtr:LookUpControl(path)`.
 - **`include` uses bare filename stems only.** `include("Foo")` works; `include("sub/Foo")` fails. The engine indexes by stem.
+- **`include` stems must not share a prefix.** Civ V's stem index silently drops the shorter of two stems when one is a prefix of the other. `include("Foo")` becomes a no-op in every Context whenever a sibling `Foo*.lua` (e.g. `FooItems.lua`) is also in the VFS: the file is never executed, the include returns without error, and any globals it would have defined stay `nil`. Pick stems that don't share prefixes; a `Core` / `Extra` suffix is the cheapest disambiguator. (Why `CivVAccess_BaseMenuCore.lua` is not `CivVAccess_BaseMenu.lua`: the latter collides with `CivVAccess_BaseMenuItems.lua`.)
 - **`_G` is blocked by the sandbox.** Cannot enumerate globals for discovery — know what you're looking for by name, or find it in the game's UI Lua.
 - **`.Add(fn)` chains on both `Events.X` and `LuaEvents.X`.** Prefer adding listeners over replacing — multiple listeners coexist and we don't evict the game's own handlers. `.Remove(fn)` is unverified in the wild; assume best-effort.
 - **`Alt+Left/Right` sends `WM_SYSKEYDOWN` (msg 260)**, not `WM_KEYDOWN`. Input handlers must check both to catch Alt-chorded keys.

@@ -18,4 +18,9 @@ include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
 include("CivVAccess_Nav")
 include("CivVAccess_BaseMenuItems")
-include("CivVAccess_BaseMenu")
+-- The BaseMenu container file is named with a "Core" suffix to avoid a
+-- stem-prefix collision with BaseMenuItems: Civ V's include index drops
+-- the shorter of two stems when one is a prefix of the other, leaving the
+-- BaseMenu stem unreachable in every Context. "BaseMenuCore" is just a
+-- unique stem; the global it defines is still `BaseMenu`.
+include("CivVAccess_BaseMenuCore")
