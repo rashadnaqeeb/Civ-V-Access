@@ -96,8 +96,9 @@ local function appendTooltip(base, tooltip)
     return base .. ", " .. table.concat(novel, ", ")
 end
 
-BaseMenuItems.appendTooltip = appendTooltip
-BaseMenuItems.labelOf       = resolveLabel
+BaseMenuItems.appendTooltip  = appendTooltip
+BaseMenuItems.labelOf        = resolveLabel
+BaseMenuItems.tooltipOf      = resolveTooltip
 
 -- Shared navigability / activability --------------------------------------
 

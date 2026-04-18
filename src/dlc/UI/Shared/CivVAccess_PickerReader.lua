@@ -43,41 +43,6 @@ local function check(cond, msg)
     end
 end
 
--- Label / tooltip resolution matches BaseMenuItems' conventions so Entry
--- specs look familiar. Duplicated rather than exported from BaseMenuItems
--- because BaseMenuItems.labelOf requires a resolved item table, not a spec.
-local function resolveLabel(spec)
-    if spec.labelText ~= nil then return spec.labelText end
-    if spec.labelFn ~= nil then
-        local ok, result = pcall(spec.labelFn)
-        if not ok then
-            Log.error("PickerReader.Entry labelFn failed: " .. tostring(result))
-            return ""
-        end
-        return result or ""
-    end
-    return Text.key(spec.textKey)
-end
-
-local function resolveTooltip(spec)
-    if spec.tooltipFn ~= nil then
-        local ok, result = pcall(spec.tooltipFn)
-        if not ok then
-            Log.error("PickerReader.Entry tooltipFn failed: " .. tostring(result))
-            return nil
-        end
-        if result == nil or result == "" then return nil end
-        return tostring(result)
-    end
-    if spec.tooltipText ~= nil and spec.tooltipText ~= "" then
-        return spec.tooltipText
-    end
-    if spec.tooltipKey == nil then return nil end
-    local t = Text.key(spec.tooltipKey)
-    if t == nil or t == "" then return nil end
-    return t
-end
-
 -- Walk picker items (which may include nested Groups) and invoke visit
 -- at every Entry leaf, passing the 1-based path of indices from the top
 -- level down to the leaf. Returns immediately if visit returns true.
@@ -215,7 +180,7 @@ function PickerReader.create()
         local found = ""
         forEachEntry(pickerTab._items, {}, function(entry)
             if entry.id == id then
-                found = resolveLabel(entry) or ""
+                found = BaseMenuItems.labelOf(entry) or ""
                 return true
             end
             return false
@@ -279,9 +244,9 @@ function PickerReader.create()
         item.isNavigable   = entryIsNavigable
         item.isActivatable = entryIsActivatable
         function item:announce(menu)
-            local label = resolveLabel(self)
-            local tooltip = resolveTooltip(self)
-            return BaseMenuItems.appendTooltip(label, tooltip)
+            return BaseMenuItems.appendTooltip(
+                BaseMenuItems.labelOf(self),
+                BaseMenuItems.tooltipOf(self))
         end
         function item:activate(menu)
             activateEntry(self, menu, true)

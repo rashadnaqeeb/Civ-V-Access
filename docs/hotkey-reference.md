@@ -206,6 +206,16 @@ Note that `Ctrl+P` here collides with `BUILD_REPAIR` in `CIV5Builds.xml`. The en
 
 ---
 
+## CivVAccess additions
+
+Hotkeys this mod binds on top of the engine defaults. Each must be a conscious choice: audit against the tables above before adding, and record the rationale here.
+
+| Key | Context | Action | Rationale |
+|---|---|---|---|
+| `Ctrl+Up` / `Ctrl+Down` | Accessible Civilopedia, reader tab | Move to the previous / next article in the picker's flat display order (no wrap) | No engine binding on either combo (confirmed against all Controls / Commands / Missions / Automates / Builds / InterfaceModes XML). Lets the user flip through articles without round-tripping back to the picker. |
+
+---
+
 ## Key conflicts inside the engine
 
 Some keys carry multiple meanings depending on unit, plot, or screen context. Not our problem to fix — just don't assume a key is "free" because one meaning doesn't apply today.
