@@ -44,6 +44,7 @@ include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_PickerReader")
+include("CivVAccess_SavedGameShared")
 include("CivVAccess_SaveMenuCore")
 
 Log.info("SaveMenuAccess: wiring PickerReader over base SaveMenu")

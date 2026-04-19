@@ -30,6 +30,7 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_PickerReader")
+include("CivVAccess_SavedGameShared")
 include("CivVAccess_LoadMenuCore")
 
 Log.info("LoadMenuAccess: wiring PickerReader over base LoadMenu")

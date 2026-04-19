@@ -27,20 +27,15 @@ LoadReplayMenu = {}
 
 local READER_TAB_IDX = 2
 
-local HEADER_KEYS = {
-    mapType    = "TXT_KEY_AD_SETUP_MAP_TYPE",
-    mapSize    = "TXT_KEY_AD_SETUP_MAP_SIZE",
-    difficulty = "TXT_KEY_AD_SETUP_HANDICAP",
-    gameSpeed  = "TXT_KEY_GAME_SPEED",
-}
+local HEADER_KEYS      = SavedGameShared.HEADER_KEYS
+local stripPath        = SavedGameShared.stripPath
+local parseId          = SavedGameShared.parseId
+local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
+local descOf           = SavedGameShared.descOf
+local addField         = SavedGameShared.addField
 
 -- --------------------------------------------------------------------------
 -- Helpers
-
-local function stripPath(filename)
-    if filename == nil or filename == "" then return "" end
-    return Path.GetFileNameWithoutExtension(filename)
-end
 
 -- Order g_FileList's indices to match the currently-selected engine sort
 -- (g_CurrentSort is one of SortByLastModified / SortByName from
@@ -82,56 +77,6 @@ local function applySort(entryFactory, handlerRefThunk, sortFn, labelKey)
     Controls.LoadFileButtonStack:SortChildren(sortFn)
     local newItems = LoadReplayMenu.buildPickerItems(entryFactory, handlerRefThunk)
     handlerRefThunk().setItems(newItems, 1)
-end
-
-local function parseId(id)
-    local kind, idxStr = string.match(id or "", "^(%a+):(%d+)$")
-    if kind == nil then return nil end
-    return kind, tonumber(idxStr)
-end
-
--- Resolve leader / civ text from a replay header. Mirrors SetSelected
--- lines 191-219.
-local function resolveLeaderCiv(header)
-    local civName        = Text.key("TXT_KEY_MISC_UNKNOWN")
-    local leaderDescText = Text.key("TXT_KEY_MISC_UNKNOWN")
-    local civ = GameInfo.Civilizations[header.PlayerCivilization]
-    if civ ~= nil then
-        civName = Text.key(civ.Description)
-        local row = GameInfo.Civilization_Leaders(
-            "CivilizationType = '" .. civ.Type .. "'")()
-        if row ~= nil then
-            local leader = GameInfo.Leaders[row.LeaderheadType]
-            if leader ~= nil then
-                leaderDescText = Text.key(leader.Description)
-            end
-        end
-    end
-    if header.LeaderName ~= nil and header.LeaderName ~= "" then
-        leaderDescText = header.LeaderName
-    end
-    if header.CivilizationName ~= nil and header.CivilizationName ~= "" then
-        civName = header.CivilizationName
-    end
-    return leaderDescText, civName
-end
-
-local function descOf(row)
-    if row == nil or row.Description == nil then
-        return Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    return Text.key(row.Description)
-end
-
-local function addField(leaves, headerKey, value)
-    if value == nil or value == "" then return end
-    local prefix = ""
-    if headerKey ~= nil and headerKey ~= "" then
-        prefix = Text.key(headerKey) .. ": "
-    end
-    leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = prefix .. value,
-    })
 end
 
 -- Push a sub-menu listing referenced DLC / Mods names. Mirrors the base

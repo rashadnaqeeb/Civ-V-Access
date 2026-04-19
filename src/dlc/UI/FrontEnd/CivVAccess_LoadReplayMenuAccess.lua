@@ -28,6 +28,7 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_PickerReader")
+include("CivVAccess_SavedGameShared")
 include("CivVAccess_LoadReplayMenuCore")
 
 Log.info("LoadReplayMenuAccess: wiring PickerReader over base LoadReplayMenu")

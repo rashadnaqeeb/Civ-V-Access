@@ -33,77 +33,16 @@ SaveMenu = {}
 
 local READER_TAB_IDX = 2
 
-local HEADER_KEYS = {
-    mapType    = "TXT_KEY_AD_SETUP_MAP_TYPE",
-    mapSize    = "TXT_KEY_AD_SETUP_MAP_SIZE",
-    difficulty = "TXT_KEY_AD_SETUP_HANDICAP",
-    gameSpeed  = "TXT_KEY_GAME_SPEED",
-}
-
--- --------------------------------------------------------------------------
--- Helpers
+local HEADER_KEYS      = SavedGameShared.HEADER_KEYS
+local stripPath        = SavedGameShared.stripPath
+local parseId          = SavedGameShared.parseId
+local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
+local gameTypeLabel    = SavedGameShared.gameTypeLabel
+local descOf           = SavedGameShared.descOf
+local addField         = SavedGameShared.addField
 
 local function isMultiplayerStarted()
     return PreGame.IsMultiplayerGame() and PreGame.GameStarted()
-end
-
-local function parseId(id)
-    local kind, idxStr = string.match(id or "", "^(%a+):(%d+)$")
-    if kind == nil then return nil end
-    return kind, tonumber(idxStr)
-end
-
-local function resolveLeaderCiv(header)
-    local civName        = Text.key("TXT_KEY_MISC_UNKNOWN")
-    local leaderDescText = Text.key("TXT_KEY_MISC_UNKNOWN")
-    local civ = GameInfo.Civilizations[header.PlayerCivilization]
-    if civ ~= nil then
-        civName = Text.key(civ.Description)
-        local row = GameInfo.Civilization_Leaders(
-            "CivilizationType = '" .. civ.Type .. "'")()
-        if row ~= nil then
-            local leader = GameInfo.Leaders[row.LeaderheadType]
-            if leader ~= nil then
-                leaderDescText = Text.key(leader.Description)
-            end
-        end
-    end
-    if header.LeaderName ~= nil and header.LeaderName ~= "" then
-        leaderDescText = header.LeaderName
-    end
-    if header.CivilizationName ~= nil and header.CivilizationName ~= "" then
-        civName = header.CivilizationName
-    end
-    return leaderDescText, civName
-end
-
-local function gameTypeLabel(header)
-    if header.GameType == GameTypes.GAME_HOTSEAT_MULTIPLAYER then
-        return Text.key("TXT_KEY_MULTIPLAYER_HOTSEAT_GAME")
-    elseif header.GameType == GameTypes.GAME_NETWORK_MULTIPLAYER then
-        return Text.key("TXT_KEY_MULTIPLAYER_STRING")
-    elseif header.GameType == GameTypes.GAME_SINGLE_PLAYER then
-        return Text.key("TXT_KEY_SINGLE_PLAYER")
-    end
-    return nil
-end
-
-local function descOf(row)
-    if row == nil or row.Description == nil then
-        return Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    return Text.key(row.Description)
-end
-
-local function addField(leaves, headerKey, value)
-    if value == nil or value == "" then return end
-    local prefix = ""
-    if headerKey ~= nil and headerKey ~= "" then
-        prefix = Text.key(headerKey) .. ": "
-    end
-    leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = prefix .. value,
-    })
 end
 
 -- --------------------------------------------------------------------------
@@ -193,32 +132,12 @@ end
 local function pushDeleteConfirm(mainHandler, entry)
     local label = Text.format(
         "TXT_KEY_CIVVACCESS_SAVE_DELETE_CONFIRM", entry.DisplayName)
-    local subName = mainHandler.name .. "/DeleteConfirm"
-    local sub = BaseMenu.create({
-        name        = subName,
-        displayName = label,
-        items = {
-            BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_NO_BUTTON",
-                activate = function()
-                    HandlerStack.removeByName(subName, true)
-                end,
-            }),
-            BaseMenuItems.Choice({
-                textKey  = "TXT_KEY_YES_BUTTON",
-                activate = function()
-                    performDelete(entry.FileName)
-                    mainHandler.setItems({
-                        BaseMenuItems.Text({
-                            textKey = "TXT_KEY_CIVVACCESS_SAVE_DELETED" }),
-                    }, READER_TAB_IDX)
-                    HandlerStack.removeByName(subName, true)
-                end,
-            }),
-        },
-        escapePops = true,
-    })
-    HandlerStack.push(sub)
+    pushConfirmSub(mainHandler, "DeleteConfirm", label, function()
+        performDelete(entry.FileName)
+        mainHandler.setItems({
+            BaseMenuItems.Text({ textKey = "TXT_KEY_CIVVACCESS_SAVE_DELETED" }),
+        }, READER_TAB_IDX)
+    end)
 end
 
 -- Top-level Save action on the picker tab. Reads the current NameBox text,
@@ -378,11 +297,6 @@ end
 -- --------------------------------------------------------------------------
 -- Picker builder
 
-local function stripPath(filename)
-    if filename == nil or filename == "" then return "" end
-    return Path.GetFileNameWithoutExtension(filename)
-end
-
 -- Build picker-tab items from current engine state. In local mode the
 -- Textfield + Save action + Cloud checkbox sit at the top; saves follow.
 -- In cloud mode the Textfield / Save action are omitted (NameBoxFrame is
@@ -464,7 +378,7 @@ function SaveMenu.buildPickerItems(entryFactory, mainHandlerRef)
     -- when inCloudMode is true and g_SavedGames is somehow empty (shouldn't
     -- happen since cloud mode always builds s_maxCloudSaves slots), or in
     -- local mode when no saves exist AND our top three fixed items somehow
-    -- didn't make it in (also shouldn't happen). Defensive.
+    -- didn't make it in (also shouldn't happen).
     if #items == 0 then
         items[#items + 1] = BaseMenuItems.Text({
             textKey = "TXT_KEY_CIVVACCESS_SAVE_NO_SAVES",
