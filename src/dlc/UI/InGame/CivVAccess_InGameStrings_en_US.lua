@@ -51,6 +51,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_ARTICLE"]            = "No artic
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"]         = "No content for this entry."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"]  = "No entry selected. Switch to the categories tab to pick one."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_INTRO"]                 = "Intro"
+-- SaveMenu. Two-tab picker/reader over the in-game Save screen. Picker lists
+-- existing saves (or cloud slots); reader shows header fields and exposes
+-- the Overwrite / Save-to-slot / Delete actions behind pushed Yes/No subs.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_SAVES_TAB"]              = "Saves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_DETAILS_TAB"]            = "Save details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_NO_SAVES"]               = "No saves in this list."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_NAME_LABEL"]             = "Save name"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_INVALID_NAME"]           = "Save name is empty or contains invalid characters."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_ACTION"]       = "Overwrite this save"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_TO_SLOT_ACTION"]         = "Save to this slot"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_CONFIRM"]      = "Overwrite {1_Name}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_OVERWRITE_CLOUD_CONFIRM"] = "Overwrite Steam Cloud slot {1_Num}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_DELETE_CONFIRM"]         = "Delete {1_Name}?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_DELETED"]                = "Save deleted."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_CLOUD_SLOT_EMPTY"]       = "Steam Cloud slot {1_Num}: empty"
 -- Spoken replacements for [ICON_*] markup. Registered into TextFilter by
 -- CivVAccess_Icons.lua; the filter substitutes the bracket token inline
 -- with the spoken text. Singular / plural wording is deliberately relaxed
