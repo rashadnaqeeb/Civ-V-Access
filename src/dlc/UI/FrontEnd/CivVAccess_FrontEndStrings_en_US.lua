@@ -29,6 +29,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"]       = "Multiplaye
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB"]       = "Players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_OPTIONS_TAB"]       = "Game options"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SLOT_TYPE"]                 = "Slot type"
+-- No engine-side sibling to TXT_KEY_AD_SETUP_CIVILIZATION / HANDICAP for team;
+-- base's TeamLabel holds the value ("Team 1") but there's no standalone "Team"
+-- label key in CIV5GameTextInfos_FrontEndScreens.xml. Mod-owned.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEAM"]                      = "Team"
+-- TXT_KEY_AD_SETUP_CIVILIZATION is a format string ("Civilizations: {1_count}")
+-- whose Locale expansion with no count comes back empty, which then trips
+-- BaseMenu.create's required-displayName assertion when the user activates
+-- the pulldown. Mod-owned plain label instead.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CIVILIZATION"]              = "Civilization"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_READY"]             = "ready"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST"]              = "host"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_STATUS"]      = "{1_Name}, {2_Status}"

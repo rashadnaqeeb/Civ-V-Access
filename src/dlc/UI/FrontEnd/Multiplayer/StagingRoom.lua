@@ -1,6 +1,11 @@
-------------------------------------------------- 
+-------------------------------------------------
 -- Staging Room Screen
 -------------------------------------------------
+-- CivVAccess: widget-metatable probes have to install before this chunk's
+-- Register*Callback calls run, so the access layer can capture click /
+-- check handlers for keyboard activation. Idempotent per Context via
+-- civvaccess_shared flags.
+include("CivVAccess_ProbeBoot")
 include( "IconSupport" );
 include( "SupportFunctions"  );
 include( "InstanceManager" );

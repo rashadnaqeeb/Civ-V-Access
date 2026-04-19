@@ -24,7 +24,21 @@
 include("CivVAccess_FrontendCommon")
 
 local priorShowHide = ShowHideHandler
-local priorInput    = InputHandler
+-- Base StagingRoom InputHandler grabs focus to Controls.ChatEntry on every
+-- Tab / Enter KEY_UP (to make chat input the default typing target). That
+-- steals keyboard focus from our menu the instant the user activates
+-- anything, so arrow keys after the first Enter press go to the edit box
+-- instead of our navigation. Filter those specific messages before forwarding
+-- so the engine never sees them. Leave edit-mode handling to BaseMenuInstall
+-- (it already claims Enter KEY_UP while a textfield is being edited).
+local basePriorInput = InputHandler
+local function priorInput(msg, wp, lp)
+    if msg == 257 and (wp == Keys.VK_TAB or wp == Keys.VK_RETURN) then
+        return true
+    end
+    if basePriorInput then return basePriorInput(msg, wp, lp) end
+    return false
+end
 
 local MAX_SLOTS = GameDefines.MAX_MAJOR_CIVS
 
@@ -39,6 +53,17 @@ local function safeText(getter, context)
         return ""
     end
     if t == nil then return "" end
+    return tostring(t)
+end
+
+-- Pulldown valueFn helper: read the sibling Label control whose GetText
+-- holds the selected value for team / slot-type / handicap / civ pulldowns.
+-- Returns nil for empty / error so Pulldown.announce drops the value part
+-- rather than speaking "Team, " with a trailing comma.
+local function labelText(labelControl)
+    if labelControl == nil then return nil end
+    local ok, t = pcall(function() return labelControl:GetText() end)
+    if not ok or t == nil or t == "" then return nil end
     return tostring(t)
 end
 
@@ -114,6 +139,19 @@ local function slotSummary(playerID)
     if playerID == Matchmaking.GetHostID() then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_STAGING_HOST")
     end
+    -- Safety net: the user reported a blank leading line. If every branch
+    -- above declined to add a part (unmapped status, nil nickname, random
+    -- civ, no team, not ready, not host), the Group would announce as the
+    -- empty string. Log once and fall back to a generic identifier so the
+    -- seat is at least reachable.
+    if #parts == 0 then
+        Log.warn("StagingRoomAccess: empty slotSummary for playerID="
+            .. tostring(playerID) .. " status=" .. tostring(status)
+            .. " civ=" .. tostring(PreGame.GetCivilization(playerID))
+            .. " team=" .. tostring(PreGame.GetTeam(playerID))
+            .. " nick='" .. tostring(PreGame.GetNickName(playerID)) .. "'")
+        return Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN")
+    end
     return table.concat(parts, ", ")
 end
 
@@ -127,13 +165,17 @@ end
 local function slotChildren(instance)
     return {
         BaseMenuItems.Pulldown({ control = instance.CivPulldown,
-            textKey = "TXT_KEY_AD_SETUP_CIVILIZATION" }),
+            textKey = "TXT_KEY_CIVVACCESS_CIVILIZATION",
+            valueFn = function() return labelText(instance.CivLabel) end }),
         BaseMenuItems.Pulldown({ control = instance.TeamPulldown,
-            textKey = "TXT_KEY_AD_SETUP_TEAM" }),
+            textKey = "TXT_KEY_CIVVACCESS_TEAM",
+            valueFn = function() return labelText(instance.TeamLabel) end }),
         BaseMenuItems.Pulldown({ control = instance.SlotTypePulldown,
-            textKey = "TXT_KEY_CIVVACCESS_SLOT_TYPE" }),
+            textKey = "TXT_KEY_CIVVACCESS_SLOT_TYPE",
+            valueFn = function() return labelText(instance.SlotTypeLabel) end }),
         BaseMenuItems.Pulldown({ control = instance.HandicapPulldown,
-            textKey = "TXT_KEY_AD_SETUP_HANDICAP" }),
+            textKey = "TXT_KEY_AD_SETUP_HANDICAP",
+            valueFn = function() return labelText(instance.HandicapLabel) end }),
         BaseMenuItems.Checkbox({ control = instance.LockCheck,
             textKey = "TXT_KEY_MP_LOCK_SLOT" }),
         BaseMenuItems.Checkbox({ control = instance.EnableCheck,
@@ -168,19 +210,21 @@ end
 local function localSeatChildren()
     return {
         BaseMenuItems.Pulldown({ controlName = "CivPulldown",
-            textKey = "TXT_KEY_AD_SETUP_CIVILIZATION" }),
+            textKey = "TXT_KEY_CIVVACCESS_CIVILIZATION",
+            valueFn = function() return labelText(Controls.CivLabel) end }),
         BaseMenuItems.Pulldown({ controlName = "TeamPulldown",
-            textKey = "TXT_KEY_AD_SETUP_TEAM" }),
+            textKey = "TXT_KEY_CIVVACCESS_TEAM",
+            valueFn = function() return labelText(Controls.TeamLabel) end }),
         BaseMenuItems.Pulldown({ controlName = "SlotTypePulldown",
-            textKey = "TXT_KEY_CIVVACCESS_SLOT_TYPE" }),
+            textKey = "TXT_KEY_CIVVACCESS_SLOT_TYPE",
+            valueFn = function() return labelText(Controls.SlotTypeLabel) end }),
         BaseMenuItems.Pulldown({ controlName = "HandicapPulldown",
-            textKey = "TXT_KEY_AD_SETUP_HANDICAP" }),
+            textKey = "TXT_KEY_AD_SETUP_HANDICAP",
+            valueFn = function() return labelText(Controls.HandicapLabel) end }),
         BaseMenuItems.Button({ controlName = "LocalEditButton",
             textKey = "TXT_KEY_EDIT_BUTTON",
             activate = function()
-                if type(OnEditLocalPlayer) == "function" then
-                    OnEditLocalPlayer()
-                end
+                if type(OnEditHost) == "function" then OnEditHost() end
             end }),
     }
 end
@@ -217,7 +261,7 @@ local function playersItems()
     end
 
     items[#items + 1] = BaseMenuItems.Button({ controlName = "LaunchButton",
-        textKey  = "TXT_KEY_LAUNCH_GAME",
+        textKey  = "TXT_KEY_MULTIPLAYER_LAUNCH_GAME",
         activate = function() if type(LaunchGame) == "function" then LaunchGame() end end })
     items[#items + 1] = BaseMenuItems.Button({ controlName = "BackButton",
         textKey  = "TXT_KEY_BACK_BUTTON",
@@ -346,12 +390,14 @@ end
 
 local function onPreGameDirty()
     if ContextPtr:IsHidden() then return end
+    Log.info("StagingRoomAccess: onPreGameDirty fired")
     local old = civvaccess_shared._stagingSnapshot
     local new = {}
     for pid = 0, MAX_SLOTS - 1 do new[pid] = snapshotFor(pid) end
     announceDeltas(new, old)
     civvaccess_shared._stagingSnapshot = new
     refreshMenu()
+    Log.info("StagingRoomAccess: onPreGameDirty done")
 end
 
 local function onChat(fromPlayer, toPlayer, text, eTargetType)
@@ -396,13 +442,21 @@ end
 -- Install -------------------------------------------------------------
 
 local function wrappedShowHide(bIsHide, bIsInit)
-    priorShowHide(bIsHide, bIsInit)
+    Log.info("StagingRoomAccess: wrappedShowHide hide=" .. tostring(bIsHide)
+        .. " init=" .. tostring(bIsInit))
+    local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
+    if not ok then
+        Log.error("StagingRoomAccess: priorShowHide failed: " .. tostring(err))
+    end
+    Log.info("StagingRoomAccess: priorShowHide returned")
     if bIsHide then return end
     installListeners()
+    Log.info("StagingRoomAccess: installListeners returned")
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
     -- every show, so the shared slot table is populated by the time we build
     -- items here.
     takeSnapshot()
+    Log.info("StagingRoomAccess: takeSnapshot returned")
 end
 
 handler = BaseMenu.install(ContextPtr, {
@@ -410,7 +464,13 @@ handler = BaseMenu.install(ContextPtr, {
     displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
     priorShowHide = wrappedShowHide,
     priorInput    = priorInput,
-    onShow        = function(h) h.setItems(playersItems(), 1) end,
+    onShow        = function(h)
+        Log.info("StagingRoomAccess: onShow entered")
+        local items = playersItems()
+        Log.info("StagingRoomAccess: playersItems built " .. #items .. " entries")
+        h.setItems(items, 1)
+        Log.info("StagingRoomAccess: setItems returned")
+    end,
     tabs = {
         {
             name  = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",
