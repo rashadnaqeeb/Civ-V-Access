@@ -143,8 +143,14 @@ end
 
 -- Details tab ----------------------------------------------------------
 
--- leaderLabel honors PopulateGameData's three-branch precedence: nickname
--- in network MP, PreGame slot-0 custom leader name, GameInfo fallback.
+-- Each label helper returns nil (or "") when the game state doesn't
+-- resolve to a row -- scenarios and WB-loaded maps can leave
+-- PreGame.GetMapScript with no GameInfo.MapScripts match, for instance.
+-- buildDetailsItems skips nil/empty so those rows don't become silent
+-- navigable Text entries (BaseMenuItems.Text is always navigable).
+
+-- Mirrors PopulateGameData's three-branch precedence: nickname in
+-- network MP, PreGame slot-0 custom leader name, GameInfo fallback.
 local function leaderLabel()
     local pPlayer = Players[Game.GetActivePlayer()]
     local nick    = pPlayer:GetNickName()
@@ -153,63 +159,74 @@ local function leaderLabel()
     return Locale.ConvertTextKey(GameInfo.Leaders[pPlayer:GetLeaderType()].Description)
 end
 
+local function civLabel()
+    if PreGame.GetCivilizationShortDescription(0) ~= "" then
+        return PreGame.GetCivilizationShortDescription(0)
+    end
+    local t = Players[Game.GetActivePlayer()]:GetCivilizationType()
+    return Locale.ConvertTextKey(GameInfo.Civilizations[t].ShortDescription)
+end
+
+local function eraLabel()
+    local era = PreGame.GetEra()
+    if era == nil then return nil end
+    local row = GameInfo.Eras[era]
+    if row == nil then return nil end
+    return Locale.ConvertTextKey("TXT_KEY_START_ERA",
+        Locale.ConvertTextKey(row.Description))
+end
+
+local function mapTypeLabel()
+    local fileName = PreGame.GetMapScript()
+    for row in GameInfo.MapScripts() do
+        if row.FileName == fileName then
+            return Locale.ConvertTextKey("TXT_KEY_AD_MAP_TYPE_SETTING",
+                Locale.ConvertTextKey(row.Name))
+        end
+    end
+    return nil
+end
+
+local function mapSizeLabel()
+    local info = GameInfo.Worlds[PreGame.GetWorldSize()]
+    if info == nil then return nil end
+    return Locale.ConvertTextKey("TXT_KEY_AD_MAP_SIZE_SETTING",
+        Locale.ConvertTextKey(info.Description))
+end
+
+local function handicapLabel()
+    local info = GameInfo.HandicapInfos[PreGame.GetHandicap(Game.GetActivePlayer())]
+    if info == nil then return nil end
+    return Locale.ConvertTextKey("TXT_KEY_AD_HANDICAP_SETTING",
+        Locale.ConvertTextKey(info.Description))
+end
+
+local function speedLabel()
+    local info = GameInfo.GameSpeeds[PreGame.GetGameSpeed()]
+    if info == nil then return nil end
+    return Locale.ConvertTextKey("TXT_KEY_AD_GAME_SPEED_SETTING",
+        Locale.ConvertTextKey(info.Description))
+end
+
 local function buildDetailsItems()
     local items = {}
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = leaderLabel })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
-        if PreGame.GetCivilizationShortDescription(0) ~= "" then
-            return PreGame.GetCivilizationShortDescription(0)
-        end
-        local t = Players[Game.GetActivePlayer()]:GetCivilizationType()
-        return Locale.ConvertTextKey(GameInfo.Civilizations[t].ShortDescription)
-    end })
-    if PreGame.GetEra() ~= nil then
-        items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
-            local row = GameInfo.Eras[PreGame.GetEra()]
-            if row == nil then return "" end
-            return Locale.ConvertTextKey("TXT_KEY_START_ERA",
-                Locale.ConvertTextKey(row.Description))
-        end })
+    local function add(text)
+        if text == nil or text == "" then return end
+        items[#items + 1] = BaseMenuItems.Text({ labelText = text })
     end
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
-        local fileName = PreGame.GetMapScript()
-        for row in GameInfo.MapScripts() do
-            if row.FileName == fileName then
-                return Locale.ConvertTextKey("TXT_KEY_AD_MAP_TYPE_SETTING",
-                    Locale.ConvertTextKey(row.Name))
-            end
-        end
-        return ""
-    end })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
-        local info = GameInfo.Worlds[PreGame.GetWorldSize()]
-        if info == nil then return "" end
-        return Locale.ConvertTextKey("TXT_KEY_AD_MAP_SIZE_SETTING",
-            Locale.ConvertTextKey(info.Description))
-    end })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
-        local info = GameInfo.HandicapInfos[PreGame.GetHandicap(Game.GetActivePlayer())]
-        if info == nil then return "" end
-        return Locale.ConvertTextKey("TXT_KEY_AD_HANDICAP_SETTING",
-            Locale.ConvertTextKey(info.Description))
-    end })
-    items[#items + 1] = BaseMenuItems.Text({ labelFn = function()
-        local info = GameInfo.GameSpeeds[PreGame.GetGameSpeed()]
-        if info == nil then return "" end
-        return Locale.ConvertTextKey("TXT_KEY_AD_GAME_SPEED_SETTING",
-            Locale.ConvertTextKey(info.Description))
-    end })
 
-    -- Filter disabled rows at build time: BaseMenuItems.Text is always
-    -- navigable, so an empty labelFn would leave a silent reachable item.
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Locale.ConvertTextKey("TXT_KEY_VICTORYS_FORMAT"),
-    })
+    add(leaderLabel())
+    add(civLabel())
+    add(eraLabel())
+    add(mapTypeLabel())
+    add(mapSizeLabel())
+    add(handicapLabel())
+    add(speedLabel())
+
+    add(Locale.ConvertTextKey("TXT_KEY_VICTORYS_FORMAT"))
     for row in GameInfo.Victories() do
         if PreGame.IsVictory(row.ID) then
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey(row.Description),
-            })
+            add(Locale.ConvertTextKey(row.Description))
         end
     end
 
@@ -222,9 +239,7 @@ local function buildDetailsItems()
     for option in GameInfo.GameOptions(conditions) do
         local saved = PreGame.GetGameOption(option.Type)
         if saved ~= nil and saved == 1 then
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Locale.ConvertTextKey(option.Description),
-            })
+            add(Locale.ConvertTextKey(option.Description))
         end
     end
 
