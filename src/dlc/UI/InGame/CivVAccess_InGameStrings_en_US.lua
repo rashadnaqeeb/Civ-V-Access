@@ -51,6 +51,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"]          = "{1_Label
 -- GameMenu (Esc pause menu) strings. Details tab reuses the base game's
 -- TXT_KEY_POPUP_GAME_DETAILS, so no mod-authored tab label here.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_MENU"]            = "Pause Menu"
+-- GenericPopup (the shared Context behind AnnexCity / PuppetCity /
+-- ConfirmCommand / DeclareWar / BarbarianRansom / etc.). One display name
+-- for all of them; the per-popup text comes from the base via preamble.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GENERIC_POPUP"]        = "Popup"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"]        = "Actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"]           = "Mods"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"]            = "No mods activated."
