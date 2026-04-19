@@ -785,6 +785,9 @@ local function wrapCountdown()
     StopCountdown = function(...)
         local wasActive = (g_fCountdownTimer or -1) > 0
         baseStopCountdown(...)
+        -- Base StopCountdown calls ContextPtr:ClearUpdate(), which removes our
+        -- TickPump wiring. Re-arm so deferred callbacks fire after a countdown.
+        TickPump.install(ContextPtr)
         if wasActive and not _countdownExpired then
             SpeechPipeline.speakInterrupt(
                 Text.key("TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"))
@@ -1060,6 +1063,11 @@ local function wrappedShowHide(bIsHide, bIsInit)
         closeChatPanel(false)
         return
     end
+    -- Base ShowHideHandler calls StopCountdown() on every show (to clear any
+    -- leftover countdown), which calls ContextPtr:ClearUpdate() and wipes the
+    -- TickPump wiring BaseMenu.install set at module load. Re-arm it here so
+    -- deferred callbacks (BaseMenuEditMode TakeFocus, etc.) keep running.
+    TickPump.install(ContextPtr)
     installListeners()
     wrapCountdown()
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
