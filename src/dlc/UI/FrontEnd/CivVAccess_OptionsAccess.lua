@@ -387,10 +387,17 @@ end
 
 local origOnCountdownNo = OnCountdownNo
 function OnCountdownNo()
+    -- Base OptionsMenu.OnBack calls OnCountdownNo defensively on every Esc,
+    -- even when the Countdown popup was never raised. Snapshot visibility
+    -- before origOnCountdownNo hides it, so we only speak / pop when a
+    -- real countdown was dismissed.
+    local wasShowing = Controls.Countdown
+        and not Controls.Countdown:IsHidden()
     local wasUserAction = countdownUserAction ~= nil
     countdownUserAction = nil
     origOnCountdownNo()
     pcall(function() TickPump.install(ContextPtr) end)
+    if not wasShowing then return end
     if wasUserAction then
         HandlerStack.removeByName(countdownPopup.name, true)
     else
