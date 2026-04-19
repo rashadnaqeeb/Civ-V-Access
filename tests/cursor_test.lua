@@ -52,14 +52,6 @@ function M.test_owner_identity_unclaimed()
     T.eq(id, "unclaimed")
 end
 
-function M.test_owner_identity_unexplored_short_circuits_owner_lookup()
-    setup()
-    local p = T.fakePlot({ revealed = false, owner = 99 })  -- owner ignored when unexplored
-    local spoken, id = PlotSections.ownerIdentity(p)
-    T.eq(spoken, "unexplored")
-    T.eq(id, "unexplored")
-end
-
 function M.test_owner_identity_civ_uses_short_description()
     setup()
     Players[3] = T.fakePlayer({ shortDesc = "Arabia", adj = "Arabian" })
@@ -265,13 +257,7 @@ end
 
 -- ===== Composer integration =====
 
-function M.test_glance_unexplored_short_circuits()
-    setup()
-    local p = T.fakePlot({ revealed = false })
-    T.eq(PlotComposers.glance(p), "unexplored")
-end
-
-function M.test_glance_no_units_when_fogged()
+function M.test_glance_fog_marker_and_no_units_when_fogged()
     setup()
     Players[0] = T.fakePlayer({ adj = "Roman" })
     GameInfo.Terrains[1] = { Description = "Plains" }
@@ -281,6 +267,17 @@ function M.test_glance_no_units_when_fogged()
     local out = PlotComposers.glance(p)
     T.truthy(not out:find("Warrior", 1, true), "fogged plot must not leak unit info: " .. out)
     T.truthy(out:find("Plains", 1, true), "fogged plot still reads stale terrain: " .. out)
+    T.truthy(out:find("fog", 1, true), "fogged plot must be marked with 'fog' token: " .. out)
+    -- Fog marker goes first so the user hears "data is stale" before the data.
+    T.truthy(out:sub(1, 3) == "fog", "fog token must lead the glance: " .. out)
+end
+
+function M.test_glance_visible_omits_fog_marker()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local p = T.fakePlot({ revealed = true, visible = true, terrain = 1 })
+    local out = PlotComposers.glance(p)
+    T.truthy(not out:find("fog", 1, true), "visible plot must not carry a fog marker: " .. out)
 end
 
 function M.test_economy_yields_skip_zeros_and_visible_only()
@@ -471,6 +468,144 @@ function M.test_cursor_recenter_no_unit_selected_speaks_message_and_does_not_mov
     Cursor.init()
     UI.GetHeadSelectedUnit = function() return nil end
     T.eq(Cursor.recenter(), "no unit selected")
+end
+
+function M.test_cursor_move_onto_unexplored_is_silent()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local start  = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local unseen = T.fakePlot({ x = 1, y = 0, revealed = false })
+    local plotByXY = { ["0,0"] = start, ["1,0"] = unseen }
+    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        return nil
+    end
+    local u = T.fakeUnit({}); u._plot = start
+    UI.GetHeadSelectedUnit = function() return u end
+    Cursor.init()
+    T.eq(Cursor.move(DirectionTypes.DIRECTION_EAST), "",
+         "move onto unexplored tile must be silent")
+end
+
+function M.test_cursor_move_onto_fogged_tile_injects_fog_marker()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local start  = T.fakePlot({ x = 0, y = 0, terrain = 1 })
+    local fogged = T.fakePlot({ x = 1, y = 0, revealed = true, visible = false,
+                                terrain = 1 })
+    local plotByXY = { ["0,0"] = start, ["1,0"] = fogged }
+    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        return nil
+    end
+    local u = T.fakeUnit({}); u._plot = start
+    UI.GetHeadSelectedUnit = function() return u end
+    Cursor.init()
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(out:find("fog", 1, true), "fogged move must include 'fog' token: " .. out)
+    T.truthy(out:find("Plains", 1, true), "fogged move still reads stale terrain: " .. out)
+end
+
+function M.test_cursor_owner_diff_does_not_fire_across_unexplored_gap()
+    -- Move pattern: unclaimed-a (fires prefix) → unexplored (silent) →
+    -- unclaimed-c. The third tile must NOT fire the owner prefix because
+    -- identity is still "unclaimed" from the first move; unexplored is a
+    -- visibility state, not an ownership state, and does not touch the diff.
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, terrain = 1, owner = -1 })
+    local a     = T.fakePlot({ x = 1, y = 0, terrain = 1, owner = -1 })
+    local b     = T.fakePlot({ x = 2, y = 0, revealed = false })
+    local c     = T.fakePlot({ x = 3, y = 0, terrain = 1, owner = -1 })
+    local plotByXY = { ["0,0"] = start, ["1,0"] = a, ["2,0"] = b, ["3,0"] = c }
+    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then return plotByXY[(x + 1) .. "," .. y] end
+        return nil
+    end
+    local u = T.fakeUnit({}); u._plot = start
+    UI.GetHeadSelectedUnit = function() return u end
+    Cursor.init()
+    local first = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto a: "unclaimed. Plains."
+    T.truthy(first:find("unclaimed", 1, true), "first move must announce owner: " .. first)
+    Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto b (unexplored), silent
+    local third = Cursor.move(DirectionTypes.DIRECTION_EAST)  -- onto c
+    T.truthy(not third:find("unclaimed", 1, true),
+        "crossing unexplored must not retrigger the owner prefix: " .. third)
+end
+
+-- ===== Combat reachability =====
+
+local function setupReachability(opts)
+    -- Linear chain of plots at y=0 from x=0 to x=length. Unit at (0,0),
+    -- cursor at (length, 0). opts.moveCost applied to all plots; opts.moves
+    -- bounds the unit's per-turn budget.
+    setup()
+    local plotByXY = {}
+    for i = 0, opts.length do
+        plotByXY[i .. ",0"] = T.fakePlot({ x = i, y = 0, moveCost = opts.moveCost or 60 })
+    end
+    Map.GetPlot = function(x, y) return plotByXY[x .. "," .. y] end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST  then return plotByXY[(x + 1) .. "," .. y] end
+        if dir == DirectionTypes.DIRECTION_WEST  then return plotByXY[(x - 1) .. "," .. y] end
+        return nil
+    end
+    local unit = T.fakeUnit({ movesLeft = opts.moves or 120 })
+    unit._plot = plotByXY["0,0"]
+    UI.GetHeadSelectedUnit = function() return unit end
+    return plotByXY, unit
+end
+
+function M.test_combat_reachability_one_step_reports_cost()
+    local plots = setupReachability({ length = 1, moves = 120, moveCost = 60 })
+    T.truthy(PlotComposers.combat(plots["1,0"]):find("1 moves", 1, true),
+        "adjacent flat tile should read '1 moves'")
+end
+
+function M.test_combat_reachability_out_of_range_when_budget_insufficient()
+    local plots = setupReachability({ length = 3, moves = 120, moveCost = 60 })
+    T.truthy(PlotComposers.combat(plots["3,0"]):find("out of range", 1, true),
+        "3-tile walk with 2-move budget must be out of range")
+end
+
+function M.test_combat_reachability_multi_step_accumulates_cost()
+    -- Road-like reduced cost: each tile 20 units (1/3 move). Two steps = 2/3.
+    local plots = setupReachability({ length = 2, moves = 120, moveCost = 20 })
+    local out = PlotComposers.combat(plots["2,0"])
+    T.truthy(out:find("0.7 moves", 1, true) or out:find("0.6 moves", 1, true),
+        "2-step road should report fractional move cost: " .. out)
+end
+
+function M.test_combat_reachability_skipped_when_cursor_on_unit_plot()
+    local plots = setupReachability({ length = 1, moves = 120 })
+    local out = PlotComposers.combat(plots["0,0"])
+    T.truthy(not out:find("moves", 1, true), "on unit's own plot: no cost slot")
+    T.truthy(not out:find("out of range", 1, true), "on unit's own plot: no range slot")
+end
+
+function M.test_combat_reachability_skipped_when_no_unit_selected()
+    setup()
+    UI.GetHeadSelectedUnit = function() return nil end
+    local p = T.fakePlot({ x = 0, y = 0 })
+    local out = PlotComposers.combat(p)
+    T.truthy(not out:find("moves", 1, true), "no selected unit: reachability slot silent")
+    T.truthy(not out:find("out of range", 1, true), "no selected unit: no range call")
+end
+
+function M.test_combat_reachability_impassable_blocks_path()
+    local plots = setupReachability({ length = 1, moves = 120 })
+    -- Mark the unit as unable to enter anything; adjacent tile should
+    -- come back "out of range" rather than a cost.
+    UI.GetHeadSelectedUnit = function()
+        local u = T.fakeUnit({ movesLeft = 120, canMove = false })
+        u._plot = plots["0,0"]
+        return u
+    end
+    T.truthy(PlotComposers.combat(plots["1,0"]):find("out of range", 1, true),
+        "blocked movement must read out of range")
 end
 
 return M

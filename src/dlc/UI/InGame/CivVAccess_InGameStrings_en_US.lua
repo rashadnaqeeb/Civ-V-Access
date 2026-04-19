@@ -17,8 +17,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"]              = "nw"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"]         = "edge of map"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNCLAIMED"]           = "unclaimed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNEXPLORED"]          = "unexplored"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"]                 = "fog"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"]          = "capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_UNIT_SELECTED"]    = "no unit selected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OUT_OF_RANGE"]        = "out of range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"]          = "{1_Moves} moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_PREFIX"]        = "river"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"]     = "river all sides"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"]         = "fresh water"
@@ -32,7 +35,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"]      = "{1_Build} {2_Tur
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_WORKED_BY"]           = "worked by {1_City}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"]         = "{1_Pct} percent defense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"]     = "in enemy zone of control"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEEDS_TECH_TO_USE"]   = "requires {1_Tech}"
 -- Cursor help-overlay key labels: chord forms shared with the main letter
 -- cluster. One TXT_KEY per chord because Help dedupes by keyLabel string and
 -- the chords don't merge cleanly into a single label (Q is its own meaning).

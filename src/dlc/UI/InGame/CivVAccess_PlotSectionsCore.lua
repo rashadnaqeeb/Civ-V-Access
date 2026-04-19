@@ -26,14 +26,13 @@ local function lookupName(table, id)
 end
 
 -- Owner identity used by the cursor's prefix diff and (offline) by tests.
--- Returns two values: the spoken string ("Arabia.", "Rome, Arabian.",
--- "unclaimed.") and an opaque identity token used only for diffing across
+-- Returns two values: the spoken string ("Arabia", "Rome, Arabian",
+-- "unclaimed") and an opaque identity token used only for diffing across
 -- moves. Two plots with the same identity token never re-trigger the prefix.
+-- Caller must guarantee the plot is revealed; unexplored is a visibility
+-- state, not an ownership state, and lives in the Cursor's gate.
 function PlotSections.ownerIdentity(plot)
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-    if not plot:IsRevealed(team, debug) then
-        return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED"), "unexplored"
-    end
     if plot:IsCity() then
         local city = plot:GetPlotCity()
         local owner = Players[city:GetOwner()]
@@ -155,6 +154,10 @@ PlotSections.resource = {
         else
             out[#out + 1] = name
         end
+        -- Tech-required-to-use note. Game key takes the tech's Description
+        -- text-key (not the resolved name) because the engine's format string
+        -- uses the {@N_Tag} form that resolves the arg as another text key.
+        -- The BNW tooltip (PlotMouseoverInclude.lua:233) does the same.
         local techType = row.TechCityTrade
         if techType ~= nil and GameInfoTypes ~= nil then
             local techId = GameInfoTypes[techType]
@@ -164,8 +167,8 @@ PlotSections.resource = {
                     local techRow = GameInfo.Technologies[techId]
                     if techRow ~= nil then
                         out[#out + 1] = Text.format(
-                            "TXT_KEY_CIVVACCESS_NEEDS_TECH_TO_USE",
-                            Text.key(techRow.Description))
+                            "TXT_KEY_PLOTROLL_REQUIRES_TECH_TO_USE",
+                            techRow.Description)
                     end
                 end
             end

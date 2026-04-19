@@ -58,27 +58,26 @@ function Cursor.init()
 end
 
 -- ===== Movement =====
+-- Visibility is a separate axis from ownership: unexplored tiles go silent
+-- (no audible feedback for moves through never-seen territory), fog appears
+-- as a marker token on the tile description, and visible tiles read fully.
+-- The owner-identity diff only tracks real ownership states (unclaimed /
+-- civ / city); it is not touched while unexplored.
 local function announceForMove(plot)
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-    -- Unexplored tiles get a single "unexplored" token; the owner-identity
-    -- machinery would otherwise double up the same word from the prefix
-    -- and the composer (both speak "unexplored" for a never-revealed tile).
-    -- Updating the diff token still lets the next REVEALED move trigger
-    -- the prefix correctly.
-    if not plot:IsRevealed(team, debug) then
-        if _lastOwnerIdentity == "unexplored" then return "" end
-        _lastOwnerIdentity = "unexplored"
-        return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
-    end
+    if not plot:IsRevealed(team, debug) then return "" end
     local spoken, identity = PlotSections.ownerIdentity(plot)
     local glance = PlotComposers.glance(plot)
+    local prefix = ""
     if identity ~= _lastOwnerIdentity then
         _lastOwnerIdentity = identity
-        if glance == "" then return spoken .. "." end
-        return spoken .. ". " .. glance .. "."
+        prefix = spoken .. ". "
     end
-    if glance == "" then return "" end
-    return glance .. "."
+    if glance == "" then
+        if prefix == "" then return "" end
+        return spoken .. "."
+    end
+    return prefix .. glance .. "."
 end
 
 function Cursor.move(direction)
