@@ -42,6 +42,7 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_CivDetails")
+include("CivVAccess_MPGameSetupShared")
 
 local priorShowHide = ShowHideHandler
 -- Base StagingRoom InputHandler grabs focus to Controls.ChatEntry on every
@@ -63,18 +64,6 @@ end
 local MAX_SLOTS = GameDefines.MAX_MAJOR_CIVS
 
 -- Helpers --------------------------------------------------------------
-
-local function safeText(getter, context)
-    local ok, t = pcall(getter)
-    if not ok then
-        Log.warn("StagingRoomAccess safeText"
-            .. (context and (" [" .. context .. "]") or "")
-            .. " failed: " .. tostring(t))
-        return ""
-    end
-    if t == nil then return "" end
-    return tostring(t)
-end
 
 -- Pulldown valueFn helper: read the sibling Label control whose GetText
 -- holds the selected value for team / slot-type / handicap / civ pulldowns.
@@ -124,10 +113,7 @@ end
 -- Leader+Civ), so keying by civID keeps us aligned with the actual
 -- selected civ regardless of sort.
 local function civEntryAnnounce(inst)
-    if inst == nil or inst.Button == nil then return nil end
-    local ok, civID = pcall(function() return inst.Button:GetVoid2() end)
-    if not ok then return nil end
-    return civRichLabelForID(civID)
+    return civRichLabelForID(inst.Button:GetVoid2())
 end
 
 local function civText(playerID)
@@ -225,7 +211,12 @@ end
 -- controls. isNavigable skips widgets whose control is hidden, which is how
 -- the engine signals "this field is read-only in this state" -- no mode
 -- special-casing needed here.
-local function slotChildren(instance)
+--
+-- slotIndex is the 1-based m_SlotInstances key -- what base's OnKickPlayer /
+-- OnSwapPlayer / OnEditPlayer expect as selectionIndex. They resolve it to
+-- a playerID via GetPlayerIDBySelectionIndex; passing the playerID directly
+-- would hit the 0 == local-player branch and misfire on the caller.
+local function slotChildren(slotIndex, instance)
     return {
         BaseMenuItems.Pulldown({ control = instance.CivPulldown,
             textKey = "TXT_KEY_CIVVACCESS_CIVILIZATION",
@@ -248,21 +239,21 @@ local function slotChildren(instance)
             labelText = Text.key("TXT_KEY_MP_KICK_PLAYER"),
             activate = function()
                 if type(OnKickPlayer) == "function" then
-                    OnKickPlayer(Mouse.eLClick, instance.playerID)
+                    OnKickPlayer(slotIndex)
                 end
             end }),
         BaseMenuItems.Button({ control = instance.SwapButton,
             labelText = Text.key("TXT_KEY_MP_SWAP_BUTTON_TT"),
             activate = function()
                 if type(OnSwapPlayer) == "function" then
-                    OnSwapPlayer(Mouse.eLClick, instance.playerID)
+                    OnSwapPlayer(slotIndex)
                 end
             end }),
         BaseMenuItems.Button({ control = instance.EditButton,
             textKey = "TXT_KEY_EDIT_BUTTON",
             activate = function()
                 if type(OnEditPlayer) == "function" then
-                    OnEditPlayer(Mouse.eLClick, instance.playerID)
+                    OnEditPlayer(slotIndex)
                 end
             end }),
     }
@@ -294,253 +285,10 @@ local function localSeatChildren()
     }
 end
 
--- Map-type entries: supported-size suffix -------------------------------
---
--- Copied from MPGameSetupAccess because StagingRoom reuses MPGameOptions'
--- RefreshMapScripts verbatim: same three shapes, same sort order (raw
--- string compare, no Random seed, no t[0]). Index i in our ipairs matches
--- pulldown entry index i one-to-one.
-
-local _mpMapSizeLabelsCache
-
-local function worldNameById(worldID)
-    local w = GameInfo.Worlds[worldID]
-    if w == nil then return nil end
-    return Text.key(w.Description)
-end
-
-local function worldNameByType(typeKey)
-    local w = GameInfo.Worlds[typeKey]
-    if w == nil then return nil end
-    return Text.key(w.Description)
-end
-
-local function mpMapTypeSizeLabels()
-    if _mpMapSizeLabelsCache ~= nil then return _mpMapSizeLabelsCache end
-
-    local mapScripts = {}
-    for row in GameInfo.MapScripts{SupportsMultiplayer = 1} do
-        mapScripts[#mapScripts + 1] = {
-            name     = Locale.ConvertTextKey(row.Name),
-            allSizes = true,
-        }
-    end
-    for row in GameInfo.Maps() do
-        local sizes = {}
-        for srow in GameInfo.Map_Sizes{MapType = row.Type} do
-            local s = worldNameByType(srow.WorldSizeType)
-            if s ~= nil then sizes[#sizes + 1] = s end
-        end
-        mapScripts[#mapScripts + 1] = {
-            name  = Locale.Lookup(row.Name),
-            sizes = sizes,
-        }
-    end
-    local filter = {}
-    for row in GameInfo.Map_Sizes() do filter[row.FileName] = true end
-    for _, map in ipairs(Modding.GetMapFiles()) do
-        if not filter[map.File] then
-            local wb = UI.GetMapPreview(map.File)
-            local name
-            if map.Name and not Locale.IsNilOrWhitespace(map.Name) then
-                name = map.Name
-            elseif wb ~= nil and not Locale.IsNilOrWhitespace(wb.Name) then
-                name = Locale.Lookup(wb.Name)
-            else
-                name = Path.GetFileNameWithoutExtension(map.File)
-            end
-            local sizes = {}
-            if wb ~= nil and wb.MapSize ~= nil then
-                local s = worldNameById(wb.MapSize)
-                if s ~= nil then sizes[#sizes + 1] = s end
-            end
-            mapScripts[#mapScripts + 1] = { name = name, sizes = sizes }
-        end
-    end
-
-    table.sort(mapScripts, function(a, b) return a.name < b.name end)
-
-    local total
-    do
-        local n = 0
-        for _ in GameInfo.Worlds("ID >= 0") do n = n + 1 end
-        total = n
-    end
-
-    local labels = {}
-    for i, s in ipairs(mapScripts) do
-        if s.allSizes or s.sizes == nil or #s.sizes == 0 then
-            labels[i] = nil
-        elseif #s.sizes == total then
-            labels[i] = nil
-        elseif #s.sizes == 1 then
-            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_ONLY",
-                s.sizes[1])
-        else
-            labels[i] = Text.format("TXT_KEY_CIVVACCESS_MAP_SIZE_LIMITED",
-                table.concat(s.sizes, ", "))
-        end
-    end
-    _mpMapSizeLabelsCache = labels
-    return labels
-end
-
-local function mapTypeEntryAnnounce(inst, index)
-    local text = safeText(function() return inst.Button:GetText() end,
-        "MapType entry GetText")
-    local sizeInfo = mpMapTypeSizeLabels()[index]
-    local parts = { text }
-    if sizeInfo ~= nil and sizeInfo ~= "" then
-        parts[#parts + 1] = sizeInfo
-    end
-    local combined = table.concat(parts, ", ")
-    local tip = safeText(function() return inst.Button:GetToolTipString() end,
-        "MapType entry GetToolTipString")
-    if tip ~= "" then
-        return BaseMenuItems.appendTooltip(combined, tip)
-    end
-    return combined
-end
-
--- Options-tab dynamic children ----------------------------------------
---
--- Same SQL + sort order MPGameOptions uses so i-th row here lines up with
--- the i-th m_AllocatedInstances entry. The managers are reset + rebuilt
--- every time UpdateGameOptionsDisplay runs (on every Options-tab flip via
--- OnOptionsPageTab); rebuilding our items in tab.onActivate keeps the
--- two aligned.
-
-local EXCLUDED_GAME_OPTION_TYPES = {
-    GAMEOPTION_END_TURN_TIMER_ENABLED = true,
-    GAMEOPTION_SIMULTANEOUS_TURNS     = true,
-    GAMEOPTION_DYNAMIC_TURNS          = true,
-}
-
-local function mpSortOptions(options)
-    table.sort(options, function(a, b)
-        if a.SortPriority == b.SortPriority then
-            return a.Name < b.Name
-        end
-        return a.SortPriority < b.SortPriority
-    end)
-end
-
-local function victoryChildren()
-    local items = {}
-    local instances = (g_VictoryCondtionsManager
-        and g_VictoryCondtionsManager.m_AllocatedInstances) or {}
-    local i = 1
-    for row in GameInfo.Victories() do
-        local inst = instances[i]
-        if inst == nil then break end
-        items[#items + 1] = BaseMenuItems.Checkbox({
-            control = inst.GameOptionRoot,
-            textKey = row.Description,
-        })
-        i = i + 1
-    end
-    return items
-end
-
-local function gameOptionDropdownRows()
-    local rows = {}
-    for option in DB.Query(
-            [[select * from MapScriptOptions where exists (select 1 from
-              MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
-              and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
-              FileName = ?]], PreGame.GetMapScript()) do
-        rows[#rows + 1] = {
-            Name         = Locale.ConvertTextKey(option.Name),
-            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
-            SortPriority = option.SortPriority,
-        }
-    end
-    return rows
-end
-
-local function gameOptionCheckboxRows()
-    local rows = {}
-    local hotseat = PreGame.IsHotSeatGame()
-    for option in GameInfo.GameOptions{Visible = 1} do
-        if not EXCLUDED_GAME_OPTION_TYPES[option.Type] then
-            local supported = hotseat and option.SupportsSinglePlayer
-                                       or option.SupportsMultiplayer
-            if supported then
-                rows[#rows + 1] = {
-                    Name         = Locale.ConvertTextKey(option.Description),
-                    Help         = option.Help and Locale.ConvertTextKey(option.Help) or nil,
-                    SortPriority = 0,
-                }
-            end
-        end
-    end
-    for option in DB.Query(
-            [[select * from MapScriptOptions where not exists (select 1 from
-              MapScriptOptionPossibleValues where FileName = MapScriptOptions.FileName
-              and OptionID = MapScriptOptions.OptionID) and Hidden = 0 and
-              FileName = ?]], PreGame.GetMapScript()) do
-        rows[#rows + 1] = {
-            Name         = Locale.ConvertTextKey(option.Name),
-            Help         = option.Description and Locale.ConvertTextKey(option.Description) or nil,
-            SortPriority = option.SortPriority,
-        }
-    end
-    return rows
-end
-
-local function gameOptionsChildren()
-    local items = {}
-    if g_DropDownOptionsManager ~= nil then
-        local instances = g_DropDownOptionsManager.m_AllocatedInstances
-        local rows      = gameOptionDropdownRows()
-        mpSortOptions(rows)
-        for i, opt in ipairs(rows) do
-            local inst = instances[i]
-            if inst == nil then break end
-            items[#items + 1] = BaseMenuItems.Pulldown({
-                control     = inst.OptionDropDown,
-                labelText   = opt.Name,
-                tooltipText = opt.Help,
-            })
-        end
-    end
-    if g_GameOptionsManager ~= nil then
-        local instances = g_GameOptionsManager.m_AllocatedInstances
-        local rows      = gameOptionCheckboxRows()
-        mpSortOptions(rows)
-        for i, opt in ipairs(rows) do
-            local inst = instances[i]
-            if inst == nil then break end
-            items[#items + 1] = BaseMenuItems.Checkbox({
-                control     = inst.GameOptionRoot,
-                labelText   = opt.Name,
-                tooltipText = opt.Help,
-            })
-        end
-    end
-    return items
-end
-
-local function dlcChildren()
-    local items = {}
-    local instances = (g_DLCAllowedManager
-        and g_DLCAllowedManager.m_AllocatedInstances) or {}
-    -- Base skips IsBaseContentUpgrade == 1 rows (force-allowed, not
-    -- user-editable); mirror that filter so indices line up.
-    local i = 1
-    for row in GameInfo.DownloadableContent() do
-        if row.IsBaseContentUpgrade == 0 then
-            local inst = instances[i]
-            if inst == nil then break end
-            items[#items + 1] = BaseMenuItems.Checkbox({
-                control = inst.GameOptionRoot,
-                textKey = row.FriendlyNameKey,
-            })
-            i = i + 1
-        end
-    end
-    return items
-end
+local mapTypeEntryAnnounce = MPGameSetupShared.mapTypeEntryAnnounce
+local victoryChildren      = MPGameSetupShared.victoryChildren
+local gameOptionsChildren  = MPGameSetupShared.gameOptionsChildren
+local dlcChildren          = MPGameSetupShared.dlcChildren
 
 -- Top-level items -----------------------------------------------------
 
@@ -562,12 +310,13 @@ local function playersItems()
     })
 
     for i = 1, MAX_SLOTS do
-        local instance = slots[i]
+        local slotIndex = i
+        local instance  = slots[slotIndex]
         if instance ~= nil then
             items[#items + 1] = BaseMenuItems.Group({
                 visibilityControl = instance.Root,
                 labelFn  = function() return slotSummary(instance.playerID) end,
-                itemsFn  = function() return slotChildren(instance) end,
+                itemsFn  = function() return slotChildren(slotIndex, instance) end,
                 cached   = false,
             })
         end
@@ -806,7 +555,8 @@ local function wrapCountdown()
         if after > 0 then
             local cur = math.floor(after)
             if cur >= 1 and cur <= 5 and cur ~= _lastSpokenCountdownInt then
-                SpeechPipeline.speakInterrupt(tostring(cur))
+                SpeechPipeline.speakInterrupt(
+                    Text.format("TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK", cur))
                 _lastSpokenCountdownInt = cur
             end
         end
@@ -982,6 +732,20 @@ local handler
 -- the slot Root's live IsHidden, so in-place state changes are already
 -- reflected without a structural rebuild. Deltas still announce via
 -- announceDeltas.
+-- Name lookup for event-boundary speech. Prefer the live nickname, but fall
+-- back to the last snapshot's name so Events.MultiplayerGamePlayerDisconnected
+-- still speaks "<Alice> disconnected" after the engine has already cleared
+-- that slot's nickname (the engine fires the event post-clear, and base's
+-- chat UI uses its own pre-populated m_PlayerNames for the same reason).
+local function resolveNick(playerID)
+    local live = PreGame.GetNickName(playerID)
+    if live ~= nil and live ~= "" then return live end
+    local snap = civvaccess_shared._stagingSnapshot
+    local cached = snap and snap[playerID] and snap[playerID].nick
+    if cached ~= nil and cached ~= "" then return cached end
+    return Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN")
+end
+
 local function onPreGameDirty()
     if ContextPtr:IsHidden() then return end
     local old = civvaccess_shared._stagingSnapshot
@@ -994,8 +758,7 @@ end
 local function onChat(fromPlayer, toPlayer, text, eTargetType)
     if ContextPtr:IsHidden() then return end
     if text == nil or text == "" then return end
-    local n = PreGame.GetNickName(fromPlayer)
-    if n == nil or n == "" then n = Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN") end
+    local n = resolveNick(fromPlayer)
     appendChatEntry(n, text)
     if chatPanelActive() then return end
     SpeechPipeline.speakQueued(
@@ -1004,20 +767,17 @@ end
 
 local function onHostMigration()
     if ContextPtr:IsHidden() then return end
-    local hostID = Matchmaking.GetHostID()
-    local n = PreGame.GetNickName(hostID)
-    if n == nil or n == "" then n = Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN") end
     SpeechPipeline.speakQueued(
-        Text.format("TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION", n))
+        Text.format("TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION",
+            resolveNick(Matchmaking.GetHostID())))
 end
 
 local function onDisconnect(playerID)
     if ContextPtr:IsHidden() then return end
     if playerID == nil then return end
-    local n = PreGame.GetNickName(playerID)
-    if n == nil or n == "" then n = Locale.ConvertTextKey("TXT_KEY_PLAYER_TYPE_HUMAN") end
     SpeechPipeline.speakQueued(
-        Text.format("TXT_KEY_CIVVACCESS_STAGING_DISCONNECT", n))
+        Text.format("TXT_KEY_CIVVACCESS_STAGING_DISCONNECT",
+            resolveNick(playerID)))
 end
 
 -- Listener installation is idempotent across Context resets via a shared
@@ -1110,7 +870,7 @@ handler = BaseMenu.install(ContextPtr, {
                 -- Force the base to populate the Options panel Controls
                 -- (PopulateMapSizePulldown / RefreshMapScripts /
                 -- UpdateGameOptionsDisplay) before we read their state.
-                _mpMapSizeLabelsCache = nil
+                MPGameSetupShared.invalidateMapLabels()
                 if type(OnOptionsPageTab) == "function" then OnOptionsPageTab() end
             end,
             onActivate = function(self)

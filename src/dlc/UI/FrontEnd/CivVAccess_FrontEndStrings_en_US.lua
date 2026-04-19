@@ -46,7 +46,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_TEAM"]        = "{1_Name}, 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP"]    = "{1_Name}, {2_Handicap}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_READY"]       = "{1_Name} ready"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"]     = "{1_Name} not ready"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"]          = "chat, {1_Name}, {2_Text}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"]          = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"]    = "{1_Name} is now the host"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"]        = "{1_Name} disconnected"
 -- Launch countdown. Base runs a 10-second auto-launch timer with a "Game
@@ -55,6 +55,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"]        = "{1_Name} d
 -- is stopped mid-countdown (e.g., someone un-readies).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"]    = "Launching in 10 seconds"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"]   = "Countdown cancelled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"]     = "{1_Seconds}"
 -- F2 chat panel: title, tab labels, compose field label, empty-history
 -- placeholder, and the help-overlay line for F2 itself. The F2 key-label
 -- (TXT_KEY_CIVVACCESS_HELP_KEY_F2) lives next to HELP_KEY_F1 further down.
