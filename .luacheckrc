@@ -42,7 +42,7 @@ read_globals = {
     "DirectionTypes", "PlotTypes", "FeatureTypes", "TerrainTypes",
     "ResourceTypes", "ImprovementTypes", "RouteTypes", "YieldTypes",
     "DomainTypes", "VictoryTypes", "PolicyBranchTypes", "GameOptionTypes",
-    "ButtonPopupTypes", "ContentType", "SlotStatus",
+    "ButtonPopupTypes", "ContentType", "SlotStatus", "ActivityTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -89,6 +89,7 @@ globals = {
     "ScannerBackendCities", "ScannerBackendImprovements",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendUnits",
     "SurveyorCore",
+    "UnitSpeech",
 
     -- User-preference module (Shared/)
     "Prefs",
@@ -148,7 +149,9 @@ files["tests/"] = {
         "Mouse", "Keys",
         "DirectionTypes", "PlotTypes", "FeatureTypes", "TerrainTypes",
         "ResourceTypes", "ImprovementTypes", "RouteTypes", "YieldTypes",
-        "DomainTypes",
+        "DomainTypes", "ActivityTypes",
+        -- Mod modules the test suites exercise directly.
+        "UnitSpeech",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
     -- setup helpers and per-test locals are often declared but only used

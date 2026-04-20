@@ -144,7 +144,30 @@ DomainTypes = DomainTypes or {
     DOMAIN_HOVER = 3,
 }
 
-GameDefines = GameDefines or { MAX_HIT_POINTS = 100 }
+GameDefines = GameDefines or { MAX_HIT_POINTS = 100, MOVE_DENOMINATOR = 60 }
+if GameDefines.MAX_HIT_POINTS == nil then
+    GameDefines.MAX_HIT_POINTS = 100
+end
+if GameDefines.MOVE_DENOMINATOR == nil then
+    GameDefines.MOVE_DENOMINATOR = 60
+end
+
+-- Unit activity enum. Used by UnitSpeech's status cascade to read
+-- unit:GetActivityType() and classify sentry / heal / sleep / awake states.
+-- Values mirror the engine's ActivityTypes ids (not exhaustive, and not
+-- load-bearing offline — tests compare by reference against the stubbed
+-- ActivityTypes.* values the module reads).
+ActivityTypes = ActivityTypes
+    or {
+        NO_ACTIVITY = -1,
+        ACTIVITY_AWAKE = 0,
+        ACTIVITY_HOLD = 1,
+        ACTIVITY_SLEEP = 2,
+        ACTIVITY_HEAL = 3,
+        ACTIVITY_SENTRY = 4,
+        ACTIVITY_INTERCEPT = 5,
+        ACTIVITY_MISSION = 6,
+    }
 
 -- Mouse event constants. Engine exposes these; offline we just need a few
 -- distinct numbers for tests that register per-button click callbacks.
