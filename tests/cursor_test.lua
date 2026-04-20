@@ -181,15 +181,28 @@ function M.test_units_invisible_filter()
     T.eq(#out, 1, "invisible unit must be filtered out")
 end
 
-function M.test_units_layer_skips_cargo_and_air()
+function M.test_units_skips_cargo_and_air()
     setup()
     Players[0] = T.fakePlayer({ adj = "Roman" })
-    local trade   = T.fakeUnit({ owner = 0, nameKey = "Caravan", domain = DomainTypes.DOMAIN_LAND })
+    local land    = T.fakeUnit({ owner = 0, nameKey = "Warrior", domain = DomainTypes.DOMAIN_LAND })
     local cargo   = T.fakeUnit({ owner = 0, nameKey = "Settler", cargo = true })
     local fighter = T.fakeUnit({ owner = 0, nameKey = "Fighter", domain = DomainTypes.DOMAIN_AIR })
-    local p = T.fakePlot({ layerUnits = { trade, cargo, fighter } })
+    local p = T.fakePlot({ units = { land, cargo, fighter } })
     local out = PlotSectionUnits.Read(p, {})
-    T.eq(#out, 1, "only the non-cargo non-air layer unit should announce")
+    T.eq(#out, 1, "only the non-cargo non-air unit should announce")
+end
+
+function M.test_units_singleplayer_omits_nickname_when_empty()
+    -- Regression: the method `GetNickName` exists on every Player (singleplayer
+    -- or multiplayer), so testing `owner.GetNickName ~= nil` is always true
+    -- and would force the multiplayer branch. Test the RETURN value.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman", shortDesc = "Rome" })  -- no nick
+    local warrior = T.fakeUnit({ owner = 0, nameKey = "Warrior" })
+    local p = T.fakePlot({ units = { warrior } })
+    local s = PlotSectionUnits.Read(p, {})[1]
+    T.truthy(not s:find("TXT_KEY_MULTIPLAYER", 1, true),
+        "singleplayer unit must not use the multiplayer template: " .. s)
 end
 
 function M.test_units_hp_suffix_when_damaged()

@@ -17,11 +17,11 @@ end
 
 local function setCursor(plot)
     _x, _y = plot:GetX(), plot:GetY()
-    -- Flag 2 = instant pan (vs 0 = animated); rapid keyboard movement
-    -- shouldn't queue camera animations that lag behind the cursor. The
-    -- only base-game callsite for flag 2 is exiting the city screen, which
-    -- fits the "no animation" reading.
-    UI.LookAt(plot, 2)
+    -- Flag 0 is the standard animated pan used by every base-game
+    -- interactive camera move (unit select, city pan, diplomacy pan).
+    -- Flag 2 appears in one spot (InGame.lua's city-screen exit) and
+    -- empirically does not produce a pan from this Context.
+    UI.LookAt(plot, 0)
 end
 
 -- Capital of the active player. Returns nil during the brief window before
