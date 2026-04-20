@@ -113,11 +113,6 @@ function T.fakePlot(opts)
     function p:GetBuildTurnsLeft(buildId, _player, _extra1, _extra2)
         return self._buildTurns[buildId] or 0
     end
-    -- Per-edge move cost for reachability tests. Default 60 (one flat-tile
-    -- move); tests override with fakePlot({ moveCost = N }) for hills /
-    -- impassable fixtures.
-    p._moveCost = opts.moveCost or 60
-    function p:MovementCost(_unit, _fromPlot, _movesRemaining) return self._moveCost end
     return p
 end
 
@@ -134,11 +129,6 @@ function T.fakeUnit(opts)
         _nameNoDesc = opts.nameNoDesc or "Genghis",
         _damage = opts.damage or 0,
         _isCombatUnit = (opts.combat ~= false),
-        -- Reachability fixtures. movesLeft is in internal units (60 per
-        -- whole-move). Default 120 = 2 moves, plenty for adjacent-plot
-        -- tests; out-of-range cases set it to 0.
-        _movesLeft   = opts.movesLeft or 120,
-        _canMove     = (opts.canMove ~= false),
     }
     function u:GetOwner() return self._owner end
     function u:GetTeam() return self._team end
@@ -151,9 +141,6 @@ function T.fakeUnit(opts)
     function u:GetDamage() return self._damage end
     function u:IsCombatUnit() return self._isCombatUnit end
     function u:GetPlot() return self._plot end
-    function u:MovesLeft() return self._movesLeft end
-    function u:CanMoveThrough(_plot) return self._canMove end
-    function u:CanMoveOrAttackInto(_plot, _declareWar, _destination) return self._canMove end
     return u
 end
 

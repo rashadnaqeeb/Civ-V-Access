@@ -144,99 +144,32 @@ local function inEnemyZoC(plot, activeTeam, isDebug)
     return false
 end
 
--- Dijkstra from the selected unit's plot to `target`. Costs are in internal
--- move-point units (GameDefines.MOVE_DENOMINATOR per tile on flat land);
--- the frontier is bounded by unit:MovesLeft() so we never explore further
--- than this turn can reach. plot:MovementCost handles embark, ZoC-end, road,
--- railroad, and territory-access rules because it's the same function the
--- engine's own pathfinder calls -- we inherit correctness by deferring.
--- Returns the integer cost to reach `target`, or nil if unreachable within
--- budget. No target → nil (callers guard). The intermediate / destination
--- distinction on CanMoveThrough vs CanMoveOrAttackInto matters because the
--- destination flag lets attacks land on already-at-war enemies.
-local IMPASSABLE_SENTINEL = 1e8
-
-local function pathCost(unit, target, budget)
-    local startPlot = unit:GetPlot()
-    if startPlot == nil then return nil end
-    local tx, ty = target:GetX(), target:GetY()
-    if startPlot:GetX() == tx and startPlot:GetY() == ty then return 0 end
-
-    local width = Map.GetGridSize()
-    local function key(p) return p:GetY() * width + p:GetX() end
-
-    local visited = { [key(startPlot)] = 0 }
-    local frontier = { { plot = startPlot, cost = 0 } }
-
-    while #frontier > 0 do
-        local minI, minCost = 1, frontier[1].cost
-        for i = 2, #frontier do
-            if frontier[i].cost < minCost then minI, minCost = i, frontier[i].cost end
-        end
-        local node = frontier[minI]
-        table.remove(frontier, minI)
-
-        if node.plot:GetX() == tx and node.plot:GetY() == ty then
-            return node.cost
-        end
-        if node.cost > (visited[key(node.plot)] or IMPASSABLE_SENTINEL) then
-            -- stale queue entry; a cheaper path already expanded this plot
-        else
-            for _, dir in ipairs(NEIGHBOR_DIRS) do
-                local n = Map.PlotDirection(node.plot:GetX(), node.plot:GetY(), dir)
-                if n ~= nil then
-                    local isDestination = (n:GetX() == tx and n:GetY() == ty)
-                    local canEnter
-                    if isDestination then
-                        canEnter = unit:CanMoveOrAttackInto(n, false, true)
-                    else
-                        canEnter = unit:CanMoveThrough(n)
-                    end
-                    if canEnter then
-                        local movesRemaining = budget - node.cost
-                        if movesRemaining < 0 then movesRemaining = 0 end
-                        local step = n:MovementCost(unit, node.plot, movesRemaining)
-                        if step >= 0 and step < IMPASSABLE_SENTINEL then
-                            local newCost = node.cost + step
-                            if newCost <= budget then
-                                local k = key(n)
-                                if visited[k] == nil or newCost < visited[k] then
-                                    visited[k] = newCost
-                                    frontier[#frontier + 1] = { plot = n, cost = newCost }
-                                end
-                            end
-                        end
-                    end
-                end
-            end
+-- Tile-level movement cost from terrain / feature / plotType data alone:
+-- a feature with nonzero Movement overrides the terrain cost (forest=2,
+-- jungle=2, marsh=3 in the shipped data); hills otherwise add 1; mountain
+-- reads as impassable. Returns (cost, impassable). Unit-dependent rules
+-- (embark, ZoC-end, road bypass, territory access) are deliberately out
+-- of scope: the engine's plot-side bindings (Plot:MovementCost,
+-- Unit:CanMoveThrough, Unit:CanMoveOrAttackInto) have no callsites in any
+-- shipped game Lua and access-violated CvGameCore_Expansion2 when invoked
+-- from this Context.
+local function tileMoveCost(plot)
+    if plot:IsMountain() then return nil, true end
+    local fid = plot:GetFeatureType()
+    if fid >= 0 then
+        local frow = GameInfo.Features[fid]
+        if frow and frow.Movement and frow.Movement > 0 then
+            return frow.Movement, false
         end
     end
-    return nil
-end
-
-local function reachability(plot)
-    local unit = UI.GetHeadSelectedUnit()
-    if unit == nil then return nil end
-    local unitPlot = unit:GetPlot()
-    if unitPlot == nil then return nil end
-    -- Cursor sitting on the unit is not an interesting reachability question;
-    -- skip the slot so the user hears other combat facts uncluttered.
-    if unitPlot:GetX() == plot:GetX() and unitPlot:GetY() == plot:GetY() then
-        return nil
+    local cost = 1
+    local tid = plot:GetTerrainType()
+    if tid >= 0 then
+        local trow = GameInfo.Terrains[tid]
+        if trow and trow.Movement then cost = trow.Movement end
     end
-    local cost = pathCost(unit, plot, unit:MovesLeft())
-    if cost == nil then
-        return Text.key("TXT_KEY_CIVVACCESS_OUT_OF_RANGE")
-    end
-    local denom = GameDefines.MOVE_DENOMINATOR or 60
-    local moves = cost / denom
-    local fmt
-    if moves == math.floor(moves) then
-        fmt = tostring(math.floor(moves))
-    else
-        fmt = string.format("%.1f", moves)
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_MOVES_COST", fmt)
+    if plot:IsHills() then cost = cost + 1 end
+    return cost, false
 end
 
 function PlotComposers.combat(plot)
@@ -257,7 +190,11 @@ function PlotComposers.combat(plot)
     if def ~= 0 then
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
     end
-    local reach = reachability(plot)
-    if reach ~= nil then out[#out + 1] = reach end
+    local cost, impassable = tileMoveCost(plot)
+    if impassable then
+        out[#out + 1] = Text.key("TXT_KEY_PEDIA_IMPASSABLE")
+    elseif cost ~= nil then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_MOVES_COST", cost)
+    end
     return table.concat(out, ", ")
 end

@@ -34,10 +34,7 @@ Map = Map or {
     GetPlotXY     = function(_x, _y, _dx, _dy) return nil end,
     PlotDirection = function(_x, _y, _dir) return nil end,
     PlotDistance  = function(_x1, _y1, _x2, _y2) return 0 end,
-    -- Return Standard (80 x 52) so reachability-search key math (y*W+x)
-    -- behaves sanely in tests that don't override. Zero width would make
-    -- every plot hash collide onto row 0.
-    GetGridSize   = function() return 80, 52 end,
+    GetGridSize   = function() return 0, 0 end,
     GetNumPlots   = function() return 0 end,
     IsWrapX       = function() return false end,
     IsWrapY       = function() return false end,
@@ -95,13 +92,7 @@ DomainTypes = DomainTypes or {
     DOMAIN_HOVER = 3,
 }
 
-GameDefines = GameDefines or {
-    MAX_HIT_POINTS   = 100,
-    -- Movement costs are stored as multiples of this denominator; 60 per
-    -- flat-terrain tile in the base game. Display divides by it to get the
-    -- whole-move number the player sees on screen.
-    MOVE_DENOMINATOR = 60,
-}
+GameDefines = GameDefines or { MAX_HIT_POINTS = 100 }
 
 -- Mouse event constants. Engine exposes these; offline we just need a few
 -- distinct numbers for tests that register per-button click callbacks.

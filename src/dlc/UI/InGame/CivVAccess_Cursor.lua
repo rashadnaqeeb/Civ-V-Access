@@ -58,14 +58,18 @@ function Cursor.init()
 end
 
 -- ===== Movement =====
--- Visibility is a separate axis from ownership: unexplored tiles go silent
--- (no audible feedback for moves through never-seen territory), fog appears
--- as a marker token on the tile description, and visible tiles read fully.
--- The owner-identity diff only tracks real ownership states (unclaimed /
--- civ / city); it is not touched while unexplored.
+-- Visibility is a separate axis from ownership: unexplored tiles speak the
+-- "unexplored" token on every entry (a silent move loses the user across a
+-- block of fog of war), fogged tiles get a leading "fog" marker over the
+-- stale GetRevealed* data, and visible tiles read fully. The owner-identity
+-- diff only tracks real ownership states (unclaimed / civ / city); it is
+-- not touched while unexplored, so an Arabia → unexplored → Arabia walk
+-- doesn't re-fire the prefix on re-entry.
 local function announceForMove(plot)
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-    if not plot:IsRevealed(team, debug) then return "" end
+    if not plot:IsRevealed(team, debug) then
+        return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED") .. "."
+    end
     local spoken, identity = PlotSections.ownerIdentity(plot)
     local glance = PlotComposers.glance(plot)
     local prefix = ""
