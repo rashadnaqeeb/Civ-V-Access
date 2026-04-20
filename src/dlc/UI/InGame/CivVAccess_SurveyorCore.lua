@@ -90,6 +90,14 @@ local function sortedBucketByCountThenName(buckets)
     return entries
 end
 
+local function formatBucketEntries(entries)
+    local parts = {}
+    for _, e in ipairs(entries) do
+        parts[#parts + 1] = tostring(e.count) .. " " .. e.name
+    end
+    return table.concat(parts, ", ")
+end
+
 -- ===== Radius grow / shrink =====
 local function speakRadius(r)
     if r <= MIN_RADIUS then
@@ -142,10 +150,12 @@ function SurveyorCore.yields()
 end
 
 -- ===== Resources =====
--- Matches PlotSections.resource's visibility gate by reading
--- plot:GetResourceType(activeTeam): undiscovered resources return -1.
--- Bucketed by localized resource name so duplicates from adjacent plots
--- collapse cleanly.
+-- Shares the tech-gated visibility check with PlotSections.resource.Read
+-- (undiscovered strategic / luxury resources return -1 from
+-- GetResourceType when the active team is passed), but reads the raw id
+-- and quantity directly rather than calling Read: Read returns a
+-- pre-formatted token list plus a tech-required note, and we need the
+-- localized name and an integer count for bucketing / summing.
 function SurveyorCore.resources()
     local cx, cy = cursorPos()
     if cx == nil then
@@ -173,11 +183,7 @@ function SurveyorCore.resources()
     if #entries == 0 then
         body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_RESOURCES")
     else
-        local parts = {}
-        for _, e in ipairs(entries) do
-            parts[#parts + 1] = tostring(e.count) .. " " .. e.name
-        end
-        body = table.concat(parts, ", ")
+        body = formatBucketEntries(entries)
     end
     return appendUnexplored(body, range.unexplored)
 end
@@ -207,53 +213,51 @@ function SurveyorCore.terrain()
     if #entries == 0 then
         body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_TERRAIN")
     else
-        local parts = {}
-        for _, e in ipairs(entries) do
-            parts[#parts + 1] = tostring(e.count) .. " " .. e.name
-        end
-        body = table.concat(parts, ", ")
+        body = formatBucketEntries(entries)
     end
     return appendUnexplored(body, range.unexplored)
 end
 
--- ===== Unit scopes =====
+-- ===== Instance scopes =====
 -- Sort instances by cube-distance ascending, then CW-from-E direction
 -- rank. Distance 0 (units at the cursor) sort before everything; within
 -- a ring, E wins, then SE, SW, W, NW, NE.
-local function distanceDirectionSort(cx, cy)
-    return function(a, b)
-        if a.dist ~= b.dist then
-            return a.dist < b.dist
-        end
-        if a.rank ~= b.rank then
-            return a.rank < b.rank
-        end
-        return a.label < b.label
+local function distanceDirectionCompare(a, b)
+    if a.dist ~= b.dist then
+        return a.dist < b.dist
     end
+    if a.rank ~= b.rank then
+        return a.rank < b.rank
+    end
+    return a.label < b.label
 end
 
-local function formatUnitInstances(instances, cx, cy)
-    table.sort(instances, distanceDirectionSort(cx, cy))
+-- Generic "label at direction, label at direction" formatter. Units use
+-- "label, dir" with ". " between instances because a compound direction
+-- contains commas and would merge with adjacent labels otherwise. Cities
+-- use "label dir" with ", " because each city name is unique and the
+-- terser form reads better.
+local function formatInstances(instances, cx, cy, labelDirSep, instanceSep)
+    table.sort(instances, distanceDirectionCompare)
     local parts = {}
     for _, inst in ipairs(instances) do
         local dir = HexGeom.directionString(cx, cy, inst.x, inst.y)
         if dir == "" then
             parts[#parts + 1] = inst.label
         else
-            parts[#parts + 1] = inst.label .. ", " .. dir
+            parts[#parts + 1] = inst.label .. labelDirSep .. dir
         end
     end
-    return table.concat(parts, ". ")
+    return table.concat(parts, instanceSep)
+end
+
+local function formatUnitInstances(instances, cx, cy)
+    return formatInstances(instances, cx, cy, ", ", ". ")
 end
 
 local function unitLabel(unit, prefixAdj)
     local row = GameInfo.Units[unit:GetUnitType()]
-    local name
-    if row == nil or row.Description == nil then
-        name = ""
-    else
-        name = Text.key(row.Description)
-    end
+    local name = row ~= nil and Text.key(row.Description) or ""
     if prefixAdj == nil or prefixAdj == "" then
         return name
     end
@@ -319,7 +323,7 @@ function SurveyorCore.enemyUnits()
                     local owner = Players[ownerId]
                     if owner ~= nil then
                         local hostile = owner:IsBarbarian()
-                            or (activeTeamObj and activeTeamObj:IsAtWar(owner:GetTeam()))
+                            or activeTeamObj:IsAtWar(owner:GetTeam())
                         if hostile then
                             local adj = Text.key(owner:GetCivilizationAdjectiveKey())
                             instances[#instances + 1] = {
@@ -393,10 +397,10 @@ local function cityDiplomacyGroup(cityOwnerId, activePlayer, activeTeam)
     if ownerTeam == activeTeam then
         return "friendly"
     end
-    if activeTeamObj and activeTeamObj:IsAtWar(ownerTeam) then
+    if activeTeamObj:IsAtWar(ownerTeam) then
         return "hostile"
     end
-    if activeTeamObj and activeTeamObj.IsDefensivePact and activeTeamObj:IsDefensivePact(ownerTeam) then
+    if activeTeamObj.IsDefensivePact and activeTeamObj:IsDefensivePact(ownerTeam) then
         return "friendly"
     end
     if owner:IsMinorCiv() then
@@ -409,7 +413,7 @@ local function cityDiplomacyGroup(cityOwnerId, activePlayer, activeTeam)
         return "neutral"
     end
     local activePlayerObj = Players[activePlayer]
-    if activePlayerObj and activePlayerObj.IsDoF and activePlayerObj:IsDoF(cityOwnerId) then
+    if activePlayerObj.IsDoF and activePlayerObj:IsDoF(cityOwnerId) then
         return "friendly"
     end
     return "neutral"
@@ -452,19 +456,9 @@ function SurveyorCore.cities()
     for _, groupName in ipairs(GROUP_ORDER) do
         local bucket = groups[groupName]
         if #bucket > 0 then
-            table.sort(bucket, distanceDirectionSort(cx, cy))
-            local cityParts = {}
-            for _, inst in ipairs(bucket) do
-                local dir = HexGeom.directionString(cx, cy, inst.x, inst.y)
-                if dir == "" then
-                    cityParts[#cityParts + 1] = inst.label
-                else
-                    cityParts[#cityParts + 1] = inst.label .. " " .. dir
-                end
-            end
             groupParts[#groupParts + 1] = Text.key(GROUP_LABEL_KEY[groupName])
                 .. ": "
-                .. table.concat(cityParts, ", ")
+                .. formatInstances(bucket, cx, cy, " ", ", ")
         end
     end
     local body

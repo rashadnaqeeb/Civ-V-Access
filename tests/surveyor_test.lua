@@ -51,12 +51,6 @@ local function setup()
 
     Cursor._reset()
     SurveyorCore._reset()
-
-    -- Capture speech for a few tests that care about the actual output.
-    _G._spoken = {}
-    SpeechPipeline.speakInterrupt = function(s)
-        table.insert(_G._spoken, s)
-    end
 end
 
 -- Build a revealed grid of plots over (-halfWidth..halfWidth)^2.
@@ -351,12 +345,18 @@ function M.test_hills_lists_with_hill_prefix_per_instance()
     end)
     initCursorAtOrigin(plots)
     local out = SurveyorCore.hills()
-    -- Each hill must be labelled, period-separated. Label + comma + dir.
+    -- Every instance must lead with "hill" so a compound direction like
+    -- "1ne, 3w" can't be mistaken for two unlabelled instances. Split on
+    -- the ". " instance boundary to count rather than matching the
+    -- label-to-dir separator, which is a formatting detail.
     local count = 0
-    for _ in out:gmatch("hill,") do
-        count = count + 1
+    for instance in (out .. ". "):gmatch("(.-)%. ") do
+        if instance ~= "" then
+            T.truthy(instance:find("^hill") ~= nil, "instance must start with 'hill': " .. instance)
+            count = count + 1
+        end
     end
-    T.eq(count, 2, "each hill instance must be labelled 'hill': " .. out)
+    T.eq(count, 2, "two hill instances expected: " .. out)
 end
 
 function M.test_hills_empty_fallback()
