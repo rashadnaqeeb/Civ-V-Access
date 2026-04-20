@@ -107,49 +107,10 @@ function Cursor.move(direction)
 end
 
 -- ===== Orientation =====
-local function offsetToCube(col, row)
-    -- Odd-row offset → axial: q = col - (row - (row%2)) / 2; r = row.
-    -- Lua 5.1 has no integer / or bit-and; (row - row%2) is always even so
-    -- the / 2 yields an integer-valued float and arithmetic stays exact.
-    local q = col - (row - (row % 2)) / 2
-    local r = row
-    -- Cube (x, y, z) = (q, -q - r, r).
-    return q, -q - r, r
-end
-
--- Cube delta D decomposes into a*u + b*v where (u, v) is one of the six
--- adjacent CW pairs from E. Each pair has a closed-form solution; pick
--- the first one whose (a, b) are both non-negative. The output is then
--- sorted into a fixed CW-from-E direction order regardless of which pair
--- produced it -- the user's mental model is "always read E before NE,"
--- not "read whichever pair the math chose first."
-local function decomposeCube(dx, dy, dz)
-    local counts = { E = 0, SE = 0, SW = 0, W = 0, NW = 0, NE = 0 }
-    if dy <= 0 and dz <= 0 then
-        counts.E,  counts.SE = -dy, -dz
-    elseif dx >= 0 and dy >= 0 then
-        counts.SE, counts.SW = dx, dy
-    elseif dz <= 0 and dx <= 0 then
-        counts.SW, counts.W  = -dz, -dx
-    elseif dy >= 0 and dz >= 0 then
-        counts.W,  counts.NW = dy, dz
-    elseif dx <= 0 and dy <= 0 then
-        counts.NW, counts.NE = -dx, -dy
-    else  -- dz >= 0 and dx >= 0
-        counts.NE, counts.E  = dz, dx
-    end
-    return counts
-end
-
-local ORIENT_OUTPUT_ORDER = {
-    { dir = "E",  key = "TXT_KEY_CIVVACCESS_DIR_E"  },
-    { dir = "SE", key = "TXT_KEY_CIVVACCESS_DIR_SE" },
-    { dir = "SW", key = "TXT_KEY_CIVVACCESS_DIR_SW" },
-    { dir = "W",  key = "TXT_KEY_CIVVACCESS_DIR_W"  },
-    { dir = "NW", key = "TXT_KEY_CIVVACCESS_DIR_NW" },
-    { dir = "NE", key = "TXT_KEY_CIVVACCESS_DIR_NE" },
-}
-
+-- Direction-string composition lives in HexGeom so the scanner's End key
+-- (cursor -> entry) produces byte-identical output to the S key here
+-- (capital -> cursor). Only the at-origin short-circuit key differs
+-- between callers.
 function Cursor.orient()
     if _x == nil then
         Log.warn("Cursor.orient before init")
@@ -164,20 +125,35 @@ function Cursor.orient()
         -- than silently dropping the request.
         return Text.key("TXT_KEY_CIVVACCESS_UNCLAIMED")
     end
-    if _x == cap:GetX() and _y == cap:GetY() then
+    local kx, ky = cap:GetX(), cap:GetY()
+    if _x == kx and _y == ky then
         return Text.key("TXT_KEY_CIVVACCESS_AT_CAPITAL")
     end
-    local cx, cy, cz = offsetToCube(_x, _y)
-    local kx, ky, kz = offsetToCube(cap:GetX(), cap:GetY())
-    local counts = decomposeCube(cx - kx, cy - ky, cz - kz)
-    local parts = {}
-    for _, d in ipairs(ORIENT_OUTPUT_ORDER) do
-        local n = counts[d.dir]
-        if n > 0 then
-            parts[#parts + 1] = tostring(n) .. Text.key(d.key)
-        end
+    return HexGeom.directionString(kx, ky, _x, _y)
+end
+
+-- ===== Position accessor / programmatic jump =====
+-- Scanner navigation needs to read the cursor's current (x, y) to
+-- compute distances and capture the pre-jump cell for Backspace.
+-- Returns (nil, nil) until Cursor.init has placed the cursor.
+function Cursor.position()
+    return _x, _y
+end
+
+-- Place the cursor at an arbitrary (x, y) that the caller already
+-- resolved (scanner's Home key, auto-move-driven cycle jump).
+-- Returns the same glance text Cursor.move produces, so the caller
+-- can decide whether to speak it (explicit Home) or suppress it
+-- (auto-move side-effect during a cycle — the cycle's own
+-- announcement already covers for it).
+function Cursor.jumpTo(x, y)
+    local plot = Map.GetPlot(x, y)
+    if plot == nil then
+        Log.warn("Cursor.jumpTo: no plot at (" .. tostring(x) .. ", " .. tostring(y) .. ")")
+        return ""
     end
-    return table.concat(parts, ", ")
+    setCursor(plot)
+    return announceForMove(plot)
 end
 
 -- ===== Recenter on selected unit =====

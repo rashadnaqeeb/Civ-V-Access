@@ -7,6 +7,11 @@ local T = require("support")
 -- The polyfill's sentinel check keeps it a no-op in-game; here it fires.
 dofile("src/dlc/UI/InGame/CivVAccess_Polyfill.lua")
 dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
+-- HexGeom is a pure-math helper used by Cursor.orient (and, later, the
+-- scanner's End key). Loading it here ensures the cursor suite's setup()
+-- dofile chain can call HexGeom.directionString without each test having
+-- to dofile it explicitly.
+dofile("src/dlc/UI/InGame/CivVAccess_HexGeom.lua")
 
 -- Shared state table that the proxy installs per-Context in-game.
 -- HandlerStack and others read it as a module-level reference.
