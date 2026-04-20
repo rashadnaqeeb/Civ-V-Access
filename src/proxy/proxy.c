@@ -5,8 +5,8 @@
  * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua
  * state, and hooks lua_setfenv to propagate the tolk and civvaccess_shared
  * tables into every sandboxed environment. The accessibility payload itself
- * ships as a DLC at Assets/DLC/CivVAccess/ and is ingested natively by the
- * engine at boot; the proxy does not activate any mod.
+ * ships as a DLC at Assets/DLC/DLC_CivVAccess/ and is ingested natively by
+ * the engine at boot; the proxy does not activate any mod.
  */
 #pragma comment(lib, "User32.lib")
 
@@ -26,7 +26,7 @@ typedef int (*lua_CFunction)(lua_State *L);
 typedef void * (*lua_Alloc)(void *ud, void *ptr, size_t osize, size_t nsize);
 typedef struct luaL_Reg { const char *name; lua_CFunction func; } luaL_Reg;
 
-/* Accessibility DLC GUID (Assets/DLC/CivVAccess/CivVAccess.Civ5Pkg).
+/* Accessibility DLC GUID (Assets/DLC/DLC_CivVAccess/CivVAccess_2.Civ5Pkg).
    Retained here only as a comment anchor; the proxy no longer activates
    the DLC -- it is ingested natively by the engine at boot. */
 /* {40A9DF7B-AE9F-48DB-ABB5-44AFE0420524} */
@@ -405,9 +405,9 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
     }
 
     /* Front-end and in-game bootstrap both happen inside Lua now, via the
-       DLC's override of base-game UI files (UI/FrontEnd/ToolTips.lua and
-       UI/InGame/TaskList.lua). The proxy's only job in this hook is the
-       tolk + civvaccess_shared injection performed above. */
+       DLC's override of selected base-game UI files (see src/dlc/UI/).
+       The proxy's only job in this hook is the tolk + civvaccess_shared
+       injection performed above. */
 
     return ((fn)orig[I_lua_setfenv])(L, index);
 }
