@@ -177,30 +177,30 @@ PlotSections.resource = {
     end,
 }
 
-PlotSections.improvement = {
-    Read = function(plot)
-        local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-        local id = plot:GetRevealedImprovementType(team, debug)
-        if id == nil or id < 0 then return {} end
-        local name = lookupName("Improvements", id)
-        if name == nil then return {} end
-        if plot:IsImprovementPillaged() then
-            return { name .. " " .. Text.key("TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX") }
-        end
-        return { name }
-    end,
-}
+-- Improvement and route share the same shape: revealed-ID lookup against a
+-- GameInfo table, negative-id bail, optional pillaged-suffix decoration.
+local function pillagedSection(getRevealedId, infoTable, isPillaged)
+    return {
+        Read = function(plot)
+            local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
+            local id = getRevealedId(plot, team, debug)
+            if id == nil or id < 0 then return {} end
+            local name = lookupName(infoTable, id)
+            if name == nil then return {} end
+            if isPillaged(plot) then
+                return { name .. " " .. Text.key("TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX") }
+            end
+            return { name }
+        end,
+    }
+end
 
-PlotSections.route = {
-    Read = function(plot)
-        local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-        local id = plot:GetRevealedRouteType(team, debug)
-        if id == nil or id < 0 then return {} end
-        local name = lookupName("Routes", id)
-        if name == nil then return {} end
-        if plot:IsRoutePillaged() then
-            return { name .. " " .. Text.key("TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX") }
-        end
-        return { name }
-    end,
-}
+PlotSections.improvement = pillagedSection(
+    function(p, t, d) return p:GetRevealedImprovementType(t, d) end,
+    "Improvements",
+    function(p) return p:IsImprovementPillaged() end)
+
+PlotSections.route = pillagedSection(
+    function(p, t, d) return p:GetRevealedRouteType(t, d) end,
+    "Routes",
+    function(p) return p:IsRoutePillaged() end)

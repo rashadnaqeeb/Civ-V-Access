@@ -198,14 +198,15 @@ function M.test_units_never_use_multiplayer_template()
     -- local player's name to their own unit every step. Always use the civ
     -- adjective form instead.
     setup()
-    Players[0] = T.fakePlayer({ adj = "Roman", shortDesc = "Rome", nick = "Player 1" })
+    Players[0] = T.fakePlayer({ adj = "Roman", shortDesc = "Rome" })
     local warrior = T.fakeUnit({ owner = 0, nameKey = "Warrior" })
     local p = T.fakePlot({ units = { warrior } })
     local s = PlotSectionUnits.Read(p, {})[1]
     T.truthy(not s:find("TXT_KEY_MULTIPLAYER", 1, true),
         "must not use the multiplayer template: " .. s)
-    T.truthy(not s:find("Player 1", 1, true),
-        "must not leak the local nickname into the announcement: " .. s)
+    -- fakePlayer has no GetNickName, so any production regression that
+    -- reintroduces the multiplayer branch will crash here rather than
+    -- silently leaking a profile name.
 end
 
 function M.test_units_hp_suffix_when_damaged()
@@ -241,13 +242,6 @@ end
 function M.test_river_all_six_collapses()
     setup()
     -- Force every neighbor to provide its share: E, SE, SW.
-    local function rivered(method)
-        local n = T.fakePlot({})
-        n[method] = true
-        n["Is" .. method] = function(self) return true end
-        return n
-    end
-    -- Every direction returns a neighbor whose "river-our-edge" flag is true.
     Map.PlotDirection = function(_, _, dir)
         if dir == DirectionTypes.DIRECTION_EAST      then return T.fakePlot({ wOfRiver  = true }) end
         if dir == DirectionTypes.DIRECTION_SOUTHEAST then return T.fakePlot({ nwOfRiver = true }) end
@@ -376,16 +370,26 @@ function M.test_combat_no_zoc_when_enemy_is_civilian()
         "civilian unit must not project ZoC")
 end
 
--- ===== Cursor =====
-
-local function placeCursorAt(plot)
-    Map.GetPlot = function(x, y) if x == plot:GetX() and y == plot:GetY() then return plot end end
-    UI.GetHeadSelectedUnit = function()
-        return T.fakeUnit({ _plot = plot })
+function M.test_combat_no_zoc_on_fogged_plot_even_with_adjacent_enemy()
+    -- ZoC needs live sight of the neighbor: an enemy behind fog can't
+    -- project ZoC the player knows about. Composer must suppress the
+    -- announcement on revealed-but-not-visible plots even when the
+    -- neighbor scan would otherwise trip.
+    setup()
+    Players[1] = T.fakePlayer({ adj = "Mongolian", team = 1 })
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local enemy = T.fakeUnit({ owner = 1, team = 1, combat = true })
+    local east  = T.fakePlot({ units = { enemy } })
+    Map.PlotDirection = function(_, _, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then return east end
+        return nil
     end
-    -- The fake unit needs GetPlot returning the plot; T.fakeUnit's GetPlot
-    -- reads self._plot, set by setting the field directly.
+    local fogged = T.fakePlot({ revealed = true, visible = false })
+    T.truthy(not PlotComposers.combat(fogged):find("zone of control", 1, true),
+        "ZoC must be suppressed on fogged plots even with an adjacent enemy")
 end
+
+-- ===== Cursor =====
 
 function M.test_cursor_init_uses_selected_unit_plot()
     setup()

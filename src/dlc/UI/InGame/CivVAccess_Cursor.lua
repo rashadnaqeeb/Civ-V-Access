@@ -8,6 +8,15 @@
 Cursor = {}
 
 local _x, _y = nil, nil
+-- Not a violation of the "never cache game state" rule: this holds "what the
+-- user last heard from us," not a copy of any live game fact. The prefix diff
+-- IS the feature, and a diff inherently needs a retained previous value --
+-- there is no live source of "the announcement I already made." Re-querying
+-- the previous tile's current ownership on each move would be strictly worse:
+-- if an owner changed between two cursor steps, the player still needs to
+-- hear the new name, which only happens by comparing against the retained
+-- announced identity rather than against a freshly-read (and now-changed)
+-- value that would match the new tile and silently suppress the prefix.
 local _lastOwnerIdentity = nil
 
 local function plotHere()
@@ -178,10 +187,6 @@ function Cursor.recenter()
         return Text.key("TXT_KEY_CIVVACCESS_NO_UNIT_SELECTED")
     end
     local plot = unit:GetPlot()
-    if plot == nil then
-        Log.warn("Cursor.recenter: selected unit has no plot")
-        return Text.key("TXT_KEY_CIVVACCESS_NO_UNIT_SELECTED")
-    end
     setCursor(plot)
     return announceForMove(plot)
 end
@@ -192,12 +197,7 @@ local function delegateDetail(composer)
         Log.warn("Cursor detail key before init")
         return ""
     end
-    local plot = plotHere()
-    if plot == nil then
-        Log.warn("Cursor detail key: plot lookup failed at " .. tostring(_x) .. "," .. tostring(_y))
-        return ""
-    end
-    return composer(plot)
+    return composer(plotHere())
 end
 
 function Cursor.economy() return delegateDetail(PlotComposers.economy) end

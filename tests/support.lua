@@ -152,14 +152,12 @@ function T.fakePlayer(opts)
         _isMinor = opts.isMinor or false,
         _team = opts.team or 0,
         _capital = opts.capital,
-        _nick = opts.nick,
     }
     function p:GetCivilizationAdjectiveKey() return self._adj end
     function p:GetCivilizationShortDescriptionKey() return self._shortDesc end
     function p:IsMinorCiv() return self._isMinor end
     function p:GetTeam() return self._team end
     function p:GetCapitalCity() return self._capital end
-    function p:GetNickName() return self._nick end
     return p
 end
 
