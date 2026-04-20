@@ -51,10 +51,11 @@ end
 installTurnStartListener()
 
 -- Initialise the auto-move toggle on the shared table the first time we
--- boot into a session. Default is on per design section 9; users who
--- want it off flip it with Shift+End.
+-- boot into a session. Default is off: auto-move yanks the cursor away
+-- from the user's working cell on every scan step, which is disruptive
+-- enough to warrant opt-in. Users who want it flip it with Shift+End.
 if civvaccess_shared.scannerAutoMove == nil then
-    civvaccess_shared.scannerAutoMove = true
+    civvaccess_shared.scannerAutoMove = false
 end
 
 -- ===== Snapshot plumbing =====
@@ -217,21 +218,28 @@ local function ensureCurrentInstanceValid()
 end
 
 -- ===== Speech assembly =====
--- `<item name>. <distance/direction from cursor>. <N> of <M>.`
+-- `<item name>. <distance/direction from snapshot origin>. <N> of <M>.`
 -- The concise-announcement rule forbids "N of M" for menus ("Play, 1 of 8"
 -- adds no information because the name already disambiguates). It is
 -- actionable here: "Swordsman, 1 of 8" tells the player there are eight
 -- swordsmen and this is the closest. The scanner carves out an exception
 -- to the rule for that reason.
+--
+-- The distance is against the snapshot's captured origin (cursorX / Y at
+-- build time), not the live cursor. With auto-move on, each cycle warps
+-- the cursor onto the entry's plot; a live-cursor formatter would then
+-- speak "here" on every subsequent cycle. Binding the distance to the
+-- snapshot origin keeps the announcements meaningful: distances match
+-- the sort order the snapshot was built against, and explicit rebuilds
+-- (Ctrl+PageUp/Down, turn-start staleness) are the only way the origin
+-- moves. The live-cursor distance is still available explicitly via End.
 local function formatInstance(instance, instIdx, instCount)
-    local cx, cy = Cursor.position()
-    local dir = ""
-    if cx ~= nil then
-        if cx == instance.plotX and cy == instance.plotY then
-            dir = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
-        else
-            dir = HexGeom.directionString(cx, cy, instance.plotX, instance.plotY)
-        end
+    local cx, cy = _snapshot.cursorX, _snapshot.cursorY
+    local dir
+    if cx == instance.plotX and cy == instance.plotY then
+        dir = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+    else
+        dir = HexGeom.directionString(cx, cy, instance.plotX, instance.plotY)
     end
     local count = Text.format("TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT", instIdx, instCount)
     local entry = instance.entry

@@ -68,8 +68,10 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
-    -- Auto-move off: keep the cursor anchored so formatInstance sees the
-    -- distance against (0, 0) rather than the current instance's plot.
+    -- Auto-move off by default in the product, but pin it explicitly so
+    -- these tests don't depend on the module-level initialiser (session-
+    -- scoped state on civvaccess_shared can carry over if another suite
+    -- leaves it dirty).
     civvaccess_shared.scannerAutoMove = false
 
     Log.warn = function() end
@@ -158,6 +160,33 @@ function M.test_empty_item_falls_through_to_empty_token()
     installStubBackend({})
     local out = ScannerNav.cycleItem(1)
     T.truthy(out:find("empty", 1, true), "empty snapshot must speak the EMPTY token: " .. out)
+end
+
+function M.test_distance_announcement_uses_snapshot_origin_not_live_cursor()
+    -- Auto-move ON means the cursor follows the scanner; if the formatter
+    -- read the live cursor it would say "here" on every cycle, which was
+    -- the pre-fix bug. Snapshot origin stays put until a rebuild, so the
+    -- distance string remains meaningful across cycles.
+    setup()
+    civvaccess_shared.scannerAutoMove = true
+    T.installMap({ mkPlot(3, 0, 0), mkPlot(5, 0, 1) })
+    installStubBackend({
+        mkEntry("cities", "my", "Rome", 0),
+        mkEntry("cities", "my", "Athens", 1),
+    })
+    -- Snapshot origin captured at (0, 0) below because Cursor.position
+    -- still returns (0, 0) -- jumpTo is a no-op stub.
+    local jumps = {}
+    Cursor.jumpTo = function(x, y)
+        jumps[#jumps + 1] = { x, y }
+        return ""
+    end
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1)
+    local out = ScannerNav.cycleItem(1) -- Athens, jump (with stub) to (5, 0)
+    T.truthy(#jumps >= 1, "auto-move should have issued at least one jumpTo")
+    T.truthy(out:find("5e", 1, true), "distance must be from snapshot origin (0,0), not live cursor: " .. out)
+    T.truthy(not out:find("here", 1, true), "announcement must never collapse to 'here' while cycling: " .. out)
 end
 
 function M.test_distance_from_cursor_separately_produces_bare_direction()

@@ -258,7 +258,7 @@ Search does not overlap with the snapshot the normal navigation produces — dur
 
 The first persistent user setting in the mod. For v1: session-only.
 
-- Stored on `civvaccess_shared.scannerAutoMove` (boolean), initialised to `true` on first read. The shared table already survives Context re-instantiation, which is the session-scope we want.
+- Stored on `civvaccess_shared.scannerAutoMove` (boolean), initialised to `false` on first read. The shared table already survives Context re-instantiation, which is the session-scope we want. Default is off because auto-move yanks the cursor off the user's working cell every cycle; users who want the behavior opt in with Shift+End.
 - Toggled by `Shift+End`. On toggle, speak an on/off TXT_KEY line.
 - When `true`: every successful cycle (item / subcategory / category / instance) ends by jumping the hex cursor to the current entry's plot, as if the user pressed Home. The pre-jump cell is still captured so Backspace can return.
 - When `false`: cursor stays where the player left it; jumps only happen on explicit `Home`.
