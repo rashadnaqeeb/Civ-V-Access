@@ -320,10 +320,29 @@ function M.test_economy_trade_route_only_when_visible()
         "trade route must not leak through fog")
 end
 
+function M.test_economy_working_city_only_when_visible()
+    -- GetWorkingCity returns live state; on a fogged tile it would leak
+    -- current worker assignment. Must be gated on visible.
+    setup()
+    local city = T.fakeCity({ name = "Rome" })
+    local fogged = T.fakePlot({ visible = false, workingCity = city })
+    T.truthy(not PlotComposers.economy(fogged):find("Rome", 1, true),
+        "working city must not leak through fog")
+end
+
 function M.test_combat_defense_modifier_announced()
     setup()
     local p = T.fakePlot({ defenseMod = 50 })
     T.truthy(PlotComposers.combat(p):find("50 percent defense", 1, true))
+end
+
+function M.test_combat_defense_modifier_gated_on_visible()
+    -- DefenseModifier's improvement component is live; gate on visible so
+    -- fogged tiles don't leak current fort/citadel state.
+    setup()
+    local fogged = T.fakePlot({ visible = false, defenseMod = 50 })
+    T.truthy(not PlotComposers.combat(fogged):find("percent defense", 1, true),
+        "defense modifier must not leak through fog")
 end
 
 function M.test_combat_zone_of_control_when_enemy_combat_unit_adjacent()

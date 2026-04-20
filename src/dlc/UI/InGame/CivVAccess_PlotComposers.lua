@@ -99,10 +99,14 @@ function PlotComposers.economy(plot)
     if visible and plot:IsTradeRoute() then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE")
     end
-    local workingCity = plot:GetWorkingCity()
-    if workingCity ~= nil then
-        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY",
-            workingCity:GetName())
+    -- GetWorkingCity is live; no GetRevealedWorkingCity exists. Gate on
+    -- visible so fogged enemy tiles don't leak current worker assignment.
+    if visible then
+        local workingCity = plot:GetWorkingCity()
+        if workingCity ~= nil then
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY",
+                workingCity:GetName())
+        end
     end
     if visible then
         readBuildProgress(plot, out)
@@ -177,18 +181,23 @@ function PlotComposers.combat(plot)
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
+    local visible = plot:IsVisible(team, debug)
     local out = {}
-    if plot:IsVisible(team, debug) and inEnemyZoC(plot, team, debug) then
+    if visible and inEnemyZoC(plot, team, debug) then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL")
     end
     -- DefenseModifier(eAttackerTeam, bIgnoreBuilding, bHelp) returns the
     -- percent bonus a defender on this plot would receive. bHelp=true puts
     -- it in tooltip mode (includes terrain + feature + improvement bonuses
     -- the player would see). Pass the active team as the attacker so we
-    -- get our perspective on what defenders here would gain.
-    local def = plot:DefenseModifier(team, false, true)
-    if def ~= 0 then
-        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
+    -- get our perspective on what defenders here would gain. Gated on
+    -- visible: the improvement component is live, and the engine has no
+    -- GetRevealedDefenseModifier variant that would filter it.
+    if visible then
+        local def = plot:DefenseModifier(team, false, true)
+        if def ~= 0 then
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
+        end
     end
     local cost, impassable = tileMoveCost(plot)
     if impassable then
