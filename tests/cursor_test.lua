@@ -296,7 +296,7 @@ function M.test_glance_visible_omits_fog_marker()
     T.truthy(not out:find("fog", 1, true), "visible plot must not carry a fog marker: " .. out)
 end
 
-function M.test_economy_yields_skip_zeros_and_visible_only()
+function M.test_economy_yields_skip_zeros()
     setup()
     local yields = { [YieldTypes.YIELD_FOOD] = 2, [YieldTypes.YIELD_PRODUCTION] = 0,
                      [YieldTypes.YIELD_GOLD] = 1 }
@@ -313,21 +313,21 @@ function M.test_economy_fresh_water_flag()
     T.truthy(PlotComposers.economy(p):find("fresh water", 1, true))
 end
 
-function M.test_economy_trade_route_only_when_visible()
+function M.test_economy_reports_trade_route_on_fogged_revealed_tile()
+    -- Matches base PlotHelpManager: economy detail runs under IsRevealed,
+    -- not IsVisible. Fogged-but-revealed plot still reports trade route.
     setup()
-    local fogged = T.fakePlot({ visible = false, tradeRoute = true })
-    T.truthy(not PlotComposers.economy(fogged):find("trade route", 1, true),
-        "trade route must not leak through fog")
+    local fogged = T.fakePlot({ revealed = true, visible = false, tradeRoute = true })
+    T.truthy(PlotComposers.economy(fogged):find("trade route", 1, true),
+        "trade route should be announced on fogged revealed tiles (matches base)")
 end
 
-function M.test_economy_working_city_only_when_visible()
-    -- GetWorkingCity returns live state; on a fogged tile it would leak
-    -- current worker assignment. Must be gated on visible.
+function M.test_economy_reports_working_city_on_fogged_revealed_tile()
     setup()
     local city = T.fakeCity({ name = "Rome" })
-    local fogged = T.fakePlot({ visible = false, workingCity = city })
-    T.truthy(not PlotComposers.economy(fogged):find("Rome", 1, true),
-        "working city must not leak through fog")
+    local fogged = T.fakePlot({ revealed = true, visible = false, workingCity = city })
+    T.truthy(PlotComposers.economy(fogged):find("Rome", 1, true),
+        "working city should be announced on fogged revealed tiles (matches base)")
 end
 
 function M.test_combat_defense_modifier_announced()
@@ -336,13 +336,14 @@ function M.test_combat_defense_modifier_announced()
     T.truthy(PlotComposers.combat(p):find("50 percent defense", 1, true))
 end
 
-function M.test_combat_defense_modifier_gated_on_visible()
-    -- DefenseModifier's improvement component is live; gate on visible so
-    -- fogged tiles don't leak current fort/citadel state.
+function M.test_combat_defense_modifier_announced_on_fogged_revealed_tile()
+    -- Matches base PlotHelpManager: combat details run under IsRevealed,
+    -- not IsVisible. Fogged-but-revealed plot still reports the defense
+    -- bonus using live state.
     setup()
-    local fogged = T.fakePlot({ visible = false, defenseMod = 50 })
-    T.truthy(not PlotComposers.combat(fogged):find("percent defense", 1, true),
-        "defense modifier must not leak through fog")
+    local fogged = T.fakePlot({ revealed = true, visible = false, defenseMod = 50 })
+    T.truthy(PlotComposers.combat(fogged):find("50 percent defense", 1, true),
+        "defense modifier should be announced on fogged revealed tiles (matches base)")
 end
 
 function M.test_combat_zone_of_control_when_enemy_combat_unit_adjacent()

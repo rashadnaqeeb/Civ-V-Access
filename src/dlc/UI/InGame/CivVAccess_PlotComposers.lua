@@ -83,34 +83,34 @@ local function readBuildProgress(plot, out)
     end
 end
 
+-- Yields, trade route, worker builds, and working city all read live
+-- state; the engine exposes no GetRevealedX variants. Base game's plot
+-- tooltip (PlotHelpManager.lua) shows all of them on any IsRevealed plot
+-- without an IsVisible gate, so a fogged tile reports current yields /
+-- current trade route / current worker turns / current working city --
+-- possibly stale relative to what the player last saw. Match the engine's
+-- exposure rather than gate tighter: the game treats this as the
+-- player's view of "what they remember," and our speech output should
+-- surface the same facts a sighted player would see in the tooltip.
 function PlotComposers.economy(plot)
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
-    local visible = plot:IsVisible(team, debug)
     local out = {}
-    if visible then
-        readYields(plot, out)
-    end
+    readYields(plot, out)
     if plot:IsFreshWater() then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_FRESH_WATER")
     end
-    if visible and plot:IsTradeRoute() then
+    if plot:IsTradeRoute() then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE")
     end
-    -- GetWorkingCity is live; no GetRevealedWorkingCity exists. Gate on
-    -- visible so fogged enemy tiles don't leak current worker assignment.
-    if visible then
-        local workingCity = plot:GetWorkingCity()
-        if workingCity ~= nil then
-            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY",
-                workingCity:GetName())
-        end
+    local workingCity = plot:GetWorkingCity()
+    if workingCity ~= nil then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY",
+            workingCity:GetName())
     end
-    if visible then
-        readBuildProgress(plot, out)
-    end
+    readBuildProgress(plot, out)
     return table.concat(out, ", ")
 end
 
@@ -181,23 +181,23 @@ function PlotComposers.combat(plot)
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
-    local visible = plot:IsVisible(team, debug)
     local out = {}
-    if visible and inEnemyZoC(plot, team, debug) then
+    -- ZoC needs live sight of neighbors -- invisible adjacent units
+    -- can't project ZoC the player knows about -- so this genuinely
+    -- requires IsVisible, not a fog-leak policy choice.
+    if plot:IsVisible(team, debug) and inEnemyZoC(plot, team, debug) then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL")
     end
     -- DefenseModifier(eAttackerTeam, bIgnoreBuilding, bHelp) returns the
     -- percent bonus a defender on this plot would receive. bHelp=true puts
     -- it in tooltip mode (includes terrain + feature + improvement bonuses
     -- the player would see). Pass the active team as the attacker so we
-    -- get our perspective on what defenders here would gain. Gated on
-    -- visible: the improvement component is live, and the engine has no
-    -- GetRevealedDefenseModifier variant that would filter it.
-    if visible then
-        local def = plot:DefenseModifier(team, false, true)
-        if def ~= 0 then
-            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
-        end
+    -- get our perspective on what defenders here would gain. Reads live
+    -- on fogged tiles (the improvement component can be stale), matching
+    -- PlotHelpManager.lua's unguarded use.
+    local def = plot:DefenseModifier(team, false, true)
+    if def ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
     end
     local cost, impassable = tileMoveCost(plot)
     if impassable then
