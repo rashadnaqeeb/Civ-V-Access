@@ -17,6 +17,11 @@ include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
 include("CivVAccess_Cursor")
 include("CivVAccess_BaselineHandler")
+-- TypeAheadSearch is the tier/position match primitive ScannerSearch
+-- calls when Ctrl+F commits. Menu-backed handlers include it on their
+-- own, but the scanner runs without going through BaseMenu.install, so
+-- Boot pulls it in before ScannerSearch.
+include("CivVAccess_TypeAheadSearch")
 -- Scanner modules. Strings first so Text.key lookups by Nav / Handler
 -- find mod-authored keys. Core registers the backend registry that
 -- every ScannerBackend* module self-registers into at load time.
@@ -28,6 +33,7 @@ include("CivVAccess_ScannerBackendResources")
 include("CivVAccess_ScannerBackendImprovements")
 include("CivVAccess_ScannerBackendSpecial")
 include("CivVAccess_ScannerSnap")
+include("CivVAccess_ScannerSearch")
 include("CivVAccess_ScannerInput")
 include("CivVAccess_ScannerNav")
 include("CivVAccess_ScannerHandler")

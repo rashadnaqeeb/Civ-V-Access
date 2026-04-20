@@ -51,6 +51,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"]             = "n
 
 -- ===== Search =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT"]              = "search"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_RESULTS"]             = "search results"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH"]            = "no match for {1_Buffer}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_CLEARED"]             = "search cleared"
 

@@ -8,10 +8,6 @@
 -- needed. capturesAllInput=true stops any key we don't consume from
 -- falling through into ScannerHandler's cycle bindings during a typed
 -- query.
---
--- Step 2: commit speaks SEARCH_NO_MATCH because no backend returns
--- entries yet. Step 8 plugs in ScannerSearch.filter and hands the
--- result back to ScannerNav as a replacement snapshot.
 
 ScannerInput = {}
 
@@ -52,10 +48,7 @@ function ScannerInput.create()
         if vk == Keys.VK_RETURN then
             local query = self._buffer
             pop()
-            -- Step 2: backends are empty, so every commit is a no-match.
-            -- Step 8 swaps this for a real filter that builds a synthetic
-            -- snapshot and hands it back to ScannerNav.
-            speak(Text.format("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH", query))
+            speak(ScannerNav.applySearch(query))
             return true
         end
         if vk == Keys.VK_ESCAPE then

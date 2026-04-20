@@ -51,6 +51,7 @@ function T.fakePlot(opts)
     local p = {
         _x = opts.x or 0,
         _y = opts.y or 0,
+        _plotIndex = opts.plotIndex or 0,
         _isCity = opts.isCity or false,
         _city = opts.city,
         _isRevealed = (opts.revealed ~= false),
@@ -81,6 +82,7 @@ function T.fakePlot(opts)
     }
     function p:GetX() return self._x end
     function p:GetY() return self._y end
+    function p:GetPlotIndex() return self._plotIndex end
     function p:IsCity() return self._isCity end
     function p:GetPlotCity() return self._city end
     function p:IsRevealed(_team, _debug) return self._isRevealed end

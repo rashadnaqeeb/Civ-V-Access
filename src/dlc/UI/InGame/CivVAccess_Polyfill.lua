@@ -30,14 +30,15 @@ Events = Events or {
 -- the bare polyfill (no test setup) silently produces no output rather than
 -- crashing.
 Map = Map or {
-    GetPlot       = function(_x, _y) return nil end,
-    GetPlotXY     = function(_x, _y, _dx, _dy) return nil end,
-    PlotDirection = function(_x, _y, _dir) return nil end,
-    PlotDistance  = function(_x1, _y1, _x2, _y2) return 0 end,
-    GetGridSize   = function() return 0, 0 end,
-    GetNumPlots   = function() return 0 end,
-    IsWrapX       = function() return false end,
-    IsWrapY       = function() return false end,
+    GetPlot        = function(_x, _y) return nil end,
+    GetPlotXY      = function(_x, _y, _dx, _dy) return nil end,
+    GetPlotByIndex = function(_i) return nil end,
+    PlotDirection  = function(_x, _y, _dir) return nil end,
+    PlotDistance   = function(_x1, _y1, _x2, _y2) return 0 end,
+    GetGridSize    = function() return 0, 0 end,
+    GetNumPlots    = function() return 0 end,
+    IsWrapX        = function() return false end,
+    IsWrapY        = function() return false end,
 }
 
 Game = Game or {
@@ -49,6 +50,15 @@ Game = Game or {
 Players  = Players  or {}
 Teams    = Teams    or {}
 GameInfo = GameInfo or {}
+GameInfoTypes = GameInfoTypes or {}
+
+-- ActivePlayerTurnStart is the scanner's staleness signal. Tests that
+-- exercise invalidation replace .Add with a capture closure; the default
+-- here is a no-op so modules that install listeners at load time don't
+-- index nil.
+Events.ActivePlayerTurnStart = Events.ActivePlayerTurnStart or {
+    Add = function(_fn) end,
+}
 
 DirectionTypes = DirectionTypes or {
     NO_DIRECTION         = -1,

@@ -23,6 +23,11 @@ local _snapshot     = nil
 local _snapshotStale = true
 local _preJumpX     = nil
 local _preJumpY     = nil
+-- Remembered _catIdx from the moment a search opened. A Ctrl+PageUp/Down
+-- from inside a search snapshot cycles relative to this, not relative to
+-- the synthetic search category (which is the only one in the search
+-- snapshot).
+local _preSearchCatIdx = nil
 
 -- Running the turn-start listener through civvaccess_shared so multiple
 -- in-game Contexts booting into the same lua_State don't each register
@@ -89,9 +94,9 @@ local function snapToCategoryFront()
     end
 end
 
--- Gather entries from every backend and build a fresh snapshot using
--- the cursor's current (x, y) as the distance origin.
-local function rebuildSnapshot()
+-- Gather entries from every backend. Shared between the normal rebuild
+-- path and search, which both consume the same flat list.
+local function gatherEntries()
     local entries = {}
     local activePlayer = Game.GetActivePlayer()
     local activeTeam   = Game.GetActiveTeam()
@@ -106,20 +111,44 @@ local function rebuildSnapshot()
             end
         end
     end
+    return entries
+end
+
+local function cursorOriginOrDefault()
     local cx, cy = Cursor.position()
     if cx == nil then
-        Log.warn("ScannerNav.rebuild: cursor not initialised; using (0, 0) as distance origin")
-        cx, cy = 0, 0
+        Log.warn("ScannerNav: cursor not initialised; using (0, 0) as distance origin")
+        return 0, 0
     end
+    return cx, cy
+end
+
+-- Build a fresh normal snapshot from live backend output using the
+-- cursor's current (x, y) as the distance origin. Clears the search flag
+-- so callers know the active snapshot is the regular one.
+local function rebuildSnapshot()
+    local entries = gatherEntries()
+    local cx, cy = cursorOriginOrDefault()
     _snapshot = ScannerSnap.build(entries, cx, cy)
     _snapshotStale = false
 end
 
 -- Ensure a current, non-stale snapshot exists before any op that reads it.
+-- Turn-start invalidation on a search snapshot drops the search and
+-- rebuilds the normal snapshot -- a search represents a question asked at
+-- a moment in time, and silently carrying it across turns would feed the
+-- user stale match lists.
 local function ensureSnapshot()
     if _snapshot == nil or _snapshotStale then
+        if _snapshot ~= nil and _snapshot.isSearch then
+            _catIdx = _preSearchCatIdx or 1
+        end
         rebuildSnapshot()
     end
+end
+
+local function isSearchSnapshot()
+    return _snapshot ~= nil and _snapshot.isSearch == true
 end
 
 -- ===== Speech assembly =====
@@ -194,6 +223,14 @@ end
 -- ===== Entry points =====
 
 function ScannerNav.cycleCategory(dir)
+    -- Ctrl+PageUp/Down from inside a search snapshot is the "exit search"
+    -- signal per design section 8. Drop the synthetic snapshot, restore
+    -- the pre-search category index, and let the normal rebuild + wrap
+    -- run from there so the user lands on the adjacent normal category.
+    if isSearchSnapshot() then
+        _catIdx = _preSearchCatIdx or 1
+        _snapshotStale = true
+    end
     ensureSnapshot()
     local n = #_snapshot.categories
     if n == 0 then
@@ -316,9 +353,42 @@ end
 
 -- Ctrl+F: open the type-ahead search handler on top of the scanner.
 -- The handler itself owns the Enter / Escape flow and pops itself.
+-- _preSearchCatIdx isn't touched here -- applySearch captures it at
+-- commit time so an Escape (which never installs a search snapshot)
+-- leaves the anchor untouched.
 function ScannerNav.openSearch()
     HandlerStack.push(ScannerInput.create())
     return Text.key("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT")
+end
+
+-- Commit a type-ahead query: filter the flat entry list through
+-- TypeAheadSearch and install the result as the current snapshot.
+-- Returns the announcement string (label + first item) or a no-match
+-- reply on empty result. The caller (ScannerInput) speaks it.
+function ScannerNav.applySearch(query)
+    if query == nil or query == "" then
+        return Text.format("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH",
+            query or "")
+    end
+    local entries = gatherEntries()
+    local cx, cy = cursorOriginOrDefault()
+    local snap = ScannerSearch.build(entries, query, cx, cy)
+    if snap == nil then
+        return Text.format("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH", query)
+    end
+    -- Save the pre-search anchor exactly at the transition from normal to
+    -- search snapshot, so a subsequent Ctrl+PageUp/Down can cycle relative
+    -- to where the user started from. Re-committing a new query while
+    -- already in search mode must not overwrite the original anchor.
+    if not isSearchSnapshot() then
+        _preSearchCatIdx = _catIdx
+    end
+    _snapshot = snap
+    _snapshotStale = false
+    _catIdx = 1
+    snapToCategoryFront()
+    autoMoveIfEnabled()
+    return announceWithLabel(currentCategory().label)
 end
 
 -- Test seam (module has persistent upvalues; production never calls it).
@@ -326,4 +396,14 @@ function ScannerNav._reset()
     _catIdx, _subIdx, _itemIdx, _instIdx = 1, 1, 0, 0
     _snapshot, _snapshotStale = nil, true
     _preJumpX, _preJumpY = nil, nil
+    _preSearchCatIdx = nil
 end
+
+-- Test seam: inspect state without exposing upvalues.
+function ScannerNav._indices()
+    return _catIdx, _subIdx, _itemIdx, _instIdx
+end
+function ScannerNav._snapshot()       return _snapshot       end
+function ScannerNav._isStale()        return _snapshotStale  end
+function ScannerNav._preJump()        return _preJumpX, _preJumpY end
+function ScannerNav._preSearchCatIdx() return _preSearchCatIdx end
