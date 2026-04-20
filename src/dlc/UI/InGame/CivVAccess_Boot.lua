@@ -17,6 +17,11 @@ include("CivVAccess_PlotSectionRiver")
 include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
 include("CivVAccess_Cursor")
+-- Surveyor strings before the core so Text.key lookups during module load
+-- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
+-- so the core must be loaded before BaselineHandler is included.
+include("CivVAccess_SurveyorStrings_en_US")
+include("CivVAccess_SurveyorCore")
 include("CivVAccess_BaselineHandler")
 -- TypeAheadSearch is the tier/position match primitive ScannerSearch
 -- calls when Ctrl+F commits. Menu-backed handlers include it on their

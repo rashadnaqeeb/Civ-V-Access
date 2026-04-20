@@ -200,6 +200,7 @@ function T.fakeUnit(opts)
         _nameNoDesc = opts.nameNoDesc or "Genghis",
         _damage = opts.damage or 0,
         _isCombatUnit = (opts.combat ~= false),
+        _unitType = opts.unitType or -1,
     }
     function u:GetOwner()
         return self._owner
@@ -234,6 +235,9 @@ function T.fakeUnit(opts)
     function u:GetPlot()
         return self._plot
     end
+    function u:GetUnitType()
+        return self._unitType
+    end
     return u
 end
 
@@ -245,6 +249,10 @@ function T.fakePlayer(opts)
         _isMinor = opts.isMinor or false,
         _team = opts.team or 0,
         _capital = opts.capital,
+        _isBarbarian = opts.isBarbarian or false,
+        _dofWith = opts.dofWith or {},
+        _friendsWith = opts.friendsWith or {},
+        _alliesWith = opts.alliesWith or {},
     }
     function p:GetCivilizationAdjectiveKey()
         return self._adj
@@ -260,6 +268,18 @@ function T.fakePlayer(opts)
     end
     function p:GetCapitalCity()
         return self._capital
+    end
+    function p:IsBarbarian()
+        return self._isBarbarian
+    end
+    function p:IsDoF(other)
+        return self._dofWith[other] or false
+    end
+    function p:IsFriends(other)
+        return self._friendsWith[other] or false
+    end
+    function p:IsAllies(other)
+        return self._alliesWith[other] or false
     end
     return p
 end
@@ -291,9 +311,17 @@ function T.fakeTeam(opts)
     opts = opts or {}
     local team = {
         _atWar = opts.atWar or {},
+        _defensivePact = opts.defensivePact or {},
+        _hasMet = opts.hasMet or {},
     }
     function team:IsAtWar(other)
         return self._atWar[other] or false
+    end
+    function team:IsDefensivePact(other)
+        return self._defensivePact[other] or false
+    end
+    function team:IsHasMet(other)
+        return self._hasMet[other] or false
     end
     return team
 end

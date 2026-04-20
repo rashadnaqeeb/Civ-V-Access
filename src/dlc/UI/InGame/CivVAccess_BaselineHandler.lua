@@ -1,8 +1,8 @@
--- Routes the in-game cursor keys (Q/A/Z/E/D/C movement, S orient,
--- Shift+S recenter, W economy, X combat) to the Cursor module. Sits at
--- the bottom of the HandlerStack so any popup / overlay above it that
--- sets capturesAllInput will pre-empt the cursor without us having to
--- coordinate.
+-- Routes the in-game cursor keys (Q/A/Z/E/D/C movement, S orient, W
+-- economy, X combat) to the Cursor module, plus the Shift-letter
+-- surveyor cluster to SurveyorCore. Sits at the bottom of the
+-- HandlerStack so any popup / overlay above it that sets capturesAllInput
+-- will pre-empt both clusters without us having to coordinate.
 
 BaselineHandler = {}
 
@@ -31,53 +31,54 @@ local function moveDir(dir)
 end
 
 function BaselineHandler.create()
-    local h = {
-        name = "Baseline",
-        capturesAllInput = false,
-        bindings = {
-            -- Letter keys in Civ V's Keys enum are `Keys.<letter>` (no VK_
-            -- prefix); only special keys use VK_ (VK_LEFT, VK_ESCAPE, etc.).
-            bind(Keys.Q, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHWEST), "Move cursor NW"),
-            bind(Keys.E, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHEAST), "Move cursor NE"),
-            bind(Keys.A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST), "Move cursor W"),
-            bind(Keys.D, MOD_NONE, moveDir(DirectionTypes.DIRECTION_EAST), "Move cursor E"),
-            bind(Keys.Z, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHWEST), "Move cursor SW"),
-            bind(Keys.C, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHEAST), "Move cursor SE"),
-            bind(Keys.S, MOD_NONE, function()
-                speak(Cursor.orient())
-            end, "Orient from capital"),
-            bind(Keys.S, MOD_SHIFT, function()
-                speak(Cursor.recenter())
-            end, "Recenter on selected unit"),
-            bind(Keys.W, MOD_NONE, function()
-                speak(Cursor.economy())
-            end, "Economy details"),
-            bind(Keys.X, MOD_NONE, function()
-                speak(Cursor.combat())
-            end, "Combat details"),
+    local bindings = {
+        -- Letter keys in Civ V's Keys enum are `Keys.<letter>` (no VK_
+        -- prefix); only special keys use VK_ (VK_LEFT, VK_ESCAPE, etc.).
+        bind(Keys.Q, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHWEST), "Move cursor NW"),
+        bind(Keys.E, MOD_NONE, moveDir(DirectionTypes.DIRECTION_NORTHEAST), "Move cursor NE"),
+        bind(Keys.A, MOD_NONE, moveDir(DirectionTypes.DIRECTION_WEST), "Move cursor W"),
+        bind(Keys.D, MOD_NONE, moveDir(DirectionTypes.DIRECTION_EAST), "Move cursor E"),
+        bind(Keys.Z, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHWEST), "Move cursor SW"),
+        bind(Keys.C, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHEAST), "Move cursor SE"),
+        bind(Keys.S, MOD_NONE, function()
+            speak(Cursor.orient())
+        end, "Orient from capital"),
+        bind(Keys.W, MOD_NONE, function()
+            speak(Cursor.economy())
+        end, "Economy details"),
+        bind(Keys.X, MOD_NONE, function()
+            speak(Cursor.combat())
+        end, "Combat details"),
+    }
+    local helpEntries = {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE",
         },
-        helpEntries = {
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
-                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT",
-                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_RECENTER",
-                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_RECENTER",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY",
-                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY",
-            },
-            {
-                keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT",
-                description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT",
-            },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT",
         },
     }
-    return h
+    local surveyor = SurveyorCore.getBindings()
+    for _, b in ipairs(surveyor.bindings) do
+        bindings[#bindings + 1] = b
+    end
+    for _, h in ipairs(surveyor.helpEntries) do
+        helpEntries[#helpEntries + 1] = h
+    end
+    return {
+        name = "Baseline",
+        capturesAllInput = false,
+        bindings = bindings,
+        helpEntries = helpEntries,
+    }
 end

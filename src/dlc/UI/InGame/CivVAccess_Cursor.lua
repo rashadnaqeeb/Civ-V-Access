@@ -164,17 +164,6 @@ function Cursor.jumpTo(x, y)
     return announceForMove(plot)
 end
 
--- ===== Recenter on selected unit =====
-function Cursor.recenter()
-    local unit = UI.GetHeadSelectedUnit()
-    if unit == nil then
-        return Text.key("TXT_KEY_CIVVACCESS_NO_UNIT_SELECTED")
-    end
-    local plot = unit:GetPlot()
-    setCursor(plot)
-    return announceForMove(plot)
-end
-
 -- ===== Detail keys (W and X) =====
 local function delegateDetail(composer)
     if _x == nil then

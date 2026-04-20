@@ -1,0 +1,545 @@
+-- Surveyor: "what's within N tiles of my cursor." Sits alongside Cursor
+-- ("what's on this tile") and Scanner ("where is X"). Each Shift-letter
+-- key answers one scope question against the current cursor position and
+-- the shared radius on civvaccess_shared.surveyorRadius.
+--
+-- No per-scope caching; every read re-queries live engine state so a
+-- radius 5 sweep after a unit move reflects the new positions. HexGeom
+-- does the cube-coord iteration and splits the revealed / unexplored
+-- buckets; this module layers filters and formatting on top.
+--
+-- Boot.lua loads the strings file before this one so Text.key lookups at
+-- module load time resolve, but every user-facing lookup happens inside
+-- a scope function — load-time lookups here would bind to whichever
+-- locale loaded first and miss later re-includes on Context re-entry.
+
+SurveyorCore = {}
+
+local MOD_NONE = 0
+local MOD_SHIFT = 1
+
+local MIN_RADIUS = 1
+local MAX_RADIUS = 5
+
+-- Yield id / TXT_KEY pairs in the canonical speech order the cursor's W
+-- (economy) uses. Stays in sync with PlotComposers.YIELD_KEYS by design;
+-- a future yield reorder lands in both places.
+local YIELD_ORDER = {
+    { id = YieldTypes.YIELD_FOOD, key = "TXT_KEY_CIVVACCESS_ICON_FOOD" },
+    { id = YieldTypes.YIELD_PRODUCTION, key = "TXT_KEY_CIVVACCESS_ICON_PRODUCTION" },
+    { id = YieldTypes.YIELD_GOLD, key = "TXT_KEY_CIVVACCESS_ICON_GOLD" },
+    { id = YieldTypes.YIELD_SCIENCE, key = "TXT_KEY_CIVVACCESS_ICON_SCIENCE" },
+    { id = YieldTypes.YIELD_CULTURE, key = "TXT_KEY_CIVVACCESS_ICON_CULTURE" },
+    { id = YieldTypes.YIELD_FAITH, key = "TXT_KEY_CIVVACCESS_ICON_FAITH" },
+}
+
+-- ===== Radius state =====
+civvaccess_shared = civvaccess_shared or {}
+
+local function getRadius()
+    local r = civvaccess_shared.surveyorRadius
+    if type(r) ~= "number" then
+        r = MIN_RADIUS
+        civvaccess_shared.surveyorRadius = r
+    end
+    return r
+end
+
+local function setRadius(r)
+    if r < MIN_RADIUS then
+        r = MIN_RADIUS
+    elseif r > MAX_RADIUS then
+        r = MAX_RADIUS
+    end
+    civvaccess_shared.surveyorRadius = r
+    return r
+end
+
+-- ===== Scope helpers =====
+local function cursorPos()
+    local cx, cy = Cursor.position()
+    if cx == nil then
+        Log.warn("Surveyor: cursor not initialized")
+        return nil, nil
+    end
+    return cx, cy
+end
+
+local function appendUnexplored(body, unexplored)
+    if unexplored == nil or unexplored <= 0 then
+        return body
+    end
+    local suffix = Text.format("TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX", unexplored)
+    if body == nil or body == "" then
+        return suffix
+    end
+    return body .. ". " .. suffix
+end
+
+local function sortedBucketByCountThenName(buckets)
+    local entries = {}
+    for name, n in pairs(buckets) do
+        entries[#entries + 1] = { name = name, count = n }
+    end
+    table.sort(entries, function(a, b)
+        if a.count ~= b.count then
+            return a.count > b.count
+        end
+        return a.name < b.name
+    end)
+    return entries
+end
+
+-- ===== Radius grow / shrink =====
+local function speakRadius(r)
+    if r <= MIN_RADIUS then
+        return Text.format("TXT_KEY_CIVVACCESS_SURVEYOR_RADIUS_MIN", r)
+    end
+    if r >= MAX_RADIUS then
+        return Text.format("TXT_KEY_CIVVACCESS_SURVEYOR_RADIUS_MAX", r)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_SURVEYOR_RADIUS", r)
+end
+
+function SurveyorCore.grow()
+    return speakRadius(setRadius(getRadius() + 1))
+end
+
+function SurveyorCore.shrink()
+    return speakRadius(setRadius(getRadius() - 1))
+end
+
+-- ===== Yields =====
+function SurveyorCore.yields()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local totals = {}
+    for _, y in ipairs(YIELD_ORDER) do
+        totals[y.id] = 0
+    end
+    for _, plot in ipairs(range.plots) do
+        for _, y in ipairs(YIELD_ORDER) do
+            totals[y.id] = totals[y.id] + plot:CalculateYield(y.id, true)
+        end
+    end
+    local parts = {}
+    for _, y in ipairs(YIELD_ORDER) do
+        local n = totals[y.id]
+        if n > 0 then
+            parts[#parts + 1] = tostring(n) .. " " .. Text.key(y.key)
+        end
+    end
+    local body
+    if #parts == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_YIELDS")
+    else
+        body = table.concat(parts, ", ")
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Resources =====
+-- Matches PlotSections.resource's visibility gate by reading
+-- plot:GetResourceType(activeTeam): undiscovered resources return -1.
+-- Bucketed by localized resource name so duplicates from adjacent plots
+-- collapse cleanly.
+function SurveyorCore.resources()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local team = Game.GetActiveTeam()
+    local buckets = {}
+    for _, plot in ipairs(range.plots) do
+        local id = plot:GetResourceType(team)
+        if id ~= nil and id >= 0 then
+            local row = GameInfo.Resources[id]
+            if row ~= nil then
+                local name = Text.key(row.Description)
+                local qty = plot:GetNumResource()
+                if qty == nil or qty < 1 then
+                    qty = 1
+                end
+                buckets[name] = (buckets[name] or 0) + qty
+            end
+        end
+    end
+    local entries = sortedBucketByCountThenName(buckets)
+    local body
+    if #entries == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_RESOURCES")
+    else
+        local parts = {}
+        for _, e in ipairs(entries) do
+            parts[#parts + 1] = tostring(e.count) .. " " .. e.name
+        end
+        body = table.concat(parts, ", ")
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Terrain + features =====
+-- Delegates to PlotSections.terrainShape.Read so all of the feature-
+-- suppresses-terrain / mountain-dominates / natural-wonder-stands-alone
+-- policy lives in one place. Bucket total can exceed plot count because
+-- multi-terrain features contribute two tokens ("forest on tundra" -> 2).
+function SurveyorCore.terrain()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local buckets = {}
+    for _, plot in ipairs(range.plots) do
+        local tokens = PlotSections.terrainShape.Read(plot)
+        for _, tok in ipairs(tokens) do
+            if tok ~= nil and tok ~= "" then
+                buckets[tok] = (buckets[tok] or 0) + 1
+            end
+        end
+    end
+    local entries = sortedBucketByCountThenName(buckets)
+    local body
+    if #entries == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_TERRAIN")
+    else
+        local parts = {}
+        for _, e in ipairs(entries) do
+            parts[#parts + 1] = tostring(e.count) .. " " .. e.name
+        end
+        body = table.concat(parts, ", ")
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Unit scopes =====
+-- Sort instances by cube-distance ascending, then CW-from-E direction
+-- rank. Distance 0 (units at the cursor) sort before everything; within
+-- a ring, E wins, then SE, SW, W, NW, NE.
+local function distanceDirectionSort(cx, cy)
+    return function(a, b)
+        if a.dist ~= b.dist then
+            return a.dist < b.dist
+        end
+        if a.rank ~= b.rank then
+            return a.rank < b.rank
+        end
+        return a.label < b.label
+    end
+end
+
+local function formatUnitInstances(instances, cx, cy)
+    table.sort(instances, distanceDirectionSort(cx, cy))
+    local parts = {}
+    for _, inst in ipairs(instances) do
+        local dir = HexGeom.directionString(cx, cy, inst.x, inst.y)
+        if dir == "" then
+            parts[#parts + 1] = inst.label
+        else
+            parts[#parts + 1] = inst.label .. ", " .. dir
+        end
+    end
+    return table.concat(parts, ". ")
+end
+
+local function unitLabel(unit, prefixAdj)
+    local row = GameInfo.Units[unit:GetUnitType()]
+    local name
+    if row == nil or row.Description == nil then
+        name = ""
+    else
+        name = Text.key(row.Description)
+    end
+    if prefixAdj == nil or prefixAdj == "" then
+        return name
+    end
+    if name == "" then
+        return prefixAdj
+    end
+    return prefixAdj .. " " .. name
+end
+
+function SurveyorCore.ownUnits()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activePlayer = Game.GetActivePlayer()
+    local instances = {}
+    for _, plot in ipairs(range.plots) do
+        local px, py = plot:GetX(), plot:GetY()
+        local dist = HexGeom.cubeDistance(cx, cy, px, py)
+        local rank = HexGeom.directionRank(cx, cy, px, py)
+        for i = 0, plot:GetNumUnits() - 1 do
+            local u = plot:GetUnit(i)
+            if u ~= nil and u:GetOwner() == activePlayer then
+                instances[#instances + 1] = {
+                    x = px,
+                    y = py,
+                    dist = dist,
+                    rank = rank,
+                    label = unitLabel(u, nil),
+                }
+            end
+        end
+    end
+    local body
+    if #instances == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_OWN_UNITS")
+    else
+        body = formatUnitInstances(instances, cx, cy)
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+function SurveyorCore.enemyUnits()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activeTeam = Game.GetActiveTeam()
+    local isDebug = Game.IsDebugMode()
+    local activeTeamObj = Teams[activeTeam]
+    local instances = {}
+    for _, plot in ipairs(range.plots) do
+        if plot:IsVisible(activeTeam, isDebug) then
+            local px, py = plot:GetX(), plot:GetY()
+            local dist = HexGeom.cubeDistance(cx, cy, px, py)
+            local rank = HexGeom.directionRank(cx, cy, px, py)
+            for i = 0, plot:GetNumUnits() - 1 do
+                local u = plot:GetUnit(i)
+                if u ~= nil and not u:IsInvisible(activeTeam, isDebug) then
+                    local ownerId = u:GetOwner()
+                    local owner = Players[ownerId]
+                    if owner ~= nil then
+                        local hostile = owner:IsBarbarian()
+                            or (activeTeamObj and activeTeamObj:IsAtWar(owner:GetTeam()))
+                        if hostile then
+                            local adj = Text.key(owner:GetCivilizationAdjectiveKey())
+                            instances[#instances + 1] = {
+                                x = px,
+                                y = py,
+                                dist = dist,
+                                rank = rank,
+                                label = unitLabel(u, adj),
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+    local body
+    if #instances == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS")
+    else
+        body = formatUnitInstances(instances, cx, cy)
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Hills =====
+-- Mountain tiles have IsHills() == false in the engine (they're a
+-- separate plot type), so no explicit mountain exclusion is needed.
+function SurveyorCore.hills()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local label = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_HILL")
+    local instances = {}
+    for _, plot in ipairs(range.plots) do
+        if plot:IsHills() then
+            local px, py = plot:GetX(), plot:GetY()
+            instances[#instances + 1] = {
+                x = px,
+                y = py,
+                dist = HexGeom.cubeDistance(cx, cy, px, py),
+                rank = HexGeom.directionRank(cx, cy, px, py),
+                label = label,
+            }
+        end
+    end
+    local body
+    if #instances == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_HILLS")
+    else
+        body = formatUnitInstances(instances, cx, cy)
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Cities =====
+-- Diplomacy grouping against Teams[activeTeam]:
+--   friendly: same team, Defensive Pact, active player's DoF, or minor
+--            civ ally/friend of the active player
+--   hostile:  IsAtWar (captures barbs since IsBarbarian implies war)
+--   neutral:  everything else, including unmet civs whose city we've
+--             revealed but never met
+local function cityDiplomacyGroup(cityOwnerId, activePlayer, activeTeam)
+    local owner = Players[cityOwnerId]
+    if owner == nil then
+        return "neutral"
+    end
+    local ownerTeam = owner:GetTeam()
+    local activeTeamObj = Teams[activeTeam]
+    if ownerTeam == activeTeam then
+        return "friendly"
+    end
+    if activeTeamObj and activeTeamObj:IsAtWar(ownerTeam) then
+        return "hostile"
+    end
+    if activeTeamObj and activeTeamObj.IsDefensivePact and activeTeamObj:IsDefensivePact(ownerTeam) then
+        return "friendly"
+    end
+    if owner:IsMinorCiv() then
+        if owner.IsAllies and owner:IsAllies(activePlayer) then
+            return "friendly"
+        end
+        if owner.IsFriends and owner:IsFriends(activePlayer) then
+            return "friendly"
+        end
+        return "neutral"
+    end
+    local activePlayerObj = Players[activePlayer]
+    if activePlayerObj and activePlayerObj.IsDoF and activePlayerObj:IsDoF(cityOwnerId) then
+        return "friendly"
+    end
+    return "neutral"
+end
+
+local GROUP_ORDER = { "friendly", "hostile", "neutral" }
+local GROUP_LABEL_KEY = {
+    friendly = "TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_FRIENDLY",
+    hostile = "TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_HOSTILE",
+    neutral = "TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_NEUTRAL",
+}
+
+function SurveyorCore.cities()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activePlayer = Game.GetActivePlayer()
+    local activeTeam = Game.GetActiveTeam()
+    local groups = { friendly = {}, hostile = {}, neutral = {} }
+    for _, plot in ipairs(range.plots) do
+        if plot:IsCity() then
+            local city = plot:GetPlotCity()
+            if city ~= nil then
+                local px, py = plot:GetX(), plot:GetY()
+                local group = cityDiplomacyGroup(city:GetOwner(), activePlayer, activeTeam)
+                local bucket = groups[group]
+                bucket[#bucket + 1] = {
+                    x = px,
+                    y = py,
+                    dist = HexGeom.cubeDistance(cx, cy, px, py),
+                    rank = HexGeom.directionRank(cx, cy, px, py),
+                    label = city:GetName(),
+                }
+            end
+        end
+    end
+    local groupParts = {}
+    for _, groupName in ipairs(GROUP_ORDER) do
+        local bucket = groups[groupName]
+        if #bucket > 0 then
+            table.sort(bucket, distanceDirectionSort(cx, cy))
+            local cityParts = {}
+            for _, inst in ipairs(bucket) do
+                local dir = HexGeom.directionString(cx, cy, inst.x, inst.y)
+                if dir == "" then
+                    cityParts[#cityParts + 1] = inst.label
+                else
+                    cityParts[#cityParts + 1] = inst.label .. " " .. dir
+                end
+            end
+            groupParts[#groupParts + 1] = Text.key(GROUP_LABEL_KEY[groupName])
+                .. ": "
+                .. table.concat(cityParts, ", ")
+        end
+    end
+    local body
+    if #groupParts == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES")
+    else
+        body = table.concat(groupParts, ". ")
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Bindings =====
+local function speak(s)
+    if s == nil or s == "" then
+        return
+    end
+    SpeechPipeline.speakInterrupt(s)
+end
+
+local function bind(key, mods, fn, description)
+    return { key = key, mods = mods, fn = fn, description = description }
+end
+
+function SurveyorCore.getBindings()
+    local bindings = {
+        bind(Keys.W, MOD_SHIFT, function()
+            speak(SurveyorCore.grow())
+        end, "Surveyor: grow radius"),
+        bind(Keys.X, MOD_SHIFT, function()
+            speak(SurveyorCore.shrink())
+        end, "Surveyor: shrink radius"),
+        bind(Keys.Q, MOD_SHIFT, function()
+            speak(SurveyorCore.yields())
+        end, "Surveyor: yields"),
+        bind(Keys.A, MOD_SHIFT, function()
+            speak(SurveyorCore.resources())
+        end, "Surveyor: resources"),
+        bind(Keys.Z, MOD_SHIFT, function()
+            speak(SurveyorCore.terrain())
+        end, "Surveyor: terrain"),
+        bind(Keys.E, MOD_SHIFT, function()
+            speak(SurveyorCore.ownUnits())
+        end, "Surveyor: own units"),
+        bind(Keys.D, MOD_SHIFT, function()
+            speak(SurveyorCore.enemyUnits())
+        end, "Surveyor: enemy units"),
+        bind(Keys.C, MOD_SHIFT, function()
+            speak(SurveyorCore.hills())
+        end, "Surveyor: hills"),
+        bind(Keys.S, MOD_SHIFT, function()
+            speak(SurveyorCore.cities())
+        end, "Surveyor: cities"),
+    }
+    local helpEntries = {
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RADIUS",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_RADIUS" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_YIELDS",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_YIELDS" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RESOURCES",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_RESOURCES" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_TERRAIN",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_TERRAIN" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_OWN_UNITS",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_OWN_UNITS" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_HILLS",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_HILLS" },
+        { keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES",
+          description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES" },
+    }
+    return { bindings = bindings, helpEntries = helpEntries }
+end
+
+-- Test seam.
+function SurveyorCore._reset()
+    civvaccess_shared.surveyorRadius = nil
+end

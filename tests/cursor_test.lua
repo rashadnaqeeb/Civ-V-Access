@@ -639,23 +639,6 @@ function M.test_cursor_orient_two_axis_decomposition_preserves_clockwise_from_e_
     T.eq(Cursor.orient(), "4e, 5ne")
 end
 
-function M.test_cursor_recenter_no_unit_selected_speaks_message_and_does_not_move()
-    setup()
-    local start = T.fakePlot({ x = 0, y = 0 })
-    Map.GetPlot = function(x, y)
-        if x == 0 and y == 0 then
-            return start
-        end
-    end
-    -- Init via capital so init succeeds without a selected unit.
-    Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = start }) })
-    Cursor.init()
-    UI.GetHeadSelectedUnit = function()
-        return nil
-    end
-    T.eq(Cursor.recenter(), "no unit selected")
-end
-
 function M.test_cursor_move_onto_unexplored_speaks_unexplored_every_step()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains" }

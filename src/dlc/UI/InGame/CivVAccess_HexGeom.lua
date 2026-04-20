@@ -22,6 +22,12 @@ local function offsetToCube(col, row)
     return q, -q - r, r
 end
 
+local function cubeToOffset(x, _y, z)
+    local row = z
+    local col = x + (row - (row % 2)) / 2
+    return col, row
+end
+
 -- Cube delta D decomposes into a*u + b*v where (u, v) is one of the six
 -- adjacent CW pairs from E. Each pair has a closed-form solution; pick
 -- the first one whose (a, b) are both non-negative. The output is then
@@ -72,4 +78,64 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
         end
     end
     return table.concat(parts, ", ")
+end
+
+-- Cube distance between two offset coords. Exposed so callers that already
+-- hold plots and need a sort key don't reconstruct the cube math.
+function HexGeom.cubeDistance(x1, y1, x2, y2)
+    local ax, ay, az = offsetToCube(x1, y1)
+    local bx, by, bz = offsetToCube(x2, y2)
+    return (math.abs(ax - bx) + math.abs(ay - by) + math.abs(az - bz)) / 2
+end
+
+-- Clockwise-from-E ordering key for two plots at equal cube distance from
+-- a center: lower rank comes first. Used by surveyor scopes to break ties
+-- among plots at the same radius ring. Ordering mirrors OUTPUT_ORDER so a
+-- caller that already speaks directions via directionString hears tiebreaks
+-- in the same sequence.
+local DIRECTION_RANK = { E = 1, SE = 2, SW = 3, W = 4, NW = 5, NE = 6 }
+
+function HexGeom.directionRank(cx, cy, tx, ty)
+    if cx == tx and cy == ty then
+        return 0
+    end
+    local fx, fy, fz = offsetToCube(cx, cy)
+    local ttx, tty, ttz = offsetToCube(tx, ty)
+    local counts = decomposeCube(ttx - fx, tty - fy, ttz - fz)
+    for _, d in ipairs(OUTPUT_ORDER) do
+        if counts[d.dir] > 0 then
+            return DIRECTION_RANK[d.dir]
+        end
+    end
+    return 0
+end
+
+-- Returns { plots = revealed-in-range, unexplored = count }. `plots` is a
+-- list of Plot userdata the active team has revealed, within cube distance
+-- r of (cx, cy) inclusive. `unexplored` counts real (non-nil) in-range
+-- plots that aren't revealed. Off-map positions (GetPlot returns nil) are
+-- silently dropped so non-wrapped map edges don't inflate the unexplored
+-- tail.
+function HexGeom.plotsInRange(cx, cy, r)
+    local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
+    local ccx, _ccy, ccz = offsetToCube(cx, cy)
+    local plots = {}
+    local unexplored = 0
+    for dx = -r, r do
+        local dyMin = math.max(-r, -dx - r)
+        local dyMax = math.min(r, -dx + r)
+        for dy = dyMin, dyMax do
+            local dz = -dx - dy
+            local col, row = cubeToOffset(ccx + dx, nil, ccz + dz)
+            local plot = Map.GetPlot(col, row)
+            if plot ~= nil then
+                if plot:IsRevealed(team, debug) then
+                    plots[#plots + 1] = plot
+                else
+                    unexplored = unexplored + 1
+                end
+            end
+        end
+    end
+    return { plots = plots, unexplored = unexplored }
 end
