@@ -1,7 +1,7 @@
 -- Text-capture handler pushed on top of ScannerHandler when the user
--- presses Ctrl+F. Every printable keystroke appends to an internal
--- buffer and speaks it so the user hears what they've typed; Enter
--- commits the query, Escape cancels.
+-- presses Ctrl+F. Printable keystrokes append to an internal buffer
+-- silently; the user's screen reader provides typing echo. Enter
+-- commits the query and speaks the result, Escape cancels.
 --
 -- Driven by InputRouter's handleSearchInput hook -- the same pre-walk
 -- path BaseMenu's type-ahead uses -- so no per-letter bindings table is
@@ -64,11 +64,6 @@ function ScannerInput.create()
                 return true
             end
             me._buffer = string.sub(me._buffer, 1, -2)
-            if #me._buffer == 0 then
-                speak(Text.key("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_CLEARED"))
-            else
-                speak(me._buffer)
-            end
             return true
         end
         if vk == Keys.VK_SPACE then
@@ -76,7 +71,6 @@ function ScannerInput.create()
                 return true
             end
             me._buffer = me._buffer .. " "
-            speak(me._buffer)
             return true
         end
         -- Letters: case-insensitive match; lowercase in buffer for
@@ -84,7 +78,6 @@ function ScannerInput.create()
         local ch = charForLetter(vk) or charForDigit(vk)
         if ch ~= nil then
             me._buffer = me._buffer .. ch
-            speak(me._buffer)
             return true
         end
         return false

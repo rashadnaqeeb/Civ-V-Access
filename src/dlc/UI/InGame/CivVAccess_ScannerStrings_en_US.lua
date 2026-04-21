@@ -57,7 +57,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"] = "no jump to re
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT"] = "search"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_RESULTS"] = "search results"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_CLEARED"] = "search cleared"
 
 -- ===== Help overlay entries =====
 -- Merged chord labels following the existing cursor help convention so
