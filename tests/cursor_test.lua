@@ -608,17 +608,18 @@ function M.test_cursor_orient_pure_east_axis()
         return unit
     end
     Cursor.init()
-    T.eq(Cursor.orient(), "3e")
+    -- Cursor is 3 east of capital, so to reach the capital the user
+    -- travels 3 west.
+    T.eq(Cursor.orient(), "3w")
 end
 
 function M.test_cursor_orient_two_axis_decomposition_preserves_clockwise_from_e_order()
     setup()
-    -- Place cursor at (col, row) such that delta from origin requires both
-    -- E and NE components. From the design: 4 east + 5 northeast reads
-    -- "4e, 5ne". In Civ V's odd-row offset, NE on a row leaves col
-    -- unchanged (even-row source) or +1 (odd-row source); both translate
-    -- to axial Δq = 0, Δr = +1. So 4 east + 5 NE → axial Δq = +4, Δr = +5.
-    -- Convert axial back to offset: row = 5; col = q + (r - r%2)/2 = 4 + 2 = 6.
+    -- Place cursor at (col, row) such that the delta from cursor to
+    -- capital requires two non-adjacent direction components. Cursor is
+    -- 4 east + 5 NE of the capital, so capital is 4 west + 5 SW of the
+    -- cursor. OUTPUT_ORDER sorts clockwise from E, so SW comes before W
+    -- in the spoken form.
     local cap = T.fakePlot({ x = 0, y = 0 })
     local cur = T.fakePlot({ x = 6, y = 5 })
     Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
@@ -636,7 +637,7 @@ function M.test_cursor_orient_two_axis_decomposition_preserves_clockwise_from_e_
         return unit
     end
     Cursor.init()
-    T.eq(Cursor.orient(), "4e, 5ne")
+    T.eq(Cursor.orient(), "5sw, 4w")
 end
 
 function M.test_cursor_move_onto_unexplored_speaks_unexplored_every_step()

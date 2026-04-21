@@ -115,10 +115,10 @@ function Cursor.move(direction)
 end
 
 -- ===== Orientation =====
--- Direction-string composition lives in HexGeom so the scanner's End key
--- (cursor -> entry) produces byte-identical output to the S key here
--- (capital -> cursor). Only the at-origin short-circuit key differs
--- between callers.
+-- Direction-string composition lives in HexGeom so every cursor-relative
+-- caller (S key here, scanner's End, surveyor) produces byte-identical
+-- output. Direction is cursor -> capital: the user hears the bearing
+-- they'd travel to reach the capital.
 function Cursor.orient()
     if _x == nil then
         Log.warn("Cursor.orient before init")
@@ -137,7 +137,7 @@ function Cursor.orient()
     if _x == kx and _y == ky then
         return Text.key("TXT_KEY_CIVVACCESS_AT_CAPITAL")
     end
-    return HexGeom.directionString(kx, ky, _x, _y)
+    return HexGeom.directionString(_x, _y, kx, ky)
 end
 
 -- ===== Position accessor / programmatic jump =====

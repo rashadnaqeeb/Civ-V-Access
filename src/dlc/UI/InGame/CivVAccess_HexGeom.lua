@@ -1,9 +1,9 @@
 -- Shared hex-grid direction math. Turns a (fromX, fromY) to (toX, toY)
--- delta into the spoken form ("4e, 5ne") both the cursor's S key
--- (capital -> cursor) and the scanner's End key (cursor -> entry) rely
--- on. Keeping the composition in one place guarantees byte-identical
--- output between the two callers; a future format change (separator,
--- long tokens, total-distance prefix) lands here and applies to both.
+-- delta into the spoken form ("4e, 5ne") that every cursor-relative
+-- caller (cursor's Shift+S orient, scanner's End, surveyor) relies on.
+-- Keeping the composition in one place guarantees byte-identical output
+-- across callers; a future format change (separator, long tokens,
+-- total-distance prefix) lands here and applies to all of them.
 --
 -- Caller contract: identical endpoints return the empty string. Each
 -- caller supplies its own "at origin" TXT_KEY (AT_CAPITAL for the S key,
