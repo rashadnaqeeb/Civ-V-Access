@@ -337,7 +337,7 @@ function M.test_info_skip_zero_ranged_on_melee()
     setup()
     local u = mkUnit({ combat = 10, ranged = 0 })
     local out = UnitSpeech.info(u)
-    T.truthy(out:find("10 combat", 1, true), "combat strength expected: " .. out)
+    T.truthy(out:find("10 melee", 1, true), "combat strength expected: " .. out)
     T.truthy(not out:find("ranged", 1, true), "zero-ranged must be skipped: " .. out)
 end
 
