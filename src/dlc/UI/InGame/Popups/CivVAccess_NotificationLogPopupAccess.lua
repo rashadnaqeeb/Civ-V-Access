@@ -62,7 +62,11 @@ local function buildItems()
             dismissed[#dismissed + 1] = BaseMenuItems.Text({ labelText = label })
         else
             local notificationId = player:GetNotificationIndex(i)
-            active[#active + 1] = BaseMenuItems.Button({
+            -- Choice (not Button): per-notification entries are built per
+            -- onShow from engine data with no backing Controls.X, which is
+            -- exactly the case Choice was written for. Button requires a
+            -- controlName / control and would fail the spec check.
+            active[#active + 1] = BaseMenuItems.Choice({
                 labelText = label,
                 activate = function() NotificationSelected(notificationId) end,
             })
