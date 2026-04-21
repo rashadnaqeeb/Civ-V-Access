@@ -11,30 +11,20 @@
 -- them by design per the unit-control spec).
 --
 -- Preview math clones base-game EnemyUnitPanel.lua:655-707 (bidirectional
--- GetCombatDamage for melee, GetRangeCombatDamage for ranged). Move-to
--- turn-count data source is deferred per design doc's open questions;
--- the move-to preview currently speaks just the direction from the unit
--- to the cursor, which already gives the user spatial feedback.
+-- GetCombatDamage for melee, GetRangeCombatDamage for ranged). The move-
+-- to preview speaks the direction from the unit to the cursor.
 
 UnitTargetMode = {}
 
 local MOD_NONE = 0
 
-local function selectionMode()
-    local modes = InterfaceModeTypes
-    if modes == nil then
-        return nil
-    end
-    return modes.INTERFACEMODE_SELECTION
-end
+-- Windows VK codes for ',' '.' — Civ V's Keys table omits these; see
+-- CivVAccess_InputRouter.lua for the same literal-constant workaround.
+local VK_OEM_COMMA = 188
+local VK_OEM_PERIOD = 190
 
 local function restoreSelection()
-    local sel = selectionMode()
-    if sel == nil then
-        Log.warn("UnitTargetMode: InterfaceModeTypes missing; cannot restore selection mode")
-        return
-    end
-    UI.SetInterfaceMode(sel)
+    UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
 end
 
 local function speakInterrupt(text)
@@ -57,25 +47,6 @@ local function cursorPlot()
         return nil
     end
     return Map.GetPlot(cx, cy), cx, cy
-end
-
--- Predicts combat outcome between actor and the unit (or city) at the
--- cursor plot. Returns a string; empty if there is no viable target at
--- the cursor. Based on EnemyUnitPanel's VSUnit branch; we only surface
--- the four headline numbers (my/their strength, my/their damage) rather
--- than the full modifier list a sighted player sees in the side panel.
-local function meleePreview(actor, defender, targetPlot)
-    local fromPlot = actor:GetPlot()
-    local myStrength = actor:GetMaxAttackStrength(fromPlot, targetPlot, defender)
-    local theirStrength = defender:GetMaxDefenseStrength(targetPlot, actor)
-    if myStrength <= 0 or theirStrength <= 0 then
-        return ""
-    end
-    local myDmg = actor:GetCombatDamage(myStrength, theirStrength, actor:GetDamage(), false, false, false)
-    local theirDmg = defender:GetCombatDamage(theirStrength, myStrength, defender:GetDamage(), false, false, false)
-    local row = GameInfo.Units[defender:GetUnitType()]
-    local name = row ~= nil and Text.key(row.Description) or ""
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStrength, theirStrength, theirDmg, myDmg)
 end
 
 local function rangedPreview(actor, defender, targetX, targetY)
@@ -104,29 +75,17 @@ local function firstEnemyUnit(plot)
 end
 
 local function isRangeAttackMode(mode)
-    local modes = InterfaceModeTypes
-    if modes == nil then
-        return false
-    end
-    return mode == modes.INTERFACEMODE_RANGE_ATTACK or mode == modes.INTERFACEMODE_AIRSTRIKE
+    return mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE
 end
 
 local function isMeleeAttackMode(mode)
-    local modes = InterfaceModeTypes
-    if modes == nil then
-        return false
-    end
-    return mode == modes.INTERFACEMODE_ATTACK
+    return mode == InterfaceModeTypes.INTERFACEMODE_ATTACK
 end
 
 local function isMoveMode(mode)
-    local modes = InterfaceModeTypes
-    if modes == nil then
-        return false
-    end
-    return mode == modes.INTERFACEMODE_MOVE_TO
-        or mode == modes.INTERFACEMODE_MOVE_TO_TYPE
-        or mode == modes.INTERFACEMODE_MOVE_TO_ALL
+    return mode == InterfaceModeTypes.INTERFACEMODE_MOVE_TO
+        or mode == InterfaceModeTypes.INTERFACEMODE_MOVE_TO_TYPE
+        or mode == InterfaceModeTypes.INTERFACEMODE_MOVE_TO_ALL
 end
 
 local function buildPreview(self)
@@ -136,9 +95,6 @@ local function buildPreview(self)
     end
     local mode = self._mode
     local actor = self._actor
-    if actor == nil then
-        return ""
-    end
     local parts = {}
     if isRangeAttackMode(mode) then
         local defender = firstEnemyUnit(plot)
@@ -147,43 +103,32 @@ local function buildPreview(self)
         else
             parts[#parts + 1] = rangedPreview(actor, defender, tx, ty)
         end
-        if actor.GetDeclareWarRangeStrike ~= nil then
-            local rivalTeam = actor:GetDeclareWarRangeStrike(plot)
-            if rivalTeam ~= nil and rivalTeam ~= -1 then
-                parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
-            end
+        local rivalTeam = actor:GetDeclareWarRangeStrike(plot)
+        if rivalTeam ~= -1 then
+            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
         end
     elseif isMeleeAttackMode(mode) then
         local defender = firstEnemyUnit(plot)
         if defender == nil then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         else
-            local text = meleePreview(actor, defender, plot)
+            local text = UnitSpeech.meleePreview(actor, defender, plot)
             if text == "" then
                 parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
             else
                 parts[#parts + 1] = text
             end
         end
-        if actor.GetDeclareWarMove ~= nil then
-            local rivalTeam = actor:GetDeclareWarMove(plot)
-            if rivalTeam ~= nil and rivalTeam ~= -1 then
-                parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
-            end
-        end
     elseif isMoveMode(mode) then
+        -- War-declaration on move is surfaced by the engine's popup at
+        -- commit time (routed through GenericPopupAccess), so no pre-
+        -- commit detection here.
         local ax, ay = actor:GetX(), actor:GetY()
         local dir = HexGeom.directionString(ax, ay, tx, ty)
         if dir == "" then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         else
             parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_TO", dir)
-        end
-        if actor.GetDeclareWarMove ~= nil then
-            local rivalTeam = actor:GetDeclareWarMove(plot)
-            if rivalTeam ~= nil and rivalTeam ~= -1 then
-                parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
-            end
         end
     else
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
@@ -204,10 +149,6 @@ local function commitAtCursor(self)
         return
     end
     local mode = UI.GetInterfaceMode()
-    if GameInfo.InterfaceModes == nil or GameInfoTypes == nil or MissionTypes == nil then
-        Log.error("UnitTargetMode.commit: InterfaceModes / GameInfoTypes / MissionTypes missing")
-        return
-    end
     local modeRow = GameInfo.InterfaceModes[mode]
     if modeRow == nil then
         Log.error("UnitTargetMode.commit: no InterfaceModes row for mode " .. tostring(mode))
@@ -226,12 +167,7 @@ local function commitAtCursor(self)
         restoreSelection()
         return
     end
-    -- Stash the target on the actor's pending-move slot so UnitControl's
-    -- SerialEventUnitMove listener can announce the outcome once the
-    -- engine has processed the mission.
-    if UnitControl ~= nil and UnitControl.registerPending ~= nil then
-        UnitControl.registerPending(self._actor, tx, ty)
-    end
+    UnitControl.registerPending(self._actor, tx, ty)
     Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, false)
     HandlerStack.removeByName("UnitTargetMode", false)
     restoreSelection()
@@ -291,23 +227,17 @@ function UnitTargetMode.enter(actor, iAction, mode)
         bind(Keys.VK_TAB, MOD_NONE, function()
             HandlerStack.removeByName("UnitTargetMode", false)
             restoreSelection()
-            if UnitActionMenu ~= nil then
-                UnitActionMenu.open(actor)
-            end
+            UnitActionMenu.open(actor)
         end, "Switch verb"),
-        bind(Keys.VK_OEM_PERIOD, MOD_NONE, function()
+        bind(VK_OEM_PERIOD, MOD_NONE, function()
             HandlerStack.removeByName("UnitTargetMode", false)
             restoreSelection()
-            if UnitControl ~= nil then
-                UnitControl.cycleAll(true)
-            end
+            UnitControl.cycleAll(true)
         end, "Next unit"),
-        bind(Keys.VK_OEM_COMMA, MOD_NONE, function()
+        bind(VK_OEM_COMMA, MOD_NONE, function()
             HandlerStack.removeByName("UnitTargetMode", false)
             restoreSelection()
-            if UnitControl ~= nil then
-                UnitControl.cycleAll(false)
-            end
+            UnitControl.cycleAll(false)
         end, "Previous unit"),
     }
     self.helpEntries = {}

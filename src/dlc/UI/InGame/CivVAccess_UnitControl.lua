@@ -21,6 +21,13 @@ local MOD_NONE = 0
 local MOD_CTRL = 2
 local MOD_ALT = 4
 
+-- Windows VK codes for ',' '.' '/' — Civ V's Keys table exposes VK_OEM_3 /
+-- VK_OEM_PLUS / VK_OEM_MINUS but not these three. InputRouter uses the same
+-- numeric-literal workaround for its help hotkey.
+local VK_OEM_COMMA = 188
+local VK_OEM_PERIOD = 190
+local VK_OEM_2 = 191
+
 local COMBAT_CONFIRM_WINDOW_SECONDS = 1.0
 
 -- ===== Combat-confirm state (Alt+QAZEDC two-tap) =====
@@ -36,22 +43,30 @@ end
 -- entry should drop any in-flight pending move -- the listeners will
 -- rehook on LoadScreenClose and a half-registered pending would never
 -- resolve.
+local PENDING_EXPIRY_FRAMES = 2
+
 local _pending = nil
 
 local function clearPending()
     _pending = nil
 end
 
+local schedulePendingExpiry
+
 function UnitControl.registerPending(unit, targetX, targetY)
     if unit == nil then
         return
     end
-    _pending = {
+    local snapshot = {
         unitID = unit:GetID(),
+        startX = unit:GetX(),
+        startY = unit:GetY(),
         targetX = targetX,
         targetY = targetY,
         commitFrame = TickPump.frame(),
     }
+    _pending = snapshot
+    schedulePendingExpiry(snapshot)
 end
 
 -- ===== Helpers =====
@@ -166,19 +181,10 @@ end
 
 -- ===== Alt+QAZEDC direct move =====
 local function commitDirectMove(unit, targetX, targetY)
-    if GameInfoTypes == nil or GameMessageTypes == nil then
-        Log.error("UnitControl.commitDirectMove: GameInfoTypes / GameMessageTypes missing")
-        return
-    end
-    local mission = GameInfoTypes.MISSION_MOVE_TO
-    if mission == nil then
-        Log.error("UnitControl.commitDirectMove: MISSION_MOVE_TO not in GameInfoTypes")
-        return
-    end
     UnitControl.registerPending(unit, targetX, targetY)
     Game.SelectionListGameNetMessage(
         GameMessageTypes.GAMEMESSAGE_PUSH_MISSION,
-        mission,
+        GameInfoTypes.MISSION_MOVE_TO,
         targetX,
         targetY,
         0,
@@ -217,20 +223,7 @@ local function directMove(dir)
     end
     _combatConfirm.dir = dir
     _combatConfirm.clock = now
-    -- First-press feedback uses target-mode's melee preview shape via
-    -- TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK for consistency.
-    local fromPlot = unit:GetPlot()
-    local myStrength = unit:GetMaxAttackStrength(fromPlot, target, enemy)
-    local theirStrength = enemy:GetMaxDefenseStrength(target, unit)
-    if myStrength > 0 and theirStrength > 0 then
-        local myDmg = unit:GetCombatDamage(myStrength, theirStrength, unit:GetDamage(), false, false, false)
-        local theirDmg = enemy:GetCombatDamage(theirStrength, myStrength, enemy:GetDamage(), false, false, false)
-        local row = GameInfo.Units[enemy:GetUnitType()]
-        local name = row ~= nil and Text.key(row.Description) or ""
-        speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStrength, theirStrength, theirDmg, myDmg)
-        )
-    end
+    speakInterrupt(UnitSpeech.meleePreview(unit, enemy, target))
 end
 
 -- ===== Info key =====
@@ -248,10 +241,6 @@ local function openActionMenu()
     if unit == nil then
         return
     end
-    if UnitActionMenu == nil then
-        Log.error("UnitControl: UnitActionMenu module not loaded")
-        return
-    end
     UnitActionMenu.open(unit)
 end
 
@@ -262,24 +251,24 @@ end
 
 function UnitControl.getBindings()
     local bindings = {
-        bind(Keys.VK_OEM_COMMA, MOD_NONE, function()
+        bind(VK_OEM_COMMA, MOD_NONE, function()
             UnitControl.cycleAll(false)
         end, "Previous unit"),
-        bind(Keys.VK_OEM_PERIOD, MOD_CTRL, function()
+        bind(VK_OEM_PERIOD, MOD_CTRL, function()
             local cx, cy = Cursor.position()
             if cx == nil then
                 return
             end
             UnitControl.cycleOnHex(cx, cy, true)
         end, "Next unit on hex"),
-        bind(Keys.VK_OEM_COMMA, MOD_CTRL, function()
+        bind(VK_OEM_COMMA, MOD_CTRL, function()
             local cx, cy = Cursor.position()
             if cx == nil then
                 return
             end
             UnitControl.cycleOnHex(cx, cy, false)
         end, "Previous unit on hex"),
-        bind(Keys.VK_OEM_2, MOD_NONE, speakInfo, "Unit info"),
+        bind(VK_OEM_2, MOD_NONE, speakInfo, "Unit info"),
         bind(Keys.VK_TAB, MOD_NONE, openActionMenu, "Unit action menu"),
         bind(Keys.Q, MOD_ALT, function()
             directMove(DirectionTypes.DIRECTION_NORTHWEST)
@@ -387,6 +376,28 @@ local function resolvePendingUnit()
     return player:GetUnitByID(_pending.unitID)
 end
 
+-- Timeout check so a silently-rejected commit (engine dropped the
+-- PUSH_MISSION, unit already out of moves, packet loss, etc.) doesn't
+-- leak _pending forever and later misfire when some other SerialEvent
+-- re-runs onUnitMoveCompleted. Snapshot guards against a newer commit
+-- replacing the pending underneath us between reschedules.
+schedulePendingExpiry = function(snapshot)
+    TickPump.runOnce(function()
+        if _pending ~= snapshot then
+            return
+        end
+        if TickPump.frame() - snapshot.commitFrame < PENDING_EXPIRY_FRAMES then
+            schedulePendingExpiry(snapshot)
+            return
+        end
+        local unit = resolvePendingUnit()
+        if unit ~= nil and unit:GetX() == snapshot.startX and unit:GetY() == snapshot.startY then
+            speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+        end
+        clearPending()
+    end)
+end
+
 local function onUnitMoveCompleted()
     if _pending == nil then
         return
@@ -399,26 +410,15 @@ local function onUnitMoveCompleted()
         return
     end
     local tx, ty = _pending.targetX, _pending.targetY
-    -- Only speak once the unit has stopped moving. "stopped" condition
-    -- is `MovesLeft == 0 OR unit is at target`. The engine fires
-    -- SerialEventUnitMove for each hex traversed; we'd announce mid-path
-    -- if we didn't gate on a stop condition.
+    -- Only speak on a stop condition (at target OR out of moves). The
+    -- engine fires SerialEventUnitMove per hex traversed, so mid-path
+    -- events need to be ignored.
     local cx, cy = unit:GetX(), unit:GetY()
-    local denom = (GameDefines.MOVE_DENOMINATOR ~= nil and GameDefines.MOVE_DENOMINATOR > 0)
-            and GameDefines.MOVE_DENOMINATOR
-        or 60
-    local movesLeft = math.floor((unit:MovesLeft() or 0) / denom)
-    if cx == tx and cy == ty then
+    local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
+    if cx == tx and cy == ty or movesLeft <= 0 then
         speakQueued(UnitSpeech.moveResult(unit, tx, ty))
         clearPending()
-        return
     end
-    if movesLeft <= 0 then
-        speakQueued(UnitSpeech.moveResult(unit, tx, ty))
-        clearPending()
-        return
-    end
-    -- Still in motion; wait for the next event to re-evaluate.
 end
 
 -- Idempotent per-session listener install. civvaccess_shared persists
@@ -446,17 +446,12 @@ function UnitControl.installListeners()
     end
     if Events.SerialEventUnitMove ~= nil then
         Events.SerialEventUnitMove.Add(onUnitMoveCompleted)
+    else
+        Log.warn("UnitControl: Events.SerialEventUnitMove missing")
     end
     if Events.SerialEventUnitMoveToHexes ~= nil then
         Events.SerialEventUnitMoveToHexes.Add(onUnitMoveCompleted)
-    end
-end
-
--- Test seam.
-function UnitControl._reset()
-    clearCombatConfirm()
-    clearPending()
-    if civvaccess_shared ~= nil then
-        civvaccess_shared.unitControlListenersInstalled = nil
+    else
+        Log.warn("UnitControl: Events.SerialEventUnitMoveToHexes missing")
     end
 end

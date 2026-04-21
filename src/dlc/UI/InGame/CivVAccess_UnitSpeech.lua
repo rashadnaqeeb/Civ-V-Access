@@ -25,29 +25,16 @@ local function unitName(unit)
     return Text.key(row.Description)
 end
 
-local function moveDenominator()
-    local d = GameDefines.MOVE_DENOMINATOR
-    if d == nil or d == 0 then
-        return 60
-    end
-    return d
-end
-
 local function movesFraction(unit)
-    local denom = moveDenominator()
-    local cur = math.floor((unit:MovesLeft() or 0) / denom)
-    local maxMoves = math.floor((unit:MaxMoves() or 0) / denom)
+    local denom = GameDefines.MOVE_DENOMINATOR
+    local cur = math.floor(unit:MovesLeft() / denom)
+    local maxMoves = math.floor(unit:MaxMoves() / denom)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION", cur, maxMoves)
 end
 
 local function hpFraction(unit)
-    local maxHP = GameDefines.MAX_HIT_POINTS or 100
-    local cur = maxHP - (unit:GetDamage() or 0)
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", cur, maxHP)
-end
-
-local function isBelowMaxHP(unit)
-    return (unit:GetDamage() or 0) > 0
+    local maxHP = GameDefines.MAX_HIT_POINTS
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", maxHP - unit:GetDamage(), maxHP)
 end
 
 -- Returns the first matching status token (localized string), or "".
@@ -73,40 +60,29 @@ local function statusToken(unit)
     if activity == ActivityTypes.ACTIVITY_SENTRY then
         return Text.key("TXT_KEY_MISSION_ALERT")
     end
-    if (unit:GetFortifyTurns() or 0) > 0 then
+    if unit:GetFortifyTurns() > 0 then
         return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED")
     end
     if activity == ActivityTypes.ACTIVITY_SLEEP then
         return Text.key("TXT_KEY_MISSION_SLEEP")
     end
     local buildType = unit:GetBuildType()
-    if buildType ~= nil and buildType ~= -1 then
+    if buildType ~= -1 then
         local buildRow = GameInfo.Builds[buildType]
         if buildRow == nil then
             Log.warn("UnitSpeech: GetBuildType returned unknown id " .. tostring(buildType))
             return ""
         end
-        local plot = unit:GetPlot()
-        local turns = 0
-        if plot ~= nil then
-            -- Engine adds +1 to turns-left (see UnitPanel.lua:392) so a
-            -- build finishing at end-of-turn reads as 1 rather than 0.
-            turns = (plot:GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) or 0) + 1
-        end
+        -- Engine adds +1 to turns-left (see UnitPanel.lua:392) so a
+        -- build finishing at end-of-turn reads as 1 rather than 0.
+        local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", Text.key(buildRow.Description), turns)
     end
     return ""
 end
 
--- Builds the selection announce string. Returns "" only when the unit
--- has no name and no other speakable fact, which shouldn't happen for a
--- selectable unit but is defended against so an empty output doesn't
--- blast an "unknown" token through Tolk.
+-- Builds the selection announce string.
 function UnitSpeech.selection(unit, prevX, prevY)
-    if unit == nil then
-        Log.warn("UnitSpeech.selection: nil unit")
-        return ""
-    end
     local parts = {}
     local cx, cy = unit:GetX(), unit:GetY()
     if prevX ~= nil and prevY ~= nil then
@@ -122,7 +98,7 @@ function UnitSpeech.selection(unit, prevX, prevY)
     if name ~= "" then
         parts[#parts + 1] = name
     end
-    if isBelowMaxHP(unit) then
+    if unit:GetDamage() > 0 then
         parts[#parts + 1] = hpFraction(unit)
     end
     parts[#parts + 1] = movesFraction(unit)
@@ -151,39 +127,39 @@ end
 -- rather than speaking "0 ranged" -- empty ranged strength on a melee
 -- unit would waste syllables on every query.
 function UnitSpeech.info(unit)
-    if unit == nil then
-        Log.warn("UnitSpeech.info: nil unit")
-        return ""
-    end
     local parts = {}
     parts[#parts + 1] = unitName(unit)
-    local combat = unit:GetBaseCombatStrength() or 0
+    local combat = unit:GetBaseCombatStrength()
     if combat > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH", combat)
     end
-    local ranged = unit:GetBaseRangedCombatStrength() or 0
+    local ranged = unit:GetBaseRangedCombatStrength()
     if ranged > 0 then
-        local range = unit:Range() or 0
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, range)
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, unit:Range())
     end
     if unit:IsCombatUnit() then
-        local level = unit:GetLevel() or 0
-        local xp = unit:GetExperience() or 0
-        local xpNext = unit:ExperienceNeeded() or 0
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP", level, xp, xpNext)
+        parts[#parts + 1] = Text.format(
+            "TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP",
+            unit:GetLevel(),
+            unit:GetExperience(),
+            unit:ExperienceNeeded()
+        )
     end
     local promos = promotionList(unit)
     if #promos > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL", table.concat(promos, ", "))
     end
     local upgradeType = unit:GetUpgradeUnitType()
-    if upgradeType ~= nil and upgradeType ~= -1 then
+    if upgradeType ~= -1 then
         local upgradeRow = GameInfo.Units[upgradeType]
-        if upgradeRow ~= nil then
-            local gold = unit:UpgradePrice(upgradeType) or 0
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_UPGRADE", Text.key(upgradeRow.Description), gold)
-        else
+        if upgradeRow == nil then
             Log.warn("UnitSpeech.info: GetUpgradeUnitType returned unknown id " .. tostring(upgradeType))
+        else
+            parts[#parts + 1] = Text.format(
+                "TXT_KEY_CIVVACCESS_UNIT_UPGRADE",
+                Text.key(upgradeRow.Description),
+                unit:UpgradePrice(upgradeType)
+            )
         end
     end
     parts[#parts + 1] = hpFraction(unit)
@@ -207,16 +183,30 @@ local function sideName(playerId, unitId)
     return unitName(unit)
 end
 
-function UnitSpeech.combatResult(args)
-    if args == nil then
-        Log.warn("UnitSpeech.combatResult: nil args")
+-- Bidirectional damage preview for a melee attack by `actor` into
+-- `defender` on `targetPlot`. Clones base-game EnemyUnitPanel.lua's
+-- VSUnit branch: GetMaxAttackStrength / GetMaxDefenseStrength +
+-- bidirectional GetCombatDamage. Returns "" when either side's
+-- strength resolves to 0 (caller speaks its own "no target" fallback).
+function UnitSpeech.meleePreview(actor, defender, targetPlot)
+    local myStrength = actor:GetMaxAttackStrength(actor:GetPlot(), targetPlot, defender)
+    local theirStrength = defender:GetMaxDefenseStrength(targetPlot, actor)
+    if myStrength <= 0 or theirStrength <= 0 then
         return ""
     end
+    local myDmg = actor:GetCombatDamage(myStrength, theirStrength, actor:GetDamage(), false, false, false)
+    local theirDmg = defender:GetCombatDamage(theirStrength, myStrength, defender:GetDamage(), false, false, false)
+    local row = GameInfo.Units[defender:GetUnitType()]
+    local name = row ~= nil and Text.key(row.Description) or ""
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStrength, theirStrength, theirDmg, myDmg)
+end
+
+function UnitSpeech.combatResult(args)
     local atkName = sideName(args.attackerPlayer, args.attackerUnit)
     local defName = sideName(args.defenderPlayer, args.defenderUnit)
-    local atkDamage = (args.attackerFinalDamage or 0) - (args.attackerInitialDamage or 0)
-    local defDamage = (args.defenderFinalDamage or 0) - (args.defenderInitialDamage or 0)
-    local maxHP = GameDefines.MAX_HIT_POINTS or 100
+    local atkDamage = args.attackerFinalDamage - args.attackerInitialDamage
+    local defDamage = args.defenderFinalDamage - args.defenderInitialDamage
+    local maxHP = GameDefines.MAX_HIT_POINTS
     local parts = {}
     if atkDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE", atkName, atkDamage)
@@ -224,10 +214,10 @@ function UnitSpeech.combatResult(args)
     if defDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE", defName, defDamage)
     end
-    if (args.attackerFinalDamage or 0) >= maxHP then
+    if args.attackerFinalDamage >= maxHP then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", atkName)
     end
-    if (args.defenderFinalDamage or 0) >= maxHP then
+    if args.defenderFinalDamage >= maxHP then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", defName)
     end
     return table.concat(parts, ", ")
@@ -239,14 +229,8 @@ end
 -- narration is deferred; the caller already spoke direction when the
 -- move was committed from the target-mode cursor.
 function UnitSpeech.moveResult(unit, targetX, targetY)
-    if unit == nil then
-        Log.warn("UnitSpeech.moveResult: nil unit")
-        return ""
-    end
-    local cx, cy = unit:GetX(), unit:GetY()
-    if cx == targetX and cy == targetY then
-        local denom = moveDenominator()
-        local movesLeft = math.floor((unit:MovesLeft() or 0) / denom)
+    if unit:GetX() == targetX and unit:GetY() == targetY then
+        local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVED_TO", movesLeft)
     end
     return Text.key("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT")
@@ -266,27 +250,14 @@ local CONFIRM_KEYS = {
 }
 
 function UnitSpeech.selfPlotConfirm(token, payload)
-    if token == nil then
-        Log.warn("UnitSpeech.selfPlotConfirm: nil token")
-        return ""
-    end
     if token == "BUILD_START" then
-        if payload == nil or payload.buildName == nil then
-            Log.warn("UnitSpeech.selfPlotConfirm: BUILD_START missing buildName")
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_CONFIRM_BUILD_START")
-        end
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_CONFIRM_BUILD_START", payload.buildName)
     end
     if token == "PROMOTION" then
-        if payload == nil or payload.promotionName == nil then
-            Log.warn("UnitSpeech.selfPlotConfirm: PROMOTION missing promotionName")
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_CONFIRM_PROMOTION")
-        end
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_CONFIRM_PROMOTION", payload.promotionName)
     end
     local key = CONFIRM_KEYS[token]
     if key == nil then
-        Log.warn("UnitSpeech.selfPlotConfirm: unknown token " .. tostring(token))
         return ""
     end
     return Text.key(key)

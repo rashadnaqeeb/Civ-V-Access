@@ -99,12 +99,7 @@ end
 
 local function commitTargeted(unit, action, iAction)
     Game.HandleAction(iAction)
-    local mode = UI.GetInterfaceMode()
-    if UnitTargetMode == nil then
-        Log.error("UnitActionMenu: UnitTargetMode not loaded; cannot enter target mode")
-        return
-    end
-    UnitTargetMode.enter(unit, iAction, mode)
+    UnitTargetMode.enter(unit, iAction, UI.GetInterfaceMode())
 end
 
 local function buildPromotionItems(unit, rows)
