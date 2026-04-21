@@ -1,14 +1,22 @@
 -- Target-mode handler. Pushed above the baseline stack when the action
 -- menu commits a targeted action (attack, range strike, move-to, etc.).
--- The actor is the selected unit; the cursor is the target. QAZEDC keep
--- moving the cursor; Space speaks a per-mode trial preview; Enter commits;
--- Esc cancels; Tab reopens the action menu to switch verb; . / , cycle.
+-- The actor is the selected unit; the cursor is the target. Space speaks
+-- a per-mode trial preview; Enter commits; Esc cancels; Tab reopens the
+-- action menu to switch verb.
 --
--- capturesAllInput = true because the handler is modal: every key the
--- user presses should either drive the target-pick or be swallowed. The
--- Alt+QAZEDC direct-move bindings from UnitControl do NOT reach here
--- (modifier mask differs, but even if it matched the modal would swallow
--- them by design per the unit-control spec).
+-- capturesAllInput = false: cursor movement (QAZEDC), cursor info queries
+-- (S/W/X/1/2/3 and the Shift-letter surveyor cluster), and scanner cycling
+-- fall through to Baseline / Scanner unchanged. Only keys whose target-
+-- mode behavior must differ from Baseline are bound here. Alt+QAZEDC is
+-- bound as a no-op: Baseline's Alt+QAZEDC direct-move would move the
+-- actor while the engine is in an attack / move interface mode, so we
+-- swallow it.
+--
+-- Unit cycling (. / ,) is not bound here either -- it falls through to
+-- Baseline's UnitControl.cycleAll, which fires UnitSelectionChanged on
+-- the new unit. UnitControl's listener pops this handler when the
+-- selection moves to a different unit, which also covers mouse reselect
+-- and actor death.
 --
 -- Preview math clones base-game EnemyUnitPanel.lua:655-707 (bidirectional
 -- GetCombatDamage for melee, GetRangeCombatDamage for ranged). The move-
@@ -17,11 +25,17 @@
 UnitTargetMode = {}
 
 local MOD_NONE = 0
+local MOD_ALT = 4
 
--- Windows VK codes for ',' '.' — Civ V's Keys table omits these; see
--- CivVAccess_InputRouter.lua for the same literal-constant workaround.
-local VK_OEM_COMMA = 188
-local VK_OEM_PERIOD = 190
+-- Tracks the actor's unit ID while this handler is on the stack.
+-- Exposed via UnitTargetMode.currentActorID so UnitControl's selection-
+-- changed listener can tell whether a selection event reflects a cycle
+-- away from the actor (pop target mode) vs. a re-select of the same unit.
+local _currentActorID = nil
+
+function UnitTargetMode.currentActorID()
+    return _currentActorID
+end
 
 local function restoreSelection()
     UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
@@ -217,30 +231,13 @@ function UnitTargetMode.enter(actor, iAction, mode)
     end
     local self = {
         name = "UnitTargetMode",
-        capturesAllInput = true,
+        capturesAllInput = false,
         _actor = actor,
         _iAction = iAction,
         _mode = mode,
     }
+    local noop = function() end
     self.bindings = {
-        bind(Keys.Q, MOD_NONE, function()
-            moveCursor(DirectionTypes.DIRECTION_NORTHWEST)
-        end, "Move cursor NW"),
-        bind(Keys.E, MOD_NONE, function()
-            moveCursor(DirectionTypes.DIRECTION_NORTHEAST)
-        end, "Move cursor NE"),
-        bind(Keys.A, MOD_NONE, function()
-            moveCursor(DirectionTypes.DIRECTION_WEST)
-        end, "Move cursor W"),
-        bind(Keys.D, MOD_NONE, function()
-            moveCursor(DirectionTypes.DIRECTION_EAST)
-        end, "Move cursor E"),
-        bind(Keys.Z, MOD_NONE, function()
-            moveCursor(DirectionTypes.DIRECTION_SOUTHWEST)
-        end, "Move cursor SW"),
-        bind(Keys.C, MOD_NONE, function()
-            moveCursor(DirectionTypes.DIRECTION_SOUTHEAST)
-        end, "Move cursor SE"),
         bind(Keys.VK_SPACE, MOD_NONE, function()
             speakInterrupt(buildPreview(self))
         end, "Target preview"),
@@ -257,26 +254,28 @@ function UnitTargetMode.enter(actor, iAction, mode)
             restoreSelection()
             UnitActionMenu.open(actor)
         end, "Switch verb"),
-        bind(VK_OEM_PERIOD, MOD_NONE, function()
-            HandlerStack.removeByName("UnitTargetMode", false)
-            restoreSelection()
-            UnitControl.cycleAll(true)
-        end, "Next unit"),
-        bind(VK_OEM_COMMA, MOD_NONE, function()
-            HandlerStack.removeByName("UnitTargetMode", false)
-            restoreSelection()
-            UnitControl.cycleAll(false)
-        end, "Previous unit"),
+        -- Alt+QAZEDC no-ops: Baseline binds these to direct-move, which
+        -- would move the actor while an attack / move interface mode is
+        -- live. Bind here so InputRouter matches and returns before the
+        -- key falls through.
+        bind(Keys.Q, MOD_ALT, noop, "Block direct-move NW"),
+        bind(Keys.E, MOD_ALT, noop, "Block direct-move NE"),
+        bind(Keys.A, MOD_ALT, noop, "Block direct-move W"),
+        bind(Keys.D, MOD_ALT, noop, "Block direct-move E"),
+        bind(Keys.Z, MOD_ALT, noop, "Block direct-move SW"),
+        bind(Keys.C, MOD_ALT, noop, "Block direct-move SE"),
     }
     self.helpEntries = {}
     -- onDeactivate always restores the selection mode. Belt-and-
     -- suspenders: every binding that pops also calls restoreSelection,
     -- but an external popAbove / popByName could still unwind us.
     self.onDeactivate = function()
+        _currentActorID = nil
         restoreSelection()
     end
     self.onActivate = function()
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"))
     end
+    _currentActorID = actor:GetID()
     HandlerStack.push(self)
 end

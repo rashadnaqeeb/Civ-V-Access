@@ -320,6 +320,13 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     if playerID ~= Game.GetActivePlayer() then
         return
     end
+    -- If target mode is active for a different unit, unwind it. Covers
+    -- unit cycling (. / ,), mouse reselect, and actor death flipping
+    -- selection to another unit. Same-unit re-selects leave it in place.
+    local targetActorID = UnitTargetMode.currentActorID()
+    if targetActorID ~= nil and targetActorID ~= unitID then
+        HandlerStack.removeByName("UnitTargetMode", false)
+    end
     local player = Players[playerID]
     if player == nil then
         return
