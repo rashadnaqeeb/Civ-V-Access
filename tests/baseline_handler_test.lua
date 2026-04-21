@@ -48,7 +48,6 @@ local function setup()
     SurveyorCore.terrain = mark("terrain")
     SurveyorCore.ownUnits = mark("ownUnits")
     SurveyorCore.enemyUnits = mark("enemyUnits")
-    SurveyorCore.hills = mark("hills")
     SurveyorCore.cities = mark("cities")
     function SurveyorCore.getBindings()
         local SHIFT = 1
@@ -79,9 +78,6 @@ local function setup()
                     SurveyorCore.enemyUnits()
                 end),
                 b(Keys.C, function()
-                    SurveyorCore.hills()
-                end),
-                b(Keys.S, function()
                     SurveyorCore.cities()
                 end),
             },
@@ -108,8 +104,8 @@ function M.test_create_returns_named_handler_with_help_entries()
     local h = BaselineHandler.create()
     T.eq(h.name, "Baseline")
     T.eq(h.capturesAllInput, false)
-    -- 9 cursor + 9 surveyor bindings.
-    T.truthy(#h.bindings >= 18, "expected cursor + surveyor bindings, got " .. #h.bindings)
+    -- 9 cursor + 8 surveyor bindings.
+    T.truthy(#h.bindings >= 17, "expected cursor + surveyor bindings, got " .. #h.bindings)
     T.truthy(#h.helpEntries >= 5, "expected cursor + surveyor help entries")
 end
 
@@ -137,15 +133,14 @@ function M.test_plain_s_orients()
     T.eq(Cursor._calls[1], "orient")
 end
 
-function M.test_shift_s_routes_to_surveyor_cities_not_cursor_recenter()
-    -- Shift+S was Cursor.recenter in an earlier iteration; it's now the
-    -- surveyor's cities scope. Regression guard so a stale reintroduction
-    -- of recenter gets caught.
+function M.test_shift_s_is_unbound()
+    -- Shift+S was Cursor.recenter, then surveyor cities. It's now
+    -- deliberately unbound: cities moved to Shift+C, and Shift+S carries
+    -- no baseline function so the engine (or a higher handler) can claim
+    -- it later if needed.
     setup()
     local h = BaselineHandler.create()
-    findBinding(h, Keys.S, 1).fn()
-    T.eq(SurveyorCore._calls[1], "cities")
-    T.eq(#Cursor._calls, 0, "Shift+S must not fall through to Cursor")
+    T.eq(findBinding(h, Keys.S, 1), nil, "Shift+S must not be bound on baseline")
 end
 
 function M.test_shift_letter_cluster_dispatches_to_surveyor()
@@ -166,7 +161,7 @@ function M.test_shift_letter_cluster_dispatches_to_surveyor()
     T.eq(SurveyorCore._calls[5], "terrain")
     T.eq(SurveyorCore._calls[6], "ownUnits")
     T.eq(SurveyorCore._calls[7], "enemyUnits")
-    T.eq(SurveyorCore._calls[8], "hills")
+    T.eq(SurveyorCore._calls[8], "cities")
 end
 
 return M

@@ -331,76 +331,42 @@ function M.test_enemy_units_empty_fallback()
     T.truthy(out:find("no enemy units in range", 1, true), "empty fallback expected: " .. out)
 end
 
--- ===== Hills =====
-
-function M.test_hills_lists_with_hill_prefix_per_instance()
-    setup()
-    local plots = installGrid(2, function(col, row, p)
-        if col == 1 and row == 0 then
-            p._isHills = true
-        elseif col == -1 and row == 0 then
-            p._isHills = true
-        end
-        return p
-    end)
-    initCursorAtOrigin(plots)
-    local out = SurveyorCore.hills()
-    -- Every instance must lead with "hill" so a compound direction like
-    -- "1ne, 3w" can't be mistaken for two unlabelled instances. Split on
-    -- the ". " instance boundary to count rather than matching the
-    -- label-to-dir separator, which is a formatting detail.
-    local count = 0
-    for instance in (out .. ". "):gmatch("(.-)%. ") do
-        if instance ~= "" then
-            T.truthy(instance:find("^hill") ~= nil, "instance must start with 'hill': " .. instance)
-            count = count + 1
-        end
-    end
-    T.eq(count, 2, "two hill instances expected: " .. out)
-end
-
-function M.test_hills_empty_fallback()
-    setup()
-    local plots = installGrid(2)
-    initCursorAtOrigin(plots)
-    local out = SurveyorCore.hills()
-    T.truthy(out:find("no hills in range", 1, true), "empty fallback expected: " .. out)
-end
-
 -- ===== Cities =====
 
-function M.test_cities_groups_friendly_hostile_neutral()
+function M.test_cities_orders_closest_first_regardless_of_owner()
     setup()
-    Players[0] = T.fakePlayer({ adj = "Roman" })
-    Players[1] = T.fakePlayer({ adj = "Mongolian", team = 1 })
-    Players[2] = T.fakePlayer({ adj = "Arabian", team = 2 })
-    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
-    Teams[1] = T.fakeTeam()
-    Teams[2] = T.fakeTeam()
-    local friendly = T.fakeCity({ name = "Rome", owner = 0, id = 1 })
-    local hostile = T.fakeCity({ name = "Karakorum", owner = 1, id = 2 })
-    local neutral = T.fakeCity({ name = "Mecca", owner = 2, id = 3 })
+    -- Two cities at ring 1 (Rome E, Karakorum W) and one at ring 2
+    -- (Mecca NE-NE). Expect Rome first (E rank 1 beats W rank 4 at
+    -- distance 1), then Karakorum, then Mecca at the outer ring. Owner
+    -- identity must not influence ordering.
+    local rome = T.fakeCity({ name = "Rome", owner = 0, id = 1 })
+    local karakorum = T.fakeCity({ name = "Karakorum", owner = 1, id = 2 })
+    local mecca = T.fakeCity({ name = "Mecca", owner = 2, id = 3 })
     local plots = installGrid(3, function(col, row, p)
         if col == 1 and row == 0 then
             p._isCity = true
-            p._city = friendly
+            p._city = rome
         elseif col == -1 and row == 0 then
             p._isCity = true
-            p._city = hostile
-        elseif col == 0 and row == 1 then
+            p._city = karakorum
+        elseif col == 2 and row == 0 then
             p._isCity = true
-            p._city = neutral
+            p._city = mecca
         end
         return p
     end)
     initCursorAtOrigin(plots)
+    SurveyorCore.grow()
     local out = SurveyorCore.cities()
-    T.truthy(out:find("friendly", 1, true), "friendly group expected: " .. out)
-    T.truthy(out:find("hostile", 1, true), "hostile group expected: " .. out)
-    T.truthy(out:find("neutral", 1, true), "neutral group expected: " .. out)
-    T.truthy(out:find("Rome", 1, true), "friendly city name: " .. out)
-    T.truthy(out:find("Karakorum", 1, true), "hostile city name: " .. out)
-    T.truthy(out:find("Mecca", 1, true), "neutral city name: " .. out)
+    local r = out:find("Rome", 1, true)
+    local k = out:find("Karakorum", 1, true)
+    local m = out:find("Mecca", 1, true)
+    T.truthy(r and k and m, "all three city names expected: " .. out)
+    T.truthy(r < k, "Rome (E, rank 1) must precede Karakorum (W, rank 4) at the same ring: " .. out)
+    T.truthy(k < m, "ring-1 cities must precede ring-2 Mecca: " .. out)
+    T.truthy(not out:find("friendly", 1, true), "no diplomacy grouping: " .. out)
+    T.truthy(not out:find("hostile", 1, true), "no diplomacy grouping: " .. out)
+    T.truthy(not out:find("neutral", 1, true), "no diplomacy grouping: " .. out)
 end
 
 function M.test_cities_empty_fallback()

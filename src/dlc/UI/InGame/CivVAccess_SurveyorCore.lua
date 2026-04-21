@@ -346,101 +346,25 @@ function SurveyorCore.enemyUnits()
     return appendUnexplored(body, range.unexplored)
 end
 
--- ===== Hills =====
--- Mountain tiles have IsHills() == false in the engine (they're a
--- separate plot type), so no explicit mountain exclusion is needed.
-function SurveyorCore.hills()
-    local cx, cy = cursorPos()
-    if cx == nil then
-        return ""
-    end
-    local range = HexGeom.plotsInRange(cx, cy, getRadius())
-    local label = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_HILL")
-    local instances = {}
-    for _, plot in ipairs(range.plots) do
-        if plot:IsHills() then
-            local px, py = plot:GetX(), plot:GetY()
-            instances[#instances + 1] = {
-                x = px,
-                y = py,
-                dist = HexGeom.cubeDistance(cx, cy, px, py),
-                rank = HexGeom.directionRank(cx, cy, px, py),
-                label = label,
-            }
-        end
-    end
-    local body
-    if #instances == 0 then
-        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_HILLS")
-    else
-        body = formatUnitInstances(instances, cx, cy)
-    end
-    return appendUnexplored(body, range.unexplored)
-end
-
 -- ===== Cities =====
--- Diplomacy grouping against Teams[activeTeam]:
---   friendly: same team, Defensive Pact, active player's DoF, or minor
---            civ ally/friend of the active player
---   hostile:  IsAtWar (captures barbs since IsBarbarian implies war)
---   neutral:  everything else, including unmet civs whose city we've
---             revealed but never met
-local function cityDiplomacyGroup(cityOwnerId, activePlayer, activeTeam)
-    local owner = Players[cityOwnerId]
-    if owner == nil then
-        return "neutral"
-    end
-    local ownerTeam = owner:GetTeam()
-    local activeTeamObj = Teams[activeTeam]
-    if ownerTeam == activeTeam then
-        return "friendly"
-    end
-    if activeTeamObj:IsAtWar(ownerTeam) then
-        return "hostile"
-    end
-    if activeTeamObj.IsDefensivePact and activeTeamObj:IsDefensivePact(ownerTeam) then
-        return "friendly"
-    end
-    if owner:IsMinorCiv() then
-        if owner.IsAllies and owner:IsAllies(activePlayer) then
-            return "friendly"
-        end
-        if owner.IsFriends and owner:IsFriends(activePlayer) then
-            return "friendly"
-        end
-        return "neutral"
-    end
-    local activePlayerObj = Players[activePlayer]
-    if activePlayerObj.IsDoF and activePlayerObj:IsDoF(cityOwnerId) then
-        return "friendly"
-    end
-    return "neutral"
-end
-
-local GROUP_ORDER = { "friendly", "hostile", "neutral" }
-local GROUP_LABEL_KEY = {
-    friendly = "TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_FRIENDLY",
-    hostile = "TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_HOSTILE",
-    neutral = "TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_NEUTRAL",
-}
-
+-- Flat closest-first listing, sorted by cube distance then CW-from-E
+-- direction rank (shared with units via distanceDirectionCompare). No
+-- diplomacy grouping: a blind player scanning for cities wants to know
+-- which is nearest first, and grouping by hostility buries that signal
+-- behind a category header.
 function SurveyorCore.cities()
     local cx, cy = cursorPos()
     if cx == nil then
         return ""
     end
     local range = HexGeom.plotsInRange(cx, cy, getRadius())
-    local activePlayer = Game.GetActivePlayer()
-    local activeTeam = Game.GetActiveTeam()
-    local groups = { friendly = {}, hostile = {}, neutral = {} }
+    local instances = {}
     for _, plot in ipairs(range.plots) do
         if plot:IsCity() then
             local city = plot:GetPlotCity()
             if city ~= nil then
                 local px, py = plot:GetX(), plot:GetY()
-                local group = cityDiplomacyGroup(city:GetOwner(), activePlayer, activeTeam)
-                local bucket = groups[group]
-                bucket[#bucket + 1] = {
+                instances[#instances + 1] = {
                     x = px,
                     y = py,
                     dist = HexGeom.cubeDistance(cx, cy, px, py),
@@ -450,20 +374,11 @@ function SurveyorCore.cities()
             end
         end
     end
-    local groupParts = {}
-    for _, groupName in ipairs(GROUP_ORDER) do
-        local bucket = groups[groupName]
-        if #bucket > 0 then
-            groupParts[#groupParts + 1] = Text.key(GROUP_LABEL_KEY[groupName])
-                .. ": "
-                .. formatInstances(bucket, cx, cy, " ", ", ")
-        end
-    end
     local body
-    if #groupParts == 0 then
+    if #instances == 0 then
         body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES")
     else
-        body = table.concat(groupParts, ". ")
+        body = formatInstances(instances, cx, cy, " ", ", ")
     end
     return appendUnexplored(body, range.unexplored)
 end
@@ -502,9 +417,6 @@ function SurveyorCore.getBindings()
             speak(SurveyorCore.enemyUnits())
         end, "Surveyor: enemy units"),
         bind(Keys.C, MOD_SHIFT, function()
-            speak(SurveyorCore.hills())
-        end, "Surveyor: hills"),
-        bind(Keys.S, MOD_SHIFT, function()
             speak(SurveyorCore.cities())
         end, "Surveyor: cities"),
     }
@@ -532,10 +444,6 @@ function SurveyorCore.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS",
             description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_HILLS",
-            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_HILLS",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES",

@@ -18,16 +18,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_RESOURCES"] = "no resource
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_TERRAIN"] = "no terrain in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_OWN_UNITS"] = "no own units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS"] = "no enemy units in range"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_HILLS"] = "no hills in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "no cities in range"
-
--- ===== Cities group labels =====
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_FRIENDLY"] = "friendly"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_HOSTILE"] = "hostile"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_CITIES_NEUTRAL"] = "neutral"
-
--- ===== Repeated per-instance labels =====
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HILL"] = "hill"
 
 -- ===== Unexplored suffix =====
 -- Singular/plural relaxed to "tiles" across the board; mirrors the icon
@@ -49,7 +40,5 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_OWN_UNITS"] = "Shift pl
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_OWN_UNITS"] = "List own units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS"] = "Shift plus D"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS"] = "List enemy units in range"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_HILLS"] = "Shift plus C"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_HILLS"] = "List hills in range"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift plus S"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] = "List cities in range grouped by diplomacy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift plus C"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] = "List cities in range, closest first"
