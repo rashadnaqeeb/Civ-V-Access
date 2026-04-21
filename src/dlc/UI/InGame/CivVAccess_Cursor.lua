@@ -180,6 +180,70 @@ function Cursor.combat()
     return delegateDetail(PlotComposers.combat)
 end
 
+-- ===== Unit-at-tile (S key) =====
+-- Scans plot units with the same visibility filters PlotSectionUnits
+-- uses (skip invisible / cargo / air), then prefers the first combat
+-- unit and falls back to the first civilian. Civ V is 1UPT so the
+-- priority almost always picks the one military; the fallback exists
+-- for tiles with only a civilian (worker / settler / great person)
+-- and for embarked-in-stack edge cases where the civilian is alone.
+local function topUnitAt(plot)
+    local team = Game.GetActiveTeam()
+    local isDebug = Game.IsDebugMode()
+    local civilian = nil
+    local n = plot:GetNumUnits()
+    for i = 0, n - 1 do
+        local u = plot:GetUnit(i)
+        if u ~= nil
+            and not u:IsInvisible(team, isDebug)
+            and not u:IsCargo()
+            and u:GetDomainType() ~= DomainTypes.DOMAIN_AIR then
+            if u:IsCombatUnit() then
+                return u
+            end
+            if civilian == nil then
+                civilian = u
+            end
+        end
+    end
+    return civilian
+end
+
+function Cursor.unitAtTile()
+    if _x == nil then
+        Log.warn("Cursor.unitAtTile before init")
+        return ""
+    end
+    local unit = topUnitAt(plotHere())
+    if unit == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS")
+    end
+    return UnitSpeech.info(unit)
+end
+
+-- ===== City info keys (1, 2, 3) =====
+local function delegateCity(speechFn)
+    if _x == nil then
+        Log.warn("Cursor city key before init")
+        return ""
+    end
+    local plot = plotHere()
+    if not plot:IsCity() then
+        return Text.key("TXT_KEY_CIVVACCESS_NO_CITY")
+    end
+    return speechFn(plot:GetPlotCity())
+end
+
+function Cursor.cityIdentity()
+    return delegateCity(CitySpeech.identity)
+end
+function Cursor.cityDevelopment()
+    return delegateCity(CitySpeech.development)
+end
+function Cursor.cityPolitics()
+    return delegateCity(CitySpeech.politics)
+end
+
 -- Test seam: lets suites reset between cases without exposing the
 -- locals. Production never calls this.
 function Cursor._reset()

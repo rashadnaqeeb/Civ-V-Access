@@ -782,4 +782,109 @@ function M.test_combat_tile_cost_mountain_is_impassable()
     T.truthy(not out:find("moves", 1, true), "mountain must not also report a move count: " .. out)
 end
 
+-- ===== Unit-at-tile (S key) =====
+-- Covers Cursor.unitAtTile's priority logic. Stubs UnitSpeech so the
+-- test decouples from its formatter and just observes which unit the
+-- cursor hands over. Sets Cursor up via init() with a fake selected
+-- unit so `_x` / `_y` are populated for plotHere.
+local function setupUnitAtTile(unitsOnTile)
+    setup()
+    UnitSpeech = {
+        info = function(u)
+            return "info:" .. tostring(u and u._tag or "nil")
+        end,
+    }
+    local plot = T.fakePlot({ x = 5, y = 5, units = unitsOnTile })
+    Map.GetPlot = function(x, y)
+        if x == 5 and y == 5 then
+            return plot
+        end
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = plot
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+    return plot
+end
+
+function M.test_cursor_unit_at_tile_prefers_military_over_civilian()
+    local civ = T.fakeUnit({ combat = false })
+    civ._tag = "civ"
+    local mil = T.fakeUnit({ combat = true })
+    mil._tag = "mil"
+    setupUnitAtTile({ civ, mil })
+    T.eq(Cursor.unitAtTile(), "info:mil")
+end
+
+function M.test_cursor_unit_at_tile_falls_back_to_civilian_when_no_military()
+    local civ = T.fakeUnit({ combat = false })
+    civ._tag = "civ"
+    setupUnitAtTile({ civ })
+    T.eq(Cursor.unitAtTile(), "info:civ")
+end
+
+function M.test_cursor_unit_at_tile_speaks_no_units_when_empty()
+    setupUnitAtTile({})
+    T.eq(Cursor.unitAtTile(), "no units")
+end
+
+function M.test_cursor_unit_at_tile_skips_invisible_cargo_and_air()
+    local invisible = T.fakeUnit({ combat = true, invisible = true })
+    invisible._tag = "invisible"
+    local cargo = T.fakeUnit({ combat = true, cargo = true })
+    cargo._tag = "cargo"
+    local air = T.fakeUnit({ combat = true, domain = DomainTypes.DOMAIN_AIR })
+    air._tag = "air"
+    local visible = T.fakeUnit({ combat = false })
+    visible._tag = "visible_civ"
+    setupUnitAtTile({ invisible, cargo, air, visible })
+    T.eq(Cursor.unitAtTile(), "info:visible_civ", "filter should skip invisible/cargo/air")
+end
+
+-- ===== City info keys (1 / 2 / 3) =====
+-- Verify the "no city here" fallback and the delegation to CitySpeech;
+-- the CitySpeech module's own logic is covered in suite_city_speech.
+local function setupCityGlue(plot)
+    setup()
+    CitySpeech = {
+        identity = function()
+            return "CITY_IDENTITY"
+        end,
+        development = function()
+            return "CITY_DEV"
+        end,
+        politics = function()
+            return "CITY_POL"
+        end,
+    }
+    Map.GetPlot = function(x, y)
+        if x == plot:GetX() and y == plot:GetY() then
+            return plot
+        end
+    end
+    local seed = T.fakeUnit({})
+    seed._plot = plot
+    UI.GetHeadSelectedUnit = function()
+        return seed
+    end
+    Cursor.init()
+end
+
+function M.test_cursor_city_identity_speaks_no_city_on_non_city_tile()
+    setupCityGlue(T.fakePlot({ x = 0, y = 0, isCity = false }))
+    T.eq(Cursor.cityIdentity(), "no city here")
+    T.eq(Cursor.cityDevelopment(), "no city here")
+    T.eq(Cursor.cityPolitics(), "no city here")
+end
+
+function M.test_cursor_city_info_keys_delegate_to_city_speech()
+    local city = T.fakeCity({ name = "Rome", owner = 0, id = 7 })
+    setupCityGlue(T.fakePlot({ x = 0, y = 0, isCity = true, city = city }))
+    T.eq(Cursor.cityIdentity(), "CITY_IDENTITY")
+    T.eq(Cursor.cityDevelopment(), "CITY_DEV")
+    T.eq(Cursor.cityPolitics(), "CITY_POL")
+end
+
 return M

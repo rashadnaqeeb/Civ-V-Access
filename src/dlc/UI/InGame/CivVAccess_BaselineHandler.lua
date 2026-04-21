@@ -7,6 +7,15 @@
 BaselineHandler = {}
 
 local MOD_NONE = 0
+local MOD_SHIFT = 1
+
+-- Windows VK codes for the top-row digit keys. Civ V's Keys enum may
+-- or may not expose these under a friendly name across vanilla / G&K
+-- / BNW builds; InputRouter.dispatch compares the raw wParam so the
+-- numeric codes bind correctly regardless. 0x31..0x33 are VK_1..VK_3.
+local VK_1 = 49
+local VK_2 = 50
+local VK_3 = 51
 
 local function speak(s)
     if s == nil or s == "" then
@@ -38,6 +47,9 @@ function BaselineHandler.create()
         bind(Keys.Z, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHWEST), "Move cursor SW"),
         bind(Keys.C, MOD_NONE, moveDir(DirectionTypes.DIRECTION_SOUTHEAST), "Move cursor SE"),
         bind(Keys.S, MOD_NONE, function()
+            speak(Cursor.unitAtTile())
+        end, "Read unit on tile"),
+        bind(Keys.S, MOD_SHIFT, function()
             speak(Cursor.orient())
         end, "Orient from capital"),
         bind(Keys.W, MOD_NONE, function()
@@ -46,11 +58,24 @@ function BaselineHandler.create()
         bind(Keys.X, MOD_NONE, function()
             speak(Cursor.combat())
         end, "Combat details"),
+        bind(VK_1, MOD_NONE, function()
+            speak(Cursor.cityIdentity())
+        end, "City identity and combat"),
+        bind(VK_2, MOD_NONE, function()
+            speak(Cursor.cityDevelopment())
+        end, "City production and growth"),
+        bind(VK_3, MOD_NONE, function()
+            speak(Cursor.cityPolitics())
+        end, "City diplomacy"),
     }
     local helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
             description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT",
@@ -63,6 +88,18 @@ function BaselineHandler.create()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT",
             description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_DEV",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_POL",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL",
         },
     }
     local surveyor = SurveyorCore.getBindings()

@@ -39,6 +39,7 @@ include("CivVAccess_BaseMenuEditMode")
 -- and target-mode modules can reference it; UnitControl last because it
 -- ties the others into the listener / bindings surface.
 include("CivVAccess_UnitSpeech")
+include("CivVAccess_CitySpeech")
 include("CivVAccess_UnitActionMenu")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_UnitControl")

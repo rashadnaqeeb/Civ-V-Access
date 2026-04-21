@@ -12,7 +12,15 @@ Locale = Locale or {
     ConvertTextKey = function(key)
         return key
     end,
+    Lookup = function(key)
+        return key
+    end,
 }
+if Locale.Lookup == nil then
+    Locale.Lookup = function(key)
+        return key
+    end
+end
 
 UI = UI
     or {
@@ -147,12 +155,15 @@ DomainTypes = DomainTypes or {
     DOMAIN_HOVER = 3,
 }
 
-GameDefines = GameDefines or { MAX_HIT_POINTS = 100, MOVE_DENOMINATOR = 60 }
+GameDefines = GameDefines or { MAX_HIT_POINTS = 100, MOVE_DENOMINATOR = 60, MAX_CITY_HIT_POINTS = 200 }
 if GameDefines.MAX_HIT_POINTS == nil then
     GameDefines.MAX_HIT_POINTS = 100
 end
 if GameDefines.MOVE_DENOMINATOR == nil then
     GameDefines.MOVE_DENOMINATOR = 60
+end
+if GameDefines.MAX_CITY_HIT_POINTS == nil then
+    GameDefines.MAX_CITY_HIT_POINTS = 200
 end
 
 -- Unit activity enum. Used by UnitSpeech's status cascade to read

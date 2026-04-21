@@ -31,6 +31,22 @@ local function setup()
             table.insert(Cursor._calls, "combat")
             return ""
         end,
+        unitAtTile = function()
+            table.insert(Cursor._calls, "unitAtTile")
+            return ""
+        end,
+        cityIdentity = function()
+            table.insert(Cursor._calls, "cityIdentity")
+            return ""
+        end,
+        cityDevelopment = function()
+            table.insert(Cursor._calls, "cityDevelopment")
+            return ""
+        end,
+        cityPolitics = function()
+            table.insert(Cursor._calls, "cityPolitics")
+            return ""
+        end,
     }
     SurveyorCore = {
         _calls = {},
@@ -104,9 +120,9 @@ function M.test_create_returns_named_handler_with_help_entries()
     local h = BaselineHandler.create()
     T.eq(h.name, "Baseline")
     T.eq(h.capturesAllInput, false)
-    -- 9 cursor + 8 surveyor bindings.
-    T.truthy(#h.bindings >= 17, "expected cursor + surveyor bindings, got " .. #h.bindings)
-    T.truthy(#h.helpEntries >= 5, "expected cursor + surveyor help entries")
+    -- 6 move + S + Shift+S + W + X + 1/2/3 cursor = 13, plus 8 surveyor.
+    T.truthy(#h.bindings >= 21, "expected cursor + surveyor bindings, got " .. #h.bindings)
+    T.truthy(#h.helpEntries >= 8, "expected cursor + surveyor help entries")
 end
 
 local function findBinding(h, key, mods)
@@ -126,21 +142,33 @@ function M.test_movement_bindings_dispatch_to_cursor_with_correct_direction()
     T.eq(Cursor._calls[2], "move:" .. tostring(DirectionTypes.DIRECTION_NORTHEAST))
 end
 
-function M.test_plain_s_orients()
+function M.test_plain_s_reads_unit_at_tile()
+    -- Plain S now reads the top unit on the cursor tile (military first,
+    -- civilian fallback). Orient moved to Shift+S.
     setup()
     local h = BaselineHandler.create()
     findBinding(h, Keys.S, 0).fn()
+    T.eq(Cursor._calls[1], "unitAtTile")
+end
+
+function M.test_shift_s_orients()
+    -- Shift+S carries the orient-from-capital announcement that plain S
+    -- used to own. Keeps the vocabulary intact; just moves the modifier.
+    setup()
+    local h = BaselineHandler.create()
+    findBinding(h, Keys.S, 1).fn()
     T.eq(Cursor._calls[1], "orient")
 end
 
-function M.test_shift_s_is_unbound()
-    -- Shift+S was Cursor.recenter, then surveyor cities. It's now
-    -- deliberately unbound: cities moved to Shift+C, and Shift+S carries
-    -- no baseline function so the engine (or a higher handler) can claim
-    -- it later if needed.
+function M.test_number_keys_dispatch_to_city_info()
     setup()
     local h = BaselineHandler.create()
-    T.eq(findBinding(h, Keys.S, 1), nil, "Shift+S must not be bound on baseline")
+    findBinding(h, 49, 0).fn() -- VK_1
+    findBinding(h, 50, 0).fn() -- VK_2
+    findBinding(h, 51, 0).fn() -- VK_3
+    T.eq(Cursor._calls[1], "cityIdentity")
+    T.eq(Cursor._calls[2], "cityDevelopment")
+    T.eq(Cursor._calls[3], "cityPolitics")
 end
 
 function M.test_shift_letter_cluster_dispatches_to_surveyor()
