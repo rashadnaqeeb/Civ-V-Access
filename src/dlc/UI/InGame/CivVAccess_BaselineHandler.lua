@@ -61,9 +61,12 @@ function BaselineHandler.create()
             speak(Cursor.cityPolitics())
         end, "City diplomacy"),
         bind(Keys.N, MOD_CTRL, function()
+            -- Data1 = 1 asks the popup to queue at InGameUtmost priority and
+            -- toggle-close if already visible; any other value falls back to
+            -- its lower NotificationLog priority and loses the toggle path.
             Events.SerialEventGameMessagePopup({
                 Type = ButtonPopupTypes.BUTTONPOPUP_NOTIFICATION_LOG,
-                Data1 = Game.GetActivePlayer(),
+                Data1 = 1,
             })
         end, "Open notification log"),
     }
