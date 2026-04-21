@@ -38,6 +38,7 @@ local function mkUnit(opts)
         _upgradeType = opts.upgradeType or -1,
         _upgradePrice = opts.upgradePrice or 0,
         _isCombat = (opts.isCombat ~= false),
+        _team = opts.team or 0,
         _plot = opts.plot,
     }
     function u:GetX()
@@ -118,6 +119,9 @@ local function mkUnit(opts)
     function u:IsCombatUnit()
         return self._isCombat
     end
+    function u:GetTeam()
+        return self._team
+    end
     return u
 end
 
@@ -140,6 +144,9 @@ local function setup()
 
     Game = Game or {}
     Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
         return 0
     end
     Players = {}
@@ -385,6 +392,105 @@ function M.test_info_promotions_list_iterates_has_promotion()
     local u = mkUnit({ promotions = { [1] = true, [3] = true } })
     local out = UnitSpeech.info(u)
     T.truthy(out:find("promotions: Shock, Formation", 1, true), "only held promotions listed: " .. out)
+end
+
+-- ===== Info dump: max moves (always, regardless of ownership) =====
+
+function M.test_info_friendly_speaks_max_moves()
+    setup()
+    local u = mkUnit({ maxMoves = 180 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("3 moves", 1, true), "max moves expected (3 from 180/60): " .. out)
+end
+
+function M.test_info_enemy_speaks_max_moves()
+    setup()
+    local u = mkUnit({ team = 1, maxMoves = 240 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("4 moves", 1, true), "max moves spoken for enemies too: " .. out)
+end
+
+-- ===== Info dump: enemy HP band matches UnitFlagManager thresholds =====
+
+function M.test_info_enemy_hp_full_band()
+    setup()
+    local u = mkUnit({ team = 1, damage = 0 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("hp full", 1, true), "full HP enemy speaks 'hp full': " .. out)
+end
+
+function M.test_info_enemy_hp_green_band()
+    -- hp = 67 / 100 -> pct > 0.66 -> green.
+    setup()
+    local u = mkUnit({ team = 1, damage = 33 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("hp green", 1, true), "green band expected at 67%: " .. out)
+end
+
+function M.test_info_enemy_hp_yellow_band_at_boundary()
+    -- hp = 66 / 100 -> pct == 0.66 -> NOT > 0.66 -> yellow. Boundary
+    -- check, matches UnitFlagManager.lua:412 strict-greater semantics.
+    setup()
+    local u = mkUnit({ team = 1, damage = 34 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("hp yellow", 1, true), "yellow at 66% boundary: " .. out)
+end
+
+function M.test_info_enemy_hp_red_band_at_boundary()
+    -- hp = 33 / 100 -> pct == 0.33 -> NOT > 0.33 -> red.
+    setup()
+    local u = mkUnit({ team = 1, damage = 67 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("hp red", 1, true), "red at 33% boundary: " .. out)
+end
+
+function M.test_info_enemy_hp_never_speaks_fraction()
+    setup()
+    local u = mkUnit({ team = 1, damage = 40 })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("/100 hp", 1, true), "enemies must not leak exact HP: " .. out)
+end
+
+-- ===== Info dump: enemy-scoped omissions =====
+
+function M.test_info_enemy_ranged_omits_range_distance()
+    setup()
+    local u = mkUnit({ team = 1, combat = 4, ranged = 9, range = 2 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("9 ranged", 1, true), "ranged strength still spoken: " .. out)
+    T.truthy(not out:find("range 2", 1, true), "range distance hidden on enemies: " .. out)
+end
+
+function M.test_info_enemy_omits_level_xp()
+    setup()
+    local u = mkUnit({ team = 1, level = 3, xp = 20, xpNeeded = 45 })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("level", 1, true), "level hidden on enemies: " .. out)
+    T.truthy(not out:find("xp", 1, true), "xp hidden on enemies: " .. out)
+end
+
+function M.test_info_enemy_omits_upgrade()
+    setup()
+    local u = mkUnit({ team = 1, upgradeType = 101, upgradePrice = 120 })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("upgrade", 1, true), "upgrade line hidden on enemies: " .. out)
+end
+
+function M.test_info_enemy_keeps_promotions()
+    -- Promotion list is visible on enemy unit flags (iconified) and
+    -- UnitFlagManager shows them, so we keep them in the info line too.
+    setup()
+    GameInfo.UnitPromotions = function()
+        local rows = { { ID = 1, Description = "Shock" } }
+        local i = 0
+        return function()
+            i = i + 1
+            return rows[i]
+        end
+    end
+    local u = mkUnit({ team = 1, promotions = { [1] = true } })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("promotions: Shock", 1, true), "enemy promotions still spoken: " .. out)
 end
 
 -- ===== Move result =====

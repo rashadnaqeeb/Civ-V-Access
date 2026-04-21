@@ -37,6 +37,35 @@ local function hpFraction(unit)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", maxHP - unit:GetDamage(), maxHP)
 end
 
+-- Enemy HP: band color rather than exact fraction, matching what a
+-- sighted player reads off the unit flag's health bar. Thresholds mirror
+-- UnitFlagManager.lua:412 (> 0.66 green, > 0.33 yellow, else red). 100%
+-- hides the bar in-game; we speak "full" so the info line always closes
+-- with an HP slot and the user knows silence isn't the answer.
+local function hpColorKey(unit)
+    local maxHP = GameDefines.MAX_HIT_POINTS
+    local hp = maxHP - unit:GetDamage()
+    if hp >= maxHP then
+        return "TXT_KEY_CIVVACCESS_UNIT_HP_FULL"
+    end
+    local pct = hp / maxHP
+    if pct > 0.66 then
+        return "TXT_KEY_CIVVACCESS_UNIT_HP_GREEN"
+    end
+    if pct > 0.33 then
+        return "TXT_KEY_CIVVACCESS_UNIT_HP_YELLOW"
+    end
+    return "TXT_KEY_CIVVACCESS_UNIT_HP_RED"
+end
+
+local function maxMovesCount(unit)
+    return math.floor(unit:MaxMoves() / GameDefines.MOVE_DENOMINATOR)
+end
+
+local function isFriendly(unit)
+    return unit:GetTeam() == Game.GetActiveTeam()
+end
+
 -- Returns the first matching status token (localized string), or "".
 -- Order matches base UnitList.lua so e.g. a garrisoned unit sitting on
 -- fortify turns speaks "garrison" -- the more specific rung wins.
@@ -122,12 +151,18 @@ local function promotionList(unit)
     return names
 end
 
--- Flat info dump per design: combat, ranged + range, level / xp,
--- promotions, upgrade target + cost, HP last. Zero-valued fields skip
--- rather than speaking "0 ranged" -- empty ranged strength on a melee
--- unit would waste syllables on every query.
+-- Flat info dump scoped by unit ownership so blind players hear what
+-- sighted players see on the unit flag and EnemyUnitPanel rather than
+-- the full own-unit tooltip. Friendlies (own or same-team) get the deep
+-- dump: combat, ranged + range, max moves, level / xp, promotions,
+-- upgrade target + cost, exact HP fraction. Visible enemies get the
+-- subset EnemyUnitPanel.lua exposes: combat, ranged (no range), max
+-- moves, promotions, HP as a color band. Zero-valued strength fields
+-- skip so melee units don't waste syllables on "0 ranged". HP slot is
+-- always the last token -- callers may depend on its position.
 function UnitSpeech.info(unit)
     local parts = {}
+    local friendly = isFriendly(unit)
     parts[#parts + 1] = unitName(unit)
     local combat = unit:GetBaseCombatStrength()
     if combat > 0 then
@@ -135,9 +170,14 @@ function UnitSpeech.info(unit)
     end
     local ranged = unit:GetBaseRangedCombatStrength()
     if ranged > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, unit:Range())
+        if friendly then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, unit:Range())
+        else
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY", ranged)
+        end
     end
-    if unit:IsCombatUnit() then
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_MAX_MOVES", maxMovesCount(unit))
+    if friendly and unit:IsCombatUnit() then
         parts[#parts + 1] = Text.format(
             "TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP",
             unit:GetLevel(),
@@ -149,20 +189,26 @@ function UnitSpeech.info(unit)
     if #promos > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL", table.concat(promos, ", "))
     end
-    local upgradeType = unit:GetUpgradeUnitType()
-    if upgradeType ~= -1 then
-        local upgradeRow = GameInfo.Units[upgradeType]
-        if upgradeRow == nil then
-            Log.warn("UnitSpeech.info: GetUpgradeUnitType returned unknown id " .. tostring(upgradeType))
-        else
-            parts[#parts + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_UNIT_UPGRADE",
-                Text.key(upgradeRow.Description),
-                unit:UpgradePrice(upgradeType)
-            )
+    if friendly then
+        local upgradeType = unit:GetUpgradeUnitType()
+        if upgradeType ~= -1 then
+            local upgradeRow = GameInfo.Units[upgradeType]
+            if upgradeRow == nil then
+                Log.warn("UnitSpeech.info: GetUpgradeUnitType returned unknown id " .. tostring(upgradeType))
+            else
+                parts[#parts + 1] = Text.format(
+                    "TXT_KEY_CIVVACCESS_UNIT_UPGRADE",
+                    Text.key(upgradeRow.Description),
+                    unit:UpgradePrice(upgradeType)
+                )
+            end
         end
     end
-    parts[#parts + 1] = hpFraction(unit)
+    if friendly then
+        parts[#parts + 1] = hpFraction(unit)
+    else
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_COLOR", Text.key(hpColorKey(unit)))
+    end
     return table.concat(parts, ", ")
 end
 
