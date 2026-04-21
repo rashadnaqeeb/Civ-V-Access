@@ -107,6 +107,7 @@ function HandlerStack.pop()
     local top = _shared.stack[n]
     _shared.stack[n] = nil
     invoke(top, "onDeactivate")
+    Log.debug("HandlerStack.pop '" .. tostring(top.name) .. "' (depth=" .. #_shared.stack .. ")")
     local newTop = _shared.stack[#_shared.stack]
     if newTop ~= nil then
         invoke(newTop, "onActivate")
@@ -120,6 +121,7 @@ function HandlerStack.replace(handler)
         local top = _shared.stack[n]
         _shared.stack[n] = nil
         invoke(top, "onDeactivate")
+        Log.debug("HandlerStack.replace '" .. tostring(top.name) .. "' (depth=" .. #_shared.stack .. ")")
     end
     return HandlerStack.push(handler)
 end
@@ -134,6 +136,9 @@ function HandlerStack.popAbove(target)
                 local h = _shared.stack[j]
                 _shared.stack[j] = nil
                 invoke(h, "onDeactivate")
+                Log.debug(
+                    "HandlerStack.popAbove '" .. tostring(h.name) .. "' (depth=" .. #_shared.stack .. ")"
+                )
             end
             -- Target is now the top and is (re)exposed.
             invoke(_shared.stack[i], "onActivate")
@@ -157,6 +162,9 @@ function HandlerStack.removeByName(name, reactivate)
             local wasTop = (i == #_shared.stack)
             table.remove(_shared.stack, i)
             invoke(h, "onDeactivate")
+            Log.debug(
+                "HandlerStack.removeByName '" .. tostring(h.name) .. "' (depth=" .. #_shared.stack .. ")"
+            )
             if wasTop and reactivate then
                 local newTop = _shared.stack[#_shared.stack]
                 if newTop ~= nil then
