@@ -44,6 +44,12 @@ local function invoke(handler, methodName)
     return ok
 end
 
+-- Constructor for a single binding entry. Handlers import this as
+-- `local bind = HandlerStack.bind` so call sites read as bind(key, mods, fn, desc).
+function HandlerStack.bind(key, mods, fn, description)
+    return { key = key, mods = mods, fn = fn, description = description }
+end
+
 function HandlerStack._reset()
     _shared.stack = {}
 end

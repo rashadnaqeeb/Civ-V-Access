@@ -245,9 +245,7 @@ local function openActionMenu()
 end
 
 -- ===== Bindings =====
-local function bind(key, mods, fn, description)
-    return { key = key, mods = mods, fn = fn, description = description }
-end
+local bind = HandlerStack.bind
 
 function UnitControl.getBindings()
     local bindings = {

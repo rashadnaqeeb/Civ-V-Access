@@ -173,9 +173,7 @@ local function commitAtCursor(self)
     restoreSelection()
 end
 
-local function bind(key, mods, fn, description)
-    return { key = key, mods = mods, fn = fn, description = description }
-end
+local bind = HandlerStack.bind
 
 -- Push target-mode handler. `actor` is the unit the action is being
 -- committed against; `iAction` is the hash that entered this mode (kept

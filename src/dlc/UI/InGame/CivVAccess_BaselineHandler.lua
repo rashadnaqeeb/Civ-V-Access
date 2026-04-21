@@ -15,9 +15,7 @@ local function speak(s)
     SpeechPipeline.speakInterrupt(s)
 end
 
-local function bind(key, mods, action, description)
-    return { key = key, mods = mods, fn = action, description = description }
-end
+local bind = HandlerStack.bind
 
 -- Each cursor binding wraps the cursor call so the HandlerStack table only
 -- ever sees a no-arg function. Direction is hard-coded per binding because

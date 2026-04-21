@@ -18,9 +18,7 @@ local function speak(s)
     SpeechPipeline.speakInterrupt(s)
 end
 
-local function bind(key, mods, fn, description)
-    return { key = key, mods = mods, fn = fn, description = description }
-end
+local bind = HandlerStack.bind
 
 local function cycle(entryPoint, dir)
     return function()
