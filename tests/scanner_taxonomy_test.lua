@@ -38,6 +38,7 @@ function M.test_category_order_fixed()
         "resources",
         "improvements",
         "special",
+        "terrain",
     }
     local actual = catKeys()
     T.eq(#actual, #expected)
@@ -115,6 +116,14 @@ function M.test_special_subs()
     local subs = subKeys("special")
     T.eq(subs[1], "natural_wonders")
     T.eq(subs[2], "ancient_ruins")
+end
+
+function M.test_terrain_subs()
+    setup()
+    local subs = subKeys("terrain")
+    T.eq(subs[1], "base")
+    T.eq(subs[2], "features")
+    T.eq(subs[3], "elevation")
 end
 
 function M.test_all_category_labels_resolve_to_text_keys()

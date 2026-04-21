@@ -32,6 +32,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_BARBARIANS"] = "Barbarians"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_MY"] = "My"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL"] = "Neutral"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY"] = "Enemy"
+-- Terrain subs. Features reuses the game's TXT_KEY_TERRAIN_FEATURES_HEADING2_TITLE;
+-- these two have no clean game equivalent.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_TERRAIN_BASE"] = "Base Terrain"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION"] = "Elevation"
 
 -- ===== Announcement fragments =====
 -- Positional count tail. Carves out an exception to the concise-

@@ -112,6 +112,15 @@ ScannerCore.CATEGORIES = {
             { key = "ancient_ruins", label = "TXT_KEY_IMPROVEMENT_GOODY_HUT" },
         },
     },
+    {
+        key = "terrain",
+        label = "TXT_KEY_TERRAIN_HEADING1_TITLE",
+        subcategories = {
+            { key = "base", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_TERRAIN_BASE" },
+            { key = "features", label = "TXT_KEY_TERRAIN_FEATURES_HEADING2_TITLE" },
+            { key = "elevation", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION" },
+        },
+    },
 }
 
 -- Lookup table for O(1) category-by-key access. Built at load time from

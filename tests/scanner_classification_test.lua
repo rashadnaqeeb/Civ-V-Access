@@ -494,4 +494,156 @@ function M.test_special_unrevealed_plots_skipped()
     T.eq(#ScannerBackendSpecial.Scan(0, 0), 0)
 end
 
+-- ===== Terrain backend =====
+
+local function loadTerrainBackend()
+    loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendTerrain.lua")
+end
+
+local function subsFromEntries(entries)
+    local bySub = {}
+    for _, e in ipairs(entries) do
+        bySub[e.subcategory] = bySub[e.subcategory] or {}
+        bySub[e.subcategory][#bySub[e.subcategory] + 1] = e
+    end
+    return bySub
+end
+
+function M.test_terrain_plain_plot_emits_base_only()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = {}
+    local plot = makePlotAt(0, 0, 0, { terrain = 1 })
+    mapFromPlots({ plot })
+    local out = ScannerBackendTerrain.Scan(0, 0)
+    T.eq(#out, 1, "grass plot with no feature and no elevation emits one base entry")
+    T.eq(out[1].category, "terrain")
+    T.eq(out[1].subcategory, "base")
+    T.eq(out[1].data.terrainId, 1)
+end
+
+function M.test_terrain_feature_adds_feature_entry()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = { [3] = { Description = "TXT_KEY_FEATURE_FOREST" } }
+    local plot = makePlotAt(0, 0, 0, { terrain = 1, feature = 3 })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.truthy(bySub.base, "base entry must still fire")
+    T.truthy(bySub.features, "feature entry must fire alongside base")
+    T.eq(bySub.features[1].data.featureId, 3)
+end
+
+function M.test_terrain_hills_emit_elevation()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = {}
+    local plot = makePlotAt(0, 0, 0, { terrain = 1, hills = true })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.truthy(bySub.base, "hill still emits the underlying base terrain")
+    T.truthy(bySub.elevation, "hill must emit under elevation")
+    T.eq(bySub.elevation[1].data.kind, "hills")
+end
+
+function M.test_terrain_mountain_emits_elevation()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [7] = { Description = "TXT_KEY_TERRAIN_MOUNTAIN" } }
+    GameInfo.Features = {}
+    local plot = makePlotAt(0, 0, 0, { terrain = 7, mountain = true })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    -- Mountain plot has TERRAIN_MOUNTAIN, so base fires with that terrain row
+    -- AND elevation fires as kind=mountain. The intentional double-list.
+    T.truthy(bySub.base, "mountain plot's TERRAIN_MOUNTAIN row still emits under base")
+    T.truthy(bySub.elevation, "mountain must emit under elevation")
+    T.eq(bySub.elevation[1].data.kind, "mountain")
+end
+
+function M.test_terrain_forested_hill_triple_emits()
+    -- A forested hill produces base (grass) + features (forest) + elevation
+    -- (hills). This is the headline triple-list case from the design.
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = { [3] = { Description = "TXT_KEY_FEATURE_FOREST" } }
+    local plot = makePlotAt(0, 0, 0, { terrain = 1, feature = 3, hills = true })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.truthy(bySub.base, "base fires")
+    T.truthy(bySub.features, "features fires")
+    T.truthy(bySub.elevation, "elevation fires")
+    T.eq(#bySub.base, 1)
+    T.eq(#bySub.features, 1)
+    T.eq(#bySub.elevation, 1)
+end
+
+function M.test_terrain_validate_feature_goes_stale_when_chopped()
+    -- A forest entry from an earlier snapshot must invalidate once a
+    -- worker chops the forest. GetFeatureType returns -1 on a plot
+    -- with no feature, so the equality check in ValidateEntry catches
+    -- it. No other test exercises ValidateEntry on this backend, and
+    -- feature removal (forest, marsh, fallout) is the plausible mid-
+    -- snapshot drift this backend has to handle.
+    setup()
+    loadTerrainBackend()
+    local plot = makePlotAt(0, 0, 0, { feature = -1 })
+    mapFromPlots({ plot })
+    local staleEntry = {
+        plotIndex = 0,
+        backend = ScannerBackendTerrain,
+        data = { kind = "feature", featureId = 3 },
+        category = "terrain",
+        subcategory = "features",
+        itemName = "TXT_KEY_FEATURE_FOREST",
+        sortKey = 0,
+    }
+    T.falsy(ScannerBackendTerrain.ValidateEntry(staleEntry, nil), "chopped forest entry must fail validation")
+end
+
+function M.test_terrain_validate_returns_true_when_state_unchanged()
+    -- Pin the happy path: a terrain / feature / elevation entry whose
+    -- plot still matches keeps returning true across cycles, or every
+    -- cursor step would silently prune live entries.
+    setup()
+    loadTerrainBackend()
+    local plot = makePlotAt(0, 0, 0, { terrain = 1, feature = 3, hills = true })
+    mapFromPlots({ plot })
+    local function entry(kind, extra)
+        local e = {
+            plotIndex = 0,
+            backend = ScannerBackendTerrain,
+            data = { kind = kind },
+            category = "terrain",
+            subcategory = kind == "base" and "base" or (kind == "feature" and "features" or "elevation"),
+            itemName = "x",
+            sortKey = 0,
+        }
+        for k, v in pairs(extra or {}) do
+            e.data[k] = v
+        end
+        return e
+    end
+    T.truthy(ScannerBackendTerrain.ValidateEntry(entry("base", { terrainId = 1 })))
+    T.truthy(ScannerBackendTerrain.ValidateEntry(entry("feature", { featureId = 3 })))
+    T.truthy(ScannerBackendTerrain.ValidateEntry(entry("hills")))
+end
+
+function M.test_terrain_unrevealed_plot_skipped()
+    -- Fog-of-war gate: every other plot-iterating backend honours this
+    -- and the terrain backend must too, or a player sees the entire map
+    -- laid out as soon as any game starts.
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = {}
+    local hidden = makePlotAt(0, 0, 0, { terrain = 1, revealed = false })
+    mapFromPlots({ hidden })
+    T.eq(#ScannerBackendTerrain.Scan(0, 0), 0, "nothing emits from a fogged plot")
+end
+
 return M
