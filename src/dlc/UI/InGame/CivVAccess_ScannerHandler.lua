@@ -39,9 +39,11 @@ function ScannerHandler.create()
         -- Scanner is the top of the hex-viewer stack on the map. Speaking
         -- "map mode" on activation gives the user an audible landmark when
         -- a popup / sub-handler closes and the map cursor becomes live
-        -- again; at boot, the BOOT_INGAME speakInterrupt overrides this.
+        -- again. Queued rather than interrupting so a closing handler's
+        -- own farewell announcement finishes first; at boot, the
+        -- BOOT_INGAME speakInterrupt clears the queue before it plays.
         onActivate = function()
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_MODE"))
+            SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_MODE"))
         end,
         bindings = {
             -- Item axis (no modifier). Overrides the base game's
