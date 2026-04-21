@@ -5,9 +5,10 @@
 --
 -- Rules ported from CvUnitMovement::GetCostsForMove (Community Patch
 -- fork of the Firaxis DLL drop). MP costs are in 60ths, matching the
--- engine's MOVE_DENOMINATOR. Deliberately scope-limited: no stacking,
--- no HP damage modelling, no canal/city-bridge naval transit. See the
--- implementation plan for the full deferred list.
+-- engine's MOVE_DENOMINATOR. Deliberately scope-limited: no HP damage
+-- modelling and no canal/city-bridge naval transit. Stacking and
+-- enemy-occupant blocking are enforced via the per-tile checks at the
+-- top of stepCost. See the implementation plan for deferred items.
 
 Pathfinder = {}
 
@@ -187,21 +188,29 @@ end
 
 -- Enemy combat units project ZoC onto all six neighboring plots.
 -- Entering a ZoC-tile from a non-ZoC tile ends the turn per the
--- engine's movement rules. One sweep of every visible enemy combat
--- unit marks the set; A* does an O(1) lookup per step.
+-- engine's movement rules. One sweep of every at-war combat unit on
+-- a tile we can see marks the set; A* does an O(1) lookup per step.
+-- Loop bound is inclusive of MAX_CIV_PLAYERS so the barbarian player
+-- (slot above majors+minors) is included; ScannerBackendUnits.lua
+-- documents the same trap.
 local function buildZoCPlots(ctx)
     local zoc = {}
     if Players == nil or GameDefines == nil or GameDefines.MAX_CIV_PLAYERS == nil then
         return zoc
     end
-    for pid = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+    for pid = 0, GameDefines.MAX_CIV_PLAYERS do
         local p = Players[pid]
         if p ~= nil and p.IsAlive and p:IsAlive() and p:GetTeam() ~= ctx.team then
-            if p.Units ~= nil then
+            local otherTeam = p:GetTeam()
+            local atWar = ctx.pTeam ~= nil and ctx.pTeam:IsAtWar(otherTeam)
+            if atWar and p.Units ~= nil then
                 for unit in p:Units() do
                     if unit ~= nil and unit:IsCombatUnit() and not unit:IsInvisible(ctx.team, ctx.isDebug) then
                         local plot = unit:GetPlot()
-                        if plot ~= nil then
+                        -- Skip units sitting in fog: the engine doesn't
+                        -- model a unit you can't see as projecting ZoC
+                        -- onto your path planning.
+                        if plot ~= nil and plot:IsVisible(ctx.team, ctx.isDebug) then
                             local ux, uy = plot:GetX(), plot:GetY()
                             for _, dir in ipairs(NEIGHBOR_DIRS) do
                                 local n = Map.PlotDirection(ux, uy, dir)
@@ -219,21 +228,27 @@ local function buildZoCPlots(ctx)
 end
 
 -- Plots owned by an at-war civ that has built the Great Wall wonder
--- trigger an end-turn on entry. Precompute: for each opposing player
--- that owns the wonder and is at war with us, walk their owned plots
--- via Player:GetNumPlots / GetPlotByIndex. If those aren't available,
--- the set stays empty and we simply miss the surcharge (the path is
--- still legal, just cheaper than the engine would rate it).
+-- trigger an end-turn on entry. The full sweep walks every plot on
+-- the map, so we cache by (turn, team) on civvaccess_shared and reuse
+-- across rapid Space-key previews; turn changes invalidate naturally.
 local function buildGreatWallPlots(ctx)
+    civvaccess_shared = civvaccess_shared or {}
+    local turn = (Game and Game.GetGameTurn) and Game.GetGameTurn() or 0
+    local cache = civvaccess_shared.pathfinderGreatWall
+    if cache ~= nil and cache.turn == turn and cache.team == ctx.team then
+        return cache.walls
+    end
     local walls = {}
     if Players == nil or GameDefines == nil or GameDefines.MAX_CIV_PLAYERS == nil then
+        civvaccess_shared.pathfinderGreatWall = { turn = turn, team = ctx.team, walls = walls }
         return walls
     end
     local gwClass = typeId("BUILDINGCLASS_GREAT_WALL")
     if gwClass == nil then
+        civvaccess_shared.pathfinderGreatWall = { turn = turn, team = ctx.team, walls = walls }
         return walls
     end
-    for pid = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+    for pid = 0, GameDefines.MAX_CIV_PLAYERS do
         local p = Players[pid]
         if p ~= nil and p.IsAlive and p:IsAlive() and p:GetTeam() ~= ctx.team then
             if p.GetBuildingClassCount and p:GetBuildingClassCount(gwClass) > 0 then
@@ -251,6 +266,7 @@ local function buildGreatWallPlots(ctx)
             end
         end
     end
+    civvaccess_shared.pathfinderGreatWall = { turn = turn, team = ctx.team, walls = walls }
     return walls
 end
 
@@ -357,6 +373,26 @@ local function stepCost(fromPlot, toPlot, ctx)
         return nil
     end
 
+    -- Move-preview is for non-combat motion. Tiles holding a visible
+    -- enemy unit would resolve as an attack at commit time, so they
+    -- aren't valid intermediates or destinations for this preview.
+    if toPlot.IsVisibleEnemyUnit and toPlot:IsVisibleEnemyUnit(ctx.player) then
+        return nil
+    end
+
+    -- Friendly stacking limit. GetNumFriendlyUnitsOfType counts units
+    -- that share our stacking class (one military per tile, one
+    -- civilian per tile). Skip the start plot since the unit lives
+    -- there and would otherwise count itself.
+    local toIdx = toPlot:GetPlotIndex()
+    if
+        toIdx ~= ctx.startIdx
+        and toPlot.GetNumFriendlyUnitsOfType
+        and toPlot:GetNumFriendlyUnitsOfType(ctx.unit) > 0
+    then
+        return nil
+    end
+
     if toPlot:IsMountain() then
         if ctx.isHover then
             -- hover units ignore mountains entirely
@@ -422,8 +458,14 @@ local function stepCost(fromPlot, toPlot, ctx)
             local otherTeam = ownerPlayer:GetTeam()
             if otherTeam ~= ctx.team and ctx.pTeam ~= nil then
                 local atWar = ctx.pTeam:IsAtWar(otherTeam)
-                local openBorders = ctx.pTeam.IsAllowsOpenBordersToTeam
-                    and ctx.pTeam:IsAllowsOpenBordersToTeam(otherTeam)
+                -- IsAllowsOpenBordersToTeam(t) means "this team has granted t
+                -- the right to enter our territory." We're about to enter
+                -- THEIR territory, so we ask whether they granted us that
+                -- right -- not whether we granted them ours.
+                local theirTeam = Teams and Teams[otherTeam] or nil
+                local openBorders = theirTeam ~= nil
+                    and theirTeam.IsAllowsOpenBordersToTeam
+                    and theirTeam:IsAllowsOpenBordersToTeam(ctx.team)
                 if not atWar and not openBorders then
                     return nil
                 end
@@ -451,17 +493,21 @@ local function stepCost(fromPlot, toPlot, ctx)
     local toPillaged = toPlot.IsRoutePillaged and toPlot:IsRoutePillaged() or false
     local hasRoute = fromRoute >= 0 and toRoute >= 0 and not fromPillaged and not toPillaged
 
-    -- Trait overlays that make a tile move *as if* it had a road. Iroquois
-    -- MoveFriendlyWoodsAsRoad covers forest / jungle in owned territory;
-    -- Shoshone-style FasterAlongRiver covers non-crossing steps between
-    -- two river-adjacent plots. Either flag lets the route discount apply
-    -- even without a built route underneath.
     local riverCrossing = false
     if fromPlot.IsRiverCrossingToPlot ~= nil then
         riverCrossing = fromPlot:IsRiverCrossingToPlot(toPlot)
     end
+
+    -- Trait overlays that make a tile move *as if* it had a road for cost
+    -- purposes. Both must skip when the step is also a river crossing:
+    -- the engine treats roads/railroads as bridges (waiving the river
+    -- end-turn) only because they're built infrastructure, but these
+    -- traits are movement-cost overlays without a physical bridge --
+    -- Iroquois cavalry still pays the river penalty crossing into a
+    -- friendly forest, and Shoshone river travel doesn't cover the
+    -- "crossing" direction in the first place.
     local traitRoute = false
-    if ctx.woodsAsRoad and toPlot:GetOwner() == ctx.player then
+    if ctx.woodsAsRoad and not riverCrossing and toPlot:GetOwner() == ctx.player then
         local fid = toPlot:GetFeatureType()
         if fid ~= nil and fid >= 0 and GameInfo and GameInfo.Features then
             local frow = GameInfo.Features[fid]
@@ -481,7 +527,7 @@ local function stepCost(fromPlot, toPlot, ctx)
         traitRoute = true
     end
 
-    if riverCrossing and not ctx.hasEngineering and not ctx.isRiverCrossingNoPenalty and not hasRoute and not traitRoute then
+    if riverCrossing and not ctx.hasEngineering and not ctx.isRiverCrossingNoPenalty and not hasRoute then
         return ctx.maxMoves, true
     end
 
@@ -503,7 +549,6 @@ local function stepCost(fromPlot, toPlot, ctx)
         end
     end
 
-    local toIdx = toPlot:GetPlotIndex()
     local fromIdx = fromPlot:GetPlotIndex()
     if ctx.zocPlots[toIdx] and not ctx.zocPlots[fromIdx] then
         return cost, true
@@ -580,11 +625,27 @@ function Pathfinder.findPath(unit, toPlot)
         startMP = maxMoves
     end
 
+    local startIdx = fromPlot:GetPlotIndex()
+    ctx.startIdx = startIdx
+
+    -- mpCost reporting offset. The g formula (turns*max + (max-mpRem))
+    -- counts the "MP already used this turn" (max - startMP) at step 0,
+    -- which would inflate the reported mpCost when the user previews
+    -- mid-turn with less than full MP. Subtract the offset at report
+    -- time only -- the offset is a constant, so leaving it in g doesn't
+    -- affect A*'s ranking, and the heuristic stays admissible.
+    local startOffset = maxMoves - startMP
+
+    -- Per-tile floor on cost in 60ths -- a railroad with FlatMovementCost
+    -- 1 charges (FlatMovementCost * maxMoves / MOVE_DENOM) per step, so
+    -- a 1-MP unit only spends 1 60th per rail step. Using a constant 2
+    -- here would over-estimate that floor and break A* admissibility on
+    -- 1-MP units; floor(maxMoves / MOVE_DENOM) tracks the actual unit.
+    local hPerTile = math.max(1, math.floor(maxMoves / MOVE_DENOM))
+
     local heap = {}
     local gScore = {}
-    local cameFrom = {}
 
-    local startIdx = fromPlot:GetPlotIndex()
     gScore[startIdx] = 0
     heapPush(heap, {
         plot = fromPlot,
@@ -600,13 +661,17 @@ function Pathfinder.findPath(unit, toPlot)
         local current = heapPop(heap)
         expansions = expansions + 1
         if expansions > MAX_EXPANSIONS then
-            Log.warn("Pathfinder: hit expansion cap before reaching target; treating as unreachable")
-            return nil, "unreachable"
+            -- Distinct from "unreachable": we gave up on a legitimately
+            -- reachable target because the search frontier got too big
+            -- (typical on Huge maps with far targets). Caller speaks a
+            -- different string so the user knows the difference.
+            Log.warn("Pathfinder: hit expansion cap before reaching target; reporting as too_far")
+            return nil, "too_far"
         end
 
         if current.plotIndex == toPlot:GetPlotIndex() then
             return {
-                mpCost = current.g,
+                mpCost = math.max(0, current.g - startOffset),
                 turns = current.turns + (current.mpRemaining < maxMoves and 1 or 0),
                 maxMoves = maxMoves,
             }, nil
@@ -627,15 +692,7 @@ function Pathfinder.findPath(unit, toPlot)
                         local nIdx = neighbor:GetPlotIndex()
                         if newG < (gScore[nIdx] or math.huge) then
                             gScore[nIdx] = newG
-                            cameFrom[nIdx] = current.plotIndex
-                            -- h = distance * 2 (60ths) matches the minimum
-                            -- per-tile cost of a vanilla railroad at 2 MP
-                            -- (FlatMovementCost=1, baseMoves=2), which keeps
-                            -- the heuristic admissible for every vanilla
-                            -- unit. Using MOVE_DENOM (60) here was non-
-                            -- admissible on railroad-heavy paths and A*
-                            -- could return a suboptimal turn count.
-                            local h = HexGeom.cubeDistance(neighbor:GetX(), neighbor:GetY(), tx, ty) * 2
+                            local h = HexGeom.cubeDistance(neighbor:GetX(), neighbor:GetY(), tx, ty) * hPerTile
                             heapPush(heap, {
                                 plot = neighbor,
                                 plotIndex = nIdx,

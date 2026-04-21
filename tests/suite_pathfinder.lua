@@ -27,6 +27,12 @@ local BUILDINGCLASS_GREAT_WALL = 30
 local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_Pathfinder.lua")
 
+    -- Pathfinder caches Great Wall plots on civvaccess_shared keyed by
+    -- (turn, team). Tests run sequentially in one Lua state with stub
+    -- Map fixtures swapped between cases, so cached plot indices from
+    -- a prior case would resolve against the wrong grid here. Wipe.
+    civvaccess_shared = {}
+
     Game.GetActivePlayer = function()
         return 0
     end
@@ -35,6 +41,9 @@ local function setup()
     end
     Game.IsDebugMode = function()
         return false
+    end
+    Game.GetGameTurn = function()
+        return 0
     end
 
     GameDefines = GameDefines or {}
@@ -656,7 +665,272 @@ function M.test_polynesia_starts_embarked_without_optics()
     T.truthy(result ~= nil, "Polynesia should path into coast without Optics: " .. tostring(reason))
 end
 
--- 14. Fully-impassable surround returns unreachable. Target ringed by
+-- 14. Open borders are unidirectional. The pathfinder is entering THEIR
+-- territory, so the question is whether THEIR team has granted US the
+-- right to enter -- not whether we granted them ours. Two-step setup:
+-- the wrong direction must NOT permit entry, the right one must.
+function M.test_open_borders_uses_their_grant_not_ours()
+    local function build()
+        local plots = installGrid(4, function(col, row, p)
+            if col == 1 and row == 0 then
+                p._owner = 1
+            end
+            return p
+        end)
+        Players[1] = {
+            _team = 1,
+            GetTeam = function() return 1 end,
+            IsAlive = function() return true end,
+            GetBuildingClassCount = function() return 0 end,
+            Units = function() return function() return nil end end,
+        }
+        return plots
+    end
+
+    setup()
+    local plotsA = build()
+    -- Our team grants them OB, theirs does NOT grant us OB. We must NOT
+    -- be able to transit their tile -- the discount goes the wrong way.
+    Teams[0] = T.fakeTeam({ openBorders = { [1] = true } })
+    Teams[1] = T.fakeTeam({})
+    local unitA = mkUnit(plotsA[0][0], {})
+    Teams[0] = T.fakeTeam({ openBorders = { [1] = true } })
+    local resultA = Pathfinder.findPath(unitA, plotsA[2][0])
+    T.truthy(resultA ~= nil, "detour around their territory must still exist")
+    T.truthy(resultA.mpCost > 120, "must detour, not transit their territory")
+
+    setup()
+    local plotsB = build()
+    Teams[0] = T.fakeTeam({})
+    Teams[1] = T.fakeTeam({ openBorders = { [0] = true } })
+    local unitB = mkUnit(plotsB[0][0], {})
+    Teams[1] = T.fakeTeam({ openBorders = { [0] = true } })
+    local resultB = Pathfinder.findPath(unitB, plotsB[2][0])
+    T.eq(resultB.mpCost, 120, "their grant to us should permit straight transit")
+end
+
+-- 15. Barbarians live one slot above MAX_CIV_PLAYERS, so iterating
+-- 0..MAX-1 misses them entirely. Place a barb combat unit so its ZoC
+-- projects onto the corridor; expect the same end-turn surcharge as a
+-- regular enemy.
+function M.test_barbarian_zoc_projects()
+    local function installCorridor()
+        return installGrid(4, function(col, row, p)
+            if row ~= 0 and not (col == 1 and row == 1) then
+                p._isMountain = true
+            end
+            return p
+        end)
+    end
+
+    setup()
+    local plots = installCorridor()
+    plots[1][1]._isMountain = false
+    local barbUnit = T.fakeUnit({ owner = 4, team = 4, combat = true, invisible = false })
+    barbUnit._plot = plots[1][1]
+    Players[4] = {
+        GetTeam = function() return 4 end,
+        IsAlive = function() return true end,
+        GetBuildingClassCount = function() return 0 end,
+        Units = function()
+            local sent = false
+            return function()
+                if sent then return nil end
+                sent = true
+                return barbUnit
+            end
+        end,
+    }
+    Teams[4] = T.fakeTeam({ atWar = { [0] = true } })
+    local unit = mkUnit(plots[0][0], { maxMoves = 240 })
+    Teams[0] = T.fakeTeam({ atWar = { [4] = true } })
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result ~= nil, "barb-ZoC corridor must still be pathable")
+    T.truthy(result.turns > 1, "barb at MAX_CIV_PLAYERS slot must project ZoC; turns=" .. tostring(result.turns))
+end
+
+-- 16. ZoC fires only from at-war players. A neutral combat unit (not
+-- at war, no open borders) sitting next to the corridor should not
+-- inflate turn count. Without this check the path would gain a phantom
+-- ZoC end-turn whenever a city-state or AI peer parks near the route.
+function M.test_zoc_skips_non_war_units()
+    local function installCorridor()
+        return installGrid(4, function(col, row, p)
+            if row ~= 0 and not (col == 1 and row == 1) then
+                p._isMountain = true
+            end
+            return p
+        end)
+    end
+
+    setup()
+    local plots = installCorridor()
+    plots[1][1]._isMountain = false
+    local neutralUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
+    neutralUnit._plot = plots[1][1]
+    Players[1] = {
+        GetTeam = function() return 1 end,
+        IsAlive = function() return true end,
+        GetBuildingClassCount = function() return 0 end,
+        Units = function()
+            local sent = false
+            return function()
+                if sent then return nil end
+                sent = true
+                return neutralUnit
+            end
+        end,
+    }
+    Teams[0] = T.fakeTeam({})
+    Teams[1] = T.fakeTeam({})
+    local unit = mkUnit(plots[0][0], { maxMoves = 240 })
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result ~= nil, "neutral-adjacent corridor should be pathable")
+    T.eq(result.turns, 1, "non-war unit must not project ZoC")
+end
+
+-- 17. Enemies in fog don't project ZoC. The engine doesn't surface a
+-- ZoC end-turn for a unit you can't see, so neither should the preview.
+function M.test_zoc_skips_fogged_enemies()
+    local function installCorridor()
+        return installGrid(4, function(col, row, p)
+            if row ~= 0 and not (col == 1 and row == 1) then
+                p._isMountain = true
+            end
+            return p
+        end)
+    end
+
+    setup()
+    local plots = installCorridor()
+    plots[1][1]._isMountain = false
+    plots[1][1]._isVisible = false
+    local enemyUnit = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
+    enemyUnit._plot = plots[1][1]
+    Players[1] = {
+        GetTeam = function() return 1 end,
+        IsAlive = function() return true end,
+        GetBuildingClassCount = function() return 0 end,
+        Units = function()
+            local sent = false
+            return function()
+                if sent then return nil end
+                sent = true
+                return enemyUnit
+            end
+        end,
+    }
+    Teams[1] = T.fakeTeam({ atWar = { [0] = true } })
+    local unit = mkUnit(plots[0][0], { maxMoves = 240 })
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.eq(result.turns, 1, "ZoC from a fog-hidden unit must not fire")
+end
+
+-- 18. Iroquois MoveFriendlyWoodsAsRoad treats friendly forest as a road
+-- for *cost* but not as a *bridge*. A river crossing into a friendly
+-- forest must still end the turn for a non-Engineering, non-Amphibious
+-- unit -- the trait is a movement overlay, not infrastructure.
+function M.test_woods_as_road_does_not_waive_river_crossing()
+    setup()
+    GameInfo.Leaders = { [0] = { Type = "LEADER_HIAWATHA" } }
+    GameInfo.Traits = { TRAIT_GREAT_WARPATH = { MoveFriendlyWoodsAsRoad = true } }
+    GameInfo.Leader_Traits = function()
+        local rows = { { LeaderType = "LEADER_HIAWATHA", TraitType = "TRAIT_GREAT_WARPATH" } }
+        local i = 0
+        return function()
+            i = i + 1
+            return rows[i]
+        end
+    end
+    local plots = installGrid(4, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._feature = FEAT_FOREST
+            p._owner = 0
+        end
+        return p
+    end)
+    plots[0][0]._riverCrossings[plots[1][0]] = true
+    plots[1][0]._riverCrossings[plots[0][0]] = true
+    local unit = mkUnit(plots[0][0], {})
+    Players[0].GetLeaderType = function() return 0 end
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.eq(result.turns, 2, "river-into-friendly-forest must still cost a turn for Iroquois without Engineering")
+end
+
+-- 19. A tile occupied by a visible enemy unit can't be transited or
+-- landed on by a move-to preview (the engine treats that as an attack).
+function M.test_enemy_occupied_destination_unreachable()
+    setup()
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._hasVisibleEnemy = true
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result, reason = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result == nil, "enemy-occupied destination must not return a path")
+    T.eq(reason, "unreachable")
+end
+
+-- 20. Friendly stacking limit. A non-start plot already holding a
+-- friendly unit of the same stacking class blocks the path.
+function M.test_friendly_stack_blocks_transit()
+    setup()
+    local plots = installGrid(4, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._friendlyStackCount = 1
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result ~= nil, "a detour around the stacked tile must exist")
+    T.truthy(result.mpCost > 120, "path must avoid the friendly-stacked tile")
+end
+
+-- 21. mpCost reporting accounts for partial starting MP. A 2-MP unit
+-- that's already spent 1 MP (movesLeft = 60) and walks one grass hex
+-- to a target should report cost = 60, not 120 -- the formula carried
+-- a (maxMoves - startMP) offset before this fix.
+function M.test_mpcost_subtracts_partial_starting_offset()
+    setup()
+    local plots = installGrid(4)
+    local unit = mkUnit(plots[0][0], { maxMoves = 120, movesLeft = 60 })
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.eq(result.mpCost, 60, "one grass step from 1-MP-left start should report 60 in 60ths")
+end
+
+-- 22. Heuristic admissibility for a 1-MP unit. A* returns the first
+-- goal popped from the open set; with an inadmissible heuristic the
+-- first popped goal can be a suboptimal one. For 1-MP units, road cost
+-- is 10/step (FlatMovementCost * maxMoves/60 = 10 * 1 = 10) but the
+-- prior heuristic estimated 2 60ths/step minimum -- 1/5 the truth.
+-- Two paths to the target: 2-hex direct grass (cost 120) vs 3-hex road
+-- detour (cost 30). A* must return the cheaper road path.
+function M.test_one_mp_unit_picks_optimal_road_detour()
+    setup()
+    local plots = installGrid(4, function(col, row, p)
+        -- Road along the row-1 detour: (0,0) -> (0,1) -> (1,1) -> (1,0).
+        if (col == 0 and row == 1) or (col == 1 and row == 1) or (col == 1 and row == 0) then
+            p._route = ROUTE_ROAD
+        end
+        if col == 0 and row == 0 then
+            p._route = ROUTE_ROAD
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], { maxMoves = 60 })
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result ~= nil, "1-MP unit must reach target")
+    -- Road path: 3 steps * 10 60ths = 30. Direct grass: 1 step * 60 = 60.
+    -- A returned mpCost > 30 means A* committed to grass before fully
+    -- exploring the cheaper road detour -- the inadmissibility symptom.
+    T.truthy(result.mpCost <= 30, "must take road detour, got " .. tostring(result.mpCost))
+end
+
+-- 23. Fully-impassable surround returns unreachable. Target ringed by
 -- mountains; a non-hover land unit cannot enter.
 function M.test_unreachable_target_returns_reason()
     setup()

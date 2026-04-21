@@ -87,6 +87,8 @@ function T.fakePlot(opts)
         _isWater = opts.water or false,
         _plotType = opts.plotType or PlotTypes.PLOT_LAND,
         _riverCrossings = opts.riverCrossings or {},
+        _hasVisibleEnemy = opts.hasVisibleEnemy or false,
+        _friendlyStackCount = opts.friendlyStackCount or 0,
     }
     function p:GetX()
         return self._x
@@ -202,6 +204,12 @@ function T.fakePlot(opts)
     -- as a (otherPlot -> true) map keyed on the neighbor object identity.
     function p:IsRiverCrossingToPlot(other)
         return self._riverCrossings[other] or false
+    end
+    function p:IsVisibleEnemyUnit(_player)
+        return self._hasVisibleEnemy
+    end
+    function p:GetNumFriendlyUnitsOfType(_unit)
+        return self._friendlyStackCount
     end
     return p
 end

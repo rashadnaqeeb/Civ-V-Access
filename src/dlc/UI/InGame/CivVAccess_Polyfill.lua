@@ -84,6 +84,9 @@ Game = Game
         IsDebugMode = function()
             return false
         end,
+        GetGameTurn = function()
+            return 0
+        end,
     }
 
 Players = Players or {}

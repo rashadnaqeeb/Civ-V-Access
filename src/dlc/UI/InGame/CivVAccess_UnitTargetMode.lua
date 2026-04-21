@@ -68,6 +68,9 @@ local function movePathPreview(actor, targetPlot)
         if reason == "same_plot" then
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         end
+        if reason == "too_far" then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR")
+        end
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
     local mpText = formatMP(result.mpCost)
