@@ -74,6 +74,13 @@ function BaselineHandler.create()
     for _, h in ipairs(surveyor.helpEntries) do
         helpEntries[#helpEntries + 1] = h
     end
+    local unitControl = UnitControl.getBindings()
+    for _, b in ipairs(unitControl.bindings) do
+        bindings[#bindings + 1] = b
+    end
+    for _, h in ipairs(unitControl.helpEntries) do
+        helpEntries[#helpEntries + 1] = h
+    end
     return {
         name = "Baseline",
         capturesAllInput = false,

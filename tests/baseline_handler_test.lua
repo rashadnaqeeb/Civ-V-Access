@@ -92,6 +92,14 @@ local function setup()
     end
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function(_) end
+    -- UnitControl stubbed with an empty-bindings getBindings so BaselineHandler's
+    -- concat step doesn't need the real module. Its own behavior is covered
+    -- in its own test suite (live listener wiring is in-game verification).
+    UnitControl = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
     dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 

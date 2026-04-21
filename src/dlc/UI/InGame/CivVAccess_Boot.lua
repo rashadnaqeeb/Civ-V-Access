@@ -22,6 +22,13 @@ include("CivVAccess_Cursor")
 -- so the core must be loaded before BaselineHandler is included.
 include("CivVAccess_SurveyorStrings_en_US")
 include("CivVAccess_SurveyorCore")
+-- Unit-control modules. UnitSpeech (pure formatters) first so the menu
+-- and target-mode modules can reference it; UnitControl last because it
+-- ties the others into the listener / bindings surface.
+include("CivVAccess_UnitSpeech")
+include("CivVAccess_UnitActionMenu")
+include("CivVAccess_UnitTargetMode")
+include("CivVAccess_UnitControl")
 include("CivVAccess_BaselineHandler")
 -- TypeAheadSearch is the tier/position match primitive ScannerSearch
 -- calls when Ctrl+F commits. Menu-backed handlers include it on their
@@ -60,6 +67,7 @@ local function onInGameBoot()
     HandlerStack.push(ScannerHandler.create())
     TickPump.install(ContextPtr)
     Cursor.init()
+    UnitControl.installListeners()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
 

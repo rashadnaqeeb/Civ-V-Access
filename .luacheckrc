@@ -43,6 +43,8 @@ read_globals = {
     "ResourceTypes", "ImprovementTypes", "RouteTypes", "YieldTypes",
     "DomainTypes", "VictoryTypes", "PolicyBranchTypes", "GameOptionTypes",
     "ButtonPopupTypes", "ContentType", "SlotStatus", "ActivityTypes",
+    "InterfaceModeTypes", "MissionTypes", "GameMessageTypes",
+    "ActionSubTypes", "GameInfoActions",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -89,7 +91,7 @@ globals = {
     "ScannerBackendCities", "ScannerBackendImprovements",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendUnits",
     "SurveyorCore",
-    "UnitSpeech",
+    "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
 
     -- User-preference module (Shared/)
     "Prefs",
