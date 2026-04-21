@@ -930,7 +930,25 @@ function M.test_one_mp_unit_picks_optimal_road_detour()
     T.truthy(result.mpCost <= 30, "must take road detour, got " .. tostring(result.mpCost))
 end
 
--- 23. Fully-impassable surround returns unreachable. Target ringed by
+-- 23. Destination in fog short-circuits to "unexplored". Without the
+-- early bail, A* would exhaust trying to enter the unrevealed tile and
+-- mis-report "unreachable" -- which conflates "you've been there, no
+-- way through" with "you've never seen it."
+function M.test_unexplored_destination_short_circuits()
+    setup()
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._isRevealed = false
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result, reason = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result == nil, "fogged destination must not return a path")
+    T.eq(reason, "unexplored")
+end
+
+-- 24. Fully-impassable surround returns unreachable. Target ringed by
 -- mountains; a non-hover land unit cannot enter.
 function M.test_unreachable_target_returns_reason()
     setup()

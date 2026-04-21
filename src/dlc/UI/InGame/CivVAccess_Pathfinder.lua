@@ -616,6 +616,17 @@ function Pathfinder.findPath(unit, toPlot)
         return nil, "same_plot"
     end
 
+    -- Destination in fog: no point running A*. stepCost rejects any
+    -- attempt to enter an unrevealed tile, so search would exhaust and
+    -- report "unreachable" anyway -- but the user asked for a target
+    -- they've never seen, which is a different story than a known-
+    -- blocked one. Bail explicitly so the caller can speak "unexplored."
+    local team = unit:GetTeam()
+    local isDebug = Game.IsDebugMode()
+    if not isDebug and not toPlot:IsRevealed(team, isDebug) then
+        return nil, "unexplored"
+    end
+
     local ctx = buildCtx(unit)
     local maxMoves = ctx.maxMoves
     local tx, ty = toPlot:GetX(), toPlot:GetY()
