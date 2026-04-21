@@ -45,7 +45,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_NAME"] = "Unit actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Promotions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Worker builds"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "target mode"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_CANCELLED"] = "target cancelled"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CANCELED"] = "canceled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE"] = "out of range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK"] =
     "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_MyDmg} to me, {5_TheirDmg} to them"

@@ -250,7 +250,7 @@ function UnitTargetMode.enter(actor, iAction, mode)
         bind(Keys.VK_ESCAPE, MOD_NONE, function()
             HandlerStack.removeByName("UnitTargetMode", false)
             restoreSelection()
-            speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_CANCELLED"))
+            speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CANCELED"))
         end, "Cancel target mode"),
         bind(Keys.VK_TAB, MOD_NONE, function()
             HandlerStack.removeByName("UnitTargetMode", false)

@@ -54,6 +54,9 @@
 --   escapePops        when true, adds an Esc binding that pops this menu
 --                     by name. Used by Pulldown's child menus so Esc cancels
 --                     the sub without bypassing to the screen's priorInput.
+--   escapeAnnounce    optional string spoken (interrupt) when escapePops
+--                     fires, so the user hears confirmation that the menu
+--                     closed rather than silence.
 --   capturesAllInput  default true; the modal barrier for InputRouter.
 --   initialIndex      optional 1-based cursor at level 1 to land on at
 --                     first onActivate. Used by Pulldown to open its child
@@ -715,11 +718,15 @@ function BaseMenu.create(spec)
         },
     }
     if spec.escapePops then
+        local announce = spec.escapeAnnounce
         self.bindings[#self.bindings + 1] = {
             key = Keys.VK_ESCAPE,
             mods = 0,
             description = "Cancel",
             fn = function()
+                if announce ~= nil and announce ~= "" then
+                    SpeechPipeline.speakInterrupt(announce)
+                end
                 HandlerStack.removeByName(self.name, true)
             end,
         }

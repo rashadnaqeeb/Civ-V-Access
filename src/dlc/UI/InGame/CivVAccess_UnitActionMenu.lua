@@ -221,6 +221,7 @@ function UnitActionMenu.open(unit)
         items = items,
         capturesAllInput = true,
         escapePops = true,
+        escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
     })
     HandlerStack.push(handler)
 end
