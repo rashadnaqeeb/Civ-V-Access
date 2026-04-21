@@ -12,9 +12,10 @@
 -- actor while the engine is in an attack / move interface mode, so we
 -- swallow it.
 --
--- Unit cycling (. / ,) is not bound here either -- it falls through to
--- Baseline's UnitControl.cycleAll, which fires UnitSelectionChanged on
--- the new unit. UnitControl's listener pops this handler when the
+-- Unit cycling (. / ,) is not bound here either -- `,` falls through to
+-- Baseline's UnitControl.cycleAll and `.` falls through to the engine's
+-- native next-unit binding. Either path fires UnitSelectionChanged on
+-- the new unit; UnitControl's listener pops this handler when the
 -- selection moves to a different unit, which also covers mouse reselect
 -- and actor death.
 --
@@ -276,6 +277,7 @@ function UnitTargetMode.enter(actor, iAction, mode)
     self.onActivate = function()
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"))
     end
-    _currentActorID = actor:GetID()
-    HandlerStack.push(self)
+    if HandlerStack.push(self) then
+        _currentActorID = actor:GetID()
+    end
 end
