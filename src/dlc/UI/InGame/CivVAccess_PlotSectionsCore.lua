@@ -5,10 +5,11 @@
 -- coordination; no current section reads or writes it.
 --
 -- The Owner section here is NOT in the per-move composer -- the cursor's
--- owner-prefix diff already speaks owner identity, and on a city tile
--- TXT_KEY_CITY_OF / TXT_KEY_CITY_STATE_OF carries the full banner. Owner
--- lives in the registry so callers (Cursor) can borrow the same identity
--- builder without reimplementing the city / civ / unclaimed branching.
+-- owner-prefix diff already speaks owner identity. Owner lives in the
+-- registry so the Cursor can borrow the same builder without
+-- reimplementing the civ / unclaimed branching. The City section below
+-- handles the city banner (TXT_KEY_CITY_OF / TXT_KEY_CITY_STATE_OF) on
+-- city tiles independently of owner identity.
 --
 -- Per-section visibility rules: revealed-but-fogged plots get terrain /
 -- plot-shape / feature / improvement / route / owner via the GetRevealed*
@@ -27,26 +28,16 @@ local function lookupName(table, id)
 end
 
 -- Owner identity used by the cursor's prefix diff and (offline) by tests.
--- Returns two values: the spoken string ("Arabia", "Rome, Arabian",
--- "unclaimed") and an opaque identity token used only for diffing across
--- moves. Two plots with the same identity token never re-trigger the prefix.
--- Caller must guarantee the plot is revealed; unexplored is a visibility
--- state, not an ownership state, and lives in the Cursor's gate.
+-- Returns two values: the spoken string ("Arabia", "unclaimed") and an
+-- opaque identity token used only for diffing across moves. Two plots
+-- with the same identity token never re-trigger the prefix. City tiles
+-- intentionally share the civ-owner identity of the surrounding territory
+-- so stepping civ-tile -> city-tile-of-same-civ doesn't fire a redundant
+-- prefix; the City section in the glance announces the city banner on
+-- its own. Caller must guarantee the plot is revealed; unexplored is a
+-- visibility state, not an ownership state, and lives in the Cursor's gate.
 function PlotSections.ownerIdentity(plot)
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
-    if plot:IsCity() then
-        local city = plot:GetPlotCity()
-        local owner = Players[city:GetOwner()]
-        if owner:IsMinorCiv() then
-            local civKey = owner:GetCivilizationShortDescriptionKey()
-            local spoken = Text.format("TXT_KEY_CITY_STATE_OF", civKey)
-            return spoken, "city:" .. tostring(city:GetID())
-        end
-        local adj = owner:GetCivilizationAdjectiveKey()
-        local name = city:GetName()
-        local spoken = Text.format("TXT_KEY_CITY_OF", adj, name)
-        return spoken, "city:" .. tostring(city:GetID())
-    end
     local ownerId = plot:GetRevealedOwner(team, debug)
     if ownerId < 0 then
         return Text.key("TXT_KEY_CIVVACCESS_UNCLAIMED"), "unclaimed"
@@ -61,12 +52,11 @@ function PlotSections.ownerIdentity(plot)
 end
 
 -- The City section speaks the city banner unconditionally on a city tile.
--- This duplicates the cursor's owner-prefix on first entry (both will say
--- "Rome, Arabian"), which is the design's accepted cost: it ensures the
--- city is announced even on entry paths that don't trigger the prefix
--- diff (Recenter onto a tile whose identity already matched). The diff
--- saves the user from hearing "Arabia" every step within Arabia; the City
--- section makes sure they always hear "Rome" when they land on Rome.
+-- It is the sole source of "Rome, Arabian" -- the cursor's owner-prefix
+-- treats a city tile as part of its civ's territory, so stepping into a
+-- city of the civ you're already in speaks only the banner here, not the
+-- prefix and the banner. Entries from a different civ or unclaimed get
+-- the civ-name prefix, then this section names the city.
 PlotSections.city = {
     Read = function(plot)
         if not plot:IsCity() then

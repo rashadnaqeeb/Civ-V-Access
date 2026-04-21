@@ -79,21 +79,21 @@ function M.test_owner_identity_civ_uses_short_description()
     T.eq(id, "civ:3")
 end
 
-function M.test_owner_identity_city_distinguishes_from_territory()
+function M.test_owner_identity_city_shares_territory_identity_of_owning_civ()
+    -- A city tile owned by civ N must produce the same identity token as a
+    -- non-city tile owned by civ N, so stepping civ-tile -> city-tile-of-
+    -- same-civ doesn't re-fire the cursor's owner prefix. The City section
+    -- in the glance announces the city banner; the prefix is for civ-border
+    -- crossings, and walking into one of your civ's own cities is not one.
     setup()
     local city = T.fakeCity({ name = "Rome", owner = 3, id = 7 })
-    Players[3] = T.fakePlayer({ adj = "Roman" })
-    local p = T.fakePlot({ owner = 3, isCity = true, city = city })
-    local spoken, id = PlotSections.ownerIdentity(p)
-    -- TXT_KEY_CITY_OF substitutes adjective then name; format string from the
-    -- engine is "{1_Adj} {2_Name}" or similar -- our Locale stub returns the
-    -- raw key untouched when the engine string isn't loaded, so we can't
-    -- assert exact wording here. We CAN assert the diff token differs from
-    -- the bare-territory form, which is the whole point.
-    local _, idCiv = PlotSections.ownerIdentity(T.fakePlot({ owner = 3 }))
-    T.truthy(id ~= idCiv, "city identity must differ from territory identity")
-    T.eq(id, "city:7")
-    T.truthy(spoken ~= "" and spoken ~= nil)
+    Players[3] = T.fakePlayer({ shortDesc = "Arabia", adj = "Roman" })
+    local cityPlot = T.fakePlot({ owner = 3, isCity = true, city = city })
+    local territoryPlot = T.fakePlot({ owner = 3 })
+    local _, idCity = PlotSections.ownerIdentity(cityPlot)
+    local _, idTerritory = PlotSections.ownerIdentity(territoryPlot)
+    T.eq(idCity, idTerritory, "city tile and territory tile of the same civ must share identity")
+    T.eq(idCity, "civ:3")
 end
 
 -- ===== City section =====
@@ -549,6 +549,47 @@ function M.test_cursor_move_owner_prefix_fires_once_within_same_civ()
     T.truthy(first:find("Arabia", 1, true), "first entry must speak owner: " .. first)
     T.truthy(not second:find("Arabia", 1, true), "second move within Arabia must suppress prefix: " .. second)
     T.truthy(second:find("Plains", 1, true), "second move still describes the tile: " .. second)
+end
+
+function M.test_cursor_move_into_city_of_same_civ_does_not_refire_owner_prefix()
+    -- Walking civ-tile -> city-tile-of-same-civ must not re-speak any
+    -- border-crossing prefix; we never left the civ. The City section in
+    -- the glance still names the city, but exactly once -- the regression
+    -- this guards against is the owner-prefix and the City section both
+    -- emitting the city banner on entry, leaving the user hearing it
+    -- twice in a row.
+    setup()
+    Players[3] = T.fakePlayer({ shortDesc = "Arabia", adj = "Arabian" })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local start = T.fakePlot({ x = 0, y = 0, owner = -1, terrain = 1 })
+    local territory = T.fakePlot({ x = 1, y = 0, owner = 3, terrain = 1 })
+    local rome = T.fakeCity({ name = "Rome", owner = 3, id = 7 })
+    local cityPlot = T.fakePlot({ x = 2, y = 0, owner = 3, terrain = 1, isCity = true, city = rome })
+    local plotByXY = { ["0,0"] = start, ["1,0"] = territory, ["2,0"] = cityPlot }
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    local u = T.fakeUnit({})
+    u._plot = start
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    Cursor.init()
+    local first = Cursor.move(DirectionTypes.DIRECTION_EAST) -- onto territory: prefix "Arabia"
+    T.truthy(first:find("Arabia", 1, true), "first crossing into Arabia must speak the prefix: " .. first)
+    local second = Cursor.move(DirectionTypes.DIRECTION_EAST) -- onto Rome (same civ)
+    -- The city banner expands to TXT_KEY_CITY_OF in the test stub (the
+    -- engine string is not loaded), so its presence is unambiguous and
+    -- countable. Old behavior emitted it twice (prefix + glance section);
+    -- new behavior emits it once, from the glance section only.
+    local _, count = second:gsub("TXT_KEY_CITY_OF", "")
+    T.eq(count, 1, "city banner must announce exactly once on entry: " .. second)
 end
 
 function M.test_cursor_move_emits_edge_of_map_at_boundary()
