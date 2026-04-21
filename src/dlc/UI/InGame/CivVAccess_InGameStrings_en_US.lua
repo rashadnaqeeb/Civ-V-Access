@@ -184,6 +184,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_LIBERATION_PREVIEW"] = "liberation p
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SPY"] = "spy {1_Name}, {2_Rank}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DIPLOMAT"] = "diplomat {1_Name}, {2_Rank}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NO_POLITICS"] = "no political information"
+-- Type-ahead search feedback (see FrontEnd strings for the authoring
+-- rationale). Mirrored here because TypeAheadSearch runs from in-game
+-- BaseMenu contexts whose string table is sandboxed from the FrontEnd copy.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "search cleared"
 -- Help overlay strings (see FrontEnd strings for the authoring rationale).
 -- Duplicated here because Contexts are sandboxed: in-game Contexts that
 -- eventually wire SetInputHandler through InputRouter need their own copy.
