@@ -257,6 +257,66 @@ function Cursor.cityPolitics()
     return delegateCity(CitySpeech.politics)
 end
 
+-- ===== Activation (Enter) =====
+-- Mirrors the banner-click fork in vanilla BNW's
+-- CityBannerManager.lua OnBannerClick (Expansion2/UI/InGame/): own city
+-- opens the city screen, an annexable puppet opens the annex popup
+-- first, a met minor civ opens the (read-only) city screen, a met major
+-- civ opens diplomacy with the turn-active guard that LeaderSelected
+-- applies. Unmet foreigners and non-city plots are silent — Baseline's
+-- capturesAllInput already consumes the key, so no speech and no engine
+-- fallthrough either way.
+function Cursor.activate()
+    if _x == nil then
+        Log.warn("Cursor.activate before init")
+        return
+    end
+    local plot = plotHere()
+    if not plot:IsCity() then
+        return
+    end
+    local ownerID = plot:GetOwner()
+    local activeID = Game.GetActivePlayer()
+    if ownerID == activeID then
+        local city = plot:GetPlotCity()
+        local player = Players[activeID]
+        if city:IsPuppet() and not player:MayNotAnnex() then
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_ANNEX_CITY,
+                Data1 = city:GetID(),
+                Data2 = -1,
+                Data3 = -1,
+                Option1 = false,
+                Option2 = false,
+            })
+        else
+            UI.DoSelectCityAtPlot(plot)
+        end
+        return
+    end
+    local activeTeam = Teams[Game.GetActiveTeam()]
+    local other = Players[ownerID]
+    if not activeTeam:IsHasMet(other:GetTeam()) then
+        return
+    end
+    if other:IsMinorCiv() then
+        UI.DoSelectCityAtPlot(plot)
+        return
+    end
+    -- Diplomacy guard matches vanilla LeaderSelected: out-of-turn Enter
+    -- over a major civ's city is silent rather than triggering diplo.
+    if not Players[activeID]:IsTurnActive() or Game.IsProcessingMessages() then
+        return
+    end
+    if other:IsHuman() then
+        Events.OpenPlayerDealScreenEvent(ownerID)
+    else
+        UI.SetRepeatActionPlayer(ownerID)
+        UI.ChangeStartDiploRepeatCount(1)
+        other:DoBeginDiploWithHuman()
+    end
+end
+
 -- Test seam: lets suites reset between cases without exposing the
 -- locals. Production never calls this.
 function Cursor._reset()

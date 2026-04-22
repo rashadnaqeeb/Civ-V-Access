@@ -47,6 +47,9 @@ local function setup()
             table.insert(Cursor._calls, "cityPolitics")
             return ""
         end,
+        activate = function()
+            table.insert(Cursor._calls, "activate")
+        end,
     }
     SurveyorCore = {
         _calls = {},
@@ -188,6 +191,13 @@ function M.test_number_keys_dispatch_to_city_info()
     T.eq(Cursor._calls[1], "cityIdentity")
     T.eq(Cursor._calls[2], "cityDevelopment")
     T.eq(Cursor._calls[3], "cityPolitics")
+end
+
+function M.test_enter_dispatches_to_cursor_activate()
+    setup()
+    local h = BaselineHandler.create()
+    findBinding(h, Keys.VK_RETURN, 0).fn()
+    T.eq(Cursor._calls[1], "activate")
 end
 
 function M.test_f10_fires_advisor_counsel_popup()

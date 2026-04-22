@@ -87,6 +87,9 @@ function BaselineHandler.create()
         bind(Keys["3"], MOD_NONE, function()
             speak(Cursor.cityPolitics())
         end, "City diplomacy"),
+        bind(Keys.VK_RETURN, MOD_NONE, function()
+            Cursor.activate()
+        end, "Activate tile"),
         bind(Keys.N, MOD_CTRL, function()
             -- Data1 = 1 asks the popup to queue at InGameUtmost priority and
             -- toggle-close if already visible; any other value falls back to
@@ -140,6 +143,10 @@ function BaselineHandler.create()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_POL",
             description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_KEY_OPEN",

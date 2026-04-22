@@ -1469,4 +1469,248 @@ function M.test_recommendation_section_wires_into_glance()
     T.truthy(out:find("City site", 1, true), "glance must include the rec name: " .. out)
 end
 
+-- ===== Cursor.activate (Enter) =====
+-- Mirrors the ownership fork in vanilla BNW's OnBannerClick:
+-- own city opens city screen (or annex popup for an annexable puppet),
+-- met minor opens city screen, met major opens diplomacy with the
+-- turn-active guard, unmet foreign / non-city is silent. One test per
+-- branch; each catches a distinct regression.
+
+local activateCalls
+
+local function primeCursor(plot)
+    local x, y = plot:GetX(), plot:GetY()
+    UI.GetHeadSelectedUnit = function()
+        return {
+            GetPlot = function()
+                return plot
+            end,
+        }
+    end
+    Map.GetPlot = function(qx, qy)
+        if qx == x and qy == y then
+            return plot
+        end
+    end
+    Cursor._reset()
+    Cursor.init()
+end
+
+local function installActivateStubs()
+    activateCalls = {}
+    UI.DoSelectCityAtPlot = function(plot)
+        activateCalls[#activateCalls + 1] = { op = "select", plot = plot }
+    end
+    UI.SetRepeatActionPlayer = function(id)
+        activateCalls[#activateCalls + 1] = { op = "repeat", id = id }
+    end
+    UI.ChangeStartDiploRepeatCount = function(n)
+        activateCalls[#activateCalls + 1] = { op = "count", n = n }
+    end
+    Events.SerialEventGameMessagePopup = function(info)
+        activateCalls[#activateCalls + 1] = { op = "popup", info = info }
+    end
+    Events.OpenPlayerDealScreenEvent = function(id)
+        activateCalls[#activateCalls + 1] = { op = "deal", id = id }
+    end
+    Game.IsProcessingMessages = function()
+        return false
+    end
+    ButtonPopupTypes = { BUTTONPOPUP_ANNEX_CITY = 42 }
+end
+
+-- T.fakeCity / T.fakePlayer omit the activate-specific methods; extend
+-- them inline here so the shared fixtures aren't cluttered with branches
+-- only this feature exercises.
+local function makeCity(opts)
+    local c = T.fakeCity(opts)
+    c._isPuppet = opts.puppet or false
+    function c:IsPuppet()
+        return self._isPuppet
+    end
+    return c
+end
+
+local function makePlayer(opts)
+    local p = T.fakePlayer(opts)
+    p._mayNotAnnex = opts.mayNotAnnex or false
+    p._isHuman = opts.isHuman or false
+    p._isTurnActive = (opts.isTurnActive ~= false)
+    function p:MayNotAnnex()
+        return self._mayNotAnnex
+    end
+    function p:IsHuman()
+        return self._isHuman
+    end
+    function p:IsTurnActive()
+        return self._isTurnActive
+    end
+    function p:DoBeginDiploWithHuman()
+        activateCalls[#activateCalls + 1] = { op = "diplo", player = self }
+    end
+    return p
+end
+
+function M.test_activate_silent_on_non_city_plot()
+    setup()
+    installActivateStubs()
+    local plot = T.fakePlot({ x = 3, y = 4, isCity = false })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 0, "non-city plot should not fire any engine call")
+end
+
+function M.test_activate_own_city_opens_city_screen()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    local city = makeCity({ owner = 0, id = 7, puppet = false })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 0 })
+    Players[0] = makePlayer({})
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 1)
+    T.eq(activateCalls[1].op, "select")
+    T.eq(activateCalls[1].plot, plot)
+end
+
+function M.test_activate_own_puppet_fires_annex_popup()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    local city = makeCity({ owner = 0, id = 11, puppet = true })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 0 })
+    Players[0] = makePlayer({ mayNotAnnex = false })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 1)
+    T.eq(activateCalls[1].op, "popup")
+    T.eq(activateCalls[1].info.Type, 42)
+    T.eq(activateCalls[1].info.Data1, 11)
+end
+
+function M.test_activate_own_puppet_with_may_not_annex_opens_city_screen()
+    -- Venice-style civ: owns puppets but can't annex. Activation must
+    -- open the (read-only) city screen rather than an unusable popup.
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    local city = makeCity({ owner = 0, id = 11, puppet = true })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 0 })
+    Players[0] = makePlayer({ mayNotAnnex = true })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 1)
+    T.eq(activateCalls[1].op, "select")
+end
+
+function M.test_activate_unmet_foreign_is_silent()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
+        return 0
+    end
+    Teams[0] = T.fakeTeam({ hasMet = {} })
+    Players[1] = makePlayer({ team = 1 })
+    local city = makeCity({ owner = 1 })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 1 })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 0, "unmet foreign city should be silent")
+end
+
+function M.test_activate_met_minor_opens_city_screen()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
+        return 0
+    end
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true } })
+    Players[1] = makePlayer({ team = 1, isMinor = true })
+    local city = makeCity({ owner = 1 })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 1 })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 1)
+    T.eq(activateCalls[1].op, "select")
+end
+
+function M.test_activate_met_major_ai_opens_diplomacy()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
+        return 0
+    end
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true } })
+    Players[0] = makePlayer({ team = 0, isTurnActive = true })
+    local target = makePlayer({ team = 1, isMinor = false, isHuman = false })
+    Players[1] = target
+    local city = makeCity({ owner = 1 })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 1 })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 3, "expected SetRepeatActionPlayer + ChangeStartDiploRepeatCount + DoBeginDiploWithHuman")
+    T.eq(activateCalls[1].op, "repeat")
+    T.eq(activateCalls[1].id, 1)
+    T.eq(activateCalls[2].op, "count")
+    T.eq(activateCalls[2].n, 1)
+    T.eq(activateCalls[3].op, "diplo")
+    T.eq(activateCalls[3].player, target)
+end
+
+function M.test_activate_met_major_human_opens_deal_screen()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
+        return 0
+    end
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true } })
+    Players[0] = makePlayer({ team = 0, isTurnActive = true })
+    Players[1] = makePlayer({ team = 1, isMinor = false, isHuman = true })
+    local city = makeCity({ owner = 1 })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 1 })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 1)
+    T.eq(activateCalls[1].op, "deal")
+    T.eq(activateCalls[1].id, 1)
+end
+
+function M.test_activate_major_out_of_turn_is_silent()
+    setup()
+    installActivateStubs()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.GetActiveTeam = function()
+        return 0
+    end
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true } })
+    Players[0] = makePlayer({ team = 0, isTurnActive = false })
+    Players[1] = makePlayer({ team = 1, isMinor = false, isHuman = false })
+    local city = makeCity({ owner = 1 })
+    local plot = T.fakePlot({ x = 0, y = 0, isCity = true, city = city, owner = 1 })
+    primeCursor(plot)
+    Cursor.activate()
+    T.eq(#activateCalls, 0, "out-of-turn activation on major civ city must not fire diplo")
+end
+
 return M
