@@ -3153,6 +3153,108 @@ function M.test_tab_onAltLeft_onAltRight_hooks_fire_on_active_tab()
     T.eq(rightCalls, 1, "onAltRight fired once on hooked tab")
 end
 
+function M.test_spec_onAltLeft_fires_when_no_tabs()
+    setup()
+    setCtrls({ "A", "B" })
+    local leftCalls = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A", "B" }),
+        onAltLeft = function()
+            leftCalls = leftCalls + 1
+        end,
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN) -- mods=MOD_ALT
+    T.eq(leftCalls, 1, "spec onAltLeft fired on Alt+Left")
+end
+
+function M.test_spec_onAltRight_fires_when_no_tabs()
+    setup()
+    setCtrls({ "A", "B" })
+    local rightCalls = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = buttonSpec({ "A", "B" }),
+        onAltRight = function()
+            rightCalls = rightCalls + 1
+        end,
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 4, WM_KEYDOWN)
+    T.eq(rightCalls, 1, "spec onAltRight fired on Alt+Right")
+end
+
+function M.test_tab_onAltLeft_overrides_spec_onAltLeft()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    local cbB = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA, CB = cbB })
+    local specCalls, tabCalls = 0, 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        onAltLeft = function()
+            specCalls = specCalls + 1
+        end,
+        tabs = {
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+            },
+            {
+                name = "TAB_B",
+                onAltLeft = function()
+                    tabCalls = tabCalls + 1
+                end,
+                items = { BaseMenuItems.Checkbox({ controlName = "CB", textKey = "LB" }) },
+            },
+        },
+    })
+    HandlerStack.push(h)
+    -- Tab A has no onAltLeft; spec-level fallback fires.
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN)
+    T.eq(specCalls, 1, "spec onAltLeft fired on unhooked tab")
+    T.eq(tabCalls, 0, "tab onAltLeft not fired on unhooked tab")
+    -- Switch to tab B and fire Alt+Left: tab hook wins over spec.
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_LEFT, 4, WM_KEYDOWN)
+    T.eq(tabCalls, 1, "tab onAltLeft fired")
+    T.eq(specCalls, 1, "spec onAltLeft did not also fire when tab hook present")
+end
+
+function M.test_spec_onAltLeft_rejects_non_function()
+    setup()
+    setCtrls({ "A" })
+    local ok, err = pcall(function()
+        BaseMenu.create({
+            name = "T",
+            displayName = "Screen",
+            items = buttonSpec({ "A" }),
+            onAltLeft = "not a function",
+        })
+    end)
+    T.truthy(not ok, "non-function onAltLeft rejected")
+    T.truthy(tostring(err):find("onAltLeft"), "error mentions the field")
+end
+
+function M.test_spec_onAltRight_rejects_non_function()
+    setup()
+    setCtrls({ "A" })
+    local ok, err = pcall(function()
+        BaseMenu.create({
+            name = "T",
+            displayName = "Screen",
+            items = buttonSpec({ "A" }),
+            onAltRight = 42,
+        })
+    end)
+    T.truthy(not ok, "non-function onAltRight rejected")
+    T.truthy(tostring(err):find("onAltRight"), "error mentions the field")
+end
+
 function M.test_tab_onCtrlUp_hook_overrides_sibling_group_jump()
     setup()
     local cbA = Polyfill.makeCheckBox()

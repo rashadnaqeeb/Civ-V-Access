@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context Font="TwCenMT18" FontStyle="Shadow" ColorSet="Beige_Black_Alpha">
+    <Instance Name="RelatedConceptButton" >
+
+
+        <Button Size="360,24" Anchor="C,C" ID="Button"  >
+
+            <ShowOnMouseOver>
+                <AlphaAnim  Anchor="C,C" Offset="10,0" Size="360,27" Pause="0" Cycle="Bounce" Speed="1" AlphaStart="2" AlphaEnd="1">
+                    <Grid  Size="360,27" Offset="0,0" Padding="0,0" Style="Grid9FrameTurnsHL" />
+                </AlphaAnim>
+            </ShowOnMouseOver>
+
+            <Image Anchor="C,B" Offset="0,0" Texture="bar340x2.dds" Size="340.1" />
+        </Button>
+
+
+    </Instance>
+
+    <Box Style="BGBlock_ClearTopBar" />
+
+
+    <Box Size="1024,768" Anchor="C,C"  Color="255,255,255,0" />
+
+    <Grid Size="700,658" Anchor="C,C" Offset="0,48" Padding="0,0" Style="Grid9DetailFive140" ConsumeMouse="1">
+
+
+        <Label Anchor="C,T" Offset="0,20" Font="TwCenMT20" FontStyle="Shadow" Color0="Beige.255" Color1="Black.128" String="TXT_KEY_ADVISOR_INFORMATION" ID="PlayerTitleLabel"/>
+
+
+      <!-- Side treatments -->
+      <Box Style="MenuLeftSideTreatment"/>
+      <Box Style="MenuRightSideTreatment"/>
+
+        <Image Anchor="C,T" AnchorSide="I.O" Size="256,64" Offset="0,-16"  Texture="assets\UI\Art\Icons\Top512IconTrim.dds" >
+
+          <Image ID="CivIconBG" Size="64.64" Anchor="C,C" Offset="-1,-1" TextureOffset="77,0" Texture="CivIconBGSizes.dds" />
+          <Image ID="CivIconShadow" Size="48.48" Anchor="C,C" Offset="0,0" Texture="CivSymbolAtlas48.dds" Color="Black.128"/>
+          <Image ID="Icon" Size="48,48" Offset="-1,-1"  Anchor="C,C" Texture="CivSymbolsColor512.dds" />
+
+        </Image>
+
+        <Box Size="420,567" Anchor="R,T" Offset="42,48"  Color="255,255,255,0" >
+
+            <Image Anchor="C,T" Size="340,1" Offset="0,36"  Texture="assets\UI\Art\Controls\9 Grids\bar340x2.dds" >
+                <Label ID="TitleLabel" Anchor="C,T" AnchorSide="I.O"  Offset="0.12" Font="TwCenMT22" String="Advisor Title Info Label" FontStyle="SoftShadow" ColorSet="Beige_Black_Alpha"></Label>
+                <Button Anchor="R,T" AnchorSide="I.O"  Size="32,32" Offset="-22,0"  Texture="UnitPanelArrows.dds" ID="Forward" ToolTip="TXT_KEY_ADVISORINFOPOPUP_FORWARD" />
+                <Button Anchor="L,T" AnchorSide="I.O"  Size="32,32" Offset="-22,0"   TextureOffset="32,0" Texture="UnitPanelArrows.dds" ID="Back" ToolTip="TXT_KEY_ADVISORINFOPOPUP_BACK" />"
+
+                <ScrollPanel ID="DescriptionPanel" Anchor="C,B" AnchorSide="I.O"  Vertical="1" Offset="0,12" Size="400,294" AutoScrollBar="1">
+					<Stack Anchor="L,T" Offset="0,0" Size="0,0" StackGrowth="Bottom" Padding="0">
+            			<Container Size="1,1" ID="Spacer1">
+						</Container>
+                    	<Label ID="DescriptionLabel" Anchor="C,T" Offset="0,0" WrapWidth="360" LeadingOffset="-4"  Font="TwCenMT18" FontStyle="Shadow" ColorSet="Beige_Black_Alpha" String="Congratulations! txt too long" />
+						<Container Size="1,5" ID="Spacer2">
+						</Container>
+					</Stack>
+                    <!-- Scroll Controls -->
+                    <ScrollBar  Style="VertSlider"     Offset="0,18" Anchor="R,T" AnchorSide="O,I" Length="258" />
+                    <UpButton   Style="ScrollBarUp"    Offset="0,0" Anchor="R,T" AnchorSide="O,I" />
+                    <DownButton Style="ScrollBarDown"  Offset="0,0" Anchor="R,B" AnchorSide="O,I" />
+
+                </ScrollPanel>
+            </Image>
+
+
+            <ScrollPanel ID="RelatedConceptPanel" Anchor="C,B" AnchorSide="I.I"  Vertical="1" Offset="0,0" Size="400,216" AutoScrollBar="1">
+
+                <Stack Anchor="C,T" Padding="0" Offset="0,0" StackGrowth="Bottom" ID="RelatedConceptButtonStack"/>
+
+                <!-- Scroll Controls -->
+                <ScrollBar  Style="VertSlider"     Offset="0,18" Anchor="R,T" AnchorSide="O,I" Length="180" />
+                <UpButton   Style="ScrollBarUp"    Offset="0,0" Anchor="R,T" AnchorSide="O,I" />
+                <DownButton Style="ScrollBarDown"  Offset="0,0" Anchor="R,B" AnchorSide="O,I" />
+
+            </ScrollPanel>
+        </Box>
+
+		<Image Anchor="C,C" Offset="0,67" Texture="HorizontalTrim.dds" Size="667.5" />
+
+        <!--Economic_Advisor -->
+        <Box Color="0,0,0,0" ToolTip="TXT_KEY_ADVISOR_ECON_TITLE" ID="EconomicAdvisor" Anchor="L,T" AnchorSide="I.I" Size="180,220" Offset="36,60" >
+
+			<Image ToolTip="TXT_KEY_ADVISOR_ECON_TITLE" ID="EconomicAdvisorPortrait1" Anchor="L,B" AnchorSide="I.I"  Size="180,220" Texture="assets\UI\Art\Notification\AdvisorEconomic001.dds" />
+			<Image ToolTip="TXT_KEY_ADVISOR_ECON_TITLE" ID="EconomicAdvisorPortrait2" Anchor="L,B" AnchorSide="I.I"  Size="180,220" Texture="assets\UI\Art\Notification\AdvisorEconomic002.dds" Hidden="1" />
+			<Image ToolTip="TXT_KEY_ADVISOR_ECON_TITLE" ID="EconomicAdvisorPortrait3" Anchor="L,B" AnchorSide="I.I"  Size="180,220" Texture="assets\UI\Art\Notification\AdvisorEconomic003.dds" Hidden="1" />
+			
+            <Grid Size="184,224" Anchor="C,C" Offset="0,0"  Style="Grid9Frame" Hidden="0" />
+            <Label ID="EconomicAdvisorLabel" Anchor="C,B" Offset="12.-24" Font="TwCenMT16" String="TXT_KEY_ADVISOR_ECON_TITLE">
+                <Button ToolTip="TXT_KEY_ADVISOR_ECON_TITLE" AnchorSide="O.I" Anchor="L,C" Size="32,32" Offset="0,0" Texture="assets\UI\Art\Advisors\AdvisorSymbolEconomic.dds" Hidden="0">
+                    <ScrollAnim  Offset="0,0"  Size="32.32" Speed=".2" Pause=".5" Texture="assets\UI\Art\Advisors\AdvisorShine.dds" MaskTexture="assets\UI\Art\Advisors\AdvisorMaskEconomic.dds" />
+                    <AlphaAnim Anchor="C,C" Offset="4,4" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="5" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd="1"  />
+                    <AlphaAnim Anchor="C,C" Offset="0,-4" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="3" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd="1"  />
+                </Button>
+            </Label>
+        </Box>
+		
+        <!--Foreign_Advisor -->
+        <Box Color="0,0,0,0" ToolTip="TXT_KEY_ADVISOR_FOREIGN_TITLE" ID="ForeignAdvisor" Anchor="L,T" AnchorSide="I.I" Size="180,220" Offset="36,60" Hidden="1" >
+
+			<Image ToolTip="TXT_KEY_ADVISOR_FOREIGN_TITLE" ID="ForeignAdvisorPortrait1" Size="180,220" Texture="assets\UI\Art\Notification\AdvisorForeign001.dds" />
+			<Image ToolTip="TXT_KEY_ADVISOR_FOREIGN_TITLE" ID="ForeignAdvisorPortrait2" Size="180,220" Texture="assets\UI\Art\Notification\AdvisorForeign002.dds" Hidden="1" />
+			<Image ToolTip="TXT_KEY_ADVISOR_FOREIGN_TITLE" ID="ForeignAdvisorPortrait3" Size="180,220" Texture="assets\UI\Art\Notification\AdvisorForeign003.dds" Hidden="1" />
+			
+            <Grid Size="184,224" Anchor="C,C" Offset="0,0"  Style="Grid9Frame" Hidden="0" />
+            <Label ID="ForeignAdvisorLabel" Anchor="C,B" Offset="12.-24" Font="TwCenMT16" String="TXT_KEY_ADVISOR_FOREIGN_TITLE">
+                <Button ToolTip="TXT_KEY_ADVISOR_FOREIGN_TITLE" AnchorSide="O.I" Anchor="L,C" Size="32,32" Offset="0,0" Texture="assets\UI\Art\Advisors\AdvisorSymbolForeign.dds" Hidden="0">
+                    <ScrollAnim  Offset="0,0"  Size="32.32" Speed=".2" Pause=".5" Texture="assets\UI\Art\Advisors\AdvisorShine.dds" MaskTexture="assets\UI\Art\Advisors\AdvisorMaskForeign.dds" />
+                    <AlphaAnim Anchor="C,C" Offset="6,5" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="5" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd=".7"  />
+                    <AlphaAnim Anchor="C,C" Offset="-2,-5" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="3" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd=".7"  />
+                </Button>
+            </Label>
+        </Box>
+		
+        <!--Military_Advisor -->
+        <Box Color="0,0,0,0" ToolTip="TXT_KEY_ADVISOR_MILITARY_TITLE" ID="MilitaryAdvisor"  Anchor="L,T" AnchorSide="I.I" Size="180,220" Offset="36,60" Hidden="1" >
+
+			<Image ToolTip="TXT_KEY_ADVISOR_MILITARY_TITLE" ID="MilitaryAdvisorPortrait1"  Size="180,220" Texture="assets\UI\Art\Notification\AdvisorMilitary001.dds" />
+			<Image ToolTip="TXT_KEY_ADVISOR_MILITARY_TITLE" ID="MilitaryAdvisorPortrait2"  Size="180,220" Texture="assets\UI\Art\Notification\AdvisorMilitary002.dds" Hidden="1"/>
+			<Image ToolTip="TXT_KEY_ADVISOR_MILITARY_TITLE" ID="MilitaryAdvisorPortrait3"  Size="180,220" Texture="assets\UI\Art\Notification\AdvisorMilitary003.dds" Hidden="1"/>
+			
+            <Grid Size="184,224" Anchor="C,C" Offset="0,0"  Style="Grid9Frame" Hidden="0" />
+            <Label ID="MilitaryAdvisorLabel" Anchor="C,B" Offset="12.-24" Font="TwCenMT16" String="TXT_KEY_ADVISOR_MILITARY_TITLE">
+                <Button ToolTip="TXT_KEY_ADVISOR_MILITARY_TITLE" AnchorSide="O.I" Anchor="L,C" Size="32,32" Offset="0,0" Texture="assets\UI\Art\Advisors\AdvisorSymbolMilitary.dds" Hidden="0">
+                    <ScrollAnim  Offset="0,0"  Size="32.32" Speed=".2" Pause=".5" Texture="assets\UI\Art\Advisors\AdvisorShine.dds" MaskTexture="assets\UI\Art\Advisors\AdvisorMaskMilitary.dds" />
+                    <AlphaAnim Anchor="C,C" Offset="4,4" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="5" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd=".7"  />
+                    <AlphaAnim Anchor="C,C" Offset="-3,-6" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="3" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd=".7"  />
+                </Button>
+            </Label>
+        </Box>
+		
+        <!--Science_Advisor -->
+        <Box Color="0,0,0,0" ToolTip="TXT_KEY_ADVISOR_SCIENCE_TITLE" ID="ScienceAdvisor"  Anchor="L,T" AnchorSide="I.I" Size="180,220" Offset="36,60" Hidden="1" >
+
+			<Image ToolTip="TXT_KEY_ADVISOR_SCIENCE_TITLE" ID="ScienceAdvisorPortrait1"  Size="180,220"  Texture="assets\UI\Art\Advisors\AdvisorScience001.dds" />
+			<Image ToolTip="TXT_KEY_ADVISOR_SCIENCE_TITLE" ID="ScienceAdvisorPortrait2"  Size="180,220"  Texture="assets\UI\Art\Advisors\AdvisorScience002.dds" Hidden="1" />
+			<Image ToolTip="TXT_KEY_ADVISOR_SCIENCE_TITLE" ID="ScienceAdvisorPortrait3"  Size="180,220"  Texture="assets\UI\Art\Advisors\AdvisorScience003.dds" Hidden="1" />
+			
+            <Grid Size="184,224" Anchor="C,C" Offset="0,0"  Style="Grid9Frame" Hidden="0" />
+            <Label ID="ScienceAdvisorLabel" Anchor="C,B" Offset="12.-24" Font="TwCenMT16" String="TXT_KEY_ADVISOR_SCIENCE_TITLE">
+                <Button ToolTip="TXT_KEY_ADVISOR_SCIENCE_TITLE" AnchorSide="O.I" Anchor="L,C" Size="32,32" Offset="0,0" Texture="assets\UI\Art\Advisors\AdvisorSymbolScience.dds" Hidden="0">
+                    <ScrollAnim  Offset="0,0"  Size="32.32" Speed=".2" Pause=".5" Texture="assets\UI\Art\Advisors\AdvisorShine.dds" MaskTexture="assets\UI\Art\Advisors\AdvisorMaskScience.dds" />
+                    <AlphaAnim Anchor="C,C" Offset="4,4" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="5" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd="1"  />
+                    <AlphaAnim Anchor="C,C" Offset="0,-4" Size="32,32" Texture="assets\UI\Art\Advisors\AdvisorSpecShine.dds"  Pause="3" Cycle="Bounce" Speed="4" AlphaStart="0" AlphaEnd="1"  />
+                </Button>
+            </Label>
+        </Box>
+
+        <Label ID="AdvisorLabel" Anchor="L,T" AnchorSide="O.I" Offset="0,270" Font="TwCenMT16" FontStyle="Shadow" Hidden="1" ColorSet="Beige_Black_Alpha"></Label>
+
+        <Stack Offset="36,318" Anchor="L,T" Padding="4" StackGrowth="Bottom">
+            <GridButton Size="182,32"  Style="SmallButton" Anchor="L,T" AnchorSide="I.I" ID="Civilopedia" Hidden="0">
+                <Label Anchor="C,C" String="TXT_KEY_ADVISORINFOPOPUP_CIVILOPEDIA"  ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow" />
+            </GridButton>
+
+            <GridButton Size="182,32"  Style="SmallButton" Anchor="L,T" AnchorSide="I.I" ID="Civilopedia_List" Hidden="0">
+                <Label Anchor="C,C" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow" />
+            </GridButton>
+        </Stack>
+
+		<Box Anchor="C,B" AnchorSide="I.I" Offset="0,54"   Size="667,56" Color="255,255,255,0" >
+
+            <!-- Close Button  -->
+            <GridButton Anchor="L,B"  Style="SmallButton" Size="150,32"  Offset="14,0" StateOffsetIncrement="0,0" ID="CloseButton"  >
+                <Label Anchor="C,C"  Offset="0,0"  String="TXT_KEY_CLOSE" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+            </GridButton>
+
+        </Box>
+
+    </Grid>
+</Context>

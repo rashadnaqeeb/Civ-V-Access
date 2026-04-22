@@ -333,6 +333,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_INTRO"] = "Intro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"] = "Start of history."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "End of history."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY"] = "Previous or next article in history"
+-- AdvisorInfoPopup (BUTTONPOPUP_ADVISOR_INFO). Concept drill-down reachable
+-- from the tutorial advisor question buttons and from any related concept
+-- link within the popup itself. Alt+Left/Right navigates the in-popup
+-- concept history; boundary announcements speak when no further history
+-- exists in that direction.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_INFO_NO_PREV_HISTORY"] = "Start of history."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_INFO_NO_NEXT_HISTORY"] = "End of history."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADVISOR_INFO_HISTORY"] = "Previous or next concept in history"
 -- SaveMenu. Two-tab picker/reader over the in-game Save screen. Picker lists
 -- existing saves (or cloud slots); reader shows header fields and exposes
 -- the Overwrite / Save-to-slot / Delete actions behind pushed Yes/No subs.

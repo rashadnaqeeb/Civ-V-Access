@@ -68,6 +68,12 @@
 --                     leader intro) where reading the same content
 --                     through Tolk would double-narrate. Preamble stays
 --                     reachable via F1 / readHeader.
+--   onAltLeft /       optional fn(handler) bound to Alt+Left / Alt+Right
+--   onAltRight        on tab-less screens. Tabs still win when the active
+--                     tab defines its own onAltLeft / onAltRight hook.
+--                     Used by AdvisorInfoPopup for concept-history back/
+--                     forward. Help entries for the chord are opt-in via
+--                     spec.helpExtras (same pattern Civilopedia uses).
 
 BaseMenu = {}
 
@@ -494,12 +500,13 @@ local function onCtrlDown(self)
     jumpSiblingGroup(self, 1, false)
 end
 
--- Alt+Left/Right are tab-hook-only: silently no-op when the active tab does
--- not define onAltLeft / onAltRight. No sensible default behavior at the
--- BaseMenu level, so unhooked screens leave the chord free. Civilopedia's
--- reader tab uses these for article-history back/forward.
+-- Alt+Left/Right dispatch order: active-tab hook first (Civilopedia's reader
+-- tab uses these for article-history back/forward), falling through to the
+-- spec-level hook (self._onAltLeft / self._onAltRight) for tab-less screens
+-- that want the same chord (AdvisorInfoPopup's concept-history back/forward).
+-- Unhooked screens silently no-op so the chord stays free.
 local function onAltLeft(self)
-    local hook = BaseMenuTabs.hook(self, "onAltLeft")
+    local hook = BaseMenuTabs.hook(self, "onAltLeft") or self._onAltLeft
     if hook == nil then
         return
     end
@@ -510,7 +517,7 @@ local function onAltLeft(self)
 end
 
 local function onAltRight(self)
-    local hook = BaseMenuTabs.hook(self, "onAltRight")
+    local hook = BaseMenuTabs.hook(self, "onAltRight") or self._onAltRight
     if hook == nil then
         return
     end
@@ -628,6 +635,11 @@ function BaseMenu.create(spec)
         spec.silentFirstOpen == nil or type(spec.silentFirstOpen) == "boolean",
         "spec.silentFirstOpen must be a boolean if provided"
     )
+    check(spec.onAltLeft == nil or type(spec.onAltLeft) == "function", "spec.onAltLeft must be a function if provided")
+    check(
+        spec.onAltRight == nil or type(spec.onAltRight) == "function",
+        "spec.onAltRight must be a function if provided"
+    )
 
     local self = {
         name = spec.name,
@@ -650,6 +662,11 @@ function BaseMenu.create(spec)
         -- through Tolk would double-narrate. Preamble stays reachable via
         -- F1 / readHeader.
         _silentFirstOpen = spec.silentFirstOpen == true,
+        -- Tab-less Alt+Left/Right hooks. Fall-through when no active tab hook
+        -- claims the chord. Used by AdvisorInfoPopup for concept-history
+        -- back/forward on a screen with no tabs.
+        _onAltLeft = spec.onAltLeft,
+        _onAltRight = spec.onAltRight,
         -- _initialized gates the first-open setup (reset cursor, speak
         -- displayName + preamble + tab + item). Re-activations from a sub
         -- pop preserve cursor and just re-announce the current item.
