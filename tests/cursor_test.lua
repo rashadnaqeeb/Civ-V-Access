@@ -455,6 +455,21 @@ function M.test_economy_fresh_water_flag()
     T.truthy(PlotComposers.economy(p):find("fresh water", 1, true))
 end
 
+function M.test_economy_barren_tile_speaks_no_yield()
+    -- Empty-yield tile with no other economy flags would return ""
+    -- and speak(...) is a no-op on empty strings, so W would produce
+    -- silence and the player would suspect a broken key. Guard by
+    -- speaking the engine's "No Yield" string instead.
+    setup()
+    local p = T.fakePlot({ revealed = true })
+    local out = PlotComposers.economy(p)
+    T.truthy(out ~= "", "barren tile must not produce silence")
+    T.truthy(
+        out:lower():find("no_yield", 1, true) or out:lower():find("no yield", 1, true),
+        "barren tile should announce the engine's No Yield key: " .. out
+    )
+end
+
 function M.test_economy_reports_trade_route_on_fogged_revealed_tile()
     -- Matches base PlotHelpManager: economy detail runs under IsRevealed,
     -- not IsVisible. Fogged-but-revealed plot still reports trade route.

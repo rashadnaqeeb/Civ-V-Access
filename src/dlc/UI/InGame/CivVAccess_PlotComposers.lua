@@ -119,6 +119,13 @@ function PlotComposers.economy(plot)
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY", workingCity:GetName())
     end
     readBuildProgress(plot, out)
+    -- Barren tile (no yields, no fresh water, no trade route, no working
+    -- city, no build in progress) would otherwise speak nothing and leave
+    -- the player thinking the key broke. Fall back to the engine's own
+    -- "No Yield" key so they get a definitive answer.
+    if #out == 0 then
+        return Text.key("TXT_KEY_PEDIA_NO_YIELD")
+    end
     return table.concat(out, ", ")
 end
 
