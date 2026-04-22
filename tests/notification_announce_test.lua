@@ -110,15 +110,6 @@ function M.test_install_idempotent()
     T.eq(#addedListeners, 1, "install must not double-register the listener")
 end
 
--- Active-player filter ----------------------------------------------------
-
-function M.test_other_player_notification_filtered()
-    setup()
-    fireAdd(1, { ePlayer = 2 })
-    advance(10)
-    T.eq(#spoken, 0, "ePlayer != active player is not ours to announce")
-end
-
 -- Single notification path ------------------------------------------------
 
 function M.test_single_add_interrupts_after_window()

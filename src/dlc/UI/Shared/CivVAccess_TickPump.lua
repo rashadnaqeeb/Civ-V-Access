@@ -2,40 +2,50 @@
 -- counter, drains the one-shot queue, and forwards tick() to the active
 -- handler if it defines one.
 --
--- TickPump must be the sole owner of SetUpdate on any Context where per-
--- frame work happens (SetUpdate is replace-semantics; a second caller
--- silently unhooks the first). Callers that need a one-shot deferred run
--- schedule through TickPump.runOnce rather than calling SetUpdate directly.
+-- State lives on civvaccess_shared because Civ V Contexts are fenv-sandboxed:
+-- each Context that include()s this file gets its own _frame / _oneShots
+-- locals otherwise, and a runOnce() queued from one Context would never
+-- drain when another Context's SetUpdate fires tick(). Keeping the frame
+-- counter and queue shared means any pumping Context drains callbacks
+-- scheduled from any other Context.
+--
+-- TickPump must be the sole owner of SetUpdate on any Context where it is
+-- installed (SetUpdate is replace-semantics; a second caller silently
+-- unhooks the first). Installing on multiple Contexts is safe: each
+-- Context's SetUpdate calls tick(), the shared queue drains on whichever
+-- fires first, and the drain clears the queue so later ticks no-op.
 
 TickPump = {}
 
-local _frame = 0
-local _oneShots = {}
+civvaccess_shared = civvaccess_shared or {}
+civvaccess_shared.tickFrame = civvaccess_shared.tickFrame or 0
+civvaccess_shared.tickOneShots = civvaccess_shared.tickOneShots or {}
 
 function TickPump._reset()
-    _frame = 0
-    _oneShots = {}
+    civvaccess_shared.tickFrame = 0
+    civvaccess_shared.tickOneShots = {}
 end
 
 function TickPump.frame()
-    return _frame
+    return civvaccess_shared.tickFrame
 end
 
 -- Queue fn to run on the next tick, then be discarded. Idempotent wrt
 -- installation -- caller must have called TickPump.install on at least one
 -- currently-updating Context for the queue to drain.
 function TickPump.runOnce(fn)
-    _oneShots[#_oneShots + 1] = fn
+    local shots = civvaccess_shared.tickOneShots
+    shots[#shots + 1] = fn
 end
 
 function TickPump.tick()
-    _frame = _frame + 1
-    if #_oneShots > 0 then
+    civvaccess_shared.tickFrame = civvaccess_shared.tickFrame + 1
+    local shots = civvaccess_shared.tickOneShots
+    if #shots > 0 then
         -- Snapshot then clear so a callback that itself calls runOnce
         -- queues for the next tick, not this one.
-        local snapshot = _oneShots
-        _oneShots = {}
-        for _, fn in ipairs(snapshot) do
+        civvaccess_shared.tickOneShots = {}
+        for _, fn in ipairs(shots) do
             local ok, err = pcall(fn)
             if not ok then
                 Log.error("TickPump.runOnce callback failed: " .. tostring(err))

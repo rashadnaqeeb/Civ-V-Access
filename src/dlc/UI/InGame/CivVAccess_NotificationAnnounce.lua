@@ -86,10 +86,13 @@ function NotificationAnnounce._drain()
     end
 end
 
-function NotificationAnnounce._onAdded(id, _ntype, toolTip, summary, _iGameValue, _iExtra, ePlayer)
-    if ePlayer ~= Game.GetActivePlayer() then
-        return
-    end
+-- ePlayer is not a "target" field -- for several notification types the
+-- engine passes the civ the notification is *about* (the enemy that
+-- declared war, the minor civ we met, the barbarian that spawned rebels).
+-- Base NotificationPanel.lua uses it only for portrait lookups, never as
+-- a filter, and we follow suit: NotificationAdded only fires for the local
+-- player's notification list, so any add we see is already ours.
+function NotificationAnnounce._onAdded(id, _ntype, toolTip, summary, _iGameValue, _iExtra, _ePlayer)
     if seenIds[id] then
         return
     end

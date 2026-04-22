@@ -29,6 +29,7 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
+include("CivVAccess_TickPump")
 
 local WM_KEYDOWN = 256
 local WM_SYSKEYDOWN = 260
@@ -43,5 +44,13 @@ ContextPtr:SetInputHandler(function(msg, wp, lp)
     end
     return basePriorInput(msg, wp, lp)
 end)
+
+-- WorldView is always visible during gameplay, so its SetUpdate fires
+-- reliably. TaskList (where Boot's TickPump.install also runs) appears to
+-- skip the engine's update rotation when no in-game tasks are active,
+-- which silently breaks any runOnce callback scheduled from TaskList's
+-- sandbox. Installing from WorldView too guarantees the shared queue
+-- drains regardless of TaskList's hide state.
+TickPump.install(ContextPtr)
 
 Log.info("CivVAccess_WorldViewKeys: installed InputHandler over base WorldView")
