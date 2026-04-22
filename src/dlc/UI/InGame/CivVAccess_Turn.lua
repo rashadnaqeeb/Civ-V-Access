@@ -1,0 +1,233 @@
+-- Turn lifecycle announcements and the player's end-turn keybindings.
+--
+-- ActivePlayerTurnStart → "Turn N, year". Fires on every turn start and on
+-- the first turn after LoadScreenClose; no special-casing needed because
+-- the first-turn announcement reads correctly as "game started at turn 0,
+-- 4000 BC" on its own.
+--
+-- ActivePlayerTurnEnd → "Turn ended". Covers our Ctrl+Space path plus any
+-- engine-internal auto-end (the "Auto End Turn" option, force-end via
+-- CONTROL_FORCEENDTURN, the engine's own safety paths).
+--
+-- Ctrl+Space dispatches the same branches the base EndTurn button callback
+-- runs (`ActionInfoPanel.lua:OnEndTurnClicked`): read
+-- GetEndTurnBlockingType; on a blocker, announce the matching TXT_KEY and
+-- delegate to the engine's "take me to the blocker" action (ActivateNotif-
+-- ication for screen blockers, SelectUnit+LookAt for unit blockers); on no
+-- blocker, DoControl(CONTROL_ENDTURN) and let the ActivePlayerTurnEnd
+-- listener say "Turn ended" when the engine confirms.
+--
+-- Ctrl+Shift+Space is the harder-to-mistouch force-end, mirroring the
+-- engine's Shift+Return (CONTROL_FORCEENDTURN). Blocker check is skipped.
+--
+-- Multiplayer un-ready: if the player already submitted (HasSentNetTurn-
+-- Complete) pressing Ctrl+Space un-readies them, matching base behavior --
+-- otherwise a player who submitted early would be stuck spectating with no
+-- keyboard escape. Announces "Waiting for players" before un-readying so
+-- the state transition is audible.
+
+Turn = {}
+
+local MOD_SHIFT = 1
+local MOD_CTRL = 2
+local MOD_CTRL_SHIFT = MOD_CTRL + MOD_SHIFT
+
+-- Blocker → base-game TXT_KEY lookup. Keys are the strings the end-turn
+-- button displays for each blocker in ActionInfoPanel.lua:OnEndTurnDirty;
+-- reusing them keeps the spoken label identical to what a sighted player
+-- reads off the button. FREE_ITEMS has no fixed key -- the label is the
+-- notification's own summary string, resolved dynamically.
+local BLOCKER_TXT_KEY = {
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY] = "TXT_KEY_CHOOSE_POLICY",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_POLICY] = "TXT_KEY_CHOOSE_POLICY",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_RESEARCH] = "TXT_KEY_CHOOSE_RESEARCH",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_TECH] = "TXT_KEY_CHOOSE_FREE_TECH",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_PRODUCTION] = "TXT_KEY_CHOOSE_PRODUCTION",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS] = "TXT_KEY_UNIT_NEEDS_ORDERS",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_STACKED_UNITS] = "TXT_KEY_MOVE_STACKED_UNIT",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_NEEDS_ORDERS] = "TXT_KEY_UNIT_NEEDS_ORDERS",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_PROMOTION] = "TXT_KEY_UNIT_PROMOTION",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_CITY_RANGE_ATTACK] = "TXT_KEY_CITY_RANGE_ATTACK",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_DIPLO_VOTE] = "TXT_KEY_DIPLO_VOTE",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_FOUND_PANTHEON] = "TXT_KEY_NOTIFICATION_SUMMARY_ENOUGH_FAITH_FOR_PANTHEON",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_FOUND_RELIGION] = "TXT_KEY_NOTIFICATION_SUMMARY_FOUND_RELIGION",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_ENHANCE_RELIGION] = "TXT_KEY_NOTIFICATION_SUMMARY_ENHANCE_RELIGION",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_ADD_REFORMATION_BELIEF] = "TXT_KEY_NOTIFICATION_SUMMARY_ADD_REFORMATION_BELIEF",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_CHOOSE_ARCHAEOLOGY] = "TXT_KEY_NOTIFICATION_SUMMARY_CHOOSE_ARCHAEOLOGY",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_STEAL_TECH] = "TXT_KEY_NOTIFICATION_SPY_STEAL_BLOCKING",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_MAYA_LONG_COUNT] = "TXT_KEY_NOTIFICATION_MAYA_LONG_COUNT",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_FAITH_GREAT_PERSON] = "TXT_KEY_NOTIFICATION_FAITH_GREAT_PERSON",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_LEAGUE_CALL_FOR_PROPOSALS] = "TXT_KEY_NOTIFICATION_LEAGUE_PROPOSALS_NEEDED",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_LEAGUE_CALL_FOR_VOTES] = "TXT_KEY_NOTIFICATION_LEAGUE_VOTES_NEEDED",
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_CHOOSE_IDEOLOGY] = "TXT_KEY_NOTIFICATION_SUMMARY_CHOOSE_IDEOLOGY",
+}
+
+-- Unit-class blockers. These drive the engine's "find a ready unit, select,
+-- center camera" branch rather than the ActivateNotification screen-opener.
+-- UNIT_PROMOTION isn't in this set because it uses a different readiness
+-- predicate (IsPromotionReady) and is checked separately.
+local UNIT_BLOCKERS = {
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS] = true,
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_STACKED_UNITS] = true,
+    [EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_NEEDS_ORDERS] = true,
+}
+
+local function speak(text)
+    if text == nil or text == "" then
+        return
+    end
+    SpeechPipeline.speakInterrupt(text)
+end
+
+local function blockerText(player, blockerType)
+    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_ITEMS then
+        local idx = player:GetEndTurnBlockingNotificationIndex()
+        local num = player:GetNumNotifications()
+        for i = 0, num - 1 do
+            if player:GetNotificationIndex(i) == idx then
+                return player:GetNotificationSummaryStr(i)
+            end
+        end
+        return nil
+    end
+    local key = BLOCKER_TXT_KEY[blockerType]
+    if key == nil then
+        return nil
+    end
+    return Text.key(key)
+end
+
+-- Mirrors ActionInfoPanel.lua:141-161. UNIT_PROMOTION iterates looking for
+-- an IsPromotionReady unit; the other unit blockers use the player-level
+-- GetFirstReadyUnit helper.
+local function focusBlockerUnit(player, blockerType)
+    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_PROMOTION then
+        for v in player:Units() do
+            if v:IsPromotionReady() then
+                local plot = v:GetPlot()
+                UI.LookAt(plot, 0)
+                UI.SelectUnit(v)
+                return
+            end
+        end
+        return
+    end
+    local unit = player:GetFirstReadyUnit()
+    if unit ~= nil then
+        local plot = unit:GetPlot()
+        UI.LookAt(plot, 0)
+        UI.SelectUnit(unit)
+    end
+end
+
+local function endTurnDispatch()
+    local player = Players[Game.GetActivePlayer()]
+    if not player:IsTurnActive() then
+        return
+    end
+    if Game.IsProcessingMessages() then
+        return
+    end
+
+    if PreGame.IsMultiplayerGame() and Network.HasSentNetTurnComplete() then
+        speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
+        Network.SendTurnUnready()
+        return
+    end
+
+    local blockerType = player:GetEndTurnBlockingType()
+    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_NONE then
+        Game.DoControl(GameInfoTypes.CONTROL_ENDTURN)
+        return
+    end
+
+    speak(blockerText(player, blockerType))
+    if UNIT_BLOCKERS[blockerType] or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_PROMOTION then
+        focusBlockerUnit(player, blockerType)
+    else
+        UI.ActivateNotification(player:GetEndTurnBlockingNotificationIndex())
+    end
+end
+
+local function forceEndTurn()
+    local player = Players[Game.GetActivePlayer()]
+    if not player:IsTurnActive() then
+        return
+    end
+    if Game.IsProcessingMessages() then
+        return
+    end
+    Game.DoControl(GameInfoTypes.CONTROL_FORCEENDTURN)
+end
+
+local function onActivePlayerTurnStart()
+    local turn = Text.format("TXT_KEY_TP_TURN_COUNTER", Game.GetGameTurn())
+    local year = Game.GetGameTurnYear()
+    local dateKey
+    if year < 0 then
+        dateKey = "TXT_KEY_TIME_BC"
+    else
+        dateKey = "TXT_KEY_TIME_AD"
+    end
+    local date = Text.format(dateKey, math.abs(year))
+    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_TURN_START", turn, date))
+end
+
+local function onActivePlayerTurnEnd()
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TURN_ENDED"))
+end
+
+local bind = HandlerStack.bind
+
+function Turn.getBindings()
+    local bindings = {
+        bind(Keys.VK_SPACE, MOD_CTRL, endTurnDispatch, "End turn"),
+        bind(Keys.VK_SPACE, MOD_CTRL_SHIFT, forceEndTurn, "Force end turn"),
+    }
+    local helpEntries = {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END",
+            description = "TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE",
+            description = "TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE",
+        },
+    }
+    return { bindings = bindings, helpEntries = helpEntries }
+end
+
+function Turn.installListeners()
+    civvaccess_shared = civvaccess_shared or {}
+    if civvaccess_shared.turnListenersInstalled then
+        return
+    end
+    civvaccess_shared.turnListenersInstalled = true
+    if Events == nil then
+        Log.error("Turn.installListeners: Events table missing")
+        return
+    end
+    if Events.ActivePlayerTurnStart ~= nil then
+        Events.ActivePlayerTurnStart.Add(onActivePlayerTurnStart)
+    else
+        Log.warn("Turn: Events.ActivePlayerTurnStart missing")
+    end
+    if Events.ActivePlayerTurnEnd ~= nil then
+        Events.ActivePlayerTurnEnd.Add(onActivePlayerTurnEnd)
+    else
+        Log.warn("Turn: Events.ActivePlayerTurnEnd missing")
+    end
+end
+
+-- Test seams: tests reset module-owned state (none here) and invoke the
+-- private dispatcher / listeners through these, so production doesn't need
+-- to expose them in the public surface.
+Turn._endTurnDispatch = endTurnDispatch
+Turn._forceEndTurn = forceEndTurn
+Turn._onActivePlayerTurnStart = onActivePlayerTurnStart
+Turn._onActivePlayerTurnEnd = onActivePlayerTurnEnd
+Turn._reset = function()
+    if civvaccess_shared ~= nil then
+        civvaccess_shared.turnListenersInstalled = nil
+    end
+end

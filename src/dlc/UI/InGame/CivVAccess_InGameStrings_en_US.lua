@@ -290,6 +290,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN"] = "Open the
 -- inside a six-frame window. The actual summaries are still available via
 -- Ctrl+N so no content is lost.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_BURST"] = "{1_Count} new notifications"
+-- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
+-- the game's AD/BC year, joined by a comma so the moving parts (number
+-- first, year second) read as a single line.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Turn ended"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control plus space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
+    "End turn, or announce and open the first blocker"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] = "Control plus shift plus space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] = "Force end turn, ignoring blockers"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "Actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"] = "Mods"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"] = "No mods activated."

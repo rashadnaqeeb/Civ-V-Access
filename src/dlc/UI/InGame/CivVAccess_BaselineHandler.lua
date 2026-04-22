@@ -139,6 +139,13 @@ function BaselineHandler.create()
     for _, h in ipairs(unitControl.helpEntries) do
         helpEntries[#helpEntries + 1] = h
     end
+    local turn = Turn.getBindings()
+    for _, b in ipairs(turn.bindings) do
+        bindings[#bindings + 1] = b
+    end
+    for _, h in ipairs(turn.helpEntries) do
+        helpEntries[#helpEntries + 1] = h
+    end
     local passthroughKeys = {
         [Keys.VK_F1] = true,
         [Keys.VK_F2] = true,

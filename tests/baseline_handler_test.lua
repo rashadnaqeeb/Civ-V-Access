@@ -104,10 +104,16 @@ local function setup()
     end
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function(_) end
-    -- UnitControl stubbed with an empty-bindings getBindings so BaselineHandler's
-    -- concat step doesn't need the real module. Its own behavior is covered
-    -- in its own test suite (live listener wiring is in-game verification).
+    -- UnitControl and Turn stubbed with empty-bindings getBindings so
+    -- BaselineHandler's concat step doesn't need the real modules. Their
+    -- own behavior is covered in their own test suites (live listener
+    -- wiring is in-game verification).
     UnitControl = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
+    Turn = {
         getBindings = function()
             return { bindings = {}, helpEntries = {} }
         end,

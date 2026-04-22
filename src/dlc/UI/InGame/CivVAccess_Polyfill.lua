@@ -110,6 +110,42 @@ GameInfoTypes = GameInfoTypes or {}
 Events.ActivePlayerTurnStart = Events.ActivePlayerTurnStart or {
     Add = function(_fn) end,
 }
+Events.ActivePlayerTurnEnd = Events.ActivePlayerTurnEnd or {
+    Add = function(_fn) end,
+}
+
+-- EndTurnBlockingTypes enum as read by the Turn module's dispatch mapping.
+-- The numeric values are not load-bearing; tests compare by reference
+-- against the stubbed ids here. Names mirror the engine exactly so an
+-- in-game lookup resolves to the same table shape.
+EndTurnBlockingTypes = EndTurnBlockingTypes
+    or {
+        ENDTURN_BLOCKING_NONE = -1,
+        ENDTURN_BLOCKING_POLICY = 0,
+        ENDTURN_BLOCKING_RESEARCH = 1,
+        ENDTURN_BLOCKING_PRODUCTION = 2,
+        ENDTURN_BLOCKING_UNITS = 3,
+        ENDTURN_BLOCKING_DIPLO_VOTE = 4,
+        ENDTURN_BLOCKING_FREE_TECH = 5,
+        ENDTURN_BLOCKING_MINOR_QUEST = 6,
+        ENDTURN_BLOCKING_FREE_ITEMS = 7,
+        ENDTURN_BLOCKING_FOUND_PANTHEON = 8,
+        ENDTURN_BLOCKING_FOUND_RELIGION = 9,
+        ENDTURN_BLOCKING_STACKED_UNITS = 10,
+        ENDTURN_BLOCKING_UNIT_NEEDS_ORDERS = 11,
+        ENDTURN_BLOCKING_UNIT_PROMOTION = 12,
+        ENDTURN_BLOCKING_CITY_RANGE_ATTACK = 13,
+        ENDTURN_BLOCKING_ENHANCE_RELIGION = 14,
+        ENDTURN_BLOCKING_STEAL_TECH = 15,
+        ENDTURN_BLOCKING_MAYA_LONG_COUNT = 16,
+        ENDTURN_BLOCKING_FAITH_GREAT_PERSON = 17,
+        ENDTURN_BLOCKING_ADD_REFORMATION_BELIEF = 18,
+        ENDTURN_BLOCKING_LEAGUE_CALL_FOR_PROPOSALS = 19,
+        ENDTURN_BLOCKING_CHOOSE_ARCHAEOLOGY = 20,
+        ENDTURN_BLOCKING_LEAGUE_CALL_FOR_VOTES = 21,
+        ENDTURN_BLOCKING_CHOOSE_IDEOLOGY = 22,
+        ENDTURN_BLOCKING_FREE_POLICY = 23,
+    }
 
 DirectionTypes = DirectionTypes
     or {
