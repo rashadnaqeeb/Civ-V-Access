@@ -109,6 +109,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unique unit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Unique building"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Unique improvement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Loading game"
+-- Appended to the load-screen unique-unit / unique-building label so the
+-- user hears what the unique stands in for ("Jaguar, unique unit, replaces
+-- Warrior"). Matches the Replaces: row sighted players see on hover after
+-- loading completes.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "replaces {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"

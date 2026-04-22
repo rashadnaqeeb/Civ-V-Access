@@ -50,29 +50,52 @@ local function controlText(control)
     return tostring(text or "")
 end
 
-local uniqueUnitsQuery = DB.CreateQuery([[SELECT Description FROM Units
-    INNER JOIN Civilization_UnitClassOverrides
-    ON Units.Type = Civilization_UnitClassOverrides.UnitType
-    WHERE Civilization_UnitClassOverrides.CivilizationType = ? AND
-    Civilization_UnitClassOverrides.UnitType IS NOT NULL]])
+-- LEFT JOIN onto the default unit/building of the overridden class so
+-- each row carries what the unique stands in for. Rows where the override
+-- IS the class default (no real replacement) come back with a nil
+-- ReplacesDesc and render without the suffix.
+local uniqueUnitsQuery = DB.CreateQuery([[SELECT
+        UniqueUnit.Description AS UniqueDesc,
+        DefaultUnit.Description AS ReplacesDesc
+    FROM Civilization_UnitClassOverrides
+        INNER JOIN Units AS UniqueUnit
+            ON UniqueUnit.Type = Civilization_UnitClassOverrides.UnitType
+        INNER JOIN UnitClasses
+            ON UnitClasses.Type = Civilization_UnitClassOverrides.UnitClassType
+        LEFT JOIN Units AS DefaultUnit
+            ON DefaultUnit.Type = UnitClasses.DefaultUnit
+    WHERE Civilization_UnitClassOverrides.CivilizationType = ?
+        AND Civilization_UnitClassOverrides.UnitType IS NOT NULL]])
 
-local uniqueBuildingsQuery = DB.CreateQuery([[SELECT Description FROM Buildings
-    INNER JOIN Civilization_BuildingClassOverrides
-    ON Buildings.Type = Civilization_BuildingClassOverrides.BuildingType
-    WHERE Civilization_BuildingClassOverrides.CivilizationType = ? AND
-    Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
+local uniqueBuildingsQuery = DB.CreateQuery([[SELECT
+        UniqueBuilding.Description AS UniqueDesc,
+        DefaultBuilding.Description AS ReplacesDesc
+    FROM Civilization_BuildingClassOverrides
+        INNER JOIN Buildings AS UniqueBuilding
+            ON UniqueBuilding.Type = Civilization_BuildingClassOverrides.BuildingType
+        INNER JOIN BuildingClasses
+            ON BuildingClasses.Type = Civilization_BuildingClassOverrides.BuildingClassType
+        LEFT JOIN Buildings AS DefaultBuilding
+            ON DefaultBuilding.Type = BuildingClasses.DefaultBuilding
+    WHERE Civilization_BuildingClassOverrides.CivilizationType = ?
+        AND Civilization_BuildingClassOverrides.BuildingType IS NOT NULL]])
 
-local uniqueImprovementsQuery = DB.CreateQuery([[SELECT Description FROM Improvements WHERE CivilizationType = ?]])
+-- Improvements are additive (Moai, Polder, Feitoria add a new buildable
+-- rather than replacing a default), so no Replaces clause here.
+local uniqueImprovementsQuery =
+    DB.CreateQuery([[SELECT Description AS UniqueDesc FROM Improvements WHERE CivilizationType = ?]])
 
 local function activeCiv()
     local civIndex = PreGame.GetCivilization(Game:GetActivePlayer())
     return GameInfo.Civilizations[civIndex]
 end
 
-local function uniqueItem(labelKey, description)
-    return BaseMenuItems.Text({
-        labelText = Text.key(description) .. ", " .. Text.key(labelKey),
-    })
+local function uniqueItem(labelKey, uniqueDesc, replacesDesc)
+    local parts = { Text.key(uniqueDesc), Text.key(labelKey) }
+    if replacesDesc ~= nil and replacesDesc ~= uniqueDesc then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_REPLACES", Text.key(replacesDesc))
+    end
+    return BaseMenuItems.Text({ labelText = table.concat(parts, ", ") })
 end
 
 local function buildItems()
@@ -103,20 +126,21 @@ local function buildItems()
         end,
     })
 
-    -- Trait (unique ability): name + full description as separate items
-    -- so the user can tab past the name once they know it.
+    -- Trait (unique ability): name, label, and full description as a
+    -- single item. The description is short (one sentence for most
+    -- traits) so appending it saves a nav stop.
     items[#items + 1] = BaseMenuItems.Text({
         labelFn = function()
             local name = controlText(Controls.BonusTitle)
             if name == "" then
                 return ""
             end
-            return name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
-        end,
-    })
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            return TextFilter.filter(controlText(Controls.BonusDescription))
+            local out = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
+            local desc = TextFilter.filter(controlText(Controls.BonusDescription))
+            if desc ~= nil and desc ~= "" then
+                out = out .. ", " .. desc
+            end
+            return out
         end,
     })
 
@@ -126,13 +150,13 @@ local function buildItems()
     local civ = activeCiv()
     if civ ~= nil then
         for row in uniqueUnitsQuery(civ.Type) do
-            items[#items + 1] = uniqueItem("TXT_KEY_CIVVACCESS_UNIQUE_UNIT", row.Description)
+            items[#items + 1] = uniqueItem("TXT_KEY_CIVVACCESS_UNIQUE_UNIT", row.UniqueDesc, row.ReplacesDesc)
         end
         for row in uniqueBuildingsQuery(civ.Type) do
-            items[#items + 1] = uniqueItem("TXT_KEY_CIVVACCESS_UNIQUE_BUILDING", row.Description)
+            items[#items + 1] = uniqueItem("TXT_KEY_CIVVACCESS_UNIQUE_BUILDING", row.UniqueDesc, row.ReplacesDesc)
         end
         for row in uniqueImprovementsQuery(civ.Type) do
-            items[#items + 1] = uniqueItem("TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT", row.Description)
+            items[#items + 1] = uniqueItem("TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT", row.UniqueDesc)
         end
     end
 
