@@ -49,18 +49,11 @@ include("CivVAccess_BaseMenuEditMode")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
-local AdvisorOrder = {
-    AdvisorTypes.ADVISOR_ECONOMIC,
-    AdvisorTypes.ADVISOR_MILITARY,
-    AdvisorTypes.ADVISOR_FOREIGN,
-    AdvisorTypes.ADVISOR_SCIENCE,
-}
-
-local AdvisorTabNames = {
-    [AdvisorTypes.ADVISOR_ECONOMIC] = "TXT_KEY_ADVISOR_ECON_TITLE",
-    [AdvisorTypes.ADVISOR_MILITARY] = "TXT_KEY_ADVISOR_MILITARY_TITLE",
-    [AdvisorTypes.ADVISOR_FOREIGN]  = "TXT_KEY_ADVISOR_FOREIGN_TITLE",
-    [AdvisorTypes.ADVISOR_SCIENCE]  = "TXT_KEY_ADVISOR_SCIENCE_TITLE",
+local Advisors = {
+    { type = AdvisorTypes.ADVISOR_ECONOMIC, nameKey = "TXT_KEY_ADVISOR_ECON_TITLE" },
+    { type = AdvisorTypes.ADVISOR_MILITARY, nameKey = "TXT_KEY_ADVISOR_MILITARY_TITLE" },
+    { type = AdvisorTypes.ADVISOR_FOREIGN,  nameKey = "TXT_KEY_ADVISOR_FOREIGN_TITLE" },
+    { type = AdvisorTypes.ADVISOR_SCIENCE,  nameKey = "TXT_KEY_ADVISOR_SCIENCE_TITLE" },
 }
 
 local function emptyItem()
@@ -81,7 +74,10 @@ local function buildItemsForAdvisor(counselTable, advisorType)
         local pageText = list[pageIndex] or ""
         local label
         if total > 1 then
-            label = Text.format("TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_PAGE_ITEM", pageIndex + 1, total, pageText)
+            -- Reuse the engine's page-display key (TXT_KEY_ADVISOR_COUNSEL_PAGE_DISPLAY = "{1_Num}/{2_Num}")
+            -- for the fraction so blind and sighted players hear / see the same "i/N" label text.
+            local fraction = Text.format("TXT_KEY_ADVISOR_COUNSEL_PAGE_DISPLAY", pageIndex + 1, total)
+            label = fraction .. ", " .. pageText
         else
             label = pageText
         end
@@ -106,15 +102,15 @@ end
 
 local function onShow(handler)
     local counselTable = Game.GetAdvisorCounsel()
-    for tabIndex, advisorType in ipairs(AdvisorOrder) do
-        handler.setItems(buildItemsForAdvisor(counselTable, advisorType), tabIndex)
+    for tabIndex, advisor in ipairs(Advisors) do
+        handler.setItems(buildItemsForAdvisor(counselTable, advisor.type), tabIndex)
     end
 end
 
 local tabs = {}
-for i, advisorType in ipairs(AdvisorOrder) do
+for i, advisor in ipairs(Advisors) do
     tabs[i] = {
-        name  = AdvisorTabNames[advisorType],
+        name  = advisor.nameKey,
         items = { emptyItem() },
     }
 end
