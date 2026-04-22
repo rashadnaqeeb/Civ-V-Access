@@ -102,6 +102,59 @@ function M.test_capturesAllInput_stops_walk_even_on_no_match()
     T.eq(lowerFired, 0)
 end
 
+function M.test_passthrough_keys_fall_through_from_barrier()
+    -- A capturesAllInput handler with a passthroughKeys set returns false
+    -- for those keys so the caller (InGame / WorldView wrapper) falls
+    -- through to the engine's InputHandler.
+    setup()
+    HandlerStack.push({
+        name = "Baseline",
+        capturesAllInput = true,
+        bindings = {},
+        passthroughKeys = { [112] = true }, -- VK_F1
+    })
+    T.falsy(InputRouter.dispatch(112, 0, WM_KEYDOWN), "F1 passes through")
+    T.truthy(InputRouter.dispatch(65, 0, WM_KEYDOWN), "A still swallowed")
+end
+
+function M.test_passthrough_matches_on_keycode_regardless_of_modifier()
+    -- F-row passthrough intentionally ignores modifiers so Ctrl+F10
+    -- (select capital) and Ctrl+F11 (quick load) pass through alongside
+    -- plain F10 / F11 without a second entry per chord.
+    setup()
+    HandlerStack.push({
+        name = "Baseline",
+        capturesAllInput = true,
+        bindings = {},
+        passthroughKeys = { [121] = true }, -- VK_F10
+    })
+    T.falsy(InputRouter.dispatch(121, 0, WM_KEYDOWN), "F10 passes")
+    T.falsy(InputRouter.dispatch(121, 2, WM_KEYDOWN), "Ctrl+F10 passes")
+end
+
+function M.test_binding_on_barrier_beats_passthrough()
+    -- A binding on the same key as a passthrough entry wins: the handler
+    -- opted in to the key explicitly, so the engine doesn't see it.
+    setup()
+    local fired = 0
+    HandlerStack.push({
+        name = "Baseline",
+        capturesAllInput = true,
+        bindings = {
+            {
+                key = 27,
+                mods = 0,
+                fn = function()
+                    fired = fired + 1
+                end,
+            },
+        },
+        passthroughKeys = { [27] = true }, -- VK_ESCAPE
+    })
+    T.truthy(InputRouter.dispatch(27, 0, WM_KEYDOWN), "binding wins over passthrough")
+    T.eq(fired, 1)
+end
+
 function M.test_non_matching_mod_mask_does_not_fire()
     setup()
     local fired = 0

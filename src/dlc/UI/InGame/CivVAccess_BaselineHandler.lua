@@ -3,6 +3,19 @@
 -- surveyor cluster to SurveyorCore. Sits at the bottom of the
 -- HandlerStack so any popup / overlay above it that sets capturesAllInput
 -- will pre-empt both clusters without us having to coordinate.
+--
+-- capturesAllInput = true: Baseline eats every unbound key on the map.
+-- The mod reimplements every map-mode action we expose to the user, so
+-- letting the engine's huge mission / build / automate key set fire under
+-- us would be noise (keys that pick up different meanings depending on
+-- the selected unit are impossible to speak consistently). passthroughKeys
+-- carves out the minimum set we explicitly want the engine to still
+-- handle: F1-F12 (advisor screens, strategic view, quick save/load,
+-- Ctrl+F10 select capital, Ctrl+F11 quick load all hang off F-row
+-- keycodes) and Escape (opens the pause menu, which our GameMenuAccess
+-- then layers over). Popups above Baseline set their own capturesAllInput
+-- without a passthrough list, so F-keys and Escape are correctly
+-- swallowed while any dialog or menu is up.
 
 BaselineHandler = {}
 
@@ -126,9 +139,25 @@ function BaselineHandler.create()
     for _, h in ipairs(unitControl.helpEntries) do
         helpEntries[#helpEntries + 1] = h
     end
+    local passthroughKeys = {
+        [Keys.VK_F1] = true,
+        [Keys.VK_F2] = true,
+        [Keys.VK_F3] = true,
+        [Keys.VK_F4] = true,
+        [Keys.VK_F5] = true,
+        [Keys.VK_F6] = true,
+        [Keys.VK_F7] = true,
+        [Keys.VK_F8] = true,
+        [Keys.VK_F9] = true,
+        [Keys.VK_F10] = true,
+        [Keys.VK_F11] = true,
+        [Keys.VK_F12] = true,
+        [Keys.VK_ESCAPE] = true,
+    }
     return {
         name = "Baseline",
-        capturesAllInput = false,
+        capturesAllInput = true,
+        passthroughKeys = passthroughKeys,
         bindings = bindings,
         helpEntries = helpEntries,
     }

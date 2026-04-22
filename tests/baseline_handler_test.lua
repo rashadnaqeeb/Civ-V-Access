@@ -119,10 +119,26 @@ function M.test_create_returns_named_handler_with_help_entries()
     setup()
     local h = BaselineHandler.create()
     T.eq(h.name, "Baseline")
-    T.eq(h.capturesAllInput, false)
+    T.eq(h.capturesAllInput, true)
     -- 6 move + S + Shift+S + W + X + 1/2/3 cursor = 13, plus 8 surveyor.
     T.truthy(#h.bindings >= 21, "expected cursor + surveyor bindings, got " .. #h.bindings)
     T.truthy(#h.helpEntries >= 8, "expected cursor + surveyor help entries")
+end
+
+function M.test_passthrough_covers_f_row_and_escape()
+    -- Baseline captures every unbound key so the engine's mission / build /
+    -- automate vocabulary doesn't leak through, but carves out F1-F12 and
+    -- Escape so advisor screens, quick save/load, and the pause menu
+    -- remain reachable from the map.
+    setup()
+    local h = BaselineHandler.create()
+    T.truthy(h.passthroughKeys, "passthroughKeys table present")
+    T.truthy(h.passthroughKeys[Keys.VK_F1], "F1 passes through")
+    T.truthy(h.passthroughKeys[Keys.VK_F10], "F10 passes through")
+    T.truthy(h.passthroughKeys[Keys.VK_F11], "F11 passes through")
+    T.truthy(h.passthroughKeys[Keys.VK_F12], "F12 passes through")
+    T.truthy(h.passthroughKeys[Keys.VK_ESCAPE], "Escape passes through")
+    T.falsy(h.passthroughKeys[Keys.A], "letters do not pass through")
 end
 
 local function findBinding(h, key, mods)

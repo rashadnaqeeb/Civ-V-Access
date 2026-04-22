@@ -249,6 +249,9 @@ local bind = HandlerStack.bind
 
 function UnitControl.getBindings()
     local bindings = {
+        bind(VK_OEM_PERIOD, MOD_NONE, function()
+            UnitControl.cycleAll(true)
+        end, "Next unit"),
         bind(VK_OEM_COMMA, MOD_NONE, function()
             UnitControl.cycleAll(false)
         end, "Previous unit"),

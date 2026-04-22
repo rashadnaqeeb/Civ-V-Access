@@ -231,6 +231,16 @@ Keys = Keys
         Z = 90,
         VK_F1 = 112,
         VK_F2 = 113,
+        VK_F3 = 114,
+        VK_F4 = 115,
+        VK_F5 = 116,
+        VK_F6 = 117,
+        VK_F7 = 118,
+        VK_F8 = 119,
+        VK_F9 = 120,
+        VK_F10 = 121,
+        VK_F11 = 122,
+        VK_F12 = 123,
     }
 
 -- Widget factories for BaseMenu + BaseMenuItems unit tests. The engine backs these with

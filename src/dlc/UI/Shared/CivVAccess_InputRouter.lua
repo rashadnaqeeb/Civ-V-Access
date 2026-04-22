@@ -104,6 +104,15 @@ function InputRouter.dispatch(keyCode, modMask, msg)
             end
         end
         if h.capturesAllInput then
+            -- Barrier handlers may name specific keys that should fall
+            -- through to the engine despite the swallow (e.g. Baseline
+            -- passes F-row and Escape so advisor screens and the pause
+            -- menu remain reachable on the map). Matches on keycode only;
+            -- modifier chords (Ctrl+F10, Ctrl+F11) pass through alongside
+            -- plain F10 / F11.
+            if h.passthroughKeys ~= nil and h.passthroughKeys[keyCode] then
+                return false
+            end
             return true
         end
     end
