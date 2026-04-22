@@ -28,7 +28,12 @@
 
 include("CivVAccess_FrontendCommon")
 
-local priorShowHide = ShowHideHandler
+-- Base LoadScreen.lua registers its handler under the bare name `ShowHide`
+-- (not `ShowHideHandler` like most screens). Reading the wrong global
+-- silently yields nil, the base handler never chains, and
+-- OnInitScreen / Events.SerialEventDawnOfManShow both stop firing --
+-- the civ labels stay blank and the narrator voice never plays.
+local priorShowHide = ShowHide
 local priorInput = InputHandler
 
 local function controlText(control)
