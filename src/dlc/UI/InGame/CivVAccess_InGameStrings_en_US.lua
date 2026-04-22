@@ -292,6 +292,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_CONFIRM"] = "Confirm"
 -- label inlines the turn so the user can place each entry in history
 -- without a separate key.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_NOTIFICATION_LOG"] = "Notification Log"
+-- Advisors tutorial banner (Events.AdvisorDisplayShow). Static screen
+-- name; the per-tutorial title, body, and advisor type are spoken through
+-- the preamble from live Controls. "Tutorial Advisor" distinguishes this
+-- surface from the combat-interrupt AdvisorModal and the concept-browser
+-- AdvisorInfoPopup that question buttons drill into.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"] = "Tutorial Advisor"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Active"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications."

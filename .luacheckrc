@@ -232,6 +232,7 @@ files["src/dlc/UI/InGame/CivVAccess_Polyfill.lua"] = {
 files["src/dlc/UI/InGame/TaskList.lua"]           = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 
 -- Skip the base-game Lua we ship verbatim. Our CivVAccess_* wrappers pair
