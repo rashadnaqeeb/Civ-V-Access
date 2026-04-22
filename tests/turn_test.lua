@@ -390,26 +390,86 @@ end
 
 -- forceEndTurn ----------------------------------------------------------
 
-function M.test_force_end_turn_calls_do_control_force()
+function M.test_force_end_turn_with_no_blocker_calls_do_control_force()
     setup()
     Turn._forceEndTurn()
     T.eq(#doControlCalls, 1)
     T.eq(doControlCalls[1], GameInfoTypes.CONTROL_FORCEENDTURN)
+    T.eq(#spoken, 0)
     restoreLocale()
 end
 
-function M.test_force_end_turn_ignores_blocker_state()
-    -- Force path bypasses the blocker check entirely, matching the engine's
-    -- Shift+Return behavior. The dispatcher's blocker branch would have
-    -- announced and opened a screen; force doesn't.
+function M.test_force_end_turn_with_units_blocker_calls_do_control_force()
+    -- ENDTURN_BLOCKING_UNITS is the one blocker the engine will force past
+    -- (CvGame.cpp:3712 gates on NONE or UNITS). Ctrl+Shift+Space here
+    -- skips the announce-and-select-unit path Ctrl+Space would run, and
+    -- actually ends the turn.
+    setup()
+    activePlayer.GetEndTurnBlockingType = function()
+        return EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS
+    end
+    Turn._forceEndTurn()
+    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_FORCEENDTURN)
+    T.eq(#activateNotificationCalls, 0)
+    T.eq(#selectedUnits, 0)
+    T.eq(#spoken, 0)
+    restoreLocale()
+end
+
+function M.test_force_end_turn_with_screen_blocker_falls_through_to_announce()
+    -- The engine's CONTROL_FORCEENDTURN is a silent no-op for any blocker
+    -- other than NONE or UNITS, so we match its semantics: read the
+    -- blocker, announce it, open the notification screen, skip DoControl.
     setup()
     activePlayer.GetEndTurnBlockingType = function()
         return EndTurnBlockingTypes.ENDTURN_BLOCKING_RESEARCH
     end
     Turn._forceEndTurn()
-    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_FORCEENDTURN)
-    T.eq(#activateNotificationCalls, 0)
-    T.eq(#spoken, 0)
+    T.eq(spoken[1].text, "Choose Research")
+    T.eq(activateNotificationCalls[1], 7)
+    T.eq(#doControlCalls, 0)
+    restoreLocale()
+end
+
+function M.test_force_end_turn_with_stacked_units_blocker_selects_unit()
+    -- STACKED_UNITS is a unit-type blocker the engine refuses to force
+    -- past (only UNITS is bypassable), so force falls through to the
+    -- same select-first-ready path Ctrl+Space runs.
+    setup()
+    activePlayer.GetEndTurnBlockingType = function()
+        return EndTurnBlockingTypes.ENDTURN_BLOCKING_STACKED_UNITS
+    end
+    local plot = { id = "pStack" }
+    local unit = {
+        GetPlot = function()
+            return plot
+        end,
+    }
+    activePlayer.GetFirstReadyUnit = function()
+        return unit
+    end
+    Turn._forceEndTurn()
+    T.eq(spoken[1].text, "Move Stacked Unit")
+    T.eq(selectedUnits[1], unit)
+    T.eq(#doControlCalls, 0)
+    restoreLocale()
+end
+
+function M.test_force_end_turn_mp_already_submitted_unreadies()
+    -- Same un-ready path as Ctrl+Space. A player who force-submitted early
+    -- still needs a way out, and the engine's CONTROL_FORCEENDTURN doesn't
+    -- touch network state anyway.
+    setup()
+    PreGame.IsMultiplayerGame = function()
+        return true
+    end
+    Network.HasSentNetTurnComplete = function()
+        return true
+    end
+    Turn._forceEndTurn()
+    T.eq(spoken[1].text, "Waiting for players")
+    T.eq(sendUnreadyCalls, 1)
+    T.eq(#doControlCalls, 0)
     restoreLocale()
 end
 

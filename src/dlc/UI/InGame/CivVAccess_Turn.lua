@@ -17,8 +17,14 @@
 -- blocker, DoControl(CONTROL_ENDTURN) and let the ActivePlayerTurnEnd
 -- listener say "Turn ended" when the engine confirms.
 --
--- Ctrl+Shift+Space is the harder-to-mistouch force-end, mirroring the
--- engine's Shift+Return (CONTROL_FORCEENDTURN). Blocker check is skipped.
+-- Ctrl+Shift+Space mirrors the engine's Shift+Return. The engine's own
+-- CONTROL_FORCEENDTURN handler (CvGame.cpp:3712 in Community-Patch-DLL)
+-- only ends the turn when the blocker is NO_ENDTURN_BLOCKING_TYPE or
+-- ENDTURN_BLOCKING_UNITS; any other blocker makes DoControl a silent
+-- no-op. We read the blocker in Lua first and, for the bypassable cases,
+-- call DoControl; otherwise we fall through to the same announce-and-open
+-- path as Ctrl+Space so the user hears what's in the way and gets taken
+-- to it, instead of getting silence.
 --
 -- Multiplayer un-ready: if the player already submitted (HasSentNetTurn-
 -- Complete) pressing Ctrl+Space un-readies them, matching base behavior --
@@ -120,27 +126,10 @@ local function focusBlockerUnit(player, blockerType)
     end
 end
 
-local function endTurnDispatch()
-    local player = Players[Game.GetActivePlayer()]
-    if not player:IsTurnActive() then
-        return
-    end
-    if Game.IsProcessingMessages() then
-        return
-    end
-
-    if PreGame.IsMultiplayerGame() and Network.HasSentNetTurnComplete() then
-        speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
-        Network.SendTurnUnready()
-        return
-    end
-
-    local blockerType = player:GetEndTurnBlockingType()
-    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_NONE then
-        Game.DoControl(GameInfoTypes.CONTROL_ENDTURN)
-        return
-    end
-
+-- Announce the blocker label and run the engine's take-me-to-the-blocker
+-- action. Shared between Ctrl+Space (always on a blocker) and Ctrl+Shift+
+-- Space (when the blocker isn't one the engine will force past).
+local function announceAndOpenBlocker(player, blockerType)
     speak(blockerText(player, blockerType))
     if UNIT_BLOCKERS[blockerType] or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_PROMOTION then
         focusBlockerUnit(player, blockerType)
@@ -149,15 +138,54 @@ local function endTurnDispatch()
     end
 end
 
-local function forceEndTurn()
-    local player = Players[Game.GetActivePlayer()]
+-- Early-return gates shared by both key paths. Returns true when the
+-- dispatcher should proceed, false when something upstream (turn inactive,
+-- message burst, MP already-submitted) handled it.
+local function passEndTurnGates(player)
     if not player:IsTurnActive() then
-        return
+        return false
     end
     if Game.IsProcessingMessages() then
+        return false
+    end
+    if PreGame.IsMultiplayerGame() and Network.HasSentNetTurnComplete() then
+        speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
+        Network.SendTurnUnready()
+        return false
+    end
+    return true
+end
+
+local function endTurnDispatch()
+    local player = Players[Game.GetActivePlayer()]
+    if not passEndTurnGates(player) then
         return
     end
-    Game.DoControl(GameInfoTypes.CONTROL_FORCEENDTURN)
+    local blockerType = player:GetEndTurnBlockingType()
+    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_NONE then
+        Game.DoControl(GameInfoTypes.CONTROL_ENDTURN)
+        return
+    end
+    announceAndOpenBlocker(player, blockerType)
+end
+
+local function forceEndTurn()
+    local player = Players[Game.GetActivePlayer()]
+    if not passEndTurnGates(player) then
+        return
+    end
+    local blockerType = player:GetEndTurnBlockingType()
+    -- Engine's CONTROL_FORCEENDTURN (CvGame.cpp:3712) only ends the turn
+    -- when the blocker is NONE or UNITS. Calling DoControl on any other
+    -- blocker is a silent no-op, so we read first and fall back to the
+    -- regular announce-and-open path when we know force wouldn't help.
+    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_NONE
+        or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS
+    then
+        Game.DoControl(GameInfoTypes.CONTROL_FORCEENDTURN)
+        return
+    end
+    announceAndOpenBlocker(player, blockerType)
 end
 
 local function onActivePlayerTurnStart()
