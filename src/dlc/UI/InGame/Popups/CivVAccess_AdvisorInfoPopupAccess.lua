@@ -54,45 +54,14 @@ local priorShowHide = ShowHideHandler
 -- by the ShowConcept wrap below.
 local currentConceptKey = nil
 
-local function readTitle()
-    local ok, text = pcall(function()
-        return Controls.TitleLabel:GetText()
-    end)
-    if not ok then
-        Log.warn("AdvisorInfoPopupAccess: TitleLabel GetText failed: " .. tostring(text))
-        return Text.key("TXT_KEY_ADVISOR_INFORMATION")
-    end
-    if text == nil or text == "" then
-        return Text.key("TXT_KEY_ADVISOR_INFORMATION")
-    end
-    return tostring(text)
-end
-
-local function controlText(control)
-    if control == nil then
-        return ""
-    end
-    local ok, text = pcall(function()
-        return control:GetText()
-    end)
-    if not ok then
-        Log.warn("AdvisorInfoPopupAccess: GetText failed: " .. tostring(text))
-        return ""
-    end
-    if text == nil then
-        return ""
-    end
-    return tostring(text)
-end
-
 local function buildPreamble()
     local parts = {}
-    local advisor = controlText(Controls.AdvisorLabel)
-    if advisor ~= "" then
+    local advisor = Controls.AdvisorLabel:GetText()
+    if advisor ~= nil and advisor ~= "" then
         parts[#parts + 1] = advisor
     end
-    local body = controlText(Controls.DescriptionLabel)
-    if body ~= "" then
+    local body = Controls.DescriptionLabel:GetText()
+    if body ~= nil and body ~= "" then
         parts[#parts + 1] = body
     end
     if #parts == 0 then
@@ -160,23 +129,17 @@ end
 
 local handler = BaseMenu.install(ContextPtr, {
     name = "AdvisorInfoPopup",
-    -- Install-time placeholder overwritten per-concept by onConceptChanged
-    -- before the first announce; the static string satisfies the spec's
-    -- non-empty-string requirement at create time.
     displayName = Text.key("TXT_KEY_ADVISOR_INFORMATION"),
     preamble = buildPreamble,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     focusParkControl = "CloseButton",
-    -- Empty at install; onConceptChanged fires before the first ShowHide
-    -- announce (OnPopup invokes ShowConcept prior to QueuePopup), so the
-    -- final item list is in place before the user hears anything.
     items = {},
     onAltLeft = function()
         if CanGoBackInHistory() then
             BackInHistory()
         else
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_ADVISOR_INFO_NO_PREV_HISTORY"))
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
         end
     end,
     onAltRight = function()
@@ -188,7 +151,7 @@ local handler = BaseMenu.install(ContextPtr, {
         if CanGoForwardInHistory() then
             ForwardInHistory()
         else
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_ADVISOR_INFO_NO_NEXT_HISTORY"))
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
         end
     end,
     helpExtras = {
@@ -200,7 +163,14 @@ local handler = BaseMenu.install(ContextPtr, {
 })
 
 local function onConceptChanged()
-    handler.displayName = readTitle()
+    -- Live TitleLabel text (base ShowConcept wrote it on line 76 of the
+    -- original popup lua). Fall back to the static screen name before the
+    -- first concept has been set so the spec's non-empty contract holds.
+    local title = Controls.TitleLabel:GetText()
+    if title == nil or title == "" then
+        title = Text.key("TXT_KEY_ADVISOR_INFORMATION")
+    end
+    handler.displayName = title
     handler.setItems(buildItems())
     if ContextPtr:IsHidden() then
         -- Pre-show: OnPopup calls ShowConcept before UIManager:QueuePopup.

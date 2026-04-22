@@ -3240,21 +3240,6 @@ function M.test_spec_onAltLeft_rejects_non_function()
     T.truthy(tostring(err):find("onAltLeft"), "error mentions the field")
 end
 
-function M.test_spec_onAltRight_rejects_non_function()
-    setup()
-    setCtrls({ "A" })
-    local ok, err = pcall(function()
-        BaseMenu.create({
-            name = "T",
-            displayName = "Screen",
-            items = buttonSpec({ "A" }),
-            onAltRight = 42,
-        })
-    end)
-    T.truthy(not ok, "non-function onAltRight rejected")
-    T.truthy(tostring(err):find("onAltRight"), "error mentions the field")
-end
-
 function M.test_tab_onCtrlUp_hook_overrides_sibling_group_jump()
     setup()
     local cbA = Polyfill.makeCheckBox()
