@@ -4,9 +4,13 @@
 --
 -- Speech policy follows the design's "user-initiated INTERRUPT vs engine-
 -- event QUEUE" split: Tab / / / Alt+QAZEDC / , / Ctrl+. / Ctrl+, go through
--- INTERRUPT; UnitSelectionChanged, EndCombatSim, and move-completion
--- listeners speak QUEUED so they race-and-lose against user speech in
--- flight rather than clobbering it.
+-- INTERRUPT; EndCombatSim and move-completion listeners speak QUEUED so
+-- they race-and-lose against user speech in flight rather than clobbering
+-- it. UnitSelectionChanged straddles both: the user's cycle keys drive it
+-- (should interrupt) and engine flows (turn start, unit death, end of
+-- move / combat reselection) also drive it (should queue). The cycle
+-- sites stamp a short-lived "user-initiated" timestamp so the listener
+-- can tell them apart.
 --
 -- Pending-move tracking bridges "commit" to "announce actual outcome".
 -- On commit (Alt+QAZEDC or target-mode move-to) we stash target coords +
@@ -29,6 +33,32 @@ local VK_OEM_PERIOD = 190
 local VK_OEM_2 = 191
 
 local COMBAT_CONFIRM_WINDOW_SECONDS = 1.0
+
+-- ===== User-initiated selection flag =====
+-- UnitSelectionChanged fires for both user actions (period / comma,
+-- Ctrl+period / Ctrl+comma) and engine-initiated actions (turn start,
+-- unit death, move / combat completion). We want interrupt for the
+-- former (user asked to hear the next unit) and queued for the latter
+-- (don't clobber the turn-start line or an in-flight move result).
+-- Cycling sites stamp a timestamp here just before the select call;
+-- the listener consumes it if fresh, falls back to queued otherwise.
+-- Time-based staleness guards the case where the engine drops the
+-- selection request (e.g., Game.CycleUnits with no eligible target)
+-- so the flag doesn't leak into a later engine-driven selection.
+local USER_SELECTION_WINDOW_SECONDS = 0.1
+local _userSelectionAt = -math.huge
+
+function UnitControl.markUserInitiatedSelection()
+    _userSelectionAt = os.clock()
+end
+
+local function consumeUserInitiatedSelection()
+    if (os.clock() - _userSelectionAt) < USER_SELECTION_WINDOW_SECONDS then
+        _userSelectionAt = -math.huge
+        return true
+    end
+    return false
+end
 
 -- ===== Combat-confirm state (Alt+QAZEDC two-tap) =====
 local _combatConfirm = { dir = nil, clock = 0 }
@@ -118,6 +148,7 @@ end
 -- (the button layout has left = "go to next", right = "go back"), so we
 -- pass the direction through directly without renaming.
 function UnitControl.cycleAll(forward)
+    UnitControl.markUserInitiatedSelection()
     Game.CycleUnits(true, forward and true or false, false)
 end
 
@@ -133,6 +164,7 @@ function UnitControl.cycleOnHex(x, y, forward)
         Log.warn("UnitControl.cycleOnHex: no plot at (" .. tostring(x) .. ", " .. tostring(y) .. ")")
         return
     end
+    UnitControl.markUserInitiatedSelection()
     local activePlayer = Game.GetActivePlayer()
     local ownUnits = {}
     for i = 0, plot:GetNumUnits() - 1 do
@@ -340,7 +372,11 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     end
     local prevX, prevY = Cursor.position()
     local text = UnitSpeech.selection(unit, prevX, prevY)
-    speakInterrupt(text)
+    if consumeUserInitiatedSelection() then
+        speakInterrupt(text)
+    else
+        speakQueued(text)
+    end
     Cursor.jumpTo(unit:GetX(), unit:GetY())
 end
 
