@@ -120,7 +120,7 @@ Events.ActivePlayerTurnEnd = Events.ActivePlayerTurnEnd or {
 -- in-game lookup resolves to the same table shape.
 EndTurnBlockingTypes = EndTurnBlockingTypes
     or {
-        ENDTURN_BLOCKING_NONE = -1,
+        NO_ENDTURN_BLOCKING_TYPE = -1,
         ENDTURN_BLOCKING_POLICY = 0,
         ENDTURN_BLOCKING_RESEARCH = 1,
         ENDTURN_BLOCKING_PRODUCTION = 2,

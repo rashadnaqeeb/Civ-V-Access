@@ -146,7 +146,7 @@ local function setup()
             return self._turnActive
         end,
         GetEndTurnBlockingType = function()
-            return EndTurnBlockingTypes.ENDTURN_BLOCKING_NONE
+            return EndTurnBlockingTypes.NO_ENDTURN_BLOCKING_TYPE
         end,
         GetEndTurnBlockingNotificationIndex = function()
             return 7
