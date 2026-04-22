@@ -40,11 +40,12 @@ read_globals = {
 
     -- Enums
     "DirectionTypes", "PlotTypes", "FeatureTypes", "TerrainTypes",
-    "ResourceTypes", "ImprovementTypes", "RouteTypes", "YieldTypes",
+    "ResourceTypes", "ResourceUsageTypes", "ImprovementTypes",
+    "RouteTypes", "YieldTypes",
     "DomainTypes", "VictoryTypes", "PolicyBranchTypes", "GameOptionTypes",
     "ButtonPopupTypes", "ContentType", "SlotStatus", "ActivityTypes",
     "InterfaceModeTypes", "MissionTypes", "GameMessageTypes",
-    "ActionSubTypes", "GameInfoActions",
+    "ActionSubTypes", "GameInfoActions", "EndTurnBlockingTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -57,6 +58,11 @@ read_globals = {
     -- occasional alias seen in the engine. Speech should still go through
     -- SpeechEngine, but the raw tables are globals.
     "tolk", "Tolk",
+
+    -- miniaudio: proxy-injected binding for the per-hex audio cue layer.
+    -- Read-only from mod code; tests/run.lua overrides it with a capture
+    -- stub (see the tests-section globals entry for the write permission).
+    "audio",
 }
 
 -- Mod-authored module globals. Each file defines one of these at top level;
@@ -82,17 +88,23 @@ globals = {
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory",
+    "AudioCueMode",
 
     -- InGame modules
     "Cursor", "HexGeom", "Pathfinder",
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
+    "PlotAudio",
     "ScannerCore", "ScannerHandler", "ScannerInput", "ScannerNav",
     "ScannerSearch", "ScannerSnap",
     "ScannerBackendCities", "ScannerBackendImprovements",
+    "ScannerBackendRecommendations",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",
     "ScannerBackendUnits",
     "SurveyorCore",
     "CitySpeech",
+    "NotificationAnnounce",
+    "Recommendations",
+    "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
 
     -- User-preference module (Shared/)
@@ -158,8 +170,18 @@ files["tests/"] = {
         "Locale", "UI", "Controls", "ContextPtr",
         "Mouse", "Keys",
         "DirectionTypes", "PlotTypes", "FeatureTypes", "TerrainTypes",
-        "ResourceTypes", "ImprovementTypes", "RouteTypes", "YieldTypes",
-        "DomainTypes", "ActivityTypes",
+        "ResourceTypes", "ResourceUsageTypes", "ImprovementTypes",
+        "RouteTypes", "YieldTypes",
+        "DomainTypes", "ActivityTypes", "EndTurnBlockingTypes",
+        -- Engine tables whose fields the suites monkey-patch. These are
+        -- read-only at top level; tests need write access to drive code
+        -- paths (e.g. turn_test flips PreGame.IsMultiplayerGame to cover
+        -- both SP and MP endturn dispatch).
+        "PreGame", "Network", "OptionsManager",
+        -- Proxy-injected miniaudio binding. run.lua installs a capture
+        -- stub before each suite; declaring it writable here lets the
+        -- stub assignment and monkey-patches pass without warnings.
+        "audio",
         -- Mod modules the test suites exercise directly.
         "UnitSpeech", "Pathfinder", "ScannerBackendTerrain",
     },
