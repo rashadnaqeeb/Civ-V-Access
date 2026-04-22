@@ -96,12 +96,28 @@ local function onInGameBoot()
 end
 
 if Events ~= nil and Events.LoadScreenClose ~= nil then
-    -- Guard against multiple in-game contexts each registering a listener
-    -- within the same lua_State; civvaccess_shared persists across contexts.
-    if not civvaccess_shared.ingameListenerInstalled then
-        civvaccess_shared.ingameListenerInstalled = true
-        Events.LoadScreenClose.Add(onInGameBoot)
-        Log.info("CivVAccess_Boot: registered LoadScreenClose listener")
+    -- Each in-game Context's onInGameBoot closure is bound to that Context's
+    -- env, so registering it directly means the listener goes defunct when
+    -- the Context tears down on exit-to-main-menu. The next game's Boot
+    -- include would then see a "listener already installed" flag and skip
+    -- re-registering, leaving the new game with dead bindings.
+    -- Pattern from LoadScreenAccess: store the impl on civvaccess_shared so
+    -- the current Context always overwrites it, and register one resolver
+    -- that reads the shared slot at fire time.
+    civvaccess_shared.ingameBootImpl = onInGameBoot
+    if not civvaccess_shared.ingameBootListenerInstalled then
+        civvaccess_shared.ingameBootListenerInstalled = true
+        Events.LoadScreenClose.Add(function()
+            local f = civvaccess_shared.ingameBootImpl
+            if f == nil then
+                return
+            end
+            local ok, err = pcall(f)
+            if not ok then
+                Log.error("CivVAccess_Boot: onInGameBoot failed: " .. tostring(err))
+            end
+        end)
+        Log.info("CivVAccess_Boot: registered LoadScreenClose resolver")
     end
 else
     Log.warn("CivVAccess_Boot: Events.LoadScreenClose missing; in-game boot will not fire")
