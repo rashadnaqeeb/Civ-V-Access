@@ -159,8 +159,8 @@ function M.test_flat_corpus_top_level_intro_not_duplicated()
     setup()
     -- Home Page intro lives at top-level index 1 as an Entry. The corpus
     -- adds top-level Groups and top-level Intros as category-tier items,
-    -- and also walks the tree for leaf Entries. The top-level skip in the
-    -- walk prevents Home Page from appearing twice.
+    -- and also walks the tree for leaf Entries. The id-based seen set in
+    -- the walk prevents Home Page from appearing twice.
     local items = pediaTree()
     local s = Civilopedia.buildFlatSearchable(fakeHandler(items))
     local count = 0
@@ -170,6 +170,31 @@ function M.test_flat_corpus_top_level_intro_not_duplicated()
         end
     end
     T.eq(count, 1, "top-level intro appears exactly once")
+end
+
+function M.test_flat_corpus_multiple_top_level_intros_not_dropped()
+    setup()
+    -- If a future revision adds a second top-level intro, it must still
+    -- appear in the corpus (the prior path-depth heuristic would silently
+    -- have dropped it as "looks top-level-intro-shaped"; id-based dedup
+    -- skips only what was actually added in the category-tier pass).
+    local items = {
+        entry("1:intro", "Civilopedia Home Page"),
+        entry("17:intro", "Future Category Home Page"),
+        BaseMenuItems.Group({ labelText = "Units", items = { entry("4:10", "Camel Archer") } }),
+    }
+    local s = Civilopedia.buildFlatSearchable(fakeHandler(items))
+    local firstCount, secondCount = 0, 0
+    for i = 1, s.itemCount() do
+        local label = s.getLabel(i)
+        if label == "Civilopedia Home Page" then
+            firstCount = firstCount + 1
+        elseif label == "Future Category Home Page" then
+            secondCount = secondCount + 1
+        end
+    end
+    T.eq(firstCount, 1, "first top-level intro appears once")
+    T.eq(secondCount, 1, "second top-level intro also appears once (not dropped)")
 end
 
 function M.test_flat_corpus_moveTo_teleports_to_article_path()

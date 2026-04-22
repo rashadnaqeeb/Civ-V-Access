@@ -981,7 +981,12 @@ end
 
 local function buildFlatCorpus(pickerItems)
     local flat = {}
-    -- Top-level Group labels + top-level Home Page intro (category layer).
+    -- Track ids already added in the category-tier pass so the leaf walk
+    -- can skip exactly those, rather than dropping anything that looks
+    -- top-level-intro-shaped. Matters if a future top-level intro ever
+    -- joins Home Page: the path-depth heuristic would silently drop it,
+    -- but id-based dedup skips only what was actually added here.
+    local seen = {}
     for i, item in ipairs(pickerItems) do
         if item.kind == "group" then
             flat[#flat + 1] = {
@@ -995,15 +1000,14 @@ local function buildFlatCorpus(pickerItems)
                 path = { i },
                 group = 1,
             }
+            seen[item.id] = true
         end
     end
-    -- Every Entry leaf. Intros get group 1, real articles get group 0.
     walkWithPath(pickerItems, {}, function(entry, path)
-        local group = isIntroId(entry.id) and 1 or 0
-        -- Skip top-level intros: already captured above, avoid duplicate.
-        if group == 1 and #path == 1 then
+        if seen[entry.id] then
             return
         end
+        local group = isIntroId(entry.id) and 1 or 0
         flat[#flat + 1] = {
             label = BaseMenuItems.labelOf(entry) or "",
             path = copyPath(path),
