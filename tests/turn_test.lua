@@ -35,13 +35,13 @@ local activateNotificationCalls
 local selectedUnits
 local lookAtPlots
 local sendUnreadyCalls
+local sendUnreadyResult
+local loggedWarnings
 local startListeners
 local endListeners
 local activePlayer
-local origLocale
 
 local function setup()
-    origLocale = origLocale or Locale.ConvertTextKey
     Locale.ConvertTextKey = function(key, ...)
         local template = GAME_TEXT[key] or key
         local args = { ... }
@@ -72,11 +72,17 @@ local function setup()
         spoken[#spoken + 1] = { text = text, interrupt = interrupt }
     end
 
+    loggedWarnings = {}
+    Log.warn = function(msg)
+        loggedWarnings[#loggedWarnings + 1] = msg
+    end
+
     doControlCalls = {}
     activateNotificationCalls = {}
     selectedUnits = {}
     lookAtPlots = {}
     sendUnreadyCalls = 0
+    sendUnreadyResult = true
     startListeners = {}
     endListeners = {}
 
@@ -120,7 +126,7 @@ local function setup()
     end
     Network.SendTurnUnready = function()
         sendUnreadyCalls = sendUnreadyCalls + 1
-        return true
+        return sendUnreadyResult
     end
 
     Events.ActivePlayerTurnStart = {
@@ -166,15 +172,12 @@ local function setup()
     Players[0] = activePlayer
 end
 
-local function restoreLocale()
-    if origLocale ~= nil then
-        Locale.ConvertTextKey = origLocale
-    end
-end
-
 -- Turn-start listener --------------------------------------------------
 
 function M.test_turn_start_announces_turn_and_ad_year()
+    -- Queued (not interrupt) so any burst-collapsed notification that
+    -- NotificationAnnounce fired synchronously just before the engine
+    -- dispatched ActivePlayerTurnStart finishes before the turn line.
     setup()
     Turn.installListeners()
     Game.GetGameTurn = function()
@@ -186,8 +189,7 @@ function M.test_turn_start_announces_turn_and_ad_year()
     startListeners[1]()
     T.eq(#spoken, 1)
     T.eq(spoken[1].text, "Turn: 42, 1950 AD")
-    T.eq(spoken[1].interrupt, true)
-    restoreLocale()
+    T.eq(spoken[1].interrupt, false)
 end
 
 function M.test_turn_start_announces_bc_year_with_absolute_value()
@@ -204,16 +206,16 @@ function M.test_turn_start_announces_bc_year_with_absolute_value()
     end
     startListeners[1]()
     T.eq(spoken[1].text, "Turn: 0, 4000 BC")
-    restoreLocale()
 end
 
 function M.test_turn_end_announces_turn_ended()
+    -- Interrupt is correct here: end-turn is user-initiated (or engine
+    -- auto-end), no pending notification speech to protect.
     setup()
     Turn.installListeners()
     endListeners[1]()
     T.eq(spoken[1].text, "Turn ended")
     T.eq(spoken[1].interrupt, true)
-    restoreLocale()
 end
 
 function M.test_install_is_idempotent_across_context_reentry()
@@ -225,7 +227,6 @@ function M.test_install_is_idempotent_across_context_reentry()
     Turn.installListeners()
     T.eq(#startListeners, 1)
     T.eq(#endListeners, 1)
-    restoreLocale()
 end
 
 -- endTurnDispatch -------------------------------------------------------
@@ -238,7 +239,6 @@ function M.test_dispatch_no_blocker_calls_do_control_end_turn()
     -- No announcement from the dispatcher; ActivePlayerTurnEnd listener
     -- says "Turn ended" when the engine confirms.
     T.eq(#spoken, 0)
-    restoreLocale()
 end
 
 function M.test_dispatch_early_returns_when_turn_not_active()
@@ -247,7 +247,6 @@ function M.test_dispatch_early_returns_when_turn_not_active()
     Turn._endTurnDispatch()
     T.eq(#doControlCalls, 0)
     T.eq(#spoken, 0)
-    restoreLocale()
 end
 
 function M.test_dispatch_early_returns_when_processing_messages()
@@ -259,7 +258,6 @@ function M.test_dispatch_early_returns_when_processing_messages()
     end
     Turn._endTurnDispatch()
     T.eq(#doControlCalls, 0)
-    restoreLocale()
 end
 
 function M.test_dispatch_screen_blocker_announces_and_activates_notification()
@@ -272,7 +270,6 @@ function M.test_dispatch_screen_blocker_announces_and_activates_notification()
     T.eq(#activateNotificationCalls, 1)
     T.eq(activateNotificationCalls[1], 7)
     T.eq(#doControlCalls, 0)
-    restoreLocale()
 end
 
 function M.test_dispatch_free_items_blocker_reads_dynamic_notification_summary()
@@ -304,7 +301,6 @@ function M.test_dispatch_free_items_blocker_reads_dynamic_notification_summary()
     Turn._endTurnDispatch()
     T.eq(spoken[1].text, "Free Great Prophet!")
     T.eq(#activateNotificationCalls, 1)
-    restoreLocale()
 end
 
 function M.test_dispatch_unit_blocker_selects_first_ready_unit_and_centers()
@@ -328,7 +324,6 @@ function M.test_dispatch_unit_blocker_selects_first_ready_unit_and_centers()
     T.eq(#lookAtPlots, 1)
     T.eq(lookAtPlots[1], plot)
     T.eq(#activateNotificationCalls, 0)
-    restoreLocale()
 end
 
 function M.test_dispatch_promotion_blocker_iterates_for_ready_unit()
@@ -367,13 +362,13 @@ function M.test_dispatch_promotion_blocker_iterates_for_ready_unit()
     Turn._endTurnDispatch()
     T.eq(spoken[1].text, "Unit Promotion Available")
     T.eq(selectedUnits[1], ready)
-    restoreLocale()
 end
 
-function M.test_dispatch_mp_already_submitted_unreadies()
+function M.test_dispatch_mp_already_submitted_unreadies_and_announces_waiting()
     -- After the player has already sent the network turn-complete message,
     -- pressing Ctrl+Space un-readies them so they aren't stuck spectating.
-    -- Mirrors OnEndTurnClicked's early-return branch.
+    -- Announcement is gated on SendTurnUnready success so a rejection
+    -- doesn't mislead the user.
     setup()
     PreGame.IsMultiplayerGame = function()
         return true
@@ -385,7 +380,25 @@ function M.test_dispatch_mp_already_submitted_unreadies()
     T.eq(spoken[1].text, "Waiting for players")
     T.eq(sendUnreadyCalls, 1)
     T.eq(#doControlCalls, 0)
-    restoreLocale()
+end
+
+function M.test_dispatch_mp_unready_refused_logs_warning_and_stays_silent()
+    -- SendTurnUnready can be rejected server-side (turn already committed,
+    -- grace period expired). Matching the "no silent failures" rule: log
+    -- the refusal instead of announcing a state transition that didn't
+    -- happen.
+    setup()
+    PreGame.IsMultiplayerGame = function()
+        return true
+    end
+    Network.HasSentNetTurnComplete = function()
+        return true
+    end
+    sendUnreadyResult = false
+    Turn._endTurnDispatch()
+    T.eq(#spoken, 0)
+    T.eq(sendUnreadyCalls, 1)
+    T.truthy(#loggedWarnings > 0, "expected warn on refused un-ready")
 end
 
 -- forceEndTurn ----------------------------------------------------------
@@ -396,7 +409,6 @@ function M.test_force_end_turn_with_no_blocker_calls_do_control_force()
     T.eq(#doControlCalls, 1)
     T.eq(doControlCalls[1], GameInfoTypes.CONTROL_FORCEENDTURN)
     T.eq(#spoken, 0)
-    restoreLocale()
 end
 
 function M.test_force_end_turn_with_units_blocker_calls_do_control_force()
@@ -413,7 +425,6 @@ function M.test_force_end_turn_with_units_blocker_calls_do_control_force()
     T.eq(#activateNotificationCalls, 0)
     T.eq(#selectedUnits, 0)
     T.eq(#spoken, 0)
-    restoreLocale()
 end
 
 function M.test_force_end_turn_with_screen_blocker_falls_through_to_announce()
@@ -428,7 +439,6 @@ function M.test_force_end_turn_with_screen_blocker_falls_through_to_announce()
     T.eq(spoken[1].text, "Choose Research")
     T.eq(activateNotificationCalls[1], 7)
     T.eq(#doControlCalls, 0)
-    restoreLocale()
 end
 
 function M.test_force_end_turn_with_stacked_units_blocker_selects_unit()
@@ -452,7 +462,6 @@ function M.test_force_end_turn_with_stacked_units_blocker_selects_unit()
     T.eq(spoken[1].text, "Move Stacked Unit")
     T.eq(selectedUnits[1], unit)
     T.eq(#doControlCalls, 0)
-    restoreLocale()
 end
 
 function M.test_force_end_turn_mp_already_submitted_unreadies()
@@ -470,7 +479,6 @@ function M.test_force_end_turn_mp_already_submitted_unreadies()
     T.eq(spoken[1].text, "Waiting for players")
     T.eq(sendUnreadyCalls, 1)
     T.eq(#doControlCalls, 0)
-    restoreLocale()
 end
 
 function M.test_force_end_turn_respects_is_processing_messages()
@@ -480,7 +488,6 @@ function M.test_force_end_turn_respects_is_processing_messages()
     end
     Turn._forceEndTurn()
     T.eq(#doControlCalls, 0)
-    restoreLocale()
 end
 
 -- Bindings surface ------------------------------------------------------
@@ -501,7 +508,6 @@ function M.test_bindings_expose_ctrl_space_and_ctrl_shift_space()
     T.truthy(findBinding(b.bindings, Keys.VK_SPACE, MOD_CTRL), "Ctrl+Space registered")
     T.truthy(findBinding(b.bindings, Keys.VK_SPACE, MOD_CTRL_SHIFT), "Ctrl+Shift+Space registered")
     T.eq(#b.helpEntries, 2)
-    restoreLocale()
 end
 
 return M

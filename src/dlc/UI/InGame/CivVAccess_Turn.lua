@@ -42,7 +42,12 @@ local MOD_CTRL_SHIFT = MOD_CTRL + MOD_SHIFT
 -- button displays for each blocker in ActionInfoPanel.lua:OnEndTurnDirty;
 -- reusing them keeps the spoken label identical to what a sighted player
 -- reads off the button. FREE_ITEMS has no fixed key -- the label is the
--- notification's own summary string, resolved dynamically.
+-- notification's own summary string, resolved dynamically. MINOR_QUEST
+-- is intentionally absent: BNW's ActionInfoPanel.lua (the sole skin we
+-- ship against) doesn't handle it either, which suggests the BNW engine
+-- doesn't emit it as a blocker. A nil lookup here falls through to the
+-- notification-activate path, matching base behavior for any unexpected
+-- blocker the table doesn't cover.
 local BLOCKER_TXT_KEY = {
     [EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY] = "TXT_KEY_CHOOSE_POLICY",
     [EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_POLICY] = "TXT_KEY_CHOOSE_POLICY",
@@ -149,8 +154,14 @@ local function passEndTurnGates(player)
         return false
     end
     if PreGame.IsMultiplayerGame() and Network.HasSentNetTurnComplete() then
-        speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
-        Network.SendTurnUnready()
+        if Network.SendTurnUnready() then
+            speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
+        else
+            -- Server rejected the un-ready (e.g. turn already committed,
+            -- host ended the grace period). Silent success would have the
+            -- user thinking they pulled back when they didn't.
+            Log.warn("Turn: SendTurnUnready refused; player remains submitted")
+        end
         return false
     end
     return true
@@ -198,7 +209,13 @@ local function onActivePlayerTurnStart()
         dateKey = "TXT_KEY_TIME_AD"
     end
     local date = Text.format(dateKey, math.abs(year))
-    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_TURN_START", turn, date))
+    -- Queued (not interrupt) because the engine flushes notifications
+    -- synchronously just before ActivePlayerTurnStart fires. With 3+ adds
+    -- NotificationAnnounce collapses into a single "N new notifications"
+    -- speakInterrupt at _onAdded time; queueing our announcement behind
+    -- it lets the collapse finish before the turn line starts. For 0
+    -- notifications the queue is empty and we play immediately anyway.
+    SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_TURN_START", turn, date))
 end
 
 local function onActivePlayerTurnEnd()
@@ -247,13 +264,11 @@ function Turn.installListeners()
     end
 end
 
--- Test seams: tests reset module-owned state (none here) and invoke the
--- private dispatcher / listeners through these, so production doesn't need
--- to expose them in the public surface.
+-- Test seams. Listener tests reach the handlers through the Events.Add
+-- capture pattern installed by installListeners, so the listener
+-- functions don't need to be exposed here; dispatch seams do.
 Turn._endTurnDispatch = endTurnDispatch
 Turn._forceEndTurn = forceEndTurn
-Turn._onActivePlayerTurnStart = onActivePlayerTurnStart
-Turn._onActivePlayerTurnEnd = onActivePlayerTurnEnd
 Turn._reset = function()
     if civvaccess_shared ~= nil then
         civvaccess_shared.turnListenersInstalled = nil
