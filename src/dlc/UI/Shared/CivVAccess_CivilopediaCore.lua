@@ -873,13 +873,14 @@ function Civilopedia.goBack(handler)
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
         return
     end
-    currentTopic = currentTopic - 1
-    local article = listOfTopicsViewed[currentTopic]
+    local targetTopic = currentTopic - 1
+    local article = listOfTopicsViewed[targetTopic]
     if article == nil then
-        Log.warn("Civilopedia.goBack: listOfTopicsViewed[" .. tostring(currentTopic) .. "] is nil")
+        Log.warn("Civilopedia.goBack: listOfTopicsViewed[" .. tostring(targetTopic) .. "] is nil")
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
         return
     end
+    currentTopic = targetTopic
     local cat = article.entryCategory
     SetSelectedCategory(cat)
     if CivilopediaCategory[cat] ~= nil and type(CivilopediaCategory[cat].SelectArticle) == "function" then
@@ -903,13 +904,14 @@ function Civilopedia.goForward(handler)
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
         return
     end
-    currentTopic = currentTopic + 1
-    local article = listOfTopicsViewed[currentTopic]
+    local targetTopic = currentTopic + 1
+    local article = listOfTopicsViewed[targetTopic]
     if article == nil then
-        Log.warn("Civilopedia.goForward: listOfTopicsViewed[" .. tostring(currentTopic) .. "] is nil")
+        Log.warn("Civilopedia.goForward: listOfTopicsViewed[" .. tostring(targetTopic) .. "] is nil")
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
         return
     end
+    currentTopic = targetTopic
     local cat = article.entryCategory
     SetSelectedCategory(cat)
     if CivilopediaCategory[cat] ~= nil and type(CivilopediaCategory[cat].SelectArticle) == "function" then
