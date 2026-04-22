@@ -521,7 +521,7 @@ end
 -- picks / cycles a result: it rewrites the level cursor (_indices[level])
 -- and announces the item via the existing composeSpeech path, exactly the
 -- same announcement the user would hear from arrow-key nav.
-local function buildSearchable(self)
+local function defaultSearchable(self)
     return {
         itemCount = function()
             return #currentItems(self)
@@ -548,6 +548,30 @@ local function buildSearchable(self)
             SpeechPipeline.speakInterrupt(item:announce(self))
         end,
     }
+end
+
+-- A tab may supply `buildSearchable = function(handler) return searchable end`
+-- to replace the default current-level-scoped corpus with something else —
+-- typically a flat cross-hierarchy view (Civilopedia's picker tab searching
+-- all articles regardless of current drill level). The override's moveTo is
+-- responsible for writing handler._level and handler._indices itself so the
+-- cursor lands on the right path in the tree, and for announcing the match.
+-- On any error, fall back to the default so search never gets stuck.
+local function buildSearchable(self)
+    local hook = BaseMenuTabs.hook(self, "buildSearchable")
+    if hook == nil then
+        return defaultSearchable(self)
+    end
+    local ok, result = pcall(hook, self)
+    if not ok then
+        Log.error("BaseMenu '" .. self.name .. "' buildSearchable hook: " .. tostring(result))
+        return defaultSearchable(self)
+    end
+    if type(result) ~= "table" then
+        Log.error("BaseMenu '" .. self.name .. "' buildSearchable hook returned non-table; using default")
+        return defaultSearchable(self)
+    end
+    return result
 end
 
 -- Map a VK code / modifier mask to the character input layer. Returns true

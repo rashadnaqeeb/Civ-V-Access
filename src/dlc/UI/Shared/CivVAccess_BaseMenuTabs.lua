@@ -57,6 +57,10 @@ function BaseMenuTabs.normalize(specTabs)
             tab.onAltRight == nil or type(tab.onAltRight) == "function",
             "tab " .. i .. ".onAltRight must be a function if provided"
         )
+        check(
+            tab.buildSearchable == nil or type(tab.buildSearchable) == "function",
+            "tab " .. i .. ".buildSearchable must be a function if provided"
+        )
         tabs[i] = {
             name = tab.name,
             showPanel = tab.showPanel,
@@ -67,6 +71,7 @@ function BaseMenuTabs.normalize(specTabs)
             onCtrlDown = tab.onCtrlDown,
             onAltLeft = tab.onAltLeft,
             onAltRight = tab.onAltRight,
+            buildSearchable = tab.buildSearchable,
             _items = tab.items,
         }
     end

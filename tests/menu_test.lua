@@ -2907,6 +2907,137 @@ function M.test_tab_nameFn_empty_result_skips_tab_name_announcement()
     T.truthy(sawItem, "first item still announced after empty nameFn")
 end
 
+function M.test_tab_buildSearchable_override_replaces_default_corpus()
+    setup()
+    local cbA = Polyfill.makeCheckBox()
+    populateControls({ CA = cbA })
+    -- Picker tab items are simple; we want to verify the search corpus
+    -- comes from the tab hook, not from the tab's own items. If the
+    -- override is honored, typing "xyzzy" routes through overrideMoveTo
+    -- rather than matching any tab item.
+    local overrideCalls = 0
+    local overrideLabels = { "xyzzy-match" }
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        tabs = {
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+                buildSearchable = function(handler)
+                    return {
+                        itemCount = function()
+                            return #overrideLabels
+                        end,
+                        getLabel = function(i)
+                            return overrideLabels[i]
+                        end,
+                        moveTo = function(i)
+                            overrideCalls = overrideCalls + 1
+                            -- Simulate the multi-level cursor teleport the
+                            -- real consumer (Civilopedia) will do.
+                            handler._level = 1
+                            handler._indices = { 1 }
+                        end,
+                    }
+                end,
+            },
+        },
+    })
+    HandlerStack.push(h)
+    -- Type 'x' 'y' 'z' 'z' 'y'. Each letter feeds search. Override's moveTo
+    -- should fire on every successful match.
+    for _, c in ipairs({ 0x58, 0x59, 0x5A, 0x5A, 0x59 }) do
+        InputRouter.dispatch(c, 0, WM_KEYDOWN)
+    end
+    T.truthy(overrideCalls >= 1, "override moveTo fired at least once")
+end
+
+function M.test_tab_buildSearchable_override_receives_handler()
+    setup()
+    populateControls({ CA = Polyfill.makeCheckBox() })
+    local seenHandler
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        tabs = {
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "LA" }) },
+                buildSearchable = function(handler)
+                    seenHandler = handler
+                    return {
+                        itemCount = function()
+                            return 0
+                        end,
+                        getLabel = function()
+                            return nil
+                        end,
+                        moveTo = function() end,
+                    }
+                end,
+            },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(0x41, 0, WM_KEYDOWN) -- 'a'
+    T.eq(seenHandler, h, "override receives the BaseMenu handler as argument")
+end
+
+function M.test_tab_buildSearchable_missing_falls_back_to_default_corpus()
+    setup()
+    populateControls({ C1 = Polyfill.makeCheckBox(), C2 = Polyfill.makeCheckBox() })
+    -- No buildSearchable override: typing 'c' should match against the tab's
+    -- own items (Cherry) via the default corpus. Default moveTo writes the
+    -- single-level index, so after typing the cursor lands on index 2.
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        tabs = {
+            {
+                name = "TAB_A",
+                items = {
+                    BaseMenuItems.Checkbox({ controlName = "C1", textKey = "Apple" }),
+                    BaseMenuItems.Checkbox({ controlName = "C2", textKey = "Cherry" }),
+                },
+            },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(0x43, 0, WM_KEYDOWN) -- 'c'
+    T.eq(h._indices[1], 2, "default corpus moved cursor to Cherry")
+end
+
+function M.test_tab_buildSearchable_bad_return_falls_back_to_default()
+    setup()
+    populateControls({ C1 = Polyfill.makeCheckBox() })
+    local errorLogged = false
+    local priorError = Log.error
+    Log.error = function(msg)
+        if tostring(msg):find("buildSearchable", 1, true) then
+            errorLogged = true
+        end
+    end
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        tabs = {
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Checkbox({ controlName = "C1", textKey = "Apple" }) },
+                buildSearchable = function()
+                    return "not a table"
+                end,
+            },
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(0x41, 0, WM_KEYDOWN) -- 'a'; fallback default should match "Apple"
+    T.truthy(errorLogged, "override returning non-table is logged")
+    T.eq(h._indices[1], 1, "fallback default corpus used after bad override")
+    Log.error = priorError
+end
+
 function M.test_tab_onAltLeft_onAltRight_hooks_fire_on_active_tab()
     setup()
     local cbA = Polyfill.makeCheckBox()
