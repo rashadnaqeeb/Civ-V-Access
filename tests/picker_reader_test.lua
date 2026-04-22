@@ -406,6 +406,54 @@ function M.test_install_reader_alt_hooks_fire_on_reader_tab()
     T.eq(rightCalls, 1, "readerOnAltRight fired on reader tab")
 end
 
+function M.test_install_pickerBuildSearchable_routes_to_picker_tab_search()
+    setup()
+    -- pickerBuildSearchable (caller-supplied) should replace the default
+    -- current-level-scoped search on the picker tab. The Civilopedia uses
+    -- this to search article titles across the whole tree.
+    local seenHandler
+    local flatLabels = { "Camel Archer", "Chariot Archer" }
+    local moveCalls = {}
+    local session = PickerReader.create()
+    local builder = function(handler, id)
+        return {
+            items = { BaseMenuItems.Text({ labelText = "leaf " .. id }) },
+            autoDrillToLevel = 1,
+        }
+    end
+    local pickerItems = {
+        session.Entry({ id = "A", labelText = "Alpha", buildReader = builder }),
+        session.Entry({ id = "B", labelText = "Bravo", buildReader = builder }),
+    }
+    local ctx = makeContextPtr()
+    local handler = session.install(ctx, {
+        name = "P",
+        displayName = "P",
+        pickerTabName = "TXT_KEY_INSTALL_PICKER_TAB",
+        readerTabName = "TXT_KEY_INSTALL_READER_TAB",
+        pickerItems = pickerItems,
+        pickerBuildSearchable = function(h)
+            seenHandler = h
+            return {
+                itemCount = function()
+                    return #flatLabels
+                end,
+                getLabel = function(i)
+                    return flatLabels[i]
+                end,
+                moveTo = function(i)
+                    moveCalls[#moveCalls + 1] = i
+                end,
+            }
+        end,
+    })
+    ctx._sh(false, false)
+    T.eq(handler._tabIndex, 1, "on picker tab")
+    InputRouter.dispatch(0x43, 0, WM_KEYDOWN) -- 'c'; matches both flat labels
+    T.eq(seenHandler, handler, "override receives the PickerReader handler")
+    T.truthy(#moveCalls >= 1, "override moveTo fired on keystroke match")
+end
+
 function M.test_install_reader_alt_hooks_do_not_fire_on_picker_tab()
     setup()
     local leftCalls, rightCalls = 0, 0

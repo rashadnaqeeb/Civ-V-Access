@@ -930,6 +930,150 @@ function Civilopedia.goForward(handler)
     rebuildReaderFromCurrent(handler, cat, article.entryID)
 end
 
+-- Flat search corpus -----------------------------------------------------
+--
+-- Typing in the picker should search article titles across the whole
+-- pedia regardless of which category the user is inside. Without the
+-- flat corpus, "camel archer" at the top of the tree matches nothing
+-- (the 16 top-level items are category Groups) and a user has no way
+-- to know an article exists without drilling into its category first.
+--
+-- Corpus contents:
+--   - Every article Entry in the picker tree. Group 0 (highest priority).
+--   - Every category Group's label + Home Page intro. Group 1.
+--   - Every per-category Intro Entry ("<category name> intro"). Group 1.
+-- Group 1 items are the deliberate-fallback layer: they match when no
+-- article name matches, but never beat an article when both would.
+--
+-- moveTo(i) teleports the picker cursor: writes handler._level and
+-- handler._indices to the target's path, then speaks the label. Arrow
+-- nav resumes from wherever the cursor landed (Civ V's cached=false
+-- Groups lazily re-materialize their children on the next currentItems
+-- call, which is what itemsAtLevel already does for normal drill-in).
+--
+-- Build is one-shot per session: walking the tree materializes every
+-- section Group (cached=false) once, which we want so arrow nav from a
+-- teleported position sees the same child set search resolved against.
+-- Cached on the shared session state via the closure.
+
+local function isIntroId(id)
+    return type(id) == "string" and id:sub(-#":intro") == ":intro"
+end
+
+-- Depth-first walk of picker items. At every Group, call :children() to
+-- materialize and recurse; at every Entry leaf, invoke visit with the
+-- leaf + its full path.
+local function walkWithPath(items, path, visit)
+    for i, item in ipairs(items) do
+        path[#path + 1] = i
+        if item.kind == "entry" then
+            visit(item, path)
+        elseif item.kind == "group" then
+            walkWithPath(item:children(), path, visit)
+        end
+        path[#path] = nil
+    end
+end
+
+local function copyPath(path)
+    local copy = {}
+    for i, v in ipairs(path) do
+        copy[i] = v
+    end
+    return copy
+end
+
+local function buildFlatCorpus(pickerItems)
+    local flat = {}
+    -- Top-level Group labels + top-level Home Page intro (category layer).
+    for i, item in ipairs(pickerItems) do
+        if item.kind == "group" then
+            flat[#flat + 1] = {
+                label = BaseMenuItems.labelOf(item) or "",
+                path = { i },
+                group = 1,
+            }
+        elseif item.kind == "entry" and isIntroId(item.id) then
+            flat[#flat + 1] = {
+                label = BaseMenuItems.labelOf(item) or "",
+                path = { i },
+                group = 1,
+            }
+        end
+    end
+    -- Every Entry leaf. Intros get group 1, real articles get group 0.
+    walkWithPath(pickerItems, {}, function(entry, path)
+        local group = isIntroId(entry.id) and 1 or 0
+        -- Skip top-level intros: already captured above, avoid duplicate.
+        if group == 1 and #path == 1 then
+            return
+        end
+        flat[#flat + 1] = {
+            label = BaseMenuItems.labelOf(entry) or "",
+            path = copyPath(path),
+            group = group,
+        }
+    end)
+    return flat
+end
+
+-- Teleport the handler cursor to `path` (sequence of 1-based indices from
+-- the top of the picker tree). Walks the tree to resolve the target leaf,
+-- announces its label. Intermediate Groups are materialized during the walk
+-- so subsequent arrow nav sees the same child set the search resolved
+-- against.
+local function teleportToPath(handler, path, label)
+    local items = handler.tabs and handler.tabs[handler._tabIndex]
+    items = items and items._items or {}
+    local cursor = items
+    for depth, idx in ipairs(path) do
+        if depth == #path then
+            break
+        end
+        local parent = cursor[idx]
+        if parent == nil or type(parent.children) ~= "function" then
+            Log.warn("Civilopedia flat search: path breaks at depth " .. tostring(depth) .. " index " .. tostring(idx))
+            return
+        end
+        cursor = parent:children()
+    end
+    handler._level = #path
+    handler._indices = copyPath(path)
+    if label ~= nil and label ~= "" then
+        SpeechPipeline.speakInterrupt(label)
+    end
+end
+
+-- Build a searchable over the flat corpus. Caches on first call so repeat
+-- keystrokes do not re-walk the picker tree.
+function Civilopedia.buildFlatSearchable(handler)
+    local pickerItems = handler.tabs and handler.tabs[1] and handler.tabs[1]._items or {}
+    local flat = buildFlatCorpus(pickerItems)
+    return {
+        itemCount = function()
+            return #flat
+        end,
+        getLabel = function(i)
+            local entry = flat[i]
+            if entry == nil then
+                return nil
+            end
+            return entry.label
+        end,
+        groupOf = function(i)
+            local entry = flat[i]
+            return entry and entry.group or 0
+        end,
+        moveTo = function(i)
+            local entry = flat[i]
+            if entry == nil then
+                return
+            end
+            teleportToPath(handler, entry.path, entry.label)
+        end,
+    }
+end
+
 -- Public API ------------------------------------------------------------
 
 function Civilopedia.buildPickerItems(entryFactory)

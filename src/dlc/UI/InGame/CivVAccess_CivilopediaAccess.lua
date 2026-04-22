@@ -54,6 +54,7 @@ session.install(ContextPtr, {
     priorShowHide = priorShowHide,
     priorInput = priorInput,
     pickerItems = pickerItems,
+    pickerBuildSearchable = Civilopedia.buildFlatSearchable,
     readerOnAltLeft = Civilopedia.goBack,
     readerOnAltRight = Civilopedia.goForward,
     -- Alt+Left/Right is reader-tab-scoped (see PickerReader install) but

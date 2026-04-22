@@ -321,6 +321,14 @@ function PickerReader.create()
                     onActivate = function(handler)
                         restorePickerCursor(handler, state, state.pickerTabIdx)
                     end,
+                    -- Optional cross-hierarchy search corpus. When a caller
+                    -- (Civilopedia) needs typing to search a flat view of
+                    -- all leaf Entries rather than the current drill level,
+                    -- they supply pickerBuildSearchable(handler) returning
+                    -- a searchable. The override's moveTo is responsible
+                    -- for teleporting handler._level / _indices to the
+                    -- target's path in the picker tree and announcing.
+                    buildSearchable = config.pickerBuildSearchable,
                 },
                 {
                     name = config.readerTabName,
