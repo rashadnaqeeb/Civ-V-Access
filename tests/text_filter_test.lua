@@ -188,6 +188,37 @@ function M.test_icon_dedup_is_case_insensitive()
     T.eq(TextFilter.filter("[ICON_FAITH] faith costs"), "faith costs")
 end
 
+-- Civ's text uses ICON_CITIZEN next to both "Citizen" (singular) and
+-- "Citizens" (plural). A singular spoken form must still collapse the
+-- plural, otherwise the Settler disabled reason reads "... at least 2
+-- citizen Citizens.".
+function M.test_icon_dedup_collapses_trailing_plural_after()
+    setup()
+    TextFilter.registerIcon("ICON_CITIZEN", "citizen")
+    T.eq(TextFilter.filter("at least 2 [ICON_CITIZEN] Citizens."), "at least 2 Citizens.")
+end
+
+function M.test_icon_dedup_collapses_trailing_plural_before()
+    setup()
+    TextFilter.registerIcon("ICON_CITIZEN", "citizen")
+    T.eq(TextFilter.filter("Citizens [ICON_CITIZEN]"), "Citizens")
+end
+
+function M.test_icon_dedup_still_collapses_singular()
+    setup()
+    TextFilter.registerIcon("ICON_CITIZEN", "citizen")
+    T.eq(TextFilter.filter("a new [ICON_CITIZEN] Citizen is born"), "a new Citizen is born")
+end
+
+-- `s?` must not swallow a different word that happens to start with the
+-- phrase plus s. "citizenship" shares "citizen" but the word-boundary
+-- check still has to fail so the icon speaks normally.
+function M.test_icon_dedup_does_not_eat_longer_word_with_s_prefix()
+    setup()
+    TextFilter.registerIcon("ICON_CITIZEN", "citizen")
+    T.eq(TextFilter.filter("[ICON_CITIZEN] Citizenship granted"), "citizen Citizenship granted")
+end
+
 -- Control characters -----------------------------------------------------
 
 function M.test_control_chars_stripped()

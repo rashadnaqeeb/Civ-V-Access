@@ -30,12 +30,16 @@ end
 -- overlap so substituteIcons can drop the token entirely in that case.
 -- Match is case-insensitive and whitespace-tolerant, and the adjacent
 -- phrase must sit on word boundaries (no false hit on "gold"/"golden").
+-- The `s?` before the boundary lets a singular spoken form collapse
+-- against an adjacent English plural ("citizen" against "Citizens"):
+-- Civ uses ICON_CITIZEN next to both forms, so either alone leaves half
+-- the strings doubled.
 local function _matchesAfter(after, phrase)
     if phrase == "" then
         return false
     end
     local aligned = after:lower() .. "\0"
-    return aligned:find("^%s*" .. escapePattern(phrase:lower()) .. "[^%w]") ~= nil
+    return aligned:find("^%s*" .. escapePattern(phrase:lower()) .. "s?[^%w]") ~= nil
 end
 
 local function _matchesBefore(before, phrase)
@@ -43,7 +47,7 @@ local function _matchesBefore(before, phrase)
         return false
     end
     local aligned = "\0" .. before:lower()
-    return aligned:find("[^%w]" .. escapePattern(phrase:lower()) .. "%s*$") ~= nil
+    return aligned:find("[^%w]" .. escapePattern(phrase:lower()) .. "s?%s*$") ~= nil
 end
 
 local function substituteIcons(s)
