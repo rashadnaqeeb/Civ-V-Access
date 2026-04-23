@@ -360,7 +360,7 @@ function PickerReader.create()
                     onAltRight = config.readerOnAltRight,
                 },
             },
-            escAtLevelOne = function(handler)
+            onEscape = function(handler)
                 -- Esc on reader tab -> back to picker (landing on the
                 -- selected entry). Esc on picker tab -> fall through, the
                 -- screen closes.

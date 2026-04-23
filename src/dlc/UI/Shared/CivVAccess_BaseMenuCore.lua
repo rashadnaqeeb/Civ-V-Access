@@ -5,8 +5,10 @@
 -- Nested navigation:
 --   Items can be Groups (see BaseMenuItems.Group) whose children are another
 --   list of items. Navigation tracks a 1-based level (_level) and a cursor at
---   each level (_indices[level]). Right drills into a group; Left / Esc at
---   level > 1 goes back up a level. At level > 1 Up/Down wraps across sibling
+--   each level (_indices[level]). Right drills into a group; Left at level > 1
+--   goes back up a level. Esc never drills out — it bypasses to the screen's
+--   priorInput at any level (so 5 Esc presses aren't needed to close a menu
+--   drilled 5 levels deep). At level > 1 Up/Down wraps across sibling
 --   groups (skipping leaves at the parent level), announcing the new group
 --   before the first child on a boundary crossing. Ctrl+Up / Ctrl+Down jump
 --   to the prev / next sibling group at the parent level, or across groups
@@ -29,11 +31,12 @@
 --                         Home/End navigate matches while active, Enter
 --                         activates, Backspace rewinds, Esc clears.
 --   Esc                   while a search is active: clear the search;
---                         otherwise at level > 1 go back a level; at
---                         level 1 bypass to screen's priorInput
+--                         otherwise bypass to the screen's priorInput at
+--                         any drill level (Esc never drills out — use
+--                         Left to step back up a level)
 --
 -- Tabs are owned by BaseMenuTabs (validation, switch / cycle, per-tab hooks).
--- ContextPtr-level wiring (ShowHide chaining, deferred push, escAtLevelOne,
+-- ContextPtr-level wiring (ShowHide chaining, deferred push, onEscape,
 -- input dispatch) lives in BaseMenuInstall; this file stops at
 -- BaseMenu.create which produces just the handler object. Help, Pulldown
 -- sub-menus, and Options popups consume create() directly without install.
@@ -1061,8 +1064,8 @@ function BaseMenu.create(spec)
         SpeechPipeline.speakInterrupt(text)
     end
 
-    -- Exposed so install's InputHandler can route Esc at level > 1 without
-    -- touching module locals.
+    -- Exposed for callers that need to walk back up a level programmatically
+    -- (AdvancedSetupAccess pops after a slot-remove activation).
     self._goBackLevel = function()
         goBackLevel(self)
     end

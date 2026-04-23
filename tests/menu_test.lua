@@ -2031,7 +2031,8 @@ end
 
 -- Nested menus ---------------------------------------------------------
 --
--- Groups drill via Right / Enter; Left / Esc at level > 1 go back up a level.
+-- Groups drill via Right / Enter; Left at level > 1 goes back up a level.
+-- Esc never drills out — it bypasses to the screen's priorInput at any level.
 -- Up/Down at level > 1 cross into sibling groups on past-end. Ctrl+Up/Down
 -- jumps to prev/next group at the current level's parent.
 
@@ -2104,9 +2105,10 @@ function M.test_left_at_level_2_goes_back()
     T.eq(speaks[1].text, "Parent", "re-announces the group on back")
 end
 
-function M.test_esc_at_level_2_goes_back_via_install_handler()
+function M.test_esc_at_level_2_bypasses_to_priorInput_without_drilling_back()
     setup()
     setCtrls({ "CHILD" })
+    local bypassed = false
     local ctx = {
         SetShowHideHandler = function(self, fn)
             self._sh = fn
@@ -2122,17 +2124,21 @@ function M.test_esc_at_level_2_goes_back_via_install_handler()
             self._update = fn
         end,
     }
-    local handler = BaseMenu.install(
-        ctx,
-        { name = "T", displayName = "Screen", items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) } }
-    )
+    local handler = BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        priorInput = function()
+            bypassed = true
+            return true
+        end,
+        items = { groupItem("Parent", { buttonItem("CHILD", "Child") }) },
+    })
     ctx._sh(false, false)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(handler._level, 2)
-    speaks = {}
-    local consumed = ctx._in(256, Keys.VK_ESCAPE, 0)
-    T.truthy(consumed, "Esc consumed at level > 1")
-    T.eq(handler._level, 1, "Esc went up a level")
+    ctx._in(256, Keys.VK_ESCAPE, 0)
+    T.truthy(bypassed, "Esc at level > 1 delegates to priorInput rather than drilling out")
+    T.eq(handler._level, 2, "Esc did not change level")
 end
 
 function M.test_esc_at_level_1_bypasses_to_priorInput()

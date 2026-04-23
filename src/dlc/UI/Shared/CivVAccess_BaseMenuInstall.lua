@@ -20,8 +20,10 @@
 --   tickOwner         default true; install wires ContextPtr's SetUpdate to
 --                     TickPump for runOnce callbacks (edit-mode TakeFocus,
 --                     deferred pushes).
---   escAtLevelOne     fn(handler) -> bool; consulted before priorInput when
---                     Esc fires at level 1. Return true to consume.
+--   onEscape          fn(handler) -> bool; consulted before priorInput when
+--                     Esc fires (at any drill level). Return true to consume.
+--                     Esc never drills out one level at a time — use Left for
+--                     that — so the hook sees Esc regardless of _level.
 
 function BaseMenu.install(ContextPtr, spec)
     local handler = BaseMenu.create(spec)
@@ -31,7 +33,7 @@ function BaseMenu.install(ContextPtr, spec)
     local shouldActivate = spec.shouldActivate
     local onShow = spec.onShow
     local tickOwner = spec.tickOwner ~= false
-    local escAtLevelOne = spec.escAtLevelOne
+    local onEscape = spec.onEscape
     local pendingPush = false
 
     if tickOwner then
@@ -113,28 +115,26 @@ function BaseMenu.install(ContextPtr, spec)
         end
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
             -- Esc on the menu itself: if a type-ahead search is live, clear
-            -- it and stay at the current level. Otherwise at level > 1 go
-            -- up a level; at level 1 bypass to the screen's own Back / OnNo.
-            -- Esc on a sub (pulldown / edit mode) runs the sub's binding.
+            -- it and stay put. Otherwise bypass to the screen's own Back /
+            -- OnNo at any drill level — Esc does not drill out one level at
+            -- a time (users shouldn't need 5 presses to close a menu they
+            -- drilled 5 levels into; Left is how you walk back up). Esc on
+            -- a sub (pulldown / edit mode) runs the sub's binding.
             if top == handler then
                 if handler._search:isSearchActive() or handler._search:hasBuffer() then
                     handler._search:clear()
                     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
                     return true
                 end
-                if handler._level > 1 then
-                    handler._goBackLevel()
-                    return true
-                end
-                if escAtLevelOne ~= nil then
-                    -- Level-1 Esc hook. Consumed (return true) means the
-                    -- screen stays open; unconsumed falls through to the
-                    -- screen's own priorInput (closes the pedia, ExitConfirm,
-                    -- etc.). PickerReader uses this to bounce the reader tab
-                    -- back to the picker tab rather than closing the screen.
-                    local ok, consumed = pcall(escAtLevelOne, handler)
+                if onEscape ~= nil then
+                    -- Esc hook. Consumed (return true) means the screen
+                    -- stays open; unconsumed falls through to the screen's
+                    -- own priorInput (closes the pedia, ExitConfirm, etc.).
+                    -- PickerReader uses this to bounce the reader tab back
+                    -- to the picker tab rather than closing the screen.
+                    local ok, consumed = pcall(onEscape, handler)
                     if not ok then
-                        Log.error("BaseMenu '" .. handler.name .. "' escAtLevelOne: " .. tostring(consumed))
+                        Log.error("BaseMenu '" .. handler.name .. "' onEscape: " .. tostring(consumed))
                     elseif consumed then
                         return true
                     end

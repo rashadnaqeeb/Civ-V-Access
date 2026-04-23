@@ -45,7 +45,7 @@
 -- on that event and is the only thing that pops g_ActiveTutorialQueue and
 -- calls ProcessActiveTutorialQueue(), so vanilla Escape leaves the engine
 -- stuck on the same tutorial -- the banner closes but the next queued
--- tutorial never shows. escAtLevelOne below routes Escape through
+-- tutorial never shows. onEscape below routes Escape through
 -- OnAdvisorDismissClicked (the Thank-You button's handler) which fires the
 -- event, matching the advance-to-next behavior the mouse path has.
 
@@ -133,7 +133,7 @@ local handler = BaseMenu.install(ContextPtr, {
     silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
-    escAtLevelOne = function()
+    onEscape = function()
         OnAdvisorDismissClicked()
         return true
     end,
