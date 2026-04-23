@@ -247,19 +247,346 @@ local function wrappedShowHide(bIsHide, _bIsInit)
     _lastCityID = (city ~= nil) and city:GetID() or nil
 end
 
--- items={} not allowed (BaseMenu.create rejects empty); a single empty
--- Text placeholder keeps arrow keys harmless until Phase 2 wires real
--- items. The placeholder is never announced because first-open speaks
--- displayName + preamble + item, and the item's labelText is empty which
--- SpeechPipeline collapses away.
+-- ===== Hub item helpers =====
+--
+-- Hub items don't map to a base CityView Control, so the standard Button
+-- factory (which resolves via Controls[controlName] and becomes non-
+-- navigable when the control is missing) doesn't apply. We start from a
+-- Text item, which is always navigable, and override activate to push a
+-- sub-handler or fire an engine task. labelFn lets the label reflect live
+-- state (unemployed count, focus selection) without rebuilding the item.
+
+local function makeHubItem(spec, activateFn)
+    local item = BaseMenuItems.Text(spec)
+    item.activate = function(self, menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local ok, err = pcall(activateFn, self, menu)
+        if not ok then
+            Log.error("CityView hub activate failed: " .. tostring(err))
+        end
+    end
+    return item
+end
+
+local function isTurnActive()
+    return Players[Game.GetActivePlayer()]:IsTurnActive()
+end
+
+-- ===== Wonders sub-handler (§3.8) =====
+--
+-- Flat read-only list of wonders built in this city. Wonder detection
+-- mirrors CityView.lua:1386 (world wonders via MaxGlobalInstances, national
+-- wonders via MaxPlayerInstances==1 with no specialists, team wonders via
+-- MaxTeamInstances). Enter is a no-op (plan §3.8: wonders are permanent
+-- and indestructible); tooltip carries the effect summary.
+
+local function isWonderBuilding(building)
+    local bclass = GameInfo.BuildingClasses[building.BuildingClass]
+    if bclass == nil then
+        return false
+    end
+    if bclass.MaxGlobalInstances > 0 then
+        return true
+    end
+    if bclass.MaxPlayerInstances == 1 and (building.SpecialistCount or 0) == 0 then
+        return true
+    end
+    if bclass.MaxTeamInstances > 0 then
+        return true
+    end
+    return false
+end
+
+local function cityHasAnyWonder(city)
+    for building in GameInfo.Buildings() do
+        if isWonderBuilding(building) and city:IsHasBuilding(building.ID) then
+            return true
+        end
+    end
+    return false
+end
+
+local function pushWonders()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    local wonders = {}
+    for building in GameInfo.Buildings() do
+        if isWonderBuilding(building) and city:IsHasBuilding(building.ID) then
+            local name = Locale.ConvertTextKey(building.Description)
+            local help = building.Help and Locale.ConvertTextKey(building.Help) or ""
+            wonders[#wonders + 1] = { name = name, help = help }
+        end
+    end
+    table.sort(wonders, function(a, b)
+        return Locale.Compare(a.name, b.name) == -1
+    end)
+    local items = {}
+    if #wonders == 0 then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_WONDERS_EMPTY") })
+    else
+        for _, w in ipairs(wonders) do
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = w.name,
+                tooltipText = (w.help ~= "") and w.help or nil,
+            })
+        end
+    end
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.Wonders",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
+-- ===== Great people progress sub-handler (§3.9) =====
+--
+-- One item per specialist type that has non-zero progress (matching the
+-- base screen's own "iProgress > 0" filter). Output is "<class name>,
+-- <progress> of <threshold>" -- threshold via GetSpecialistUpgradeThreshold
+-- on the UnitClass's default unit, same source the base GPMeter uses.
+
+local function cityHasAnyGreatPersonProgress(city)
+    for specialistInfo in GameInfo.Specialists() do
+        if city:GetSpecialistGreatPersonProgress(specialistInfo.ID) > 0 then
+            return true
+        end
+    end
+    return false
+end
+
+local function pushGreatPeople()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    local items = {}
+    for specialistInfo in GameInfo.Specialists() do
+        local iProgress = city:GetSpecialistGreatPersonProgress(specialistInfo.ID)
+        if iProgress > 0 then
+            local unitClass = GameInfo.UnitClasses[specialistInfo.GreatPeopleUnitClass]
+            if unitClass ~= nil then
+                local threshold = city:GetSpecialistUpgradeThreshold(unitClass.ID)
+                local name = Locale.ConvertTextKey(unitClass.Description)
+                items[#items + 1] = BaseMenuItems.Text({
+                    labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, iProgress, threshold),
+                })
+            end
+        end
+    end
+    if #items == 0 then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GP_EMPTY") })
+    end
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.GreatPeople",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
+-- ===== Worker focus sub-handler (§3.11) =====
+--
+-- Eight radio entries + Avoid Growth checkbox + Reset button. Each
+-- radio uses labelFn so the ", selected" marker tracks the live focus
+-- after a change -- the item doesn't need rebuilding, the label just
+-- re-reads on every navigate. Avoid Growth's label follows the same
+-- pattern so the checkbox state is in-band too. Reset label is static.
+--
+-- Tasks: SendSetCityAIFocus / SendSetCityAvoidGrowth for the radio and
+-- checkbox, TASK_CHANGE_WORKING_PLOT with plotIdx=0 for reset (the
+-- engine's documented "reset all forced tiles" escape hatch, used by
+-- CityView.lua:2619).
+
+local FOCUS_TYPES = {
+    { focus = CityAIFocusTypes.NO_CITY_AI_FOCUS_TYPE,           key = "TXT_KEY_CITYVIEW_FOCUS_BALANCED_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FOOD,         key = "TXT_KEY_CITYVIEW_FOCUS_FOOD_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_PRODUCTION,   key = "TXT_KEY_CITYVIEW_FOCUS_PROD_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GOLD,         key = "TXT_KEY_CITYVIEW_FOCUS_GOLD_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_SCIENCE,      key = "TXT_KEY_CITYVIEW_FOCUS_RESEARCH_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_CULTURE,      key = "TXT_KEY_CITYVIEW_FOCUS_CULTURE_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GREAT_PEOPLE, key = "TXT_KEY_CITYVIEW_FOCUS_GREAT_PERSON_TEXT" },
+    { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FAITH,        key = "TXT_KEY_CITYVIEW_FOCUS_FAITH_TEXT" },
+}
+
+local function pushWorkerFocus()
+    local items = {}
+    for _, f in ipairs(FOCUS_TYPES) do
+        local labelKey, focusType = f.key, f.focus
+        local item = BaseMenuItems.Text({
+            labelFn = function()
+                local city = UI.GetHeadSelectedCity()
+                if city ~= nil and city:GetFocusType() == focusType then
+                    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_SELECTED", Text.key(labelKey))
+                end
+                return Text.key(labelKey)
+            end,
+        })
+        item.activate = function(self, _menu)
+            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+            local city = UI.GetHeadSelectedCity()
+            if city == nil or not isTurnActive() then
+                return
+            end
+            Network.SendSetCityAIFocus(city:GetID(), focusType)
+            SpeechPipeline.speakInterrupt(
+                Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_CHANGED", Text.key(labelKey))
+            )
+        end
+        items[#items + 1] = item
+    end
+
+    local avoidItem = BaseMenuItems.Text({
+        labelFn = function()
+            local city = UI.GetHeadSelectedCity()
+            local on = (city ~= nil) and city:IsForcedAvoidGrowth()
+            local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
+            return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_AVOID_GROWTH", state)
+        end,
+    })
+    avoidItem.activate = function(self, menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local city = UI.GetHeadSelectedCity()
+        if city == nil or not isTurnActive() then
+            return
+        end
+        Network.SendSetCityAvoidGrowth(city:GetID(), not city:IsForcedAvoidGrowth())
+        -- The Network call is async; speak the item's label after (labelFn
+        -- reads IsForcedAvoidGrowth which won't flip until the engine
+        -- applies the task). Tolerable: the engine applies locally in
+        -- single-player before the next announce, and multiplayer briefly
+        -- shows the previous state until the commit -- same delay a sighted
+        -- player sees on the checkbox.
+        SpeechPipeline.speakInterrupt(avoidItem:announce(menu))
+    end
+    items[#items + 1] = avoidItem
+
+    local resetItem = BaseMenuItems.Text({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET"),
+    })
+    resetItem.activate = function(self, _menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local city = UI.GetHeadSelectedCity()
+        if city == nil or not isTurnActive() then
+            return
+        end
+        Network.SendDoTask(city:GetID(), TaskTypes.TASK_CHANGE_WORKING_PLOT, 0, -1, false, false, false, false)
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET_DONE"))
+    end
+    items[#items + 1] = resetItem
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.WorkerFocus",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
+-- ===== Unemployed citizens (§3.10) =====
+--
+-- Hub-level action, not a sub-handler. Label carries the live count so
+-- the user hears it on arrowing past without drilling in. Enter fires
+-- TASK_REMOVE_SLACKER (misnamed in the engine; it assigns one citizen to
+-- the best tile or specialist slot). The engine does not expose where
+-- the citizen went and the vanilla UI doesn't show it either; we speak
+-- "assigned" rather than inventing a destination.
+
+local function unemployedLabel()
+    local city = UI.GetHeadSelectedCity()
+    local count = (city ~= nil) and city:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST) or 0
+    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNEMPLOYED_ACTION", count)
+end
+
+local function activateUnemployed()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil or not isTurnActive() then
+        return
+    end
+    if city:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST) <= 0 then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_NO_UNEMPLOYED"))
+        return
+    end
+    Network.SendDoTask(city:GetID(), TaskTypes.TASK_REMOVE_SLACKER, 0, -1, false, false, false, false)
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"))
+end
+
+-- ===== Hub item list =====
+--
+-- Rebuilt on every hub activation (initial push + sub-handler pop). The
+-- canonical order from the plan is preserved even when conditional items
+-- are absent, so adding the later phases' items later won't reshuffle the
+-- already-present ones: Production (Phase 5) / Hex (Phase 7) / Ranged
+-- Strike (Phase 8) / Buildings (Phase 3) / Wonders / Worker focus /
+-- Specialists (Phase 3) / Great works (Phase 4) / Great people /
+-- Unemployed / Rename (Phase 6) / Raze (Phase 6).
+
+local function buildHubItems(city)
+    local items = {}
+    if cityHasAnyWonder(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") },
+            pushWonders
+        )
+    end
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") },
+        pushWorkerFocus
+    )
+    if cityHasAnyGreatPersonProgress(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") },
+            pushGreatPeople
+        )
+    end
+    items[#items + 1] = makeHubItem(
+        { labelFn = unemployedLabel },
+        activateUnemployed
+    )
+    return items
+end
+
+local function rebuildHubItems()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil or hubHandler == nil then
+        return
+    end
+    hubHandler.setItems(buildHubItems(city))
+end
+
+local function onShow(_handler)
+    rebuildHubItems()
+end
+
+-- Install uses the onShow hook for the first-show items rebuild (runs
+-- before the push so onActivate reads fresh items) and wraps onActivate
+-- below for the sub-pop path (install doesn't re-fire onShow when a sub-
+-- handler pops back to the hub).
 hubHandler = BaseMenu.install(ContextPtr, {
     name = "CityView",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"),
     priorInput = priorInput,
     priorShowHide = wrappedShowHide,
     preamble = preamble,
+    onShow = onShow,
+    -- Placeholder item satisfies BaseMenu.create's non-empty items
+    -- invariant; onShow's setItems replaces it before first activation.
     items = { BaseMenuItems.Text({ labelText = "" }) },
 })
+
+-- Wrap onActivate so sub-handler pops back to the hub see a freshly
+-- rebuilt item list (a buy / specialist change / focus change from a
+-- sub may have flipped conditional items).
+local _origOnActivate = hubHandler.onActivate
+hubHandler.onActivate = function(self)
+    rebuildHubItems()
+    return _origOnActivate(self)
+end
 
 hubHandler.bindings[#hubHandler.bindings + 1] = {
     key = VK_OEM_PERIOD,
