@@ -202,8 +202,12 @@ local function onCityScreenDirty()
     if hubHandler == nil then
         return
     end
+    -- Reset _initialized so popAbove's onActivate takes the first-open
+    -- branch (displayName + preamble + first item). Leaving it true would
+    -- interrupt-speak the stale-city cursor item before readHeader wiped
+    -- it, producing a brief speech flash.
+    hubHandler._initialized = false
     HandlerStack.popAbove(hubHandler)
-    hubHandler.readHeader()
 end
 
 -- Register once per lua_State. The closure reads civvaccess_shared's impl
@@ -314,8 +318,8 @@ local function pushWonders()
     local wonders = {}
     for building in GameInfo.Buildings() do
         if isWonderBuilding(building) and city:IsHasBuilding(building.ID) then
-            local name = Locale.ConvertTextKey(building.Description)
-            local help = building.Help and Locale.ConvertTextKey(building.Help) or ""
+            local name = Text.key(building.Description)
+            local help = building.Help and Text.key(building.Help) or ""
             wonders[#wonders + 1] = { name = name, help = help }
         end
     end
@@ -371,7 +375,7 @@ local function pushGreatPeople()
             local unitClass = GameInfo.UnitClasses[specialistInfo.GreatPeopleUnitClass]
             if unitClass ~= nil then
                 local threshold = city:GetSpecialistUpgradeThreshold(unitClass.ID)
-                local name = Locale.ConvertTextKey(unitClass.Description)
+                local name = Text.key(unitClass.Description)
                 items[#items + 1] = BaseMenuItems.Text({
                     labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, iProgress, threshold),
                     pediaName = name,
@@ -620,8 +624,8 @@ local function pushBuildings()
     local buildings = {}
     for building in GameInfo.Buildings() do
         if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
-            local name = Locale.ConvertTextKey(building.Description)
-            local help = building.Help and Locale.ConvertTextKey(building.Help) or ""
+            local name = Text.key(building.Description)
+            local help = building.Help and Text.key(building.Help) or ""
             buildings[#buildings + 1] = { id = building.ID, name = name, help = help }
         end
     end
@@ -710,7 +714,7 @@ local function pushSpecialists()
             if slots > 0 then
                 specBuildings[#specBuildings + 1] = {
                     id = building.ID,
-                    name = Locale.ConvertTextKey(building.Description),
+                    name = Text.key(building.Description),
                     slots = slots,
                     specialistType = building.SpecialistType,
                 }
@@ -726,7 +730,7 @@ local function pushSpecialists()
         local specialistInfo = GameInfo.Specialists[sb.specialistType]
         if specialistInfo ~= nil then
             local specID = specialistInfo.ID
-            local specName = Locale.ConvertTextKey(specialistInfo.Description)
+            local specName = Text.key(specialistInfo.Description)
             local bID, bName = sb.id, sb.name
             for slotIdx = 1, sb.slots do
                 local capturedSlot = slotIdx
@@ -903,7 +907,7 @@ local function pushGreatWorks()
             local bclass = GameInfo.BuildingClasses[building.BuildingClass]
             if bclass ~= nil then
                 gwBuildings[#gwBuildings + 1] = {
-                    name = Locale.ConvertTextKey(building.Description),
+                    name = Text.key(building.Description),
                     bClassID = bclass.ID,
                     slotCount = building.GreatWorkCount,
                     slotType = building.GreatWorkSlotType,
@@ -1046,8 +1050,8 @@ local function orderNameAndHelp(orderType, data1)
     if info == nil then
         return "", ""
     end
-    local name = Locale.ConvertTextKey(info.Description)
-    local help = info.Help and Locale.ConvertTextKey(info.Help) or ""
+    local name = Text.key(info.Description)
+    local help = info.Help and Text.key(info.Help) or ""
     return name, help
 end
 
@@ -1498,7 +1502,24 @@ local function activateHexTile()
             return
         end
         local ringIdx = plotIndexInRing(city, plot)
-        if ringIdx == nil or ringIdx == 0 then
+        if ringIdx == 0 then
+            return
+        end
+        if ringIdx == nil then
+            -- isInWorkingArea said this plot is one of ours but it's not
+            -- in the 37-plot ring GetCityIndexPlot enumerates. Vanilla's
+            -- max city radius is 3 so this shouldn't reach, but the
+            -- engine drops citizen-toggle silently if we still send the
+            -- task; log so the failure is visible if a mod or future
+            -- expansion widens the working area.
+            Log.warn(
+                "CityView hex: plot ("
+                    .. tostring(cx)
+                    .. ","
+                    .. tostring(cy)
+                    .. ") in working area but outside ring of city "
+                    .. tostring(city:GetID())
+            )
             return
         end
         Network.SendDoTask(
@@ -1855,7 +1876,7 @@ local function buildHubItems(city)
     -- plan §4.1 -- matches vanilla's right-click on the slacker portrait
     -- (CityView.lua:1293).
     local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
-    local slackerPedia = slackerInfo and Locale.ConvertTextKey(slackerInfo.Description) or nil
+    local slackerPedia = slackerInfo and Text.key(slackerInfo.Description) or nil
     items[#items + 1] = makeHubItem(
         { labelFn = unemployedLabel, pediaName = slackerPedia },
         activateUnemployed

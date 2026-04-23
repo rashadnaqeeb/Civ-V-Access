@@ -181,12 +181,7 @@ function CityRangeStrikeMode.enter(city)
         -- currently selected-cities list (see WorldView.lua:519). The
         -- activation flow selected the city before entering this mode,
         -- so the task targets the right attacker.
-        Game.SelectedCitiesGameNetMessage(
-            GameMessageTypes.GAMEMESSAGE_DO_TASK,
-            TaskTypes.TASK_RANGED_ATTACK,
-            cx,
-            cy
-        )
+        Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_DO_TASK, TaskTypes.TASK_RANGED_ATTACK, cx, cy)
         popHandler()
     end
 

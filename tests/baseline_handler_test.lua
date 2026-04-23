@@ -211,7 +211,9 @@ function M.test_f10_fires_advisor_counsel_popup()
     -- the other tests shouldn't carry the capture.
     ButtonPopupTypes = { BUTTONPOPUP_ADVISOR_COUNSEL = 2 }
     local captured
-    Events.SerialEventGameMessagePopup = function(info) captured = info end
+    Events.SerialEventGameMessagePopup = function(info)
+        captured = info
+    end
 
     local h = BaselineHandler.create()
     local binding = findBinding(h, Keys.VK_F10, 0)

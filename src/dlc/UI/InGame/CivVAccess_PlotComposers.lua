@@ -122,7 +122,7 @@ function PlotComposers.economy(plot, opts)
         -- is a different city (rare split-ring case). Pass opts.contextCity
         -- to opt into the shorter form when they match.
         local ctx = opts.contextCity
-        if ctx ~= nil and workingCity:GetID() == ctx:GetID() then
+        if ctx ~= nil and workingCity:GetID() == ctx:GetID() and workingCity:GetOwner() == ctx:GetOwner() then
             out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_CONTROLLED")
         else
             out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_CONTROLLED_BY", workingCity:GetName())

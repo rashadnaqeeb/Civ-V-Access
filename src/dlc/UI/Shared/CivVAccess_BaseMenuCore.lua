@@ -840,12 +840,7 @@ function BaseMenu.create(spec)
                 if name == nil and type(item.pediaNameFn) == "function" then
                     local ok, result = pcall(item.pediaNameFn, item._control)
                     if not ok then
-                        Log.error(
-                            "BaseMenu '"
-                                .. tostring(self.name)
-                                .. "' pediaNameFn failed: "
-                                .. tostring(result)
-                        )
+                        Log.error("BaseMenu '" .. tostring(self.name) .. "' pediaNameFn failed: " .. tostring(result))
                         return
                     end
                     name = result
