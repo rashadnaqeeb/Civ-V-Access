@@ -349,7 +349,10 @@ function ChooseProductionLogic.buildLabel(entry, city)
     if entry.info.Strategy and entry.info.Strategy ~= "" then
         parts[#parts + 1] = Text.key(entry.info.Strategy)
     end
-    if entry.info.Help and entry.info.Help ~= "" then
+    -- Some buildings (Monument, etc.) point Help and Strategy at the same
+    -- TXT_KEY; the game's Civilopedia skips Help in that case to avoid a
+    -- duplicate read (CivilopediaScreen.lua:3270).
+    if entry.info.Help and entry.info.Help ~= "" and entry.info.Help ~= entry.info.Strategy then
         parts[#parts + 1] = Text.key(entry.info.Help)
     end
     local suffix = ChooseProductionLogic.advisorSuffix(entry)

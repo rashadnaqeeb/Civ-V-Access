@@ -449,6 +449,36 @@ function M.test_disabled_entry_label_includes_reason()
     T.truthy(dPos < sPos, "disabled before strategy")
 end
 
+function M.test_label_drops_help_when_identical_to_strategy()
+    -- Monument-style entries point Help and Strategy at the same TXT_KEY so
+    -- both resolve to the same localized string. The label must not read it
+    -- twice.
+    setup()
+    installGameInfoBuildings({
+        {
+            ID = 1,
+            Description = "Monument",
+            BuildingClass = "BUILDINGCLASS_MONUMENT",
+            Strategy = "TXT_KEY_BUILDING_MONUMENT_STRATEGY",
+            Help = "TXT_KEY_BUILDING_MONUMENT_STRATEGY",
+        },
+    })
+    local city = mkCityStub({
+        canConstruct = { [1] = true },
+        buildingTurnsLeft = { [1] = 3 },
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_CONSTRUCT,
+        id = 1,
+        info = GameInfo.Buildings[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local label = ChooseProductionLogic.buildLabel(entry, city)
+    local _, count = label:gsub("TXT_KEY_BUILDING_MONUMENT_STRATEGY", "")
+    T.eq(count, 1, "strategy/help text appears exactly once")
+end
+
 function M.test_advisor_suffix_with_zero_one_and_all_advisors()
     setup()
     -- Distinct sentences per advisor key so the concatenation is observable.
