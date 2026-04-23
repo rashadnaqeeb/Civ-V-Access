@@ -330,12 +330,11 @@ function ChooseProductionLogic.buildOtherEntries(city, isProduce)
     return entries
 end
 
--- Four-part focus announcement: name + cost + disabled-clause + strategy/help +
--- advisor suffix. Plan §5 fixes this order: name first, cost second, disabled
--- clause (if any) before strategy so the "can I even click this?" bit arrives
--- early, then the game-text blurbs, then the advisor suffix at the end.
+-- Focus announcement order: name, cost, disabled clause (with reason if any),
+-- strategy, help, advisor suffix. Disabled clause precedes strategy so the
+-- "can I even click this?" information arrives before the flavor blurbs.
 function ChooseProductionLogic.buildLabel(entry, city)
-    local parts = { Locale.ConvertTextKey(entry.info.Description) }
+    local parts = { Text.key(entry.info.Description) }
     local cost = ChooseProductionLogic.costClause(city, entry)
     if cost ~= nil then
         parts[#parts + 1] = cost
@@ -348,10 +347,10 @@ function ChooseProductionLogic.buildLabel(entry, city)
         end
     end
     if entry.info.Strategy and entry.info.Strategy ~= "" then
-        parts[#parts + 1] = Locale.ConvertTextKey(entry.info.Strategy)
+        parts[#parts + 1] = Text.key(entry.info.Strategy)
     end
     if entry.info.Help and entry.info.Help ~= "" then
-        parts[#parts + 1] = Locale.ConvertTextKey(entry.info.Help)
+        parts[#parts + 1] = Text.key(entry.info.Help)
     end
     local suffix = ChooseProductionLogic.advisorSuffix(entry)
     if suffix ~= "" then

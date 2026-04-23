@@ -88,7 +88,7 @@ end
 -- because the banner suppresses the occupied icon on annexed-as-capital
 -- cities; same rule here to avoid speaking an icon the sighted player
 -- doesn't see.
-local function statusTokens(city)
+function CitySpeech.statusTokens(city)
     local parts = {}
     if city:IsRazing() then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RAZING", city:GetRazingTurns())
@@ -106,6 +106,49 @@ local function statusTokens(city)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_BLOCKADED")
     end
     return parts
+end
+
+-- Trade-route connected indicator. Excluded from statusTokens because the
+-- cursor-glance identity (CitySpeech.identity) intentionally omits it --
+-- the banner surfaces connected via a separate icon group, not the status
+-- stack. CityView and ChooseProduction preambles append this after status.
+function CitySpeech.connectedToken(city)
+    local owner = Players[city:GetOwner()]
+    if owner ~= nil and not city:IsCapital() and owner:IsCapitalConnectedToCity(city) and not city:IsBlockaded() then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_CONNECTED")
+    end
+    return nil
+end
+
+-- Growth line: stopped growing when food-production or zero net food,
+-- starving when negative, else the turns-to-grow format key.
+function CitySpeech.growthToken(city)
+    local foodDiff100 = city:FoodDifferenceTimes100()
+    if city:IsFoodProduction() or foodDiff100 == 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING")
+    end
+    if foodDiff100 < 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
+end
+
+-- Short production token: name + turns-left, or "not producing" / process
+-- form. Does NOT include the progress fraction that development() speaks;
+-- callers who want that build it separately.
+function CitySpeech.productionToken(city)
+    local prodKey = city:GetProductionNameKey()
+    if prodKey == nil or prodKey == "" then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING")
+    end
+    if city:IsProductionProcess() then
+        return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS", Text.key(prodKey))
+    end
+    local turnsLeft = 0
+    if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
+        turnsLeft = city:GetProductionTurnsLeft()
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
 end
 
 -- Enemy city HP: band color rather than exact fraction, matching what
@@ -166,7 +209,7 @@ function CitySpeech.identity(city)
         parts[#parts + 1] = Text.key(friendshipTierKey(city))
     end
 
-    for _, t in ipairs(statusTokens(city)) do
+    for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
     end
 

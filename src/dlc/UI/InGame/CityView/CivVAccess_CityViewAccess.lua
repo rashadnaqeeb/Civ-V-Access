@@ -30,6 +30,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_CitySpeech")
 
 local priorInput = InputHandler
 
@@ -43,63 +44,9 @@ local hubHandler -- forward; assigned after BaseMenu.install returns.
 
 -- ===== Preamble composition =====
 --
--- Re-resolved on every F1 / city-change so stale data can't leak. Matches
--- the banner's icon cascade for status tokens (CityBannerManager.lua)
--- and adds "connected" because the top panel's connected icon is a
--- CityView-only concern (the cursor's identity glance doesn't surface it).
-
-local function statusTokens(city)
-    local parts = {}
-    if city:IsRazing() then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RAZING", city:GetRazingTurns())
-    end
-    if city:IsResistance() then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RESISTANCE", city:GetResistanceTurns())
-    end
-    if city:IsOccupied() and not city:IsNoOccupiedUnhappiness() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_OCCUPIED")
-    end
-    if city:IsPuppet() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_PUPPET")
-    end
-    if city:IsBlockaded() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_BLOCKADED")
-    end
-    local owner = Players[city:GetOwner()]
-    if owner ~= nil and not city:IsCapital() and owner:IsCapitalConnectedToCity(city) and not city:IsBlockaded() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_CONNECTED")
-    end
-    return parts
-end
-
--- Growth line mirrors CitySpeech.development's fork: stopped growing when
--- food-production or zero net food, starving when negative, else the
--- turns-to-grow format key.
-local function growthToken(city)
-    local foodDiff100 = city:FoodDifferenceTimes100()
-    if city:IsFoodProduction() or foodDiff100 == 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING")
-    end
-    if foodDiff100 < 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
-end
-
-local function productionToken(city)
-    local prodKey = city:GetProductionNameKey()
-    if prodKey == nil or prodKey == "" then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING")
-    end
-    if city:IsProductionProcess() then
-        return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS", Text.key(prodKey))
-    end
-    local turnsLeft = 0
-    if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
-        turnsLeft = city:GetProductionTurnsLeft()
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
-end
+-- Re-resolved on every F1 / city-change so stale data can't leak. Status /
+-- growth / production tokens come from CitySpeech; the connected token is
+-- a CityView-surface concern (cursor-glance identity omits it).
 
 -- Per-turn yields in the order the plan lists (food, production, gold,
 -- science, faith, tourism, culture). Food uses net FoodDifference so the
@@ -125,13 +72,17 @@ local function preamble()
     local parts = {}
     parts[#parts + 1] = city:GetName()
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_POPULATION", city:GetPopulation())
-    parts[#parts + 1] = growthToken(city)
-    parts[#parts + 1] = productionToken(city)
+    parts[#parts + 1] = CitySpeech.growthToken(city)
+    parts[#parts + 1] = CitySpeech.productionToken(city)
     for _, t in ipairs(yieldTokens(city)) do
         parts[#parts + 1] = t
     end
-    for _, t in ipairs(statusTokens(city)) do
+    for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
+    end
+    local connected = CitySpeech.connectedToken(city)
+    if connected ~= nil then
+        parts[#parts + 1] = connected
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_DEFENSE", math.floor(city:GetStrengthValue() / 100))
     parts[#parts + 1] =

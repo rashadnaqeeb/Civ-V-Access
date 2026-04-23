@@ -47,6 +47,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_CitySpeech")
 include("CivVAccess_ChooseProductionLogic")
 
 local priorInput = InputHandler
@@ -83,54 +84,8 @@ end
 -- ===== Preamble =====
 --
 -- Re-evaluated on first open and on F1 (readHeader). Turn ticks don't fire
--- while the popup is up in single-player so snapshotting is fine.
-
-local function statusTokens(city)
-    local parts = {}
-    if city:IsResistance() then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RESISTANCE", city:GetResistanceTurns())
-    end
-    if city:IsRazing() then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_RAZING", city:GetRazingTurns())
-    end
-    if city:IsOccupied() and not city:IsNoOccupiedUnhappiness() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_OCCUPIED")
-    end
-    local owner = Players[city:GetOwner()]
-    if owner ~= nil and not city:IsCapital() and owner:IsCapitalConnectedToCity(city) and not city:IsBlockaded() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_CONNECTED")
-    end
-    if city:IsBlockaded() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_BLOCKADED")
-    end
-    return parts
-end
-
-local function growthToken(city)
-    local foodDiff100 = city:FoodDifferenceTimes100()
-    if city:IsFoodProduction() or foodDiff100 == 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING")
-    end
-    if foodDiff100 < 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_STARVING")
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", city:GetFoodTurnsLeft())
-end
-
-local function productionToken(city)
-    local prodKey = city:GetProductionNameKey()
-    if prodKey == nil or prodKey == "" then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING")
-    end
-    if city:IsProductionProcess() then
-        return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS", Text.key(prodKey))
-    end
-    local turnsLeft = 0
-    if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
-        turnsLeft = city:GetProductionTurnsLeft()
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING", Text.key(prodKey), turnsLeft)
-end
+-- while the popup is up in single-player so snapshotting is fine. Status /
+-- growth / production / connected tokens come from CitySpeech.
 
 local function preambleFn()
     local city = getCurrentCity()
@@ -140,11 +95,11 @@ local function preambleFn()
     local parts = {}
     parts[#parts + 1] = city:GetName()
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_POPULATION", city:GetPopulation())
-    parts[#parts + 1] = growthToken(city)
+    parts[#parts + 1] = CitySpeech.growthToken(city)
     if _appendMode then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PREAMBLE_QUEUE_COUNT", city:GetOrderQueueLength(), 6)
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PREAMBLE_QUEUE_COUNT", city:GetOrderQueueLength())
     else
-        parts[#parts + 1] = productionToken(city)
+        parts[#parts + 1] = CitySpeech.productionToken(city)
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD", city:FoodDifference())
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION", city:GetYieldRate(YieldTypes.YIELD_PRODUCTION))
@@ -152,8 +107,12 @@ local function preambleFn()
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLD", city:GetYieldRate(YieldTypes.YIELD_GOLD))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", city:GetYieldRate(YieldTypes.YIELD_CULTURE))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetYieldRate(YieldTypes.YIELD_FAITH))
-    for _, t in ipairs(statusTokens(city)) do
+    for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
+    end
+    local connected = CitySpeech.connectedToken(city)
+    if connected ~= nil then
+        parts[#parts + 1] = connected
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_DEFENSE", math.floor(city:GetStrengthValue() / 100))
     return table.concat(parts, ". ") .. "."
@@ -172,7 +131,7 @@ local function commitProduce(city, entry)
     Game.CityPushOrder(city, entry.orderType, entry.id, false, not _appendMode, true)
     fireBannerDirty(city)
     if not _appendMode then
-        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING", Locale.ConvertTextKey(entry.info.Description)))
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING", Text.key(entry.info.Description)))
         OnClose()
         return
     end
@@ -209,7 +168,7 @@ local function commitPurchase(city, entry)
     end
     fireBannerDirty(city)
     Events.AudioPlay2DSound("AS2D_INTERFACE_CITY_SCREEN_PURCHASE")
-    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Locale.ConvertTextKey(entry.info.Description)))
+    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Text.key(entry.info.Description)))
     OnClose()
 end
 
@@ -238,7 +197,7 @@ local function choiceFromEntry(entry)
         labelFn = function()
             local city = getCurrentCity()
             if city == nil then
-                return Locale.ConvertTextKey(entry.info.Description)
+                return Text.key(entry.info.Description)
             end
             return ChooseProductionLogic.buildLabel(entry, city)
         end,
@@ -272,16 +231,16 @@ local function buildQueueItems(city)
         local name
         local turns
         if orderType == OrderTypes.ORDER_TRAIN then
-            name = Locale.ConvertTextKey(GameInfo.Units[data1].Description)
+            name = Text.key(GameInfo.Units[data1].Description)
             turns = city:GetUnitProductionTurnsLeft(data1, i - 1)
         elseif orderType == OrderTypes.ORDER_CONSTRUCT then
-            name = Locale.ConvertTextKey(GameInfo.Buildings[data1].Description)
+            name = Text.key(GameInfo.Buildings[data1].Description)
             turns = city:GetBuildingProductionTurnsLeft(data1, i - 1)
         elseif orderType == OrderTypes.ORDER_CREATE then
-            name = Locale.ConvertTextKey(GameInfo.Projects[data1].Description)
+            name = Text.key(GameInfo.Projects[data1].Description)
             turns = city:GetProjectProductionTurnsLeft(data1, i - 1)
         elseif orderType == OrderTypes.ORDER_MAINTAIN then
-            name = Locale.ConvertTextKey(GameInfo.Processes[data1].Description)
+            name = Text.key(GameInfo.Processes[data1].Description)
             turns = nil
         end
         local label
