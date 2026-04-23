@@ -423,6 +423,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"] = "removed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE"] = "Queue mode, {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"] = "Choose production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "Purchase with gold or faith"
+-- Rename / Raze hub items (§3.13, §3.14). Rename fires BUTTONPOPUP_RENAME_CITY,
+-- whose accessibility is handled by SetCityNameAccess. Raze fires the Yes/No
+-- confirmation popup (BUTTONPOPUP_CONFIRM_CITY_TASK with TASK_RAZE), handled
+-- by GenericPopupAccess. Unraze is a direct Network.SendDoTask -- no popup.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Rename city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Raze city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Stop razing"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "razing stopped"
 -- Collapse announcement emitted when three or more notifications arrive
 -- inside a six-frame window. The actual summaries are still available via
 -- Ctrl+N so no content is lost.

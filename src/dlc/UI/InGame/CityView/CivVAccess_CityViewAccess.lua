@@ -1279,6 +1279,75 @@ pushProductionQueue = function()
     }))
 end
 
+-- ===== Rename (§3.13) =====
+--
+-- Hub-level item. Fires vanilla's BUTTONPOPUP_RENAME_CITY, which opens the
+-- SetCityName popup Context -- already accessible via SetCityNameAccess.
+-- No turn-active gate (vanilla lets you rename mid-turn or on someone
+-- else's turn, since rename is a local request).
+
+local function activateRename()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    Events.SerialEventGameMessagePopup({
+        Type = ButtonPopupTypes.BUTTONPOPUP_RENAME_CITY,
+        Data1 = city:GetID(),
+        Data2 = -1,
+        Data3 = -1,
+        Option1 = false,
+        Option2 = false,
+    })
+end
+
+-- ===== Raze / Stop Razing (§3.14) =====
+--
+-- Mutually-exclusive pair gated by city state. Raze mirrors vanilla's
+-- OnRazeButton (CityView.lua:2465): fires BUTTONPOPUP_CONFIRM_CITY_TASK with
+-- TASK_RAZE as Data2, which opens the Yes/No confirmation dialog handled by
+-- GenericPopupAccess. Unraze mirrors OnUnrazeButton (CityView.lua:2485):
+-- fires Network.SendDoTask(TASK_UNRAZE) directly -- vanilla has no
+-- confirmation popup for stopping a raze, so we don't add one either.
+--
+-- Raze visibility matches vanilla's RazeCityButton:SetHide false branches
+-- (lines 1581-1604): occupied, not currently razing, and CanRaze(pCity,
+-- false) actually true. The capital-but-could-raze case (CanRaze false /
+-- CanRaze-ignoring-capital true) is dropped -- vanilla shows the button
+-- disabled with a tooltip, but we'd rather omit the dead-end item.
+
+local function canShowRaze(city)
+    if not city:IsOccupied() or city:IsRazing() then
+        return false
+    end
+    local player = Players[city:GetOwner()]
+    if player == nil then
+        return false
+    end
+    return player:CanRaze(city, false)
+end
+
+local function activateRaze()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    Events.SerialEventGameMessagePopup({
+        Type = ButtonPopupTypes.BUTTONPOPUP_CONFIRM_CITY_TASK,
+        Data1 = city:GetID(),
+        Data2 = TaskTypes.TASK_RAZE,
+    })
+end
+
+local function activateUnraze()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil or not isTurnActive() then
+        return
+    end
+    Network.SendDoTask(city:GetID(), TaskTypes.TASK_UNRAZE, -1, -1, false, false, false, false)
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"))
+end
+
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop). The
@@ -1338,6 +1407,21 @@ local function buildHubItems(city)
         { labelFn = unemployedLabel },
         activateUnemployed
     )
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME") },
+        activateRename
+    )
+    if city:IsRazing() then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") },
+            activateUnraze
+        )
+    elseif canShowRaze(city) then
+        items[#items + 1] = makeHubItem(
+            { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") },
+            activateRaze
+        )
+    end
     return items
 end
 
