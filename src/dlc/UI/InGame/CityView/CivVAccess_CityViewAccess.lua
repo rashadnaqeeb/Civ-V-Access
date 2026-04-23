@@ -995,6 +995,290 @@ local function pushGreatWorks()
     }))
 end
 
+-- ===== Production queue sub-handler (§3.1) =====
+--
+-- Flat list: queue slots, queue-mode toggle, Choose Production, Purchase.
+-- Slot 1 (the currently-producing item) carries the production-meter
+-- percent alongside turns + help; slots 2+ skip the meter since their
+-- percent is always zero until they reach slot 1. Processes
+-- (ORDER_MAINTAIN) have no turns line -- they sink production indefinitely.
+-- Drill-in per slot: Move up / Move down / Remove / Back. Move up is
+-- suppressed on slot 1 and Move down on the last slot, same shape vanilla's
+-- arrow-button array uses (CityView.lua:2238-2262). Moves fire
+-- GAMEMESSAGE_SWAP_ORDER with the lower index of the pair; remove fires
+-- GAMEMESSAGE_POP_ORDER. Both drop back to the queue list so the labelFn
+-- rebuild catches the new ordering.
+--
+-- Queue mode is vanilla's `productionQueueOpen` local, surfaced through the
+-- `HideQueueButton` XML checkbox and its global `OnHideQueue` handler. We
+-- read via GetCheck() and write via SetCheck + OnHideQueue(newVal) so the
+-- shared state and the visual checkbox track together.
+
+local ORDER_INFO_TABLE = {
+    [OrderTypes.ORDER_TRAIN] = function()
+        return GameInfo.Units
+    end,
+    [OrderTypes.ORDER_CONSTRUCT] = function()
+        return GameInfo.Buildings
+    end,
+    [OrderTypes.ORDER_CREATE] = function()
+        return GameInfo.Projects
+    end,
+    [OrderTypes.ORDER_MAINTAIN] = function()
+        return GameInfo.Processes
+    end,
+}
+
+local function orderNameAndHelp(orderType, data1)
+    local tableFn = ORDER_INFO_TABLE[orderType]
+    if tableFn == nil then
+        return "", ""
+    end
+    local info = tableFn()[data1]
+    if info == nil then
+        return "", ""
+    end
+    local name = Locale.ConvertTextKey(info.Description)
+    local help = info.Help and Locale.ConvertTextKey(info.Help) or ""
+    return name, help
+end
+
+local function slotTurnsLeft(city, orderType, data1, zeroIdx)
+    if orderType == OrderTypes.ORDER_TRAIN then
+        return city:GetUnitProductionTurnsLeft(data1, zeroIdx)
+    elseif orderType == OrderTypes.ORDER_CONSTRUCT then
+        return city:GetBuildingProductionTurnsLeft(data1, zeroIdx)
+    elseif orderType == OrderTypes.ORDER_CREATE then
+        return city:GetProjectProductionTurnsLeft(data1, zeroIdx)
+    end
+    return -1
+end
+
+local function isGeneratingProduction(city)
+    return city:GetCurrentProductionDifferenceTimes100(false, false) > 0
+end
+
+local function slotOneLabel(city, orderType, data1)
+    local name, help = orderNameAndHelp(orderType, data1)
+    if orderType == OrderTypes.ORDER_MAINTAIN then
+        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS", name, help)
+    end
+    local needed = city:GetProductionNeeded()
+    local stored = city:GetProductionTimes100() / 100
+    local pct = (needed > 0) and math.floor((stored / needed) * 100) or 0
+    if isGeneratingProduction(city) then
+        local turns = slotTurnsLeft(city, orderType, data1, 0)
+        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN", name, turns, pct, help)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN_INFINITE", name, pct, help)
+end
+
+local function slotNLabel(city, displaySlot, zeroIdx, orderType, data1)
+    local name = select(1, orderNameAndHelp(orderType, data1))
+    if orderType == OrderTypes.ORDER_MAINTAIN then
+        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_PROCESS", displaySlot, name)
+    end
+    if isGeneratingProduction(city) then
+        local turns = slotTurnsLeft(city, orderType, data1, zeroIdx)
+        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN", displaySlot, name, turns)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE", displaySlot, name)
+end
+
+local pushProductionQueue -- forward; the drill-in re-enters the queue list after a mutation.
+
+local function pushQueueSlotActions(zeroIdx, slotName)
+    local items = {}
+
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+    local qLength = city:GetOrderQueueLength()
+
+    if zeroIdx > 0 then
+        local upItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP") })
+        upItem.activate = function(_self, _menu)
+            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+            if not isTurnActive() then
+                return
+            end
+            Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx - 1)
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_UP"))
+            HandlerStack.removeByName("CityView.ProdActions", false)
+            HandlerStack.removeByName("CityView.Production", false)
+            pushProductionQueue()
+        end
+        items[#items + 1] = upItem
+    end
+
+    if zeroIdx < qLength - 1 then
+        local downItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN") })
+        downItem.activate = function(_self, _menu)
+            Events.AudioPlay2DSound("AS2D_IF_SELECT")
+            if not isTurnActive() then
+                return
+            end
+            Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx)
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_DOWN"))
+            HandlerStack.removeByName("CityView.ProdActions", false)
+            HandlerStack.removeByName("CityView.Production", false)
+            pushProductionQueue()
+        end
+        items[#items + 1] = downItem
+    end
+
+    local removeItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVE") })
+    removeItem.activate = function(_self, _menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        if not isTurnActive() then
+            return
+        end
+        Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_POP_ORDER, zeroIdx)
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"))
+        HandlerStack.removeByName("CityView.ProdActions", false)
+        HandlerStack.removeByName("CityView.Production", false)
+        pushProductionQueue()
+    end
+    items[#items + 1] = removeItem
+
+    local backItem = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_BACK") })
+    backItem.activate = function(_self, _menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        HandlerStack.removeByName("CityView.ProdActions", true)
+    end
+    items[#items + 1] = backItem
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.ProdActions",
+        displayName = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
+pushProductionQueue = function()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+
+    local items = {}
+
+    local qLength = city:GetOrderQueueLength()
+    if qLength == 0 then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_EMPTY") })
+    else
+        for i = 0, qLength - 1 do
+            local zeroIdx = i
+            local displaySlot = i + 1
+            local item = BaseMenuItems.Text({
+                labelFn = function()
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil then
+                        return ""
+                    end
+                    local orderType, data1 = c:GetOrderFromQueue(zeroIdx)
+                    if orderType == nil or orderType == -1 then
+                        return ""
+                    end
+                    if zeroIdx == 0 then
+                        return slotOneLabel(c, orderType, data1)
+                    end
+                    return slotNLabel(c, displaySlot, zeroIdx, orderType, data1)
+                end,
+            })
+            item.activate = function(_self, _menu)
+                Events.AudioPlay2DSound("AS2D_IF_SELECT")
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return
+                end
+                local orderType, data1 = c:GetOrderFromQueue(zeroIdx)
+                if orderType == nil or orderType == -1 then
+                    return
+                end
+                local slotName = select(1, orderNameAndHelp(orderType, data1))
+                pushQueueSlotActions(zeroIdx, slotName)
+            end
+            items[#items + 1] = item
+        end
+    end
+
+    -- Queue mode toggle. GetCheck() reads vanilla's checkbox state; SetCheck
+    -- + OnHideQueue(newVal) writes and fires vanilla's handler so the
+    -- chunk-local `productionQueueOpen` tracks too.
+    local queueModeItem = BaseMenuItems.Text({
+        labelFn = function()
+            local on = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:GetCheck()
+            local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
+            return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE", state)
+        end,
+    })
+    queueModeItem.activate = function(self, menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        if Controls.HideQueueButton == nil then
+            return
+        end
+        local newVal = not Controls.HideQueueButton:GetCheck()
+        Controls.HideQueueButton:SetCheck(newVal)
+        if type(OnHideQueue) == "function" then
+            OnHideQueue(newVal)
+        end
+        SpeechPipeline.speakInterrupt(queueModeItem:announce(menu))
+    end
+    items[#items + 1] = queueModeItem
+
+    local chooseItem =
+        BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE") })
+    chooseItem.activate = function(_self, _menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local c = UI.GetHeadSelectedCity()
+        if c == nil then
+            return
+        end
+        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:GetCheck()
+        Events.SerialEventGameMessagePopup({
+            Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
+            Data1 = c:GetID(),
+            Data2 = -1,
+            Data3 = -1,
+            Option1 = (queueModeOn and c:GetOrderQueueLength() > 0),
+            Option2 = false,
+        })
+    end
+    items[#items + 1] = chooseItem
+
+    local purchaseItem =
+        BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE") })
+    purchaseItem.activate = function(_self, _menu)
+        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        local c = UI.GetHeadSelectedCity()
+        if c == nil then
+            return
+        end
+        local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:GetCheck()
+        Events.SerialEventGameMessagePopup({
+            Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
+            Data1 = c:GetID(),
+            Data2 = -1,
+            Data3 = -1,
+            Option1 = (queueModeOn and c:GetOrderQueueLength() > 0),
+            Option2 = true,
+        })
+    end
+    items[#items + 1] = purchaseItem
+
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView.Production",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"),
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop). The
@@ -1012,6 +1296,10 @@ end
 -- whose label carries its own zero-state).
 local function buildHubItems(city)
     local items = {}
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") },
+        pushProductionQueue
+    )
     if cityHasAnyNonWonderBuilding(city) then
         items[#items + 1] = makeHubItem(
             { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") },
