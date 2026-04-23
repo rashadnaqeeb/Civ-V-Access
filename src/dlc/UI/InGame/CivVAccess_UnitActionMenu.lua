@@ -61,6 +61,107 @@ local function actionLabel(action)
     return Text.key(key)
 end
 
+-- Static Help text from the action's underlying table (Builds.Help,
+-- UnitPromotions.Help, Missions.Help, etc.). Engine defaults are "" for
+-- rows that don't author one, so treat empty / nil the same.
+local function staticHelpText(action)
+    if type(action.Help) ~= "string" or action.Help == "" then
+        return nil
+    end
+    return Text.key(action.Help)
+end
+
+-- Yield TXT_KEY per YieldTypes.YIELD_* id, for build-tooltip delta strings.
+-- Keys mirror UnitPanel.lua TipHandler's yield branch (line ~1586).
+local BUILD_YIELD_KEYS = {
+    [YieldTypes.YIELD_FOOD] = "TXT_KEY_BUILD_FOOD_STRING",
+    [YieldTypes.YIELD_PRODUCTION] = "TXT_KEY_BUILD_PRODUCTION_STRING",
+    [YieldTypes.YIELD_GOLD] = "TXT_KEY_BUILD_GOLD_STRING",
+    [YieldTypes.YIELD_SCIENCE] = "TXT_KEY_BUILD_SCIENCE_STRING",
+    [YieldTypes.YIELD_CULTURE] = "TXT_KEY_BUILD_CULTURE_STRING",
+    [YieldTypes.YIELD_FAITH] = "TXT_KEY_BUILD_FAITH_STRING",
+}
+
+-- Rich build tooltip mirroring UnitPanel.lua TipHandler (line ~1540-1658):
+-- static Help, turn count for this plot, per-yield delta vs current,
+-- resource connection, feature clearing. All pieces joined with ". " so
+-- appendTooltip's sentence-level dedup can drop duplicates against the
+-- label. Re-queried at announce time per the "never cache game state" rule.
+local function buildActionTooltip(unit, action)
+    local parts = {}
+    local help = staticHelpText(action)
+    if help ~= nil then
+        parts[#parts + 1] = help
+    end
+
+    local iBuildID = action.MissionData
+    local pBuild = GameInfo.Builds[iBuildID]
+    if pBuild == nil then
+        return table.concat(parts, ". ")
+    end
+
+    local plot = unit:GetPlot()
+    local iActivePlayer = Game.GetActivePlayer()
+    local iActiveTeam = Game.GetActiveTeam()
+
+    local iExtraBuildRate = 0
+    local iCurrentBuildID = unit:GetBuildType()
+    if iCurrentBuildID == -1 or iBuildID ~= iCurrentBuildID then
+        iExtraBuildRate = unit:WorkRate(true, iBuildID)
+    end
+    local iBuildTurns = plot:GetBuildTurnsLeft(iBuildID, iActivePlayer, iExtraBuildRate, iExtraBuildRate)
+    if iBuildTurns > 1 then
+        parts[#parts + 1] = Text.format("TXT_KEY_BUILD_NUM_TURNS", iBuildTurns)
+    end
+
+    local yieldParts = {}
+    for iYield = 0, YieldTypes.NUM_YIELD_TYPES - 1 do
+        local delta = plot:GetYieldWithBuild(iBuildID, iYield, false, iActivePlayer) - plot:CalculateYield(iYield)
+        if delta ~= 0 then
+            local key = BUILD_YIELD_KEYS[iYield]
+            if key ~= nil then
+                yieldParts[#yieldParts + 1] = Text.format(key, delta)
+            end
+        end
+    end
+    if #yieldParts > 0 then
+        parts[#parts + 1] = table.concat(yieldParts, ", ")
+    end
+
+    local pImprovement
+    if pBuild.ImprovementType ~= nil and pBuild.ImprovementType ~= "NONE" then
+        pImprovement = GameInfo.Improvements[pBuild.ImprovementType]
+    end
+    if pImprovement ~= nil then
+        local iResource = plot:GetResourceType(iActiveTeam)
+        if iResource ~= -1 and plot:IsResourceConnectedByImprovement(pImprovement.ID) then
+            if Game.GetResourceUsageType(iResource) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS then
+                local pResource = GameInfo.Resources[iResource]
+                if pResource ~= nil then
+                    parts[#parts + 1] = Text.format("TXT_KEY_BUILD_CONNECTS_RESOURCE", pResource.IconString, pResource.Description)
+                end
+            end
+        end
+    end
+
+    local iFeature = plot:GetFeatureType()
+    if iFeature ~= -1 then
+        local pFeature = GameInfo.Features[iFeature]
+        if pFeature ~= nil and plot:IsBuildRemovesFeature(iBuildID) then
+            parts[#parts + 1] = Text.format("TXT_KEY_BUILD_FEATURE_CLEARED", pFeature.Description)
+            local iFeatureProd = plot:GetFeatureProduction(iBuildID, iActiveTeam)
+            if iFeatureProd > 0 then
+                parts[#parts + 1] = Text.format("TXT_KEY_BUILD_FEATURE_PRODUCTION", iFeatureProd)
+            end
+        end
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+    return table.concat(parts, ". ")
+end
+
 -- Collapses both CanHandleAction gates into a single yes / no read.
 -- Civ V's action table uses 0-based indexing into GameInfoActions, and
 -- the iterator emits entries in Action-definition order.
@@ -111,6 +212,9 @@ local function buildPromotionItems(unit, rows)
         local promotionName = label
         items[#items + 1] = BaseMenuItems.Choice({
             labelText = label,
+            tooltipFn = function()
+                return staticHelpText(action)
+            end,
             activate = function()
                 commitSelfPlot(action, { iAction = iAction, promotionName = promotionName })
                 HandlerStack.removeByName("UnitActionMenu", false)
@@ -129,6 +233,9 @@ local function buildBuildItems(unit, rows)
         local buildName = label
         items[#items + 1] = BaseMenuItems.Choice({
             labelText = label,
+            tooltipFn = function()
+                return buildActionTooltip(unit, action)
+            end,
             activate = function()
                 commitSelfPlot(action, { iAction = iAction, buildName = buildName })
                 HandlerStack.removeByName("UnitActionMenu", false)
@@ -149,6 +256,9 @@ local function buildTopLevelItems(unit, buckets)
         elseif isTargetedAction(action.Type) then
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = label,
+                tooltipFn = function()
+                    return staticHelpText(action)
+                end,
                 activate = function()
                     HandlerStack.removeByName("UnitActionMenu", false)
                     commitTargeted(unit, action, iAction)
@@ -157,6 +267,9 @@ local function buildTopLevelItems(unit, buckets)
         else
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = label,
+                tooltipFn = function()
+                    return staticHelpText(action)
+                end,
                 activate = function()
                     commitSelfPlot(action, { iAction = iAction })
                     HandlerStack.removeByName("UnitActionMenu", false)
