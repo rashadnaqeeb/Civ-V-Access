@@ -3390,4 +3390,150 @@ function M.test_tab_first_init_onActivate_can_override_cursor()
     T.eq(lastSpoken, "Second", "speech announces the overridden cursor item")
 end
 
+-- Ctrl+I pedia dispatch ---------------------------------------------------
+--
+-- Guards the plan §4.1 Civilopedia wiring: BaseMenu.create binds Ctrl+I
+-- and dispatches to Events.SearchForPediaEntry when the focused item
+-- carries pediaName (static) or pediaNameFn (dynamic, re-resolved each
+-- press). Items without either silently no-op. The binding itself is
+-- gated on Events.SearchForPediaEntry's presence so FrontEnd Contexts
+-- don't advertise a chord that can't work.
+
+local MOD_CTRL = 2
+
+local function withPediaStub(fn)
+    local captured = {}
+    Events.SearchForPediaEntry = function(name)
+        captured[#captured + 1] = name
+    end
+    fn(captured)
+    Events.SearchForPediaEntry = nil
+end
+
+function M.test_ctrl_i_fires_pedia_event_with_static_name()
+    setup()
+    setCtrls({ "A", "B" })
+    withPediaStub(function(captured)
+        local h = BaseMenu.create({
+            name = "T",
+            displayName = "Test",
+            items = {
+                BaseMenuItems.Button({
+                    controlName = "A",
+                    textKey = "LBL_A",
+                    pediaName = "Library",
+                    activate = function() end,
+                }),
+                BaseMenuItems.Button({ controlName = "B", textKey = "LBL_B", activate = function() end }),
+            },
+        })
+        HandlerStack.push(h)
+        InputRouter.dispatch(Keys.I, MOD_CTRL, WM_KEYDOWN)
+        T.eq(#captured, 1, "one pedia event fired")
+        T.eq(captured[1], "Library", "fired with the focused item's pediaName")
+    end)
+end
+
+function M.test_ctrl_i_resolves_pediaNameFn_dynamically()
+    setup()
+    setCtrls({ "A" })
+    withPediaStub(function(captured)
+        local resolveCount = 0
+        local current = "Warrior"
+        local h = BaseMenu.create({
+            name = "T",
+            displayName = "Test",
+            items = {
+                BaseMenuItems.Button({
+                    controlName = "A",
+                    textKey = "LBL",
+                    pediaNameFn = function()
+                        resolveCount = resolveCount + 1
+                        return current
+                    end,
+                    activate = function() end,
+                }),
+            },
+        })
+        HandlerStack.push(h)
+        InputRouter.dispatch(Keys.I, MOD_CTRL, WM_KEYDOWN)
+        current = "Archer"
+        InputRouter.dispatch(Keys.I, MOD_CTRL, WM_KEYDOWN)
+        T.eq(#captured, 2)
+        T.eq(captured[1], "Warrior")
+        T.eq(captured[2], "Archer", "pediaNameFn re-resolves each press")
+        T.truthy(resolveCount >= 2)
+    end)
+end
+
+function M.test_ctrl_i_noop_when_item_has_no_pediaName()
+    setup()
+    setCtrls({ "A" })
+    withPediaStub(function(captured)
+        local h = BaseMenu.create({
+            name = "T",
+            displayName = "Test",
+            items = {
+                BaseMenuItems.Button({ controlName = "A", textKey = "LBL", activate = function() end }),
+            },
+        })
+        HandlerStack.push(h)
+        InputRouter.dispatch(Keys.I, MOD_CTRL, WM_KEYDOWN)
+        T.eq(#captured, 0, "no pedia event fired for an item without pediaName")
+    end)
+end
+
+function M.test_ctrl_i_pediaNameFn_error_logged_and_swallowed()
+    setup()
+    setCtrls({ "A" })
+    withPediaStub(function(captured)
+        local h = BaseMenu.create({
+            name = "T",
+            displayName = "Test",
+            items = {
+                BaseMenuItems.Button({
+                    controlName = "A",
+                    textKey = "LBL",
+                    pediaNameFn = function()
+                        error("boom")
+                    end,
+                    activate = function() end,
+                }),
+            },
+        })
+        HandlerStack.push(h)
+        InputRouter.dispatch(Keys.I, MOD_CTRL, WM_KEYDOWN)
+        T.eq(#captured, 0, "fn error prevents pedia fire")
+        T.truthy(#errors >= 1, "error logged")
+    end)
+end
+
+function M.test_ctrl_i_binding_absent_without_pedia_event()
+    setup()
+    setCtrls({ "A" })
+    -- Simulate FrontEnd: no SearchForPediaEntry published. BaseMenu.create
+    -- must skip the Ctrl+I binding entirely so Ctrl+I falls through
+    -- rather than claiming the key.
+    Events.SearchForPediaEntry = nil
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "LBL",
+                pediaName = "Library",
+                activate = function() end,
+            }),
+        },
+    })
+    local hasCtrlI = false
+    for _, b in ipairs(h.bindings) do
+        if b.key == Keys.I and b.mods == MOD_CTRL then
+            hasCtrlI = true
+        end
+    end
+    T.falsy(hasCtrlI, "no Ctrl+I binding when Events.SearchForPediaEntry is absent")
+end
+
 return M

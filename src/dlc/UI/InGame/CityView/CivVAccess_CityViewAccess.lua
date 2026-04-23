@@ -330,6 +330,7 @@ local function pushWonders()
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = w.name,
                 tooltipText = (w.help ~= "") and w.help or nil,
+                pediaName = w.name,
             })
         end
     end
@@ -373,6 +374,7 @@ local function pushGreatPeople()
                 local name = Locale.ConvertTextKey(unitClass.Description)
                 items[#items + 1] = BaseMenuItems.Text({
                     labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, iProgress, threshold),
+                    pediaName = name,
                 })
             end
         end
@@ -637,6 +639,7 @@ local function pushBuildings()
             local item = BaseMenuItems.Text({
                 labelText = b.name,
                 tooltipText = (b.help ~= "") and b.help or nil,
+                pediaName = b.name,
             })
             item.activate = function(_self, _menu)
                 Events.AudioPlay2DSound("AS2D_IF_SELECT")
@@ -745,6 +748,7 @@ local function pushSpecialists()
                             Text.key(stateKey)
                         )
                     end,
+                    pediaName = specName,
                 })
                 item.activate = function(_self, _menu)
                     Events.AudioPlay2DSound("AS2D_IF_SELECT")
@@ -943,6 +947,10 @@ local function pushGreatWorks()
                         displaySlot
                     )
                 end,
+                -- Pedia opens the housing building's entry (Louvre, British
+                -- Museum, etc.), per plan §4.1 -- the great work itself has
+                -- no Civilopedia page, only its container does.
+                pediaName = buildingName,
             })
             item.activate = function(_self, _menu)
                 Events.AudioPlay2DSound("AS2D_IF_SELECT")
@@ -1187,6 +1195,22 @@ pushProductionQueue = function()
                         return slotOneLabel(c, orderType, data1)
                     end
                     return slotNLabel(c, displaySlot, zeroIdx, orderType, data1)
+                end,
+                -- Pedia resolves live: the slot's identity shifts when the
+                -- user reorders or removes entries. Only ORDER_TRAIN and
+                -- ORDER_CONSTRUCT map to pediable entries (units and
+                -- buildings); projects and processes are skipped (they have
+                -- no Civilopedia entry in vanilla).
+                pediaNameFn = function()
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil then
+                        return nil
+                    end
+                    local orderType, data1 = c:GetOrderFromQueue(zeroIdx)
+                    if orderType ~= OrderTypes.ORDER_TRAIN and orderType ~= OrderTypes.ORDER_CONSTRUCT then
+                        return nil
+                    end
+                    return select(1, orderNameAndHelp(orderType, data1))
                 end,
             })
             item.activate = function(_self, _menu)
@@ -1827,8 +1851,13 @@ local function buildHubItems(city)
             pushGreatPeople
         )
     end
+    -- Unemployed hub item's Civilopedia entry is the Citizen specialist, per
+    -- plan §4.1 -- matches vanilla's right-click on the slacker portrait
+    -- (CityView.lua:1293).
+    local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
+    local slackerPedia = slackerInfo and Locale.ConvertTextKey(slackerInfo.Description) or nil
     items[#items + 1] = makeHubItem(
-        { labelFn = unemployedLabel },
+        { labelFn = unemployedLabel, pediaName = slackerPedia },
         activateUnemployed
     )
     items[#items + 1] = makeHubItem(

@@ -180,6 +180,14 @@ local function copyCommonFields(spec, item)
     item.tooltipKey = spec.tooltipKey
     item.tooltipText = spec.tooltipText
     item.tooltipFn = spec.tooltipFn
+    -- Civilopedia search string for the Ctrl+I shortcut in BaseMenu.create.
+    -- Items that map to a pediable entity (building, wonder, specialist,
+    -- unit, etc.) set pediaName to the entity's already-localized display
+    -- name (the string Events.SearchForPediaEntry matches on); dynamic
+    -- items whose underlying entity changes across navigates use pediaNameFn
+    -- to re-resolve at Ctrl+I time. Absent fields mean Ctrl+I no-ops.
+    item.pediaName = spec.pediaName
+    item.pediaNameFn = spec.pediaNameFn
 end
 
 -- Button ------------------------------------------------------------------

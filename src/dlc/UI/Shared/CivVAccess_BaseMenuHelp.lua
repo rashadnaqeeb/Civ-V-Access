@@ -54,6 +54,11 @@ BaseMenuHelp.ReadHeaderHelpEntry = {
     description = "TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER",
 }
 
+BaseMenuHelp.CivilopediaHelpEntry = {
+    keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_I",
+    description = "TXT_KEY_CIVVACCESS_HELP_DESC_CIVILOPEDIA",
+}
+
 BaseMenuHelp.EscapePopsHelpEntry = {
     keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
     description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
@@ -80,6 +85,12 @@ function BaseMenuHelp.buildHelpEntries(spec)
         appendAll(list, BaseMenuHelp.TabbedHelpEntries)
     end
     list[#list + 1] = BaseMenuHelp.ReadHeaderHelpEntry
+    -- Gate the Civilopedia entry on the event's presence so FrontEnd
+    -- menus (no pedia available) don't advertise a chord that no-ops.
+    -- The binding in BaseMenu.create is similarly gated.
+    if Events ~= nil and Events.SearchForPediaEntry ~= nil then
+        list[#list + 1] = BaseMenuHelp.CivilopediaHelpEntry
+    end
     if spec.escapePops then
         list[#list + 1] = BaseMenuHelp.EscapePopsHelpEntry
     end

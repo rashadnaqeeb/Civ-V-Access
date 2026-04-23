@@ -819,6 +819,44 @@ function BaseMenu.create(spec)
             end,
         },
     }
+    -- Ctrl+I opens Civilopedia for the focused item when it carries a
+    -- pediaName / pediaNameFn. Gated on Events.SearchForPediaEntry so the
+    -- binding is absent in FrontEnd Contexts (pre-game menus, where the
+    -- Civilopedia event doesn't exist). Items without a pedia string
+    -- silently no-op -- per plan §4.1, Ctrl+I on a non-pediable item is
+    -- ignored, no "no entry" feedback.
+    if Events ~= nil and Events.SearchForPediaEntry ~= nil then
+        self.bindings[#self.bindings + 1] = {
+            key = Keys.I,
+            mods = MOD_CTRL,
+            description = "Civilopedia",
+            fn = function()
+                local items = currentItems(self)
+                local item = items[currentIndex(self)]
+                if item == nil then
+                    return
+                end
+                local name = item.pediaName
+                if name == nil and type(item.pediaNameFn) == "function" then
+                    local ok, result = pcall(item.pediaNameFn, item._control)
+                    if not ok then
+                        Log.error(
+                            "BaseMenu '"
+                                .. tostring(self.name)
+                                .. "' pediaNameFn failed: "
+                                .. tostring(result)
+                        )
+                        return
+                    end
+                    name = result
+                end
+                if name == nil or name == "" then
+                    return
+                end
+                Events.SearchForPediaEntry(name)
+            end,
+        }
+    end
     if spec.escapePops then
         local announce = spec.escapeAnnounce
         self.bindings[#self.bindings + 1] = {
