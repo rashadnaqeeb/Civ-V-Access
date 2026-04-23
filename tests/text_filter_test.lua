@@ -1,17 +1,11 @@
 -- TextFilter tests. Each test_* calls setup() first for isolation:
--- the filter module holds _iconMap and _warnedIcons in closures, so we
--- re-dofile to reset, and we reassign Log.debug to capture warnings.
+-- the filter module holds _iconMap in a closure, so we re-dofile to reset
+-- before each test.
 
 local T = require("support")
 local M = {}
 
-local capturedLogs
-
 local function setup()
-    capturedLogs = {}
-    Log.debug = function(msg)
-        capturedLogs[#capturedLogs + 1] = msg
-    end
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
 end
 
@@ -80,6 +74,26 @@ function M.test_slash_red_close_stripped()
     T.eq(TextFilter.filter("[COLOR_WARNING_TEXT]danger[/RED]"), "danger")
 end
 
+-- Civilopedia link markup. The opener has an `=` payload (which the
+-- uppercase-only catch-all won't match) and the closer uses a backslash
+-- (which the forward-slash closer rule above won't match). Both forms
+-- need explicit strippers; the inner label text must survive.
+function M.test_link_markup_stripped_keeping_label()
+    setup()
+    T.eq(
+        TextFilter.filter("Construct a [LINK=IMPROVEMENT_FARM]Farm[\\LINK] here"),
+        "Construct a Farm here"
+    )
+end
+
+function M.test_link_markup_with_multiword_label()
+    setup()
+    T.eq(
+        TextFilter.filter("Create [LINK=IMPROVEMENT_FISHING_BOATS]Fishing Boats[\\LINK]"),
+        "Create Fishing Boats"
+    )
+end
+
 function M.test_style_token_stripped_by_catchall()
     setup()
     T.eq(TextFilter.filter("[STYLE_HEADER]Title"), "Title")
@@ -117,25 +131,6 @@ end
 function M.test_unregistered_icon_stripped()
     setup()
     T.eq(TextFilter.filter("costs [ICON_MYSTERY]"), "costs")
-end
-
-function M.test_unregistered_icon_warns_only_once()
-    setup()
-    TextFilter.filter("[ICON_MYSTERY]")
-    TextFilter.filter("[ICON_MYSTERY] again")
-    local hits = 0
-    for _, msg in ipairs(capturedLogs) do
-        if msg:find("ICON_MYSTERY") then
-            hits = hits + 1
-        end
-    end
-    T.eq(hits, 1, "warning should fire exactly once per icon name")
-end
-
-function M.test_different_unregistered_icons_each_warn_once()
-    setup()
-    TextFilter.filter("[ICON_A][ICON_B]")
-    T.eq(#capturedLogs, 2)
 end
 
 function M.test_registered_icon_wins_over_catchall()

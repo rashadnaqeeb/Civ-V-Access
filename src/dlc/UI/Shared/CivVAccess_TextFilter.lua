@@ -5,14 +5,13 @@
 TextFilter = {}
 
 local _iconMap = {}
-local _warnedIcons = {}
 
 -- `aliases` is an optional list of extra spoken forms that should collapse
 -- the icon when adjacent to the substituted text. The icon is always
 -- substituted with `spoken`, never an alias; aliases only participate in
 -- the dedup check. This covers cases where the same glyph sits next to
--- grammatical variants of its label (happiness/happy, razing/razed,
--- great people/great person) that plain suffix rules won't bridge.
+-- grammatical variants of its label (happiness/happy) that plain suffix
+-- rules won't bridge.
 function TextFilter.registerIcon(name, spoken, aliases)
     _iconMap[name] = { spoken = spoken, aliases = aliases or {} }
 end
@@ -37,9 +36,7 @@ end
 -- Match is case-insensitive and whitespace-tolerant, and the adjacent
 -- phrase must sit on word boundaries (no false hit on "gold"/"golden").
 -- The `s?` before the boundary lets a singular spoken form collapse
--- against an adjacent English plural ("citizen" against "Citizens"):
--- Civ uses ICON_CITIZEN next to both forms, so either alone leaves half
--- the strings doubled.
+-- against an adjacent English plural.
 local function _matchesAfter(after, phrase)
     if phrase == "" then
         return false
@@ -70,31 +67,24 @@ local function substituteIcons(s)
         local record = _iconMap[name]
         local spoken
         if record == nil then
-            if not _warnedIcons[name] then
-                _warnedIcons[name] = true
-                if Log and Log.debug then
-                    Log.debug("TextFilter: stripping unregistered " .. name)
-                end
-            end
             spoken = ""
         else
             spoken = record.spoken
-        end
-
-        if spoken ~= "" then
-            local before = s:sub(1, startIdx - 1)
-            local after = s:sub(endIdx + 1)
-            local collapsed = _matchesAfter(after, spoken) or _matchesBefore(before, spoken)
-            if not collapsed then
-                for _, alias in ipairs(record.aliases) do
-                    if _matchesAfter(after, alias) or _matchesBefore(before, alias) then
-                        collapsed = true
-                        break
+            if spoken ~= "" then
+                local before = s:sub(1, startIdx - 1)
+                local after = s:sub(endIdx + 1)
+                local collapsed = _matchesAfter(after, spoken) or _matchesBefore(before, spoken)
+                if not collapsed then
+                    for _, alias in ipairs(record.aliases) do
+                        if _matchesAfter(after, alias) or _matchesBefore(before, alias) then
+                            collapsed = true
+                            break
+                        end
                     end
                 end
-            end
-            if collapsed then
-                spoken = ""
+                if collapsed then
+                    spoken = ""
+                end
             end
         end
 
@@ -117,13 +107,29 @@ function TextFilter.filter(text)
 
     s = stripControl(s)
     s = s:gsub("%[NEWLINE%]", " ")
-    s = substituteIcons(s)
+    -- Strip color / closing markup BEFORE icon substitution so the dedup
+    -- adjacency check sees clean text. Civ's pedia wraps the label that
+    -- sits next to an icon in [COLOR_*]...[ENDCOLOR] (e.g.
+    -- "[ICON_GOLD] [COLOR_POSITIVE_TEXT]Gold[ENDCOLOR]"); if the color
+    -- tokens are still present when the icon runs, the dedup fails and
+    -- the screen reader hears the label twice.
     s = s:gsub("%[COLOR_[A-Z0-9_]+%]", "")
     s = s:gsub("%[ENDCOLOR%]", "")
     -- Closing tags: [/COLOR] and [/RED] appear in tutorial and advisor copy.
     -- The catch-all below excludes the slash, so these would leak through.
     s = s:gsub("%[/[A-Z_0-9]+%]", "")
-    -- Catch-all for remaining uppercase bracket tokens ([STYLE_*], [TAB], [BULLET], ...).
+    -- Civilopedia link markup: [LINK=IMPROVEMENT_FARM]Farm[\LINK] wraps a
+    -- label with a clickable jump-target. The opener carries an `=` payload
+    -- and the closer uses a backslash, so neither matches the catch-all or
+    -- the forward-slash closer rule above. Strip both tags while keeping
+    -- the label text between them.
+    s = s:gsub("%[LINK=[^%]]+%]", "")
+    s = s:gsub("%[\\LINK%]", "")
+    s = substituteIcons(s)
+    -- Catch-all for remaining uppercase bracket tokens ([STYLE_*], [TAB],
+    -- [BULLET], unregistered ICON_*, ...). Unregistered icons fall here
+    -- and vanish silently; any icon worth speaking has to be in the
+    -- registry.
     s = s:gsub("%[([A-Z_0-9]+)%]", "")
     -- Emdash (U+2014, UTF-8 E2 80 94) -> space; screen readers say "dash".
     s = s:gsub("\226\128\148", " ")

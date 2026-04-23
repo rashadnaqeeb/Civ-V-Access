@@ -66,36 +66,12 @@ function M.test_happiness_icons_split_positive_and_negative()
     T.eq(filtered("ICON_HAPPINESS_4"), "unhappiness")
 end
 
--- Resources ---------------------------------------------------------------
-
-function M.test_resource_icons_resolve()
+-- Arrows. Trade columns and a few tutorial glyphs use these standalone,
+-- so the direction has to speak.
+function M.test_arrow_glyphs_resolve()
     setup()
-    T.eq(filtered("ICON_RES_IRON"), "iron")
-    T.eq(filtered("ICON_RES_HORSE"), "horse")
-    T.eq(filtered("ICON_RES_WHALE"), "whales")
-    -- Game text uses ICON_RES_COW; "cattle" is the screen-reader-friendly
-    -- spoken form (the engine label for the resource).
-    T.eq(filtered("ICON_RES_COW"), "cattle")
-end
-
-function M.test_res_gold_disambiguated_from_currency()
-    setup()
-    -- ICON_GOLD is the currency; ICON_RES_GOLD is the tile resource. They
-    -- must speak differently so a sentence like "Gold mines produce [ICON_GOLD]"
-    -- isn't ambiguous.
-    T.eq(filtered("ICON_GOLD"), "gold")
-    T.eq(filtered("ICON_RES_GOLD"), "gold ore")
-end
-
--- Religions ---------------------------------------------------------------
-
-function M.test_religion_icons_resolve()
-    setup()
-    T.eq(filtered("ICON_RELIGION"), "religion")
-    T.eq(filtered("ICON_RELIGION_PANTHEON"), "pantheon")
-    T.eq(filtered("ICON_RELIGION_CHRISTIANITY"), "Christianity")
-    T.eq(filtered("ICON_RELIGION_ISLAM"), "Islam")
-    T.eq(filtered("ICON_RELIGION_ZOROASTRIANISM"), "Zoroastrianism")
+    T.eq(filtered("ICON_ARROW_LEFT"), "left")
+    T.eq(filtered("ICON_ARROW_RIGHT"), "right")
 end
 
 -- Base-game typos map to the same spoken form as the correct spelling.
@@ -114,45 +90,33 @@ function M.test_typo_strenght_maps_to_combat_strength()
     T.eq(filtered("ICON_STRENGTH"), "combat strength")
 end
 
-function M.test_typo_aluminnum_maps_to_aluminum()
-    setup()
-    T.eq(filtered("ICON_RES_ALUMINNUM"), "aluminum")
-    T.eq(filtered("ICON_RES_ALUMINUM"), "aluminum")
-end
-
 function M.test_typo_cultur_maps_to_culture()
     setup()
     T.eq(filtered("ICON_CULTUR"), "culture")
     T.eq(filtered("ICON_CULTURE"), "culture")
 end
 
-function M.test_typo_greatpeople_maps_to_great_people()
+-- Dropped categories fall through to the catch-all stripper and vanish.
+-- Asserts the policy: resources, religions, victories, city-status
+-- glyphs, etc. are always paired with their label word in game text,
+-- so substituting them would just double the noun. The text that
+-- survives must be exactly what the source said, minus the icon.
+
+function M.test_dropped_resource_icon_is_stripped()
     setup()
-    T.eq(filtered("ICON_GREATPEOPLE"), "great people")
-    T.eq(filtered("ICON_GREAT_PEOPLE"), "great people")
+    T.eq(TextFilter.filter("on [ICON_RES_COW] Cows"), "on Cows")
+    T.eq(TextFilter.filter("and [ICON_RES_SHEEP] Sheep"), "and Sheep")
 end
 
-function M.test_connection_alias_matches_connected()
+function M.test_dropped_religion_icon_is_stripped()
     setup()
-    T.eq(filtered("ICON_CONNECTION"), "connected")
-    T.eq(filtered("ICON_CONNECTED"), "connected")
+    T.eq(TextFilter.filter("spread [ICON_RELIGION_ISLAM] Islam"), "spread Islam")
 end
 
--- Glyphs ------------------------------------------------------------------
-
-function M.test_arrow_glyphs_resolve()
+function M.test_dropped_city_status_icon_is_stripped()
     setup()
-    T.eq(filtered("ICON_ARROW_LEFT"), "left")
-    T.eq(filtered("ICON_ARROW_RIGHT"), "right")
-    T.eq(filtered("ICON_PLUS"), "plus")
-    T.eq(filtered("ICON_MINUS"), "minus")
-end
-
-function M.test_bullet_resolves_to_empty_silence()
-    setup()
-    -- Bullets are visual-only separators; the spoken form is "" so the
-    -- token vanishes without a miss-warn firing for every pedia article.
-    T.eq(TextFilter.filter("[ICON_BULLET]item one"), "item one")
+    T.eq(TextFilter.filter("[ICON_RAZING] Razed"), "Razed")
+    T.eq(TextFilter.filter("[ICON_CONNECTED] Connected"), "Connected")
 end
 
 -- Alias dedup. Primary spoken form stays the substitution, but adjacent
@@ -173,35 +137,12 @@ function M.test_happiness_4_collapses_against_unhappy()
     T.eq(TextFilter.filter("[ICON_HAPPINESS_4] Unhappiness doubled"), "Unhappiness doubled")
 end
 
-function M.test_razing_collapses_against_razed()
-    setup()
-    T.eq(TextFilter.filter("city is [ICON_RAZING] Razed"), "city is Razed")
-    T.eq(TextFilter.filter("[ICON_RAZING] Razing"), "Razing")
-end
-
-function M.test_connected_collapses_against_connecting()
-    setup()
-    T.eq(TextFilter.filter("[ICON_CONNECTED] Connecting roads"), "Connecting roads")
-    T.eq(TextFilter.filter("[ICON_CONNECTED] Connected"), "Connected")
-end
-
-function M.test_great_people_collapses_against_great_person()
-    setup()
-    T.eq(TextFilter.filter("a [ICON_GREAT_PEOPLE] Great Person is born"), "a Great Person is born")
-    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great People"), "Great People")
-end
-
 -- Typo-variant icons inherit aliases from their canonical TXT_KEY. A base
 -- text with the misspelled ICON_HAPPINES_4 next to "unhappy" should collapse
 -- just like ICON_HAPPINESS_4 does.
 function M.test_typo_happines_4_collapses_against_unhappy()
     setup()
     T.eq(TextFilter.filter("[ICON_HAPPINES_4] unhappy"), "unhappy")
-end
-
-function M.test_typo_greatpeople_collapses_against_great_person()
-    setup()
-    T.eq(TextFilter.filter("[ICON_GREATPEOPLE] Great Person"), "Great Person")
 end
 
 -- Composed: unit cost with icon substitution --------------------------------
@@ -222,6 +163,19 @@ function M.test_unit_faith_cost_speaks_cleanly()
     -- [ICON_PEACE] is the faith-purchase glyph on units (see
     -- CivilopediaScreen.lua's Unit handler: costString for faithCost > 0).
     T.eq(TextFilter.filter("240 [ICON_PEACE]"), "240 faith")
+end
+
+-- The dedup check must see past a [COLOR_*]...[ENDCOLOR] wrapper that
+-- sits between the icon and its label. Civ's pedia wraps many labels
+-- this way ("[ICON_GOLD] [COLOR_POSITIVE_TEXT]Gold[ENDCOLOR]"); without
+-- stripping the color tags first, the dedup used to miss and the user
+-- heard "gold Gold".
+function M.test_icon_dedup_sees_past_color_wrapper()
+    setup()
+    T.eq(
+        TextFilter.filter("spend [ICON_GOLD] [COLOR_POSITIVE_TEXT]Gold[ENDCOLOR] to buy"),
+        "spend Gold to buy"
+    )
 end
 
 return M
