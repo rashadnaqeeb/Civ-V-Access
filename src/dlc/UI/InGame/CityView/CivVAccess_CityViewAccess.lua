@@ -1762,9 +1762,9 @@ end
 -- whose label carries its own zero-state).
 local function buildHubItems(city)
     local items = {}
+    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
     items[#items + 1] =
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, pushProductionQueue)
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, pushHexMap)
     if city:CanRangeStrikeNow() then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)

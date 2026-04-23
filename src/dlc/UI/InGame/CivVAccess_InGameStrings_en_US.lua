@@ -441,8 +441,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "Purchase with
 -- Enter over a workable ring plot issues TASK_CHANGE_WORKING_PLOT; over an
 -- affordable purchasable plot issues SendCityBuyPlot; over an unaffordable
 -- purchasable plot speaks "cannot afford" without sending.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"] = "Hex map"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_MODE"] = "hex map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"] = "Manage territory"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_MODE"] = "manage territory"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"] = "worked"
 -- "Pinned" = IsForcedWorkingPlot: a worker is here AND the citizen manager
 -- won't pull them off. Vanilla's visual is a star/pin icon, so the metaphor
