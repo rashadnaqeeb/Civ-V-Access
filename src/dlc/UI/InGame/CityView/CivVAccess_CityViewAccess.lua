@@ -1279,6 +1279,258 @@ pushProductionQueue = function()
     }))
 end
 
+-- ===== Hex map sub-handler (§3.2) =====
+--
+-- Cursor-driven tile inspection within this city's reach: city center,
+-- workable ring, and every purchasable plot (including culture grabs
+-- beyond the ring). The scope predicate and per-tile announcer sit on
+-- civvaccess_shared so the generic Cursor module routes through them
+-- without knowing about CityView -- Phase 8's ranged-strike picker will
+-- reuse the same hooks with a different predicate + composer.
+--
+-- Enter actions mirror vanilla's left-click callbacks: a workable ring
+-- plot fires TASK_CHANGE_WORKING_PLOT with the city-plot index (same as
+-- PlotButtonClicked, CityView.lua:1980); an affordable purchasable plot
+-- fires Network.SendCityBuyPlot (same as BuyPlotAnchorButtonClicked,
+-- CityView.lua:1991); an unaffordable purchasable plot speaks "cannot
+-- afford" without sending; the city center and blocked ring plots are
+-- no-ops because the tile announcement already told the user why.
+
+local function plotIndexInRing(city, plot)
+    if plot == nil or city == nil then
+        return nil
+    end
+    local px, py = plot:GetX(), plot:GetY()
+    for i = 0, city:GetNumCityPlots() - 1 do
+        local p = city:GetCityIndexPlot(i)
+        if p ~= nil and p:GetX() == px and p:GetY() == py then
+            return i
+        end
+    end
+    return nil
+end
+
+local function workedStateKey(city, plot)
+    if city:IsForcedWorkingPlot(plot) then
+        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_LOCKED"
+    end
+    if city:IsWorkingPlot(plot) then
+        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"
+    end
+    if not city:CanWork(plot) then
+        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_BLOCKED"
+    end
+    return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_NOT_WORKED"
+end
+
+local function hexTileAnnouncement(plot)
+    local city = UI.GetHeadSelectedCity()
+    if city == nil or plot == nil then
+        return ""
+    end
+    local parts = {}
+    local yieldText = PlotComposers.economy(plot)
+    if yieldText ~= nil and yieldText ~= "" then
+        parts[#parts + 1] = yieldText
+    end
+    local ringIdx = plotIndexInRing(city, plot)
+    -- Worked-state applies only to ring plots other than the center. The
+    -- center's "always worked" is implicit in the yield line; purchasable
+    -- plots beyond the ring have no worked-state to report.
+    if ringIdx ~= nil and ringIdx > 0 then
+        parts[#parts + 1] = Text.key(workedStateKey(city, plot))
+    end
+    -- Buy cost only on plots we don't already own. CanBuyPlotAt(..., true)
+    -- ignores affordability; the second call with false discriminates
+    -- affordable vs "visible but too expensive."
+    if ringIdx == nil then
+        local px, py = plot:GetX(), plot:GetY()
+        if city:CanBuyPlotAt(px, py, true) then
+            local cost = city:GetBuyPlotCost(px, py)
+            if city:CanBuyPlotAt(px, py, false) then
+                parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST", cost)
+            else
+                parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_UNAFFORDABLE", cost)
+            end
+        end
+    end
+    local glance = PlotComposers.glance(plot, {})
+    if glance ~= nil and glance ~= "" then
+        parts[#parts + 1] = glance
+    end
+    if #parts == 0 then
+        return ""
+    end
+    return table.concat(parts, ". ") .. "."
+end
+
+local function hexMapScope(x, y)
+    local c = UI.GetHeadSelectedCity()
+    if c == nil then
+        return false
+    end
+    local plot = Map.GetPlot(x, y)
+    if plot ~= nil and plotIndexInRing(c, plot) ~= nil then
+        return true
+    end
+    if c:CanBuyPlotAt(x, y, true) then
+        return true
+    end
+    return false
+end
+
+local function activateHexTile()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil or not isTurnActive() then
+        return
+    end
+    local cx, cy = Cursor.position()
+    if cx == nil then
+        return
+    end
+    local plot = Map.GetPlot(cx, cy)
+    if plot == nil then
+        return
+    end
+    local ringIdx = plotIndexInRing(city, plot)
+    if ringIdx ~= nil then
+        if ringIdx == 0 or not city:CanWork(plot) then
+            return
+        end
+        Network.SendDoTask(
+            city:GetID(),
+            TaskTypes.TASK_CHANGE_WORKING_PLOT,
+            ringIdx,
+            -1,
+            false,
+            false,
+            false,
+            false
+        )
+        TickPump.runOnce(function()
+            SpeechPipeline.speakInterrupt(hexTileAnnouncement(Map.GetPlot(cx, cy)))
+        end)
+        return
+    end
+    if city:CanBuyPlotAt(cx, cy, true) then
+        if not city:CanBuyPlotAt(cx, cy, false) then
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_CANNOT_AFFORD"))
+            return
+        end
+        Network.SendCityBuyPlot(city:GetID(), cx, cy)
+        Events.AudioPlay2DSound("AS2D_INTERFACE_BUY_TILE")
+        TickPump.runOnce(function()
+            SpeechPipeline.speakInterrupt(hexTileAnnouncement(Map.GetPlot(cx, cy)))
+        end)
+    end
+end
+
+local function pushHexMap()
+    local city = UI.GetHeadSelectedCity()
+    if city == nil then
+        return
+    end
+
+    civvaccess_shared.mapScope = hexMapScope
+    civvaccess_shared.mapAnnouncer = hexTileAnnouncement
+    ScannerNav.invalidate()
+
+    local MOD_NONE = 0
+    local function moveDir(dir)
+        return function()
+            SpeechPipeline.speakInterrupt(Cursor.move(dir))
+        end
+    end
+    local function popSelf()
+        HandlerStack.removeByName("CityView.HexMap", true)
+    end
+
+    -- The hub's capturesAllInput=true swallows every key not bound on a
+    -- handler above it, so Scanner / Surveyor bindings from Baseline would
+    -- be dead while CityView is up. Pull them in at push time. Scanner's
+    -- gatherEntries already respects civvaccess_shared.mapScope, so its
+    -- snapshot is auto-scoped to this city. Surveyor deliberately sweeps
+    -- its radius ignoring the scope predicate (plan §3.4): its radius cap
+    -- is the real bound, and scoping it would hide info a sighted player
+    -- glances at. Pull helpEntries too so F1 lists every key.
+    local bindings = {
+        { key = Keys.VK_ESCAPE, mods = MOD_NONE, description = "Back", fn = popSelf },
+        { key = Keys.VK_RETURN, mods = MOD_NONE, description = "Activate tile", fn = activateHexTile },
+        { key = Keys.Q, mods = MOD_NONE, description = "Move NW", fn = moveDir(DirectionTypes.DIRECTION_NORTHWEST) },
+        { key = Keys.E, mods = MOD_NONE, description = "Move NE", fn = moveDir(DirectionTypes.DIRECTION_NORTHEAST) },
+        { key = Keys.A, mods = MOD_NONE, description = "Move W", fn = moveDir(DirectionTypes.DIRECTION_WEST) },
+        { key = Keys.D, mods = MOD_NONE, description = "Move E", fn = moveDir(DirectionTypes.DIRECTION_EAST) },
+        { key = Keys.Z, mods = MOD_NONE, description = "Move SW", fn = moveDir(DirectionTypes.DIRECTION_SOUTHWEST) },
+        { key = Keys.C, mods = MOD_NONE, description = "Move SE", fn = moveDir(DirectionTypes.DIRECTION_SOUTHEAST) },
+    }
+    local helpEntries = {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_MOVE",
+            description = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_MOVE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_ENTER",
+            description = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_ENTER",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK",
+            description = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK",
+        },
+    }
+    if type(ScannerHandler) == "table" and type(ScannerHandler.create) == "function" then
+        local scanner = ScannerHandler.create()
+        for _, b in ipairs(scanner.bindings or {}) do
+            bindings[#bindings + 1] = b
+        end
+        for _, h in ipairs(scanner.helpEntries or {}) do
+            helpEntries[#helpEntries + 1] = h
+        end
+    else
+        Log.warn("CityView hex: ScannerHandler not loaded; scanner keys unreachable in hex sub")
+    end
+    if type(SurveyorCore) == "table" and type(SurveyorCore.getBindings) == "function" then
+        local surv = SurveyorCore.getBindings()
+        for _, b in ipairs(surv.bindings or {}) do
+            bindings[#bindings + 1] = b
+        end
+        for _, h in ipairs(surv.helpEntries or {}) do
+            helpEntries[#helpEntries + 1] = h
+        end
+    else
+        Log.warn("CityView hex: SurveyorCore not loaded; surveyor keys unreachable in hex sub")
+    end
+
+    HandlerStack.push({
+        name = "CityView.HexMap",
+        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"),
+        -- False so `.` / `,` on the hub still bubble for next/prev city.
+        -- Scanner / Surveyor / movement bindings live on this handler; the
+        -- hub's own up/down menu keys pass through harmlessly.
+        capturesAllInput = false,
+        bindings = bindings,
+        helpEntries = helpEntries,
+        onActivate = function()
+            -- Mode landmark first (interrupt clears any hub speech), then
+            -- jumpTo routes the city-center tile read through our announcer
+            -- hook. Queue rather than interrupt so the mode word isn't eaten
+            -- by the tile read that follows it.
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_MODE"))
+            local c = UI.GetHeadSelectedCity()
+            if c ~= nil then
+                local tileSpeech = Cursor.jumpTo(c:GetX(), c:GetY())
+                if tileSpeech ~= nil and tileSpeech ~= "" then
+                    SpeechPipeline.speakQueued(tileSpeech)
+                end
+            end
+        end,
+        onDeactivate = function()
+            civvaccess_shared.mapScope = nil
+            civvaccess_shared.mapAnnouncer = nil
+            ScannerNav.invalidate()
+        end,
+    })
+end
+
 -- ===== Rename (§3.13) =====
 --
 -- Hub-level item. Fires vanilla's BUTTONPOPUP_RENAME_CITY, which opens the
@@ -1353,10 +1605,9 @@ end
 -- Rebuilt on every hub activation (initial push + sub-handler pop). The
 -- canonical order from the plan is preserved even when conditional items
 -- are absent, so adding the later phases' items later won't reshuffle the
--- already-present ones: Production (Phase 5) / Hex (Phase 7) / Ranged
--- Strike (Phase 8) / Buildings (Phase 3) / Wonders / Worker focus /
--- Specialists (Phase 3) / Great works (Phase 4) / Great people /
--- Unemployed / Rename (Phase 6) / Raze (Phase 6).
+-- already-present ones: Production / Hex / Ranged Strike (not yet wired) /
+-- Buildings / Wonders / Worker focus / Specialists / Great works /
+-- Great people / Unemployed / Rename / Raze.
 
 -- Hub items are gated per plan §3: an item is present only when its sub-
 -- handler would land the user on at least one real entry, so arrowing
@@ -1368,6 +1619,10 @@ local function buildHubItems(city)
     items[#items + 1] = makeHubItem(
         { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") },
         pushProductionQueue
+    )
+    items[#items + 1] = makeHubItem(
+        { labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") },
+        pushHexMap
     )
     if cityHasAnyNonWonderBuilding(city) then
         items[#items + 1] = makeHubItem(

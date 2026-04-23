@@ -112,6 +112,13 @@ local function announceForMove(plot)
     return prefix .. glance .. "."
 end
 
+-- Scoped-mode hooks. A screen that restricts the cursor to a subset of
+-- the map (CityView's hex sub-handler, future Phase 8 range-strike target
+-- picker) installs civvaccess_shared.mapScope as `(x, y) -> bool`, and
+-- optionally civvaccess_shared.mapAnnouncer as `(plot) -> string`. The
+-- hooks are generic -- Cursor doesn't know about CityView or ranges.
+-- Both hooks read live on every call; no caching. The "cache" exception
+-- in the project rules is about game state, not mod-installed callables.
 function Cursor.move(direction)
     if _x == nil then
         Log.warn("Cursor.move before init; ignoring")
@@ -121,7 +128,15 @@ function Cursor.move(direction)
     if next == nil then
         return Text.key("TXT_KEY_CIVVACCESS_EDGE_OF_MAP")
     end
+    local scope = civvaccess_shared.mapScope
+    if scope ~= nil and not scope(next:GetX(), next:GetY()) then
+        return Text.key("TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE")
+    end
     setCursor(next)
+    local announcer = civvaccess_shared.mapAnnouncer
+    if announcer ~= nil then
+        return announcer(next)
+    end
     return announceForMove(next)
 end
 
@@ -171,7 +186,20 @@ function Cursor.jumpTo(x, y)
         Log.warn("Cursor.jumpTo: no plot at (" .. tostring(x) .. ", " .. tostring(y) .. ")")
         return ""
     end
+    -- Same scope guard as Cursor.move: a scoped mode (hex sub, ranged-strike
+    -- target picker) may not have reset pre-jump state on every boundary, so
+    -- a scanner Backspace / other programmatic jump could otherwise land the
+    -- cursor outside the scope and leave Cursor.move anchored to an unreachable
+    -- cell until the user hunts their way back in. Reject here instead.
+    local scope = civvaccess_shared.mapScope
+    if scope ~= nil and not scope(x, y) then
+        return Text.key("TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE")
+    end
     setCursor(plot)
+    local announcer = civvaccess_shared.mapAnnouncer
+    if announcer ~= nil then
+        return announcer(plot)
+    end
     return announceForMove(plot)
 end
 

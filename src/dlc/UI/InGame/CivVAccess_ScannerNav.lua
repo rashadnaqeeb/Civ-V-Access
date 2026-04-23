@@ -113,6 +113,12 @@ end
 
 -- Gather entries from every backend. Shared between the normal rebuild
 -- path and search, which both consume the same flat list.
+--
+-- When civvaccess_shared.mapScope is set (e.g. CityView's hex sub-handler
+-- has narrowed the world to a single city's reachable tiles), filter
+-- entries whose plotIndex resolves outside the scope. One funnel covers
+-- both rebuildSnapshot and applySearch so every consumer sees the same
+-- scoped list.
 local function gatherEntries()
     local entries = {}
     local activePlayer = Game.GetActivePlayer()
@@ -126,6 +132,17 @@ local function gatherEntries()
                 entries[#entries + 1] = entry
             end
         end
+    end
+    local scope = civvaccess_shared.mapScope
+    if scope ~= nil then
+        local kept = {}
+        for _, entry in ipairs(entries) do
+            local plot = Map.GetPlotByIndex(entry.plotIndex)
+            if plot ~= nil and scope(plot:GetX(), plot:GetY()) then
+                kept[#kept + 1] = entry
+            end
+        end
+        entries = kept
     end
     return entries
 end
@@ -506,6 +523,16 @@ function ScannerNav.returnToPreJump()
     local x, y = _preJumpX, _preJumpY
     _preJumpX, _preJumpY = nil, nil
     return Cursor.jumpTo(x, y)
+end
+
+-- Public: mark the current snapshot stale. Next scanner op that needs it
+-- rebuilds from live backend output against whatever civvaccess_shared.mapScope
+-- is at that moment. Called by scope-installing handlers (CityView hex sub)
+-- on both push and pop so the snapshot cost is paid lazily at the next
+-- scanner keypress rather than eagerly here. An active search snapshot is
+-- dropped by ensureSnapshot's existing search-rebuild branch on next call.
+function ScannerNav.invalidate()
+    _snapshotStale = true
 end
 
 -- Ctrl+F: open the type-ahead search handler on top of the scanner.

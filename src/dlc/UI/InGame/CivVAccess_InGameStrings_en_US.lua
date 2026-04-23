@@ -109,6 +109,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "edge of map"
+-- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
+-- Generic wording rather than CityView-specific so Phase 8's ranged-strike
+-- target picker (scope = valid strike targets) reuses it verbatim.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE"] = "edge of range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNCLAIMED"] = "unclaimed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNEXPLORED"] = "unexplored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"] = "fog"
@@ -423,6 +427,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"] = "removed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE"] = "Queue mode, {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"] = "Choose production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "Purchase with gold or faith"
+-- Hex map sub-handler (§3.2). Arrow keys walk the cursor across the city's
+-- own tile, its workable ring, and purchasable tiles. Tile announcement
+-- composes yield line, worked-state word, buy cost, and PlotComposers.glance.
+-- Enter over a workable ring plot issues TASK_CHANGE_WORKING_PLOT; over an
+-- affordable purchasable plot issues SendCityBuyPlot; over an unaffordable
+-- purchasable plot speaks "cannot afford" without sending.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"] = "Hex map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_MODE"] = "hex map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"] = "worked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_LOCKED"] = "locked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_BLOCKED"] = "blocked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_NOT_WORKED"] = "not worked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST"] = "purchasable, {1_Gold} gold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_UNAFFORDABLE"] =
+    "purchasable, {1_Gold} gold, cannot afford"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_CANNOT_AFFORD"] = "cannot afford"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_MOVE"] = "Q A Z E D C"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_MOVE"] = "Move cursor across city tiles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_ENTER"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_ENTER"] = "Work or buy tile"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK"] = "Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK"] = "Back to city hub"
 -- Rename / Raze hub items (§3.13, §3.14). Rename fires BUTTONPOPUP_RENAME_CITY,
 -- whose accessibility is handled by SetCityNameAccess. Raze fires the Yes/No
 -- confirmation popup (BUTTONPOPUP_CONFIRM_CITY_TASK with TASK_RAZE), handled
