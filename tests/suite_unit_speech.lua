@@ -37,6 +37,7 @@ local function mkUnit(opts)
         _range = opts.range or 0,
         _upgradeType = opts.upgradeType or -1,
         _upgradePrice = opts.upgradePrice or 0,
+        _canUpgradeRightNow = opts.canUpgradeRightNow or false,
         _isCombat = (opts.isCombat ~= false),
         _team = opts.team or 0,
         _plot = opts.plot,
@@ -115,6 +116,9 @@ local function mkUnit(opts)
     end
     function u:UpgradePrice()
         return self._upgradePrice
+    end
+    function u:CanUpgradeRightNow()
+        return self._canUpgradeRightNow
     end
     function u:IsCombatUnit()
         return self._isCombat
@@ -367,12 +371,21 @@ function M.test_info_upgrade_speaks_only_when_available()
     setup()
     local u1 = mkUnit({ upgradeType = -1 })
     local out1 = UnitSpeech.info(u1)
-    T.truthy(not out1:find("upgrade", 1, true), "no upgrade line when unit can't upgrade: " .. out1)
+    T.truthy(not out1:find("upgrade", 1, true), "no upgrade line when unit has no upgrade path: " .. out1)
+
+    -- Unit has an upgrade target (e.g. Warrior -> Swordsman) but the
+    -- player hasn't unlocked the prereq tech yet. The engine's
+    -- CanUpgradeRightNow gate rejects it; we must stay silent rather
+    -- than spamming an unactionable cost.
+    setup()
+    local u2 = mkUnit({ upgradeType = 101, upgradePrice = 120, canUpgradeRightNow = false })
+    local out2 = UnitSpeech.info(u2)
+    T.truthy(not out2:find("upgrade", 1, true), "no upgrade line when CanUpgradeRightNow is false: " .. out2)
 
     setup()
-    local u2 = mkUnit({ upgradeType = 101, upgradePrice = 120 })
-    local out2 = UnitSpeech.info(u2)
-    T.truthy(out2:find("upgrade to Swordsman, 120 gold", 1, true), "upgrade line expected: " .. out2)
+    local u3 = mkUnit({ upgradeType = 101, upgradePrice = 120, canUpgradeRightNow = true })
+    local out3 = UnitSpeech.info(u3)
+    T.truthy(out3:find("upgrade to Swordsman, 120 gold", 1, true), "upgrade line expected: " .. out3)
 end
 
 function M.test_info_promotions_list_iterates_has_promotion()
@@ -550,6 +563,20 @@ function M.test_info_hp_stays_last_when_status_present()
     T.truthy(#parts > 0, "info must produce parts: " .. out)
     T.truthy(parts[#parts]:find("hp", 1, true), "HP must stay the final token: " .. out)
     T.truthy(out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true), "fortified must appear before HP: " .. out)
+end
+
+function M.test_info_status_speaks_before_level_xp()
+    -- Status (fortified / sleeping / healing / ...) is the first thing
+    -- a user wants to hear about a unit after its core stats; level / xp
+    -- is long and rarely action-bearing, so it sits after status.
+    setup()
+    local u = mkUnit({ fortifyTurns = 3, level = 2, xp = 10, xpNeeded = 30 })
+    local out = UnitSpeech.info(u)
+    local iStatus = out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true)
+    local iLevel = out:find("level", 1, true)
+    T.truthy(iStatus ~= nil, "fortified expected in output: " .. out)
+    T.truthy(iLevel ~= nil, "level/xp expected in output: " .. out)
+    T.truthy(iStatus < iLevel, "status must precede level/xp: " .. out)
 end
 
 -- ===== Move result =====

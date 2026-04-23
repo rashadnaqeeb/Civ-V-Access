@@ -178,13 +178,17 @@ end
 -- sighted players see on the unit flag and EnemyUnitPanel rather than
 -- the full own-unit tooltip. Friendlies (own or same-team) get the deep
 -- dump: embarked-prefixed name, combat, ranged + range, max moves,
--- level / xp, promotions, upgrade target + cost, full status cascade,
--- exact HP fraction. Visible enemies get the subset sighted players can
--- read off a foreign flag / EnemyUnitPanel: embarked-prefixed name,
--- combat, ranged (no range), max moves, promotions, fortified only, HP
--- as a color band. Zero-valued strength fields skip so melee units
--- don't waste syllables on "0 ranged". HP stays the final token;
--- status sits directly before it.
+-- status, level / xp, promotions, upgrade target + cost, exact HP
+-- fraction. Visible enemies get the subset sighted players can read off
+-- a foreign flag / EnemyUnitPanel: embarked-prefixed name, combat,
+-- ranged (no range), max moves, fortified only, promotions, HP as a
+-- color band. Zero-valued strength fields skip so melee units don't
+-- waste syllables on "0 ranged". Upgrade is gated on
+-- CanUpgradeRightNow(true) -- the bOnlyTestVisible arg skips transient
+-- conditions (territory, gold, resources, ...) so a tech-unlocked
+-- upgrade still speaks for a unit in enemy land the player may want
+-- to bring home; tech-locked targets stay silent so we don't spam an
+-- unactionable cost. HP stays the final token.
 function UnitSpeech.info(unit)
     local parts = {}
     local friendly = isFriendly(unit)
@@ -205,6 +209,10 @@ function UnitSpeech.info(unit)
         end
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_MAX_MOVES", maxMovesCount(unit))
+    local status = statusToken(unit)
+    if status ~= "" then
+        parts[#parts + 1] = status
+    end
     if friendly and unit:IsCombatUnit() then
         parts[#parts + 1] = Text.format(
             "TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP",
@@ -217,7 +225,7 @@ function UnitSpeech.info(unit)
     if #promos > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL", table.concat(promos, ", "))
     end
-    if friendly then
+    if friendly and unit:CanUpgradeRightNow(true) then
         local upgradeType = unit:GetUpgradeUnitType()
         if upgradeType ~= -1 then
             local upgradeRow = GameInfo.Units[upgradeType]
@@ -231,10 +239,6 @@ function UnitSpeech.info(unit)
                 )
             end
         end
-    end
-    local status = statusToken(unit)
-    if status ~= "" then
-        parts[#parts + 1] = status
     end
     if friendly then
         parts[#parts + 1] = hpFraction(unit)
