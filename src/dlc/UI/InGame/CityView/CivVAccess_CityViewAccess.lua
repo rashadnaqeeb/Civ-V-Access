@@ -272,6 +272,26 @@ local function makeHubItem(spec, activateFn)
     return item
 end
 
+local function sortByLocalizedName(list)
+    table.sort(list, function(a, b)
+        return Locale.Compare(a.name, b.name) == -1
+    end)
+end
+
+-- Every CityView sub-handler shares the same BaseMenu spec: escapePops
+-- back to the hub, capturesAllInput=false so Baseline's letter capture
+-- still reaches (the hub itself already walls off the map-layer). Only
+-- the name, displayName, and items differ per sub.
+local function pushCitySub(subName, displayName, items)
+    HandlerStack.push(BaseMenu.create({
+        name = "CityView." .. subName,
+        displayName = displayName,
+        items = items,
+        escapePops = true,
+        capturesAllInput = false,
+    }))
+end
+
 local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
@@ -323,9 +343,7 @@ local function pushWonders()
             wonders[#wonders + 1] = { name = name, help = help }
         end
     end
-    table.sort(wonders, function(a, b)
-        return Locale.Compare(a.name, b.name) == -1
-    end)
+    sortByLocalizedName(wonders)
     local items = {}
     if #wonders == 0 then
         items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_WONDERS_EMPTY") })
@@ -338,13 +356,7 @@ local function pushWonders()
             })
         end
     end
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.Wonders",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("Wonders", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"), items)
 end
 
 -- ===== Great people progress sub-handler (§3.9) =====
@@ -386,13 +398,7 @@ local function pushGreatPeople()
     if #items == 0 then
         items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GP_EMPTY") })
     end
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.GreatPeople",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("GreatPeople", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"), items)
 end
 
 -- ===== Worker focus sub-handler (§3.11) =====
@@ -485,13 +491,7 @@ local function pushWorkerFocus()
     end
     items[#items + 1] = resetItem
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.WorkerFocus",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("WorkerFocus", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"), items)
 end
 
 -- ===== Unemployed citizens (§3.10) =====
@@ -536,7 +536,7 @@ end
 -- wouldn't see a confirmation; acceptable because sighted users open the
 -- CityView via mouse, and this path only fires from our keyboard flow.
 
-local function makeSellConfirmHandler(buildingID, buildingName)
+local function makeSellConfirmHandler(buildingID)
     local function dismiss(reactivate)
         HandlerStack.removeByName("CityView.SellConfirm", reactivate ~= false)
     end
@@ -596,7 +596,7 @@ local function pushBuildingActions(city, buildingID, buildingName)
             if not isTurnActive() then
                 return
             end
-            HandlerStack.push(makeSellConfirmHandler(buildingID, buildingName))
+            HandlerStack.push(makeSellConfirmHandler(buildingID))
         end
         items[#items + 1] = sellItem
     end
@@ -607,13 +607,11 @@ local function pushBuildingActions(city, buildingID, buildingName)
     end
     items[#items + 1] = backItem
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.BuildingActions",
-        displayName = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS", buildingName),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub(
+        "BuildingActions",
+        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDING_ACTIONS", buildingName),
+        items
+    )
 end
 
 local function pushBuildings()
@@ -629,9 +627,7 @@ local function pushBuildings()
             buildings[#buildings + 1] = { id = building.ID, name = name, help = help }
         end
     end
-    table.sort(buildings, function(a, b)
-        return Locale.Compare(a.name, b.name) == -1
-    end)
+    sortByLocalizedName(buildings)
 
     local items = {}
     if #buildings == 0 then
@@ -657,13 +653,7 @@ local function pushBuildings()
         end
     end
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.Buildings",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("Buildings", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"), items)
 end
 
 local function cityHasAnyNonWonderBuilding(city)
@@ -721,9 +711,7 @@ local function pushSpecialists()
             end
         end
     end
-    table.sort(specBuildings, function(a, b)
-        return Locale.Compare(a.name, b.name) == -1
-    end)
+    sortByLocalizedName(specBuildings)
 
     local items = {}
     for _, sb in ipairs(specBuildings) do
@@ -852,13 +840,7 @@ local function pushSpecialists()
     end
     items[#items + 1] = manualItem
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.Specialists",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("Specialists", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"), items)
 end
 
 -- ===== Great works sub-handler (§3.12) =====
@@ -915,9 +897,7 @@ local function pushGreatWorks()
             end
         end
     end
-    table.sort(gwBuildings, function(a, b)
-        return Locale.Compare(a.name, b.name) == -1
-    end)
+    sortByLocalizedName(gwBuildings)
 
     local items = {}
     for _, b in ipairs(gwBuildings) do
@@ -998,13 +978,7 @@ local function pushGreatWorks()
             BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST") })
     end
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.GreatWorks",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("GreatWorks", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"), items)
 end
 
 -- ===== Production queue sub-handler (§3.1) =====
@@ -1099,6 +1073,15 @@ end
 
 local pushProductionQueue -- forward; the drill-in re-enters the queue list after a mutation.
 
+-- After Move up / Move down / Remove: drop the drill-in and the queue
+-- list without re-announcing either (reactivate=false on both), then
+-- rebuild the list against the new queue order and re-enter it.
+local function rebuildQueueAfterMutation()
+    HandlerStack.removeByName("CityView.ProdActions", false)
+    HandlerStack.removeByName("CityView.Production", false)
+    pushProductionQueue()
+end
+
 local function pushQueueSlotActions(zeroIdx, slotName)
     local items = {}
 
@@ -1117,9 +1100,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
             end
             Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx - 1)
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_UP"))
-            HandlerStack.removeByName("CityView.ProdActions", false)
-            HandlerStack.removeByName("CityView.Production", false)
-            pushProductionQueue()
+            rebuildQueueAfterMutation()
         end
         items[#items + 1] = upItem
     end
@@ -1133,9 +1114,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
             end
             Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, zeroIdx)
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_DOWN"))
-            HandlerStack.removeByName("CityView.ProdActions", false)
-            HandlerStack.removeByName("CityView.Production", false)
-            pushProductionQueue()
+            rebuildQueueAfterMutation()
         end
         items[#items + 1] = downItem
     end
@@ -1148,9 +1127,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         end
         Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_POP_ORDER, zeroIdx)
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"))
-        HandlerStack.removeByName("CityView.ProdActions", false)
-        HandlerStack.removeByName("CityView.Production", false)
-        pushProductionQueue()
+        rebuildQueueAfterMutation()
     end
     items[#items + 1] = removeItem
 
@@ -1161,13 +1138,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
     end
     items[#items + 1] = backItem
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.ProdActions",
-        displayName = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("ProdActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName), items)
 end
 
 pushProductionQueue = function()
@@ -1298,13 +1269,7 @@ pushProductionQueue = function()
     end
     items[#items + 1] = purchaseItem
 
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView.Production",
-        displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"),
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
+    pushCitySub("Production", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"), items)
 end
 
 -- ===== Hex map sub-handler (§3.2) =====
