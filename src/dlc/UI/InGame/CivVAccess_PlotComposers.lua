@@ -101,7 +101,8 @@ end
 -- exposure rather than gate tighter: the game treats this as the
 -- player's view of "what they remember," and our speech output should
 -- surface the same facts a sighted player would see in the tooltip.
-function PlotComposers.economy(plot)
+function PlotComposers.economy(plot, opts)
+    opts = opts or {}
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
     if not plot:IsRevealed(team, debug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
@@ -116,7 +117,16 @@ function PlotComposers.economy(plot)
     end
     local workingCity = plot:GetWorkingCity()
     if workingCity ~= nil then
-        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_WORKED_BY", workingCity:GetName())
+        -- In CityView's hex sub the caller knows which city the user is
+        -- managing, so the city name in "controlled by X" is noise unless X
+        -- is a different city (rare split-ring case). Pass opts.contextCity
+        -- to opt into the shorter form when they match.
+        local ctx = opts.contextCity
+        if ctx ~= nil and workingCity:GetID() == ctx:GetID() then
+            out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_CONTROLLED")
+        else
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_CONTROLLED_BY", workingCity:GetName())
+        end
     end
     readBuildProgress(plot, out)
     -- Barren tile (no yields, no fresh water, no trade route, no working

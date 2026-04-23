@@ -72,6 +72,22 @@ include("CivVAccess_ScannerNav")
 include("CivVAccess_ScannerHandler")
 include("CivVAccess_NotificationAnnounce")
 
+-- Publish mod modules to other in-game Contexts. Civ V sandboxes Lua
+-- globals per Context, so the modules loaded above are invisible in
+-- CityView / popup / sub-screen Contexts even though they share a
+-- lua_State. civvaccess_shared is the engine-wide bridge (proxy-injected
+-- into every Context's globals); storing the module tables on it gives
+-- other Contexts the same singleton handles rather than forcing them to
+-- re-include and fragment state (Cursor._x, ScannerNav._snapshot, etc.).
+-- Consumers capture refs into locals at file-scope and nil-guard the
+-- value in case Boot hasn't completed (edge: pre-game setup Context).
+civvaccess_shared.modules = civvaccess_shared.modules or {}
+civvaccess_shared.modules.Cursor = Cursor
+civvaccess_shared.modules.ScannerNav = ScannerNav
+civvaccess_shared.modules.ScannerHandler = ScannerHandler
+civvaccess_shared.modules.SurveyorCore = SurveyorCore
+civvaccess_shared.modules.PlotComposers = PlotComposers
+
 -- Boot fires any time a new in-game Context loads, which may include the
 -- pre-game setup flow, not just a real loaded game. Civ V runs the entire
 -- session on one lua_State, so there's no state-level discriminator.
@@ -79,6 +95,12 @@ include("CivVAccess_NotificationAnnounce")
 -- signal; defer the in-game boot actions to it.
 local function onInGameBoot()
     Log.info("in-game boot")
+    -- Defensive: clear scoped-cursor hooks in case a prior session (same
+    -- lua_State, different game via main-menu exit / reload) left them set
+    -- through an aborted sub-handler push. A dangling mapScope would reject
+    -- every Cursor.move with "edge of range" until this Context reloads.
+    civvaccess_shared.mapScope = nil
+    civvaccess_shared.mapAnnouncer = nil
     PlotAudio.loadAll()
     HandlerStack.removeByName("Baseline")
     HandlerStack.push(BaselineHandler.create())

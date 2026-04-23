@@ -1288,6 +1288,21 @@ end
 -- without knowing about CityView -- Phase 8's ranged-strike picker will
 -- reuse the same hooks with a different predicate + composer.
 --
+-- Cursor / ScannerNav / PlotComposers / ScannerHandler / SurveyorCore
+-- live in Boot's TaskList Context; Civ V sandboxes Lua globals per
+-- Context so they aren't visible here directly. Boot publishes them
+-- on civvaccess_shared.modules; capturing the refs at file-include
+-- time gives us the same singleton state without re-including (which
+-- would fragment _x/_y, _snapshot, etc. across Contexts). A nil here
+-- would mean Boot hasn't completed for this lua_State -- pushHexMap
+-- guards against that at call time and bails loudly.
+local _hexDeps = civvaccess_shared.modules or {}
+local Cursor = _hexDeps.Cursor
+local ScannerNav = _hexDeps.ScannerNav
+local ScannerHandler = _hexDeps.ScannerHandler
+local SurveyorCore = _hexDeps.SurveyorCore
+local PlotComposers = _hexDeps.PlotComposers
+--
 -- Enter actions mirror vanilla's left-click callbacks: a workable ring
 -- plot fires TASK_CHANGE_WORKING_PLOT with the city-plot index (same as
 -- PlotButtonClicked, CityView.lua:1980); an affordable purchasable plot
@@ -1312,7 +1327,7 @@ end
 
 local function workedStateKey(city, plot)
     if city:IsForcedWorkingPlot(plot) then
-        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_LOCKED"
+        return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED"
     end
     if city:IsWorkingPlot(plot) then
         return "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"
@@ -1329,7 +1344,11 @@ local function hexTileAnnouncement(plot)
         return ""
     end
     local parts = {}
-    local yieldText = PlotComposers.economy(plot)
+    -- contextCity collapses economy's "controlled by <this city>" line to just
+    -- "controlled" -- the user already knows which city they're managing.
+    -- Split-ring tiles (another of our cities owns the plot) still get the
+    -- full "controlled by X" since that IS distinguishing info.
+    local yieldText = PlotComposers.economy(plot, { contextCity = city })
     if yieldText ~= nil and yieldText ~= "" then
         parts[#parts + 1] = yieldText
     end
@@ -1430,10 +1449,15 @@ local function pushHexMap()
     if city == nil then
         return
     end
-
-    civvaccess_shared.mapScope = hexMapScope
-    civvaccess_shared.mapAnnouncer = hexTileAnnouncement
-    ScannerNav.invalidate()
+    -- Required module refs. Cursor + ScannerNav + PlotComposers are load-
+    -- bearing; ScannerHandler / SurveyorCore are optional extras wired at
+    -- push time. A missing Cursor means the sub is unusable -- bail before
+    -- any shared state mutation so a broken Boot doesn't leave mapScope
+    -- dangling and permanently jam the world cursor.
+    if Cursor == nil or ScannerNav == nil or PlotComposers == nil then
+        Log.error("CityView hex: civvaccess_shared.modules missing required entries; hex sub unavailable")
+        return
+    end
 
     local MOD_NONE = 0
     local function moveDir(dir)
@@ -1500,7 +1524,19 @@ local function pushHexMap()
         Log.warn("CityView hex: SurveyorCore not loaded; surveyor keys unreachable in hex sub")
     end
 
-    HandlerStack.push({
+    -- Install scope + announcer right before push so onActivate's Cursor.jumpTo
+    -- sees them. HandlerStack.push invokes onActivate before recording the
+    -- handler on the stack and returns false if it threw, in which case the
+    -- handler is NOT on the stack and onDeactivate will never fire -- so we
+    -- have to roll back the hooks manually. Prior bug: hooks were set at the
+    -- top of this function, ScannerNav.invalidate() then nil-derefed on
+    -- cross-Context sandboxing, pcall in the hub item swallowed it, and
+    -- mapScope stayed set forever with no handler to clear it.
+    civvaccess_shared.mapScope = hexMapScope
+    civvaccess_shared.mapAnnouncer = hexTileAnnouncement
+    ScannerNav.invalidate()
+
+    local pushed = HandlerStack.push({
         name = "CityView.HexMap",
         displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"),
         -- False so `.` / `,` on the hub still bubble for next/prev city.
@@ -1529,6 +1565,11 @@ local function pushHexMap()
             ScannerNav.invalidate()
         end,
     })
+    if not pushed then
+        civvaccess_shared.mapScope = nil
+        civvaccess_shared.mapAnnouncer = nil
+        ScannerNav.invalidate()
+    end
 end
 
 -- ===== Rename (§3.13) =====

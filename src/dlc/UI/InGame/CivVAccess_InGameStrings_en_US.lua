@@ -128,7 +128,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOUNTAIN"] = "mountain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAKE"] = "lake"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HP_FORMAT"] = "{1_Num} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"] = "{1_Build} {2_Turns} turns"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_WORKED_BY"] = "worked by {1_City}"
+-- "Controlled" = plot:GetWorkingCity(): the tile is part of this city's
+-- workable area (the engine's term is "working city," but no citizen need
+-- be assigned). "Worked" elsewhere means IsWorkingPlot = a citizen is
+-- actually there. Kept the wording distinct so the two never collide.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "controlled by {1_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "controlled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} percent defense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in enemy zone of control"
 -- Cursor help-overlay key labels: chord forms shared with the main letter
@@ -436,7 +441,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "Purchase with
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"] = "Hex map"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_MODE"] = "hex map"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"] = "worked"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_LOCKED"] = "locked"
+-- "Pinned" = IsForcedWorkingPlot: a worker is here AND the citizen manager
+-- won't pull them off. Vanilla's visual is a star/pin icon, so the metaphor
+-- matches. Pressing Enter on a "not worked" tile lands here in one step --
+-- the engine's TASK_CHANGE_WORKING_PLOT both assigns and forces in a single
+-- task, same as a mouse left-click.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED"] = "pinned"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_BLOCKED"] = "blocked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_NOT_WORKED"] = "not worked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST"] = "purchasable, {1_Gold} gold"
