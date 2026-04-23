@@ -18,6 +18,13 @@
 -- afterwards we compare the unit's live plot to the target and speak
 -- "moved" / "stopped short". Two-tick fallback covers silently-rejected
 -- commits. No cross-turn state -- pending is cleared on every resolution.
+--
+-- Combat moves skip pending entirely: combat animation runs for seconds
+-- before the engine fires a post-advance SerialEventUnitMove (or never,
+-- if the attacker loses / doesn't advance), so the two-tick timeout
+-- would always trip and speak "action failed" while EndCombatSim is
+-- already queuing the real outcome. EndCombatSim is the announcement
+-- path for anything that hits enemyAt at commit time.
 
 UnitControl = {}
 
@@ -212,8 +219,10 @@ function UnitControl.cycleOnHex(x, y, forward)
 end
 
 -- ===== Alt+QAZEDC direct move =====
-local function commitDirectMove(unit, targetX, targetY)
-    UnitControl.registerPending(unit, targetX, targetY)
+local function commitDirectMove(unit, targetX, targetY, isCombat)
+    if not isCombat then
+        UnitControl.registerPending(unit, targetX, targetY)
+    end
     Game.SelectionListGameNetMessage(
         GameMessageTypes.GAMEMESSAGE_PUSH_MISSION,
         GameInfoTypes.MISSION_MOVE_TO,
@@ -241,7 +250,7 @@ local function directMove(dir)
     local enemy = enemyAt(target)
     if enemy == nil then
         clearCombatConfirm()
-        commitDirectMove(unit, tx, ty)
+        commitDirectMove(unit, tx, ty, false)
         return
     end
     -- Melee-attack confirm gate. Screen-reader users can't see the
@@ -250,7 +259,7 @@ local function directMove(dir)
     local now = os.clock()
     if _combatConfirm.dir == dir and (now - _combatConfirm.clock) < COMBAT_CONFIRM_WINDOW_SECONDS then
         clearCombatConfirm()
-        commitDirectMove(unit, tx, ty)
+        commitDirectMove(unit, tx, ty, true)
         return
     end
     _combatConfirm.dir = dir
@@ -453,11 +462,19 @@ local function onUnitMoveCompleted()
         clearPending()
         return
     end
+    local cx, cy = unit:GetX(), unit:GetY()
+    -- Stale event from a superseded pending: when a second move commits
+    -- before the first's SerialEventUnitMove arrives, _pending is the
+    -- new snapshot and the in-flight event belongs to the old one. The
+    -- unit is sitting on the new pending's start hex (the old pending's
+    -- target), so anchor the skip on that.
+    if cx == _pending.startX and cy == _pending.startY then
+        return
+    end
     local tx, ty = _pending.targetX, _pending.targetY
     -- Only speak on a stop condition (at target OR out of moves). The
     -- engine fires SerialEventUnitMove per hex traversed, so mid-path
     -- events need to be ignored.
-    local cx, cy = unit:GetX(), unit:GetY()
     local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
     if cx == tx and cy == ty or movesLeft <= 0 then
         speakQueued(UnitSpeech.moveResult(unit, tx, ty))
