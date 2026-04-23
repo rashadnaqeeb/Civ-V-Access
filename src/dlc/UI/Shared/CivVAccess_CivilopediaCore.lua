@@ -781,7 +781,20 @@ local function harvestRelationships(leaves, handler, currentCat)
                     local btn = instance[def.button]
                     if btn ~= nil then
                         local label = btn:GetToolTipString()
-                        local voidID = btn:GetVoid1()
+                        -- GreatWorksButton is a <Container> in
+                        -- CivilopediaScreen.xml, not a <Button>, and
+                        -- Container userdata has no GetVoid1. Any future
+                        -- non-Button instance "button" falls into the
+                        -- same bucket. Treat missing as nil voidID,
+                        -- which degrades the leaf to a plain Text entry
+                        -- (no link-follow, but still readable).
+                        local voidID = nil
+                        if btn.GetVoid1 ~= nil then
+                            local ok_v, v = pcall(btn.GetVoid1, btn)
+                            if ok_v then
+                                voidID = v
+                            end
+                        end
                         if label ~= nil and label ~= "" then
                             local dedup = tostring(voidID) .. "|" .. tostring(label)
                             if not seen[dedup] then
@@ -821,12 +834,21 @@ end
 -- Harvest the currently-rendered article and populate the reader tab
 -- with it. Callers must drive SelectArticle (via any path) before
 -- calling this so the live Controls contain the target's text.
+--
+-- _harvestInto is pcalled so a broken individual harvester doesn't
+-- abort the setItems call. The caller still needs setItems to run --
+-- otherwise the reader tab keeps its placeholder, and in the
+-- stage-for-show path setInitialTabIndex never lands us on the reader
+-- tab at all (dumping the user on the picker instead of the article).
 local function harvestIntoReader(handler, cat, entryID)
     if type(handler.setPickerReaderSelection) == "function" then
         handler.setPickerReaderSelection(makeEntryID(cat, entryID))
     end
     local leaves = {}
-    Civilopedia._harvestInto(leaves, handler, cat)
+    local ok, err = pcall(Civilopedia._harvestInto, leaves, handler, cat)
+    if not ok then
+        Log.error("Civilopedia harvest failed (cat=" .. tostring(cat) .. " id=" .. tostring(entryID) .. "): " .. tostring(err))
+    end
     if #leaves == 0 then
         leaves[1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_ARTICLE"),
