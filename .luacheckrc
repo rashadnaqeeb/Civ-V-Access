@@ -104,6 +104,7 @@ globals = {
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",
+    "ChooseProductionLogic",
     "NotificationAnnounce",
     "Recommendations",
     "Turn",
@@ -182,6 +183,9 @@ files["tests/"] = {
         "PreGame", "Network", "OptionsManager",
         -- Engine enum the suites stub to drive popup dispatch tests.
         "ButtonPopupTypes",
+        -- Engine enums only the ChooseProduction suite needs; shimmed in
+        -- that suite's setup rather than in the polyfill.
+        "OrderTypes", "AdvisorTypes",
         -- Proxy-injected miniaudio binding. run.lua installs a capture
         -- stub before each suite; declaring it writable here lets the
         -- stub assignment and monkey-patches pass without warnings.

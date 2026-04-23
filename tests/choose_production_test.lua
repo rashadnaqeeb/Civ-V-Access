@@ -19,18 +19,20 @@ local function setup()
     -- Enum shims. OrderTypes / AdvisorTypes / CityUpdateTypes are not in the
     -- polyfill because only ChooseProduction needs them; add them here so
     -- downstream suites don't inherit an unused enum.
-    OrderTypes = OrderTypes or {
-        ORDER_TRAIN = 0,
-        ORDER_CONSTRUCT = 1,
-        ORDER_CREATE = 2,
-        ORDER_MAINTAIN = 3,
-    }
-    AdvisorTypes = AdvisorTypes or {
-        ADVISOR_ECONOMIC = 0,
-        ADVISOR_MILITARY = 1,
-        ADVISOR_SCIENCE = 2,
-        ADVISOR_FOREIGN = 3,
-    }
+    OrderTypes = OrderTypes
+        or {
+            ORDER_TRAIN = 0,
+            ORDER_CONSTRUCT = 1,
+            ORDER_CREATE = 2,
+            ORDER_MAINTAIN = 3,
+        }
+    AdvisorTypes = AdvisorTypes
+        or {
+            ADVISOR_ECONOMIC = 0,
+            ADVISOR_MILITARY = 1,
+            ADVISOR_SCIENCE = 2,
+            ADVISOR_FOREIGN = 3,
+        }
     YieldTypes.YIELD_FAITH = YieldTypes.YIELD_FAITH or 5
     YieldTypes.NO_YIELD = YieldTypes.NO_YIELD or -1
 
@@ -38,21 +40,30 @@ local function setup()
     -- assertions can compare against known Description strings.
     Locale = Locale or {}
     Locale.Compare = function(a, b)
-        if a == b then return 0 end
-        if a < b then return -1 end
+        if a == b then
+            return 0
+        end
+        if a < b then
+            return -1
+        end
         return 1
     end
-    Locale.ConvertTextKey = Locale.ConvertTextKey
-        or function(k, ...)
-            return k
-        end
+    Locale.ConvertTextKey = Locale.ConvertTextKey or function(k, ...)
+        return k
+    end
     Locale.Lookup = Locale.Lookup or Locale.ConvertTextKey
 
     -- Game / GameInfo will be populated per-test. Start with an empty scaffold.
     Game = Game or {}
-    Game.IsUnitRecommended = function() return false end
-    Game.IsBuildingRecommended = function() return false end
-    Game.IsProjectRecommended = function() return false end
+    Game.IsUnitRecommended = function()
+        return false
+    end
+    Game.IsBuildingRecommended = function()
+        return false
+    end
+    Game.IsProjectRecommended = function()
+        return false
+    end
     Game.SetAdvisorRecommenderCity = function() end
     GameInfo = {}
 
@@ -101,15 +112,21 @@ local function mkCityStub(opts)
     -- Build lookup keys for IsCanPurchase: tuple (unitID, buildingID, projectID, yield).
     -- Tests pass per-entry maps keyed by the non-(-1) id.
     function c:CanTrain(id, arg1, arg2)
-        if arg2 == 1 then return self._canTrainVisible[id] == true end
+        if arg2 == 1 then
+            return self._canTrainVisible[id] == true
+        end
         return self._canTrain[id] == true
     end
     function c:CanConstruct(id, arg1, arg2)
-        if arg2 == 1 then return self._canConstructVisible[id] == true end
+        if arg2 == 1 then
+            return self._canConstructVisible[id] == true
+        end
         return self._canConstruct[id] == true
     end
     function c:CanCreate(id, arg1, arg2)
-        if arg2 == 1 then return self._canCreateVisible[id] == true end
+        if arg2 == 1 then
+            return self._canCreateVisible[id] == true
+        end
         return self._canCreate[id] == true
     end
     function c:CanMaintain(id)
@@ -122,22 +139,54 @@ local function mkCityStub(opts)
             or (strictEnable and self._canPurchaseFaithStrict or self._canPurchaseFaith)
         return table_[id] == true
     end
-    function c:GetUnitPurchaseCost(id) return self._unitCost[id] or 0 end
-    function c:GetUnitFaithPurchaseCost(id, flag) return self._unitFaithCost[id] or 0 end
-    function c:GetBuildingPurchaseCost(id) return self._buildingCost[id] or 0 end
-    function c:GetBuildingFaithPurchaseCost(id) return self._buildingFaithCost[id] or 0 end
-    function c:GetProjectPurchaseCost(id) return 0 end
-    function c:GetUnitProductionTurnsLeft(id) return self._unitTurnsLeft[id] or 1 end
-    function c:GetBuildingProductionTurnsLeft(id) return self._buildingTurnsLeft[id] or 1 end
-    function c:GetProjectProductionTurnsLeft(id) return self._projectTurnsLeft[id] or 1 end
-    function c:CanTrainTooltip(id) return self._canTrainTooltip[id] or "" end
-    function c:CanConstructTooltip(id) return self._canConstructTooltip[id] or "" end
-    function c:GetPurchaseUnitTooltip(id) return "" end
-    function c:GetFaithPurchaseUnitTooltip(id) return "" end
-    function c:GetPurchaseBuildingTooltip(id) return "" end
-    function c:GetFaithPurchaseBuildingTooltip(id) return "" end
-    function c:GetOrderQueueLength() return #self._queue end
-    function c:GetOrderFromQueue(i) return self._queue[i + 1][1], self._queue[i + 1][2] end
+    function c:GetUnitPurchaseCost(id)
+        return self._unitCost[id] or 0
+    end
+    function c:GetUnitFaithPurchaseCost(id, flag)
+        return self._unitFaithCost[id] or 0
+    end
+    function c:GetBuildingPurchaseCost(id)
+        return self._buildingCost[id] or 0
+    end
+    function c:GetBuildingFaithPurchaseCost(id)
+        return self._buildingFaithCost[id] or 0
+    end
+    function c:GetProjectPurchaseCost(id)
+        return 0
+    end
+    function c:GetUnitProductionTurnsLeft(id)
+        return self._unitTurnsLeft[id] or 1
+    end
+    function c:GetBuildingProductionTurnsLeft(id)
+        return self._buildingTurnsLeft[id] or 1
+    end
+    function c:GetProjectProductionTurnsLeft(id)
+        return self._projectTurnsLeft[id] or 1
+    end
+    function c:CanTrainTooltip(id)
+        return self._canTrainTooltip[id] or ""
+    end
+    function c:CanConstructTooltip(id)
+        return self._canConstructTooltip[id] or ""
+    end
+    function c:GetPurchaseUnitTooltip(id)
+        return ""
+    end
+    function c:GetFaithPurchaseUnitTooltip(id)
+        return ""
+    end
+    function c:GetPurchaseBuildingTooltip(id)
+        return ""
+    end
+    function c:GetFaithPurchaseBuildingTooltip(id)
+        return ""
+    end
+    function c:GetOrderQueueLength()
+        return #self._queue
+    end
+    function c:GetOrderFromQueue(i)
+        return self._queue[i + 1][1], self._queue[i + 1][2]
+    end
     return c
 end
 
@@ -167,16 +216,30 @@ local function mkInfoTable(rows)
     return t
 end
 
-local function installGameInfoUnits(rows) GameInfo.Units = mkInfoTable(rows) end
-local function installGameInfoBuildings(rows) GameInfo.Buildings = mkInfoTable(rows) end
-local function installGameInfoProjects(rows) GameInfo.Projects = mkInfoTable(rows) end
-local function installGameInfoProcesses(rows) GameInfo.Processes = mkInfoTable(rows) end
-local function installEras(eras) GameInfo.Eras = mkInfoTable(eras) end
-local function installTechnologies(techs) GameInfo.Technologies = mkInfoTable(techs) end
+local function installGameInfoUnits(rows)
+    GameInfo.Units = mkInfoTable(rows)
+end
+local function installGameInfoBuildings(rows)
+    GameInfo.Buildings = mkInfoTable(rows)
+end
+local function installGameInfoProjects(rows)
+    GameInfo.Projects = mkInfoTable(rows)
+end
+local function installGameInfoProcesses(rows)
+    GameInfo.Processes = mkInfoTable(rows)
+end
+local function installEras(eras)
+    GameInfo.Eras = mkInfoTable(eras)
+end
+local function installTechnologies(techs)
+    GameInfo.Technologies = mkInfoTable(techs)
+end
 
 local function installBuildingClasses(map)
     GameInfo.BuildingClasses = setmetatable({}, {
-        __index = function(_, k) return map[k] end,
+        __index = function(_, k)
+            return map[k]
+        end,
     })
 end
 
@@ -246,7 +309,9 @@ function M.test_sort_entries_puts_enabled_before_disabled()
         { info = { Description = "C" }, disabledForSort = false, yieldType = YieldTypes.NO_YIELD },
         { info = { Description = "D" }, disabledForSort = true, yieldType = YieldTypes.NO_YIELD },
     }
-    ChooseProductionLogic.sortEntries(entries, function(_) return 0 end)
+    ChooseProductionLogic.sortEntries(entries, function(_)
+        return 0
+    end)
     T.eq(entries[1].info.Description, "B", "first enabled by name")
     T.eq(entries[2].info.Description, "C", "second enabled by name")
     T.eq(entries[3].info.Description, "A", "first disabled by name")
@@ -259,7 +324,9 @@ function M.test_sort_entries_prefers_gold_over_faith_on_ties()
         { info = { Description = "X" }, disabledForSort = false, yieldType = YieldTypes.YIELD_FAITH },
         { info = { Description = "X" }, disabledForSort = false, yieldType = YieldTypes.YIELD_GOLD },
     }
-    ChooseProductionLogic.sortEntries(entries, function(_) return 0 end)
+    ChooseProductionLogic.sortEntries(entries, function(_)
+        return 0
+    end)
     T.eq(entries[1].yieldType, YieldTypes.YIELD_GOLD, "gold entry sorts before faith")
     T.eq(entries[2].yieldType, YieldTypes.YIELD_FAITH)
 end
@@ -270,7 +337,7 @@ function M.test_build_unit_entries_produce_tab_collects_trainable()
     installGameInfoUnits({
         { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", PrereqTech = "TECH_BRONZE_WORKING" },
         { ID = 2, Description = "Settler", Domain = "DOMAIN_LAND", CivilianAttackPriority = 1 },
-        { ID = 3, Description = "Hidden", Domain = "DOMAIN_LAND" },  -- not trainable even visible
+        { ID = 3, Description = "Hidden", Domain = "DOMAIN_LAND" }, -- not trainable even visible
     })
     local city = mkCityStub({
         canTrainVisible = { [1] = true, [2] = true },
@@ -357,7 +424,7 @@ function M.test_disabled_entry_label_includes_reason()
         { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", Strategy = "Strat", Help = "Helpful" },
     })
     local city = mkCityStub({
-        canTrain = { [1] = false },  -- disabled
+        canTrain = { [1] = false }, -- disabled
         unitTurnsLeft = { [1] = 5 },
         canTrainTooltip = { [1] = "Need more production." },
     })
@@ -387,23 +454,40 @@ function M.test_advisor_suffix_with_zero_one_and_all_advisors()
     -- Distinct sentences per advisor key so the concatenation is observable.
     local orig = Locale.ConvertTextKey
     Locale.ConvertTextKey = function(k, ...)
-        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_ECONOMIC" then return "econ." end
-        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_MILITARY" then return "mil." end
-        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_SCIENCE" then return "sci." end
-        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_FOREIGN" then return "foreign." end
+        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_ECONOMIC" then
+            return "econ."
+        end
+        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_MILITARY" then
+            return "mil."
+        end
+        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_SCIENCE" then
+            return "sci."
+        end
+        if k == "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_FOREIGN" then
+            return "foreign."
+        end
         return orig(k, ...)
     end
     local entry = { orderType = OrderTypes.ORDER_TRAIN, id = 42 }
 
-    Game.IsUnitRecommended = function(_id, _t) return false end
+    Game.IsUnitRecommended = function(_id, _t)
+        return false
+    end
     T.eq(ChooseProductionLogic.advisorSuffix(entry), "", "empty when nobody recommends")
 
-    Game.IsUnitRecommended = function(_id, t) return t == AdvisorTypes.ADVISOR_MILITARY end
+    Game.IsUnitRecommended = function(_id, t)
+        return t == AdvisorTypes.ADVISOR_MILITARY
+    end
     T.eq(ChooseProductionLogic.advisorSuffix(entry), "mil.")
 
-    Game.IsUnitRecommended = function(_id, _t) return true end
-    T.eq(ChooseProductionLogic.advisorSuffix(entry), "econ. mil. sci. foreign.",
-        "order follows ADVISORS array (Economic, Military, Science, Foreign)")
+    Game.IsUnitRecommended = function(_id, _t)
+        return true
+    end
+    T.eq(
+        ChooseProductionLogic.advisorSuffix(entry),
+        "econ. mil. sci. foreign.",
+        "order follows ADVISORS array (Economic, Military, Science, Foreign)"
+    )
 
     Locale.ConvertTextKey = orig
 end
@@ -411,8 +495,7 @@ end
 function M.test_append_slot_and_queue_full_text_templates()
     setup()
     for n = 1, 5 do
-        T.eq(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT", n),
-            "added, slot " .. n .. " in queue")
+        T.eq(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT", n), "added, slot " .. n .. " in queue")
     end
     T.eq(Text.key("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"), "queue full")
 end
