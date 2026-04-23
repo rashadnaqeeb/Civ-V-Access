@@ -31,18 +31,24 @@ function ChooseTechLogic.advisorSuffix(techID)
 end
 
 -- Mode predicate. Mirrors TechPopup.lua's RefreshDisplay branches:
---   normal    -> player:CanResearch(techID)
---   free      -> player:CanResearchForFree(techID)  (and numFreeTechs > 0)
---   stealing  -> player:CanResearch(techID) AND target team has it
+--   normal    -> player:CanResearch(id)
+--   free      -> player:CanResearch(id) AND player:CanResearchForFree(id)
+--   stealing  -> player:CanResearch(id) AND target team has it
+-- CanResearch is the outer prereq/ownership gate for every mode; CanResearchForFree
+-- alone admits techs the engine rejects at commit (silent no-op, user hears "gained X"
+-- but nothing researched).
 local function isEligible(player, tech, mode, targetTeam)
     local id = tech.ID
+    if not player:CanResearch(id) then
+        return false
+    end
     if mode == "free" then
         return player:CanResearchForFree(id)
     end
     if mode == "stealing" then
-        return player:CanResearch(id) and targetTeam ~= nil and targetTeam:IsHasTech(id)
+        return targetTeam ~= nil and targetTeam:IsHasTech(id)
     end
-    return player:CanResearch(id)
+    return true
 end
 
 -- Entries in vanilla GameInfo.Technologies iteration order. The currently-
@@ -114,8 +120,10 @@ end
 --   4. advisor suffix     (engine sentences, in ECONOMIC/MILITARY/SCIENCE/FOREIGN order)
 --   5. cleaned help text  (cost / leads-to / unlocks prose)
 -- Help text is appended last because it's the longest; the user can stop
--- listening once they hear the information they need.
-function ChooseTechLogic.buildLabel(entry, ctx)
+-- listening once they hear the information they need. GetHelpTextForTech is
+-- an engine global defined by TechHelpInclude (pulled in by the base file we
+-- override), so it's reachable from our same-Context include.
+function ChooseTechLogic.buildLabel(entry, player)
     local parts = { Text.key(entry.info.Description) }
 
     local statusKey
@@ -131,8 +139,11 @@ function ChooseTechLogic.buildLabel(entry, ctx)
         parts[#parts + 1] = Text.key(statusKey)
     end
 
-    if ctx.science > 0 and entry.mode ~= "stealing" then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", ctx.turns)
+    if player:GetScience() > 0 and entry.mode ~= "stealing" then
+        parts[#parts + 1] = Text.format(
+            "TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS",
+            player:GetResearchTurnsLeft(entry.techID, true)
+        )
     end
 
     local advisors = ChooseTechLogic.advisorSuffix(entry.techID)
@@ -140,8 +151,8 @@ function ChooseTechLogic.buildLabel(entry, ctx)
         parts[#parts + 1] = advisors
     end
 
-    local help = ctx.filteredHelp
-    if help ~= nil and help ~= "" then
+    local help = TextFilter.filter(GetHelpTextForTech(entry.techID))
+    if help ~= "" then
         parts[#parts + 1] = ChooseTechLogic.cleanHelpText(help, Text.key(entry.info.Description))
     end
 

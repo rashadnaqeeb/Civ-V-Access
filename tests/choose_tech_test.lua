@@ -37,6 +37,13 @@ local function setup()
     Players = {}
     Teams = {}
 
+    -- Logic's buildLabel pulls the engine help text via this global (defined
+    -- in-game by TechHelpInclude, which the base TechPopup.lua has already
+    -- loaded by the time our same-Context include runs). Default is empty so
+    -- label tests that don't care about help prose stay short; tests that
+    -- exercise help-text composition override this per-case.
+    GetHelpTextForTech = function() return "" end
+
     CivVAccess_Strings = CivVAccess_Strings or {}
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_FREE"] = "free"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT"] = "currently researching"
@@ -176,6 +183,23 @@ function M.test_buildEntries_free_filters_canResearchForFree()
     T.eq(current, nil)
 end
 
+-- Free mode requires CanResearch as an outer gate (base TechPopup.lua wraps the
+-- free check inside CanResearch). Without it, we'd surface techs the engine
+-- rejects at commit - a silent no-op with the user hearing "gained X" while
+-- nothing actually researches.
+function M.test_buildEntries_free_requires_canResearch()
+    setup()
+    installTechs({ mkTech(1, "AGRICULTURE") })
+    Players[0] = mkPlayer({
+        canResearchForFree = { [1] = true },
+        canResearch = {}, -- prereqs not met
+        currentResearch = -1,
+        numFreeTechs = 1,
+    })
+    local entries, _ = ChooseTechLogic.buildEntries(0, "free", -1)
+    T.eq(#entries, 0, "CanResearchForFree alone must not admit a tech")
+end
+
 function M.test_buildEntries_stealing_intersects_target_techs()
     setup()
     installTechs({ mkTech(1, "AGRICULTURE"), mkTech(2, "POTTERY"), mkTech(3, "SAILING") })
@@ -236,67 +260,65 @@ end
 
 -- ===== buildLabel =====
 
+local function mkLabelPlayer(science, turnsByTech)
+    return mkPlayer({ science = science, researchTurnsLeft = turnsByTech or {} })
+end
+
 function M.test_buildLabel_name_leads()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
+    CivVAccess_Strings["TXT_KEY_TECH_POTTERY"] = "Pottery"
     local entry = {
         techID = 1,
         info = { Description = "TXT_KEY_TECH_POTTERY" },
         mode = "normal",
     }
-    CivVAccess_Strings["TXT_KEY_TECH_POTTERY"] = "Pottery"
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 5, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:sub(1, 7) == "Pottery", "tech name first: " .. label)
 end
 
 function M.test_buildLabel_includes_turns_when_science_positive()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "normal" }
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 5, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:find("10 turns"), "turns present: " .. label)
 end
 
 function M.test_buildLabel_omits_turns_when_science_zero()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "normal" }
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 0, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(0, { [1] = 10 }))
     T.eq(label:find("turns"), nil, "no turns at zero science: " .. label)
 end
 
 function M.test_buildLabel_omits_turns_in_stealing_mode()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "stealing" }
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 5, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.eq(label:find("turns"), nil, "no turns when stealing: " .. label)
 end
 
 function M.test_buildLabel_free_status_shows()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "free" }
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 5, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:find("free"), "status 'free' shown: " .. label)
 end
 
 function M.test_buildLabel_queued_status_shows_slot()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
     local entry = {
         techID = 1,
         info = { Description = "Pottery" },
         mode = "normal",
         queuePosition = 2,
     }
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 5, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:find("queued slot 2"), "queue slot shown: " .. label)
 end
 
@@ -305,23 +327,20 @@ function M.test_buildLabel_advisor_suffix_appended()
     installAdvisorLocale()
     Game.IsTechRecommended = function(id, adv) return adv == AdvisorTypes.ADVISOR_MILITARY end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "normal" }
-    local label = ChooseTechLogic.buildLabel(entry, { turns = 10, science = 5, filteredHelp = "" })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:find("military"), "advisor suffix appended: " .. label)
 end
 
 function M.test_buildLabel_filtered_help_trails()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
+    GetHelpTextForTech = function()
+        return "POTTERY[NEWLINE]Cost: 60[NEWLINE]Leads to: Animal Husbandry[NEWLINE]Allows construction of Granary"
+    end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "normal" }
-    local label = ChooseTechLogic.buildLabel(entry, {
-        turns = 10,
-        science = 5,
-        filteredHelp = "POTTERY Cost: 60 Leads to: Animal Husbandry Allows construction of Granary",
-    })
+    local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:find("Animal Husbandry"), "help text appended: " .. label)
     T.truthy(label:find("Granary"), "unlocks included: " .. label)
-    -- Name should appear in primary (once); help text's leading POTTERY stripped.
     local _, count = label:gsub("Pottery", "x")
     T.eq(count, 1, "tech name not duplicated after strip: " .. label)
 end

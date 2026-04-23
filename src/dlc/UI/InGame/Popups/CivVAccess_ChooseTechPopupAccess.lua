@@ -114,18 +114,6 @@ end
 
 -- ===== Entry -> Choice item =====
 
-local function labelContext(player, entry)
-    local techInfo = entry.info
-    local turns = player:GetResearchTurnsLeft(entry.techID, true)
-    local rawHelp = GetHelpTextForTech(entry.techID)
-    local filtered = TextFilter.filter(rawHelp)
-    return {
-        turns = turns,
-        science = player:GetScience(),
-        filteredHelp = filtered,
-    }
-end
-
 local function choiceFromEntry(entry)
     return BaseMenuItems.Choice({
         labelFn = function()
@@ -133,10 +121,10 @@ local function choiceFromEntry(entry)
             if player == nil then
                 return Text.key(entry.info.Description)
             end
-            return ChooseTechLogic.buildLabel(entry, labelContext(player, entry))
+            return ChooseTechLogic.buildLabel(entry, player)
         end,
         activate = commitCallback(entry.techID),
-        pediaName = Locale.ConvertTextKey(entry.info.Description),
+        pediaName = Text.key(entry.info.Description),
     })
 end
 
