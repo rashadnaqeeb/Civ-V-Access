@@ -58,7 +58,6 @@ local handler = session.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_CIVILOPEDIA"),
     pickerTabName = "TXT_KEY_CIVVACCESS_PEDIA_CATEGORIES_TAB",
     readerTabName = "TXT_KEY_CIVVACCESS_PEDIA_CONTENT_TAB",
-    focusParkControl = "CloseButton",
     priorShowHide = priorShowHide,
     priorInput = priorInput,
     pickerItems = pickerItems,

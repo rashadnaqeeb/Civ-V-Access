@@ -69,7 +69,6 @@ mainHandler = session.install(ContextPtr, {
     pickerTabName = "TXT_KEY_CIVVACCESS_REPLAY_LIST_TAB",
     readerTabName = "TXT_KEY_CIVVACCESS_REPLAY_DETAILS_TAB",
     emptyReaderText = Text.key("TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"),
-    focusParkControl = "BackButton",
     priorShowHide = priorShowHide,
     priorInput = priorInput,
     pickerItems = pickerItems,

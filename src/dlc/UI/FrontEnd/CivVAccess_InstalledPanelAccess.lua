@@ -79,10 +79,6 @@ mainHandler = session.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_INSTALLED_PANEL"),
     pickerTabName = "TXT_KEY_CIVVACCESS_MODS_LIST_TAB",
     readerTabName = "TXT_KEY_CIVVACCESS_MODS_DETAILS_TAB",
-    -- OptionsButton is a SmallButton at the top-right of InstalledPanel.
-    -- ListingScrollPanel (ScrollPanel) does not implement TakeFocus and
-    -- fails parkFocus with a "method TakeFocus nil" warning.
-    focusParkControl = "OptionsButton",
     pickerItems = pickerItems,
     -- Skip the Context-init push. The LuaEvent listener below drives push /
     -- pop based on the parent ModsBrowser's real visibility transitions.

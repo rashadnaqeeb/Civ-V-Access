@@ -24,7 +24,6 @@ BaseMenu.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SET_CIV_NAMES"),
     priorShowHide = priorShowHide,
     priorInput = priorInput,
-    focusParkControl = "CancelButton",
     items = {
         BaseMenuItems.Textfield({
             controlName = "EditCivLeader",

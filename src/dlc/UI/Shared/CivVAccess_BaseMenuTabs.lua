@@ -7,9 +7,9 @@
 -- are one-line conditionals on the data layout, not behavior.
 --
 -- Navigation helpers Core owns (currentItems, currentIndex, nextValidIndex,
--- parkFocus, resetSearch) are passed in as a `nav` table on every entry
--- point that needs them. They cannot be required as locals because they are
--- module-scoped to Core.
+-- resetSearch) are passed in as a `nav` table on every entry point that
+-- needs them. They cannot be required as locals because they are module-
+-- scoped to Core.
 
 BaseMenuTabs = {}
 
@@ -170,7 +170,6 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
             )
         end
     end
-    nav.parkFocus(self)
     -- Reset nesting on tab switch: the new tab's items are a fresh list.
     self._level = 1
     local items = nav.currentItems(self)

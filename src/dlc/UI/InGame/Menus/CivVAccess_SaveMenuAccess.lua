@@ -90,7 +90,6 @@ mainHandler = session.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_MENU_SAVE_BUTTON"),
     pickerTabName = "TXT_KEY_CIVVACCESS_SAVE_SAVES_TAB",
     readerTabName = "TXT_KEY_CIVVACCESS_SAVE_DETAILS_TAB",
-    focusParkControl = "BackButton",
     priorShowHide = priorShowHide,
     priorInput = priorInput,
     pickerItems = bootstrapPickerItems,

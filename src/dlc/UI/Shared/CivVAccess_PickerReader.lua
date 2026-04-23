@@ -20,7 +20,7 @@
 --       readerTabName = "TXT_KEY_...",
 --       emptyReaderText = "...",
 --       pickerItems = pickerItems,
---       priorShowHide = ..., priorInput = ..., focusParkControl = "...",
+--       priorShowHide = ..., priorInput = ...,
 --   })
 --
 -- Entry spec (PickerReader.Entry factory returned from create()):
@@ -309,7 +309,6 @@ function PickerReader.create()
             preamble = config.preamble,
             priorShowHide = config.priorShowHide,
             priorInput = config.priorInput,
-            focusParkControl = config.focusParkControl,
             deferActivate = config.deferActivate,
             shouldActivate = config.shouldActivate,
             onShow = config.onShow,

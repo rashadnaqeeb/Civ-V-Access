@@ -87,7 +87,6 @@ function BaseMenuEditMode.push(menu, textfieldItem)
         safe("restore RegisterCallback", function()
             editBox:RegisterCallback(priorCallback)
         end)
-        BaseMenu._parkFocus(menu)
         HandlerStack.removeByName(subName, true)
         if restore then
             SpeechPipeline.speakInterrupt(

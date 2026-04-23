@@ -66,7 +66,6 @@ BaseMenu.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_OPTIONS"),
     priorShowHide = priorShowHide,
     priorInput = priorInput,
-    focusParkControl = "CancelButton",
     tabs = {
         {
             name = "TXT_KEY_GAME_OPTIONS",

@@ -73,7 +73,6 @@ mainHandler = session.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_LOAD_GAME"),
     pickerTabName = "TXT_KEY_CIVVACCESS_LOAD_SAVES_TAB",
     readerTabName = "TXT_KEY_CIVVACCESS_LOAD_DETAILS_TAB",
-    focusParkControl = "BackButton",
     priorShowHide = priorShowHide,
     priorInput = priorInput,
     pickerItems = pickerItems,

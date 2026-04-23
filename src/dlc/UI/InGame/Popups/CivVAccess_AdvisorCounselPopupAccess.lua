@@ -120,7 +120,6 @@ BaseMenu.install(ContextPtr, {
     displayName   = Text.key("TXT_KEY_ADVISOR_COUNSEL"),
     priorInput    = priorInput,
     priorShowHide = priorShowHide,
-    focusParkControl = "CloseButton",
     onShow        = onShow,
     tabs          = tabs,
 })

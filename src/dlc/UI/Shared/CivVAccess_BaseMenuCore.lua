@@ -51,9 +51,6 @@
 --                     A function preamble is re-readable via refresh() so
 --                     dynamic status text (FrontEndPopup body, JoiningRoom
 --                     status) can speak the latest on change.
---   focusParkControl  name of a non-EditBox control the menu can TakeFocus
---                     on to release any engine-held EditBox focus (auto-
---                     focused on tab switch or after edit-mode exit).
 --   escapePops        when true, adds an Esc binding that pops this menu
 --                     by name. Used by Pulldown's child menus so Esc cancels
 --                     the sub without bypassing to the screen's priorInput.
@@ -177,45 +174,6 @@ local function findSiblingGroup(items, startIdx, step)
     return nil
 end
 
--- Focus park --------------------------------------------------------------
---
--- TakeFocus is EditBox-only in Civ V; on non-EditBox widgets the pcall
--- fails. The park attempt is best-effort: log once per handler, then mark
--- _parkDisabled so repeated calls don't spam.
-
-local function parkFocus(self)
-    if self._parkDisabled then
-        return
-    end
-    if self._focusParkControl == nil then
-        return
-    end
-    local park = Controls[self._focusParkControl]
-    if park == nil then
-        Log.warn(
-            "BaseMenu '"
-                .. self.name
-                .. "' focus-park control '"
-                .. tostring(self._focusParkControl)
-                .. "' not found; disabling park for this handler"
-        )
-        self._parkDisabled = true
-        return
-    end
-    local ok, err = pcall(function()
-        park:TakeFocus()
-    end)
-    if not ok then
-        Log.warn(
-            "BaseMenu '"
-                .. self.name
-                .. "' focus-park TakeFocus failed, disabling park for this handler: "
-                .. tostring(err)
-        )
-        self._parkDisabled = true
-    end
-end
-
 -- Preamble ----------------------------------------------------------------
 
 local function resolvePreamble(self)
@@ -251,7 +209,6 @@ local nav = {
     nextValidIndex = nextValidIndex,
     currentItems = currentItems,
     currentIndex = currentIndex,
-    parkFocus = parkFocus,
     resetSearch = resetSearch,
 }
 
@@ -666,7 +623,6 @@ function BaseMenu.create(spec)
         -- as the opening tab. Out-of-range values fall back to tab 1 in
         -- openInitial. Clears are done via setInitialTabIndex(nil).
         _initialTabIndex = spec.initialTabIndex,
-        _focusParkControl = spec.focusParkControl,
         -- When true, the first-open announce speaks only displayName and
         -- skips preamble / tab-name / first-item. For screens that overlap
         -- with an external narration (tutorial advisor voice clips, civ
@@ -898,10 +854,6 @@ function BaseMenu.create(spec)
     local lastPreambleText = nil
 
     function self.onActivate()
-        -- Release any engine-held EditBox focus so arrow keys reach our
-        -- bindings (base-screen ShowHide often focuses an EditBox; tab
-        -- switch reveals a panel whose first EditBox auto-focuses).
-        parkFocus(self)
         local items
         if not self._initialized then
             self._level = 1
@@ -1082,11 +1034,5 @@ function BaseMenu.create(spec)
 
     return self
 end
-
--- Exposed so BaseMenuInstall and BaseMenuEditMode can release focus without
--- touching module locals. parkFocus reads _focusParkControl / _parkDisabled
--- off the handler, so it must be invoked with the menu handler (not the
--- edit sub).
-BaseMenu._parkFocus = parkFocus
 
 return BaseMenu

@@ -1122,31 +1122,6 @@ function M.test_install_prior_showhide_error_caught_push_still_happens()
     T.eq(HandlerStack.count(), 1, "push not blocked by prior error")
 end
 
-function M.test_install_show_parks_focus_on_named_control()
-    setup()
-    local a = Polyfill.makeCheckBox()
-    local eb = Polyfill.makeEditBox({ text = "" })
-    local park = Polyfill.makeButton()
-    populateControls({ A = a, E = eb, Cancel = park })
-    local ctx = makeContextPtr()
-    BaseMenu.install(ctx, {
-        name = "T",
-        displayName = "Screen",
-        focusParkControl = "Cancel",
-        priorShowHide = function(bIsHide)
-            if not bIsHide then
-                eb:TakeFocus()
-            end
-        end,
-        items = {
-            BaseMenuItems.Textfield({ controlName = "E", textKey = "L" }),
-            BaseMenuItems.Checkbox({ controlName = "A", textKey = "LA" }),
-        },
-    })
-    ctx._sh(false, false)
-    T.eq(park._hasFocus, true, "focus parked on Cancel after base's TakeFocus")
-end
-
 function M.test_install_esc_bypasses_to_prior_input()
     setup()
     local a = Polyfill.makeCheckBox()
@@ -1245,38 +1220,6 @@ function M.test_close_reopen_resets_cursor()
     ctx._sh(true, false)
     ctx._sh(false, false)
     T.eq(HandlerStack.active()._indices[1], 1, "cursor reset on reopen")
-end
-
-function M.test_tab_switch_reparks_focus_on_configured_control()
-    setup()
-    local cbA = Polyfill.makeCheckBox()
-    local ebB = Polyfill.makeEditBox({ text = "" })
-    local park = Polyfill.makeButton()
-    populateControls({ CA = cbA, EB = ebB, Park = park })
-    local h = BaseMenu.create({
-        name = "T",
-        displayName = "Screen",
-        focusParkControl = "Park",
-        tabs = {
-            {
-                name = "TAB_A",
-                items = { BaseMenuItems.Checkbox({ controlName = "CA", textKey = "L" }) },
-            },
-            {
-                name = "TAB_B",
-                showPanel = function()
-                    ebB:TakeFocus()
-                end,
-                items = { BaseMenuItems.Textfield({ controlName = "EB", textKey = "L" }) },
-            },
-        },
-    })
-    HandlerStack.push(h)
-    park._hasFocus = nil
-    ebB._hasFocus = nil
-    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
-    T.eq(h._tabIndex, 2)
-    T.eq(park._hasFocus, true, "park control focused after tab switch so arrow keys reach the form")
 end
 
 -- Preamble --------------------------------------------------------------
@@ -1822,24 +1765,20 @@ end
 function M.test_escape_during_edit_restores_and_pops()
     setup()
     local eb = Polyfill.makeEditBox({ text = "Athens" })
-    local park = Polyfill.makeButton()
-    populateControls({ E = eb, Park = park })
+    populateControls({ E = eb })
     local h = BaseMenu.create({
         name = "T",
         displayName = "Screen",
-        focusParkControl = "Park",
         items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
     })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("partial")
-    park._hasFocus = nil
     speaks = {}
     InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
     T.eq(HandlerStack.active(), h, "edit sub popped; menu is top")
     T.eq(HandlerStack.count(), 1)
     T.eq(eb:GetText(), "Athens", "original text restored")
-    T.eq(park._hasFocus, true, "focus parked off the EditBox")
     local foundRestored = false
     for _, s in ipairs(speaks) do
         if s.text == "LBL restored" then

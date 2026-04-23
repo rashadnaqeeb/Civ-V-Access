@@ -90,10 +90,6 @@ function BaseMenu.install(ContextPtr, spec)
                 Log.error("BaseMenu '" .. handler.name .. "' onShow: " .. tostring(err))
             end
         end
-        -- Park before push so arrow keys are not swallowed by a base-screen
-        -- TakeFocus on an EditBox (e.g., ChangePassword's ShowHide focuses
-        -- the Old/New password box).
-        BaseMenu._parkFocus(handler)
         if deferActivate then
             pendingPush = true
             if not tickOwner then

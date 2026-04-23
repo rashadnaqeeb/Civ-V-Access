@@ -133,7 +133,6 @@ local handler = BaseMenu.install(ContextPtr, {
     preamble = buildPreamble,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
-    focusParkControl = "CloseButton",
     items = {},
     onAltLeft = function()
         if CanGoBackInHistory() then
