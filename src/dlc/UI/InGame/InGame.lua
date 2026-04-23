@@ -2,10 +2,10 @@
 -- Target: Assets/DLC/Expansion2/UI/InGame/InGame.{lua,xml}. Contents above
 -- the bootstrap marker are a verbatim copy of BNW's file. Rationale for
 -- this target: InGame is the root in-game Lua Context and its ContextPtr
--- InputHandler is in the global keyboard dispatch chain (TaskList is a
--- hidden child under WorldView and does not receive global keys).
--- Appending our InputHandler hook here lets Baseline cursor keys intercept
--- before the engine's unit-mission bindings fire.
+-- InputHandler is in the global keyboard dispatch chain. Appending our
+-- InputHandler hook here lets Baseline cursor keys intercept before the
+-- engine's unit-mission bindings fire, catching keys that reach InGame
+-- after WorldView's own hook declines them.
 -------------------------------------------------
 -- Game View 
 --

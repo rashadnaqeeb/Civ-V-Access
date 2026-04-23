@@ -44,9 +44,6 @@ function NotificationAnnounce._reset()
     seenIds = {}
     pending = {}
     drainScheduled = false
-    if civvaccess_shared ~= nil then
-        civvaccess_shared.notificationAnnounceInstalled = nil
-    end
 end
 
 local function schedule()
@@ -130,11 +127,11 @@ local function snapshotExisting()
     return num
 end
 
+-- Registers a fresh NotificationAdded listener on every call
+-- (onInGameBoot invokes this once per game load). See CivVAccess_Boot.lua's
+-- LoadScreenClose registration for the rationale: prior-Context listener
+-- closures die on load-game-from-game.
 function NotificationAnnounce.install()
-    if civvaccess_shared.notificationAnnounceInstalled then
-        return
-    end
-    civvaccess_shared.notificationAnnounceInstalled = true
     local snapshotted = snapshotExisting()
     Events.NotificationAdded.Add(NotificationAnnounce._onAdded)
     Log.info("NotificationAnnounce: installed, snapshotted " .. tostring(snapshotted) .. " existing notifications")

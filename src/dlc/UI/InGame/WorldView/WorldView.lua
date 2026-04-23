@@ -905,9 +905,18 @@ function OnMultiplayerGameLastPlayer()
 end
 Events.MultiplayerGameLastPlayer.Add( OnMultiplayerGameLastPlayer );
 
--- Civ V Access accessibility mod: WorldView-Context input hook. Wraps the
--- base-game InputHandler (registered above at SetInputHandler) so our
--- HandlerStack bindings can intercept keys before WorldView's camera
--- pan / zoom DefaultMessageHandler consumes them. See
--- CivVAccess_WorldViewKeys.lua.
+-- Civ V Access accessibility mod. WorldView is the seat for both our
+-- in-game Boot (module loads, LoadScreenClose wiring) and the early
+-- key-interception hook. Boot runs first so its modules populate the
+-- WorldView Context's env before WorldViewKeys installs its handler.
+-- Why WorldView and not TaskList (the original seat): Civ V tears down
+-- TaskList's env on load-game-from-game without re-running its include,
+-- leaving every closure that referenced TaskList globals dead. WorldView
+-- reliably re-inits on both fresh-game and load-from-game, so its env
+-- and all closures created in it stay live.
+include("CivVAccess_Boot")
+-- WorldView-Context input hook. Wraps the base-game InputHandler
+-- (registered above at SetInputHandler) so our HandlerStack bindings
+-- can intercept keys before WorldView's camera pan / zoom
+-- DefaultMessageHandler consumes them. See CivVAccess_WorldViewKeys.lua.
 include("CivVAccess_WorldViewKeys")

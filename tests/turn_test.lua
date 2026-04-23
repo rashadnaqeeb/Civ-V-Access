@@ -67,7 +67,6 @@ local function setup()
 
     HandlerStack._reset()
     SpeechPipeline._reset()
-    Turn._reset()
 
     spoken = {}
     SpeechPipeline._speakAction = function(text, interrupt)
@@ -218,17 +217,6 @@ function M.test_turn_end_announces_turn_ended()
     endListeners[1]()
     T.eq(spoken[1].text, "Turn ended")
     T.eq(spoken[1].interrupt, true)
-end
-
-function M.test_install_is_idempotent_across_context_reentry()
-    -- civvaccess_shared.turnListenersInstalled gates repeat registration.
-    -- A second Context loading the module must not double-fire the turn
-    -- announcement.
-    setup()
-    Turn.installListeners()
-    Turn.installListeners()
-    T.eq(#startListeners, 1)
-    T.eq(#endListeners, 1)
 end
 
 -- endTurnDispatch -------------------------------------------------------

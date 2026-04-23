@@ -5,15 +5,17 @@
 -- falls through to the base handler so engine behaviors (Esc opens the
 -- game menu, interface-mode handlers, etc.) continue to work.
 --
--- Why here and not on TaskList's ContextPtr: TaskList is a Hidden="1"
--- child LuaContext under WorldView and does not sit in the global
--- keyboard dispatch chain. InGame is the root in-game Context and its
--- InputHandler receives every global key (that's how base Esc opens the
--- game menu). Suppression via "return true" is only reachable from a
--- Context that sits on that chain.
+-- Why here and not on WorldView's ContextPtr alone: WorldView sits earlier
+-- in the dispatch chain and catches keys the engine's own WorldView
+-- DefaultMessageHandler would otherwise swallow (PageUp/PageDown, arrows,
+-- OEM +/-), but it's not the root input seat. InGame is the root in-game
+-- Context and its InputHandler receives every global key (that's how base
+-- Esc opens the game menu). Suppression via "return true" is only
+-- reachable from a Context that sits on that chain, so keys that reach
+-- InGame need their own hook here.
 --
 -- Dependencies are re-included in this sandbox because Civ V Contexts
--- are fenv-sandboxed (per-Context globals); modules defined in TaskList's
+-- are fenv-sandboxed (per-Context globals); modules defined in WorldView's
 -- Boot sandbox are not directly visible here. The HandlerStack state is
 -- still shared via civvaccess_shared.stack, so both Contexts read and
 -- write the same LIFO of handlers.

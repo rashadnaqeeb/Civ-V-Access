@@ -91,9 +91,12 @@ civvaccess_shared.modules.SurveyorCore = SurveyorCore
 civvaccess_shared.modules.PlotComposers = PlotComposers
 civvaccess_shared.modules.CityRangeStrikeMode = CityRangeStrikeMode
 
--- Boot fires any time a new in-game Context loads, which may include the
--- pre-game setup flow, not just a real loaded game. Civ V runs the entire
--- session on one lua_State, so there's no state-level discriminator.
+-- Boot fires any time the WorldView Context loads (our override of
+-- WorldView.lua includes this file). That happens on fresh-game load,
+-- on load-game-from-game (WorldView is one of the Contexts the engine
+-- reliably re-initializes in that flow, unlike TaskList), and also
+-- during the pre-game setup flow. Civ V runs the entire session on one
+-- lua_State, so there's no state-level discriminator.
 -- Events.LoadScreenClose is the reliable "we are actually in a game now"
 -- signal; defer the in-game boot actions to it.
 local function onInGameBoot()
@@ -121,30 +124,25 @@ local function onInGameBoot()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
 
+-- Register a fresh LoadScreenClose listener on every Boot include. WHY
+-- not install-once: Civ V clears the env table of every Context on
+-- load-game-from-game (every global, including engine builtins like
+-- `UI`, becomes nil to closures still holding that env). A listener
+-- registered in a prior game is stranded with a dead env and silently
+-- throws on its first global access. The civvaccess_shared flag
+-- protecting it would stay true (civvaccess_shared itself is a shared
+-- table that survives), so an install-once guard would block the new
+-- Context from ever registering a live listener. Dead listeners
+-- accumulate (Events.X.Remove is unverified), but the engine catches
+-- per-listener throws so the live one still runs.
 if Events ~= nil and Events.LoadScreenClose ~= nil then
-    -- Each in-game Context's onInGameBoot closure is bound to that Context's
-    -- env, so registering it directly means the listener goes defunct when
-    -- the Context tears down on exit-to-main-menu. The next game's Boot
-    -- include would then see a "listener already installed" flag and skip
-    -- re-registering, leaving the new game with dead bindings.
-    -- Pattern from LoadScreenAccess: store the impl on civvaccess_shared so
-    -- the current Context always overwrites it, and register one resolver
-    -- that reads the shared slot at fire time.
-    civvaccess_shared.ingameBootImpl = onInGameBoot
-    if not civvaccess_shared.ingameBootListenerInstalled then
-        civvaccess_shared.ingameBootListenerInstalled = true
-        Events.LoadScreenClose.Add(function()
-            local f = civvaccess_shared.ingameBootImpl
-            if f == nil then
-                return
-            end
-            local ok, err = pcall(f)
-            if not ok then
-                Log.error("CivVAccess_Boot: onInGameBoot failed: " .. tostring(err))
-            end
-        end)
-        Log.info("CivVAccess_Boot: registered LoadScreenClose resolver")
-    end
+    Events.LoadScreenClose.Add(function()
+        local ok, err = pcall(onInGameBoot)
+        if not ok then
+            Log.error("CivVAccess_Boot: onInGameBoot failed: " .. tostring(err))
+        end
+    end)
+    Log.info("CivVAccess_Boot: registered LoadScreenClose listener")
 else
     Log.warn("CivVAccess_Boot: Events.LoadScreenClose missing; in-game boot will not fire")
 end

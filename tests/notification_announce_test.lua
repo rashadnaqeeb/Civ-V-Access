@@ -104,12 +104,6 @@ function M.test_duplicate_id_speaks_once()
     T.eq(#spoken, 1, "same Id firing twice must only speak once")
 end
 
-function M.test_install_idempotent()
-    setup()
-    NotificationAnnounce.install() -- second call
-    T.eq(#addedListeners, 1, "install must not double-register the listener")
-end
-
 -- Single notification path ------------------------------------------------
 
 function M.test_single_add_queues_after_window()
@@ -234,8 +228,7 @@ function M.test_reset_clears_seen_ids()
     advance(10)
     T.eq(#spoken, 1)
     NotificationAnnounce._reset()
-    -- After reset, civvaccess_shared.notificationAnnounceInstalled is nil
-    -- so install() wires a listener again; re-firing Id 1 should speak.
+    -- After reset, seenIds is empty so re-firing Id 1 speaks again.
     setup() -- fresh install without preloading existing ids
     fireAdd(1)
     advance(10)

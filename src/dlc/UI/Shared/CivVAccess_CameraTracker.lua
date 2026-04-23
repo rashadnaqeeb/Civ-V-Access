@@ -46,16 +46,13 @@ local function onCameraViewChanged(matrix)
     civvaccess_shared.cameraMatrixFrame = TickPump.frame()
 end
 
+-- Registers a fresh CameraViewChanged listener on every call (onInGameBoot
+-- invokes this once per game load). Re-reads origin / stride first because
+-- those are map-layout-constant within a game but can change across games
+-- in the same lua_State. See CivVAccess_Boot.lua's LoadScreenClose
+-- registration for why we can't install-once the listener itself.
 function CameraTracker.install()
-    -- Origin and stride are map-layout-constant within a game but can change
-    -- across games in the same lua_State (different map size). Re-read on
-    -- every install; the listener-subscribe below is the only part the
-    -- cross-Context idempotency guard needs to protect.
     readOriginAndStride()
-    if civvaccess_shared.cameraTrackerInstalled then
-        return
-    end
-    civvaccess_shared.cameraTrackerInstalled = true
     Events.CameraViewChanged.Add(onCameraViewChanged)
     Log.info(
         "CameraTracker: installed, origin=("
@@ -178,7 +175,6 @@ end
 
 function CameraTracker._reset()
     if civvaccess_shared ~= nil then
-        civvaccess_shared.cameraTrackerInstalled = nil
         civvaccess_shared.cameraMatrix = nil
         civvaccess_shared.cameraMatrixFrame = nil
         civvaccess_shared.cameraOriginX = nil

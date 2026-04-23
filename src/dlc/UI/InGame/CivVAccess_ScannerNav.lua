@@ -29,19 +29,16 @@ local _preJumpY = nil
 -- snapshot).
 local _preSearchCatIdx = nil
 
--- Running the turn-start listener through civvaccess_shared so multiple
--- in-game Contexts booting into the same lua_State don't each register
--- their own subscription (same pattern CivVAccess_Boot uses for
--- LoadScreenClose).
+-- Register a fresh ActivePlayerTurnStart listener on every include. See
+-- CivVAccess_Boot.lua's LoadScreenClose registration for the rationale:
+-- load-game-from-game kills the prior Context's env, so the previous
+-- listener's closure is dead (_snapshotStale lookup throws on a nil env)
+-- and we need a new one bound to the live _snapshotStale upvalue.
 local function installTurnStartListener()
-    if civvaccess_shared.scannerNavListenerInstalled then
-        return
-    end
     if Events == nil or Events.ActivePlayerTurnStart == nil then
-        Log.warn("ScannerNav: Events.ActivePlayerTurnStart missing; " .. "turn-start invalidation disabled")
+        Log.warn("ScannerNav: Events.ActivePlayerTurnStart missing; turn-start invalidation disabled")
         return
     end
-    civvaccess_shared.scannerNavListenerInstalled = true
     Events.ActivePlayerTurnStart.Add(function()
         _snapshotStale = true
     end)

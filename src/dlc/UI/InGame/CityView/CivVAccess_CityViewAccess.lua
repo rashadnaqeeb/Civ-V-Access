@@ -156,28 +156,21 @@ local function onCityScreenDirty()
     HandlerStack.popAbove(hubHandler)
 end
 
--- Register once per lua_State. The closure reads civvaccess_shared's impl
--- slot, so each CityView Context load overwrites the impl pointer and the
--- listener keeps firing against the current Context's bindings (same
--- idiom Boot.lua uses for LoadScreenClose).
-civvaccess_shared.cityViewDirtyImpl = onCityScreenDirty
-if not civvaccess_shared.cityViewDirtyListenerInstalled then
-    civvaccess_shared.cityViewDirtyListenerInstalled = true
-    if Events ~= nil and Events.SerialEventCityScreenDirty ~= nil then
-        Events.SerialEventCityScreenDirty.Add(function()
-            local f = civvaccess_shared.cityViewDirtyImpl
-            if f == nil then
-                return
-            end
-            local ok, err = pcall(f)
-            if not ok then
-                Log.error("CivVAccess_CityViewAccess: onCityScreenDirty failed: " .. tostring(err))
-            end
-        end)
-        Log.info("CivVAccess_CityViewAccess: registered SerialEventCityScreenDirty listener")
-    else
-        Log.warn("CivVAccess_CityViewAccess: Events.SerialEventCityScreenDirty missing")
-    end
+-- Register a fresh SerialEventCityScreenDirty listener on every CityView
+-- include. See CivVAccess_Boot.lua's LoadScreenClose registration for why
+-- we can't install-once: load-game-from-game kills the prior Context's
+-- env, stranding the old listener. Dead listeners accumulate but throw
+-- silently on global access; the live one runs onCityScreenDirty.
+if Events ~= nil and Events.SerialEventCityScreenDirty ~= nil then
+    Events.SerialEventCityScreenDirty.Add(function()
+        local ok, err = pcall(onCityScreenDirty)
+        if not ok then
+            Log.error("CivVAccess_CityViewAccess: onCityScreenDirty failed: " .. tostring(err))
+        end
+    end)
+    Log.info("CivVAccess_CityViewAccess: registered SerialEventCityScreenDirty listener")
+else
+    Log.warn("CivVAccess_CityViewAccess: Events.SerialEventCityScreenDirty missing")
 end
 
 -- ShowHide wrapper: on hide, pop anything the user stacked on top of the
@@ -1264,7 +1257,7 @@ end
 -- reuse the same hooks with a different predicate + composer.
 --
 -- Cursor / ScannerNav / PlotComposers / ScannerHandler / SurveyorCore
--- live in Boot's TaskList Context; Civ V sandboxes Lua globals per
+-- live in Boot's WorldView Context; Civ V sandboxes Lua globals per
 -- Context so they aren't visible here directly. Boot publishes them
 -- on civvaccess_shared.modules; capturing the refs at file-include
 -- time gives us the same singleton state without re-including (which

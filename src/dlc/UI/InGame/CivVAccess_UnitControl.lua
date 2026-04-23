@@ -483,15 +483,12 @@ local function onUnitMoveCompleted()
     end
 end
 
--- Idempotent per-session listener install. civvaccess_shared persists
--- across Context re-entries within one lua_State; the flag prevents a
--- second Context loading this file from registering duplicate listeners.
+-- Registers a fresh set of unit listeners on every call (onInGameBoot
+-- invokes this once per game load). See CivVAccess_Boot.lua's
+-- LoadScreenClose registration for the rationale: load-game-from-game
+-- kills the prior Context's env, stranding listeners that referenced its
+-- globals. Dead listeners accumulate but throw silently on global access.
 function UnitControl.installListeners()
-    civvaccess_shared = civvaccess_shared or {}
-    if civvaccess_shared.unitControlListenersInstalled then
-        return
-    end
-    civvaccess_shared.unitControlListenersInstalled = true
     if Events == nil then
         Log.error("UnitControl.installListeners: Events table missing")
         return

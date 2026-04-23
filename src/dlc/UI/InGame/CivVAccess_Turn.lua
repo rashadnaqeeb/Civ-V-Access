@@ -243,12 +243,12 @@ function Turn.getBindings()
     return { bindings = bindings, helpEntries = helpEntries }
 end
 
+-- Registers a fresh pair of turn listeners on every call (onInGameBoot
+-- invokes this once per game load). See CivVAccess_Boot.lua's
+-- LoadScreenClose registration for the rationale: load-game-from-game
+-- kills the prior Context's env, stranding listeners that referenced its
+-- globals.
 function Turn.installListeners()
-    civvaccess_shared = civvaccess_shared or {}
-    if civvaccess_shared.turnListenersInstalled then
-        return
-    end
-    civvaccess_shared.turnListenersInstalled = true
     if Events == nil then
         Log.error("Turn.installListeners: Events table missing")
         return
@@ -270,8 +270,3 @@ end
 -- functions don't need to be exposed here; dispatch seams do.
 Turn._endTurnDispatch = endTurnDispatch
 Turn._forceEndTurn = forceEndTurn
-Turn._reset = function()
-    if civvaccess_shared ~= nil then
-        civvaccess_shared.turnListenersInstalled = nil
-    end
-end
