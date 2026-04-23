@@ -29,19 +29,15 @@ local SETTLE_FRAMES = 8
 local MAX_WAIT_FRAMES = 120
 
 local function readOriginAndStride()
-    -- HexToWorld via ToHexFromGrid: takes grid coords, returns the hex's
-    -- world position. Sample 3 plots to get origin + both strides. Vector2
-    -- isn't in this Context (defined in FLuaVector, pulled in only by
-    -- IconSupport-using files); construct the table inline since Vector2
-    -- is just `{x=i, y=j}` per FLuaVector source.
+    -- Vector2 lives in FLuaVector, pulled in only by IconSupport-using files;
+    -- HexToWorld accepts the bare {x,y} table shape FLuaVector itself uses.
     local w00 = HexToWorld(ToHexFromGrid({ x = 0, y = 0 }))
     local w10 = HexToWorld(ToHexFromGrid({ x = 1, y = 0 }))
+    -- Rows 0 and 2 share parity, so their Y delta is 2x the per-row stride.
     local w02 = HexToWorld(ToHexFromGrid({ x = 0, y = 2 }))
     civvaccess_shared.cameraOriginX = w00.x
     civvaccess_shared.cameraOriginY = w00.y
     civvaccess_shared.cameraStrideX = w10.x - w00.x
-    -- Same-parity row spacing: grid (0,0) and (0,2) are both even, so
-    -- world Y delta is 2 * row stride.
     civvaccess_shared.cameraStrideY = (w02.y - w00.y) / 2
 end
 
@@ -51,11 +47,15 @@ local function onCameraViewChanged(matrix)
 end
 
 function CameraTracker.install()
+    -- Origin and stride are map-layout-constant within a game but can change
+    -- across games in the same lua_State (different map size). Re-read on
+    -- every install; the listener-subscribe below is the only part the
+    -- cross-Context idempotency guard needs to protect.
+    readOriginAndStride()
     if civvaccess_shared.cameraTrackerInstalled then
         return
     end
     civvaccess_shared.cameraTrackerInstalled = true
-    readOriginAndStride()
     Events.CameraViewChanged.Add(onCameraViewChanged)
     Log.info(
         "CameraTracker: installed, origin=("
@@ -140,9 +140,19 @@ end
 -- settle, then fire callback(gx, gy). Times out silently if the camera
 -- never moves -- common for notifications that open a popup instead of
 -- panning (NOTIFICATION_PRODUCTION, NOTIFICATION_TECH, diplomacy ones).
+--
+-- Two followers racing: if a second follower registers while the first is
+-- still waiting, the later follower's pan would satisfy the first's
+-- "cameraMoved" gate, firing its callback with the second pan's matrix.
+-- Each follower captures a generation stamp; a newer call supersedes it.
 function CameraTracker.followNextSettle(callback)
+    local gen = (civvaccess_shared.followGeneration or 0) + 1
+    civvaccess_shared.followGeneration = gen
     local startFrame = TickPump.frame()
     local function check()
+        if civvaccess_shared.followGeneration ~= gen then
+            return
+        end
         local lastFire = civvaccess_shared.cameraMatrixFrame or -1
         local elapsed = TickPump.frame() - startFrame
         local cameraMoved = lastFire >= startFrame
@@ -175,5 +185,6 @@ function CameraTracker._reset()
         civvaccess_shared.cameraOriginY = nil
         civvaccess_shared.cameraStrideX = nil
         civvaccess_shared.cameraStrideY = nil
+        civvaccess_shared.followGeneration = nil
     end
 end
