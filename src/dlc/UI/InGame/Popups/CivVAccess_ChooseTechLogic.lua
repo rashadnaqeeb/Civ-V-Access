@@ -120,7 +120,14 @@ function ChooseTechLogic.cleanHelpText(filteredHelp, techName)
     s = s:gsub("%s+", " "):gsub("^%s+", ""):gsub("^,%s*", ""):gsub("%s+$", ""):gsub(",%s*$", "")
     -- Ensure a space follows every comma so the output reads naturally
     -- (the collapse pass may have left comma-word with no space).
+    -- Protect locale thousands separators (digit-comma-digit, e.g.
+    -- "10,164") first with a transient sentinel so the screen reader
+    -- hears one number, not two. \1 is safe as a sentinel because
+    -- TextFilter.stripControl has already removed all \1-\8 from the
+    -- input before we reach cleanHelpText.
+    s = s:gsub("(%d),(%d)", "%1\1%2")
     s = s:gsub(",(%S)", ", %1")
+    s = s:gsub("\1", ",")
     return s
 end
 

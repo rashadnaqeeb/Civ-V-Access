@@ -394,6 +394,27 @@ function M.test_cleanHelpText_empty_input()
     T.eq(ChooseTechLogic.cleanHelpText("", "Pottery"), "")
 end
 
+-- Locale thousands separator ("10,164") must survive the space-after-comma
+-- normalization. Splitting it to "10, 164" makes screen readers announce
+-- two numbers instead of one.
+function M.test_cleanHelpText_preserves_thousands_separator()
+    setup()
+    local out = ChooseTechLogic.cleanHelpText("Cost: 10,164 Science", "")
+    T.eq(out, "Cost: 10,164 Science")
+end
+
+function M.test_cleanHelpText_preserves_multi_group_thousands()
+    setup()
+    local out = ChooseTechLogic.cleanHelpText("Cost: 10,000,000 Science", "")
+    T.eq(out, "Cost: 10,000,000 Science")
+end
+
+function M.test_cleanHelpText_still_spaces_after_text_commas()
+    setup()
+    local out = ChooseTechLogic.cleanHelpText("Cost: 60,Leads to: X", "")
+    T.truthy(out:find("Cost: 60, Leads to: X"), "space inserted after text comma: " .. out)
+end
+
 -- ===== filterHelpText =====
 --
 -- filterHelpText converts [NEWLINE] section breaks to commas before
