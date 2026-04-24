@@ -655,6 +655,11 @@ function M.test_self_plot_confirm_known_tokens()
     T.eq(UnitSpeech.selfPlotConfirm("FORTIFY"), "fortified")
     T.eq(UnitSpeech.selfPlotConfirm("SLEEP"), "sleeping")
     T.eq(UnitSpeech.selfPlotConfirm("AUTOMATE"), "automated")
+    T.eq(UnitSpeech.selfPlotConfirm("HEAL"), "healing")
+    T.eq(UnitSpeech.selfPlotConfirm("PILLAGE"), "pillaged")
+    T.eq(UnitSpeech.selfPlotConfirm("SKIP"), "skipped")
+    T.eq(UnitSpeech.selfPlotConfirm("UPGRADE"), "upgraded")
+    T.eq(UnitSpeech.selfPlotConfirm("CANCEL"), "canceled")
 end
 
 function M.test_self_plot_confirm_build_start_uses_payload()

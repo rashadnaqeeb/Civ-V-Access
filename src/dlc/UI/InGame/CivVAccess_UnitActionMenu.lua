@@ -34,6 +34,12 @@ local SELF_PLOT_TOKENS_BY_TYPE = {
     COMMAND_AUTOMATE_EXPLORE = "AUTOMATE",
     COMMAND_DELETE = "DISBAND",
     MISSION_DISBAND = "DISBAND",
+    MISSION_HEAL = "HEAL",
+    MISSION_PILLAGE = "PILLAGE",
+    MISSION_SKIP = "SKIP",
+    COMMAND_UPGRADE = "UPGRADE",
+    COMMAND_CANCEL = "CANCEL",
+    COMMAND_STOP_AUTOMATION = "CANCEL",
 }
 
 local function isTargetedAction(actionType)
@@ -330,6 +336,62 @@ local function collectActions(unit)
         end
     end
     return buckets
+end
+
+-- Public action lookups for the Alt-letter quick-action hotkeys in
+-- UnitControl. Same isAvailable / commitSelfPlot / commitTargeted gates
+-- the Tab menu uses, so a hotkey commit and a menu commit run identical
+-- code (including the speech confirm path through selfPlotConfirm).
+
+-- Find the first GameInfoActions row whose Type is in `types`, regardless
+-- of whether it's currently available. Caller uses this to fetch a label
+-- for the "{action} not available" failure speech. Iterates types in
+-- caller order so the first listed type wins on ties.
+function UnitActionMenu.findActionRow(types)
+    if GameInfoActions == nil then
+        return nil, nil
+    end
+    for _, wantType in ipairs(types) do
+        for iAction = 0, #GameInfoActions do
+            local action = GameInfoActions[iAction]
+            if action ~= nil and action.Type == wantType then
+                return iAction, action
+            end
+        end
+    end
+    return nil, nil
+end
+
+-- Localized label for an action row's TextKey, with the same fallback
+-- ladder as the menu's actionLabel. Public so UnitControl can speak the
+-- failure case without duplicating the lookup.
+function UnitActionMenu.actionLabel(action)
+    return actionLabel(action)
+end
+
+-- Find and commit the first available action whose Type is in `types`.
+-- Returns true on commit, false if no listed type is currently available
+-- for `unit`. Self-plot vs targeted dispatch matches the Tab menu exactly:
+-- INTERFACEMODE_* enters target mode through commitTargeted, everything
+-- else commits at the unit's plot through commitSelfPlot.
+function UnitActionMenu.commitByType(unit, types)
+    if unit == nil or GameInfoActions == nil then
+        return false
+    end
+    for _, wantType in ipairs(types) do
+        for iAction = 0, #GameInfoActions do
+            local action = GameInfoActions[iAction]
+            if action ~= nil and action.Type == wantType and isAvailable(unit, iAction, action) then
+                if isTargetedAction(action.Type) then
+                    commitTargeted(unit, action, iAction)
+                else
+                    commitSelfPlot(action, { iAction = iAction })
+                end
+                return true
+            end
+        end
+    end
+    return false
 end
 
 -- Opens the action menu for `unit`. No-op with no unit. Speaks the

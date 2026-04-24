@@ -7,10 +7,11 @@
 -- capturesAllInput = false: cursor movement (QAZEDC), cursor info queries
 -- (S/W/X/1/2/3 and the Shift-letter surveyor cluster), and scanner cycling
 -- fall through to Baseline / Scanner unchanged. Only keys whose target-
--- mode behavior must differ from Baseline are bound here. Alt+QAZEDC is
--- bound as a no-op: Baseline's Alt+QAZEDC direct-move would move the
--- actor while the engine is in an attack / move interface mode, so we
--- swallow it.
+-- mode behavior must differ from Baseline are bound here. Alt+QAZEDC and
+-- the Alt-letter quick actions (F/S/W/H/P/R/U, Alt+Space) are bound as
+-- no-ops: Baseline's direct-move and quick-action handlers would commit
+-- against the actor while the engine is in an attack / move interface
+-- mode, so we swallow them.
 --
 -- Unit cycling (. / ,) is not bound here either -- `,` falls through to
 -- Baseline's UnitControl.cycleAll and `.` falls through to the engine's
@@ -275,6 +276,18 @@ function UnitTargetMode.enter(actor, iAction, mode)
         bind(Keys.D, MOD_ALT, noop, "Block direct-move E"),
         bind(Keys.Z, MOD_ALT, noop, "Block direct-move SW"),
         bind(Keys.C, MOD_ALT, noop, "Block direct-move SE"),
+        -- Alt-letter quick-action no-ops, same rationale as the direct-move
+        -- block: a fortify / heal / pillage / wake / etc. commit while the
+        -- engine is mid-target-mode would fire against the actor and fight
+        -- the picker the user is in.
+        bind(Keys.F, MOD_ALT, noop, "Block sleep/fortify"),
+        bind(Keys.S, MOD_ALT, noop, "Block sentry"),
+        bind(Keys.W, MOD_ALT, noop, "Block wake/cancel"),
+        bind(Keys.H, MOD_ALT, noop, "Block heal"),
+        bind(Keys.P, MOD_ALT, noop, "Block pillage"),
+        bind(Keys.R, MOD_ALT, noop, "Block ranged attack"),
+        bind(Keys.U, MOD_ALT, noop, "Block upgrade"),
+        bind(Keys.VK_SPACE, MOD_ALT, noop, "Block skip turn"),
     }
     self.helpEntries = {}
     -- onDeactivate always restores the selection mode. Belt-and-

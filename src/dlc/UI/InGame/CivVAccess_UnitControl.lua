@@ -376,6 +376,58 @@ local function openActionMenu()
     UnitActionMenu.open(unit)
 end
 
+-- ===== Alt-letter quick actions =====
+-- Each Alt-letter binding routes to one or more action Types via
+-- UnitActionMenu.commitByType. The menu's gates (Visible, CanHandleAction
+-- twice, 0-moves filter) are reused so a hotkey commit and a Tab-menu
+-- commit run the same engine path; the speech confirm goes through
+-- UnitSpeech.selfPlotConfirm via the same SELF_PLOT_TOKENS_BY_TYPE map
+-- the menu uses.
+--
+-- Type lists are ordered: commitByType walks them in caller order and
+-- takes the first that's currently available. For Alt+F this means
+-- MISSION_FORTIFY wins on military units and falls through to
+-- MISSION_SLEEP on civilians (mirroring the engine's plain-F binding,
+-- which picks by unit type the same way). For Alt+W, COMMAND_WAKE handles
+-- a sleeping/fortified/alerted unit while COMMAND_CANCEL /
+-- COMMAND_STOP_AUTOMATION cover queued moves and automated workers; only
+-- one of these is ever available at a time so order doesn't shadow.
+--
+-- No-unit case is silent (matches Alt+QAZEDC directMove). When a unit is
+-- selected but the action isn't available (out of moves, can't ranged-
+-- attack here, etc.), we speak "{action} not available" using the
+-- action's TextKey label so the user knows which action was rejected.
+
+local ALT_ACTION_TYPES = {
+    SLEEP = { "MISSION_FORTIFY", "MISSION_SLEEP" },
+    SENTRY = { "MISSION_ALERT" },
+    WAKE = { "COMMAND_WAKE", "MISSION_WAKE", "COMMAND_CANCEL", "COMMAND_STOP_AUTOMATION" },
+    HEAL = { "MISSION_HEAL" },
+    PILLAGE = { "MISSION_PILLAGE" },
+    RANGED = { "INTERFACEMODE_RANGE_ATTACK", "INTERFACEMODE_AIRSTRIKE" },
+    SKIP = { "MISSION_SKIP" },
+    UPGRADE = { "COMMAND_UPGRADE" },
+}
+
+local function quickAction(types)
+    return function()
+        local unit = selectedUnit()
+        if unit == nil then
+            return
+        end
+        if UnitActionMenu.commitByType(unit, types) then
+            return
+        end
+        local _, row = UnitActionMenu.findActionRow(types)
+        local label = row and UnitActionMenu.actionLabel(row) or ""
+        if label == "" then
+            speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+        else
+            speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE", label))
+        end
+    end
+end
+
 -- ===== Bindings =====
 local bind = HandlerStack.bind
 
@@ -413,7 +465,19 @@ function UnitControl.getBindings()
         bind(Keys.C, MOD_ALT, function()
             directMove(DirectionTypes.DIRECTION_SOUTHEAST)
         end, "Move unit SE"),
+        bind(Keys.F, MOD_ALT, quickAction(ALT_ACTION_TYPES.SLEEP), "Sleep or fortify"),
+        bind(Keys.S, MOD_ALT, quickAction(ALT_ACTION_TYPES.SENTRY), "Sentry"),
+        bind(Keys.W, MOD_ALT, quickAction(ALT_ACTION_TYPES.WAKE), "Wake or cancel"),
+        bind(Keys.VK_SPACE, MOD_ALT, quickAction(ALT_ACTION_TYPES.SKIP), "Skip turn"),
+        bind(Keys.H, MOD_ALT, quickAction(ALT_ACTION_TYPES.HEAL), "Heal"),
+        bind(Keys.R, MOD_ALT, quickAction(ALT_ACTION_TYPES.RANGED), "Ranged attack"),
+        bind(Keys.P, MOD_ALT, quickAction(ALT_ACTION_TYPES.PILLAGE), "Pillage"),
+        bind(Keys.U, MOD_ALT, quickAction(ALT_ACTION_TYPES.UPGRADE), "Upgrade unit"),
     }
+    -- Unit section of the map-mode help. BaselineHandler concatenates this
+    -- between the cursor cluster and the turn keys, so all unit-relevant
+    -- bindings (cycling, info, the Tab menu, direct-move, and the Alt-letter
+    -- quick actions) live in one stretch of the help readout.
     local helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE",
@@ -434,6 +498,38 @@ function UnitControl.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_MOVE",
             description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_MOVE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SLEEP",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SLEEP",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SENTRY",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SENTRY",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_WAKE",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_WAKE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SKIP",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_SKIP",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_HEAL",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_HEAL",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_RANGED",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_RANGED",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_PILLAGE",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_PILLAGE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_UPGRADE",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_UPGRADE",
         },
     }
     return { bindings = bindings, helpEntries = helpEntries }
