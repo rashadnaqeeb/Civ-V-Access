@@ -206,6 +206,23 @@ DomainTypes = DomainTypes or {
     DOMAIN_HOVER = 3,
 }
 
+-- Combat outcome prediction enum. Populated by Game.GetCombatPrediction and
+-- consumed by UnitSpeech.meleePreview to pick the spoken result label. Values
+-- are placeholders -- production runs against the engine's real ids, and the
+-- prediction table in UnitSpeech is keyed by whatever those ids are.
+CombatPredictionTypes = CombatPredictionTypes
+    or {
+        COMBAT_PREDICTION_UNKNOWN = 0,
+        COMBAT_PREDICTION_TOTAL_VICTORY = 1,
+        COMBAT_PREDICTION_MAJOR_VICTORY = 2,
+        COMBAT_PREDICTION_SMALL_VICTORY = 3,
+        COMBAT_PREDICTION_STALEMATE = 4,
+        COMBAT_PREDICTION_SMALL_DEFEAT = 5,
+        COMBAT_PREDICTION_MAJOR_DEFEAT = 6,
+        COMBAT_PREDICTION_TOTAL_DEFEAT = 7,
+        COMBAT_PREDICTION_RANGED = 8,
+    }
+
 GameDefines = GameDefines or { MAX_HIT_POINTS = 100, MOVE_DENOMINATOR = 60, MAX_CITY_HIT_POINTS = 200 }
 if GameDefines.MAX_HIT_POINTS == nil then
     GameDefines.MAX_HIT_POINTS = 100
