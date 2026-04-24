@@ -397,10 +397,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] =
 -- own label). Unmet city rows degrade to "Unmet Player" with no city or
 -- owner, matching what base displays.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"] = "Who's Winning"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY"] =
-    "{1_Rank}. {2_Name}, {3_Score}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY"] =
-    "{1_Rank}. {2_City}, {3_Owner}, {4_Score}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY"] = "{1_Rank}. {2_Name}, {3_Score}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY"] = "{1_Rank}. {2_City}, {3_Owner}, {4_Score}"
 -- Advisors tutorial banner (Events.AdvisorDisplayShow). Static screen
 -- name; the per-tutorial title, body, and advisor type are spoken through
 -- the preamble from live Controls. "Tutorial Advisor" distinguishes this
