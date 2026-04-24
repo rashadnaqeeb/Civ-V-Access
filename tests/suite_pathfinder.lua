@@ -57,7 +57,7 @@ local function setup()
             [FEAT_FOREST] = { Type = "FEATURE_FOREST", Movement = 2 },
         },
         Routes = {
-            [ROUTE_ROAD] = { Type = "ROUTE_ROAD", FlatMovementCost = 10 },
+            [ROUTE_ROAD] = { Type = "ROUTE_ROAD", FlatMovement = 10 },
         },
         Leaders = {},
         Leader_Traits = function()
@@ -1022,7 +1022,7 @@ end
 -- 22. Heuristic admissibility for a 1-MP unit. A* returns the first
 -- goal popped from the open set; with an inadmissible heuristic the
 -- first popped goal can be a suboptimal one. For 1-MP units, road cost
--- is 10/step (FlatMovementCost * maxMoves/60 = 10 * 1 = 10) but the
+-- is 10/step (FlatMovement * maxMoves/60 = 10 * 1 = 10) but the
 -- prior heuristic estimated 2 60ths/step minimum -- 1/5 the truth.
 -- Two paths to the target: 2-hex direct grass (cost 120) vs 3-hex road
 -- detour (cost 30). A* must return the cheaper road path.
@@ -1172,7 +1172,7 @@ end
 function M.test_route_cost_uses_max_of_endpoints()
     setup()
     local ROUTE_RAIL = 1
-    GameInfo.Routes[ROUTE_RAIL] = { Type = "ROUTE_RAILROAD", FlatMovementCost = 1 }
+    GameInfo.Routes[ROUTE_RAIL] = { Type = "ROUTE_RAILROAD", FlatMovement = 1 }
     local plots = installGrid(4, function(col, row, p)
         if col == 0 and row == 0 then
             p._route = ROUTE_ROAD

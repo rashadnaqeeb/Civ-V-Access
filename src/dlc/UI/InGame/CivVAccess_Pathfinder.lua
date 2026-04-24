@@ -295,13 +295,14 @@ local function buildCtx(unit)
     ctx.greatWallPlots = buildGreatWallPlots(ctx)
     -- Shoshone FasterAlongRiver and Iroquois MoveFriendlyWoodsAsRoad
     -- simulate a ROUTE_ROAD overlay. Engine's fake-route path uses
-    -- ROUTE_ROAD's actual FlatMovementCost; read it once here rather
-    -- than hard-coding 10, so XML changes (Community Patch, modders)
-    -- still resolve to the correct trait cost.
+    -- ROUTE_ROAD's flat movement cost (XML column FlatMovement, which
+    -- the engine reads into its m_iFlatMovementCost field); read it once
+    -- here rather than hard-coding 30 so XML changes (Community Patch,
+    -- modders) still resolve to the correct trait cost.
     local roadId = GameInfoTypes and GameInfoTypes["ROUTE_ROAD"]
     local roadRow = roadId ~= nil and GameInfo and GameInfo.Routes and GameInfo.Routes[roadId] or nil
-    if roadRow ~= nil and roadRow.FlatMovementCost ~= nil then
-        ctx.traitRouteFallback = roadRow.FlatMovementCost * (ctx.maxMoves / MOVE_DENOM)
+    if roadRow ~= nil and roadRow.FlatMovement ~= nil then
+        ctx.traitRouteFallback = roadRow.FlatMovement * (ctx.maxMoves / MOVE_DENOM)
     else
         ctx.traitRouteFallback = math.huge
     end
@@ -581,8 +582,8 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
             end
             if routeType >= 0 then
                 local row = GameInfo and GameInfo.Routes and GameInfo.Routes[routeType] or nil
-                if row ~= nil and row.FlatMovementCost ~= nil then
-                    return row.FlatMovementCost * (ctx.maxMoves / MOVE_DENOM)
+                if row ~= nil and row.FlatMovement ~= nil then
+                    return row.FlatMovement * (ctx.maxMoves / MOVE_DENOM)
                 end
             end
             return math.huge
@@ -716,8 +717,8 @@ function Pathfinder.findPath(unit, toPlot)
     -- affect A*'s ranking, and the heuristic stays admissible.
     local startOffset = maxMoves - startMP
 
-    -- Per-tile floor on cost in 60ths -- a railroad with FlatMovementCost
-    -- 1 charges (FlatMovementCost * maxMoves / MOVE_DENOM) per step, so
+    -- Per-tile floor on cost in 60ths -- a railroad with FlatMovement
+    -- 1 charges (FlatMovement * maxMoves / MOVE_DENOM) per step, so
     -- a 1-MP unit only spends 1 60th per rail step. Using a constant 2
     -- here would over-estimate that floor and break A* admissibility on
     -- 1-MP units; floor(maxMoves / MOVE_DENOM) tracks the actual unit.
