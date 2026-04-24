@@ -394,12 +394,12 @@ local function onEndCombatSim(
     attackerUnit,
     attackerInitialDamage,
     attackerFinalDamage,
-    _attackerMaxHP,
+    attackerMaxHP,
     defenderPlayer,
     defenderUnit,
     defenderInitialDamage,
     defenderFinalDamage,
-    _defenderMaxHP
+    defenderMaxHP
 )
     local activePlayer = Game.GetActivePlayer()
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
@@ -410,10 +410,12 @@ local function onEndCombatSim(
         attackerUnit = attackerUnit,
         attackerInitialDamage = attackerInitialDamage,
         attackerFinalDamage = attackerFinalDamage,
+        attackerMaxHP = attackerMaxHP,
         defenderPlayer = defenderPlayer,
         defenderUnit = defenderUnit,
         defenderInitialDamage = defenderInitialDamage,
         defenderFinalDamage = defenderFinalDamage,
+        defenderMaxHP = defenderMaxHP,
     })
     speakQueued(text)
 end

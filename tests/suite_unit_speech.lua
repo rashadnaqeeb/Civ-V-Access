@@ -641,14 +641,48 @@ function M.test_combat_result_both_sides_take_damage()
         attackerUnit = 1,
         attackerInitialDamage = 0,
         attackerFinalDamage = 12,
+        attackerMaxHP = 100,
         defenderPlayer = 1,
         defenderUnit = 2,
         defenderInitialDamage = 0,
         defenderFinalDamage = 30,
+        defenderMaxHP = 100,
     })
     T.truthy(out:find("attacker Warrior %-12 hp"), "attacker damage expected: " .. out)
     T.truthy(out:find("defender Swordsman %-30 hp"), "defender damage expected: " .. out)
     T.truthy(not out:find("killed"), "no kill when both survive: " .. out)
+end
+
+-- Kill threshold must respect the per-side max HP the event sends, not
+-- the unit default. A city with 200 max HP taking 150 damage is at
+-- 25% HP -- alive; the old hardcoded 100 check would have spuriously
+-- announced it destroyed.
+function M.test_combat_result_kill_threshold_uses_event_max_hp()
+    setup()
+    Players[0] = {
+        GetUnitByID = function()
+            return mkUnit({ unitType = 100 })
+        end,
+    }
+    Players[1] = {
+        GetUnitByID = function()
+            return mkUnit({ unitType = 101 })
+        end,
+    }
+    local out = UnitSpeech.combatResult({
+        attackerPlayer = 0,
+        attackerUnit = 1,
+        attackerInitialDamage = 0,
+        attackerFinalDamage = 0,
+        attackerMaxHP = 100,
+        defenderPlayer = 1,
+        defenderUnit = 2,
+        defenderInitialDamage = 0,
+        defenderFinalDamage = 150,
+        defenderMaxHP = 200,
+    })
+    T.truthy(out:find("defender Swordsman %-150 hp"), "damage expected: " .. out)
+    T.truthy(not out:find("killed"), "city at 25%% HP must not be reported killed: " .. out)
 end
 
 function M.test_combat_result_defender_killed_appends_kill_line()
@@ -668,10 +702,12 @@ function M.test_combat_result_defender_killed_appends_kill_line()
         attackerUnit = 1,
         attackerInitialDamage = 0,
         attackerFinalDamage = 0,
+        attackerMaxHP = 100,
         defenderPlayer = 1,
         defenderUnit = 2,
         defenderInitialDamage = 0,
         defenderFinalDamage = 100,
+        defenderMaxHP = 100,
     })
     T.truthy(out:find("Swordsman killed", 1, true), "kill line expected: " .. out)
 end

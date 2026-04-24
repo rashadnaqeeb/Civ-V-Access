@@ -738,7 +738,6 @@ function UnitSpeech.combatResult(args)
     local defName = sideName(args.defenderPlayer, args.defenderUnit)
     local atkDamage = args.attackerFinalDamage - args.attackerInitialDamage
     local defDamage = args.defenderFinalDamage - args.defenderInitialDamage
-    local maxHP = GameDefines.MAX_HIT_POINTS
     local parts = {}
     if atkDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE", atkName, atkDamage)
@@ -746,10 +745,10 @@ function UnitSpeech.combatResult(args)
     if defDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE", defName, defDamage)
     end
-    if args.attackerFinalDamage >= maxHP then
+    if args.attackerFinalDamage >= args.attackerMaxHP then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", atkName)
     end
-    if args.defenderFinalDamage >= maxHP then
+    if args.defenderFinalDamage >= args.defenderMaxHP then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", defName)
     end
     return table.concat(parts, ", ")
