@@ -107,21 +107,17 @@ end
 
 local function buildPreamble()
     local parts = {}
-    if Controls.PresentsLabel ~= nil then
-        local presents = Controls.PresentsLabel:GetText() or ""
-        if presents ~= "" then
-            parts[#parts + 1] = presents
-        end
+    local presents = Controls.PresentsLabel:GetText() or ""
+    if presents ~= "" then
+        parts[#parts + 1] = presents
     end
-    if Controls.ListNameLabel ~= nil then
-        local listName = Controls.ListNameLabel:GetText() or ""
-        if listName ~= "" then
-            parts[#parts + 1] = listName
-        end
-        local tooltip = Controls.ListNameLabel:GetToolTipString() or ""
-        if tooltip ~= "" then
-            parts[#parts + 1] = tooltip
-        end
+    local listName = Controls.ListNameLabel:GetText() or ""
+    if listName ~= "" then
+        parts[#parts + 1] = listName
+    end
+    local tooltip = Controls.ListNameLabel:GetToolTipString() or ""
+    if tooltip ~= "" then
+        parts[#parts + 1] = tooltip
     end
     return table.concat(parts, ". ")
 end
@@ -129,9 +125,9 @@ end
 local function buildItems()
     local items = {}
     for _, e in ipairs(capturedEntries) do
+        local score = Text.format("TXT_KEY_FORMAT_NUMBER", e.iScore)
         local label
         if capturedKind == "city" then
-            local score = Locale.ConvertTextKey("TXT_KEY_FORMAT_NUMBER", e.iScore)
             if not isMet(e.iPlayerID) then
                 label = Text.format("TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY",
                     e.iRank,
@@ -146,7 +142,6 @@ local function buildItems()
                     score)
             end
         else
-            local score = Locale.ConvertTextKey("TXT_KEY_FORMAT_NUMBER", e.iScore)
             label = Text.format("TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY",
                 e.iRank,
                 nameForPlayer(e.iPlayerID),
