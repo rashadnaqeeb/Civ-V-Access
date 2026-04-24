@@ -50,6 +50,7 @@ local function setup()
     GameInfo.Terrains = {}
     GameInfo.Routes = {}
     GameInfo.BuildingClasses = {}
+    GameInfo.FakeFeatures = {}
     local buildingRows = {}
     GameInfo.Buildings = function()
         local i = 0
@@ -285,6 +286,48 @@ function M.test_city_not_built_wonder_filtered()
     end
     local p = T.fakePlot({ terrain = 0, isCity = true, city = city })
     eqList(pediaNames(CursorPedia._buildEntries(p)), { "TXT_KEY_BUILDING_HANGING_GARDENS", "TXT_KEY_TERRAIN_PLAINS" })
+end
+
+function M.test_hills_adds_entry_with_underlying_terrain()
+    -- A Plains Hills plot has terrain=Plains and plot type=HILLS. Both
+    -- land as separate pedia entries; sighted players see "Plains Hills"
+    -- and the two pedia articles are distinct.
+    setup()
+    GameInfo.Terrains[0] = { Description = "TXT_KEY_TERRAIN_PLAINS" }
+    GameInfo.Terrains.TERRAIN_HILL = { Description = "TXT_KEY_TERRAIN_HILL" }
+    local p = T.fakePlot({ terrain = 0, hills = true })
+    eqList(pediaNames(CursorPedia._buildEntries(p)), { "TXT_KEY_TERRAIN_PLAINS", "TXT_KEY_TERRAIN_HILL" })
+end
+
+function M.test_mountain_collapses_with_terrain_via_dedup()
+    -- Mountain plots carry terrain=TERRAIN_MOUNTAIN and IsMountain=true.
+    -- Both branches look up the same Description TXT_KEY, so dedup
+    -- collapses them to one row rather than speaking "Mountain,
+    -- Mountain".
+    setup()
+    GameInfo.Terrains[0] = { Description = "TXT_KEY_TERRAIN_MOUNTAIN" }
+    GameInfo.Terrains.TERRAIN_MOUNTAIN = { Description = "TXT_KEY_TERRAIN_MOUNTAIN" }
+    local p = T.fakePlot({ terrain = 0, mountain = true })
+    eqList(pediaNames(CursorPedia._buildEntries(p)), { "TXT_KEY_TERRAIN_MOUNTAIN" })
+end
+
+function M.test_river_adds_entry()
+    setup()
+    GameInfo.Terrains[0] = { Description = "TXT_KEY_TERRAIN_PLAINS" }
+    GameInfo.FakeFeatures.FEATURE_RIVER = { Description = "TXT_KEY_CIV5_FEATURES_RIVER_TITLE" }
+    local p = T.fakePlot({ terrain = 0, river = true })
+    eqList(
+        pediaNames(CursorPedia._buildEntries(p)),
+        { "TXT_KEY_CIV5_FEATURES_RIVER_TITLE", "TXT_KEY_TERRAIN_PLAINS" }
+    )
+end
+
+function M.test_lake_adds_entry()
+    setup()
+    GameInfo.Terrains[0] = { Description = "TXT_KEY_TERRAIN_COAST" }
+    GameInfo.FakeFeatures.FEATURE_LAKE = { Description = "TXT_KEY_CIV5_FEATURES_LAKE_TITLE" }
+    local p = T.fakePlot({ terrain = 0, lake = true })
+    eqList(pediaNames(CursorPedia._buildEntries(p)), { "TXT_KEY_CIV5_FEATURES_LAKE_TITLE", "TXT_KEY_TERRAIN_COAST" })
 end
 
 function M.test_full_tile_composition()

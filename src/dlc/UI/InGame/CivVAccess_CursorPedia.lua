@@ -97,6 +97,24 @@ local function collectFeature(plot, entries, seen)
     addEntry(entries, seen, Text.key(info.Description))
 end
 
+-- Rivers and lakes are FakeFeatures in the engine (not returned by
+-- GetFeatureType), but they have regular pedia articles reachable via
+-- the FakeFeatures Description TXT_KEYs.
+local function collectRiverLake(plot, entries, seen)
+    if plot:IsRiver() then
+        local info = GameInfo.FakeFeatures["FEATURE_RIVER"]
+        if info ~= nil then
+            addEntry(entries, seen, Text.key(info.Description))
+        end
+    end
+    if plot:IsLake() then
+        local info = GameInfo.FakeFeatures["FEATURE_LAKE"]
+        if info ~= nil then
+            addEntry(entries, seen, Text.key(info.Description))
+        end
+    end
+end
+
 local function collectTerrain(plot, entries, seen)
     local id = plot:GetTerrainType()
     if id < 0 then
@@ -121,15 +139,34 @@ local function collectRoute(plot, entries, seen)
     addEntry(entries, seen, Text.key(info.Description))
 end
 
--- Order matters: units first (the most dynamic plot content), then city
--- wonders (present on few tiles), then plot features in the same order
--- the cursor glance speaks them (improvement, resource, feature, terrain,
--- route). Terrain is always present on a revealed plot, so it acts as
--- the natural final entry when nothing else is there -- a single-entry
--- auto-open on a bare plot answers "what terrain is this?" without a
--- picker. Unrevealed plots short-circuit to zero entries: pedia articles
--- aren't secrets, but surfacing them on an unexplored tile leaks "there
--- is something here" information the player hasn't earned.
+-- Hills and Mountain are plot types, not terrain values returned by
+-- GetTerrainType -- a Plains Hills tile has terrain=Plains. Both have
+-- pedia entries under GameInfo.Terrains (TERRAIN_HILL / TERRAIN_MOUNTAIN)
+-- reachable the same way the base pedia indexes them. Dedup handles the
+-- mountain case where both GetTerrainType (TERRAIN_MOUNTAIN) and
+-- IsMountain resolve to the same pedia entry.
+local function collectPlotType(plot, entries, seen)
+    if plot:IsHills() then
+        local info = GameInfo.Terrains["TERRAIN_HILL"]
+        if info ~= nil then
+            addEntry(entries, seen, Text.key(info.Description))
+        end
+    end
+    if plot:IsMountain() then
+        local info = GameInfo.Terrains["TERRAIN_MOUNTAIN"]
+        if info ~= nil then
+            addEntry(entries, seen, Text.key(info.Description))
+        end
+    end
+end
+
+-- Order: dynamic content first (units, city wonders, improvement,
+-- resource), then static landform (features, rivers / lakes, terrain,
+-- hills / mountain), then route. Terrain is always present on a revealed
+-- plot, so the single-entry auto-open still answers "what is this tile"
+-- on a bare plot. Unrevealed plots short-circuit to zero entries: pedia
+-- articles aren't secrets, but surfacing them on an unexplored tile leaks
+-- "there is something here" information the player hasn't earned.
 local function buildEntries(plot)
     if not plot:IsRevealed(Game.GetActiveTeam(), Game.IsDebugMode()) then
         return {}
@@ -140,7 +177,9 @@ local function buildEntries(plot)
     collectImprovement(plot, entries, seen)
     collectResource(plot, entries, seen)
     collectFeature(plot, entries, seen)
+    collectRiverLake(plot, entries, seen)
     collectTerrain(plot, entries, seen)
+    collectPlotType(plot, entries, seen)
     collectRoute(plot, entries, seen)
     return entries
 end
@@ -177,6 +216,10 @@ function CursorPedia.run(plot)
         capturesAllInput = true,
         escapePops = true,
         escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
+        -- The user already knows they asked for pedia articles; reading
+        -- "Articles at tile" before the first entry is redundant. F1
+        -- still re-reads displayName on demand. Mirrors CursorActivate.
+        silentDisplayName = true,
     })
     HandlerStack.push(handler)
 end

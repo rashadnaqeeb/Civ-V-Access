@@ -80,6 +80,7 @@ function T.fakePlot(opts)
         _isWOfRiver = opts.wOfRiver or false,
         _isNWOfRiver = opts.nwOfRiver or false,
         _isNEOfRiver = opts.neOfRiver or false,
+        _isRiver = opts.river or false,
         _yields = opts.yields or {},
         _workingCity = opts.workingCity,
         _defenseMod = opts.defenseMod or 0,
@@ -179,6 +180,9 @@ function T.fakePlot(opts)
     end
     function p:IsNEOfRiver()
         return self._isNEOfRiver
+    end
+    function p:IsRiver()
+        return self._isRiver
     end
     function p:CalculateYield(yid, _disp)
         return self._yields[yid] or 0
