@@ -501,7 +501,10 @@ end
 
 -- Build a ScanEntry with test-friendly defaults. `opts.backend` overrides
 -- the placeholder `{ name = "test" }` for suites that exercise Nav's
--- backend-dispatch paths (ValidateEntry / FormatName).
+-- backend-dispatch paths (ValidateEntry / FormatName). `opts.key`
+-- overrides the default "test:<plotIndex>:<name>" synthetic key when a
+-- test needs a specific identity (e.g. two entries with the same plot /
+-- name but distinct identities).
 function T.mkEntry(cat, sub, name, plotIndex, opts)
     opts = opts or {}
     return {
@@ -511,6 +514,7 @@ function T.mkEntry(cat, sub, name, plotIndex, opts)
         category = cat,
         subcategory = sub,
         itemName = name,
+        key = opts.key or ("test:" .. tostring(plotIndex) .. ":" .. tostring(name)),
         sortKey = opts.sortKey or 0,
     }
 end

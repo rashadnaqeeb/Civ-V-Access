@@ -134,16 +134,18 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
                         end
                         local name = unitItemName(unit)
                         if subcategory ~= nil and name ~= nil then
+                            local unitId = unit:GetID()
                             out[#out + 1] = {
                                 plotIndex = plot:GetPlotIndex(),
                                 backend = ScannerBackendUnits,
                                 data = {
                                     ownerId = playerId,
-                                    unitId = unit:GetID(),
+                                    unitId = unitId,
                                 },
                                 category = category,
                                 subcategory = subcategory,
                                 itemName = name,
+                                key = "units:" .. playerId .. ":" .. unitId,
                                 sortKey = 0,
                             }
                         end

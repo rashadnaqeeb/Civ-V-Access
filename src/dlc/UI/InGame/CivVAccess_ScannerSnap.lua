@@ -22,6 +22,10 @@
 --           name,                 the spoken label items collapse by
 --           instances = { [l] = {
 --             entry,              the original ScanEntry (ref)
+--             key,                copied from entry.key at build time so
+--                                 Nav can re-find this instance across a
+--                                 rebuild without holding an entry ref
+--                                 (entries are freshly allocated by Scan)
 --             plotX, plotY,       cached at build time for sorting only
 --             distance,           PlotDistance from (cursorX, cursorY)
 --                                 at build time
@@ -142,6 +146,7 @@ function ScannerSnap.build(entries, cursorX, cursorY)
                     local dist = Map.PlotDistance(cursorX, cursorY, px, py)
                     local instance = {
                         entry = entry,
+                        key = entry.key,
                         plotX = px,
                         plotY = py,
                         distance = dist,
@@ -185,6 +190,52 @@ function ScannerSnap.build(entries, cursorX, cursorY)
         end
     end
     return snapshot
+end
+
+-- Find the instance with the given key and return its (catIdx, subIdx,
+-- itemIdx, instIdx) tuple, or nil when no instance in the snapshot
+-- carries that key. Nav uses this to re-seat the user's cursor on the
+-- same entity after a rebuild sorts everything differently.
+--
+-- The hint (catIdx, subIdx) is checked first so a user in a named sub
+-- stays there even though the shared-ref invariant means the same item
+-- also lives in `all`. Without the hint we'd deterministically surface
+-- the `all` entry (sub index 1) and silently move the user off their
+-- chosen sub.
+function ScannerSnap.locate(snapshot, key, hintCatIdx, hintSubIdx)
+    local function scanSub(sub, ci, si)
+        for ii, item in ipairs(sub.items) do
+            for ini, inst in ipairs(item.instances) do
+                if inst.key == key then
+                    return ci, si, ii, ini
+                end
+            end
+        end
+        return nil
+    end
+    if hintCatIdx ~= nil and hintSubIdx ~= nil then
+        local cat = snapshot.categories[hintCatIdx]
+        if cat ~= nil then
+            local sub = cat.subcategories[hintSubIdx]
+            if sub ~= nil then
+                local ci, si, ii, ini = scanSub(sub, hintCatIdx, hintSubIdx)
+                if ci ~= nil then
+                    return ci, si, ii, ini
+                end
+            end
+        end
+    end
+    for ci, cat in ipairs(snapshot.categories) do
+        for si, sub in ipairs(cat.subcategories) do
+            if not (ci == hintCatIdx and si == hintSubIdx) then
+                local fci, fsi, fii, fini = scanSub(sub, ci, si)
+                if fci ~= nil then
+                    return fci, fsi, fii, fini
+                end
+            end
+        end
+    end
+    return nil
 end
 
 -- Drop (catIdx, subIdx, itemIdx, instIdx) from the snapshot. If the

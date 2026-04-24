@@ -29,6 +29,16 @@
 --                           `all` is never emitted; Snap assembles it.
 --   itemName    string      Already-localised label; the "collapse by
 --                           name" key for grouping instances into items.
+--   key         string      Stable identifier for the underlying entity
+--                           (unit ID, city ID, plot + kind, ...) that
+--                           survives rebuilds. Nav uses it to re-find
+--                           the user's cursor across an identity-
+--                           preserving rebuild so a resort doesn't move
+--                           them off whatever they were on. Two entries
+--                           produced by the same backend for the same
+--                           entity must emit the same key; distinct
+--                           entries (e.g. base terrain + feature on the
+--                           same plot) must emit distinct keys.
 --   sortKey     number      Optional secondary sort; falls through to
 --                           PlotDistance on tie. Backends that don't
 --                           need one can leave it 0.

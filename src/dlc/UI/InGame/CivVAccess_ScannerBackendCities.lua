@@ -46,17 +46,19 @@ local function scanCities(activePlayer, activeTeam, out)
                     for city in player:Cities() do
                         local plot = city:Plot()
                         if plot ~= nil and plot:IsRevealed(activeTeam) then
+                            local cityId = city:GetID()
                             out[#out + 1] = {
                                 plotIndex = plot:GetPlotIndex(),
                                 backend = ScannerBackendCities,
                                 data = {
                                     kind = "city",
                                     ownerId = playerId,
-                                    cityId = city:GetID(),
+                                    cityId = cityId,
                                 },
                                 category = "cities",
                                 subcategory = sub,
                                 itemName = Text.key(city:GetNameKey()),
+                                key = "cities:city:" .. playerId .. ":" .. cityId,
                                 sortKey = 0,
                             }
                         end
@@ -87,6 +89,7 @@ local function scanBarbCamps(activeTeam, out)
                 category = "cities",
                 subcategory = "barb",
                 itemName = campLabel,
+                key = "cities:camp:" .. i,
                 sortKey = 0,
             }
         end

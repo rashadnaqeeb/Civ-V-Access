@@ -113,7 +113,6 @@ end
 local function abandonEntry()
     civvaccess_shared.mapScope = nil
     civvaccess_shared.mapAnnouncer = nil
-    ScannerNav.invalidate()
     UI.ClearSelectedCities()
     UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
 end
@@ -244,7 +243,6 @@ function CityRangeStrikeMode.enter(city)
     self.onDeactivate = function()
         civvaccess_shared.mapScope = nil
         civvaccess_shared.mapAnnouncer = nil
-        ScannerNav.invalidate()
         UI.ClearSelectedCities()
         -- Return to SELECTION so the engine exits CITY_RANGE_ATTACK. Esc,
         -- commit, and any external pop all land here.
@@ -257,7 +255,6 @@ function CityRangeStrikeMode.enter(city)
     -- back the hooks and the engine mode manually. Mirrors pushHexMap.
     civvaccess_shared.mapScope = scope
     civvaccess_shared.mapAnnouncer = targetAnnouncement
-    ScannerNav.invalidate()
 
     local pushed = HandlerStack.push(self)
     if not pushed then

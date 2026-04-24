@@ -42,6 +42,7 @@ function ScannerBackendResources.Scan(_activePlayer, activeTeam)
                             category = "resources",
                             subcategory = sub,
                             itemName = Text.key(row.Description),
+                            key = "resources:" .. i,
                             sortKey = 0,
                         }
                     end

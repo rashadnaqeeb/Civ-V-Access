@@ -75,6 +75,7 @@ function ScannerBackendImprovements.Scan(activePlayer, activeTeam)
                         category = "improvements",
                         subcategory = sub,
                         itemName = Text.key(row.Description),
+                        key = "improvements:" .. i,
                         sortKey = 0,
                     }
                 end

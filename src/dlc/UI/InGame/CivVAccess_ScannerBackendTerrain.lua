@@ -44,6 +44,7 @@ function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
                         category = "terrain",
                         subcategory = "base",
                         itemName = Text.key(row.Description),
+                        key = "terrain:base:" .. i,
                         sortKey = 0,
                     }
                 end
@@ -60,6 +61,7 @@ function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
                         category = "terrain",
                         subcategory = "features",
                         itemName = Text.key(frow.Description),
+                        key = "terrain:feature:" .. i,
                         sortKey = 0,
                     }
                 end
@@ -76,6 +78,7 @@ function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
                     category = "terrain",
                     subcategory = "elevation",
                     itemName = Text.key(MOUNTAIN_KEY),
+                    key = "terrain:elevation:" .. i,
                     sortKey = 0,
                 }
             elseif plot:IsHills() then
@@ -86,6 +89,7 @@ function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
                     category = "terrain",
                     subcategory = "elevation",
                     itemName = Text.key(HILLS_KEY),
+                    key = "terrain:elevation:" .. i,
                     sortKey = 0,
                 }
             end

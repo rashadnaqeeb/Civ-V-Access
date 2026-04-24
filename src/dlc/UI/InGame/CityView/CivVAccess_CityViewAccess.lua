@@ -1581,13 +1581,9 @@ local function pushHexMap()
     -- sees them. HandlerStack.push invokes onActivate before recording the
     -- handler on the stack and returns false if it threw, in which case the
     -- handler is NOT on the stack and onDeactivate will never fire -- so we
-    -- have to roll back the hooks manually. Prior bug: hooks were set at the
-    -- top of this function, ScannerNav.invalidate() then nil-derefed on
-    -- cross-Context sandboxing, pcall in the hub item swallowed it, and
-    -- mapScope stayed set forever with no handler to clear it.
+    -- have to roll back the hooks manually below.
     civvaccess_shared.mapScope = hexMapScope
     civvaccess_shared.mapAnnouncer = hexTileAnnouncement
-    ScannerNav.invalidate()
 
     local pushed = HandlerStack.push({
         name = "CityView.HexMap",
@@ -1615,13 +1611,11 @@ local function pushHexMap()
         onDeactivate = function()
             civvaccess_shared.mapScope = nil
             civvaccess_shared.mapAnnouncer = nil
-            ScannerNav.invalidate()
         end,
     })
     if not pushed then
         civvaccess_shared.mapScope = nil
         civvaccess_shared.mapAnnouncer = nil
-        ScannerNav.invalidate()
     end
 end
 

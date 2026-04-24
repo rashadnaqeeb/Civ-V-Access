@@ -37,6 +37,7 @@ function ScannerBackendSpecial.Scan(_activePlayer, activeTeam)
                         category = "special",
                         subcategory = "natural_wonders",
                         itemName = name,
+                        key = "special:wonder:" .. i,
                         sortKey = 0,
                     }
                 end
@@ -49,6 +50,7 @@ function ScannerBackendSpecial.Scan(_activePlayer, activeTeam)
                     category = "special",
                     subcategory = "ancient_ruins",
                     itemName = goodyHutLabel,
+                    key = "special:ruins:" .. i,
                     sortKey = 0,
                 }
             end

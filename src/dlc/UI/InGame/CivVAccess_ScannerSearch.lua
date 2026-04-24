@@ -59,6 +59,7 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
                     local dist = Map.PlotDistance(cursorX, cursorY, px, py)
                     local instance = {
                         entry = entry,
+                        key = entry.key,
                         plotX = px,
                         plotY = py,
                         distance = dist,

@@ -1,17 +1,27 @@
 -- Scanner navigation state machine. Owns the four cursor indices
--- (category, subcategory, item, instance), the current snapshot, the
--- pre-jump cell for Backspace, and the turn-start invalidation
--- subscription. Every scanner binding maps to one of the entry points
--- below; the handler file is purely the (key, mods) -> entry-point
--- table (CivVAccess_ScannerHandler.lua).
+-- (category, subcategory, item, instance), the current snapshot, and
+-- the pre-jump cell for Backspace. Every scanner binding maps to one of
+-- the entry points below; the handler file is purely the (key, mods) ->
+-- entry-point table (CivVAccess_ScannerHandler.lua).
 --
--- Rebuild triggers (design section 5):
---   * Ctrl+PageUp/Down            explicit, eager
---   * Events.ActivePlayerTurnStart  marks stale; next op that needs the
---                                 snapshot rebuilds
--- Subcategory / item / instance cycles never rebuild -- closest-first
--- sort reshuffling after every cursor step would lose the user's
--- place constantly.
+-- Rebuild model (design section 5, revised):
+-- Every navigation entry point rebuilds the snapshot from live backend
+-- output. Explicit "reorient" cycles (Ctrl+PageUp/Down, Shift+PageUp/Down,
+-- Ctrl+F) re-anchor the sort origin to the current cursor and land the
+-- user at the front of the new scope. Every other cycle (bare, Alt,
+-- Home, End) preserves the origin from the previous rebuild and
+-- re-locates the user's current instance in the new snapshot by its
+-- entry key, so a resort never moves them off whatever entity they were
+-- pointing at. New entries that slot in behind the cursor's identity
+-- appear naturally on subsequent reverse cycles; new entries that would
+-- reorder existing items leave the user's cursor on the same entity at
+-- its new index. A Ctrl/Shift+PageUp/Down remains the "forget where I
+-- was" escape hatch.
+--
+-- Search snapshots (isSearch) are an exception: they are frozen slices
+-- produced by applySearch and not rebuilt on navigation. Exiting search
+-- (Ctrl+PageUp/Down from inside a search snapshot) rebuilds the normal
+-- snapshot anchored to the cursor at exit time.
 
 ScannerNav = {}
 
@@ -20,7 +30,6 @@ local _subIdx = 1
 local _itemIdx = 0
 local _instIdx = 0
 local _snapshot = nil
-local _snapshotStale = true
 local _preJumpX = nil
 local _preJumpY = nil
 -- Remembered _catIdx from the moment a search opened. A Ctrl+PageUp/Down
@@ -28,24 +37,6 @@ local _preJumpY = nil
 -- the synthetic search category (which is the only one in the search
 -- snapshot).
 local _preSearchCatIdx = nil
-
--- Register a fresh ActivePlayerTurnStart listener on every include. See
--- CivVAccess_Boot.lua's LoadScreenClose registration for the rationale:
--- load-game-from-game kills the prior Context's env, so the previous
--- listener's closure is dead (_snapshotStale lookup throws on a nil env)
--- and we need a new one bound to the live _snapshotStale upvalue.
-local function installTurnStartListener()
-    if Events == nil or Events.ActivePlayerTurnStart == nil then
-        Log.warn("ScannerNav: Events.ActivePlayerTurnStart missing; turn-start invalidation disabled")
-        return
-    end
-    Events.ActivePlayerTurnStart.Add(function()
-        _snapshotStale = true
-    end)
-    Log.info("ScannerNav: registered ActivePlayerTurnStart listener")
-end
-
-installTurnStartListener()
 
 -- Hydrate the auto-move toggle on the shared table the first time we
 -- boot into a session. Default is off: auto-move yanks the cursor away
@@ -87,6 +78,10 @@ local function currentInstance()
         return nil
     end
     return item.instances[_instIdx]
+end
+
+local function isSearchSnapshot()
+    return _snapshot ~= nil and _snapshot.isSearch == true
 end
 
 -- Set _itemIdx / _instIdx to the front of the current sub. Called after
@@ -153,59 +148,80 @@ local function cursorOriginOrDefault()
     return cx, cy
 end
 
--- Build a fresh normal snapshot from live backend output using the
--- cursor's current (x, y) as the distance origin. Clears the search flag
--- so callers know the active snapshot is the regular one.
-local function rebuildSnapshot()
+-- Build a fresh snapshot whose sort origin is (originX, originY). The
+-- caller decides whether that's the live cursor (explicit reorient) or
+-- the previous snapshot's origin (identity-preserving refresh).
+local function rebuildSnapshot(originX, originY)
     local entries = gatherEntries()
-    local cx, cy = cursorOriginOrDefault()
-    _snapshot = ScannerSnap.build(entries, cx, cy)
-    _snapshotStale = false
+    _snapshot = ScannerSnap.build(entries, originX, originY)
 end
 
--- Ensure a current, non-stale snapshot exists before any op that reads it.
--- Turn-start invalidation on a search snapshot drops the search and
--- rebuilds the normal snapshot -- a search represents a question asked at
--- a moment in time, and silently carrying it across turns would feed the
--- user stale match lists. Item / instance reset to 0 on rebuild per design
--- section 5 so the next cycle lands at the front of the preserved sub
--- rather than wrapping from a stale index.
+-- Rebuild and re-seat the user's cursor on the same instance they were
+-- pointing at. Preserves the sort origin from the previous snapshot so
+-- distances announced across a rebuild stay relative to a stable anchor
+-- rather than drifting with the live cursor (which auto-move may have
+-- driven onto the entry itself).
 --
--- On the very first build of the session, also advance _catIdx past any
--- empty leading category. _catIdx starts at 1 (cities), which is empty
--- before the capital is founded; without this skip, a turn-0 PageDown
--- would speak EMPTY even though units_my holds the starting settler.
--- Ctrl+PageUp/Down cycles take a different path and already skip, so this
--- only matters for the plain-cycle entry points (cycleItem, cycleSubcategory,
--- End, Home). Stale rebuilds intentionally keep the user's chosen category
--- -- if it empties out mid-game, EMPTY is the correct answer rather than a
--- silent jump elsewhere.
-local function ensureSnapshot()
-    if _snapshot == nil or _snapshotStale then
-        local isInitialBuild = (_snapshot == nil)
-        if _snapshot ~= nil and _snapshot.isSearch then
-            _catIdx = _preSearchCatIdx or 1
+-- Search snapshots are frozen; callers must not rebuild them through this
+-- path. Returns whether identity was preserved.
+--
+-- On the very first build of the session, advance _catIdx past any empty
+-- leading category. _catIdx starts at 1 (cities), which is empty before
+-- the capital is founded; without this skip, a turn-0 PageDown would
+-- speak EMPTY even though units_my holds the starting settler. Subsequent
+-- rebuilds intentionally keep the user's chosen category -- if it empties
+-- out mid-game, EMPTY is the correct answer rather than a silent jump
+-- elsewhere.
+local function rebuildAndLocate()
+    if isSearchSnapshot() then
+        return false
+    end
+    local isFirstBuild = (_snapshot == nil)
+    local key, hintCat, hintSub
+    local inst = currentInstance()
+    if inst ~= nil then
+        key, hintCat, hintSub = inst.key, _catIdx, _subIdx
+    end
+    local originX, originY
+    if isFirstBuild then
+        originX, originY = cursorOriginOrDefault()
+    else
+        originX, originY = _snapshot.cursorX, _snapshot.cursorY
+    end
+    rebuildSnapshot(originX, originY)
+    if key ~= nil then
+        local ci, si, ii, ini = ScannerSnap.locate(_snapshot, key, hintCat, hintSub)
+        if ci ~= nil then
+            _catIdx, _subIdx, _itemIdx, _instIdx = ci, si, ii, ini
+            return true
         end
-        rebuildSnapshot()
-        _itemIdx, _instIdx = 0, 0
-        if isInitialBuild then
-            local cats = _snapshot.categories
-            local n = #cats
-            for step = 0, n - 1 do
-                local i = ((_catIdx - 1 + step) % n) + 1
-                local allSub = cats[i].subcategories[1]
-                if allSub ~= nil and #allSub.items > 0 then
-                    _catIdx = i
-                    _subIdx = 1
-                    break
-                end
+    end
+    -- No prior identity (first build) or identity gone (entity died).
+    _itemIdx, _instIdx = 0, 0
+    if isFirstBuild then
+        local cats = _snapshot.categories
+        local n = #cats
+        for step = 0, n - 1 do
+            local i = ((_catIdx - 1 + step) % n) + 1
+            local allSub = cats[i].subcategories[1]
+            if allSub ~= nil and #allSub.items > 0 then
+                _catIdx = i
+                _subIdx = 1
+                break
             end
         end
     end
+    return false
 end
 
-local function isSearchSnapshot()
-    return _snapshot ~= nil and _snapshot.isSearch == true
+-- Full rebuild that re-anchors the sort origin to the current cursor.
+-- Used by explicit reorient entry points (Ctrl+PageUp/Down,
+-- Shift+PageUp/Down, search commit). Resets item / instance to sentinels
+-- so the caller picks where to land (front of cat, front of sub, etc.).
+local function rebuildFromCursor()
+    local cx, cy = cursorOriginOrDefault()
+    rebuildSnapshot(cx, cy)
+    _itemIdx, _instIdx = 0, 0
 end
 
 -- Ask the backend whether the current instance is still live. If not,
@@ -412,17 +428,16 @@ end
 
 function ScannerNav.cycleCategory(dir)
     -- Ctrl+PageUp/Down from inside a search snapshot is the "exit search"
-    -- signal per design section 8. Drop the synthetic snapshot, restore
-    -- the pre-search category index, and let the normal rebuild + skip
-    -- run from there so the user lands on the next non-empty category.
+    -- signal per design section 8. Drop the synthetic snapshot and
+    -- restore the pre-search category index; rebuildFromCursor below
+    -- builds the normal snapshot anchored to where the cursor is now.
     if isSearchSnapshot() then
         _catIdx = _preSearchCatIdx or 1
-        _snapshotStale = true
+        _snapshot = nil
     end
-    -- Category cycle is the rebuild signal per section 5. Rebuild first
-    -- so the empty-skip decision reads the current game state rather
-    -- than last turn's.
-    rebuildSnapshot()
+    -- Explicit reorient: new origin at the cursor, user lands at the
+    -- front of the new category's `all` sub.
+    rebuildFromCursor()
     local newIdx = nextIndexMatching(_snapshot.categories, _catIdx, dir, categoryHasItems)
     if newIdx == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -435,7 +450,10 @@ function ScannerNav.cycleCategory(dir)
 end
 
 function ScannerNav.cycleSubcategory(dir)
-    ensureSnapshot()
+    -- Explicit reorient within the category: new origin at the cursor,
+    -- user lands at the front of the new sub. Same escape-hatch role as
+    -- Ctrl+PageUp/Down, one level down the hierarchy.
+    rebuildFromCursor()
     local cat = currentCategory()
     if cat == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -451,7 +469,7 @@ function ScannerNav.cycleSubcategory(dir)
     return announceWithLabel(currentSub().label)
 end
 
--- _itemIdx / _instIdx sit at 0 in two cases: a fresh snapshot (ensureSnapshot
+-- _itemIdx / _instIdx sit at 0 in two cases: a fresh snapshot (first build
 -- resets them) and after a pruned item empties out. "0" is the "before
 -- item 1" sentinel -- the first cycle out of it must LAND on the endpoint,
 -- not step past it. wrapIndex adds dir unconditionally, so routing 0 through
@@ -461,7 +479,7 @@ local function stepFromZero(dir, n)
 end
 
 function ScannerNav.cycleItem(dir)
-    ensureSnapshot()
+    rebuildAndLocate()
     local sub = currentSub()
     if sub == nil or #sub.items == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -479,7 +497,7 @@ function ScannerNav.cycleItem(dir)
 end
 
 function ScannerNav.cycleInstance(dir)
-    ensureSnapshot()
+    rebuildAndLocate()
     local item = currentItem()
     if item == nil or #item.instances == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -500,7 +518,7 @@ end
 -- the entry label is required because the user just pressed Home on
 -- it and already knows.
 function ScannerNav.jumpToEntry()
-    ensureSnapshot()
+    rebuildAndLocate()
     ensureCurrentInstanceValid()
     local inst = currentInstance()
     if inst == nil then
@@ -518,7 +536,7 @@ end
 -- via HexGeom.directionString; the only divergence is the zero-distance
 -- short-circuit key (SCANNER_HERE here, AT_CAPITAL there).
 function ScannerNav.distanceFromCursor()
-    ensureSnapshot()
+    rebuildAndLocate()
     ensureCurrentInstanceValid()
     local inst = currentInstance()
     if inst == nil then
@@ -560,16 +578,6 @@ function ScannerNav.returnToPreJump()
     return Cursor.jumpTo(x, y)
 end
 
--- Public: mark the current snapshot stale. Next scanner op that needs it
--- rebuilds from live backend output against whatever civvaccess_shared.mapScope
--- is at that moment. Called by scope-installing handlers (CityView hex sub)
--- on both push and pop so the snapshot cost is paid lazily at the next
--- scanner keypress rather than eagerly here. An active search snapshot is
--- dropped by ensureSnapshot's existing search-rebuild branch on next call.
-function ScannerNav.invalidate()
-    _snapshotStale = true
-end
-
 -- Ctrl+F: open the type-ahead search handler on top of the scanner.
 -- The handler itself owns the Enter / Escape flow and pops itself.
 -- _preSearchCatIdx isn't touched here -- applySearch captures it at
@@ -602,7 +610,6 @@ function ScannerNav.applySearch(query)
         _preSearchCatIdx = _catIdx
     end
     _snapshot = snap
-    _snapshotStale = false
     _catIdx = 1
     snapToCategoryFront()
     ensureCurrentInstanceValid()
@@ -610,10 +617,23 @@ function ScannerNav.applySearch(query)
     return announceWithLabel(currentCategory().label)
 end
 
+-- Test seam: exercise the rebuild + prune + announce pipeline without
+-- touching indices. Production dispatches through cycle entry points
+-- with dir = +/-1 only; suites use this to probe the rebuild and
+-- validation path in isolation (e.g. checking that a dead current
+-- instance gets pruned) rather than relying on cycle(0) as an implicit
+-- stay-put contract.
+function ScannerNav._refresh()
+    rebuildAndLocate()
+    ensureCurrentInstanceValid()
+    autoMoveIfEnabled()
+    return announceCurrent()
+end
+
 -- Test seam (module has persistent upvalues; production never calls it).
 function ScannerNav._reset()
     _catIdx, _subIdx, _itemIdx, _instIdx = 1, 1, 0, 0
-    _snapshot, _snapshotStale = nil, true
+    _snapshot = nil
     _preJumpX, _preJumpY = nil, nil
     _preSearchCatIdx = nil
 end
@@ -624,9 +644,6 @@ function ScannerNav._indices()
 end
 function ScannerNav._snapshot()
     return _snapshot
-end
-function ScannerNav._isStale()
-    return _snapshotStale
 end
 function ScannerNav._preJump()
     return _preJumpX, _preJumpY

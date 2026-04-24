@@ -48,13 +48,15 @@ local function emitSettlerEntries(player, out)
         if plot ~= nil then
             local x, y = plot:GetX(), plot:GetY()
             if player:CanFound(x, y) then
+                local plotIdx = plot:GetPlotIndex()
                 out[#out + 1] = {
-                    plotIndex = plot:GetPlotIndex(),
+                    plotIndex = plotIdx,
                     backend = ScannerBackendRecommendations,
                     data = { kind = "settler" },
                     category = "recommendations",
                     subcategory = "all",
                     itemName = cityLabel,
+                    key = "recommendations:settler:" .. plotIdx,
                     sortKey = 0,
                 }
             end
@@ -69,13 +71,15 @@ local function emitWorkerEntries(player, out)
         if plot ~= nil and buildType ~= nil then
             local name = buildItemName(buildType)
             if name ~= nil then
+                local plotIdx = plot:GetPlotIndex()
                 out[#out + 1] = {
-                    plotIndex = plot:GetPlotIndex(),
+                    plotIndex = plotIdx,
                     backend = ScannerBackendRecommendations,
                     data = { kind = "worker", buildType = buildType },
                     category = "recommendations",
                     subcategory = "all",
                     itemName = name,
+                    key = "recommendations:worker:" .. plotIdx,
                     sortKey = 0,
                 }
             end
