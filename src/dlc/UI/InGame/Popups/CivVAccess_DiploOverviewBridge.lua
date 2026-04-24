@@ -14,4 +14,23 @@ civvaccess_shared.DiploOverview = civvaccess_shared.DiploOverview or {}
 civvaccess_shared.DiploOverview.showRelations = OnRelations
 civvaccess_shared.DiploOverview.showDeals = OnDeals
 civvaccess_shared.DiploOverview.showGlobal = OnGlobal
-civvaccess_shared.DiploOverview.close = OnClose
+-- Inline lambda instead of `close = OnClose`: captures THIS Context's
+-- ContextPtr and UIManager directly so there's no ambiguity about which
+-- function ends up bound (name collisions with OnClose-in-another-Context
+-- or late reassignment would otherwise be invisible).
+-- DequeuePopup on DiploOverview sets the parent's Hidden flag to true,
+-- which visually cascades to the children, but does NOT fire the child
+-- LuaContexts' ShowHide. Our BaseMenu handlers for Relations / Deals /
+-- Global pop off HandlerStack in those ShowHide callbacks, so they
+-- stayed on the stack after close -- the popup was visually gone but
+-- the sub-handlers were still receiving input (Tab still cycled tabs,
+-- Esc still fired onEscape). Explicitly SetHide(true) on each panel
+-- before dequeueing so the ShowHides fire and the stack drains. On
+-- re-show, DiploOverview.ShowHide's line 116 (m_CurrentPanel:SetHide(
+-- false)) restores the last-selected tab.
+civvaccess_shared.DiploOverview.close = function()
+    Controls.RelationsPanel:SetHide(true)
+    Controls.DealsPanel:SetHide(true)
+    Controls.GlobalPanel:SetHide(true)
+    UIManager:DequeuePopup(ContextPtr)
+end
