@@ -145,10 +145,8 @@ function TechTreeLogic.buildLandingSpeech(techID, player)
 
     local researched = (status == "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_RESEARCHED")
     if not researched and player:GetScience() > 0 then
-        parts[#parts + 1] = Text.format(
-            "TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS",
-            player:GetResearchTurnsLeft(techID, true)
-        )
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", player:GetResearchTurnsLeft(techID, true))
     end
 
     local prose = unlocksProse(techID, name)
@@ -189,10 +187,8 @@ function TechTreeLogic.buildQueueRowSpeech(row, player)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED", row.position - 1)
     end
     if player:GetScience() > 0 then
-        parts[#parts + 1] = Text.format(
-            "TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS",
-            player:GetResearchTurnsLeft(row.techID, true)
-        )
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", player:GetResearchTurnsLeft(row.techID, true))
     end
     local prose = unlocksProse(row.techID, name)
     if prose ~= "" then

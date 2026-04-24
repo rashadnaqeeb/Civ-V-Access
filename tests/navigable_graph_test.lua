@@ -7,12 +7,13 @@ local T = require("support")
 local M = {}
 
 local function setup()
-    Log = Log or {
-        debug = function() end,
-        info = function() end,
-        warn = function() end,
-        error = function() end,
-    }
+    Log = Log
+        or {
+            debug = function() end,
+            info = function() end,
+            warn = function() end,
+            error = function() end,
+        }
     dofile("src/dlc/UI/Shared/CivVAccess_NavigableGraph.lua")
 end
 
@@ -58,14 +59,14 @@ end
 --       G   H
 local function diamond()
     return {
-        A = { parents = {},            children = { "B" } },
-        E = { parents = {},            children = { "F" } },
-        B = { parents = { "A" },       children = { "C", "D" } },
-        F = { parents = { "E" },       children = { "H" } },
-        C = { parents = { "B" },       children = { "G" } },
-        D = { parents = { "B" },       children = { "G", "H" } },
-        G = { parents = { "C", "D" },  children = {} },
-        H = { parents = { "D", "F" },  children = {} },
+        A = { parents = {}, children = { "B" } },
+        E = { parents = {}, children = { "F" } },
+        B = { parents = { "A" }, children = { "C", "D" } },
+        F = { parents = { "E" }, children = { "H" } },
+        C = { parents = { "B" }, children = { "G" } },
+        D = { parents = { "B" }, children = { "G", "H" } },
+        G = { parents = { "C", "D" }, children = {} },
+        H = { parents = { "D", "F" }, children = {} },
     }, { "A", "E" }
 end
 
@@ -74,8 +75,12 @@ end
 function M.test_new_requires_all_three_lambdas()
     setup()
     local ok = pcall(NavigableGraph.new, {
-        getParents = function() return {} end,
-        getChildren = function() return {} end,
+        getParents = function()
+            return {}
+        end,
+        getChildren = function()
+            return {}
+        end,
     })
     T.falsy(ok, "constructor must reject missing getRoots")
 end
@@ -210,7 +215,7 @@ function M.test_lambdas_are_called_per_move_not_cached()
     -- first Down goes through, then we add D to B's children, then another
     -- Down after moving back to B should see D instead of only C.
     local adj = {
-        A = { parents = {},      children = { "B" } },
+        A = { parents = {}, children = { "B" } },
         B = { parents = { "A" }, children = { "C" } },
         C = { parents = { "B" }, children = {} },
         D = { parents = { "B" }, children = {} },

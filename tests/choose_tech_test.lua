@@ -42,7 +42,9 @@ local function setup()
     -- loaded by the time our same-Context include runs). Default is empty so
     -- label tests that don't care about help prose stay short; tests that
     -- exercise help-text composition override this per-case.
-    GetHelpTextForTech = function() return "" end
+    GetHelpTextForTech = function()
+        return ""
+    end
 
     CivVAccess_Strings = CivVAccess_Strings or {}
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_FREE"] = "free"
@@ -111,21 +113,39 @@ local function mkPlayer(opts)
         _numFreeTechs = opts.numFreeTechs or 0,
         _science = opts.science or 0,
         _researchTurnsLeft = opts.researchTurnsLeft or {},
-        CanResearch = function(self, id) return self._canResearch[id] == true end,
-        CanResearchForFree = function(self, id) return self._canResearchForFree[id] == true end,
-        GetCurrentResearch = function(self) return self._currentResearch end,
-        GetQueuePosition = function(self, id) return self._queuePositions[id] or -1 end,
-        GetTeam = function(self) return self._team end,
-        GetNumFreeTechs = function(self) return self._numFreeTechs end,
-        GetScience = function(self) return self._science end,
-        GetResearchTurnsLeft = function(self, id, _overflow) return self._researchTurnsLeft[id] or 0 end,
+        CanResearch = function(self, id)
+            return self._canResearch[id] == true
+        end,
+        CanResearchForFree = function(self, id)
+            return self._canResearchForFree[id] == true
+        end,
+        GetCurrentResearch = function(self)
+            return self._currentResearch
+        end,
+        GetQueuePosition = function(self, id)
+            return self._queuePositions[id] or -1
+        end,
+        GetTeam = function(self)
+            return self._team
+        end,
+        GetNumFreeTechs = function(self)
+            return self._numFreeTechs
+        end,
+        GetScience = function(self)
+            return self._science
+        end,
+        GetResearchTurnsLeft = function(self, id, _overflow)
+            return self._researchTurnsLeft[id] or 0
+        end,
     }
 end
 
 local function mkTeam(techs)
     return {
         _techs = techs or {},
-        IsHasTech = function(self, id) return self._techs[id] == true end,
+        IsHasTech = function(self, id)
+            return self._techs[id] == true
+        end,
     }
 end
 
@@ -134,21 +154,27 @@ end
 function M.test_advisorSuffix_empty_when_no_recommend()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function() return false end
+    Game.IsTechRecommended = function()
+        return false
+    end
     T.eq(ChooseTechLogic.advisorSuffix(1), "")
 end
 
 function M.test_advisorSuffix_single_advisor()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function(id, adv) return adv == AdvisorTypes.ADVISOR_SCIENCE end
+    Game.IsTechRecommended = function(id, adv)
+        return adv == AdvisorTypes.ADVISOR_SCIENCE
+    end
     T.eq(ChooseTechLogic.advisorSuffix(1), "science")
 end
 
 function M.test_advisorSuffix_order_economic_military_science_foreign()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function(id, adv) return true end -- all four
+    Game.IsTechRecommended = function(id, adv)
+        return true
+    end -- all four
     T.eq(ChooseTechLogic.advisorSuffix(1), "economic military science foreign")
 end
 
@@ -208,7 +234,7 @@ function M.test_buildEntries_stealing_intersects_target_techs()
     })
     Players[1] = mkPlayer({ team = 1 })
     Teams[1] = mkTeam({ [2] = true, [3] = true }) -- target has 2 and 3; we can research all 3
-    local entries, current = ChooseTechLogic.buildEntries(0, "stealing", 1)
+    local entries = ChooseTechLogic.buildEntries(0, "stealing", 1)
     T.eq(#entries, 2, "intersect of canResearch and target-has-tech")
     T.eq(entries[1].techID, 2)
     T.eq(entries[2].techID, 3)
@@ -325,7 +351,9 @@ end
 function M.test_buildLabel_advisor_suffix_appended()
     setup()
     installAdvisorLocale()
-    Game.IsTechRecommended = function(id, adv) return adv == AdvisorTypes.ADVISOR_MILITARY end
+    Game.IsTechRecommended = function(id, adv)
+        return adv == AdvisorTypes.ADVISOR_MILITARY
+    end
     local entry = { techID = 1, info = { Description = "Pottery" }, mode = "normal" }
     local label = ChooseTechLogic.buildLabel(entry, mkLabelPlayer(5, { [1] = 10 }))
     T.truthy(label:find("military"), "advisor suffix appended: " .. label)
@@ -411,10 +439,18 @@ local function mkPlayerWithPreambleOpts(opts)
         _science = opts.science or 0,
         _civType = opts.civType or 0,
         _name = opts.name or "Player",
-        GetNumFreeTechs = function(self) return self._numFreeTechs end,
-        GetScience = function(self) return self._science end,
-        GetCivilizationType = function(self) return self._civType end,
-        GetName = function(self) return self._name end,
+        GetNumFreeTechs = function(self)
+            return self._numFreeTechs
+        end,
+        GetScience = function(self)
+            return self._science
+        end,
+        GetCivilizationType = function(self)
+            return self._civType
+        end,
+        GetName = function(self)
+            return self._name
+        end,
     }
 end
 

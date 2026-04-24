@@ -138,7 +138,8 @@ local function buildActionTooltip(unit, action)
             if Game.GetResourceUsageType(iResource) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS then
                 local pResource = GameInfo.Resources[iResource]
                 if pResource ~= nil then
-                    parts[#parts + 1] = Text.format("TXT_KEY_BUILD_CONNECTS_RESOURCE", pResource.IconString, pResource.Description)
+                    parts[#parts + 1] =
+                        Text.format("TXT_KEY_BUILD_CONNECTS_RESOURCE", pResource.IconString, pResource.Description)
                 end
             end
         end

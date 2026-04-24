@@ -238,7 +238,8 @@ function M.test_city_world_wonder_listed()
     -- already covers those, and noise on every city tile would dominate
     -- the picker.
     setup()
-    GameInfo.BuildingClasses.WORLD_WONDER_CLASS = { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = 0 }
+    GameInfo.BuildingClasses.WORLD_WONDER_CLASS =
+        { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = 0 }
     GameInfo._setBuildings({
         { ID = 100, BuildingClass = "WORLD_WONDER_CLASS", Description = "TXT_KEY_BUILDING_PYRAMIDS" },
     })
@@ -274,7 +275,8 @@ function M.test_city_not_built_wonder_filtered()
     -- ones actually built in the tile's city (IsHasBuilding true) should
     -- surface.
     setup()
-    GameInfo.BuildingClasses.WORLD_WONDER_CLASS = { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = 0 }
+    GameInfo.BuildingClasses.WORLD_WONDER_CLASS =
+        { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = 0 }
     GameInfo._setBuildings({
         { ID = 100, BuildingClass = "WORLD_WONDER_CLASS", Description = "TXT_KEY_BUILDING_PYRAMIDS" },
         { ID = 101, BuildingClass = "WORLD_WONDER_CLASS", Description = "TXT_KEY_BUILDING_HANGING_GARDENS" },
@@ -316,10 +318,7 @@ function M.test_river_adds_entry()
     GameInfo.Terrains[0] = { Description = "TXT_KEY_TERRAIN_PLAINS" }
     GameInfo.FakeFeatures.FEATURE_RIVER = { Description = "TXT_KEY_CIV5_FEATURES_RIVER_TITLE" }
     local p = T.fakePlot({ terrain = 0, river = true })
-    eqList(
-        pediaNames(CursorPedia._buildEntries(p)),
-        { "TXT_KEY_CIV5_FEATURES_RIVER_TITLE", "TXT_KEY_TERRAIN_PLAINS" }
-    )
+    eqList(pediaNames(CursorPedia._buildEntries(p)), { "TXT_KEY_CIV5_FEATURES_RIVER_TITLE", "TXT_KEY_TERRAIN_PLAINS" })
 end
 
 function M.test_lake_adds_entry()

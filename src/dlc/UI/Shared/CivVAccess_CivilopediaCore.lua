@@ -847,7 +847,9 @@ local function harvestIntoReader(handler, cat, entryID)
     local leaves = {}
     local ok, err = pcall(Civilopedia._harvestInto, leaves, handler, cat)
     if not ok then
-        Log.error("Civilopedia harvest failed (cat=" .. tostring(cat) .. " id=" .. tostring(entryID) .. "): " .. tostring(err))
+        Log.error(
+            "Civilopedia harvest failed (cat=" .. tostring(cat) .. " id=" .. tostring(entryID) .. "): " .. tostring(err)
+        )
     end
     if #leaves == 0 then
         leaves[1] = BaseMenuItems.Text({

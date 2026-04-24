@@ -178,19 +178,24 @@ end
 local function installTeams(currentEra)
     Teams = setmetatable({}, {
         __index = function()
-            return { GetCurrentEra = function() return currentEra or 0 end }
+            return {
+                GetCurrentEra = function()
+                    return currentEra or 0
+                end,
+            }
         end,
     })
 end
 
 local function setup(opts)
     opts = opts or {}
-    Log = Log or {
-        debug = function() end,
-        info = function() end,
-        warn = function() end,
-        error = function() end,
-    }
+    Log = Log
+        or {
+            debug = function() end,
+            info = function() end,
+            warn = function() end,
+            error = function() end,
+        }
     -- branchStatus calls Game.GetNumReligionsFounded() on the locked-religion
     -- path. Default to zero so the Piety-style tests match the "no religion
     -- in world" case; opts.religionsFounded overrides for the inverted test.
@@ -204,10 +209,12 @@ local function setup(opts)
         if #args == 0 then
             return k
         end
-        return (k:gsub("{(%d+)_[^}]*}", function(n)
-            local v = args[tonumber(n)]
-            return v == nil and "" or tostring(v)
-        end))
+        return (
+            k:gsub("{(%d+)_[^}]*}", function(n)
+                local v = args[tonumber(n)]
+                return v == nil and "" or tostring(v)
+            end)
+        )
     end
 
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
@@ -231,16 +238,20 @@ local function setup(opts)
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_BLOCKED"] = "blocked"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED"] = "locked"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED_REQUIRES"] = "locked, requires {1_Prereqs}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_CULTURE"] = "{1_Cur} of {2_Cost} culture, {3_Per} per turn"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_CULTURE"] =
+        "{1_Cur} of {2_Cost} culture, {3_Per} per turn"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_TURNS"] = "{1_Turns} turns to next policy"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_POLICIES"] = "{1_Num} free policies available"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_PREAMBLE_FREE_TENETS"] = "{1_Num} free tenets available"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED"] = "slot {1_Num}, {2_Name}, {3_Effect}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED_NAME_ONLY"] = "slot {1_Num}, {2_Name}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_AVAILABLE"] = "slot {1_Num}, empty, available"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_REQ_SLOT"] = "slot {1_Num}, empty, requires slot {2_Req}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_REQ_CROSS"] = "slot {1_Num}, empty, requires level {2_Level} slot {3_Req}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_CULTURE"] = "slot {1_Num}, empty, insufficient culture"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_REQ_SLOT"] =
+        "slot {1_Num}, empty, requires slot {2_Req}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_REQ_CROSS"] =
+        "slot {1_Num}, empty, requires level {2_Level} slot {3_Req}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_CULTURE"] =
+        "slot {1_Num}, empty, insufficient culture"
 
     dofile("src/dlc/UI/InGame/Popups/CivVAccess_SocialPolicyLogic.lua")
 end
@@ -638,8 +649,11 @@ function M.test_buildPreamble_appends_free_policies_and_free_tenets()
     setup()
     installDB({}, {}, {})
     local p = fakePlayer({
-        culture = 0, nextCost = 25, perTurn = 0,
-        freePolicies = 1, freeTenets = 2,
+        culture = 0,
+        nextCost = 25,
+        perTurn = 0,
+        freePolicies = 1,
+        freeTenets = 2,
     })
     local speech = SocialPolicyLogic.buildPreamble(p)
     T.truthy(speech:find("1 free policies"), "free policies clause missing: " .. speech)

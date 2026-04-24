@@ -172,10 +172,7 @@ end
 -- heard "gold Gold".
 function M.test_icon_dedup_sees_past_color_wrapper()
     setup()
-    T.eq(
-        TextFilter.filter("spend [ICON_GOLD] [COLOR_POSITIVE_TEXT]Gold[ENDCOLOR] to buy"),
-        "spend Gold to buy"
-    )
+    T.eq(TextFilter.filter("spend [ICON_GOLD] [COLOR_POSITIVE_TEXT]Gold[ENDCOLOR] to buy"), "spend Gold to buy")
 end
 
 return M

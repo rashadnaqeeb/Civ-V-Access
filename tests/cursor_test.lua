@@ -380,8 +380,7 @@ function M.test_units_fortified_enemy_surfaces_status()
     local hostile = T.fakeUnit({ owner = 1, team = 1, nameKey = "Warrior", fortifyTurns = 3 })
     local p = T.fakePlot({ units = { hostile } })
     local s = PlotSectionUnits.Read(p, {})[1]
-    T.truthy(s:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true),
-        "enemy fortified must surface: " .. tostring(s))
+    T.truthy(s:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true), "enemy fortified must surface: " .. tostring(s))
 end
 
 function M.test_units_sleeping_enemy_omits_status()
@@ -414,8 +413,7 @@ function M.test_units_friendly_sleep_surfaces_status()
     })
     local p = T.fakePlot({ units = { sleeper } })
     local s = PlotSectionUnits.Read(p, {})[1]
-    T.truthy(s:find("TXT_KEY_MISSION_SLEEP", 1, true),
-        "friendly sleep must surface: " .. tostring(s))
+    T.truthy(s:find("TXT_KEY_MISSION_SLEEP", 1, true), "friendly sleep must surface: " .. tostring(s))
 end
 
 -- ===== River edges =====
@@ -1565,7 +1563,11 @@ local function installActivateStubs()
     -- CursorActivate composes its city entry label via CitySpeech.identity
     -- before dispatching. The existing activate suite asserts only on
     -- engine-call side effects, so a passthrough stub is enough.
-    CitySpeech = { identity = function(_) return "" end }
+    CitySpeech = {
+        identity = function(_)
+            return ""
+        end,
+    }
     Events.OpenPlayerDealScreenEvent = function(id)
         activateCalls[#activateCalls + 1] = { op = "deal", id = id }
     end

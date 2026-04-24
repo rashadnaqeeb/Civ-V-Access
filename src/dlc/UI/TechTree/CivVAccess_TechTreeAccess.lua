@@ -143,16 +143,12 @@ local function commit(shift)
     -- is normal-mode-only.
     if mode == "stealing" then
         Network.SendResearch(techID, 0, _stealingTargetID, false)
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN", techName)
-        )
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN", techName))
         return
     end
     if mode == "free" then
         Network.SendResearch(techID, p:GetNumFreeTechs(), -1, false)
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE", techName)
-        )
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE", techName))
         return
     end
     -- Normal mode. The queued-commit announcement does not report slot
@@ -162,13 +158,9 @@ local function commit(shift)
     -- verify placement.
     Network.SendResearch(techID, p:GetNumFreeTechs(), -1, shift)
     if shift then
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_TECHTREE_QUEUED_COMMIT", techName)
-        )
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_TECHTREE_QUEUED_COMMIT", techName))
     else
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT", techName)
-        )
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT", techName))
     end
 end
 

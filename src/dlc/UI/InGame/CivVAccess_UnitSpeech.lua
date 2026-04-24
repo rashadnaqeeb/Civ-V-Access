@@ -328,16 +328,20 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
         if not actor:IsRiverCrossingNoPenalty() and fromPlot:IsRiverCrossingToPlot(targetPlot) then
             pushMod(mods, GameDefines.RIVER_ATTACK_MODIFIER, "TXT_KEY_EUPANEL_ATTACK_OVER_RIVER")
         end
-        if not actor:IsAmphib() and not targetPlot:IsWater() and fromPlot:IsWater()
-            and actor:GetDomainType() == DomainTypes.DOMAIN_LAND then
+        if
+            not actor:IsAmphib()
+            and not targetPlot:IsWater()
+            and fromPlot:IsWater()
+            and actor:GetDomainType() == DomainTypes.DOMAIN_LAND
+        then
             pushMod(mods, GameDefines.AMPHIB_ATTACK_MODIFIER, "TXT_KEY_EUPANEL_AMPHIBIOUS_ATTACK")
         end
     end
 
     if actor:IsNearGreatGeneral() then
         local bonus = myPlayer:GetGreatGeneralCombatBonus() + myPlayer:GetTraitGreatGeneralExtraBonus()
-        local key = actor:GetDomainType() == DomainTypes.DOMAIN_LAND
-            and "TXT_KEY_EUPANEL_GG_NEAR" or "TXT_KEY_EUPANEL_GA_NEAR"
+        local key = actor:GetDomainType() == DomainTypes.DOMAIN_LAND and "TXT_KEY_EUPANEL_GG_NEAR"
+            or "TXT_KEY_EUPANEL_GA_NEAR"
         pushMod(mods, bonus, key)
         if actor:IsIgnoreGreatGeneralBenefit() then
             pushMod(mods, -bonus, "TXT_KEY_EUPANEL_IGG")
@@ -371,8 +375,11 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
     if targetPlot:IsFriendlyTerritory(myPlayerId) then
         pushMod(mods, actor:GetFriendlyLandsModifier(), "TXT_KEY_EUPANEL_FIGHT_AT_HOME_BONUS")
         pushMod(mods, actor:GetFriendlyLandsAttackModifier(), "TXT_KEY_EUPANEL_ATTACK_IN_FRIEND_LANDS")
-        pushMod(mods, myPlayer:GetFoundedReligionFriendlyCityCombatMod(targetPlot),
-            "TXT_KEY_EUPANEL_FRIENDLY_CITY_BELIEF_BONUS")
+        pushMod(
+            mods,
+            myPlayer:GetFoundedReligionFriendlyCityCombatMod(targetPlot),
+            "TXT_KEY_EUPANEL_FRIENDLY_CITY_BELIEF_BONUS"
+        )
     end
 
     if targetPlot:GetOwner() == myPlayerId then
@@ -401,14 +408,16 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
 
     if not targetPlot:IsFriendlyTerritory(myPlayerId) then
         pushMod(mods, actor:GetOutsideFriendlyLandsModifier(), "TXT_KEY_EUPANEL_OUTSIDE_HOME_BONUS")
-        pushMod(mods, myPlayer:GetFoundedReligionEnemyCityCombatMod(targetPlot),
-            "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS")
+        pushMod(
+            mods,
+            myPlayer:GetFoundedReligionEnemyCityCombatMod(targetPlot),
+            "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS"
+        )
     end
 
     local unhappy = actor:GetUnhappinessCombatPenalty()
     if unhappy ~= 0 then
-        local key = myPlayer:IsEmpireVeryUnhappy()
-            and "TXT_KEY_EUPANEL_EMPIRE_VERY_UNHAPPY_PENALTY"
+        local key = myPlayer:IsEmpireVeryUnhappy() and "TXT_KEY_EUPANEL_EMPIRE_VERY_UNHAPPY_PENALTY"
             or "TXT_KEY_EUPANEL_EMPIRE_UNHAPPY_PENALTY"
         pushMod(mods, unhappy, key)
     end
@@ -426,8 +435,12 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
     pushMod(mods, actor:UnitClassAttackModifier(theirClass), "TXT_KEY_EUPANEL_BONUS_VS_CLASS", theirClassDesc)
     if defender:GetUnitCombatType() ~= -1 then
         local combatDesc = Locale.ConvertTextKey(GameInfo.UnitCombatInfos[defender:GetUnitCombatType()].Description)
-        pushMod(mods, actor:UnitCombatModifier(defender:GetUnitCombatType()),
-            "TXT_KEY_EUPANEL_BONUS_VS_CLASS", combatDesc)
+        pushMod(
+            mods,
+            actor:UnitCombatModifier(defender:GetUnitCombatType()),
+            "TXT_KEY_EUPANEL_BONUS_VS_CLASS",
+            combatDesc
+        )
     end
     pushMod(mods, actor:DomainModifier(defender:GetDomainType()), "TXT_KEY_EUPANEL_BONUS_VS_DOMAIN")
 
@@ -472,8 +485,7 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
     end
 
     if defender:IsBarbarian() then
-        local barb = GameInfo.HandicapInfos[Game:GetHandicapType()].BarbarianBonus
-            + myPlayer:GetBarbarianCombatBonus()
+        local barb = GameInfo.HandicapInfos[Game:GetHandicapType()].BarbarianBonus + myPlayer:GetBarbarianCombatBonus()
         pushMod(mods, barb, "TXT_KEY_EUPANEL_VS_BARBARIANS_BONUS")
     end
 
@@ -497,14 +509,12 @@ local function defenderMods(actor, defender, targetPlot)
         return {}
     end
     local mods = {}
-    local myPlayerId = actor:GetOwner()
     local theirPlayerId = defender:GetOwner()
     local theirPlayer = Players[theirPlayerId]
 
     local unhappy = defender:GetUnhappinessCombatPenalty()
     if unhappy ~= 0 then
-        local key = theirPlayer:IsEmpireVeryUnhappy()
-            and "TXT_KEY_EUPANEL_EMPIRE_VERY_UNHAPPY_PENALTY"
+        local key = theirPlayer:IsEmpireVeryUnhappy() and "TXT_KEY_EUPANEL_EMPIRE_VERY_UNHAPPY_PENALTY"
             or "TXT_KEY_EUPANEL_EMPIRE_UNHAPPY_PENALTY"
         pushMod(mods, unhappy, key)
     end
@@ -523,8 +533,8 @@ local function defenderMods(actor, defender, targetPlot)
 
     if defender:IsNearGreatGeneral() then
         local bonus = theirPlayer:GetGreatGeneralCombatBonus() + theirPlayer:GetTraitGreatGeneralExtraBonus()
-        local key = defender:GetDomainType() == DomainTypes.DOMAIN_LAND
-            and "TXT_KEY_EUPANEL_GG_NEAR" or "TXT_KEY_EUPANEL_GA_NEAR"
+        local key = defender:GetDomainType() == DomainTypes.DOMAIN_LAND and "TXT_KEY_EUPANEL_GG_NEAR"
+            or "TXT_KEY_EUPANEL_GA_NEAR"
         pushMod(mods, bonus, key)
         if defender:IsIgnoreGreatGeneralBenefit() then
             pushMod(mods, -bonus, "TXT_KEY_EUPANEL_IGG")
@@ -545,13 +555,19 @@ local function defenderMods(actor, defender, targetPlot)
 
     if targetPlot:IsFriendlyTerritory(theirPlayerId) then
         pushMod(mods, defender:GetFriendlyLandsModifier(), "TXT_KEY_EUPANEL_FIGHT_AT_HOME_BONUS")
-        pushMod(mods, theirPlayer:GetFoundedReligionFriendlyCityCombatMod(targetPlot),
-            "TXT_KEY_EUPANEL_FRIENDLY_CITY_BELIEF_BONUS")
+        pushMod(
+            mods,
+            theirPlayer:GetFoundedReligionFriendlyCityCombatMod(targetPlot),
+            "TXT_KEY_EUPANEL_FRIENDLY_CITY_BELIEF_BONUS"
+        )
     end
     if not targetPlot:IsFriendlyTerritory(theirPlayerId) then
         pushMod(mods, defender:GetOutsideFriendlyLandsModifier(), "TXT_KEY_EUPANEL_OUTSIDE_HOME_BONUS")
-        pushMod(mods, theirPlayer:GetFoundedReligionEnemyCityCombatMod(targetPlot),
-            "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS")
+        pushMod(
+            mods,
+            theirPlayer:GetFoundedReligionEnemyCityCombatMod(targetPlot),
+            "TXT_KEY_EUPANEL_ENEMY_CITY_BELIEF_BONUS"
+        )
     end
 
     pushMod(mods, defender:GetDefenseModifier(), "TXT_KEY_EUPANEL_DEFENSE_BONUS")
@@ -561,8 +577,12 @@ local function defenderMods(actor, defender, targetPlot)
     pushMod(mods, defender:UnitClassDefenseModifier(myClass), "TXT_KEY_EUPANEL_BONUS_VS_CLASS", myClassDesc)
     if actor:GetUnitCombatType() ~= -1 then
         local combatDesc = Locale.ConvertTextKey(GameInfo.UnitCombatInfos[actor:GetUnitCombatType()].Description)
-        pushMod(mods, defender:UnitCombatModifier(actor:GetUnitCombatType()),
-            "TXT_KEY_EUPANEL_BONUS_VS_CLASS", combatDesc)
+        pushMod(
+            mods,
+            defender:UnitCombatModifier(actor:GetUnitCombatType()),
+            "TXT_KEY_EUPANEL_BONUS_VS_CLASS",
+            combatDesc
+        )
     end
     pushMod(mods, defender:DomainModifier(actor:GetDomainType()), "TXT_KEY_EUPANEL_BONUS_VS_DOMAIN")
 
@@ -602,18 +622,25 @@ local function defenderMods(actor, defender, targetPlot)
     local featureType = targetPlot:GetFeatureType()
     if featureType ~= -1 then
         local featureDesc = Locale.ConvertTextKey(GameInfo.Features[featureType].Description)
-        pushMod(mods, defender:FeatureDefenseModifier(featureType),
-            "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", featureDesc)
+        pushMod(
+            mods,
+            defender:FeatureDefenseModifier(featureType),
+            "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN",
+            featureDesc
+        )
     else
         local terrainType = targetPlot:GetTerrainType()
         local terrainDesc = Locale.ConvertTextKey(GameInfo.Terrains[terrainType].Description)
-        pushMod(mods, defender:TerrainDefenseModifier(terrainType),
-            "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", terrainDesc)
+        pushMod(
+            mods,
+            defender:TerrainDefenseModifier(terrainType),
+            "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN",
+            terrainDesc
+        )
         if targetPlot:IsHills() then
             local hillId = GameInfo.Terrains.TERRAIN_HILL.ID
             local hillDesc = Locale.ConvertTextKey(GameInfo.Terrains.TERRAIN_HILL.Description)
-            pushMod(mods, defender:TerrainDefenseModifier(hillId),
-                "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", hillDesc)
+            pushMod(mods, defender:TerrainDefenseModifier(hillId), "TXT_KEY_EUPANEL_BONUS_DEFENSE_TERRAIN", hillDesc)
         end
     end
 
@@ -638,7 +665,8 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
         return ""
     end
     local myDmg = actor:GetCombatDamage(myStrength, theirStrength, actor:GetDamage() + supportDmg, false, false, false)
-    local theirDmg = defender:GetCombatDamage(theirStrength, myStrength, defender:GetDamage(), false, false, false) + supportDmg
+    local theirDmg = defender:GetCombatDamage(theirStrength, myStrength, defender:GetDamage(), false, false, false)
+        + supportDmg
 
     local row = GameInfo.Units[defender:GetUnitType()]
     local name = row ~= nil and Text.key(row.Description) or ""
@@ -646,8 +674,8 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
     local result = predictionLabel(actor, defender)
 
-    local parts = { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK",
-        name, myStr, theirStr, result, theirDmg, myDmg) }
+    local parts =
+        { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStr, theirStr, result, theirDmg, myDmg) }
 
     if supportDmg > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE", supportDmg)
@@ -689,8 +717,7 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     else
         theirStrength = defender:GetMaxRangedCombatStrength(actor, nil, false, true)
     end
-    if theirStrength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA
-        or defender:IsRangedSupportFire() then
+    if theirStrength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA or defender:IsRangedSupportFire() then
         theirStrength = defender:GetMaxDefenseStrength(targetPlot, actor, true)
     end
 
@@ -709,8 +736,7 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
     local result = predictionLabel(actor, defender)
 
-    local parts = { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED",
-        name, myStr, theirStr, result, myDmg) }
+    local parts = { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED", name, myStr, theirStr, result, myDmg) }
 
     if theirDmg > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE", theirDmg)

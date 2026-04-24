@@ -44,8 +44,7 @@ local function installTechDB(techs, prereqs)
         end
     end
 
-    GameInfo.Civilizations = GameInfo.Civilizations
-        or { [0] = { ShortDescription = "TXT_KEY_CIV_ROME_SHORT" } }
+    GameInfo.Civilizations = GameInfo.Civilizations or { [0] = { ShortDescription = "TXT_KEY_CIV_ROME_SHORT" } }
 end
 
 local function fakePlayer(opts)
@@ -133,10 +132,12 @@ local function setup()
         if #args == 0 then
             return k
         end
-        return (k:gsub("{(%d+)_[^}]*}", function(n)
-            local v = args[tonumber(n)]
-            return v == nil and "" or tostring(v)
-        end))
+        return (
+            k:gsub("{(%d+)_[^}]*}", function(n)
+                local v = args[tonumber(n)]
+                return v == nil and "" or tostring(v)
+            end)
+        )
     end
     Game = Game or {}
     Game.IsTechRecommended = function()
@@ -235,10 +236,7 @@ function M.test_statusKey_researched_wins()
         [0] = fakePlayer({ current = 1 }),
     }
     Teams = { [0] = fakeTeam({ researched = { [1] = true } }) }
-    T.eq(
-        TechTreeLogic.statusKey(Players[0], 1),
-        "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_RESEARCHED"
-    )
+    T.eq(TechTreeLogic.statusKey(Players[0], 1), "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_RESEARCHED")
 end
 
 function M.test_statusKey_current_precedes_available()
@@ -248,10 +246,7 @@ function M.test_statusKey_current_precedes_available()
         [0] = fakePlayer({ current = 1, canResearch = { [1] = true } }),
     }
     Teams = { [0] = fakeTeam() }
-    T.eq(
-        TechTreeLogic.statusKey(Players[0], 1),
-        "TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT"
-    )
+    T.eq(TechTreeLogic.statusKey(Players[0], 1), "TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT")
 end
 
 function M.test_statusKey_available_when_canResearch()
@@ -259,10 +254,7 @@ function M.test_statusKey_available_when_canResearch()
     installTechDB(techs3())
     Players = { [0] = fakePlayer({ canResearch = { [1] = true } }) }
     Teams = { [0] = fakeTeam() }
-    T.eq(
-        TechTreeLogic.statusKey(Players[0], 1),
-        "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_AVAILABLE"
-    )
+    T.eq(TechTreeLogic.statusKey(Players[0], 1), "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_AVAILABLE")
 end
 
 function M.test_statusKey_unavailable_when_only_canEver()
@@ -270,10 +262,7 @@ function M.test_statusKey_unavailable_when_only_canEver()
     installTechDB(techs3())
     Players = { [0] = fakePlayer({ canResearch = {}, canEverResearch = { [1] = true } }) }
     Teams = { [0] = fakeTeam() }
-    T.eq(
-        TechTreeLogic.statusKey(Players[0], 1),
-        "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_UNAVAILABLE"
-    )
+    T.eq(TechTreeLogic.statusKey(Players[0], 1), "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_UNAVAILABLE")
 end
 
 function M.test_statusKey_locked_when_not_canEver()
@@ -283,10 +272,7 @@ function M.test_statusKey_locked_when_not_canEver()
         [0] = fakePlayer({ canResearch = {}, canEverResearch = { [1] = false } }),
     }
     Teams = { [0] = fakeTeam() }
-    T.eq(
-        TechTreeLogic.statusKey(Players[0], 1),
-        "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_LOCKED"
-    )
+    T.eq(TechTreeLogic.statusKey(Players[0], 1), "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_LOCKED")
 end
 
 -- ===== buildLandingSpeech =====

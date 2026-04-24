@@ -56,10 +56,14 @@ function CameraTracker.install()
     Events.CameraViewChanged.Add(onCameraViewChanged)
     Log.info(
         "CameraTracker: installed, origin=("
-        .. tostring(civvaccess_shared.cameraOriginX) .. ", "
-        .. tostring(civvaccess_shared.cameraOriginY) .. ") stride=("
-        .. tostring(civvaccess_shared.cameraStrideX) .. ", "
-        .. tostring(civvaccess_shared.cameraStrideY) .. ")"
+            .. tostring(civvaccess_shared.cameraOriginX)
+            .. ", "
+            .. tostring(civvaccess_shared.cameraOriginY)
+            .. ") stride=("
+            .. tostring(civvaccess_shared.cameraStrideX)
+            .. ", "
+            .. tostring(civvaccess_shared.cameraStrideY)
+            .. ")"
     )
 end
 

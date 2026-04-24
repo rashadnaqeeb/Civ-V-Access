@@ -24,12 +24,7 @@ local function collectSelfUnits(plot)
     local n = plot:GetNumUnits()
     for i = 0, n - 1 do
         local u = plot:GetUnit(i)
-        if
-            u ~= nil
-            and u:GetOwner() == activeID
-            and not u:IsInvisible(team, isDebug)
-            and not u:IsCargo()
-        then
+        if u ~= nil and u:GetOwner() == activeID and not u:IsInvisible(team, isDebug) and not u:IsCargo() then
             if u:IsCombatUnit() then
                 military[#military + 1] = u
             else

@@ -65,6 +65,10 @@ read_globals = {
     -- Read-only from mod code; tests/run.lua overrides it with a capture
     -- stub (see the tests-section globals entry for the write permission).
     "audio",
+
+    -- Engine hex-geometry helpers injected by WorldView / camera code.
+    -- CameraTracker uses them to convert grid coords to world coords.
+    "HexToWorld", "ToHexFromGrid",
 }
 
 -- Mod-authored module globals. Each file defines one of these at top level;
@@ -91,9 +95,10 @@ globals = {
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory",
     "AudioCueMode",
+    "CameraTracker", "NavigableGraph",
 
     -- InGame modules
-    "Cursor", "HexGeom", "Pathfinder",
+    "Cursor", "CursorActivate", "CursorPedia", "HexGeom", "Pathfinder",
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
     "PlotAudio",
     "ScannerCore", "ScannerHandler", "ScannerInput", "ScannerNav",
@@ -105,11 +110,19 @@ globals = {
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",
-    "ChooseProductionLogic",
+    "ChooseProductionLogic", "ChooseTechLogic",
     "NotificationAnnounce",
     "Recommendations",
+    "SocialPolicyLogic",
+    "TechTreeLogic",
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
+
+    -- Base-game helpers pulled in by TechTree's include chain
+    -- (TechHelpInclude.lua defines GetHelpTextForTech). Our TechTreeLogic
+    -- reads it; tests monkey-patch it, so it lives here rather than in
+    -- read_globals.
+    "GetHelpTextForTech",
 
     -- User-preference module (Shared/)
     "Prefs",
@@ -243,6 +256,7 @@ files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", 
 files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/CityView/CityView.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/TechTree/TechTree.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 
 -- Skip the base-game Lua we ship verbatim. Our CivVAccess_* wrappers pair

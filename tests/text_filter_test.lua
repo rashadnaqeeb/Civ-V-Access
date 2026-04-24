@@ -80,18 +80,12 @@ end
 -- need explicit strippers; the inner label text must survive.
 function M.test_link_markup_stripped_keeping_label()
     setup()
-    T.eq(
-        TextFilter.filter("Construct a [LINK=IMPROVEMENT_FARM]Farm[\\LINK] here"),
-        "Construct a Farm here"
-    )
+    T.eq(TextFilter.filter("Construct a [LINK=IMPROVEMENT_FARM]Farm[\\LINK] here"), "Construct a Farm here")
 end
 
 function M.test_link_markup_with_multiword_label()
     setup()
-    T.eq(
-        TextFilter.filter("Create [LINK=IMPROVEMENT_FISHING_BOATS]Fishing Boats[\\LINK]"),
-        "Create Fishing Boats"
-    )
+    T.eq(TextFilter.filter("Create [LINK=IMPROVEMENT_FISHING_BOATS]Fishing Boats[\\LINK]"), "Create Fishing Boats")
 end
 
 function M.test_style_token_stripped_by_catchall()
