@@ -114,6 +114,16 @@ BaseMenuItems.appendTooltip = appendTooltip
 BaseMenuItems.labelOf = resolveLabel
 BaseMenuItems.tooltipOf = resolveTooltip
 
+-- Single source of the activation ack sound. Item activates call this only
+-- when an action actually ran successfully (pcall returned ok for handler-
+-- bound kinds; unconditional for kinds whose action is the click itself,
+-- like opening a pulldown sub-menu). A thrown handler or a no-op kind
+-- (Text without onActivate) stays silent so the user doesn't hear
+-- confirmation for something that didn't happen.
+function BaseMenuItems.clickAck()
+    Events.AudioPlay2DSound("AS2D_IF_SELECT")
+end
+
 -- Shared navigability / activability --------------------------------------
 
 local function isNavigable(self)
@@ -208,7 +218,6 @@ function BaseMenuItems.Button(spec)
         return composeSpeech(self, { resolveLabel(self) })
     end
     function item:activate(menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local ok, err = pcall(self._activate)
         if not ok then
             Log.error(
@@ -219,7 +228,9 @@ function BaseMenuItems.Button(spec)
                     .. "' activate failed: "
                     .. tostring(err)
             )
+            return
         end
+        BaseMenuItems.clickAck()
     end
     function item:adjust(menu, dir, big) end
     return item
@@ -228,11 +239,15 @@ end
 -- Text --------------------------------------------------------------------
 --
 -- Informational list entry with no widget backing. Navigable (Up/Down land
--- on it) but activation is a no-op: Enter plays the standard click and
--- returns. Used by the Help overlay where each entry is "keyLabel,
--- description" read-only text -- there's no XML control, no disabled state,
--- no tooltip dedup needed. Reuses composeSpeech would call _control:IsDisabled
--- which would NPE, so announce builds the speech directly.
+-- on it); by default activation is a no-op. Items that supply onActivate
+-- run that hook and, on success, play the click ack. Items without
+-- onActivate re-speak their label on Enter so the user gets keypress
+-- feedback without a misleading click.
+--
+-- Used by the Help overlay where each entry is "keyLabel, description"
+-- read-only text -- there's no XML control, no disabled state, no tooltip
+-- dedup needed. Reuses composeSpeech would call _control:IsDisabled which
+-- would NPE, so announce builds the speech directly.
 
 function BaseMenuItems.Text(spec)
     assertLabel(spec, "Text")
@@ -243,11 +258,9 @@ function BaseMenuItems.Text(spec)
     )
     local item = { kind = "text" }
     copyCommonFields(spec, item)
-    -- Optional activation hook. Text's default activate plays the click
-    -- sound and stops; setting onActivate augments (not replaces) it so
-    -- callers don't have to re-add AudioPlay2DSound every time. Called
-    -- with (self, menu) under pcall; errors surface via Log.error so a
-    -- broken handler can't silently kill the menu.
+    -- Optional activation hook. Called with (self, menu) under pcall;
+    -- errors surface via Log.error so a broken handler can't silently
+    -- kill the menu. Click ack fires only on pcall success.
     item._onActivate = spec.onActivate
     function item:isNavigable()
         return true
@@ -259,13 +272,18 @@ function BaseMenuItems.Text(spec)
         return appendTooltip(resolveLabel(self), resolveTooltip(self))
     end
     function item:activate(menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
-        if self._onActivate ~= nil then
-            local ok, err = pcall(self._onActivate, self, menu)
-            if not ok then
-                Log.error("BaseMenu '" .. tostring(menu and menu.name) .. "' Text onActivate failed: " .. tostring(err))
-            end
+        if self._onActivate == nil then
+            -- No action to perform; re-speak the label so the user hears
+            -- that the keypress registered on a read-only item.
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+            return
         end
+        local ok, err = pcall(self._onActivate, self, menu)
+        if not ok then
+            Log.error("BaseMenu '" .. tostring(menu and menu.name) .. "' Text onActivate failed: " .. tostring(err))
+            return
+        end
+        BaseMenuItems.clickAck()
     end
     function item:adjust(menu, dir, big) end
     return item
@@ -317,6 +335,7 @@ function BaseMenuItems.Checkbox(spec)
         -- checkboxes via Controls.X:RegisterCallback(Mouse.eLClick, ...)
         -- rather than RegisterCheckHandler are not captured by the probe.
         local cb = self._activateCallback or PullDownProbe.checkBoxCallbackFor(c)
+        local committed = false
         if cb == nil then
             Log.warn(
                 "BaseMenu checkbox '"
@@ -327,9 +346,13 @@ function BaseMenuItems.Checkbox(spec)
             local ok, err = pcall(cb, newValue)
             if not ok then
                 Log.error("BaseMenu checkbox '" .. tostring(self.controlName) .. "' callback failed: " .. tostring(err))
+            else
+                committed = true
             end
         end
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
+        if committed then
+            BaseMenuItems.clickAck()
+        end
         SpeechPipeline.speakInterrupt(self:announce(menu))
     end
     function item:adjust(menu, dir, big) end
@@ -413,11 +436,12 @@ function BaseMenuItems.Choice(spec)
         return composeSpeech(self, parts)
     end
     function item:activate(menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local ok, err = pcall(self._activate)
         if not ok then
             Log.error("BaseMenu '" .. tostring(menu.name) .. "' choice activate failed: " .. tostring(err))
+            return
         end
+        BaseMenuItems.clickAck()
         -- Re-announce gives audio confirmation on browse-then-commit
         -- screens whose activate just flips a selection flag (the menu
         -- stays open, no other speech to collide with). Skip when the
@@ -639,7 +663,6 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
         return text
     end
     function choice:activate(menu)
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local ok, err
         if self._useVoids then
             local v1, v2
@@ -653,6 +676,8 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
         end
         if not ok then
             Log.error("BaseMenu pulldown '" .. tostring(parentControlName) .. "' callback failed: " .. tostring(err))
+        else
+            BaseMenuItems.clickAck()
         end
         HandlerStack.removeByName(menu.name, true)
     end
@@ -759,7 +784,6 @@ function BaseMenuItems.Pulldown(spec)
         -- RegisterCallback(Mouse.eLClick, fn) closure. Prefer the top-level
         -- path when present; otherwise fall back to per-entry button
         -- callbacks (captured by the button probe).
-        Events.AudioPlay2DSound("AS2D_IF_SELECT")
         local subName = menu.name .. "/" .. tostring(self.controlName) .. "_PullDown"
         local childItems = {}
         local currentText = pulldownCurrentValue(self)
@@ -807,6 +831,7 @@ function BaseMenuItems.Pulldown(spec)
             SpeechPipeline.speakInterrupt(self:announce(menu))
             return
         end
+        BaseMenuItems.clickAck()
         local child = BaseMenu.create({
             name = subName,
             displayName = resolveLabel(self),

@@ -820,6 +820,199 @@ function M.test_sub_pop_advances_cursor_off_hidden_item()
     T.truthy(#speaks >= 1, "re-activation announced the new current item")
 end
 
+-- Click-ack gating ------------------------------------------------------
+--
+-- The activation click plays only when the item actually did something:
+-- pcall-successful activate for Button/Choice/Pulldown entry, a captured-
+-- and-successful callback for Checkbox, onActivate-successful for Text
+-- (no onActivate means the Enter is a read-only ack, label re-spoken and
+-- no click). A thrown handler or an uncaptured callback produces silence
+-- plus a logged error so the user doesn't hear a misleading confirmation.
+
+function M.test_button_activate_throw_suppresses_click()
+    setup()
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                textKey = "L",
+                activate = function()
+                    error("kaboom")
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#sounds, 0, "no click on thrown activate")
+    T.truthy(#errors >= 1, "error logged")
+end
+
+function M.test_text_without_onActivate_reannounces_label_no_click()
+    setup()
+    populateControls({})
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Text({ labelText = "Read only" }) },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    speaks = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#sounds, 0, "no click on informational Text")
+    T.eq(#speaks, 1, "label re-spoken as keypress ack")
+    T.eq(speaks[1].text, "Read only")
+    T.eq(speaks[1].interrupt, true)
+end
+
+function M.test_text_with_onActivate_success_plays_click()
+    setup()
+    populateControls({})
+    local fired = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Text({
+                labelText = "Hook",
+                onActivate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(fired, 1, "onActivate ran")
+    T.eq(#sounds, 1, "click plays after successful onActivate")
+    T.eq(sounds[1], "AS2D_IF_SELECT")
+end
+
+function M.test_text_with_throwing_onActivate_suppresses_click()
+    setup()
+    populateControls({})
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Text({
+                labelText = "Hook",
+                onActivate = function()
+                    error("bad hook")
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#sounds, 0, "no click on thrown Text onActivate")
+    T.truthy(#errors >= 1, "error logged")
+end
+
+function M.test_choice_activate_throw_suppresses_click()
+    setup()
+    populateControls({})
+    local choice = BaseMenuItems.Choice({
+        labelText = "Bad",
+        activate = function()
+            error("nope")
+        end,
+    })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = { choice } })
+    HandlerStack.push(h)
+    sounds = {}
+    choice:activate(h)
+    T.eq(#sounds, 0, "no click on thrown Choice activate")
+    T.truthy(#errors >= 1, "error logged")
+end
+
+function M.test_checkbox_no_captured_callback_suppresses_click()
+    setup()
+    local cb = Polyfill.makeCheckBox({ checked = false })
+    populateControls({ Foo = cb })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL" }) },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(cb:IsChecked(), true, "local state still flipped")
+    T.eq(#sounds, 0, "no click without a captured callback")
+    T.truthy(#warns >= 1, "missing-callback warning logged")
+end
+
+function M.test_checkbox_throwing_callback_suppresses_click()
+    setup()
+    local cb = Polyfill.makeCheckBox({ checked = false })
+    populateControls({ Foo = cb })
+    registerCheckHandler(cb, function()
+        error("kaboom")
+    end)
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL" }) },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#sounds, 0, "no click when callback throws")
+    T.truthy(#errors >= 1, "error logged")
+end
+
+function M.test_pulldown_no_entries_suppresses_click()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    pd:GetButton():SetText("Current")
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
+    HandlerStack.push(h)
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#sounds, 0, "no click when pulldown has no entries to open")
+end
+
+function M.test_pulldown_entry_throwing_callback_suppresses_click_still_pops()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:ClearEntries()
+    pd:RegisterSelectionCallback(function()
+        error("kaboom")
+    end)
+    local inst = {}
+    pd:BuildEntry("InstanceOne", inst)
+    inst.Button:SetText("OnlyEntry")
+    inst.Button:SetVoid1(1)
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.count(), 2, "sub pushed")
+    sounds = {}
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(#sounds, 0, "no click when entry callback throws")
+    T.eq(HandlerStack.count(), 1, "sub still popped after thrown callback")
+    T.truthy(#errors >= 1, "callback error logged")
+end
+
 -- Tooltip composition --------------------------------------------------
 
 function M.test_tooltip_appended_after_label_value()
