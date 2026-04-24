@@ -17,13 +17,26 @@ local g_bAlwaysWar = Game.IsOption( GameOptionTypes.GAMEOPTION_ALWAYS_WAR );
 local g_bAlwaysPeace = Game.IsOption( GameOptionTypes.GAMEOPTION_ALWAYS_PEACE );
 local g_bNoChangeWar = Game.IsOption( GameOptionTypes.GAMEOPTION_NO_CHANGING_WAR_PEACE );
 
-----------------------------------------------------------------        
+----------------------------------------------------------------
 -- local storage
-----------------------------------------------------------------        
-local g_Deal = UI.GetScratchDeal(); 
-local g_iDiploUIState;
+----------------------------------------------------------------
+-- CivVAccess: the eight g_* below are declared as globals (no `local`)
+-- so CivVAccess_TradeLogicAccess.lua, included into this Context as a
+-- separate chunk, can read them. Lua 5.1 chunk-local scope hides file
+-- `local` declarations from the next included chunk; TradeLogic's
+-- internal functions close over the old local-as-upvalue pattern, which
+-- reads identically once these become globals (same name, same reads
+-- and mutations -- just resolved via _ENV instead of an upvalue slot).
+g_Deal = UI.GetScratchDeal();
+g_iDiploUIState = nil;
+g_bTradeReview = false;
+g_iUs = -1;
+g_iThem = -1;
+g_UsTableResources    = {};
+g_ThemTableResources  = {};
+g_LeagueVoteList		= {};
+
 local g_bPVPTrade;
-local g_bTradeReview = false;
 local g_iNumOthers;
 local g_bEnableThirdParty = true;
 
@@ -33,8 +46,6 @@ local g_bHumanOfferingConcessions = false;
 local g_iDealDuration = Game.GetDealDuration();
 local g_iPeaceDuration = Game.GetPeaceDuration();
 
-local g_iUs = -1; --Game.GetActivePlayer();
-local g_iThem = -1;
 local g_pUs = -1;
 local g_pThem = -1;
 local g_iUsTeam = -1;
@@ -43,10 +54,7 @@ local g_pUsTeam = -1;
 local g_pThemTeam = -1;
 local g_UsPocketResources   = {};
 local g_ThemPocketResources = {};
-local g_UsTableResources    = {};
-local g_ThemTableResources  = {};
 local g_LuxuryList          = {};
-local g_LeagueVoteList		= {};
 
 local g_bMessageFromDiploAI = false;
 local g_bAIMakingOffer = false;

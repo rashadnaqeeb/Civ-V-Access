@@ -10,11 +10,13 @@
 -- (AI demand / request / offer, or g_bTradeReview) push a flat Offering-only
 -- drawer instead.
 --
--- Reads of TradeLogic globals are safe because TradeLogic.lua runs in the
--- same Context env before this file is included; g_Deal, g_iUs, g_iThem,
--- g_bPVPTrade, g_bTradeReview, g_iDiploUIState, g_LeagueVoteList,
--- g_UsTableResources, g_ThemTableResources, g_iDealDuration resolve against
--- the same globals TradeLogic set. No civvaccess_shared bridging needed.
+-- Reads of TradeLogic state rely on eight g_* names we promoted to globals
+-- in our shipped TradeLogic.lua override (g_Deal, g_iUs, g_iThem,
+-- g_iDiploUIState, g_bTradeReview, g_LeagueVoteList, g_UsTableResources,
+-- g_ThemTableResources). The base file declares them `local` at chunk
+-- scope, which Lua 5.1 hides from the next included chunk -- so without
+-- the promotion, every read here would see nil and every build* function
+-- would return its empty-placeholder path.
 --
 -- Rebuild triggers: any state change that could flip an item's visibility
 -- or label (AI responded, remote PvP peer proposed/withdrew, active player
@@ -174,9 +176,18 @@ end
 -- BaseMenuEditMode.push handles commit through TradeLogic's own
 -- RegisterCallback handlers. Other placed items become Text items whose
 -- Enter removes from the deal.
+-- Placeholder Text item appended when a drawer tab would otherwise be
+-- empty. Without it, BaseMenu's tab-switch / first-open announce skips
+-- silently on zero items, leaving the user unsure whether the tab is
+-- empty or the handler is broken.
+local function emptyPlaceholder(textKey)
+    return BaseMenuItems.Text({ labelText = Text.key(textKey) })
+end
+
 function TradeLogicAccess.buildOfferingItems(side, readOnly)
     local items = {}
     if g_Deal == nil then
+        items[#items + 1] = emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY")
         return items
     end
     local bFromUs = sideIsUs(side)
@@ -186,22 +197,24 @@ function TradeLogicAccess.buildOfferingItems(side, readOnly)
     -- fromPlayer. finalTurn is an engine-computed expiry we don't read;
     -- data3 is load-bearing for votes (proposer choice) so it's captured.
     local itemType, duration, _, data1, data2, data3, flag1, fromPlayer = g_Deal:GetNextItem()
-    if itemType == nil then
-        return items
-    end
-    repeat
-        -- Only show items contributed by this side.
-        local active = Game and Game.GetActivePlayer and Game.GetActivePlayer() or 0
-        local entryFromUs = fromPlayer == active
-        if entryFromUs == bFromUs then
-            local item = offeringItem(itemType, data1, data2, data3, flag1, duration, side, readOnly)
-            if item ~= nil then
-                items[#items + 1] = item
+    if itemType ~= nil then
+        repeat
+            -- Only show items contributed by this side.
+            local active = Game and Game.GetActivePlayer and Game.GetActivePlayer() or 0
+            local entryFromUs = fromPlayer == active
+            if entryFromUs == bFromUs then
+                local item = offeringItem(itemType, data1, data2, data3, flag1, duration, side, readOnly)
+                if item ~= nil then
+                    items[#items + 1] = item
+                end
             end
-        end
-        itemType, duration, _, data1, data2, data3, flag1, fromPlayer = g_Deal:GetNextItem()
-    until itemType == nil
+            itemType, duration, _, data1, data2, data3, flag1, fromPlayer = g_Deal:GetNextItem()
+        until itemType == nil
+    end
 
+    if #items == 0 then
+        items[#items + 1] = emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY")
+    end
     return items
 end
 
@@ -772,7 +785,7 @@ end
 
 function TradeLogicAccess.buildAvailableItems(side)
     if g_Deal == nil or TradeableItems == nil then
-        return {}
+        return { emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE") }
     end
     local items = {}
     -- Gold + GPT as flat leaves at the top of the list.

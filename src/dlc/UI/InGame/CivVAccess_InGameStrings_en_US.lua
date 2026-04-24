@@ -856,6 +856,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_MAKE_PEACE"] = "Make peace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR"] = "Declare war"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"] = "Other players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"] = "none available"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY"] = "nothing on the table"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_SUMMARY"] = "{1_Other}, {2_N} items"
 -- Diplomatic Overview (Relations / Global tabs). Per-civ composed lines,
 -- trade / third-party fragment prefixes, section group headers.

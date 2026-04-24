@@ -35,23 +35,16 @@ include("CivVAccess_Help")
 local priorInput = InputHandler
 local priorShowHide = OnShowHide
 
--- Preamble composes the leader's current speech line the same way
--- DiscussionDialog / LeaderHeadRoot do: name + discussion, live at read
--- time so F1 / refresh() picks up the latest AILeaderMessage content.
+-- F1 speaks displayName (NameText) then the preamble. DiploTrade's screen
+-- has no separate mood field, so the only new content the preamble adds is
+-- the AI's current discussion line. Re-reading NameText here would double-
+-- narrate the leader name on every F1 press.
 local function composePreamble()
-    local parts = {}
-    local name = Controls.NameText:GetText()
-    if name ~= nil and name ~= "" then
-        parts[#parts + 1] = tostring(name)
-    end
     local speech = Controls.DiscussionText:GetText()
-    if speech ~= nil and speech ~= "" then
-        parts[#parts + 1] = tostring(speech)
-    end
-    if #parts == 0 then
+    if speech == nil or speech == "" then
         return nil
     end
-    return table.concat(parts, ", ")
+    return tostring(speech)
 end
 
 -- Screen title = leader's name as the engine places it in NameText on
