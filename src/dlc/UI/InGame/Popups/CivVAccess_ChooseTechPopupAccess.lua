@@ -69,22 +69,7 @@ local function preambleFn()
     if player == nil then
         return ""
     end
-    local parts = {}
-    if _mode == "free" then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE", player:GetNumFreeTechs())
-    elseif _mode == "stealing" and _stealingTargetID >= 0 then
-        local opp = Players[_stealingTargetID]
-        if opp ~= nil then
-            local civ = GameInfo.Civilizations[opp:GetCivilizationType()]
-            local civName = civ and Text.key(civ.ShortDescription) or opp:GetName()
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING", civName)
-        end
-    end
-    local science = player:GetScience()
-    if science > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_SCIENCE", science)
-    end
-    return table.concat(parts, ", ")
+    return ChooseTechLogic.buildPreamble(player, _mode, _stealingTargetID)
 end
 
 -- ===== Commit =====

@@ -113,6 +113,36 @@ function ChooseTechLogic.cleanHelpText(filteredHelp, techName)
     return s
 end
 
+-- Mode preamble shared between the ChooseTechPopup and the full TechTree
+-- screen: both announce the same free-tech / stealing context plus the
+-- player's science rate on open. Free and stealing branches are mutually
+-- exclusive; normal mode produces only the science clause (or empty
+-- string when GetScience() is zero).
+function ChooseTechLogic.buildPreamble(player, mode, stealingTargetID)
+    local parts = {}
+    if mode == "free" then
+        parts[#parts + 1] = Text.format(
+            "TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE",
+            player:GetNumFreeTechs()
+        )
+    elseif mode == "stealing" and stealingTargetID ~= nil and stealingTargetID >= 0 then
+        local opp = Players[stealingTargetID]
+        if opp ~= nil then
+            local civ = GameInfo.Civilizations[opp:GetCivilizationType()]
+            local civName = (civ ~= nil) and Text.key(civ.ShortDescription) or opp:GetName()
+            parts[#parts + 1] = Text.format(
+                "TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING",
+                civName
+            )
+        end
+    end
+    local science = player:GetScience()
+    if science > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_SCIENCE", science)
+    end
+    return table.concat(parts, ", ")
+end
+
 -- Label composition. Order:
 --   1. tech name          (distinguishing info leads)
 --   2. status             (free / currently researching / queued N) when non-default

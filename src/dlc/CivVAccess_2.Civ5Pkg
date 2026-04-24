@@ -20,6 +20,7 @@
         <GameplaySkin>
             <Directory>UI/InGame</Directory>
             <Directory>UI/Shared</Directory>
+            <Directory>UI/TechTree</Directory>
         </GameplaySkin>
     </UISkin>
 </Civ5Package>

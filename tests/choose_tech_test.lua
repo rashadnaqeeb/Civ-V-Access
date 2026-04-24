@@ -366,4 +366,54 @@ function M.test_cleanHelpText_empty_input()
     T.eq(ChooseTechLogic.cleanHelpText("", "Pottery"), "")
 end
 
+-- ===== buildPreamble =====
+--
+-- Shared with CivVAccess_TechTreeAccess; coverage lives here because the
+-- implementation lives in CivVAccess_ChooseTechLogic.
+
+local function mkPlayerWithPreambleOpts(opts)
+    opts = opts or {}
+    return {
+        _numFreeTechs = opts.numFreeTechs or 0,
+        _science = opts.science or 0,
+        _civType = opts.civType or 0,
+        _name = opts.name or "Player",
+        GetNumFreeTechs = function(self) return self._numFreeTechs end,
+        GetScience = function(self) return self._science end,
+        GetCivilizationType = function(self) return self._civType end,
+        GetName = function(self) return self._name end,
+    }
+end
+
+function M.test_preamble_free_mode_includes_count_and_science()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE"] = "free tech, {1_N} remaining"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_SCIENCE"] = "{1_N} science per turn"
+    Players = {}
+    local p = mkPlayerWithPreambleOpts({ numFreeTechs = 2, science = 5 })
+    local text = ChooseTechLogic.buildPreamble(p, "free", -1)
+    T.truthy(text:find("free tech, 2 remaining"))
+    T.truthy(text:find("5 science per turn"))
+end
+
+function M.test_preamble_stealing_includes_civ_name()
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING"] = "stealing from {1_Civ}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_SCIENCE"] = "{1_N} science per turn"
+    GameInfo.Civilizations = { [0] = { ShortDescription = "TXT_KEY_CIV_ROME_SHORT" } }
+    local opp = mkPlayerWithPreambleOpts({ civType = 0 })
+    Players = { [1] = opp }
+    local self = mkPlayerWithPreambleOpts({ science = 5 })
+    local text = ChooseTechLogic.buildPreamble(self, "stealing", 1)
+    T.truthy(text:find("stealing from TXT_KEY_CIV_ROME_SHORT"))
+    T.truthy(text:find("5 science per turn"))
+end
+
+function M.test_preamble_normal_zero_science_is_empty()
+    setup()
+    local p = mkPlayerWithPreambleOpts({ science = 0 })
+    local text = ChooseTechLogic.buildPreamble(p, "normal", -1)
+    T.eq(text, "")
+end
+
 return M
