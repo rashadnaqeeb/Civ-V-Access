@@ -163,10 +163,20 @@ local function buildActionTooltip(unit, action)
     return table.concat(parts, ". ")
 end
 
--- Collapses both CanHandleAction gates into a single yes / no read.
+-- Collapses both CanHandleAction gates into a single yes / no read,
+-- then applies the base-UI's out-of-moves filter.
+--
 -- Civ V's action table uses 0-based indexing into GameInfoActions, and
 -- the iterator emits entries in Action-definition order.
-local function isAvailable(iAction, action)
+--
+-- The zero-moves branch mirrors base UnitPanel.lua:223. CanHandleAction
+-- returns true for mission actions even at 0 moves because the per-mission
+-- canFoo helpers only check plot legality; the real moves gate is
+-- downstream in CvUnitMission::ContinueMission's `if (canMove())` block.
+-- So MISSION_FOUND / MISSION_BUILD / etc. would silently no-op if we
+-- passed them through. Base UI hides everything at 0 moves except cancel,
+-- stop-automation, and promotions; we match that exactly.
+local function isAvailable(unit, iAction, action)
     if not action.Visible then
         return false
     end
@@ -174,6 +184,13 @@ local function isAvailable(iAction, action)
         return false
     end
     if not Game.CanHandleAction(iAction) then
+        return false
+    end
+    if unit:MovesLeft() == 0
+        and action.Type ~= "COMMAND_CANCEL"
+        and action.Type ~= "COMMAND_STOP_AUTOMATION"
+        and not isPromotionAction(action)
+    then
         return false
     end
     return true
@@ -301,7 +318,7 @@ local function collectActions(unit)
     end
     for iAction = 0, #GameInfoActions do
         local action = GameInfoActions[iAction]
-        if action ~= nil and isAvailable(iAction, action) then
+        if action ~= nil and isAvailable(unit, iAction, action) then
             if isPromotionAction(action) then
                 buckets.promotions[#buckets.promotions + 1] = { iAction = iAction, action = action }
             elseif isBuildAction(action) then
