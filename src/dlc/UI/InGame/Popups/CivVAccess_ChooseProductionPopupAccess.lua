@@ -47,6 +47,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_Help")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_ChooseProductionLogic")
 

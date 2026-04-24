@@ -41,6 +41,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_Help")
 -- Unit-control modules. UnitSpeech (pure formatters) first so the menu
 -- and target-mode modules can reference it; UnitControl last because it
 -- ties the others into the listener / bindings surface.
