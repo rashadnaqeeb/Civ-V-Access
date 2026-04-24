@@ -411,6 +411,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} of
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_LINE"] = "{1_Label}: {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_LABEL"] = "Sort by: {1_Mode}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MENU"] = "Sort by"
+-- Sort-mode nouns. Engine's TXT_KEY_MO_SORT_* strings are the column-header
+-- tooltips ("Sort By Strength") and would produce "Sort by: Sort By Strength"
+-- if reused. Name / Status modes reuse the plain-noun TXT_KEY_NAME /
+-- TXT_KEY_STATUS; the numeric columns are icon-only in the sighted UI, so
+-- these four are mod-authored.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT"] = "Moves left"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Max moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Strength"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Ranged"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_MILITARY"] = "Military units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_CIVILIAN"] = "Civilian units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_STRENGTH"] = "strength {1_Num}"
