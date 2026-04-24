@@ -90,21 +90,12 @@ function BaselineHandler.create()
         bind(Keys.VK_RETURN, MOD_NONE, function()
             Cursor.activate()
         end, "Activate tile"),
-        bind(Keys.N, MOD_CTRL, function()
-            -- Data1 = 1 asks the popup to queue at InGameUtmost priority and
-            -- toggle-close if already visible; any other value falls back to
-            -- its lower NotificationLog priority and loses the toggle path.
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_NOTIFICATION_LOG,
-                Data1 = 1,
-            })
-        end, "Open notification log"),
         bind(Keys.VK_F10, MOD_NONE, function()
             -- Engine's native hotkey for this popup is KB_V, which Baseline
             -- swallows as an unbound letter; F10 (strategic view) is
             -- repurposed since blind players have no use for the visual
-            -- toggle. Data1 = 1 gives InGameUtmost priority, matching the
-            -- Ctrl+N notification-log pattern.
+            -- toggle. Data1 = 1 asks the popup to queue at InGameUtmost
+            -- priority and toggle-close if already visible.
             Events.SerialEventGameMessagePopup({
                 Type = ButtonPopupTypes.BUTTONPOPUP_ADVISOR_COUNSEL,
                 Data1 = 1,
@@ -147,10 +138,6 @@ function BaselineHandler.create()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE",
             description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_KEY_OPEN",
-            description = "TXT_KEY_CIVVACCESS_NOTIFICATION_HELP_DESC_OPEN",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY",
