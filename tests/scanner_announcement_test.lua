@@ -189,6 +189,28 @@ function M.test_distance_announcement_uses_snapshot_origin_not_live_cursor()
     T.truthy(not out:find("here", 1, true), "announcement must never collapse to 'here' while cycling: " .. out)
 end
 
+function M.test_distance_announcement_tracks_live_cursor_with_auto_move_off()
+    -- Auto-move OFF: the user drives the cursor manually. A manual step
+    -- toward the entry should make the next scanner announcement count
+    -- the distance down without needing a snapshot rebuild.
+    setup()
+    civvaccess_shared.scannerAutoMove = false
+    T.installMap({ mkPlot(5, 0, 0) })
+    installStubBackend({ mkEntry("cities", "my", "Rome", 0) })
+    -- Cursor starts at (0, 0) per setup stub; snapshot origin = (0, 0).
+    ScannerNav.cycleCategory(0) -- build; land on cities
+    ScannerNav.cycleSubcategory(1) -- into "my"
+    local out1 = ScannerNav.cycleItem(1)
+    T.truthy(out1:find("5e", 1, true), "initial distance should be 5e from cursor at (0,0): " .. out1)
+    -- Move cursor to (3, 0). No rebuild.
+    Cursor.position = function()
+        return 3, 0
+    end
+    local out2 = ScannerNav.cycleItem(1) -- wraps back to Rome (only item)
+    T.truthy(out2:find("2e", 1, true), "auto-move OFF must track live cursor; expected 2e, got " .. out2)
+    T.truthy(not out2:find("5e", 1, true), "must not keep announcing the stale snapshot-origin distance: " .. out2)
+end
+
 function M.test_distance_from_cursor_separately_produces_bare_direction()
     -- The End key reports only the distance/direction string (no name, no
     -- N-of-M tail). That's what scanners users press End for.

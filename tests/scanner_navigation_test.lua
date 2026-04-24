@@ -307,6 +307,50 @@ local function catIdxByKey(key)
     end
 end
 
+function M.test_initial_build_skips_empty_category_on_first_plain_cycle()
+    -- On turn 0 the default _catIdx=1 (cities) has no items because no
+    -- city has been founded. A plain PageDown (cycleItem) must skip past
+    -- the empty leading category so the first keypress lands on a real
+    -- item instead of speaking EMPTY. Only the initial build does this;
+    -- stale rebuilds keep the user's chosen category.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = { mkEntry("units_my", "melee", "Warrior", 0) }
+    local out = ScannerNav.cycleItem(1)
+    T.truthy(out:find("Warrior", 1, true), "first PageDown must advance past empty cities to land on Warrior: " .. out)
+    local cat = ScannerNav._indices()
+    T.eq(cat, catIdxByKey("units_my"), "initial build must move _catIdx off the empty cities bucket")
+end
+
+function M.test_initial_build_stays_when_starting_category_has_items()
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = { mkEntry("cities", "my", "Rome", 0) }
+    ScannerNav.cycleItem(1)
+    local cat = ScannerNav._indices()
+    T.eq(cat, catIdxByKey("cities"), "initial-build skip must not move off a non-empty starting cat")
+end
+
+function M.test_stale_rebuild_preserves_empty_category_choice()
+    -- If the user navigated to a specific category and it empties out on a
+    -- turn boundary, the stale rebuild must not silently jump elsewhere --
+    -- EMPTY is the correct answer because the user explicitly chose that
+    -- category. The initial-build skip is opt-in for the very first build.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    _entries = { mkEntry("resources", "strategic", "Iron", 0) }
+    ScannerNav.cycleCategory(1) -- land on resources (first non-empty)
+    T.eq(ScannerNav._indices(), catIdxByKey("resources"))
+    _entries = {} -- everything disappears next turn
+    fireTurnStart()
+    local out = ScannerNav.cycleItem(1)
+    T.eq(ScannerNav._indices(), catIdxByKey("resources"), "stale rebuild must keep user's chosen cat")
+    T.truthy(
+        out == "TXT_KEY_CIVVACCESS_SCANNER_EMPTY" or out:find("empty", 1, true) ~= nil,
+        "empty cat on stale rebuild speaks EMPTY, got " .. tostring(out)
+    )
+end
+
 function M.test_cycle_category_skips_empty_forward()
     setup()
     T.installMap({ mkPlot(0, 0, 0) })

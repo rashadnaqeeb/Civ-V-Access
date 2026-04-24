@@ -170,13 +170,37 @@ end
 -- user stale match lists. Item / instance reset to 0 on rebuild per design
 -- section 5 so the next cycle lands at the front of the preserved sub
 -- rather than wrapping from a stale index.
+--
+-- On the very first build of the session, also advance _catIdx past any
+-- empty leading category. _catIdx starts at 1 (cities), which is empty
+-- before the capital is founded; without this skip, a turn-0 PageDown
+-- would speak EMPTY even though units_my holds the starting settler.
+-- Ctrl+PageUp/Down cycles take a different path and already skip, so this
+-- only matters for the plain-cycle entry points (cycleItem, cycleSubcategory,
+-- End, Home). Stale rebuilds intentionally keep the user's chosen category
+-- -- if it empties out mid-game, EMPTY is the correct answer rather than a
+-- silent jump elsewhere.
 local function ensureSnapshot()
     if _snapshot == nil or _snapshotStale then
+        local isInitialBuild = (_snapshot == nil)
         if _snapshot ~= nil and _snapshot.isSearch then
             _catIdx = _preSearchCatIdx or 1
         end
         rebuildSnapshot()
         _itemIdx, _instIdx = 0, 0
+        if isInitialBuild then
+            local cats = _snapshot.categories
+            local n = #cats
+            for step = 0, n - 1 do
+                local i = ((_catIdx - 1 + step) % n) + 1
+                local allSub = cats[i].subcategories[1]
+                if allSub ~= nil and #allSub.items > 0 then
+                    _catIdx = i
+                    _subIdx = 1
+                    break
+                end
+            end
+        end
     end
 end
 
@@ -233,23 +257,37 @@ local function ensureCurrentInstanceValid()
 end
 
 -- ===== Speech assembly =====
--- `<item name>. <distance/direction from snapshot origin>. <N> of <M>.`
+-- `<item name>. <distance/direction from origin>. <N> of <M>.`
 -- The concise-announcement rule forbids "N of M" for menus ("Play, 1 of 8"
 -- adds no information because the name already disambiguates). It is
 -- actionable here: "Swordsman, 1 of 8" tells the player there are eight
 -- swordsmen and this is the closest. The scanner carves out an exception
 -- to the rule for that reason.
 --
--- The distance is against the snapshot's captured origin (cursorX / Y at
--- build time), not the live cursor. With auto-move on, each cycle warps
--- the cursor onto the entry's plot; a live-cursor formatter would then
--- speak "here" on every subsequent cycle. Binding the distance to the
--- snapshot origin keeps the announcements meaningful: distances match
--- the sort order the snapshot was built against, and explicit rebuilds
--- (Ctrl+PageUp/Down, turn-start staleness) are the only way the origin
--- moves. The live-cursor distance is still available explicitly via End.
+-- Distance origin depends on the auto-move toggle:
+--   * auto-move ON  -- snapshot origin. Each cycle warps the cursor onto
+--                      the entry; a live-cursor formatter would then say
+--                      "here" on every subsequent cycle. Anchoring to the
+--                      origin keeps distances meaningful and matches the
+--                      sort order the snapshot was built against.
+--   * auto-move OFF -- live cursor. The user drives the cursor themselves,
+--                      so a manual step toward an entry should count the
+--                      distance down on the next re-announce. Distances
+--                      may diverge from the snapshot's sort order once the
+--                      user has moved; that's the intended tradeoff for
+--                      making spatial feedback track the cursor.
+-- The live-cursor distance is also available on demand via End regardless
+-- of toggle state.
 local function formatInstance(instance, instIdx, instCount)
-    local cx, cy = _snapshot.cursorX, _snapshot.cursorY
+    local cx, cy
+    if civvaccess_shared.scannerAutoMove then
+        cx, cy = _snapshot.cursorX, _snapshot.cursorY
+    else
+        cx, cy = Cursor.position()
+        if cx == nil then
+            cx, cy = _snapshot.cursorX, _snapshot.cursorY
+        end
+    end
     local dir
     if cx == instance.plotX and cy == instance.plotY then
         dir = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
