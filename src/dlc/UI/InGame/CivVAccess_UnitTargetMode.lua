@@ -92,14 +92,11 @@ local function movePathPreview(actor, targetPlot)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns, leftText)
 end
 
-local function rangedPreview(actor, defender, targetX, targetY)
+local function rangedPreview(actor, defender, targetPlot, targetX, targetY)
     if not actor:CanRangeStrikeAt(targetX, targetY, true, true) then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE")
     end
-    local damage = actor:GetRangeCombatDamage(defender, nil, false)
-    local row = GameInfo.Units[defender:GetUnitType()]
-    local name = row ~= nil and Text.key(row.Description) or ""
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED", name, damage)
+    return UnitSpeech.rangedPreview(actor, defender, targetPlot)
 end
 
 local function firstEnemyUnit(plot)
@@ -144,7 +141,7 @@ local function buildPreview(self)
         if defender == nil then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         else
-            parts[#parts + 1] = rangedPreview(actor, defender, tx, ty)
+            parts[#parts + 1] = rangedPreview(actor, defender, plot, tx, ty)
         end
         local rivalTeam = actor:GetDeclareWarRangeStrike(plot)
         if rivalTeam ~= -1 then

@@ -309,12 +309,13 @@ local function pushMod(list, value, key, ...)
 end
 
 -- Attacker-side modifiers. Mirrors EnemyUnitPanel.lua:832-1249 branch
--- for branch, skipping ranged-only modifiers since this is the melee
--- path. The base panel has one latent bug: its friendly-territory
--- check at line 939 passes an undefined local `c` -- we pass the
--- attacker's player id so the friendly-lands attacker bonuses actually
--- surface when they apply.
-local function attackerMods(actor, defender, targetPlot)
+-- for branch. `bRanged` gates the melee-only branches (river / amphib /
+-- flanking) and the ranged-only ones (GetRangedAttackModifier and the
+-- open/rough ranged terrain bonuses). The base panel has one latent bug:
+-- its friendly-territory check at line 939 passes an undefined local
+-- `c` -- we pass the attacker's player id so the friendly-lands
+-- attacker bonuses actually surface when they apply.
+local function attackerMods(actor, defender, targetPlot, bRanged)
     local mods = {}
     local myPlayerId = actor:GetOwner()
     local theirPlayerId = defender:GetOwner()
@@ -322,12 +323,14 @@ local function attackerMods(actor, defender, targetPlot)
     local theirPlayer = Players[theirPlayerId]
     local fromPlot = actor:GetPlot()
 
-    if not actor:IsRiverCrossingNoPenalty() and fromPlot:IsRiverCrossingToPlot(targetPlot) then
-        pushMod(mods, GameDefines.RIVER_ATTACK_MODIFIER, "TXT_KEY_EUPANEL_ATTACK_OVER_RIVER")
-    end
-    if not actor:IsAmphib() and not targetPlot:IsWater() and fromPlot:IsWater()
-        and actor:GetDomainType() == DomainTypes.DOMAIN_LAND then
-        pushMod(mods, GameDefines.AMPHIB_ATTACK_MODIFIER, "TXT_KEY_EUPANEL_AMPHIBIOUS_ATTACK")
+    if not bRanged then
+        if not actor:IsRiverCrossingNoPenalty() and fromPlot:IsRiverCrossingToPlot(targetPlot) then
+            pushMod(mods, GameDefines.RIVER_ATTACK_MODIFIER, "TXT_KEY_EUPANEL_ATTACK_OVER_RIVER")
+        end
+        if not actor:IsAmphib() and not targetPlot:IsWater() and fromPlot:IsWater()
+            and actor:GetDomainType() == DomainTypes.DOMAIN_LAND then
+            pushMod(mods, GameDefines.AMPHIB_ATTACK_MODIFIER, "TXT_KEY_EUPANEL_AMPHIBIOUS_ATTACK")
+        end
     end
 
     if actor:IsNearGreatGeneral() then
@@ -350,14 +353,16 @@ local function attackerMods(actor, defender, targetPlot)
         pushMod(mods, GameDefines.POLICY_ATTACK_BONUS_MOD, "TXT_KEY_EUPANEL_POLICY_ATTACK_BONUS", attackTurns)
     end
 
-    local adjFriends = defender:GetNumEnemyUnitsAdjacent(actor)
-    if adjFriends > 0 then
-        local flank = adjFriends * GameDefines.BONUS_PER_ADJACENT_FRIEND
-        local flankMod = actor:FlankAttackModifier()
-        if flankMod ~= 0 then
-            flank = math.floor(flank * (100 + flankMod) / 100)
+    if not bRanged then
+        local adjFriends = defender:GetNumEnemyUnitsAdjacent(actor)
+        if adjFriends > 0 then
+            local flank = adjFriends * GameDefines.BONUS_PER_ADJACENT_FRIEND
+            local flankMod = actor:FlankAttackModifier()
+            if flankMod ~= 0 then
+                flank = math.floor(flank * (100 + flankMod) / 100)
+            end
+            pushMod(mods, flank, "TXT_KEY_EUPANEL_FLANKING_BONUS")
         end
-        pushMod(mods, flank, "TXT_KEY_EUPANEL_FLANKING_BONUS")
     end
 
     pushMod(mods, actor:GetExtraCombatPercent(), "TXT_KEY_EUPANEL_EXTRA_PERCENT")
@@ -436,9 +441,18 @@ local function attackerMods(actor, defender, targetPlot)
     end
     if targetPlot:IsOpenGround() then
         pushMod(mods, actor:OpenAttackModifier(), "TXT_KEY_EUPANEL_OPEN_TERRAIN_BONUS")
+        if bRanged then
+            pushMod(mods, actor:OpenRangedAttackModifier(), "TXT_KEY_EUPANEL_OPEN_TERRAIN_RANGE_BONUS")
+        end
+    end
+    if bRanged then
+        pushMod(mods, actor:GetRangedAttackModifier(), "TXT_KEY_EUPANEL_RANGED_ATTACK_MODIFIER")
     end
     if targetPlot:IsRoughGround() then
         pushMod(mods, actor:RoughAttackModifier(), "TXT_KEY_EUPANEL_ROUGH_TERRAIN_BONUS")
+        if bRanged then
+            pushMod(mods, actor:RoughRangedAttackModifier(), "TXT_KEY_EUPANEL_ROUGH_TERRAIN_RANGED_BONUS")
+        end
     end
 
     local featureType = targetPlot:GetFeatureType()
@@ -642,7 +656,72 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_CAPTURE_CHANCE", capture)
     end
 
-    local mine = attackerMods(actor, defender, targetPlot)
+    local mine = attackerMods(actor, defender, targetPlot, false)
+    if #mine > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY", table.concat(mine, ", "))
+    end
+    local theirs = defenderMods(actor, defender, targetPlot)
+    if #theirs > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_THEIR", table.concat(theirs, ", "))
+    end
+
+    return table.concat(parts, ", ")
+end
+
+-- Ranged preview. Clones the bRanged branch of EnemyUnitPanel.lua's
+-- UpdateCombatOddsUnitVsUnit: GetMaxRangedCombatStrength for the
+-- attacker; for the defender, GetEmbarkedUnitDefense when embarked,
+-- GetMaxRangedCombatStrength otherwise, falling back to
+-- GetMaxDefenseStrength when the defender has no ranged strength /
+-- is a sea unit / is a support-fire unit. Air attackers also preview
+-- intercept damage and the visible interceptor count.
+function UnitSpeech.rangedPreview(actor, defender, targetPlot)
+    local myStrength = actor:GetMaxRangedCombatStrength(defender, nil, true, true)
+    if myStrength <= 0 then
+        return ""
+    end
+    local myDmg = actor:GetRangeCombatDamage(defender, nil, false)
+
+    local theirStrength
+    if defender:IsEmbarked() then
+        theirStrength = defender:GetEmbarkedUnitDefense()
+    else
+        theirStrength = defender:GetMaxRangedCombatStrength(actor, nil, false, true)
+    end
+    if theirStrength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA
+        or defender:IsRangedSupportFire() then
+        theirStrength = defender:GetMaxDefenseStrength(targetPlot, actor, true)
+    end
+
+    local theirDmg = 0
+    local bInterceptPossible = false
+    local interceptors = 0
+    if actor:GetDomainType() == DomainTypes.DOMAIN_AIR then
+        theirDmg = defender:GetAirStrikeDefenseDamage(actor, false)
+        interceptors = actor:GetInterceptorCount(targetPlot, defender, true, true)
+        bInterceptPossible = true
+    end
+
+    local row = GameInfo.Units[defender:GetUnitType()]
+    local name = row ~= nil and Text.key(row.Description) or ""
+    local myStr = Locale.ToNumber(myStrength / 100, "#.##")
+    local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
+    local result = predictionLabel(actor, defender)
+
+    local parts = { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED",
+        name, myStr, theirStr, result, myDmg) }
+
+    if theirDmg > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE", theirDmg)
+    end
+    if bInterceptPossible then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE")
+    end
+    if interceptors > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
+    end
+
+    local mine = attackerMods(actor, defender, targetPlot, true)
     if #mine > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY", table.concat(mine, ", "))
     end
