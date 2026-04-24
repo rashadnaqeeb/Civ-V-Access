@@ -305,6 +305,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"] = "World Congress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_END_GAME"] = "End of Game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DECLARE_WAR"] = "Declare War"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"] = "City-State Greeting"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_DIPLO"] = "City-State"
 -- Fallback for LeaderHeadRoot / DiscussionDialog before TitleText is
 -- populated. In practice the onShow hook overwrites handler.displayName
 -- with the live leader title (e.g. "Suleiman the Magnificent") that
