@@ -10,7 +10,7 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionRiver.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
-    dofile("src/dlc/UI/InGame/CivVAccess_Cursor.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_CursorCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_SurveyorCore.lua")
 

@@ -17,7 +17,10 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_AudioCueMode.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotAudio.lua")
-    dofile("src/dlc/UI/InGame/CivVAccess_Cursor.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_CursorCore.lua")
+    -- Cursor.activate delegates through CursorActivate.run; without the
+    -- module loaded the activate-branch tests would hit a nil global.
+    dofile("src/dlc/UI/InGame/CivVAccess_CursorActivate.lua")
 
     -- Reset audio stub and shared state so prior suites / cases don't leak
     -- cue handles or mode overrides into the cursor cases. Default the mode
@@ -1559,6 +1562,10 @@ local function installActivateStubs()
     Events.SerialEventGameMessagePopup = function(info)
         activateCalls[#activateCalls + 1] = { op = "popup", info = info }
     end
+    -- CursorActivate composes its city entry label via CitySpeech.identity
+    -- before dispatching. The existing activate suite asserts only on
+    -- engine-call side effects, so a passthrough stub is enough.
+    CitySpeech = { identity = function(_) return "" end }
     Events.OpenPlayerDealScreenEvent = function(id)
         activateCalls[#activateCalls + 1] = { op = "deal", id = id }
     end

@@ -23,7 +23,7 @@ include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
 include("CivVAccess_Pathfinder")
 include("CivVAccess_PlotAudio")
-include("CivVAccess_Cursor")
+include("CivVAccess_CursorCore")
 -- Surveyor strings before the core so Text.key lookups during module load
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
 -- so the core must be loaded before BaselineHandler is included.
@@ -47,6 +47,7 @@ include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_UnitSpeech")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_UnitActionMenu")
+include("CivVAccess_CursorActivate")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_CityRangeStrikeMode")
 include("CivVAccess_UnitControl")
