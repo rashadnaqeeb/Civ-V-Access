@@ -32,20 +32,8 @@ include("CivVAccess_BaseMenuHelp")
 include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
+include("CivVAccess_DiploCommon")
 include("CivVAccess_Help")
-
--- Join non-empty parts with ", ". Input parts may be nil or empty strings;
--- those drop out. Used to compose per-civ speech lines from a fixed
--- sequence of optional fields.
-local function joinParts(parts)
-    local out = {}
-    for _, p in ipairs(parts) do
-        if p ~= nil and p ~= "" then
-            out[#out + 1] = tostring(p)
-        end
-    end
-    return table.concat(out, ", ")
-end
 
 -- State for a major civ. Mirrors base DiploRelationships.InitMajorCivList's
 -- war/denouncing/liberated branch, then falls through to the AI approach
@@ -53,15 +41,14 @@ end
 -- `statusString` local, so the sighted UI shows nothing for the common
 -- case. We speak it.
 local function majorState(iUs, pUsTeam, iOther, pOther)
-    local pOtherTeam = Teams[pOther:GetTeam()]
     if pUsTeam:IsAtWar(pOther:GetTeam()) then
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR")
+        return Text.key("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR")
     end
     if pOther:IsDenouncingPlayer(iUs) then
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_DENOUNCING")
+        return Text.key("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_DENOUNCING")
     end
     if pOther:WasResurrectedThisTurnBy(iUs) then
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_LIBERATED")
+        return Text.key("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_LIBERATED")
     end
     local approach = Players[iUs]:GetApproachTowardsUsGuess(iOther)
     local key
@@ -81,8 +68,8 @@ local function majorState(iUs, pUsTeam, iOther, pOther)
     return key and Text.key(key) or nil
 end
 
--- Embassy / open borders / DP / RA / TA strings for an established
--- relationship. Nil when the relationship doesn't exist.
+-- Embassy / open borders / DP / RA strings for an established
+-- relationship. Empty list when no established relationships exist.
 local function relationshipStrings(iUs, iOther)
     local pUsTeam = Teams[Players[iUs]:GetTeam()]
     local pOtherTeam = Teams[Players[iOther]:GetTeam()]
@@ -117,8 +104,8 @@ local function relationshipStrings(iUs, iOther)
     return out
 end
 
--- Tradeable resources from iOther to iUs. Returns { strategic = "...",
--- luxury = "..." } with empty strings where the bucket is empty.
+-- Tradeable resources from iOther to iUs. Returns strategic-list and
+-- luxury-list, each nil when the bucket is empty.
 local function tradeableResources(iUs, iOther)
     local g_Deal = UI.GetScratchDeal()
     local strategic, luxury = {}, {}
@@ -126,7 +113,7 @@ local function tradeableResources(iUs, iOther)
         local rid = row.ID
         if g_Deal:IsPossibleToTradeItem(iOther, iUs, TradeableItems.TRADE_ITEM_RESOURCES, rid, 1) then
             local count = Players[iOther]:GetNumResourceAvailable(rid, false)
-            local name = Locale.ConvertTextKey(row.Description)
+            local name = Text.key(row.Description)
             local entry = Text.format("TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT", name, tostring(count))
             if row.ResourceClassType == "RESOURCECLASS_LUXURY" then
                 luxury[#luxury + 1] = entry
@@ -179,11 +166,8 @@ end
 
 local function majorCivItem(iUs, pUs, pUsTeam, iOther)
     local pOther = Players[iOther]
-    local civType = pOther:GetCivilizationType()
-    local civInfo = GameInfo.Civilizations[civType]
-    local civName = Locale.ConvertTextKey(civInfo.ShortDescription)
-    local leaderName = pOther:GetName()
-    local nameLine = Text.format("TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV", leaderName, civName)
+    local civName = Text.key(GameInfo.Civilizations[pOther:GetCivilizationType()].ShortDescription)
+    local nameLine = Text.format("TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV", pOther:GetName(), civName)
 
     local parts = { nameLine, majorState(iUs, pUsTeam, iOther, pOther) }
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_SCORE_VAL", tostring(pOther:GetScore() or 0))
@@ -196,21 +180,17 @@ local function majorCivItem(iUs, pUs, pUsTeam, iOther)
         end
     end
 
-    local label = joinParts(parts)
     local capturedOther = iOther
     return BaseMenuItems.Choice({
-        labelText = label,
+        labelText = DiploCommon.joinParts(parts),
+        -- Base LeaderSelected guards on the active player's turn being
+        -- live and the network layer not processing; mirror that to
+        -- avoid starting a trade the engine would immediately reject.
         activate = function()
             if not Players[Game.GetActivePlayer()]:IsTurnActive() or Game.IsProcessingMessages() then
                 return
             end
-            if Players[capturedOther]:IsHuman() then
-                Events.OpenPlayerDealScreenEvent(capturedOther)
-            else
-                UI.SetRepeatActionPlayer(capturedOther)
-                UI.ChangeStartDiploRepeatCount(1)
-                Players[capturedOther]:DoBeginDiploWithHuman()
-            end
+            DiploCommon.openTradeWith(capturedOther)
         end,
     })
 end
@@ -258,7 +238,7 @@ local function minorNearbyResources(iOther, pOther)
                             and not seen[rid]
                         then
                             seen[rid] = true
-                            local name = Locale.ConvertTextKey(GameInfo.Resources[rid].Description)
+                            local name = Text.key(GameInfo.Resources[rid].Description)
                             local qty = plot:GetNumResource()
                             names[#names + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT", name, tostring(qty))
                         end
@@ -275,23 +255,19 @@ end
 
 local function minorCivItem(iUs, pUsTeam, iOther)
     local pOther = Players[iOther]
-    local civType = pOther:GetMinorCivType()
-    local civInfo = GameInfo.MinorCivilizations[civType]
-    local name = Locale.ConvertTextKey(civInfo.Description)
-
-    local parts = { name }
+    local civInfo = GameInfo.MinorCivilizations[pOther:GetMinorCivType()]
+    local parts = { Text.key(civInfo.Description) }
     if pUsTeam:IsAtWar(pOther:GetTeam()) then
-        parts[#parts + 1] = Locale.ConvertTextKey("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR")
+        parts[#parts + 1] = Text.key("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR")
     end
     parts[#parts + 1] = GetCityStateTraitText(iOther)
     parts[#parts + 1] = minorPersonality(pOther)
     parts[#parts + 1] = GetAllyText(iUs, iOther)
     parts[#parts + 1] = minorNearbyResources(iOther, pOther)
 
-    local label = joinParts(parts)
     local capturedOther = iOther
     return BaseMenuItems.Choice({
-        labelText = label,
+        labelText = DiploCommon.joinParts(parts),
         activate = function()
             Events.SerialEventGameMessagePopup({
                 Type = ButtonPopupTypes.BUTTONPOPUP_CITY_STATE_DIPLO,
@@ -338,21 +314,6 @@ local function buildItems()
     return groups
 end
 
--- Tab / Shift+Tab route to Deals / Global. The sibling's ShowHide fires
--- from the panel-flip, which pops us and pushes them.
-local function onTab()
-    local bridge = civvaccess_shared.DiploOverview
-    if bridge ~= nil and type(bridge.showDeals) == "function" then
-        bridge.showDeals()
-    end
-end
-local function onShiftTab()
-    local bridge = civvaccess_shared.DiploOverview
-    if bridge ~= nil and type(bridge.showGlobal) == "function" then
-        bridge.showGlobal()
-    end
-end
-
 BaseMenu.install(ContextPtr, {
     name = "DiploRelationships",
     displayName = Text.key("TXT_KEY_DO_YOUR_RELATIONS"),
@@ -361,7 +322,11 @@ BaseMenu.install(ContextPtr, {
     onShow = function(h)
         h.setItems(buildItems())
     end,
-    onTab = onTab,
-    onShiftTab = onShiftTab,
+    onTab = function()
+        civvaccess_shared.DiploOverview.showDeals()
+    end,
+    onShiftTab = function()
+        civvaccess_shared.DiploOverview.showGlobal()
+    end,
     items = {},
 })

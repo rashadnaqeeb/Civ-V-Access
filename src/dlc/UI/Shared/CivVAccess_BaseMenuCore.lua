@@ -75,10 +75,11 @@
 --                     forward. Help entries for the chord are opt-in via
 --                     spec.helpExtras (same pattern Civilopedia uses).
 --   onTab /           optional fn(handler) bound to Tab / Shift+Tab on
---   onShiftTab        tab-less screens (silently ignored when spec.tabs
---                     is set; internal tab cycling takes precedence).
---                     Used by DiploOverview's per-panel wrappers to route
---                     Tab to sibling-panel switching.
+--   onShiftTab        tab-less screens. Internal tab cycling wins when
+--                     spec.tabs is set; these hooks are silently ignored
+--                     in that case. Errors under pcall are logged. Used
+--                     by DiploOverview's per-panel wrappers to route Tab
+--                     to sibling-panel switching.
 
 BaseMenu = {}
 

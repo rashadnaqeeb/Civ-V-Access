@@ -25,17 +25,8 @@ include("CivVAccess_BaseMenuHelp")
 include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
+include("CivVAccess_DiploCommon")
 include("CivVAccess_Help")
-
-local function joinParts(parts)
-    local out = {}
-    for _, p in ipairs(parts) do
-        if p ~= nil and p ~= "" then
-            out[#out + 1] = tostring(p)
-        end
-    end
-    return table.concat(out, ", ")
-end
 
 -- Return the display name for a third-party player that respects
 -- "nickname for humans, civ short description for AI, TXT_KEY_YOU for
@@ -48,7 +39,7 @@ local function thirdPartyName(iThird, iUs)
     if p:IsHuman() then
         return p:GetNickName()
     end
-    return Locale.ConvertTextKey(p:GetCivilizationShortDescription())
+    return Text.key(p:GetCivilizationShortDescription())
 end
 
 -- Policies per branch with non-zero count. Matches base's per-branch
@@ -63,7 +54,7 @@ local function policyFragment(pOther)
             end
         end
         if count > 0 then
-            local branchName = Locale.ConvertTextKey(branch.Description)
+            local branchName = Text.key(branch.Description)
             out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT", branchName, tostring(count))
         end
     end
@@ -80,7 +71,7 @@ local function wondersFragment(pOther)
     for building in GameInfo.Buildings() do
         local bc = GameInfo.BuildingClasses[building.BuildingClass]
         if bc.MaxGlobalInstances > 0 and pOther:CountNumBuildings(building.ID) > 0 then
-            names[#names + 1] = Locale.ConvertTextKey(building.Description)
+            names[#names + 1] = Text.key(building.Description)
         end
     end
     if #names == 0 then
@@ -102,7 +93,7 @@ local function thirdPartyFragments(iUs, iOther, pUsTeam, pOtherTeam, pOther)
             if pThird ~= nil and pThird:IsAlive() then
                 local iThirdTeam = pThird:GetTeam()
                 if pUsTeam:IsHasMet(iThirdTeam) and pOtherTeam:IsAtWar(iThirdTeam) then
-                    frags[#frags + 1] = Locale.ConvertTextKey("TXT_KEY_AT_WAR_WITH", thirdPartyName(i, iUs))
+                    frags[#frags + 1] = Text.format("TXT_KEY_AT_WAR_WITH", thirdPartyName(i, iUs))
                 end
             end
         end
@@ -115,7 +106,7 @@ local function thirdPartyFragments(iUs, iOther, pUsTeam, pOtherTeam, pOther)
             if pThird ~= nil and pThird:IsAlive() then
                 local iThirdTeam = pThird:GetTeam()
                 if (pUsTeam:IsHasMet(iThirdTeam) or i == iUs) and pOther:IsDoF(i) then
-                    frags[#frags + 1] = Locale.ConvertTextKey("TXT_KEY_DIPLO_FRIENDS_WITH", thirdPartyName(i, iUs))
+                    frags[#frags + 1] = Text.format("TXT_KEY_DIPLO_FRIENDS_WITH", thirdPartyName(i, iUs))
                 end
             end
         end
@@ -131,9 +122,9 @@ local function thirdPartyFragments(iUs, iOther, pUsTeam, pOtherTeam, pOther)
                     if pOther:IsDenouncedPlayer(i) or pThird:IsFriendDeclaredWarOnUs(iOther) then
                         local name = thirdPartyName(i, iUs)
                         if pThird:IsFriendDenouncedUs(iOther) or pThird:IsFriendDeclaredWarOnUs(iOther) then
-                            frags[#frags + 1] = Locale.ConvertTextKey("TXT_KEY_DIPLO_BACKSTABBED", name)
+                            frags[#frags + 1] = Text.format("TXT_KEY_DIPLO_BACKSTABBED", name)
                         else
-                            frags[#frags + 1] = Locale.ConvertTextKey("TXT_KEY_DIPLO_DENOUNCED", name)
+                            frags[#frags + 1] = Text.format("TXT_KEY_DIPLO_DENOUNCED", name)
                         end
                     end
                 end
@@ -147,8 +138,8 @@ local function thirdPartyFragments(iUs, iOther, pUsTeam, pOtherTeam, pOther)
         if pThird ~= nil and pThird:IsAlive() then
             local iThirdTeam = pThird:GetTeam()
             if (pUsTeam:IsHasMet(iThirdTeam) or i == iUs) and pThird:IsAllies(iOther) then
-                local csName = Locale.ConvertTextKey(pThird:GetCivilizationShortDescription())
-                frags[#frags + 1] = Locale.ConvertTextKey("TXT_KEY_ALLIED_WITH", csName)
+                local csName = Text.key(pThird:GetCivilizationShortDescription())
+                frags[#frags + 1] = Text.format("TXT_KEY_ALLIED_WITH", csName)
             end
         end
     end
@@ -159,15 +150,14 @@ end
 local function majorCivItem(iUs, pUs, pUsTeam, iOther)
     local pOther = Players[iOther]
     local pOtherTeam = Teams[pOther:GetTeam()]
-    local civName = Locale.ConvertTextKey(GameInfo.Civilizations[pOther:GetCivilizationType()].ShortDescription)
-    local leaderName = pOther:GetName()
-    local nameLine = Text.format("TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV", leaderName, civName)
-    local era = Locale.ConvertTextKey(GameInfo.Eras[pOther:GetCurrentEra()].Description)
+    local civName = Text.key(GameInfo.Civilizations[pOther:GetCivilizationType()].ShortDescription)
+    local nameLine = Text.format("TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV", pOther:GetName(), civName)
+    local era = Text.key(GameInfo.Eras[pOther:GetCurrentEra()].Description)
 
     local parts = { nameLine, era }
 
     if pUsTeam:IsAtWar(pOther:GetTeam()) then
-        parts[#parts + 1] = Locale.ConvertTextKey("TXT_KEY_DO_AT_WAR")
+        parts[#parts + 1] = Text.key("TXT_KEY_DO_AT_WAR")
     end
 
     if pUs:IsDenouncedPlayer(iOther) then
@@ -192,18 +182,11 @@ local function majorCivItem(iUs, pUs, pUsTeam, iOther)
         parts[#parts + 1] = f
     end
 
-    local label = joinParts(parts)
     local capturedOther = iOther
     return BaseMenuItems.Choice({
-        labelText = label,
+        labelText = DiploCommon.joinParts(parts),
         activate = function()
-            if Players[capturedOther]:IsHuman() then
-                Events.OpenPlayerDealScreenEvent(capturedOther)
-            else
-                UI.SetRepeatActionPlayer(capturedOther)
-                UI.ChangeStartDiploRepeatCount(1)
-                Players[capturedOther]:DoBeginDiploWithHuman()
-            end
+            DiploCommon.openTradeWith(capturedOther)
         end,
     })
 end
@@ -222,19 +205,6 @@ local function buildItems()
     return items
 end
 
-local function onTab()
-    local bridge = civvaccess_shared.DiploOverview
-    if bridge ~= nil and type(bridge.showRelations) == "function" then
-        bridge.showRelations()
-    end
-end
-local function onShiftTab()
-    local bridge = civvaccess_shared.DiploOverview
-    if bridge ~= nil and type(bridge.showDeals) == "function" then
-        bridge.showDeals()
-    end
-end
-
 BaseMenu.install(ContextPtr, {
     name = "DiploGlobalRelationships",
     displayName = Text.key("TXT_KEY_DO_GLOBAL_RELATIONS"),
@@ -243,7 +213,11 @@ BaseMenu.install(ContextPtr, {
     onShow = function(h)
         h.setItems(buildItems())
     end,
-    onTab = onTab,
-    onShiftTab = onShiftTab,
+    onTab = function()
+        civvaccess_shared.DiploOverview.showRelations()
+    end,
+    onShiftTab = function()
+        civvaccess_shared.DiploOverview.showDeals()
+    end,
     items = {},
 })

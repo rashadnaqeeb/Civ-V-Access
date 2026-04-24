@@ -116,6 +116,7 @@ globals = {
     "Recommendations",
     "SocialPolicyLogic",
     "TechTreeLogic",
+    "DiploCommon",
     "TradeLogicAccess",
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
