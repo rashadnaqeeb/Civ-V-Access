@@ -159,40 +159,135 @@ function UnitControl.cycleAll(forward)
     Game.CycleUnits(true, forward and true or false, false)
 end
 
--- Walk the cursor's current plot's unit list, filter to active-player
--- units, and pick the next / previous relative to the currently-selected
--- unit (or the first entry if our selection isn't on this hex). Speaks
--- "no units" for empty. Single-unit case silently re-selects the unit
--- (no-op if already selected) so the user hears a selection-change
--- announcement through the listener.
-function UnitControl.cycleOnHex(x, y, forward)
-    local plot = plotAt(x, y)
-    if plot == nil then
-        Log.warn("UnitControl.cycleOnHex: no plot at (" .. tostring(x) .. ", " .. tostring(y) .. ")")
-        return
+-- Reimplements CvUnitCycler's ordering (LoneGazebo/Community-Patch-DLL
+-- CvGameCoreDLL_Expansion2/CvUnitCycler.cpp is the engine ground-truth
+-- reference; we run stock Firaxis, so exact parity with Community Patch
+-- is assumed, not guaranteed). The engine's Cycle() filters each
+-- candidate by CvUnit::ReadyToSelect(), which is what makes plain . / ,
+-- (via Game.CycleUnits) skip units that have moved, are fortified,
+-- sleeping, or automated. For Ctrl+. / Ctrl+, we keep the spatial
+-- ordering (nearest-neighbor seed plus up to five 2-opt passes) but
+-- drop the filter so every active-player unit is a cycle target.
+--
+-- Tour is rebuilt every press. It's O(N^2) in unit count which is
+-- trivially cheap at empire scale, and rebuild-every-press avoids any
+-- cache-invalidation surface across turns, saves, or unit births/deaths.
+local function buildUnitTour()
+    local player = Players[Game.GetActivePlayer()]
+    if player == nil then
+        return nil
     end
-    UnitControl.markUserInitiatedSelection()
-    local activePlayer = Game.GetActivePlayer()
-    local ownUnits = {}
-    for i = 0, plot:GetNumUnits() - 1 do
-        local u = plot:GetUnit(i)
-        if u ~= nil and u:GetOwner() == activePlayer then
-            ownUnits[#ownUnits + 1] = u
+    local units = {}
+    for unit in player:Units() do
+        units[#units + 1] = unit
+    end
+    local size = #units
+    if size == 0 then
+        return nil
+    end
+    local current = selectedUnit()
+    local seedIdx = 1
+    local seededFromSelection = false
+    if current ~= nil and current:GetOwner() == Game.GetActivePlayer() then
+        local cid = current:GetID()
+        for i, u in ipairs(units) do
+            if u:GetID() == cid then
+                seedIdx = i
+                seededFromSelection = true
+                break
+            end
         end
     end
-    if #ownUnits == 0 then
+    if not seededFromSelection then
+        for i, u in ipairs(units) do
+            if u:WorkRate(true) > 0 then
+                seedIdx = i
+                break
+            end
+        end
+    end
+    local tour, tourX, tourY = {}, {}, {}
+    local visited = {}
+    local function push(unit)
+        local idx = #tour + 1
+        tour[idx] = unit
+        tourX[idx] = unit:GetX()
+        tourY[idx] = unit:GetY()
+        visited[unit:GetID()] = true
+    end
+    push(units[seedIdx])
+    while #tour < size do
+        local lastX, lastY = tourX[#tour], tourY[#tour]
+        local bestDist, bestUnit = math.huge, nil
+        for _, u in ipairs(units) do
+            if not visited[u:GetID()] then
+                local d = Map.PlotDistance(lastX, lastY, u:GetX(), u:GetY())
+                if d < bestDist then
+                    bestDist = d
+                    bestUnit = u
+                end
+            end
+        end
+        if bestUnit == nil then
+            break
+        end
+        push(bestUnit)
+    end
+    local n = #tour
+    if n > 3 then
+        local improved = true
+        local passes = 5
+        while improved and passes > 0 do
+            improved = false
+            passes = passes - 1
+            for i = 1, n - 1 do
+                for j = i + 2, n do
+                    if not (i == 1 and j == n) then
+                        local nextJ
+                        if j == n then
+                            nextJ = 1
+                        else
+                            nextJ = j + 1
+                        end
+                        local oldD = Map.PlotDistance(tourX[i], tourY[i], tourX[i + 1], tourY[i + 1])
+                            + Map.PlotDistance(tourX[j], tourY[j], tourX[nextJ], tourY[nextJ])
+                        local newD = Map.PlotDistance(tourX[i], tourY[i], tourX[j], tourY[j])
+                            + Map.PlotDistance(tourX[i + 1], tourY[i + 1], tourX[nextJ], tourY[nextJ])
+                        if newD < oldD then
+                            local a, b = i + 1, j
+                            while a < b do
+                                tour[a], tour[b] = tour[b], tour[a]
+                                tourX[a], tourX[b] = tourX[b], tourX[a]
+                                tourY[a], tourY[b] = tourY[b], tourY[a]
+                                a = a + 1
+                                b = b - 1
+                            end
+                            improved = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return tour
+end
+
+function UnitControl.cycleAllUnits(forward)
+    UnitControl.markUserInitiatedSelection()
+    local tour = buildUnitTour()
+    if tour == nil or #tour == 0 then
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"))
         return
     end
-    if #ownUnits == 1 then
-        UI.SelectUnit(ownUnits[1])
+    if #tour == 1 then
+        UI.SelectUnit(tour[1])
         return
     end
     local current = selectedUnit()
-    local currentIdx
+    local currentIdx = 1
     if current ~= nil then
         local cid = current:GetID()
-        for i, u in ipairs(ownUnits) do
+        for i, u in ipairs(tour) do
             if u:GetID() == cid then
                 currentIdx = i
                 break
@@ -200,22 +295,18 @@ function UnitControl.cycleOnHex(x, y, forward)
         end
     end
     local targetIdx
-    if currentIdx == nil then
-        targetIdx = 1
+    if forward then
+        targetIdx = currentIdx + 1
+        if targetIdx > #tour then
+            targetIdx = 1
+        end
     else
-        if forward then
-            targetIdx = currentIdx + 1
-            if targetIdx > #ownUnits then
-                targetIdx = 1
-            end
-        else
-            targetIdx = currentIdx - 1
-            if targetIdx < 1 then
-                targetIdx = #ownUnits
-            end
+        targetIdx = currentIdx - 1
+        if targetIdx < 1 then
+            targetIdx = #tour
         end
     end
-    UI.SelectUnit(ownUnits[targetIdx])
+    UI.SelectUnit(tour[targetIdx])
 end
 
 -- ===== Alt+QAZEDC direct move =====
@@ -297,19 +388,11 @@ function UnitControl.getBindings()
             UnitControl.cycleAll(false)
         end, "Previous unit"),
         bind(VK_OEM_PERIOD, MOD_CTRL, function()
-            local cx, cy = Cursor.position()
-            if cx == nil then
-                return
-            end
-            UnitControl.cycleOnHex(cx, cy, true)
-        end, "Next unit on hex"),
+            UnitControl.cycleAllUnits(true)
+        end, "Next unit (including acted)"),
         bind(VK_OEM_COMMA, MOD_CTRL, function()
-            local cx, cy = Cursor.position()
-            if cx == nil then
-                return
-            end
-            UnitControl.cycleOnHex(cx, cy, false)
-        end, "Previous unit on hex"),
+            UnitControl.cycleAllUnits(false)
+        end, "Previous unit (including acted)"),
         bind(VK_OEM_2, MOD_NONE, speakInfo, "Unit info"),
         bind(Keys.VK_TAB, MOD_NONE, openActionMenu, "Unit action menu"),
         bind(Keys.Q, MOD_ALT, function()
@@ -337,8 +420,8 @@ function UnitControl.getBindings()
             description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE",
         },
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_HEX",
-            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE_HEX",
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE_ALL",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO",
