@@ -27,6 +27,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION"] = "{1_Cur}/{2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION"] = "{1_Cur}/{2_Max} moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE"] = "promotion available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = "{1_What} {2_Turns} turns"
+-- Spoken when a unit is mid-execution on ACTIVITY_MISSION. For a selectable
+-- player-controlled unit the cascade falls through to this rung only for
+-- multi-turn movement missions (MISSION_MOVE_TO / MISSION_ROUTE_TO) -- build
+-- missions get caught by the build rung above, automated units by the
+-- automate rung, and one-shot missions (attack, embark, found, airstrike,
+-- etc.) resolve within the turn and never reach selection. The Lua API does
+-- not expose mission type or destination plot, so we cannot say where.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "queued move"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} melee"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} ranged, range {2_Range}"
 -- Enemy form of ranged strength: range distance is hidden to match base

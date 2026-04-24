@@ -319,6 +319,27 @@ function M.test_selection_status_building_with_turns()
     T.truthy(out:find("Build Farm 5 turns", 1, true), "building status with turns expected: " .. out)
 end
 
+function M.test_selection_status_queued_mission()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("queued move", 1, true), "queued move status expected: " .. out)
+end
+
+function M.test_selection_status_building_wins_over_queued_mission()
+    -- A worker executing a build has ACTIVITY_MISSION set by the engine.
+    -- The cascade puts the build rung first so the user hears the more
+    -- specific "Build Farm 5 turns" instead of a bare "queued move".
+    setup()
+    GameInfo.Builds[7] = { Description = "Build Farm" }
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    plot._buildTurns[7] = 4
+    local u = mkUnit({ buildType = 7, plot = plot, activity = ActivityTypes.ACTIVITY_MISSION })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("Build Farm 5 turns", 1, true), "building should win: " .. out)
+    T.truthy(not out:find("queued move", 1, true), "queued move must not also fire: " .. out)
+end
+
 -- ===== Selection: cascade first-match-wins =====
 
 function M.test_selection_status_garrison_wins_over_fortify()

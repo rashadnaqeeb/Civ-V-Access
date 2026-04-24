@@ -11,8 +11,16 @@
 -- Status cascade mirrors base-game UnitList.lua:147-200, which is the
 -- canonical ordering across every vanilla / Expansion2 build:
 --     garrisoned -> automated -> healing -> alert -> fortified ->
---     sleeping -> building. Embarkation is a name prefix (compound
---     phrase "embarked warrior"), not a status rung.
+--     sleeping -> building -> queued move. Embarkation is a name prefix
+--     (compound phrase "embarked warrior"), not a status rung. "queued
+--     move" is mod-added: base UnitList has no rung for a unit mid-
+--     execution on a multi-turn mission because the sighted cue is the
+--     on-map path line. For a selectable player unit that falls through
+--     to this rung, the engine mission is MISSION_MOVE_TO / ROUTE_TO
+--     (build missions get caught by the build rung; one-shot missions
+--     resolve within the turn). Lua exposes ACTIVITY_MISSION but not
+--     the mission type or destination, so we can label it "move" but
+--     not name where.
 
 UnitSpeech = {}
 
@@ -132,6 +140,9 @@ local function statusToken(unit)
         -- build finishing at end-of-turn reads as 1 rather than 0.
         local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", Text.key(buildRow.Description), turns)
+    end
+    if activity == ActivityTypes.ACTIVITY_MISSION then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED")
     end
     return ""
 end
