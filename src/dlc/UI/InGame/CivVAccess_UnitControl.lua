@@ -447,13 +447,17 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     if playerID ~= Game.GetActivePlayer() then
         return
     end
-    -- Skip when the engine is in CITY_RANGE_ATTACK. The city-strike picker
-    -- owns the cursor and the audible focus during the strike; the engine's
-    -- CityScreenClosed re-selects the previously-selected unit, and that
-    -- event arrives after our enter() finishes -- speaking the unit info
-    -- and jumping the cursor here would steal focus from the strike target
-    -- the user just landed on.
-    if UI.GetInterfaceMode() == InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK then
+    -- Skip when the city-strike picker is on top. The engine's
+    -- CityScreenClosed re-selects the previously-selected unit on a
+    -- delayed tick, and announcing it here would steal focus from the
+    -- strike target the user just landed on. Gate on the handler-stack
+    -- name rather than UI.GetInterfaceMode: the engine briefly bounces
+    -- out of CITY_RANGE_ATTACK on entry (Bombardment.OnCityInfoDirty
+    -- reverts when the unit-select clears the engine's city selection),
+    -- and the late unit-select event tends to land during that gap, so
+    -- a mode check would be racy.
+    local top = HandlerStack.active()
+    if top ~= nil and top.name == "CityRangeStrike" then
         return
     end
     -- If target mode is active for a different unit, unwind it. Covers
