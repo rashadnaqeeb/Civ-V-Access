@@ -388,6 +388,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_TIER_NONE"] = "no reward"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"] = "Vote Results"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] =
     "{1_Rank}, {2_Name} voted for {3_Cast}, received {4_Votes} votes"
+-- WhosWinningPopup (BUTTONPOPUP_WHOS_WINNING). Engine-fired ranking pop with
+-- a randomly-chosen metric. Player rows mirror the engine's "rank, name,
+-- score" order so the user hears the rank first; the active player's tag
+-- and the unmet placeholder come from the engine's own keys. Tourism-mode
+-- rows include the owner because the sighted column shows the leader
+-- portrait + civ icon next to the city name (info absent from the city's
+-- own label). Unmet city rows degrade to "Unmet Player" with no city or
+-- owner, matching what base displays.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"] = "Who's Winning"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY"] =
+    "{1_Rank}. {2_Name}, {3_Score}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY"] =
+    "{1_Rank}. {2_City}, {3_Owner}, {4_Score}"
 -- Advisors tutorial banner (Events.AdvisorDisplayShow). Static screen
 -- name; the per-tutorial title, body, and advisor type are spoken through
 -- the preamble from live Controls. "Tutorial Advisor" distinguishes this

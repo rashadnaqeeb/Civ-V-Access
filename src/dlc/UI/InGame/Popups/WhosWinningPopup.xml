@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context Font="TwCenMT14" FontStyle="Base" Color="Beige" Color1="Black" >
+
+    <Instance Offset="0,0" Name="PlayerEntryInstance" Size="420,60" >
+        <Box Size="420,60" Anchor="L,T" Color="Black.0" ID="PlayerEntryBox">
+            <!-- Leader Portrait -->
+            <Image Anchor="L,C" Size="64,64" Offset="0,0"  Texture="Assets/UI/Art/Icons/IconFrame64.dds"  >
+                <Image Anchor="L,C" Offset="0,0" Size="64,64"   Texture="Assets/UI/Art/Icons/LeaderPortraits512.dds"  ID="Portrait"/>
+            </Image>
+            <!-- Civ Icon -->
+          <Box Color="255,255,255,0" Anchor="L,C" Offset="64,0" Size="32.32">
+            <Image ID="CivIconBG" Size="32.32" Anchor="C,C" Offset="0,0" TextureOffset="32,0" Texture="CivIconBGSizes.dds" />
+            <Image ID="CivIconShadow" Size="24.24" Anchor="C,C" Offset="1,1" Texture="CivSymbolAtlas16.dds" Color="Black.128"/>
+            <Image ID="Icon" Size="24.24" Offset="0,0"  Anchor="C,C" Texture="CivSymbolsColor256.dds" />
+          </Box>
+            <Label Anchor="L,C" Offset="96,0" Font="TwCenMT22" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="Player Name" ID="PlayerNameText"/>
+            <Label Anchor="R,C" Offset="0,0" Font="TwCenMT22" ColorSet="Beige_Black_Alpha" FontStyle="Shadow" String="000" ID="ScoreText" />
+            <Image Anchor="C,B" Offset="32,0" Texture="bar400x2.dds" Size="400.1" />
+        </Box>
+    </Instance>
+
+    <Box Style="BGBlock_ClearTopBar" />
+
+    <Grid Size="493,700" Anchor="C,C" Offset="0.0" Padding="0,0" Style="Grid9DetailFive140" >
+        <!-- X Presents Label  -->
+        <Label ID="PresentsLabel" Anchor="C,T" Offset="0,20" Font="TwCenMT16" FontStyle="Shadow" ColorSet="Beige_Black_Alpha" String="Player Presents the Tallest Midget" />
+        <Image Anchor="L,T" Offset="14,44" TextureOffset="0,0" Texture="Assets/UI/Art/WorldView/TopPanel474x60.dds" Size="466,60" >
+            <!-- List Name Label -->
+            <Label ID="ListNameLabel" Anchor="C,C" Offset="0,-3" Font="TwCenMT22" FontStyle="Shadow" ColorSet="Beige_Black_Alpha" String="Sir Tall Stick Man With Shiny Object" />
+        </Image>
+
+        <ScrollPanel Anchor="L,T" Offset="18,96" Size="428,490" ID="PlayerListScrollPanel" Vertical="1" >
+            <Stack Anchor="L,T" Size="428,490" StackGrowth="B" Padding="0" ID="PlayerListStack" />
+            <ScrollBar  Offset="3,0" Style="VertSlider" Anchor="R,C" AnchorSide="O,I" Length="488" />
+        </ScrollPanel>
+
+        <Image Anchor="C,B" Offset="0,110" Texture="HorizontalTrim.dds" Size="458.5" />
+
+        <Box Anchor="C,B" AnchorSide="I.I" Offset="0,54"   Size="458,70" Color="255,255,255,0" >
+            <!-- TXT_KEY_CLOSE Button -->
+            <GridButton Anchor="L,B"  Style="SmallButton" Size="150,32"  Offset="14,0" StateOffsetIncrement="0,0" ID="CloseButton" ToolTip="TXT_KEY_CLOSE" >
+                <Label Anchor="C,C"  Offset="0,0"  String="TXT_KEY_CLOSE" Font="TwCenMT18" ColorSet="Beige_Black_Alpha" FontStyle="Shadow"  />
+            </GridButton>
+        </Box>
+
+
+    </Grid>
+</Context>
