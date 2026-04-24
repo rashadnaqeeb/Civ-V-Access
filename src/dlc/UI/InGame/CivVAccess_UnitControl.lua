@@ -472,15 +472,20 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     Cursor.jumpTo(unit:GetX(), unit:GetY())
 end
 
+-- Events.EndCombatSim args, per Community-Patch-DLL CvUnitCombat.cpp around
+-- line 3306: the third arg per side is damage taken THIS combat (not the
+-- unit's accumulated damage before combat); the fourth is cumulative damage
+-- after combat. Naming the locals after the engine convention so the
+-- subtractor doesn't get reintroduced.
 local function onEndCombatSim(
     attackerPlayer,
     attackerUnit,
-    attackerInitialDamage,
+    attackerDamage,
     attackerFinalDamage,
     attackerMaxHP,
     defenderPlayer,
     defenderUnit,
-    defenderInitialDamage,
+    defenderDamage,
     defenderFinalDamage,
     defenderMaxHP
 )
@@ -491,12 +496,12 @@ local function onEndCombatSim(
     local text = UnitSpeech.combatResult({
         attackerPlayer = attackerPlayer,
         attackerUnit = attackerUnit,
-        attackerInitialDamage = attackerInitialDamage,
+        attackerDamage = attackerDamage,
         attackerFinalDamage = attackerFinalDamage,
         attackerMaxHP = attackerMaxHP,
         defenderPlayer = defenderPlayer,
         defenderUnit = defenderUnit,
-        defenderInitialDamage = defenderInitialDamage,
+        defenderDamage = defenderDamage,
         defenderFinalDamage = defenderFinalDamage,
         defenderMaxHP = defenderMaxHP,
     })

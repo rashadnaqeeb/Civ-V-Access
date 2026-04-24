@@ -774,8 +774,12 @@ end
 function UnitSpeech.combatResult(args)
     local atkName = sideName(args.attackerPlayer, args.attackerUnit)
     local defName = sideName(args.defenderPlayer, args.defenderUnit)
-    local atkDamage = args.attackerFinalDamage - args.attackerInitialDamage
-    local defDamage = args.defenderFinalDamage - args.defenderInitialDamage
+    -- args.attackerDamage / defenderDamage are damage dealt THIS combat
+    -- (kInfo.getDamageInflicted at the C++ fire site); FinalDamage is the
+    -- unit's cumulative damage after combat. Don't subtract -- the third arg
+    -- is the per-combat delta we want to speak.
+    local atkDamage = args.attackerDamage
+    local defDamage = args.defenderDamage
     local parts = {}
     if atkDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE", atkName, atkDamage)
