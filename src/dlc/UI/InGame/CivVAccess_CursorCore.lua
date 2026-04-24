@@ -298,6 +298,18 @@ function Cursor.activate()
     CursorActivate.run(plotHere())
 end
 
+-- ===== Civilopedia picker (Ctrl+I) =====
+-- Opens the pedia for everything on the plot that has an article
+-- (dedup'd). Delegates to CursorPedia for the enumeration and picker
+-- layout, same split-of-responsibility as activate / CursorActivate.
+function Cursor.pedia()
+    if _x == nil then
+        Log.warn("Cursor.pedia before init")
+        return
+    end
+    CursorPedia.run(plotHere())
+end
+
 -- Test seam: lets suites reset between cases without exposing the
 -- locals. Production never calls this.
 function Cursor._reset()

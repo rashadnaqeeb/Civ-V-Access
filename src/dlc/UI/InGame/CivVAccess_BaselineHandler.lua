@@ -90,6 +90,9 @@ function BaselineHandler.create()
         bind(Keys.VK_RETURN, MOD_NONE, function()
             Cursor.activate()
         end, "Activate tile"),
+        bind(Keys.I, MOD_CTRL, function()
+            Cursor.pedia()
+        end, "Civilopedia for tile contents"),
         bind(Keys.VK_F10, MOD_NONE, function()
             -- Engine's native hotkey for this popup is KB_V, which Baseline
             -- swallows as an unbound letter; F10 (strategic view) is
@@ -138,6 +141,10 @@ function BaselineHandler.create()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE",
             description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY",

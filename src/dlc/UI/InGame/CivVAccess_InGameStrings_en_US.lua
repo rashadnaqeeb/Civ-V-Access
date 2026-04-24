@@ -171,6 +171,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL"] = "City diplo
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE"] =
     "Open city screen, annex puppet, or begin diplomacy with a met major civ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Ctrl plus I"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
+    "Open Civilopedia for everything at the cursor's tile (units, world wonders, improvement, resource, feature, terrain, route)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articles at tile"
 -- City-info speech tokens. Three keys (1 identity + combat, 2 development,
 -- 3 politics); shape mirrors the BNW CityBannerManager per-ownership tier.
 -- Unmet cities stop at one word. Identity leads with actionable signals
