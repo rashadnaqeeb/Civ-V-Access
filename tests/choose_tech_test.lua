@@ -366,6 +366,39 @@ function M.test_cleanHelpText_empty_input()
     T.eq(ChooseTechLogic.cleanHelpText("", "Pottery"), "")
 end
 
+-- ===== filterHelpText =====
+--
+-- filterHelpText converts [NEWLINE] section breaks to commas before
+-- TextFilter collapses them to whitespace, then runs cleanHelpText to
+-- drop the upper-cased name prefix, fold dash dividers, and normalize
+-- comma-runs. Exercises the end-to-end pipeline against the engine's
+-- real tech-help shape (name prefix, section newlines, dash dividers).
+
+function M.test_filterHelpText_injects_commas_on_newline_boundaries()
+    setup()
+    local raw = "ARCHERY[NEWLINE]Cost: 33 Science[NEWLINE]Leads to: The Wheel[NEWLINE]Allows you to build the Archer."
+    local out = ChooseTechLogic.filterHelpText(raw, "Archery")
+    T.truthy(out:find("33 Science, Leads to:"), "newline between Science and Leads produces a comma")
+    T.truthy(out:find("The Wheel, Allows"), "newline between Wheel and Allows produces a comma")
+    T.falsy(out:find("ARCHERY"), "upper-cased name prefix is dropped")
+end
+
+function M.test_filterHelpText_collapses_adjacent_comma_runs()
+    -- A [NEWLINE] next to a dash divider produces two commas in a row
+    -- once both conversions run. The cleaner collapses the run.
+    setup()
+    local raw = "PREFIX[NEWLINE]Section A[NEWLINE]---[NEWLINE]Section B"
+    local out = ChooseTechLogic.filterHelpText(raw, "Prefix")
+    T.falsy(out:find(",%s*,"), "no consecutive commas in the cleaned output")
+    T.truthy(out:find("Section A, Section B"), "section dividers produce a single comma")
+end
+
+function M.test_filterHelpText_handles_empty_input()
+    setup()
+    T.eq(ChooseTechLogic.filterHelpText("", "Archery"), "")
+    T.eq(ChooseTechLogic.filterHelpText(nil, "Archery"), "")
+end
+
 -- ===== buildPreamble =====
 --
 -- Shared with CivVAccess_TechTreeAccess; coverage lives here because the

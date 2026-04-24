@@ -86,15 +86,11 @@ function TechTreeLogic.statusKey(player, techID)
     return "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_LOCKED"
 end
 
--- Unlocks prose: strip markup, then run the ChooseTechLogic cleaner to
--- drop the upper-cased name prefix and collapse dash-runs. Empty string
--- when the engine has no help text for this tech.
+-- Unlocks prose via the shared filterHelpText pipeline: converts
+-- [NEWLINE] section breaks to commas, strips markup, drops the
+-- upper-cased name prefix, and collapses dash-runs.
 local function unlocksProse(techID, techName)
-    local help = TextFilter.filter(GetHelpTextForTech(techID))
-    if help == "" then
-        return ""
-    end
-    return ChooseTechLogic.cleanHelpText(help, techName)
+    return ChooseTechLogic.filterHelpText(GetHelpTextForTech(techID), techName)
 end
 
 -- Tree-tab landing speech spoken on every arrow move. Order: name, status,
@@ -188,11 +184,18 @@ end
 
 -- Commit gate. Returns (true, nil) when the engine will accept the call
 -- and (false, rejectKey) when we should speak a rejection and skip
--- SendResearch entirely. Mode-specific: free mode additionally checks
--- CanResearchForFree, stealing checks the opponent team actually has the
--- tech. The order matters — "already researched" is tested before the
--- CanEverResearch / CanResearch cascade so locked-because-owned techs
--- read naturally.
+-- SendResearch entirely.
+--
+-- Normal mode allows techs whose prereqs are not yet met: Network.Send-
+-- Research auto-queues unmet prereqs ahead of the requested tech (both
+-- for Enter and Shift+Enter). Only HasTech (already researched) and
+-- !CanEverResearch (locked — wrong civ, unique-per-civ taken) are hard
+-- rejects in normal mode.
+--
+-- Free mode still needs CanResearch (outer gate) AND CanResearchForFree
+-- (the engine silently rejects commits that miss the second check).
+-- Stealing mode needs CanResearch AND the opponent team to actually
+-- own the tech.
 function TechTreeLogic.commitEligibility(player, techID, mode, stealingTargetID)
     local team = Teams[player:GetTeam()]
     if team:GetTeamTechs():HasTech(techID) then
@@ -201,14 +204,17 @@ function TechTreeLogic.commitEligibility(player, techID, mode, stealingTargetID)
     if not player:CanEverResearch(techID) then
         return false, "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_LOCKED"
     end
-    if not player:CanResearch(techID) then
-        return false, "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_UNAVAILABLE"
-    end
-    if mode == "free" and not player:CanResearchForFree(techID) then
-        return false, "TXT_KEY_CIVVACCESS_TECHTREE_REJECT_FREE_INELIGIBLE"
+    if mode == "free" then
+        if not player:CanResearch(techID) or not player:CanResearchForFree(techID) then
+            return false, "TXT_KEY_CIVVACCESS_TECHTREE_REJECT_FREE_INELIGIBLE"
+        end
+        return true, nil
     end
     if mode == "stealing" then
         if stealingTargetID == nil or stealingTargetID < 0 then
+            return false, "TXT_KEY_CIVVACCESS_TECHTREE_REJECT_STEAL_INELIGIBLE"
+        end
+        if not player:CanResearch(techID) then
             return false, "TXT_KEY_CIVVACCESS_TECHTREE_REJECT_STEAL_INELIGIBLE"
         end
         local opp = Players[stealingTargetID]
@@ -219,6 +225,7 @@ function TechTreeLogic.commitEligibility(player, techID, mode, stealingTargetID)
         if not targetTeam:IsHasTech(techID) then
             return false, "TXT_KEY_CIVVACCESS_TECHTREE_REJECT_STEAL_INELIGIBLE"
         end
+        return true, nil
     end
     return true, nil
 end

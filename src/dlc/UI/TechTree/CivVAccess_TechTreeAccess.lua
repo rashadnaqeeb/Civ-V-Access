@@ -408,12 +408,16 @@ local function onShow()
         Log.error("TechTreeAccess: pickInitialCursor returned nil")
         return
     end
-    if #_graph.getParents(landing) == 0 then
-        -- Landing is a root; seed siblings to the root set so Left/Right
-        -- immediately walks across the top.
+    -- Seed siblings as if the player arrived by NavigateDown from the
+    -- landing's first parent (or by Left/Right across roots if the
+    -- landing is itself a root). Without this, Left/Right would be a
+    -- no-op until the user did a vertical move, which reads as a dead
+    -- key rather than a meaningful navigation affordance.
+    local parents = _graph.getParents(landing)
+    if #parents == 0 then
         _cursor.moveToWithSiblings(landing, _graph.getRoots())
     else
-        _cursor.moveTo(landing)
+        _cursor.moveToWithSiblings(landing, _graph.getChildren(parents[1]))
     end
     HandlerStack.removeByName(TREE_HANDLER, false)
     HandlerStack.push(createTreeHandler())

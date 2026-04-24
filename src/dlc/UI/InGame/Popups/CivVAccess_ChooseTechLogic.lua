@@ -94,7 +94,9 @@ end
 -- Dashed section dividers in engine help text ("-------------------------")
 -- leak through TextFilter (which only strips bracket markup). Screen readers
 -- announce runs of hyphens as "dash dash dash"; collapse them to a comma so
--- the surrounding sentences remain audibly separated.
+-- the surrounding sentences remain audibly separated. Also handles the
+-- comma-runs that appear when filterHelpText injected a comma at a
+-- [NEWLINE] that sat adjacent to a dash divider.
 function ChooseTechLogic.cleanHelpText(filteredHelp, techName)
     if filteredHelp == nil or filteredHelp == "" then
         return ""
@@ -109,8 +111,31 @@ function ChooseTechLogic.cleanHelpText(filteredHelp, techName)
         end
     end
     s = s:gsub("%-%-%-+", ",")
-    s = s:gsub("%s+", " "):gsub("^%s+", ""):gsub("^,%s*", ""):gsub("%s+$", "")
+    -- Collapse runs of commas (possibly separated by whitespace) down to
+    -- one. Iterated because gsub finds non-overlapping matches in a
+    -- single pass and three-plus-comma runs need more than one replace.
+    while s:find(",%s*,") do
+        s = s:gsub(",%s*,", ",")
+    end
+    s = s:gsub("%s+", " "):gsub("^%s+", ""):gsub("^,%s*", ""):gsub("%s+$", ""):gsub(",%s*$", "")
+    -- Ensure a space follows every comma so the output reads naturally
+    -- (the collapse pass may have left comma-word with no space).
+    s = s:gsub(",(%S)", ", %1")
     return s
+end
+
+-- Raw-text entry point that preserves [NEWLINE] section breaks as
+-- commas. TextFilter.filter substitutes [NEWLINE] with a plain space,
+-- which is correct for most engine text but runs tech help sections
+-- ("Cost: ...", "Leads to: ...", "Allows you to build ...") into one
+-- unpunctuated sentence. Convert [NEWLINE] to ", " before filtering so
+-- cleanHelpText's adjacent-comma collapse can normalize the result.
+function ChooseTechLogic.filterHelpText(rawHelp, techName)
+    if rawHelp == nil or rawHelp == "" then
+        return ""
+    end
+    local s = rawHelp:gsub("%[NEWLINE%]", ", ")
+    return ChooseTechLogic.cleanHelpText(TextFilter.filter(s), techName)
 end
 
 -- Mode preamble shared between the ChooseTechPopup and the full TechTree
@@ -181,9 +206,9 @@ function ChooseTechLogic.buildLabel(entry, player)
         parts[#parts + 1] = advisors
     end
 
-    local help = TextFilter.filter(GetHelpTextForTech(entry.techID))
+    local help = ChooseTechLogic.filterHelpText(GetHelpTextForTech(entry.techID), Text.key(entry.info.Description))
     if help ~= "" then
-        parts[#parts + 1] = ChooseTechLogic.cleanHelpText(help, Text.key(entry.info.Description))
+        parts[#parts + 1] = help
     end
 
     return table.concat(parts, ", ")

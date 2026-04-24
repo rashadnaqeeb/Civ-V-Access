@@ -441,14 +441,19 @@ function M.test_commit_rejects_locked_tech()
     T.eq(key, "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_LOCKED")
 end
 
-function M.test_commit_rejects_unavailable_tech()
+function M.test_commit_allows_prereq_gap_in_normal_mode()
+    -- SendResearch auto-queues unmet prereqs ahead of the requested
+    -- tech, so the commit gate must not block on CanResearch in normal
+    -- mode — only HasTech and !CanEverResearch are hard rejects.
     setup()
     installTechDB(techs3())
-    Players = { [0] = fakePlayer({ canResearch = {} }) }
+    Players = {
+        [0] = fakePlayer({ canResearch = {}, canEverResearch = { [1] = true } }),
+    }
     Teams = { [0] = fakeTeam() }
     local ok, key = TechTreeLogic.commitEligibility(Players[0], 1, "normal", -1)
-    T.falsy(ok)
-    T.eq(key, "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_UNAVAILABLE")
+    T.truthy(ok, "normal mode allows queueing techs with unmet prereqs")
+    T.eq(key, nil)
 end
 
 function M.test_commit_accepts_available_tech_in_normal()
