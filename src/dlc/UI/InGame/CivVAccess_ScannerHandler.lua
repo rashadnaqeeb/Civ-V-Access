@@ -103,18 +103,18 @@ function ScannerHandler.create()
         bindings = {
             -- Category axis (triggers rebuild). Outermost hierarchy level,
             -- so top of the modifier ladder.
-            bind(Keys.VK_PRIOR, MOD_CTRL, cycle(ScannerNav.cycleCategory, 1), "Next category"),
-            bind(Keys.VK_NEXT, MOD_CTRL, cycle(ScannerNav.cycleCategory, -1), "Previous category"),
+            bind(Keys.VK_NEXT, MOD_CTRL, cycle(ScannerNav.cycleCategory, 1), "Next category"),
+            bind(Keys.VK_PRIOR, MOD_CTRL, cycle(ScannerNav.cycleCategory, -1), "Previous category"),
             -- Subcategory axis.
-            bind(Keys.VK_PRIOR, MOD_SHIFT, cycle(ScannerNav.cycleSubcategory, 1), "Next subcategory"),
-            bind(Keys.VK_NEXT, MOD_SHIFT, cycle(ScannerNav.cycleSubcategory, -1), "Previous subcategory"),
+            bind(Keys.VK_NEXT, MOD_SHIFT, cycle(ScannerNav.cycleSubcategory, 1), "Next subcategory"),
+            bind(Keys.VK_PRIOR, MOD_SHIFT, cycle(ScannerNav.cycleSubcategory, -1), "Previous subcategory"),
             -- Item axis (no modifier). Overrides the base game's
             -- world-camera zoom, which has no value to blind players.
-            bind(Keys.VK_PRIOR, MOD_NONE, cycle(ScannerNav.cycleItem, 1), "Next item"),
-            bind(Keys.VK_NEXT, MOD_NONE, cycle(ScannerNav.cycleItem, -1), "Previous item"),
+            bind(Keys.VK_NEXT, MOD_NONE, cycle(ScannerNav.cycleItem, 1), "Next item"),
+            bind(Keys.VK_PRIOR, MOD_NONE, cycle(ScannerNav.cycleItem, -1), "Previous item"),
             -- Instance axis (innermost hierarchy level).
-            bind(Keys.VK_PRIOR, MOD_ALT, cycle(ScannerNav.cycleInstance, 1), "Next instance"),
-            bind(Keys.VK_NEXT, MOD_ALT, cycle(ScannerNav.cycleInstance, -1), "Previous instance"),
+            bind(Keys.VK_NEXT, MOD_ALT, cycle(ScannerNav.cycleInstance, 1), "Next instance"),
+            bind(Keys.VK_PRIOR, MOD_ALT, cycle(ScannerNav.cycleInstance, -1), "Previous instance"),
             -- Single-purpose keys.
             bind(Keys.VK_HOME, MOD_NONE, call(ScannerNav.jumpToEntry), "Jump cursor to entry"),
             bind(Keys.VK_END, MOD_NONE, call(ScannerNav.distanceFromCursor), "Distance from cursor to entry"),
