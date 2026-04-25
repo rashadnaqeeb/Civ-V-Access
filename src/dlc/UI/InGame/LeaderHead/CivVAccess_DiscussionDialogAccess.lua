@@ -308,6 +308,17 @@ local handler = BaseMenu.install(ContextPtr, {
         makeButtonItem(6),
         makeButtonItem(7),
         makeButtonItem(8),
+        -- BackButton is the only widget visible in DIPLO_UI_STATE_BLANK_DISCUSSION
+        -- (AI acknowledging an accepted offer with "That deal will work" and the
+        -- like). Without it as a navigable item the menu has zero items in that
+        -- state and the user can only exit via Esc fall-through.
+        BaseMenuItems.Button({
+            controlName = "BackButton",
+            textKey = "TXT_KEY_BACK_BUTTON",
+            activate = function()
+                OnBack()
+            end,
+        }),
     },
 })
 
