@@ -19,12 +19,23 @@
 -- "moved" / "stopped short". Two-tick fallback covers silently-rejected
 -- commits. No cross-turn state -- pending is cleared on every resolution.
 --
--- Combat moves skip pending entirely: combat animation runs for seconds
--- before the engine fires a post-advance SerialEventUnitMove (or never,
--- if the attacker loses / doesn't advance), so the two-tick timeout
--- would always trip and speak "action failed" while EndCombatSim is
--- already queuing the real outcome. EndCombatSim is the announcement
--- path for anything that hits enemyAt at commit time.
+-- Quick Movement support: with the option enabled the engine routes per-
+-- hex moves through CvUnit::SetPosition (gDLL->GameplayUnitTeleported)
+-- instead of QueueMoveForVisualization (gDLL->GameplayUnitMoved), so the
+-- SerialEventUnitMove(ToHexes) events the pending resolver listens to
+-- don't fire; SerialEventUnitTeleportedToHex does. We register the same
+-- handler against that event so the resolution path runs identically.
+--
+-- Combat moves register a "combat pending" snapshot rather than a normal
+-- pending. EndCombatSim is the primary announcement path (animations on).
+-- The snapshot is the fallback for Quick Combat, where the engine skips
+-- gDLL->GameplayUnitCombat (CvUnitCombat.cpp gates the call on
+-- !quickCombat) and EndCombatSim never fires. The snapshot caches per-
+-- side pre-damage and pre-resolved display names at commit (units may
+-- be gone by fallback execution time), then a tick-based timer reads
+-- post-state and feeds UnitSpeech.combatResult with a constructed
+-- payload. EndCombatSim clears the snapshot when it fires so the two
+-- paths don't double-speak.
 --
 -- War-confirm moves freeze pending into a deferred slot. Moving onto a
 -- peaceful rival's tile (or attacking a peaceful rival's unit) does not
@@ -95,14 +106,25 @@ end
 -- resolve.
 local PENDING_EXPIRY_FRAMES = 2
 
+-- Combat resolution can take a frame longer than a plain move because
+-- the mission queue runs Attack -> ResolveCombat synchronously and
+-- damage / kill state needs to settle before we read post-state.
+local COMBAT_PENDING_EXPIRY_FRAMES = 3
+
 local _pending = nil
 local _deferred = nil
+local _combatPending = nil
 
 local function clearPending()
     _pending = nil
 end
 
+local function clearCombatPending()
+    _combatPending = nil
+end
+
 local schedulePendingExpiry
+local scheduleCombatExpiry
 
 function UnitControl.registerPending(unit, targetX, targetY)
     if unit == nil then
@@ -118,6 +140,37 @@ function UnitControl.registerPending(unit, targetX, targetY)
     }
     _pending = snapshot
     schedulePendingExpiry(snapshot)
+end
+
+-- Snapshot taken at combat commit (Alt+QAZEDC two-tap melee or target-
+-- mode commit on a plot that willCauseCombat). Pre-damage + max HP +
+-- pre-resolved display names are captured now because by fallback
+-- execution time the killed unit may already be torn down. The fallback
+-- timer runs UnitSpeech.combatResult with a payload reconstructed from
+-- post-state damage minus snapshot pre-damage.
+function UnitControl.registerCombatPending(actor, defender)
+    if actor == nil or defender == nil then
+        return
+    end
+    local atkPlayer = actor:GetOwner()
+    local atkID = actor:GetID()
+    local defPlayer = defender:GetOwner()
+    local defID = defender:GetID()
+    local snapshot = {
+        attackerPlayer = atkPlayer,
+        attackerUnitID = atkID,
+        attackerName = UnitSpeech.combatantName(atkPlayer, atkID),
+        attackerPreDamage = actor:GetDamage(),
+        attackerMaxHP = actor:GetMaxHitPoints(),
+        defenderPlayer = defPlayer,
+        defenderUnitID = defID,
+        defenderName = UnitSpeech.combatantName(defPlayer, defID),
+        defenderPreDamage = defender:GetDamage(),
+        defenderMaxHP = defender:GetMaxHitPoints(),
+        commitFrame = TickPump.frame(),
+    }
+    _combatPending = snapshot
+    scheduleCombatExpiry(snapshot)
 end
 
 -- ===== Helpers =====
@@ -324,9 +377,14 @@ function UnitControl.cycleAllUnits(forward)
 end
 
 -- ===== Alt+QAZEDC direct move =====
-local function commitDirectMove(unit, targetX, targetY, isCombat)
-    if not isCombat then
+-- enemy non-nil means the caller already resolved the target as a melee
+-- attack and registers the combat-pending snapshot in lieu of a normal
+-- move pending.
+local function commitDirectMove(unit, targetX, targetY, enemy)
+    if enemy == nil then
         UnitControl.registerPending(unit, targetX, targetY)
+    else
+        UnitControl.registerCombatPending(unit, enemy)
     end
     Game.SelectionListGameNetMessage(
         GameMessageTypes.GAMEMESSAGE_PUSH_MISSION,
@@ -355,7 +413,7 @@ local function directMove(dir)
     local enemy = UnitControl.enemyAt(target)
     if enemy == nil then
         clearCombatConfirm()
-        commitDirectMove(unit, tx, ty, false)
+        commitDirectMove(unit, tx, ty, nil)
         return
     end
     -- Melee-attack confirm gate. Screen-reader users can't see the
@@ -364,7 +422,7 @@ local function directMove(dir)
     local now = os.clock()
     if _combatConfirm.dir == dir and (now - _combatConfirm.clock) < COMBAT_CONFIRM_WINDOW_SECONDS then
         clearCombatConfirm()
-        commitDirectMove(unit, tx, ty, true)
+        commitDirectMove(unit, tx, ty, enemy)
         return
     end
     _combatConfirm.dir = dir
@@ -379,6 +437,19 @@ local function speakInfo()
         return
     end
     speakInterrupt(UnitSpeech.info(unit))
+end
+
+-- ===== Recenter cursor on selected unit =====
+-- Counterpart to onUnitSelectionChanged's auto-jump: when the user has
+-- wandered the cursor away from the unit they were last working with,
+-- snap it back without forcing a re-cycle. Silent on no-unit, matching
+-- every other selection-keyed binding in this file.
+local function recenterOnUnit()
+    local unit = selectedUnit()
+    if unit == nil then
+        return
+    end
+    speakInterrupt(Cursor.jumpTo(unit:GetX(), unit:GetY()))
 end
 
 -- ===== Tab action menu =====
@@ -460,6 +531,7 @@ function UnitControl.getBindings()
             UnitControl.cycleAllUnits(false)
         end, "Previous unit (including acted)"),
         bind(VK_OEM_2, MOD_NONE, speakInfo, "Unit info"),
+        bind(VK_OEM_2, MOD_CTRL, recenterOnUnit, "Recenter cursor on selected unit"),
         bind(Keys.VK_TAB, MOD_NONE, openActionMenu, "Unit action menu"),
         bind(Keys.Q, MOD_ALT, function()
             directMove(DirectionTypes.DIRECTION_NORTHWEST)
@@ -504,6 +576,10 @@ function UnitControl.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO",
             description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_INFO",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_RECENTER",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_TAB",
@@ -616,14 +692,15 @@ local function onEndCombatSim(
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
         return
     end
+    -- Animations-on path is authoritative; cancel any combat-pending
+    -- snapshot the commit registered so we don't double-speak.
+    clearCombatPending()
     local text = UnitSpeech.combatResult({
-        attackerPlayer = attackerPlayer,
-        attackerUnit = attackerUnit,
+        attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit),
+        defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit),
         attackerDamage = attackerDamage,
         attackerFinalDamage = attackerFinalDamage,
         attackerMaxHP = attackerMaxHP,
-        defenderPlayer = defenderPlayer,
-        defenderUnit = defenderUnit,
         defenderDamage = defenderDamage,
         defenderFinalDamage = defenderFinalDamage,
         defenderMaxHP = defenderMaxHP,
@@ -661,6 +738,61 @@ schedulePendingExpiry = function(snapshot)
             speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
         end
         clearPending()
+    end)
+end
+
+-- Look up a unit's current damage by id; returns the snapshot's pre-
+-- recorded MaxHP if the unit has been removed (kill threshold trips so
+-- the formatter speaks "killed").
+local function liveDamage(playerId, unitId, snapshotMaxHP)
+    local player = Players[playerId]
+    if player == nil then
+        return snapshotMaxHP
+    end
+    local unit = player:GetUnitByID(unitId)
+    if unit == nil then
+        return snapshotMaxHP
+    end
+    return unit:GetDamage()
+end
+
+-- Quick-Combat fallback. Animations-on combats fire EndCombatSim and
+-- onEndCombatSim clears _combatPending before this timer's body runs,
+-- so we no-op in that case. With animations off, EndCombatSim never
+-- fires; the snapshot here reads post-state damage and reconstructs the
+-- same payload shape EndCombatSim would have delivered, then routes
+-- through UnitSpeech.combatResult so both modes speak the same sentence.
+scheduleCombatExpiry = function(snapshot)
+    TickPump.runOnce(function()
+        if _combatPending ~= snapshot then
+            return
+        end
+        if TickPump.frame() - snapshot.commitFrame < COMBAT_PENDING_EXPIRY_FRAMES then
+            scheduleCombatExpiry(snapshot)
+            return
+        end
+        local atkPost = liveDamage(snapshot.attackerPlayer, snapshot.attackerUnitID, snapshot.attackerMaxHP)
+        local defPost = liveDamage(snapshot.defenderPlayer, snapshot.defenderUnitID, snapshot.defenderMaxHP)
+        local atkDelta = atkPost - snapshot.attackerPreDamage
+        if atkDelta < 0 then
+            atkDelta = 0
+        end
+        local defDelta = defPost - snapshot.defenderPreDamage
+        if defDelta < 0 then
+            defDelta = 0
+        end
+        local text = UnitSpeech.combatResult({
+            attackerName = snapshot.attackerName,
+            defenderName = snapshot.defenderName,
+            attackerDamage = atkDelta,
+            attackerFinalDamage = atkPost,
+            attackerMaxHP = snapshot.attackerMaxHP,
+            defenderDamage = defDelta,
+            defenderFinalDamage = defPost,
+            defenderMaxHP = snapshot.defenderMaxHP,
+        })
+        speakQueued(text)
+        clearCombatPending()
     end)
 end
 
@@ -779,6 +911,15 @@ function UnitControl.installListeners()
         Events.SerialEventUnitMoveToHexes.Add(onUnitMoveCompleted)
     else
         Log.warn("UnitControl: Events.SerialEventUnitMoveToHexes missing")
+    end
+    -- Quick Movement routes per-hex moves through CvUnit::SetPosition,
+    -- which fires SerialEventUnitTeleportedToHex instead of
+    -- SerialEventUnitMove(ToHexes). Same handler resolves pending the
+    -- same way; the (i, j, playerID, unitID) args are ignored.
+    if Events.SerialEventUnitTeleportedToHex ~= nil then
+        Events.SerialEventUnitTeleportedToHex.Add(onUnitMoveCompleted)
+    else
+        Log.warn("UnitControl: Events.SerialEventUnitTeleportedToHex missing")
     end
     if Events.SerialEventGameMessagePopup ~= nil then
         Events.SerialEventGameMessagePopup.Add(onPopupShown)

@@ -214,13 +214,16 @@ end
 -- popups come through the engine's own ButtonPopupTypes.BUTTONPOPUP_*
 -- dispatch and are handled by GenericPopupAccess, not here.
 --
--- Combat commits skip pending-move registration for the same reason
--- Alt+QAZEDC direct-move does: combat animation runs for seconds before
--- the engine fires a post-advance SerialEventUnitMove (or never, if the
--- attacker doesn't advance), so the pending-expiry timer would trip
--- first and speak "action failed" while EndCombatSim is already queuing
--- the real outcome. Applies to attack / ranged modes unconditionally,
--- and to move modes when the target plot has an at-war enemy.
+-- Combat commits register a combat-pending snapshot in lieu of a normal
+-- move pending. EndCombatSim is the primary announcement path with
+-- animations on; the snapshot is the Quick-Combat fallback (engine
+-- skips gDLL->GameplayUnitCombat in CvUnitCombat.cpp ~3624 and
+-- EndCombatSim never fires). City defenders don't surface a unit
+-- handle here, so the snapshot is only registered when an enemy unit is
+-- present -- attacks against an empty city remain on the EndCombatSim-
+-- only path and stay silent under quick combat (acceptable scope cut;
+-- city HP changes are paced over many turns and the user gets a
+-- notification on capture).
 local function willCauseCombat(plot, mode)
     if isMeleeAttackMode(mode) or isRangeAttackMode(mode) then
         return true
@@ -256,7 +259,12 @@ local function commitAtCursor(self)
         restoreSelection()
         return
     end
-    if not willCauseCombat(plot, mode) then
+    if willCauseCombat(plot, mode) then
+        local defender = firstEnemyUnit(plot)
+        if defender ~= nil then
+            UnitControl.registerCombatPending(self._actor, defender)
+        end
+    else
         UnitControl.registerPending(self._actor, tx, ty)
     end
     Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, false)

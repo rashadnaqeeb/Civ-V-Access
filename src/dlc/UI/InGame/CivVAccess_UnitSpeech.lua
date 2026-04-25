@@ -260,12 +260,12 @@ function UnitSpeech.info(unit)
     return table.concat(parts, ", ")
 end
 
--- Formats an Events.EndCombatSim payload into "attacker <name> -N hp,
--- defender <name> -M hp[, <name> killed]". Lookups use Players[] +
--- GameInfo.Units for the per-side unit name so civilian observers hear
--- the owner adjective too. The caller (UnitControl) decides whether
--- to pump this at all -- this formatter doesn't filter by player.
-local function sideName(playerId, unitId)
+-- Look up a combatant's display name from a (playerId, unitId) pair.
+-- Public so UnitControl can resolve names at EndCombatSim event time
+-- (units are still alive in the engine when the event fires) AND
+-- snapshot the names at commit time for the quick-combat fallback path
+-- (where the unit may be removed before the formatter runs).
+function UnitSpeech.combatantName(playerId, unitId)
     local player = Players[playerId]
     if player == nil then
         return ""
@@ -771,13 +771,18 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     return table.concat(parts, ", ")
 end
 
+-- Formats a combat outcome into "attacker <name> -N hp, defender <name>
+-- -M hp[, <name> killed]". Caller pre-resolves the side names via
+-- UnitSpeech.combatantName so the same formatter serves both the
+-- EndCombatSim path (animations on; names looked up at event time) and
+-- the snapshot fallback path (quick combat; names cached at commit time
+-- because the unit may already be gone by the time the formatter runs).
+-- args.attackerDamage / defenderDamage are damage dealt THIS combat;
+-- FinalDamage is cumulative damage after combat (kill check uses it
+-- against MaxHP). Caller doesn't subtract -- pass the per-combat delta.
 function UnitSpeech.combatResult(args)
-    local atkName = sideName(args.attackerPlayer, args.attackerUnit)
-    local defName = sideName(args.defenderPlayer, args.defenderUnit)
-    -- args.attackerDamage / defenderDamage are damage dealt THIS combat
-    -- (kInfo.getDamageInflicted at the C++ fire site); FinalDamage is the
-    -- unit's cumulative damage after combat. Don't subtract -- the third arg
-    -- is the per-combat delta we want to speak.
+    local atkName = args.attackerName or ""
+    local defName = args.defenderName or ""
     local atkDamage = args.attackerDamage
     local defDamage = args.defenderDamage
     local parts = {}

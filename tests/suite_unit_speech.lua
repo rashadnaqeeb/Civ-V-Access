@@ -677,30 +677,12 @@ end
 
 function M.test_combat_result_both_sides_take_damage()
     setup()
-    Players[0] = {
-        GetUnitByID = function(_, id)
-            if id == 1 then
-                return mkUnit({ unitType = 100 })
-            end
-            return nil
-        end,
-    }
-    Players[1] = {
-        GetUnitByID = function(_, id)
-            if id == 2 then
-                return mkUnit({ unitType = 101 })
-            end
-            return nil
-        end,
-    }
     local out = UnitSpeech.combatResult({
-        attackerPlayer = 0,
-        attackerUnit = 1,
+        attackerName = "Warrior",
         attackerDamage = 12,
         attackerFinalDamage = 12,
         attackerMaxHP = 100,
-        defenderPlayer = 1,
-        defenderUnit = 2,
+        defenderName = "Swordsman",
         defenderDamage = 30,
         defenderFinalDamage = 30,
         defenderMaxHP = 100,
@@ -716,24 +698,12 @@ end
 -- announced it destroyed.
 function M.test_combat_result_kill_threshold_uses_event_max_hp()
     setup()
-    Players[0] = {
-        GetUnitByID = function()
-            return mkUnit({ unitType = 100 })
-        end,
-    }
-    Players[1] = {
-        GetUnitByID = function()
-            return mkUnit({ unitType = 101 })
-        end,
-    }
     local out = UnitSpeech.combatResult({
-        attackerPlayer = 0,
-        attackerUnit = 1,
+        attackerName = "Warrior",
         attackerDamage = 0,
         attackerFinalDamage = 0,
         attackerMaxHP = 100,
-        defenderPlayer = 1,
-        defenderUnit = 2,
+        defenderName = "Swordsman",
         defenderDamage = 150,
         defenderFinalDamage = 150,
         defenderMaxHP = 200,
@@ -744,29 +714,50 @@ end
 
 function M.test_combat_result_defender_killed_appends_kill_line()
     setup()
-    Players[0] = {
-        GetUnitByID = function()
-            return mkUnit({ unitType = 100 })
-        end,
-    }
-    Players[1] = {
-        GetUnitByID = function()
-            return mkUnit({ unitType = 101 })
-        end,
-    }
     local out = UnitSpeech.combatResult({
-        attackerPlayer = 0,
-        attackerUnit = 1,
+        attackerName = "Warrior",
         attackerDamage = 0,
         attackerFinalDamage = 0,
         attackerMaxHP = 100,
-        defenderPlayer = 1,
-        defenderUnit = 2,
+        defenderName = "Swordsman",
         defenderDamage = 100,
         defenderFinalDamage = 100,
         defenderMaxHP = 100,
     })
     T.truthy(out:find("Swordsman killed", 1, true), "kill line expected: " .. out)
+end
+
+-- Combatant-name lookup helper. Used by the EndCombatSim path to
+-- resolve names at event time (units still alive in the engine when
+-- the event fires). The snapshot fallback caches names at commit time
+-- via the same helper, so this is the single point of "playerId +
+-- unitId -> display name" resolution.
+function M.test_combatant_name_resolves_via_player_lookup()
+    setup()
+    Players[0] = {
+        GetUnitByID = function(_, id)
+            if id == 1 then
+                return mkUnit({ unitType = 100 })
+            end
+            return nil
+        end,
+    }
+    T.eq(UnitSpeech.combatantName(0, 1), "Warrior")
+end
+
+function M.test_combatant_name_returns_empty_when_unit_gone()
+    setup()
+    Players[0] = {
+        GetUnitByID = function()
+            return nil
+        end,
+    }
+    T.eq(UnitSpeech.combatantName(0, 999), "")
+end
+
+function M.test_combatant_name_returns_empty_when_player_missing()
+    setup()
+    T.eq(UnitSpeech.combatantName(42, 1), "")
 end
 
 return M
