@@ -245,7 +245,21 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         return BaseMenuItems.Textfield({
             controlName = editName,
             labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"),
-            priorCallback = ChangeGoldAmount,
+            -- Engine ChangeGoldTrade(0) keeps a 0-amount entry in the
+            -- deal; for accessibility we treat 0 / empty on Enter as
+            -- "remove" so the user can clear an offer without hunting
+            -- for the engine's separate UsTableGold remove button.
+            priorCallback = function(text, ctrl, isEnter)
+                if isEnter then
+                    local n = tonumber(text)
+                    if n == nil or n == 0 then
+                        g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_GOLD, iPlayer)
+                        afterLocalDealChange()
+                        return
+                    end
+                end
+                ChangeGoldAmount(text, ctrl, isEnter)
+            end,
         })
     end
 
@@ -264,7 +278,17 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         return BaseMenuItems.Textfield({
             controlName = editName,
             labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN"),
-            priorCallback = ChangeGoldPerTurnAmount,
+            priorCallback = function(text, ctrl, isEnter)
+                if isEnter then
+                    local n = tonumber(text)
+                    if n == nil or n == 0 then
+                        g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_GOLD_PER_TURN, iPlayer)
+                        afterLocalDealChange()
+                        return
+                    end
+                end
+                ChangeGoldPerTurnAmount(text, ctrl, isEnter)
+            end,
         })
     end
 
@@ -280,10 +304,21 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             local inst = tbl and tbl[data1]
             local editBox = inst and inst.AmountEdit
             if editBox ~= nil then
+                local rType = data1
                 return BaseMenuItems.Textfield({
                     control = editBox,
                     labelText = resName,
-                    priorCallback = ChangeResourceAmount,
+                    priorCallback = function(text, ctrl, isEnter)
+                        if isEnter then
+                            local n = tonumber(text)
+                            if n == nil or n == 0 then
+                                g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_RESOURCES, iPlayer, rType)
+                                afterLocalDealChange()
+                                return
+                            end
+                        end
+                        ChangeResourceAmount(text, ctrl, isEnter)
+                    end,
                 })
             end
         end
@@ -467,8 +502,41 @@ end
 -- Gold / GPT leaves push NumberEntry on activate with an engine-derived
 -- max. onCommit invokes the engine's own Add* function, then
 -- afterLocalDealChange repaints + rebuilds.
+-- Build a "<label>, disabled" pocket leaf whose Enter speaks the engine's
+-- live tooltip on the corresponding base-game control if one is set, and
+-- otherwise no-ops. Mirrors what sighted players see: the base UI greys
+-- the pocket control and (for some items) sets a SetToolTipString
+-- explaining why; we surface the same disabled state and the same reason.
+local function disabledPocketLeaf(labelKey, controlName)
+    return BaseMenuItems.Text({
+        labelText = Locale.ConvertTextKey(labelKey)
+            .. ", "
+            .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+        onActivate = function()
+            local control = Controls[controlName]
+            if control == nil then
+                return
+            end
+            local ok, tip = pcall(function()
+                return control:GetToolTipString()
+            end)
+            if ok and tip ~= nil and tip ~= "" then
+                SpeechPipeline.speakInterrupt(tostring(tip))
+            end
+        end,
+    })
+end
+
+-- BNW gates lump-sum gold trades on a Declaration of Friendship between
+-- the two civs (peace deals exempt); the base UI sets
+-- TXT_KEY_DIPLO_NEED_DOF_TT_ONE_LINE on the pocket-gold control's tooltip
+-- in that state, which disabledPocketLeaf reads live.
 local function availableGoldLeaf(side)
     local iPlayer = sidePlayer(side)
+    local other = sideIsUs(side) and g_iThem or g_iUs
+    if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD, 1) then
+        return disabledPocketLeaf("TXT_KEY_DIPLO_GOLD", prefix(side) .. "PocketGold")
+    end
     return BaseMenuItems.Text({
         labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"),
         onActivate = function()
@@ -489,8 +557,18 @@ local function availableGoldLeaf(side)
     })
 end
 
+-- GPT has its own engine-side gate (RefreshPocketLumpGold's
+-- IsPossibleToTradeItem check on TRADE_ITEM_GOLD_PER_TURN). The base UI
+-- greys the control without setting a tooltip; disabledPocketLeaf handles
+-- that path with a silent no-op on Enter.
 local function availableGoldPerTurnLeaf(side)
     local iPlayer = sidePlayer(side)
+    local other = sideIsUs(side) and g_iThem or g_iUs
+    if
+        not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration())
+    then
+        return disabledPocketLeaf("TXT_KEY_DIPLO_GOLD_PER_TURN", prefix(side) .. "PocketGoldPerTurn")
+    end
     return BaseMenuItems.Text({
         labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN"),
         onActivate = function()
@@ -551,9 +629,14 @@ local function availableResourceLeaf(side, resType, resInfo)
 end
 
 -- Boolean diplomacy leaf (Embassy / Open Borders / DP / RA / TA / DoF).
--- Legality is re-queried live via IsPossibleToTradeItem; the factory
--- returns nil when illegal so the leaf is omitted from the group.
-local function availableBooleanLeaf(side, labelKey, itemConstant, addFn, bothSides)
+-- Legality is re-queried live via IsPossibleToTradeItem; when illegal we
+-- surface the same "<label>, disabled" leaf the gold path uses, with the
+-- engine's per-side / per-state tooltip read live from the matching base
+-- control on Enter (each boolean's RefreshPocket handler builds its own
+-- contextual tooltip in TradeLogic.lua, e.g. "no tech" / "they already
+-- have one"). controlSuffix is the base-control name without the Us /
+-- Them prefix (e.g. "PocketAllowEmbassy").
+local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix, addFn, bothSides)
     if itemConstant == nil then
         return nil
     end
@@ -563,7 +646,7 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, addFn, bothSid
     -- IsPossibleToTradeItem(from, to, type, duration) (matching TradeLogic's
     -- RefreshPocketEmbassy / OpenBorders / DP / RA / TA / DoF handlers).
     if not g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, itemConstant, dealDuration()) then
-        return nil
+        return disabledPocketLeaf(labelKey, prefix(side) .. controlSuffix)
     end
     return BaseMenuItems.Text({
         labelText = Locale.ConvertTextKey(labelKey),
@@ -797,28 +880,49 @@ function TradeLogicAccess.buildAvailableItems(side)
         items[#items + 1] = g
     end
 
-    -- Boolean diplomatic items, in the plan's order.
-    local function addBoolean(key, constant, addFn, bothSides)
-        local it = availableBooleanLeaf(side, key, constant, addFn, bothSides)
+    -- Boolean diplomatic items, in the plan's order. controlSuffix is the
+    -- engine pocket-control name without Us / Them prefix; when the leaf
+    -- is disabled we read that control's tooltip live so the user hears
+    -- the engine's stated reason.
+    local function addBoolean(key, constant, controlSuffix, addFn, bothSides)
+        local it = availableBooleanLeaf(side, key, constant, controlSuffix, addFn, bothSides)
         if it ~= nil then
             items[#items + 1] = it
         end
     end
-    addBoolean("TXT_KEY_DIPLO_ALLOW_EMBASSY", TradeableItems.TRADE_ITEM_ALLOW_EMBASSY, function(p)
+    addBoolean("TXT_KEY_DIPLO_ALLOW_EMBASSY", TradeableItems.TRADE_ITEM_ALLOW_EMBASSY, "PocketAllowEmbassy", function(p)
         g_Deal:AddAllowEmbassy(p)
     end, false)
-    addBoolean("TXT_KEY_DIPLO_OPEN_BORDERS", TradeableItems.TRADE_ITEM_OPEN_BORDERS, function(p)
+    addBoolean("TXT_KEY_DIPLO_OPEN_BORDERS", TradeableItems.TRADE_ITEM_OPEN_BORDERS, "PocketOpenBorders", function(p)
         g_Deal:AddOpenBorders(p, dealDuration())
     end, false)
-    addBoolean("TXT_KEY_DIPLO_DEFENSIVE_PACT", TradeableItems.TRADE_ITEM_DEFENSIVE_PACT, function(p)
-        g_Deal:AddDefensivePact(p, dealDuration())
-    end, true)
-    addBoolean("TXT_KEY_DIPLO_RESEARCH_AGREEMENT", TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT, function(p)
-        g_Deal:AddResearchAgreement(p, dealDuration())
-    end, true)
-    addBoolean("TXT_KEY_DIPLO_TRADE_AGREEMENT", TradeableItems.TRADE_ITEM_TRADE_AGREEMENT, function(p)
-        g_Deal:AddTradeAgreement(p, dealDuration())
-    end, false)
+    addBoolean(
+        "TXT_KEY_DIPLO_DEFENSIVE_PACT",
+        TradeableItems.TRADE_ITEM_DEFENSIVE_PACT,
+        "PocketDefensivePact",
+        function(p)
+            g_Deal:AddDefensivePact(p, dealDuration())
+        end,
+        true
+    )
+    addBoolean(
+        "TXT_KEY_DIPLO_RESEARCH_AGREEMENT",
+        TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT,
+        "PocketResearchAgreement",
+        function(p)
+            g_Deal:AddResearchAgreement(p, dealDuration())
+        end,
+        true
+    )
+    addBoolean(
+        "TXT_KEY_DIPLO_TRADE_AGREEMENT",
+        TradeableItems.TRADE_ITEM_TRADE_AGREEMENT,
+        "PocketTradeAgreement",
+        function(p)
+            g_Deal:AddTradeAgreement(p, dealDuration())
+        end,
+        false
+    )
 
     -- Cities.
     local cities = availableCitiesGroup(side)
