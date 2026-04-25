@@ -181,18 +181,40 @@ buildGiveItems = function()
         button = "UnitGiftButton",
         label = "UnitGift",
         anim = "UnitGiftAnim",
-        -- OnGiftUnit dequeues the popup and enters INTERFACEMODE_GIFT_UNIT;
-        -- popup is gone after this returns, no rebuild needed.
+        -- OnGiftUnit dequeues the popup and enters INTERFACEMODE_GIFT_UNIT,
+        -- which by itself is a hex-click-only mode and unreachable from
+        -- the keyboard. Push GiftMode above Baseline so Space previews,
+        -- Enter commits, Esc cancels. Dequeue happens before the push, so
+        -- this popup's handler is gone by the time GiftMode lands.
         activate = function()
             OnGiftUnit()
+            local GM = civvaccess_shared.modules and civvaccess_shared.modules.GiftMode
+            if GM ~= nil then
+                GM.enter(minorCivID, "unit")
+            else
+                Log.warn("CityStateDiploPopup: GiftMode missing from civvaccess_shared.modules")
+            end
         end,
     })
     items[#items + 1] = actionRow({
         button = "TileImprovementGiftButton",
         label = "TileImprovementGift",
         anim = "TileImprovementGiftAnim",
+        -- OnGiftTileImprovement gates on pMinor:CanMajorGiftTileImprovement
+        -- before dequeue + mode-set; if the gate refuses (no eligible
+        -- Great General + Citadel build), the popup stays up and the
+        -- engine mode never changes. Only push GiftMode if the gate
+        -- passed, detected by checking GetInterfaceMode after the call.
         activate = function()
             OnGiftTileImprovement()
+            if UI.GetInterfaceMode() == InterfaceModeTypes.INTERFACEMODE_GIFT_TILE_IMPROVEMENT then
+                local GM = civvaccess_shared.modules and civvaccess_shared.modules.GiftMode
+                if GM ~= nil then
+                    GM.enter(minorCivID, "improvement")
+                else
+                    Log.warn("CityStateDiploPopup: GiftMode missing from civvaccess_shared.modules")
+                end
+            end
         end,
     })
     items[#items + 1] = BaseMenuItems.Button({

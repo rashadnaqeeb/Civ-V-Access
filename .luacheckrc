@@ -114,6 +114,7 @@ globals = {
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",
+    "GiftMode",
     "ChooseProductionLogic", "ChooseTechLogic",
     "NotificationAnnounce",
     "Recommendations",

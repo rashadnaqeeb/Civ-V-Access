@@ -55,6 +55,7 @@ include("CivVAccess_CursorActivate")
 include("CivVAccess_CursorPedia")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_CityRangeStrikeMode")
+include("CivVAccess_GiftMode")
 include("CivVAccess_UnitControl")
 -- Turn and EmpireStatus must load before BaselineHandler so their
 -- getBindings() are available when BaselineHandler.create concatenates the
@@ -99,6 +100,7 @@ civvaccess_shared.modules.ScannerHandler = ScannerHandler
 civvaccess_shared.modules.SurveyorCore = SurveyorCore
 civvaccess_shared.modules.PlotComposers = PlotComposers
 civvaccess_shared.modules.CityRangeStrikeMode = CityRangeStrikeMode
+civvaccess_shared.modules.GiftMode = GiftMode
 civvaccess_shared.modules.UnitControl = UnitControl
 
 -- Boot fires any time the WorldView Context loads (our override of

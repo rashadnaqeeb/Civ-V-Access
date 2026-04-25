@@ -108,6 +108,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL"] = "cannot r
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL"] = "cannot embark here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL"] = "cannot disembark here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL"] = "cannot nuke here"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_ILLEGAL"] = "cannot gift unit here"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_ILLEGAL"] = "cannot improve here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NO_INTERCEPTORS"] = "no visible interceptors"
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
@@ -697,6 +699,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_COMMIT"] = "Fire on current target"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_CANCEL"] = "Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_CANCEL"] = "Cancel without firing"
+-- Gift-unit / gift-improvement target picker (audit §7.7). Pushed from
+-- the city-state diplo popup when the user chooses Gift > Unit or Gift >
+-- Improvement; the engine's INTERFACEMODE_GIFT_UNIT and INTERFACEMODE_
+-- GIFT_TILE_IMPROVEMENT are hex-click-only modes with no engine keyboard
+-- path. Cursor moves freely via Baseline; Space speaks legality + plot
+-- glance; Enter commits (gift-unit chains into BUTTONPOPUP_GIFT_CONFIRM,
+-- gift-improvement calls Game.DoMinorGiftTileImprovement directly).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_UNIT_MODE"] = "gift unit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_IMPROVEMENT_MODE"] = "gift improvement"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_IMPROVEMENT_GIVEN"] = "improvement given"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_PREVIEW"] = "Speak target info"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_COMMIT"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_COMMIT"] = "Commit gift on current target"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_CANCEL"] = "Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_CANCEL"] = "Cancel without gifting"
 -- Rename / Raze hub items (§3.13, §3.14). Rename fires BUTTONPOPUP_RENAME_CITY,
 -- whose accessibility is handled by SetCityNameAccess. Raze fires the Yes/No
 -- confirmation popup (BUTTONPOPUP_CONFIRM_CITY_TASK with TASK_RAZE), handled
