@@ -960,7 +960,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR"] = "Declare war"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"] = "Other players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"] = "none available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY"] = "nothing on the table"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_SUMMARY"] = "{1_Other}, {2_N} items"
+-- DiploCurrentDeals review labels. Each deal renders as one Text leaf
+-- whose label inlines the full contents; these are the side prefixes the
+-- builder concatenates around the per-item descriptions.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_WE_GIVE"] = "we give: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE"] = "they give: {1_List}"
 -- Diplomatic Overview (Relations / Global tabs). Per-civ composed lines,
 -- trade / third-party fragment prefixes, section group headers.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV"] = "{1_Leader} of {2_Civ}"

@@ -1,20 +1,16 @@
--- DiploCurrentDeals accessibility. The popup is reached from DiploOverview
--- and hosts two shapes in one Context: a deal picker (current + historic
--- deal rows) and a trade-style review drawer. We replace the top-level
--- flat list with a deal-picker layout; Your / Their Offer route into the
--- same drawer TradeLogicAccess builds for AI / PvP trades.
+-- DiploCurrentDeals accessibility. The Current Deals tab of DiploOverview;
+-- lists active and historic deals the player is party to. Each deal
+-- renders as a single Text leaf whose label inlines the full contents
+-- (other civ, what we give, what they give) with per-item duration where
+-- the item carries one. There's no drill past the deal, no Your / Their
+-- offer drawer, and no scratch-deal mutation outside build time -- review
+-- is read-only and the trade-screen drawer pattern only earns its keep
+-- when the user is composing or modifying an offer.
 --
--- No rebuild triggers are registered (descriptor.skipStandardListeners):
--- the TradeLogicAccess default listeners (AILeaderMessage, trade-opened
--- events, GameplaySetActivePlayer) target on-screen live trades, not a
--- deal-review session. The picker list is stable while the popup is open,
--- so one build at onShow is enough; deal activation mutates g_Deal via
--- OpenDealReview and the drawer reads live state when pushed.
---
--- Your / Their Offer navigability is gated dynamically on the scratch
--- deal's item count rather than rebuilt. This avoids having to re-iterate
--- every deal on each selection (which would mutate g_Deal as a side
--- effect and force a restore-to-selection step).
+-- The picker list is stable while the popup is open, so one build at
+-- onShow is enough; building loads each deal into the engine's scratch
+-- slot to read its items and clears the slot afterwards so it doesn't
+-- leak loaded state into other consumers.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -34,9 +30,6 @@ include("CivVAccess_BaseMenuHelp")
 include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
-include("CivVAccess_BaseMenuEditMode")
-include("CivVAccess_BaseMenuNumberEntry")
-include("CivVAccess_TradeLogicAccess")
 include("CivVAccess_Help")
 
 -- Tab / Shift+Tab cycle to Global / Relations. See
@@ -46,11 +39,146 @@ include("CivVAccess_Help")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
--- Build one Text item per deal in the current / historic list. Loading the
--- deal is the only way to read its other-player + item count (mirrors base
--- PopulateDealChooser). Iteration leaves g_Deal set to the last-loaded
--- deal; topItemsFn clears it afterwards so Your / Their Offer stay gated
--- off until the user activates one.
+-- Per-item duration suffix. Empty string for items that don't carry one
+-- (lump gold, cities, third-party, vote, allow embassy in BNW where it's
+-- permanent), so the caller can append unconditionally.
+local function turnsSuffix(duration)
+    if duration == nil or duration <= 0 then
+        return ""
+    end
+    return ", " .. Locale.ConvertTextKey("TXT_KEY_DIPLO_TURNS", duration)
+end
+
+-- Boolean diplo items share a label-key shape; map item type to its key.
+local BOOLEAN_KEYS = {
+    [TradeableItems.TRADE_ITEM_ALLOW_EMBASSY] = "TXT_KEY_DIPLO_ALLOW_EMBASSY",
+    [TradeableItems.TRADE_ITEM_OPEN_BORDERS] = "TXT_KEY_DIPLO_OPEN_BORDERS",
+    [TradeableItems.TRADE_ITEM_DEFENSIVE_PACT] = "TXT_KEY_DIPLO_DEFENSIVE_PACT",
+    [TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT] = "TXT_KEY_DIPLO_RESEARCH_AGREEMENT",
+    [TradeableItems.TRADE_ITEM_TRADE_AGREEMENT] = "TXT_KEY_DIPLO_TRADE_AGREEMENT",
+    [TradeableItems.TRADE_ITEM_DECLARATION_OF_FRIENDSHIP] = "TXT_KEY_DIPLO_DECLARATION_OF_FRIENDSHIP",
+}
+
+-- Resolve a third-party item's target team to a player name. Mirrors
+-- DisplayOtherPlayerItem in TradeLogic.
+local function thirdPartyName(teamId)
+    for i = 0, (GameDefines.MAX_CIV_PLAYERS or 64) - 1 do
+        local pl = Players[i]
+        if pl and pl:IsEverAlive() and pl:GetTeam() == teamId then
+            return pl:GetName()
+        end
+    end
+    return "?"
+end
+
+-- One-line description of a single deal item. Returns nil for unrecognized
+-- types so the caller can drop them. Mirrors the readOnly label shapes
+-- TradeLogicAccess.offeringItem builds, with duration appended for the
+-- item types that carry one (per-item, since durations within one deal can
+-- differ -- gold-per-turn 30 turns alongside a 50-turn open borders, etc).
+local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
+    if itemType == TradeableItems.TRADE_ITEM_PEACE_TREATY then
+        -- TXT_KEY_DIPLO_PEACE_TREATY already embeds the turn count.
+        return Locale.ConvertTextKey("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0)
+    end
+    if itemType == TradeableItems.TRADE_ITEM_GOLD then
+        return Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0)
+    end
+    if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
+        return Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN")
+            .. ", "
+            .. tostring(data1 or 0)
+            .. turnsSuffix(duration)
+    end
+    if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
+        local resInfo = GameInfo.Resources[data1]
+        local resName = resInfo and Locale.ConvertTextKey(resInfo.Description) or "?"
+        local isStrategic = resInfo and resInfo.ResourceUsage == 1
+        if isStrategic then
+            return Text.format("TXT_KEY_CIVVACCESS_TRADE_STRATEGIC_OFFERING", resName, tostring(data2 or 0))
+                .. turnsSuffix(duration)
+        end
+        return resName .. turnsSuffix(duration)
+    end
+    if itemType == TradeableItems.TRADE_ITEM_CITIES then
+        local plot = Map.GetPlot(data1, data2)
+        local city = plot and plot:GetPlotCity()
+        if city ~= nil then
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_TRADE_CITY_OFFERING",
+                city:GetName(),
+                tostring(city:GetPopulation())
+            )
+        end
+        return Locale.ConvertTextKey("TXT_KEY_RAZED_CITY")
+    end
+    if
+        itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE
+        or itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR
+    then
+        local key = (itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE)
+                and "TXT_KEY_CIVVACCESS_TRADE_MAKE_PEACE_WITH"
+            or "TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR_ON"
+        return Text.format(key, thirdPartyName(data1))
+    end
+    if itemType == TradeableItems.TRADE_ITEM_VOTE_COMMITMENT then
+        local pLeague = (Game and Game.GetNumActiveLeagues and Game.GetNumActiveLeagues() > 0)
+                and Game.GetActiveLeague()
+            or nil
+        local iVoteIndex = (type(GetLeagueVoteIndexFromData) == "function")
+                and GetLeagueVoteIndexFromData(data1, data2, flag1)
+            or nil
+        local tVote = iVoteIndex and g_LeagueVoteList and g_LeagueVoteList[iVoteIndex]
+        if pLeague ~= nil and tVote ~= nil and type(GetVoteText) == "function" then
+            local proposal = GetVoteText(pLeague, iVoteIndex, flag1, data3)
+            local choice = pLeague:GetTextForChoice(tVote.VoteDecision, tVote.VoteChoice)
+            return tostring(proposal) .. ", " .. tostring(choice)
+        end
+        return Locale.ConvertTextKey("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
+    end
+    local boolKey = BOOLEAN_KEYS[itemType]
+    if boolKey ~= nil then
+        return Locale.ConvertTextKey(boolKey) .. turnsSuffix(duration)
+    end
+    return nil
+end
+
+-- Compose the full label for one loaded deal: "<other civ>. we give: ...;
+-- they give: ...". Skips an empty side. If both sides are empty (every
+-- item dropped as unrecognized) falls back to just the civ name.
+local function buildDealLabel(iPlayer, pScratch)
+    local iOther = pScratch:GetOtherPlayer(iPlayer)
+    local pOther = Players[iOther]
+    local otherName = (pOther and pOther:GetName()) or "?"
+
+    local weGive, theyGive = {}, {}
+    pScratch:ResetIterator()
+    -- 8-tuple matches engine: itemType, duration, finalTurn, data1, data2,
+    -- data3, flag1, fromPlayer. finalTurn isn't surfaced here; per-item
+    -- duration is the relevant time field for review.
+    local itemType, duration, _, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
+    while itemType ~= nil do
+        local desc = describeDealItem(itemType, data1, data2, data3, flag1, duration)
+        if desc ~= nil then
+            if fromPlayer == iPlayer then
+                weGive[#weGive + 1] = desc
+            else
+                theyGive[#theyGive + 1] = desc
+            end
+        end
+        itemType, duration, _, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
+    end
+
+    local parts = { otherName }
+    if #weGive > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DEAL_WE_GIVE", table.concat(weGive, "; "))
+    end
+    if #theyGive > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE", table.concat(theyGive, "; "))
+    end
+    return table.concat(parts, ". ")
+end
+
 local function buildDealItems(iPlayer, isCurrent, count)
     local items = {}
     for i = 0, count - 1 do
@@ -59,45 +187,13 @@ local function buildDealItems(iPlayer, isCurrent, count)
         else
             UI.LoadHistoricDeal(iPlayer, i)
         end
-        local pScratch = UI.GetScratchDeal()
-        local iOtherPlayer = pScratch:GetOtherPlayer(iPlayer)
-        local pOther = Players[iOtherPlayer]
-        local otherName = (pOther and pOther:GetName()) or "?"
-        local nItems = pScratch:GetNumItems() or 0
-        local label = Text.format("TXT_KEY_CIVVACCESS_DEAL_SUMMARY", otherName, tostring(nItems))
-        local capturedI = i
-        local capturedIsCurrent = isCurrent
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = label,
-            onActivate = function()
-                if capturedIsCurrent then
-                    UI.LoadCurrentDeal(iPlayer, capturedI)
-                else
-                    UI.LoadHistoricDeal(iPlayer, capturedI)
-                end
-                -- OpenDealReview is a plain Lua fn on TradeLogic's env; it
-                -- sets g_bTradeReview = true, resets g_iUs / g_iThem from
-                -- the loaded deal, and runs DoClearTable + DisplayDeal.
-                local ok, err = pcall(OpenDealReview)
-                if not ok then
-                    Log.error("DiploCurrentDealsAccess OpenDealReview failed: " .. tostring(err))
-                end
-            end,
-        })
+        local label = buildDealLabel(iPlayer, UI.GetScratchDeal())
+        items[#items + 1] = BaseMenuItems.Text({ labelText = label })
     end
     return items
 end
 
--- Your / Their Offer are navigable only once OpenDealReview has populated
--- g_Deal AND set g_bTradeReview. The flag matters: if OpenDealReview fails
--- under pcall in onActivate, g_Deal is still loaded from the prior Load
--- call but the drawer's read-only mode would not be set. Without the flag
--- gate the user could open a mutable drawer against a historical deal.
-local function hasLoadedDeal()
-    return UI.GetScratchDeal():GetNumItems() > 0 and g_bTradeReview == true
-end
-
-local function topItemsFn(_descriptor)
+local function buildItems()
     local iPlayer = Game.GetActivePlayer()
     local items = {}
 
@@ -117,10 +213,6 @@ local function topItemsFn(_descriptor)
         })
     end
 
-    -- Early game and post-clean-slate: no current or historic deals. Your
-    -- Offer / Their Offer stay non-navigable (gated on hasLoadedDeal), so
-    -- without an explicit entry the user lands on a menu with nothing
-    -- reachable. Announce the empty state as the first navigable item.
     if nCurrent == 0 and nHistoric == 0 then
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_DIPLO_NO_DEALS"),
@@ -128,34 +220,21 @@ local function topItemsFn(_descriptor)
     end
 
     -- buildDealItems left the scratch deal holding the last iterated deal.
-    -- Clear it so Your / Their Offer report not-navigable on initial show
-    -- (and after the user backs out of a review, if we ever rebuild --
-    -- today we don't, but the reset keeps behavior correct either way).
+    -- Clear so it doesn't leak loaded state into other consumers reading
+    -- UI.GetScratchDeal later.
     UI.GetScratchDeal():ClearItems()
-
-    -- Your / Their Offer: push the same drawer TradeLogicAccess builds for
-    -- AI / PvP trades. Navigability gated on "a deal has been loaded"
-    -- rather than a visibility control -- DiploCurrentDeals has no
-    -- UsPanel / ThemPanel to read.
-    local yourOffer = TradeLogicAccess.buildYourOfferItem()
-    yourOffer.isNavigable = hasLoadedDeal
-    yourOffer.isActivatable = hasLoadedDeal
-    items[#items + 1] = yourOffer
-
-    local theirOffer = TradeLogicAccess.buildTheirOfferItem()
-    theirOffer.isNavigable = hasLoadedDeal
-    theirOffer.isActivatable = hasLoadedDeal
-    items[#items + 1] = theirOffer
 
     return items
 end
 
-TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
+BaseMenu.install(ContextPtr, {
     name = "DiploCurrentDeals",
-    kind = "Review",
-    fallbackDisplayName = Text.key("TXT_KEY_DO_CURRENT_DEALS"),
-    topItemsFn = topItemsFn,
-    skipStandardListeners = true,
+    displayName = Text.key("TXT_KEY_DO_CURRENT_DEALS"),
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    onShow = function(h)
+        h.setItems(buildItems())
+    end,
     onTab = function()
         civvaccess_shared.DiploOverview.showGlobal()
     end,
@@ -171,4 +250,5 @@ TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
     suppressReactivateOnHide = function()
         return civvaccess_shared.DiploOverview._switching == true
     end,
+    items = {},
 })
