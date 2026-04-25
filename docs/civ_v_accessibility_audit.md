@@ -8,7 +8,7 @@ Coverage is for Brave New World only. The mod ships a single BNW-only DLC manife
 
 ---
 
-# Phase 1: Application Launch and Main Menus
+# Phase 1: Application Launch and Main Menus [1.9 Replay viewer, 1.10 Hall of Fame, 1.11 Leaderboards]
 
 ## 1.1 Legal, logo, and title splash — Not applicable
 
@@ -92,7 +92,7 @@ The single-Close informational popup, the Yes/No exit-to-desktop confirm, and th
 
 ---
 
-# Phase 2: New Game Setup
+# Phase 2: New Game Setup [2.9 Scenarios menu]
 
 ## 2.1 Quick game setup screen — Done
 
@@ -136,7 +136,7 @@ The host's customization panel reached from the staging room. Mirrors Advanced S
 
 ---
 
-# Phase 3: Core In-Game HUD
+# Phase 3: Core In-Game HUD [3.10 Info corner and sidebar lists, 3.14 Task list]
 
 The in-game HUD is the persistent chrome around the world view: top status bar, end turn button, unit panel, minimap, notifications, advisor prompts. The mod replaces or supplements each of these with keyboard-driven equivalents rather than reading the chrome itself, so coverage shape varies by surface.
 
@@ -202,7 +202,7 @@ The task list (TaskList.lua) is a separate stack of objective strings driven by 
 
 ---
 
-# Phase 4: World Interaction
+# Phase 4: World Interaction [4.10 Route and path preview]
 
 The world is the center of the screen. Plots have terrain, features, resources, improvements, owners, and any units or city occupying them. Sighted interaction is mouse-driven. The mod replaces every world interaction with a keyboard equivalent, splitting work across the cursor (what's here), the surveyor (what's around), and the scanner (where is X).
 
@@ -224,7 +224,7 @@ Both melee and ranged attack enter the same target-mode harness. The combat prev
 
 ## 4.5 City banners — Done
 
-Friendly, foreign, and city-state banners are all reached through the same cursor pipeline. The plot scan announces civ owner and city name as the cursor lands. Identity (1) speaks population, defense strength, HP, capital flag, status cascade (razing, resistance, occupied, puppet, blockaded), and for city-states the trait token and friendship tier. Politics (3) speaks at-war warmonger and liberation previews, religion, and our spies stationed in that city. Development (2) is suppressed on non-team cities, matching what the banner shows a sighted player. Enter dispatches per ownership: own city opens the city screen (annex popup first when applicable), city-state opens the read-only city screen, foreign major opens diplomacy or the deal screen against a human opponent, unmet is a deliberate no-op. The banner-level fast actions a sighted player has on own cities (production icon click, eject garrison, range-strike from the banner) are reached through the city screen one hop deeper.
+Friendly, foreign, and city-state banners are all reached through the same cursor pipeline. The plot scan announces civ owner and city name as the cursor lands. Identity (1) speaks population, defense strength, HP, capital flag, status cascade (razing, resistance, occupied, puppet, blockaded), the trade-route connected indicator on own-team non-capital cities (mirroring the banner's ConnectedIcon), and for city-states the trait token and friendship tier. Politics (3) speaks at-war warmonger and liberation previews, the majority religion's name (matching the banner's silent religion icon), and our spies stationed in that city. Development (2) is suppressed on non-team cities, matching what the banner shows a sighted player. Enter dispatches per ownership: own city opens the city screen (annex popup first when applicable), city-state opens the read-only city screen, foreign major opens diplomacy or the deal screen against a human opponent, unmet is a deliberate no-op. The banner-level fast actions a sighted player has on own cities (production icon click, eject garrison, range-strike from the banner) are reached through the city screen one hop deeper.
 
 ## 4.6 Stacked-unit cycling and unit flags — Done
 
@@ -252,9 +252,9 @@ The action menu routes every INTERFACEMODE_* into target-mode and the cursor's p
 
 ---
 
-# Phase 5: City Management
+# Phase 5: City Management [5.17 City banner and city list quick access, 5.19 Foreign city view]
 
-The city screen is the densest in the game. Opening one pauses normal input and scopes interaction to the city, its workable hexes, and its choosers. The mod's city screen is built as a single hub menu with sub-handlers for each section; opening the city speaks a preamble (name, population, growth, production, all yields) and the player walks the hub by category.
+The city screen is the densest in the game. Opening one pauses normal input and scopes interaction to the city, its workable hexes, and its choosers. The mod's city screen is built as a single hub menu with sub-handlers for each section; opening the city speaks a short preamble (name, status flags, population, growth headline, production line) and the player walks the hub by category. Yields, happiness, religion, trade, resources, defense, and the demand cycle are reached one Enter deeper through the Stats hub item rather than padding the preamble itself.
 
 ## 5.1 City view entry and exit — Done
 
@@ -262,11 +262,11 @@ Entering speaks the preamble. Exiting (Escape) returns to the world. Next-city /
 
 ## 5.2 City header readouts — Done
 
-The preamble covers name, population, turns to next citizen (with stagnation / starvation flags), capital indicator, occupation / puppet / razing state, resistance turns remaining, We Love The King Day countdown, and city damage. F1 re-reads the preamble at any time without leaving the current sub-handler.
+The preamble covers name, status flags (razing, resistance, occupied, puppet, blockaded with engine-supplied turn counts), population, the growth headline (turns to next citizen, stagnation, or starvation), and the current production line. F1 re-reads the preamble at any time without leaving the current sub-handler. The numbers a sighted player checks while strategizing — yields, happiness, defense, culture progress, religion, trade, resources, the WLTKD / resource-demand cycle — live one Enter deeper in the Stats hub item, which leads the hub list ahead of Production and Hex.
 
 ## 5.3 Yields panel — Done
 
-Per-turn food (net of citizens), production, gold, science, faith, tourism, and culture are all in the preamble. The detailed source-by-source breakdown a sighted player gets on tooltip hover is not yet a separate drill-down — the aggregate number is what's read.
+Per-turn food (net of citizens), production, gold, science, faith, tourism, and culture all live in the city Stats hub item's Yields sub-group. Each yield row drills into the engine's per-yield tooltip output — base from terrain, buildings, specialists, religion, modifier breakdown — split on newlines and run through the markup-stripping filter so the source-by-source breakdown a sighted player gets on hover is reachable item-by-item.
 
 ## 5.4 Citizen focus and workforce management — Done
 
@@ -310,7 +310,7 @@ Tile purchase is reached through the Hex hub. Eligible adjacent plots speak thei
 
 ## 5.14 City connection, resource demand, and WLTKD — Done
 
-Connected-to-capital is spoken in the city preamble when the city is non-capital, has a trade route to the capital, and is not blockaded; this matches the sighted-side ConnectedIcon, which is also positive-only (no disconnected indicator on the banner or the city screen). Resource-demanded and WLTKD state surface as a non-interactive readout at the bottom of the city hub, keyed off GetResourceDemanded and GetWeLoveTheKingDayCounter and reading the base game's own labels; the readout is omitted when the city has no demand cycle yet, matching the hidden ResourceDemandedBox.
+Connected-to-capital is spoken in the cursor's city identity readout (key 1) for own-team non-capital cities with a trade route home and no active blockade; this matches the banner's ConnectedIcon, which is also positive-only (no disconnected indicator). Resource-demanded and WLTKD state live in the city Stats hub item's Demand sub-group, keyed off GetResourceDemanded and GetWeLoveTheKingDayCounter, with WLTKD priority over the demanded-resource label when the counter is positive; the sub-group is omitted when the city has no demand cycle yet, matching the hidden ResourceDemandedBox.
 
 ## 5.15 Capture decision popup — Done
 
@@ -334,7 +334,7 @@ Opening through espionage uses the same screen with write actions hidden. Read-o
 
 ---
 
-# Phase 6: Research and Progression
+# Phase 6: Research and Progression [6.3 Research overview]
 
 ## 6.1 Tech chooser popup — Done
 
@@ -374,7 +374,7 @@ Started-by-someone-else and built-by-someone notifications speak through the reg
 
 ---
 
-# Phase 7: Diplomacy
+# Phase 7: Diplomacy [7.12 World Congress overview, 7.16 Diplo vote popup, 7.25 Trade route diplomatic implications, 7.26 Espionage-diplomacy intersection]
 
 Diplomacy is the most dialog-heavy subsystem. It runs through leader-head animations, a structured trade screen, city-state interactions, and the World Congress.
 
@@ -490,7 +490,7 @@ The recorded leader voice plays automatically and does collide with screen-reade
 
 ---
 
-# Phase 8: Economy and Logistics
+# Phase 8: Economy and Logistics [8.1 Economic overview shell, 8.2 Economic general info tab, 8.3 Happiness info tab, 8.5 Demographics screen, 8.6 Trade route overview, 8.7 Trade route chooser popup, 8.10 Resource tracking, 8.11 Gold income breakdown]
 
 The empire-wide economic surface — gold breakdown, happiness ledger, demographics, trade routes, resource tracking — is split across several full-screen overviews reached from the top bar and diplomatic corner. Most of it is unread.
 
@@ -540,7 +540,7 @@ Both surfaces — the top-panel hover tooltip aggregate and the General Info tab
 
 ---
 
-# Phase 9: Religion
+# Phase 9: Religion [9.5 Religion overview panel, 9.11 Religion in diplomacy display]
 
 Added in Gods and Kings, extended in Brave New World. Faith generation, pantheon, religion founding, enhancement, and reformation are all blocking flows and must be resolved before End Turn completes.
 
@@ -564,9 +564,9 @@ The reformation variant. Bonus belief picker with the smaller reformation-only p
 
 The three-tab religion overview (Your Religion, World Religions, Beliefs) is unread. The auto-faith-purchase pulldown that controls passive faith spending is also unreached.
 
-## 9.6 Religion display in city view — Partial
+## 9.6 Religion display in city view — Done
 
-Religious buildings are correctly relabeled via the engine's religion-name substitution (a Mosque reads "Mosque of Islam" rather than bare "Mosque"). Majority religion and per-religion follower counts are reachable through the cursor's city query but are not part of the standard preamble. Pressure direction and Inquisitor block-spread state are not synthesized.
+Religious buildings are relabeled via the engine's religion-name substitution (a Mosque reads "Mosque of Islam" rather than bare "Mosque"). The Stats hub item in the city view exposes a Religion sub-group that mirrors GetReligionTooltip: majority first, then every other religion with non-zero followers, each row carrying follower count, per-turn pressure value, and the holy-city flag inlined when applicable. Cursor key 3 keeps just the majority religion's name as a banner-icon-equivalent one-liner. Inquisitor block-spread state isn't synthesized at the city level — sighted players don't get it there either; the cue is the Inquisitor unit standing on or adjacent to the city, which the cursor reads on the unit's plot.
 
 ## 9.7 Missionary unit actions — Done
 
@@ -590,7 +590,7 @@ Civ entries in the known-civs list don't currently flag founded religion as a se
 
 ---
 
-# Phase 10: Espionage (G&K, BNW)
+# Phase 10: Espionage (G&K, BNW) [10.1 Espionage overview screen, 10.2 Spy assignment / relocation popup, 10.3 Intrigue discovered notifications, 10.4 Tech stolen popup / chooser, 10.5 Rigging elections result popup, 10.6 Coup attempt popup, 10.7 Spy killed and spy promoted notifications, 10.8 Diplomat conversion, 10.9 Counterspy results, 10.10 Active mission status on spy rows]
 
 The entire espionage system is unread. Spies unlock at the Renaissance era and become a significant part of late-game play; for a blind player today they are invisible.
 
@@ -636,7 +636,7 @@ Reached through the espionage overview, also unread.
 
 ---
 
-# Phase 11: Combat and Military
+# Phase 11: Combat and Military [11.10 Air mission interface]
 
 ## 11.1 Unit panel selected-unit display — Done
 
@@ -658,7 +658,7 @@ There's no dedicated post-combat dialog in the engine; the mod hooks the EndComb
 
 The pillage confirm popup reads through the generic path with what's-being-pillaged, HP-gain, and gold-gain. Alt+P is the quick path.
 
-## 11.6 City capture popups — Partial
+## 11.6 City capture popups — Done
 
 Covered as 5.15.
 
@@ -692,7 +692,7 @@ Covered as 8.4.
 
 ---
 
-# Phase 12: Civilopedia and Reference Screens
+# Phase 12: Civilopedia and Reference Screens [12.3 Demographics screen, 12.4 Ranking / Info Addict graphs, 12.5 Victory progress screen, 12.7 Replay screen, 12.9 Hall of Fame]
 
 ## 12.1 Civilopedia screen — Done
 
@@ -736,7 +736,7 @@ The endgame root with its four tabs (Game Over flavor, Demographics, Ranking, Re
 
 ---
 
-# Phase 13: Interrupt Popups
+# Phase 13: Interrupt Popups [13.4 Diplomacy popups outside the leader screen, 13.5 Crisis and combat popups]
 
 The engine routes its sixty-nine kinds of modal popup through a single dispatcher. Each kind opens a specific screen. Coverage in this section is mostly cross-references to the screens that handle each kind.
 
@@ -774,7 +774,7 @@ The popup queue (multiple popups firing on the same turn rollover) plays in orde
 
 ---
 
-# Phase 14: Endgame
+# Phase 14: Endgame [14.2 Victory progress panel, 14.4 Tourism threshold popup, 14.5 World Congress and UN vote flow, 14.8 Final scoreboard, 14.9 Replay / map-history playback, 14.11 Post-game stats and demographics, 14.12 Hall of Fame entry]
 
 ## 14.1 Spaceship build screen — Not applicable
 
@@ -824,18 +824,18 @@ Covered as 8.5 / 12.3.
 
 Civ V doesn't pop a new-record splash at game end; the entry silently appends to the saved Hall of Fame and is read only by opening the screen from the main menu, which is also unread (1.10).
 
-## 14.13 End-of-game event surface
+## 14.13 End-of-game event surface — Not applicable
 
-The engine signals victory and defeat through a single end-game event whose type and team arguments together identify the outcome. The mod's end-game menu hook reads them off this event. Score and per-category breakdown queries are still available after the game ends, which is what makes a future demographics / ranking pass straightforward to add.
+Architectural note rather than a UI surface. The engine signals victory and defeat through a single end-game event whose type and team arguments together identify the outcome. The mod's end-game menu hook reads them off this event. Score and per-category breakdown queries are still available after the game ends, which is what makes a future demographics / ranking pass straightforward to add.
 
 ---
 
 # Coverage summary
 
-What the mod fully covers today: the front-end menu shell, every game-setup screen, the pause and save menus, the in-game cursor / surveyor / scanner stack for plot inspection, unit selection and the action menu, target-mode for moves and attacks, the city screen and its production / purchase / buildings / specialists / great-works / hex / rename / raze sub-handlers, the tech tree and every tech / policy / ideology / Great Person / pantheon / religion / reformation / Maya / free-item chooser, the leader head and trade screens with their full discussion / denounce / peace / embassy paths, the city-state diplomacy and greeting popups, the declare-war summary, the diplomacy overview's three tabs, every advisor popup, the notification announcement stream, the end turn flow, all production-finished and wonder-completion splashes, the natural wonder and goody hut splashes including the BNW choose-reward variant, the new era splash, the popup queue and dispatcher concerns, the military overview, the civilopedia, and the end game menu's win-or-lose splash.
+What the mod fully covers today: the front-end menu shell, every game-setup screen, the pause and save menus, the in-game cursor / surveyor / scanner stack for plot inspection, unit selection and the action menu, target-mode for moves and attacks, the city screen and its Stats / production / purchase / buildings / specialists / great-works / hex / rename / raze sub-handlers (the Stats hub absorbs yields with per-source breakdowns, growth, culture progress, happiness, religion, your trade routes touching this city, locally accessible resources, defense, and the WLTKD / resource-demand cycle), the tech tree and every tech / policy / ideology / Great Person / pantheon / religion / reformation / Maya / free-item chooser, the leader head and trade screens with their full discussion / denounce / peace / embassy paths, the city-state diplomacy and greeting popups, the declare-war summary, the diplomacy overview's three tabs, every advisor popup, the notification announcement stream, the end turn flow, all production-finished and wonder-completion splashes, the natural wonder and goody hut splashes including the BNW choose-reward variant, the new era splash, the popup queue and dispatcher concerns, the military overview, the civilopedia, nuke targeting mode, and the end game menu's win-or-lose splash.
 
-What's partially covered: foreign city view (works but the espionage path that reaches it doesn't), the per-city religion display, the air mission interface, the unit upgrade preview, the embarkation prompt.
+What's partially covered: foreign city view (works but the espionage path that reaches it doesn't), the air mission interface, the unit upgrade preview, the embarkation prompt.
 
-What's not started: the entire top panel and minimap toggle layer, every sidebar list (City List, Unit List, Great People List, Resource List), the diplomacy corner buttons themselves, the tutorial overlay and task list, the trade route system end to end (overview screen and chooser popup), the entire economic overview shell with its general info and happiness tabs, the demographics screen, the gold income breakdown, every espionage screen and popup, the religion overview panel, nuke targeting mode, the World Congress overview screen and the diplo vote ballot popup, the victory progress screen, the in-game ranking and replay screens, the in-game and front-end hall of fame, the leaderboards, and the dedicated server panel.
+What's not started: the entire top panel and minimap toggle layer, every sidebar list (City List, Unit List, Great People List, Resource List), the diplomacy corner buttons themselves, the tutorial overlay and task list, the trade route system end to end (overview screen and chooser popup), the entire economic overview shell with its general info and happiness tabs, the demographics screen, the empire-wide gold income breakdown, every espionage screen and popup, the religion overview panel, the World Congress overview screen and the diplo vote ballot popup, the victory progress screen, the in-game ranking and replay screens, the in-game and front-end hall of fame, the leaderboards, and the dedicated server panel.
 
 The biggest gaps the player feels day to day are probably the empire-wide overviews — top panel, economic overview, happiness breakdown, resource list, victory progress — and the trade-route system in BNW. After those, the espionage system and the World Congress's full session screen are the two whole subsystems with no coverage at all.
