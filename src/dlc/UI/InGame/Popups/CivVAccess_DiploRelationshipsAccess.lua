@@ -342,5 +342,11 @@ BaseMenu.install(ContextPtr, {
         civvaccess_shared.DiploOverview.close()
         return true
     end,
+    -- Tab swap: bridge wraps showX with a _switching flag so Scanner's
+    -- onActivate doesn't fire in the gap between this panel hiding and
+    -- the sibling pushing.
+    suppressReactivateOnHide = function()
+        return civvaccess_shared.DiploOverview._switching == true
+    end,
     items = {},
 })

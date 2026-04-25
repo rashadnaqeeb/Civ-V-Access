@@ -230,5 +230,8 @@ BaseMenu.install(ContextPtr, {
         civvaccess_shared.DiploOverview.close()
         return true
     end,
+    suppressReactivateOnHide = function()
+        return civvaccess_shared.DiploOverview._switching == true
+    end,
     items = {},
 })

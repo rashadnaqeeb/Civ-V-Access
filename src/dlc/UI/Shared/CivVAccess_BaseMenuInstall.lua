@@ -24,6 +24,14 @@
 --                     Esc fires (at any drill level). Return true to consume.
 --                     Esc never drills out one level at a time — use Left for
 --                     that — so the hook sees Esc regardless of _level.
+--   suppressReactivateOnHide
+--                     fn() -> bool; consulted on hide. When true, the hide-
+--                     time removeByName passes reactivate=false so the
+--                     handler underneath does not announce. Used by tab-swap
+--                     panels (DiploOverview) where a sibling Context is
+--                     about to push within the same engine event chain and
+--                     the intermediate exposure of Scanner / parent menu
+--                     would speak a transient mode label.
 
 function BaseMenu.install(ContextPtr, spec)
     local handler = BaseMenu.create(spec)
@@ -34,6 +42,7 @@ function BaseMenu.install(ContextPtr, spec)
     local onShow = spec.onShow
     local tickOwner = spec.tickOwner ~= false
     local onEscape = spec.onEscape
+    local suppressReactivateOnHide = spec.suppressReactivateOnHide
     local pendingPush = false
 
     if tickOwner then
@@ -71,8 +80,19 @@ function BaseMenu.install(ContextPtr, spec)
         -- it mid-transition. On hide: reactivate=true so the newly-exposed
         -- handler (Scanner when a popup closes, parent menu when a nested
         -- popup closes) announces itself and the user hears which mode
-        -- they landed back in.
-        HandlerStack.removeByName(handler.name, bIsHide)
+        -- they landed back in. suppressReactivateOnHide opts out for the
+        -- tab-swap case where a sibling Context will push within the same
+        -- engine event chain.
+        local reactivate = bIsHide
+        if bIsHide and suppressReactivateOnHide ~= nil then
+            local ok, suppress = pcall(suppressReactivateOnHide)
+            if not ok then
+                Log.error("BaseMenu '" .. handler.name .. "' suppressReactivateOnHide: " .. tostring(suppress))
+            elseif suppress then
+                reactivate = false
+            end
+        end
+        HandlerStack.removeByName(handler.name, reactivate)
         if bIsHide then
             handler._initialized = false
             pendingPush = false

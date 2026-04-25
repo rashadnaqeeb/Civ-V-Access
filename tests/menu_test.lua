@@ -1269,6 +1269,104 @@ function M.test_install_push_on_show_pop_on_hide()
     T.eq(HandlerStack.count(), 0)
 end
 
+function M.test_install_hide_reactivates_underneath_by_default()
+    setup()
+    setCtrls({ "A" })
+    local activated = 0
+    HandlerStack.push({
+        name = "Underneath",
+        onActivate = function()
+            activated = activated + 1
+        end,
+    })
+    local ctx = makeContextPtr()
+    BaseMenu.install(ctx, { name = "S", displayName = "Screen", items = buttonSpec({ "A" }) })
+    ctx._sh(false, false)
+    -- pushing on top of Underneath fires removeByName(_, false) on its
+    -- prior install, then push -- neither reactivates Underneath.
+    activated = 0
+    ctx._sh(true, false)
+    T.eq(activated, 1, "hide reactivates underneath by default")
+end
+
+function M.test_install_suppressReactivateOnHide_skips_reactivation()
+    setup()
+    setCtrls({ "A" })
+    local activated = 0
+    HandlerStack.push({
+        name = "Underneath",
+        onActivate = function()
+            activated = activated + 1
+        end,
+    })
+    local switching = false
+    local ctx = makeContextPtr()
+    BaseMenu.install(ctx, {
+        name = "S",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        suppressReactivateOnHide = function()
+            return switching
+        end,
+    })
+    ctx._sh(false, false)
+    activated = 0
+    switching = true
+    ctx._sh(true, false)
+    T.eq(activated, 0, "suppressReactivateOnHide=true skips underneath reactivation")
+end
+
+function M.test_install_suppressReactivateOnHide_false_still_reactivates()
+    setup()
+    setCtrls({ "A" })
+    local activated = 0
+    HandlerStack.push({
+        name = "Underneath",
+        onActivate = function()
+            activated = activated + 1
+        end,
+    })
+    local ctx = makeContextPtr()
+    BaseMenu.install(ctx, {
+        name = "S",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        suppressReactivateOnHide = function()
+            return false
+        end,
+    })
+    ctx._sh(false, false)
+    activated = 0
+    ctx._sh(true, false)
+    T.eq(activated, 1, "suppressReactivateOnHide=false leaves default reactivation intact")
+end
+
+function M.test_install_suppressReactivateOnHide_throw_logs_and_reactivates()
+    setup()
+    setCtrls({ "A" })
+    local activated = 0
+    HandlerStack.push({
+        name = "Underneath",
+        onActivate = function()
+            activated = activated + 1
+        end,
+    })
+    local ctx = makeContextPtr()
+    BaseMenu.install(ctx, {
+        name = "S",
+        displayName = "Screen",
+        items = buttonSpec({ "A" }),
+        suppressReactivateOnHide = function()
+            error("boom")
+        end,
+    })
+    ctx._sh(false, false)
+    activated = 0
+    ctx._sh(true, false)
+    T.truthy(#errors >= 1, "suppress predicate error logged")
+    T.eq(activated, 1, "thrown predicate falls back to reactivate=true")
+end
+
 function M.test_install_double_show_keeps_stack_depth_at_one()
     setup()
     setCtrls({ "A" })
