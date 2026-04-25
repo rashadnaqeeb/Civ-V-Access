@@ -696,12 +696,12 @@ function M.test_combat_result_both_sides_take_damage()
     local out = UnitSpeech.combatResult({
         attackerPlayer = 0,
         attackerUnit = 1,
-        attackerInitialDamage = 0,
+        attackerDamage = 12,
         attackerFinalDamage = 12,
         attackerMaxHP = 100,
         defenderPlayer = 1,
         defenderUnit = 2,
-        defenderInitialDamage = 0,
+        defenderDamage = 30,
         defenderFinalDamage = 30,
         defenderMaxHP = 100,
     })
@@ -729,12 +729,12 @@ function M.test_combat_result_kill_threshold_uses_event_max_hp()
     local out = UnitSpeech.combatResult({
         attackerPlayer = 0,
         attackerUnit = 1,
-        attackerInitialDamage = 0,
+        attackerDamage = 0,
         attackerFinalDamage = 0,
         attackerMaxHP = 100,
         defenderPlayer = 1,
         defenderUnit = 2,
-        defenderInitialDamage = 0,
+        defenderDamage = 150,
         defenderFinalDamage = 150,
         defenderMaxHP = 200,
     })
@@ -757,12 +757,12 @@ function M.test_combat_result_defender_killed_appends_kill_line()
     local out = UnitSpeech.combatResult({
         attackerPlayer = 0,
         attackerUnit = 1,
-        attackerInitialDamage = 0,
+        attackerDamage = 0,
         attackerFinalDamage = 0,
         attackerMaxHP = 100,
         defenderPlayer = 1,
         defenderUnit = 2,
-        defenderInitialDamage = 0,
+        defenderDamage = 100,
         defenderFinalDamage = 100,
         defenderMaxHP = 100,
     })
