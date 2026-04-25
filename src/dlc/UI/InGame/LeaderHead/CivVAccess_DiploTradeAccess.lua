@@ -47,15 +47,27 @@ local function composePreamble()
     return tostring(speech)
 end
 
--- Screen title = leader's name as the engine places it in NameText on
--- every message. onShow runs after priorShowHide so NameText is populated
--- by the time we read it here.
+-- Screen title = "<leader> says:" derived from g_iThem rather than from
+-- Controls.NameText. NameText is set later in LeaderMessageHandler (via
+-- DisplayDeal -> ResetDisplay), so when QueuePopup fires its ShowHide
+-- synchronously the reused Context can briefly still hold the previous
+-- leader's NameText -- which is what produced "Bismarck says:" while
+-- actually opening trade with Harald. g_iThem is updated at the very top
+-- of LeaderMessageHandler, before any popup or display work, so it's
+-- always the current leader by the time onShow runs.
 local function titleFn()
-    local text = Controls.NameText:GetText()
-    if text == nil or text == "" then
-        return nil
+    if g_iThem ~= nil and g_iThem >= 0 then
+        local pPlayer = Players[g_iThem]
+        if pPlayer ~= nil then
+            return Locale.ConvertTextKey("TXT_KEY_DIPLO_LEADER_SAYS", pPlayer:GetName())
+        end
     end
-    return tostring(text)
+    -- Fallback in case globals haven't been populated yet.
+    local text = Controls.NameText:GetText()
+    if text ~= nil and text ~= "" then
+        return tostring(text)
+    end
+    return nil
 end
 
 local handler = TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {

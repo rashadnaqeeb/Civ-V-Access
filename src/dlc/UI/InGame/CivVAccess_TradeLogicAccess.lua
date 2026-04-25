@@ -1022,6 +1022,58 @@ function TradeLogicAccess.buildTheirOfferItem(useVisibilityControl)
     return BaseMenuItems.Choice(spec)
 end
 
+-- Action-button leaf for the trade screen's bottom row (Propose / Cancel /
+-- Modify / What*-query). Surfaces hidden or disabled buttons as "<label>,
+-- disabled" Text leaves rather than dropping them from navigation, so the
+-- user can find the buttons even when the engine has greyed them out --
+-- a hidden button is functionally a disabled one for our purposes. Enter
+-- on a disabled leaf reads the engine's live tooltip if set, else no-ops.
+-- fallbackLabel fills in when the engine never set the button's text
+-- (e.g. a query button that's never been shown this session).
+local function actionButtonLeaf(controlName, activate, fallbackLabel)
+    local control = Controls[controlName]
+    if control == nil then
+        return nil
+    end
+    local hidOk, hidden = pcall(function()
+        return control:IsHidden()
+    end)
+    local disOk, disabled = pcall(function()
+        return control:IsDisabled()
+    end)
+    local inactive = (hidOk and hidden) or (disOk and disabled)
+    if inactive then
+        local label = ""
+        local okT, t = pcall(function()
+            return control:GetText()
+        end)
+        if okT and t ~= nil then
+            label = tostring(t)
+        end
+        if label == "" then
+            label = fallbackLabel or controlName
+        end
+        return BaseMenuItems.Text({
+            labelText = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+            onActivate = function()
+                local ok, tip = pcall(function()
+                    return control:GetToolTipString()
+                end)
+                if ok and tip ~= nil and tip ~= "" then
+                    SpeechPipeline.speakInterrupt(tostring(tip))
+                end
+            end,
+        })
+    end
+    return BaseMenuItems.Button({
+        controlName = controlName,
+        labelFn = function(c)
+            return c:GetText()
+        end,
+        activate = activate,
+    })
+end
+
 local function buildTopItems(descriptor)
     local items = {}
 
@@ -1036,9 +1088,12 @@ local function buildTopItems(descriptor)
     -- Their Offer.
     items[#items + 1] = TradeLogicAccess.buildTheirOfferItem(true)
 
-    -- AI query slot: in AI Context, include all five possible buttons;
-    -- isNavigable filters on IsHidden so only the one currently visible
-    -- surfaces. In PvP / Review, skip entirely (controls are absent).
+    -- AI query buttons: in AI Context only. Engine hides 4 of 5 at any
+    -- given time and the absent ones aren't useful in their inactive state
+    -- (WhatWillEndThisWar at peace, WhatConcessions when not requesting,
+    -- etc.), so we use plain Button items whose isNavigable hides them
+    -- when the engine does -- only the relevant query for the current
+    -- state shows up.
     if descriptor.kind == "AI" then
         local queries = {
             { name = "WhatDoYouWantButton", activate = OnWhatDoesAIWant },
@@ -1060,48 +1115,43 @@ local function buildTopItems(descriptor)
         end
     end
 
-    -- Propose (labelFn reads live "Propose" / "Accept" / "Demand" /
-    -- "Withdraw"). AI mode dispatches through OnOK; PvP through
-    -- OnProposeButton which reads Void1 to pick PROPOSE / WITHDRAW / ACCEPT.
-    if Controls.ProposeButton ~= nil then
-        local proposeActivate
-        if descriptor.kind == "PvP" and type(OnProposeButton) == "function" then
-            proposeActivate = OnProposeButton
-        elseif type(OnOK) == "function" then
-            proposeActivate = OnOK
-        end
-        if proposeActivate ~= nil then
-            items[#items + 1] = BaseMenuItems.Button({
-                controlName = "ProposeButton",
-                labelFn = function(c)
-                    return c:GetText()
-                end,
-                activate = proposeActivate,
-            })
+    -- Propose. Base TradeLogic registers OnPropose on ProposeButton and
+    -- relies on Void1 (PROPOSE_TYPE / WITHDRAW_TYPE / ACCEPT_TYPE) to pick
+    -- the path; DoUpdateButtons sets the right Void1 per state. Read it
+    -- live so a "Propose" press in TRADE, "Demand" in HUMAN_DEMAND, and
+    -- "Accept" in TRADE_AI_MAKES_OFFER all dispatch correctly through the
+    -- engine's own callback.
+    if Controls.ProposeButton ~= nil and type(OnPropose) == "function" then
+        local item = actionButtonLeaf("ProposeButton", function()
+            local okV, void1 = pcall(function()
+                return Controls.ProposeButton:GetVoid1()
+            end)
+            OnPropose((okV and void1) or 0)
+        end, "Propose")
+        if item ~= nil then
+            items[#items + 1] = item
         end
     end
 
-    -- Cancel / Refuse.
+    -- Cancel / Refuse. Same Void1 pattern (CANCEL_TYPE vs REFUSE_TYPE).
     if Controls.CancelButton ~= nil and type(OnBack) == "function" then
-        items[#items + 1] = BaseMenuItems.Button({
-            controlName = "CancelButton",
-            labelFn = function(c)
-                return c:GetText()
-            end,
-            activate = OnBack,
-        })
+        local item = actionButtonLeaf("CancelButton", function()
+            local okV, void1 = pcall(function()
+                return Controls.CancelButton:GetVoid1()
+            end)
+            OnBack((okV and void1) or 0)
+        end, "Cancel")
+        if item ~= nil then
+            items[#items + 1] = item
+        end
     end
 
-    -- Modify (PvP only; control is nil in AI / Review so the factory's
-    -- resolveControl warns once at include time and isNavigable filters).
+    -- Modify (PvP only; control is nil in AI / Review so factory returns nil).
     if Controls.ModifyButton ~= nil and type(OnModify) == "function" then
-        items[#items + 1] = BaseMenuItems.Button({
-            controlName = "ModifyButton",
-            labelFn = function(c)
-                return c:GetText()
-            end,
-            activate = OnModify,
-        })
+        local item = actionButtonLeaf("ModifyButton", OnModify, "Modify")
+        if item ~= nil then
+            items[#items + 1] = item
+        end
     end
 
     return items
