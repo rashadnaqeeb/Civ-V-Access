@@ -28,7 +28,7 @@ Latest News, Civilopedia, Hall of Fame, View Replays, Credits, Leaderboard, Back
 
 ## 1.5 Tutorial launcher — Done
 
-The tutorial picker. Lets the player choose one of the scripted tutorial scenarios and launch it. Note: once a tutorial actually starts, the in-game tutorial overlay (see 3.13) is mostly visual and is not yet read.
+The tutorial picker. Lets the player choose one of the scripted tutorial scenarios and launch it. The in-game tutorial advisor banner that the chosen scenario uses is read; see 3.13.
 
 ## 1.6 Options menu — Done
 
@@ -126,9 +126,9 @@ The full custom panel. Map type, size, handicap, pace, era, turn mode, max-turns
 
 Per-slot edit boxes for civ name, leader name, civ adjective, city list prefix and suffix, and (multiplayer) password. Each field is announced on focus.
 
-## 2.9 Scenarios menu — Done
+## 2.9 Scenarios menu — Partial
 
-The scenario list with description, difficulty pulldown, speed pulldown, and the scenario-specific civ picker. Play and Back are wired.
+The scenario list itself is wired: each entry exposes its display name and description, Start and Back are activatable. What is not wired is the per-scenario setup popup that opens after Start — every Firaxis scenario ships its own Custom-entry-point Lua/XML for choosing difficulty, civ (when the scenario lets you pick one, e.g., the 10-civ roster in Conquest of the New World), and any scenario-specific options. Those popups are mod-defined per scenario and currently inaccessible, so the player can pick a scenario but lands in the post-Start screen with no way to confirm or change defaults before the game launches.
 
 ## 2.10 Multiplayer game setup — Done
 
@@ -144,9 +144,9 @@ The in-game HUD is the persistent chrome around the world view: top status bar, 
 
 Bare T, R, G, H, F, P, and I read the seven empire-status numbers the panel exists for: turn and date (Maya long-form calendar where applicable, unit-supply over-cap when the maintenance mod is non-zero), current research with turns and science per turn, gold rate and total with trade-route slot use and any strategic-resource shortages, happiness state with golden age progress or active turns, faith per turn and total, culture per turn and turns to the next policy, tourism per turn with the influential-civ count (named against the denominator within two of a culture victory). The engine's "off" game options (no science, no happiness, no religion, no policies) are honored on the relevant keys. The hover tooltips that break each readout into its sources (science from buildings vs trade routes vs Great Scientist, etc.) are not separately surfaced; the headline numbers are.
 
-## 3.2 Minimap panel — Not started
+## 3.2 Minimap panel — Not useful
 
-The minimap image is useless to a blind player and is not the gap; the value is in the overlay toggles (owner, religion, trade, ideology), the icon-layer toggle, and the show-features / show-resources / show-yield / show-grid checkboxes that change which markers the engine renders on the world. None of these toggles is currently reachable through speech, and Strategic View (F10) has been rebound to open the advisor counsel popup instead.
+Every control in the panel changes rendering only: the minimap image, Strategic View, the overlay dropdown (owner, religion, trade, ideology), the icon-layer dropdown, and the show-features / show-fog / show-grid / show-trade / show-yield / show-resources / hide-recommendations checkboxes all route through `UI.Set*VisibleMode`, `StrategicViewShow*`, or `SetStrategicView*` and affect nothing the engine exposes to query. The underlying data those overlays paint on the world (owner, religion, trade, ideology, resources, yields) is reached through the cursor and scanner. Strategic View's F10 has been rebound to open the advisor counsel popup.
 
 ## 3.3 Notification panel — Done
 
@@ -192,9 +192,13 @@ Civ V's hex tooltip — owner, working city, terrain and feature, resource, impr
 
 The four themed advisors (Economic, Foreign, Military, Science) and their three popup forms (the floating in-world prompt, the brief overview popup, and the full counsel popup) are all read. The blocking advisor confirm (the "are you sure?" before a costly action) reads its body and announces both options. F10 has been rebound from Strategic View to open the counsel popup; recommendation tags on production rows are spoken when the production chooser is open.
 
-## 3.13 Tutorial and task list — Not started
+## 3.13 Tutorial advisor banner — Done
 
-The tutorial overlay's text label is unread; the engine's pulsing-arrow / glowing-control system that points at "click here next" has no textual equivalent and would have to be replaced rather than read. The task list (used by scenarios for objective tracking) is also unread.
+Covered transparently by 3.12. The engine drives every tutorial message through Events.AdvisorDisplayShow into the same Advisors Context the counsel popup uses, so reading that Context covers tutorial text too. The advisor banner's Activate button (which the engine uses to "point at" a unit, plot, or follow-up popup) is wired to follow the camera with the cursor on activation. This applies both to the in-game "main game" tutorial (Tutorial_MainGame.lua, the periodic hints that fire during normal play) and to the five scripted tutorials launched from the Tutorial picker (Movement, Cities, Improvements, Combat, Diplomacy), which each ship their own TutorialInfo table in the Civilization Tutorials mod and route through the same advisor channel.
+
+## 3.14 Task list — Not started
+
+The task list (TaskList.lua) is a separate stack of objective strings driven by Events.TaskListUpdate from C++. Used mostly by scenarios for objective tracking ("Capture Constantinople by turn 100"); status flips between incomplete / complete / failed per task. Currently no listener and no readout key.
 
 ---
 
@@ -240,11 +244,11 @@ Both automation actions appear in the unit action menu when the unit type qualif
 
 ## 4.10 Route and path preview — Partial
 
-Movement path preview is the same Lua-side pathfinder that target-mode uses — turns, hazards, border crossings are spoken on Space. Worker route-to (Ctrl+Shift+R road-laying along a target path) is reached through the action menu and target-mode the same way. The trade route preview (BNW caravans and cargo ships picking destinations) is not reached — covered under Phase 8.
+Movement path preview uses the Lua-side Pathfinder that target-mode commits through; Space speaks MP cost, turn count, and MP remaining at end. Worker route-to (Ctrl+Shift+R, INTERFACEMODE_ROUTE_TO) reaches the same target-mode harness via the action menu and uses RoutePathfinder.findPath, which speaks tile count and total build turns. Hazards along the path (ZoC, Great Wall borders) and border-crossing implications (open-borders entry, will-declare-war on move) are folded into the MP number rather than called out, so the player gets a correct cost but not a textual warning. The BNW trade route preview is not reached — covered under Phase 8.7.
 
 ## 4.11 Other world interaction modes — Partial
 
-Most engine interface modes (attack, range attack, city range attack, route-to, Great Person tile improvement) are reached through the action menu and resolved through target-mode. Air-strike and air-sweep targeting use the same target-mode harness but air-specific preview rows (intercept warnings) need surfacing. Paradrop, rebase, airlift, gift-tile-improvement, and espionage-move modes are not specifically wired.
+The action menu routes every INTERFACEMODE_* into target-mode and the cursor's plot becomes the commit target. Real previews exist for move-to (and its same-type / all-on-plot variants), melee attack, range attack, air strike, and route-to — these speak combat damage, MP, turns, or build turns as appropriate. Every other mission-backed mode (paradrop, airlift, rebase, air sweep, nuke, embark, disembark) commits on Enter but the preview is silent ("no target here"); the player has no readout before committing and relies on the engine's legality gate to refuse illegal targets. Air sweep does not share air-strike's preview; intercept warnings (which interceptors will fire on the target tile and at what damage) are not surfaced for any air mode, including air strike. Three engine modes have <Mission>NONE — gift-tile-improvement (G&K Great General citadel-on-foreign-tile), gift-unit, and purchase-plot — and short-circuit in commitAtCursor's mission lookup; they need dedicated handlers calling the right engine API rather than the generic PUSH_MISSION path. City range attack is wired but through CivVAccess_CityRangeStrikeMode and dispatched from the city banner, not the unit action menu.
 
 ---
 

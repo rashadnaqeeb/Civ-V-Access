@@ -182,7 +182,7 @@ Modal cursor states — the next click on the map is interpreted as the mode's t
 | `B` | City ranged attack (same key, distinct mode) |
 | `S` | Air strike |
 | `Alt+S` | Air sweep |
-| `Ctrl+Shift+R` | Establish trade / supply route |
+| `Ctrl+Shift+R` | Worker route-to (auto-build road along path) |
 | `Shift+A` | Airlift |
 | `N` | Nuclear strike |
 | `P` | Paradrop |
