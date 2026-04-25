@@ -51,6 +51,19 @@ local function peaceDuration()
         or 10
 end
 
+-- Per-item duration suffix for labels. Returns "" when the item has no
+-- meaningful duration (lump gold, cities, third-party, vote, instant)
+-- so the caller can append unconditionally. Game speed sets the value
+-- once per session; we re-query each call rather than caching so a
+-- mid-session save-load with a different speed (engine prevents this in
+-- practice, but cheap insurance) doesn't read a stale number.
+local function turnsSuffix(duration)
+    if duration == nil or duration <= 0 then
+        return ""
+    end
+    return ", " .. Locale.ConvertTextKey("TXT_KEY_DIPLO_TURNS", duration)
+end
+
 -- State classification ----------------------------------------------------
 
 -- Read-only: the user can browse but not place / remove. AI is demanding
@@ -277,7 +290,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         end
         return BaseMenuItems.Textfield({
             controlName = editName,
-            labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN"),
+            labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(duration),
             priorCallback = function(text, ctrl, isEnter)
                 if isEnter then
                     local n = tonumber(text)
@@ -307,7 +320,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
                 local rType = data1
                 return BaseMenuItems.Textfield({
                     control = editBox,
-                    labelText = resName,
+                    labelText = resName .. turnsSuffix(duration),
                     priorCallback = function(text, ctrl, isEnter)
                         if isEnter then
                             local n = tonumber(text)
@@ -330,6 +343,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         else
             label = resName
         end
+        label = label .. turnsSuffix(duration)
         if readOnly then
             return BaseMenuItems.Text({ labelText = label })
         end
@@ -472,7 +486,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     }
     local bSpec = booleanSpecs[itemType]
     if bSpec ~= nil then
-        local label = Locale.ConvertTextKey(bSpec.key)
+        local label = Locale.ConvertTextKey(bSpec.key) .. turnsSuffix(duration)
         if readOnly then
             return BaseMenuItems.Text({ labelText = label })
         end
@@ -507,9 +521,12 @@ end
 -- otherwise no-ops. Mirrors what sighted players see: the base UI greys
 -- the pocket control and (for some items) sets a SetToolTipString
 -- explaining why; we surface the same disabled state and the same reason.
-local function disabledPocketLeaf(labelKey, controlName)
+-- Takes a pre-composed `label` string so callers can include the duration
+-- suffix on items where it's meaningful (the "30 turns" applies whether
+-- the item is currently legal or not).
+local function disabledPocketLeaf(label, controlName)
     return BaseMenuItems.Text({
-        labelText = Locale.ConvertTextKey(labelKey)
+        labelText = label
             .. ", "
             .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
         onActivate = function()
@@ -535,7 +552,7 @@ local function availableGoldLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD, 1) then
-        return disabledPocketLeaf("TXT_KEY_DIPLO_GOLD", prefix(side) .. "PocketGold")
+        return disabledPocketLeaf(Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"), prefix(side) .. "PocketGold")
     end
     return BaseMenuItems.Text({
         labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD"),
@@ -564,13 +581,14 @@ end
 local function availableGoldPerTurnLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
+    local label = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(dealDuration())
     if
         not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration())
     then
-        return disabledPocketLeaf("TXT_KEY_DIPLO_GOLD_PER_TURN", prefix(side) .. "PocketGoldPerTurn")
+        return disabledPocketLeaf(label, prefix(side) .. "PocketGoldPerTurn")
     end
     return BaseMenuItems.Text({
-        labelText = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN"),
+        labelText = label,
         onActivate = function()
             local pPlayer = Players[iPlayer]
             local maxGPT = pPlayer and pPlayer:CalculateGoldRate() or 0
@@ -596,9 +614,10 @@ local function availableResourceLeaf(side, resType, resInfo)
     local iPlayer = sidePlayer(side)
     local resName = Locale.ConvertTextKey(resInfo.Description)
     local isStrategic = resInfo.ResourceUsage == 1
+    local label = resName .. turnsSuffix(dealDuration())
     if not isStrategic then
         return BaseMenuItems.Text({
-            labelText = resName,
+            labelText = label,
             onActivate = function()
                 -- Luxuries are 1-quantity; engine hardcodes to 1 in
                 -- PocketResource handlers.
@@ -609,7 +628,7 @@ local function availableResourceLeaf(side, resType, resInfo)
     end
     -- Strategic: prompt for amount, capped at g_Deal:GetNumResource.
     return BaseMenuItems.Text({
-        labelText = resName,
+        labelText = label,
         onActivate = function()
             local maxQty = g_Deal:GetNumResource(iPlayer, resType) or 0
             if maxQty <= 0 then
@@ -645,11 +664,12 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix,
     -- Legality for boolean items all follow the same 4-arg signature
     -- IsPossibleToTradeItem(from, to, type, duration) (matching TradeLogic's
     -- RefreshPocketEmbassy / OpenBorders / DP / RA / TA / DoF handlers).
+    local label = Locale.ConvertTextKey(labelKey) .. turnsSuffix(dealDuration())
     if not g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, itemConstant, dealDuration()) then
-        return disabledPocketLeaf(labelKey, prefix(side) .. controlSuffix)
+        return disabledPocketLeaf(label, prefix(side) .. controlSuffix)
     end
     return BaseMenuItems.Text({
-        labelText = Locale.ConvertTextKey(labelKey),
+        labelText = label,
         onActivate = function()
             if bothSides then
                 addFn(g_iUs)
