@@ -762,7 +762,10 @@ function M.test_gold_detail_basic_help_trailer_toggle()
     goldData.fromCitiesMinusTradeTimes100 = 0
     -- With basic help on, the explanation trailer follows expenses with ". ".
     local withHelp = EmpireStatus._goldDetail()
-    T.truthy(contains(withHelp, "Gold buys units and upgrades."))
+    -- Trailing engine punctuation is stripped by compose so the spoken
+    -- output joins cleanly; the period that the engine string ships with
+    -- is gone in the joined result.
+    T.truthy(contains(withHelp, "Gold buys units and upgrades"))
     optionNoBasicHelp = true
     local withoutHelp = EmpireStatus._goldDetail()
     T.falsy(contains(withoutHelp, "Gold buys units"), "trailer dropped when option off")
@@ -838,6 +841,44 @@ function M.test_happiness_detail_folds_in_golden_age_addition_and_effect()
     T.falsy(contains(s, "80 of 200"), "GA PROGRESS headline skipped")
     T.truthy(contains(s, "4 adds to Golden Age"))
     T.truthy(contains(s, "Golden Age boosts yields"))
+end
+
+-- Engine TXT_KEY_TP_* strings end in "." or ":"; the detail builder must
+-- strip that trailing punctuation before joining items / sections, or the
+-- spoken stream gets ".," and ".." runs that the screen reader pauses on.
+function M.test_happiness_detail_strips_trailing_engine_punctuation()
+    setup()
+    happyData.excess = 4
+    happyData.naturalWonders = 1
+    happyData.happiness = 5
+    happyData.numCities = 0
+    happyData.cities = 0
+    happyData.buildings = 0
+    happyData.policies = 0
+    happyData.resources_ = 0
+    -- Override a couple of templates with their real-engine trailing
+    -- punctuation so the trim is exercised end-to-end.
+    GAME_TEXT["TXT_KEY_TP_HAPPINESS_SOURCES"] = "{1_Num} total Happiness from all sources."
+    GAME_TEXT["TXT_KEY_TP_HAPPINESS_FROM_RESOURCES"] = "{1_Num} from Luxury Resources:"
+    GAME_TEXT["TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL"] = "{1_Num} from Difficulty Level."
+    GAME_TEXT["TXT_KEY_TP_GOLDEN_AGE_ADDITION"] = "{1_Num} adds from excess Happiness."
+    local s = EmpireStatus._happinessDetail()
+    T.falsy(s:find(".,", 1, true), "no '.,' in joined output: " .. s)
+    T.falsy(s:find("..", 1, true), "no '..' in joined output: " .. s)
+    T.falsy(s:find(":,", 1, true), "no ':,' in joined output: " .. s)
+end
+
+-- The golden-age effect description is a rules explainer with no current
+-- state. Gated behind noBasicHelp the same way the dedicated
+-- *_EXPLANATION trailers are.
+function M.test_happiness_detail_drops_golden_age_effect_when_basic_help_off()
+    setup()
+    optionNoBasicHelp = true
+    happyData.excess = 4
+    goldenAgeData.turns = 0
+    local s = EmpireStatus._happinessDetail()
+    T.truthy(contains(s, "4 adds to Golden Age"), "addition line still present")
+    T.falsy(contains(s, "Golden Age boosts yields"), "effect explainer dropped")
 end
 
 function M.test_happiness_detail_carnival_when_active_and_modifier()
@@ -942,7 +983,7 @@ function M.test_faith_detail_skips_accumulated_and_lists_sources()
     T.falsy(contains(s, "Faith stored"), "FAITH_ACCUMULATED skipped (in bare F)")
     T.truthy(contains(s, "4 from Cities"))
     T.truthy(contains(s, "1 from City-States"))
-    T.truthy(contains(s, "Pantheons locked"))
+    T.truthy(contains(s, "no pantheons available"))
     T.truthy(contains(s, "5 religions left to found"))
 end
 
@@ -976,6 +1017,19 @@ function M.test_faith_detail_off_when_no_religion()
     setup()
     options[GameOptionTypes.GAMEOPTION_NO_RELIGION] = true
     T.eq(EmpireStatus._faithDetail(), "")
+end
+
+-- Pantheon-faith branch uses the mod-authored short string instead of the
+-- engine's TXT_KEY_TP_FAITH_NEXT_PANTHEON, which inlines a long rules
+-- explainer after the data value.
+function M.test_faith_detail_pantheon_uses_short_form()
+    setup()
+    faithData.hasPantheon = false
+    faithData.canPantheon = true
+    faithData.nextPantheon = 25
+    local s = EmpireStatus._faithDetail()
+    T.truthy(contains(s, "25 faith for next pantheon"), "uses mod-authored short form: " .. s)
+    T.falsy(contains(s, "minimum required"), "engine's verbose phrasing not used")
 end
 
 -- Policy detail ----------------------------------------------------------

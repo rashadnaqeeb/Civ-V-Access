@@ -345,11 +345,25 @@ local function newDetail()
         local cur = sections[#sections]
         cur.items[#cur.items + 1] = s
     end
+    -- Engine TXT_KEY_TP_* strings end in their own punctuation - most in
+     -- ".", a few in ":". Stripping it here lets the joiners (", " between
+    -- items, ". " between sections) read cleanly; otherwise we produce
+    -- ".," and ".." runs in the spoken stream.
+    local function trimTail(s)
+        return (s:gsub("[%s%.;:]+$", ""))
+    end
     function self.compose()
         local parts = {}
         for _, sec in ipairs(sections) do
             if #sec.items > 0 then
-                local body = table.concat(sec.items, ", ")
+                local cleaned = {}
+                for _, item in ipairs(sec.items) do
+                    local t = trimTail(item)
+                    if t ~= "" then
+                        cleaned[#cleaned + 1] = t
+                    end
+                end
+                local body = table.concat(cleaned, ", ")
                 if sec.label ~= nil and sec.label ~= "" then
                     parts[#parts + 1] = sec.label .. ": " .. body
                 else
@@ -546,11 +560,17 @@ local function goldenAgeDetailSegments(player, d)
             d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_LOSS", -excessHappy))
         end
     end
-    d.section()
-    if player:IsGoldenAgeCultureBonusDisabled() then
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_EFFECT_NO_CULTURE"))
-    else
-        d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_EFFECT"))
+    -- The engine renders TXT_KEY_TP_GOLDEN_AGE_EFFECT unconditionally;
+    -- it's pure rules explainer with no current-state data, so for our
+    -- experienced listeners we gate it the same way the dedicated
+    -- *_EXPLANATION trailers are gated.
+    if not noBasicHelp() then
+        d.section()
+        if player:IsGoldenAgeCultureBonusDisabled() then
+            d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_EFFECT_NO_CULTURE"))
+        else
+            d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_EFFECT"))
+        end
     end
     if player:GetGoldenAgeTurns() > 0 and player:GetGoldenAgeTourismModifier() > 0 then
         d.section()
@@ -731,9 +751,17 @@ local function faithDetail()
         end
     else
         if player:CanCreatePantheon(false) then
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_NEXT_PANTHEON", Game.GetMinimumFaithNextPantheon()))
+            -- TXT_KEY_TP_FAITH_NEXT_PANTHEON bakes the data ("X faith") into
+            -- the same key as a long rules explainer ("If you wish to found
+            -- a pantheon, you must do it before there is an Enhanced
+            -- Religion..."). Use a mod-authored short form so the listener
+            -- gets the number without the lecture.
+            d.add(Text.format("TXT_KEY_CIVVACCESS_STATUS_FAITH_NEXT_PANTHEON", Game.GetMinimumFaithNextPantheon()))
         else
-            d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_PANTHEONS_LOCKED"))
+            -- Engine TXT_KEY_TP_FAITH_PANTHEONS_LOCKED is a four-sentence
+            -- rules paragraph with no live data. Mirror the pantheon-faith
+            -- branch and use a short mod-authored form.
+            d.add(Text.key("TXT_KEY_CIVVACCESS_STATUS_FAITH_PANTHEONS_LOCKED"))
         end
     end
 

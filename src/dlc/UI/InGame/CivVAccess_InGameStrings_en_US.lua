@@ -709,6 +709,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS"] = "{1_Cur} of {2_Thr
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPINESS_OFF"] = "Happiness off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH"] = "+{1_Rate} faith, {2_Total} total"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_OFF"] = "Religion off"
+-- Replaces TXT_KEY_TP_FAITH_NEXT_PANTHEON, which inlines a long rules
+-- explainer after the data value.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_NEXT_PANTHEON"] = "{1_Num} faith for next pantheon"
+-- Replaces TXT_KEY_TP_FAITH_PANTHEONS_LOCKED, a four-sentence rules
+-- paragraph with no live data.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_PANTHEONS_LOCKED"] = "no pantheons available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY"] = "+{1_Rate} culture, {2_Turns} turns to policy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_NONE_LEFT"] = "+{1_Rate} culture, no policies left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_POLICY_STALLED"] = "no culture, {1_Cur} of {2_Cost} to next policy"
