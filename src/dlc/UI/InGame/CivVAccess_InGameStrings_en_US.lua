@@ -692,7 +692,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] =
     "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "no {1_Resource}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_COUNT"] = "{1_Num} luxuries"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
+-- Section labels for Shift+letter detail readouts. Inserted as
+-- "{Label}: " between sections by newDetail.compose() at transitions
+-- the engine's first item doesn't already anchor (Help and Income
+-- reuse engine TXT_KEY_HELP / TXT_KEY_EO_INCOME).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_GOLDEN_AGE"] = "Golden age"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"] = "Religions"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_GREAT_PEOPLE"] = "Great people"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_INFLUENCE"] = "Influence"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPY"] = "+{1_Excess} happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_UNHAPPY"] = "Unhappy minus {1_Deficit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY"] = "Very unhappy minus {1_Deficit}"

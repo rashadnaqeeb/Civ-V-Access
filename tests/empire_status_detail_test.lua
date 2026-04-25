@@ -104,6 +104,11 @@ local GAME_TEXT = {
     ["TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_2"] = "{1_Num} empty slots",
     ["TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_3"] = "Influential on {1_Of}",
     ["TXT_KEY_CO_VICTORY_INFLUENTIAL_OF"] = "{1_Num} of {2_Total} civs",
+    -- Engine standalone label keys reused by detail readouts as section
+    -- transitions. Production reads the engine's localized values
+    -- ("Help", "Income"); the test approximations match.
+    ["TXT_KEY_HELP"] = "Help",
+    ["TXT_KEY_EO_INCOME"] = "Income",
 }
 
 local activePlayer
@@ -685,7 +690,7 @@ function M.test_research_detail_skips_rate_and_lists_sources()
     T.eq(
         s,
         "+15 Science from Cities, +2 Science from City-States, +1 Science from Research Agreements"
-            .. ". Each city raises tech cost by 5%"
+            .. ". Help: Each city raises tech cost by 5%"
     )
 end
 
@@ -841,6 +846,88 @@ function M.test_happiness_detail_carnival_when_active_and_modifier()
     goldenAgeData.tourismModifier = 100
     local s = EmpireStatus._happinessDetail()
     T.truthy(contains(s, "Carnival doubles tourism"))
+end
+
+-- Section-label transitions across the detail readouts. The happiness
+-- and unhappiness sub-sections rely on the engine's own TXT_KEY_TP_*
+-- leading sentences as topic anchors and stay unlabeled; the golden-age
+-- and basic-help transitions don't have an engine anchor so they get
+-- mod-authored labels prefixed by ". ".
+function M.test_happiness_detail_labels_golden_age_and_help_transitions()
+    setup()
+    happyData.excess = 4
+    goldenAgeData.turns = 0
+    goldenAgeData.meter = 80
+    goldenAgeData.threshold = 200
+    local s = EmpireStatus._happinessDetail()
+    T.truthy(contains(s, ". Golden age: "), "GA section labeled at transition: " .. s)
+    T.truthy(contains(s, ". Help: "), "basic-help section labeled at transition: " .. s)
+end
+
+function M.test_gold_detail_labels_income_and_help_transitions()
+    setup()
+    goldData.fromCitiesMinusTradeTimes100 = 1500
+    goldData.fromCitiesTimes100 = 1500
+    local s = EmpireStatus._goldDetail()
+    T.truthy(contains(s, "Income: "), "income section labeled: " .. s)
+    T.truthy(contains(s, ". Help: "), "help trailer labeled: " .. s)
+end
+
+function M.test_research_detail_labels_help_transition()
+    setup()
+    sciData.citiesOnlyTimes100 = 800
+    sciData.citiesWithTradeTimes100 = 800
+    local s = EmpireStatus._researchDetail()
+    T.truthy(contains(s, ". Help: "), "help trailer labeled: " .. s)
+end
+
+function M.test_policy_detail_labels_help_transition()
+    setup()
+    cultureData.fromCities = 6
+    local s = EmpireStatus._policyDetail()
+    T.truthy(contains(s, ". Help: "), "help trailer labeled: " .. s)
+end
+
+function M.test_faith_detail_labels_religions_transition()
+    setup()
+    faithData.fromCities = 4
+    faithData.canPantheon = false
+    faithData.religionsStillToFound = 5
+    local s = EmpireStatus._faithDetail()
+    T.truthy(contains(s, ". Religions: "), "religions section labeled: " .. s)
+end
+
+function M.test_faith_detail_labels_great_people_transition_industrial()
+    setup()
+    faithData.currentEra = 5
+    faithData.nextProphet = 600
+    capitalCity = nil
+    local s = EmpireStatus._faithDetail()
+    T.truthy(contains(s, ". Great people: "), "great-people section labeled: " .. s)
+end
+
+function M.test_tourism_detail_labels_influence_transition()
+    setup()
+    tourismData.rate = 5
+    tourismData.totalGreatWorks = 2
+    tourismData.totalSlots = 4
+    pregameVictories[1] = true -- VICTORY_CULTURAL.ID
+    -- influentialOn=2 of total=5 (gap 3, beyond within-reach), so the
+    -- bare key didn't speak X-of-Y, and the detail surfaces TOOLTIP_3.
+    otherPlayers = { { alive = true, minor = false, influence = 0 } }
+    -- Build out the others so total - count > 2. Four more zero-influence
+    -- non-minor others puts total at 5, count at 0 (none influential).
+    for _ = 1, 4 do
+        otherPlayers[#otherPlayers + 1] = { alive = true, minor = false, influence = 0 }
+    end
+    activePlayer.GetNumCivsInfluentialOn = function()
+        return 0
+    end
+    activePlayer.GetNumCivsToBeInfluentialOn = function()
+        return 5
+    end
+    local s = EmpireStatus._tourismDetail()
+    T.truthy(contains(s, ". Influence: "), "influence section labeled: " .. s)
 end
 
 -- Faith detail -----------------------------------------------------------

@@ -48,6 +48,16 @@ EmpireStatus = {}
 local MOD_NONE = 0
 local MOD_SHIFT = 1
 
+-- Section label keys for newDetail.section() transitions where the
+-- engine's first item doesn't already anchor the topic. TXT_KEY_HELP and
+-- TXT_KEY_EO_INCOME are engine-provided; the rest are mod-authored.
+local LABEL_HELP = "TXT_KEY_HELP"
+local LABEL_INCOME = "TXT_KEY_EO_INCOME"
+local LABEL_GOLDEN_AGE = "TXT_KEY_CIVVACCESS_SECTION_GOLDEN_AGE"
+local LABEL_RELIGIONS = "TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"
+local LABEL_GREAT_PEOPLE = "TXT_KEY_CIVVACCESS_SECTION_GREAT_PEOPLE"
+local LABEL_INFLUENCE = "TXT_KEY_CIVVACCESS_SECTION_INFLUENCE"
+
 local function speak(s)
     if s == nil or s == "" then
         return
@@ -193,24 +203,29 @@ local function goldenAgeClause(player)
     return Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS", cur, threshold)
 end
 
--- Count of distinct luxuries currently providing happiness. The engine's
--- GetHappinessFromLuxury returns 0 for luxuries the player has on the map
--- but isn't actually drawing happiness from (no city connection, traded
--- away, lost the source), so this is the "connected" count rather than
--- the inventory count. Empty when zero so the headline doesn't grow a
--- trailing "0 luxuries" clause early game. Shift+H enumerates the same
--- list by name.
-local function luxuryCountClause(player)
-    local count = 0
+-- Per-luxury inventory: name + total copies for every luxury currently
+-- providing happiness. Filters by GetHappinessFromLuxury > 0 so we list
+-- only luxuries actually contributing (excludes lost sources, traded-
+-- away inventory, unconnected resources). GetNumResourceAvailable with
+-- include-imports=true reports total copies the player has access to,
+-- which is the "how many do I have" reading. Empty when no luxuries
+-- are connected so the headline doesn't grow a trailing clause.
+local function luxuryInventoryClause(player)
+    local items = {}
     for resource in GameInfo.Resources() do
         if player:GetHappinessFromLuxury(resource.ID) > 0 then
-            count = count + 1
+            local count = player:GetNumResourceAvailable(resource.ID, true)
+            items[#items + 1] = Text.format(
+                "TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM",
+                Text.key(resource.Description),
+                count
+            )
         end
     end
-    if count == 0 then
+    if #items == 0 then
         return nil
     end
-    return Text.format("TXT_KEY_CIVVACCESS_STATUS_LUXURY_COUNT", count)
+    return table.concat(items, ", ")
 end
 
 local function happinessLine()
@@ -227,7 +242,7 @@ local function happinessLine()
     else
         happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_HAPPY", excess)
     end
-    return joinClauses(happinessClause, luxuryCountClause(player), goldenAgeClause(player))
+    return joinClauses(happinessClause, goldenAgeClause(player), luxuryInventoryClause(player))
 end
 
 local function faithLine()
@@ -304,16 +319,23 @@ local function tourismLine()
     return Text.format("TXT_KEY_CIVVACCESS_STATUS_TOURISM_INFLUENTIAL", rate, count)
 end
 
--- Detail builder. Items are joined with ", " inside a section, sections with
--- ". " between them. Empty sections are pruned so a conditional block (e.g.
--- the deficit warning, the basic-help trailer) leaves no orphan delimiter.
--- The first .section() before any add() is a no-op.
+-- Detail builder. Items are joined with ", " inside a section, sections
+-- with ". " between them. Pass a label to section() to prefix the next
+-- non-empty section with "{Label}: " so the listener hears an explicit
+-- topic transition; sections whose first item is already a topic-labeled
+-- engine sentence (e.g. TXT_KEY_TP_UNHAPPINESS_TOTAL leads with "X total
+-- Unhappiness from all sources") leave the label unset and rely on the
+-- engine's own anchor. Empty sections are pruned so a conditional block
+-- leaves no orphan delimiter.
 local function newDetail()
-    local sections = { {} }
+    local sections = { { items = {}, label = nil } }
     local self = {}
-    function self.section()
-        if #sections[#sections] > 0 then
-            sections[#sections + 1] = {}
+    function self.section(label)
+        local cur = sections[#sections]
+        if #cur.items > 0 then
+            sections[#sections + 1] = { items = {}, label = label }
+        else
+            cur.label = label
         end
     end
     function self.add(s)
@@ -321,13 +343,18 @@ local function newDetail()
             return
         end
         local cur = sections[#sections]
-        cur[#cur + 1] = s
+        cur.items[#cur.items + 1] = s
     end
     function self.compose()
         local parts = {}
         for _, sec in ipairs(sections) do
-            if #sec > 0 then
-                parts[#parts + 1] = table.concat(sec, ", ")
+            if #sec.items > 0 then
+                local body = table.concat(sec.items, ", ")
+                if sec.label ~= nil and sec.label ~= "" then
+                    parts[#parts + 1] = sec.label .. ": " .. body
+                else
+                    parts[#parts + 1] = body
+                end
             end
         end
         return TextFilter.filter(table.concat(parts, ". "))
@@ -386,7 +413,7 @@ local function researchDetail()
     end
 
     if not noBasicHelp() then
-        d.section()
+        d.section(Text.key(LABEL_HELP))
         d.add(Locale.ConvertTextKey("TXT_KEY_TP_TECH_CITY_COST", Game.GetNumCitiesTechCostMod()))
     end
     return d.compose()
@@ -415,7 +442,7 @@ local function goldDetail()
     local cityConnectionGold = player:GetCityConnectionGoldTimes100() / 100
     local traitGold = player:GetGoldPerTurnFromTraits()
 
-    d.section()
+    d.section(Text.key(LABEL_INCOME))
     d.add(Locale.ConvertTextKey("TXT_KEY_TP_CITY_OUTPUT", fromCities))
     d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_CITY_CONNECTIONS", math.floor(cityConnectionGold)))
     d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_ITR", math.floor(tradeRouteGold)))
@@ -460,7 +487,7 @@ local function goldDetail()
     end
 
     if not noBasicHelp() then
-        d.section()
+        d.section(Text.key(LABEL_HELP))
         d.add(Locale.ConvertTextKey("TXT_KEY_TP_GOLD_EXPLANATION"))
     end
     return d.compose()
@@ -657,14 +684,14 @@ local function happinessDetail()
     end
 
     if not noBasicHelp() then
-        d.section()
+        d.section(Text.key(LABEL_HELP))
         d.add(Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_EXPLANATION"))
     end
 
     -- Golden-age portion. Bare H reads the GA headline (active turns or
     -- progress meter); the detail extends with the addition / loss line and
     -- the effect description.
-    d.section()
+    d.section(Text.key(LABEL_GOLDEN_AGE))
     goldenAgeDetailSegments(player, d)
     return d.compose()
 end
@@ -694,7 +721,7 @@ local function faithDetail()
         d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_RELIGION", fromReligion))
     end
 
-    d.section()
+    d.section(Text.key(LABEL_RELIGIONS))
     if player:HasCreatedPantheon() then
         if
             (Game.GetNumReligionsStillToFound() > 0 or player:HasCreatedReligion())
@@ -717,7 +744,7 @@ local function faithDetail()
     d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_RELIGIONS_LEFT", stillToFound))
 
     if player:GetCurrentEra() >= GameInfo.Eras["ERA_INDUSTRIAL"].ID then
-        d.section()
+        d.section(Text.key(LABEL_GREAT_PEOPLE))
         d.add(Locale.ConvertTextKey("TXT_KEY_TP_FAITH_NEXT_GREAT_PERSON", player:GetMinimumFaithNextGreatProphet()))
         local capital = player:GetCapitalCity()
         local anyFound = false
@@ -810,7 +837,7 @@ local function policyDetail()
     end
 
     if not noBasicHelp() then
-        d.section()
+        d.section(Text.key(LABEL_HELP))
         d.add(Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_CITY_COST", Game.GetNumCitiesPolicyCostMod()))
     end
     return d.compose()
@@ -839,7 +866,7 @@ local function tourismDetail()
             local numInfluential = player:GetNumCivsInfluentialOn()
             local numToBe = player:GetNumCivsToBeInfluentialOn()
             local szText = Locale.ConvertTextKey("TXT_KEY_CO_VICTORY_INFLUENTIAL_OF", numInfluential, numToBe)
-            d.section()
+            d.section(Text.key(LABEL_INFLUENCE))
             d.add(Locale.ConvertTextKey("TXT_KEY_TOP_PANEL_TOURISM_TOOLTIP_3", szText))
         end
     end

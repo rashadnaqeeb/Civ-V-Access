@@ -429,21 +429,29 @@ function M.test_happiness_off_when_option_set()
     T.eq(EmpireStatus._happinessLine(), "Happiness off")
 end
 
-function M.test_happiness_appends_connected_luxury_count()
+function M.test_happiness_appends_per_luxury_inventory()
     -- Three luxuries set up: two providing happiness right now (gold,
     -- silk), one connected but no happiness this turn (ivory) -- the
-    -- engine returns 0 for the third, so it doesn't count. Luxuries the
-    -- player has but isn't drawing happiness from (lost source, traded
-    -- away) collapse to the same "0" branch.
+    -- engine returns 0 for the third, so it doesn't count. The inventory
+    -- list reports each contributing luxury with its copy count from
+    -- GetNumResourceAvailable, and lands at the end of the line.
     setup()
     happyData = { excess = 5, unhappy = false, veryUnhappy = false }
     goldenAgeData = { turns = 0, meter = 0, threshold = 200 }
     resources = {
-        { ID = 1, Description = "gold", HappinessFromLuxury = 4 },
-        { ID = 2, Description = "silk", HappinessFromLuxury = 4 },
-        { ID = 3, Description = "ivory", HappinessFromLuxury = 0 },
+        { ID = 1, Description = "gold", HappinessFromLuxury = 4, Available = 2 },
+        { ID = 2, Description = "silk", HappinessFromLuxury = 4, Available = 1 },
+        { ID = 3, Description = "ivory", HappinessFromLuxury = 0, Available = 1 },
     }
-    T.eq(EmpireStatus._happinessLine(), "+5 happiness, 2 luxuries, 0 of 200 to golden age")
+    T.eq(EmpireStatus._happinessLine(), "+5 happiness, 0 of 200 to golden age, gold 2, silk 1")
+end
+
+function M.test_happiness_skips_inventory_when_no_luxuries()
+    setup()
+    happyData = { excess = 5, unhappy = false, veryUnhappy = false }
+    goldenAgeData = { turns = 0, meter = 0, threshold = 200 }
+    resources = {}
+    T.eq(EmpireStatus._happinessLine(), "+5 happiness, 0 of 200 to golden age")
 end
 
 -- Faith line -------------------------------------------------------------
