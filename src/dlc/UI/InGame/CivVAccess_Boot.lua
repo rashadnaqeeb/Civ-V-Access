@@ -59,6 +59,7 @@ include("CivVAccess_UnitControl")
 -- binding surface.
 include("CivVAccess_Turn")
 include("CivVAccess_EmpireStatus")
+include("CivVAccess_TaskList")
 include("CivVAccess_BaselineHandler")
 -- Scanner modules. Strings first so Text.key lookups by Nav / Handler
 -- find mod-authored keys. Core registers the backend registry that
@@ -115,6 +116,7 @@ local function onInGameBoot()
     civvaccess_shared.mapScope = nil
     civvaccess_shared.mapAnnouncer = nil
     PlotAudio.loadAll()
+    TaskList.resetForNewGame()
     HandlerStack.removeByName("Baseline")
     HandlerStack.push(BaselineHandler.create())
     -- Scanner sits directly above Baseline. capturesAllInput=false so

@@ -121,6 +121,7 @@ globals = {
     "TechTreeLogic",
     "DiploCommon",
     "TradeLogicAccess",
+    "TaskList",
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
 

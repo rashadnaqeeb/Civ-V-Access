@@ -203,18 +203,20 @@ function BaselineHandler.create()
     local unitControl = UnitControl.getBindings()
     local turn = Turn.getBindings()
     local empireStatus = EmpireStatus.getBindings()
+    local taskList = TaskList.getBindings()
     appendAll(bindings, surveyor.bindings)
     appendAll(bindings, unitControl.bindings)
     appendAll(bindings, turn.bindings)
     appendAll(bindings, empireStatus.bindings)
+    appendAll(bindings, taskList.bindings)
 
     -- Help list, one unified map-mode list. Sections, in order:
     -- 1) tile info (cursor cluster, S/W/X tile queries, 1/2/3 city queries,
     --    Enter, Shift+S orient, Ctrl+I pedia),
-    -- 2) game info (T/R/G/H/F/P/I empire-status readouts) -- grouped right
-    --    after tile info because both clusters answer "tell me about X" in
-    --    one keystroke; tile info reads the cursor's hex, game info reads
-    --    the empire,
+    -- 2) game info (T/R/G/H/F/P/I empire-status readouts plus Shift+T
+    --    task list) -- grouped right after tile info because both clusters
+    --    answer "tell me about X" in one keystroke; tile info reads the
+    --    cursor's hex, game info reads the empire,
     -- 3) unit control (Tab plus Alt-cluster quick actions),
     -- 4) turn lifecycle,
     -- 5) surveyor radius queries,
@@ -224,6 +226,7 @@ function BaselineHandler.create()
     local helpEntries = {}
     appendAll(helpEntries, MOVEMENT_AND_INFO_HELP_ENTRIES)
     appendAll(helpEntries, empireStatus.helpEntries)
+    appendAll(helpEntries, taskList.helpEntries)
     appendAll(helpEntries, unitControl.helpEntries)
     appendAll(helpEntries, turn.helpEntries)
     appendAll(helpEntries, surveyor.helpEntries)

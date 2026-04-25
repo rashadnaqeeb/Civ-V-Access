@@ -131,6 +131,14 @@ local function setup()
             return { bindings = {}, helpEntries = {} }
         end,
     }
+    -- TaskList contributes Shift+T to the empire-status cluster. Its own
+    -- readout is covered by tasklist_test; the stub here is just a
+    -- non-nil getBindings so BaselineHandler.create doesn't index nil.
+    TaskList = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
     -- BaselineHandler surfaces the scanner keys from ScannerHandler's
     -- module-level HELP_ENTRIES (its own handler.helpEntries is {} so the
     -- four-section map-mode help list can place scanner keys between the
