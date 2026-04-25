@@ -35,12 +35,67 @@ include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_DiploCommon")
 include("CivVAccess_Help")
 
--- State for a major civ. Mirrors base DiploRelationships.InitMajorCivList's
+-- Pending deal between us and a major civ. Mostly an MP signal (AI
+-- proposals fire as popups in SP) but real when present, so it leads the
+-- row.
+local function pendingDealFragment(iUs, iOther)
+    if UI.ProposedDealExists(iUs, iOther) then
+        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_PROPOSAL_OUTGOING")
+    end
+    if UI.ProposedDealExists(iOther, iUs) then
+        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_PROPOSAL_INCOMING")
+    end
+    return nil
+end
+
+-- Teammate's current research. Nil under NO_SCIENCE or when no research
+-- is active, mirroring base DiploList.lua:341-348 which leaves DiploState
+-- empty in those cases.
+local function teammateResearchFragment(pOther)
+    if Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
+        return nil
+    end
+    local currentTech = pOther:GetCurrentResearch()
+    if currentTech == -1 or GameInfo.Technologies[currentTech] == nil then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RESEARCHING", Text.key(GameInfo.Technologies[currentTech].Description))
+end
+
+-- Per-civ score breakdown. Same field set DiploList's score tooltip
+-- surfaces (DiploList.lua:411-426), gated by the same NO_SCIENCE /
+-- NO_POLICIES / NO_RELIGION game options.
+local function scoreBreakdownFragments(pOther)
+    local out = {}
+    out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_CITIES", pOther:GetScoreFromCities())
+    out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_POPULATION", pOther:GetScoreFromPopulation())
+    out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_LAND", pOther:GetScoreFromLand())
+    out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_WONDERS", pOther:GetScoreFromWonders())
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
+        out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_TECH", pOther:GetScoreFromTechs())
+        out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_FUTURE_TECH", pOther:GetScoreFromFutureTech())
+    end
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_POLICIES) then
+        out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_POLICIES", pOther:GetScoreFromPolicies())
+    end
+    out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_GREAT_WORKS", pOther:GetScoreFromGreatWorks())
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
+        out[#out + 1] = Text.format("TXT_KEY_DIPLO_MY_SCORE_RELIGION", pOther:GetScoreFromReligion())
+    end
+    return out
+end
+
+-- State for a major civ. Same-team short-circuits to the teammate's
+-- research, since war / denounce / approach don't apply between
+-- teammates. Otherwise mirrors base DiploRelationships.InitMajorCivList's
 -- war/denouncing/liberated branch, then falls through to the AI approach
 -- guess -- which the base code computes but assigns to a never-displayed
 -- `statusString` local, so the sighted UI shows nothing for the common
 -- case. We speak it.
 local function majorState(iUs, pUsTeam, iOther, pOther)
+    if pOther:GetTeam() == Players[iUs]:GetTeam() then
+        return teammateResearchFragment(pOther)
+    end
     if pUsTeam:IsAtWar(pOther:GetTeam()) then
         return Text.key("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR")
     end
@@ -164,20 +219,37 @@ local function tradeFragments(iUs, iOther)
     return fragments
 end
 
+-- Row order: pending-deal first (attention-grabbing); name + team;
+-- diplomatic state (or teammate research, when same team); trade
+-- fragments (skipped for at-war and same-team); score and breakdown last
+-- as a single tail unit so the user can stop attending after the
+-- headline score if they don't need the breakdown.
 local function majorCivItem(iUs, pUs, pUsTeam, iOther)
     local pOther = Players[iOther]
+    local pOtherTeam = Teams[pOther:GetTeam()]
+    local atWar = pUsTeam:IsAtWar(pOther:GetTeam())
+    local sameTeam = pOther:GetTeam() == pUs:GetTeam()
+
     local civName = Text.key(GameInfo.Civilizations[pOther:GetCivilizationType()].ShortDescription)
     local nameLine = Text.format("TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV", pOther:GetName(), civName)
+    if pOtherTeam:GetNumMembers() > 1 then
+        nameLine = nameLine .. ", " .. Text.format("TXT_KEY_CIVVACCESS_DIPLO_TEAM", pOtherTeam:GetID() + 1)
+    end
 
-    local parts = { nameLine, majorState(iUs, pUsTeam, iOther, pOther) }
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_SCORE_VAL", tostring(pOther:GetScore() or 0))
+    local parts = {}
+    parts[#parts + 1] = pendingDealFragment(iUs, iOther)
+    parts[#parts + 1] = nameLine
+    parts[#parts + 1] = majorState(iUs, pUsTeam, iOther, pOther)
 
-    -- Don't compute trade fragments for civs we're at war with; base
-    -- hides the trade strip in that branch.
-    if not pUsTeam:IsAtWar(pOther:GetTeam()) then
+    if not atWar and not sameTeam then
         for _, f in ipairs(tradeFragments(iUs, iOther)) do
             parts[#parts + 1] = f
         end
+    end
+
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_SCORE_VAL", pOther:GetScore())
+    for _, f in ipairs(scoreBreakdownFragments(pOther)) do
+        parts[#parts + 1] = f
     end
 
     local capturedOther = iOther
@@ -253,31 +325,178 @@ local function minorNearbyResources(iOther, pOther)
     return Text.format("TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST", table.concat(names, ", "))
 end
 
--- City-state ally readout. Base GetAllyText returns "Nobody" for the
--- no-ally case (TXT_KEY_CITY_STATE_NOBODY); in our flat per-civ line
--- that single word lands without the "Allied With:" label the sighted
--- panel renders, so it sounds like an answer to a different question.
--- Substitute "no allies" only for the no-ally branch; defer to base
--- for known-ally / unmet-ally / we-are-the-ally so localized civ names
--- still come through.
-local function minorAllyText(iUs, iOther, pOther)
-    local iAlly = pOther:GetAlly()
-    if iAlly == nil or iAlly == -1 then
-        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_NO_ALLIES")
+-- City-state status: Allies / Friends / Neutral / Afraid / Angry / War /
+-- Permanent War / Peace Blocked. Filtered through TextFilter to strip
+-- the [COLOR_*] markup the engine helper wraps the label in. "War"
+-- subsumes the at-war flag we used to add separately.
+local function minorStatusFragment(iUs, iOther)
+    local raw = GetCityStateStatusText(iUs, iOther)
+    if raw == nil or raw == "" then
+        return nil
     end
-    return GetAllyText(iUs, iOther)
+    return TextFilter.filter(raw)
+end
+
+-- Influence value, per-turn rate, and anchor. Per-turn drops when zero;
+-- anchor drops when equal to the current value. Signed format
+-- throughout because hostile relationships report negative influence
+-- and decay rates.
+local function minorInfluenceFragments(iUs, pOther)
+    local out = {}
+    local inf = pOther:GetMinorCivFriendshipWithMajor(iUs)
+    out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE", string.format("%+d", inf))
+    local perTurn = math.floor(pOther:GetFriendshipChangePerTurnTimes100(iUs) / 100)
+    if perTurn ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_PER_TURN", string.format("%+d", perTurn))
+    end
+    local anchor = pOther:GetMinorCivFriendshipAnchorWithMajor(iUs)
+    if anchor ~= inf then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_ANCHOR", string.format("%+d", anchor))
+    end
+    return out
+end
+
+-- Friendship bonuses by category. Engine getters return 0 outside
+-- Friends / Allies and for traits that don't apply to this CS, so a
+-- non-allied CS adds nothing and an allied CS adds only what it
+-- actually grants. Mirrors GetCityStateStatusToolTip's bFullInfo branch
+-- (CityStateStatusHelper.lua:308-357).
+local function minorBonusFragments(iUs, pOther)
+    local out = {}
+    local culture = pOther:GetMinorCivCurrentCultureBonus(iUs)
+    if culture ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_CULTURE", culture)
+    end
+    local foodCap = math.floor(pOther:GetCurrentCapitalFoodBonus(iUs) / 100)
+    if foodCap ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_FOOD_CAPITAL", foodCap)
+    end
+    local foodOther = math.floor(pOther:GetCurrentOtherCityFoodBonus(iUs) / 100)
+    if foodOther ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_FOOD_OTHER", foodOther)
+    end
+    local science = math.floor(pOther:GetCurrentScienceFriendshipBonusTimes100(iUs) / 100)
+    if science ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_SCIENCE", science)
+    end
+    local happiness = pOther:GetMinorCivCurrentHappinessBonus(iUs)
+    if happiness ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_HAPPINESS", happiness)
+    end
+    local faith = pOther:GetMinorCivCurrentFaithBonus(iUs)
+    if faith ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_FAITH", faith)
+    end
+    local spawn = pOther:GetCurrentSpawnEstimate(iUs)
+    if spawn ~= 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_MILITARY", spawn)
+    end
+    return out
+end
+
+-- Resources the CS is currently exporting to us (i.e. providing while
+-- Friends / Allies). Bonus-class filter matches base
+-- CityStateStatusHelper.lua:364-373. Distinct from minorNearbyResources
+-- (unowned resources near the CS regardless of trade state).
+local function minorExportsFragment(pOther)
+    local items = {}
+    for row in GameInfo.Resources() do
+        local rid = row.ID
+        local count = pOther:GetResourceExport(rid)
+        if count > 0 and Game.GetResourceUsageType(rid) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS then
+            local name = Text.key(row.Description)
+            items[#items + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT", name, count)
+        end
+    end
+    if #items == 0 then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_EXPORTS_LIST", table.concat(items, ", "))
+end
+
+local function minorOpenBordersFragment(iUs, pOther)
+    if pOther:IsPlayerHasOpenBorders(iUs) then
+        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_OPEN_BORDERS")
+    end
+    return nil
+end
+
+-- "Ally of X" line for a CS allied to someone other than us. Skipped
+-- when we're the ally (status text already says "Allies"), when there's
+-- no ally, and when the ally is unmet (no useful name to speak).
+local function minorOtherAllyFragment(iUs, pOther)
+    local iAlly = pOther:GetAlly()
+    if iAlly == nil or iAlly == -1 or iAlly == iUs then
+        return nil
+    end
+    if not Teams[Players[iUs]:GetTeam()]:IsHasMet(Players[iAlly]:GetTeam()) then
+        return nil
+    end
+    local civ = Text.key(Players[iAlly]:GetCivilizationShortDescriptionKey())
+    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_ALLY_OF", civ)
+end
+
+-- Active quests, threatening-barbarians, and proxy-war events as one
+-- fragment. Reuses the engine's GetActiveQuestToolTip so BNW's full
+-- quest set, per-quest turns-remaining, and the contest winning /
+-- losing branches all come through localized. Pre-replace [NEWLINE]
+-- with ", " so multi-quest output reads as a flat list once TextFilter
+-- collapses the rest of the markup.
+local function minorQuestsFragment(iUs, iOther, pOther)
+    local hasQuests = pOther:GetMinorCivNumDisplayedQuestsForPlayer(iUs) > 0
+    local hasBarbs = pOther:IsThreateningBarbariansEventActiveForPlayer(iUs)
+    local hasProxy = pOther:IsProxyWarActiveForMajor(iUs)
+    if not hasQuests and not hasBarbs and not hasProxy then
+        return nil
+    end
+    local raw = GetActiveQuestToolTip(iUs, iOther)
+    raw = raw:gsub("%[NEWLINE%]", ", ")
+    return TextFilter.filter(raw)
+end
+
+-- Bullyable indicator. Engine's status text already says "Afraid" when
+-- influence is below neutral threshold AND we can bully, so skip the
+-- inline tag in that case to avoid saying it twice. Edge case is a
+-- positive-relationship CS that is somehow bullyable; if never observed
+-- the helper can be dropped.
+local function minorBullyableFragment(iUs, pOther)
+    if not pOther:CanMajorBullyGold(iUs) then
+        return nil
+    end
+    if pOther:GetMinorCivFriendshipWithMajor(iUs) < GameDefines.FRIENDSHIP_THRESHOLD_NEUTRAL then
+        return nil
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_DIPLO_BULLYABLE")
 end
 
 local function minorCivItem(iUs, pUsTeam, iOther)
     local pOther = Players[iOther]
     local civInfo = GameInfo.MinorCivilizations[pOther:GetMinorCivType()]
+    local atWar = pUsTeam:IsAtWar(pOther:GetTeam())
+
     local parts = { Text.key(civInfo.Description) }
-    if pUsTeam:IsAtWar(pOther:GetTeam()) then
-        parts[#parts + 1] = Text.key("TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR")
+
+    parts[#parts + 1] = minorStatusFragment(iUs, iOther)
+
+    for _, f in ipairs(minorInfluenceFragments(iUs, pOther)) do
+        parts[#parts + 1] = f
     end
+    for _, f in ipairs(minorBonusFragments(iUs, pOther)) do
+        parts[#parts + 1] = f
+    end
+
+    parts[#parts + 1] = minorExportsFragment(pOther)
+    parts[#parts + 1] = minorOpenBordersFragment(iUs, pOther)
+    parts[#parts + 1] = minorOtherAllyFragment(iUs, pOther)
+
+    -- Base hides quests when at war (DiploList.lua:627); mirror.
+    if not atWar then
+        parts[#parts + 1] = minorQuestsFragment(iUs, iOther, pOther)
+    end
+
+    parts[#parts + 1] = minorBullyableFragment(iUs, pOther)
     parts[#parts + 1] = GetCityStateTraitText(iOther)
     parts[#parts + 1] = minorPersonality(pOther)
-    parts[#parts + 1] = minorAllyText(iUs, iOther, pOther)
     parts[#parts + 1] = minorNearbyResources(iOther, pOther)
 
     local capturedOther = iOther
