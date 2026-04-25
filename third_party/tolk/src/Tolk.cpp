@@ -9,12 +9,14 @@
 #include <windows.h>
 #include <list>
 #include "Tolk.h"
+#include "ScreenReaderDriverBOY.h"
 #include "ScreenReaderDriverJAWS.h"
 #include "ScreenReaderDriverNVDA.h"
 #include "ScreenReaderDriverSA.h"
 #include "ScreenReaderDriverSAPI.h"
 #include "ScreenReaderDriverSNova.h"
 #include "ScreenReaderDriverWE.h"
+#include "ScreenReaderDriverZDSR.h"
 #include "ScreenReaderDriverZT.h"
 
 using namespace std;
@@ -31,9 +33,11 @@ extern "C" {
 TOLK_DLL_DECLSPEC void TOLK_CALL Tolk_Load() {
   if (CoInitializeEx(NULL, COINIT_MULTITHREADED) == S_FALSE) CoUninitialize();
   if (Tolk_IsLoaded()) return;
+  g_screenReaderDrivers.push_back(new ScreenReaderDriverZDSR());
+  g_screenReaderDrivers.push_back(new ScreenReaderDriverBOY());
+  g_screenReaderDrivers.push_back(new ScreenReaderDriverNVDA());
   g_screenReaderDrivers.push_back(new ScreenReaderDriverJAWS());
   g_screenReaderDrivers.push_back(new ScreenReaderDriverWE());
-  g_screenReaderDrivers.push_back(new ScreenReaderDriverNVDA());
 #ifndef _WIN64
   // This driver does not have 64-bit support.
   g_screenReaderDrivers.push_back(new ScreenReaderDriverSNova());

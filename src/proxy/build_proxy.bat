@@ -51,6 +51,10 @@ if exist "%TOLK%\Tolk.dll"                copy /y "%TOLK%\Tolk.dll"             
 if exist "%TOLK%\SAAPI32.dll"             copy /y "%TOLK%\SAAPI32.dll"             "%STAGE%\" >nul
 if exist "%TOLK%\dolapi32.dll"            copy /y "%TOLK%\dolapi32.dll"            "%STAGE%\" >nul
 if exist "%TOLK%\nvdaControllerClient32.dll" copy /y "%TOLK%\nvdaControllerClient32.dll" "%STAGE%\" >nul
+if exist "%TOLK%\BoyCtrl.dll"             copy /y "%TOLK%\BoyCtrl.dll"             "%STAGE%\" >nul
+if exist "%TOLK%\boyctrl.ini"             copy /y "%TOLK%\boyctrl.ini"             "%STAGE%\" >nul
+if exist "%TOLK%\ZDSRAPI.dll"             copy /y "%TOLK%\ZDSRAPI.dll"             "%STAGE%\" >nul
+if exist "%TOLK%\ZDSRAPI.ini"             copy /y "%TOLK%\ZDSRAPI.ini"             "%STAGE%\" >nul
 
 echo SUCCESS: %OUT%\lua51_Win32.dll
 echo Staged:  %STAGE%

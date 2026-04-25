@@ -46,7 +46,11 @@ $proxyFiles = @(
     'Tolk.dll',
     'SAAPI32.dll',
     'dolapi32.dll',
-    'nvdaControllerClient32.dll'
+    'nvdaControllerClient32.dll',
+    'BoyCtrl.dll',
+    'boyctrl.ini',
+    'ZDSRAPI.dll',
+    'ZDSRAPI.ini'
 )
 
 function Add-CandidateGameDir {
@@ -243,7 +247,7 @@ function Invoke-Uninstall {
         Write-Host "  No lua51_original.dll found; skipping proxy restore."
     }
 
-    foreach ($f in @('Tolk.dll','SAAPI32.dll','dolapi32.dll','nvdaControllerClient32.dll')) {
+    foreach ($f in @('Tolk.dll','SAAPI32.dll','dolapi32.dll','nvdaControllerClient32.dll','BoyCtrl.dll','boyctrl.ini','ZDSRAPI.dll','ZDSRAPI.ini')) {
         $p = Join-Path $gameDir $f
         if (Test-Path $p) {
             Write-Host "  Removing $p"
