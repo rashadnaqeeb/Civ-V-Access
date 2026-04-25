@@ -215,11 +215,8 @@ local function luxuryInventoryClause(player)
     for resource in GameInfo.Resources() do
         if player:GetHappinessFromLuxury(resource.ID) > 0 then
             local count = player:GetNumResourceAvailable(resource.ID, true)
-            items[#items + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM",
-                Text.key(resource.Description),
-                count
-            )
+            items[#items + 1] =
+                Text.format("TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM", Text.key(resource.Description), count)
         end
     end
     if #items == 0 then
@@ -346,7 +343,7 @@ local function newDetail()
         cur.items[#cur.items + 1] = s
     end
     -- Engine TXT_KEY_TP_* strings end in their own punctuation - most in
-     -- ".", a few in ":". Stripping it here lets the joiners (", " between
+    -- ".", a few in ":". Stripping it here lets the joiners (", " between
     -- items, ". " between sections) read cleanly; otherwise we produce
     -- ".," and ".." runs in the spoken stream.
     local function trimTail(s)

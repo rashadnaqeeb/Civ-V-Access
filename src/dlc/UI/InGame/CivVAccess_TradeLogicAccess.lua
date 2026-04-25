@@ -526,9 +526,7 @@ end
 -- the item is currently legal or not).
 local function disabledPocketLeaf(label, controlName)
     return BaseMenuItems.Text({
-        labelText = label
-            .. ", "
-            .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+        labelText = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
         onActivate = function()
             local control = Controls[controlName]
             if control == nil then
@@ -582,9 +580,7 @@ local function availableGoldPerTurnLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
     local label = Locale.ConvertTextKey("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(dealDuration())
-    if
-        not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration())
-    then
+    if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration()) then
         return disabledPocketLeaf(label, prefix(side) .. "PocketGoldPerTurn")
     end
     return BaseMenuItems.Text({
@@ -916,15 +912,9 @@ function TradeLogicAccess.buildAvailableItems(side)
     addBoolean("TXT_KEY_DIPLO_OPEN_BORDERS", TradeableItems.TRADE_ITEM_OPEN_BORDERS, "PocketOpenBorders", function(p)
         g_Deal:AddOpenBorders(p, dealDuration())
     end, false)
-    addBoolean(
-        "TXT_KEY_DIPLO_DEF_PACT",
-        TradeableItems.TRADE_ITEM_DEFENSIVE_PACT,
-        "PocketDefensivePact",
-        function(p)
-            g_Deal:AddDefensivePact(p, dealDuration())
-        end,
-        true
-    )
+    addBoolean("TXT_KEY_DIPLO_DEF_PACT", TradeableItems.TRADE_ITEM_DEFENSIVE_PACT, "PocketDefensivePact", function(p)
+        g_Deal:AddDefensivePact(p, dealDuration())
+    end, true)
     addBoolean(
         "TXT_KEY_DIPLO_RESCH_AGREEMENT",
         TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT,

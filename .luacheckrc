@@ -47,7 +47,7 @@ read_globals = {
     "ButtonPopupTypes", "ContentType", "SlotStatus", "ActivityTypes",
     "InterfaceModeTypes", "MissionTypes", "GameMessageTypes",
     "ActionSubTypes", "GameInfoActions", "EndTurnBlockingTypes",
-    "TaskTypes",
+    "TaskTypes", "InfluenceLevelTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -101,8 +101,10 @@ globals = {
 
     -- InGame modules
     "Cursor", "CursorActivate", "CursorPedia", "HexGeom", "Pathfinder",
+    "RoutePathfinder",
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
     "PlotAudio",
+    "EmpireStatus",
     "ScannerCore", "ScannerHandler", "ScannerInput", "ScannerNav",
     "ScannerSearch", "ScannerSnap",
     "ScannerBackendCities", "ScannerBackendImprovements",
@@ -204,12 +206,20 @@ files["tests/"] = {
         -- Engine enums only the ChooseProduction suite needs; shimmed in
         -- that suite's setup rather than in the polyfill.
         "OrderTypes", "AdvisorTypes",
+        -- Engine enum the empire-status suites stub to cover GameOption-
+        -- gated branches (NO_SCIENCE / NO_HAPPINESS / NO_RELIGION /
+        -- NO_POLICIES). Read-only at top level; suites need write access.
+        "GameOptionTypes",
+        -- Engine enum stubbed by the empire-status suites to drive the
+        -- city-state influence-level branches.
+        "InfluenceLevelTypes",
         -- Proxy-injected miniaudio binding. run.lua installs a capture
         -- stub before each suite; declaring it writable here lets the
         -- stub assignment and monkey-patches pass without warnings.
         "audio",
         -- Mod modules the test suites exercise directly.
-        "UnitSpeech", "Pathfinder", "ScannerBackendTerrain",
+        "UnitSpeech", "Pathfinder", "RoutePathfinder",
+        "ScannerBackendTerrain", "EmpireStatus",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
     -- setup helpers and per-test locals are often declared but only used
@@ -259,6 +269,7 @@ files["src/dlc/UI/InGame/TaskList.lua"]           = { ignore = { "1", "2", "3", 
 files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/WorldView/TradeLogic.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/CityView/CityView.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/TechTree/TechTree.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }

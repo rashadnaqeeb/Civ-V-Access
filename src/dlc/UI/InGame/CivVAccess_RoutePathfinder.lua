@@ -364,8 +364,7 @@ function RoutePathfinder.findPath(unit, toPlot)
                     if newG < (gScore[nIdx] or math.huge) then
                         gScore[nIdx] = newG
                         cameFrom[nIdx] = { plot = current.plot, plotIndex = current.plotIndex }
-                        local h = HexGeom.cubeDistance(neighbor:GetX(), neighbor:GetY(), tx, ty)
-                            * EXISTING_ROUTE_WEIGHT
+                        local h = HexGeom.cubeDistance(neighbor:GetX(), neighbor:GetY(), tx, ty) * EXISTING_ROUTE_WEIGHT
                         heapPush(heap, {
                             plot = neighbor,
                             plotIndex = nIdx,
