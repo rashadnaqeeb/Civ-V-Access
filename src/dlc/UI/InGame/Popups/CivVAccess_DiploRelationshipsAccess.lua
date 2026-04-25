@@ -253,6 +253,21 @@ local function minorNearbyResources(iOther, pOther)
     return Text.format("TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST", table.concat(names, ", "))
 end
 
+-- City-state ally readout. Base GetAllyText returns "Nobody" for the
+-- no-ally case (TXT_KEY_CITY_STATE_NOBODY); in our flat per-civ line
+-- that single word lands without the "Allied With:" label the sighted
+-- panel renders, so it sounds like an answer to a different question.
+-- Substitute "no allies" only for the no-ally branch; defer to base
+-- for known-ally / unmet-ally / we-are-the-ally so localized civ names
+-- still come through.
+local function minorAllyText(iUs, iOther, pOther)
+    local iAlly = pOther:GetAlly()
+    if iAlly == nil or iAlly == -1 then
+        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_NO_ALLIES")
+    end
+    return GetAllyText(iUs, iOther)
+end
+
 local function minorCivItem(iUs, pUsTeam, iOther)
     local pOther = Players[iOther]
     local civInfo = GameInfo.MinorCivilizations[pOther:GetMinorCivType()]
@@ -262,13 +277,20 @@ local function minorCivItem(iUs, pUsTeam, iOther)
     end
     parts[#parts + 1] = GetCityStateTraitText(iOther)
     parts[#parts + 1] = minorPersonality(pOther)
-    parts[#parts + 1] = GetAllyText(iUs, iOther)
+    parts[#parts + 1] = minorAllyText(iUs, iOther, pOther)
     parts[#parts + 1] = minorNearbyResources(iOther, pOther)
 
     local capturedOther = iOther
     return BaseMenuItems.Choice({
         labelText = DiploCommon.joinParts(parts),
+        -- F4 opens DiploOverview with Data1=1 -> InGameUtmost (62).
+        -- CityStateDiplo queues at priority 27, far below, so it sits
+        -- in the queue with ShowHide unfired until DiploOverview is
+        -- dequeued. Close DiploOverview first so CityStateDiplo
+        -- surfaces immediately. Mouse-corner open uses priority 26
+        -- and wouldn't need this, but closing is harmless there too.
         activate = function()
+            civvaccess_shared.DiploOverview.close()
             Events.SerialEventGameMessagePopup({
                 Type = ButtonPopupTypes.BUTTONPOPUP_CITY_STATE_DIPLO,
                 Data1 = capturedOther,
