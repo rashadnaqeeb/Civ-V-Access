@@ -140,9 +140,9 @@ The host's customization panel reached from the staging room. Mirrors Advanced S
 
 The in-game HUD is the persistent chrome around the world view: top status bar, end turn button, unit panel, minimap, notifications, advisor prompts. The mod replaces or supplements each of these with keyboard-driven equivalents rather than reading the chrome itself, so coverage shape varies by surface.
 
-## 3.1 Top panel — Not started
+## 3.1 Top panel — Done
 
-The horizontal status strip across the top of the screen — science per turn, gold and net gold, trade routes, happiness, golden age, culture and policy progress, tourism, faith, strategic resources, unit supply, turn counter and era, calendar date, plus the menu and pedia buttons. None of these readouts is currently bound to a key. Some of the underlying data is reachable through other paths (the cursor's economy key reports per-tile yields, the scanner walks city-by-city) but the empire-wide aggregate the top panel exists for is not yet a single hotkey away. The hover tooltips that break each readout into its sources (science from buildings vs trade routes vs Great Scientist, etc.) are not reachable at all.
+Bare T, R, G, H, F, P, and I read the seven empire-status numbers the panel exists for: turn and date (Maya long-form calendar where applicable, unit-supply over-cap when the maintenance mod is non-zero), current research with turns and science per turn, gold rate and total with trade-route slot use and any strategic-resource shortages, happiness state with golden age progress or active turns, faith per turn and total, culture per turn and turns to the next policy, tourism per turn with the influential-civ count (named against the denominator within two of a culture victory). The engine's "off" game options (no science, no happiness, no religion, no policies) are honored on the relevant keys. The hover tooltips that break each readout into its sources (science from buildings vs trade routes vs Great Scientist, etc.) are not separately surfaced; the headline numbers are.
 
 ## 3.2 Minimap panel — Not started
 
@@ -176,9 +176,9 @@ Tab opens a menu of every action legal for the current unit on the current plot.
 
 The most common actions are also bound to Alt+letter quick keys: Alt+F sleep-or-fortify, Alt+S sentry, Alt+W wake, Alt+H heal-fortify, Alt+P pillage, Alt+R ranged attack, Alt+Space skip turn, Alt+U upgrade. These bypass the menu when the player knows what they want.
 
-## 3.9 Diplomacy corner — Partial
+## 3.9 Diplomacy corner — Not useful
 
-The bottom-left persistent buttons — Diplomacy, Culture Overview, Social Policies, Espionage, Multiplayer Chat, End Game — are not directly bound. The screens they open are reachable through other means: the diplomacy overview, social policy popup, and end-game flow are all covered; the culture overview and espionage overview are not (see Phase 8 and 10).
+The bottom-left persistent buttons (Diplomacy, Culture Overview, Social Policies, Espionage, Multiplayer Chat, End Game) are chrome — what matters is the screens they open. Those are reached by dedicated hotkeys, wired in separately, rather than by simulating button presses on the corner itself.
 
 ## 3.10 Info corner and sidebar lists — Not started
 
@@ -218,9 +218,9 @@ After a move action commits, the cursor enters target-mode: free movement around
 
 Both melee and ranged attack enter the same target-mode harness. The combat preview speaks attacker and defender strength after every modifier, expected damage in both directions, and (for air strikes) the visible interceptor count and intercept-probability warnings. City range strikes are a separate handler with the same shape — the cursor jumps to a valid target on entry, the player walks the map freely from there, Space says "out of range" or names the target, Enter commits.
 
-## 4.5 City banners — Partial
+## 4.5 City banners — Done
 
-A friendly city is selected by moving the cursor onto it and pressing Enter, which opens the city screen. The banner-level fast actions a sighted player has — production icon click to open the chooser, eject garrison, range-strike from the banner — are reached through the city screen instead. Damage state is mentioned in city speech. Foreign and city-state banners are not separately wired.
+Friendly, foreign, and city-state banners are all reached through the same cursor pipeline. The plot scan announces civ owner and city name as the cursor lands. Identity (1) speaks population, defense strength, HP, capital flag, status cascade (razing, resistance, occupied, puppet, blockaded), and for city-states the trait token and friendship tier. Politics (3) speaks at-war warmonger and liberation previews, religion, and our spies stationed in that city. Development (2) is suppressed on non-team cities, matching what the banner shows a sighted player. Enter dispatches per ownership: own city opens the city screen (annex popup first when applicable), city-state opens the read-only city screen, foreign major opens diplomacy or the deal screen against a human opponent, unmet is a deliberate no-op. The banner-level fast actions a sighted player has on own cities (production icon click, eject garrison, range-strike from the banner) are reached through the city screen one hop deeper.
 
 ## 4.6 Stacked-unit cycling and unit flags — Done
 
