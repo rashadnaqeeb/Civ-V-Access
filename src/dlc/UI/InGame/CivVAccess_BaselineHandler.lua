@@ -27,15 +27,16 @@
 -- hotkey for advisor counsel is KB_V, which Baseline swallows as an
 -- unbound letter.
 --
--- Help entries are composed as one unified map-mode list in four sections:
--- movement and info keys (cursor + unit control + turn), surveyor keys,
--- scanner keys (pulled from ScannerHandler.HELP_ENTRIES), and function-row
--- keys that open engine screens (F1-F9, plus our F10 rebind). Scanner is
--- always on the stack alongside Baseline in-game, so its entries belong
--- inside this ordered list rather than at the top (which is what a
--- top-down HandlerStack.collectHelpEntries walk would produce if Scanner
--- authored its own helpEntries). The F1-F9 entries describe engine
--- behavior reached via passthroughKeys; they have no Baseline binding.
+-- Help entries are composed as one unified map-mode list in seven sections:
+-- tile info (cursor cluster), game info (T/R/G/H/F/P/I empire-status keys),
+-- unit control, turn lifecycle, surveyor, scanner (pulled from
+-- ScannerHandler.HELP_ENTRIES), and function-row keys that open engine
+-- screens (F1-F9, plus our F10 rebind). Scanner is always on the stack
+-- alongside Baseline in-game, so its entries belong inside this ordered
+-- list rather than at the top (which is what a top-down
+-- HandlerStack.collectHelpEntries walk would produce if Scanner authored
+-- its own helpEntries). The F1-F9 entries describe engine behavior reached
+-- via passthroughKeys; they have no Baseline binding.
 
 BaselineHandler = {}
 
@@ -201,17 +202,28 @@ function BaselineHandler.create()
     local surveyor = SurveyorCore.getBindings()
     local unitControl = UnitControl.getBindings()
     local turn = Turn.getBindings()
+    local empireStatus = EmpireStatus.getBindings()
     appendAll(bindings, surveyor.bindings)
     appendAll(bindings, unitControl.bindings)
     appendAll(bindings, turn.bindings)
+    appendAll(bindings, empireStatus.bindings)
 
-    -- Help list, one unified map-mode list in four sections:
-    -- 1) movement and info (cursor + unit control + turn),
-    -- 2) surveyor, 3) scanner (from ScannerHandler.HELP_ENTRIES because its
-    -- own handler.helpEntries is intentionally empty, see ScannerHandler),
-    -- 4) function-row keys (engine passthroughs plus our F10 rebind).
+    -- Help list, one unified map-mode list. Sections, in order:
+    -- 1) tile info (cursor cluster, S/W/X tile queries, 1/2/3 city queries,
+    --    Enter, Shift+S orient, Ctrl+I pedia),
+    -- 2) game info (T/R/G/H/F/P/I empire-status readouts) -- grouped right
+    --    after tile info because both clusters answer "tell me about X" in
+    --    one keystroke; tile info reads the cursor's hex, game info reads
+    --    the empire,
+    -- 3) unit control (Tab plus Alt-cluster quick actions),
+    -- 4) turn lifecycle,
+    -- 5) surveyor radius queries,
+    -- 6) scanner (from ScannerHandler.HELP_ENTRIES because its own
+    --    handler.helpEntries is intentionally empty; see ScannerHandler),
+    -- 7) function-row keys (engine passthroughs plus our F10 rebind).
     local helpEntries = {}
     appendAll(helpEntries, MOVEMENT_AND_INFO_HELP_ENTRIES)
+    appendAll(helpEntries, empireStatus.helpEntries)
     appendAll(helpEntries, unitControl.helpEntries)
     appendAll(helpEntries, turn.helpEntries)
     appendAll(helpEntries, surveyor.helpEntries)

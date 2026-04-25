@@ -121,6 +121,16 @@ local function setup()
             return { bindings = {}, helpEntries = {} }
         end,
     }
+    -- EmpireStatus's bare-letter readouts (T/R/G/H/F/P/I) are concatenated
+    -- into Baseline's bindings the same way Turn / UnitControl are. The
+    -- module's own readout composition is covered by empire_status_test;
+    -- here we just need a non-nil getBindings so BaselineHandler.create
+    -- doesn't index nil.
+    EmpireStatus = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
     -- BaselineHandler surfaces the scanner keys from ScannerHandler's
     -- module-level HELP_ENTRIES (its own handler.helpEntries is {} so the
     -- four-section map-mode help list can place scanner keys between the

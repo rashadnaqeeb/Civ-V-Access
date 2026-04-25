@@ -53,9 +53,11 @@ include("CivVAccess_CursorPedia")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_CityRangeStrikeMode")
 include("CivVAccess_UnitControl")
--- Turn must load before BaselineHandler so its getBindings() is available
--- when BaselineHandler.create concatenates the binding surface.
+-- Turn and EmpireStatus must load before BaselineHandler so their
+-- getBindings() are available when BaselineHandler.create concatenates the
+-- binding surface.
 include("CivVAccess_Turn")
+include("CivVAccess_EmpireStatus")
 include("CivVAccess_BaselineHandler")
 -- Scanner modules. Strings first so Text.key lookups by Nav / Handler
 -- find mod-authored keys. Core registers the backend registry that
