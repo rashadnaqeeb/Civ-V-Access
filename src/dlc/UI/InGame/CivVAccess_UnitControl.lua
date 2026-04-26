@@ -683,6 +683,14 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     else
         speakQueued(text)
     end
+    -- Settings toggle: when off, suppress the auto-jump so the cursor
+    -- stays put. The direction string baked into the selection text above
+    -- already tells the player where the new selection sits relative to
+    -- the cursor's current position. Move-completed and the explicit
+    -- "speak current unit" hotkey jump independently and stay live.
+    if not civvaccess_shared.cursorFollowsSelection then
+        return
+    end
     Cursor.jumpTo(unit:GetX(), unit:GetY())
 end
 

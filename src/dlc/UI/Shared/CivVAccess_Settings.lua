@@ -48,6 +48,26 @@ local function setReadSubtitles(v)
     Prefs.setBool("ReadSubtitles", b)
 end
 
+-- Cursor-follows-selection toggle. On by default: when a unit is
+-- selected, the hex cursor jumps to its tile. Flipping it off keeps the
+-- cursor put; the selection announcement still includes the direction
+-- from cursor to unit so the player can tell where the new selection
+-- sits. UnitControl reads civvaccess_shared.cursorFollowsSelection live
+-- on every UnitSelectionChanged so toggling takes effect immediately.
+if civvaccess_shared.cursorFollowsSelection == nil then
+    civvaccess_shared.cursorFollowsSelection = Prefs.getBool("CursorFollowsSelection", true)
+end
+
+local function getCursorFollowsSelection()
+    return civvaccess_shared.cursorFollowsSelection == true
+end
+
+local function setCursorFollowsSelection(v)
+    local b = v and true or false
+    civvaccess_shared.cursorFollowsSelection = b
+    Prefs.setBool("CursorFollowsSelection", b)
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -95,6 +115,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
             getValue = getScannerAutoMove,
             setValue = setScannerAutoMove,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_FOLLOWS_SELECTION",
+            getValue = getCursorFollowsSelection,
+            setValue = setCursorFollowsSelection,
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",

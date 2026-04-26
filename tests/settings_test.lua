@@ -116,11 +116,15 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_four_items()
+function M.test_open_builds_five_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(#h._items, 4, "audio cue mode group + volume slider + scanner toggle + read-subtitles toggle")
+    T.eq(
+        #h._items,
+        5,
+        "audio cue mode group + volume slider + scanner toggle + cursor-follows-selection toggle + read-subtitles toggle"
+    )
 end
 
 function M.test_first_item_is_audio_cue_mode_group()
@@ -237,13 +241,39 @@ function M.test_scanner_toggle_flip_writes_shared_and_prefs()
     T.eq(prefsStore["ScannerAutoMove"], true)
 end
 
--- Read-subtitles toggle -------------------------------------------------
+-- Cursor-follows-selection toggle ---------------------------------------
 
-function M.test_fourth_item_is_read_subtitles_toggle()
+function M.test_fourth_item_is_cursor_follows_selection_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(h._items[4].kind, "checkbox")
+end
+
+function M.test_cursor_follows_selection_toggle_flip_writes_shared_and_prefs()
+    setup()
+    -- Defaults true: lazy-init in Settings.lua reads Prefs.getBool with
+    -- default true, and prefsStore is empty after setup(). Flip turns it
+    -- off, which is the realistic user-initiated transition.
+    Settings.open()
+    T.eq(civvaccess_shared.cursorFollowsSelection, true, "lazy-init defaults to on")
+    local handler = HandlerStack.active()
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.cursorFollowsSelection, false)
+    T.eq(prefsStore["CursorFollowsSelection"], false)
+end
+
+-- Read-subtitles toggle -------------------------------------------------
+
+function M.test_fifth_item_is_read_subtitles_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[5].kind, "checkbox")
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
@@ -251,6 +281,7 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.readSubtitles = false
     Settings.open()
     local handler = HandlerStack.active()
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
