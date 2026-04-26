@@ -132,6 +132,12 @@ local FUNCTION_KEY_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC",
     },
+    -- Mod-bound chord; Culture Overview has no engine hotkey, so the
+    -- binding sits adjacent to F10 here even though it isn't function-row.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC",
+    },
 }
 
 local function appendAll(dst, src)
@@ -195,6 +201,26 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open advisor counsel"),
+        -- Culture Overview has no engine hotkey at all (the screen opens
+        -- only via the top-bar tourism icon and DiploCorner button), so
+        -- without a chord, blind players cannot reach it. C alone is the
+        -- cursor SE binding; Ctrl+C is distinct under (key, mods)
+        -- dispatch. Engine's native Ctrl+C (CONTROL_SELECT_OF_TYPE,
+        -- "select units of same type on plot") and Ctrl+C as Citadel
+        -- build for Great Generals are both already swallowed by
+        -- Baseline's letter capture, so the chord is free for us. Gated
+        -- on GAMEOPTION_NO_CULTURE_OVERVIEW_UI so the binding speaks a
+        -- disabled state rather than silently no-opping.
+        bind(Keys.C, MOD_CTRL, function()
+            if Game.IsOption("GAMEOPTION_NO_CULTURE_OVERVIEW_UI") then
+                speak(Text.key("TXT_KEY_CIVVACCESS_CO_DISABLED"))
+                return
+            end
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_CULTURE_OVERVIEW,
+                Data1 = 1,
+            })
+        end, "Open Culture Overview"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help

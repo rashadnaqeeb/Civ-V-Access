@@ -1339,3 +1339,102 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_ROW"] =
 -- letter-by-letter in TTS and tells a non-economist nothing. Mod-authored
 -- override only -- the engine label stays "GNP" for sighted players.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD"] = "Gross National Product"
+-- Culture Overview (Ctrl+C). Four-tab popup: Your Culture (per-city GW
+-- management with click-to-move/view toggle), Swap Great Works (designate
+-- swappable + foreign-offerings list + send), Culture Victory (per-civ
+-- influence/tourism/ideology/public-opinion), Player Influence
+-- (perspective picker + per-target modifier breakdown / level / trend).
+-- Most enum-derived strings (influence levels, trend, public opinion)
+-- reuse engine TXT_KEY_CO_* keys directly so phrasing matches what
+-- sighted players see; mod-authored keys here only cover row formats,
+-- action labels, and our drill-in framing.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE"] = "Your Culture"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS"] = "Swap Great Works"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_VICTORY"] = "Culture Victory"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE"] = "Player Influence"
+-- Tab 1 (Your Culture).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Antiquity sites: {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HIDDEN_SITES"] = "Hidden antiquity sites: {1_Num}"
+-- Mode toggle. The engine has two radios (Click to Move / Click to View);
+-- accessible form is one toggle with the live mode in the label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_MODE_LABEL"] = "Slot activation: {1_Mode}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_MODE_MOVE"] = "move"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_MODE_VIEW"] = "view"
+-- Per-city label. {1_Name} already includes the capital/puppet/occupied
+-- prefix when applicable (mirrors engine's CityDisplayName composition).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL"] =
+    "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great works {4_Filled} of {5_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL_DAMAGED"] =
+    "{1_Name}, culture {2_Cul}, tourism {3_Tou}, great works {4_Filled} of {5_Total}, damaged {6_Pct} percent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_CAPITAL"] = "capital"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_PUPPET"] = "puppet"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_OCCUPIED"] = "occupied"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_NO_BUILDINGS"] = "No great work buildings yet"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_NO_CITIES"] = "No cities"
+-- Per-building entry inside a city. Theming bonus shown when active.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL"] = "{1_Name}, {2_Filled} of {3_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL_THEMED"] =
+    "{1_Name}, {2_Filled} of {3_Total}, theming bonus plus {4_Bonus}"
+-- Per-slot leaf inside a building. Slot index is 1-based for speech.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_FILLED"] = "slot {1_Idx}: {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY"] = "slot {1_Idx}: empty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY_HINT"] = "empty slot, nothing to view"
+-- GW move flow feedback.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_MARKED"] = "marked as move source"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_PLACED"] = "moved"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_CANCELED"] = "move source cleared"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_TYPE_MISMATCH"] = "wrong slot type for current source"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_EMPTY_SOURCE"] = "cannot move from an empty slot"
+-- Tab 2 (Swap Great Works). Three sections: designate-your-swappables,
+-- in-flight workspace, foreign offerings.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE"] = "Designate works to swap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_DESIGNATE_TYPE"] = "{1_Type}: {2_Current}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_WRITING"] = "Writing"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ART"] = "Art"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ARTIFACT"] = "Artifact"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NONE"] = "none designated"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_ENTRY"] = "Clear designation"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY"] =
+    "{1_Name}, {2_Era}, {3_Creator}, theming plus {4_Bonus}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFER"] = "Your offer: {1_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_THEIR_OFFER"] = "Their offer: {1_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_NONE"] = "none selected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL"] = "{1_Name}, {2_Era}, {3_Creator}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL_OWNED"] =
+    "{1_Name}, {2_Era}, {3_Creator}, owned by {4_Owner}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_BUTTON"] = "Send swap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_BUTTON"] = "Clear swap workspace"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFERINGS"] = "Foreign offerings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED"] =
+    "{1_Type}: {2_Name}, {3_Era}, {4_Creator}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_EMPTY"] = "{1_Type}: empty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NO_OFFERINGS"] = "No civs offering swappable works"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_PAIRED"] = "swap auto-paired"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_SENT"] = "swap sent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEARED"] = "swap workspace cleared"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NOT_READY"] = "no valid swap pairing"
+-- Tab 3 (Culture Victory). Per-civ row + drill-in detail.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_ROW"] =
+    "{1_Civ}, {2_Influenced} influenced, tourism {3_Tou}, {4_Ideology}, {5_Opinion}, {6_Unhappy}, {7_Happy}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_INFLUENCED_OF"] = "{1_N} of {2_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY"] = "no ideology"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA"] = "no public opinion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_HAPPY_LABEL"] = "happiness {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_DETAIL"] = "Public opinion breakdown"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_UNHAPPY_DETAIL"] = "Public opinion unhappiness breakdown"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY_DETAIL"] = "No ideology yet, no public opinion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_CIVS"] = "No met major civs"
+-- Tab 4 (Player Influence).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE"] = "Perspective: {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM"] = "Tourism per turn: {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_ROW"] =
+    "{1_Civ}, {2_Level}, {3_Pct} percent, modifier {4_Modifier}, {5_PerTurn} per turn, {6_Trend}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO"] = "estimated {1_N} turns to influential"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_YOURS"] = "your tourism on them: {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_THEIRS"] = "their lifetime culture: {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_NO_TARGETS"] = "No civs with influence levels"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL"] = "Tourism modifier breakdown"
+-- Hotkey help (BaselineHandler / map-mode help list).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Open Culture Overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "Culture Overview is disabled in this game"
