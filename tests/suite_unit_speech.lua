@@ -452,45 +452,17 @@ function M.test_info_enemy_speaks_max_moves()
     T.truthy(out:find("4 moves", 1, true), "max moves spoken for enemies too: " .. out)
 end
 
--- ===== Info dump: enemy HP band matches UnitFlagManager thresholds =====
+-- ===== Info dump: enemy HP =====
 
-function M.test_info_enemy_hp_full_band()
-    setup()
-    local u = mkUnit({ team = 1, damage = 0 })
-    local out = UnitSpeech.info(u)
-    T.truthy(out:find("hp full", 1, true), "full HP enemy speaks 'hp full': " .. out)
-end
-
-function M.test_info_enemy_hp_green_band()
-    -- hp = 67 / 100 -> pct > 0.66 -> green.
-    setup()
-    local u = mkUnit({ team = 1, damage = 33 })
-    local out = UnitSpeech.info(u)
-    T.truthy(out:find("hp green", 1, true), "green band expected at 67%: " .. out)
-end
-
-function M.test_info_enemy_hp_yellow_band_at_boundary()
-    -- hp = 66 / 100 -> pct == 0.66 -> NOT > 0.66 -> yellow. Boundary
-    -- check, matches UnitFlagManager.lua:412 strict-greater semantics.
-    setup()
-    local u = mkUnit({ team = 1, damage = 34 })
-    local out = UnitSpeech.info(u)
-    T.truthy(out:find("hp yellow", 1, true), "yellow at 66% boundary: " .. out)
-end
-
-function M.test_info_enemy_hp_red_band_at_boundary()
-    -- hp = 33 / 100 -> pct == 0.33 -> NOT > 0.33 -> red.
-    setup()
-    local u = mkUnit({ team = 1, damage = 67 })
-    local out = UnitSpeech.info(u)
-    T.truthy(out:find("hp red", 1, true), "red at 33% boundary: " .. out)
-end
-
-function M.test_info_enemy_hp_never_speaks_fraction()
+-- Sighted players read enemy HP off the plot hover tooltip
+-- (PlotMouseoverInclude.lua) as a numeric "current / max" line, so the
+-- info dump speaks the same exact fraction for friendlies and enemies.
+-- Regression guard: catches anyone reintroducing an enemy-only band.
+function M.test_info_enemy_speaks_exact_fraction()
     setup()
     local u = mkUnit({ team = 1, damage = 40 })
     local out = UnitSpeech.info(u)
-    T.truthy(not out:find("/100 hp", 1, true), "enemies must not leak exact HP: " .. out)
+    T.truthy(out:find("60/100 hp", 1, true), "enemy must speak exact fraction: " .. out)
 end
 
 -- ===== Info dump: enemy-scoped omissions =====

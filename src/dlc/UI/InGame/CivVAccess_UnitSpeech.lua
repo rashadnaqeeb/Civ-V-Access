@@ -60,27 +60,6 @@ local function hpFraction(unit)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", maxHP - unit:GetDamage(), maxHP)
 end
 
--- Enemy HP: band color rather than exact fraction, matching what a
--- sighted player reads off the unit flag's health bar. Thresholds mirror
--- UnitFlagManager.lua:412 (> 0.66 green, > 0.33 yellow, else red). 100%
--- hides the bar in-game; we speak "full" so the info line always closes
--- with an HP slot and the user knows silence isn't the answer.
-local function hpColorKey(unit)
-    local maxHP = GameDefines.MAX_HIT_POINTS
-    local hp = maxHP - unit:GetDamage()
-    if hp >= maxHP then
-        return "TXT_KEY_CIVVACCESS_UNIT_HP_FULL"
-    end
-    local pct = hp / maxHP
-    if pct > 0.66 then
-        return "TXT_KEY_CIVVACCESS_UNIT_HP_GREEN"
-    end
-    if pct > 0.33 then
-        return "TXT_KEY_CIVVACCESS_UNIT_HP_YELLOW"
-    end
-    return "TXT_KEY_CIVVACCESS_UNIT_HP_RED"
-end
-
 local function maxMovesCount(unit)
     return math.floor(unit:MaxMoves() / GameDefines.MOVE_DENOMINATOR)
 end
@@ -189,18 +168,20 @@ end
 -- sighted players see on the unit flag and EnemyUnitPanel rather than
 -- the full own-unit tooltip. Friendlies (own or same-team) get the deep
 -- dump: embarked-prefixed name, combat, ranged + range, max moves,
--- status, level / xp, promotions, upgrade target + cost, exact HP
--- fraction. Visible enemies get the subset sighted players can read off
--- a foreign flag / EnemyUnitPanel: embarked-prefixed name, combat,
--- ranged (no range), max moves, fortified only, promotions, HP as a
--- color band. Zero-valued strength fields skip so melee units don't
--- waste syllables on "0 ranged". Upgrade is gated on
--- CanUpgradeRightNow(1) -- the bOnlyTestVisible arg (engine wants a
--- number, not a Lua boolean; passing `true` throws) skips transient
--- conditions (territory, gold, resources, ...) so a tech-unlocked
--- upgrade still speaks for a unit in enemy land the player may want
--- to bring home; tech-locked targets stay silent so we don't spam an
--- unactionable cost. HP stays the final token.
+-- status, level / xp, promotions, upgrade target + cost, HP. Visible
+-- enemies get the subset sighted players can read off a foreign flag /
+-- EnemyUnitPanel: embarked-prefixed name, combat, ranged (no range),
+-- max moves, fortified only, promotions, HP. HP is the same exact
+-- fraction for both -- sighted players get a numeric HP readout off
+-- any unit's plot hover tooltip (PlotMouseoverInclude.lua), so there's
+-- no parity reason to coarsen enemy HP into a band. Zero-valued strength
+-- fields skip so melee units don't waste syllables on "0 ranged".
+-- Upgrade is gated on CanUpgradeRightNow(1) -- the bOnlyTestVisible arg
+-- (engine wants a number, not a Lua boolean; passing `true` throws)
+-- skips transient conditions (territory, gold, resources, ...) so a
+-- tech-unlocked upgrade still speaks for a unit in enemy land the
+-- player may want to bring home; tech-locked targets stay silent so we
+-- don't spam an unactionable cost. HP stays the final token.
 function UnitSpeech.info(unit)
     local parts = {}
     local friendly = isFriendly(unit)
@@ -252,11 +233,7 @@ function UnitSpeech.info(unit)
             end
         end
     end
-    if friendly then
-        parts[#parts + 1] = hpFraction(unit)
-    else
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_COLOR", Text.key(hpColorKey(unit)))
-    end
+    parts[#parts + 1] = hpFraction(unit)
     return table.concat(parts, ", ")
 end
 
