@@ -220,6 +220,11 @@ local function buildItems(popupInfo)
     end
 
     local items = {}
+    if #buckets[1] + #buckets[2] + #buckets[3] == 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"),
+        })
+    end
     for cat = 1, 3 do
         items[#items + 1] = BaseMenuItems.Group({
             labelText = Text.key(CATEGORY_GROUP_KEYS[cat]),

@@ -77,6 +77,11 @@ local function buildItems(popupInfo)
 
     local items = {}
     local candidates = pPlayer:GetPotentialTradeUnitNewHomeCity(pUnit)
+    if #candidates == 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"),
+        })
+    end
     for _, v in ipairs(candidates) do
         local plot = Map.GetPlot(v.X, v.Y)
         if plot ~= nil then
