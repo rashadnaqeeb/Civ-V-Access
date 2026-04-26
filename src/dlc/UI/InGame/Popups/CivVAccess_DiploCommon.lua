@@ -22,8 +22,28 @@ end
 -- screen event; AI goes through the begin-diplo path that spins up the
 -- leader head + trade screen. Matches base DiploRelationships.lua /
 -- DiploGlobalRelationships.lua LeaderSelected.
+--
+-- Human path closes DiploOverview first. SimpleDiploTrade.OnOpenPlayerDealScreen
+-- shows the trade screen via ContextPtr:SetHide(false), so it stays out of
+-- the popup queue. If DiploOverview is queued (the F4 entry path) and we
+-- don't close it, both screens are alive simultaneously: input dispatch
+-- routes to DiploOverview (queue priority), Esc closes DiploOverview, and
+-- SimpleDiploTrade is left orphaned with no way to escape via keyboard
+-- (its BaseMenu handler captures all input with no Esc binding). Mirrors
+-- DiploList.OnOpenPlayerDealScreen / DiploCorner.OnOpenPlayerDealScreen,
+-- which already close themselves on this event.
+--
+-- AI path leaves DiploOverview alone -- LeaderHeadRoot uses UIManager:
+-- QueuePopup at PopupPriority.LeaderHead, so it stacks above DiploOverview
+-- correctly and Esc returns the user to DiploOverview after the AI
+-- conversation. Closing DiploOverview here would drop them back to the map
+-- instead.
 function DiploCommon.openTradeWith(iOther)
     if Players[iOther]:IsHuman() then
+        if civvaccess_shared.DiploOverview ~= nil
+            and type(civvaccess_shared.DiploOverview.close) == "function" then
+            civvaccess_shared.DiploOverview.close()
+        end
         Events.OpenPlayerDealScreenEvent(iOther)
     else
         UI.SetRepeatActionPlayer(iOther)
