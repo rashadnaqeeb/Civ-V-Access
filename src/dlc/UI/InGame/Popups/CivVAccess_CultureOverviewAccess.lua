@@ -161,6 +161,20 @@ local function civDisplayName(pPlayer)
     return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
+-- Resolve a great work's creator to a speakable civ name. The engine can
+-- return -1 here: the ARCHAEOLOGY_ARTIFACT_PLAYER2 path passes
+-- ArchaeologicalRecord.m_ePlayer2 through to CreateGreatWork, and that
+-- field is NO_PLAYER for ancient-ruin-derived artifacts (see
+-- CvCultureClasses.cpp:6166). A nil pPlayer would crash civDisplayName
+-- on its first method call.
+local function gwCreatorName(gwIndex)
+    local pCreator = Players[Game.GetGreatWorkCreator(gwIndex)]
+    if pCreator == nil then
+        return Text.key("TXT_KEY_MISC_UNKNOWN")
+    end
+    return civDisplayName(pCreator)
+end
+
 -- Iterator over met major civs that are alive. CO's per-civ tabs filter on
 -- alive + non-minor + has-met from the active team. MP exposes everyone.
 local function eachMetMajorAlive()
@@ -245,7 +259,7 @@ local function gwTooltip(gwIndex)
     end
     local workType = Game.GetGreatWorkType(gwIndex)
     local classType = GameInfo.GreatWorks[workType].GreatWorkClassType
-    local creator = civDisplayName(Players[Game.GetGreatWorkCreator(gwIndex)])
+    local creator = gwCreatorName(gwIndex)
     local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(gwIndex))
     local culture = GameDefines.BASE_CULTURE_PER_GREAT_WORK
     local tourism = GameDefines.BASE_TOURISM_PER_GREAT_WORK
@@ -714,7 +728,7 @@ local function gwShortDesc(idx)
     end
     local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
     local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
-    local creator = civDisplayName(Players[Game.GetGreatWorkCreator(idx)])
+    local creator = gwCreatorName(idx)
     return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL", name, era, creator)
 end
 
@@ -770,14 +784,12 @@ local function buildOfferingPulldown(typeMeta)
             end
             local name = Locale.ConvertTextKey(Game.GetGreatWorkName(idx))
             local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(idx))
-            local creator = civDisplayName(Players[Game.GetGreatWorkCreator(idx)])
+            local creator = gwCreatorName(idx)
             local theming = Game.GetGreatWorkCurrentThemingBonus(idx) or 0
             return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY", name, era, creator, theming)
         end,
         onSelected = function()
-            if m_swapTab ~= nil then
-                m_swapTab.menu().setItems(buildSwapItems())
-            end
+            m_swapTab.menu().setItems(buildSwapItems())
         end,
     })
 end
@@ -819,7 +831,7 @@ local function buildForeignOfferingLeaf(gwIndex, ownerID)
             local typeName = meta and Text.key(meta.nameKey) or ""
             local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gwIndex))
             local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(gwIndex))
-            local creator = civDisplayName(Players[Game.GetGreatWorkCreator(gwIndex)])
+            local creator = gwCreatorName(gwIndex)
             return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED", typeName, name, era, creator)
         end,
         tooltipFn = function()
@@ -828,9 +840,7 @@ local function buildForeignOfferingLeaf(gwIndex, ownerID)
         onActivate = function()
             m_swapTheirItem = gwIndex
             m_swapTradingPartner = ownerID
-            if m_swapTab ~= nil then
-                m_swapTab.menu().setItems(buildSwapItems())
-            end
+            m_swapTab.menu().setItems(buildSwapItems())
             SpeechPipeline.speakInterrupt(tradeStateLabel())
         end,
     })
@@ -937,16 +947,16 @@ end
 
 local function publicOpinionText(opinionType)
     if opinionType == PublicOpinionTypes.PUBLIC_OPINION_CONTENT then
-        return Locale.ConvertTextKey("TXT_KEY_CO_PUBLIC_OPINION_CONTENT")
+        return Text.key("TXT_KEY_CO_PUBLIC_OPINION_CONTENT")
     end
     if opinionType == PublicOpinionTypes.PUBLIC_OPINION_DISSIDENTS then
-        return Locale.ConvertTextKey("TXT_KEY_CO_PUBLIC_OPINION_DISSIDENTS")
+        return Text.key("TXT_KEY_CO_PUBLIC_OPINION_DISSIDENTS")
     end
     if opinionType == PublicOpinionTypes.PUBLIC_OPINION_CIVIL_RESISTANCE then
-        return Locale.ConvertTextKey("TXT_KEY_CO_PUBLIC_OPINION_CIVIL_RESISTANCE")
+        return Text.key("TXT_KEY_CO_PUBLIC_OPINION_CIVIL_RESISTANCE")
     end
     if opinionType == PublicOpinionTypes.PUBLIC_OPINION_REVOLUTIONARY_WAVE then
-        return Locale.ConvertTextKey("TXT_KEY_CO_PUBLIC_OPINION_REVOLUTIONARY_WAVE")
+        return Text.key("TXT_KEY_CO_PUBLIC_OPINION_REVOLUTIONARY_WAVE")
     end
     return Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA")
 end
@@ -967,14 +977,14 @@ local function buildVictoryRowGroup(pPlayer)
             local happyText
             local ideoBranch = p:GetLateGamePolicyTree()
             if ideoBranch ~= PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
-                ideologyText = Locale.ConvertTextKey(GameInfo.PolicyBranchTypes[ideoBranch].Description)
+                ideologyText = Text.key(GameInfo.PolicyBranchTypes[ideoBranch].Description)
                 opinionText = publicOpinionText(p:GetPublicOpinionType())
                 local unhappiness = -1 * p:GetPublicOpinionUnhappiness()
-                unhappyText = Locale.ConvertTextKey("TXT_KEY_CO_PUBLIC_OPINION_UNHAPPINESS", unhappiness)
+                unhappyText = Text.format("TXT_KEY_CO_PUBLIC_OPINION_UNHAPPINESS", unhappiness)
             else
                 ideologyText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY")
                 opinionText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA")
-                unhappyText = "0"
+                unhappyText = tostring(0)
             end
             -- Excess happiness is the player's overall happiness buffer; it
             -- exists regardless of ideology (city happiness summed minus
@@ -1052,9 +1062,9 @@ local INFLUENCE_LEVEL_KEYS = {
 local function influenceLevelText(level)
     local key = INFLUENCE_LEVEL_KEYS[level]
     if key == nil then
-        return Locale.ConvertTextKey("TXT_KEY_CO_UNKNOWN")
+        return Text.key("TXT_KEY_CO_UNKNOWN")
     end
-    return Locale.ConvertTextKey(key)
+    return Text.key(key)
 end
 
 -- Bonuses-at-level callout. Engine concatenates this onto the level
@@ -1104,7 +1114,7 @@ local function buildInfluenceRowGroup(targetID)
             local bonusKey = levelBonusKey(level)
             if bonusKey ~= nil then
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Locale.ConvertTextKey(bonusKey),
+                    labelText = Text.key(bonusKey),
                 })
             end
             -- Modifier breakdown. The label carries the live modifier value
@@ -1224,34 +1234,19 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     -- engine callback to invoke from keyboard activation. Idempotent
     -- across the lua_State; a no-op if FrontEnd ProbeBoot already ran.
     PullDownProbe.installFromControls({ "PlayerPD" }, {}, {}, {})
-    m_yourCultureTab = TabbedShell.menuTab({
-        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE",
-        menuSpec = {
-            displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
-            items = {},
-        },
-    })
-    m_swapTab = TabbedShell.menuTab({
-        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS",
-        menuSpec = {
-            displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
-            items = {},
-        },
-    })
-    m_victoryTab = TabbedShell.menuTab({
-        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_VICTORY",
-        menuSpec = {
-            displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
-            items = {},
-        },
-    })
-    m_influenceTab = TabbedShell.menuTab({
-        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE",
-        menuSpec = {
-            displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
-            items = {},
-        },
-    })
+    local function makeTab(tabName)
+        return TabbedShell.menuTab({
+            tabName = tabName,
+            menuSpec = {
+                displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
+                items = {},
+            },
+        })
+    end
+    m_yourCultureTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE")
+    m_swapTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS")
+    m_victoryTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_VICTORY")
+    m_influenceTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE")
     TabbedShell.install(ContextPtr, {
         name = "CultureOverview",
         displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
@@ -1323,9 +1318,7 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         if ContextPtr:IsHidden() then
             return
         end
-        if m_yourCultureTab ~= nil then
-            m_yourCultureTab.menu().setItems(buildYourCultureItems())
-        end
+        m_yourCultureTab.menu().setItems(buildYourCultureItems())
     end)
 
     -- Tab 2 refresh: SerialEventGreatWorksScreenDirty is the engine's
@@ -1338,9 +1331,7 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         if ContextPtr:IsHidden() then
             return
         end
-        if m_swapTab ~= nil then
-            m_swapTab.menu().setItems(buildSwapItems())
-        end
+        m_swapTab.menu().setItems(buildSwapItems())
     end)
 end
 
