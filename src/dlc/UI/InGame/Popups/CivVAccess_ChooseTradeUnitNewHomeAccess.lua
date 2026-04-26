@@ -8,9 +8,11 @@
 -- SelectNewHome(x, y) shows the ChooseConfirm overlay -> we push
 -- ChooseConfirmSub. Yes fires
 -- Game.SelectionListGameNetMessage(MISSION_CHANGE_TRADE_UNIT_HOME_CITY)
--- via base's OnConfirmYes. The base's per-row GoToCity sub-button and
--- the Trade Overview shortcut are omitted; both serve map-focus features
--- a blind player does not use.
+-- via base's OnConfirmYes. The base's per-row GoToCity sub-button is
+-- omitted (camera pan, no value to a blind player). The Trade Overview
+-- shortcut is wired through to base's TradeOverview() so the route
+-- inspector is reachable from here once TradeRouteOverview itself gains
+-- accessibility; today it opens a silent screen.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -96,6 +98,14 @@ local function buildItems(popupInfo)
             end
         end
     end
+
+    items[#items + 1] = BaseMenuItems.Button({
+        controlName = "TradeOverviewButton",
+        textKey = "TXT_KEY_CHOOSE_TRADE_ROUTE_TRADE_OVERVIEW",
+        activate = function()
+            TradeOverview()
+        end,
+    })
 
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "CloseButton",
