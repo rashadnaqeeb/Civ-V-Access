@@ -837,13 +837,22 @@ local function onEndCombatSim(
     -- City defenders are owned by SerialEventCitySetDamage's listener;
     -- it speaks the result the moment the engine commits city HP, which
     -- is reliable under both Quick Combat ON and OFF. EndCombatSim's
-    -- defenderUnit is -1 for city attacks and its damage args track the
-    -- garrison or are zero, so duplicating the announcement here would
-    -- both double-speak under standard combat and risk wrong numbers.
-    if defenderUnit == -1 or UnitSpeech.combatantName(defenderPlayer, defenderUnit) == "" then
+    -- defenderUnit is -1 for city attacks, so duplicating the
+    -- announcement here would both double-speak under standard combat
+    -- and risk wrong numbers (damage args track the garrison or are zero).
+    if defenderUnit == -1 then
         return
     end
     local defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
+    if defenderName == "" then
+        Log.warn(
+            "onEndCombatSim: defender name empty for player="
+                .. tostring(defenderPlayer)
+                .. " unit="
+                .. tostring(defenderUnit)
+        )
+        return
+    end
     local text = UnitSpeech.combatResult({
         attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit),
         defenderName = defenderName,
