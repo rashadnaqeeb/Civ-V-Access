@@ -254,6 +254,22 @@ function UnitSpeech.combatantName(playerId, unitId)
     return unitName(unit)
 end
 
+-- Pre-resolved city display name for combat speech. Same role as
+-- combatantName but for city defenders -- the snapshot fallback caches
+-- the name at commit time because a captured city changes owner before
+-- the formatter runs.
+function UnitSpeech.cityCombatantName(playerId, cityId)
+    local player = Players[playerId]
+    if player == nil then
+        return ""
+    end
+    local city = player:GetCityByID(cityId)
+    if city == nil then
+        return ""
+    end
+    return city:GetName()
+end
+
 -- Bidirectional damage preview for a melee attack by `actor` into
 -- `defender` on `targetPlot`. Clones base-game EnemyUnitPanel.lua's
 -- VSUnit melee branch: GetMaxAttackStrength / GetMaxDefenseStrength +
@@ -745,6 +761,102 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_THEIR", table.concat(theirs, ", "))
     end
 
+    return table.concat(parts, ", ")
+end
+
+-- Bidirectional damage preview for a melee attack by `actor` into a
+-- `city`. Mirrors EnemyUnitPanel.lua's VS_City melee branch
+-- (line ~309-352): GetMaxAttackStrength against a nil unit + city plot,
+-- city's GetStrengthValue for defense, plus the bAttackerIsCity /
+-- bDefenderIsCity boolean flags GetCombatDamage takes for unit-vs-city
+-- combat math. Cities don't take fire-support hits (they are the
+-- defender, not adjacent to one), but the attacker can if the city
+-- has a friend nearby that fires support; mirrored from base.
+function UnitSpeech.cityMeleePreview(actor, city, targetPlot)
+    local fromPlot = actor:GetPlot()
+
+    local fireSupport = actor:GetFireSupportUnit(city:GetOwner(), targetPlot:GetX(), targetPlot:GetY())
+    local fireSupportDmg = 0
+    if fireSupport ~= nil then
+        fireSupportDmg = fireSupport:GetRangeCombatDamage(actor, nil, false)
+    end
+
+    local myStrength = actor:GetMaxAttackStrength(fromPlot, targetPlot, nil)
+    local theirStrength = city:GetStrengthValue()
+    if myStrength <= 0 or theirStrength <= 0 then
+        return ""
+    end
+    local myDmg =
+        actor:GetCombatDamage(myStrength, theirStrength, actor:GetDamage() + fireSupportDmg, false, false, true)
+    local theirDmg = actor:GetCombatDamage(theirStrength, myStrength, city:GetDamage(), false, true, false)
+        + fireSupportDmg
+
+    local maxCityHP = city:GetMaxHitPoints()
+    if myDmg > maxCityHP then
+        myDmg = maxCityHP
+    end
+    local maxUnitHP = GameDefines.MAX_HIT_POINTS
+    if theirDmg > maxUnitHP then
+        theirDmg = maxUnitHP
+    end
+
+    local name = city:GetName()
+    local myStr = Locale.ToNumber(myStrength / 100, "#.##")
+    local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
+
+    local parts = {
+        Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_CITY", name, myStr, theirStr, theirDmg, myDmg),
+    }
+    if fireSupportDmg > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE", fireSupportDmg)
+    end
+    return table.concat(parts, ", ")
+end
+
+-- Ranged variant of cityMeleePreview. Mirrors the bRanged branch of
+-- EnemyUnitPanel.lua's city block (line ~305): GetMaxRangedCombatStrength
+-- + GetRangeCombatDamage against the city. Air attackers get the city's
+-- defensive air strike damage and visible interceptor count. No
+-- fire-support: cities aren't adjacent to a defender that would fire on
+-- behalf of the city in a ranged exchange.
+function UnitSpeech.cityRangedPreview(actor, city, targetPlot)
+    local myStrength = actor:GetMaxRangedCombatStrength(nil, city, true, true)
+    if myStrength <= 0 then
+        return ""
+    end
+    local myDmg = actor:GetRangeCombatDamage(nil, city, false)
+
+    local theirStrength = city:GetStrengthValue()
+    local theirDmg = 0
+    local interceptors = 0
+    local interceptPossible = false
+    if actor:GetDomainType() == DomainTypes.DOMAIN_AIR then
+        theirDmg = city:GetAirStrikeDefenseDamage(actor, false)
+        interceptors = actor:GetInterceptorCount(targetPlot, nil, true, true)
+        interceptPossible = true
+    end
+
+    local maxCityHP = city:GetMaxHitPoints()
+    if myDmg > maxCityHP then
+        myDmg = maxCityHP
+    end
+
+    local name = city:GetName()
+    local myStr = Locale.ToNumber(myStrength / 100, "#.##")
+    local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
+
+    local parts = {
+        Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED_CITY", name, myStr, theirStr, myDmg),
+    }
+    if theirDmg > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE", theirDmg)
+    end
+    if interceptPossible then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE")
+    end
+    if interceptors > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
+    end
     return table.concat(parts, ", ")
 end
 

@@ -78,6 +78,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOD_POS"] = "plus {1_N} perc
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOD_NEG"] = "minus {1_N} percent {2_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED"] =
     "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_MyDmg} damage to them"
+-- City-defender preview variants. Cities don't surface a combat
+-- prediction (the engine's CombatPrediction is unit-vs-unit only) and
+-- the modifier breakdowns are different enough that we drop them rather
+-- than mislead. Damage numbers are still computed via the engine's own
+-- GetCombatDamage with the city flags set, so they match what the
+-- sighted EnemyUnitPanel reports.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_CITY"] =
+    "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_MyDmg} damage to me, {5_TheirDmg} to them"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED_CITY"] =
+    "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_MyDmg} damage to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE"] = "{1_Dmg} to me"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE"] = "intercept possible"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS"] = "{1_N} interceptors"
@@ -152,6 +162,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE"] = "{1_Action}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE"] = "attacker {1_Name} -{2_Dmg} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE"] = "defender {1_Name} -{2_Dmg} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_KILLED"] = "{1_Name} killed"
+-- City-capture announcements. SerialEventCityCaptured fires for empty
+-- city captures (no EndCombatSim) and for capture-after-defender-killed
+-- transitions; the active player's perspective decides which line wins.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAPTURED_BY_US"] = "captured {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_LOST"] = "lost {1_Name}"
 -- Self-plot action confirms. Keyed by action hash token so the menu can
 -- dispatch without a per-action if-ladder. FORTIFY / SLEEP / ALERT / WAKE /
 -- AUTOMATE / DISBAND / BUILD / PROMOTION map 1:1 to the commit path.

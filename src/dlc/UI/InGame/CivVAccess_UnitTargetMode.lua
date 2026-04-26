@@ -126,6 +126,31 @@ local function firstEnemyUnit(plot)
     return nil
 end
 
+-- Enemy city at plot if any. The active team must be at war with the city's
+-- owner -- a peaceful rival's city isn't a combat target (the move that
+-- enters it would route through the war-confirm popup, not a strike).
+local function enemyCityAt(plot)
+    if plot == nil or not plot:IsCity() then
+        return nil
+    end
+    local city = plot:GetPlotCity()
+    if city == nil or city:GetOwner() == Game.GetActivePlayer() then
+        return nil
+    end
+    local activeTeam = Teams[Game.GetActiveTeam()]
+    if activeTeam == nil then
+        return nil
+    end
+    local owner = Players[city:GetOwner()]
+    if owner == nil then
+        return nil
+    end
+    if not (owner:IsBarbarian() or activeTeam:IsAtWar(owner:GetTeam())) then
+        return nil
+    end
+    return city
+end
+
 local function isRangeAttackMode(mode)
     return mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE
 end
@@ -209,6 +234,28 @@ local function routePathPreview(actor, targetPlot)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", result.tileCount, result.buildTurns)
 end
 
+-- Range / melee preview that prefers a unit garrison over the city
+-- itself. EnemyUnitPanel does the same: a defended city's combat goes
+-- through the garrison's stats, undefended cities use city stats. Returns
+-- nil if the plot has no enemy combat target (caller speaks EMPTY).
+local function combatPreviewAt(actor, plot, tx, ty, ranged)
+    local defenderUnit = firstEnemyUnit(plot)
+    if defenderUnit ~= nil then
+        if ranged then
+            return rangedPreview(actor, defenderUnit, plot, tx, ty)
+        end
+        return UnitSpeech.meleePreview(actor, defenderUnit, plot)
+    end
+    local defenderCity = enemyCityAt(plot)
+    if defenderCity ~= nil then
+        if ranged then
+            return UnitSpeech.cityRangedPreview(actor, defenderCity, plot)
+        end
+        return UnitSpeech.cityMeleePreview(actor, defenderCity, plot)
+    end
+    return nil
+end
+
 local function buildPreview(self)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
@@ -218,34 +265,43 @@ local function buildPreview(self)
     local actor = self._actor
     local parts = {}
     if isRangeAttackMode(mode) then
-        local defender = firstEnemyUnit(plot)
-        if defender == nil then
+        local text = combatPreviewAt(actor, plot, tx, ty, true)
+        if text == nil or text == "" then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         else
-            parts[#parts + 1] = rangedPreview(actor, defender, plot, tx, ty)
+            parts[#parts + 1] = text
         end
         local rivalTeam = actor:GetDeclareWarRangeStrike(plot)
         if rivalTeam ~= -1 then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
         end
     elseif isMeleeAttackMode(mode) then
-        local defender = firstEnemyUnit(plot)
-        if defender == nil then
+        local text = combatPreviewAt(actor, plot, tx, ty, false)
+        if text == nil or text == "" then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         else
-            local text = UnitSpeech.meleePreview(actor, defender, plot)
-            if text == "" then
+            parts[#parts + 1] = text
+        end
+    elseif isMoveMode(mode) then
+        -- Move-into-enemy resolves as an attack at commit time (engine
+        -- MoveOrAttack). Speak the matching combat preview when adjacent
+        -- so the user gets damage prediction; further away the engine
+        -- queues a multi-turn move that won't attack this turn -- speak
+        -- the path as a regular move. War-declaration on move is
+        -- surfaced by the engine's popup at commit time (routed through
+        -- GenericPopupAccess), so no pre-commit detection here.
+        local hasEnemy = firstEnemyUnit(plot) ~= nil or enemyCityAt(plot) ~= nil
+        local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
+        if hasEnemy and dist == 1 then
+            local text = combatPreviewAt(actor, plot, tx, ty, false)
+            if text == nil or text == "" then
                 parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
             else
                 parts[#parts + 1] = text
             end
+        else
+            parts[#parts + 1] = movePathPreview(actor, plot)
         end
-    elseif isMoveMode(mode) then
-        -- War-declaration on move is surfaced by the engine's popup at
-        -- commit time (routed through GenericPopupAccess), so no pre-
-        -- commit detection here. Pathfinder reports MP cost and turn
-        -- count; same-plot cursor falls through to EMPTY as before.
-        parts[#parts + 1] = movePathPreview(actor, plot)
     elseif isRouteMode(mode) then
         parts[#parts + 1] = routePathPreview(actor, plot)
     elseif mode == InterfaceModeTypes.INTERFACEMODE_PARADROP then
@@ -293,22 +349,37 @@ end
 -- popups come through the engine's own ButtonPopupTypes.BUTTONPOPUP_*
 -- dispatch and are handled by GenericPopupAccess, not here.
 --
+-- INTERFACEMODE_ATTACK is special-cased to Game.SelectionListMove rather
+-- than GAMEMESSAGE_PUSH_MISSION + MISSION_MOVE_TO. The base UI's mouse
+-- click handler (InGame.lua AttackIntoTile) uses SelectionListMove for
+-- ATTACK mode; mirroring that keeps the mod on the same code path the
+-- engine has been exercised against for melee attacks against units AND
+-- cities. The mission-push variant is technically another route through
+-- CvUnitMission but base never uses it for melee attacks, and we hit
+-- "actions don't resolve" reports against cities through it.
+--
 -- Combat commits register a combat-pending snapshot in lieu of a normal
 -- move pending. EndCombatSim is the primary announcement path with
 -- animations on; the snapshot is the Quick-Combat fallback (engine
 -- skips gDLL->GameplayUnitCombat in CvUnitCombat.cpp ~3624 and
--- EndCombatSim never fires). City defenders don't surface a unit
--- handle here, so the snapshot is only registered when an enemy unit is
--- present -- attacks against an empty city remain on the EndCombatSim-
--- only path and stay silent under quick combat (acceptable scope cut;
--- city HP changes are paced over many turns and the user gets a
--- notification on capture).
-local function willCauseCombat(plot, mode)
+-- EndCombatSim never fires). Defender resolution prefers a unit
+-- garrison over the city itself, so a defended city snapshots the
+-- defender unit (matching what EndCombatSim sends) and an undefended
+-- city snapshots the city.
+local function willCauseCombat(actor, plot, mode)
     if isMeleeAttackMode(mode) or isRangeAttackMode(mode) then
         return true
     end
-    if isMoveMode(mode) and UnitControl.enemyAt(plot) ~= nil then
-        return true
+    if isMoveMode(mode) then
+        if UnitControl.enemyAt(plot) ~= nil or enemyCityAt(plot) ~= nil then
+            -- Move-into-enemy resolves as an attack only when the unit is
+            -- adjacent on commit; further away the engine queues a multi-
+            -- turn move and combat happens on a later turn (when no
+            -- snapshot can be tied to this commit). Restrict combat
+            -- pending to the adjacent case.
+            local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), plot:GetX(), plot:GetY())
+            return dist == 1
+        end
     end
     return false
 end
@@ -338,15 +409,27 @@ local function commitAtCursor(self)
         restoreSelection()
         return
     end
-    if willCauseCombat(plot, mode) then
-        local defender = firstEnemyUnit(plot)
-        if defender ~= nil then
-            UnitControl.registerCombatPending(self._actor, defender)
+    if willCauseCombat(self._actor, plot, mode) then
+        local defenderUnit = firstEnemyUnit(plot)
+        if defenderUnit ~= nil then
+            UnitControl.registerCombatPending(self._actor, defenderUnit)
+        else
+            local defenderCity = enemyCityAt(plot)
+            if defenderCity ~= nil then
+                UnitControl.registerCityCombatPending(self._actor, defenderCity)
+            end
         end
     else
         UnitControl.registerPending(self._actor, tx, ty)
     end
-    Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, false)
+    if isMeleeAttackMode(mode) then
+        -- Match base UI's AttackIntoTile (InGame.lua); SelectionListMove
+        -- is the engine-blessed melee-attack commit path against units
+        -- AND cities.
+        Game.SelectionListMove(plot, false, false, false)
+    else
+        Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, false)
+    end
     HandlerStack.removeByName("UnitTargetMode", false)
     restoreSelection()
 end

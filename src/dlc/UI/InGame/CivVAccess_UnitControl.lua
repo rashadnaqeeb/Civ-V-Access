@@ -172,6 +172,7 @@ function UnitControl.registerCombatPending(actor, defender)
     local defPlayer = defender:GetOwner()
     local defID = defender:GetID()
     local snapshot = {
+        defenderType = "unit",
         attackerPlayer = atkPlayer,
         attackerUnitID = atkID,
         attackerName = UnitSpeech.combatantName(atkPlayer, atkID),
@@ -182,6 +183,40 @@ function UnitControl.registerCombatPending(actor, defender)
         defenderName = UnitSpeech.combatantName(defPlayer, defID),
         defenderPreDamage = defender:GetDamage(),
         defenderMaxHP = defender:GetMaxHitPoints(),
+        commitFrame = TickPump.frame(),
+    }
+    _combatPending = snapshot
+    scheduleCombatExpiry(snapshot)
+end
+
+-- City-defender variant. Same shape as registerCombatPending but the
+-- defender side reads from a city (GetDamage / GetMaxHitPoints / name)
+-- rather than a unit. The Quick-Combat gate stays in place: under
+-- standard combat the engine still fires EndCombatSim with positional
+-- args, and the listener resolves the city via plot lookup.
+function UnitControl.registerCityCombatPending(actor, city)
+    if actor == nil or city == nil then
+        return
+    end
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_QUICK_COMBAT) then
+        return
+    end
+    local atkPlayer = actor:GetOwner()
+    local atkID = actor:GetID()
+    local cityOwner = city:GetOwner()
+    local cityID = city:GetID()
+    local snapshot = {
+        defenderType = "city",
+        attackerPlayer = atkPlayer,
+        attackerUnitID = atkID,
+        attackerName = UnitSpeech.combatantName(atkPlayer, atkID),
+        attackerPreDamage = actor:GetDamage(),
+        attackerMaxHP = actor:GetMaxHitPoints(),
+        defenderPlayer = cityOwner,
+        defenderCityID = cityID,
+        defenderName = UnitSpeech.cityCombatantName(cityOwner, cityID),
+        defenderPreDamage = city:GetDamage(),
+        defenderMaxHP = city:GetMaxHitPoints(),
         commitFrame = TickPump.frame(),
     }
     _combatPending = snapshot
@@ -391,25 +426,58 @@ function UnitControl.cycleAllUnits(forward)
     UI.SelectUnit(tour[targetIdx])
 end
 
--- ===== Alt+QAZEDC direct move =====
--- enemy non-nil means the caller already resolved the target as a melee
--- attack and registers the combat-pending snapshot in lieu of a normal
--- move pending.
-local function commitDirectMove(unit, targetX, targetY, enemy)
-    if enemy == nil then
-        UnitControl.registerPending(unit, targetX, targetY)
-    else
-        UnitControl.registerCombatPending(unit, enemy)
+-- Enemy city at plot if any, with the same active-team / war gate enemyAt
+-- uses for units. Used by directMove so an Alt+QAZEDC into an enemy city
+-- gates on the same melee-attack confirm + combat-pending snapshot path
+-- as one into an enemy unit.
+local function enemyCityAt(plot)
+    if plot == nil or not plot:IsCity() then
+        return nil
     end
-    Game.SelectionListGameNetMessage(
-        GameMessageTypes.GAMEMESSAGE_PUSH_MISSION,
-        GameInfoTypes.MISSION_MOVE_TO,
-        targetX,
-        targetY,
-        0,
-        false,
-        false
-    )
+    local city = plot:GetPlotCity()
+    if city == nil or city:GetOwner() == Game.GetActivePlayer() then
+        return nil
+    end
+    local team = Teams[Game.GetActiveTeam()]
+    if team == nil then
+        return nil
+    end
+    local owner = Players[city:GetOwner()]
+    if owner == nil then
+        return nil
+    end
+    if not (owner:IsBarbarian() or team:IsAtWar(owner:GetTeam())) then
+        return nil
+    end
+    return city
+end
+
+-- ===== Alt+QAZEDC direct move =====
+-- defender non-nil means the caller already resolved the target as a melee
+-- attack (against a unit OR a city) and registers the combat-pending
+-- snapshot in lieu of a normal move pending. Combat commits go through
+-- Game.SelectionListMove to match base UI's INTERFACEMODE_ATTACK click
+-- handler (InGame.lua AttackIntoTile).
+local function commitDirectMove(unit, target, targetX, targetY, defender, defenderIsCity)
+    if defender == nil then
+        UnitControl.registerPending(unit, targetX, targetY)
+        Game.SelectionListGameNetMessage(
+            GameMessageTypes.GAMEMESSAGE_PUSH_MISSION,
+            GameInfoTypes.MISSION_MOVE_TO,
+            targetX,
+            targetY,
+            0,
+            false,
+            false
+        )
+        return
+    end
+    if defenderIsCity then
+        UnitControl.registerCityCombatPending(unit, defender)
+    else
+        UnitControl.registerCombatPending(unit, defender)
+    end
+    Game.SelectionListMove(target, false, false, false)
 end
 
 local function directMove(dir)
@@ -426,9 +494,13 @@ local function directMove(dir)
     end
     local tx, ty = target:GetX(), target:GetY()
     local enemy = UnitControl.enemyAt(target)
+    local enemyCity
     if enemy == nil then
+        enemyCity = enemyCityAt(target)
+    end
+    if enemy == nil and enemyCity == nil then
         clearCombatConfirm()
-        commitDirectMove(unit, tx, ty, nil)
+        commitDirectMove(unit, target, tx, ty, nil, false)
         return
     end
     -- Melee-attack confirm gate. Screen-reader users can't see the
@@ -437,12 +509,20 @@ local function directMove(dir)
     local now = os.clock()
     if _combatConfirm.dir == dir and (now - _combatConfirm.clock) < COMBAT_CONFIRM_WINDOW_SECONDS then
         clearCombatConfirm()
-        commitDirectMove(unit, tx, ty, enemy)
+        if enemy ~= nil then
+            commitDirectMove(unit, target, tx, ty, enemy, false)
+        else
+            commitDirectMove(unit, target, tx, ty, enemyCity, true)
+        end
         return
     end
     _combatConfirm.dir = dir
     _combatConfirm.clock = now
-    speakInterrupt(UnitSpeech.meleePreview(unit, enemy, target))
+    if enemy ~= nil then
+        speakInterrupt(UnitSpeech.meleePreview(unit, enemy, target))
+    else
+        speakInterrupt(UnitSpeech.cityMeleePreview(unit, enemyCity, target))
+    end
 end
 
 -- ===== Info key =====
@@ -697,8 +777,28 @@ end
 -- Events.EndCombatSim args, per Community-Patch-DLL CvUnitCombat.cpp around
 -- line 3306: the third arg per side is damage taken THIS combat (not the
 -- unit's accumulated damage before combat); the fourth is cumulative damage
--- after combat. Naming the locals after the engine convention so the
--- subtractor doesn't get reintroduced.
+-- after combat. attackerX/Y and defenderX/Y come after the per-side block
+-- (CityBannerManager OnCombatEnd is the canonical signature). Names use
+-- the engine convention so the subtractor doesn't get reintroduced.
+--
+-- For attacks against cities the engine still fires EndCombatSim but the
+-- defenderUnit may be -1 / unresolvable (no garrison) or resolve to the
+-- garrison unit (which gets the damage). When unit lookup fails, fall
+-- back to the city at defenderX/Y for the spoken name and city HP, so
+-- the result speaks "<city> -N hp" instead of leaving the defender
+-- blank.
+local function resolveCityDefender(playerId, x, y)
+    local plot = Map.GetPlot(x, y)
+    if plot == nil or not plot:IsCity() then
+        return nil
+    end
+    local city = plot:GetPlotCity()
+    if city == nil or city:GetOwner() ~= playerId then
+        return nil
+    end
+    return city
+end
+
 local function onEndCombatSim(
     attackerPlayer,
     attackerUnit,
@@ -709,15 +809,31 @@ local function onEndCombatSim(
     defenderUnit,
     defenderDamage,
     defenderFinalDamage,
-    defenderMaxHP
+    defenderMaxHP,
+    attackerX,
+    attackerY,
+    defenderX,
+    defenderY
 )
     local activePlayer = Game.GetActivePlayer()
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
         return
     end
+    local defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
+    if defenderName == "" and defenderX ~= nil and defenderY ~= nil then
+        local city = resolveCityDefender(defenderPlayer, defenderX, defenderY)
+        if city ~= nil then
+            defenderName = city:GetName()
+            -- The engine sends defenderMaxHP as MAX_HIT_POINTS (unit
+            -- default) when there's no garrison; rewrite to the city's
+            -- max HP so the kill check doesn't trip on a city that's
+            -- still standing.
+            defenderMaxHP = city:GetMaxHitPoints()
+        end
+    end
     local text = UnitSpeech.combatResult({
         attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit),
-        defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit),
+        defenderName = defenderName,
         attackerDamage = attackerDamage,
         attackerFinalDamage = attackerFinalDamage,
         attackerMaxHP = attackerMaxHP,
@@ -726,6 +842,34 @@ local function onEndCombatSim(
         defenderMaxHP = defenderMaxHP,
     })
     speakQueued(text)
+end
+
+-- Empty city captures don't fire EndCombatSim -- the unit just walks in.
+-- SerialEventCityCaptured fires once per capture with (hexPos, oldOwner,
+-- cityId, newOwner). Speak only when the active player is involved (we
+-- captured one or one of ours fell). The engine's hex position is a
+-- HexPos table; pulling x/y is enough to look up the city plot.
+local function onCityCaptured(hexPos, oldOwner, cityId, newOwner)
+    local activePlayer = Game.GetActivePlayer()
+    if newOwner ~= activePlayer and oldOwner ~= activePlayer then
+        return
+    end
+    local cityName
+    local newPlayer = Players[newOwner]
+    if newPlayer ~= nil then
+        local city = newPlayer:GetCityByID(cityId)
+        if city ~= nil then
+            cityName = city:GetName()
+        end
+    end
+    if cityName == nil then
+        cityName = ""
+    end
+    if newOwner == activePlayer then
+        speakQueued(Text.format("TXT_KEY_CIVVACCESS_CITY_CAPTURED_BY_US", cityName))
+    else
+        speakQueued(Text.format("TXT_KEY_CIVVACCESS_CITY_LOST", cityName))
+    end
 end
 
 local function resolvePendingUnit()
@@ -776,6 +920,24 @@ local function liveDamage(playerId, unitId, snapshotMaxHP)
     return unit:GetDamage()
 end
 
+-- City equivalent. Captured cities change owner before the snapshot
+-- fires; falling back to snapshotMaxHP would falsely speak "killed."
+-- Cities can't actually be destroyed by combat (HP zero just allows
+-- capture), so we report snapshot's pre-damage when the city has moved
+-- owners -- the SerialEventCityCaptured listener speaks the capture
+-- separately.
+local function liveCityDamage(playerId, cityId, snapshotPreDamage)
+    local player = Players[playerId]
+    if player == nil then
+        return snapshotPreDamage
+    end
+    local city = player:GetCityByID(cityId)
+    if city == nil then
+        return snapshotPreDamage
+    end
+    return city:GetDamage()
+end
+
 -- Quick-Combat speech path. The snapshot is only ever registered when
 -- GAMEOPTION_QUICK_COMBAT is on (see registerCombatPending), where
 -- EndCombatSim never fires; this timer reads post-state damage and
@@ -792,7 +954,12 @@ scheduleCombatExpiry = function(snapshot)
             return
         end
         local atkPost = liveDamage(snapshot.attackerPlayer, snapshot.attackerUnitID, snapshot.attackerMaxHP)
-        local defPost = liveDamage(snapshot.defenderPlayer, snapshot.defenderUnitID, snapshot.defenderMaxHP)
+        local defPost
+        if snapshot.defenderType == "city" then
+            defPost = liveCityDamage(snapshot.defenderPlayer, snapshot.defenderCityID, snapshot.defenderPreDamage)
+        else
+            defPost = liveDamage(snapshot.defenderPlayer, snapshot.defenderUnitID, snapshot.defenderMaxHP)
+        end
         local atkDelta = atkPost - snapshot.attackerPreDamage
         if atkDelta < 0 then
             atkDelta = 0
@@ -945,5 +1112,10 @@ function UnitControl.installListeners()
         Events.SerialEventGameMessagePopup.Add(onPopupShown)
     else
         Log.warn("UnitControl: Events.SerialEventGameMessagePopup missing")
+    end
+    if Events.SerialEventCityCaptured ~= nil then
+        Events.SerialEventCityCaptured.Add(onCityCaptured)
+    else
+        Log.warn("UnitControl: Events.SerialEventCityCaptured missing")
     end
 end

@@ -732,4 +732,41 @@ function M.test_combatant_name_returns_empty_when_player_missing()
     T.eq(UnitSpeech.combatantName(42, 1), "")
 end
 
+-- ===== City combatant name =====
+-- Mirror of combatantName for cities. The snapshot fallback uses this
+-- to cache the city name at commit time, since a captured city changes
+-- owner before the speech fires (the new owner's GetCityByID would not
+-- find it under the old player id).
+function M.test_city_combatant_name_resolves_via_player_lookup()
+    setup()
+    Players[5] = {
+        GetCityByID = function(_, id)
+            if id == 7 then
+                return {
+                    GetName = function()
+                        return "Athens"
+                    end,
+                }
+            end
+            return nil
+        end,
+    }
+    T.eq(UnitSpeech.cityCombatantName(5, 7), "Athens")
+end
+
+function M.test_city_combatant_name_returns_empty_when_city_gone()
+    setup()
+    Players[5] = {
+        GetCityByID = function()
+            return nil
+        end,
+    }
+    T.eq(UnitSpeech.cityCombatantName(5, 99), "")
+end
+
+function M.test_city_combatant_name_returns_empty_when_player_missing()
+    setup()
+    T.eq(UnitSpeech.cityCombatantName(42, 1), "")
+end
+
 return M

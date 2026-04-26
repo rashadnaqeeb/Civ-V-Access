@@ -953,11 +953,38 @@ function M.test_woods_as_road_does_not_waive_river_crossing()
     T.eq(result.turns, 2, "river-into-friendly-forest must still cost a turn for Iroquois without Engineering")
 end
 
--- 19. A tile occupied by a visible enemy COMBAT unit can't be transited
--- or landed on by a move-to preview (the engine treats that as an
--- attack, a different code path than move). Non-combat enemies do not
--- block -- see the civilian-transit test for that branch.
-function M.test_enemy_combat_occupied_destination_unreachable()
+-- 19. A tile occupied by a visible enemy COMBAT unit blocks transit
+-- when it's on the path but not the destination -- the engine treats
+-- that as an attack, a different code path than move. When it IS the
+-- destination, the move resolves as an attack on arrival, so the
+-- pathfinder returns a path with the final step charging full MP
+-- (combat consumes the turn). Non-combat enemies do not block -- see
+-- the civilian-transit test for that branch.
+function M.test_enemy_combat_intermediate_blocks_transit()
+    setup()
+    local enemyCombat = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
+    -- Mountain-walled corridor along row 0 so the enemy at (1, 0) is the
+    -- only reachable path between (0, 0) and (2, 0); without the walls
+    -- the pathfinder detours through offset rows.
+    local plots = installGrid(3, function(col, row, p)
+        if row ~= 0 then
+            p._plotType = PlotTypes.PLOT_MOUNTAIN
+            p.IsMountain = function()
+                return true
+            end
+        end
+        if col == 1 and row == 0 then
+            p._units = { enemyCombat }
+        end
+        return p
+    end)
+    local unit = mkUnit(plots[0][0], {})
+    local result, reason = Pathfinder.findPath(unit, plots[2][0])
+    T.truthy(result == nil, "enemy combat unit on the only path must block")
+    T.eq(reason, "unreachable")
+end
+
+function M.test_enemy_combat_target_permits_attack_step()
     setup()
     local enemyCombat = T.fakeUnit({ owner = 1, team = 1, combat = true, invisible = false })
     local plots = installGrid(2, function(col, row, p)
@@ -967,9 +994,13 @@ function M.test_enemy_combat_occupied_destination_unreachable()
         return p
     end)
     local unit = mkUnit(plots[0][0], {})
-    local result, reason = Pathfinder.findPath(unit, plots[1][0])
-    T.truthy(result == nil, "combat-enemy destination must not return a path")
-    T.eq(reason, "unreachable")
+    local result = Pathfinder.findPath(unit, plots[1][0])
+    T.truthy(result ~= nil, "enemy combat unit at destination must allow attack-on-arrival path")
+    -- One step into the enemy plot consumes the unit's full remaining
+    -- MP (combat ends the turn). With a 120 maxMoves unit at full MP,
+    -- the reported mpCost should be 120 even though the underlying
+    -- terrain is plain grass.
+    T.eq(result.mpCost, 120, "attack step costs full MP, not tile cost")
 end
 
 -- Non-combat enemies (workers, Great People) get captured by a move

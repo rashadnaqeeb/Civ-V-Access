@@ -377,11 +377,16 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
         return nil
     end
 
+    local toIdx = toPlot:GetPlotIndex()
+
     -- Move-preview is for non-combat motion. A visible enemy COMBAT unit
     -- on the tile would resolve the move as an attack, so reject --
     -- previewing attack cost isn't this code path's job. Non-combat
     -- enemies (workers, Great People, civilians) get captured by the
-    -- move, which is a legitimate preview path.
+    -- move, which is a legitimate preview path. Exception: when the
+    -- step lands on the search target, the user explicitly wants the
+    -- "walk toward and attack" preview, so allow the final step at full
+    -- remaining MP (combat ends the turn).
     if toPlot.GetNumUnits and toPlot:GetNumUnits() > 0 then
         for i = 0, toPlot:GetNumUnits() - 1 do
             local u = toPlot:GetUnit(i)
@@ -393,6 +398,9 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
                 and u:IsCombatUnit()
                 and not u:IsInvisible(ctx.team, ctx.isDebug)
             then
+                if toIdx == ctx.targetIdx then
+                    return ctx.maxMoves, true
+                end
                 return nil
             end
         end
@@ -402,7 +410,6 @@ local function stepCost(fromPlot, toPlot, dir, ctx)
     -- that share our stacking class (one military per tile, one
     -- civilian per tile). Skip the start plot since the unit lives
     -- there and would otherwise count itself.
-    local toIdx = toPlot:GetPlotIndex()
     if
         toIdx ~= ctx.startIdx
         and toPlot.GetNumFriendlyUnitsOfType
@@ -710,6 +717,7 @@ function Pathfinder.findPath(unit, toPlot)
 
     local startIdx = fromPlot:GetPlotIndex()
     ctx.startIdx = startIdx
+    ctx.targetIdx = toPlot:GetPlotIndex()
 
     -- mpCost reporting offset. The g formula (turns*max + (max-mpRem))
     -- counts the "MP already used this turn" (max - startMP) at step 0,
