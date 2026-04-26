@@ -145,6 +145,12 @@ local FUNCTION_KEY_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC",
     },
+    -- League Overview. Engine's Ctrl+L is "Load game in-game" which is
+    -- still reachable via the Esc menu; Baseline already swallowed it.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC",
+    },
 }
 
 local function appendAll(dst, src)
@@ -243,6 +249,29 @@ function BaselineHandler.create()
                 Data2 = 1,
             })
         end, "Open Trade Route Overview"),
+        -- League Overview (World Congress / United Nations). Engine reads
+        -- popupInfo.Data1 as the league ID (not a toggle flag like TRO/CO),
+        -- so we look up the active league's ID and pass it directly. -1
+        -- when no league exists -- engine then shows the "not founded"
+        -- panel and our wrapper speaks the matching no-league state.
+        -- Engine's native Ctrl+L is "Load game in-game"; Baseline's
+        -- capturesAllInput barrier already swallowed it. In-game load
+        -- remains reachable via Esc menu.
+        bind(Keys.L, MOD_CTRL, function()
+            local leagueId = -1
+            if Game.GetNumActiveLeagues() > 0 then
+                for i = 0, math.max(Game.GetNumLeaguesEverFounded() - 1, 0) do
+                    if Game.GetLeague(i) ~= nil then
+                        leagueId = i
+                        break
+                    end
+                end
+            end
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_LEAGUE_OVERVIEW,
+                Data1 = leagueId,
+            })
+        end, "Open World Congress overview"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help

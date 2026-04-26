@@ -136,6 +136,7 @@ globals = {
     "TechTreeLogic",
     "DiploCommon",
     "TradeLogicAccess",
+    "LeagueOverviewRow", "LeagueOverviewVote", "LeagueOverviewProposal",
     "TaskList",
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
@@ -236,6 +237,7 @@ files["tests/"] = {
         -- Mod modules the test suites exercise directly.
         "UnitSpeech", "Pathfinder", "RoutePathfinder",
         "ScannerBackendTerrain", "EmpireStatus",
+        "LeagueOverviewRow",
         -- Wrapper module that exposes its functions globally so tests can
         -- exercise it directly. Other *Access wrappers don't expose globals
         -- like this; this one is the exception.

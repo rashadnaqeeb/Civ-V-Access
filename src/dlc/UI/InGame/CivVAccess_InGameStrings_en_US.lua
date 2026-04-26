@@ -1488,3 +1488,61 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL"] = "Tourism
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Open Culture Overview"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "Culture Overview is disabled in this game"
+-- League Overview (World Congress / United Nations). TabbedShell over the
+-- engine's BUTTONPOPUP_LEAGUE_OVERVIEW: tab 1 status / members, tab 2 current
+-- proposals (View / Propose / Vote modes), tab 3 ongoing effects.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_OVERVIEW"] = "World Congress"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_KEY"] = "Control plus L"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC"] = "Open World Congress overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_STATUS"] = "Status"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_PROPOSALS"] = "Proposals"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_EFFECTS"] = "Effects"
+-- Tab 1 rows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_RENAME"] = "Rename"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_YOU"] = "(you)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST"] = "host"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATE_ONE"] = "1 delegate"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES"] = "{1_N} delegates"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_CAN_PROPOSE"] = "can propose"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DIPLOMAT_VISITING"] = "Diplomat in their capital"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_LEAGUE"] = "No World Congress"
+-- Status pill clauses are pulled from engine keys verbatim
+-- (TXT_KEY_LEAGUE_OVERVIEW_TURNS_UNTIL_SESSION / IN_SESSION / IN_SPECIAL_SESSION,
+-- and the WORLD_LEADER_INFO_SESSION / _VOTES UN-only suffix), composed by
+-- LeagueOverviewRow.formatStatusPill.
+-- Tab 2 actions line.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_ACTIONS"] = "No actions available this session."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE_ONE"] = "1 proposal available."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE"] = "{1_N} proposals available."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING_ONE"] = "1 delegate remaining."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING"] = "{1_N} delegates remaining."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_PROPOSALS_THIS_SESSION"] = "No proposals this session."
+-- Proposal row composition.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_ENACT_PREFIX"] = "Enact: {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_PREFIX"] = "Repeal: {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSED_BY_CIV"] = "Proposed by {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSED_BY_YOU"] = "Proposed by you"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_ON_HOLD"] = "On hold"
+-- Vote-state suffix appended to proposal row in Vote mode.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_STATE_LABEL"] = "your vote: {1_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_ABSTAIN"] = "abstain"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA_ONE"] = "1 Yea"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA"] = "{1_N} Yea"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY_ONE"] = "1 Nay"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY"] = "{1_N} Nay"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV_ONE"] = "1 for {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV"] = "{1_N} for {2_Civ}"
+-- Footer button labels reuse engine keys verbatim
+-- (TXT_KEY_LEAGUE_OVERVIEW_RESET_PROPOSALS / _COMMIT_PROPOSALS /
+-- _RESET_VOTES / _COMMIT_VOTES / _VIEW_ALL_RESOLUTIONS).
+-- Slot picker (Propose mode).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_EMPTY"] = "Empty proposal slot {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED"] = "Slot {1_N}: {2_Body}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_PICKER"] = "Proposal slot {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_ACTIVE"] = "Active resolutions to repeal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_INACTIVE"] = "Resolutions to propose"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_OTHER"] = "Other resolutions"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_THIS"] = "Propose this resolution"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"] = "Repeal this resolution"
+-- View All sections reuse the engine's TXT_KEY_LEAGUE_OVERVIEW_*_RESOLUTIONS
+-- keys directly (Enacted Resolutions / Possible Resolutions / Other Resolutions).

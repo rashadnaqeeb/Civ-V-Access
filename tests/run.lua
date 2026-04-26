@@ -146,5 +146,6 @@ T.register("choose_tech", require("choose_tech_test"))
 T.register("navigable_graph", require("navigable_graph_test"))
 T.register("tech_tree_logic", require("tech_tree_logic_test"))
 T.register("social_policy_logic", require("social_policy_logic_test"))
+T.register("league_overview_row", require("league_overview_row_test"))
 
 os.exit(T.run() and 0 or 1)
