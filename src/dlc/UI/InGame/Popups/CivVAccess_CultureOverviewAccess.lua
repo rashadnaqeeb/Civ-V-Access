@@ -164,6 +164,101 @@ local function eachMetMajorAlive()
     end
 end
 
+-- ===== Slot / class label maps =========================================
+
+-- GreatWorkSlotType -> user-facing slot-type phrase. Surfaced once on the
+-- building row so the user knows the kind of work that fits before drilling.
+local SLOT_TYPE_KEY = {
+    GREAT_WORK_SLOT_LITERATURE = "TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_WRITING",
+    GREAT_WORK_SLOT_ART_ARTIFACT = "TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_ART_ARTIFACT",
+    GREAT_WORK_SLOT_MUSIC = "TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_MUSIC",
+}
+
+local function slotTypeLabel(slotType)
+    local key = SLOT_TYPE_KEY[slotType]
+    if key == nil then
+        Log.error("CultureOverview: unknown GreatWorkSlotType '" .. tostring(slotType) .. "'")
+        return Text.key("TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_WRITING")
+    end
+    return Text.key(key)
+end
+
+-- GreatWorkClassType -> user-facing class word. Used inside the slot
+-- tooltip as the leading distinguisher ("art by ...", "writing by ...").
+local WORK_CLASS_KEY = {
+    GREAT_WORK_LITERATURE = "TXT_KEY_CIVVACCESS_CO_WORK_CLASS_WRITING",
+    GREAT_WORK_ART = "TXT_KEY_CIVVACCESS_CO_WORK_CLASS_ART",
+    GREAT_WORK_ARTIFACT = "TXT_KEY_CIVVACCESS_CO_WORK_CLASS_ARTIFACT",
+    GREAT_WORK_MUSIC = "TXT_KEY_CIVVACCESS_CO_WORK_CLASS_MUSIC",
+}
+
+local function workClassLabel(classType)
+    local key = WORK_CLASS_KEY[classType]
+    if key == nil then
+        Log.error("CultureOverview: unknown GreatWorkClassType '" .. tostring(classType) .. "'")
+        return Text.key("TXT_KEY_CIVVACCESS_CO_WORK_CLASS_ART")
+    end
+    return Text.key(key)
+end
+
+-- Strip the trailing "(Great Artist)" / "(Great Writer)" / "(Great Musician)"
+-- parenthetical the engine appends to GetGreatWorkArtist. The class word
+-- already conveys the unit type, so the parenthetical would just repeat it.
+-- Locale-agnostic: matches any trailing parenthesised group with optional
+-- surrounding whitespace.
+local function stripArtistTitle(s)
+    return (s:gsub("%s*%(.-%)%s*$", ""))
+end
+
+-- Custom tooltip for a great work, built from Lua primitives. Replaces
+-- engine's GetGreatWorkTooltip which packed fields together with no
+-- labels and lost the yield icons through markup stripping. Yields are
+-- the BNW base (GameDefines.BASE_*_PER_GREAT_WORK = 2/2); city-level
+-- theming and policy modifiers surface separately on the building / city
+-- rows.
+--
+-- Class-word inclusion depends on whether the slot type can hold more
+-- than one work class. ART_ARTIFACT slots (Museum, Cathedral, Palace,
+-- etc.) hold either art or artifact, so the class word distinguishes
+-- the two. LITERATURE and MUSIC slots only ever hold their one class,
+-- so the parent row's slot-type phrase already conveys it and we drop
+-- the leading class word from the tooltip. Artifacts skip the artist
+-- field entirely (no human author for dug-up works).
+local function gwTooltip(gwIndex)
+    if gwIndex < 0 then
+        return nil
+    end
+    local workType = Game.GetGreatWorkType(gwIndex)
+    local classType = GameInfo.GreatWorks[workType].GreatWorkClassType
+    local creator = civDisplayName(Players[Game.GetGreatWorkCreator(gwIndex)])
+    local era = Locale.ConvertTextKey(Game.GetGreatWorkEraShort(gwIndex))
+    local culture = GameDefines.BASE_CULTURE_PER_GREAT_WORK
+    local tourism = GameDefines.BASE_TOURISM_PER_GREAT_WORK
+    if classType == "GREAT_WORK_ARTIFACT" then
+        return Text.format(
+            "TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_ARTIFACT",
+            workClassLabel(classType),
+            creator,
+            era,
+            culture,
+            tourism
+        )
+    end
+    local artist = stripArtistTitle(Locale.ConvertTextKey(Game.GetGreatWorkArtist(gwIndex)))
+    if classType == "GREAT_WORK_ART" then
+        return Text.format(
+            "TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_AUTHORED",
+            workClassLabel(classType),
+            artist,
+            creator,
+            era,
+            culture,
+            tourism
+        )
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_NOCLASS", artist, creator, era, culture, tourism)
+end
+
 -- ===== Building / great-work data ======================================
 
 -- Heritage building list in fixed engine order. Each entry is either a
@@ -250,11 +345,66 @@ local function cityGwBuildings(city)
     return out
 end
 
--- Per-slot leaf for any GW-housing building. Speaks "<slot>: <work-name>"
--- on filled, "<slot>: empty" on empty. Filled-slot tooltip is the engine's
--- Game.GetGreatWorkTooltip which itemizes name, type, era, creator, and
--- theming contribution. Activation runs the move state machine
--- (source / target / cancel).
+-- Run the move state machine for a slot. Shared by the multi-slot drill-in
+-- leaves (buildSlotItem) and the single-slot building rows that collapse
+-- to a slot (buildBuildingRow). Re-queries the slot's current GW index
+-- so a mid-screen move can't leave us acting on stale state.
+local function activateSlotMove(city, buildingClassID, slotIndex, slotType)
+    local cityID = city:GetID()
+    local gw = city:GetBuildingGreatWork(buildingClassID, slotIndex)
+    if m_gwMoveSource == nil then
+        -- Marking an empty slot as the source would let
+        -- Network.SendMoveGreatWorks fire with no work attached; the
+        -- engine silently no-ops and the user would hear "moved" with
+        -- nothing actually changing.
+        if gw < 0 then
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_EMPTY_SOURCE"))
+            return
+        end
+        m_gwMoveSource = {
+            cityID = cityID,
+            buildingClassID = buildingClassID,
+            slotIndex = slotIndex,
+            slotType = slotType,
+        }
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_MARKED"))
+        return
+    end
+    -- Same slot pressed again: clear source.
+    if
+        m_gwMoveSource.cityID == cityID
+        and m_gwMoveSource.buildingClassID == buildingClassID
+        and m_gwMoveSource.slotIndex == slotIndex
+    then
+        m_gwMoveSource = nil
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_CANCELED"))
+        return
+    end
+    -- Different slot, different type: engine doesn't allow the swap.
+    -- Speak feedback so the user understands why nothing happened.
+    if m_gwMoveSource.slotType ~= slotType then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_TYPE_MISMATCH"))
+        return
+    end
+    -- Different slot, same type: send the move. SerialEventCityInfoDirty
+    -- will refresh Tab 1's items.
+    Network.SendMoveGreatWorks(
+        activePlayerID(),
+        m_gwMoveSource.cityID,
+        m_gwMoveSource.buildingClassID,
+        m_gwMoveSource.slotIndex,
+        cityID,
+        buildingClassID,
+        slotIndex
+    )
+    m_gwMoveSource = nil
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_PLACED"))
+end
+
+-- Per-slot leaf inside a multi-slot building. Speaks the index plus the
+-- work name (or "empty"); the slot-type phrase lives one level up on the
+-- building row, so the leaf doesn't repeat it. Tooltip is gwTooltip,
+-- built from Lua primitives.
 --
 -- The `city` handle is captured directly (live userdata, per project
 -- rules); the slot's GW index is re-queried inside every closure so a
@@ -263,7 +413,6 @@ end
 -- before the items list has been rebuilt.
 local function buildSlotItem(city, buildingClassID, slotIndex, slotType)
     local idxLabel = tostring(slotIndex + 1)
-    local cityID = city:GetID()
     return BaseMenuItems.Text({
         labelFn = function()
             local gw = city:GetBuildingGreatWork(buildingClassID, slotIndex)
@@ -274,75 +423,58 @@ local function buildSlotItem(city, buildingClassID, slotIndex, slotType)
             return Text.format("TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY", idxLabel)
         end,
         tooltipFn = function()
-            local gw = city:GetBuildingGreatWork(buildingClassID, slotIndex)
-            if gw >= 0 then
-                return Game.GetGreatWorkTooltip(gw, activePlayerID())
-            end
-            return nil
+            return gwTooltip(city:GetBuildingGreatWork(buildingClassID, slotIndex))
         end,
         onActivate = function()
-            local gw = city:GetBuildingGreatWork(buildingClassID, slotIndex)
-            if m_gwMoveSource == nil then
-                -- Marking an empty slot as the source would let
-                -- Network.SendMoveGreatWorks fire with no work attached;
-                -- the engine silently no-ops the move and the user would
-                -- hear "moved" with nothing actually changing. Block it.
-                if gw < 0 then
-                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_EMPTY_SOURCE"))
-                    return
-                end
-                m_gwMoveSource = {
-                    cityID = cityID,
-                    buildingClassID = buildingClassID,
-                    slotIndex = slotIndex,
-                    slotType = slotType,
-                }
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_MARKED"))
-                return
-            end
-            -- Same slot pressed again: clear source.
-            if
-                m_gwMoveSource.cityID == cityID
-                and m_gwMoveSource.buildingClassID == buildingClassID
-                and m_gwMoveSource.slotIndex == slotIndex
-            then
-                m_gwMoveSource = nil
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_CANCELED"))
-                return
-            end
-            -- Different slot, different type: engine doesn't allow the
-            -- swap. Speak feedback so the user understands why nothing
-            -- happened rather than silently no-oping.
-            if m_gwMoveSource.slotType ~= slotType then
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_TYPE_MISMATCH"))
-                return
-            end
-            -- Different slot, same type: send the move and clear source.
-            -- SerialEventCityInfoDirty will refresh Tab 1's items.
-            Network.SendMoveGreatWorks(
-                activePlayerID(),
-                m_gwMoveSource.cityID,
-                m_gwMoveSource.buildingClassID,
-                m_gwMoveSource.slotIndex,
-                cityID,
-                buildingClassID,
-                slotIndex
-            )
-            m_gwMoveSource = nil
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_GW_MOVE_PLACED"))
+            activateSlotMove(city, buildingClassID, slotIndex, slotType)
         end,
     })
 end
 
--- Building Group: lists every slot in the building. Label combines
--- localized building name + filled/total + active theming bonus when one
--- applies. cached=false so the slot list rebuilds on each drill (so the
--- post-move state is reflected when the user drills back in).
-local function buildBuildingGroup(city, building, buildingClass)
+-- Single-slot buildings collapse to one row that *is* the slot. Drilling
+-- into a Group of one entry would just echo the parent label one level
+-- deeper, so the building row carries the work info and Enter runs the
+-- move state machine directly. All heritage buildings except Museum and
+-- Royal Library land here, plus most GW-housing wonders.
+local function buildSingleSlotRow(city, building, buildingClass)
+    local buildingClassID = buildingClass.ID
+    local slotType = building.GreatWorkSlotType
+    local buildingDescription = Locale.ConvertTextKey(building.Description)
+    local slotTypeText = slotTypeLabel(slotType)
+    return BaseMenuItems.Text({
+        labelFn = function()
+            local gw = city:GetBuildingGreatWork(buildingClassID, 0)
+            if gw >= 0 then
+                local name = Locale.ConvertTextKey(Game.GetGreatWorkName(gw))
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_FILLED",
+                    buildingDescription,
+                    slotTypeText,
+                    name
+                )
+            end
+            return Text.format("TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_EMPTY", buildingDescription, slotTypeText)
+        end,
+        tooltipFn = function()
+            return gwTooltip(city:GetBuildingGreatWork(buildingClassID, 0))
+        end,
+        pediaName = buildingDescription,
+        onActivate = function()
+            activateSlotMove(city, buildingClassID, 0, slotType)
+        end,
+    })
+end
+
+-- Multi-slot building Group: lists every slot in the building. Label
+-- combines localized building name + slot type + filled/total + active
+-- theming bonus when one applies. cached=false so the slot list rebuilds
+-- on each drill (post-move state is reflected when the user drills back).
+local function buildMultiSlotGroup(city, building, buildingClass)
     local buildingClassID = buildingClass.ID
     local slotType = building.GreatWorkSlotType
     local slotCount = building.GreatWorkCount or 0
     local buildingDescription = Locale.ConvertTextKey(building.Description)
+    local slotTypeText = slotTypeLabel(slotType)
     return BaseMenuItems.Group({
         labelFn = function()
             local filled = 0
@@ -357,13 +489,20 @@ local function buildBuildingGroup(city, building, buildingClass)
                     return Text.format(
                         "TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL_THEMED",
                         buildingDescription,
+                        slotTypeText,
                         filled,
                         slotCount,
                         themeBonus
                     )
                 end
             end
-            return Text.format("TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL", buildingDescription, filled, slotCount)
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL",
+                buildingDescription,
+                slotTypeText,
+                filled,
+                slotCount
+            )
         end,
         tooltipFn = function()
             if city:IsThemingBonusPossible(buildingClassID) then
@@ -381,6 +520,15 @@ local function buildBuildingGroup(city, building, buildingClass)
             return items
         end,
     })
+end
+
+-- Dispatch by slot count. Single-slot collapses to a Text row; multi-slot
+-- keeps the drill-in.
+local function buildBuildingGroup(city, building, buildingClass)
+    if (building.GreatWorkCount or 0) <= 1 then
+        return buildSingleSlotRow(city, building, buildingClass)
+    end
+    return buildMultiSlotGroup(city, building, buildingClass)
 end
 
 -- City Group: every GW-housing building present in the city, in fixed

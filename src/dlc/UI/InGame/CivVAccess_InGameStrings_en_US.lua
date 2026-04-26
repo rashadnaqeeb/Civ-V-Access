@@ -1368,13 +1368,48 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_PUPPET"] = "puppet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_PREFIX_OCCUPIED"] = "occupied"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_NO_BUILDINGS"] = "No great work buildings yet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_NO_CITIES"] = "No cities"
--- Per-building entry inside a city. Theming bonus shown when active.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL"] = "{1_Name}, {2_Filled} of {3_Total}"
+-- Slot type words. Used as a fixed phrase ("art or artifact slot") on the
+-- building label so the user knows what kind of work fits before drilling.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_WRITING"] = "writing slot"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_ART_ARTIFACT"] = "art or artifact slot"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_TYPE_MUSIC"] = "music slot"
+-- Multi-slot building entry inside a city. Theming bonus shown when active.
+-- Single-slot buildings collapse to one row (see CO_BUILDING_SINGLE_*).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL"] =
+    "{1_Name}, {2_SlotType}, {3_Filled} of {4_Total}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL_THEMED"] =
-    "{1_Name}, {2_Filled} of {3_Total}, theming bonus plus {4_Bonus}"
--- Per-slot leaf inside a building. Slot index is 1-based for speech.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_FILLED"] = "slot {1_Idx}: {2_Name}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY"] = "slot {1_Idx}: empty"
+    "{1_Name}, {2_SlotType}, {3_Filled} of {4_Total}, theming bonus plus {5_Bonus}"
+-- Single-slot building rows. The building row is the slot; activation
+-- runs the move state machine directly. No drill-in.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_FILLED"] =
+    "{1_Name}, {2_SlotType}, {3_WorkName}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_SINGLE_EMPTY"] = "{1_Name}, {2_SlotType}, empty"
+-- Per-slot leaf inside a multi-slot building. Slot index is 1-based.
+-- The slot-type word lives on the parent label, not repeated per leaf.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_FILLED"] = "{1_Idx}, {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY"] = "{1_Idx}, empty"
+-- Work-class words used inside the slot tooltip ("art by ...").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_WORK_CLASS_WRITING"] = "writing"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_WORK_CLASS_ART"] = "art"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_WORK_CLASS_ARTIFACT"] = "artifact"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_WORK_CLASS_MUSIC"] = "music"
+-- Slot tooltip built from primitives. Replaces engine's GetGreatWorkTooltip
+-- which packed fields together with no labels and stripped icons.
+--
+-- Three forms by work class:
+--   AUTHORED — art works (Museum/Cathedral/Palace etc. slot type is
+--     ART_ARTIFACT and accepts either kind, so the class word disambiguates).
+--   NOCLASS  — writing and music. Their slot types (LITERATURE, MUSIC) only
+--     accept that one class, so the parent row's slot-type word already
+--     conveys it; repeating the class would just double up.
+--   ARTIFACT — archaeology works. No human author; class word kept because
+--     ART_ARTIFACT slots are ambiguous and need to distinguish from art.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_AUTHORED"] =
+    "{1_Class} by {2_Artist}, {3_OriginCiv}, {4_Era}, plus {5_Cul} culture, plus {6_Tou} tourism"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_NOCLASS"] =
+    "by {1_Artist}, {2_OriginCiv}, {3_Era}, plus {4_Cul} culture, plus {5_Tou} tourism"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_TOOLTIP_ARTIFACT"] =
+    "{1_Class}, {2_OriginCiv}, {3_Era}, plus {4_Cul} culture, plus {5_Tou} tourism"
 -- GW move flow feedback.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_MARKED"] = "marked as move source"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_PLACED"] = "moved"
