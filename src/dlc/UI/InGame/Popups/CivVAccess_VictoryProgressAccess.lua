@@ -86,7 +86,6 @@ local function civDisplayName(pPlayer)
         return Locale.ConvertTextKey("TXT_KEY_MISC_UNKNOWN")
     end
     local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
-    local civDesc = civInfo and civInfo.ShortDescription or ""
     local strPlayer
     local nick = pPlayer:GetNickName()
     if nick ~= "" and isMP() then
@@ -96,7 +95,7 @@ local function civDisplayName(pPlayer)
     else
         strPlayer = pPlayer:GetNameKey()
     end
-    return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civDesc)
+    return Locale.ConvertTextKey("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
 -- Iterator over major civs that have ever been alive in the game (returns
