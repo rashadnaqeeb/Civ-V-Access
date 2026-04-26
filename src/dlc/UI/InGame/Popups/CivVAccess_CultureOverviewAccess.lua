@@ -1199,6 +1199,27 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
             m_swapTheirItem = -1
             m_swapYourItem = -1
             m_swapTradingPartner = -1
+            -- Force the engine's PlayerInfluence refresh whenever it isn't
+            -- the visually current tab. priorShowHide above ran the engine's
+            -- TabSelect(g_CurrentTab), which only rebuilds one panel — and
+            -- only that panel's pulldowns get BuildEntry / RegisterSelection-
+            -- Callback called. Our Tab 4 perspective wraps Controls.PlayerPD
+            -- via PullDownProbe, so without this refresh the pulldown opens
+            -- empty (no captured entries, no captured callback) and Enter
+            -- on it just re-speaks the current value. RefreshContent is
+            -- the engine's own combined refresh hook; cheap and idempotent
+            -- (panel stays hidden, just rebuilds the data and entries).
+            if
+                g_CurrentTab ~= "PlayerInfluence"
+                and type(g_Tabs) == "table"
+                and g_Tabs["PlayerInfluence"] ~= nil
+                and type(g_Tabs["PlayerInfluence"].RefreshContent) == "function"
+            then
+                local ok, err = pcall(g_Tabs["PlayerInfluence"].RefreshContent)
+                if not ok then
+                    Log.error("CultureOverview: PlayerInfluence prefetch failed: " .. tostring(err))
+                end
+            end
             m_yourCultureTab.menu().setItems(buildYourCultureItems())
             m_swapTab.menu().setItems(buildSwapItems())
             m_victoryTab.menu().setItems(buildVictoryItems())
