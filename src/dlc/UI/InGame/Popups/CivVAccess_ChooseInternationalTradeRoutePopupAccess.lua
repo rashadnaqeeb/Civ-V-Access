@@ -38,18 +38,10 @@ include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_ChooseConfirmSub")
+include("CivVAccess_TradeRouteRow")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
-
-local YIELD_KEYS = {
-    [YieldTypes.YIELD_FOOD] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_FOOD",
-    [YieldTypes.YIELD_PRODUCTION] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_PRODUCTION",
-    [YieldTypes.YIELD_GOLD] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_GOLD",
-    [YieldTypes.YIELD_SCIENCE] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_SCIENCE",
-    [YieldTypes.YIELD_CULTURE] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_CULTURE",
-    [YieldTypes.YIELD_FAITH] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_FAITH",
-}
 
 local function preambleText()
     local parts = {}
@@ -67,50 +59,21 @@ local function preambleText()
     return table.concat(parts, ", ")
 end
 
-local function yieldEntry(yieldType, valueTimes100)
-    if valueTimes100 == 0 then
-        return nil
-    end
-    local key = YIELD_KEYS[yieldType]
-    if key == nil then
-        return nil
-    end
-    return Text.format(key, valueTimes100 / 100)
-end
-
--- Trade religion pressure verified via Community-Patch-DLL
--- CvLuaPlayer.cpp:5237-5264 and CvCityReligions::WouldExertTradeRoute
--- PressureToward: From* names the religion the destination city would
--- push toward our origin; To* names the religion our origin pushes
--- toward the destination. So FromPair belongs to "you get" and ToPair
--- to "they get", matching the engine's myBonuses / theirBonuses
--- bucketing.
-local function pressureEntry(religionId, amount)
-    if religionId == 0 or amount == 0 then
-        return nil
-    end
-    local name = Text.key(Game.GetReligionName(religionId))
-    if name == nil or name == "" then
-        return nil
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE", amount, name)
-end
-
 local function sideList(dest, isMine)
     local entries = {}
     for j, u in ipairs(dest.Yields) do
         local yieldType = j - 1
         local value = isMine and u.Mine or u.Theirs
-        local entry = yieldEntry(yieldType, value)
+        local entry = TradeRouteRow.yieldEntry(yieldType, value)
         if entry ~= nil then
             entries[#entries + 1] = entry
         end
     end
     local pressure
     if isMine then
-        pressure = pressureEntry(dest.FromReligion, dest.FromPressureAmount)
+        pressure = TradeRouteRow.pressureEntry(dest.FromReligion, dest.FromPressureAmount)
     else
-        pressure = pressureEntry(dest.ToReligion, dest.ToPressureAmount)
+        pressure = TradeRouteRow.pressureEntry(dest.ToReligion, dest.ToPressureAmount)
     end
     if pressure ~= nil then
         entries[#entries + 1] = pressure

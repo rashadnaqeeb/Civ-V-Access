@@ -1149,19 +1149,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "They get {1_Yie
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pressure"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] = "No valid destinations."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "No valid home cities."
--- Trade Route Overview (Ctrl+T). Three tabs (your active routes / available
--- routes you could establish / routes other civs run with you), each a flat
--- list of route summaries. Drill-in surfaces the engine's per-cell tooltip
--- (BuildTradeRouteToolTipString output) split per [NEWLINE] line.
---
--- Row format mirrors the choose-international-trade-route popup: header
--- (domain + cities + civs), then "you get" yields, then "they get" yields,
--- then turns-left when valid. The "you get" / "they get" yield clauses
--- reuse TRADE_ROUTE_YOU_GET / TRADE_ROUTE_THEY_GET above so the wording
--- lines up with the picker the user just came from. Turns-left omits when
--- the engine returns negative TurnsLeft (Available tab and some
--- transitional states), matching the engine's own >= 0 guard in
--- TradeRouteOverview.lua DisplayData.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY"] = "Ctrl+T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC"] = "Open Trade Route Overview"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_YOURS"] = "Your trade routes"
@@ -1173,6 +1160,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] =
     "{1_Domain}, {2_FromCity} ({3_FromCiv}) to {4_ToCity} ({5_ToCiv})"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = "{1_Num} turns left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"] = "No routes."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_DETAILS"] = "No source breakdown available."
 -- Defense group: each defensive building announces with the same {Building}
 -- format string so adding a new defensive building only adds a row, not a
 -- new label.

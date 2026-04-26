@@ -48,6 +48,7 @@ include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_Help")
+include("CivVAccess_TradeRouteRow")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -88,39 +89,6 @@ local function domainLabel(domain)
     return Text.key("TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND")
 end
 
--- Yield format keys: reuse the engine's own ones so the spoken text matches
--- what a sighted player reads in the trade-route picker tooltip line for
--- line. Each takes one number arg (times100 / 100 -> e.g. "+1.06 [ICON_GOLD]
--- Gold per turn").
-local YIELD_TYPE_KEYS = {
-    [YieldTypes.YIELD_GOLD] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_GOLD",
-    [YieldTypes.YIELD_SCIENCE] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_SCIENCE",
-    [YieldTypes.YIELD_FOOD] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_FOOD",
-    [YieldTypes.YIELD_PRODUCTION] = "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_PRODUCTION",
-}
-
-local function yieldEntry(yieldType, valueTimes100)
-    if valueTimes100 == 0 then
-        return nil
-    end
-    local key = YIELD_TYPE_KEYS[yieldType]
-    if key == nil then
-        return nil
-    end
-    return Text.format(key, valueTimes100 / 100)
-end
-
-local function pressureEntry(religionId, amount)
-    if religionId == 0 or amount == 0 then
-        return nil
-    end
-    local name = Text.key(Game.GetReligionName(religionId))
-    if name == nil or name == "" then
-        return nil
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE", amount, name)
-end
-
 local function appendIf(list, entry)
     if entry ~= nil and entry ~= "" then
         list[#list + 1] = entry
@@ -132,9 +100,9 @@ end
 -- TradeRouteOverview.lua DisplayData).
 local function originSideList(route)
     local entries = {}
-    appendIf(entries, yieldEntry(YieldTypes.YIELD_GOLD, route.FromGPT or 0))
-    appendIf(entries, yieldEntry(YieldTypes.YIELD_SCIENCE, route.FromScience or 0))
-    appendIf(entries, pressureEntry(route.FromReligion or 0, route.FromPressure or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_GOLD, route.FromGPT or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_SCIENCE, route.FromScience or 0))
+    appendIf(entries, TradeRouteRow.pressureEntry(route.FromReligion or 0, route.FromPressure or 0))
     return table.concat(entries, ", ")
 end
 
@@ -143,11 +111,11 @@ end
 -- on international routes).
 local function destinationSideList(route)
     local entries = {}
-    appendIf(entries, yieldEntry(YieldTypes.YIELD_GOLD, route.ToGPT or 0))
-    appendIf(entries, yieldEntry(YieldTypes.YIELD_SCIENCE, route.ToScience or 0))
-    appendIf(entries, yieldEntry(YieldTypes.YIELD_FOOD, route.ToFood or 0))
-    appendIf(entries, yieldEntry(YieldTypes.YIELD_PRODUCTION, route.ToProduction or 0))
-    appendIf(entries, pressureEntry(route.ToReligion or 0, route.ToPressure or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_GOLD, route.ToGPT or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_SCIENCE, route.ToScience or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_FOOD, route.ToFood or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_PRODUCTION, route.ToProduction or 0))
+    appendIf(entries, TradeRouteRow.pressureEntry(route.ToReligion or 0, route.ToPressure or 0))
     return table.concat(entries, ", ")
 end
 
@@ -180,12 +148,12 @@ local function splitOn(s, token)
 end
 
 -- Build a level-1 section item from one [NEWLINE][NEWLINE]-separated chunk
--- of the trade-route tooltip. Each chunk starts with a heading line
--- ("YOUR REVENUE", "THEIR REVENUE", "YOUR SCIENCE GAIN",
--- "THEIR SCIENCE GAIN"; engine localisations vary) followed by per-source
--- breakdown lines and the section's Total line. The heading becomes the
--- level-1 label; the rest becomes the level-2 list. Single-line sections
--- collapse to a Text leaf rather than an empty drill-in.
+-- of the trade-route tooltip. Each chunk's first line is the section
+-- heading, followed by per-source breakdown lines. The heading becomes
+-- the level-1 label; the rest becomes the level-2 list. Single-line
+-- sections collapse to a Text leaf because BaseMenuItems.Group reports
+-- itself non-navigable when its child list is empty, which would drop the
+-- row from the parent list entirely.
 local function buildSectionItem(section)
     local lines = splitOn(section, "[NEWLINE]")
     if #lines == 0 then
@@ -254,10 +222,13 @@ local function rowLabel(route, isInbound)
     return table.concat(parts, ". ") .. "."
 end
 
--- Capture the route as a snapshot for the label closure, but rebuild the
--- drill-in items live on every drill (cached=false) so the tooltip
--- reflects current turn yields if the user pages between tabs across a
--- turn change.
+-- The label closes over the GetTradeRoutes snapshot's scalar fields
+-- (FromGPT, ToGPT, TurnsLeft, ...). Within a turn those values don't
+-- change, so the snapshot is correct as long as we rebuild on
+-- ActivePlayerTurnStart -- see the Events hook at install. The drill-in
+-- additionally re-runs BuildTradeRouteToolTipString on every drill
+-- (cached=false) so a section's per-source breakdown reads current
+-- live values without waiting for the turn-start refresh.
 local function buildRouteGroup(route, isInbound)
     return BaseMenuItems.Group({
         labelFn = function()
@@ -266,20 +237,15 @@ local function buildRouteGroup(route, isInbound)
         cached = false,
         itemsFn = function()
             local pPlayer = Players[route.FromID]
-            if pPlayer == nil then
-                return {
-                    BaseMenuItems.Text({
-                        labelText = Text.key("TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"),
-                    }),
-                }
-            end
             local tt
-            local ok, err = pcall(function()
-                tt = BuildTradeRouteToolTipString(pPlayer, route.FromCity, route.ToCity, route.Domain)
-            end)
-            if not ok then
-                Log.error("TradeRouteOverview: BuildTradeRouteToolTipString failed: " .. tostring(err))
-                tt = nil
+            if pPlayer ~= nil then
+                local ok, err = pcall(function()
+                    tt = BuildTradeRouteToolTipString(pPlayer, route.FromCity, route.ToCity, route.Domain)
+                end)
+                if not ok then
+                    Log.error("TradeRouteOverview: BuildTradeRouteToolTipString failed: " .. tostring(err))
+                    tt = nil
+                end
             end
             local items = {}
             for _, section in ipairs(splitOn(tt, "[NEWLINE][NEWLINE]")) do
@@ -288,9 +254,16 @@ local function buildRouteGroup(route, isInbound)
                     items[#items + 1] = item
                 end
             end
+            -- BuildTradeRouteToolTipString returns nil when the route's
+            -- international gold total is zero -- domestic food/production
+            -- routes hit this branch even though the route is real and the
+            -- row label already speaks the yields. Anything else (no live
+            -- player, helper threw) lands here too. Speak the no-detail
+            -- message rather than "No routes" which would falsely imply
+            -- the route doesn't exist.
             if #items == 0 then
                 items[1] = BaseMenuItems.Text({
-                    labelText = Text.key("TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"),
+                    labelText = Text.key("TXT_KEY_CIVVACCESS_TRO_NO_DETAILS"),
                 })
             end
             return items
@@ -324,28 +297,12 @@ local function buildItemsFromRoutes(routes, isInbound)
     return items
 end
 
-local function buildYoursItems()
+local function buildItemsViaAccessor(accessor, isInbound)
     local pPlayer = Players[Game.GetActivePlayer()]
     if pPlayer == nil then
         return {}
     end
-    return buildItemsFromRoutes(pPlayer:GetTradeRoutes() or {}, false)
-end
-
-local function buildAvailableItems()
-    local pPlayer = Players[Game.GetActivePlayer()]
-    if pPlayer == nil then
-        return {}
-    end
-    return buildItemsFromRoutes(pPlayer:GetTradeRoutesAvailable() or {}, false)
-end
-
-local function buildWithYouItems()
-    local pPlayer = Players[Game.GetActivePlayer()]
-    if pPlayer == nil then
-        return {}
-    end
-    return buildItemsFromRoutes(pPlayer:GetTradeRoutesToYou() or {}, true)
+    return buildItemsFromRoutes(pPlayer[accessor](pPlayer) or {}, isInbound)
 end
 
 -- ===== Install =========================================================
@@ -363,6 +320,13 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     m_yoursTab = makeTab("TXT_KEY_CIVVACCESS_TRO_TAB_YOURS")
     m_availableTab = makeTab("TXT_KEY_CIVVACCESS_TRO_TAB_AVAILABLE")
     m_withYouTab = makeTab("TXT_KEY_CIVVACCESS_TRO_TAB_WITH_YOU")
+
+    local function rebuildAllTabs()
+        m_yoursTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutes", false))
+        m_availableTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutesAvailable", false))
+        m_withYouTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutesToYou", true))
+    end
+
     TabbedShell.install(ContextPtr, {
         name = "TradeRouteOverview",
         displayName = Text.key("TXT_KEY_TRADE_ROUTE_OVERVIEW"),
@@ -371,9 +335,23 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         priorInput = priorInput,
         priorShowHide = priorShowHide,
         onShow = function(_handler)
-            m_yoursTab.menu().setItems(buildYoursItems())
-            m_availableTab.menu().setItems(buildAvailableItems())
-            m_withYouTab.menu().setItems(buildWithYouItems())
+            rebuildAllTabs()
         end,
     })
+
+    -- Routes the active player runs are recomputed on every turn; if the
+    -- user keeps the popup open across End Turn, the snapshot rowLabel
+    -- closes over (FromGPT, ToGPT, TurnsLeft, ...) goes stale on the
+    -- old labels until rebuild. Re-rebuild on ActivePlayerTurnStart so
+    -- the user always hears current turn values. Guard on IsHidden so we
+    -- don't waste work when the popup isn't open. Registered on every
+    -- Context include rather than gated by an install-once flag because
+    -- load-from-game wipes this Context's env and re-registers a fresh
+    -- listener (see Architecture Gotchas in CLAUDE.md).
+    Events.ActivePlayerTurnStart.Add(function()
+        if ContextPtr:IsHidden() then
+            return
+        end
+        rebuildAllTabs()
+    end)
 end
