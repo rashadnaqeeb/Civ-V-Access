@@ -7,9 +7,9 @@
 --                       filled/total, damage. Drills into the city's GW-
 --                       housing buildings (heritage row + any wonders the
 --                       city owns), each of which drills into its slots.
---                       Slot Enter does view-or-move based on the mode
---                       toggle. Antiquity site counts and the move/view
---                       toggle precede the city list.
+--                       Slot Enter runs the move state machine; great-work
+--                       details are surfaced via the slot's tooltip.
+--                       Antiquity site counts precede the city list.
 --   Swap Great Works -- designate-your-swappable section (three drill-ins,
 --                       one per type), the in-flight swap workspace (your
 --                       offer / their offer / Send / Clear), and the foreign-
@@ -56,6 +56,7 @@ include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_Help")
+include("CivVAccess_PullDownProbe")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -72,23 +73,11 @@ CultureOverviewAccess = CultureOverviewAccess or {}
 -- when the user lands a target).
 local m_gwMoveSource = nil
 
--- Tab 1: slot-activation mode. "Move" or "View"; mirrors the engine's
--- g_YourCultureSelectionMode. Mod-side toggle so a perspective change
--- (closing and reopening the screen) starts in Move (the engine default
--- and the action that has no other path).
-local m_slotMode = "Move"
-
 -- Tab 2: in-flight swap state. Mirrors engine's g_iTheirItem, g_iYourItem,
 -- g_iTradingPartner. Reset on every popup open.
 local m_swapTheirItem = -1
 local m_swapYourItem = -1
 local m_swapTradingPartner = -1
-
--- Tab 4: perspective. The engine's g_iSelectedPlayerID equivalent: the
--- player whose tourism / influence-on-others is being inspected. Defaults
--- to the active player; pulldown lets the user pick a met civ to ask
--- "what is their cultural reach."
-local m_selectedPlayerID = -1
 
 -- Tab handles, set during install. onShow rebuilds each tab's items via
 -- the menu accessor. Module-level so the SerialEventCityInfoDirty hook
@@ -98,9 +87,10 @@ local m_swapTab
 local m_victoryTab
 local m_influenceTab
 
--- Forward declaration. buildPerspectiveGroup's Choice activate closure
--- needs to call buildInfluenceItems, which is defined below it. Using a
--- local rather than a global keeps the wrapper hermetic.
+-- Forward declaration. The Tab 4 perspective Pulldown's onSelected hook
+-- needs to call buildInfluenceItems to rebuild the row list against the
+-- new perspective; buildInfluenceItems is the function that creates the
+-- Pulldown in the first place, so the dependency is self-referential.
 local buildInfluenceItems
 
 -- ===== Helpers =========================================================
@@ -263,10 +253,8 @@ end
 -- Per-slot leaf for any GW-housing building. Speaks "<slot>: <work-name>"
 -- on filled, "<slot>: empty" on empty. Filled-slot tooltip is the engine's
 -- Game.GetGreatWorkTooltip which itemizes name, type, era, creator, and
--- theming contribution. Activation dispatches per the slot-activation
--- mode: View opens BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER (engine's
--- right-click action), Move runs the source / target / cancel state
--- machine.
+-- theming contribution. Activation runs the move state machine
+-- (source / target / cancel).
 --
 -- The `city` handle is captured directly (live userdata, per project
 -- rules); the slot's GW index is re-queried inside every closure so a
@@ -294,19 +282,6 @@ local function buildSlotItem(city, buildingClassID, slotIndex, slotType)
         end,
         onActivate = function()
             local gw = city:GetBuildingGreatWork(buildingClassID, slotIndex)
-            if m_slotMode == "View" then
-                if gw < 0 then
-                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY_HINT"))
-                    return
-                end
-                Events.SerialEventGameMessagePopup({
-                    Type = ButtonPopupTypes.BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER,
-                    Data1 = gw,
-                    Priority = PopupPriority.Current,
-                })
-                return
-            end
-            -- Move mode: source / target / cancel state machine.
             if m_gwMoveSource == nil then
                 -- Marking an empty slot as the source would let
                 -- Network.SendMoveGreatWorks fire with no work attached;
@@ -491,21 +466,6 @@ local function buildYourCultureItems()
             end,
         })
     end
-    items[#items + 1] = BaseMenuItems.VirtualToggle({
-        labelFn = function()
-            local modeKey = (m_slotMode == "Move") and "TXT_KEY_CIVVACCESS_CO_MODE_MOVE"
-                or "TXT_KEY_CIVVACCESS_CO_MODE_VIEW"
-            return Text.format("TXT_KEY_CIVVACCESS_CO_MODE_LABEL", Text.key(modeKey))
-        end,
-        getValue = function()
-            return m_slotMode == "Move"
-        end,
-        setValue = function(v)
-            m_slotMode = v and "Move" or "View"
-            -- Mode switch invalidates any pending move source.
-            m_gwMoveSource = nil
-        end,
-    })
     local p = activePlayer()
     local hadCity = false
     for c in p:Cities() do
@@ -911,7 +871,7 @@ end
 local function buildInfluenceRowGroup(targetID)
     return BaseMenuItems.Group({
         labelFn = function()
-            local pSel = Players[m_selectedPlayerID]
+            local pSel = Players[g_iSelectedPlayerID]
             local pTgt = Players[targetID]
             local civ = civDisplayName(pTgt)
             local level = pSel:GetInfluenceLevel(targetID)
@@ -947,7 +907,7 @@ local function buildInfluenceRowGroup(targetID)
         end,
         cached = false,
         itemsFn = function()
-            local pSel = Players[m_selectedPlayerID]
+            local pSel = Players[g_iSelectedPlayerID]
             local pTgt = Players[targetID]
             local items = {}
             -- Bonuses-at-level callout.
@@ -999,50 +959,50 @@ local function buildInfluenceRowGroup(targetID)
     })
 end
 
-local function buildPerspectiveGroup()
-    return BaseMenuItems.Group({
-        labelFn = function()
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE",
-                civDisplayName(Players[m_selectedPlayerID])
-            )
+-- Perspective picker. Wraps the engine's PlayerPD pulldown via
+-- BaseMenuItems.Pulldown so the engine's RegisterSelectionCallback
+-- (sets g_iSelectedPlayerID, rebuilds the visual influence stack) does
+-- the per-perspective state mutation; our onSelected hook then rebuilds
+-- the per-civ row list against the new perspective. The Pulldown's label
+-- and current value both come from civDisplayName so the announce form
+-- matches the rest of the wrapper (engine's pulldown uses the short
+-- "Roman Empire" form; we want "Augustus of Roman Empire" for parity
+-- with row labels). entryAnnounceFn replaces each sub-menu entry's
+-- engine-text default with the same rich form so browsing the picker
+-- reads the leader/civ pair, not just the civ short description.
+local function buildPerspectivePulldown()
+    local function perspectiveText()
+        return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE", civDisplayName(Players[g_iSelectedPlayerID]))
+    end
+    return BaseMenuItems.Pulldown({
+        controlName = "PlayerPD",
+        labelFn = perspectiveText,
+        valueFn = perspectiveText,
+        entryAnnounceFn = function(inst)
+            local pid = inst.Button:GetVoid1()
+            return civDisplayName(Players[pid])
         end,
-        cached = false,
-        itemsFn = function()
-            local items = {}
-            for id, p in eachMetMajorAlive() do
-                local capId = id
-                items[#items + 1] = BaseMenuItems.Choice({
-                    labelText = civDisplayName(p),
-                    selectedFn = function()
-                        return capId == m_selectedPlayerID
-                    end,
-                    activate = function()
-                        m_selectedPlayerID = capId
-                        m_influenceTab.menu().setItems(buildInfluenceItems())
-                    end,
-                })
-            end
-            return items
+        onSelected = function()
+            m_influenceTab.menu().setItems(buildInfluenceItems())
         end,
     })
 end
 
 buildInfluenceItems = function()
     local items = {}
-    items[#items + 1] = buildPerspectiveGroup()
+    items[#items + 1] = buildPerspectivePulldown()
     items[#items + 1] = BaseMenuItems.Text({
         labelFn = function()
-            return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM", Players[m_selectedPlayerID]:GetTourism())
+            return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM", Players[g_iSelectedPlayerID]:GetTourism())
         end,
     })
     -- Every alive non-minor civ that isn't the selected player and that
     -- the selected player has any influence level on. Mirrors engine's
     -- iteration filter exactly so the row set matches.
-    local pSel = Players[m_selectedPlayerID]
+    local pSel = Players[g_iSelectedPlayerID]
     for i = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
         local p = Players[i]
-        if p ~= nil and p:IsAlive() and not p:IsMinorCiv() and i ~= m_selectedPlayerID then
+        if p ~= nil and p:IsAlive() and not p:IsMinorCiv() and i ~= g_iSelectedPlayerID then
             local level = pSel:GetInfluenceLevel(i)
             if level ~= InfluenceLevelTypes.NO_INFLUENCE_LEVEL then
                 items[#items + 1] = buildInfluenceRowGroup(i)
@@ -1060,6 +1020,13 @@ end
 -- ===== Install =========================================================
 
 if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "function" then
+    -- Patch the engine PullDown metatable so RegisterSelectionCallback /
+    -- BuildEntry / ClearEntries are captured before the engine's
+    -- SortAndDisplayPlayerInfluence first runs (popup-show flow). Without
+    -- the probe in place, BaseMenuItems.Pulldown over PlayerPD has no
+    -- engine callback to invoke from keyboard activation. Idempotent
+    -- across the lua_State; a no-op if FrontEnd ProbeBoot already ran.
+    PullDownProbe.installFromControls({ "PlayerPD" }, {}, {}, {})
     m_yourCultureTab = TabbedShell.menuTab({
         tabName = "TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE",
         menuSpec = {
@@ -1096,14 +1063,16 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         priorInput = priorInput,
         priorShowHide = priorShowHide,
         onShow = function(_handler)
-            -- Reset transient state on every open so a previous session's
-            -- in-flight selection (move source, swap pairing, perspective
-            -- pick) doesn't bleed into the new view.
+            -- Reset transient mod-side state on every open so a previous
+            -- session's in-flight selection (move source, swap pairing)
+            -- doesn't bleed into the new view. Tab 4's perspective is the
+            -- engine's g_iSelectedPlayerID; the engine itself does not
+            -- reset it on popup close, so a sighted player's perspective
+            -- pick persists across reopen — we mirror that.
             m_gwMoveSource = nil
             m_swapTheirItem = -1
             m_swapYourItem = -1
             m_swapTradingPartner = -1
-            m_selectedPlayerID = activePlayerID()
             m_yourCultureTab.menu().setItems(buildYourCultureItems())
             m_swapTab.menu().setItems(buildSwapItems())
             m_victoryTab.menu().setItems(buildVictoryItems())

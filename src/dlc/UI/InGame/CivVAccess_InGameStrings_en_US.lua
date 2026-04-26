@@ -1355,11 +1355,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE"] = "Player Influence"
 -- Tab 1 (Your Culture).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Antiquity sites: {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HIDDEN_SITES"] = "Hidden antiquity sites: {1_Num}"
--- Mode toggle. The engine has two radios (Click to Move / Click to View);
--- accessible form is one toggle with the live mode in the label.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_MODE_LABEL"] = "Slot activation: {1_Mode}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_MODE_MOVE"] = "move"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_MODE_VIEW"] = "view"
 -- Per-city label. {1_Name} already includes the capital/puppet/occupied
 -- prefix when applicable (mirrors engine's CityDisplayName composition).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL"] =
@@ -1378,7 +1373,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_BUILDING_LABEL_THEMED"] =
 -- Per-slot leaf inside a building. Slot index is 1-based for speech.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_FILLED"] = "slot {1_Idx}: {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY"] = "slot {1_Idx}: empty"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SLOT_EMPTY_HINT"] = "empty slot, nothing to view"
 -- GW move flow feedback.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_MARKED"] = "marked as move source"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_GW_MOVE_PLACED"] = "moved"
@@ -1394,8 +1388,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ART"] = "Art"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TYPE_ARTIFACT"] = "Artifact"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NONE"] = "none designated"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_ENTRY"] = "Clear designation"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY"] =
-    "{1_Name}, {2_Era}, {3_Creator}, theming plus {4_Bonus}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_WORK_ENTRY"] = "{1_Name}, {2_Era}, {3_Creator}, theming plus {4_Bonus}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFER"] = "Your offer: {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_THEIR_OFFER"] = "Their offer: {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_NONE"] = "none selected"
@@ -1405,8 +1398,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFER_DETAIL_OWNED"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_BUTTON"] = "Send swap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_CLEAR_BUTTON"] = "Clear swap workspace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_OFFERINGS"] = "Foreign offerings"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED"] =
-    "{1_Type}: {2_Name}, {3_Era}, {4_Creator}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_FILLED"] = "{1_Type}: {2_Name}, {3_Era}, {4_Creator}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_SLOT_EMPTY"] = "{1_Type}: empty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_NO_OFFERINGS"] = "No civs offering swappable works"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_PAIRED"] = "swap auto-paired"

@@ -608,13 +608,20 @@ end
 -- pick while browsing the sub-menu. No re-announce-on-activate: a sub-
 -- menu entry's activate pops the sub, and the parent's re-announce on
 -- pop already speaks the new value.
-local function buildChoice(button, callback, useVoids, parentControlName, announceOverride, isSelected)
+--
+-- onSelected: optional spec.onSelected(v1, v2) hook fired after the engine
+-- callback has run successfully. Lets the parent screen rebuild dependent
+-- state (e.g. CultureOverview's per-civ row list when the perspective
+-- pulldown picks a new player). Skipped when the engine callback raises so
+-- a failed selection doesn't trigger a partial rebuild.
+local function buildChoice(button, callback, useVoids, parentControlName, announceOverride, isSelected, onSelected)
     local choice = {
         kind = "choice",
         _button = button,
         _callback = callback,
         _useVoids = useVoids,
         _isSelected = isSelected,
+        _onSelected = onSelected,
     }
     function choice:isNavigable()
         return self._button ~= nil
@@ -664,8 +671,8 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
     end
     function choice:activate(menu)
         local ok, err
+        local v1, v2
         if self._useVoids then
-            local v1, v2
             pcall(function()
                 v1 = self._button:GetVoid1()
                 v2 = self._button:GetVoid2()
@@ -678,6 +685,17 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
             Log.error("BaseMenu pulldown '" .. tostring(parentControlName) .. "' callback failed: " .. tostring(err))
         else
             BaseMenuItems.clickAck()
+            if self._onSelected ~= nil then
+                local okS, errS = pcall(self._onSelected, v1, v2)
+                if not okS then
+                    Log.error(
+                        "BaseMenu pulldown '"
+                            .. tostring(parentControlName)
+                            .. "' onSelected failed: "
+                            .. tostring(errS)
+                    )
+                end
+            end
         end
         HandlerStack.removeByName(menu.name, true)
     end
@@ -693,11 +711,16 @@ function BaseMenuItems.Pulldown(spec)
         spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
         "Pulldown.entryAnnounceFn must be a function if provided"
     )
+    check(
+        spec.onSelected == nil or type(spec.onSelected) == "function",
+        "Pulldown.onSelected must be a function if provided"
+    )
     local item = {
         kind = "pulldown",
         _control = resolveControl(spec, "Pulldown"),
         _valueFn = spec.valueFn,
         _entryAnnounceFn = spec.entryAnnounceFn,
+        _onSelected = spec.onSelected,
     }
     if spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
@@ -790,6 +813,7 @@ function BaseMenuItems.Pulldown(spec)
         local initialIndex
         local fallbackUsed = 0
         local entryAnnounceFn = self._entryAnnounceFn
+        local onSelected = self._onSelected
         for i, inst in ipairs(entries) do
             local cb = topCallback
             local useVoids = topCallback ~= nil
@@ -818,7 +842,8 @@ function BaseMenuItems.Pulldown(spec)
                     end
                 end
             end
-            childItems[i] = buildChoice(inst.Button, cb, useVoids, self.controlName, announceOverride, isSelected)
+            childItems[i] =
+                buildChoice(inst.Button, cb, useVoids, self.controlName, announceOverride, isSelected, onSelected)
         end
         if topCallback == nil and fallbackUsed == 0 then
             Log.warn(
