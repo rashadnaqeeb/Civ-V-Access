@@ -366,7 +366,7 @@ function TabbedShell.menuTab(args)
     if menuSpec.displayName == nil or menuSpec.displayName == "" then
         menuSpec.displayName = Text.key(args.tabName)
     end
-    menuSpec.name = menuSpec.name or ("TabbedShell.menuTab." .. args.tabName)
+    menuSpec.name = menuSpec.name or ("TabbedShell.menuTab." .. Text.key(args.tabName))
 
     local menu = BaseMenu.create(menuSpec)
 
