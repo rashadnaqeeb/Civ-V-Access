@@ -1154,12 +1154,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "No val
 -- list of route summaries. Drill-in surfaces the engine's per-cell tooltip
 -- (BuildTradeRouteToolTipString output) split per [NEWLINE] line.
 --
--- Domain prefix lands first because it answers what kind of unit moves the
--- route (caravan vs cargo ship), which is the user's first filter when
--- scanning a list. Civ-name parenthetical follows the city name to match
--- the choose-trade-route popup's "city of civ" pattern. Turns-left lands
--- last because routes are typically scanned for "what do they yield" before
--- "when do they expire."
+-- Row format mirrors the choose-international-trade-route popup: header
+-- (domain + cities + civs), then "you get" yields, then "they get" yields,
+-- then turns-left when valid. The "you get" / "they get" yield clauses
+-- reuse TRADE_ROUTE_YOU_GET / TRADE_ROUTE_THEY_GET above so the wording
+-- lines up with the picker the user just came from. Turns-left omits when
+-- the engine returns negative TurnsLeft (Available tab and some
+-- transitional states), matching the engine's own >= 0 guard in
+-- TradeRouteOverview.lua DisplayData.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY"] = "Ctrl+T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC"] = "Open Trade Route Overview"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_YOURS"] = "Your trade routes"
@@ -1167,8 +1169,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_AVAILABLE"] = "Available trade ro
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_WITH_YOU"] = "Trade routes with you"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND"] = "caravan"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_SEA"] = "cargo ship"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_LABEL"] =
-    "{1_Domain}, {2_FromCity} ({3_FromCiv}) to {4_ToCity} ({5_ToCiv}), {6_Turns} turns left"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] =
+    "{1_Domain}, {2_FromCity} ({3_FromCiv}) to {4_ToCity} ({5_ToCiv})"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = "{1_Num} turns left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"] = "No routes."
 -- Defense group: each defensive building announces with the same {Building}
 -- format string so adding a new defensive building only adds a row, not a
