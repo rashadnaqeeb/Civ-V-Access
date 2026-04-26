@@ -807,16 +807,7 @@ end
 
 local function buildYourOfferingsGroup()
     return BaseMenuItems.Group({
-        labelFn = function()
-            local p = activePlayer()
-            local n = 0
-            for _, t in ipairs(SWAP_TYPES) do
-                if t.accessor(p) >= 0 then
-                    n = n + 1
-                end
-            end
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFERINGS_LABEL", n)
-        end,
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_YOUR_OFFERINGS_LABEL"),
         cached = false,
         itemsFn = function()
             local items = {}
@@ -911,9 +902,7 @@ local function buildForeignOfferingsGroup()
         return out
     end
     return BaseMenuItems.Group({
-        labelFn = function()
-            return Text.format("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_LABEL", #civsWithOfferings())
-        end,
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CO_SWAP_FOREIGN_LABEL"),
         cached = false,
         itemsFn = function()
             local items = {}
