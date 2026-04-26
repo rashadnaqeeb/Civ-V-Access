@@ -1323,3 +1323,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS"] = "{1_Have} 
 -- pure positional substitution.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_ROW"] =
     "{1_Metric}, rank {2_Rank}, {3_Value}, best {4_BestCiv} {5_BestVal}, average {6_AvgVal}, worst {7_WorstCiv} {8_WorstVal}"
+-- Vanilla's TXT_KEY_DEMOGRAPHICS_GOLD label is "GNP", which spells out
+-- letter-by-letter in TTS and tells a non-economist nothing. Mod-authored
+-- override only -- the engine label stays "GNP" for sighted players.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD"] = "Gross National Product"

@@ -259,7 +259,7 @@ local function metricRow(labelKey, valueFn, formatFn, measureKey, magSuffix)
             local rank = rankOf(valueFn, pSelf)
             local selfVal = formatFn(valueFn(pSelf))
             if measureKey ~= nil then
-                selfVal = selfVal .. " " .. Locale.ConvertTextKey(measureKey)
+                selfVal = selfVal .. " " .. Text.key(measureKey)
             end
             local function shortVal(rawVal)
                 local s = formatFn(rawVal)
@@ -273,7 +273,7 @@ local function metricRow(labelKey, valueFn, formatFn, measureKey, magSuffix)
             local avgRaw = averageOf(valueFn)
             return Text.format(
                 "TXT_KEY_CIVVACCESS_DEMO_ROW",
-                Locale.ConvertTextKey(labelKey),
+                Text.key(labelKey),
                 rank,
                 selfVal,
                 civDisplayName(bestP or pSelf),
@@ -291,7 +291,9 @@ local function buildItems()
         metricRow("TXT_KEY_DEMOGRAPHICS_POPULATION", valuePopulation, formatBig, "TXT_KEY_DEMOGRAPHICS_POPULATION_MEASURE", nil),
         metricRow("TXT_KEY_DEMOGRAPHICS_FOOD",       valueFood,       formatBig, "TXT_KEY_DEMOGRAPHICS_FOOD_MEASURE",       "m"),
         metricRow("TXT_KEY_DEMOGRAPHICS_PRODUCTION", valueProduction, formatBig, "TXT_KEY_DEMOGRAPHICS_PRODUCTION_MEASURE", "m"),
-        metricRow("TXT_KEY_DEMOGRAPHICS_GOLD",       valueGold,       formatBig, "TXT_KEY_DEMOGRAPHICS_GOLD_MEASURE",       "m"),
+        -- Spell out vanilla's "GNP" acronym for speech; the underlying value
+        -- and unit ("Million Gold") stay engine-sourced.
+        metricRow("TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD", valueGold,       formatBig, "TXT_KEY_DEMOGRAPHICS_GOLD_MEASURE",       "m"),
         metricRow("TXT_KEY_DEMOGRAPHICS_LAND",       valueLand,       formatBig, "TXT_KEY_DEMOGRAPHICS_LAND_MEASURE",       nil),
         metricRow("TXT_KEY_DEMOGRAPHICS_ARMY",       valueArmy,       formatBig, nil,                                       nil),
         metricRow("TXT_KEY_DEMOGRAPHICS_APPROVAL",   valueApproval,   formatPct, nil,                                       nil),
