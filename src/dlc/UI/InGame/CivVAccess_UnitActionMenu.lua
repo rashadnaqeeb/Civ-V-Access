@@ -199,13 +199,35 @@ end
 -- Civ V's action table uses 0-based indexing into GameInfoActions, and
 -- the iterator emits entries in Action-definition order.
 --
--- The zero-moves branch mirrors base UnitPanel.lua:223. CanHandleAction
--- returns true for mission actions even at 0 moves because the per-mission
--- canFoo helpers only check plot legality; the real moves gate is
--- downstream in CvUnitMission::ContinueMission's `if (canMove())` block.
--- So MISSION_FOUND / MISSION_BUILD / etc. would silently no-op if we
--- passed them through. Base UI hides everything at 0 moves except cancel,
--- stop-automation, and promotions; we match that exactly.
+-- The zero-moves branch mirrors base UnitPanel.lua:223 with one
+-- exception. CanHandleAction returns true for mission actions even at
+-- 0 moves because the per-mission canFoo helpers only check plot
+-- legality; the real moves gate is downstream in
+-- CvUnitMission::ContinueMission's `if (canMove())` block. So
+-- MISSION_FOUND / MISSION_BUILD / etc. would silently no-op if we
+-- passed them through. Base UI hides everything at 0 moves except
+-- cancel, stop-automation, and promotions.
+--
+-- The exception is path-bearing missions (MOVE_TO and friends): a
+-- 0-MP unit pressing Shift+Enter on a target plot must reach the
+-- target picker so the mission can be queued for next turn. The
+-- engine accepts a queued PUSH_MISSION at 0 MP -- StartMission sets
+-- ACTIVITY_HOLD instead of ACTIVITY_MISSION (CvUnitMission.cpp line
+-- 1269), the entry stays in the queue, next turn's UpdateMission
+-- picks it up. Vanilla mouse path covers this case via map-click
+-- (no MP gate on the SELECTION-mode click handler); blind players
+-- have no map-click affordance, so without keeping the menu entry
+-- there is no keyboard route to queue ahead. Plain Enter at 0 MP on
+-- a path-bearing mission still falls through to commitAtCursor's
+-- CanDoInterfaceMode rejection and speaks "action failed."
+local QUEUEABLE_AT_ZERO_MP = {
+    MISSION_MOVE_TO = true,
+    MISSION_ROUTE_TO = true,
+    MISSION_MOVE_TO_UNIT = true,
+    MISSION_EMBARK = true,
+    MISSION_DISEMBARK = true,
+}
+
 local function isAvailable(unit, iAction, action)
     if not action.Visible then
         return false
@@ -221,6 +243,7 @@ local function isAvailable(unit, iAction, action)
         and action.Type ~= "COMMAND_CANCEL"
         and action.Type ~= "COMMAND_STOP_AUTOMATION"
         and not isPromotionAction(action)
+        and not QUEUEABLE_AT_ZERO_MP[action.Type]
     then
         return false
     end

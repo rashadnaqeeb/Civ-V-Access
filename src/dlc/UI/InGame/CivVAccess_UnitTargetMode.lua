@@ -562,19 +562,35 @@ local function commitAtCursor(self, queued)
         restoreSelection()
         return
     end
-    if not UI.CanDoInterfaceMode(mode) then
-        SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
-        HandlerStack.removeByName("UnitTargetMode", false)
-        restoreSelection()
-        return
-    end
+    -- Queued branch runs before the CanDoInterfaceMode gate: a 0-MP unit
+    -- has CanDoInterfaceMode(MOVE_TO) returning false, but the engine
+    -- accepts a queued PUSH_MISSION regardless (StartMission sets
+    -- ACTIVITY_HOLD until the next turn brings MP). Plain enter still
+    -- hits the gate below and speaks "action failed."
     if queued then
         if isMeleeAttackMode(mode) then
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"))
             return
         end
-        Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, true)
+        -- Send bShift=true only if the queue is non-empty. Engine quirk:
+        -- CvUnitMission::InsertAtEndMissionQueue only calls
+        -- ActivateHeadMission when bStart (= !bAppend) is true. bShift=true
+        -- maps to bAppend=true, so a shift-push onto an empty queue lands
+        -- in the queue with no active head and the unit sits there.
+        -- Vanilla mouse shift+click hits the same wall; the difference is
+        -- that base UI's mouse path expects a prior plain click to have
+        -- already activated a head. We treat the first shift+enter as
+        -- equivalent to plain enter (queue starts immediately), and only
+        -- second-and-later shift+enters as true appends.
+        local bShift = #self._actor:GetMissionQueue() > 0
+        Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, bShift)
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+        return
+    end
+    if not UI.CanDoInterfaceMode(mode) then
+        SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+        HandlerStack.removeByName("UnitTargetMode", false)
+        restoreSelection()
         return
     end
     if willCauseCombat(self._actor, plot, mode) then
