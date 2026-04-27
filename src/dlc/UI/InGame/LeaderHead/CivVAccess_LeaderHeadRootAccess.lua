@@ -5,12 +5,13 @@
 --
 -- displayName is the leader title (populated from Controls.TitleText in
 -- onShow, after LeaderMessageHandler has written it for the current
--- leader). silentFirstOpen means the screen opens speaking only the
--- title; F1 then reads the full "title, mood, speech" via the function
--- preamble, live each press so a new AILeaderMessage coming back from a
--- sub-screen (Trade, DiscussionDialog, etc.) re-reads the latest text.
--- The leader speech is frequently in a constructed language only the AI
--- character understands, so F1 is the accessibility substitute.
+-- leader). The screen opens speaking title + mood + speech via the
+-- function preamble, resolved live each call so a new AILeaderMessage
+-- coming back from a sub-screen (Trade, DiscussionDialog, etc.)
+-- re-reads the latest text. The engine's voice clip plays a
+-- constructed-language line that doesn't match the subtitle text, so
+-- letting Tolk overlap the clip is the accessible behavior -- the
+-- subtitle is the only canonical content. F1 re-reads on demand.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -95,7 +96,6 @@ local handler = BaseMenu.install(ContextPtr, {
     -- open speaks "Suleiman the Magnificent" rather than "Diplomacy".
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"),
     preamble = composePreamble,
-    silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     onShow = function(handler)

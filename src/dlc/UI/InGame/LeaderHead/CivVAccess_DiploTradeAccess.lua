@@ -75,10 +75,9 @@ local handler = TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, 
     kind = "AI",
     displayNameFn = titleFn,
     preambleFn = composePreamble,
-    -- Silent first open: the leader plays a voice clip on every message;
-    -- Tolk reading NameText + DiscussionText at the same time would
-    -- double-narrate. F1 re-reads the preamble on demand.
-    silentFirstOpen = true,
+    -- The engine's voice clip is a constructed-language line that doesn't
+    -- match the subtitle text, so we don't suppress the open-speech --
+    -- the subtitle is the only canonical content for this screen.
     fallbackDisplayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TRADE"),
 })
 

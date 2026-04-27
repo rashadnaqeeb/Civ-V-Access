@@ -3,13 +3,13 @@
 -- whose text, tooltips, and visibility are recomputed per DiploUIState.
 --
 -- Same open-speech and F1 contract as LeaderHeadRoot: on show we speak
--- only the leader title (onShow populates handler.displayName from
--- Controls.TitleText); F1 re-reads the full live preamble (mood +
--- leader speech). The leader speech changes as the AI sends follow-up
--- AILeaderMessage events; the function preamble resolves fresh each
--- F1 press so the user always gets the current text. The game plays a
--- voice clip for every message, so state changes are already announced
--- audibly -- the user knows to press F1 for text.
+-- the leader title (onShow populates handler.displayName from
+-- Controls.TitleText) plus the live preamble (mood + leader speech).
+-- The leader speech changes as the AI sends follow-up AILeaderMessage
+-- events; the function preamble resolves fresh each open / F1 press so
+-- the user always gets the current text. The engine's voice clip is a
+-- constructed-language line that doesn't match the subtitle, so Tolk
+-- overlapping the clip is the accessible behavior.
 --
 -- Three sibling overlays exist on this screen that BaseMenu can't model
 -- as items directly: DenounceConfirm (yes/no denounce modal), WarConfirm
@@ -316,7 +316,6 @@ local handler = BaseMenu.install(ContextPtr, {
     name = "DiscussionDialog",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"),
     preamble = composePreamble,
-    silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     onShow = function(handler)
