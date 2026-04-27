@@ -175,33 +175,14 @@ end
 -- Tile-level movement cost from terrain / feature / plotType data alone:
 -- a feature with nonzero Movement overrides the terrain cost (forest=2,
 -- jungle=2, marsh=3 in the shipped data); hills otherwise add 1; mountain
--- reads as impassable. Returns (cost, impassable). Unit-dependent rules
--- (embark, ZoC-end, road bypass, territory access) are deliberately out
--- of scope: the engine's unit-aware plot bindings are dead from Lua.
---
--- Plot:MovementCost(unit, fromPlot) -- bound in CvLuaPlot.cpp:844 via
--- BasicLuaMethod, correct two-argument shape per modiki -- access-
--- violates CvGameCore_Expansion2.dll 3.0.3.0 at offset 0x0021d9e0
--- (WER signature from a 2026-04-21 crash, Space-key preview in target
--- mode, called as targetPlot:MovementCost(unit, prevPlot)). The null
--- deref is inside the engine DLL; the Lua side passes both pointers
--- correctly. The binding presumably relies on pathfinder state that's
--- only initialised along the mouse-driven SerialEventMouseOverHex +
--- UI.SendPathfinderUpdate + Events.UIPathFinderUpdate flow, which we
--- can't trigger from a keyboard cursor (SerialEventMouseOverHex is
--- observable-only).
---
--- Unit:GeneratePath(toPlot, flags, reuse, piPathTurns) -- visible in
--- the Lua API but the C++ wrapper (CvLuaUnit.cpp lGeneratePath) is a
--- luaL_error "NYI" stub; calling it throws, never runs pathfinding.
---
--- Unit:CanMoveThrough / Unit:CanMoveOrAttackInto -- bound but have no
--- callsites in any shipped game Lua. Original incident predates the
--- above WER capture; treat as tainted by the same Context issue until
--- confirmed otherwise.
---
--- Net: unit-aware cost and pathfinding are off the table for screen-
--- reader preview speech. Stay on terrain / feature / plot data alone.
+-- reads as impassable. Returns (cost, impassable). This is the on-demand
+-- combat-info answer (PlotComposers.combat, the X key), which has no actor
+-- to path from -- the player is asking "what does this hex cost in
+-- general," not "what does it cost for unit U coming from plot F." Unit-
+-- aware cost (embark, ZoC-end, road bypass, territory access, river-edge
+-- bridges) requires the pair of plots and the unit, which the keyboard
+-- cursor doesn't have here. Per-unit pathing is answered separately by
+-- UnitTargetMode's move preview via the engine fork's Unit:GeneratePath.
 local function tileMoveCost(plot)
     if plot:IsMountain() then
         return nil, true
