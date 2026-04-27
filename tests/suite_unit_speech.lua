@@ -134,6 +134,9 @@ local function mkUnit(opts)
     function u:GetTeam()
         return self._team
     end
+    function u:GetID()
+        return opts.id or 1
+    end
     return u
 end
 
@@ -338,6 +341,44 @@ function M.test_selection_status_queued_mission()
     local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION })
     local out = UnitSpeech.selection(u, 0, 0)
     T.truthy(out:find("queued move", 1, true), "queued move status expected: " .. out)
+end
+
+-- Engine-fork variant: when the unit IS the head-selected one and
+-- WaypointsCore has a final waypoint + total-turn count, the rung
+-- becomes "queued move <dir>, N turns". This path stubs Waypoints
+-- directly so the test isolates statusToken's branching from the
+-- pathfinder-driven WaypointsCore internals.
+function M.test_selection_status_queued_mission_with_waypoints()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origFinal = Waypoints.finalAndTurns
+    Waypoints.finalAndTurns = function()
+        return { x = 3, y = 0, turns = 2 }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.finalAndTurns = origFinal
+    T.truthy(out:find("queued move 3e, 2 turns", 1, true), "queued-to rung expected: " .. out)
+end
+
+-- Falls back to the bare "queued move" when Waypoints has no final
+-- (empty queue, all path-bearing legs unreachable, etc.).
+function M.test_selection_status_queued_mission_falls_back_when_no_waypoints()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origFinal = Waypoints.finalAndTurns
+    Waypoints.finalAndTurns = function()
+        return nil
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.finalAndTurns = origFinal
+    T.truthy(out:find("queued move", 1, true), "queued move fallback expected: " .. out)
+    T.truthy(not out:find("turns", 1, true), "no turns suffix when waypoints unavailable: " .. out)
 end
 
 function M.test_selection_status_building_wins_over_queued_mission()
