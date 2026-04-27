@@ -286,6 +286,32 @@ local function makeButtonItem(idx)
     })
 end
 
+-- Items are static across states; per-state visibility is owned by the
+-- engine's LeaderMessageHandler hiding individual button controls. Hoisted
+-- so the AILeaderMessage listener below can re-pass the same list to
+-- setItems and trigger its cursor re-clamp.
+local items = {
+    makeButtonItem(1),
+    makeButtonItem(2),
+    makeButtonItem(3),
+    makeButtonItem(4),
+    makeButtonItem(5),
+    makeButtonItem(6),
+    makeButtonItem(7),
+    makeButtonItem(8),
+    -- BackButton is the only widget visible in DIPLO_UI_STATE_BLANK_DISCUSSION
+    -- (AI acknowledging an accepted offer with "That deal will work" and the
+    -- like). Without it as a navigable item the menu has zero items in that
+    -- state and the user can only exit via Esc fall-through.
+    BaseMenuItems.Button({
+        controlName = "BackButton",
+        textKey = "TXT_KEY_BACK_BUTTON",
+        activate = function()
+            OnBack()
+        end,
+    }),
+}
+
 local handler = BaseMenu.install(ContextPtr, {
     name = "DiscussionDialog",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"),
@@ -299,28 +325,26 @@ local handler = BaseMenu.install(ContextPtr, {
             handler.displayName = tostring(title)
         end
     end,
-    items = {
-        makeButtonItem(1),
-        makeButtonItem(2),
-        makeButtonItem(3),
-        makeButtonItem(4),
-        makeButtonItem(5),
-        makeButtonItem(6),
-        makeButtonItem(7),
-        makeButtonItem(8),
-        -- BackButton is the only widget visible in DIPLO_UI_STATE_BLANK_DISCUSSION
-        -- (AI acknowledging an accepted offer with "That deal will work" and the
-        -- like). Without it as a navigable item the menu has zero items in that
-        -- state and the user can only exit via Esc fall-through.
-        BaseMenuItems.Button({
-            controlName = "BackButton",
-            textKey = "TXT_KEY_BACK_BUTTON",
-            activate = function()
-                OnBack()
-            end,
-        }),
-    },
+    items = items,
 })
+
+-- Re-clamp the cursor when the engine reshuffles button visibility for a
+-- new DiploUIState. Base's LeaderMessageHandler runs first on the shared
+-- AILeaderMessage dispatch (its Add precedes ours by include order),
+-- driving our onShow against whatever button visibility was set for the
+-- *previous* state; by the time our listener runs base has finished
+-- updating button hidden flags. setItems(items) repoints the items field
+-- at the same list and re-clamps _indices to the first navigable item
+-- per BaseMenuCore.setItems, so a cursor stranded on a now-hidden button
+-- (e.g. Button1 after the AI's "Very well." flips state to
+-- BLANK_DISCUSSION, leaving only BackButton visible) jumps to the live
+-- one before the next Enter.
+Events.AILeaderMessage.Add(function()
+    if handler == nil then
+        return
+    end
+    handler.setItems(items)
+end)
 
 LeaderDescription.bindF2(handler, function()
     return currentAIPlayer
