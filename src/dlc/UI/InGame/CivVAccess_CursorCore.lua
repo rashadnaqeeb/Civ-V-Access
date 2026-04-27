@@ -72,6 +72,74 @@ function Cursor.init()
     _lastOwnerIdentity = nil
 end
 
+-- ===== Targetability prefix =====
+-- When the engine is in a ranged-attack interface mode (unit ranged strike,
+-- airstrike, city ranged strike), prepend an "unseen" or "out of range" tag
+-- so the user can tell at cursor-move time whether the current tile would
+-- accept a strike. Sighted players read the same answer off the red-overlay
+-- and arrow visuals (Bombardment.lua); the engine's CanRangeStrikeAt is
+-- their gate, but it requires a valid target on the plot, so we can't use
+-- it here -- we want the prefix on every plot, target or not. Geometry
+-- check only; no fog-of-war / target-validity reasoning.
+--
+-- LoS uses CvPlot::canSeePlot, called with a large range so the engine's
+-- internal iRange++ + distance gate (CvPlot.cpp:1647-1666) doesn't conflate
+-- "blocked by terrain" with "too far away" -- the latter we report as
+-- "out of range" via Map.PlotDistance. Air units / IsRangeAttackIgnoreLOS
+-- skip the LoS step (engine does the same in canEverRangeStrikeAt). The
+-- attacker's own plot returns no prefix (distance 0, LoS trivially true).
+local LOS_PROBE_RANGE = 100
+
+local function targetabilityPrefix(plot)
+    local mode = UI.GetInterfaceMode()
+    local attackerPlot, team, range, ignoresLoS
+    if mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE then
+        local unit = UI.GetHeadSelectedUnit()
+        if unit == nil then
+            -- Engine should have a head-selected unit while one of the unit
+            -- ranged interface modes is live; nil here is a state race we
+            -- want a Lua.log breadcrumb for rather than swallowing.
+            Log.warn("targetabilityPrefix: ranged interface mode " .. tostring(mode) .. " with no head-selected unit")
+            return ""
+        end
+        attackerPlot = unit:GetPlot()
+        team = unit:GetTeam()
+        range = unit:Range()
+        ignoresLoS = unit:GetDomainType() == DomainTypes.DOMAIN_AIR or unit:IsRangeAttackIgnoreLOS()
+    elseif mode == InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK then
+        local city = UI.GetHeadSelectedCity()
+        if city == nil then
+            Log.warn("targetabilityPrefix: CITY_RANGE_ATTACK with no head-selected city")
+            return ""
+        end
+        attackerPlot = city:Plot()
+        team = Players[city:GetOwner()]:GetTeam()
+        range = city:GetCityRangedStrikeRange()
+        ignoresLoS = false
+    else
+        return ""
+    end
+    -- Fog markers in the glance already convey "you can't strike here," so
+    -- skip on non-visible plots (fogged or unexplored) to avoid duplicating
+    -- the signal. The engine's canEverRangeStrikeAt also gates on isVisible
+    -- before the LoS Bresenham, so this matches the engine's own answer.
+    if not plot:IsVisible(team, Game.IsDebugMode()) then
+        return ""
+    end
+    local ax, ay = attackerPlot:GetX(), attackerPlot:GetY()
+    local tx, ty = plot:GetX(), plot:GetY()
+    if ax == tx and ay == ty then
+        return ""
+    end
+    if not ignoresLoS and not attackerPlot:CanSeePlot(plot, team, LOS_PROBE_RANGE, DirectionTypes.NO_DIRECTION) then
+        return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") .. ", "
+    end
+    if Map.PlotDistance(ax, ay, tx, ty) > range then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE") .. ", "
+    end
+    return ""
+end
+
 -- ===== Movement =====
 -- Visibility is a separate axis from ownership: unexplored tiles speak the
 -- "unexplored" token on every entry (a silent move loses the user across a
@@ -98,18 +166,30 @@ local function announceForMove(plot)
 
     local spoken, identity = PlotSections.ownerIdentity(plot)
     local glance = PlotComposers.glance(plot, { cueOnly = cueOnly })
-    local prefix = ""
+    local ownerPrefix = ""
     if identity ~= _lastOwnerIdentity then
         _lastOwnerIdentity = identity
-        prefix = spoken .. ". "
+        ownerPrefix = spoken .. ". "
     end
+    -- Targetability tag fires every move while a ranged interface mode is
+    -- active (no diff suppression -- the user needs to know where each tile
+    -- stands, not just on changes). Composed before the owner-identity
+    -- prefix so the fastest-changing fact ("can I strike here") leads.
+    local targetPrefix = targetabilityPrefix(plot)
     if glance == "" then
-        if prefix == "" then
-            return ""
+        if ownerPrefix ~= "" then
+            return targetPrefix .. spoken .. "."
         end
-        return spoken .. "."
+        if targetPrefix ~= "" then
+            -- Featureless plot (open ocean, mostly) inside a ranged mode:
+            -- the targetability tag is the only thing the player would
+            -- otherwise hear. Strip the trailing ", " since there's
+            -- nothing for it to lead into.
+            return targetPrefix:sub(1, -3) .. "."
+        end
+        return ""
     end
-    return prefix .. glance .. "."
+    return targetPrefix .. ownerPrefix .. glance .. "."
 end
 
 -- Scoped-mode hooks. A screen that restricts the cursor to a subset of

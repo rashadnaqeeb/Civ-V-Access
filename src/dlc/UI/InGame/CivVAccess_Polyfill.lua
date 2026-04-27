@@ -38,6 +38,48 @@ UI = UI
         GetHeadSelectedUnit = function()
             return nil
         end,
+        GetHeadSelectedCity = function()
+            return nil
+        end,
+        GetInterfaceMode = function()
+            return InterfaceModeTypes.INTERFACEMODE_SELECTION
+        end,
+    }
+if UI.GetHeadSelectedCity == nil then
+    UI.GetHeadSelectedCity = function()
+        return nil
+    end
+end
+if UI.GetInterfaceMode == nil then
+    UI.GetInterfaceMode = function()
+        return InterfaceModeTypes.INTERFACEMODE_SELECTION
+    end
+end
+
+-- InterfaceModeTypes enum. Only the modes mod code branches on are listed;
+-- the engine has many more (build, found, gift, embark, etc.) but tests
+-- compare by reference against these names, and the cursor's targetability
+-- prefix only fires for the three ranged modes plus a "not in ranged mode"
+-- baseline. Numeric values are placeholders — production reads the engine's
+-- real ids and the comparisons here are by-name lookups, not by-value.
+InterfaceModeTypes = InterfaceModeTypes
+    or {
+        INTERFACEMODE_SELECTION = 0,
+        INTERFACEMODE_RANGE_ATTACK = 1,
+        INTERFACEMODE_AIRSTRIKE = 2,
+        INTERFACEMODE_CITY_RANGE_ATTACK = 3,
+        INTERFACEMODE_ATTACK = 4,
+        INTERFACEMODE_MOVE_TO = 5,
+        INTERFACEMODE_MOVE_TO_TYPE = 6,
+        INTERFACEMODE_MOVE_TO_ALL = 7,
+        INTERFACEMODE_ROUTE_TO = 8,
+        INTERFACEMODE_PARADROP = 9,
+        INTERFACEMODE_AIRLIFT = 10,
+        INTERFACEMODE_REBASE = 11,
+        INTERFACEMODE_EMBARK = 12,
+        INTERFACEMODE_DISEMBARK = 13,
+        INTERFACEMODE_NUKE = 14,
+        INTERFACEMODE_AIR_SWEEP = 15,
     }
 
 Events = Events or {

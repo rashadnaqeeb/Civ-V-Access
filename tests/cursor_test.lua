@@ -78,6 +78,19 @@ local function setup()
     UI.GetHeadSelectedUnit = function()
         return nil
     end
+    UI.GetHeadSelectedCity = function()
+        return nil
+    end
+    UI.GetInterfaceMode = function()
+        return InterfaceModeTypes.INTERFACEMODE_SELECTION
+    end
+    -- Recs gating: a sibling test that called installRecGlobals leaves
+    -- UI.CanSelectionListWork / Found defined; cursor cases that don't
+    -- explicitly opt into the rec section would otherwise hit
+    -- Recommendations.workerPlots and try to call GetRecommendedWorkerPlots
+    -- on a bare fakePlayer that has no such method.
+    UI.CanSelectionListWork = nil
+    UI.CanSelectionListFound = nil
 
     Cursor._reset()
 end
@@ -1767,6 +1780,231 @@ function M.test_activate_met_major_human_opens_deal_screen()
     T.eq(#activateCalls, 1)
     T.eq(activateCalls[1].op, "deal")
     T.eq(activateCalls[1].id, 1)
+end
+
+-- ===== Targetability prefix in ranged interface modes =====
+-- The cursor prepends "unseen, " or "out of range, " to its move announcement
+-- while UI.GetInterfaceMode() is one of the three ranged modes, mirroring the
+-- Bombardment.lua red-overlay / arrow visuals sighted players read.
+
+-- Builds a strip of revealed plain tiles east of (0,0). The attacker's plot
+-- at (0,0) carries the canSeePlot stub since CursorCore queries LoS via
+-- attackerPlot:CanSeePlot(target, ...) -- the engine's API is on the source
+-- plot, not the target. losBlocked=true makes every CanSeePlot from the
+-- attacker plot return false (uniform geometric obstruction). foggedAt is
+-- a list of x coordinates whose east-strip plots should be revealed-but-
+-- fogged so the targetability prefix's IsVisible gate can be exercised.
+local function setupRangedScene(opts)
+    setup()
+    Players[0] = T.fakePlayer({ team = 0 })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local attackerPlot = T.fakePlot({
+        x = 0, y = 0, terrain = 1,
+        canSeePlot = function(_t, _team, _range, _dir)
+            if opts.losBlocked then
+                return false
+            end
+            return true
+        end,
+    })
+    local plotByXY = { ["0,0"] = attackerPlot }
+    local fogged = {}
+    for _, x in ipairs(opts.foggedAt or {}) do
+        fogged[x] = true
+    end
+    local maxX = opts.maxX or 3
+    for x = 1, maxX do
+        plotByXY[x .. ",0"] = T.fakePlot({
+            x = x, y = 0,
+            terrain = (opts.featureless and -1) or 1,
+            visible = not fogged[x],
+            revealed = true,
+        })
+    end
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+    UI.GetInterfaceMode = function()
+        return opts.mode or InterfaceModeTypes.INTERFACEMODE_SELECTION
+    end
+    return attackerPlot
+end
+
+local function selectArcher(attackerPlot, opts)
+    opts = opts or {}
+    local archer = T.fakeUnit({ range = opts.range or 2, domain = opts.domain or DomainTypes.DOMAIN_LAND })
+    archer._plot = attackerPlot
+    UI.GetHeadSelectedUnit = function()
+        return archer
+    end
+    Cursor.init()
+    return archer
+end
+
+function M.test_targetability_unseen_when_los_blocked()
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = true,
+    })
+    selectArcher(attackerPlot)
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- (1,0): in range, LoS blocked
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0): in range, LoS blocked
+    T.truthy(out:find("unseen", 1, true), "LoS-blocked tile must speak unseen prefix: " .. out)
+    T.truthy(not out:find("out of range", 1, true), "must not double-tag with out of range: " .. out)
+end
+
+function M.test_targetability_out_of_range_when_in_los_but_far()
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = false,
+        maxX = 3,
+    })
+    selectArcher(attackerPlot, { range = 2 })
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- (1,0): distance 1, in range
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0): distance 2, in range
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (3,0): distance 3 > range 2
+    T.truthy(out:find("out of range", 1, true), "far in-LoS tile must speak out of range: " .. out)
+    T.truthy(not out:find("unseen", 1, true), "must not tag unseen when LoS is clear: " .. out)
+end
+
+function M.test_targetability_no_prefix_when_in_los_and_in_range()
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = false,
+    })
+    selectArcher(attackerPlot)
+    Cursor.move(DirectionTypes.DIRECTION_EAST)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0): in LoS, in range
+    T.truthy(not out:find("unseen", 1, true), "in-LoS in-range tile must not speak unseen: " .. out)
+    T.truthy(not out:find("out of range", 1, true), "in-range tile must not speak out of range: " .. out)
+end
+
+function M.test_targetability_air_unit_skips_los_check()
+    -- Air units bypass LoS via IsRangeAttackIgnoreLOS / DOMAIN_AIR -- a tile
+    -- with geometric LoS blocked must still NOT prefix "unseen" for an air
+    -- attacker. Distance is in range, so no prefix at all.
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE,
+        losBlocked = true,
+    })
+    selectArcher(attackerPlot, { range = 8, domain = DomainTypes.DOMAIN_AIR })
+    Cursor.move(DirectionTypes.DIRECTION_EAST)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(not out:find("unseen", 1, true), "air attacker must not flag LoS-blocked tile as unseen: " .. out)
+end
+
+function M.test_targetability_no_prefix_when_not_in_ranged_mode()
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_SELECTION,
+        losBlocked = true,
+    })
+    selectArcher(attackerPlot)
+    Cursor.move(DirectionTypes.DIRECTION_EAST)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(not out:find("unseen", 1, true), "selection mode must not speak targetability: " .. out)
+    T.truthy(not out:find("out of range", 1, true), "selection mode must not speak targetability: " .. out)
+end
+
+function M.test_targetability_skips_attackers_own_plot()
+    -- Cursor on the attacker's tile: distance 0, trivially in range, LoS to
+    -- self is true. No prefix even in ranged mode. Exercised via jumpTo so
+    -- the cursor lands on (0,0) without needing a same-direction move.
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = true, -- would prefix unseen on any other plot
+    })
+    selectArcher(attackerPlot)
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- step away first
+    local out = Cursor.jumpTo(0, 0) -- jump back onto attacker plot
+    T.truthy(not out:find("unseen", 1, true), "attacker own plot must not speak unseen: " .. out)
+    T.truthy(not out:find("out of range", 1, true), "attacker own plot must not speak out of range: " .. out)
+end
+
+function M.test_targetability_skips_fogged_plot()
+    -- A revealed-but-fogged tile already gets a "fog" marker from the glance
+    -- composer; the targetability prefix must defer rather than double-tag.
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = true, -- would normally trigger unseen
+        foggedAt = { 1 },
+    })
+    selectArcher(attackerPlot)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(not out:find("unseen", 1, true), "fogged tile must defer to fog marker, not double-tag: " .. out)
+end
+
+function M.test_targetability_speaks_prefix_alone_on_featureless_plot()
+    -- Empty-glance regression: a plot with no terrain / units / city / route
+    -- (open ocean is the realistic case) yields glance = "" from the
+    -- composer. If the owner identity is also stable, the targetability
+    -- prefix is the only signal the player would otherwise hear -- it must
+    -- not be silently dropped along with the empty glance.
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = true,
+        featureless = true,
+    })
+    selectArcher(attackerPlot)
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- (1,0): primes _lastOwnerIdentity
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0): same owner, empty glance
+    T.truthy(out:find("unseen", 1, true), "featureless plot in ranged mode must still speak prefix: '" .. out .. "'")
+end
+
+function M.test_targetability_city_ranged_mode_uses_city_attacker()
+    -- INTERFACEMODE_CITY_RANGE_ATTACK: attacker is the head-selected city,
+    -- not a unit. LoS blocked from city plot must speak unseen.
+    setup()
+    Players[0] = T.fakePlayer({ team = 0 })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local cityPlot = T.fakePlot({
+        x = 0, y = 0, terrain = 1,
+        canSeePlot = function()
+            return false
+        end,
+    })
+    local rome = T.fakeCity({ owner = 0, plot = cityPlot, range = 2 })
+    cityPlot._city = rome
+    cityPlot._isCity = true
+    local stepPlot = T.fakePlot({ x = 1, y = 0, terrain = 1 })
+    local targetPlot = T.fakePlot({ x = 2, y = 0, terrain = 1 })
+    local plotByXY = { ["0,0"] = cityPlot, ["1,0"] = stepPlot, ["2,0"] = targetPlot }
+    Map.GetPlot = function(x, y)
+        return plotByXY[x .. "," .. y]
+    end
+    Map.PlotDirection = function(x, y, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return plotByXY[(x + 1) .. "," .. y]
+        end
+        return nil
+    end
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+    UI.GetInterfaceMode = function()
+        return InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK
+    end
+    UI.GetHeadSelectedUnit = function()
+        return nil
+    end
+    UI.GetHeadSelectedCity = function()
+        return rome
+    end
+    -- Cursor.init falls back to the active player's capital when no unit
+    -- is selected; wire Rome up as the capital so init lands on city plot.
+    Players[0]._capital = rome
+    Cursor.init()
+    Cursor.move(DirectionTypes.DIRECTION_EAST) -- (1,0)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST) -- (2,0)
+    T.truthy(out:find("unseen", 1, true), "city ranged mode with LoS-blocked target must speak unseen: " .. out)
 end
 
 function M.test_activate_major_out_of_turn_is_silent()

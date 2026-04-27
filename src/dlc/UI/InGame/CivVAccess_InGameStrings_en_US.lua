@@ -224,6 +224,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE"] = "edge of range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNCLAIMED"] = "unclaimed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNEXPLORED"] = "unexplored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"] = "fog"
+-- Cursor prefix that fires while the engine is in a ranged-attack interface
+-- mode (unit ranged, airstrike, city ranged) when the attacker has no
+-- geometric line of sight to the target plot (mountain, hill chain, or
+-- forest in the way). The companion "out of range" prefix reuses
+-- TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE so target-mode preview text
+-- and cursor-prefix text stay in sync across locales.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "unseen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = "{1_Moves} moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_PREFIX"] = "river"

@@ -212,6 +212,16 @@ function T.fakePlot(opts)
     function p:IsImpassable()
         return self._isMountain
     end
+    -- Geometric LoS probe. Tests that need fine-grained LoS results pass
+    -- opts.canSeePlot = function(target, team, range, dir) -> bool. Default
+    -- behavior matches the engine's "always sees self / sees everywhere" --
+    -- only the cursor targetability suite overrides it.
+    function p:CanSeePlot(target, team, range, dir)
+        if opts.canSeePlot ~= nil then
+            return opts.canSeePlot(target, team, range, dir)
+        end
+        return true
+    end
     -- Vanilla CvPlot::IsFriendlyTerritory: false when unowned (NO_TEAM),
     -- true on same team, true for city-state OB / major OB grant. Tests
     -- pass an _isFriendly map keyed by player to model OB grants.
@@ -335,6 +345,15 @@ function T.fakeUnit(opts)
     function u:GetY()
         return opts.y or 0
     end
+    -- Ranged attack accessors. Default range matches an early Composite
+    -- Bowman (2 hexes); IsRangeAttackIgnoreLOS defaults false (only air
+    -- and a few promoted melee-ranged units bypass LoS).
+    function u:Range()
+        return opts.range or 2
+    end
+    function u:IsRangeAttackIgnoreLOS()
+        return opts.ignoresLoS or false
+    end
     return u
 end
 
@@ -400,6 +419,9 @@ function T.fakeCity(opts)
     end
     function c:Plot()
         return self._plot
+    end
+    function c:GetCityRangedStrikeRange()
+        return opts.range or 2
     end
     return c
 end
