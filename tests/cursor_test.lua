@@ -405,6 +405,18 @@ function M.test_units_sleeping_enemy_omits_status()
     T.truthy(not s:find("SLEEP", 1, true), "sleep not visible on foreign flag: " .. tostring(s))
 end
 
+function M.test_units_embarked_prefix()
+    -- Embarked status is visible to sighted players from the boat-shaped
+    -- unit flag, regardless of ownership; surface it as a leading prefix
+    -- so the player hears "embarked Arabian Warrior" before HP / status.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    local atSea = T.fakeUnit({ owner = 0, nameKey = "Warrior", embarked = true })
+    local p = T.fakePlot({ units = { atSea } })
+    local s = PlotSectionUnits.Read(p, {})[1]
+    T.truthy(s:sub(1, 9) == "embarked ", "embarked prefix must lead the segment: " .. tostring(s))
+end
+
 function M.test_units_friendly_sleep_surfaces_status()
     -- Own-unit sleep shows in the UnitList panel; cursor plot readout
     -- mirrors that by speaking the deeper-rung token for friendlies.

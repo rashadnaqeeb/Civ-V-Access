@@ -13,12 +13,19 @@ local function unitDescription(unit)
     -- (profile name / "Player N"), leaving the player's own name
     -- announced in front of their own unit every time. The civ adjective
     -- ("Arabian Warrior") already disambiguates owner.
+    local body
     if unit:HasName() then
         local desc =
             Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
-        return Text.key(unit:GetNameNoDesc()) .. " (" .. desc .. ")"
+        body = Text.key(unit:GetNameNoDesc()) .. " (" .. desc .. ")"
+    else
+        body =
+            Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
     end
-    return Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+    if unit:IsEmbarked() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX") .. " " .. body
+    end
+    return body
 end
 
 local function describeUnit(unit, activeTeam, isDebug)
