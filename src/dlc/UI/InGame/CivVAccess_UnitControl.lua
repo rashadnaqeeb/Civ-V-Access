@@ -953,10 +953,14 @@ local function onUnitMoveCompleted()
     local tx, ty = _pending.targetX, _pending.targetY
     -- Only speak on a stop condition (at target OR out of moves). The
     -- engine fires SerialEventUnitMove per hex traversed, so mid-path
-    -- events need to be ignored.
-    local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)
+    -- events need to be ignored. Compare MP in 60ths, not floored MP:
+    -- a unit with 30/60 left can still enter the next tile (engine pays
+    -- all remaining MP on over-cost entry, and roads cost only 30/60),
+    -- so flooring would announce "stopped" one tile early in mixed-
+    -- terrain or partial-MP cases.
+    local movesLeft60ths = unit:MovesLeft()
     local reachedTarget = (cx == tx and cy == ty)
-    if reachedTarget or movesLeft <= 0 then
+    if reachedTarget or movesLeft60ths <= 0 then
         local turnsToArrival
         if not reachedTarget then
             local targetPlot = plotAt(tx, ty)
