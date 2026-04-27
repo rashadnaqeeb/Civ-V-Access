@@ -106,7 +106,20 @@ function TextFilter.filter(text)
     end
 
     s = stripControl(s)
-    s = s:gsub("%[NEWLINE%]", " ")
+    -- [NEWLINE] is the engine's line break in display text. It often
+    -- separates list items (e.g. league vote tallies "20 for X from X
+    -- [NEWLINE] 5 for Y from Y ...") or paragraph chunks. A bare space
+    -- runs adjacent items together with no pause. A comma both gives the
+    -- screen reader a pause and reads naturally as a list separator.
+    -- Sentence-ender cleanup below collapses ". , " back to ". " when
+    -- the preceding chunk already ends in punctuation.
+    -- Collapse consecutive [NEWLINE] tokens (paragraph breaks) into one
+    -- before substitution; Lua patterns can't quantify a capture group,
+    -- so iterate until stable.
+    while s:find("%[NEWLINE%]%s*%[NEWLINE%]") do
+        s = s:gsub("%[NEWLINE%]%s*%[NEWLINE%]", "[NEWLINE]")
+    end
+    s = s:gsub("%[NEWLINE%]", ", ")
     -- Strip color / closing markup BEFORE icon substitution so the dedup
     -- adjacency check sees clean text. Civ's pedia wraps the label that
     -- sits next to an icon in [COLOR_*]...[ENDCOLOR] (e.g.
@@ -135,7 +148,12 @@ function TextFilter.filter(text)
     s = s:gsub("\226\128\148", " ")
     -- Artifacts left by tag removal.
     s = s:gsub(":%.", ".")
-    -- Whitespace collapse + trim.
-    s = s:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+    -- A preceding sentence-ender or list-introducing colon already gives
+    -- the reader a pause; the [NEWLINE]-derived comma would read as
+    -- "period comma" or "colon comma". Drop it.
+    s = s:gsub("([%.!?:])%s*,%s*", "%1 ")
+    -- Whitespace collapse + trim. Leading / trailing comma strip handles
+    -- the case where text begins or ends with a [NEWLINE].
+    s = s:gsub("%s+", " "):gsub("^[%s,]+", ""):gsub("[%s,]+$", "")
     return s
 end

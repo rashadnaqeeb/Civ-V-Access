@@ -45,9 +45,50 @@ end
 
 -- Bracket tokens ----------------------------------------------------------
 
-function M.test_newline_becomes_space()
+function M.test_newline_becomes_comma_pause()
     setup()
-    T.eq(TextFilter.filter("line1[NEWLINE]line2"), "line1 line2")
+    -- [NEWLINE] separates list items / display lines. A bare space ran
+    -- consecutive items together (e.g. "20 for X from X 5 for Y from Y").
+    -- Comma gives the screen reader a pause and reads as a list separator.
+    T.eq(TextFilter.filter("line1[NEWLINE]line2"), "line1, line2")
+end
+
+function M.test_double_newline_collapses_to_single_separator()
+    setup()
+    -- Engine paragraph breaks often use [NEWLINE][NEWLINE]. Two commas in
+    -- a row would read as "comma comma"; collapse to one.
+    T.eq(TextFilter.filter("para1[NEWLINE][NEWLINE]para2"), "para1, para2")
+end
+
+function M.test_newline_after_sentence_ender_drops_comma()
+    setup()
+    -- Common pattern: text ending in a period followed by [NEWLINE] before
+    -- a new sentence / list. ". , " reads as "period comma" — keep just
+    -- the period's pause.
+    T.eq(TextFilter.filter("All done.[NEWLINE]Next thing."), "All done. Next thing.")
+end
+
+function M.test_newline_after_question_mark_drops_comma()
+    setup()
+    T.eq(TextFilter.filter("Why?[NEWLINE]Because"), "Why? Because")
+end
+
+function M.test_newline_at_edges_trimmed()
+    setup()
+    -- Leading / trailing [NEWLINE] should not leave a dangling comma.
+    T.eq(TextFilter.filter("[NEWLINE]start"), "start")
+    T.eq(TextFilter.filter("end[NEWLINE]"), "end")
+end
+
+function M.test_league_vote_tally_reads_as_list()
+    setup()
+    -- League voting result notifications (TXT_KEY_NOTIFICATION_LEAGUE_
+    -- VOTING_RESULT_HOST_DETAILS + GetVotesAsText) embed
+    -- "[ICON_BULLET]N for X from Y" entries joined by [NEWLINE]. Without
+    -- the comma pause, "20 for Babylon from Babylon 5 for Indonesia from
+    -- Indonesia" runs together with no audible separation.
+    local input = "Host chosen.[NEWLINE][ICON_BULLET]20 for Babylon from Babylon[NEWLINE][ICON_BULLET]5 for Indonesia from Indonesia"
+    T.eq(TextFilter.filter(input), "Host chosen. 20 for Babylon from Babylon, 5 for Indonesia from Indonesia")
 end
 
 function M.test_color_tokens_stripped()
@@ -249,12 +290,13 @@ end
 function M.test_composed_color_newline_icon_whitespace()
     setup()
     TextFilter.registerIcon("ICON_GOLD", "gold")
-    T.eq(TextFilter.filter("[COLOR_X]  [ICON_GOLD]\t+5[ENDCOLOR][NEWLINE]next"), "gold +5 next")
+    T.eq(TextFilter.filter("[COLOR_X]  [ICON_GOLD]\t+5[ENDCOLOR][NEWLINE]next"), "gold +5, next")
 end
 
 function M.test_composed_all_markup_emdash_control()
     setup()
     TextFilter.registerIcon("ICON_PROD", "production")
+    -- Trailing [NEWLINE] becomes ", " which is then trimmed at the edge.
     T.eq(TextFilter.filter("\1[STYLE_H][ICON_PROD]\226\128\148city[NEWLINE]"), "production city")
 end
 
