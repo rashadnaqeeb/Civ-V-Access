@@ -164,6 +164,21 @@ local function afterLocalDealChange()
     TradeLogicAccess.rebuild()
 end
 
+-- Closure over a base-game control name that returns its current
+-- SetToolTipString live. Used as `tooltipFn` on items whose engine
+-- counterpart owns a contextual tooltip the user should hear (disabled
+-- reason, descriptive copy, cost / duration text). Returns nil when the
+-- control or its tooltip is missing so appendTooltip skips silently.
+local function pocketTooltipFn(controlName)
+    return function()
+        local c = Controls[controlName]
+        if c == nil then
+            return nil
+        end
+        return c:GetToolTipString()
+    end
+end
+
 -- Offering-tab items ------------------------------------------------------
 
 -- Forward declaration: offeringItem is called by buildOfferingItems below
@@ -559,21 +574,6 @@ end
 -- Gold / GPT leaves push NumberEntry on activate with an engine-derived
 -- max. onCommit invokes the engine's own Add* function, then
 -- afterLocalDealChange repaints + rebuilds.
-
--- Closure over a base-game control name that returns its current
--- SetToolTipString live. Used as `tooltipFn` on items whose engine
--- counterpart owns a contextual tooltip the user should hear (disabled
--- reason, descriptive copy, cost / duration text). Returns nil when the
--- control or its tooltip is missing so appendTooltip skips silently.
-local function pocketTooltipFn(controlName)
-    return function()
-        local c = Controls[controlName]
-        if c == nil then
-            return nil
-        end
-        return c:GetToolTipString()
-    end
-end
 
 -- Build a "<label>, disabled" pocket leaf whose announcement appends the
 -- engine's live tooltip on the corresponding base-game control. Mirrors
