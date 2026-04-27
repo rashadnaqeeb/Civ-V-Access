@@ -296,32 +296,39 @@ function UnitControl.enemyAt(plot)
 end
 
 -- ===== Cycle =====
--- Game.CycleUnits(bAllowOff, bForward, bWorker). Forward=true is the
--- base-game "CycleLeft" button -- the naming is inverted at the callers
--- (the button layout has left = "go to next", right = "go back"), so we
--- pass the direction through directly without renaming.
+-- Plain . / , go through Game.CycleUnits, which walks the engine's own
+-- per-player list (CvUnitCycler) and applies its ReadyToSelect filter --
+-- units that have moved, are fortified, sleeping, or automated are
+-- skipped. Forward=true is the base-game "CycleLeft" button (the layout
+-- has left = "go to next", right = "go back"); we pass through unchanged.
 function UnitControl.cycleAll(forward)
     UnitControl.markUserInitiatedSelection()
     Game.CycleUnits(true, forward and true or false, false)
 end
 
--- Reimplements CvUnitCycler's ordering (LoneGazebo/Community-Patch-DLL
--- CvGameCoreDLL_Expansion2/CvUnitCycler.cpp is the engine ground-truth
--- reference; we run stock Firaxis, so exact parity with Community Patch
--- is assumed, not guaranteed). The engine's Cycle() filters each
--- candidate by CvUnit::ReadyToSelect(), which is what makes plain . / ,
--- (via Game.CycleUnits) skip units that have moved, are fortified,
--- sleeping, or automated. For Ctrl+. / Ctrl+, we keep the spatial
--- ordering (nearest-neighbor seed plus up to five 2-opt passes) but
--- drop the filter so every active-player unit is a cycle target.
+-- Ctrl+. / Ctrl+, walk our own list, which mirrors CvUnitCycler's data
+-- structure: a stable array of unit IDs that's rebuilt on creation and
+-- spliced on destruction, never on press. This is what makes forward-
+-- then-backward round-trip -- the same list is walked both directions.
+-- We drop the ReadyToSelect filter so every active-player unit is a
+-- target (the whole point of the Ctrl variant is "show me everyone,
+-- including units I've already moved").
 --
--- Tour is rebuilt every press. It's O(N^2) in unit count which is
--- trivially cheap at empire scale, and rebuild-every-press avoids any
--- cache-invalidation surface across turns, saves, or unit births/deaths.
-local function buildUnitTour()
-    local player = Players[Game.GetActivePlayer()]
+-- Algorithm matches CvGameCoreDLL_Expansion2/CvUnitCycler.cpp Rebuild()
+-- in LoneGazebo/Community-Patch-DLL: NN walk seeded from a chosen unit,
+-- then up to 5 passes of 2-opt segment-reversal. Seed precedence is the
+-- same as the engine's no-arg Rebuild: caller-provided > current
+-- selection (if owned by active player) > first worker > first unit.
+-- We run stock Firaxis, so exact parity with Community Patch is assumed,
+-- not guaranteed.
+local _cycleList = nil
+
+local function rebuildCycleList(startUnit)
+    local activePlayer = Game.GetActivePlayer()
+    local player = Players[activePlayer]
     if player == nil then
-        return nil
+        _cycleList = nil
+        return
     end
     local units = {}
     for unit in player:Units() do
@@ -329,28 +336,25 @@ local function buildUnitTour()
     end
     local size = #units
     if size == 0 then
-        return nil
+        _cycleList = {}
+        return
     end
-    local current = selectedUnit()
-    local seedIdx = 1
-    local seededFromSelection = false
-    if current ~= nil and current:GetOwner() == Game.GetActivePlayer() then
-        local cid = current:GetID()
-        for i, u in ipairs(units) do
-            if u:GetID() == cid then
-                seedIdx = i
-                seededFromSelection = true
-                break
-            end
+    if startUnit == nil then
+        local sel = selectedUnit()
+        if sel ~= nil and sel:GetOwner() == activePlayer then
+            startUnit = sel
         end
     end
-    if not seededFromSelection then
-        for i, u in ipairs(units) do
+    if startUnit == nil then
+        for _, u in ipairs(units) do
             if u:WorkRate(true) > 0 then
-                seedIdx = i
+                startUnit = u
                 break
             end
         end
+    end
+    if startUnit == nil then
+        startUnit = units[1]
     end
     local tour, tourX, tourY = {}, {}, {}
     local visited = {}
@@ -361,7 +365,7 @@ local function buildUnitTour()
         tourY[idx] = unit:GetY()
         visited[unit:GetID()] = true
     end
-    push(units[seedIdx])
+    push(startUnit)
     while #tour < size do
         local lastX, lastY = tourX[#tour], tourY[#tour]
         local bestDist, bestUnit = math.huge, nil
@@ -415,44 +419,91 @@ local function buildUnitTour()
             end
         end
     end
-    return tour
+    local list = {}
+    for i, u in ipairs(tour) do
+        list[i] = u:GetID()
+    end
+    _cycleList = list
+end
+
+local function spliceFromCycleList(unitID)
+    if _cycleList == nil then
+        return
+    end
+    for i, id in ipairs(_cycleList) do
+        if id == unitID then
+            table.remove(_cycleList, i)
+            return
+        end
+    end
 end
 
 function UnitControl.cycleAllUnits(forward)
     UnitControl.markUserInitiatedSelection()
-    local tour = buildUnitTour()
-    if tour == nil or #tour == 0 then
+    if _cycleList == nil then
+        rebuildCycleList(nil)
+    end
+    if _cycleList == nil or #_cycleList == 0 then
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"))
         return
     end
-    if #tour == 1 then
-        UI.SelectUnit(tour[1])
+    local activePlayer = Game.GetActivePlayer()
+    local player = Players[activePlayer]
+    if player == nil then
         return
     end
+    local n = #_cycleList
     local current = selectedUnit()
-    local currentIdx = 1
-    if current ~= nil then
+    local startIdx
+    if current ~= nil and current:GetOwner() == activePlayer then
         local cid = current:GetID()
-        for i, u in ipairs(tour) do
-            if u:GetID() == cid then
-                currentIdx = i
+        for i, id in ipairs(_cycleList) do
+            if id == cid then
+                startIdx = i
                 break
             end
         end
     end
-    local targetIdx
-    if forward then
-        targetIdx = currentIdx + 1
-        if targetIdx > #tour then
-            targetIdx = 1
+    -- Engine's Cycle: when current isn't in the list, step starts at the
+    -- head (forward) or tail (backward).
+    local idx
+    if startIdx == nil then
+        if forward then
+            idx = 1
+        else
+            idx = n
+        end
+    elseif forward then
+        idx = startIdx + 1
+        if idx > n then
+            idx = 1
         end
     else
-        targetIdx = currentIdx - 1
-        if targetIdx < 1 then
-            targetIdx = #tour
+        idx = startIdx - 1
+        if idx < 1 then
+            idx = n
         end
     end
-    UI.SelectUnit(tour[targetIdx])
+    -- Walk until a live unit is found. Bounded by n so a list with stale
+    -- IDs (missed destruction event) doesn't spin.
+    for _ = 1, n do
+        local unit = player:GetUnitByID(_cycleList[idx])
+        if unit ~= nil then
+            UI.SelectUnit(unit)
+            return
+        end
+        if forward then
+            idx = idx + 1
+            if idx > n then
+                idx = 1
+            end
+        else
+            idx = idx - 1
+            if idx < 1 then
+                idx = n
+            end
+        end
+    end
 end
 
 -- Enemy city at plot if any, with the same active-team / war gate enemyAt
@@ -1104,6 +1155,23 @@ function UnitControl.notifyCommitCanceled()
     _deferred = nil
 end
 
+-- Cycle-list maintenance. Mirrors the engine's CvUnitCycler:
+-- AddUnit triggers a full rebuild (no start unit, falls through to first
+-- worker when nothing is selected); RemoveUnit just splices.
+local function onUnitCreated(playerID, _unitID)
+    if playerID ~= Game.GetActivePlayer() then
+        return
+    end
+    rebuildCycleList(nil)
+end
+
+local function onUnitDestroyed(playerID, unitID)
+    if playerID ~= Game.GetActivePlayer() then
+        return
+    end
+    spliceFromCycleList(unitID)
+end
+
 -- Registers a fresh set of unit listeners on every call (onInGameBoot
 -- invokes this once per game load). See CivVAccess_Boot.lua's
 -- LoadScreenClose registration for the rationale: load-game-from-game
@@ -1158,4 +1226,19 @@ function UnitControl.installListeners()
     else
         Log.warn("UnitControl: Events.SerialEventCitySetDamage missing")
     end
+    if Events.SerialEventUnitCreated ~= nil then
+        Events.SerialEventUnitCreated.Add(onUnitCreated)
+    else
+        Log.warn("UnitControl: Events.SerialEventUnitCreated missing")
+    end
+    if Events.SerialEventUnitDestroyed ~= nil then
+        Events.SerialEventUnitDestroyed.Add(onUnitDestroyed)
+    else
+        Log.warn("UnitControl: Events.SerialEventUnitDestroyed missing")
+    end
+    -- Seed the cycle list now that we're past LoadScreenClose; initial
+    -- units exist but their SerialEventUnitCreated events fired before
+    -- our listener was registered. Match the engine's no-arg Rebuild
+    -- (selected unit > first worker > first unit).
+    rebuildCycleList(nil)
 end
