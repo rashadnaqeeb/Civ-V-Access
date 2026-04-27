@@ -61,12 +61,20 @@ local function hpFraction(unit)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", maxHP - unit:GetDamage(), maxHP)
 end
 
-local function maxMovesCount(unit)
-    return math.floor(unit:MaxMoves() / GameDefines.MOVE_DENOMINATOR)
-end
-
 local function isFriendly(unit)
     return unit:GetTeam() == Game.GetActiveTeam()
+end
+
+-- IsOutOfAttacks returns true once the unit has used its per-turn attack
+-- budget (1 by default; 2 with Blitz). Civilians have a 0-attack budget,
+-- so the engine returns true for them too -- gate on IsCombatUnit so we
+-- don't speak "out of attacks" on a Settler. The MovesLeft > 0 gate
+-- suppresses the redundant case: every attack consumes moves, so a
+-- 0-moves unit can't attack regardless of its attack budget, and the
+-- moves fraction already conveys that. The token is only actionable
+-- when moves remain -- the user can reposition but not strike.
+local function isOutOfAttacks(unit)
+    return unit:IsCombatUnit() and unit:MovesLeft() > 0 and unit:IsOutOfAttacks()
 end
 
 -- Returns the first matching status token (localized string), or "".
@@ -160,6 +168,9 @@ function UnitSpeech.selection(unit, prevX, prevY)
         parts[#parts + 1] = hpFraction(unit)
     end
     parts[#parts + 1] = movesFraction(unit)
+    if isFriendly(unit) and isOutOfAttacks(unit) then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_ATTACKS")
+    end
     if unit:CanPromote() then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE")
     end
@@ -183,15 +194,18 @@ end
 -- Flat info dump scoped by unit ownership so blind players hear what
 -- sighted players see on the unit flag and EnemyUnitPanel rather than
 -- the full own-unit tooltip. Friendlies (own or same-team) get the deep
--- dump: embarked-prefixed name, combat, ranged + range, max moves,
--- status, level / xp, promotions, upgrade target + cost, HP. Visible
--- enemies get the subset sighted players can read off a foreign flag /
--- EnemyUnitPanel: embarked-prefixed name, combat, ranged (no range),
--- max moves, fortified only, promotions, HP. HP is the same exact
--- fraction for both -- sighted players get a numeric HP readout off
--- any unit's plot hover tooltip (PlotMouseoverInclude.lua), so there's
--- no parity reason to coarsen enemy HP into a band. Zero-valued strength
--- fields skip so melee units don't waste syllables on "0 ranged".
+-- dump: embarked-prefixed name, combat, ranged + range, moves fraction,
+-- out-of-attacks (when spent), status, level / xp, promotions, upgrade
+-- target + cost, HP. Visible enemies get the subset sighted players can
+-- read off a foreign flag / EnemyUnitPanel: embarked-prefixed name,
+-- combat, ranged (no range), moves fraction, fortified only, promotions,
+-- HP. HP is the same exact fraction for both -- sighted players get a
+-- numeric HP readout off any unit's plot hover tooltip
+-- (PlotMouseoverInclude.lua), so there's no parity reason to coarsen
+-- enemy HP into a band. Zero-valued strength fields skip so melee units
+-- don't waste syllables on "0 ranged". Out-of-attacks is friendly-only:
+-- the engine flag is queryable for foreigners but isn't visible on a
+-- sighted unit flag, so parity says we don't speak it for them.
 -- Upgrade is gated on CanUpgradeRightNow(1) -- the bOnlyTestVisible arg
 -- (engine wants a number, not a Lua boolean; passing `true` throws)
 -- skips transient conditions (territory, gold, resources, ...) so a
@@ -217,7 +231,10 @@ function UnitSpeech.info(unit)
             parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY", ranged)
         end
     end
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_MAX_MOVES", maxMovesCount(unit))
+    parts[#parts + 1] = movesFraction(unit)
+    if friendly and isOutOfAttacks(unit) then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_ATTACKS")
+    end
     local status = statusToken(unit)
     if status ~= "" then
         parts[#parts + 1] = status

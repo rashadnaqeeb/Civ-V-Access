@@ -45,7 +45,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} ranged,
 -- Enemy form of ranged strength: range distance is hidden to match base
 -- EnemyUnitPanel.lua, which shows strength but omits the range tile count.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY"] = "{1_Num} ranged"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MAX_MOVES"] = "{1_Num} moves"
+-- Spoken on a friendly combat unit that has used its per-turn attack budget
+-- (1 attack, or 2 with Blitz) but still has movement points. The actionable
+-- distinction is "you have moves but can't strike with them, only reposition";
+-- a 0-moves unit can't attack regardless, so the moves fraction already
+-- conveys the answer and this token suppresses to avoid repeating it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_OUT_OF_ATTACKS"] = "out of attacks"
 -- Enemy HP speaks as a color band instead of an exact fraction. The band
 -- thresholds mirror UnitFlagManager.lua:412 so blind players hear what
 -- sighted players see on the unit flag: over 66% green, over 33% yellow,

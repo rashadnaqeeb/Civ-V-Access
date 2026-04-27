@@ -41,6 +41,7 @@ local function mkUnit(opts)
         _isCombat = (opts.isCombat ~= false),
         _team = opts.team or 0,
         _plot = opts.plot,
+        _outOfAttacks = opts.outOfAttacks or false,
     }
     function u:GetX()
         return self._x
@@ -136,6 +137,9 @@ local function mkUnit(opts)
     end
     function u:GetID()
         return opts.id or 1
+    end
+    function u:IsOutOfAttacks()
+        return self._outOfAttacks
     end
     return u
 end
@@ -491,20 +495,77 @@ function M.test_info_promotions_list_iterates_has_promotion()
     T.truthy(out:find("promotions: Shock, Formation", 1, true), "only held promotions listed: " .. out)
 end
 
--- ===== Info dump: max moves (always, regardless of ownership) =====
+-- ===== Info dump: moves fraction (always, regardless of ownership) =====
 
-function M.test_info_friendly_speaks_max_moves()
+function M.test_info_friendly_speaks_moves_fraction()
     setup()
-    local u = mkUnit({ maxMoves = 180 })
+    local u = mkUnit({ moves = 60, maxMoves = 180 })
     local out = UnitSpeech.info(u)
-    T.truthy(out:find("3 moves", 1, true), "max moves expected (3 from 180/60): " .. out)
+    T.truthy(out:find("1/3 moves", 1, true), "moves fraction expected: " .. out)
 end
 
-function M.test_info_enemy_speaks_max_moves()
+function M.test_info_enemy_speaks_moves_fraction()
     setup()
-    local u = mkUnit({ team = 1, maxMoves = 240 })
+    local u = mkUnit({ team = 1, moves = 0, maxMoves = 240 })
     local out = UnitSpeech.info(u)
-    T.truthy(out:find("4 moves", 1, true), "max moves spoken for enemies too: " .. out)
+    T.truthy(out:find("0/4 moves", 1, true), "moves fraction spoken for enemies too: " .. out)
+end
+
+-- ===== Info dump: out-of-attacks =====
+
+function M.test_info_speaks_out_of_attacks_when_friendly_combat_with_moves()
+    setup()
+    local u = mkUnit({ moves = 60, maxMoves = 120, outOfAttacks = true })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("out of attacks", 1, true), "out-of-attacks expected: " .. out)
+end
+
+function M.test_info_omits_out_of_attacks_when_unit_can_still_attack()
+    setup()
+    local u = mkUnit({ moves = 60, maxMoves = 120, outOfAttacks = false })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("out of attacks", 1, true), "no token when attack budget remains: " .. out)
+end
+
+-- 0-moves unit can't attack regardless of attack budget; suppress the token
+-- so it doesn't pile onto the moves fraction's already-zero readout.
+function M.test_info_omits_out_of_attacks_when_unit_has_zero_moves()
+    setup()
+    local u = mkUnit({ moves = 0, maxMoves = 120, outOfAttacks = true })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("out of attacks", 1, true), "0-moves redundant case must suppress: " .. out)
+end
+
+-- Civilians have a 0-attack budget so the engine returns IsOutOfAttacks=true
+-- by default; gate on IsCombatUnit to avoid speaking it on Settlers etc.
+function M.test_info_omits_out_of_attacks_on_non_combat_unit()
+    setup()
+    local u = mkUnit({ isCombat = false, outOfAttacks = true, moves = 60 })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("out of attacks", 1, true), "non-combat units must not speak the token: " .. out)
+end
+
+-- Foreign-unit attack budgets aren't visible on a sighted unit flag, so
+-- parity says we don't surface it for them either.
+function M.test_info_omits_out_of_attacks_on_enemy()
+    setup()
+    local u = mkUnit({ team = 1, outOfAttacks = true, moves = 60 })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("out of attacks", 1, true), "enemy out-of-attacks must not speak: " .. out)
+end
+
+function M.test_selection_speaks_out_of_attacks_when_friendly_combat_with_moves()
+    setup()
+    local u = mkUnit({ moves = 60, maxMoves = 120, outOfAttacks = true })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("out of attacks", 1, true), "out-of-attacks expected on selection: " .. out)
+end
+
+function M.test_selection_omits_out_of_attacks_when_unit_has_zero_moves()
+    setup()
+    local u = mkUnit({ moves = 0, maxMoves = 120, outOfAttacks = true })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(not out:find("out of attacks", 1, true), "0-moves redundant case must suppress on selection: " .. out)
 end
 
 -- ===== Info dump: enemy HP =====
