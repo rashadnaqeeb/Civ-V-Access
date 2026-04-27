@@ -1,14 +1,19 @@
 -- Queued-movement waypoint computation, cached per selected unit. Drives
 -- three consumers: the scanner's "waypoints" category, the plot-glance
--- "waypoint K of N" tail, and UnitSpeech's queued-move status rung. Same
--- cache so all three see the same numbering for one selection frame.
+-- "waypoint K of N" lead token, and UnitSpeech's queued-move status
+-- rung. Same cache so all three see the same numbering for one
+-- selection frame.
 --
--- A waypoint is every plot the unit will step onto across its mission
--- queue's MOVE-class legs, concatenated start-to-end and 1-indexed. The
--- unit's current position is not a waypoint; intermediate pathfinder
--- nodes between queue-entry destinations ARE waypoints (the on-map
--- path line a sighted player sees lights up every step the unit will
--- traverse, not just the click points).
+-- A waypoint is a plot where the unit STOPS on its queued path, not
+-- every step it walks through. Two kinds of stops: (1) end-of-turn
+-- plots, where the unit ran out of MP and pauses overnight before
+-- resuming next turn; (2) leg destinations, the queue-entry
+-- coordinates the user shift+entered. Sighted parity: the path-line's
+-- turn-number badges land on exactly these plots, not on every step.
+-- Detection signal is the pathfinder node's m_iData1 (MP remaining at
+-- that node): m_iData1 == 0 means the unit ends a turn here. The
+-- final node of each leg is always a waypoint regardless of MP, since
+-- the unit pauses between queue entries.
 --
 -- The cache is keyed by (unitID, queueSig). queueSig is a string built
 -- from the live mission queue; any mutation produces a different sig and
@@ -78,9 +83,18 @@ local function compute(unit, queue)
                 if success and type(nodes) == "table" and #nodes > 0 then
                     out.totalTurns = out.totalTurns + legTurns
                     -- nodes[1] is the leg's start (== fromPlot); drop it.
+                    -- For nodes[2..#nodes], emit only stopping points:
+                    -- a node where m_iData1 (moves remaining) is 0 is
+                    -- a turn-end stop, and the final node of the leg is
+                    -- always a stop (queue-entry destination, unit
+                    -- pauses before the next leg). Intermediate steps
+                    -- with MP to spare are walked through, not stopped
+                    -- at, so they do not count as waypoints.
                     for i = 2, #nodes do
                         local n = nodes[i]
-                        out.waypoints[#out.waypoints + 1] = { x = n.x, y = n.y }
+                        if i == #nodes or n.moves == 0 then
+                            out.waypoints[#out.waypoints + 1] = { x = n.x, y = n.y }
+                        end
                     end
                 end
                 -- Chain from the leg's intended destination regardless
