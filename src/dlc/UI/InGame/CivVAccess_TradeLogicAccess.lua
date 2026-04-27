@@ -612,12 +612,16 @@ local function availableResourceLeaf(side, resType, resInfo)
     local isStrategic = resInfo.ResourceUsage == 1
     local label = resName .. turnsSuffix(dealDuration())
     if not isStrategic then
-        -- Append the tradeable copy count after the duration so the player
-        -- knows up-front whether giving this away costs the only copy (1)
-        -- or just an extra. Trailing position avoids the "Wine, 2" reading
-        -- of "trading away 2 Wine" -- luxuries are always 1-quantity.
+        -- Append the tradeable copy count so the player knows up-front
+        -- whether giving this away costs the only copy (1) or just an
+        -- extra. Phrased "you have N" rather than a bare number so it
+        -- can't be misread as a trade quantity -- luxuries are always
+        -- 1-quantity. Mirrors the engine's "(N)" pocket suffix.
         local qty = g_Deal:GetNumResource(iPlayer, resType) or 0
-        local luxuryLabel = resName .. turnsSuffix(dealDuration()) .. ", " .. tostring(qty)
+        local luxuryLabel = resName
+            .. turnsSuffix(dealDuration())
+            .. ", "
+            .. Text.format("TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE", qty)
         return BaseMenuItems.Text({
             labelText = luxuryLabel,
             onActivate = function()

@@ -1060,6 +1060,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR"] = "Declare war"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"] = "Other players"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"] = "none available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY"] = "nothing on the table"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"] = "you have {1_Num}"
 -- DiploCurrentDeals review labels. Each deal renders as one Text leaf
 -- whose label inlines the full contents; these are the side prefixes the
 -- builder concatenates around the per-item descriptions.
