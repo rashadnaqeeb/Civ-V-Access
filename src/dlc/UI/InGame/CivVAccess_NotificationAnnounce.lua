@@ -119,10 +119,27 @@ end
 -- discard pending and reseat seenIds from the new active player's standing
 -- list (in case Ids are per-player, the previous player's Ids would
 -- otherwise collide and false-suppress a real new add for this player).
+--
+-- Atomic swap: build the new seenIds in a local first, only commit on
+-- success. If the active player is nil here, we keep the prior seenIds
+-- untouched -- a stale set may false-suppress a real new add (silence for
+-- one event), but wiping seenIds without repopulating would let the
+-- entire rebroadcast wave through as "unseen" the moment any add slips
+-- past the pending clear (a backlog flood). Silence is the safer
+-- failure mode.
 function NotificationAnnounce._onActivePlayerChanged(_iActive, _iPrev)
     pending = {}
-    seenIds = {}
-    snapshotExisting()
+    local player = Players[Game.GetActivePlayer()]
+    if player == nil then
+        Log.error("NotificationAnnounce: active player is nil at GameplaySetActivePlayer; preserving prior seenIds to avoid backlog flood")
+        return
+    end
+    local fresh = {}
+    local num = player:GetNumNotifications()
+    for i = 0, num - 1 do
+        fresh[player:GetNotificationIndex(i)] = true
+    end
+    seenIds = fresh
 end
 
 -- Registers fresh listeners on every call (onInGameBoot invokes this once

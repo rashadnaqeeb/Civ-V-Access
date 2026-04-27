@@ -180,6 +180,27 @@ function M.test_genuine_add_after_active_player_change_speaks()
     T.eq(spoken[1].text, "note 50")
 end
 
+function M.test_active_player_change_with_nil_player_preserves_seen_ids()
+    -- If the new active player resolves to nil at handoff, we must keep
+    -- the prior seenIds rather than wiping them. A wiped seenIds with no
+    -- snapshot would let a subsequent rebroadcast announce the entire
+    -- standing list as "new". Silence is the safer failure mode.
+    setup({ 10, 11, 12 })
+    Players[0] = nil
+    fireActivePlayerChanged(1, 0)
+    -- Restore Players[0] so the next add can be processed; the wave that
+    -- landed before the handoff should still be in seenIds.
+    Players[0] = {
+        GetNumNotifications = function() return 0 end,
+        GetNotificationIndex = function() return nil end,
+    }
+    fireAdd(10) -- still in prior seenIds
+    fireAdd(11) -- still in prior seenIds
+    advanceClock(1.0)
+    tick()
+    T.eq(#spoken, 0, "prior seenIds must still suppress these")
+end
+
 function M.test_active_player_change_resets_seen_ids_for_id_collisions()
     -- If notification IDs are per-player, the previous player's ID 10
     -- being in seenIds would false-suppress the new player's ID 10.
