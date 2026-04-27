@@ -3,8 +3,14 @@
 -- dispatches the single entry directly, or pops a BaseMenu.create modal
 -- so the user can pick which one. Entries in order: city first, military
 -- units next, civilian units last. Units are filtered by owner == active
--- player (you can't select someone else's unit), IsInvisible, and IsCargo.
--- Air units are listed (user explicitly wants them pickable from a stack).
+-- player (you can't select someone else's unit) and IsInvisible.
+-- Air units are listed including aircraft loaded onto a carrier
+-- (IsCargo). UnitFlagManager's carrier and city dropdowns surface those
+-- to sighted players via the same UI.SelectUnit path; we mirror that so
+-- a blind player can step the cursor onto a carrier (or air-stocked
+-- city) and pick a fighter to command. Vanilla / BNW have no non-air
+-- cargo (Carrier, Missile Cruiser, Nuclear Submarine all carry
+-- DOMAIN_AIR), so dropping the IsCargo gate has no spurious surface.
 --
 -- The city entry's action mirrors vanilla's CityBannerManager OnBannerClick
 -- fork and matches what Cursor.activate used to do inline: own city opens
@@ -24,7 +30,7 @@ local function collectSelfUnits(plot)
     local n = plot:GetNumUnits()
     for i = 0, n - 1 do
         local u = plot:GetUnit(i)
-        if u ~= nil and u:GetOwner() == activeID and not u:IsInvisible(team, isDebug) and not u:IsCargo() then
+        if u ~= nil and u:GetOwner() == activeID and not u:IsInvisible(team, isDebug) then
             if u:IsCombatUnit() then
                 military[#military + 1] = u
             else

@@ -1,11 +1,11 @@
 -- CursorActivate enumeration tests. Exercises _buildEntries against fake
 -- plots + units to confirm the entry list honors the documented rules:
 -- city first, then active-player military units, then active-player
--- civilian units, with invisible / cargo / foreign-owner units filtered
--- out and air units included. The BaseMenu install path (run's modal
--- push) is not covered offline -- HandlerStack push semantics are
--- covered by handler_stack_test; this suite is just about what goes
--- into the picker.
+-- civilian units, with invisible / foreign-owner units filtered out
+-- and air units (including cargo aircraft on a carrier) included. The
+-- BaseMenu install path (run's modal push) is not covered offline --
+-- HandlerStack push semantics are covered by handler_stack_test; this
+-- suite is just about what goes into the picker.
 
 local T = require("support")
 local M = {}
@@ -141,15 +141,37 @@ function M.test_invisible_unit_filtered()
     T.eq(#CursorActivate._buildEntries(p), 0)
 end
 
-function M.test_cargo_unit_filtered()
-    -- Embarked units in transport (cargo = true) are addressable via
-    -- the carrier's unit panel, not directly; keep them out of the
-    -- picker so the user can't "select" something that isn't a first-
-    -- class unit on the plot.
+function M.test_cargo_aircraft_included()
+    -- Aircraft loaded onto a carrier (IsCargo + DOMAIN_AIR) need to be
+    -- pickable so the user can select a fighter on the carrier they
+    -- just stepped onto. UnitFlagManager's cargo dropdown gives sighted
+    -- players the same affordance via UI.SelectUnit; we mirror it.
+    -- Vanilla / BNW have no non-air cargo, so IsCargo always implies
+    -- DOMAIN_AIR and dropping the IsCargo filter is safe.
     setup()
-    local passenger = T.fakeUnit({ nameKey = "Warrior", combat = true, cargo = true })
-    local p = T.fakePlot({ units = { passenger } })
-    T.eq(#CursorActivate._buildEntries(p), 0)
+    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = true, cargo = true, domain = DomainTypes.DOMAIN_AIR })
+    local p = T.fakePlot({ units = { fighter } })
+    local entries = CursorActivate._buildEntries(p)
+    T.eq(#entries, 1)
+    T.eq(entries[1].kind, "unit")
+    T.eq(entries[1].label, "unit:Fighter")
+end
+
+function M.test_carrier_with_cargo_lists_both()
+    -- Realistic carrier-tile scenario: the carrier itself plus loaded
+    -- aircraft. Both should appear in the picker. Carrier is sea +
+    -- combat (military bucket); fighter is air + combat (also military).
+    -- Plot order doesn't fix entry order; the buildEntries pass walks
+    -- military first then civilian, in plot iteration order within each
+    -- bucket. Carrier comes first in the plot units, so it leads.
+    setup()
+    local carrier = T.fakeUnit({ nameKey = "Carrier", combat = true, domain = DomainTypes.DOMAIN_SEA })
+    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = true, cargo = true, domain = DomainTypes.DOMAIN_AIR })
+    local p = T.fakePlot({ units = { carrier, fighter } })
+    local entries = CursorActivate._buildEntries(p)
+    T.eq(#entries, 2)
+    T.eq(entries[1].label, "unit:Carrier")
+    T.eq(entries[2].label, "unit:Fighter")
 end
 
 function M.test_foreign_unit_not_listed_even_when_visible()
