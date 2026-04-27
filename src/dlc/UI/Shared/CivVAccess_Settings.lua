@@ -116,6 +116,24 @@ local function setScannerCoords(v)
     Prefs.setBool("ScannerCoords", b)
 end
 
+-- Reveal-announcement toggle. On by default: tells the user what just
+-- appeared on the map after a unit move (or any reveal source). Reads
+-- live from civvaccess_shared.revealAnnounce inside the listeners in
+-- RevealAnnounce, so toggling takes effect on the next tick.
+if civvaccess_shared.revealAnnounce == nil then
+    civvaccess_shared.revealAnnounce = Prefs.getBool("RevealAnnounce", true)
+end
+
+local function getRevealAnnounce()
+    return civvaccess_shared.revealAnnounce == true
+end
+
+local function setRevealAnnounce(v)
+    local b = v and true or false
+    civvaccess_shared.revealAnnounce = b
+    Prefs.setBool("RevealAnnounce", b)
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -192,6 +210,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",
             getValue = getReadSubtitles,
             setValue = setReadSubtitles,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE",
+            getValue = getRevealAnnounce,
+            setValue = setRevealAnnounce,
         }),
     }
 end

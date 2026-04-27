@@ -407,6 +407,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"] = "Speak 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"] = "Speak after move announcement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner shows coordinates"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Read subtitles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Announce newly revealed tiles"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -799,6 +800,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Rename city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Raze city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Stop razing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "razing stopped"
+-- Reveal-announce. After a unit moves (or any reveal source -- map share,
+-- embassy, scouting agreement), build one line listing what just appeared
+-- in the active player's view. Count is plots whose revealed/visibility
+-- state just changed; the bucket headers are short labels because a
+-- screen-reader user parses positional buckets faster than they parse a
+-- single comma-joined run-on. "1 tiles revealed" is a minor grammar
+-- oddity but the lower bound is rare in practice (sight radius reveals
+-- multiple plots).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_COUNT"] = "{1_Num} tiles revealed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_HEADER"] = "Revealed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_ENEMY"] = "Enemy: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_UNITS"] = "Units: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_CITIES"] = "Cities: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REVEAL_RESOURCES"] = "Resources: {1_List}"
 -- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
 -- the game's AD/BC year, joined by a comma so the moving parts (number
 -- first, year second) read as a single line.
