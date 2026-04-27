@@ -210,12 +210,10 @@ local function onActivePlayerTurnStart()
         dateKey = "TXT_KEY_TIME_AD"
     end
     local date = Text.format(dateKey, math.abs(year))
-    -- Queued (not interrupt) because the engine flushes notifications
-    -- synchronously just before ActivePlayerTurnStart fires. With 3+ adds
-    -- NotificationAnnounce collapses into a single "N new notifications"
-    -- speakInterrupt at _onAdded time; queueing our announcement behind
-    -- it lets the collapse finish before the turn line starts. For 0
-    -- notifications the queue is empty and we play immediately anyway.
+    -- Queued so the turn line lands behind any popup speech that fires at
+    -- turn-start (production blocker, tech choice, etc). NotificationAnnounce
+    -- holds its own queue for ~0.5s past ActivePlayerTurnStart, so any
+    -- inter-turn notifications come in after the turn line.
     SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_TURN_START", turn, date))
 end
 

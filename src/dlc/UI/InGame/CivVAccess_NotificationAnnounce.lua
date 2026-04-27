@@ -2,47 +2,51 @@
 --
 -- Rebroadcast suppression. UI.RebroadcastNotifications re-fires
 -- Events.NotificationAdded for every undismissed notification the active
--- player holds. It runs at NotificationPanel.lua module load and on every
--- GameplaySetActivePlayer. Without filtering, we would read the player's
--- entire standing backlog on save/load and (in hotseat / MP) on every turn
--- handoff. Install snapshots the current Ids into seenIds so subsequent
--- rebroadcasts filter out; any Id we haven't seen is a genuine new add.
+-- player holds. NotificationPanel.lua calls it at module load and inside
+-- its Events.GameplaySetActivePlayer handler. seenIds is snapshotted at
+-- install (covering the at-load-time backlog) and reseated on every
+-- GameplaySetActivePlayer (covering hotseat / MP / observer handoffs).
+-- Our handler runs after NotificationPanel's, by which point the
+-- rebroadcast wave has flooded into pending synchronously, but nothing
+-- has spoken yet (speech only fires from the next-tick drain). We sweep
+-- pending in the same handler.
 --
--- Burst coalescing. The engine flushes all world-tick notifications (wars
--- declared, wonders built elsewhere, etc.) synchronously in the frames
--- immediately before ActivePlayerTurnStart. Naive speech of each summary
--- buries the player under a wall of text before input returns. When three
--- or more adds land inside a six-frame window, the whole pending queue
--- collapses into a single "N new notifications" announcement. Six frames
--- is ~100-200ms at 30-60fps, which covers the engine's burst (one to a
--- few frames) without merging genuinely separate user-initiated events
--- during active play.
+-- Debounce. Each add pushes batchStartAt forward; the drain holds until
+-- DEBOUNCE_SECONDS of quiet have passed. A wave of inter-turn adds
+-- (wars declared, wonders built elsewhere) collapses into one drain pass
+-- regardless of how many entries land.
 --
--- Burst detection runs synchronously inside the listener, using the frame
--- at the moment of the add. The alternative (checking in the tick drain)
--- fails the late-arrival case: if two adds land at frame 0 and the third
--- at frame 5, the drain at frame 6 sees frame-0 entries as one frame too
--- old to count, even though the adds are only five frames apart by any
--- reasonable reading. Checking at add time uses the frame the add was
--- actually recorded against and triggers correctly.
+-- Turn-start hold. ActivePlayerTurnStart sets holdUntil = now +
+-- TURN_START_HOLD_SECONDS. Drain blocks until time >= holdUntil. The
+-- engine fires its popup storm (production blockers, tech choices,
+-- diplomacy) right around turn start; the hold buys those popups a head
+-- start so they begin speaking before notifications come through.
 --
--- The per-tick drain is still needed for the fallback: when adds don't
--- reach the burst threshold, pending entries have to flush individually
--- after aging past the window. That drain reschedules itself while
--- anything remains pending.
+-- Speech priority. Every notification goes through speakQueued. The
+-- engine's popup speech also flows through SpeechPipeline, so a
+-- speakInterrupt on the first notification would cut a popup mid-line
+-- after the hold expires. Queueing keeps both audible.
 
 NotificationAnnounce = {}
 
-local BURST_WINDOW_FRAMES = 6
-local BURST_THRESHOLD = 3
+local DEBOUNCE_SECONDS = 0.2
+local TURN_START_HOLD_SECONDS = 0.5
+
+-- Swappable seam for tests. Wall-clock seconds; same source SpeechPipeline
+-- uses for its dedupe window.
+NotificationAnnounce._timeSource = os.clock
 
 local seenIds = {}
 local pending = {}
+local batchStartAt = 0
+local holdUntil = 0
 local drainScheduled = false
 
 function NotificationAnnounce._reset()
     seenIds = {}
     pending = {}
+    batchStartAt = 0
+    holdUntil = 0
     drainScheduled = false
 end
 
@@ -59,22 +63,15 @@ function NotificationAnnounce._drain()
     if #pending == 0 then
         return
     end
-    local now = TickPump.frame()
-    local windowStart = now - BURST_WINDOW_FRAMES + 1
-    local remaining = {}
-    for _, e in ipairs(pending) do
-        if e.frame < windowStart then
-            if e.summary ~= "" then
-                SpeechPipeline.speakQueued(e.summary)
-            end
-        else
-            remaining[#remaining + 1] = e
-        end
-    end
-    pending = remaining
-    if #pending > 0 then
+    local now = NotificationAnnounce._timeSource()
+    if now - batchStartAt < DEBOUNCE_SECONDS or now < holdUntil then
         schedule()
+        return
     end
+    for _, e in ipairs(pending) do
+        SpeechPipeline.speakQueued(e.text)
+    end
+    pending = {}
 end
 
 -- ePlayer is not a "target" field -- for several notification types the
@@ -90,28 +87,18 @@ function NotificationAnnounce._onAdded(id, _ntype, toolTip, summary, _iGameValue
     seenIds[id] = true
     local text = summary
     if text == nil or text == "" then
-        text = toolTip or ""
+        text = toolTip
     end
-    local now = TickPump.frame()
-    pending[#pending + 1] = {
-        id = id,
-        summary = text,
-        frame = now,
-    }
-    local windowStart = now - BURST_WINDOW_FRAMES + 1
-    local recent = 0
-    for _, e in ipairs(pending) do
-        if e.frame >= windowStart then
-            recent = recent + 1
-        end
-    end
-    if recent >= BURST_THRESHOLD then
-        local count = #pending
-        pending = {}
-        SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_NOTIFICATION_BURST", count))
+    if text == nil or text == "" then
         return
     end
+    pending[#pending + 1] = { id = id, text = text }
+    batchStartAt = NotificationAnnounce._timeSource()
     schedule()
+end
+
+function NotificationAnnounce._onTurnStart()
+    holdUntil = NotificationAnnounce._timeSource() + TURN_START_HOLD_SECONDS
 end
 
 local function snapshotExisting()
@@ -127,12 +114,25 @@ local function snapshotExisting()
     return num
 end
 
--- Registers a fresh NotificationAdded listener on every call
--- (onInGameBoot invokes this once per game load). See CivVAccess_Boot.lua's
--- LoadScreenClose registration for the rationale: prior-Context listener
--- closures die on load-game-from-game.
+-- See the rebroadcast-suppression note in the module header. The wave has
+-- already gone through _onAdded into pending by the time we run; we
+-- discard pending and reseat seenIds from the new active player's standing
+-- list (in case Ids are per-player, the previous player's Ids would
+-- otherwise collide and false-suppress a real new add for this player).
+function NotificationAnnounce._onActivePlayerChanged(_iActive, _iPrev)
+    pending = {}
+    seenIds = {}
+    snapshotExisting()
+end
+
+-- Registers fresh listeners on every call (onInGameBoot invokes this once
+-- per game load). See CivVAccess_Boot.lua's LoadScreenClose registration
+-- for the rationale: prior-Context listener closures die on
+-- load-game-from-game.
 function NotificationAnnounce.install()
     local snapshotted = snapshotExisting()
     Events.NotificationAdded.Add(NotificationAnnounce._onAdded)
+    Events.GameplaySetActivePlayer.Add(NotificationAnnounce._onActivePlayerChanged)
+    Events.ActivePlayerTurnStart.Add(NotificationAnnounce._onTurnStart)
     Log.info("NotificationAnnounce: installed, snapshotted " .. tostring(snapshotted) .. " existing notifications")
 end

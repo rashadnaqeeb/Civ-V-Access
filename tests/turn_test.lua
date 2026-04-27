@@ -176,9 +176,9 @@ end
 -- Turn-start listener --------------------------------------------------
 
 function M.test_turn_start_announces_turn_and_ad_year()
-    -- Queued (not interrupt) so any burst-collapsed notification that
-    -- NotificationAnnounce fired synchronously just before the engine
-    -- dispatched ActivePlayerTurnStart finishes before the turn line.
+    -- Queued (not interrupt) so the turn line lands behind any popup
+    -- speech that fires at turn-start. NotificationAnnounce holds its own
+    -- queue past ActivePlayerTurnStart, so notifications come after.
     setup()
     Turn.installListeners()
     Game.GetGameTurn = function()

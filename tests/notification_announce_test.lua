@@ -1,15 +1,30 @@
 -- NotificationAnnounce tests. Seams substituted: SpeechPipeline._speakAction
--- (capturing sink), Events.NotificationAdded.Add (captures the listener so
--- tests can fire synthetic adds), Players[0] (controls existing notifications
--- visible to the install-time snapshot). TickPump and the module itself are
--- loaded for real.
+-- (capturing sink), NotificationAnnounce._timeSource (controllable clock),
+-- the three Events tables NotificationAdded / GameplaySetActivePlayer /
+-- ActivePlayerTurnStart (capture listeners so tests can fire synthetic
+-- events), Players[0] (controls existing notifications visible to the
+-- install-time snapshot). TickPump and the module itself are loaded for
+-- real.
 
 local T = require("support")
 local M = {}
 
 local spoken
 local addedListeners
+local activePlayerListeners
+local turnStartListeners
 local existingIds
+local clockNow
+
+local function advanceClock(dt)
+    clockNow = clockNow + dt
+end
+
+-- Run one TickPump tick. The drain reads the current clock to decide
+-- whether to flush or reschedule.
+local function tick()
+    TickPump.tick()
+end
 
 local function setup(existing)
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
@@ -29,10 +44,27 @@ local function setup(existing)
         spoken[#spoken + 1] = { text = text, interrupt = interrupt }
     end
 
+    clockNow = 1000.0
+    NotificationAnnounce._timeSource = function()
+        return clockNow
+    end
+
     addedListeners = {}
+    activePlayerListeners = {}
+    turnStartListeners = {}
     Events.NotificationAdded = {
         Add = function(fn)
             addedListeners[#addedListeners + 1] = fn
+        end,
+    }
+    Events.GameplaySetActivePlayer = {
+        Add = function(fn)
+            activePlayerListeners[#activePlayerListeners + 1] = fn
+        end,
+    }
+    Events.ActivePlayerTurnStart = {
+        Add = function(fn)
+            turnStartListeners[#turnStartListeners + 1] = fn
         end,
     }
 
@@ -70,9 +102,15 @@ local function fireAdd(id, opts)
     end
 end
 
-local function advance(n)
-    for _ = 1, n do
-        TickPump.tick()
+local function fireActivePlayerChanged(iActive, iPrev)
+    for _, fn in ipairs(activePlayerListeners) do
+        fn(iActive, iPrev)
+    end
+end
+
+local function fireTurnStart()
+    for _, fn in ipairs(turnStartListeners) do
+        fn()
     end
 end
 
@@ -84,14 +122,16 @@ function M.test_existing_ids_filtered_at_install()
     fireAdd(10)
     fireAdd(11)
     fireAdd(12)
-    advance(20)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 0, "rebroadcast of snapshot Ids must not speak")
 end
 
 function M.test_id_above_snapshot_still_processes()
     setup({ 10, 11, 12 })
     fireAdd(13)
-    advance(10)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 1)
     T.eq(spoken[1].text, "note 13")
 end
@@ -100,107 +140,146 @@ function M.test_duplicate_id_speaks_once()
     setup()
     fireAdd(1)
     fireAdd(1)
-    advance(10)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 1, "same Id firing twice must only speak once")
 end
 
--- Single notification path ------------------------------------------------
+-- Hotseat / MP active-player change --------------------------------------
 
-function M.test_single_add_queues_after_window()
+function M.test_active_player_change_discards_rebroadcast_wave()
+    -- The new active player has standing notifications 20/21/22. The
+    -- engine's RebroadcastNotifications fires NotificationAdded for each
+    -- synchronously inside NotificationPanel's GameplaySetActivePlayer
+    -- handler -- they land in pending. Our handler runs after and must
+    -- sweep them.
+    setup({ 10 })
+    -- Simulate the rebroadcast: new player's IDs flood _onAdded just
+    -- before our handler fires. Update Players[0] to the new player so
+    -- snapshotExisting in our handler reads the right standing list.
+    fireAdd(20)
+    fireAdd(21)
+    fireAdd(22)
+    existingIds = { 20, 21, 22 }
+    fireActivePlayerChanged(1, 0)
+    advanceClock(1.0)
+    tick()
+    T.eq(#spoken, 0, "rebroadcast wave must not speak after handoff")
+end
+
+function M.test_genuine_add_after_active_player_change_speaks()
+    setup({ 10 })
+    -- Handoff with no rebroadcast wave for simplicity.
+    existingIds = {}
+    fireActivePlayerChanged(1, 0)
+    -- A genuine new add for the new active player.
+    fireAdd(50)
+    advanceClock(1.0)
+    tick()
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].text, "note 50")
+end
+
+function M.test_active_player_change_resets_seen_ids_for_id_collisions()
+    -- If notification IDs are per-player, the previous player's ID 10
+    -- being in seenIds would false-suppress the new player's ID 10.
+    -- After handoff, seenIds is reseated from the new active player's
+    -- standing list, so an unseen Id 10 from the new player speaks.
+    setup({ 10 })
+    existingIds = {}
+    fireActivePlayerChanged(1, 0)
+    fireAdd(10)
+    advanceClock(1.0)
+    tick()
+    T.eq(#spoken, 1, "post-handoff Id collision must not be suppressed")
+end
+
+-- Debounce ----------------------------------------------------------------
+
+function M.test_single_add_flushes_after_debounce()
     setup()
     fireAdd(1)
-    -- Inside the burst window, nothing flushes (it might still tip into a burst).
-    advance(5)
-    T.eq(#spoken, 0, "entry still inside the burst window is held")
-    advance(3)
+    advanceClock(0.1)
+    tick()
+    T.eq(#spoken, 0, "still inside debounce window")
+    advanceClock(0.15)
+    tick()
     T.eq(#spoken, 1)
     T.eq(spoken[1].text, "note 1")
-    T.eq(spoken[1].interrupt, false, "notifications queue so they don't clobber a turn-end dialogue")
+    T.eq(spoken[1].interrupt, false)
 end
 
--- Burst detection ---------------------------------------------------------
-
-function M.test_three_in_six_frames_collapses_to_burst()
-    -- Burst check is synchronous at add time; the third add fires the
-    -- collapse before any tick runs.
+function M.test_streaming_adds_collapse_into_one_drain()
+    -- Adds keep landing inside the debounce window; each one extends it.
+    -- The whole queue flushes together when the stream stops.
     setup()
     fireAdd(1)
-    T.eq(#spoken, 0, "first add alone is not a burst")
+    advanceClock(0.1)
     fireAdd(2)
-    T.eq(#spoken, 0, "second add alone is not a burst")
+    advanceClock(0.1)
     fireAdd(3)
-    T.eq(#spoken, 1, "third add within window triggers burst immediately")
-    T.truthy(spoken[1].text:find("3", 1, true), "burst text carries the count")
-    T.eq(spoken[1].interrupt, false, "burst announcement queues to avoid clobbering a turn-end dialogue")
+    advanceClock(0.1)
+    tick()
+    T.eq(#spoken, 0, "stream is still extending the debounce")
+    advanceClock(0.15)
+    tick()
+    T.eq(#spoken, 3, "all three flush together once the stream stops")
+    T.eq(spoken[1].text, "note 1")
+    T.eq(spoken[2].text, "note 2")
+    T.eq(spoken[3].text, "note 3")
+    for i = 1, 3 do
+        T.eq(spoken[i].interrupt, false, "all queued, none interrupts")
+    end
 end
 
-function M.test_two_in_six_frames_not_a_burst()
+function M.test_separate_adds_outside_debounce_flush_separately()
     setup()
     fireAdd(1)
+    advanceClock(0.5)
+    tick()
+    T.eq(#spoken, 1)
     fireAdd(2)
-    advance(10)
-    T.eq(#spoken, 2, "two adds must flush individually, no burst collapse")
-    T.eq(spoken[1].text, "note 1")
+    advanceClock(0.5)
+    tick()
+    T.eq(#spoken, 2)
     T.eq(spoken[2].text, "note 2")
 end
 
-function M.test_late_third_arrival_tips_into_burst()
-    -- Two at frame 0, third at frame 5. At frame 5 the window is [0,5]
-    -- inclusive; all three are recent, so the burst triggers on the
-    -- third add without needing another tick.
+-- Turn-start hold ---------------------------------------------------------
+
+function M.test_turn_start_holds_pending_until_deadline()
     setup()
     fireAdd(1)
-    fireAdd(2)
-    advance(5)
-    fireAdd(3)
+    -- Notification arrived; debounce alone would flush after 0.2s.
+    advanceClock(0.05)
+    fireTurnStart() -- holdUntil = now + 0.5
+    advanceClock(0.25)
+    tick()
+    T.eq(#spoken, 0, "debounce satisfied but still inside the turn-start hold")
+    advanceClock(0.30)
+    tick()
+    T.eq(#spoken, 1, "flushes once the hold deadline passes")
+end
+
+function M.test_turn_start_with_no_pending_is_inert()
+    setup()
+    fireTurnStart()
+    advanceClock(1.0)
+    tick()
+    T.eq(#spoken, 0, "turn start with empty queue is a no-op")
+end
+
+function M.test_add_after_turn_start_still_holds()
+    setup()
+    fireTurnStart()
+    advanceClock(0.1)
+    fireAdd(1)
+    advanceClock(0.25) -- past debounce, but not past turn-start hold
+    tick()
+    T.eq(#spoken, 0, "adds after turn start still wait for the hold")
+    advanceClock(0.20) -- past hold now
+    tick()
     T.eq(#spoken, 1)
-    T.truthy(spoken[1].text:find("3", 1, true), "burst text carries the count")
-end
-
-function M.test_fourth_add_does_not_retroactively_join_prior_burst()
-    -- The third add already collapsed entries 1..3 into a burst, clearing
-    -- pending. A fourth add arriving shortly after starts a fresh count
-    -- and flushes individually after aging.
-    setup()
-    fireAdd(1)
-    fireAdd(2)
-    fireAdd(3)
-    T.eq(#spoken, 1)
-    T.truthy(spoken[1].text:find("3", 1, true), "burst text carries the count")
-    fireAdd(4)
-    T.eq(#spoken, 1, "fourth add alone does not re-burst")
-    advance(10)
-    T.eq(#spoken, 2, "fourth add ages out and flushes individually")
-    T.eq(spoken[2].text, "note 4")
-end
-
-function M.test_adds_outside_window_not_a_burst()
-    -- 2 adds at frame 0, then one at frame 8: the first two have already
-    -- aged out and been flushed; the third stands alone.
-    setup()
-    fireAdd(1)
-    fireAdd(2)
-    advance(8)
-    T.eq(#spoken, 2, "first two aged out before the third arrived")
-    fireAdd(3)
-    advance(8)
-    T.eq(#spoken, 3)
-    T.eq(spoken[3].text, "note 3")
-end
-
--- All-queued on individual flush -----------------------------------------
-
-function M.test_two_simultaneous_aged_flush_all_queued()
-    -- Two adds in the same frame; neither tips the burst threshold. When
-    -- they age out together both must queue (no interrupt) so a concurrent
-    -- turn-end dialogue isn't clobbered.
-    setup()
-    fireAdd(1)
-    fireAdd(2)
-    advance(10)
-    T.eq(#spoken, 2)
-    T.eq(spoken[1].interrupt, false, "first of a multi-flush queues")
-    T.eq(spoken[2].interrupt, false, "subsequent flushes in the same drain queue")
 end
 
 -- Empty-summary fallback --------------------------------------------------
@@ -208,7 +287,8 @@ end
 function M.test_empty_summary_falls_back_to_tooltip()
     setup()
     fireAdd(1, { summary = "", toolTip = "fallback text" })
-    advance(10)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 1)
     T.eq(spoken[1].text, "fallback text")
 end
@@ -216,7 +296,8 @@ end
 function M.test_both_empty_skipped()
     setup()
     fireAdd(1, { summary = "", toolTip = "" })
-    advance(10)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 0, "nothing to say means say nothing, not speak a blank")
 end
 
@@ -225,13 +306,14 @@ end
 function M.test_reset_clears_seen_ids()
     setup()
     fireAdd(1)
-    advance(10)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 1)
     NotificationAnnounce._reset()
-    -- After reset, seenIds is empty so re-firing Id 1 speaks again.
-    setup() -- fresh install without preloading existing ids
+    setup()
     fireAdd(1)
-    advance(10)
+    advanceClock(1.0)
+    tick()
     T.eq(#spoken, 1, "reset empties seenIds so a previously-seen Id is new again")
 end
 
