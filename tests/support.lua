@@ -385,6 +385,14 @@ function T.fakePlayer(opts)
     function p:GetCapitalCity()
         return self._capital
     end
+    function p:Cities()
+        local list = opts.cities or (self._capital and { self._capital }) or {}
+        local i = 0
+        return function()
+            i = i + 1
+            return list[i]
+        end
+    end
     function p:IsBarbarian()
         return self._isBarbarian
     end
@@ -407,6 +415,8 @@ function T.fakeCity(opts)
         _owner = opts.owner or 0,
         _id = opts.id or 1,
         _plot = opts.plot,
+        _originalOwner = (opts.originalOwner == nil) and (opts.owner or 0) or opts.originalOwner,
+        _isOriginalCapital = opts.isOriginalCapital or false,
     }
     function c:GetName()
         return self._name
@@ -422,6 +432,12 @@ function T.fakeCity(opts)
     end
     function c:GetCityRangedStrikeRange()
         return opts.range or 2
+    end
+    function c:GetOriginalOwner()
+        return self._originalOwner
+    end
+    function c:IsOriginalCapital()
+        return self._isOriginalCapital
     end
     return c
 end
@@ -455,6 +471,36 @@ function T.fakeTeam(opts)
         return self._canEmbark
     end
     return team
+end
+
+-- Install a single fake player whose Cities() yields one city flagged as
+-- the active player's original capital. Used by HexGeom.coordinateString
+-- callers (the S-key coord readout, the optional cursor / scanner coord
+-- segments) which scan every player slot for IsOriginalCapital +
+-- GetOriginalOwner matching the active player. opts.slot is the player
+-- slot to install under (default 0); opts.originalOwner is the original
+-- owner stamped on the city (default opts.slot, so the captured-capital
+-- variant explicitly passes a different value). Returns the capital plot
+-- so the caller can route Map.GetPlot through it.
+function T.installOriginalCapital(capX, capY, opts)
+    opts = opts or {}
+    local slot = opts.slot or 0
+    local originalOwner = opts.originalOwner
+    if originalOwner == nil then
+        originalOwner = slot
+    end
+    local capPlot = T.fakePlot({ x = capX, y = capY })
+    local capCity = T.fakeCity({
+        owner = slot,
+        originalOwner = originalOwner,
+        isOriginalCapital = true,
+        plot = capPlot,
+    })
+    Players[slot] = T.fakePlayer({
+        capital = capCity,
+        cities = { capCity },
+    })
+    return capPlot
 end
 
 -- Install a Map that resolves plotIndex 1-based against `plots`. Chebyshev

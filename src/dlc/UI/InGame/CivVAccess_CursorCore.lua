@@ -192,6 +192,33 @@ local function announceForMove(plot)
     return targetPrefix .. ownerPrefix .. glance .. "."
 end
 
+-- Wrap a move/jump glance with the user's cursor-coord setting. Read
+-- civvaccess_shared.cursorCoordMode live so Settings flips take effect on
+-- the next keystroke without a re-install. Off (default) and pre-capital
+-- (HexGeom returns "") both leave the glance untouched. A nil or empty
+-- glance is preserved as-is: scoped-mode announcers (CityView) use that
+-- as their "stay silent" signal, and overlaying a bare coord would break
+-- the contract. Edge-of-map and edge-of-scope short-circuit Cursor.move
+-- before this point; they don't get coords either because the cursor
+-- didn't move.
+local function withCoords(plot, glance)
+    local mode = civvaccess_shared.cursorCoordMode
+    if mode == nil or mode == "off" then
+        return glance
+    end
+    if glance == nil or glance == "" then
+        return glance
+    end
+    local coord = HexGeom.coordinateString(plot:GetX(), plot:GetY())
+    if coord == "" then
+        return glance
+    end
+    if mode == "prepend" then
+        return coord .. ". " .. glance
+    end
+    return glance .. " " .. coord .. "."
+end
+
 -- Scoped-mode hooks. A screen that restricts the cursor to a subset of
 -- the map (CityView's hex sub-handler, future Phase 8 range-strike target
 -- picker) installs civvaccess_shared.mapScope as `(x, y) -> bool`, and
@@ -214,36 +241,28 @@ function Cursor.move(direction)
     end
     setCursor(next)
     local announcer = civvaccess_shared.mapAnnouncer
+    local glance
     if announcer ~= nil then
-        return announcer(next)
+        glance = announcer(next)
+    else
+        glance = announceForMove(next)
     end
-    return announceForMove(next)
+    return withCoords(next, glance)
 end
 
--- ===== Orientation =====
--- Direction-string composition lives in HexGeom so every cursor-relative
--- caller (S key here, scanner's End, surveyor) produces byte-identical
--- output. Direction is cursor -> capital: the user hears the bearing
--- they'd travel to reach the capital.
-function Cursor.orient()
+-- ===== Coordinates =====
+-- Cursor position expressed as (x, y) relative to the active player's
+-- original capital. HexGeom owns the math (offset-correction + wrap
+-- folding) so every coordinate caller -- this S+Shift bind, the optional
+-- cursor-move prefix, and the scanner's optional coord append -- speaks
+-- byte-identical numbers. Empty return before the original capital
+-- exists; the binding speaks nothing in that window.
+function Cursor.coordinates()
     if _x == nil then
-        Log.warn("Cursor.orient before init")
+        Log.warn("Cursor.coordinates before init")
         return ""
     end
-    local cap = capitalPlot()
-    if cap == nil then
-        -- The design notes a settled session is guaranteed to have a
-        -- capital, so the only way here is during the pre-first-settle
-        -- window or after losing all cities (the player has lost the
-        -- game). Speak "unclaimed" as the closest-meaning token rather
-        -- than silently dropping the request.
-        return Text.key("TXT_KEY_CIVVACCESS_UNCLAIMED")
-    end
-    local kx, ky = cap:GetX(), cap:GetY()
-    if _x == kx and _y == ky then
-        return Text.key("TXT_KEY_CIVVACCESS_AT_CAPITAL")
-    end
-    return HexGeom.directionString(_x, _y, kx, ky)
+    return HexGeom.coordinateString(_x, _y)
 end
 
 -- ===== Position accessor / programmatic jump =====
@@ -277,10 +296,13 @@ function Cursor.jumpTo(x, y)
     end
     setCursor(plot)
     local announcer = civvaccess_shared.mapAnnouncer
+    local glance
     if announcer ~= nil then
-        return announcer(plot)
+        glance = announcer(plot)
+    else
+        glance = announceForMove(plot)
     end
-    return announceForMove(plot)
+    return withCoords(plot, glance)
 end
 
 -- ===== Detail keys (W and X) =====

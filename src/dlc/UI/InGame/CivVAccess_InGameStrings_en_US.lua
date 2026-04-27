@@ -232,6 +232,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"] = "fog"
 -- and cursor-prefix text stay in sync across locales.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "unseen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capital"
+-- Modified-offset coordinate, capital-relative. {1_X} can be a half-integer
+-- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = "{1_Moves} moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_PREFIX"] = "river"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"] = "river all sides"
@@ -260,8 +263,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] = "Move cursor by hex (Q nw, E ne, A w, D e, Z sw, C se)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Read unit on current tile"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT"] = "Shift plus S"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT"] = "Distance and direction from capital"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift plus S"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
+    "Coordinates of cursor relative to original capital, in modified offset notation (each step east is plus one in x, each NE step is plus 0.5 in x and plus one in y, each SE is plus 0.5 in x and minus one in y)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Economy details for current tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
@@ -397,6 +401,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Master volume
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Master volume, {1_Num} percent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE"] = "Scanner auto-move cursor"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_FOLLOWS_SELECTION"] = "Cursor follows selected unit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE"] = "Cursor coordinates while moving"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_OFF"] = "Off"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"] = "Speak before move announcement"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"] = "Speak after move announcement"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner shows coordinates"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Read subtitles"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because

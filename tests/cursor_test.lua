@@ -779,10 +779,17 @@ function M.test_cursor_move_emits_edge_of_map_at_boundary()
     T.eq(Cursor.move(DirectionTypes.DIRECTION_WEST), "edge of map")
 end
 
-function M.test_cursor_orient_at_capital()
+-- T.installOriginalCapital (in support.lua) drops a fakePlayer at slot 0
+-- with a single Cities() entry flagged IsOriginalCapital. Cursor.init
+-- still uses GetCapitalCity for the boot position; HexGeom.coordinateString
+-- reaches the same city via the Cities() iterator on the same player.
+
+function M.test_cursor_coordinates_at_capital_is_zero_zero()
     setup()
-    local cap = T.fakePlot({ x = 4, y = 4 })
-    Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
+    Map.IsWrapX = function()
+        return false
+    end
+    local cap = T.installOriginalCapital(4, 4)
     Map.GetPlot = function(x, y)
         if x == 4 and y == 4 then
             return cap
@@ -794,14 +801,16 @@ function M.test_cursor_orient_at_capital()
         return unit
     end
     Cursor.init()
-    T.eq(Cursor.orient(), "capital")
+    T.eq(Cursor.coordinates(), "0, 0")
 end
 
-function M.test_cursor_orient_pure_east_axis()
+function M.test_cursor_coordinates_three_east()
     setup()
-    local cap = T.fakePlot({ x = 0, y = 0 })
+    Map.IsWrapX = function()
+        return false
+    end
+    local cap = T.installOriginalCapital(0, 0)
     local east3 = T.fakePlot({ x = 3, y = 0 })
-    Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
     Map.GetPlot = function(x, y)
         if x == 0 and y == 0 then
             return cap
@@ -816,36 +825,69 @@ function M.test_cursor_orient_pure_east_axis()
         return unit
     end
     Cursor.init()
-    -- Cursor is 3 east of capital, so to reach the capital the user
-    -- travels 3 west.
-    T.eq(Cursor.orient(), "3w")
+    T.eq(Cursor.coordinates(), "3, 0")
 end
 
-function M.test_cursor_orient_two_axis_decomposition_preserves_clockwise_from_e_order()
+function M.test_cursor_coordinates_pre_capital_returns_empty()
+    -- Cursor placed via the head-selected unit (turn-0 settler), but no
+    -- city is founded yet so HexGeom finds no original capital. The
+    -- binding speaks nothing rather than picking an arbitrary origin.
     setup()
-    -- Place cursor at (col, row) such that the delta from cursor to
-    -- capital requires two non-adjacent direction components. Cursor is
-    -- 4 east + 5 NE of the capital, so capital is 4 west + 5 SW of the
-    -- cursor. OUTPUT_ORDER sorts clockwise from E, so SW comes before W
-    -- in the spoken form.
-    local cap = T.fakePlot({ x = 0, y = 0 })
-    local cur = T.fakePlot({ x = 6, y = 5 })
-    Players[0] = T.fakePlayer({ capital = T.fakeCity({ plot = cap }) })
+    Map.IsWrapX = function()
+        return false
+    end
+    Players[0] = T.fakePlayer({}) -- no capital, no cities
+    local start = T.fakePlot({ x = 5, y = 5 })
     Map.GetPlot = function(x, y)
-        if x == 0 and y == 0 then
-            return cap
-        end
-        if x == 6 and y == 5 then
-            return cur
+        if x == 5 and y == 5 then
+            return start
         end
     end
     local unit = T.fakeUnit({})
-    unit._plot = cur
+    unit._plot = start
     UI.GetHeadSelectedUnit = function()
         return unit
     end
     Cursor.init()
-    T.eq(Cursor.orient(), "5sw, 4w")
+    T.eq(Cursor.coordinates(), "")
+end
+
+function M.test_cursor_move_preserves_announcer_silence_with_coords_on()
+    -- Scoped-mode announcers (CityView's hex sub) return "" to mean
+    -- "intentionally silent" -- e.g. an outer-ring tile with no glance,
+    -- or the nil-city race during teardown. Coord-append mode must NOT
+    -- inject the bare coord on top of that silence; otherwise the user
+    -- hears coords on tiles where the announcer chose not to speak.
+    setup()
+    Map.IsWrapX = function()
+        return false
+    end
+    civvaccess_shared.cursorCoordMode = "append"
+    local cap = T.installOriginalCapital(0, 0)
+    local target = T.fakePlot({ x = 1, y = 0 })
+    Map.GetPlot = function(x, y)
+        if x == 0 and y == 0 then
+            return cap
+        end
+        if x == 1 and y == 0 then
+            return target
+        end
+    end
+    Map.PlotDirection = function(_x, _y, _dir)
+        return target
+    end
+    civvaccess_shared.mapAnnouncer = function(_plot)
+        return ""
+    end
+    local unit = T.fakeUnit({})
+    unit._plot = cap
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
+    Cursor.init()
+    T.eq(Cursor.move(DirectionTypes.DIRECTION_EAST), "")
+    civvaccess_shared.mapAnnouncer = nil
+    civvaccess_shared.cursorCoordMode = "off"
 end
 
 function M.test_cursor_move_onto_unexplored_speaks_unexplored_every_step()

@@ -1,14 +1,15 @@
--- Shared hex-grid direction math. Turns a (fromX, fromY) to (toX, toY)
--- delta into the spoken form ("4e, 5ne") that every cursor-relative
--- caller (cursor's Shift+S orient, scanner's End, surveyor) relies on.
--- Keeping the composition in one place guarantees byte-identical output
--- across callers; a future format change (separator, long tokens,
--- total-distance prefix) lands here and applies to all of them.
+-- Shared hex-grid math. directionString turns a (from) to (to) delta
+-- into the spoken cardinal form ("4e, 5ne") that the scanner's End key
+-- and the surveyor rely on. coordinateString turns a plot's offset
+-- coords into a capital-relative (x, y) pair for Shift+S, the optional
+-- cursor-move prefix, and the optional scanner coord splice. Composition
+-- in one place guarantees byte-identical output across callers; a future
+-- format change lands here and applies to all of them.
 --
--- Caller contract: identical endpoints return the empty string. Each
--- caller supplies its own "at origin" TXT_KEY (AT_CAPITAL for the S key,
--- SCANNER_HERE for the scanner) rather than overloading this module with
--- a zero-delta token that every caller would want to override anyway.
+-- directionString contract: identical endpoints return the empty
+-- string. Each caller supplies its own "at origin" TXT_KEY
+-- (SCANNER_HERE for the scanner) rather than overloading this module
+-- with a zero-delta token that every caller would want to override.
 
 HexGeom = {}
 
@@ -163,6 +164,62 @@ function HexGeom.stepListFromPath(path)
         end
     end
     return HexGeom.stepListString(directions)
+end
+
+-- ===== Capital-relative coordinates =====
+
+-- Locate the active player's original capital and return its (x, y) plot
+-- coords. Iterates every player slot looking for a city flagged
+-- IsOriginalCapital() with GetOriginalOwner() == active player; the city
+-- can sit under any owner today (capital captures move the city object,
+-- not the original-capital flag). Returns (nil, nil) before the active
+-- player has founded their first city.
+local MAX_PLAYER_INDEX_FOR_CAPITAL = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 64
+
+local function activeOriginalCapital()
+    local activePlayerId = Game.GetActivePlayer()
+    for playerId = 0, MAX_PLAYER_INDEX_FOR_CAPITAL - 1 do
+        local player = Players[playerId]
+        if player ~= nil then
+            for city in player:Cities() do
+                if city:GetOriginalOwner() == activePlayerId and city:IsOriginalCapital() then
+                    local plot = city:Plot()
+                    if plot ~= nil then
+                        return plot:GetX(), plot:GetY()
+                    end
+                end
+            end
+        end
+    end
+    return nil, nil
+end
+
+-- Coordinate of (x, y) relative to the active player's original capital,
+-- in modified offset notation. Y is the plot row delta. X is the
+-- geometric column delta with a 0.5 row-parity correction so a NE / NW
+-- step always lands on a half-coordinate regardless of which row we
+-- started from. On wrap-X maps the X delta is folded into [-W/2, W/2]
+-- so a tile one west of the capital reads "-1, 0" and not "W-1, 0";
+-- strict inequality at the antipode means dx = +/-W/2 keeps whichever
+-- sign it had, picking a side without changing the magnitude. Returns
+-- "" when the active player has no original capital yet.
+function HexGeom.coordinateString(x, y)
+    local capX, capY = activeOriginalCapital()
+    if capX == nil then
+        return ""
+    end
+    local dy = y - capY
+    local dx = (x + 0.5 * (y % 2)) - (capX + 0.5 * (capY % 2))
+    if Map.IsWrapX() then
+        local w = Map.GetGridSize()
+        local half = w / 2
+        if dx > half then
+            dx = dx - w
+        elseif dx < -half then
+            dx = dx + w
+        end
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_COORDINATE", dx, dy)
 end
 
 -- Cube distance between two offset coords. Exposed so callers that already

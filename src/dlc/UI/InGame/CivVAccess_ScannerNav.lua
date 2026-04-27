@@ -315,6 +315,17 @@ local function formatInstance(instance, instIdx, instCount)
     -- FormatName is the live-query seam per design section 4; item.name
     -- is only the grouping key captured at build time.
     local name = entry.backend.FormatName(entry)
+    -- Optional capital-relative coord segment, opt-in via Settings. Sits
+    -- between dir and count so the user hears the entry, then where to
+    -- walk, then where it sits, then which-of-N. HexGeom returns "" when
+    -- the player has no original capital yet, in which case we drop the
+    -- segment rather than print "no capital" noise mid-readout.
+    if civvaccess_shared.scannerCoords then
+        local coord = HexGeom.coordinateString(instance.plotX, instance.plotY)
+        if coord ~= "" then
+            return name .. ". " .. dir .. ". " .. coord .. ". " .. count
+        end
+    end
     return name .. ". " .. dir .. ". " .. count
 end
 

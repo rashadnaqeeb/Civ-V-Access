@@ -107,14 +107,15 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_five_items()
+function M.test_open_builds_seven_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(
         #h._items,
-        5,
-        "audio cue mode group + volume slider + scanner toggle + cursor-follows-selection toggle + read-subtitles toggle"
+        7,
+        "audio cue group + volume slider + scanner-auto-move toggle + cursor-follows-selection toggle + "
+            .. "cursor-coord-mode group + scanner-coords toggle + read-subtitles toggle"
     )
 end
 
@@ -258,13 +259,66 @@ function M.test_cursor_follows_selection_toggle_flip_writes_shared_and_prefs()
     T.eq(prefsStore["CursorFollowsSelection"], false)
 end
 
--- Read-subtitles toggle -------------------------------------------------
+-- Cursor coord mode group -----------------------------------------------
 
-function M.test_fifth_item_is_read_subtitles_toggle()
+function M.test_fifth_item_is_cursor_coord_mode_group()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[5].kind, "checkbox")
+    T.eq(h._items[5].kind, "group")
+    T.eq(#h._items[5]:children(), 3, "three modes: off / prepend / append")
+end
+
+function M.test_cursor_coord_mode_off_is_default()
+    setup()
+    Settings.open()
+    local children = HandlerStack.active()._items[5]:children()
+    T.truthy(children[1]._selectedFn(), "off is the lazy-init default")
+    T.falsy(children[2]._selectedFn())
+    T.falsy(children[3]._selectedFn())
+end
+
+function M.test_cursor_coord_mode_choice_writes_shared_and_prefs()
+    setup()
+    Settings.open()
+    -- Activate "append" (third choice).
+    HandlerStack.active()._items[5]:children()[3]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.cursorCoordMode, "append")
+    T.eq(prefsStore["CursorCoordMode"], 2)
+end
+
+-- Scanner coords toggle -------------------------------------------------
+
+function M.test_sixth_item_is_scanner_coords_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[6].kind, "checkbox")
+end
+
+function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.scannerCoords = false
+    Settings.open()
+    local handler = HandlerStack.active()
+    -- Down 5 times: from item 1 (group) past slider, scanner toggle,
+    -- cursor-follows toggle, cursor-coord group, into scanner-coords toggle.
+    for _ = 1, 5 do
+        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    end
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.scannerCoords, true)
+    T.eq(prefsStore["ScannerCoords"], true)
+end
+
+-- Read-subtitles toggle -------------------------------------------------
+
+function M.test_seventh_item_is_read_subtitles_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[7].kind, "checkbox")
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
@@ -272,10 +326,10 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.readSubtitles = false
     Settings.open()
     local handler = HandlerStack.active()
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    -- Down 6 times to reach the read-subtitles toggle (item 7).
+    for _ = 1, 6 do
+        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(civvaccess_shared.readSubtitles, true)

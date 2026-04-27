@@ -1,6 +1,7 @@
--- Routes the in-game cursor keys (Q/A/Z/E/D/C movement, S orient, W
--- economy, X combat) to the Cursor module, plus the Shift-letter
--- surveyor cluster to SurveyorCore. Sits at the bottom of the
+-- Routes the in-game cursor keys (Q/A/Z/E/D/C movement, S unit-at-tile,
+-- W economy, X combat, Shift+S coordinates) to the Cursor module, plus
+-- the Shift-letter surveyor cluster to SurveyorCore. Sits at the bottom
+-- of the
 -- HandlerStack so any popup / overlay above it that sets capturesAllInput
 -- will pre-empt both clusters without us having to coordinate.
 --
@@ -65,8 +66,8 @@ end
 
 local MOVEMENT_AND_INFO_HELP_ENTRIES = {
     -- Cursor cluster: unmodified keys first (move, S/W/X tile queries,
-    -- 1/2/3 city queries, Enter activate), then the Shift-S orient and
-    -- Ctrl-I pedia modifier variants.
+    -- 1/2/3 city queries, Enter activate), then the Shift-S coordinates
+    -- and Ctrl-I pedia modifier variants.
     {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE",
@@ -100,8 +101,8 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE",
     },
     {
-        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ORIENT",
-        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ORIENT",
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES",
     },
     {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA",
@@ -187,8 +188,8 @@ function BaselineHandler.create()
             speak(Cursor.unitAtTile())
         end, "Read unit on tile"),
         bind(Keys.S, MOD_SHIFT, function()
-            speak(Cursor.orient())
-        end, "Orient from capital"),
+            speak(Cursor.coordinates())
+        end, "Coordinates from capital"),
         bind(Keys.W, MOD_NONE, function()
             speak(Cursor.economy())
         end, "Economy details"),
@@ -318,7 +319,7 @@ function BaselineHandler.create()
 
     -- Help list, one unified map-mode list. Sections, in order:
     -- 1) tile info (cursor cluster, S/W/X tile queries, 1/2/3 city queries,
-    --    Enter, Shift+S orient, Ctrl+I pedia),
+    --    Enter, Shift+S coordinates, Ctrl+I pedia),
     -- 2) game info (T/R/G/H/F/P/I empire-status readouts plus Shift+T
     --    task list) -- grouped right after tile info because both clusters
     --    answer "tell me about X" in one keystroke; tile info reads the

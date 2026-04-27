@@ -199,4 +199,129 @@ function M.test_stepListString_groups_consecutive_only()
     T.eq(HexGeom.stepListString(steps), "2e, 1se, 3nw, 1e")
 end
 
+-- ===== coordinateString =====
+-- Wipes Players so prior cursor / scanner suite leftovers don't satisfy
+-- the IsOriginalCapital scan. Each test installs exactly the player slots
+-- it cares about. Default Map.IsWrapX=false; tests that exercise wrap
+-- override it explicitly.
+local function coordSetup()
+    setupSteps()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Map.IsWrapX = function()
+        return false
+    end
+    for i = 0, 63 do
+        Players[i] = nil
+    end
+end
+
+function M.test_coordinateString_at_capital_is_zero_zero()
+    coordSetup()
+    T.installOriginalCapital(5, 5)
+    T.eq(HexGeom.coordinateString(5, 5), "0, 0")
+end
+
+function M.test_coordinateString_step_east()
+    coordSetup()
+    T.installOriginalCapital(0, 0)
+    T.eq(HexGeom.coordinateString(1, 0), "1, 0")
+end
+
+function M.test_coordinateString_step_west()
+    coordSetup()
+    T.installOriginalCapital(0, 0)
+    T.eq(HexGeom.coordinateString(-1, 0), "-1, 0")
+end
+
+function M.test_coordinateString_step_ne_lands_on_half()
+    -- NE from a row-0 (even) plot lands at (col, row+1). Row 1 is odd
+    -- (half-shifted), so the geometric x is +0.5 relative to the
+    -- capital and y is +1. Each NE step is exactly the user's stated
+    -- (+0.5, +1) increment.
+    coordSetup()
+    T.installOriginalCapital(0, 0)
+    T.eq(HexGeom.coordinateString(0, 1), "0.5, 1")
+end
+
+function M.test_coordinateString_step_se_lands_on_half_negative_y()
+    -- SE from row 0: (col, row-1). Each SE step is (+0.5, -1) so the
+    -- design's "NE then SE = (1, 0)" identity works out.
+    coordSetup()
+    T.installOriginalCapital(0, 0)
+    T.eq(HexGeom.coordinateString(0, -1), "0.5, -1")
+end
+
+function M.test_coordinateString_capital_on_odd_row_subtracts_half()
+    -- Capital at engine (3, 1) (odd row, geometrically (3.5, 1)). Cursor
+    -- at engine (3, 0) (even row, (3, 0)). Geometric delta is (-0.5, -1)
+    -- which is one SW step from the capital -- the user's mental model
+    -- carries through across rows of either parity.
+    coordSetup()
+    T.installOriginalCapital(3, 1)
+    T.eq(HexGeom.coordinateString(3, 0), "-0.5, -1")
+end
+
+function M.test_coordinateString_pre_capital_returns_empty()
+    -- Active player has no cities yet (turn 0 settler not founded).
+    -- Iteration finds nothing; coord callers no-op silently.
+    coordSetup()
+    T.eq(HexGeom.coordinateString(5, 5), "")
+end
+
+function M.test_coordinateString_finds_captured_capital()
+    -- Original capital captured by player 2. The city object now lives
+    -- under Players[2] but GetOriginalOwner() still says 0, so the
+    -- iteration picks it up.
+    coordSetup()
+    T.installOriginalCapital(4, 4, { slot = 2, originalOwner = 0 })
+    T.eq(HexGeom.coordinateString(5, 4), "1, 0")
+end
+
+function M.test_coordinateString_no_match_when_other_player_capital()
+    -- Other major civ's original capital exists, but it's not active
+    -- player's capital. Iteration must skip it.
+    coordSetup()
+    T.installOriginalCapital(4, 4, { slot = 1 })
+    T.eq(HexGeom.coordinateString(5, 4), "")
+end
+
+function M.test_coordinateString_wrap_folds_far_east_to_negative()
+    -- Width-80 wrap, capital at engine x=10. Cursor at engine x=78 is
+    -- 68 east via simple subtraction but only 12 west across the seam,
+    -- so the algorithm folds it to -12.
+    coordSetup()
+    Map.IsWrapX = function()
+        return true
+    end
+    Map.GetGridSize = function()
+        return 80, 40
+    end
+    T.installOriginalCapital(10, 0)
+    T.eq(HexGeom.coordinateString(78, 0), "-12, 0")
+end
+
+function M.test_coordinateString_wrap_within_half_unchanged()
+    -- raw=30 lands inside [-40, 40], so wrap correction is a no-op and
+    -- the user hears 30, not the seam-crossing alternative.
+    coordSetup()
+    Map.IsWrapX = function()
+        return true
+    end
+    Map.GetGridSize = function()
+        return 80, 40
+    end
+    T.installOriginalCapital(10, 0)
+    T.eq(HexGeom.coordinateString(40, 0), "30, 0")
+end
+
+function M.test_coordinateString_no_wrap_keeps_far_east_positive()
+    -- Same geometry as the fold test, but the map is flat so simple
+    -- subtraction is the only thing that makes sense. The user hears 68.
+    coordSetup()
+    T.installOriginalCapital(10, 0)
+    T.eq(HexGeom.coordinateString(78, 0), "68, 0")
+end
+
 return M

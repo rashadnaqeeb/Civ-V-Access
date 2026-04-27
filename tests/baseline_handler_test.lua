@@ -19,8 +19,8 @@ local function setup()
             table.insert(Cursor._calls, "move:" .. tostring(d))
             return ""
         end,
-        orient = function()
-            table.insert(Cursor._calls, "orient")
+        coordinates = function()
+            table.insert(Cursor._calls, "coordinates")
             return ""
         end,
         economy = function()
@@ -205,11 +205,11 @@ function M.test_plain_s_reads_unit_at_tile()
     T.eq(Cursor._calls[1], "unitAtTile")
 end
 
-function M.test_shift_s_orients()
+function M.test_shift_s_speaks_coordinates()
     setup()
     local h = BaselineHandler.create()
     findBinding(h, Keys.S, 1).fn()
-    T.eq(Cursor._calls[1], "orient")
+    T.eq(Cursor._calls[1], "coordinates")
 end
 
 function M.test_number_keys_dispatch_to_city_info()

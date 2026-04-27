@@ -70,6 +70,52 @@ local function setCursorFollowsSelection(v)
     Prefs.setBool("CursorFollowsSelection", b)
 end
 
+-- Cursor-relative coordinate mode. Off by default: most users orient by
+-- the directional reads (cardinal-distance from cursor / capital), and
+-- speaking the coordinate on every step adds noise. Prepend / append put
+-- the capital-relative (x, y) at the start or end of every cursor-move
+-- announcement; Cursor.coordinates (Shift+S) ignores the mode and always
+-- speaks the coord. Stored as a string on civvaccess_shared so CursorCore
+-- reads it as "off" / "prepend" / "append" directly; Prefs persists an
+-- int (0/1/2) since the prefs file has no string type.
+local CURSOR_COORD_BY_INT = { [0] = "off", [1] = "prepend", [2] = "append" }
+local CURSOR_COORD_BY_NAME = { off = 0, prepend = 1, append = 2 }
+if civvaccess_shared.cursorCoordMode == nil then
+    local stored = Prefs.getInt("CursorCoordMode", 0)
+    civvaccess_shared.cursorCoordMode = CURSOR_COORD_BY_INT[stored] or "off"
+end
+
+local function getCursorCoordMode()
+    return civvaccess_shared.cursorCoordMode or "off"
+end
+
+local function setCursorCoordMode(name)
+    if CURSOR_COORD_BY_NAME[name] == nil then
+        Log.warn("Settings.setCursorCoordMode: invalid mode " .. tostring(name))
+        return
+    end
+    civvaccess_shared.cursorCoordMode = name
+    Prefs.setInt("CursorCoordMode", CURSOR_COORD_BY_NAME[name])
+end
+
+-- Scanner coordinate-append toggle. Off by default. When on, scanner
+-- announcements (each cycle's "<name>. <dir>. <N> of <M>.") gain an
+-- "<x>, <y>" segment between dir and the count. ScannerNav reads
+-- civvaccess_shared.scannerCoords live in formatInstance.
+if civvaccess_shared.scannerCoords == nil then
+    civvaccess_shared.scannerCoords = Prefs.getBool("ScannerCoords", false)
+end
+
+local function getScannerCoords()
+    return civvaccess_shared.scannerCoords == true
+end
+
+local function setScannerCoords(v)
+    local b = v and true or false
+    civvaccess_shared.scannerCoords = b
+    Prefs.setBool("ScannerCoords", b)
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -78,6 +124,18 @@ local function audioCueModeChoice(modeConst, textKey)
         end,
         activate = function()
             AudioCueMode.setMode(modeConst)
+        end,
+    })
+end
+
+local function cursorCoordModeChoice(name, textKey)
+    return BaseMenuItems.Choice({
+        textKey = textKey,
+        selectedFn = function()
+            return getCursorCoordMode() == name
+        end,
+        activate = function()
+            setCursorCoordMode(name)
         end,
     })
 end
@@ -116,6 +174,19 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_FOLLOWS_SELECTION",
             getValue = getCursorFollowsSelection,
             setValue = setCursorFollowsSelection,
+        }),
+        BaseMenuItems.Group({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE",
+            items = {
+                cursorCoordModeChoice("off", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_OFF"),
+                cursorCoordModeChoice("prepend", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"),
+                cursorCoordModeChoice("append", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"),
+            },
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",
+            getValue = getScannerCoords,
+            setValue = setScannerCoords,
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",
