@@ -64,6 +64,8 @@ local function buildItems()
             end
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = table.concat(labelParts, ", "),
+                tooltipKey = branch.Help,
+                pediaName = Text.key(branchDescription),
                 activate = function()
                     SelectIdeologyChoice(branchID)
                     ChooseConfirmSub.push({
