@@ -248,16 +248,26 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     if itemType == TradeableItems.TRADE_ITEM_GOLD then
         local editName = p .. "GoldAmount"
         local control = Controls[editName]
+        local tableControlName = p .. "TableGold"
+        local goldTooltipFn = function()
+            local c = Controls[tableControlName]
+            if c == nil then
+                return nil
+            end
+            return c:GetToolTipString()
+        end
         if control == nil or readOnly then
             -- Read-only drawer or missing EditBox (unlikely): fall through
             -- to a plain Text item showing label + amount.
             return BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0),
+                tooltipFn = goldTooltipFn,
             })
         end
         return BaseMenuItems.Textfield({
             controlName = editName,
             labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
+            tooltipFn = goldTooltipFn,
             -- Engine ChangeGoldTrade(0) keeps a 0-amount entry in the
             -- deal; for accessibility we treat 0 / empty on Enter as
             -- "remove" so the user can clear an offer without hunting
@@ -279,6 +289,14 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
         local editName = p .. "GoldPerTurnAmount"
         local control = Controls[editName]
+        local tableControlName = p .. "TableGoldPerTurn"
+        local gptTooltipFn = function()
+            local c = Controls[tableControlName]
+            if c == nil then
+                return nil
+            end
+            return c:GetToolTipString()
+        end
         if control == nil or readOnly then
             return BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
@@ -286,11 +304,13 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
                     .. tostring(data1 or 0)
                     .. ", "
                     .. Text.format("TXT_KEY_DIPLO_TURNS", duration or 0),
+                tooltipFn = gptTooltipFn,
             })
         end
         return BaseMenuItems.Textfield({
             controlName = editName,
             labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(duration),
+            tooltipFn = gptTooltipFn,
             priorCallback = function(text, ctrl, isEnter)
                 if isEnter then
                     local n = tonumber(text)
@@ -308,6 +328,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
         local resInfo = GameInfo.Resources[data1]
         local resName = resInfo and Text.key(resInfo.Description) or "?"
+        local pediaName = resInfo and Text.key(resInfo.Description) or nil
         local isStrategic = resInfo and resInfo.ResourceUsage == 1
         if isStrategic and not readOnly then
             -- Strategic amount is editable via an IM-built AmountEdit on
@@ -321,6 +342,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
                 return BaseMenuItems.Textfield({
                     control = editBox,
                     labelText = resName .. turnsSuffix(duration),
+                    pediaName = pediaName,
                     priorCallback = function(text, ctrl, isEnter)
                         if isEnter then
                             local n = tonumber(text)
@@ -345,11 +367,12 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         end
         label = label .. turnsSuffix(duration)
         if readOnly then
-            return BaseMenuItems.Text({ labelText = label })
+            return BaseMenuItems.Text({ labelText = label, pediaName = pediaName })
         end
         local rType = data1
         return BaseMenuItems.Text({
             labelText = label,
+            pediaName = pediaName,
             onActivate = function()
                 g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_RESOURCES, iPlayer, rType)
                 clearEngineTable()
@@ -399,18 +422,22 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
                 break
             end
         end
-        local otherName = (iOtherPlayer >= 0 and Players[iOtherPlayer]) and Players[iOtherPlayer]:GetName() or "?"
+        local otherPlayerObj = iOtherPlayer >= 0 and Players[iOtherPlayer] or nil
+        local otherName = otherPlayerObj and otherPlayerObj:GetName() or "?"
+        local leaderInfo = otherPlayerObj and GameInfo.Leaders[otherPlayerObj:GetLeaderType()] or nil
+        local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
         local labelKey = (itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE)
                 and "TXT_KEY_CIVVACCESS_TRADE_MAKE_PEACE_WITH"
             or "TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR_ON"
         local label = Text.format(labelKey, otherName)
         if readOnly then
-            return BaseMenuItems.Text({ labelText = label })
+            return BaseMenuItems.Text({ labelText = label, pediaName = pediaName })
         end
         local teamId = data1
         local capturedType = itemType
         return BaseMenuItems.Text({
             labelText = label,
+            pediaName = pediaName,
             onActivate = function()
                 g_Deal:RemoveByType(capturedType, iPlayer, teamId)
                 clearEngineTable()
@@ -435,8 +462,24 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         else
             label = Text.key("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
         end
+        -- Mirror the engine's per-vote table tooltip: GetVoteTooltip with
+        -- (pLeague, iVoteIndex, flag1, data3) -- TradeLogic.lua:2106 passes
+        -- the same arguments when populating cInstance.Button's tooltip.
+        local capturedFlag1 = flag1
+        local capturedData3 = data3
+        local capturedIndex = iVoteIndex
+        local voteTooltipFn = function()
+            if Game.GetNumActiveLeagues == nil or Game.GetNumActiveLeagues() == 0 then
+                return nil
+            end
+            local pL = Game.GetActiveLeague()
+            if pL == nil or capturedIndex == nil or type(GetVoteTooltip) ~= "function" then
+                return nil
+            end
+            return GetVoteTooltip(pL, capturedIndex, capturedFlag1, capturedData3)
+        end
         if readOnly or pLeague == nil or tVote == nil then
-            return BaseMenuItems.Text({ labelText = label })
+            return BaseMenuItems.Text({ labelText = label, tooltipFn = voteTooltipFn })
         end
         local resolutionId = tVote.ID
         local voteChoice = tVote.VoteChoice
@@ -444,6 +487,7 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         local capturedLeague = pLeague
         return BaseMenuItems.Text({
             labelText = label,
+            tooltipFn = voteTooltipFn,
             onActivate = function()
                 local numVotes = capturedLeague:GetCoreVotesForMember(iPlayer)
                 g_Deal:RemoveVoteCommitment(iPlayer, resolutionId, voteChoice, numVotes, repeal)
@@ -549,11 +593,19 @@ end
 local function availableGoldLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
+    local pocketControlName = prefix(side) .. "PocketGold"
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD, 1) then
-        return disabledPocketLeaf(Text.key("TXT_KEY_DIPLO_GOLD"), prefix(side) .. "PocketGold")
+        return disabledPocketLeaf(Text.key("TXT_KEY_DIPLO_GOLD"), pocketControlName)
     end
     return BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
+        tooltipFn = function()
+            local c = Controls[pocketControlName]
+            if c == nil then
+                return nil
+            end
+            return c:GetToolTipString()
+        end,
         onActivate = function()
             local maxGold = g_Deal:GetGoldAvailable(iPlayer, -1) or 0
             if maxGold <= 0 then
@@ -580,11 +632,19 @@ local function availableGoldPerTurnLeaf(side)
     local iPlayer = sidePlayer(side)
     local other = sideIsUs(side) and g_iThem or g_iUs
     local label = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(dealDuration())
+    local pocketControlName = prefix(side) .. "PocketGoldPerTurn"
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration()) then
-        return disabledPocketLeaf(label, prefix(side) .. "PocketGoldPerTurn")
+        return disabledPocketLeaf(label, pocketControlName)
     end
     return BaseMenuItems.Text({
         labelText = label,
+        tooltipFn = function()
+            local c = Controls[pocketControlName]
+            if c == nil then
+                return nil
+            end
+            return c:GetToolTipString()
+        end,
         onActivate = function()
             local pPlayer = Players[iPlayer]
             local maxGPT = pPlayer and pPlayer:CalculateGoldRate() or 0
@@ -609,6 +669,7 @@ end
 local function availableResourceLeaf(side, resType, resInfo)
     local iPlayer = sidePlayer(side)
     local resName = Text.key(resInfo.Description)
+    local pediaName = resName
     local isStrategic = resInfo.ResourceUsage == 1
     local label = resName .. turnsSuffix(dealDuration())
     if not isStrategic then
@@ -624,6 +685,7 @@ local function availableResourceLeaf(side, resType, resInfo)
             .. Text.format("TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE", qty)
         return BaseMenuItems.Text({
             labelText = luxuryLabel,
+            pediaName = pediaName,
             onActivate = function()
                 -- Luxuries are 1-quantity; engine hardcodes to 1 in
                 -- PocketResource handlers.
@@ -635,6 +697,7 @@ local function availableResourceLeaf(side, resType, resInfo)
     -- Strategic: prompt for amount, capped at g_Deal:GetNumResource.
     return BaseMenuItems.Text({
         labelText = label,
+        pediaName = pediaName,
         onActivate = function()
             local maxQty = g_Deal:GetNumResource(iPlayer, resType) or 0
             if maxQty <= 0 then
@@ -671,11 +734,23 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix,
     -- IsPossibleToTradeItem(from, to, type, duration) (matching TradeLogic's
     -- RefreshPocketEmbassy / OpenBorders / DP / RA / TA / DoF handlers).
     local label = Text.key(labelKey) .. turnsSuffix(dealDuration())
+    local pocketControlName = prefix(side) .. controlSuffix
     if not g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, itemConstant, dealDuration()) then
-        return disabledPocketLeaf(label, prefix(side) .. controlSuffix)
+        return disabledPocketLeaf(label, pocketControlName)
     end
+    -- Engine's RefreshPocket{Embassy,OpenBorders,DefensivePact,
+    -- ResearchAgreement,TradeAgreement,DoF} sets a contextual tooltip on the
+    -- pocket control in both enabled and disabled states. Read live so the
+    -- announce reflects whatever the engine last computed.
     return BaseMenuItems.Text({
         labelText = label,
+        tooltipFn = function()
+            local c = Controls[pocketControlName]
+            if c == nil then
+                return nil
+            end
+            return c:GetToolTipString()
+        end,
         onActivate = function()
             if bothSides then
                 addFn(g_iUs)
@@ -768,8 +843,24 @@ local function availableVotesGroup(side)
             local choice = pLeague:GetTextForChoice(tVote.VoteDecision, tVote.VoteChoice)
             local label = tostring(proposal) .. ", " .. tostring(choice)
             local id, voteChoice, repeal = tVote.ID, tVote.VoteChoice, tVote.Repeal
+            -- Mirror RefreshPocketVotes: GetVoteTooltip(pLeague, i, repeal,
+            -- iNumVotes) is the same call the engine makes when populating
+            -- cInstance.Button's tooltip on each pocket vote row.
+            local capturedIndex = i
+            local capturedRepeal = repeal
+            local capturedNumVotes = iNumVotes
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = label,
+                tooltipFn = function()
+                    if Game.GetNumActiveLeagues == nil or Game.GetNumActiveLeagues() == 0 then
+                        return nil
+                    end
+                    local pL = Game.GetActiveLeague()
+                    if pL == nil or type(GetVoteTooltip) ~= "function" then
+                        return nil
+                    end
+                    return GetVoteTooltip(pL, capturedIndex, capturedRepeal, capturedNumVotes)
+                end,
                 onActivate = function()
                     g_Deal:AddVoteCommitment(iPlayer, id, voteChoice, iNumVotes, repeal)
                     afterLocalDealChange()
@@ -839,6 +930,8 @@ local function availableOtherPlayersGroup(side)
         if pl ~= nil and pl:IsEverAlive() and not pl:IsBarbarian() and i ~= iPlayer and i ~= otherPlayer then
             local theirTeam = pl:GetTeam()
             local name = pl:GetName()
+            local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
+            local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
             if
                 g_Deal:IsPossibleToTradeItem(
                     iPlayer,
@@ -850,6 +943,7 @@ local function availableOtherPlayersGroup(side)
                 local capturedTeam = theirTeam
                 makePeace[#makePeace + 1] = BaseMenuItems.Text({
                     labelText = name,
+                    pediaName = pediaName,
                     onActivate = function()
                         g_Deal:AddThirdPartyPeace(iPlayer, capturedTeam, peaceDuration())
                         afterLocalDealChange()
@@ -862,6 +956,7 @@ local function availableOtherPlayersGroup(side)
                 local capturedTeam = theirTeam
                 declareWar[#declareWar + 1] = BaseMenuItems.Text({
                     labelText = name,
+                    pediaName = pediaName,
                     onActivate = function()
                         g_Deal:AddThirdPartyWar(iPlayer, capturedTeam)
                         afterLocalDealChange()
@@ -1090,6 +1185,9 @@ local function actionButtonLeaf(controlName, activate, fallbackLabel)
         labelFn = function(c)
             return c:GetText()
         end,
+        tooltipFn = function(c)
+            return c:GetToolTipString()
+        end,
         activate = activate,
     })
 end
@@ -1128,6 +1226,9 @@ local function buildTopItems(descriptor)
                     controlName = q.name,
                     labelFn = function(c)
                         return c:GetText()
+                    end,
+                    tooltipFn = function(c)
+                        return c:GetToolTipString()
                     end,
                     activate = q.activate,
                 })
