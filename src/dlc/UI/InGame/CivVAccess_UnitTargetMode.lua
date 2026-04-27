@@ -22,7 +22,8 @@
 --
 -- Preview math clones base-game EnemyUnitPanel.lua:655-707 (bidirectional
 -- GetCombatDamage for melee, GetRangeCombatDamage for ranged). The move-
--- to preview runs Pathfinder.findPath and speaks MP cost + turn count.
+-- to preview runs Unit:GeneratePath / Unit:GetPath (engine fork bindings)
+-- and speaks MP cost + turn count.
 
 UnitTargetMode = {}
 
@@ -72,32 +73,44 @@ local function formatMP(mp60ths)
 end
 
 local function movePathPreview(actor, targetPlot)
-    local result, reason = Pathfinder.findPath(actor, targetPlot)
-    if result == nil then
-        if reason == "same_plot" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-        end
-        if reason == "unexplored" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
-        end
-        if reason == "too_far" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR")
-        end
+    local fromPlot = actor:GetPlot()
+    if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    local team = actor:GetTeam()
+    local isDebug = Game.IsDebugMode()
+    if not isDebug and not targetPlot:IsRevealed(team, isDebug) then
+        return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
+    end
+    local ok = actor:GeneratePath(targetPlot)
+    if not ok then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
-    local mpText = formatMP(result.mpCost)
-    local leftText = formatMP(result.mpRemaining or 0)
+    local path = actor:GetPath()
+    local maxMoves = actor:MaxMoves()
+    local startMP = actor:MovesLeft()
+    if startMP < 0 then startMP = maxMoves end
+    -- Engine path nodes carry m_iData1=moves remaining and m_iData2=turn
+    -- count after arriving at that node. Front of GetPath() is the start
+    -- (we reverse in the binding); end is the destination.
+    local lastNode = path[#path]
+    local mpRemaining = lastNode.moves
+    -- iData2 starts at 1 and increments only when the parent node had 0
+    -- moves left (turn boundary crossed). Engine's CvUnit::GeneratePath
+    -- exposes the destination's iData2 as iPathTurns; so "turns=1" means
+    -- the unit arrives this turn.
+    local turns = lastNode.turn
+    -- Total MP spent from start to destination, in 60ths.
+    local mpCost = (math.max(0, turns - 1)) * maxMoves + (startMP - mpRemaining)
+    local mpText = formatMP(mpCost)
+    local leftText = formatMP(mpRemaining)
     local summary
-    if result.turns <= 1 then
+    if turns <= 1 then
         summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN", mpText, leftText)
     else
-        summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, result.turns, leftText)
+        summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN", mpText, turns, leftText)
     end
-    -- Step-by-step append. Our A* may diverge in tie-breaks from the
-    -- engine's drawn line, but the player triggered this preview to know
-    -- what their unit will actually do; trailing position lets users
-    -- ignore it once they've heard the headline numbers.
-    local steps = HexGeom.stepListString(result.directions)
+    local steps = HexGeom.stepListFromPath(path)
     if steps ~= "" then
         return summary .. ", " .. steps
     end
@@ -206,32 +219,104 @@ local function airSweepPreview(actor, plot)
 end
 
 -- Route-to preview. The engine routes a worker on MISSION_ROUTE_TO via
--- BuildRouteFinder (CvAStar.cpp BuildRouteCost / BuildRouteValid), not
--- the unit movement pathfinder. RoutePathfinder mirrors that A*. We
--- speak two pieces: how far the road will reach (path length excluding
--- the worker's start tile) and how long until the chain is finished
--- (sum of per-tile build turns over plots that need a route built).
+-- GC.GetBuildRouteFinder() (exposed as Game.GetBuildRoutePath); we speak
+-- the path length (tiles excluding the worker's start) and the total
+-- build turns across plots that still need a route built.
+
+-- Pick the build the engine will queue per tile. Mirrors the engine's
+-- GetBestBuildRouteForRoadTo: highest-Routes.Value build the player has
+-- tech for. Resolved once per preview; tech doesn't change mid-preview.
+local function pickBestRouteBuild(team)
+    local bestValue = -1
+    local bestBuild, bestRoute = nil, nil
+    if GameInfo == nil or GameInfo.Builds == nil then
+        return nil, nil, -1
+    end
+    for buildRow in GameInfo.Builds() do
+        local routeName = buildRow.RouteType
+        if routeName ~= nil and routeName ~= "NONE" then
+            local routeId = GameInfoTypes and GameInfoTypes[routeName]
+            if routeId ~= nil then
+                local routeRow = GameInfo.Routes[routeId]
+                if routeRow ~= nil then
+                    local prereq = buildRow.PrereqTech
+                    local hasTech = true
+                    if prereq ~= nil and prereq ~= "NONE" then
+                        local techId = GameInfoTypes and GameInfoTypes[prereq]
+                        if techId == nil or team == nil or not team:IsHasTech(techId) then
+                            hasTech = false
+                        end
+                    end
+                    if hasTech then
+                        local value = routeRow.Value or 0
+                        if value > bestValue then
+                            bestValue = value
+                            bestBuild = buildRow.ID
+                            bestRoute = routeId
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return bestBuild, bestRoute, bestValue
+end
+
+-- Per-plot build turns under the worker's contribution rate. Cities and
+-- plots already at-or-above the target route tier are zero-cost. The
+-- start plot zeroes the extra-rate when the worker is mid-build of this
+-- same route there, matching the base-game tooltip's no-double-count.
+local function plotBuildTurns(plot, buildId, routeValue, extraRate, isStartPlot)
+    if buildId == nil or plot:IsCity() then
+        return 0
+    end
+    local existing = plot:GetRouteType()
+    if existing >= 0 then
+        local existingRow = GameInfo.Routes[existing]
+        if existingRow ~= nil and (existingRow.Value or 0) >= routeValue then
+            return 0
+        end
+    end
+    local extra = extraRate
+    if isStartPlot and plot:GetBuildType() == buildId then
+        extra = 0
+    end
+    return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), extra, extra)
+end
+
 local function routePathPreview(actor, targetPlot)
-    local result, reason = RoutePathfinder.findPath(actor, targetPlot)
-    if result == nil then
-        if reason == "same_plot" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-        end
-        if reason == "unexplored" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
-        end
-        if reason == "too_far" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR")
-        end
-        if reason == "no_build" then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD")
-        end
+    local fromPlot = actor:GetPlot()
+    if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    local team = actor:GetTeam()
+    local pTeam = Teams[team]
+    local isDebug = Game.IsDebugMode()
+    if not isDebug and not targetPlot:IsRevealed(team, isDebug) then
+        return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
+    end
+    local buildId, routeId, routeValue = pickBestRouteBuild(pTeam)
+    if buildId == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD")
+    end
+    local owner = actor:GetOwner()
+    local path = Game.GetBuildRoutePath(fromPlot:GetX(), fromPlot:GetY(), targetPlot:GetX(), targetPlot:GetY(), owner)
+    if #path == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
-    if result.buildTurns == 0 then
-        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", result.tileCount)
+    local extraRate = actor:WorkRate(true, buildId)
+    local buildTurns = 0
+    for i, node in ipairs(path) do
+        local plot = Map.GetPlot(node.x, node.y)
+        if plot ~= nil then
+            buildTurns = buildTurns + plotBuildTurns(plot, buildId, routeValue, extraRate, i == 1)
+        end
     end
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", result.tileCount, result.buildTurns)
+    local tileCount = #path - 1
+    if buildTurns == 0 then
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", tileCount)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", tileCount, buildTurns)
 end
 
 -- Range / melee preview that prefers a unit garrison over the city

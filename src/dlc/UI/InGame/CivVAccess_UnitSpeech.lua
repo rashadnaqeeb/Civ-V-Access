@@ -894,11 +894,10 @@ end
 -- till arrival" / "stopped short" when the unit didn't reach the target
 -- plot. targetX/Y are compared to the unit's live position -- if they
 -- match, the path completed. turnsToArrival is supplied by the caller
--- after re-running Pathfinder from the stopped position; nil means no
--- estimate (unreachable or pathfinder bailed) and we fall back to the
--- bare phrasing. Direction narration is deferred; the caller already
--- spoke direction when the move was committed from the target-mode
--- cursor.
+-- after re-running the engine pathfinder from the stopped position; nil
+-- means no estimate (unreachable) and we fall back to the bare phrasing.
+-- Direction narration is deferred; the caller already spoke direction
+-- when the move was committed from the target-mode cursor.
 function UnitSpeech.moveResult(unit, targetX, targetY, turnsToArrival)
     if unit:GetX() == targetX and unit:GetY() == targetY then
         local movesLeft = math.floor(unit:MovesLeft() / GameDefines.MOVE_DENOMINATOR)

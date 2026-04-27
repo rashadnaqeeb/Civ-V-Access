@@ -35,3 +35,7 @@ Source: `C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization 
 ## Unbinned calls
 
 See [_unbinned.md](_unbinned.md) for the top 100 most-common `:Method(` calls whose receiver variable name did not match any known class. Useful for spotting classes we missed.
+
+## Fork-added methods
+
+See [_civvaccess_fork.md](_civvaccess_fork.md) for methods our `CvGameCore_Expansion2.dll` fork adds beyond what the stock engine binds. The extractor scans shipped game Lua, so these don't appear in the per-class files even after regenerating.

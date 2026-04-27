@@ -160,8 +160,8 @@ end
 
 -- ===== stepListString =====
 -- Run-length grouping over a sequence of DirectionTypes constants. Used
--- by Pathfinder move-preview to speak the actual step chain. Test relies
--- on Text.key resolving the DIR_* keys via run.lua's strings dofile.
+-- by move-path preview to speak the actual step chain. Test relies on
+-- Text.key resolving the DIR_* keys via run.lua's strings dofile.
 local function setupSteps()
     setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")

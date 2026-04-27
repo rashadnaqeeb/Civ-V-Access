@@ -21,8 +21,6 @@ include("CivVAccess_PlotSectionUnits")
 include("CivVAccess_PlotSectionRiver")
 include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
-include("CivVAccess_Pathfinder")
-include("CivVAccess_RoutePathfinder")
 include("CivVAccess_PlotAudio")
 include("CivVAccess_CursorCore")
 -- Surveyor strings before the core so Text.key lookups during module load

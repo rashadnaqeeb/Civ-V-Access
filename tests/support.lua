@@ -87,7 +87,6 @@ function T.fakePlot(opts)
         _buildTurns = opts.buildTurns or {},
         _isWater = opts.water or false,
         _plotType = opts.plotType or PlotTypes.PLOT_LAND,
-        _riverCrossings = opts.riverCrossings or {},
         _hasVisibleEnemy = opts.hasVisibleEnemy or false,
         _friendlyStackCount = opts.friendlyStackCount or 0,
     }
@@ -207,13 +206,6 @@ function T.fakePlot(opts)
     end
     function p:GetRouteType()
         return self._route
-    end
-    -- Pathfinder consults IsRiverCrossingToPlot rather than the per-edge
-    -- Is*OfRiver flags because the edge-to-neighbor mapping depends on
-    -- parity (odd-row offsets shift NE/NW edges). Tests register crossings
-    -- as a (otherPlot -> true) map keyed on the neighbor object identity.
-    function p:IsRiverCrossingToPlot(other)
-        return self._riverCrossings[other] or false
     end
     function p:IsVisibleEnemyUnit(_player)
         return self._hasVisibleEnemy

@@ -306,144 +306,17 @@ function UnitControl.cycleAll(forward)
     Game.CycleUnits(true, forward and true or false, false)
 end
 
--- Ctrl+. / Ctrl+, walk our own list, which mirrors CvUnitCycler's data
--- structure: a stable array of unit IDs that's rebuilt on creation and
--- spliced on destruction, never on press. This is what makes forward-
--- then-backward round-trip -- the same list is walked both directions.
--- We drop the ReadyToSelect filter so every active-player unit is a
--- target (the whole point of the Ctrl variant is "show me everyone,
--- including units I've already moved").
---
--- Algorithm matches CvGameCoreDLL_Expansion2/CvUnitCycler.cpp Rebuild()
--- in LoneGazebo/Community-Patch-DLL: NN walk seeded from a chosen unit,
--- then up to 5 passes of 2-opt segment-reversal. Seed precedence is the
--- same as the engine's no-arg Rebuild: caller-provided > current
--- selection (if owned by active player) > first worker > first unit.
--- We run stock Firaxis, so exact parity with Community Patch is assumed,
--- not guaranteed.
-local _cycleList = nil
-
-local function rebuildCycleList(startUnit)
-    local activePlayer = Game.GetActivePlayer()
-    local player = Players[activePlayer]
-    if player == nil then
-        _cycleList = nil
-        return
-    end
-    local units = {}
-    for unit in player:Units() do
-        units[#units + 1] = unit
-    end
-    local size = #units
-    if size == 0 then
-        _cycleList = {}
-        return
-    end
-    if startUnit == nil then
-        local sel = selectedUnit()
-        if sel ~= nil and sel:GetOwner() == activePlayer then
-            startUnit = sel
-        end
-    end
-    if startUnit == nil then
-        for _, u in ipairs(units) do
-            if u:WorkRate(true) > 0 then
-                startUnit = u
-                break
-            end
-        end
-    end
-    if startUnit == nil then
-        startUnit = units[1]
-    end
-    local tour, tourX, tourY = {}, {}, {}
-    local visited = {}
-    local function push(unit)
-        local idx = #tour + 1
-        tour[idx] = unit
-        tourX[idx] = unit:GetX()
-        tourY[idx] = unit:GetY()
-        visited[unit:GetID()] = true
-    end
-    push(startUnit)
-    while #tour < size do
-        local lastX, lastY = tourX[#tour], tourY[#tour]
-        local bestDist, bestUnit = math.huge, nil
-        for _, u in ipairs(units) do
-            if not visited[u:GetID()] then
-                local d = Map.PlotDistance(lastX, lastY, u:GetX(), u:GetY())
-                if d < bestDist then
-                    bestDist = d
-                    bestUnit = u
-                end
-            end
-        end
-        if bestUnit == nil then
-            break
-        end
-        push(bestUnit)
-    end
-    local n = #tour
-    if n > 3 then
-        local improved = true
-        local passes = 5
-        while improved and passes > 0 do
-            improved = false
-            passes = passes - 1
-            for i = 1, n - 1 do
-                for j = i + 2, n do
-                    if not (i == 1 and j == n) then
-                        local nextJ
-                        if j == n then
-                            nextJ = 1
-                        else
-                            nextJ = j + 1
-                        end
-                        local oldD = Map.PlotDistance(tourX[i], tourY[i], tourX[i + 1], tourY[i + 1])
-                            + Map.PlotDistance(tourX[j], tourY[j], tourX[nextJ], tourY[nextJ])
-                        local newD = Map.PlotDistance(tourX[i], tourY[i], tourX[j], tourY[j])
-                            + Map.PlotDistance(tourX[i + 1], tourY[i + 1], tourX[nextJ], tourY[nextJ])
-                        if newD < oldD then
-                            local a, b = i + 1, j
-                            while a < b do
-                                tour[a], tour[b] = tour[b], tour[a]
-                                tourX[a], tourX[b] = tourX[b], tourX[a]
-                                tourY[a], tourY[b] = tourY[b], tourY[a]
-                                a = a + 1
-                                b = b - 1
-                            end
-                            improved = true
-                        end
-                    end
-                end
-            end
-        end
-    end
-    local list = {}
-    for i, u in ipairs(tour) do
-        list[i] = u:GetID()
-    end
-    _cycleList = list
-end
-
-local function spliceFromCycleList(unitID)
-    if _cycleList == nil then
-        return
-    end
-    for i, id in ipairs(_cycleList) do
-        if id == unitID then
-            table.remove(_cycleList, i)
-            return
-        end
-    end
-end
-
+-- Ctrl+. / Ctrl+, walk Game.GetCycleUnits(), the engine fork's exposure
+-- of CvPlayer::GetUnitCycler(). Order is whatever the engine has built;
+-- it persists across creation/destruction the same way as the engine's
+-- own next-unit binding. We drop the ReadyToSelect filter so every
+-- active-player unit is a target (the whole point of the Ctrl variant
+-- is "show me everyone, including units I've already moved").
 function UnitControl.cycleAllUnits(forward)
     UnitControl.markUserInitiatedSelection()
-    if _cycleList == nil then
-        rebuildCycleList(nil)
-    end
-    if _cycleList == nil or #_cycleList == 0 then
+    local list = Game.GetCycleUnits()
+    local n = #list
+    if n == 0 then
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"))
         return
     end
@@ -452,12 +325,11 @@ function UnitControl.cycleAllUnits(forward)
     if player == nil then
         return
     end
-    local n = #_cycleList
     local current = selectedUnit()
     local startIdx
     if current ~= nil and current:GetOwner() == activePlayer then
         local cid = current:GetID()
-        for i, id in ipairs(_cycleList) do
+        for i, id in ipairs(list) do
             if id == cid then
                 startIdx = i
                 break
@@ -468,40 +340,29 @@ function UnitControl.cycleAllUnits(forward)
     -- head (forward) or tail (backward).
     local idx
     if startIdx == nil then
-        if forward then
-            idx = 1
-        else
-            idx = n
-        end
+        idx = forward and 1 or n
     elseif forward then
         idx = startIdx + 1
-        if idx > n then
-            idx = 1
-        end
+        if idx > n then idx = 1 end
     else
         idx = startIdx - 1
-        if idx < 1 then
-            idx = n
-        end
+        if idx < 1 then idx = n end
     end
-    -- Walk until a live unit is found. Bounded by n so a list with stale
-    -- IDs (missed destruction event) doesn't spin.
+    -- Walk until a live unit is found. Bounded by n so a list with a
+    -- stale ID (engine cycler hasn't pruned a just-killed unit) doesn't
+    -- spin.
     for _ = 1, n do
-        local unit = player:GetUnitByID(_cycleList[idx])
+        local unit = player:GetUnitByID(list[idx])
         if unit ~= nil then
             UI.SelectUnit(unit)
             return
         end
         if forward then
             idx = idx + 1
-            if idx > n then
-                idx = 1
-            end
+            if idx > n then idx = 1 end
         else
             idx = idx - 1
-            if idx < 1 then
-                idx = n
-            end
+            if idx < 1 then idx = n end
         end
     end
 end
@@ -1100,14 +961,13 @@ local function onUnitMoveCompleted()
         if not reachedTarget then
             local targetPlot = plotAt(tx, ty)
             if targetPlot ~= nil then
-                local result = Pathfinder.findPath(unit, targetPlot)
-                if result ~= nil then
-                    -- Pathfinder's first step treats mpRemaining==0 as
-                    -- "wait for next turn," bumping its turn counter.
-                    -- Here the unit has just stopped with 0 MP *this*
-                    -- turn; the next move is what begins turn+1, so the
-                    -- initial bump is already accounted for. Drop one.
-                    turnsToArrival = result.turns - 1
+                local ok, pathTurns = unit:GeneratePath(targetPlot)
+                if ok then
+                    -- Engine's iPathTurns starts at 1 (initial node) and
+                    -- bumps on turn boundaries. The unit has just stopped
+                    -- with 0 MP *this* turn; the next move begins turn+1,
+                    -- which engine has already counted, so drop one.
+                    turnsToArrival = pathTurns - 1
                 end
             end
         end
@@ -1153,23 +1013,6 @@ end
 
 function UnitControl.notifyCommitCanceled()
     _deferred = nil
-end
-
--- Cycle-list maintenance. Mirrors the engine's CvUnitCycler:
--- AddUnit triggers a full rebuild (no start unit, falls through to first
--- worker when nothing is selected); RemoveUnit just splices.
-local function onUnitCreated(playerID, _unitID)
-    if playerID ~= Game.GetActivePlayer() then
-        return
-    end
-    rebuildCycleList(nil)
-end
-
-local function onUnitDestroyed(playerID, unitID)
-    if playerID ~= Game.GetActivePlayer() then
-        return
-    end
-    spliceFromCycleList(unitID)
 end
 
 -- Registers a fresh set of unit listeners on every call (onInGameBoot
@@ -1226,19 +1069,4 @@ function UnitControl.installListeners()
     else
         Log.warn("UnitControl: Events.SerialEventCitySetDamage missing")
     end
-    if Events.SerialEventUnitCreated ~= nil then
-        Events.SerialEventUnitCreated.Add(onUnitCreated)
-    else
-        Log.warn("UnitControl: Events.SerialEventUnitCreated missing")
-    end
-    if Events.SerialEventUnitDestroyed ~= nil then
-        Events.SerialEventUnitDestroyed.Add(onUnitDestroyed)
-    else
-        Log.warn("UnitControl: Events.SerialEventUnitDestroyed missing")
-    end
-    -- Seed the cycle list now that we're past LoadScreenClose; initial
-    -- units exist but their SerialEventUnitCreated events fired before
-    -- our listener was registered. Match the engine's no-arg Rebuild
-    -- (selected unit > first worker > first unit).
-    rebuildCycleList(nil)
 end

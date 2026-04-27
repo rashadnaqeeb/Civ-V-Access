@@ -102,9 +102,10 @@ end
 
 -- Run-length encoded list of step directions: [E, E, SE, NW, NW, NW]
 -- becomes "2e, 1se, 3nw". Distinct from directionString -- this caller
--- (Pathfinder move-preview) follows the actual A* path, which can change
--- direction many times around obstacles, while directionString only
--- decomposes a single endpoint-to-endpoint delta. Empty list returns "".
+-- (move-path preview) follows the engine pathfinder's actual node chain,
+-- which can change direction many times around obstacles, while
+-- directionString only decomposes a single endpoint-to-endpoint delta.
+-- Empty list returns "".
 function HexGeom.stepListString(directions)
     if directions == nil or #directions == 0 then
         return ""
@@ -129,6 +130,39 @@ function HexGeom.stepListString(directions)
     end
     flush(runDir, runCount)
     return table.concat(parts, ", ")
+end
+
+local NEIGHBOR_DIRS = {
+    DirectionTypes.DIRECTION_NORTHEAST,
+    DirectionTypes.DIRECTION_EAST,
+    DirectionTypes.DIRECTION_SOUTHEAST,
+    DirectionTypes.DIRECTION_SOUTHWEST,
+    DirectionTypes.DIRECTION_WEST,
+    DirectionTypes.DIRECTION_NORTHWEST,
+}
+
+-- Walks the engine path-node array (from Unit:GetPath, ordered start to
+-- destination) and returns the run-length-encoded direction string for
+-- speech. Each consecutive pair yields one step; the direction is found
+-- by scanning the six neighbors of the from-plot. Empty path or single
+-- node returns "".
+function HexGeom.stepListFromPath(path)
+    if path == nil or #path < 2 then
+        return ""
+    end
+    local directions = {}
+    for i = 1, #path - 1 do
+        local fx, fy = path[i].x, path[i].y
+        local tx, ty = path[i + 1].x, path[i + 1].y
+        for _, dir in ipairs(NEIGHBOR_DIRS) do
+            local n = Map.PlotDirection(fx, fy, dir)
+            if n ~= nil and n:GetX() == tx and n:GetY() == ty then
+                directions[#directions + 1] = dir
+                break
+            end
+        end
+    end
+    return HexGeom.stepListString(directions)
 end
 
 -- Cube distance between two offset coords. Exposed so callers that already

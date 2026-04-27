@@ -17,6 +17,8 @@ Two classes are populated by method-name fingerprinting rather than receiver-nam
 
 `lua-api/_extract.py` is the extractor itself. Re-run it (`python _extract.py` from `llm-docs/lua-api/`) when the shipped game Lua changes or when you extend the receiver map.
 
+`lua-api/_civvaccess_fork.md` lists methods our engine fork adds (Unit / Game). The extractor scans shipped game Lua and our fork's bindings have no game-side callers, so they never show up in the per-class files. Hand-authored; canonical source is the `CIVVACCESS:` markers in `src/engine/`.
+
 ### Events catalogs — `events-catalog.md` and `luaevents-catalog.md`
 - `events-catalog.md` — 227 `Events.X` (engine-originated). Each entry tagged with **direction** (observable / fire-only / mixed) so you can triage at a glance: 147 observable, 54 fire-only, 26 mixed. Includes the 69-way `SerialEventGameMessagePopup` `ButtonPopupTypes` enumeration up front. Also lists inferred argument shape, example registration site, example fire site, and counts.
 - `luaevents-catalog.md` — 25 `LuaEvents.X` (pure Lua pub/sub between scripts). Verified complete by independent grep — Civ V's UI relies on `Events.X` and direct globals far more than on Lua-to-Lua pub/sub, so the small count is real.

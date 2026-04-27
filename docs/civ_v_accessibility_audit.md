@@ -244,7 +244,7 @@ Both automation actions appear in the unit action menu when the unit type qualif
 
 ## 4.10 Route and path preview — Partial
 
-Movement path preview uses the Lua-side Pathfinder that target-mode commits through; Space speaks MP cost, turn count, and MP remaining at end. Worker route-to (Ctrl+Shift+R, INTERFACEMODE_ROUTE_TO) reaches the same target-mode harness via the action menu and uses RoutePathfinder.findPath, which speaks tile count and total build turns. Hazards along the path (ZoC, Great Wall borders) and border-crossing implications (open-borders entry, will-declare-war on move) are folded into the MP number rather than called out, so the player gets a correct cost but not a textual warning. The BNW trade route preview is not reached — covered under Phase 8.7.
+Movement path preview runs the engine pathfinder (Unit:GeneratePath / Unit:GetPath, exposed by our DLL fork) and Space speaks MP cost, turn count, and MP remaining at end. Worker route-to (Ctrl+Shift+R, INTERFACEMODE_ROUTE_TO) reaches the same target-mode harness via the action menu and uses Game.GetBuildRoutePath (also fork-only), which speaks tile count and total build turns. Hazards along the path (ZoC, Great Wall borders) and border-crossing implications (open-borders entry, will-declare-war on move) are folded into the MP number rather than called out, so the player gets a correct cost but not a textual warning. The BNW trade route preview is not reached — covered under Phase 8.7.
 
 ## 4.11 Other world interaction modes — Done
 
