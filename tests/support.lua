@@ -161,11 +161,19 @@ function T.fakePlot(opts)
     function p:GetUnit(i)
         return self._units[i + 1]
     end
-    function p:GetNumLayerUnits()
-        return #self._layerUnits
+    -- Mirror engine semantics: iLayerID = -1 (default) returns base
+    -- units plus every non-base layer. We don't model per-layer indexing
+    -- here -- a fixture that needs a unit on a specific non-base layer
+    -- (e.g. trade) sets _layerUnits; everything else uses _units.
+    function p:GetNumLayerUnits(_iLayerID)
+        return #self._units + #self._layerUnits
     end
-    function p:GetLayerUnit(i)
-        return self._layerUnits[i + 1]
+    function p:GetLayerUnit(i, _iLayerID)
+        local idx = i + 1
+        if idx <= #self._units then
+            return self._units[idx]
+        end
+        return self._layerUnits[idx - #self._units]
     end
     function p:IsWOfRiver()
         return self._isWOfRiver

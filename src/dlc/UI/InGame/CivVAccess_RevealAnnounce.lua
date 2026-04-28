@@ -230,9 +230,9 @@ function RevealAnnounce._flush()
         -- reveal puts the plot in firstReveals without nowVisible:
         -- the terrain is known but unit positions are not.
         if nowVisible[idx] then
-            local n = plot:GetNumUnits()
+            local n = plot:GetNumLayerUnits(-1)
             for i = 0, n - 1 do
-                local unit = plot:GetUnit(i)
+                local unit = plot:GetLayerUnit(i, -1)
                 if unit ~= nil and not unit:IsInvisible(activeTeam, false) then
                     local bucket = unitOwnerBucket(unit:GetOwner(), activePlayerId, activeTeam)
                     if bucket ~= nil then

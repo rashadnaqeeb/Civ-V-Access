@@ -1,9 +1,13 @@
--- Units section. Walks plot:GetNumUnits(), gating each survivor with
--- IsInvisible(activeTeam, isDebug) and skipping cargo (inside a transport)
--- and air (parked in a city / on a carrier) -- they're not "on the tile"
--- in the spatial sense the cursor cares about. Base game's GetUnitsString
--- iterates only GetNumUnits; GetNumLayerUnits returns the same list plus
--- trade units, so iterating both double-counts regular units.
+-- Units section. Walks plot:GetLayerUnit(-1) so the iteration covers
+-- every plot layer, not just base. Trade units (caravans, cargo ships
+-- on a route) live on TRADE_UNIT_MAP_LAYER (CvTradeClasses.h) and are
+-- absent from plot:GetNumUnits(); base game's GetUnitsString skips them
+-- because the trade overview surfaces them separately, but the cursor's
+-- job is to announce everything visibly on the tile, so we include them.
+-- Each survivor is gated by IsInvisible(activeTeam, isDebug); cargo
+-- (inside a transport) and air (parked in a city / on a carrier) are
+-- skipped -- they're not "on the tile" in the spatial sense the cursor
+-- cares about.
 
 -- The civ-adjective form lives in UnitSpeech.unitName via the shared
 -- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV format. Named units (great
@@ -66,9 +70,9 @@ PlotSectionUnits = {
         local isDebug = Game.IsDebugMode()
         local out = {}
 
-        local n = plot:GetNumUnits()
+        local n = plot:GetNumLayerUnits(-1)
         for i = 0, n - 1 do
-            local u = plot:GetUnit(i)
+            local u = plot:GetLayerUnit(i, -1)
             if u ~= nil then
                 local desc = describeUnit(u, team, isDebug)
                 if desc ~= nil then

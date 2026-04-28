@@ -331,9 +331,9 @@ local function topUnitAt(plot)
     local team = Game.GetActiveTeam()
     local isDebug = Game.IsDebugMode()
     local civilian = nil
-    local n = plot:GetNumUnits()
+    local n = plot:GetNumLayerUnits(-1)
     for i = 0, n - 1 do
-        local u = plot:GetUnit(i)
+        local u = plot:GetLayerUnit(i, -1)
         if
             u ~= nil
             and not u:IsInvisible(team, isDebug)

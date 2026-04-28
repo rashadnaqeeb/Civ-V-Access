@@ -278,8 +278,8 @@ function SurveyorCore.ownUnits()
         local px, py = plot:GetX(), plot:GetY()
         local dist = HexGeom.cubeDistance(cx, cy, px, py)
         local rank = HexGeom.directionRank(cx, cy, px, py)
-        for i = 0, plot:GetNumUnits() - 1 do
-            local u = plot:GetUnit(i)
+        for i = 0, plot:GetNumLayerUnits(-1) - 1 do
+            local u = plot:GetLayerUnit(i, -1)
             if u ~= nil and u:GetOwner() == activePlayer then
                 instances[#instances + 1] = {
                     x = px,
@@ -315,8 +315,8 @@ function SurveyorCore.enemyUnits()
             local px, py = plot:GetX(), plot:GetY()
             local dist = HexGeom.cubeDistance(cx, cy, px, py)
             local rank = HexGeom.directionRank(cx, cy, px, py)
-            for i = 0, plot:GetNumUnits() - 1 do
-                local u = plot:GetUnit(i)
+            for i = 0, plot:GetNumLayerUnits(-1) - 1 do
+                local u = plot:GetLayerUnit(i, -1)
                 if u ~= nil and not u:IsInvisible(activeTeam, isDebug) then
                     local ownerId = u:GetOwner()
                     local owner = Players[ownerId]
