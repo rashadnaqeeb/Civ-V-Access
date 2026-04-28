@@ -133,12 +133,25 @@ local _pending = nil
 local _deferred = nil
 local _combatPending = nil
 
+-- Set by the GameEvents.CivVAccessCombatResolved listener to the engine
+-- frame on which a combat speech fired through the new hook path. The
+-- legacy EndCombatSim / SerialEventCitySetDamage listeners check this
+-- timestamp and short-circuit if recent, so we don't double-speak when
+-- the engine fires both signals for the same combat. Two-frame window
+-- covers the synchronous-hook then async-EndCombatSim ordering.
+local _lastHookSpokenFrame = -1
+local HOOK_DEDUPE_FRAMES = 600
+
 local function clearPending()
     _pending = nil
 end
 
 local function clearCombatPending()
     _combatPending = nil
+end
+
+local function recentHookSpeech()
+    return TickPump.frame() - _lastHookSpokenFrame < HOOK_DEDUPE_FRAMES
 end
 
 local schedulePendingExpiry
@@ -810,6 +823,14 @@ local function onEndCombatSim(
     if defenderUnit == -1 then
         return
     end
+    -- Engine-fork hook GameEvents.CivVAccessCombatResolved fires
+    -- synchronously inside CvUnitCombat::ResolveCombat (post-resolve);
+    -- EndCombatSim is the older, animation-completion-bound signal.
+    -- When both fire for the same combat, the hook wins on timing and
+    -- this listener short-circuits.
+    if recentHookSpeech() then
+        return
+    end
     local defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
     if defenderName == "" then
         Log.warn(
@@ -833,6 +854,66 @@ local function onEndCombatSim(
     speakQueued(text)
 end
 
+-- GameEvents.CivVAccessCombatResolved listener. Engine fork fires this
+-- from CvUnitCombat::ResolveCombat (post-resolve, before the dispatcher
+-- returns) for every unit-attacker melee / ranged combat against units
+-- and cities, regardless of Quick Combat. Payload mirrors the snapshot
+-- pipeline's reconstruction: per-side damage-this-combat, final damage,
+-- max HP. Defender is either a unit (defenderUnit > -1) or a city
+-- (defenderCity > -1, defenderUnit = -1).
+local function onCombatResolved(
+    attackerPlayer,
+    attackerUnit,
+    attackerDamage,
+    attackerFinalDamage,
+    attackerMaxHP,
+    defenderPlayer,
+    defenderUnit,
+    defenderCity,
+    defenderDamage,
+    defenderFinalDamage,
+    defenderMaxHP
+)
+    local activePlayer = Game.GetActivePlayer()
+    if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
+        return
+    end
+    local attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit)
+    local defenderName
+    if defenderUnit ~= -1 then
+        defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
+    else
+        defenderName = UnitSpeech.cityCombatantName(defenderPlayer, defenderCity)
+    end
+    if defenderName == "" then
+        Log.warn(
+            "onCombatResolved: defender name empty for player="
+                .. tostring(defenderPlayer)
+                .. " unit="
+                .. tostring(defenderUnit)
+                .. " city="
+                .. tostring(defenderCity)
+        )
+        return
+    end
+    local text = UnitSpeech.combatResult({
+        attackerName = attackerName,
+        defenderName = defenderName,
+        attackerDamage = attackerDamage,
+        attackerFinalDamage = attackerFinalDamage,
+        attackerMaxHP = attackerMaxHP,
+        defenderDamage = defenderDamage,
+        defenderFinalDamage = defenderFinalDamage,
+        defenderMaxHP = defenderMaxHP,
+    })
+    speakQueued(text)
+    _lastHookSpokenFrame = TickPump.frame()
+    -- Hook covers the same combat the snapshot pipeline was registered
+    -- for; clear the snapshot so its polling timer / city-damage listener
+    -- don't re-speak after we did.
+    clearCombatPending()
+end
+
 -- City HP-change announcement. Engine fires SerialEventCitySetDamage
 -- whenever a city's damage value changes (combat hits, healing). Combat-
 -- pending snapshot for a city target is the gate: if no snapshot or the
@@ -843,6 +924,11 @@ end
 -- combat -- it fires whenever the engine commits the damage, which is
 -- reliable even when EndCombatSim doesn't (Quick Combat).
 local function onCitySetDamage(cityPlayerID, cityID, damage, previousDamage)
+    -- Hook path covers city defenders too; if it just fired we're the
+    -- redundant signal.
+    if recentHookSpeech() then
+        return
+    end
     local pending = _combatPending
     if pending == nil or pending.defenderType ~= "city" then
         return
@@ -1143,5 +1229,13 @@ function UnitControl.installListeners()
         Events.SerialEventCitySetDamage.Add(onCitySetDamage)
     else
         Log.warn("UnitControl: Events.SerialEventCitySetDamage missing")
+    end
+    -- Engine-fork hook fired from CvUnitCombat::ResolveCombat. This is
+    -- the primary combat-speech path; legacy listeners above are kept as
+    -- a backstop and gate on recentHookSpeech() to avoid double-speak.
+    if GameEvents ~= nil and GameEvents.CivVAccessCombatResolved ~= nil then
+        GameEvents.CivVAccessCombatResolved.Add(onCombatResolved)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessCombatResolved missing")
     end
 end
