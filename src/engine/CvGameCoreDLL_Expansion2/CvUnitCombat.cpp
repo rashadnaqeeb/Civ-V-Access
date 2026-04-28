@@ -2407,21 +2407,34 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
 		if(pkScriptSystem)
 		{
-			// 11-arg payload, decoded by the Lua handler at
+			// 14-arg payload, decoded by the Lua handler at
 			// UnitControl.onCombatResolved:
 			//   1: attackerPlayerId
 			//   2: attackerUnitId
-			//   3: attackerDamageThisCombat   (post - pre, >= 0)
+			//   3: attackerDamageThisCombat   (post - pre, >= 0; includes intercept hits folded in by ResolveAirUnitVsCombat)
 			//   4: attackerFinalDamage         (cumulative; kill at >= maxHP)
 			//   5: attackerMaxHP
 			//   6: defenderPlayerId
 			//   7: defenderUnitId              (-1 sentinel when defender is a city)
 			//   8: defenderCityId              (-1 sentinel when defender is a unit)
 			//   9..11: defender damage / final damage / max HP, same shape as attacker
+			//   12: interceptorPlayerId        (-1 sentinel when no intercept landed)
+			//   13: interceptorUnitId          (-1 sentinel when no intercept landed)
+			//   14: interceptorDamage          (0 when no intercept landed)
 			// Lua dispatches on (defenderUnitId != -1) to pick unit vs city naming.
 			// Adding fields means updating both branches AND the Lua handler;
 			// the unit branch uses (unit, -1) and the city branch (-1, city) so
 			// arg positions 6 and 9..11 stay aligned across both paths.
+			//
+			// Interceptor fields are populated only when an interceptor was
+			// assigned AND it actually dealt damage. Intercepts where the
+			// attacker evaded or the intercept roll failed (pInterceptor set
+			// but iInterceptionDamage == 0) push the sentinels -- this matches
+			// base game's UI, which only surfaces interceptor messages when
+			// iInterceptionDamage > 0 (CvUnitCombat.cpp's
+			// TXT_KEY_MISC_ENEMY_AIR_UNIT_INTERCEPTED / DESTROYED routing).
+			CvUnit* pInterceptor = kInfo.getUnit(BATTLE_UNIT_INTERCEPTOR);
+			int iInterceptDamage = pInterceptor ? kInfo.getDamageInflicted(BATTLE_UNIT_INTERCEPTOR) : 0;
 			CvLuaArgsHandle args;
 			args->Push(pAttacker->getOwner());
 			args->Push(pAttacker->GetID());
@@ -2445,6 +2458,18 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 				args->Push(pDefenderCityForHook->getDamage() - iDefCityPreDamage);
 				args->Push(pDefenderCityForHook->getDamage());
 				args->Push(pDefenderCityForHook->GetMaxHitPoints());
+			}
+			if(pInterceptor != NULL && iInterceptDamage > 0)
+			{
+				args->Push(pInterceptor->getOwner());
+				args->Push(pInterceptor->GetID());
+				args->Push(iInterceptDamage);
+			}
+			else
+			{
+				args->Push(-1);
+				args->Push(-1);
+				args->Push(0);
 			}
 			bool bResult;
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessCombatResolved", args.get(), bResult);

@@ -25,13 +25,23 @@
 
 UnitSpeech = {}
 
+-- Always the civ-adjective form ("Roman Warrior"), even for the active
+-- player's own units, mirroring PlotSectionUnits.unitDescription. Civ
+-- identity is what disambiguates units of identical type across players,
+-- and the alternative GetNickName placeholder ("Player N" / profile
+-- name) leaks the user's own name into every announcement of their own
+-- unit. Returns "" when the owner can't be resolved so callers fall back
+-- to their existing empty-name handling.
 local function unitName(unit)
-    local t = unit:GetUnitType()
-    local row = GameInfo.Units[t]
-    if row == nil then
+    local owner = Players[unit:GetOwner()]
+    if owner == nil then
         return ""
     end
-    return Text.key(row.Description)
+    return Text.format(
+        "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
+        owner:GetCivilizationAdjectiveKey(),
+        unit:GetNameKey()
+    )
 end
 
 -- Base name with the "embarked" compound prefix when the unit is at sea.
@@ -849,8 +859,7 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
     local theirDmg = defender:GetCombatDamage(theirStrength, myStrength, defender:GetDamage(), false, false, false)
         + supportDmg
 
-    local row = GameInfo.Units[defender:GetUnitType()]
-    local name = row ~= nil and Text.key(row.Description) or ""
+    local name = unitName(defender)
     local myStr = Locale.ToNumber(myStrength / 100, "#.##")
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
     local result = predictionLabel(actor, defender)
@@ -903,16 +912,13 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     end
 
     local theirDmg = 0
-    local bInterceptPossible = false
     local interceptors = 0
     if actor:GetDomainType() == DomainTypes.DOMAIN_AIR then
         theirDmg = defender:GetAirStrikeDefenseDamage(actor, false)
         interceptors = actor:GetInterceptorCount(targetPlot, defender, true, true)
-        bInterceptPossible = true
     end
 
-    local row = GameInfo.Units[defender:GetUnitType()]
-    local name = row ~= nil and Text.key(row.Description) or ""
+    local name = unitName(defender)
     local myStr = Locale.ToNumber(myStrength / 100, "#.##")
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
     local result = predictionLabel(actor, defender)
@@ -922,9 +928,14 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     if theirDmg > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE", theirDmg)
     end
-    if bInterceptPossible then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE")
-    end
+    -- The base "Air Intercept Warning" line (TXT_KEY_EUPANEL_AIR_INTERCEPT_
+    -- WARNING1+2 = "Interception by fighter or anti-air will boost damage")
+    -- fires unconditionally for air strikes -- a class-mechanics note, not a
+    -- per-strike threat. Compressed to terse speech ("intercept possible")
+    -- it reads as a per-strike prediction and misleads. The visible
+    -- interceptor count below is the materially per-strike signal; once a
+    -- player understands air combat the class warning adds noise without
+    -- information.
     if interceptors > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
     end
@@ -1006,11 +1017,9 @@ function UnitSpeech.cityRangedPreview(actor, city, targetPlot)
     local theirStrength = city:GetStrengthValue()
     local theirDmg = 0
     local interceptors = 0
-    local interceptPossible = false
     if actor:GetDomainType() == DomainTypes.DOMAIN_AIR then
         theirDmg = city:GetAirStrikeDefenseDamage(actor, false)
         interceptors = actor:GetInterceptorCount(targetPlot, nil, true, true)
-        interceptPossible = true
     end
 
     local maxCityHP = city:GetMaxHitPoints()
@@ -1028,9 +1037,9 @@ function UnitSpeech.cityRangedPreview(actor, city, targetPlot)
     if theirDmg > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE", theirDmg)
     end
-    if interceptPossible then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE")
-    end
+    -- See rangedPreview for why the unconditional "intercept possible" line
+    -- is dropped: terse speech turns the base game's mechanics-class note
+    -- into a misleading per-strike prediction.
     if interceptors > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS", interceptors)
     end
@@ -1052,11 +1061,27 @@ function UnitSpeech.combatResult(args)
     local atkDamage = args.attackerDamage
     local defDamage = args.defenderDamage
     local parts = {}
+    -- Both sides always speak so the user hears who fought even when one
+    -- side took no damage -- ranged attacks routinely leave the attacker
+    -- untouched, and the prior "skip if zero" silently dropped the
+    -- attacker from the readout.
     if atkDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE", atkName, atkDamage)
+    else
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_UNHURT", atkName)
     end
     if defDamage > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE", defName, defDamage)
+    else
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_UNHURT", defName)
+    end
+    -- Intercept clause sits between the damage lines and the kill lines:
+    -- it qualifies why the attacker took the damage we just reported, and
+    -- precedes any kill announcement so a "Bomber killed" line still ends
+    -- the readout. Caller passes nil when no intercept landed; we don't
+    -- announce attempts that dealt 0 damage (matches base game).
+    if args.interceptorName ~= nil and args.interceptorName ~= "" then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_INTERCEPTED_BY", args.interceptorName)
     end
     if args.attackerFinalDamage >= args.attackerMaxHP then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", atkName)
@@ -1122,3 +1147,8 @@ end
 -- same ownership-gated cascade (friendly: full, enemy: fortified only)
 -- without duplicating the UnitList rung ordering.
 UnitSpeech.statusToken = statusToken
+
+-- Exposed so PlotSectionUnits can wrap its named-unit form ("Tomyris
+-- (Persian Great General)") around the same civ-tagged base every other
+-- speech path uses.
+UnitSpeech.unitName = unitName

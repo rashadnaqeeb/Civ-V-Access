@@ -5,22 +5,18 @@
 -- iterates only GetNumUnits; GetNumLayerUnits returns the same list plus
 -- trade units, so iterating both double-counts regular units.
 
+-- The civ-adjective form lives in UnitSpeech.unitName via the shared
+-- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV format. Named units (great
+-- generals, named admirals) wrap that form in parens after the personal
+-- name -- "Tomyris (Persian Great General)" -- which selection / info
+-- speech don't surface so the wrapper stays here.
 local function unitDescription(unit)
-    local owner = Players[unit:GetOwner()]
-    -- Always the civ-adjective form. Base game's GetUnitsString branches
-    -- on GetNickName for the MULTIPLAYER_UNIT_TT template, but in both
-    -- single- and multi-player the engine returns a non-empty placeholder
-    -- (profile name / "Player N"), leaving the player's own name
-    -- announced in front of their own unit every time. The civ adjective
-    -- ("Arabian Warrior") already disambiguates owner.
+    local typeName = UnitSpeech.unitName(unit)
     local body
     if unit:HasName() then
-        local desc =
-            Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
-        body = Text.key(unit:GetNameNoDesc()) .. " (" .. desc .. ")"
+        body = Text.key(unit:GetNameNoDesc()) .. " (" .. typeName .. ")"
     else
-        body =
-            Text.format("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+        body = typeName
     end
     if unit:IsEmbarked() then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX") .. " " .. body

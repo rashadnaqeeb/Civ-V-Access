@@ -15,6 +15,7 @@ local function mkUnit(opts)
     local u = {
         _x = opts.x or 0,
         _y = opts.y or 0,
+        _owner = opts.owner or 0,
         _unitType = opts.unitType or 100,
         _embarked = opts.embarked or false,
         _damage = opts.damage or 0,
@@ -55,6 +56,13 @@ local function mkUnit(opts)
     end
     function u:GetUnitType()
         return self._unitType
+    end
+    function u:GetOwner()
+        return self._owner
+    end
+    function u:GetNameKey()
+        local row = GameInfo.Units[self._unitType]
+        return row and row.Description or ""
     end
     function u:IsEmbarked()
         return self._embarked
@@ -183,6 +191,11 @@ local function setup()
         return 0
     end
     Players = {}
+    -- Owner of every unit in this suite unless a test overrides. The
+    -- adjective "Roman" feeds UnitSpeech.unitName via the shared
+    -- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV format key, so name strings
+    -- read "Roman Warrior" instead of bare "Warrior".
+    Players[0] = T.fakePlayer({ adj = "Roman" })
     GameDefines = GameDefines or {}
     GameDefines.MAX_HIT_POINTS = 100
     GameDefines.MOVE_DENOMINATOR = 60
@@ -202,7 +215,7 @@ function M.test_selection_zero_delta_no_direction_prefix()
     local u = mkUnit({ x = 5, y = 5 })
     local out = UnitSpeech.selection(u, 5, 5)
     T.truthy(not out:find("^%d"), "zero-delta must not start with a direction token: " .. out)
-    T.truthy(out:find("^Warrior"), "zero-delta must start with name: " .. out)
+    T.truthy(out:find("^Roman Warrior"), "zero-delta must start with name: " .. out)
 end
 
 function M.test_selection_non_zero_delta_leads_with_direction()
@@ -211,7 +224,7 @@ function M.test_selection_non_zero_delta_leads_with_direction()
     local out = UnitSpeech.selection(u, 0, 0)
     -- 3 hexes east: directionString yields "3e". Assert direction
     -- leads the string so screen readers hear orientation first.
-    T.truthy(out:find("^3e, Warrior"), "direction must lead: " .. out)
+    T.truthy(out:find("^3e, Roman Warrior"), "direction must lead: " .. out)
 end
 
 -- ===== Selection: embarked prefix =====
@@ -220,7 +233,7 @@ function M.test_selection_embarked_prefix_on_name()
     setup()
     local u = mkUnit({ embarked = true })
     local out = UnitSpeech.selection(u, 0, 0)
-    T.truthy(out:find("embarked Warrior", 1, true), "embarked prefix expected: " .. out)
+    T.truthy(out:find("embarked Roman Warrior", 1, true), "embarked prefix expected: " .. out)
 end
 
 function M.test_selection_not_embarked_no_prefix()
@@ -778,7 +791,7 @@ function M.test_info_embarked_prefixes_name()
     setup()
     local u = mkUnit({ embarked = true })
     local out = UnitSpeech.info(u)
-    T.truthy(out:find("embarked Warrior", 1, true), "info must embarked-prefix name: " .. out)
+    T.truthy(out:find("embarked Roman Warrior", 1, true), "info must embarked-prefix name: " .. out)
 end
 
 function M.test_info_hp_stays_last_when_status_present()
@@ -927,20 +940,116 @@ function M.test_combat_result_defender_killed_appends_kill_line()
     T.truthy(out:find("Swordsman killed", 1, true), "kill line expected: " .. out)
 end
 
+-- Ranged combat routinely leaves the attacker undamaged. The prior
+-- "skip if zero" formatter dropped the attacker from the readout
+-- entirely, leaving the user unsure who fired. Both sides must always
+-- be named.
+function M.test_combat_result_zero_damage_attacker_still_named_unhurt()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Crossbowman",
+        attackerDamage = 0,
+        attackerFinalDamage = 0,
+        attackerMaxHP = 100,
+        defenderName = "Warrior",
+        defenderDamage = 25,
+        defenderFinalDamage = 25,
+        defenderMaxHP = 100,
+    })
+    T.truthy(out:find("attacker Crossbowman unhurt", 1, true), "attacker must speak even at 0 damage: " .. out)
+    T.truthy(out:find("defender Warrior %-25 hp"), "defender damage still expected: " .. out)
+end
+
+function M.test_combat_result_zero_damage_defender_still_named_unhurt()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Warrior",
+        attackerDamage = 10,
+        attackerFinalDamage = 10,
+        attackerMaxHP = 100,
+        defenderName = "Spearman",
+        defenderDamage = 0,
+        defenderFinalDamage = 0,
+        defenderMaxHP = 100,
+    })
+    T.truthy(out:find("attacker Warrior %-10 hp"), "attacker damage still expected: " .. out)
+    T.truthy(out:find("defender Spearman unhurt", 1, true), "defender must speak even at 0 damage: " .. out)
+end
+
+-- Air-strike intercept. The engine fork lumps interceptor damage into
+-- the attacker's total damage; the intercept clause names who fired
+-- without splitting attribution. Sits between damage lines and any
+-- kill line.
+function M.test_combat_result_intercepted_appends_intercept_clause()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Bomber",
+        attackerDamage = 30,
+        attackerFinalDamage = 30,
+        attackerMaxHP = 100,
+        defenderName = "Warrior",
+        defenderDamage = 10,
+        defenderFinalDamage = 10,
+        defenderMaxHP = 100,
+        interceptorName = "Persian Fighter",
+    })
+    T.truthy(out:find("intercepted by Persian Fighter", 1, true), "intercept clause expected: " .. out)
+    T.truthy(out:find("attacker Bomber %-30 hp"), "attacker damage still present: " .. out)
+end
+
+-- nil interceptor (non-air combat, or air strike with no interceptor
+-- available) must not introduce a stray intercept clause.
+function M.test_combat_result_no_interceptor_no_intercept_clause()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Warrior",
+        attackerDamage = 12,
+        attackerFinalDamage = 12,
+        attackerMaxHP = 100,
+        defenderName = "Swordsman",
+        defenderDamage = 30,
+        defenderFinalDamage = 30,
+        defenderMaxHP = 100,
+        interceptorName = nil,
+    })
+    T.truthy(not out:find("intercept", 1, true), "no intercept clause when interceptor is nil: " .. out)
+end
+
+-- Bomber killed by intercept: the intercept clause appears before the
+-- kill line, keeping "Bomber killed" as the readout's tail.
+function M.test_combat_result_intercept_kill_keeps_kill_line_last()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Bomber",
+        attackerDamage = 100,
+        attackerFinalDamage = 100,
+        attackerMaxHP = 100,
+        defenderName = "Warrior",
+        defenderDamage = 0,
+        defenderFinalDamage = 0,
+        defenderMaxHP = 100,
+        interceptorName = "Persian Fighter",
+    })
+    local interceptPos = out:find("intercepted by Persian Fighter", 1, true)
+    local killPos = out:find("Bomber killed", 1, true)
+    T.truthy(interceptPos ~= nil, "intercept clause expected: " .. out)
+    T.truthy(killPos ~= nil, "kill line expected: " .. out)
+    T.truthy(interceptPos < killPos, "intercept must precede kill: " .. out)
+end
+
 -- Combatant-name lookup helper. The single point of "playerId + unitId
 -- -> display name" resolution; called by UnitControl.onCombatResolved
 -- to label combat-result speech.
 function M.test_combatant_name_resolves_via_player_lookup()
     setup()
-    Players[0] = {
-        GetUnitByID = function(_, id)
-            if id == 1 then
-                return mkUnit({ unitType = 100 })
-            end
-            return nil
-        end,
-    }
-    T.eq(UnitSpeech.combatantName(0, 1), "Warrior")
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[0].GetUnitByID = function(_, id)
+        if id == 1 then
+            return mkUnit({ unitType = 100 })
+        end
+        return nil
+    end
+    T.eq(UnitSpeech.combatantName(0, 1), "Roman Warrior")
 end
 
 function M.test_combatant_name_returns_empty_when_unit_gone()

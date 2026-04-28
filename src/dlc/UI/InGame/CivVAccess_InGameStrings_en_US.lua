@@ -100,7 +100,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR"] = "air unit, use rang
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK"] = "cannot attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES"] = "no moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED"] = "cannot enter"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] = "aircraft can't be moved this way, use rebase"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
+    "aircraft can't be moved this way, use rebase"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "not adjacent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"] = "no units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_NO_ACTIONS"] = "no actions"
@@ -141,7 +142,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_CITY"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED_CITY"] =
     "city {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_DmgToThem} damage to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE"] = "{1_Dmg} to me"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPT_POSSIBLE"] = "intercept possible"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS"] = "{1_N} interceptors"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_TO"] = "move to {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_THIS_TURN"] = "{1_MP} MP, {2_Left} unspent"
@@ -149,7 +149,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_MULTI_TURN"] =
     "{1_MP} MP, {2_Turns} turns, {3_Left} unspent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_THIS_TURN"] = "this turn, unexplored area"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_MULTI_TURN"] = "{1_Turns} turns, unexplored area"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_THIS_TURN"] = "this turn, {1_Steps} then unexplored"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_THIS_TURN"] =
+    "this turn, {1_Steps} then unexplored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN"] =
     "{1_Turns} turns, {2_Steps} then unexplored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE"] = "no path"
@@ -219,7 +220,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE"] = "{1_Action}
 -- selection announce.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE"] = "attacker {1_Name} -{2_Dmg} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE"] = "defender {1_Name} -{2_Dmg} hp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_UNHURT"] = "attacker {1_Name} unhurt"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_UNHURT"] = "defender {1_Name} unhurt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_KILLED"] = "{1_Name} killed"
+-- Air-strike intercept clause. Omitted unless the engine fork's hook
+-- reports a landed intercept (interceptorDamage > 0); failed / evaded
+-- intercepts surface no clause to match base game's UI.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_INTERCEPTED_BY"] = "intercepted by {1_Name}"
 -- City-capture announcements. SerialEventCityCaptured fires for empty
 -- city captures (no combat resolution) and for capture-after-defender-
 -- killed transitions; the active player's perspective decides which line
@@ -469,6 +476,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TEXT_POPUP"] = "Notification"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WONDER_POPUP"] = "Wonder Completed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"] = "World Congress"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_END_GAME"] = "End of Game"
+-- Ranking tab row labels. The HistoricRankings table is fixed leader tiers
+-- with thresholds; the matched row replaces "score <threshold>" with the
+-- player's actual score and tacks on the leader's quote.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RANKING_ROW"] = "{1_Rank} {2_Leader}, score {3_Score}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RANKING_MATCHED_ROW"] = "{1_Rank} {2_Leader}, your score {3_Score}, {4_Quote}"
+-- Replay Messages-panel row format. Source is Game.GetReplayMessages() at
+-- end-game and g_ReplayInfo.Messages at front-end; same {Turn, Text} shape.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW"] = "Turn {1_Turn}, {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DECLARE_WAR"] = "Declare War"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"] = "City-State Greeting"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_DIPLO"] = "City-State"

@@ -657,6 +657,12 @@ end
 -- for unit-initiated combat results: per-side damage-this-combat, final
 -- damage, max HP. Defender is either a unit (defenderUnit > -1) or a
 -- city (defenderCity > -1, defenderUnit = -1).
+--
+-- Interceptor fields populate only on landed air-strike intercepts
+-- (engine-side gate; see CvUnitCombat.cpp CIVVACCESS hook). Failed /
+-- evaded intercepts arrive as -1 / -1 / 0 sentinels and the speech
+-- formatter omits the intercept clause -- matching base game's UI,
+-- which announces interceptors only on landed hits.
 local function onCombatResolved(
     attackerPlayer,
     attackerUnit,
@@ -668,7 +674,10 @@ local function onCombatResolved(
     defenderCity,
     defenderDamage,
     defenderFinalDamage,
-    defenderMaxHP
+    defenderMaxHP,
+    interceptorPlayer,
+    interceptorUnit,
+    interceptorDamage
 )
     local activePlayer = Game.GetActivePlayer()
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
@@ -692,6 +701,13 @@ local function onCombatResolved(
         )
         return
     end
+    local interceptorName
+    if interceptorUnit ~= -1 and interceptorDamage > 0 then
+        interceptorName = UnitSpeech.combatantName(interceptorPlayer, interceptorUnit)
+        if interceptorName == "" then
+            interceptorName = nil
+        end
+    end
     local text = UnitSpeech.combatResult({
         attackerName = attackerName,
         defenderName = defenderName,
@@ -701,6 +717,7 @@ local function onCombatResolved(
         defenderDamage = defenderDamage,
         defenderFinalDamage = defenderFinalDamage,
         defenderMaxHP = defenderMaxHP,
+        interceptorName = interceptorName,
     })
     speakQueued(text)
 end

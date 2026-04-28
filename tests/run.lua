@@ -30,14 +30,27 @@ civvaccess_shared = civvaccess_shared or {}
 -- authored CivVAccess keys go through CivVAccess_Strings and don't need
 -- this. Existing suites pass single-arg keys, which short-circuit through
 -- the no-args branch unchanged.
+--
+-- baseGameStrings registers a small set of base-game format strings whose
+-- VALUES (not just placeholder substitution) the test needs to mirror
+-- production. UnitSpeech.unitName builds "Roman Warrior" via the base
+-- game's TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV ("{1_Adj} {2_Name}"); in-
+-- game the engine resolves the key to its registered string and then
+-- substitutes args, but the test stub has no string registry. Mapping
+-- the key to its format here closes the gap so suites can assert on the
+-- shape of the resolved phrase rather than the literal key.
+local baseGameStrings = {
+    TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV = "{1_Adj} {2_Name}",
+}
 Locale = Locale or {}
 Locale.ConvertTextKey = function(key, ...)
+    local fmt = baseGameStrings[key] or key
     local args = { ... }
     if #args == 0 then
-        return key
+        return fmt
     end
     return (
-        key:gsub("{(%d+)_[^}]*}", function(n)
+        fmt:gsub("{(%d+)_[^}]*}", function(n)
             local v = args[tonumber(n)]
             if v == nil then
                 return ""
