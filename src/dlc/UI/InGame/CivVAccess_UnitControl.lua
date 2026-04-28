@@ -690,6 +690,15 @@ local function onCombatResolved(
         return
     end
     local attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit)
+    if attackerName == "" then
+        Log.warn(
+            "onCombatResolved: attacker name empty for player="
+                .. tostring(attackerPlayer)
+                .. " unit="
+                .. tostring(attackerUnit)
+        )
+        return
+    end
     local defenderName
     if defenderUnit ~= -1 then
         defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)

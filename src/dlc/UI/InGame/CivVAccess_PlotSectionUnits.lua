@@ -14,7 +14,12 @@ local function unitDescription(unit)
     local typeName = UnitSpeech.unitName(unit)
     local body
     if unit:HasName() then
-        body = Text.key(unit:GetNameNoDesc()) .. " (" .. typeName .. ")"
+        local personalName = Text.key(unit:GetNameNoDesc())
+        if typeName ~= "" then
+            body = personalName .. " (" .. typeName .. ")"
+        else
+            body = personalName
+        end
     else
         body = typeName
     end
