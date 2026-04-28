@@ -844,6 +844,14 @@ end
 -- runs Game.SelectionListMove synchronously, so re-arming pending here
 -- captures a fresh start hex (the unit hasn't moved yet) before
 -- SerialEventUnitMove fires.
+--
+-- Adjacent + has-defender case skips re-arming: once the engine declares
+-- war and re-runs SelectionListMove, the move resolves as combat against
+-- a now-at-war defender, the CombatResolved hook speaks the result, and
+-- a "moved to X" announcement on top of that would double-speak when the
+-- attacker advances onto the cleared plot. The check uses
+-- bTestPotentialEnemy=true because we run BEFORE the engine declares
+-- war; bTestAtWar would still see the rival as peaceful and miss them.
 function UnitControl.notifyDeferredCommit()
     if _deferred == nil then
         return
@@ -857,6 +865,22 @@ function UnitControl.notifyDeferredCommit()
     local unit = player:GetUnitByID(snap.unitID)
     if unit == nil then
         return
+    end
+    local targetPlot = plotAt(snap.targetX, snap.targetY)
+    if targetPlot ~= nil then
+        local activePlayer = Game.GetActivePlayer()
+        local potentialDefender = targetPlot:GetBestDefender(-1, activePlayer, unit, 0, 1, 0, 0)
+        local potentialCity
+        if targetPlot:IsCity() then
+            local city = targetPlot:GetPlotCity()
+            if city ~= nil and city:GetOwner() ~= activePlayer then
+                potentialCity = city
+            end
+        end
+        local distance = Map.PlotDistance(unit:GetX(), unit:GetY(), snap.targetX, snap.targetY)
+        if (potentialDefender ~= nil or potentialCity ~= nil) and distance == 1 then
+            return
+        end
     end
     UnitControl.registerPending(unit, snap.targetX, snap.targetY)
 end
