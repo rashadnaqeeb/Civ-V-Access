@@ -9,7 +9,8 @@
 -- (users can still hit Enter on it and the game's own handler no-ops). The
 -- screen sets a "not connected to Steam" tooltip in that state via
 -- LocalizeAndSetToolTip; we re-check the same network flag at announce
--- time since there is no Lua API to read the stored tooltip back.
+-- time since there is no Lua API to read the stored tooltip back, falling
+-- back to the static button tooltip when connected.
 
 include("CivVAccess_FrontendCommon")
 
@@ -18,7 +19,7 @@ local priorInput = InputHandler
 
 local function internetTooltipFn()
     if Network.IsConnectedToSteam() then
-        return nil
+        return Text.key("TXT_KEY_MULTIPLAYER_INTERNET_GAME_TT")
     end
     return Text.key("TXT_KEY_STEAM_CONNECTED_NO")
 end
@@ -32,6 +33,7 @@ BaseMenu.install(ContextPtr, {
         BaseMenuItems.Button({
             controlName = "StandardButton",
             textKey = "TXT_KEY_MULTIPLAYER_STANDARD_GAME",
+            tooltipKey = "TXT_KEY_MULTIPLAYER_STANDARD_GAME_TT",
             activate = function()
                 StandardButtonClick()
             end,
@@ -39,6 +41,7 @@ BaseMenu.install(ContextPtr, {
         BaseMenuItems.Button({
             controlName = "HotSeatButton",
             textKey = "TXT_KEY_MULTIPLAYER_HOTSEAT_GAME",
+            tooltipKey = "TXT_KEY_MULTIPLAYER_HOTSEAT_GAME_TT",
             activate = function()
                 HotSeatButtonClick()
             end,
@@ -46,6 +49,7 @@ BaseMenu.install(ContextPtr, {
         BaseMenuItems.Button({
             controlName = "PitbossButton",
             textKey = "TXT_KEY_MULTIPLAYER_PITBOSS_GAME",
+            tooltipKey = "TXT_KEY_MULTIPLAYER_PITBOSS_GAME_TT",
             activate = function()
                 PitbossButtonClick()
             end,
@@ -61,6 +65,7 @@ BaseMenu.install(ContextPtr, {
         BaseMenuItems.Button({
             controlName = "LANButton",
             textKey = "TXT_KEY_MULTIPLAYER_LAN_GAME",
+            tooltipKey = "TXT_KEY_MULTIPLAYER_LAN_GAME_TT",
             activate = function()
                 LANButtonClick()
             end,
