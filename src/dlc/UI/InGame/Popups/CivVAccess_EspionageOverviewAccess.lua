@@ -70,6 +70,15 @@ local m_agentsTab
 local m_citiesTab
 local m_intrigueTab
 
+-- Set true right after a user-initiated commit (Move / Hideout / Diplomat /
+-- Coup) so the next SerialEventEspionageScreenDirty re-announces the active
+-- row with fresh data. Row labels are baked at buildAgentsTabItems time, so
+-- the natural pop+reactivate after a commit speaks the pre-commit label;
+-- the rebuild that follows on dirty silently swaps items via setItems with
+-- no announce. This flag plumbs the announce through. Travel / election /
+-- intrigue dirties don't set the flag, so they don't re-announce.
+local m_announceAfterDirty = false
+
 -- ===== Helpers =====
 
 local function activePlayer()
@@ -292,8 +301,10 @@ local function agentActions(agent)
                         name,
                         city:GetNameKey()
                     ),
+                    popReactivateOnYes = false,
                     onYes = function()
                         Network.SendStageCoup(Game.GetActivePlayer(), agent.AgentID)
+                        m_announceAfterDirty = true
                     end,
                 })
             end,
@@ -738,11 +749,23 @@ end
 -- Distinct from ChooseConfirmSub which hardcodes reactivate=false on Yes
 -- (correct for popups that close on commit; wrong for Espionage where the
 -- screen stays open after Stage Coup / Hideout, so the underlying shell
--- needs a re-announce). Yes / No / Esc all pop with reactivate=true so
--- the user lands back on a freshly-announced espionage shell. Esc and No
--- speak "canceled" first.
+-- needs a re-announce). Yes / No / Esc all pop with reactivate=true by
+-- default so the user lands back on a freshly-announced espionage shell;
+-- callers that route a button to a Network.Send commit pass
+-- popReactivateOnYes / popReactivateOnNo = false so the natural pop
+-- doesn't speak the pre-commit row label and the dirty re-announce that
+-- follows is the only thing the user hears. Esc and No (when no onNo is
+-- supplied) speak "canceled" first.
 local function pushYesNoConfirm(opts)
     local subName = opts.name
+    local popReactivateOnYes = opts.popReactivateOnYes
+    if popReactivateOnYes == nil then
+        popReactivateOnYes = true
+    end
+    local popReactivateOnNo = opts.popReactivateOnNo
+    if popReactivateOnNo == nil then
+        popReactivateOnNo = true
+    end
     local sub = BaseMenu.create({
         name = subName,
         displayName = opts.displayName,
@@ -758,7 +781,7 @@ local function pushYesNoConfirm(opts)
                     if not ok then
                         Log.error(subName .. " onYes failed: " .. tostring(err))
                     end
-                    HandlerStack.removeByName(subName, true)
+                    HandlerStack.removeByName(subName, popReactivateOnYes)
                 end,
             }),
             BaseMenuItems.Button({
@@ -773,7 +796,7 @@ local function pushYesNoConfirm(opts)
                     else
                         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CANCELED"))
                     end
-                    HandlerStack.removeByName(subName, true)
+                    HandlerStack.removeByName(subName, popReactivateOnNo)
                 end,
             }),
         },
@@ -800,6 +823,7 @@ local function pushDiplomatPicker(agentId, targetPlayerID, targetCityID, onCommi
     end
     local function commit(isDiplomat)
         Network.SendMoveSpy(Game.GetActivePlayer(), agentId, targetPlayerID, targetCityID, isDiplomat)
+        m_announceAfterDirty = true
         onCommitted()
     end
     pushYesNoConfirm({
@@ -807,6 +831,8 @@ local function pushDiplomatPicker(agentId, targetPlayerID, targetCityID, onCommi
         displayName = Text.key("TXT_KEY_SPY_BE_DIPLOMAT"),
         yesKey = "TXT_KEY_DIPLOMAT_PICKER_DIPLOMAT",
         noKey = "TXT_KEY_DIPLOMAT_PICKER_SPY",
+        popReactivateOnYes = false,
+        popReactivateOnNo = false,
         onYes = function()
             commit(true)
         end,
@@ -828,8 +854,10 @@ local function pushHideoutConfirm(agentId, agent, onCommitted)
     pushYesNoConfirm({
         name = "EspionageOverview/HideoutConfirm",
         displayName = Text.format("TXT_KEY_EO_MOVE_SPY_TO_HIDEOUT_CHECK", agent.Rank, agent.Name),
+        popReactivateOnYes = false,
         onYes = function()
             Network.SendMoveSpy(Game.GetActivePlayer(), agentId, -1, -1, false)
+            m_announceAfterDirty = true
             onCommitted()
         end,
     })
@@ -900,7 +928,12 @@ local function buildMoveSubItems(agent)
                     return
                 end
                 Network.SendMoveSpy(Game.GetActivePlayer(), agent.AgentID, ci.PlayerID, ci.CityID, false)
-                HandlerStack.removeByName("EspionageOverview/Move", true)
+                m_announceAfterDirty = true
+                -- reactivate=false: the natural reactivate would speak the
+                -- pre-move row label (items are baked at build time).
+                -- The dirty handler's post-commit re-announce, after
+                -- rebuildAllTabs, is the only speech the user hears.
+                HandlerStack.removeByName("EspionageOverview/Move", false)
             end,
         })
     end
@@ -1034,6 +1067,24 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         local ok, err = pcall(rebuildAllTabs)
         if not ok then
             Log.error("EspionageOverview dirty refresh failed: " .. tostring(err))
+        end
+        -- Post-commit re-announce. Always clear the flag so a stale set
+        -- from a flow that skipped its dirty doesn't leak into the next
+        -- non-commit dirty (election cycle, intrigue, travel). Only re-
+        -- announce when the shell is the active handler -- when dirty
+        -- fires synchronously from inside Network.Send, the commit's sub
+        -- (Move / Hideout / Diplomat / Coup) is still on top and the
+        -- natural pop+reactivate that follows will pick up the freshly
+        -- rebuilt items on its own.
+        if m_announceAfterDirty then
+            m_announceAfterDirty = false
+            local active = HandlerStack.active()
+            if active ~= nil and active.name == "EspionageOverview" and type(active.onActivate) == "function" then
+                local ok2, err2 = pcall(active.onActivate)
+                if not ok2 then
+                    Log.error("EspionageOverview post-commit re-announce failed: " .. tostring(err2))
+                end
+            end
         end
     end)
 end
