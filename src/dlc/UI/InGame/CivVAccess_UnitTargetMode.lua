@@ -530,6 +530,127 @@ local function willCauseCombat(actor, plot, mode)
     return false
 end
 
+-- LoS probe range used by the ranged-attack drill-down. Mirrors
+-- CursorCore.targetabilityPrefix: a large explicit range so the engine's
+-- internal range gate inside CanSeePlot doesn't conflate "blocked by
+-- terrain" with "too far away" -- the latter we report separately as
+-- "out of range" via Map.PlotDistance.
+local LOS_PROBE_RANGE = 100
+
+-- Per-mode commit-time precheck. Returns:
+--   nil  -- mode recognized + gate passed -> push the mission
+--   key  -- mode recognized + gate failed -> speak the key, abort
+--   false -- mode unrecognized -> caller falls back to UI.CanDoInterface
+--          Mode as the engine's safety net
+--
+-- Replaces a blanket UI.CanDoInterfaceMode gate that returned a single
+-- generic "action failed" for every reason. CanDoInterfaceMode also
+-- returns false for 0-MP MOVE_TO commits the engine would happily queue
+-- for next turn -- preflightMove doesn't gate on MP, so 0-MP moves get
+-- pushed and the schedulePendingExpiry path then announces "queued for
+-- next turn" instead of falsely reporting failure.
+local function commitFailureReason(actor, mode, plot, tx, ty)
+    if isMoveMode(mode) then
+        return UnitControl.preflightMove(actor, plot)
+    end
+    if isRouteMode(mode) then
+        local path = Game.GetBuildRoutePath(actor:GetX(), actor:GetY(), tx, ty, actor:GetOwner())
+        if #path == 0 then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+        end
+        return nil
+    end
+    if isMeleeAttackMode(mode) then
+        local r = UnitControl.preflightAttack(actor)
+        if r ~= nil then
+            return r
+        end
+        local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
+        if dist ~= 1 then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT")
+        end
+        if firstEnemyUnit(plot) == nil and enemyCityAt(plot) == nil then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+        end
+        return nil
+    end
+    if isRangeAttackMode(mode) then
+        if not actor:CanRangeStrike() then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK")
+        end
+        if actor:MovesLeft() <= 0 then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES")
+        end
+        -- bNeedWar=false: a strike on a peaceful rival's tile passes
+        -- the gate; the engine queues BUTTONPOPUP_DECLAREWARRANGESTRIKE
+        -- and GenericPopupAccess speaks the confirmation. bNoncombat
+        -- Allowed=true so an undefended city / civilian-occupied tile
+        -- is a valid target.
+        if not actor:CanRangeStrikeAt(tx, ty, false, true) then
+            -- Drill into why. Order matches user-helpful priority:
+            -- semantic (no target), geometric (too far), terrain
+            -- (blocked LoS). Cursor's targetabilityPrefix already speaks
+            -- range / LoS while the user navigates, but commit-time also
+            -- emits them so a user who pressed enter without hearing the
+            -- prefix still gets a clear reason.
+            if firstEnemyUnit(plot) == nil and enemyCityAt(plot) == nil then
+                return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+            end
+            local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
+            if dist > actor:Range() then
+                return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE")
+            end
+            local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR
+                or actor:IsRangeAttackIgnoreLOS()
+            if
+                not ignoresLoS
+                and not actor:GetPlot():CanSeePlot(plot, actor:GetTeam(), LOS_PROBE_RANGE, DirectionTypes.NO_DIRECTION)
+            then
+                return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
+            end
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED")
+        end
+        return nil
+    end
+    if mode == InterfaceModeTypes.INTERFACEMODE_PARADROP then
+        if not actor:CanParadropAt(actor:GetPlot(), tx, ty) then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL")
+        end
+        return nil
+    end
+    if mode == InterfaceModeTypes.INTERFACEMODE_AIRLIFT then
+        if not actor:CanAirliftAt(actor:GetPlot(), tx, ty) then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL")
+        end
+        return nil
+    end
+    if mode == InterfaceModeTypes.INTERFACEMODE_REBASE then
+        if not actor:CanRebaseAt(actor:GetPlot(), tx, ty) then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL")
+        end
+        return nil
+    end
+    if mode == InterfaceModeTypes.INTERFACEMODE_EMBARK then
+        if not actor:CanEmbarkOnto(actor:GetPlot(), plot) then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL")
+        end
+        return nil
+    end
+    if mode == InterfaceModeTypes.INTERFACEMODE_DISEMBARK then
+        if not actor:CanDisembarkOnto(plot) then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL")
+        end
+        return nil
+    end
+    if mode == InterfaceModeTypes.INTERFACEMODE_NUKE then
+        if not actor:CanNukeAt(tx, ty) then
+            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL")
+        end
+        return nil
+    end
+    return false
+end
+
 -- queued=true is shift+enter: append the mission to the unit's queue
 -- via bShift on the engine's PUSH_MISSION net message (matches base
 -- WorldView.lua's mouse-shift-click path), skip pending registration
@@ -587,8 +708,21 @@ local function commitAtCursor(self, queued)
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
         return
     end
-    if not UI.CanDoInterfaceMode(mode) then
-        SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+    -- Per-mode reason check. Returns nil to allow commit, a TXT key to
+    -- speak and abort, or false for "unrecognized mode -- defer to the
+    -- engine gate." The engine gate is only consulted on fall-through;
+    -- for recognized modes we are the source of truth so MOVE_TO can
+    -- bypass CanDoInterfaceMode's wrong-for-0-MP false negative.
+    local reason = commitFailureReason(self._actor, mode, plot, tx, ty)
+    if reason == false then
+        if not UI.CanDoInterfaceMode(mode) then
+            reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED")
+        else
+            reason = nil
+        end
+    end
+    if reason ~= nil then
+        SpeechPipeline.speakQueued(reason)
         HandlerStack.removeByName("UnitTargetMode", false)
         restoreSelection()
         return

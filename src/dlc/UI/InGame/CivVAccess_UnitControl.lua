@@ -427,8 +427,10 @@ end
 -- messages because the right action exists (Alt+R) -- the user just
 -- picked the wrong key. IsCanAttack catches civilians and units the
 -- engine has flagged as non-attackers. MovesLeft is last because it's
--- transient (next turn fixes it).
-local function preflightAttack(unit)
+-- transient (next turn fixes it). Exported so UnitTargetMode's commit
+-- path can reuse the same gate when the user lands a melee attack
+-- through the menu rather than an Alt-direction key.
+function UnitControl.preflightAttack(unit)
     if unit:IsRanged() then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_RANGED")
     end
@@ -444,16 +446,18 @@ local function preflightAttack(unit)
     return nil
 end
 
--- Precheck: can this unit enter the target plot at all? bDeclareWar=true
+-- Precheck: can this unit enter the target plot at all? bDeclareWar=1
 -- so a step into a peaceful rival's tile passes the gate -- the engine
 -- will queue BUTTONPOPUP_DECLAREWARMOVE downstream and DeclareWarPopup
--- Access speaks the confirmation prompt. bDestination=true so destination
+-- Access speaks the confirmation prompt. bDestination=1 so destination
 -- -only checks (e.g., transport offload at the final tile) apply. No MP
 -- check: a 0-MP move is legitimately queued for next turn and the
 -- expiry path announces "queued" rather than treating it as failure.
-local function preflightMove(unit, target)
-    -- Flags are int, not bool: the binding uses luaL_optint and rejects
-    -- Lua true/false outright. 1 = bDeclareWar, 1 = bDestination.
+-- Flags are int, not bool: the binding uses luaL_optint and rejects
+-- Lua true/false outright. Exported so UnitTargetMode can use this in
+-- place of UI.CanDoInterfaceMode(MOVE_TO), which wrongly fails 0-MP
+-- moves the engine is happy to queue.
+function UnitControl.preflightMove(unit, target)
     if not unit:CanMoveOrAttackInto(target, 1, 1) then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED")
     end
@@ -480,7 +484,7 @@ local function directMove(dir)
     end
     if enemy == nil and enemyCity == nil then
         clearCombatConfirm()
-        local moveReason = preflightMove(unit, target)
+        local moveReason = UnitControl.preflightMove(unit, target)
         if moveReason ~= nil then
             speakInterrupt(moveReason)
             return
@@ -493,7 +497,7 @@ local function directMove(dir)
     -- preview. The mouse hover panel the engine shows for sighted users
     -- gates similarly (EnemyUnitPanel.lua ~1846); we do the same gate so
     -- the hotkey path matches what a sighted player sees.
-    local attackReason = preflightAttack(unit)
+    local attackReason = UnitControl.preflightAttack(unit)
     if attackReason ~= nil then
         clearCombatConfirm()
         speakInterrupt(attackReason)
