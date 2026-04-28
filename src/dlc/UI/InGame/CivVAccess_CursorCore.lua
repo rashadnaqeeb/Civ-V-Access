@@ -82,14 +82,13 @@ end
 -- it here -- we want the prefix on every plot, target or not. Geometry
 -- check only; no fog-of-war / target-validity reasoning.
 --
--- LoS uses CvPlot::canSeePlot, called with a large range so the engine's
--- internal iRange++ + distance gate (CvPlot.cpp:1647-1666) doesn't conflate
--- "blocked by terrain" with "too far away" -- the latter we report as
--- "out of range" via Map.PlotDistance. Air units / IsRangeAttackIgnoreLOS
--- skip the LoS step (engine does the same in canEverRangeStrikeAt). The
--- attacker's own plot returns no prefix (distance 0, LoS trivially true).
-local LOS_PROBE_RANGE = 100
-
+-- LoS uses Plot:HasLineOfSight (engine fork binding), which calls
+-- CvPlot::canSeePlot with the range and facing gates short-circuited so
+-- the answer is "is the visibility ray blocked by terrain" alone -- the
+-- range axis we report separately as "out of range" via Map.PlotDistance.
+-- Air units / IsRangeAttackIgnoreLOS skip the LoS step (engine does the
+-- same in canEverRangeStrikeAt). The attacker's own plot returns no
+-- prefix (distance 0, LoS trivially true).
 local function targetabilityPrefix(plot)
     local mode = UI.GetInterfaceMode()
     local attackerPlot, team, range, ignoresLoS
@@ -131,7 +130,7 @@ local function targetabilityPrefix(plot)
     if ax == tx and ay == ty then
         return ""
     end
-    if not ignoresLoS and not attackerPlot:CanSeePlot(plot, team, LOS_PROBE_RANGE, DirectionTypes.NO_DIRECTION) then
+    if not ignoresLoS and not attackerPlot:HasLineOfSight(plot, team) then
         return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") .. ", "
     end
     if Map.PlotDistance(ax, ay, tx, ty) > range then

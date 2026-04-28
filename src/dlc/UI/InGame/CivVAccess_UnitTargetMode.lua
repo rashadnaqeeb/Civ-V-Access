@@ -542,13 +542,6 @@ local function willCauseCombat(actor, plot, mode)
     return false
 end
 
--- LoS probe range used by the ranged-attack drill-down. Mirrors
--- CursorCore.targetabilityPrefix: a large explicit range so the engine's
--- internal range gate inside CanSeePlot doesn't conflate "blocked by
--- terrain" with "too far away" -- the latter we report separately as
--- "out of range" via Map.PlotDistance.
-local LOS_PROBE_RANGE = 100
-
 -- Per-mode commit-time precheck. Returns:
 --   nil  -- mode recognized + gate passed -> push the mission
 --   key  -- mode recognized + gate failed -> speak the key, abort
@@ -614,10 +607,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
             end
             local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR
                 or actor:IsRangeAttackIgnoreLOS()
-            if
-                not ignoresLoS
-                and not actor:GetPlot():CanSeePlot(plot, actor:GetTeam(), LOS_PROBE_RANGE, DirectionTypes.NO_DIRECTION)
-            then
+            if not ignoresLoS and not actor:GetPlot():HasLineOfSight(plot, actor:GetTeam()) then
                 return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
             end
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED")

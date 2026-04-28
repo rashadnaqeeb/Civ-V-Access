@@ -215,10 +215,18 @@ function T.fakePlot(opts)
     -- Geometric LoS probe. Tests that need fine-grained LoS results pass
     -- opts.canSeePlot = function(target, team, range, dir) -> bool. Default
     -- behavior matches the engine's "always sees self / sees everywhere" --
-    -- only the cursor targetability suite overrides it.
+    -- only the cursor targetability suite overrides it. HasLineOfSight is
+    -- the engine fork's pure-LoS sibling; it delegates to the same opts hook
+    -- since the underlying obstruction question is the same.
     function p:CanSeePlot(target, team, range, dir)
         if opts.canSeePlot ~= nil then
             return opts.canSeePlot(target, team, range, dir)
+        end
+        return true
+    end
+    function p:HasLineOfSight(target, team)
+        if opts.canSeePlot ~= nil then
+            return opts.canSeePlot(target, team, nil, nil)
         end
         return true
     end
