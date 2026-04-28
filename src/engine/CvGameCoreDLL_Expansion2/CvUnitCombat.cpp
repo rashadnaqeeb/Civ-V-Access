@@ -2575,14 +2575,26 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			// user the combat they triggered was a sweep.
 			//
 			// visibleToActiveTeam asks "is the target plot active-visible
-			// right now". Lua uses it to broaden the speech filter from
-			// "active player involved" to "active player involved OR
-			// combat visible to active team", matching what a sighted
-			// player perceives whether or not Quick Combat is enabled --
-			// AI vs AI combat in their line of sight gets announced;
-			// off-map stays silent. Quick Combat skips animation but the
-			// player still sees units disappear / HP bars update on
-			// visible plots, so our gate stays purely on visibility.
+			// AND are both combatants visible to the active team". Lua
+			// uses it to broaden the speech filter from "active player
+			// involved" to "active player involved OR combat visible to
+			// active team", matching what a sighted player perceives
+			// whether or not Quick Combat is enabled -- AI vs AI combat
+			// in their line of sight gets announced; off-map stays
+			// silent. Quick Combat skips animation but the player still
+			// sees units disappear / HP bars update on visible plots,
+			// so our gate stays purely on visibility.
+			//
+			// Per-unit invisibility folds into the flag: an invisible
+			// attacker (submarine, stealth bomber) doesn't render in the
+			// engine's animation, and the engine's combat-message path
+			// stays silent on the attacker's identity for sighted
+			// players too. Speaking the invisible attacker by name in
+			// AI-vs-AI combat would leak identity beyond what sighted
+			// parity allows. For city defenders pDefender is NULL and
+			// invisibility doesn't apply (cities visible if their plot
+			// is); the conditional below leaves defenderInvisible false
+			// in that branch.
 			CvUnit* pInterceptor = kInfo.getUnit(BATTLE_UNIT_INTERCEPTOR);
 			int iInterceptDamage = pInterceptor ? kInfo.getDamageInflicted(BATTLE_UNIT_INTERCEPTOR) : 0;
 			int iCombatKind = 0;
@@ -2628,7 +2640,10 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			}
 			args->Push(iCombatKind);
 			CvPlot* pHookPlot = kInfo.getPlot();
-			int iVisibleToActive = (pHookPlot != NULL && pHookPlot->isActiveVisible(false)) ? 1 : 0;
+			bool bPlotVisible = pHookPlot != NULL && pHookPlot->isActiveVisible(false);
+			bool bAttackerInvisible = pAttacker->isInvisible(eActiveTeam, false);
+			bool bDefenderInvisible = pDefender != NULL && pDefender->isInvisible(eActiveTeam, false);
+			int iVisibleToActive = (bPlotVisible && !bAttackerInvisible && !bDefenderInvisible) ? 1 : 0;
 			args->Push(iVisibleToActive);
 			bool bResult;
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessCombatResolved", args.get(), bResult);
