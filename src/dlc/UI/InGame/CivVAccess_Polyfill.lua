@@ -289,6 +289,9 @@ end
 if GameDefines.BASE_CITY_AIR_STACKING == nil then
     GameDefines.BASE_CITY_AIR_STACKING = 6
 end
+if GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER == nil then
+    GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER = 200
+end
 
 -- Unit activity enum. Used by UnitSpeech's status cascade to read
 -- unit:GetActivityType() and classify sentry / heal / sleep / awake states.

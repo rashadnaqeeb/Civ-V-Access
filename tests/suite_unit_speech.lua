@@ -42,6 +42,7 @@ local function mkUnit(opts)
         _team = opts.team or 0,
         _plot = opts.plot,
         _outOfAttacks = opts.outOfAttacks or false,
+        _domain = opts.domain or DomainTypes.DOMAIN_LAND,
     }
     function u:GetX()
         return self._x
@@ -143,6 +144,9 @@ local function mkUnit(opts)
     end
     function u:CargoSpace()
         return opts.cargoSpace or 0
+    end
+    function u:GetDomainType()
+        return self._domain
     end
     return u
 end
@@ -512,6 +516,111 @@ function M.test_info_enemy_speaks_moves_fraction()
     local u = mkUnit({ team = 1, moves = 0, maxMoves = 240 })
     local out = UnitSpeech.info(u)
     T.truthy(out:find("0/4 moves", 1, true), "moves fraction spoken for enemies too: " .. out)
+end
+
+-- ===== Aircraft: range + rebase range replaces moves fraction =====
+
+-- Aircraft moves fractions are degenerate (every action calls finishMoves
+-- so MovesLeft is a binary "has acted" flag, not a movement budget). Base
+-- UnitPanel.lua's DOMAIN_AIR branch swaps the movement stat for the strike
+-- range, surfacing strike+rebase in the tooltip. We mirror that.
+function M.test_selection_aircraft_speaks_range_and_rebase_not_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, moves = 60, maxMoves = 60 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("range 8, rebase range 16", 1, true), "expected strike+rebase pair: " .. out)
+    T.truthy(not out:find("/", 1, true), "moves fraction must not appear for aircraft: " .. out)
+end
+
+function M.test_info_aircraft_speaks_range_and_rebase_not_moves()
+    setup()
+    local u =
+        mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 6, ranged = 65, moves = 60, maxMoves = 60, combat = 0 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("range 6, rebase range 12", 1, true), "expected strike+rebase pair: " .. out)
+    T.truthy(not out:find("moves", 1, true), "moves fraction must not appear for aircraft: " .. out)
+end
+
+-- The friendly ranged-strength token embeds its own "range N" string. For
+-- aircraft we surface range alongside rebase range in the reach token, so
+-- the strength line drops the embedded range to avoid speaking it twice.
+function M.test_info_aircraft_ranged_strength_drops_embedded_range()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, ranged = 70, combat = 0 })
+    local out = UnitSpeech.info(u)
+    -- Strength still announced.
+    T.truthy(out:find("70 ranged", 1, true), "ranged strength expected: " .. out)
+    -- Regression signature: if RANGED_STRENGTH (friendly with embedded
+    -- range) leaked through for aircraft alongside the air reach token,
+    -- "range 8" would appear twice. With RANGED_STRENGTH_ONLY it appears
+    -- once -- only inside the reach token, which also carries rebase range.
+    T.truthy(not out:find("range 8, range 8", 1, true), "embedded range must not duplicate: " .. out)
+end
+
+-- Rebase multiplier is read live from GameDefines so a mod that alters
+-- AIR_UNIT_REBASE_RANGE_MULTIPLIER would still speak the correct number.
+function M.test_aircraft_rebase_multiplier_is_live()
+    setup()
+    local saved = GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER
+    GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER = 300
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 5 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER = saved
+    T.truthy(out:find("range 5, rebase range 15", 1, true), "expected 5*3=15: " .. out)
+end
+
+-- DOMAIN_LAND units keep the moves fraction -- the aircraft branch must
+-- not leak into ground units.
+function M.test_selection_land_unit_keeps_moves_fraction()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_LAND, moves = 60, maxMoves = 120 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("1/2 moves", 1, true), "land units must keep moves fraction: " .. out)
+end
+
+-- ===== Aircraft: out-of-moves "done for the turn" signal =====
+
+-- With the moves fraction dropped, a friendly aircraft that has used
+-- its action this turn (strike / rebase / sweep all call finishMoves)
+-- needs an explicit "out of moves" token so the user can tell it can't
+-- act anymore.
+function M.test_selection_aircraft_zero_moves_speaks_out_of_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, moves = 0, maxMoves = 60 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("out of moves", 1, true), "expected out-of-moves token: " .. out)
+end
+
+function M.test_info_aircraft_zero_moves_speaks_out_of_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, ranged = 70, combat = 0, moves = 0, maxMoves = 60 })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("out of moves", 1, true), "expected out-of-moves token in info: " .. out)
+end
+
+function M.test_selection_aircraft_full_moves_omits_out_of_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, moves = 60, maxMoves = 60 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(not out:find("out of moves", 1, true), "no token when aircraft can still act: " .. out)
+end
+
+-- Land units already convey 0-moves through the fraction, so the
+-- aircraft-specific token must not fire on them.
+function M.test_selection_land_zero_moves_omits_out_of_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_LAND, moves = 0, maxMoves = 120 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(not out:find("out of moves", 1, true), "land units must not get the air token: " .. out)
+end
+
+-- Foreign-unit move state isn't on the sighted unit flag, so parity
+-- says we don't surface the token for enemy aircraft.
+function M.test_selection_enemy_aircraft_zero_moves_omits_out_of_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, moves = 0, maxMoves = 60, team = 1 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(not out:find("out of moves", 1, true), "enemy aircraft must not speak the token: " .. out)
 end
 
 -- ===== Info dump: out-of-attacks =====

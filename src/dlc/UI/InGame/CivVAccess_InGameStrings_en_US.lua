@@ -51,13 +51,29 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} melee"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} ranged, range {2_Range}"
 -- Enemy form of ranged strength: range distance is hidden to match base
 -- EnemyUnitPanel.lua, which shows strength but omits the range tile count.
+-- Also reused for friendly aircraft so the range tile count isn't said
+-- twice -- aircraft surface range alongside rebase range in their own
+-- token, see TXT_KEY_CIVVACCESS_UNIT_AIR_RANGE.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY"] = "{1_Num} ranged"
+-- Aircraft replacement for the moves fraction. Strike range is GetRange();
+-- rebase range is strike range * AIR_UNIT_REBASE_RANGE_MULTIPLIER / 100
+-- (engine default 200, so rebase = strike * 2). Mirrors base UnitPanel.lua's
+-- DOMAIN_AIR branch which swaps the movement stat for the strike range and
+-- surfaces the strike/rebase pair in the tooltip via TXT_KEY_UPANEL_UNIT_MAY_STRIKE_REBASE.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIR_RANGE"] = "range {1_Strike}, rebase range {2_Rebase}"
 -- Spoken on a friendly combat unit that has used its per-turn attack budget
 -- (1 attack, or 2 with Blitz) but still has movement points. The actionable
 -- distinction is "you have moves but can't strike with them, only reposition";
 -- a 0-moves unit can't attack regardless, so the moves fraction already
 -- conveys the answer and this token suppresses to avoid repeating it.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_OUT_OF_ATTACKS"] = "out of attacks"
+-- Aircraft "done for the turn" signal. Every aircraft action (strike,
+-- rebase, sweep) ends in CvUnit::finishMoves so MovesLeft == 0 is the
+-- reliable "no active actions left this turn" state -- interception is
+-- still possible, but the player can't initiate anything else. Friendly
+-- aircraft only; non-aircraft already convey this via the moves fraction
+-- and the engine doesn't expose foreign aircraft moves on the unit flag.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_OUT_OF_MOVES"] = "out of moves"
 -- Enemy HP speaks as a color band instead of an exact fraction. The band
 -- thresholds mirror UnitFlagManager.lua:412 so blind players hear what
 -- sighted players see on the unit flag: over 66% green, over 33% yellow,

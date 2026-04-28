@@ -56,6 +56,32 @@ local function movesFraction(unit)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION", cur, maxMoves)
 end
 
+-- Aircraft replacement for the moves fraction. Each aircraft action
+-- (strike, rebase, sweep) ends in CvUnit::finishMoves so the MovesLeft
+-- value is a degenerate "has acted this turn" binary, not a movement
+-- budget -- base UnitPanel.lua's DOMAIN_AIR branch drops the fraction
+-- and shows strike range instead, with the strike+rebase pair in the
+-- tooltip. We mirror that: speak both reach values directly. Rebase
+-- range is read live from GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER
+-- (engine default 200) rather than hardcoded so a mod that changes the
+-- define would still announce the correct number.
+local function airRangeToken(unit)
+    local strike = unit:Range()
+    local rebase = math.floor(strike * GameDefines.AIR_UNIT_REBASE_RANGE_MULTIPLIER / 100)
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_AIR_RANGE", strike, rebase)
+end
+
+local function isAir(unit)
+    return unit:GetDomainType() == DomainTypes.DOMAIN_AIR
+end
+
+local function reachToken(unit)
+    if isAir(unit) then
+        return airRangeToken(unit)
+    end
+    return movesFraction(unit)
+end
+
 local function hpFraction(unit)
     local maxHP = GameDefines.MAX_HIT_POINTS
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", maxHP - unit:GetDamage(), maxHP)
@@ -63,6 +89,23 @@ end
 
 local function isFriendly(unit)
     return unit:GetTeam() == Game.GetActiveTeam()
+end
+
+-- "Done for the turn" signal for friendly aircraft. With the moves
+-- fraction dropped from the aircraft readout, the user has no other
+-- way to hear that a fighter / bomber has used its action this turn.
+-- Strike / rebase / sweep all end in CvUnit::finishMoves so MovesLeft
+-- == 0 is the reliable check. Interception is still possible from this
+-- state, but the player can't initiate anything else, which matches
+-- what "out of moves" conveys.
+local function airOutOfMovesToken(unit)
+    if not isAir(unit) or not isFriendly(unit) then
+        return ""
+    end
+    if unit:MovesLeft() > 0 then
+        return ""
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_MOVES")
 end
 
 -- IsOutOfAttacks returns true once the unit has used its per-turn attack
@@ -251,7 +294,11 @@ function UnitSpeech.selection(unit, prevX, prevY)
     if unit:GetDamage() > 0 then
         parts[#parts + 1] = hpFraction(unit)
     end
-    parts[#parts + 1] = movesFraction(unit)
+    parts[#parts + 1] = reachToken(unit)
+    local outOfMoves = airOutOfMovesToken(unit)
+    if outOfMoves ~= "" then
+        parts[#parts + 1] = outOfMoves
+    end
     if isFriendly(unit) and isOutOfAttacks(unit) then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_ATTACKS")
     end
@@ -313,13 +360,20 @@ function UnitSpeech.info(unit)
     end
     local ranged = unit:GetBaseRangedCombatStrength()
     if ranged > 0 then
-        if friendly then
+        -- Aircraft surface range alongside rebase range in the reach token
+        -- below, so the strength line drops the embedded range to avoid
+        -- speaking it twice.
+        if friendly and not isAir(unit) then
             parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, unit:Range())
         else
             parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY", ranged)
         end
     end
-    parts[#parts + 1] = movesFraction(unit)
+    parts[#parts + 1] = reachToken(unit)
+    local outOfMoves = airOutOfMovesToken(unit)
+    if outOfMoves ~= "" then
+        parts[#parts + 1] = outOfMoves
+    end
     if friendly and isOutOfAttacks(unit) then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_ATTACKS")
     end
