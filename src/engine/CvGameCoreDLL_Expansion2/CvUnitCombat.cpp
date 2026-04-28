@@ -2543,6 +2543,17 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			//   15: combatKind                 (0 = normal melee/ranged/air-strike,
 			//                                   1 = air sweep into ground AA (one-way),
 			//                                   2 = air sweep into another fighter (dogfight))
+			//   16: visibleToActiveTeam       (1 if the target plot is active-
+			//                                   visible at hook fire time; 0
+			//                                   otherwise. Computed from
+			//                                   pPlot->isActiveVisible() rather
+			//                                   than kInfo.getVisualizeCombat()
+			//                                   because the latter is only set
+			//                                   when CvPreGame::quickCombat() is
+			//                                   off -- the visibility reflects
+			//                                   what the active player perceives
+			//                                   on the map regardless of whether
+			//                                   the engine plays an animation.)
 			// Lua dispatches on (defenderUnitId != -1) to pick unit vs city naming.
 			// Adding fields means updating both branches AND the Lua handler;
 			// the unit branch uses (unit, -1) and the city branch (-1, city) so
@@ -2562,6 +2573,16 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			// distinct player intent ("flush enemy interceptors"); the
 			// regular attacker / defender framing alone doesn't tell the
 			// user the combat they triggered was a sweep.
+			//
+			// visibleToActiveTeam asks "is the target plot active-visible
+			// right now". Lua uses it to broaden the speech filter from
+			// "active player involved" to "active player involved OR
+			// combat visible to active team", matching what a sighted
+			// player perceives whether or not Quick Combat is enabled --
+			// AI vs AI combat in their line of sight gets announced;
+			// off-map stays silent. Quick Combat skips animation but the
+			// player still sees units disappear / HP bars update on
+			// visible plots, so our gate stays purely on visibility.
 			CvUnit* pInterceptor = kInfo.getUnit(BATTLE_UNIT_INTERCEPTOR);
 			int iInterceptDamage = pInterceptor ? kInfo.getDamageInflicted(BATTLE_UNIT_INTERCEPTOR) : 0;
 			int iCombatKind = 0;
@@ -2606,6 +2627,9 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 				args->Push(0);
 			}
 			args->Push(iCombatKind);
+			CvPlot* pHookPlot = kInfo.getPlot();
+			int iVisibleToActive = (pHookPlot != NULL && pHookPlot->isActiveVisible(false)) ? 1 : 0;
+			args->Push(iVisibleToActive);
 			bool bResult;
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessCombatResolved", args.get(), bResult);
 		}

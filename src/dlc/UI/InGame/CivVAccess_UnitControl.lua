@@ -668,6 +668,13 @@ end
 --   0 = normal melee / ranged / air strike (no prefix)
 --   1 = air sweep against ground AA (one-sided): "interception" prefix
 --   2 = air sweep against an air interceptor (dogfight): "dogfight" prefix
+--
+-- visibleToActiveTeam mirrors the engine's animation gate. Combats fire
+-- this hook regardless of who's involved; the speech filter speaks when
+-- the active player is a participant OR when the combat is visible on
+-- the active team's view -- matching what a sighted player sees as the
+-- engine's animation between turns. Off-map AI-vs-AI stays silent on
+-- both vectors (no animation, no speech).
 local function onCombatResolved(
     attackerPlayer,
     attackerUnit,
@@ -683,10 +690,12 @@ local function onCombatResolved(
     interceptorPlayer,
     interceptorUnit,
     interceptorDamage,
-    combatKind
+    combatKind,
+    visibleToActiveTeam
 )
     local activePlayer = Game.GetActivePlayer()
-    if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
+    local activeInvolved = (attackerPlayer == activePlayer or defenderPlayer == activePlayer)
+    if not activeInvolved and visibleToActiveTeam ~= 1 then
         return
     end
     local attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit)
