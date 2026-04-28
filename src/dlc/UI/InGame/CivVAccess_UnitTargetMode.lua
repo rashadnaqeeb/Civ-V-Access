@@ -124,20 +124,18 @@ local function movePathPreview(actor, targetPlot)
     -- the path re-emerges into revealed terrain after that, we don't try
     -- to stitch the segments -- those re-emergence cases are uncommon
     -- and the saved info isn't worth the parse complexity.
-    local team = actor:GetTeam()
-    local isDebug = Game.IsDebugMode()
+    -- Each path node carries `revealed` (set by the engine binding from the
+    -- same isRevealed answer the pathfinder used to compute costs). In
+    -- debug mode every node reports revealed=true, so crossesFog stays
+    -- false and the else branch handles the path uniformly.
     local crossesFog = false
-    local revealedPrefix
-    if not isDebug then
-        revealedPrefix = {}
-        for _, node in ipairs(path) do
-            local p = Map.GetPlot(node.x, node.y)
-            if p ~= nil and not p:IsRevealed(team, isDebug) then
-                crossesFog = true
-                break
-            end
-            revealedPrefix[#revealedPrefix + 1] = node
+    local revealedPrefix = {}
+    for _, node in ipairs(path) do
+        if not node.revealed then
+            crossesFog = true
+            break
         end
+        revealedPrefix[#revealedPrefix + 1] = node
     end
     local summary
     if crossesFog then

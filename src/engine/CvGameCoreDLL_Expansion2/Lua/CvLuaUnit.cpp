@@ -592,25 +592,35 @@ int CvLuaUnit::lGeneratePath(lua_State* L)
 // CIVVACCESS: Reads the path computed by the most recent Unit:GeneratePath
 // call. Returns a 1-indexed Lua array ordered start-to-destination (the
 // engine stores them destination-first; we flip on push). Each entry is
-// { x, y, moves, turn, flags } with moves in MOVE_DENOMINATOR 60ths and
-// turn 0-indexed against the GeneratePath call. Empty array if no path
-// is currently cached.
+// { x, y, moves, turn, flags, revealed } with moves in MOVE_DENOMINATOR
+// 60ths, turn 0-indexed against the GeneratePath call, and revealed a
+// boolean for whether the path's tile is currently revealed to the unit's
+// team (so callers can split a fog-crossing path into the visible prefix
+// and the unexplored tail without re-querying CvPlot:IsRevealed in Lua --
+// the engine's pathfinder already used the same answer to compute costs).
+// Empty array if no path is currently cached.
 int CvLuaUnit::lGetPath(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	const CvPathNodeArray& kNodes = pkUnit->GetPathNodeArray();
 	const int iCount = (int)kNodes.size();
+	const TeamTypes eTeam = pkUnit->getTeam();
+	const bool bDebug = GC.getGame().isDebugMode();
+	CvMap& kMap = GC.getMap();
 
 	lua_createtable(L, iCount, 0);
 	for(int i = 0; i < iCount; ++i)
 	{
 		const CvPathNode& kNode = kNodes[iCount - 1 - i];
-		lua_createtable(L, 0, 5);
+		const CvPlot* pkPlot = kMap.plot(kNode.m_iX, kNode.m_iY);
+		const bool bRevealed = (pkPlot != NULL) && pkPlot->isRevealed(eTeam, bDebug);
+		lua_createtable(L, 0, 6);
 		lua_pushinteger(L, kNode.m_iX);     lua_setfield(L, -2, "x");
 		lua_pushinteger(L, kNode.m_iY);     lua_setfield(L, -2, "y");
 		lua_pushinteger(L, kNode.m_iData1); lua_setfield(L, -2, "moves");
 		lua_pushinteger(L, kNode.m_iData2); lua_setfield(L, -2, "turn");
 		lua_pushinteger(L, kNode.m_iFlags); lua_setfield(L, -2, "flags");
+		lua_pushboolean(L, bRevealed);      lua_setfield(L, -2, "revealed");
 		lua_rawseti(L, -2, i + 1);
 	}
 	return 1;
@@ -625,7 +635,7 @@ int CvLuaUnit::lGetPath(lua_State* L)
 //
 // Returns (nodes, ok, legTurns). Nodes is a 1-indexed Lua array ordered
 // start-to-destination (origin at [1], destination at [#nodes]); each
-// entry is { x, y, moves, turn, flags } matching GetPath's shape.
+// entry is { x, y, moves, turn, flags, revealed } matching GetPath's shape.
 // legTurns is INT_MAX-equivalent on failure; caller treats ok==false as
 // "skip this leg." Empty array on failure.
 int CvLuaUnit::lComputePath(lua_State* L)
@@ -648,6 +658,9 @@ int CvLuaUnit::lComputePath(lua_State* L)
 		CvAStar::CopyPath(kPathFinder.GetLastNode(), kNodes);
 	}
 	const int iCount = (int)kNodes.size();
+	const TeamTypes eTeam = pkUnit->getTeam();
+	const bool bDebug = GC.getGame().isDebugMode();
+	CvMap& kMap = GC.getMap();
 
 	lua_createtable(L, iCount, 0);
 	for(int i = 0; i < iCount; ++i)
@@ -655,12 +668,15 @@ int CvLuaUnit::lComputePath(lua_State* L)
 		// CopyPath stores destination-first; flip on push so [1] is the
 		// origin and [#nodes] is the destination, matching GetPath.
 		const CvPathNode& kNode = kNodes[iCount - 1 - i];
-		lua_createtable(L, 0, 5);
+		const CvPlot* pkPlot = kMap.plot(kNode.m_iX, kNode.m_iY);
+		const bool bRevealed = (pkPlot != NULL) && pkPlot->isRevealed(eTeam, bDebug);
+		lua_createtable(L, 0, 6);
 		lua_pushinteger(L, kNode.m_iX);     lua_setfield(L, -2, "x");
 		lua_pushinteger(L, kNode.m_iY);     lua_setfield(L, -2, "y");
 		lua_pushinteger(L, kNode.m_iData1); lua_setfield(L, -2, "moves");
 		lua_pushinteger(L, kNode.m_iData2); lua_setfield(L, -2, "turn");
 		lua_pushinteger(L, kNode.m_iFlags); lua_setfield(L, -2, "flags");
+		lua_pushboolean(L, bRevealed);      lua_setfield(L, -2, "revealed");
 		lua_rawseti(L, -2, i + 1);
 	}
 
