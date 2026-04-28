@@ -818,11 +818,9 @@ function M.test_combat_result_defender_killed_appends_kill_line()
     T.truthy(out:find("Swordsman killed", 1, true), "kill line expected: " .. out)
 end
 
--- Combatant-name lookup helper. Used by the EndCombatSim path to
--- resolve names at event time (units still alive in the engine when
--- the event fires). The snapshot fallback caches names at commit time
--- via the same helper, so this is the single point of "playerId +
--- unitId -> display name" resolution.
+-- Combatant-name lookup helper. The single point of "playerId + unitId
+-- -> display name" resolution; called by UnitControl.onCombatResolved
+-- to label combat-result speech.
 function M.test_combatant_name_resolves_via_player_lookup()
     setup()
     Players[0] = {
@@ -852,10 +850,8 @@ function M.test_combatant_name_returns_empty_when_player_missing()
 end
 
 -- ===== City combatant name =====
--- Mirror of combatantName for cities. The snapshot fallback uses this
--- to cache the city name at commit time, since a captured city changes
--- owner before the speech fires (the new owner's GetCityByID would not
--- find it under the old player id).
+-- Mirror of combatantName for cities. Used by onCombatResolved to label
+-- city defenders in combat-result speech.
 function M.test_city_combatant_name_resolves_via_player_lookup()
     setup()
     Players[5] = {

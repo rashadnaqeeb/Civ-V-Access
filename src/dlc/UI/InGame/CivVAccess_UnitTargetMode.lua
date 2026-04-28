@@ -482,25 +482,20 @@ end
 -- CvUnitMission but base never uses it for melee attacks, and we hit
 -- "actions don't resolve" reports against cities through it.
 --
--- Combat commits register a combat-pending snapshot in lieu of a normal
--- move pending. EndCombatSim is the primary announcement path with
--- animations on; the snapshot is the Quick-Combat fallback (engine
--- skips gDLL->GameplayUnitCombat in CvUnitCombat.cpp ~3624 and
--- EndCombatSim never fires). Defender resolution prefers a unit
--- garrison over the city itself, so a defended city snapshots the
--- defender unit (matching what EndCombatSim sends) and an undefended
--- city snapshots the city.
+-- Combat commits skip move-pending registration. The engine fork's
+-- CivVAccessCombatResolved hook fires from CvUnitCombat::ResolveCombat
+-- and UnitControl.onCombatResolved speaks the result; layering a move-
+-- pending announcement on top would double-speak when the attacker
+-- advances onto the defender's plot after a melee kill. Move-into-enemy
+-- counts as combat only when the unit is adjacent on commit; further
+-- away the engine queues a multi-turn move and combat happens on a
+-- later turn (the hook will fire then for whichever turn it resolves).
 local function willCauseCombat(actor, plot, mode)
     if isMeleeAttackMode(mode) or isRangeAttackMode(mode) then
         return true
     end
     if isMoveMode(mode) then
         if UnitControl.enemyAt(plot) ~= nil or enemyCityAt(plot) ~= nil then
-            -- Move-into-enemy resolves as an attack only when the unit is
-            -- adjacent on commit; further away the engine queues a multi-
-            -- turn move and combat happens on a later turn (when no
-            -- snapshot can be tied to this commit). Restrict combat
-            -- pending to the adjacent case.
             local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), plot:GetX(), plot:GetY())
             return dist == 1
         end
@@ -627,11 +622,11 @@ end
 -- target mode so the user can chain more shift+enters to add legs. Plain
 -- enter (queued=false) keeps the existing replace-and-resolve flow.
 --
--- queued mode skips melee attack and combat-pending paths entirely:
--- combat doesn't queue meaningfully (the engine still resolves on the
--- following turn but we have no pre-snapshot for the eventual combat),
--- and bShift on a non-MOVE mission is a base-engine pass-through with
--- no on-screen path line for sighted players either.
+-- queued mode rejects melee attacks: combat doesn't queue meaningfully
+-- (the engine still resolves on the following turn but the user has no
+-- way to inspect it before then), and bShift on a non-MOVE mission is
+-- a base-engine pass-through with no on-screen path line for sighted
+-- players either.
 local function commitAtCursor(self, queued)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
@@ -695,24 +690,7 @@ local function commitAtCursor(self, queued)
         restoreSelection()
         return
     end
-    if willCauseCombat(self._actor, plot, mode) then
-        -- Defender preference depends on attack type. Ranged attacks
-        -- (ranged-strike / airstrike) target the city directly when one
-        -- exists; the engine damages CityHP, not the garrison's. So a
-        -- ranged-vs-defended-city snapshot must read city HP or no
-        -- damage delta surfaces. Melee attacks go through the garrison
-        -- first (engine's MoveOrAttack picks the unit defender as the
-        -- combat target), so unit-first is correct there.
-        local defenderCity = enemyCityAt(plot)
-        local defenderUnit = defenderAt(plot, isRangeAttackMode(mode), self._actor)
-        if isRangeAttackMode(mode) and defenderCity ~= nil then
-            UnitControl.registerCityCombatPending(self._actor, defenderCity)
-        elseif defenderUnit ~= nil then
-            UnitControl.registerCombatPending(self._actor, defenderUnit)
-        elseif defenderCity ~= nil then
-            UnitControl.registerCityCombatPending(self._actor, defenderCity)
-        end
-    else
+    if not willCauseCombat(self._actor, plot, mode) then
         UnitControl.registerPending(self._actor, tx, ty)
     end
     if isMeleeAttackMode(mode) then

@@ -363,10 +363,10 @@ function UnitSpeech.info(unit)
 end
 
 -- Look up a combatant's display name from a (playerId, unitId) pair.
--- Public so UnitControl can resolve names at EndCombatSim event time
--- (units are still alive in the engine when the event fires) AND
--- snapshot the names at commit time for the quick-combat fallback path
--- (where the unit may be removed before the formatter runs).
+-- Public so UnitControl can resolve names from the engine fork's
+-- CombatResolved hook payload, which carries IDs rather than handles
+-- because the unit object may already be flagged for deferred kill
+-- by the time the listener runs.
 function UnitSpeech.combatantName(playerId, unitId)
     local player = Players[playerId]
     if player == nil then
@@ -380,9 +380,7 @@ function UnitSpeech.combatantName(playerId, unitId)
 end
 
 -- Pre-resolved city display name for combat speech. Same role as
--- combatantName but for city defenders -- the snapshot fallback caches
--- the name at commit time because a captured city changes owner before
--- the formatter runs.
+-- combatantName but for city defenders.
 function UnitSpeech.cityCombatantName(playerId, cityId)
     local player = Players[playerId]
     if player == nil then
@@ -987,13 +985,13 @@ end
 
 -- Formats a combat outcome into "attacker <name> -N hp, defender <name>
 -- -M hp[, <name> killed]". Caller pre-resolves the side names via
--- UnitSpeech.combatantName so the same formatter serves both the
--- EndCombatSim path (animations on; names looked up at event time) and
--- the snapshot fallback path (quick combat; names cached at commit time
--- because the unit may already be gone by the time the formatter runs).
--- args.attackerDamage / defenderDamage are damage dealt THIS combat;
--- FinalDamage is cumulative damage after combat (kill check uses it
--- against MaxHP). Caller doesn't subtract -- pass the per-combat delta.
+-- UnitSpeech.combatantName / cityCombatantName so the formatter doesn't
+-- have to re-look-up handles that may already be gone (a killed unit's
+-- handle may be invalidated by deferred kill by the time the listener
+-- runs). args.attackerDamage / defenderDamage are damage dealt THIS
+-- combat; FinalDamage is cumulative damage after combat (kill check
+-- uses it against MaxHP). Caller doesn't subtract -- pass the per-
+-- combat delta.
 function UnitSpeech.combatResult(args)
     local atkName = args.attackerName or ""
     local defName = args.defenderName or ""

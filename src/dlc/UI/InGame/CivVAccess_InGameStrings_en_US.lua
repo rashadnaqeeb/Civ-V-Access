@@ -196,15 +196,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_PILLAGE"] = "Pillage t
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_UPGRADE"] = "Alt plus U"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_UPGRADE"] = "Upgrade the unit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE"] = "{1_Action} not available"
--- Combat-result payload from Events.EndCombatSim. Damage values speak
--- absolute-delta ("attacker -8 hp") rather than before/after because the
--- before is already known from the last selection announce.
+-- Combat-result payload from the engine fork's CombatResolved hook.
+-- Damage values speak absolute-delta ("attacker -8 hp") rather than
+-- before/after because the before is already known from the last
+-- selection announce.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE"] = "attacker {1_Name} -{2_Dmg} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE"] = "defender {1_Name} -{2_Dmg} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_KILLED"] = "{1_Name} killed"
 -- City-capture announcements. SerialEventCityCaptured fires for empty
--- city captures (no EndCombatSim) and for capture-after-defender-killed
--- transitions; the active player's perspective decides which line wins.
+-- city captures (no combat resolution) and for capture-after-defender-
+-- killed transitions; the active player's perspective decides which line
+-- wins.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAPTURED_BY_US"] = "captured {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_LOST"] = "lost {1_Name}"
 -- Self-plot action confirms. Keyed by action hash token so the menu can

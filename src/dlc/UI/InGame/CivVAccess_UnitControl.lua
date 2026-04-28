@@ -4,9 +4,9 @@
 --
 -- Speech policy follows the design's "user-initiated INTERRUPT vs engine-
 -- event QUEUE" split: Tab / / / Alt+QAZEDC / , / Ctrl+. / Ctrl+, go through
--- INTERRUPT; EndCombatSim and move-completion listeners speak QUEUED so
--- they race-and-lose against user speech in flight rather than clobbering
--- it. UnitSelectionChanged straddles both: the user's cycle keys drive it
+-- INTERRUPT; combat-resolved and move-completion listeners speak QUEUED
+-- so they race-and-lose against user speech in flight rather than
+-- clobbering it. UnitSelectionChanged straddles both: the user's cycle keys drive it
 -- (should interrupt) and engine flows (turn start, unit death, end of
 -- move / combat reselection) also drive it (should queue). The cycle
 -- sites stamp a short-lived "user-initiated" timestamp so the listener
@@ -26,25 +26,16 @@
 -- don't fire; SerialEventUnitTeleportedToHex does. We register the same
 -- handler against that event so the resolution path runs identically.
 --
--- Combat moves register a "combat pending" snapshot rather than a normal
--- pending. EndCombatSim is the primary announcement path (animations on).
--- The snapshot is the fallback for Quick Combat, where the engine skips
--- gDLL->GameplayUnitCombat (CvUnitCombat.cpp gates the call on
--- !quickCombat) and EndCombatSim never fires. The snapshot caches per-
--- side pre-damage and pre-resolved display names at commit (units may
--- be gone by fallback execution time), then a tick-based timer reads
--- post-state and feeds UnitSpeech.combatResult with a constructed
--- payload.
---
--- Snapshot registration is gated on GAMEOPTION_QUICK_COMBAT. Without the
--- gate, animations-on combats double-speak: the engine resolves damage
--- synchronously in the mission queue regardless of animation setting, so
--- the snapshot timer reads final post-state at commit+3 frames and
--- speaks; then EndCombatSim fires when the animation finishes (often
--- several seconds later) and speaks the same result again. The earlier
--- "EndCombatSim clears the snapshot" guard only worked in the
--- EndCombatSim-then-timer order, which is the reverse of what happens
--- with animations on.
+-- Combat moves don't register a pending. The engine fork's
+-- CivVAccessCombatResolved GameEvent fires synchronously from
+-- CvUnitCombat::ResolveCombat for every unit-attacker melee / ranged
+-- combat against units and cities, regardless of Quick Combat, with a
+-- payload covering both sides' damage / final HP / max HP. The Lua
+-- listener (onCombatResolved below) is the sole speech path for combat;
+-- there is no fallback timer, no per-side snapshot, and no Events
+-- listener race. The engine's own Events.EndCombatSim and
+-- SerialEventCitySetDamage signals are not subscribed to -- they would
+-- only double-speak the result the hook already announced.
 --
 -- War-confirm moves freeze pending into a deferred slot. Moving onto a
 -- peaceful rival's tile (or attacking a peaceful rival's unit) does not
@@ -115,69 +106,14 @@ end
 -- resolve.
 local PENDING_EXPIRY_FRAMES = 2
 
--- Combat resolution can take a frame longer than a plain move because
--- the mission queue runs Attack -> ResolveCombat synchronously and
--- damage / kill state needs to settle before we read post-state.
-local COMBAT_PENDING_EXPIRY_FRAMES = 3
-
--- City combats settle on a delayed event chain: the engine applies city
--- HP via SerialEventCitySetDamage, which can fire many seconds after
--- commit (especially under standard combat with animation). The
--- city-pending snapshot lives until that event matches it; this cap
--- ignores stale snapshots so a damage event from a much later combat /
--- non-combat source (healing) doesn't reuse a snapshot from an earlier
--- attack the user has already moved on from.
-local CITY_COMBAT_MAX_AGE_FRAMES = 600
-
 local _pending = nil
 local _deferred = nil
-local _combatPending = nil
-
--- Set by the GameEvents.CivVAccessCombatResolved listener to the engine
--- frame on which a combat speech fired through the new hook path. The
--- legacy EndCombatSim / SerialEventCitySetDamage listeners check this
--- timestamp and short-circuit if recent, so we don't double-speak when
--- the engine fires both signals for the same combat. The window has to
--- span the full standard-combat animation duration (the hook fires
--- synchronously inside ResolveCombat; EndCombatSim fires when the
--- animation finishes), and each new combat updates the timestamp before
--- its own EndCombatSim arrives. 600 frames is generous headroom against
--- the slowest combat animations (well above any observed timing).
-local _lastHookSpokenFrame = -1
-local HOOK_DEDUPE_FRAMES = 600
 
 local function clearPending()
     _pending = nil
 end
 
-local function clearCombatPending()
-    _combatPending = nil
-end
-
-local function recentHookSpeech()
-    return TickPump.frame() - _lastHookSpokenFrame < HOOK_DEDUPE_FRAMES
-end
-
 local schedulePendingExpiry
-local scheduleCombatExpiry
-
--- Look up a unit's current damage by id; returns the snapshot's pre-
--- recorded MaxHP if the unit has been removed (kill threshold trips so
--- the formatter speaks "killed"). Hoisted above the listener / timer
--- definitions so their lexical lookup resolves to this local rather than
--- a nil global -- a forward reference would silently misfire under
--- pcall when the listener fires.
-local function liveDamage(playerId, unitId, snapshotMaxHP)
-    local player = Players[playerId]
-    if player == nil then
-        return snapshotMaxHP
-    end
-    local unit = player:GetUnitByID(unitId)
-    if unit == nil then
-        return snapshotMaxHP
-    end
-    return unit:GetDamage()
-end
 
 function UnitControl.registerPending(unit, targetX, targetY)
     if unit == nil then
@@ -193,80 +129,6 @@ function UnitControl.registerPending(unit, targetX, targetY)
     }
     _pending = snapshot
     schedulePendingExpiry(snapshot)
-end
-
--- Snapshot taken at combat commit (Alt+QAZEDC two-tap melee or target-
--- mode commit on a plot that willCauseCombat). Pre-damage + max HP +
--- pre-resolved display names are captured now because by fallback
--- execution time the killed unit may already be torn down. The fallback
--- timer runs UnitSpeech.combatResult with a payload reconstructed from
--- post-state damage minus snapshot pre-damage.
---
--- No-op when Quick Combat is off; EndCombatSim is authoritative in that
--- mode and registering the snapshot would double-speak.
-function UnitControl.registerCombatPending(actor, defender)
-    if actor == nil or defender == nil then
-        return
-    end
-    if not Game.IsOption(GameOptionTypes.GAMEOPTION_QUICK_COMBAT) then
-        return
-    end
-    local atkPlayer = actor:GetOwner()
-    local atkID = actor:GetID()
-    local defPlayer = defender:GetOwner()
-    local defID = defender:GetID()
-    local snapshot = {
-        defenderType = "unit",
-        attackerPlayer = atkPlayer,
-        attackerUnitID = atkID,
-        attackerName = UnitSpeech.combatantName(atkPlayer, atkID),
-        attackerPreDamage = actor:GetDamage(),
-        attackerMaxHP = actor:GetMaxHitPoints(),
-        defenderPlayer = defPlayer,
-        defenderUnitID = defID,
-        defenderName = UnitSpeech.combatantName(defPlayer, defID),
-        defenderPreDamage = defender:GetDamage(),
-        defenderMaxHP = defender:GetMaxHitPoints(),
-        commitFrame = TickPump.frame(),
-    }
-    _combatPending = snapshot
-    scheduleCombatExpiry(snapshot)
-end
-
--- City-defender variant. Same shape as registerCombatPending but the
--- defender side reads from a city (GetDamage / GetMaxHitPoints / name)
--- rather than a unit. NO Quick-Combat gate: city damage settles
--- asynchronously on a different code path than unit-vs-unit, so polling
--- for the post-state never catches the value (city:GetDamage stays
--- pre-attack for many seconds after commit). Instead the snapshot
--- arms a SerialEventCitySetDamage listener that speaks the result the
--- moment the engine commits the damage. EndCombatSim is the redundant
--- fallback under standard combat (animations on); whichever fires first
--- speaks and clears the pending so the other no-ops.
-function UnitControl.registerCityCombatPending(actor, city)
-    if actor == nil or city == nil then
-        return
-    end
-    local atkPlayer = actor:GetOwner()
-    local atkID = actor:GetID()
-    local cityOwner = city:GetOwner()
-    local cityID = city:GetID()
-    local snapshot = {
-        defenderType = "city",
-        attackerPlayer = atkPlayer,
-        attackerUnitID = atkID,
-        attackerName = UnitSpeech.combatantName(atkPlayer, atkID),
-        attackerPreDamage = actor:GetDamage(),
-        attackerMaxHP = actor:GetMaxHitPoints(),
-        defenderPlayer = cityOwner,
-        defenderCityID = cityID,
-        defenderName = UnitSpeech.cityCombatantName(cityOwner, cityID),
-        defenderPreDamage = city:GetDamage(),
-        defenderMaxHP = city:GetMaxHitPoints(),
-        commitFrame = TickPump.frame(),
-    }
-    _combatPending = snapshot
-    scheduleCombatExpiry(snapshot)
 end
 
 -- ===== Helpers =====
@@ -293,13 +155,15 @@ local function plotAt(x, y)
 end
 
 -- At-war defender at plot, used by directMove to gate Alt+QAZEDC into
--- combat-pending vs. plain-move. bTestAtWar=true means at-war or
--- barbarian (CvUnit::isEnemy at CvUnit.cpp:18255 checks atWar; barbarians
--- are always at war with all civs). bTestPotentialEnemy=false so peaceful
--- rivals don't trigger combat-pending: entering a peaceful rival's tile
--- queues BUTTONPOPUP_DECLAREWARMOVE, not direct combat, and the popup
--- path freezes pending into a deferred slot. bNoncombatAllowed=false so
--- a civilian-only plot is treated as a move (capture), not an attack.
+-- the melee-attack commit (Game.SelectionListMove) vs. the plain-move
+-- commit (registerPending + GAMEMESSAGE_PUSH_MISSION + MISSION_MOVE_TO).
+-- bTestAtWar=true means at-war or barbarian (CvUnit::isEnemy at CvUnit
+-- .cpp:18255 checks atWar; barbarians are always at war with all civs).
+-- bTestPotentialEnemy=false so peaceful rivals don't trigger the attack
+-- commit: entering a peaceful rival's tile queues BUTTONPOPUP_
+-- DECLAREWARMOVE, not direct combat, and the popup path freezes pending
+-- into a deferred slot. bNoncombatAllowed=false so a civilian-only plot
+-- is treated as a move (capture), not an attack.
 function UnitControl.enemyAt(plot)
     if plot == nil then
         return nil
@@ -381,8 +245,7 @@ end
 
 -- Enemy city at plot if any, with the same active-team / war gate enemyAt
 -- uses for units. Used by directMove so an Alt+QAZEDC into an enemy city
--- gates on the same melee-attack confirm + combat-pending snapshot path
--- as one into an enemy unit.
+-- gates on the same melee-attack confirm path as one into an enemy unit.
 local function enemyCityAt(plot)
     if plot == nil or not plot:IsCity() then
         return nil
@@ -407,11 +270,14 @@ end
 
 -- ===== Alt+QAZEDC direct move =====
 -- defender non-nil means the caller already resolved the target as a melee
--- attack (against a unit OR a city) and registers the combat-pending
--- snapshot in lieu of a normal move pending. Combat commits go through
--- Game.SelectionListMove to match base UI's INTERFACEMODE_ATTACK click
--- handler (InGame.lua AttackIntoTile).
-local function commitDirectMove(unit, target, targetX, targetY, defender, defenderIsCity)
+-- attack (against a unit OR a city); commit goes through Game.Selection
+-- ListMove to match base UI's INTERFACEMODE_ATTACK click handler (InGame
+-- .lua AttackIntoTile). No move-pending registration on the combat path:
+-- the engine fork's CivVAccessCombatResolved hook fires from inside
+-- ResolveCombat and onCombatResolved speaks the result, and a pending
+-- announcement on top of that would double-speak when the attacker
+-- advances onto the defender's plot.
+local function commitDirectMove(unit, target, targetX, targetY, defender)
     if defender == nil then
         UnitControl.registerPending(unit, targetX, targetY)
         Game.SelectionListGameNetMessage(
@@ -424,11 +290,6 @@ local function commitDirectMove(unit, target, targetX, targetY, defender, defend
             false
         )
         return
-    end
-    if defenderIsCity then
-        UnitControl.registerCityCombatPending(unit, defender)
-    else
-        UnitControl.registerCombatPending(unit, defender)
     end
     Game.SelectionListMove(target, false, false, false)
 end
@@ -501,7 +362,7 @@ local function directMove(dir)
             speakInterrupt(moveReason)
             return
         end
-        commitDirectMove(unit, target, tx, ty, nil, false)
+        commitDirectMove(unit, target, tx, ty, nil)
         return
     end
     -- Combat case. Precheck runs on the first tap so a unit that can't
@@ -521,11 +382,7 @@ local function directMove(dir)
     local now = os.clock()
     if _combatConfirm.dir == dir and (now - _combatConfirm.clock) < COMBAT_CONFIRM_WINDOW_SECONDS then
         clearCombatConfirm()
-        if enemy ~= nil then
-            commitDirectMove(unit, target, tx, ty, enemy, false)
-        else
-            commitDirectMove(unit, target, tx, ty, enemyCity, true)
-        end
+        commitDirectMove(unit, target, tx, ty, enemy or enemyCity)
         return
     end
     _combatConfirm.dir = dir
@@ -787,84 +644,13 @@ local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isS
     Cursor.jumpTo(unit:GetX(), unit:GetY())
 end
 
--- Events.EndCombatSim args, per Community-Patch-DLL CvUnitCombat.cpp around
--- line 3306: the third arg per side is damage taken THIS combat (not the
--- unit's accumulated damage before combat); the fourth is cumulative damage
--- after combat. Names use the engine convention so the subtractor doesn't
--- get reintroduced.
---
--- City defenders are routed to onCitySetDamage (defenderUnit=-1 / empty
--- name short-circuits below), since SerialEventCitySetDamage is the
--- canonical event for city HP changes and fires under both Quick Combat
--- ON and OFF -- whereas this event only fires under standard combat for
--- units (Quick Combat skips the gDLL->GameplayUnitCombat call).
-local function onEndCombatSim(
-    attackerPlayer,
-    attackerUnit,
-    attackerDamage,
-    attackerFinalDamage,
-    attackerMaxHP,
-    defenderPlayer,
-    defenderUnit,
-    defenderDamage,
-    defenderFinalDamage,
-    defenderMaxHP,
-    attackerX,
-    attackerY,
-    defenderX,
-    defenderY
-)
-    local activePlayer = Game.GetActivePlayer()
-    if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
-        return
-    end
-    -- City defenders are owned by SerialEventCitySetDamage's listener;
-    -- it speaks the result the moment the engine commits city HP, which
-    -- is reliable under both Quick Combat ON and OFF. EndCombatSim's
-    -- defenderUnit is -1 for city attacks, so duplicating the
-    -- announcement here would both double-speak under standard combat
-    -- and risk wrong numbers (damage args track the garrison or are zero).
-    if defenderUnit == -1 then
-        return
-    end
-    -- Engine-fork hook GameEvents.CivVAccessCombatResolved fires
-    -- synchronously inside CvUnitCombat::ResolveCombat (post-resolve);
-    -- EndCombatSim is the older, animation-completion-bound signal.
-    -- When both fire for the same combat, the hook wins on timing and
-    -- this listener short-circuits.
-    if recentHookSpeech() then
-        return
-    end
-    local defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
-    if defenderName == "" then
-        Log.warn(
-            "onEndCombatSim: defender name empty for player="
-                .. tostring(defenderPlayer)
-                .. " unit="
-                .. tostring(defenderUnit)
-        )
-        return
-    end
-    local text = UnitSpeech.combatResult({
-        attackerName = UnitSpeech.combatantName(attackerPlayer, attackerUnit),
-        defenderName = defenderName,
-        attackerDamage = attackerDamage,
-        attackerFinalDamage = attackerFinalDamage,
-        attackerMaxHP = attackerMaxHP,
-        defenderDamage = defenderDamage,
-        defenderFinalDamage = defenderFinalDamage,
-        defenderMaxHP = defenderMaxHP,
-    })
-    speakQueued(text)
-end
-
--- GameEvents.CivVAccessCombatResolved listener. Engine fork fires this
--- from CvUnitCombat::ResolveCombat (post-resolve, before the dispatcher
--- returns) for every unit-attacker melee / ranged combat against units
--- and cities, regardless of Quick Combat. Payload mirrors the snapshot
--- pipeline's reconstruction: per-side damage-this-combat, final damage,
--- max HP. Defender is either a unit (defenderUnit > -1) or a city
--- (defenderCity > -1, defenderUnit = -1).
+-- GameEvents.CivVAccessCombatResolved listener. The engine fork fires
+-- this from CvUnitCombat::ResolveCombat (post-resolve, before the
+-- dispatcher returns) for every unit-attacker melee / ranged combat
+-- against units and cities, regardless of Quick Combat. Sole speech path
+-- for unit-initiated combat results: per-side damage-this-combat, final
+-- damage, max HP. Defender is either a unit (defenderUnit > -1) or a
+-- city (defenderCity > -1, defenderUnit = -1).
 local function onCombatResolved(
     attackerPlayer,
     attackerUnit,
@@ -911,63 +697,9 @@ local function onCombatResolved(
         defenderMaxHP = defenderMaxHP,
     })
     speakQueued(text)
-    _lastHookSpokenFrame = TickPump.frame()
-    -- Hook covers the same combat the snapshot pipeline was registered
-    -- for; clear the snapshot so its polling timer / city-damage listener
-    -- don't re-speak after we did.
-    clearCombatPending()
 end
 
--- City HP-change announcement. Engine fires SerialEventCitySetDamage
--- whenever a city's damage value changes (combat hits, healing). Combat-
--- pending snapshot for a city target is the gate: if no snapshot or the
--- player/city don't match, this is a non-combat update and we stay
--- silent. The (damage, previousDamage) args give us the defender delta
--- directly; attacker delta is read live (unit:GetDamage). This is the
--- primary city-combat speech path under both Quick Combat and standard
--- combat -- it fires whenever the engine commits the damage, which is
--- reliable even when EndCombatSim doesn't (Quick Combat).
-local function onCitySetDamage(cityPlayerID, cityID, damage, previousDamage)
-    -- Hook path covers city defenders too; if it just fired we're the
-    -- redundant signal.
-    if recentHookSpeech() then
-        return
-    end
-    local pending = _combatPending
-    if pending == nil or pending.defenderType ~= "city" then
-        return
-    end
-    if pending.defenderPlayer ~= cityPlayerID or pending.defenderCityID ~= cityID then
-        return
-    end
-    if TickPump.frame() - pending.commitFrame > CITY_COMBAT_MAX_AGE_FRAMES then
-        clearCombatPending()
-        return
-    end
-    local atkPost = liveDamage(pending.attackerPlayer, pending.attackerUnitID, pending.attackerMaxHP)
-    local atkDelta = atkPost - pending.attackerPreDamage
-    if atkDelta < 0 then
-        atkDelta = 0
-    end
-    local defDelta = damage - previousDamage
-    if defDelta < 0 then
-        defDelta = 0
-    end
-    local text = UnitSpeech.combatResult({
-        attackerName = pending.attackerName,
-        defenderName = pending.defenderName,
-        attackerDamage = atkDelta,
-        attackerFinalDamage = atkPost,
-        attackerMaxHP = pending.attackerMaxHP,
-        defenderDamage = defDelta,
-        defenderFinalDamage = damage,
-        defenderMaxHP = pending.defenderMaxHP,
-    })
-    speakQueued(text)
-    clearCombatPending()
-end
-
--- Empty city captures don't fire EndCombatSim -- the unit just walks in.
+-- Empty city captures don't fire any combat resolution -- the unit just walks in.
 -- SerialEventCityCaptured fires once per capture with (hexPos, oldOwner,
 -- cityId, newOwner). Speak only when the active player is involved (we
 -- captured one or one of ours fell). The engine's hex position is a
@@ -1038,61 +770,14 @@ schedulePendingExpiry = function(snapshot)
     end)
 end
 
--- Quick-Combat speech path. The snapshot is only ever registered when
--- GAMEOPTION_QUICK_COMBAT is on (see registerCombatPending), where
--- EndCombatSim never fires; this timer reads post-state damage and
--- reconstructs the same payload shape EndCombatSim would have delivered,
--- then routes through UnitSpeech.combatResult so both modes speak the
--- same sentence.
-scheduleCombatExpiry = function(snapshot)
-    -- City snapshots are driven by SerialEventCitySetDamage / capture
-    -- listeners, not by polling. The listener checks snapshot age before
-    -- speaking so a stale snapshot from a missed event doesn't get reused
-    -- by a later unrelated city damage update.
-    if snapshot.defenderType == "city" then
-        return
-    end
-    TickPump.runOnce(function()
-        if _combatPending ~= snapshot then
-            return
-        end
-        if TickPump.frame() - snapshot.commitFrame < COMBAT_PENDING_EXPIRY_FRAMES then
-            scheduleCombatExpiry(snapshot)
-            return
-        end
-        local atkPost = liveDamage(snapshot.attackerPlayer, snapshot.attackerUnitID, snapshot.attackerMaxHP)
-        local defPost = liveDamage(snapshot.defenderPlayer, snapshot.defenderUnitID, snapshot.defenderMaxHP)
-        local atkDelta = atkPost - snapshot.attackerPreDamage
-        if atkDelta < 0 then
-            atkDelta = 0
-        end
-        local defDelta = defPost - snapshot.defenderPreDamage
-        if defDelta < 0 then
-            defDelta = 0
-        end
-        local text = UnitSpeech.combatResult({
-            attackerName = snapshot.attackerName,
-            defenderName = snapshot.defenderName,
-            attackerDamage = atkDelta,
-            attackerFinalDamage = atkPost,
-            attackerMaxHP = snapshot.attackerMaxHP,
-            defenderDamage = defDelta,
-            defenderFinalDamage = defPost,
-            defenderMaxHP = snapshot.defenderMaxHP,
-        })
-        speakQueued(text)
-        clearCombatPending()
-    end)
-end
-
 local function onUnitMoveCompleted()
     if _pending == nil then
         return
     end
     local unit = resolvePendingUnit()
     if unit == nil then
-        -- Unit is gone (died in the attack, disbanded). The combat-end
-        -- listener has already spoken the outcome; drop pending.
+        -- Unit is gone (died in the attack, disbanded). The combat-
+        -- resolved hook has already spoken the outcome; drop pending.
         clearPending()
         return
     end
@@ -1195,11 +880,6 @@ function UnitControl.installListeners()
     else
         Log.warn("UnitControl: Events.UnitSelectionChanged missing")
     end
-    if Events.EndCombatSim ~= nil then
-        Events.EndCombatSim.Add(onEndCombatSim)
-    else
-        Log.warn("UnitControl: Events.EndCombatSim missing")
-    end
     if Events.SerialEventUnitMove ~= nil then
         Events.SerialEventUnitMove.Add(onUnitMoveCompleted)
     else
@@ -1229,14 +909,10 @@ function UnitControl.installListeners()
     else
         Log.warn("UnitControl: Events.SerialEventCityCaptured missing")
     end
-    if Events.SerialEventCitySetDamage ~= nil then
-        Events.SerialEventCitySetDamage.Add(onCitySetDamage)
-    else
-        Log.warn("UnitControl: Events.SerialEventCitySetDamage missing")
-    end
-    -- Engine-fork hook fired from CvUnitCombat::ResolveCombat. This is
-    -- the primary combat-speech path; legacy listeners above are kept as
-    -- a backstop and gate on recentHookSpeech() to avoid double-speak.
+    -- Engine-fork hook fired from CvUnitCombat::ResolveCombat. Sole
+    -- combat-speech path; the engine's Events.EndCombatSim and
+    -- SerialEventCitySetDamage are not subscribed because the hook
+    -- already covers every case they would have announced.
     if GameEvents ~= nil and GameEvents.CivVAccessCombatResolved ~= nil then
         GameEvents.CivVAccessCombatResolved.Add(onCombatResolved)
     else
