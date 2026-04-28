@@ -84,15 +84,6 @@ local function plotCity(x, y)
     return plot:GetPlotCity()
 end
 
-local function findAgentByID(spies, id)
-    for _, s in ipairs(spies) do
-        if s.AgentID == id then
-            return s
-        end
-    end
-    return nil
-end
-
 -- Established surveillance is a TurnsLeft<0 Surveillance state per engine
 -- RefreshAgents (lines 538-541 in the base file). Lift the same check so
 -- the spoken activity matches what the engine prints in the visual row.
@@ -216,47 +207,41 @@ end
 local pushMoveSub
 local rebuildAllTabs = function() end
 
-local function agentActionItems(agent)
-    local items = {}
+-- Returns a list of action specs for an agent. Each spec is a
+-- { label, tooltip?, onActivate } table. Empty list for KIA spies. Mirrors
+-- the engine's per-state action gating (View City: surveillance OR
+-- schmoozing on a foreign non-CS city; Stage Coup: city-state with rival
+-- ally per CanSpyStageCoup; Move: always available for non-dead spies).
+local function agentActions(agent)
+    local actions = {}
     if agent.State == "TXT_KEY_SPY_STATE_DEAD" then
-        return items
+        return actions
     end
     local pPlayer = activePlayer()
     local city = plotCity(agent.CityX, agent.CityY)
-
-    -- View City. Engine RefreshAgents gates this on
-    -- HasSpyEstablishedSurveillance OR IsSpySchmoozing (line 797), and hides
-    -- the button outright for our own cities and city-state assignments
-    -- (engine swaps to Stage Coup in the city-state branch). We hide the
-    -- item entirely rather than show-disabled so the action menu stays
-    -- focused on what the user can actually do.
     local cityOwner = city and Players[city:GetOwner()] or nil
     local isCityState = cityOwner ~= nil and cityOwner:IsMinorCiv()
     local isOwnCity = cityOwner ~= nil and city:GetOwner() == Game.GetActivePlayer()
+
     if city ~= nil and not isCityState and not isOwnCity then
         local canView = pPlayer:HasSpyEstablishedSurveillance(agent.AgentID) or pPlayer:IsSpySchmoozing(agent.AgentID)
         if canView then
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_EO_VIEW"),
+            actions[#actions + 1] = {
+                label = Text.key("TXT_KEY_EO_VIEW"),
                 onActivate = function()
                     viewCity(city)
                 end,
-            })
+            }
         end
     end
 
-    -- Stage Coup. City-state with surveillance + an existing rival ally.
-    -- CanSpyStageCoup encapsulates all engine prereqs (surveillance, ally
-    -- exists, ally != us). The base UI shows a disabled button with a
-    -- diagnostic tooltip in the negative case; we just hide it since the
-    -- action menu is short and a "disabled coup" line adds noise.
     if city ~= nil and isCityState and pPlayer:CanSpyStageCoup(agent.AgentID) then
         local rank, name = agent.Rank, agent.Name
         local ally = Players[Players[city:GetOwner()]:GetAlly()]
         local chance = pPlayer:GetCoupChanceOfSuccess(city)
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.key("TXT_KEY_EO_COUP"),
-            tooltipText = Text.format(
+        actions[#actions + 1] = {
+            label = Text.key("TXT_KEY_EO_COUP"),
+            tooltip = Text.format(
                 "TXT_KEY_EO_SPY_COUP_ENABLED_TT",
                 rank,
                 name,
@@ -312,17 +297,56 @@ local function agentActionItems(agent)
                     end,
                 })
             end,
-        })
+        }
     end
 
-    -- Move agent. Always available for non-dead spies.
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_EO_RELOCATE"),
+    actions[#actions + 1] = {
+        label = Text.key("TXT_KEY_EO_RELOCATE"),
         onActivate = function()
             pushMoveSub(agent)
         end,
+    }
+    return actions
+end
+
+local AGENT_ACTIONS_SUB_NAME = "EspionageOverview/AgentActions"
+
+-- Sub-handler that surfaces an agent's actions as a flat choice list. Esc
+-- pops the sub. Each action's activate pops the sub before invoking the
+-- action's onActivate so anything the action itself pushes (Move sub, Yes/
+-- No confirm) lands directly on the espionage shell -- without the pop,
+-- Esc from the pushed sub would backtrack through this stale actions sub.
+local function pushAgentActionsSub(agent, actions)
+    local subItems = {}
+    for _, a in ipairs(actions) do
+        subItems[#subItems + 1] = BaseMenuItems.Choice({
+            labelText = a.label,
+            tooltipText = a.tooltip,
+            activate = function()
+                HandlerStack.removeByName(AGENT_ACTIONS_SUB_NAME, true)
+                a.onActivate()
+            end,
+        })
+    end
+    subItems[#subItems + 1] = BaseMenuItems.Choice({
+        labelText = Text.key("TXT_KEY_CANCEL_BUTTON"),
+        activate = function()
+            HandlerStack.removeByName(AGENT_ACTIONS_SUB_NAME, true)
+        end,
     })
-    return items
+    local sub = BaseMenu.create({
+        name = AGENT_ACTIONS_SUB_NAME,
+        displayName = Text.format(
+            "TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_ACTIONS_DISPLAY",
+            Text.key(agent.Rank),
+            Text.key(agent.Name)
+        ),
+        items = subItems,
+        capturesAllInput = true,
+        escapePops = true,
+        escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
+    })
+    HandlerStack.push(sub)
 end
 
 local function buildAgentsTabItems()
@@ -337,12 +361,14 @@ local function buildAgentsTabItems()
     if #spies == 0 then
         return { BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_NO_MORE_SPIES") }) }
     end
+    -- Each agent is a flat row, never a Group: pressing Enter fires the
+    -- sole action when the agent has just one (typically Move) and pushes
+    -- the actions sub when there are more than one. Actions are computed
+    -- at row build time from the live spy snapshot; the dirty refresh
+    -- rebuilds rows on every state change, so the captured actions stay
+    -- in sync with what the engine would offer.
     local items = {}
     for _, agent in ipairs(spies) do
-        -- GetEspionageSpies returns a fresh table allocation each call;
-        -- closures key off the stable AgentID and re-resolve the agent
-        -- record from live state at drill time.
-        local agentId = agent.AgentID
         local city = plotCity(agent.CityX, agent.CityY)
         local label = agentRowLabel(agent)
         local tooltip = activityTooltip(agent, city)
@@ -352,20 +378,28 @@ local function buildAgentsTabItems()
                 tooltipText = tooltip,
             })
         else
-            items[#items + 1] = BaseMenuItems.Group({
-                labelText = label,
-                tooltipText = tooltip,
-                itemsFn = function()
-                    -- Re-resolve the agent from the live spy list each drill;
-                    -- the snapshot would be wrong after a Network.Send round-
-                    -- trip even if the rebuild has not fired yet.
-                    local fresh = findAgentByID(activePlayer():GetEspionageSpies(), agentId)
-                    if fresh == nil then
-                        return {}
-                    end
-                    return agentActionItems(fresh)
-                end,
-            })
+            local actions = agentActions(agent)
+            if #actions == 1 then
+                local only = actions[1]
+                items[#items + 1] = BaseMenuItems.Choice({
+                    labelText = label,
+                    tooltipText = tooltip,
+                    activate = only.onActivate,
+                })
+            elseif #actions > 1 then
+                items[#items + 1] = BaseMenuItems.Choice({
+                    labelText = label,
+                    tooltipText = tooltip,
+                    activate = function()
+                        pushAgentActionsSub(agent, actions)
+                    end,
+                })
+            else
+                items[#items + 1] = BaseMenuItems.Text({
+                    labelText = label,
+                    tooltipText = tooltip,
+                })
+            end
         end
     end
     return items
@@ -621,7 +655,7 @@ local function buildCitiesTabItems()
     if #yourCities > 0 then
         local yourGroupItems = {}
         for _, ci in ipairs(yourCities) do
-            yourGroupItems[#yourGroupItems + 1] = buildCityRow(ci, false, spies, false)
+            yourGroupItems[#yourGroupItems + 1] = buildCityRow(ci, false, spies, true)
         end
         items[#items + 1] = BaseMenuItems.Group({
             labelText = Text.key("TXT_KEY_EO_YOUR_CITIES"),
@@ -842,7 +876,12 @@ local function buildMoveSubItems(agent)
     local function appendCity(ci, isCityState)
         local key = ci.PlayerID .. ":" .. ci.CityID
         local spy = agentInCity(ci.PlayerID, ci.CityID, spies)
-        local label = cityRowLabel(ci, isCityState, spy)
+        -- Drop civ on your cities (your civ is implicit) and on city-states
+        -- (civ name matches city name -- "Brussels, Brussels" is noise).
+        -- Foreign major-civ rows keep civ since they're mixed in this flat
+        -- list and civ is the only thing distinguishing rival cities.
+        local isYour = ci.PlayerID == Game.GetActivePlayer()
+        local label = cityRowLabel(ci, isCityState, spy, isYour or isCityState)
         if availableLookup[key] then
             local plot = Map.GetPlot(ci.CityX, ci.CityY)
             local pCity = plot and plot:GetPlotCity() or nil
