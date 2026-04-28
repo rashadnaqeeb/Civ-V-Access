@@ -1953,6 +1953,28 @@ uint CvUnitCombat::ApplyNuclearExplosionDamage(const CvCombatMemberEntry* pkDama
 				if((eAttackerOwner == NO_PLAYER || pkUnit->getOwner() != eAttackerOwner) && !pkUnit->isBarbarian())
 					uiOpposingDamageCount++;	// Count the number of non-barbarian opposing units
 
+				// CIVVACCESS: Fire NukeUnitAffected hook BEFORE applying damage
+				// so the unit handle is still valid when Lua resolves its name.
+				// kEntry holds the engine's pre-computed post-damage values
+				// (delta, final, max), so the hook payload is complete without
+				// needing a post-application read. Skipped for meltdowns
+				// (pkAttacker == NULL); those have a different speech path.
+				if(pkAttacker != NULL)
+				{
+					ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+					if(pkScriptSystem)
+					{
+						CvLuaArgsHandle args;
+						args->Push(kEntry.GetPlayer());
+						args->Push(kEntry.GetUnitID());
+						args->Push(kEntry.GetDamage());
+						args->Push(kEntry.GetFinalDamage());
+						args->Push(kEntry.GetMaxHitPoints());
+						bool bResult;
+						LuaSupport::CallHook(pkScriptSystem, "CivVAccessNukeUnitAffected", args.get(), bResult);
+					}
+				}
+
 				if(pkUnit->IsCombatUnit() || pkUnit->IsCanAttackRanged())
 				{
 					pkUnit->changeDamage(kEntry.GetDamage(), eAttackerOwner);
@@ -2033,6 +2055,30 @@ uint CvUnitCombat::ApplyNuclearExplosionDamage(const CvCombatMemberEntry* pkDama
 
 				if(kEntry.GetFinalDamage() >= pkCity->GetMaxHitPoints() && !pkCity->IsOriginalCapital())
 				{
+					// CIVVACCESS: Fire NukeCityAffected hook BEFORE pkCity->kill()
+					// so the Lua handler can resolve the city handle and snapshot
+					// its name. popDelta == 0 for destroyed cities -- the entire
+					// population is implicit from "destroyed" and the speech path
+					// elides a redundant pop clause. Skipped for meltdowns
+					// (pkAttacker == NULL).
+					if(pkAttacker != NULL)
+					{
+						ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+						if(pkScriptSystem)
+						{
+							CvLuaArgsHandle args;
+							args->Push(kEntry.GetPlayer());
+							args->Push(kEntry.GetCityID());
+							args->Push(kEntry.GetDamage());
+							args->Push(kEntry.GetFinalDamage());
+							args->Push(kEntry.GetMaxHitPoints());
+							args->Push(0);
+							args->Push(1);
+							bool bResult;
+							LuaSupport::CallHook(pkScriptSystem, "CivVAccessNukeCityAffected", args.get(), bResult);
+						}
+					}
+
 					auto_ptr<ICvCity1> pkDllCity(new CvDllCity(pkCity));
 					gDLL->GameplayCitySetDamage(pkDllCity.get(), 0, pkCity->getDamage()); // to stop the fires
 					gDLL->GameplayCityDestroyed(pkDllCity.get(), NO_PLAYER);
@@ -2068,10 +2114,33 @@ uint CvUnitCombat::ApplyNuclearExplosionDamage(const CvCombatMemberEntry* pkDama
 					iNukedPopulation *= std::max(0, (pkCity->getNukeModifier() + 100));
 					iNukedPopulation /= 100;
 
-					pkCity->changePopulation(-(std::min((pkCity->getPopulation() - 1), iNukedPopulation)));
+					int iAppliedPopDelta = std::min((pkCity->getPopulation() - 1), iNukedPopulation);
+					pkCity->changePopulation(-iAppliedPopDelta);
 
 					// Add damage to the city
 					pkCity->setDamage(kEntry.GetFinalDamage());
+
+					// CIVVACCESS: Fire NukeCityAffected hook AFTER the engine
+					// has applied damage / pop loss. popDelta is the actual
+					// population delta engine applied (capped at prePop-1).
+					// Skipped for meltdowns (pkAttacker == NULL).
+					if(pkAttacker != NULL)
+					{
+						ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+						if(pkScriptSystem)
+						{
+							CvLuaArgsHandle args;
+							args->Push(kEntry.GetPlayer());
+							args->Push(kEntry.GetCityID());
+							args->Push(kEntry.GetDamage());
+							args->Push(kEntry.GetFinalDamage());
+							args->Push(kEntry.GetMaxHitPoints());
+							args->Push(iAppliedPopDelta);
+							args->Push(0);
+							bool bResult;
+							LuaSupport::CallHook(pkScriptSystem, "CivVAccessNukeCityAffected", args.get(), bResult);
+						}
+					}
 
 					GET_PLAYER(pkCity->getOwner()).GetDiplomacyAI()->ChangeNumTimesNuked(pkAttacker->getOwner(), 1);
 				}
@@ -2232,6 +2301,40 @@ void CvUnitCombat::ResolveNuclearCombat(const CvCombatInfo& kCombatInfo, uint ui
 
 	GC.getGame().changeNukesExploded(1);
 
+	// CIVVACCESS: Fire NukeStart hook so the mod's accumulator knows a
+	// nuclear strike is about to apply damage. Per-entity NukeUnitAffected
+	// / NukeCityAffected hooks fire from within ApplyNuclearExplosionDamage;
+	// NukeEnd fires after the damage application returns. The mod buffers
+	// affected entities between Start and End and emits one composed speech
+	// line at End. targetCityPlayer / targetCityId surface the target plot's
+	// city if any so the speech can name the strike target separately from
+	// the casualty list.
+	if(pkAttacker && pkTargetPlot)
+	{
+		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+		if(pkScriptSystem)
+		{
+			int iTargetCityPlayer = -1;
+			int iTargetCityId = -1;
+			CvCity* pkTargetCity = pkTargetPlot->getPlotCity();
+			if(pkTargetCity != NULL)
+			{
+				iTargetCityPlayer = pkTargetCity->getOwner();
+				iTargetCityId = pkTargetCity->GetID();
+			}
+			CvLuaArgsHandle args;
+			args->Push(pkAttacker->getOwner());
+			args->Push(pkAttacker->GetID());
+			args->Push(pkTargetPlot->getX());
+			args->Push(pkTargetPlot->getY());
+			args->Push(kCombatInfo.getAttackNuclearLevel());
+			args->Push(iTargetCityPlayer);
+			args->Push(iTargetCityId);
+			bool bResult;
+			LuaSupport::CallHook(pkScriptSystem, "CivVAccessNukeStart", args.get(), bResult);
+		}
+	}
+
 	if(pkAttacker)
 	{
 		// Make sure we are disconnected from any unit transporting the attacker (i.e. its a missile)
@@ -2288,6 +2391,22 @@ void CvUnitCombat::ResolveNuclearCombat(const CvCombatInfo& kCombatInfo, uint ui
 
 		// Report that combat is over in case we want to queue another attack
 		GET_PLAYER(pkAttacker->getOwner()).GetTacticalAI()->CombatResolved(pkAttacker, true);
+	}
+
+	// CIVVACCESS: Fire NukeEnd hook so the mod can flush its accumulator
+	// and speak the composed strike result. Fires unconditionally for
+	// NukeStart -- the mod's onNukeEnd handles the no-buffer / no-affected
+	// case (announces "no targets hit").
+	if(pkAttacker)
+	{
+		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+		if(pkScriptSystem)
+		{
+			CvLuaArgsHandle args;
+			args->Push(pkAttacker->getOwner());
+			bool bResult;
+			LuaSupport::CallHook(pkScriptSystem, "CivVAccessNukeEnd", args.get(), bResult);
+		}
 	}
 }
 

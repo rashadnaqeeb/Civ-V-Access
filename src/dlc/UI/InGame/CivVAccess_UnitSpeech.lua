@@ -1103,6 +1103,56 @@ function UnitSpeech.combatResult(args)
     return table.concat(parts, ", ")
 end
 
+-- Format a nuclear-strike result from the buffer the engine-fork hooks
+-- populated. Sections (header, target, casualties, units, no-targets)
+-- are elided when empty so an inert nuke and a city-only strike read
+-- without dangling clauses. buf shape:
+--   buf.launcherCivAdj   localized adjective string ("Roman")
+--   buf.targetName       optional civ-tagged target city name
+--   buf.cities           array of { displayName, hpDelta, popDelta, wasDestroyed }
+--   buf.units            array of { displayName, hpDelta, killed }
+-- Caller pre-resolves civ adjectives and unit / city display names at
+-- hook-fire time -- destroyed cities still resolve before the engine's
+-- pkCity->kill() runs, so the snapshot here is always live.
+function UnitSpeech.nuclearStrikeResult(buf)
+    local parts = {}
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_NUKE_HEADER", buf.launcherCivAdj or "")
+    if buf.targetName ~= nil and buf.targetName ~= "" then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_NUKE_TARGET", buf.targetName)
+    end
+    local hasCities = buf.cities ~= nil and #buf.cities > 0
+    local hasUnits = buf.units ~= nil and #buf.units > 0
+    if hasCities then
+        local cityParts = {}
+        for _, c in ipairs(buf.cities) do
+            local entry = Text.format("TXT_KEY_CIVVACCESS_NUKE_HP_ENTRY", c.displayName, c.hpDelta)
+            if c.popDelta and c.popDelta > 0 then
+                entry = entry .. " " .. Text.format("TXT_KEY_CIVVACCESS_NUKE_POP_DELTA", c.popDelta)
+            end
+            if c.wasDestroyed then
+                entry = entry .. " " .. Text.key("TXT_KEY_CIVVACCESS_NUKE_DESTROYED")
+            end
+            cityParts[#cityParts + 1] = entry
+        end
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_NUKE_CASUALTIES", table.concat(cityParts, ", "))
+    end
+    if hasUnits then
+        local unitParts = {}
+        for _, u in ipairs(buf.units) do
+            local entry = Text.format("TXT_KEY_CIVVACCESS_NUKE_HP_ENTRY", u.displayName, u.hpDelta)
+            if u.killed then
+                entry = entry .. " " .. Text.key("TXT_KEY_CIVVACCESS_NUKE_KILLED")
+            end
+            unitParts[#unitParts + 1] = entry
+        end
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_NUKE_UNITS", table.concat(unitParts, ", "))
+    end
+    if not hasCities and not hasUnits then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_NUKE_NO_TARGETS")
+    end
+    return table.concat(parts, ", ")
+end
+
 -- "moved, N moves left" on clean arrival, or "stopped short, N turns
 -- till arrival" / "stopped short" when the unit didn't reach the target
 -- plot. targetX/Y are compared to the unit's live position -- if they

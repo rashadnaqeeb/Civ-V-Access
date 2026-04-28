@@ -1091,6 +1091,76 @@ function M.test_combat_result_intercept_kill_keeps_kill_line_last()
     T.truthy(interceptPos < killPos, "intercept must precede kill: " .. out)
 end
 
+-- ===== Nuclear strike =====
+-- Composed string from the engine fork's NukeStart / NukeUnitAffected /
+-- NukeCityAffected / NukeEnd hook stream. Sections elide when empty so
+-- an inert nuke reads cleanly.
+function M.test_nuclear_strike_full_payload()
+    setup()
+    local out = UnitSpeech.nuclearStrikeResult({
+        launcherCivAdj = "Roman",
+        targetName = "Babylon",
+        cities = {
+            { displayName = "Babylon", hpDelta = 50, popDelta = 3, wasDestroyed = false },
+        },
+        units = {
+            { displayName = "Babylonian Worker", hpDelta = 100, killed = true },
+            { displayName = "Babylonian Warrior", hpDelta = 8, killed = false },
+        },
+    })
+    T.truthy(out:find("^Roman nuclear strike"), "header must lead: " .. out)
+    T.truthy(out:find("target Babylon", 1, true), "target line expected: " .. out)
+    T.truthy(out:find("casualties Babylon %-50 hp %-3 pop"), "city damage + pop expected: " .. out)
+    T.truthy(out:find("units"), "units section expected: " .. out)
+    T.truthy(out:find("Babylonian Worker %-100 hp killed"), "killed unit expected: " .. out)
+    T.truthy(out:find("Babylonian Warrior %-8 hp"), "damaged unit expected: " .. out)
+    T.truthy(not out:find("destroyed"), "no destroyed marker on alive city: " .. out)
+    T.truthy(not out:find("no targets hit"), "no inert clause when entities affected: " .. out)
+end
+
+function M.test_nuclear_strike_destroyed_city_drops_pop_clause()
+    setup()
+    local out = UnitSpeech.nuclearStrikeResult({
+        launcherCivAdj = "American",
+        targetName = "Rome",
+        cities = {
+            { displayName = "Rome", hpDelta = 200, popDelta = 0, wasDestroyed = true },
+        },
+        units = {},
+    })
+    T.truthy(out:find("Rome %-200 hp destroyed"), "destroyed marker expected: " .. out)
+    T.truthy(not out:find("pop"), "pop clause must elide on destroyed city: " .. out)
+    T.truthy(not out:find("units"), "units section must elide when empty: " .. out)
+end
+
+function M.test_nuclear_strike_no_targets_announces_inert()
+    setup()
+    local out = UnitSpeech.nuclearStrikeResult({
+        launcherCivAdj = "American",
+        targetName = nil,
+        cities = {},
+        units = {},
+    })
+    T.truthy(out:find("^American nuclear strike"), "header expected: " .. out)
+    T.truthy(out:find("no targets hit", 1, true), "inert clause expected: " .. out)
+    T.truthy(not out:find("target "), "no target clause when nothing on plot: " .. out)
+end
+
+function M.test_nuclear_strike_units_only_no_target_city()
+    setup()
+    local out = UnitSpeech.nuclearStrikeResult({
+        launcherCivAdj = "American",
+        targetName = nil,
+        cities = {},
+        units = {
+            { displayName = "Roman Worker", hpDelta = 100, killed = true },
+        },
+    })
+    T.truthy(out:find("units Roman Worker %-100 hp killed"), "units section expected: " .. out)
+    T.truthy(not out:find("casualties"), "no casualties clause when no city affected: " .. out)
+    T.truthy(not out:find("no targets hit"), "no inert clause when units affected: " .. out)
+end
+
 -- Combatant-name lookup helper. The single point of "playerId + unitId
 -- -> display name" resolution; called by UnitControl.onCombatResolved
 -- to label combat-result speech.

@@ -238,6 +238,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_PREFIX_DOGFIGHT"] = "dogfight"
 -- engage. Mirrors base game's TXT_KEY_AIR_PATROL_FOUND_NOTHING which
 -- lands in the sighted notification log we don't subscribe to.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AIR_SWEEP_NO_TARGET"] = "no interceptors"
+-- Nuclear strike speech. Composed from the engine fork's NukeStart /
+-- NukeUnitAffected / NukeCityAffected / NukeEnd hook stream. Sections
+-- are elided when empty -- a nuke that finds nothing emits the header
+-- + NO_TARGETS line; one with city damage but no unit damage drops
+-- the units clause. Each entity entry is built from CIV_NAME +
+-- HP_DELTA + optional pop / kill / destroy suffixes joined Lua-side.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_HEADER"] = "{1_Civ} nuclear strike"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_TARGET"] = "target {1_Target}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_CASUALTIES"] = "casualties {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_UNITS"] = "units {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_NO_TARGETS"] = "no targets hit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_HP_ENTRY"] = "{1_Name} -{2_Hp} hp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_POP_DELTA"] = "-{1_Pop} pop"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_KILLED"] = "killed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NUKE_DESTROYED"] = "destroyed"
 -- City-capture announcements. SerialEventCityCaptured fires for empty
 -- city captures (no combat resolution) and for capture-after-defender-
 -- killed transitions; the active player's perspective decides which line

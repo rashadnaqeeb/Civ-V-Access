@@ -752,6 +752,142 @@ local function onAirSweepNoTarget(attackerPlayer, _attackerUnit)
     speakQueued(Text.key("TXT_KEY_CIVVACCESS_AIR_SWEEP_NO_TARGET"))
 end
 
+-- ===== Nuclear strike accumulator =====
+-- The engine fork fires four hooks for each nuclear strike, in order:
+-- NukeStart, then a stream of NukeUnitAffected / NukeCityAffected per
+-- damaged entity, then NukeEnd. We accumulate between Start and End so a
+-- single composed speech line covers the whole strike rather than
+-- per-entity speech (verbose) or just the header (loses info). Names
+-- are resolved at hook-fire time because destroyed cities lose their
+-- handle when the engine's pkCity->kill() runs after NukeCityAffected.
+-- Module-local rather than civvaccess_shared so a Context re-entry
+-- drops any in-flight buffer (a half-flushed buffer wouldn't replay
+-- cleanly on the next NukeEnd).
+local _nukeBuffer = nil
+
+-- City names stand alone in nuke speech without a civ-adjective prefix:
+-- a city's name uniquely identifies its civ for the user, so "Babylon"
+-- already communicates "Babylonian Babylon" without doubling the
+-- identity word. Same reasoning we landed on earlier for the regular
+-- combat readout's city-defender path -- units need the adjective
+-- because "Warrior" collides across civs, cities don't.
+local function nukeCityDisplayName(playerId, cityId)
+    local owner = Players[playerId]
+    if owner == nil then
+        return ""
+    end
+    local city = owner:GetCityByID(cityId)
+    if city == nil then
+        return ""
+    end
+    return city:GetName()
+end
+
+local function onNukeStart(
+    attackerPlayer,
+    _attackerUnit,
+    _targetX,
+    _targetY,
+    _nuclearLevel,
+    targetCityPlayer,
+    targetCityId
+)
+    local launcher = Players[attackerPlayer]
+    -- GetCivilizationAdjective() returns the resolved adjective ("Roman");
+    -- GetCivilizationAdjectiveKey() returns a TXT_KEY string that
+    -- CivVAccess_Text.substitute would speak verbatim because mod-authored
+    -- format keys (CIVVACCESS-prefixed) don't recursively resolve nested
+    -- TXT_KEY args -- only base-game keys routed through Locale.Convert
+    -- TextKey do, which is why TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV in
+    -- unitName() can take *Key args while our TXT_KEY_CIVVACCESS_NUKE_HEADER
+    -- here cannot.
+    local launcherAdj = launcher and launcher:GetCivilizationAdjective() or ""
+    local targetName
+    if targetCityId ~= -1 then
+        targetName = nukeCityDisplayName(targetCityPlayer, targetCityId)
+        if targetName == "" then
+            targetName = nil
+        end
+    end
+    _nukeBuffer = {
+        attackerPlayer = attackerPlayer,
+        launcherCivAdj = launcherAdj,
+        targetName = targetName,
+        cities = {},
+        units = {},
+    }
+end
+
+local function onNukeUnitAffected(defenderPlayer, defenderUnit, damageDelta, finalDamage, maxHP)
+    if _nukeBuffer == nil then
+        return
+    end
+    local displayName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
+    if displayName == "" then
+        return
+    end
+    table.insert(_nukeBuffer.units, {
+        defenderPlayer = defenderPlayer,
+        displayName = displayName,
+        hpDelta = damageDelta,
+        killed = finalDamage >= maxHP,
+    })
+end
+
+local function onNukeCityAffected(
+    defenderPlayer,
+    defenderCity,
+    damageDelta,
+    _finalDamage,
+    _maxHP,
+    popDelta,
+    wasDestroyed
+)
+    if _nukeBuffer == nil then
+        return
+    end
+    local displayName = nukeCityDisplayName(defenderPlayer, defenderCity)
+    if displayName == "" then
+        return
+    end
+    table.insert(_nukeBuffer.cities, {
+        defenderPlayer = defenderPlayer,
+        displayName = displayName,
+        hpDelta = damageDelta,
+        popDelta = popDelta,
+        wasDestroyed = wasDestroyed == 1,
+    })
+end
+
+local function nukeBufferInvolvesActivePlayer(buf, activePlayer)
+    if buf.attackerPlayer == activePlayer then
+        return true
+    end
+    for _, e in ipairs(buf.units) do
+        if e.defenderPlayer == activePlayer then
+            return true
+        end
+    end
+    for _, e in ipairs(buf.cities) do
+        if e.defenderPlayer == activePlayer then
+            return true
+        end
+    end
+    return false
+end
+
+local function onNukeEnd(_attackerPlayer)
+    if _nukeBuffer == nil then
+        return
+    end
+    local buf = _nukeBuffer
+    _nukeBuffer = nil
+    if not nukeBufferInvolvesActivePlayer(buf, Game.GetActivePlayer()) then
+        return
+    end
+    speakQueued(UnitSpeech.nuclearStrikeResult(buf))
+end
+
 -- Empty city captures don't fire any combat resolution -- the unit just walks in.
 -- SerialEventCityCaptured fires once per capture with (hexPos, oldOwner,
 -- cityId, newOwner). Speak only when the active player is involved (we
@@ -1002,5 +1138,31 @@ function UnitControl.installListeners()
         GameEvents.CivVAccessAirSweepNoTarget.Add(onAirSweepNoTarget)
     else
         Log.warn("UnitControl: GameEvents.CivVAccessAirSweepNoTarget missing")
+    end
+    -- Nuclear strike hook stream: Start, per-entity affected, End. The
+    -- accumulator-flush model handles the variable-shape payload (a nuke
+    -- can hit zero or many entities) that a single fixed-arg hook can't
+    -- carry cleanly. Each name in CivVAccess_Strings's installListeners
+    -- callsite log line below documents the same dependency for the
+    -- engine fork's hook registration.
+    if GameEvents ~= nil and GameEvents.CivVAccessNukeStart ~= nil then
+        GameEvents.CivVAccessNukeStart.Add(onNukeStart)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessNukeStart missing")
+    end
+    if GameEvents ~= nil and GameEvents.CivVAccessNukeUnitAffected ~= nil then
+        GameEvents.CivVAccessNukeUnitAffected.Add(onNukeUnitAffected)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessNukeUnitAffected missing")
+    end
+    if GameEvents ~= nil and GameEvents.CivVAccessNukeCityAffected ~= nil then
+        GameEvents.CivVAccessNukeCityAffected.Add(onNukeCityAffected)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessNukeCityAffected missing")
+    end
+    if GameEvents ~= nil and GameEvents.CivVAccessNukeEnd ~= nil then
+        GameEvents.CivVAccessNukeEnd.Add(onNukeEnd)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessNukeEnd missing")
     end
 end
