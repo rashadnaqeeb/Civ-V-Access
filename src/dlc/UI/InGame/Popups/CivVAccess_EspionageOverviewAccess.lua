@@ -26,8 +26,8 @@
 --     HandleNotificationAdded surfaces in Controls.NotificationPopup, and
 --     speech reaches the user via the regular NotificationAnnounce pipeline.
 --   * Move Agent: pushes a sub-handler with the same Your-Cities /
---     Their-Cities split as tab 2 except cities are flat Choices (no drill),
---     plus a "Move to Hideout" item at the top and a "Cancel" item at the
+--     Their-Cities split as tab 2 (flat list, no per-city drill), plus a
+--     "Move to Hideout" item at the top and a "Cancel" item at the
 --     bottom. Eligible cities (from GetAvailableSpyRelocationCities) commit
 --     immediately; when the eligible target is an enemy capital of a major
 --     civ we are not at war with, the Diplomat-vs-Spy fork uses the same
@@ -373,32 +373,31 @@ end
 
 -- ===== Tab 2: Cities =====
 
--- Append a building / wonder / policy modifier breakdown to a base potential
--- tooltip. Verbatim port of the engine's BuildPotentialModifierTT
--- (EspionageOverview.lua lines 835-906) so the user hears the same modifier
--- list a sighted player sees in the visual potential-meter tooltip.
-local function buildPotentialModifierTT(cityInfo)
+-- Comma-joined list of non-zero espionage potential modifiers (buildings,
+-- wonders, policies) for inclusion in the city row label. Mirrors the
+-- engine's BuildPotentialModifierTT (EspionageOverview.lua lines 835-906)
+-- but drops the "Change from buildings and wonders:" section titles so the
+-- row carries data, not help text.
+local function potentialBreakdownEntries(cityInfo)
     local pPlayer = Players[cityInfo.PlayerID]
     local pCity = pPlayer:GetCityByID(cityInfo.CityID)
     if pCity == nil then
         return ""
     end
-    local strBuildingTT, strWonderTT, strPolicyTT = "", "", ""
+    local entries = {}
     for building in GameInfo.Buildings() do
         local buildingClass = GameInfo.BuildingClasses[building.BuildingClass]
         local mod = pCity:GetBuildingEspionageModifier(building.ID)
         local globalMod = pCity:GetBuildingGlobalEspionageModifier(building.ID)
         if pCity:IsHasBuilding(building.ID) then
             if mod and mod ~= 0 then
-                strBuildingTT = strBuildingTT
-                    .. ". "
-                    .. Text.format("TXT_KEY_EO_POTENTIAL_BUILDING_MOD_ENTRY", building.Description, mod)
+                entries[#entries + 1] =
+                    Text.format("TXT_KEY_EO_POTENTIAL_BUILDING_MOD_ENTRY", building.Description, mod)
             end
         elseif pPlayer:GetBuildingClassCount(buildingClass.ID) > 0 then
             if globalMod and globalMod ~= 0 then
-                strWonderTT = strWonderTT
-                    .. ". "
-                    .. Text.format("TXT_KEY_EO_POTENTIAL_WONDER_MOD_ENTRY", building.Description, globalMod)
+                entries[#entries + 1] =
+                    Text.format("TXT_KEY_EO_POTENTIAL_WONDER_MOD_ENTRY", building.Description, globalMod)
             end
         end
     end
@@ -408,25 +407,32 @@ local function buildPotentialModifierTT(cityInfo)
         if pPlayer:HasPolicy(i) and not pPlayer:IsPolicyBlocked(i) then
             local mod = pPlayer:GetPolicyEspionageModifier(i)
             if mod ~= 0 then
-                strPolicyTT = strPolicyTT
-                    .. ". "
-                    .. Text.format("TXT_KEY_EO_POTENTIAL_POLICY_MOD_ENTRY", policyInfo.Description, mod)
+                entries[#entries + 1] =
+                    Text.format("TXT_KEY_EO_POTENTIAL_POLICY_MOD_ENTRY", policyInfo.Description, mod)
             end
         end
         i = i + 1
         policyInfo = GameInfo.Policies[i]
     end
-    local out = ""
-    if strBuildingTT ~= "" then
-        out = out .. ". " .. Text.key("TXT_KEY_EO_POTENTIAL_BUILDING_MOD_TITLE") .. strBuildingTT
+    return table.concat(entries, ", ")
+end
+
+-- Breakdown is meaningful only when the player has the data to compute it:
+-- own cities (we always know our own buildings/policies) and foreign cities
+-- with established surveillance. City-states use the rig-election clause
+-- instead of a numeric potential, and unknown-potential cities have nothing
+-- to break down.
+local function shouldShowBreakdown(cityInfo, isCityState, spy)
+    if isCityState then
+        return false
     end
-    if strWonderTT ~= "" then
-        out = out .. ". " .. Text.key("TXT_KEY_EO_POTENTIAL_WONDER_MOD_TITLE") .. strWonderTT
+    if cityInfo.BasePotential <= 0 then
+        return false
     end
-    if strPolicyTT ~= "" then
-        out = out .. ". " .. Text.key("TXT_KEY_EO_POTENTIAL_POLICY_MOD_TITLE") .. strPolicyTT
+    if cityInfo.PlayerID == Game.GetActivePlayer() then
+        return true
     end
-    return out
+    return spy ~= nil and spy.EstablishedSurveillance
 end
 
 -- Per-city status struct enriched with CivilizationName / CivilizationNameKey
@@ -485,42 +491,6 @@ local function spyPresenceClause(spy)
     return Text.format(key, Text.key(spy.Name))
 end
 
--- Compose the city's potential tooltip. Branches mirror the engine cascade
--- in RefreshTheirCities lines 1242-1260: known surveillance + steal-eligible,
--- known surveillance + no-steal, known-but-no-surveillance, unknown.
-local function potentialTooltipFor(cityInfo, spy)
-    if cityInfo.BasePotential <= 0 then
-        return Text.key("TXT_KEY_EO_UNKNOWN_POTENTIAL_TT")
-    end
-    if cityInfo.PlayerID == Game.GetActivePlayer() then
-        local body = Text.format("TXT_KEY_EO_OWN_CITY_POTENTIAL_TT", cityInfo.Name, cityInfo.BasePotential)
-        return body .. buildPotentialModifierTT(cityInfo)
-    end
-    if spy ~= nil and spy.EstablishedSurveillance then
-        if cityInfo.Potential > 0 then
-            local body = Text.format(
-                "TXT_KEY_EO_CITY_POTENTIAL_TT",
-                spy.Rank,
-                spy.Name,
-                cityInfo.Potential,
-                cityInfo.Name,
-                cityInfo.Name,
-                cityInfo.BasePotential
-            )
-            return body .. buildPotentialModifierTT(cityInfo)
-        end
-        return Text.format(
-            "TXT_KEY_EO_CITY_POTENTIAL_CANNOT_STEAL_TT",
-            spy.Rank,
-            spy.Name,
-            cityInfo.Name,
-            cityInfo.Name,
-            cityInfo.BasePotential
-        )
-    end
-    return Text.format("TXT_KEY_EO_CITY_ONCE_KNOWN_POTENTIAL_TT", cityInfo.Name, cityInfo.BasePotential)
-end
-
 -- The "potential" value clause spoken on the city row. City-states get the
 -- election-rig phrasing instead of a star meter (engine
 -- RefreshTheirCities lines 1195-1202 hides the meter and shows the rig
@@ -546,119 +516,53 @@ local function potentialClause(cityInfo, isCityState, spy)
     return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BASE", cityInfo.BasePotential)
 end
 
--- City row label: Civ, City, potential, population, +spy clause. Distinguishing
--- word leads where we can: civ (your civ is the same on every Your Cities row,
--- but their cities vary by civ so it stays in front).
+-- City row label: Civ, City, population, +spy clause, potential, +breakdown.
+-- Potential is held to the end so the breakdown (modifier list) follows it
+-- naturally as a single trailing detail clause; sighted players read those
+-- numbers off the potential-meter tooltip and we surface the same data here
+-- since tab 2 has no per-row drill anymore.
 local function cityRowLabel(cityInfo, isCityState, spy)
-    local potText = potentialClause(cityInfo, isCityState, spy)
     local popText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POPULATION", cityInfo.Population)
-    local base = table.concat({ cityInfo.CivilizationName, cityInfo.Name, potText, popText }, ", ")
+    local parts = { cityInfo.CivilizationName, cityInfo.Name, popText }
     local spyClause = spyPresenceClause(spy)
     if spyClause ~= "" then
-        return base .. ", " .. spyClause
+        parts[#parts + 1] = spyClause
     end
-    return base
+    parts[#parts + 1] = potentialClause(cityInfo, isCityState, spy)
+    if shouldShowBreakdown(cityInfo, isCityState, spy) then
+        local breakdown = potentialBreakdownEntries(cityInfo)
+        if breakdown ~= "" then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BREAKDOWN", breakdown)
+        end
+    end
+    return table.concat(parts, ", ")
 end
 
-local function cityColumnItems(cityInfo, isCityState, spy)
-    local items = {}
-    local civKey = cityInfo.CivilizationNameKey
-    local civCivTT
-    if isCityState then
-        civCivTT = Text.format("TXT_KEY_EO_CITY_CIV_CITY_STATE_TT", cityInfo.Name, GetCityStateTraitText(cityInfo.PlayerID))
-    else
-        civCivTT = Text.format("TXT_KEY_EO_CITY_CIV_TT", cityInfo.Name, civKey)
-    end
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_CIV_LABEL", cityInfo.CivilizationName),
-        tooltipText = civCivTT,
-    })
-    local nameTT
-    if isCityState then
-        nameTT = Text.format(
-            "TXT_KEY_EO_CITY_NAME_CITY_STATE_TT",
-            cityInfo.Name,
-            GetCityStateTraitText(cityInfo.PlayerID)
-        )
-    else
-        nameTT = Text.format("TXT_KEY_EO_CITY_NAME_TT", cityInfo.Name, civKey)
-    end
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_CITY_LABEL", cityInfo.Name),
-        tooltipText = nameTT,
-    })
-    local potTT
-    if isCityState then
-        potTT = Text.key("TXT_KEY_EO_CITY_STATE_POTENTIAL_TT")
-            .. ". "
-            .. Text.format(
-                "TXT_KEY_EO_CITY_STATE_ELECTION",
-                Game.GetTurnsBetweenMinorCivElections(),
-                Game.GetTurnsUntilMinorCivElection()
-            )
-    else
-        potTT = potentialTooltipFor(cityInfo, spy)
-    end
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = potentialClause(cityInfo, isCityState, spy),
-        tooltipText = potTT,
-    })
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POPULATION", cityInfo.Population),
-        tooltipText = Text.format("TXT_KEY_EO_CITY_POPULATION_TT", cityInfo.Name, cityInfo.Population),
-    })
-    if spy ~= nil then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = spyPresenceClause(spy),
-            tooltipText = Text.format("TXT_KEY_SPY_OCCUPYING_CITY", spy.Name),
-        })
-    end
-    -- View City action. Same eligibility as tab 1's agent action: foreign
-    -- non-city-state with established surveillance for the agent in this
-    -- city. Own cities and city-states get no view button (engine
-    -- DisabledViewCityIcon branches at lines 1289 / 1326 / 1347).
-    if
-        not isCityState
+-- Flat city row. Eligible for View City (foreign non-city-state with
+-- established surveillance, mirroring engine RefreshTheirCities lines 1289 /
+-- 1326 / 1347's DisabledViewCityIcon gating) -> Choice that opens the city
+-- screen on activate. Everything else is an inert Text row -- the row label
+-- already carries civ, name, population, spy presence, potential, and the
+-- modifier breakdown, so there is no further drill content worth surfacing.
+local function buildCityRow(cityInfo, isCityState, spies)
+    local spy = agentInCity(cityInfo.PlayerID, cityInfo.CityID, spies)
+    local label = cityRowLabel(cityInfo, isCityState, spy)
+    local viewable = not isCityState
         and cityInfo.PlayerID ~= Game.GetActivePlayer()
         and spy ~= nil
         and spy.EstablishedSurveillance
-    then
-        local plot = Map.GetPlot(cityInfo.CityX, cityInfo.CityY)
-        local pCity = plot and plot:GetPlotCity() or nil
-        if pCity ~= nil then
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_EO_VIEW"),
-                tooltipText = Text.format("TXT_KEY_EO_CITY_VIEW_ENABLED_TT", cityInfo.Name),
-                onActivate = function()
-                    viewCity(pCity)
-                end,
-            })
-        end
+    if not viewable then
+        return BaseMenuItems.Text({ labelText = label })
     end
-    return items
-end
-
-local function buildCityRow(cityInfo, isCityState, spies)
-    local spy = agentInCity(cityInfo.PlayerID, cityInfo.CityID, spies)
-    return BaseMenuItems.Group({
-        labelText = cityRowLabel(cityInfo, isCityState, spy),
-        itemsFn = function()
-            -- Re-derive on each drill so the columns reflect any state
-            -- change that has not yet rebuilt the parent (mid-flight
-            -- between Network.Send and dirty refresh).
-            local cs = activePlayer():GetEspionageCityStatus()
-            local fresh
-            for _, v in ipairs(cs) do
-                if v.PlayerID == cityInfo.PlayerID and v.CityID == cityInfo.CityID then
-                    fresh = enrichCityStatus(v)
-                    break
-                end
-            end
-            if fresh == nil then
-                return {}
-            end
-            local freshSpy = agentInCity(fresh.PlayerID, fresh.CityID, activePlayer():GetEspionageSpies())
-            return cityColumnItems(fresh, isCityState, freshSpy)
+    local plot = Map.GetPlot(cityInfo.CityX, cityInfo.CityY)
+    local pCity = plot and plot:GetPlotCity() or nil
+    if pCity == nil then
+        return BaseMenuItems.Text({ labelText = label })
+    end
+    return BaseMenuItems.Choice({
+        labelText = label,
+        activate = function()
+            viewCity(pCity)
         end,
     })
 end
@@ -683,27 +587,21 @@ local function buildCitiesTabItems()
             theirCities[#theirCities + 1] = enriched
         end
     end
+    -- Section headers as Text rows (not drillable Groups) so the tab is a
+    -- single flat scrollable list -- the city rows themselves carry every
+    -- piece of data the old per-city drill exposed.
     local items = {}
     if #yourCities > 0 then
-        local yourGroupItems = {}
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_YOUR_CITIES") })
         for _, ci in ipairs(yourCities) do
-            yourGroupItems[#yourGroupItems + 1] = buildCityRow(ci, false, spies)
+            items[#items + 1] = buildCityRow(ci, false, spies)
         end
-        items[#items + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_EO_YOUR_CITIES"),
-            items = yourGroupItems,
-        })
     end
     if #theirCities > 0 then
-        local theirGroupItems = {}
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_THEIR_CITIES") })
         for _, ci in ipairs(theirCities) do
-            local pCityOwner = Players[ci.PlayerID]
-            theirGroupItems[#theirGroupItems + 1] = buildCityRow(ci, pCityOwner:IsMinorCiv(), spies)
+            items[#items + 1] = buildCityRow(ci, Players[ci.PlayerID]:IsMinorCiv(), spies)
         end
-        items[#items + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_EO_THEIR_CITIES"),
-            items = theirGroupItems,
-        })
     end
     return items
 end
