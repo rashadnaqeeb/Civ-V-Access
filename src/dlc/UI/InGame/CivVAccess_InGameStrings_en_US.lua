@@ -227,6 +227,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_KILLED"] = "{1_Name} killed"
 -- reports a landed intercept (interceptorDamage > 0); failed / evaded
 -- intercepts surface no clause to match base game's UI.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_INTERCEPTED_BY"] = "intercepted by {1_Name}"
+-- Air-sweep prefix. The engine reports combatKind = 1 for sweep into
+-- ground AA (one-sided), combatKind = 2 for sweep into another fighter
+-- (two-sided dogfight). The prefix lets the user know the combat result
+-- they're about to hear came from a sweep they triggered.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_PREFIX_INTERCEPTION"] = "interception"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_PREFIX_DOGFIGHT"] = "dogfight"
+-- Air-sweep no-target. Engine fork's CivVAccessAirSweepNoTarget hook
+-- fires when the user issues a sweep but no interceptor is in range to
+-- engage. Mirrors base game's TXT_KEY_AIR_PATROL_FOUND_NOTHING which
+-- lands in the sighted notification log we don't subscribe to.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_AIR_SWEEP_NO_TARGET"] = "no interceptors"
 -- City-capture announcements. SerialEventCityCaptured fires for empty
 -- city captures (no combat resolution) and for capture-after-defender-
 -- killed transitions; the active player's perspective decides which line

@@ -2394,20 +2394,20 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 	// HP is announced via SerialEventCitySetDamage). Firing from here --
 	// the post-resolve point inside the dispatcher every unit-attacker
 	// combat funnels through -- gives the mod one synchronous signal that
-	// covers Quick + standard, units + cities, melee + ranged. Skip
-	// nuclear / air sweep (different announcement paths). Hook fires
-	// unconditionally for the cases it covers; mod-side dedupe (clearing
-	// any combat-pending snapshot) ensures only one spoken result per
-	// combat even if both this hook and EndCombatSim fire in sequence.
+	// covers Quick + standard, units + cities, melee + ranged + air
+	// sweep. Nuclear is excluded (different announcement path). Hook
+	// fires unconditionally for the cases it covers; mod-side dedupe
+	// (clearing any combat-pending snapshot) ensures only one spoken
+	// result per combat even if both this hook and EndCombatSim fire in
+	// sequence.
 	if(pAttacker
 	    && (pDefender != NULL || pDefenderCityForHook != NULL)
-	    && !kInfo.getAttackIsNuclear()
-	    && !kInfo.getAttackIsAirSweep())
+	    && !kInfo.getAttackIsNuclear())
 	{
 		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
 		if(pkScriptSystem)
 		{
-			// 14-arg payload, decoded by the Lua handler at
+			// 15-arg payload, decoded by the Lua handler at
 			// UnitControl.onCombatResolved:
 			//   1: attackerPlayerId
 			//   2: attackerUnitId
@@ -2421,6 +2421,9 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			//   12: interceptorPlayerId        (-1 sentinel when no intercept landed)
 			//   13: interceptorUnitId          (-1 sentinel when no intercept landed)
 			//   14: interceptorDamage          (0 when no intercept landed)
+			//   15: combatKind                 (0 = normal melee/ranged/air-strike,
+			//                                   1 = air sweep into ground AA (one-way),
+			//                                   2 = air sweep into another fighter (dogfight))
 			// Lua dispatches on (defenderUnitId != -1) to pick unit vs city naming.
 			// Adding fields means updating both branches AND the Lua handler;
 			// the unit branch uses (unit, -1) and the city branch (-1, city) so
@@ -2433,8 +2436,20 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			// base game's UI, which only surfaces interceptor messages when
 			// iInterceptionDamage > 0 (CvUnitCombat.cpp's
 			// TXT_KEY_MISC_ENEMY_AIR_UNIT_INTERCEPTED / DESTROYED routing).
+			//
+			// combatKind separates air sweep (one-sided ground-AA exchange
+			// or two-sided fighter dogfight) from normal combat so the mod
+			// can prepend a "interception" / "dogfight" marker. Sweep is a
+			// distinct player intent ("flush enemy interceptors"); the
+			// regular attacker / defender framing alone doesn't tell the
+			// user the combat they triggered was a sweep.
 			CvUnit* pInterceptor = kInfo.getUnit(BATTLE_UNIT_INTERCEPTOR);
 			int iInterceptDamage = pInterceptor ? kInfo.getDamageInflicted(BATTLE_UNIT_INTERCEPTOR) : 0;
+			int iCombatKind = 0;
+			if(kInfo.getAttackIsAirSweep() && pDefender != NULL)
+			{
+				iCombatKind = (pDefender->getDomainType() == DOMAIN_AIR) ? 2 : 1;
+			}
 			CvLuaArgsHandle args;
 			args->Push(pAttacker->getOwner());
 			args->Push(pAttacker->GetID());
@@ -2471,6 +2486,7 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 				args->Push(-1);
 				args->Push(0);
 			}
+			args->Push(iCombatKind);
 			bool bResult;
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessCombatResolved", args.get(), bResult);
 		}
@@ -2984,6 +3000,22 @@ CvUnitCombat::ATTACK_RESULT CvUnitCombat::AttackAirSweep(CvUnit& kAttacker, CvPl
 			Localization::String localizedText = Localization::Lookup("TXT_KEY_AIR_PATROL_FOUND_NOTHING");
 			localizedText << kAttacker.getUnitInfo().GetTextKey();
 			GC.GetEngineUserInterface()->AddMessage(0, kAttacker.getOwner(), false, GC.getEVENT_MESSAGE_TIME(), localizedText.toUTF8());
+		}
+
+		// CIVVACCESS: Fire AirSweepNoTarget hook for the accessibility mod.
+		// The engine's own AddMessage above lands in the visual notification
+		// log which the mod has no Lua subscription for; without this hook
+		// the screen-reader path stays silent on a sweep that found nothing.
+		// 2-arg payload: attackerPlayerId, attackerUnitId. Lua filters to
+		// the active player same as CombatResolved.
+		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+		if(pkScriptSystem)
+		{
+			CvLuaArgsHandle args;
+			args->Push(kAttacker.getOwner());
+			args->Push(kAttacker.GetID());
+			bool bResult;
+			LuaSupport::CallHook(pkScriptSystem, "CivVAccessAirSweepNoTarget", args.get(), bResult);
 		}
 
 		// Spend a move for this attack

@@ -1015,6 +1015,60 @@ function M.test_combat_result_no_interceptor_no_intercept_clause()
     T.truthy(not out:find("intercept", 1, true), "no intercept clause when interceptor is nil: " .. out)
 end
 
+-- Air sweep into ground AA prepends "interception" so the user knows the
+-- damage line came from a sweep, not a strike. Defender (the AA) takes
+-- zero damage in this engine path; the unhurt branch handles that
+-- naturally.
+function M.test_combat_result_sweep_one_way_prepends_interception()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "American Fighter",
+        attackerDamage = 8,
+        attackerFinalDamage = 8,
+        attackerMaxHP = 100,
+        defenderName = "Roman Anti-Aircraft Gun",
+        defenderDamage = 0,
+        defenderFinalDamage = 0,
+        defenderMaxHP = 100,
+        combatKind = 1,
+    })
+    T.truthy(out:find("^interception"), "interception prefix expected: " .. out)
+    T.truthy(out:find("Roman Anti%-Aircraft Gun unhurt"), "AA unhurt expected: " .. out)
+end
+
+function M.test_combat_result_sweep_dogfight_prepends_dogfight()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "American Fighter",
+        attackerDamage = 12,
+        attackerFinalDamage = 12,
+        attackerMaxHP = 100,
+        defenderName = "Roman Fighter",
+        defenderDamage = 18,
+        defenderFinalDamage = 18,
+        defenderMaxHP = 100,
+        combatKind = 2,
+    })
+    T.truthy(out:find("^dogfight"), "dogfight prefix expected: " .. out)
+end
+
+-- combatKind nil / 0 must not introduce a stray prefix on normal combat.
+function M.test_combat_result_normal_combat_no_kind_prefix()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Warrior",
+        attackerDamage = 12,
+        attackerFinalDamage = 12,
+        attackerMaxHP = 100,
+        defenderName = "Swordsman",
+        defenderDamage = 30,
+        defenderFinalDamage = 30,
+        defenderMaxHP = 100,
+    })
+    T.truthy(not out:find("interception"), "no interception prefix on normal combat: " .. out)
+    T.truthy(not out:find("dogfight"), "no dogfight prefix on normal combat: " .. out)
+end
+
 -- Bomber killed by intercept: the intercept clause appears before the
 -- kill line, keeping "Bomber killed" as the readout's tail.
 function M.test_combat_result_intercept_kill_keeps_kill_line_last()

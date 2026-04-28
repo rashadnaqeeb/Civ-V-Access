@@ -652,17 +652,22 @@ end
 
 -- GameEvents.CivVAccessCombatResolved listener. The engine fork fires
 -- this from CvUnitCombat::ResolveCombat (post-resolve, before the
--- dispatcher returns) for every unit-attacker melee / ranged combat
--- against units and cities, regardless of Quick Combat. Sole speech path
--- for unit-initiated combat results: per-side damage-this-combat, final
--- damage, max HP. Defender is either a unit (defenderUnit > -1) or a
--- city (defenderCity > -1, defenderUnit = -1).
+-- dispatcher returns) for every unit-attacker melee / ranged / air-sweep
+-- combat against units and cities, regardless of Quick Combat. Sole
+-- speech path for unit-initiated combat results: per-side damage-this-
+-- combat, final damage, max HP. Defender is either a unit (defenderUnit
+-- > -1) or a city (defenderCity > -1, defenderUnit = -1).
 --
 -- Interceptor fields populate only on landed air-strike intercepts
 -- (engine-side gate; see CvUnitCombat.cpp CIVVACCESS hook). Failed /
 -- evaded intercepts arrive as -1 / -1 / 0 sentinels and the speech
 -- formatter omits the intercept clause -- matching base game's UI,
 -- which announces interceptors only on landed hits.
+--
+-- combatKind distinguishes air-sweep paths from normal combat:
+--   0 = normal melee / ranged / air strike (no prefix)
+--   1 = air sweep against ground AA (one-sided): "interception" prefix
+--   2 = air sweep against an air interceptor (dogfight): "dogfight" prefix
 local function onCombatResolved(
     attackerPlayer,
     attackerUnit,
@@ -677,7 +682,8 @@ local function onCombatResolved(
     defenderMaxHP,
     interceptorPlayer,
     interceptorUnit,
-    interceptorDamage
+    interceptorDamage,
+    combatKind
 )
     local activePlayer = Game.GetActivePlayer()
     if attackerPlayer ~= activePlayer and defenderPlayer ~= activePlayer then
@@ -718,8 +724,23 @@ local function onCombatResolved(
         defenderFinalDamage = defenderFinalDamage,
         defenderMaxHP = defenderMaxHP,
         interceptorName = interceptorName,
+        combatKind = combatKind,
     })
     speakQueued(text)
+end
+
+-- GameEvents.CivVAccessAirSweepNoTarget listener. Engine fork fires this
+-- from CvUnitCombat::AttackAirSweep when GetBestInterceptor returns NULL
+-- (no interceptor in range / with charges left at the target plot). No
+-- combat resolves and CombatResolved doesn't fire, so without this hook
+-- the user's sweep would be a silent no-op. Engine-side AddMessage that
+-- lands the same info in the notification panel for sighted players is
+-- not subscribed to from Lua.
+local function onAirSweepNoTarget(attackerPlayer, _attackerUnit)
+    if attackerPlayer ~= Game.GetActivePlayer() then
+        return
+    end
+    speakQueued(Text.key("TXT_KEY_CIVVACCESS_AIR_SWEEP_NO_TARGET"))
 end
 
 -- Empty city captures don't fire any combat resolution -- the unit just walks in.
@@ -964,5 +985,13 @@ function UnitControl.installListeners()
         GameEvents.CivVAccessCombatResolved.Add(onCombatResolved)
     else
         Log.warn("UnitControl: GameEvents.CivVAccessCombatResolved missing")
+    end
+    -- Engine-fork hook fired from CvUnitCombat::AttackAirSweep when no
+    -- interceptor is in range. CombatResolved never fires for this case;
+    -- without a dedicated signal a sweep into nothing reads as silence.
+    if GameEvents ~= nil and GameEvents.CivVAccessAirSweepNoTarget ~= nil then
+        GameEvents.CivVAccessAirSweepNoTarget.Add(onAirSweepNoTarget)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessAirSweepNoTarget missing")
     end
 end

@@ -1061,6 +1061,17 @@ function UnitSpeech.combatResult(args)
     local atkDamage = args.attackerDamage
     local defDamage = args.defenderDamage
     local parts = {}
+    -- Air sweep prepends a sweep-kind word ("interception" / "dogfight")
+    -- so the user knows the result they're hearing came from a sweep
+    -- they triggered, not a regular ranged attack. Engine-side combatKind:
+    --   1 = sweep into ground AA (one-sided exchange)
+    --   2 = sweep into another fighter (two-sided dogfight)
+    --   nil / 0 = normal melee / ranged / air strike (no prefix)
+    if args.combatKind == 1 then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_COMBAT_PREFIX_INTERCEPTION")
+    elseif args.combatKind == 2 then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_COMBAT_PREFIX_DOGFIGHT")
+    end
     -- Both sides always speak so the user hears who fought even when one
     -- side took no damage -- ranged attacks routinely leave the attacker
     -- untouched, and the prior "skip if zero" silently dropped the
