@@ -84,9 +84,16 @@ function BaseMenuEditMode.push(menu, textfieldItem)
                 priorCallback(committed, editBox, true)
             end)
         end
-        safe("restore RegisterCallback", function()
-            editBox:RegisterCallback(priorCallback)
-        end)
+        if priorCallback ~= nil then
+            -- EditBox:RegisterCallback rejects nil, so only restore when
+            -- there was a real prior callback to put back. The wrapping
+            -- callback we installed earlier stays bound but no-ops when
+            -- priorCallback is nil, and the next edit-mode push replaces
+            -- it anyway.
+            safe("restore RegisterCallback", function()
+                editBox:RegisterCallback(priorCallback)
+            end)
+        end
         HandlerStack.removeByName(subName, true)
         if restore then
             SpeechPipeline.speakInterrupt(
