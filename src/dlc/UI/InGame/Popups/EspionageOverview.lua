@@ -460,9 +460,6 @@ function RelocateAgent(agentID, city)
 
 	elseif (agent.AgentActivity == Locale.Lookup("TXT_KEY_SPY_STATE_DEAD")) then
 		strActivityTT = Locale.Lookup("TXT_KEY_EO_SPY_BUTTON_DISABLED_SPY_DEAD_TT", agent.Rank, agent.Name);
-	else
-		print("falling out");
-		print(agent.AgentActivity);
 	end
 	
 	Controls.AgentActivity:SetToolTipString(strActivityTT);
@@ -668,10 +665,7 @@ function RefreshAgents()
 			elseif (v.AgentActivity == Locale.Lookup("TXT_KEY_SPY_STATE_MAKING_INTRODUCTIONS")) then
 				strActivityTT = Locale.Lookup("TXT_KEY_SPY_STATE_MAKING_INTRODUCTIONS_TT", v.Rank, v.Name, city:GetName());				
 			elseif (v.AgentActivity == Locale.Lookup("TXT_KEY_SPY_STATE_SCHMOOZING")) then
-				strActivityTT = Locale.Lookup("TXT_KEY_SPY_STATE_SCHMOOZING_TT", v.Rank, v.Name, city:GetName());				
-			else
-				print("falling out");
-				print(v.AgentActivity);
+				strActivityTT = Locale.Lookup("TXT_KEY_SPY_STATE_SCHMOOZING_TT", v.Rank, v.Name, city:GetName());
 			end
 			
 			agentEntry.AgentActivity:SetToolTipString(strActivityTT);
@@ -737,16 +731,12 @@ function RefreshAgents()
 		
 			-- Initialize 'View City' button.
 			local OnViewCityClicked = function()
-				
 				if (city ~= nil) then
-					print("Attempting to show city screen");
 					-- Queue up an empty popup at a higher priority so that it prevents other cities from appearing while we're looking at this one!
 					UIManager:QueuePopup(Controls.EmptyPopup, PopupPriority.GenericPopup+1);
 					Events.SerialEventExitCityScreen.Add(CityScreenClosed);
 					UI.SetCityScreenViewingMode(true);
 					UI.DoSelectCityAtPlot( city:Plot() );
-				else
-					print("city == null");
 				end
 			end
 		
@@ -947,7 +937,6 @@ end
 
 function RefreshMyCities(selectedAgentIndex, selectedAgentCurrentCityPlayerID, selectedAgentCurrentCityID, citiesAvailableForRelocate)
 
-	print("Refreshing My Cities");
 	local map = Map;
 	local pActivePlayer = Players[Game.GetActivePlayer()];
 	local eActiveTeam = pActivePlayer:GetTeam();
@@ -1269,8 +1258,6 @@ function RefreshTheirCities(selectedAgentIndex, selectedAgentCurrentCityPlayerID
 				
 		if(agent ~= nil) then
 			local textColor = textColors[agent.State];
-			print(textColor);
-			print(agent.State);
 			entry.CivilizationName:SetColor(textColor, 0);
 			entry.CityName:SetColor(textColor, 0);
 			entry.CityPopulation:SetColor(textColor, 0);
@@ -1308,16 +1295,12 @@ function RefreshTheirCities(selectedAgentIndex, selectedAgentCurrentCityPlayerID
 				end
 				
 				local OnViewCityClicked = function()
-					
 					if (city ~= nil) then
-						--print("Attempting to show city screen");
 						-- Queue up an empty popup at a higher priority so that it prevents other cities from appearing while we're looking at this one!
 						UIManager:QueuePopup(Controls.EmptyPopup, PopupPriority.GenericPopup+1);
 						Events.SerialEventExitCityScreen.Add(CityScreenClosed);
 						UI.SetCityScreenViewingMode(true);
 						UI.DoSelectCityAtPlot( city:Plot() );
-					else
-						print("city == null");
 					end
 				end
 				
