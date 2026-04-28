@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Civ5Package>
     <GUID>{40A9DF7B-AE9F-48DB-ABB5-44AFE0420524}</GUID>
+    <!-- SteamApp + Key are BNW's own values, copied verbatim from
+         Assets/DLC/Expansion2/Expansion2.Civ5Pkg. Without these tags the
+         engine treats the package as third-party content and publishes a
+         real assets_hash on multiplayer lobbies, which the lobby browser's
+         sentinel-string filter ("YouCantTellMeWhatToDo!") never matches -
+         making the lobby invisible to every client, including the host's
+         own. Vox Populi MP modpacks use the same trick. Do not edit. -->
+    <SteamApp>235580</SteamApp>
     <Version>1</Version>
+    <Key>bf6d34a0074b7ad4b1d1716475f7f7fe</Key>
     <Priority>250</Priority>
     <PTags>
         <Tag>Version</Tag>
