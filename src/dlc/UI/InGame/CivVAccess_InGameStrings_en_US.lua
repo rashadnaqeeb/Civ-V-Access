@@ -84,6 +84,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR"] = "air unit, use rang
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK"] = "cannot attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES"] = "no moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED"] = "cannot enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] = "aircraft can't be moved this way, use rebase"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "not adjacent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"] = "no units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_NO_ACTIONS"] = "no actions"

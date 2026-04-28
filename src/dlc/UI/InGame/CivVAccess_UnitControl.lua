@@ -319,18 +319,24 @@ function UnitControl.preflightAttack(unit)
     return nil
 end
 
--- Precheck: can this unit enter the target plot at all? bDeclareWar=1
--- so a step into a peaceful rival's tile passes the gate -- the engine
--- will queue BUTTONPOPUP_DECLAREWARMOVE downstream and DeclareWarPopup
--- Access speaks the confirmation prompt. bDestination=1 so destination
--- -only checks (e.g., transport offload at the final tile) apply. No MP
--- check: a 0-MP move is legitimately queued for next turn and the
--- expiry path announces "queued" rather than treating it as failure.
--- Flags are int, not bool: the binding uses luaL_optint and rejects
--- Lua true/false outright. Exported so UnitTargetMode can use this in
--- place of UI.CanDoInterfaceMode(MOVE_TO), which wrongly fails 0-MP
--- moves the engine is happy to queue.
+-- Precheck: can this unit enter the target plot at all? Air units get a
+-- dedicated message: CanMoveOrAttackInto correctly rejects every adjacent
+-- plot for them (aircraft don't move directly; they rebase), but "cannot
+-- enter" reads as a per-tile failure and obscures that no direction will
+-- ever work. bDeclareWar=1 so a step into a peaceful rival's tile passes
+-- the gate -- the engine will queue BUTTONPOPUP_DECLAREWARMOVE downstream
+-- and DeclareWarPopupAccess speaks the confirmation prompt. bDestination=1
+-- so destination-only checks (e.g., transport offload at the final tile)
+-- apply. No MP check: a 0-MP move is legitimately queued for next turn
+-- and the expiry path announces "queued" rather than treating it as
+-- failure. Flags are int, not bool: the binding uses luaL_optint and
+-- rejects Lua true/false outright. Exported so UnitTargetMode can use
+-- this in place of UI.CanDoInterfaceMode(MOVE_TO), which wrongly fails
+-- 0-MP moves the engine is happy to queue.
 function UnitControl.preflightMove(unit, target)
+    if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE")
+    end
     if not unit:CanMoveOrAttackInto(target, 1, 1) then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED")
     end
