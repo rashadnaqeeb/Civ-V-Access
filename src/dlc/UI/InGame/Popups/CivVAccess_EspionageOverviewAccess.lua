@@ -835,11 +835,12 @@ local function pushHideoutConfirm(agentId, agent, onCommitted)
     })
 end
 
--- Build the relocate picker's flat city items. Eligible cities (from
--- GetAvailableSpyRelocationCities) commit immediately; ineligible cities
--- speak as read-only Text rows so the user hears their existence (not
--- just the eligible set), matching the design call to surface what
--- sighted players see even when not actionable.
+-- Build the relocate picker's items. Layout matches tab 2: Hideout and
+-- Cancel sit at the top, then Your Cities, then one drillable per foreign
+-- major civ, then a combined City-States drillable. Eligible destinations
+-- (from GetAvailableSpyRelocationCities) commit on activate; ineligible
+-- cities speak as read-only Text rows so the user hears their existence,
+-- not just the eligible set.
 local function buildMoveSubItems(agent)
     local pPlayer = activePlayer()
     local available = pPlayer:GetAvailableSpyRelocationCities(agent.AgentID) or {}
@@ -853,10 +854,6 @@ local function buildMoveSubItems(agent)
     local pMyTeam = Teams[Game.GetActiveTeam()]
     local items = {}
 
-    -- Hideout button at the top. Always available for non-dead, non-already-
-    -- at-hideout spies; engine RelocateAgent shows it unconditionally inside
-    -- the move flow. reactivate=true on the Move pop so the espionage shell
-    -- re-announces after the underlying ChooseConfirm pops silently.
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_MOVE_SPY_HIDEOUT_BUTTON"),
         onActivate = function()
@@ -873,67 +870,101 @@ local function buildMoveSubItems(agent)
         end,
     })
 
-    local function appendCity(ci, isCityState)
+    -- Per-row item builder. Civ is dropped on every move-flow row: own
+    -- cities sit under Your Cities, foreign-major rows sit under a per-civ
+    -- group, and city-states sit under the combined City-States group, so
+    -- the group label always names the civ. Eligible -> Choice that
+    -- commits via SendMoveSpy (or pushes the diplomat picker for capitals
+    -- of major civs we're not at war with); ineligible -> inert Text.
+    local function buildCityItem(ci, isCityState)
         local key = ci.PlayerID .. ":" .. ci.CityID
         local spy = agentInCity(ci.PlayerID, ci.CityID, spies)
-        -- Drop civ on your cities (your civ is implicit) and on city-states
-        -- (civ name matches city name -- "Brussels, Brussels" is noise).
-        -- Foreign major-civ rows keep civ since they're mixed in this flat
-        -- list and civ is the only thing distinguishing rival cities.
-        local isYour = ci.PlayerID == Game.GetActivePlayer()
-        local label = cityRowLabel(ci, isCityState, spy, isYour or isCityState)
-        if availableLookup[key] then
-            local plot = Map.GetPlot(ci.CityX, ci.CityY)
-            local pCity = plot and plot:GetPlotCity() or nil
-            local needsDiplomatChoice = false
-            if pCity ~= nil and pCity:IsCapital() then
-                local owner = Players[ci.PlayerID]
-                if not owner:IsMinorCiv() and not pMyTeam:IsAtWar(pCity:GetTeam()) then
-                    needsDiplomatChoice = true
-                end
-            end
-            items[#items + 1] = BaseMenuItems.Choice({
-                labelText = label,
-                activate = function()
-                    if needsDiplomatChoice then
-                        pushDiplomatPicker(agent.AgentID, ci.PlayerID, ci.CityID, function()
-                            HandlerStack.removeByName("EspionageOverview/Move", true)
-                        end)
-                        return
-                    end
-                    Network.SendMoveSpy(Game.GetActivePlayer(), agent.AgentID, ci.PlayerID, ci.CityID, false)
-                    HandlerStack.removeByName("EspionageOverview/Move", true)
-                end,
-            })
-        else
-            items[#items + 1] = BaseMenuItems.Text({ labelText = label })
+        local label = cityRowLabel(ci, isCityState, spy, true)
+        if not availableLookup[key] then
+            return BaseMenuItems.Text({ labelText = label })
         end
+        local plot = Map.GetPlot(ci.CityX, ci.CityY)
+        local pCity = plot and plot:GetPlotCity() or nil
+        local needsDiplomatChoice = false
+        if pCity ~= nil and pCity:IsCapital() then
+            local owner = Players[ci.PlayerID]
+            if not owner:IsMinorCiv() and not pMyTeam:IsAtWar(pCity:GetTeam()) then
+                needsDiplomatChoice = true
+            end
+        end
+        return BaseMenuItems.Choice({
+            labelText = label,
+            activate = function()
+                if needsDiplomatChoice then
+                    pushDiplomatPicker(agent.AgentID, ci.PlayerID, ci.CityID, function()
+                        HandlerStack.removeByName("EspionageOverview/Move", true)
+                    end)
+                    return
+                end
+                Network.SendMoveSpy(Game.GetActivePlayer(), agent.AgentID, ci.PlayerID, ci.CityID, false)
+                HandlerStack.removeByName("EspionageOverview/Move", true)
+            end,
+        })
     end
 
-    -- Group your cities then their cities, mirroring tab 2's layout. We
-    -- keep the section headers as Text rows (not drillable Groups) so the
-    -- user gets a flat scrollable list -- the user explicitly asked for
-    -- "no longer drillable" for the move flow.
-    local your, their = {}, {}
+    -- Bucket cities the same way buildCitiesTabItems does so the move flow
+    -- shares tab 2's drillable layout: own, per-foreign-civ in first-
+    -- occurrence order, and a combined city-states pool.
+    local yourCities = {}
+    local byCiv = {}
+    local civOrder = {}
+    local cityStateCities = {}
     for _, v in ipairs(cityStatus) do
         local enriched = enrichCityStatus(v)
         if v.PlayerID == Game.GetActivePlayer() then
-            your[#your + 1] = enriched
+            yourCities[#yourCities + 1] = enriched
         elseif v.Team ~= activeTeam then
-            their[#their + 1] = enriched
+            local owner = Players[v.PlayerID]
+            if owner:IsMinorCiv() then
+                cityStateCities[#cityStateCities + 1] = enriched
+            else
+                local key = enriched.CivilizationNameKey
+                local bucket = byCiv[key]
+                if bucket == nil then
+                    bucket = { civName = enriched.CivilizationName, cities = {} }
+                    byCiv[key] = bucket
+                    civOrder[#civOrder + 1] = key
+                end
+                bucket.cities[#bucket.cities + 1] = enriched
+            end
         end
     end
-    if #your > 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_YOUR_CITIES") })
-        for _, ci in ipairs(your) do
-            appendCity(ci, false)
+
+    if #yourCities > 0 then
+        local yourGroupItems = {}
+        for _, ci in ipairs(yourCities) do
+            yourGroupItems[#yourGroupItems + 1] = buildCityItem(ci, false)
         end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = Text.key("TXT_KEY_EO_YOUR_CITIES"),
+            items = yourGroupItems,
+        })
     end
-    if #their > 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_THEIR_CITIES") })
-        for _, ci in ipairs(their) do
-            appendCity(ci, Players[ci.PlayerID]:IsMinorCiv())
+    for _, key in ipairs(civOrder) do
+        local bucket = byCiv[key]
+        local groupItems = {}
+        for _, ci in ipairs(bucket.cities) do
+            groupItems[#groupItems + 1] = buildCityItem(ci, false)
         end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = bucket.civName,
+            items = groupItems,
+        })
+    end
+    if #cityStateCities > 0 then
+        local csGroupItems = {}
+        for _, ci in ipairs(cityStateCities) do
+            csGroupItems[#csGroupItems + 1] = buildCityItem(ci, true)
+        end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = Text.key("TXT_KEY_ADVISOR_CITY_STATES_INTRO_DISPLAY"),
+            items = csGroupItems,
+        })
     end
     return items
 end
