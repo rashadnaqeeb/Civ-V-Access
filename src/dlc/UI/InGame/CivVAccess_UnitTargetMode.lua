@@ -191,15 +191,21 @@ end
 
 -- Plot defender for combat preview / commit. Wraps the engine's
 -- getBestDefender (CvPlot.cpp:2627) -- the same pick the engine uses to
--- resolve combat -- with the filters the target-mode UI needs:
+-- resolve combat -- with the filters the target-mode UI needs.
 --
---   bTestAtWar=false + bTestPotentialEnemy=true: peaceful rivals are
---   included. The engine accepts them as range-strike / move-into targets
---   and queues a war-confirm popup at commit. Allies stay filtered out.
+-- bTestAtWar=true mirrors the engine's airStrikeTarget at
+-- CvUnit.cpp:20242. The other engine getBestDefender flag,
+-- bTestPotentialEnemy, looks like the right way to also include peaceful
+-- rivals but is dead code: it bottoms out in a Firaxis stub at
+-- CvGameCoreUtils.cpp:157 (`bool isPotentialEnemy(TeamTypes, TeamTypes)`)
+-- that always returns false, so passing 1 makes getBestDefender drop every
+-- defender. Community Patch confirmed this is unsalvageable -- they
+-- removed every reference to isPotentialEnemy from their engine. We
+-- handle the peaceful-rival ranged case below with a manual scan.
 --
---   bNoncombatAllowed: for range previews, civilians are valid strike
---   targets; for melee previews, melee-into-civilian is a capture, not
---   combat, so the civilian isn't a defender.
+-- bNoncombatAllowed: for range previews, civilians are valid strike
+-- targets; for melee previews, melee-into-civilian is a capture, not
+-- combat, so the civilian isn't a defender.
 --
 -- Passing the actor as pAttacker improves the air-strike damage-cap pick
 -- when the attacker is an air unit. NO_PLAYER (-1) leaves the unit-owner
@@ -209,7 +215,30 @@ local function defenderAt(plot, ranged, actor)
         return nil
     end
     local activePlayer = Game.GetActivePlayer()
-    return plot:GetBestDefender(-1, activePlayer, actor, 0, 1, 0, ranged and 1 or 0)
+    local defender = plot:GetBestDefender(-1, activePlayer, actor, 1, 0, 0, ranged and 1 or 0)
+    if defender ~= nil then
+        return defender
+    end
+    -- Peaceful-rival fallback for ranged: a strike on a not-yet-at-war
+    -- rival is legal when GetDeclareWarRangeStrike returns a team; the
+    -- engine queues BUTTONPOPUP_DECLAREWARRANGESTRIKE at commit and
+    -- GenericPopupAccess speaks the confirmation. Find a defender on that
+    -- team manually since the at-war filter rejects them. Melee / move
+    -- modes skip this: move-into-peaceful-rival routes through
+    -- DECLAREWARMOVE and the post-war move resolves separately, not as
+    -- preview-time combat.
+    if ranged then
+        local rivalTeam = actor:GetDeclareWarRangeStrike(plot)
+        if rivalTeam ~= -1 then
+            for i = 0, plot:GetNumUnits() - 1 do
+                local u = plot:GetUnit(i)
+                if u ~= nil and u ~= actor and u:GetTeam() == rivalTeam and u:IsCanDefend() then
+                    return u
+                end
+            end
+        end
+    end
+    return nil
 end
 
 -- Enemy city at plot if any. The active team must be at war with the city's
