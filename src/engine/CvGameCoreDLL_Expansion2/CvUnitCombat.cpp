@@ -2407,6 +2407,21 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
 		if(pkScriptSystem)
 		{
+			// 11-arg payload, decoded by the Lua handler at
+			// UnitControl.onCombatResolved:
+			//   1: attackerPlayerId
+			//   2: attackerUnitId
+			//   3: attackerDamageThisCombat   (post - pre, >= 0)
+			//   4: attackerFinalDamage         (cumulative; kill at >= maxHP)
+			//   5: attackerMaxHP
+			//   6: defenderPlayerId
+			//   7: defenderUnitId              (-1 sentinel when defender is a city)
+			//   8: defenderCityId              (-1 sentinel when defender is a unit)
+			//   9..11: defender damage / final damage / max HP, same shape as attacker
+			// Lua dispatches on (defenderUnitId != -1) to pick unit vs city naming.
+			// Adding fields means updating both branches AND the Lua handler;
+			// the unit branch uses (unit, -1) and the city branch (-1, city) so
+			// arg positions 6 and 9..11 stay aligned across both paths.
 			CvLuaArgsHandle args;
 			args->Push(pAttacker->getOwner());
 			args->Push(pAttacker->GetID());

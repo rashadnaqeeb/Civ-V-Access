@@ -137,8 +137,12 @@ local _combatPending = nil
 -- frame on which a combat speech fired through the new hook path. The
 -- legacy EndCombatSim / SerialEventCitySetDamage listeners check this
 -- timestamp and short-circuit if recent, so we don't double-speak when
--- the engine fires both signals for the same combat. Two-frame window
--- covers the synchronous-hook then async-EndCombatSim ordering.
+-- the engine fires both signals for the same combat. The window has to
+-- span the full standard-combat animation duration (the hook fires
+-- synchronously inside ResolveCombat; EndCombatSim fires when the
+-- animation finishes), and each new combat updates the timestamp before
+-- its own EndCombatSim arrives. 600 frames is generous headroom against
+-- the slowest combat animations (well above any observed timing).
 local _lastHookSpokenFrame = -1
 local HOOK_DEDUPE_FRAMES = 600
 
