@@ -14,10 +14,17 @@
 --
 -- Pending-move tracking bridges "commit" to "announce actual outcome".
 -- On commit (Alt+QAZEDC or target-mode move-to) we stash target coords +
--- the active player's expected unit id; on the first SerialEventUnitMove
--- afterwards we compare the unit's live plot to the target and speak
--- "moved" / "stopped short". Two-tick fallback covers silently-rejected
--- commits. No cross-turn state -- pending is cleared on every resolution.
+-- the active player's expected unit id. Two listeners drive resolution:
+-- SerialEventUnitMove fires per-hex while the unit traverses (announce
+-- on stop conditions: at target OR 0 MP), and the engine fork's
+-- CivVAccessMissionDispatched hook fires once after the engine processes
+-- the net message (announce moved / stopped-short / queued / failed
+-- depending on the unit's post-dispatch state). The hook is the
+-- authoritative resolver for MP, where the lockstep round-trip can stretch
+-- the move's resolution out by seconds; SerialEventUnitMove still races
+-- ahead in SP, and both paths early-return on _pending == nil so whichever
+-- arrives first wins and the other no-ops. No cross-turn state -- pending
+-- is cleared on every resolution.
 --
 -- Quick Movement support: with the option enabled the engine routes per-
 -- hex moves through CvUnit::SetPosition (gDLL->GameplayUnitTeleported)
@@ -40,15 +47,14 @@
 -- War-confirm moves freeze pending into a deferred slot. Moving onto a
 -- peaceful rival's tile (or attacking a peaceful rival's unit) does not
 -- execute the move; the engine queues BUTTONPOPUP_DECLAREWARMOVE for
--- confirmation. enemyAt filters by IsAtWar so isCombat is false and
--- pending is registered, then the unit sits while the popup is up and
--- the two-tick timeout would falsely speak "action failed". The popup-
--- shown listener moves _pending to _deferred (cancels the timer);
--- DeclareWarPopupAccess re-arms via notifyDeferredCommit on Yes (the
--- engine re-issues the move via Game.SelectionListMove, which fires
--- SerialEventUnitMove and our listener resolves normally) or drops via
--- notifyCommitCanceled on No / Esc (the popup itself was the user's
--- answer, no further speech needed).
+-- confirmation locally before any net message goes out, so neither
+-- SerialEventUnitMove nor MissionDispatched will fire for the original
+-- commit. The popup-shown listener moves _pending to _deferred to keep it
+-- out of the resolver paths; DeclareWarPopupAccess re-arms via
+-- notifyDeferredCommit on Yes (the engine re-issues the move via
+-- Game.SelectionListMove, which sends a fresh PUSH_MISSION and resolves
+-- through the normal path) or drops via notifyCommitCanceled on No / Esc
+-- (the popup itself was the user's answer, no further speech needed).
 
 UnitControl = {}
 
@@ -104,16 +110,12 @@ end
 -- entry should drop any in-flight pending move -- the listeners will
 -- rehook on LoadScreenClose and a half-registered pending would never
 -- resolve.
-local PENDING_EXPIRY_FRAMES = 2
-
 local _pending = nil
 local _deferred = nil
 
 local function clearPending()
     _pending = nil
 end
-
-local schedulePendingExpiry
 
 function UnitControl.registerPending(unit, targetX, targetY)
     if unit == nil then
@@ -125,10 +127,8 @@ function UnitControl.registerPending(unit, targetX, targetY)
         startY = unit:GetY(),
         targetX = targetX,
         targetY = targetY,
-        commitFrame = TickPump.frame(),
     }
     _pending = snapshot
-    schedulePendingExpiry(snapshot)
 end
 
 -- ===== Helpers =====
@@ -967,36 +967,37 @@ local function resolvePendingUnit()
     return player:GetUnitByID(_pending.unitID)
 end
 
--- Timeout check so a silently-rejected commit (engine dropped the
--- PUSH_MISSION, unit already out of moves, packet loss, etc.) doesn't
--- leak _pending forever and later misfire when some other SerialEvent
--- re-runs onUnitMoveCompleted. Snapshot guards against a newer commit
--- replacing the pending underneath us between reschedules.
-schedulePendingExpiry = function(snapshot)
-    TickPump.runOnce(function()
-        if _pending ~= snapshot then
-            return
-        end
-        if TickPump.frame() - snapshot.commitFrame < PENDING_EXPIRY_FRAMES then
-            schedulePendingExpiry(snapshot)
-            return
-        end
-        local unit = resolvePendingUnit()
-        if unit ~= nil and unit:GetX() == snapshot.startX and unit:GetY() == snapshot.startY then
-            -- Engine accepted the mission but no MP this turn: it sits
-            -- in the queue under ACTIVITY_HOLD until next turn. Speak
-            -- "queued" rather than "action failed" so the user knows
-            -- the move will resolve, just not now. Empty queue = genuine
-            -- rejection (engine refused the PUSH_MISSION outright); fall
-            -- back to the generic message there.
-            if #unit:GetMissionQueue() > 0 then
-                speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"))
-            else
-                speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+-- Speak the moved / stopped-short result and clear pending. Shared by
+-- onUnitMoveCompleted (per-hex SerialEventUnitMove fires while the unit
+-- traverses the path) and onMissionDispatched (engine-fork hook fires
+-- once after the net message is processed). Cursor follow-jump and the
+-- pending clear happen here so both call sites stay symmetric.
+local function speakMoveResult(unit, cx, cy)
+    local tx, ty = _pending.targetX, _pending.targetY
+    local reachedTarget = (cx == tx and cy == ty)
+    local turnsToArrival
+    if not reachedTarget then
+        local targetPlot = plotAt(tx, ty)
+        if targetPlot ~= nil then
+            local ok, pathTurns = unit:GeneratePath(targetPlot)
+            if ok then
+                -- Engine's iPathTurns starts at 1 (initial node) and
+                -- bumps on turn boundaries. The unit has just stopped
+                -- with 0 MP *this* turn; the next move begins turn+1,
+                -- which engine has already counted, so drop one.
+                turnsToArrival = pathTurns - 1
             end
         end
-        clearPending()
-    end)
+    end
+    speakQueued(UnitSpeech.moveResult(unit, tx, ty, turnsToArrival))
+    -- Same toggle that gates the selection auto-jump: when off, the
+    -- cursor stays where the player parked it and they can recenter
+    -- with the explicit hotkey if they want to inspect the
+    -- destination.
+    if civvaccess_shared.cursorFollowsSelection then
+        Cursor.jumpTo(cx, cy)
+    end
+    clearPending()
 end
 
 local function onUnitMoveCompleted()
@@ -1019,7 +1020,6 @@ local function onUnitMoveCompleted()
     if cx == _pending.startX and cy == _pending.startY then
         return
     end
-    local tx, ty = _pending.targetX, _pending.targetY
     -- Only speak on a stop condition (at target OR out of moves). The
     -- engine fires SerialEventUnitMove per hex traversed, so mid-path
     -- events need to be ignored. Compare MP in 60ths, not floored MP:
@@ -1028,33 +1028,72 @@ local function onUnitMoveCompleted()
     -- so flooring would announce "stopped" one tile early in mixed-
     -- terrain or partial-MP cases.
     local movesLeft60ths = unit:MovesLeft()
-    local reachedTarget = (cx == tx and cy == ty)
+    local reachedTarget = (cx == _pending.targetX and cy == _pending.targetY)
     if reachedTarget or movesLeft60ths <= 0 then
-        local turnsToArrival
-        if not reachedTarget then
-            local targetPlot = plotAt(tx, ty)
-            if targetPlot ~= nil then
-                local ok, pathTurns = unit:GeneratePath(targetPlot)
-                if ok then
-                    -- Engine's iPathTurns starts at 1 (initial node) and
-                    -- bumps on turn boundaries. The unit has just stopped
-                    -- with 0 MP *this* turn; the next move begins turn+1,
-                    -- which engine has already counted, so drop one.
-                    turnsToArrival = pathTurns - 1
-                end
-            end
-        end
-        speakQueued(UnitSpeech.moveResult(unit, tx, ty, turnsToArrival))
-        -- Same toggle that gates the selection auto-jump: when off, the
-        -- cursor stays where the player parked it and they can recenter
-        -- with the explicit hotkey if they want to inspect the
-        -- destination.
-        if civvaccess_shared.cursorFollowsSelection then
-            Cursor.jumpTo(cx, cy)
-        end
-        clearPending()
+        speakMoveResult(unit, cx, cy)
     end
 end
+
+-- Engine-fork hook fired from CvDllNetMessageHandler::ResponsePushMission
+-- and ResponseSwapUnits after the mission has been processed by the
+-- simulation. In SP this lands almost immediately after the user's commit;
+-- in MP it lands after the network lockstep slice processes the message
+-- (typically a couple of seconds, sometimes more). Either way the engine
+-- has either moved the unit, queued the mission for next turn, or refused
+-- the message by the time this fires -- so the listener can decide moved /
+-- stopped-short / queued / failed without a wall-clock timeout.
+--
+-- Replaces the prior 2-tick frame-count expiry timer, which assumed
+-- SP-style synchronous resolution and false-fired "action failed" while
+-- the network was still processing the move in MP. The user heard the
+-- bogus failure announcement, then watched the unit move a few seconds
+-- later when the round-trip finally resolved.
+--
+-- Player + unit ID match is required: the hook fires for every PUSH_MISSION
+-- the engine processes (including AI moves and other-player moves replayed
+-- on our client for sync), but we only resolve when the dispatch is for
+-- our active player's currently-pending unit. SerialEventUnitMove may
+-- have already resolved _pending by the time this fires (the engine fires
+-- the move event from inside PushMission); the _pending == nil early-
+-- return covers that race.
+local function onMissionDispatched(playerID, unitID, _missionType, _iData1, _iData2)
+    if _pending == nil then
+        return
+    end
+    if playerID ~= Game.GetActivePlayer() then
+        return
+    end
+    if unitID ~= _pending.unitID then
+        return
+    end
+    local unit = resolvePendingUnit()
+    if unit == nil then
+        clearPending()
+        return
+    end
+    local cx, cy = unit:GetX(), unit:GetY()
+    if cx == _pending.startX and cy == _pending.startY then
+        -- Engine processed the message but the unit didn't move. Either
+        -- it queued for next turn (mission queue non-empty -- 0-MP move,
+        -- ACTIVITY_HOLD until MP refresh) or it was refused outright
+        -- (engine dropped the PUSH_MISSION, unit ineligible at dispatch
+        -- time, etc.).
+        if #unit:GetMissionQueue() > 0 then
+            speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"))
+        else
+            speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))
+        end
+        clearPending()
+        return
+    end
+    speakMoveResult(unit, cx, cy)
+end
+
+-- Test-only seam. Production registers onMissionDispatched on
+-- GameEvents.CivVAccessMissionDispatched in installListeners(); the
+-- offline harness has no GameEvents pump, so suites call this entry
+-- directly to drive the listener.
+UnitControl._onMissionDispatched = onMissionDispatched
 
 -- War-confirm popup intercept. The engine queues this in lieu of
 -- executing a move that would trigger a war declaration; the unit hasn't
@@ -1170,6 +1209,19 @@ function UnitControl.installListeners()
         GameEvents.CivVAccessCombatResolved.Add(onCombatResolved)
     else
         Log.warn("UnitControl: GameEvents.CivVAccessCombatResolved missing")
+    end
+    -- Engine-fork hook fired from CvDllNetMessageHandler::ResponsePushMission
+    -- and ResponseSwapUnits after the engine processes a unit-mission net
+    -- message. Drives the deterministic post-dispatch resolution of
+    -- _pending; replaces the prior frame-count timeout that false-fired
+    -- "action failed" in MP while the network round-trip was still
+    -- resolving. SerialEventUnitMove still races ahead in SP (per-hex
+    -- engine event fires inside PushMission), and the _pending == nil
+    -- early-return on the second arrival keeps both paths idempotent.
+    if GameEvents ~= nil and GameEvents.CivVAccessMissionDispatched ~= nil then
+        GameEvents.CivVAccessMissionDispatched.Add(onMissionDispatched)
+    else
+        Log.warn("UnitControl: GameEvents.CivVAccessMissionDispatched missing")
     end
     -- Engine-fork hook fired from CvUnitCombat::AttackAirSweep when no
     -- interceptor is in range. CombatResolved never fires for this case;
