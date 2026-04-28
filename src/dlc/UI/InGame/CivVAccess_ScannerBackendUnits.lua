@@ -101,13 +101,29 @@ local function ownerCategory(ownerId, activePlayerId, activeTeam)
     return "units_neutral"
 end
 
-local function unitItemName(unit)
+-- itemName is also the collapse-by-name key in ScannerSnap, so the civ
+-- adjective on non-own units does double duty: the user hears whose
+-- units they're scanning, and Roman Warriors stay separate from
+-- Babylonian Warriors in the collapsed item list. Own units keep the
+-- bare description because the category (units_my) already disambiguates.
+local function unitItemName(unit, category)
     local unitType = unit:GetUnitType()
     local row = GameInfo.Units[unitType]
     if row == nil or row.Description == nil then
         return nil
     end
-    return Text.key(row.Description)
+    if category == "units_my" then
+        return Text.key(row.Description)
+    end
+    local owner = Players[unit:GetOwner()]
+    if owner == nil then
+        return Text.key(row.Description)
+    end
+    return Text.format(
+        "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV",
+        owner:GetCivilizationAdjectiveKey(),
+        row.Description
+    )
 end
 
 function ScannerBackendUnits.Scan(activePlayer, activeTeam)
@@ -132,7 +148,7 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
                         else
                             subcategory = roleSubcategory(unit)
                         end
-                        local name = unitItemName(unit)
+                        local name = unitItemName(unit, category)
                         if subcategory ~= nil and name ~= nil then
                             local unitId = unit:GetID()
                             out[#out + 1] = {

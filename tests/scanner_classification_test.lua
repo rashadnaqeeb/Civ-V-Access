@@ -140,6 +140,9 @@ local function installPlayer(playerId, unitList, opts)
         end
         return nil
     end
+    function p:GetCivilizationAdjectiveKey()
+        return opts.adjKey or "TXT_KEY_CIV_ADJECTIVE_FIXTURE"
+    end
     Players[playerId] = p
 end
 
