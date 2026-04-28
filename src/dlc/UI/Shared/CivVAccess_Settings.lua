@@ -134,6 +134,46 @@ local function setRevealAnnounce(v)
     Prefs.setBool("RevealAnnounce", b)
 end
 
+-- AI-combat speech toggle. On by default: combats the active player
+-- didn't initiate (AI attacking the player, or AI vs AI on a visible
+-- plot) speak through onCombatResolved. When off, those combats still
+-- land in the F7 Combat Log -- only the live speech is gated. Player-
+-- initiated combats are unaffected (the gate sits on the speech path
+-- only when attackerPlayer != activePlayer). UnitControl reads the
+-- shared field live, so toggling takes effect on the next combat.
+if civvaccess_shared.aiCombatAnnounce == nil then
+    civvaccess_shared.aiCombatAnnounce = Prefs.getBool("AiCombatAnnounce", true)
+end
+
+local function getAiCombatAnnounce()
+    return civvaccess_shared.aiCombatAnnounce == true
+end
+
+local function setAiCombatAnnounce(v)
+    local b = v and true or false
+    civvaccess_shared.aiCombatAnnounce = b
+    Prefs.setBool("AiCombatAnnounce", b)
+end
+
+-- Foreign-unit-watch speech toggle. On by default: the four-line turn-
+-- start summary of foreign units that entered or left view during the AI
+-- turn speaks at player-turn start. When off, the lines land silently in
+-- the F7 Turn Log instead. The civvaccess_shared.foreignUnitDelta write
+-- happens regardless so F7 always shows what the diff produced.
+if civvaccess_shared.foreignUnitWatchAnnounce == nil then
+    civvaccess_shared.foreignUnitWatchAnnounce = Prefs.getBool("ForeignUnitWatchAnnounce", true)
+end
+
+local function getForeignUnitWatchAnnounce()
+    return civvaccess_shared.foreignUnitWatchAnnounce == true
+end
+
+local function setForeignUnitWatchAnnounce(v)
+    local b = v and true or false
+    civvaccess_shared.foreignUnitWatchAnnounce = b
+    Prefs.setBool("ForeignUnitWatchAnnounce", b)
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -215,6 +255,16 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE",
             getValue = getRevealAnnounce,
             setValue = setRevealAnnounce,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE",
+            getValue = getAiCombatAnnounce,
+            setValue = setAiCombatAnnounce,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE",
+            getValue = getForeignUnitWatchAnnounce,
+            setValue = setForeignUnitWatchAnnounce,
         }),
     }
 end

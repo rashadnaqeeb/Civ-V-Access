@@ -766,7 +766,15 @@ local function onCombatResolved(
         interceptorName = interceptorName,
         combatKind = combatKind,
     })
-    speakQueued(text)
+    -- Player-initiated combat always speaks: it's direct feedback for the
+    -- key the user just pressed. Combat the active player didn't initiate
+    -- (AI attacking the player, or AI vs AI on a visible plot) is gated
+    -- behind the aiCombatAnnounce setting; when off it still records to
+    -- the F7 Combat Log so the user can review what happened during the
+    -- AI turn.
+    if attackerPlayer == activePlayer or civvaccess_shared.aiCombatAnnounce then
+        speakQueued(text)
+    end
     CombatLog.recordCombat(text)
 end
 

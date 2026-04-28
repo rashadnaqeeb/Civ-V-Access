@@ -105,7 +105,9 @@ local function setup()
     }
     GameDefines = GameDefines or {}
     GameDefines.MAX_CIV_PLAYERS = 2  -- iterate slots 0..2 inclusive (active + 2 foreign)
-    civvaccess_shared = {}
+    civvaccess_shared = {
+        foreignUnitWatchAnnounce = true,
+    }
 
     Text = Text or {}
     Text.key = function(k)
@@ -487,6 +489,23 @@ function M.test_delta_stored_for_f7()
     T.truthy(civvaccess_shared.foreignUnitDelta, "delta stored")
     T.eq(#civvaccess_shared.foreignUnitDelta, 1, "one non-empty line")
     T.eq(civvaccess_shared.foreignUnitDelta[1], "New hostile units in view: Roman Warrior")
+end
+
+function M.test_announce_off_silent_but_delta_still_set()
+    setup()
+    civvaccess_shared.foreignUnitWatchAnnounce = false
+    ForeignUnitWatch.installListeners()
+    ForeignUnitWatch._onTurnEnd()
+    installForeign(1, {
+        adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
+        atWar = true,
+        units = { makeUnit({ id = 1, plot = visiblePlot() }) },
+    })
+    ForeignUnitWatch._onTurnStart()
+    T.eq(#SpeechPipeline._calls, 0, "no speech when announce setting is off")
+    T.truthy(civvaccess_shared.foreignUnitDelta,
+        "delta still written so F7 turn log shows the diff")
+    T.eq(#civvaccess_shared.foreignUnitDelta, 1)
 end
 
 function M.test_delta_cleared_on_turn_end()

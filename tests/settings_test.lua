@@ -107,15 +107,16 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_eight_items()
+function M.test_open_builds_ten_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(
         #h._items,
-        8,
+        10,
         "audio cue group + volume slider + scanner-auto-move toggle + cursor-follows-selection toggle + "
-            .. "cursor-coord-mode group + scanner-coords toggle + read-subtitles toggle + reveal-announce toggle"
+            .. "cursor-coord-mode group + scanner-coords toggle + read-subtitles toggle + reveal-announce toggle + "
+            .. "ai-combat-announce toggle + foreign-unit-watch-announce toggle"
     )
 end
 
@@ -334,6 +335,64 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(civvaccess_shared.readSubtitles, true)
     T.eq(prefsStore["ReadSubtitles"], true)
+end
+
+-- AI combat announce toggle ---------------------------------------------
+
+function M.test_ninth_item_is_ai_combat_announce_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[9].kind, "checkbox")
+end
+
+function M.test_ai_combat_announce_default_on()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.aiCombatAnnounce, true, "lazy-init defaults to on")
+end
+
+function M.test_ai_combat_announce_toggle_flip_writes_shared_and_prefs()
+    setup()
+    Settings.open()
+    local handler = HandlerStack.active()
+    -- Down 8 times to reach the AI combat toggle (item 9).
+    for _ = 1, 8 do
+        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    end
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.aiCombatAnnounce, false)
+    T.eq(prefsStore["AiCombatAnnounce"], false)
+end
+
+-- Foreign-unit-watch announce toggle ------------------------------------
+
+function M.test_tenth_item_is_foreign_unit_watch_announce_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[10].kind, "checkbox")
+end
+
+function M.test_foreign_unit_watch_announce_default_on()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.foreignUnitWatchAnnounce, true, "lazy-init defaults to on")
+end
+
+function M.test_foreign_unit_watch_announce_toggle_flip_writes_shared_and_prefs()
+    setup()
+    Settings.open()
+    local handler = HandlerStack.active()
+    -- Down 9 times to reach the foreign-unit-watch toggle (item 10).
+    for _ = 1, 9 do
+        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    end
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.foreignUnitWatchAnnounce, false)
+    T.eq(prefsStore["ForeignUnitWatchAnnounce"], false)
 end
 
 return M
