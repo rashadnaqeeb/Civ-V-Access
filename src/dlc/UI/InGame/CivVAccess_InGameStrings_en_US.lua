@@ -863,11 +863,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE"] = "Ranged st
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_MODE"] = "ranged strike"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE"] = "cannot strike"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_FIRED"] = "fired"
--- City-attacker damage preview suffix. Caller speaks the target's
--- identity (CitySpeech.identity / UnitSpeech.info) before this; we add
--- the engine-computed strengths and damage. No verdict (cities don't
--- get GetCombatPrediction) and no retaliation (city ranged is one-way).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW"] = "{1_MyStr} vs {2_TheirStr}, {3_Dmg} damage to them"
+-- City-attacker damage preview. Mirrors the unit ranged preview shape
+-- ("{name}, {my} vs {theirs}, ..."): the cursor already spoke the target
+-- tile's full info, so this only names what is being shot at and the
+-- engine-computed strengths and damage. No verdict (cities don't get
+-- GetCombatPrediction) and no retaliation (city ranged is one-way).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW"] =
+    "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Dmg} damage to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_PREVIEW"] = "Space"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_PREVIEW"] = "Speak target info"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT"] = "Enter"

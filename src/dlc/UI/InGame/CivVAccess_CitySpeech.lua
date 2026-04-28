@@ -386,16 +386,20 @@ end
 -- GetStrengthValue for city defenders. Damage is clamped to the
 -- defender's max HP, matching the panel's clamp at line 1703.
 --
--- Caller speaks the target's identity (CitySpeech.identity for city
--- defenders, UnitSpeech.info for unit defenders) before this; this
--- function returns the engine-strength + damage suffix only.
+-- Embeds the target's name (civ-adjective + unit name for unit defenders,
+-- bare city name for city defenders) so the preview matches the shape of
+-- UnitSpeech.rangedPreview's "{name}, {myStr} vs {theirStr}, ..." -- the
+-- cursor's per-tile speech already gave the user the full unit info, so
+-- the strike preview only needs to name what's being shot at.
 function CitySpeech.rangedPreview(city, defenderUnit, defenderCity)
-    local damage, theirStrength, maxHP
+    local name, damage, theirStrength, maxHP
     if defenderUnit ~= nil then
+        name = UnitSpeech.unitName(defenderUnit)
         damage = city:RangeCombatDamage(defenderUnit, nil, false)
         theirStrength = city:RangeCombatUnitDefense(defenderUnit)
         maxHP = defenderUnit:GetMaxHitPoints()
     elseif defenderCity ~= nil then
+        name = defenderCity:GetName()
         damage = city:RangeCombatDamage(nil, defenderCity, false)
         theirStrength = defenderCity:GetStrengthValue()
         maxHP = defenderCity:GetMaxHitPoints()
@@ -407,5 +411,5 @@ function CitySpeech.rangedPreview(city, defenderUnit, defenderCity)
     end
     local myStr = Locale.ToNumber(city:GetStrengthValue() / 100, "#.##")
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW", myStr, theirStr, damage)
+    return Text.format("TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW", name, myStr, theirStr, damage)
 end

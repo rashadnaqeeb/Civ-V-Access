@@ -101,7 +101,7 @@ local function targetAnnouncement(city, plot, x, y)
     if unit == nil then
         return Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE")
     end
-    return UnitSpeech.info(unit) .. ", " .. CitySpeech.rangedPreview(city, unit, nil)
+    return CitySpeech.rangedPreview(city, unit, nil)
 end
 
 -- Initial landing target: first plot inside the city's max strike range
