@@ -97,3 +97,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_SEARCH"] = "Control plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_SEARCH"] = "Search scanner entries"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN"] = "Backspace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN"] = "Return cursor to pre-jump cell"
+
+-- Apply the active locale's overlay so every Context that includes this
+-- baseline gets the localized overrides. WorldView's Boot includes this
+-- file; the explicit StringsLoader call here keeps any future Context that
+-- chooses to include scanner strings standalone from speaking English.
+include("CivVAccess_StringsLoader")
+StringsLoader.loadOverlay("CivVAccess_ScannerStrings")

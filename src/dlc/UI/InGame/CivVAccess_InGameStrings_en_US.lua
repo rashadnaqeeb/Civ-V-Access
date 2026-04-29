@@ -2365,3 +2365,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} to tea
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} to {2_To}: {3_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Backslash or Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Close chat panel"
+
+-- Apply the active locale's overlay so every Context that includes this
+-- baseline gets the localized overrides. Without this, popup Contexts (each
+-- runs in its own env with its own CivVAccess_Strings) would only see the
+-- en_US table and speak mod-authored strings in English regardless of locale.
+include("CivVAccess_StringsLoader")
+StringsLoader.loadOverlay("CivVAccess_InGameStrings")

@@ -442,3 +442,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = "unhappiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT"] = "unhappy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_LEFT"] = "left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_RIGHT"] = "right"
+
+-- Apply the active locale's overlay so every Context that includes this
+-- baseline gets the localized overrides. Without this, secondary front-end
+-- Contexts (each runs in its own env with its own CivVAccess_Strings) would
+-- only see the en_US table and speak mod-authored strings in English
+-- regardless of locale.
+include("CivVAccess_StringsLoader")
+StringsLoader.loadOverlay("CivVAccess_FrontEndStrings")

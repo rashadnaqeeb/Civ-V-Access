@@ -54,3 +54,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS"] = "Shift 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS"] = "List enemy units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] = "List cities in range, closest first"
+
+-- Apply the active locale's overlay so every Context that includes this
+-- baseline gets the localized overrides. WorldView's Boot includes this
+-- file; the explicit StringsLoader call here keeps any future Context that
+-- chooses to include surveyor strings standalone from speaking English.
+include("CivVAccess_StringsLoader")
+StringsLoader.loadOverlay("CivVAccess_SurveyorStrings")

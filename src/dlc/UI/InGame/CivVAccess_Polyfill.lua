@@ -8,6 +8,22 @@ end
 
 civvaccess_shared = civvaccess_shared or {}
 
+-- include() is the engine's stem-based VFS loader; tests have no VFS, so the
+-- stub is a no-op. Suites that want real load behavior (strings_loader_test)
+-- dofile the target module explicitly and then monkey-patch include for
+-- capture. The strings baseline files invoke include + StringsLoader.loadOverlay
+-- at the bottom; the no-op stub plus the StringsLoader stub below keep that
+-- path inert in tests while production loads the real implementations.
+if include == nil then
+    include = function() end
+end
+
+StringsLoader = StringsLoader
+    or {
+        loadOverlay = function() end,
+        _setSupportedLocales = function() end,
+    }
+
 Locale = Locale
     or {
         ConvertTextKey = function(key)
