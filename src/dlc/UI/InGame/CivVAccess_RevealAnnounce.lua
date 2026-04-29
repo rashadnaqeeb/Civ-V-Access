@@ -472,6 +472,22 @@ function RevealAnnounce._flushBody()
     end
 end
 
+-- Silent snapshot rebuild at the start of every player turn so the next
+-- flush's hide diff is against post-AI-turn state, not the stale
+-- end-of-last-player-turn state. Without this, a foreign unit that
+-- walked into fog during the AI turn (which ForeignUnitWatch already
+-- speaks as "left" at turn start) is still in _visibleUnits, so the
+-- first flush after the player's first move re-announces it as hidden
+-- and the user hears the same unit twice from two sources.
+function RevealAnnounce._onTurnStart()
+    local ok, err = pcall(function()
+        _visibleUnits = buildVisibleForeignUnits()
+    end)
+    if not ok then
+        Log.error("RevealAnnounce: TurnStart snapshot reset failed: " .. tostring(err))
+    end
+end
+
 -- Registers fresh listeners on every call. See CivVAccess_Boot.lua's
 -- LoadScreenClose registration for the rationale: load-game-from-game
 -- kills the prior Context's env, stranding listeners that captured its
@@ -481,10 +497,11 @@ function RevealAnnounce.installListeners()
     -- baseline. With an empty snapshot the diff iterates nothing, so
     -- the first move after install would silently miss any unit it
     -- pushes into fog. Subsequent flushes self-maintain via the
-    -- snapshot rebuild at the end of _flush. Re-priming on every
-    -- installListeners call is intentional: load-from-game resets the
-    -- module-local _visibleUnits to the file-scope default, so the
-    -- baseline has to be re-established against the new game's state.
+    -- snapshot rebuild at the end of _flush, and _onTurnStart resyncs
+    -- the snapshot across AI turns. Re-priming on every installListeners
+    -- call is intentional: load-from-game resets the module-local
+    -- _visibleUnits to the file-scope default, so the baseline has to
+    -- be re-established against the new game's state.
     _visibleUnits = buildVisibleForeignUnits()
     if GameEvents ~= nil and GameEvents.CivVAccessPlotRevealed ~= nil then
         GameEvents.CivVAccessPlotRevealed.Add(recordFirstReveal)
@@ -497,6 +514,11 @@ function RevealAnnounce.installListeners()
         Events.HexFOWStateChanged.Add(recordNowVisible)
     else
         Log.warn("RevealAnnounce: Events.HexFOWStateChanged missing")
+    end
+    if Events ~= nil and Events.ActivePlayerTurnStart ~= nil then
+        Events.ActivePlayerTurnStart.Add(RevealAnnounce._onTurnStart)
+    else
+        Log.warn("RevealAnnounce: Events.ActivePlayerTurnStart missing")
     end
 end
 
