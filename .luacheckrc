@@ -72,8 +72,19 @@ read_globals = {
     "audio",
 
     -- Engine hex-geometry helpers injected by WorldView / camera code.
-    -- CameraTracker uses them to convert grid coords to world coords.
-    "HexToWorld", "ToHexFromGrid",
+    -- CameraTracker uses them to convert grid coords to world coords;
+    -- ToGridFromHex inverts ToHexFromGrid and is used by RevealAnnounce
+    -- to map FOW hex coords back to plot coords.
+    "HexToWorld", "ToHexFromGrid", "ToGridFromHex",
+
+    -- Gameplay-side event bus exposed by the engine fork. Distinct from
+    -- the UI-side Events / LuaEvents buses; carries gameplay events
+    -- (CivVAccessPlotRevealed, etc.) that fire from the C++ side.
+    "GameEvents",
+
+    -- Chat target enum used by Network.SendChat and the chat receive
+    -- callback to discriminate team/player/all messages.
+    "ChatTargetTypes",
 
     -- CityView tooltip helpers (InfoTooltipInclude pulls them in via the
     -- CityView Context's include chain). CityStats reads them at speech
@@ -124,7 +135,7 @@ globals = {
     "ScannerBackendCities", "ScannerBackendImprovements",
     "ScannerBackendRecommendations",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",
-    "ScannerBackendUnits",
+    "ScannerBackendUnits", "ScannerBackendWaypoints",
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",
@@ -140,6 +151,9 @@ globals = {
     "TaskList",
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
+    "Bookmarks", "Waypoints",
+    "MessageBuffer", "ChatBuffer", "CombatLog",
+    "RevealAnnounce", "ForeignUnitWatch",
 
     -- Base-game helpers pulled in by TechTree's include chain
     -- (TechHelpInclude.lua defines GetHelpTextForTech). Our TechTreeLogic
@@ -230,6 +244,13 @@ files["tests/"] = {
         -- Engine enum stubbed by the empire-status suites to drive the
         -- city-state influence-level branches.
         "InfluenceLevelTypes",
+        -- Engine hex-coord helper read by RevealAnnounce; the suite
+        -- installs a stub so coordinates round-trip predictably.
+        "ToGridFromHex",
+        -- Gameplay-side event bus injected by the engine fork. The
+        -- reveal-announce suite stubs it to drive the first-reveal
+        -- code path without a live game.
+        "GameEvents",
         -- Proxy-injected miniaudio binding. run.lua installs a capture
         -- stub before each suite; declaring it writable here lets the
         -- stub assignment and monkey-patches pass without warnings.
@@ -300,6 +321,7 @@ files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", 
 files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/TradeLogic.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/WorldView/DiploCorner.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/CityView/CityView.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/TechTree/TechTree.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }

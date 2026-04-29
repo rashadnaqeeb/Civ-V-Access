@@ -104,7 +104,7 @@ local function setup()
         },
     }
     GameDefines = GameDefines or {}
-    GameDefines.MAX_CIV_PLAYERS = 2  -- iterate slots 0..2 inclusive (active + 2 foreign)
+    GameDefines.MAX_CIV_PLAYERS = 2 -- iterate slots 0..2 inclusive (active + 2 foreign)
     civvaccess_shared = {
         foreignUnitWatchAnnounce = true,
     }
@@ -184,14 +184,6 @@ local function installForeign(id, opts)
     end
 end
 
-local function speechTexts()
-    local out = {}
-    for _, c in ipairs(SpeechPipeline._calls) do
-        out[#out + 1] = c.text
-    end
-    return out
-end
-
 -- ===== Tests =====
 
 function M.test_empty_initial_state_no_announce()
@@ -205,7 +197,7 @@ end
 
 function M.test_neutral_unit_enters_view()
     setup()
-    ForeignUnitWatch.installListeners()  -- prime: empty
+    ForeignUnitWatch.installListeners() -- prime: empty
     -- TurnEnd captures empty snapshot.
     ForeignUnitWatch._onTurnEnd()
     -- Now a foreign neutral unit becomes visible.
@@ -296,8 +288,11 @@ function M.test_war_declared_mid_turn_unit_still_visible()
     -- TurnStart: same unit, now hostile.
     ForeignUnitWatch._onTurnStart()
     T.eq(#SpeechPipeline._calls, 1, "war reclassification synthesizes one announcement")
-    T.eq(SpeechPipeline._calls[1].text, "New hostile units in view: Roman Warrior",
-        "neutral->hostile while in view announces as hostile entered")
+    T.eq(
+        SpeechPipeline._calls[1].text,
+        "New hostile units in view: Roman Warrior",
+        "neutral->hostile while in view announces as hostile entered"
+    )
 end
 
 function M.test_peace_declared_mid_turn_no_announce()
@@ -330,8 +325,11 @@ function M.test_aggregation_same_civ_same_unit_type()
         },
     })
     ForeignUnitWatch._onTurnStart()
-    T.eq(SpeechPipeline._calls[1].text, "New hostile units in view: 3 Roman Warrior",
-        "three same-type same-civ units aggregate with count prefix")
+    T.eq(
+        SpeechPipeline._calls[1].text,
+        "New hostile units in view: 3 Roman Warrior",
+        "three same-type same-civ units aggregate with count prefix"
+    )
 end
 
 function M.test_aggregation_two_civs_alphabetic_order()
@@ -353,9 +351,11 @@ function M.test_aggregation_two_civs_alphabetic_order()
     ForeignUnitWatch._onTurnStart()
     -- TXT_KEY_CIV_ARABIA_ADJECTIVE sorts before TXT_KEY_CIV_ROME_ADJECTIVE
     -- alphabetically (sort happens on the raw key, before resolution).
-    T.eq(SpeechPipeline._calls[1].text,
+    T.eq(
+        SpeechPipeline._calls[1].text,
         "New hostile units in view: Arabian Warrior, Roman Warrior",
-        "civs ordered deterministically by adjective key")
+        "civs ordered deterministically by adjective key"
+    )
 end
 
 function M.test_skip_own_units()
@@ -435,9 +435,11 @@ function M.test_barbarian_treated_as_hostile()
         units = { makeUnit({ id = 1, plot = visiblePlot() }) },
     })
     ForeignUnitWatch._onTurnStart()
-    T.eq(SpeechPipeline._calls[1].text,
+    T.eq(
+        SpeechPipeline._calls[1].text,
         "New hostile units in view: Barbarian Warrior",
-        "barbarians always classified hostile regardless of war state")
+        "barbarians always classified hostile regardless of war state"
+    )
 end
 
 function M.test_multiple_lines_speech_order()
@@ -461,10 +463,8 @@ function M.test_multiple_lines_speech_order()
     -- Walk both into fog and add a fresh hostile + neutral.
     snapshotHostile._plot = fogPlot()
     snapshotNeutral._plot = fogPlot()
-    Players[1]._units[#Players[1]._units + 1] =
-        makeUnit({ id = 3, unitType = 101, plot = visiblePlot() })  -- new hostile Spearman
-    Players[2]._units[#Players[2]._units + 1] =
-        makeUnit({ id = 4, unitType = 102, plot = visiblePlot() })  -- new neutral Worker
+    Players[1]._units[#Players[1]._units + 1] = makeUnit({ id = 3, unitType = 101, plot = visiblePlot() }) -- new hostile Spearman
+    Players[2]._units[#Players[2]._units + 1] = makeUnit({ id = 4, unitType = 102, plot = visiblePlot() }) -- new neutral Worker
     ForeignUnitWatch._onTurnStart()
     T.eq(#SpeechPipeline._calls, 4, "four buckets, four lines")
     T.eq(SpeechPipeline._calls[1].mode, "queued", "all lines queue")
@@ -504,8 +504,7 @@ function M.test_announce_off_silent_but_delta_still_set()
     })
     ForeignUnitWatch._onTurnStart()
     T.eq(#SpeechPipeline._calls, 0, "no speech when announce setting is off")
-    T.truthy(civvaccess_shared.foreignUnitDelta,
-        "delta still written so F7 turn log shows the diff")
+    T.truthy(civvaccess_shared.foreignUnitDelta, "delta still written so F7 turn log shows the diff")
     T.eq(#civvaccess_shared.foreignUnitDelta, 1)
 end
 
@@ -521,8 +520,7 @@ function M.test_delta_cleared_on_turn_end()
     ForeignUnitWatch._onTurnStart()
     T.truthy(civvaccess_shared.foreignUnitDelta, "delta set after turn start")
     ForeignUnitWatch._onTurnEnd()
-    T.eq(civvaccess_shared.foreignUnitDelta, nil,
-        "delta cleared on next turn end so F7 doesn't show stale info")
+    T.eq(civvaccess_shared.foreignUnitDelta, nil, "delta cleared on next turn end so F7 doesn't show stale info")
 end
 
 return M

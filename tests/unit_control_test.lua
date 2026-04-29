@@ -227,7 +227,7 @@ end
 -- ===== Engine accepted but queued for next turn =====
 function M.test_dispatched_on_start_with_queued_mission_speaks_queued()
     setup()
-    local unit = registerPendingFor({
+    registerPendingFor({
         id = 7,
         x = 3,
         y = 4,

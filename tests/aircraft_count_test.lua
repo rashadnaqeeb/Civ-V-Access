@@ -63,14 +63,17 @@ local function mkCarrier(opts)
     }
 end
 
-local function mkCargo(transportId, opts)
-    opts = opts or {}
+local function mkCargo(transportId)
     return {
         IsCargo = function()
             return true
         end,
         GetTransportUnit = function()
-            return { GetID = function() return transportId end }
+            return {
+                GetID = function()
+                    return transportId
+                end,
+            }
         end,
         GetDomainType = function()
             return DomainTypes.DOMAIN_AIR
@@ -112,9 +115,15 @@ function M.test_cargo_token_empty_when_no_capacity()
     setup()
     local plot = mkPlot({})
     local unit = {
-        GetID = function() return 1 end,
-        CargoSpace = function() return 0 end,
-        GetPlot = function() return plot end,
+        GetID = function()
+            return 1
+        end,
+        CargoSpace = function()
+            return 0
+        end,
+        GetPlot = function()
+            return plot
+        end,
     }
     T.eq(UnitSpeech.cargoAircraftToken(unit), "")
 end
@@ -160,7 +169,11 @@ end
 
 function M.test_city_token_empty_when_zero_aircraft()
     setup()
-    local city = { IsHasBuilding = function() return false end }
+    local city = {
+        IsHasBuilding = function()
+            return false
+        end,
+    }
     local plot = mkPlot({ mkLandUnit() }, { isCity = true, city = city })
     -- Zero aircraft suppresses entirely so every city tile doesn't
     -- announce "0/6 aircraft".
@@ -169,7 +182,11 @@ end
 
 function M.test_city_token_speaks_count_with_base_capacity()
     setup()
-    local city = { IsHasBuilding = function() return false end }
+    local city = {
+        IsHasBuilding = function()
+            return false
+        end,
+    }
     local plot = mkPlot({ mkAirInCity(), mkAirInCity() }, { isCity = true, city = city })
     T.eq(UnitSpeech.cityAircraftToken(plot), "2/6 aircraft")
 end
@@ -179,11 +196,12 @@ function M.test_city_token_skips_non_air_units_in_count()
     -- Mixed plot: a garrisoned land defender plus two stationed aircraft.
     -- Only the air units count toward the city's air total -- mirrors
     -- UpdateCityCargo's flat DOMAIN_AIR filter without a units-on-tile leak.
-    local city = { IsHasBuilding = function() return false end }
-    local plot = mkPlot(
-        { mkLandUnit(), mkAirInCity(), mkAirInCity() },
-        { isCity = true, city = city }
-    )
+    local city = {
+        IsHasBuilding = function()
+            return false
+        end,
+    }
+    local plot = mkPlot({ mkLandUnit(), mkAirInCity(), mkAirInCity() }, { isCity = true, city = city })
     T.eq(UnitSpeech.cityAircraftToken(plot), "2/6 aircraft")
 end
 
@@ -223,7 +241,9 @@ function M.test_city_token_ignores_unowned_building_modifiers()
         end
     end
     local city = {
-        IsHasBuilding = function() return false end,
+        IsHasBuilding = function()
+            return false
+        end,
     }
     local plot = mkPlot({ mkAirInCity() }, { isCity = true, city = city })
     -- Building exists in the catalog but the city doesn't own it; the
