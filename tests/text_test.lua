@@ -7,12 +7,13 @@ local T = require("support")
 local M = {}
 
 local warnings
-local origWarn, origConvert
+local origWarn, origConvert, origGetSpokenLang
 
 local function setup()
     warnings = {}
     origWarn = Log.warn
     origConvert = Locale.ConvertTextKey
+    origGetSpokenLang = Locale.GetCurrentSpokenLanguage
     Log.warn = function(msg)
         warnings[#warnings + 1] = msg
     end
@@ -22,6 +23,7 @@ end
 local function teardown()
     Log.warn = origWarn
     Locale.ConvertTextKey = origConvert
+    Locale.GetCurrentSpokenLanguage = origGetSpokenLang
 end
 
 function M.test_key_returns_engine_value()
@@ -69,6 +71,78 @@ function M.test_key_returns_civvaccess_string_from_table()
     T.eq(Text.key("TXT_KEY_CIVVACCESS_TEST_FIXTURE"), "hello")
     T.eq(calls, 0)
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEST_FIXTURE"] = nil
+    teardown()
+end
+
+function M.test_unit_with_civ_default_locale_orders_adj_first()
+    setup()
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_ROME_ADJECTIVE" then
+            return "Roman"
+        end
+        if key == "TXT_KEY_UNIT_WORKER" then
+            return "Worker"
+        end
+        return key
+    end
+    T.eq(Text.unitWithCiv("TXT_KEY_CIV_ROME_ADJECTIVE", "TXT_KEY_UNIT_WORKER"), "Roman Worker")
+    teardown()
+end
+
+function M.test_unit_with_civ_french_orders_noun_first()
+    setup()
+    Locale.GetCurrentSpokenLanguage = function()
+        return { Type = "fr_FR" }
+    end
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_BABYLON_ADJECTIVE" then
+            return "babylonien"
+        end
+        if key == "TXT_KEY_UNIT_WORKER" then
+            return "Ouvrier"
+        end
+        return key
+    end
+    T.eq(Text.unitWithCiv("TXT_KEY_CIV_BABYLON_ADJECTIVE", "TXT_KEY_UNIT_WORKER"), "Ouvrier babylonien")
+    teardown()
+end
+
+function M.test_unit_with_civ_dedup_when_name_already_contains_adj()
+    setup()
+    Locale.GetCurrentSpokenLanguage = function()
+        return { Type = "fr_FR" }
+    end
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_BABYLON_ADJECTIVE" then
+            return "babylonien"
+        end
+        if key == "TXT_KEY_UNIT_BABYLON_BOWMAN" then
+            return "Archer Babylonien"
+        end
+        return key
+    end
+    T.eq(
+        Text.unitWithCiv("TXT_KEY_CIV_BABYLON_ADJECTIVE", "TXT_KEY_UNIT_BABYLON_BOWMAN"),
+        "Archer Babylonien"
+    )
+    teardown()
+end
+
+function M.test_unit_with_civ_dedup_is_word_bounded()
+    setup()
+    -- A short adjective that is a substring (but not a whole word) of the
+    -- unit name must NOT trigger dedup. "ar" appears inside "Archer" but
+    -- only as a prefix; the prepend should still happen.
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_FAKE_ADJ" then
+            return "ar"
+        end
+        if key == "TXT_KEY_FAKE_UNIT" then
+            return "Archer"
+        end
+        return key
+    end
+    T.eq(Text.unitWithCiv("TXT_KEY_FAKE_ADJ", "TXT_KEY_FAKE_UNIT"), "ar Archer")
     teardown()
 end
 

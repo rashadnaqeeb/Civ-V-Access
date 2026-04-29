@@ -120,58 +120,80 @@ function Text.formatPlural(keyName, count, ...)
     return Text.format(keyName, ...)
 end
 
--- Compose "<civ adjective> <unit name>" through the base-game format
--- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV. In some non-English locales
--- (notably French) the localized template uses a gender-form selector
--- on the adjective that requires gender metadata on the unit-name row.
--- When that tag is missing the engine logs "Could not deduce form
--- based on gender and plurality" and the result is unusable for
--- speech: it may contain raw template-syntax residue ({, ^, *, @) or
--- be empty/whitespace-only. Treat any of those as broken and compose
--- the pieces ourselves. Adjective ends up in default form and word
--- order is adjective-then-noun (English-like), which is suboptimal
--- grammar in romance locales but always intelligible -- and only
--- kicks in for entries the format would have mangled anyway.
-local function looksBroken(s)
-    if s == nil then
-        return true
+-- Compose "<civ adjective> <unit name>". The base-game format
+-- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV only ships a non-English
+-- variant in fr_FR, and that variant invokes a gender-form selector
+-- the engine fails to resolve (Localization.log: "Could not deduce
+-- form based on gender and plurality") so it returns empty. Other
+-- locales fall through the engine to the en_US template, which is
+-- plain adjective-then-noun concatenation. Rather than try to coax a
+-- usable string out of the broken format, build the phrase ourselves:
+-- pick word order from a per-locale table and concatenate the default
+-- forms returned by Locale.ConvertTextKey on each row.
+--
+-- Two known-imperfect outcomes:
+-- * The adjective comes through in the row's default (first) form,
+--   which is masculine singular for the languages that gender. A
+--   feminine UU localized with a feminine adjective form will get the
+--   wrong gender ("Trière babylonien" instead of "Trière babylonienne").
+--   Selecting the right form would require unit-row gender metadata
+--   the Lua API does not expose; wrong-gender-correct-order is
+--   intelligible, wrong-order is jarring.
+-- * For locales we have not categorized below the order defaults to
+--   adj-noun (the engine's en_US fallback). Romance languages need
+--   noun-adj and are listed; everything else (Germanic, CJK, Slavic)
+--   reads correctly with adj-noun in the common case.
+local NOUN_ADJ_LOCALES = {
+    es_ES = true,
+    fr_FR = true,
+    it_IT = true,
+}
+
+local function activeLocale()
+    if Locale and Locale.GetCurrentSpokenLanguage then
+        local lang = Locale.GetCurrentSpokenLanguage()
+        if lang and lang.Type then
+            return lang.Type
+        end
     end
-    if s:find("^%s*$") then
-        return true
-    end
-    if s:find("[{}@^*]") then
-        return true
-    end
-    return false
+    return "en_US"
 end
 
-local loggedFallbackPairs = {}
+local function lower(s)
+    if Locale and Locale.ToLower then
+        return Locale.ToLower(s)
+    end
+    return s:lower()
+end
+
+local function escapePattern(s)
+    return (s:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%0"))
+end
+
+-- Whole-word substring check: true when needle appears inside haystack
+-- with a non-letter (or string boundary) on each side. Used to detect
+-- when a localized unit name already bakes in the civ adjective (the
+-- fr_FR row for TXT_KEY_UNIT_BABYLON_BOWMAN is "Archer Babylonien", so
+-- prepending "babylonien" would speak the adjective twice). Lua 5.1's
+-- %w is ASCII-only, so accented characters look like word separators
+-- and the frontier still anchors correctly around any ASCII-letter
+-- adjective form.
+local function nameContainsAdj(name, adj)
+    if name == "" or adj == "" then
+        return false
+    end
+    local pat = "%f[%w]" .. escapePattern(lower(adj)) .. "%f[%W]"
+    return lower(name):find(pat) ~= nil
+end
 
 function Text.unitWithCiv(adjKey, nameKey)
-    local out = Locale.ConvertTextKey("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", adjKey, nameKey)
-    if not looksBroken(out) then
-        return out
+    local adj = Text.key(adjKey)
+    local name = Text.key(nameKey)
+    if nameContainsAdj(name, adj) then
+        return name
     end
-    local adj = Locale.ConvertTextKey(adjKey)
-    local name = Locale.ConvertTextKey(nameKey)
-    local fallback = adj .. " " .. name
-    local pairKey = tostring(adjKey) .. "|" .. tostring(nameKey)
-    if not loggedFallbackPairs[pairKey] then
-        loggedFallbackPairs[pairKey] = true
-        Log.warn(
-            "Text.unitWithCiv fallback: adjKey="
-                .. tostring(adjKey)
-                .. " nameKey="
-                .. tostring(nameKey)
-                .. " out="
-                .. string.format("%q", tostring(out))
-                .. " adj="
-                .. string.format("%q", tostring(adj))
-                .. " name="
-                .. string.format("%q", tostring(name))
-                .. " fallback="
-                .. string.format("%q", fallback)
-        )
+    if NOUN_ADJ_LOCALES[activeLocale()] then
+        return name .. " " .. adj
     end
-    return fallback
+    return adj .. " " .. name
 end
