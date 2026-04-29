@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Civ5Package>
+    <!-- Sibling of CivVAccess_2.Civ5Pkg with the SAME GUID. EUI / VPUI ship
+         this three-manifest pattern (one .Civ5Pkg per UISkin set, all
+         sharing one GUID) and shipping with only the Expansion2 manifest
+         CTDs the engine when entering any built-in tutorial or any
+         vanilla-era scenario (Mongol, Paradise Found, Into the
+         Renaissance / 1066, Samurai Invasion of Korea, Wonders of the
+         Ancient World, Conquest of the New World non-Deluxe). Adding the
+         BaseGame and Expansion1 sibling manifests makes the CTD go away.
+         Mechanism unverified. Empirically: in normal mode all three
+         UISkin sets co-activate (probed and confirmed), so this manifest
+         doesn't gate which files load -- our Expansion2 GameplaySkin
+         contributions are still in the in-game VFS in tutorial mode.
+         What changes is something further upstream in DLC enumeration /
+         gameplay-DB rebuild that previously produced a native crash and
+         no longer does. The functional payload all lives in CivVAccess_2;
+         this manifest carries only the BaseGame skin declaration plus a
+         sentinel directory to keep the UISkin block non-empty (untested
+         whether empty blocks are valid).
+
+         Priority follows EUI convention (050 / 150 / 250). The
+         Expansion2 manifest carries SteamApp + Key for MP lobby
+         visibility; the BaseGame variant only co-activates when our DLC
+         loads, MP-or-not, but doesn't need its own copy of those tags
+         (BNW's identity reaches the lobby via CivVAccess_2). -->
+    <GUID>{40A9DF7B-AE9F-48DB-ABB5-44AFE0420524}</GUID>
+    <Version>1</Version>
+    <Priority>050</Priority>
+    <PTags>
+        <Tag>Version</Tag>
+    </PTags>
+    <Name>
+        <Value language="en_US">Civ V Access (Base)</Value>
+    </Name>
+    <Description>
+        <Value language="en_US">Accessibility layer for blind players (BaseGame set).</Value>
+    </Description>
+    <UISkin name="BaseGame" set="BaseGame" platform="Common">
+        <Skin>
+            <Directory>UI/SkinProbeBase</Directory>
+        </Skin>
+        <GameplaySkin>
+            <Directory>UI/SkinProbeBase</Directory>
+        </GameplaySkin>
+    </UISkin>
+</Civ5Package>

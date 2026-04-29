@@ -1,0 +1,2 @@
+-- Sentinel file for the Expansion1 (G&K) UISkin set. See SkinProbeBase
+-- for the rationale; this file's role is identical for CivVAccess_1.

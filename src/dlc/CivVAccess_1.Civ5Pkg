@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Civ5Package>
+    <!-- Sibling of CivVAccess_2.Civ5Pkg with the SAME GUID. See
+         CivVAccess_0.Civ5Pkg's header for the multi-manifest rationale.
+         Expansion1 (G&K) priority sits between BaseGame (050) and
+         Expansion2 (250). -->
+    <GUID>{40A9DF7B-AE9F-48DB-ABB5-44AFE0420524}</GUID>
+    <Version>1</Version>
+    <Priority>150</Priority>
+    <PTags>
+        <Tag>Version</Tag>
+    </PTags>
+    <Name>
+        <Value language="en_US">Civ V Access (G&amp;K)</Value>
+    </Name>
+    <Description>
+        <Value language="en_US">Accessibility layer for blind players (Expansion1 set).</Value>
+    </Description>
+    <UISkin name="Expansion1Primary" set="Expansion1" platform="Common">
+        <Skin>
+            <Directory>UI/SkinProbeG</Directory>
+        </Skin>
+        <GameplaySkin>
+            <Directory>UI/SkinProbeG</Directory>
+        </GameplaySkin>
+    </UISkin>
+</Civ5Package>
