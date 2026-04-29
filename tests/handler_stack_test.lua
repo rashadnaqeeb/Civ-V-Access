@@ -158,6 +158,88 @@ function M.test_removeByName_absent_returns_false()
     T.falsy(HandlerStack.removeByName("ghost"))
 end
 
+-- drainAndRemove --------------------------------------------------------
+
+local function makeEscSub(name, escFn)
+    return {
+        name = name,
+        bindings = {
+            { key = Keys.VK_ESCAPE, mods = 0, fn = escFn, description = "Esc" },
+        },
+    }
+end
+
+function M.test_drainAndRemove_finds_and_removes_named()
+    setup()
+    local a = makeHandler("a")
+    local target = makeHandler("target")
+    HandlerStack.push(a)
+    HandlerStack.push(target)
+    T.truthy(HandlerStack.drainAndRemove("target"))
+    T.eq(HandlerStack.count(), 1)
+    T.eq(a.activate, 2, "underneath reactivates after target removed")
+end
+
+function M.test_drainAndRemove_drains_subs_via_their_esc()
+    setup()
+    local target = makeHandler("target")
+    local subEscCalls = 0
+    -- Sub Esc pops itself, mirroring how BaseMenuEditMode's exit binding
+    -- actually behaves: it removes the sub from the stack, leaving the
+    -- host as the new top.
+    local sub = makeEscSub("sub", function()
+        subEscCalls = subEscCalls + 1
+        HandlerStack.pop()
+    end)
+    HandlerStack.push(target)
+    HandlerStack.push(sub)
+    T.truthy(HandlerStack.drainAndRemove("target"))
+    T.eq(subEscCalls, 1, "sub's Esc binding ran once")
+    T.eq(HandlerStack.count(), 0)
+end
+
+function M.test_drainAndRemove_hard_pops_when_sub_has_no_esc()
+    setup()
+    local target = makeHandler("target")
+    local sub = makeHandler("sub") -- no bindings table
+    HandlerStack.push(target)
+    HandlerStack.push(sub)
+    T.truthy(HandlerStack.drainAndRemove("target"))
+    T.eq(sub.deactivate, 1, "sub deactivated via hard pop fallback")
+    T.eq(HandlerStack.count(), 0)
+end
+
+function M.test_drainAndRemove_hard_pops_when_sub_esc_throws()
+    setup()
+    local target = makeHandler("target")
+    local sub = makeEscSub("sub", function()
+        error("boom")
+    end)
+    HandlerStack.push(target)
+    HandlerStack.push(sub)
+    T.truthy(HandlerStack.drainAndRemove("target"))
+    T.eq(HandlerStack.count(), 0)
+    T.truthy(#errors >= 1, "throw logged via Log.error")
+end
+
+function M.test_drainAndRemove_absent_returns_false()
+    setup()
+    local a = makeHandler("a")
+    HandlerStack.push(a)
+    T.falsy(HandlerStack.drainAndRemove("ghost"))
+    T.eq(HandlerStack.count(), 1, "stack untouched on miss")
+end
+
+function M.test_drainAndRemove_no_reactivate()
+    setup()
+    local a = makeHandler("a")
+    local target = makeHandler("target")
+    HandlerStack.push(a)
+    HandlerStack.push(target)
+    T.truthy(HandlerStack.drainAndRemove("target", false))
+    T.eq(a.activate, 1, "underneath does not reactivate when reactivate=false")
+end
+
 -- deactivateAll ---------------------------------------------------------
 
 function M.test_deactivateAll_clears_and_deactivates_each()

@@ -102,43 +102,10 @@ local function chatComposeItems()
     }
 end
 
--- Drain any sub-handlers (edit mode etc.) above the chat handler before
--- popping it. Mirrors StagingRoomAccess.closeChatPanel: invoke each sub's
--- Esc binding (which runs its commit-cancel exit path) until nothing is
--- on top, then removeByName. A hard pop fallback prevents an infinite
--- loop if a sub has no Esc binding for any reason.
 local function closeChatPanel(reactivate)
-    if reactivate == nil then
-        reactivate = true
-    end
-    for i = HandlerStack.count(), 1, -1 do
-        local h = HandlerStack.at(i)
-        if h and h.name == CHAT_HANDLER then
-            while HandlerStack.count() > i do
-                local top = HandlerStack.active()
-                local escBinding
-                if type(top.bindings) == "table" then
-                    for _, b in ipairs(top.bindings) do
-                        if b.key == Keys.VK_ESCAPE and (b.mods or 0) == 0 then
-                            escBinding = b
-                            break
-                        end
-                    end
-                end
-                if escBinding ~= nil then
-                    local ok, err = pcall(escBinding.fn)
-                    if not ok then
-                        Log.error("ChatAccess: chat sub Esc failed: " .. tostring(err))
-                        HandlerStack.pop()
-                    end
-                else
-                    HandlerStack.pop()
-                end
-            end
-            HandlerStack.removeByName(CHAT_HANDLER, reactivate)
-            civvaccess_shared.chatPanelActive = false
-            return true
-        end
+    if HandlerStack.drainAndRemove(CHAT_HANDLER, reactivate) then
+        civvaccess_shared.chatPanelActive = false
+        return true
     end
     return false
 end

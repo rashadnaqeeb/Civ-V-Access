@@ -173,6 +173,57 @@ function HandlerStack.removeByName(name, reactivate)
     return false
 end
 
+-- Drain edit-mode subs above the named handler by invoking each sub's plain-
+-- Esc binding (which runs the sub's commit-cancel exit path), then remove
+-- the named handler. For BaseMenu hosts that can have BaseMenuEditMode subs
+-- pushed above them, where closing the host without first running the sub's
+-- exit would orphan EditMode state (RegisterCallback still wrapping the
+-- EditBox, _editMode flag still set on the dead sub). Falls back to a hard
+-- pop if a sub has no plain-Esc binding or if its binding throws -- without
+-- the fallback the inner loop would never advance past the sub.
+--
+-- Returns true when the named handler was found and removed; false when
+-- it isn't on the stack (caller treats false as "already closed", which is
+-- how toggle-pattern callers detect they should open instead of close).
+function HandlerStack.drainAndRemove(name, reactivate)
+    if reactivate == nil then
+        reactivate = true
+    end
+    for i = #_shared.stack, 1, -1 do
+        if _shared.stack[i].name == name then
+            while #_shared.stack > i do
+                local top = _shared.stack[#_shared.stack]
+                local escBinding
+                if type(top.bindings) == "table" then
+                    for _, b in ipairs(top.bindings) do
+                        if b.key == Keys.VK_ESCAPE and (b.mods or 0) == 0 then
+                            escBinding = b
+                            break
+                        end
+                    end
+                end
+                if escBinding ~= nil then
+                    local ok, err = pcall(escBinding.fn)
+                    if not ok then
+                        Log.error(
+                            "HandlerStack.drainAndRemove: sub '"
+                                .. tostring(top.name)
+                                .. "' Esc failed: "
+                                .. tostring(err)
+                        )
+                        HandlerStack.pop()
+                    end
+                else
+                    HandlerStack.pop()
+                end
+            end
+            HandlerStack.removeByName(name, reactivate)
+            return true
+        end
+    end
+    return false
+end
+
 function HandlerStack.deactivateAll()
     for i = #_shared.stack, 1, -1 do
         local h = _shared.stack[i]

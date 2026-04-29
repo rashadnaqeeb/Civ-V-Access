@@ -21,15 +21,6 @@ ChatBuffer = {}
 
 local CHAT_LOG_CAP = 100
 
-local function safeListener(name, fn)
-    return function(...)
-        local ok, err = pcall(fn, ...)
-        if not ok then
-            Log.error("ChatBuffer listener '" .. name .. "' failed: " .. tostring(err))
-        end
-    end
-end
-
 local function appendLog(entry)
     local log = civvaccess_shared._inGameChatLog or {}
     log[#log + 1] = entry
@@ -98,7 +89,7 @@ ChatBuffer._onChat = onChat
 function ChatBuffer.installListeners()
     civvaccess_shared._inGameChatLog = {}
     if Events ~= nil and Events.GameMessageChat ~= nil then
-        Events.GameMessageChat.Add(safeListener("GameMessageChat", onChat))
+        Events.GameMessageChat.Add(onChat)
     else
         Log.warn("ChatBuffer: Events.GameMessageChat missing; chat receive will not fire")
     end

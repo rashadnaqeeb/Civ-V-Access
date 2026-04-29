@@ -750,53 +750,11 @@ local function chatComposeItems()
     }
 end
 
--- Close the chat handler plus any sub above it (edit mode, type-ahead etc.)
--- so F2 while composing doesn't orphan the edit sub mid-stack. reactivate
--- controls whether the handler underneath (StagingRoom) gets onActivate
--- after the pop; caller passes false when StagingRoom itself is hiding, so
--- we don't announce a screen that's about to disappear.
---
--- popAbove drops any sub without running its normal exit path (BaseMenuEditMode
--- only restores ChatEntry's original callback via its own Esc/Enter bindings).
--- To stay safe we ask the Compose edit sub to commit-cancel via a synthetic
--- Esc if it's the top: that runs the sub's exit(true) and restores state.
+-- reactivate controls whether the handler underneath (StagingRoom) gets
+-- onActivate after the pop; caller passes false when StagingRoom itself
+-- is hiding, so we don't announce a screen that's about to disappear.
 local function closeChatPanel(reactivate)
-    if reactivate == nil then
-        reactivate = true
-    end
-    for i = HandlerStack.count(), 1, -1 do
-        local h = HandlerStack.at(i)
-        if h and h.name == CHAT_HANDLER then
-            -- Drain any sub pushed above the chat handler by invoking its
-            -- Esc binding (edit sub's cancel path restores ChatEntry state)
-            -- until nothing is left on top.
-            while HandlerStack.count() > i do
-                local top = HandlerStack.active()
-                local escBinding
-                if type(top.bindings) == "table" then
-                    for _, b in ipairs(top.bindings) do
-                        if b.key == Keys.VK_ESCAPE and (b.mods or 0) == 0 then
-                            escBinding = b
-                            break
-                        end
-                    end
-                end
-                if escBinding ~= nil then
-                    local ok, err = pcall(escBinding.fn)
-                    if not ok then
-                        Log.error("StagingRoomAccess: chat sub Esc failed: " .. tostring(err))
-                        -- Fall back to a hard pop so we don't loop forever.
-                        HandlerStack.pop()
-                    end
-                else
-                    HandlerStack.pop()
-                end
-            end
-            HandlerStack.removeByName(CHAT_HANDLER, reactivate)
-            return true
-        end
-    end
-    return false
+    return HandlerStack.drainAndRemove(CHAT_HANDLER, reactivate)
 end
 
 local function toggleChatPanel()
