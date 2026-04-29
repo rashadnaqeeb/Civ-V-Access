@@ -1193,16 +1193,27 @@ end
 local function buildTopItems(descriptor)
     local items = {}
 
-    -- Your Offer (hidden in HUMAN_DEMAND; engine also hides UsPanel, so a
-    -- visibilityControlName="UsPanel" gate is belt-and-braces and covers
-    -- any state path that hides the panel without going through
-    -- HUMAN_DEMAND).
+    -- Gate "Your Offer" / "Their Offer" on Us/ThemPanel visibility only when
+    -- the screen is editable. In AI_MAKES_DEMAND / AI_MAKES_REQUEST the
+    -- engine's DoDemandState(true) hides UsPanel, UsGlass, ThemPanel, and
+    -- ThemGlass and overlays TableCover -- the layout becomes a
+    -- non-interactive readout for sighted users. The deal still lives in
+    -- g_Deal, though, and a screen-reader user has no other way to hear
+    -- what's being asked. Skip the gate in any read-only AI state so the
+    -- drawers stay reachable; pushDrawer's read-only branch builds the
+    -- Offering-only flat list (no Available tab), which is the right
+    -- surface for inspect-but-don't-modify. AI_MAKES_OFFER doesn't hide
+    -- the panels (bDemandOn is false there), so the gate would be a no-op
+    -- regardless -- folding it in keeps the rule "editable: gate, read-
+    -- only: ungate" simple. Editable-Human-Demand still drops Your Offer
+    -- via the explicit isHumanDemand() check below.
+    local gateOnPanel = not isReadOnly()
+
     if not isHumanDemand() then
-        items[#items + 1] = TradeLogicAccess.buildYourOfferItem(true)
+        items[#items + 1] = TradeLogicAccess.buildYourOfferItem(gateOnPanel)
     end
 
-    -- Their Offer.
-    items[#items + 1] = TradeLogicAccess.buildTheirOfferItem(true)
+    items[#items + 1] = TradeLogicAccess.buildTheirOfferItem(gateOnPanel)
 
     -- AI query buttons: in AI Context only. Engine hides 4 of 5 at any
     -- given time and the absent ones aren't useful in their inactive state
