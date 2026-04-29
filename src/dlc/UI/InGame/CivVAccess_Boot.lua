@@ -3,7 +3,11 @@ include("CivVAccess_Log")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")
+-- StringsLoader before the en_US strings so loadOverlay is callable as
+-- soon as the baseline finishes populating CivVAccess_Strings.
+include("CivVAccess_StringsLoader")
 include("CivVAccess_InGameStrings_en_US")
+StringsLoader.loadOverlay("CivVAccess_InGameStrings")
 include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
@@ -31,6 +35,7 @@ include("CivVAccess_CursorCore")
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
 -- so the core must be loaded before BaselineHandler is included.
 include("CivVAccess_SurveyorStrings_en_US")
+StringsLoader.loadOverlay("CivVAccess_SurveyorStrings")
 include("CivVAccess_SurveyorCore")
 -- BaseMenu family, in the canonical Items / TypeAheadSearch / Help / Tabs
 -- / Core / Install / EditMode order used by the other menu-backed Contexts
@@ -70,6 +75,7 @@ include("CivVAccess_BaselineHandler")
 -- find mod-authored keys. Core registers the backend registry that
 -- every ScannerBackend* module self-registers into at load time.
 include("CivVAccess_ScannerStrings_en_US")
+StringsLoader.loadOverlay("CivVAccess_ScannerStrings")
 include("CivVAccess_ScannerCore")
 include("CivVAccess_ScannerBackendCities")
 include("CivVAccess_ScannerBackendUnits")

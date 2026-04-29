@@ -11,7 +11,11 @@ include("CivVAccess_Log")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")
+-- StringsLoader before the en_US strings so loadOverlay is callable as
+-- soon as the baseline finishes populating CivVAccess_Strings.
+include("CivVAccess_StringsLoader")
 include("CivVAccess_FrontEndStrings_en_US")
+StringsLoader.loadOverlay("CivVAccess_FrontEndStrings")
 include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
