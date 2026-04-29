@@ -44,6 +44,49 @@
 --   the two sides in sync when adding or modifying mirrored keys (the help-
 --   overlay, settings-overlay, generic widget, and icon-substitution blocks
 --   are the main examples).
+-- - Canonical Civ V terminology for the target locale lives in the base
+--   game's own TXT_KEY data, shipped under
+--   Sid Meier's Civilization V/Assets/.../GameText/<locale>/*.xml. When a
+--   string in this file refers to a Civ V concept (tenet, great work,
+--   embark, raze, golden age, social policy, ideology, civilization, ally,
+--   etc.) match the word the base game already uses for that concept in
+--   the target locale rather than inventing a fresh translation. This
+--   keeps the accessibility layer's vocabulary consistent with the rest
+--   of the game the player is already hearing.
+-- - Many strings are tail tokens: single words or short phrases like
+--   "selected", "filled", "queued", "host", "ready" that get appended
+--   after a comma into a larger composed announcement. Source-side these
+--   are written in lowercase with no trailing punctuation; preserve that
+--   shape in translation. Strings written as full sentences (leading
+--   capital, terminal punctuation) are spoken standalone and should stay
+--   that shape. In short: match the source's casing and terminal-
+--   punctuation pattern exactly.
+-- - Be consistent across keys. The same English word should map to the
+--   same target word everywhere it appears, even when the keys are
+--   scattered across this file. Concept words like "blocked", "locked",
+--   "queued", "ready", "filled", "available", "selected" are deliberate
+--   vocabulary picks; if the target language has multiple candidate words
+--   for one of them, choose one and use it for every occurrence.
+-- - Preserve ASCII punctuation and symbols literally: percent signs,
+--   parentheses, colons, the slash inside fractions like {1_Cur}/{2_Max},
+--   and ASCII digits. These are spoken as-is by Tolk through the screen
+--   reader; replacing them with target-locale equivalents (full-width
+--   parentheses in CJK, Arabic comma, non-Arabic numerals) can change how
+--   the TTS engine pronounces them.
+-- - Substituted placeholder values are already-localized strings whose
+--   surface form is fixed: nominative case, base-game grammatical gender,
+--   singular or plural exactly as the engine produced them. The
+--   translator cannot inflect the substituted value or write surrounding
+--   text that demands grammatical agreement with it. Choose phrasings
+--   that work regardless of the value's case or gender; if no neutral
+--   phrasing exists, prefer wording that fails gracefully (mild
+--   awkwardness for some values) over wording that is ungrammatical for
+--   most values.
+-- - Match the base game's register for the target locale. Languages with
+--   a polite / familiar split (French tu/vous, German du/Sie, Spanish
+--   tu/usted, etc.) have already had that choice made by Firaxis in the
+--   base game's TXT keys; use the same register here. Stay consistent
+--   across this file's strings.
 CivVAccess_Strings = CivVAccess_Strings or {}
 -- Spoken once, after the in-game Boot Lua finishes installing handlers, so
 -- the user knows the mod attached.
