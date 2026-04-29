@@ -255,16 +255,14 @@ function ForeignUnitWatch._onTurnStart()
             civvaccess_shared.foreignUnitDelta = nonEmpty
             -- Speech is gated by the foreignUnitWatchAnnounce setting;
             -- the F7 Turn Log entry above lands either way so the user
-            -- can review the diff manually when speech is off. First
-            -- line interrupts: turn-start summary isn't a follow-up to
-            -- anything specific, and the project default is speak-
-            -- Interrupt unless we have a reason to queue. The remaining
-            -- lines queue so the four-line summary plays as a single
-            -- coherent block instead of cutting itself off.
+            -- can review the diff manually when speech is off. All
+            -- lines queue: NotificationAnnounce and RevealAnnounce also
+            -- fire around the turn boundary and queue everything, so
+            -- interrupting here would cut whichever of them happens to
+            -- be speaking when the diff lands.
             if civvaccess_shared.foreignUnitWatchAnnounce then
-                SpeechPipeline.speakInterrupt(nonEmpty[1])
-                for i = 2, #nonEmpty do
-                    SpeechPipeline.speakQueued(nonEmpty[i])
+                for _, line in ipairs(nonEmpty) do
+                    SpeechPipeline.speakQueued(line)
                 end
             end
             -- Append regardless of the speech gate. The lines are useful

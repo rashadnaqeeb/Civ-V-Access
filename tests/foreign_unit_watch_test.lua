@@ -215,7 +215,7 @@ function M.test_neutral_unit_enters_view()
     })
     ForeignUnitWatch._onTurnStart()
     T.eq(#SpeechPipeline._calls, 1)
-    T.eq(SpeechPipeline._calls[1].mode, "interrupt", "first line interrupts")
+    T.eq(SpeechPipeline._calls[1].mode, "queued", "all lines queue")
     T.eq(SpeechPipeline._calls[1].text, "New neutral units in view: Roman Warrior")
 end
 
@@ -467,7 +467,7 @@ function M.test_multiple_lines_speech_order()
         makeUnit({ id = 4, unitType = 102, plot = visiblePlot() })  -- new neutral Worker
     ForeignUnitWatch._onTurnStart()
     T.eq(#SpeechPipeline._calls, 4, "four buckets, four lines")
-    T.eq(SpeechPipeline._calls[1].mode, "interrupt", "first line interrupts")
+    T.eq(SpeechPipeline._calls[1].mode, "queued", "all lines queue")
     T.eq(SpeechPipeline._calls[1].text, "New hostile units in view: Roman Spearman")
     T.eq(SpeechPipeline._calls[2].mode, "queued")
     T.eq(SpeechPipeline._calls[2].text, "Hostile units no longer in view: Roman Warrior")
