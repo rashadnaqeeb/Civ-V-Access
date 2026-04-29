@@ -159,6 +159,15 @@ local function setup()
             return { bindings = {}, helpEntries = {} }
         end,
     }
+    -- MessageBuffer's [ / ] / Ctrl+ / Shift+ chords go through Baseline's
+    -- binding concat. Its own behavior is covered in message_buffer_test;
+    -- the stub here just exposes a non-nil getBindings so
+    -- BaselineHandler.create doesn't index nil.
+    MessageBuffer = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
     dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 

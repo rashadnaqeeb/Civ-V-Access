@@ -464,9 +464,11 @@ function RevealAnnounce._flushBody()
 
     if revealLine ~= nil then
         SpeechPipeline.speakQueued(revealLine)
+        MessageBuffer.append(revealLine, "reveal")
     end
     if hideLine ~= nil then
         SpeechPipeline.speakQueued(hideLine)
+        MessageBuffer.append(hideLine, "reveal")
     end
 end
 

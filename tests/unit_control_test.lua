@@ -103,6 +103,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitControl.lua")
 

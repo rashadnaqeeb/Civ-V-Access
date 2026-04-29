@@ -166,6 +166,7 @@ local function setup()
 
     -- Reset module so installListeners runs fresh.
     ForeignUnitWatch = nil
+    dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_ForeignUnitWatch.lua")
 end
 

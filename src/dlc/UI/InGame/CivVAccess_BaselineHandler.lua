@@ -336,12 +336,14 @@ function BaselineHandler.create()
     local empireStatus = EmpireStatus.getBindings()
     local taskList = TaskList.getBindings()
     local bookmarks = Bookmarks.getBindings()
+    local messageBuffer = MessageBuffer.getBindings()
     appendAll(bindings, surveyor.bindings)
     appendAll(bindings, unitControl.bindings)
     appendAll(bindings, turn.bindings)
     appendAll(bindings, empireStatus.bindings)
     appendAll(bindings, taskList.bindings)
     appendAll(bindings, bookmarks.bindings)
+    appendAll(bindings, messageBuffer.bindings)
 
     -- Help list, one unified map-mode list. Sections, in order:
     -- 1) tile info (cursor cluster, S/W/X tile queries, 1/2/3 city queries,
@@ -367,6 +369,7 @@ function BaselineHandler.create()
     appendAll(helpEntries, surveyor.helpEntries)
     appendAll(helpEntries, ScannerHandler.HELP_ENTRIES)
     appendAll(helpEntries, bookmarks.helpEntries)
+    appendAll(helpEntries, messageBuffer.helpEntries)
     appendAll(helpEntries, FUNCTION_KEY_HELP_ENTRIES)
 
     -- F12 is intentionally absent: InputRouter's pre-walk hook claims it

@@ -70,6 +70,7 @@ function NotificationAnnounce._drain()
     end
     for _, e in ipairs(pending) do
         SpeechPipeline.speakQueued(e.text)
+        MessageBuffer.append(e.text, "notification")
     end
     pending = {}
 end

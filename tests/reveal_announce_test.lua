@@ -195,6 +195,7 @@ local function setup()
 
     -- Reset module so installListeners primes a fresh snapshot.
     RevealAnnounce = nil
+    dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_RevealAnnounce.lua")
 end
 

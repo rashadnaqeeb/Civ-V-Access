@@ -267,6 +267,13 @@ function ForeignUnitWatch._onTurnStart()
                     SpeechPipeline.speakQueued(nonEmpty[i])
                 end
             end
+            -- Append regardless of the speech gate. The lines are useful
+            -- review material whether or not the user opted into hearing
+            -- them at turn start, and the F7 Turn Log already lands the
+            -- same content under the same condition.
+            for _, line in ipairs(nonEmpty) do
+                MessageBuffer.append(line, "reveal")
+            end
         else
             civvaccess_shared.foreignUnitDelta = nil
         end

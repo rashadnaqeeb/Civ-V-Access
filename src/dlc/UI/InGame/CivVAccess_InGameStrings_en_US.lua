@@ -1788,3 +1788,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_JUMP"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus a number key"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "Distance and direction from cursor to the bookmark in that slot"
+
+-- Message buffer: scrollable history of speech-worthy events
+-- (notifications, reveals, foreign-unit-watch lines, combat resolutions).
+-- [ / ] step within the active filter; Ctrl+ jumps to ends; Shift+ cycles
+-- the filter category and re-anchors at the newest matching entry.
+-- Filter labels lead the announcement on Shift+, comma-joined to the
+-- newest matching entry; edge markers ("newest" / "oldest") confirm the
+-- key fired when navigation runs off either end without moving position.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_ALL"] = "All messages"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_NOTIFICATION"] = "Notifications"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_REVEAL"] = "Reveals"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Combat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Chat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_NEWEST"] = "newest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_OLDEST"] = "oldest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "no messages"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Left bracket and right bracket"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_NAV"] =
+    "Previous and next message in the buffer"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE"] = "Control plus left bracket and right bracket"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] =
+    "Oldest and newest message in the buffer"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Shift plus left bracket and right bracket"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
+    "Cycle buffer filter category"

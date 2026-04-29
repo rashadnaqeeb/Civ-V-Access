@@ -776,6 +776,7 @@ local function onCombatResolved(
         speakQueued(text)
     end
     CombatLog.recordCombat(text)
+    MessageBuffer.append(text, "combat")
 end
 
 -- GameEvents.CivVAccessAirSweepNoTarget listener. Engine fork fires this
@@ -789,7 +790,9 @@ local function onAirSweepNoTarget(attackerPlayer, _attackerUnit)
     if attackerPlayer ~= Game.GetActivePlayer() then
         return
     end
-    speakQueued(Text.key("TXT_KEY_CIVVACCESS_AIR_SWEEP_NO_TARGET"))
+    local text = Text.key("TXT_KEY_CIVVACCESS_AIR_SWEEP_NO_TARGET")
+    speakQueued(text)
+    MessageBuffer.append(text, "combat")
 end
 
 -- ===== Nuclear strike accumulator =====
@@ -925,7 +928,9 @@ local function onNukeEnd(_attackerPlayer)
     if not nukeBufferInvolvesActivePlayer(buf, Game.GetActivePlayer()) then
         return
     end
-    speakQueued(UnitSpeech.nuclearStrikeResult(buf))
+    local text = UnitSpeech.nuclearStrikeResult(buf)
+    speakQueued(text)
+    MessageBuffer.append(text, "combat")
 end
 
 -- Empty city captures don't fire any combat resolution -- the unit just walks in.
@@ -949,11 +954,14 @@ local function onCityCaptured(hexPos, oldOwner, cityId, newOwner)
     if cityName == nil then
         cityName = ""
     end
+    local text
     if newOwner == activePlayer then
-        speakQueued(Text.format("TXT_KEY_CIVVACCESS_CITY_CAPTURED_BY_US", cityName))
+        text = Text.format("TXT_KEY_CIVVACCESS_CITY_CAPTURED_BY_US", cityName)
     else
-        speakQueued(Text.format("TXT_KEY_CIVVACCESS_CITY_LOST", cityName))
+        text = Text.format("TXT_KEY_CIVVACCESS_CITY_LOST", cityName)
     end
+    speakQueued(text)
+    MessageBuffer.append(text, "combat")
 end
 
 local function resolvePendingUnit()

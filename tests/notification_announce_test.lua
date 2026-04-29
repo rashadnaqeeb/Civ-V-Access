@@ -32,6 +32,7 @@ local function setup(existing)
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_NotificationAnnounce.lua")
 
     HandlerStack._reset()

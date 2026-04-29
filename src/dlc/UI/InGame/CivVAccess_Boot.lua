@@ -87,6 +87,10 @@ include("CivVAccess_ScannerHandler")
 -- so backspace returns work. BaselineHandler.create pulls the bindings
 -- at LoadScreenClose, which fires after every include here completes.
 include("CivVAccess_Bookmarks")
+-- MessageBuffer must load before the producers below so their append
+-- callsites resolve to the live module. Cleared on every onInGameBoot
+-- so a load-from-game session starts with an empty review buffer.
+include("CivVAccess_MessageBuffer")
 include("CivVAccess_NotificationAnnounce")
 include("CivVAccess_RevealAnnounce")
 include("CivVAccess_ForeignUnitWatch")
@@ -148,6 +152,7 @@ local function onInGameBoot()
     Cursor.init()
     UnitControl.installListeners()
     Turn.installListeners()
+    MessageBuffer.installListeners()
     NotificationAnnounce.install()
     RevealAnnounce.installListeners()
     ForeignUnitWatch.installListeners()
