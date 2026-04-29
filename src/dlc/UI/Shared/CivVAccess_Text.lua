@@ -108,9 +108,7 @@ end
 local loggedFallbackPairs = {}
 
 function Text.unitWithCiv(adjKey, nameKey)
-    local out = Locale.ConvertTextKey(
-        "TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", adjKey, nameKey
-    )
+    local out = Locale.ConvertTextKey("TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV", adjKey, nameKey)
     if not looksBroken(out) then
         return out
     end

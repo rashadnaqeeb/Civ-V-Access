@@ -510,9 +510,13 @@ function M.test_dispatch_is_short_circuited_while_muted()
     HandlerStack.push({
         name = "a",
         bindings = {
-            { key = 65, mods = 0, fn = function()
-                fired = fired + 1
-            end },
+            {
+                key = 65,
+                mods = 0,
+                fn = function()
+                    fired = fired + 1
+                end,
+            },
         },
     })
     T.falsy(InputRouter.dispatch(65, 0, WM_KEYDOWN), "muted dispatch returns false to fall through to engine")

@@ -192,8 +192,12 @@ function M.test_active_player_change_with_nil_player_preserves_seen_ids()
     -- Restore Players[0] so the next add can be processed; the wave that
     -- landed before the handoff should still be in seenIds.
     Players[0] = {
-        GetNumNotifications = function() return 0 end,
-        GetNotificationIndex = function() return nil end,
+        GetNumNotifications = function()
+            return 0
+        end,
+        GetNotificationIndex = function()
+            return nil
+        end,
     }
     fireAdd(10) -- still in prior seenIds
     fireAdd(11) -- still in prior seenIds

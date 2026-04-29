@@ -133,7 +133,8 @@ local function activeSnapshot()
     -- "from" plot of leg 1 stays cached at last turn's location and the
     -- direction prefix in the speech rung describes a stale path.
     local cache = civvaccess_shared.waypointsCache
-    if cache ~= nil
+    if
+        cache ~= nil
         and cache.unitID == unit:GetID()
         and cache.unitX == ux
         and cache.unitY == uy

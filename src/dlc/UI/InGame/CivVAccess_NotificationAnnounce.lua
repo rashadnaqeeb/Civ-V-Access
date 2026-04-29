@@ -132,7 +132,9 @@ function NotificationAnnounce._onActivePlayerChanged(_iActive, _iPrev)
     pending = {}
     local player = Players[Game.GetActivePlayer()]
     if player == nil then
-        Log.error("NotificationAnnounce: active player is nil at GameplaySetActivePlayer; preserving prior seenIds to avoid backlog flood")
+        Log.error(
+            "NotificationAnnounce: active player is nil at GameplaySetActivePlayer; preserving prior seenIds to avoid backlog flood"
+        )
         return
     end
     local fresh = {}

@@ -1844,7 +1844,9 @@ local function setupRangedScene(opts)
     Players[0] = T.fakePlayer({ team = 0 })
     GameInfo.Terrains[1] = { Description = "Plains" }
     local attackerPlot = T.fakePlot({
-        x = 0, y = 0, terrain = 1,
+        x = 0,
+        y = 0,
+        terrain = 1,
         canSeePlot = function(_t, _team, _range, _dir)
             if opts.losBlocked then
                 return false
@@ -1860,7 +1862,8 @@ local function setupRangedScene(opts)
     local maxX = opts.maxX or 3
     for x = 1, maxX do
         plotByXY[x .. ",0"] = T.fakePlot({
-            x = x, y = 0,
+            x = x,
+            y = 0,
             terrain = (opts.featureless and -1) or 1,
             visible = not fogged[x],
             revealed = true,
@@ -2009,7 +2012,9 @@ local function setupCityRangedScene(opts)
     Players[0] = T.fakePlayer({ team = 0 })
     GameInfo.Terrains[1] = { Description = "Plains" }
     local cityPlot = T.fakePlot({
-        x = 0, y = 0, terrain = 1,
+        x = 0,
+        y = 0,
+        terrain = 1,
         canSeePlot = opts.canSeePlot,
     })
     local rome = T.fakeCity({ owner = 0, plot = cityPlot })

@@ -568,7 +568,8 @@ end
 
 function M.test_filter_tooltip_preserves_existing_colon_between_clauses()
     setup({})
-    local out = LeagueOverviewRow.filterTooltip("Their top choices for the current proposals:[NEWLINE]Unknown for ENACT")
+    local out =
+        LeagueOverviewRow.filterTooltip("Their top choices for the current proposals:[NEWLINE]Unknown for ENACT")
     T.eq(out, "Their top choices for the current proposals: Unknown for ENACT")
     teardown()
 end

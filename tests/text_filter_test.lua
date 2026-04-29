@@ -87,7 +87,8 @@ function M.test_league_vote_tally_reads_as_list()
     -- "[ICON_BULLET]N for X from Y" entries joined by [NEWLINE]. Without
     -- the comma pause, "20 for Babylon from Babylon 5 for Indonesia from
     -- Indonesia" runs together with no audible separation.
-    local input = "Host chosen.[NEWLINE][ICON_BULLET]20 for Babylon from Babylon[NEWLINE][ICON_BULLET]5 for Indonesia from Indonesia"
+    local input =
+        "Host chosen.[NEWLINE][ICON_BULLET]20 for Babylon from Babylon[NEWLINE][ICON_BULLET]5 for Indonesia from Indonesia"
     T.eq(TextFilter.filter(input), "Host chosen. 20 for Babylon from Babylon, 5 for Indonesia from Indonesia")
 end
 

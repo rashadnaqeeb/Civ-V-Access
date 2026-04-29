@@ -219,10 +219,14 @@ function UnitControl.cycleAllUnits(forward)
         idx = forward and 1 or n
     elseif forward then
         idx = startIdx + 1
-        if idx > n then idx = 1 end
+        if idx > n then
+            idx = 1
+        end
     else
         idx = startIdx - 1
-        if idx < 1 then idx = n end
+        if idx < 1 then
+            idx = n
+        end
     end
     -- Walk until a live unit is found. Bounded by n so a list with a
     -- stale ID (engine cycler hasn't pruned a just-killed unit) doesn't
@@ -235,10 +239,14 @@ function UnitControl.cycleAllUnits(forward)
         end
         if forward then
             idx = idx + 1
-            if idx > n then idx = 1 end
+            if idx > n then
+                idx = 1
+            end
         else
             idx = idx - 1
-            if idx < 1 then idx = n end
+            if idx < 1 then
+                idx = n
+            end
         end
     end
 end

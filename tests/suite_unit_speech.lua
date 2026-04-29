@@ -547,8 +547,7 @@ end
 
 function M.test_info_aircraft_speaks_range_and_rebase_not_moves()
     setup()
-    local u =
-        mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 6, ranged = 65, moves = 60, maxMoves = 60, combat = 0 })
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 6, ranged = 65, moves = 60, maxMoves = 60, combat = 0 })
     local out = UnitSpeech.info(u)
     T.truthy(out:find("range 6, rebase range 12", 1, true), "expected strike+rebase pair: " .. out)
     T.truthy(not out:find("moves", 1, true), "moves fraction must not appear for aircraft: " .. out)
@@ -1030,7 +1029,10 @@ function M.test_combat_result_city_attacker_uses_bare_city_name()
         defenderFinalDamage = 15,
         defenderMaxHP = 100,
     })
-    T.truthy(out:find("attacker Babylon unhurt", 1, true), "city attacker should read as unhurt with bare name: " .. out)
+    T.truthy(
+        out:find("attacker Babylon unhurt", 1, true),
+        "city attacker should read as unhurt with bare name: " .. out
+    )
     T.truthy(out:find("defender Roman Warrior %-15 hp"), "defender damage expected: " .. out)
 end
 

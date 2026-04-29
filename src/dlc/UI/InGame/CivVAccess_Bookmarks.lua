@@ -131,4 +131,3 @@ function Bookmarks.getBindings()
     }
     return { bindings = bindings, helpEntries = helpEntries }
 end
-

@@ -319,9 +319,11 @@ function M.test_enemy_and_neutral_split_into_one_line()
     neutral._plot = fogPlot()
     RevealAnnounce._flush()
     T.eq(#SpeechPipeline._calls, 1, "single combined hide line")
-    T.eq(SpeechPipeline._calls[1].text,
+    T.eq(
+        SpeechPipeline._calls[1].text,
         "Hidden: Enemy: Roman Warrior. Units: Arabian Warrior",
-        "enemy sub-payload precedes units sub-payload")
+        "enemy sub-payload precedes units sub-payload"
+    )
 end
 
 -- Three same-type same-civ hides aggregate with a count prefix.
@@ -364,8 +366,7 @@ function M.test_disabled_recorder_does_not_schedule()
     civvaccess_shared.revealAnnounce = false
     RevealAnnounce.installListeners()
     fireFOW(fogPlot())
-    T.eq(tickRunOnceCount, 0,
-        "disabled flag must short-circuit the recorder before scheduleFlush")
+    T.eq(tickRunOnceCount, 0, "disabled flag must short-circuit the recorder before scheduleFlush")
 end
 
 -- Reveal direction collects unit metadata (civ adj + name) and runs it
@@ -424,9 +425,11 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
     RevealAnnounce._flush()
 
     T.eq(#SpeechPipeline._calls, 1, "single combined reveal line")
-    T.eq(SpeechPipeline._calls[1].text,
+    T.eq(
+        SpeechPipeline._calls[1].text,
         "1 tiles revealed: Enemy: 2 Roman Warrior",
-        "civ adjective prefixes the unit and identical units aggregate")
+        "civ adjective prefixes the unit and identical units aggregate"
+    )
 end
 
 -- Snapshot is rebuilt at the end of every flush. After the first hide

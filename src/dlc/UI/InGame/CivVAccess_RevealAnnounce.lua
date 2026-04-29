@@ -450,12 +450,10 @@ function RevealAnnounce._flushBody()
 
     local hidePayload = {}
     if #enemyHidden > 0 then
-        hidePayload[#hidePayload + 1] =
-            Text.format("TXT_KEY_CIVVACCESS_REVEAL_ENEMY", formatUnitList(enemyHidden))
+        hidePayload[#hidePayload + 1] = Text.format("TXT_KEY_CIVVACCESS_REVEAL_ENEMY", formatUnitList(enemyHidden))
     end
     if #otherHidden > 0 then
-        hidePayload[#hidePayload + 1] =
-            Text.format("TXT_KEY_CIVVACCESS_REVEAL_UNITS", formatUnitList(otherHidden))
+        hidePayload[#hidePayload + 1] = Text.format("TXT_KEY_CIVVACCESS_REVEAL_UNITS", formatUnitList(otherHidden))
     end
     local hideLine
     if #hidePayload > 0 then
@@ -521,4 +519,3 @@ function RevealAnnounce.installListeners()
         Log.warn("RevealAnnounce: Events.ActivePlayerTurnStart missing")
     end
 end
-

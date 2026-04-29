@@ -144,7 +144,8 @@ local function movePathPreview(actor, targetPlot)
             if turns <= 1 then
                 summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_THIS_TURN", prefixSteps)
             else
-                summary = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN", turns, prefixSteps)
+                summary =
+                    Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_TURN", turns, prefixSteps)
             end
         elseif turns <= 1 then
             summary = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_THIS_TURN")
@@ -154,7 +155,9 @@ local function movePathPreview(actor, targetPlot)
     else
         local maxMoves = actor:MaxMoves()
         local startMP = actor:MovesLeft()
-        if startMP < 0 then startMP = maxMoves end
+        if startMP < 0 then
+            startMP = maxMoves
+        end
         local mpRemaining = lastNode.moves
         -- Total MP spent from start to destination, in 60ths.
         local mpCost = (math.max(0, turns - 1)) * maxMoves + (startMP - mpRemaining)
@@ -595,8 +598,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
             if dist > actor:Range() then
                 return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE")
             end
-            local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR
-                or actor:IsRangeAttackIgnoreLOS()
+            local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR or actor:IsRangeAttackIgnoreLOS()
             if not ignoresLoS and not actor:GetPlot():HasLineOfSight(plot, actor:GetTeam()) then
                 return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
             end
