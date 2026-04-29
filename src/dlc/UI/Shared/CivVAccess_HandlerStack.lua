@@ -244,6 +244,10 @@ HandlerStack.commonHelpEntries = {
         keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F12",
         description = "TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS",
     },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE",
+    },
 }
 
 -- Walk the stack top-to-bottom (mirroring InputRouter's dispatch walk),
