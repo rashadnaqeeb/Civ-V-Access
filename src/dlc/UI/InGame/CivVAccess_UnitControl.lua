@@ -401,12 +401,25 @@ local function directMove(dir)
 end
 
 -- ===== Info key =====
+-- Prepend the cursor-to-unit direction string so the user hears "where
+-- the selected unit sits relative to my current cursor" before the unit
+-- readout. HexGeom.directionString returns "" when the cursor is on the
+-- unit's plot (zero delta), in which case we skip the prefix and speak
+-- info unchanged.
 local function speakInfo()
     local unit = selectedUnit()
     if unit == nil then
         return
     end
-    speakInterrupt(UnitSpeech.info(unit))
+    local info = UnitSpeech.info(unit)
+    local cx, cy = Cursor.position()
+    if cx ~= nil then
+        local dir = HexGeom.directionString(cx, cy, unit:GetX(), unit:GetY())
+        if dir ~= "" then
+            info = dir .. ", " .. info
+        end
+    end
+    speakInterrupt(info)
 end
 
 -- ===== Recenter cursor on selected unit =====
