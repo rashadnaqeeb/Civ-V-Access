@@ -31,21 +31,20 @@ MessageBuffer = {}
 local _cap = 5000
 
 -- Cycle order for Shift+[ / Shift+]. "all" first so the default state
--- after reset matches the cycle's home position. New categories slot in
--- before "all" rolls over (chat will go between combat and all when MP
--- chat is wired up). Empty categories are skipped at cycle time so the
--- user never lands on a filter view with nothing in it -- the cycle
--- order is what to consider, not what to visit unconditionally.
-local FILTER_CYCLE = { "all", "notification", "reveal", "combat" }
+-- after reset matches the cycle's home position. Empty categories are
+-- skipped at cycle time so the user never lands on a filter view with
+-- nothing in it -- the cycle order is what to consider, not what to
+-- visit unconditionally.
+local FILTER_CYCLE = { "all", "notification", "reveal", "combat", "chat" }
 
 -- Categories must stay in lockstep with FILTER_CYCLE: an entry that
 -- passes append's category guard but has no slot in the cycle is
--- silently unreachable except through "all". When MP chat is wired up,
--- add "chat" to both this set and FILTER_CYCLE in the same change.
+-- silently unreachable except through "all".
 local CATEGORIES = {
     notification = true,
     reveal = true,
     combat = true,
+    chat = true,
 }
 
 local function state()

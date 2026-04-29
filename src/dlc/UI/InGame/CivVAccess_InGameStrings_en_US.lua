@@ -1812,3 +1812,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Shift plus left bracket and right bracket"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
     "Cycle buffer filter category, skipping empty categories"
+
+-- Multiplayer chat. Backslash toggles a two-tab BaseMenu over DiploCorner's
+-- existing chat panel: Messages reads civvaccess_shared._inGameChatLog
+-- (newest-first), Compose wraps Controls.ChatEntry as a Textfield committed
+-- via base's SendChat. Single-player no-ops with a spoken marker. Chat
+-- target types (all / team / whisper) format the inline announce and the
+-- MessageBuffer "chat" entries so the user can tell whom a message went to.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY"] = "Backslash"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_DESC"] =
+    "Open multiplayer chat panel, single-player no-op"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"] = "Chat is multiplayer only"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_PANEL"] = "Chat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MESSAGES_TAB"] = "Messages"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_COMPOSE_TAB"] = "Compose"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_COMPOSE"] = "Message"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_EMPTY"] = "No chat messages yet"
+-- {1_Name} sender, {2_Text} message body. Same shape used for the inline
+-- speech announce, the MessageBuffer "chat" category entry, and the
+-- Messages-tab list item, so the user hears one consistent line.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG"] = "{1_Name}: {2_Text}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} to team: {2_Text}"
+-- {2_To} recipient name (or "you" when the local player is the target).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} to {2_To}: {3_Text}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Backslash or Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Close chat panel"

@@ -45,6 +45,8 @@ local MOD_NONE = 0
 local MOD_SHIFT = 1
 local MOD_CTRL = 2
 
+local VK_OEM_5 = 220 -- backslash
+
 local function speak(s)
     if s == nil or s == "" then
         return
@@ -164,6 +166,12 @@ local FUNCTION_KEY_HELP_ENTRIES = {
     {
         keyLabel = "TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_DESC",
+    },
+    -- Multiplayer chat. Mod-bound; backslash is unbound by every Civ V XML
+    -- so the chord is free. SP no-ops with a spoken marker.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_DESC",
     },
 }
 
@@ -326,6 +334,20 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open Espionage Overview"),
+        -- Multiplayer chat. Backslash is unbound in every Civ V XML so the
+        -- chord is free across base / G&K / BNW. SP no-ops with a spoken
+        -- marker; MP fires the cross-Context bridge LuaEvents.CivVAccess-
+        -- ChatToggle that ChatAccess (seated in DiploCorner's env via our
+        -- DiploCorner.lua override) listens for. Game:IsNetworkMultiPlayer
+        -- returns false in hot-seat too, which is correct -- hot-seat has
+        -- no networking and no chat.
+        bind(VK_OEM_5, MOD_NONE, function()
+            if not Game:IsNetworkMultiPlayer() then
+                speak(Text.key("TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"))
+                return
+            end
+            LuaEvents.CivVAccessChatToggle()
+        end, "Toggle multiplayer chat"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help

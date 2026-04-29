@@ -96,6 +96,11 @@ include("CivVAccess_RevealAnnounce")
 include("CivVAccess_ForeignUnitWatch")
 include("CivVAccess_CombatLog")
 include("CivVAccess_CameraTracker")
+-- ChatBuffer ingests Events.GameMessageChat from WorldView's env so the
+-- listener survives load-from-game regardless of DiploCorner child-Context
+-- re-init behavior. ChatAccess (in DiploCorner's env) handles the panel
+-- UI; both share state via civvaccess_shared._inGameChatLog.
+include("CivVAccess_ChatBuffer")
 
 -- Publish mod modules to other in-game Contexts. Civ V sandboxes Lua
 -- globals per Context, so the modules loaded above are invisible in
@@ -158,6 +163,7 @@ local function onInGameBoot()
     ForeignUnitWatch.installListeners()
     CombatLog.installListeners()
     CameraTracker.install()
+    ChatBuffer.installListeners()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
 
