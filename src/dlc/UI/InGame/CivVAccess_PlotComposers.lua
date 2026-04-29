@@ -80,7 +80,7 @@ local function readYields(plot, out)
     for _, y in ipairs(YIELD_KEYS) do
         local n = plot:CalculateYield(y.id, true)
         if n > 0 then
-            out[#out + 1] = tostring(n) .. " " .. Text.key(y.key)
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_YIELD_COUNT", n, Text.key(y.key))
         end
     end
 end

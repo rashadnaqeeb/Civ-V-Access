@@ -268,7 +268,11 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             -- Read-only drawer or missing EditBox (unlikely): fall through
             -- to a plain Text item showing label + amount.
             return BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0),
+                labelText = Text.format(
+                    "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
+                    Text.key("TXT_KEY_DIPLO_GOLD"),
+                    data1 or 0
+                ),
                 tooltipFn = goldTooltipFn,
             })
         end
@@ -300,11 +304,12 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         local gptTooltipFn = pocketTooltipFn(p .. "TableGoldPerTurn")
         if control == nil or readOnly then
             return BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
-                    .. ", "
-                    .. tostring(data1 or 0)
-                    .. ", "
-                    .. Text.format("TXT_KEY_DIPLO_TURNS", duration or 0),
+                labelText = Text.format(
+                    "TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE",
+                    Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
+                    data1 or 0,
+                    Text.format("TXT_KEY_DIPLO_TURNS", duration or 0)
+                ),
                 tooltipFn = gptTooltipFn,
             })
         end
@@ -586,7 +591,7 @@ end
 -- or not).
 local function disabledPocketLeaf(label, controlName)
     return BaseMenuItems.Text({
-        labelText = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+        labelText = Text.format("TXT_KEY_CIVVACCESS_LABEL_DISABLED", label),
         tooltipFn = pocketTooltipFn(controlName),
     })
 end
@@ -1174,7 +1179,7 @@ local function actionButtonLeaf(controlName, activate, fallbackLabel)
             label = fallbackLabel or controlName
         end
         return BaseMenuItems.Text({
-            labelText = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"),
+            labelText = Text.format("TXT_KEY_CIVVACCESS_LABEL_DISABLED", label),
             tooltipFn = pocketTooltipFn(controlName),
         })
     end

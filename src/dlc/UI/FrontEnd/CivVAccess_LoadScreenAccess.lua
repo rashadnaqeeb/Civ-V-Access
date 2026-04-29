@@ -135,7 +135,7 @@ local function buildItems()
             if name == "" then
                 return ""
             end
-            local out = name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY")
+            local out = Text.format("TXT_KEY_CIVVACCESS_UNIQUE_ABILITY_NAMED", name)
             local desc = controlText(Controls.BonusDescription)
             if desc ~= nil and desc ~= "" then
                 out = out .. ", " .. desc

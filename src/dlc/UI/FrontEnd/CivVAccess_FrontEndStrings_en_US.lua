@@ -108,10 +108,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TUTORIAL_COMPLETED"] = "completed"
 -- Used on browse-then-commit screens (ScenariosMenu, CustomMod,
 -- LoadTutorial) so the user knows which row Start / Enter will launch.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
+-- Compositional form: "selected, <label>" for Choice items that surface
+-- the selection marker as a prefix on the entry's own text. Mirrors the
+-- InGame copy because BaseMenuItems is shared between Contexts.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED_NAMED"] = "selected, {1_Label}"
 -- Civ-picker entry prefixes: colons are read by screen readers as a brief
 -- pause, so "Unique ability: Glory of Rome, +25% Wonder production" parses
 -- as prefix then value without needing extra connective words.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_ABILITY"] = "Unique ability"
+-- Compositional form: "<name>, unique ability" for the load screen's
+-- civ-trait row, where the trait name leads and the role label tails.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_ABILITY_NAMED"] = "{1_Name}, unique ability"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unique unit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Unique building"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Unique improvement"
@@ -121,6 +128,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Loading game"
 -- Warrior"). Matches the Replaces: row sighted players see on hover after
 -- loading completes.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "replaces {1_Name}"
+-- Generic "<label>, <state>" template used by VirtualToggle items in
+-- BaseMenuItems. Mirrors the InGame copy because BaseMenuItems is
+-- shared between Contexts.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
+-- Generic "<label> <list>" template used by the mods-in-use preamble
+-- (and by ReligionOverview in-game). Same key in both Contexts.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"

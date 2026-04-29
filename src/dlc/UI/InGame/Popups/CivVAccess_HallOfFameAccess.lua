@@ -130,7 +130,7 @@ local function statusText(v)
 end
 
 local function scoreText(v)
-    return Text.key("TXT_KEY_POP_SCORE") .. " " .. tostring(v.Score or 0)
+    return Text.format("TXT_KEY_CIVVACCESS_LABEL_VALUE", Text.key("TXT_KEY_POP_SCORE"), v.Score or 0)
 end
 
 local function rowLabel(v)

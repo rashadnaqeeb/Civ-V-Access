@@ -180,11 +180,11 @@ local function buildYourReligionItems()
     local gpLabel = Text.key("TXT_KEY_RO_POSSIBLE_GP")
     if #greatPeople > 0 then
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = gpLabel .. " " .. table.concat(greatPeople, ", "),
+            labelText = Text.format("TXT_KEY_CIVVACCESS_LABELED_LIST", gpLabel, table.concat(greatPeople, ", ")),
         })
     else
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = gpLabel .. " " .. Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE"),
+            labelText = Text.format("TXT_KEY_CIVVACCESS_LABELED_LIST", gpLabel, Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE")),
         })
     end
 

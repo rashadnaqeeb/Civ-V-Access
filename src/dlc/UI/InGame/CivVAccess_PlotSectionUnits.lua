@@ -28,7 +28,7 @@ local function unitDescription(unit)
         body = typeName
     end
     if unit:IsEmbarked() then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX") .. " " .. body
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_NAMED", body)
     end
     return body
 end

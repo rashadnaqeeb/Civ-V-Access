@@ -70,6 +70,6 @@ PlotSectionRiver = {
         if #present == #SPOKEN_ORDER then
             return { Text.key("TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES") }
         end
-        return { Text.key("TXT_KEY_CIVVACCESS_RIVER_PREFIX") .. " " .. table.concat(present, " ") }
+        return { Text.format("TXT_KEY_CIVVACCESS_RIVER_DIRECTIONS", table.concat(present, " ")) }
     end,
 }

@@ -14,7 +14,11 @@ local function build()
         local name = Modding.GetModProperty(v.ModID, v.Version, "Name") or v.ModID
         parts[#parts + 1] = name
     end
-    return Text.key("TXT_KEY_MODS_IN_USE") .. " " .. table.concat(parts, ", ")
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_LABELED_LIST",
+        Text.key("TXT_KEY_MODS_IN_USE"),
+        table.concat(parts, ", ")
+    )
 end
 
 function ModListPreamble.fn()

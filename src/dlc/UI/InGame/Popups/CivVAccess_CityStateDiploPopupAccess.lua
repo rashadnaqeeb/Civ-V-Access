@@ -138,7 +138,7 @@ local function actionRow(spec)
 
     return BaseMenuItems.Text({
         labelFn = function()
-            return (Controls[labelName]:GetText() or "") .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
+            return Text.format("TXT_KEY_CIVVACCESS_LABEL_DISABLED", Controls[labelName]:GetText() or "")
         end,
         tooltipFn = function()
             return Controls[btnName]:GetToolTipString()

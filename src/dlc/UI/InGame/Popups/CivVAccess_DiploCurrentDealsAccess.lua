@@ -83,13 +83,19 @@ local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
         return Text.format("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0)
     end
     if itemType == TradeableItems.TRADE_ITEM_GOLD then
-        return Text.key("TXT_KEY_DIPLO_GOLD") .. ", " .. tostring(data1 or 0)
+        return Text.format(
+            "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
+            Text.key("TXT_KEY_DIPLO_GOLD"),
+            data1 or 0
+        )
     end
     if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
-        return Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
-            .. ", "
-            .. tostring(data1 or 0)
-            .. turnsSuffix(duration)
+        local base = Text.format(
+            "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
+            Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
+            data1 or 0
+        )
+        return base .. turnsSuffix(duration)
     end
     if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
         local resInfo = GameInfo.Resources[data1]

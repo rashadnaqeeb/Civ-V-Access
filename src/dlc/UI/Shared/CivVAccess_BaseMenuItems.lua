@@ -690,7 +690,7 @@ local function buildChoice(button, callback, useVoids, parentControlName, announ
             end
         end
         if self._isSelected then
-            return Text.key("TXT_KEY_CIVVACCESS_CHOICE_SELECTED") .. ", " .. text
+            return Text.format("TXT_KEY_CIVVACCESS_CHOICE_SELECTED_NAMED", text)
         end
         return text
     end
@@ -1173,7 +1173,7 @@ function BaseMenuItems.VirtualToggle(spec)
             return resolveLabel(self)
         end
         local stateKey = value and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF"
-        local base = resolveLabel(self) .. ", " .. Text.key(stateKey)
+        local base = Text.format("TXT_KEY_CIVVACCESS_LABEL_STATE", resolveLabel(self), Text.key(stateKey))
         return appendTooltip(base, resolveTooltip(self))
     end
     function item:activate(menu)

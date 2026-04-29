@@ -27,7 +27,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX"] = "recommendation
 -- and by the cursor glance section, so it lives in the shared InGame
 -- strings file rather than the scanner-only strings file.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_RECOMMENDATION_CITY_SITE"] = "City site"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX"] = "embarked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_EMBARKED_NAMED"] = "embarked {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION"] = "{1_Cur}/{2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION"] = "{1_Cur}/{2_Max} moves"
 -- Cargo / stationed aircraft count. Speaks the same X/Y the carrier and
@@ -288,6 +288,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_CANCEL"] = "canceled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_BUILD_START"] = "started {1_Build}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_PROMOTION"] = "promoted to {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
+-- Compositional form: "<label>, disabled" for buttons that surface a
+-- pre-composed label (an engine control's GetText / a built-up offer
+-- string) plus the disabled marker. Positional template lets locales
+-- swap the marker to lead the phrase or change the separator.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_DISABLED"] = "{1_Label}, disabled"
 -- Cursor / hex-grid handler. Direction tokens are short forms (e, ne, ...)
 -- because experienced screen-reader users prefer shorter speech and these
 -- appear in tight contexts (per-move river edges, capital orientation).
@@ -297,6 +302,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+-- Compact "<count><dir>" glue used by HexGeom.directionString /
+-- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
+-- Tight glue (no separator) is the EN form; positional template lets
+-- locales insert a space or reorder count and direction.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "edge of map"
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
 -- Generic wording rather than CityView-specific so Phase 8's ranged-strike
@@ -317,18 +327,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capital"
 -- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = "{1_Moves} moves"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_PREFIX"] = "river"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_DIRECTIONS"] = "river {1_Directions}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"] = "river all sides"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "fresh water"
 -- Numbered step on the head-selected unit's queued path. Speaks on cursor
 -- glance and as the scanner item name for the "waypoints" category.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "waypoint {1_Index} of {2_Total}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX"] = "pillaged"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_NAMED"] = "{1_Name} pillaged"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HILLS"] = "hills"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOUNTAIN"] = "mountain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAKE"] = "lake"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HP_FORMAT"] = "{1_Num} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_PROGRESS"] = "{1_Build} {2_Turns} turns"
+-- Yield + count glue used by per-plot yields and the surveyor radius
+-- sum. {2_Yield} is a pre-resolved noun ("food", "production"...);
+-- positional template lets number-after-noun locales reorder.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_YIELD_COUNT"] = "{1_Count} {2_Yield}"
 -- "Controlled" = plot:GetWorkingCity(): the tile is part of this city's
 -- workable area (the engine's term is "working city," but no citizen need
 -- be assigned). "Worked" elsewhere means IsWorkingPlot = a citizen is
@@ -498,8 +512,36 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] = 
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
 -- needs them present in the InGame Context's string table.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
+-- Compositional form: "selected, <label>" for Choice items that surface
+-- the selection marker as a prefix on the entry's own text.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED_NAMED"] = "selected, {1_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
+-- Compositional form: "<label>, <state>" for VirtualToggle items that
+-- assemble a label and a CHECK_ON / CHECK_OFF (or other) state token.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
+-- Generic "<label> <value>" template for label-and-bare-number lines
+-- (POP_SCORE / DEMOGRAPHICS_RANK on Hall of Fame and Leaderboard rows).
+-- Positional args expose label and value separately so locales can drop
+-- the space, add a particle, or reverse order.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
+-- Generic "<label> <list>" template for header-then-list lines (e.g.
+-- the ReligionOverview "Possible Great People" row, with either the
+-- list or a "none" fallback as the second arg).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
+-- Diplomacy gold offer in read-only deal description: "<gold>, <amount>".
+-- Comma form is distinct from LABEL_VALUE's space form so the existing
+-- speech cadence is preserved; locales can collapse to one shape if
+-- desired.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amount}"
+-- Diplomacy gold-per-turn read-only line: "<label>, <amount>, <turns>".
+-- {3_TurnsLine} is the already-localized turns clause from
+-- TXT_KEY_DIPLO_TURNS so the template holds only the separator pattern.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+-- Compact "<value> <unit>" template used by Demographics rows that
+-- append a measurement noun (Bushels, Soldiers, Tons) to the active
+-- player's value.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT"] = "{1_Value} {2_Unit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"

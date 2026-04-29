@@ -50,7 +50,7 @@ local function nameWithEmbarked(unit)
         return ""
     end
     if unit:IsEmbarked() then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_PREFIX") .. " " .. name
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_NAMED", name)
     end
     return name
 end

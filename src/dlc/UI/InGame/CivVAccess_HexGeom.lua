@@ -95,7 +95,7 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
     for _, d in ipairs(OUTPUT_ORDER) do
         local n = counts[d.dir]
         if n > 0 then
-            parts[#parts + 1] = tostring(n) .. Text.key(d.key)
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", n, Text.key(d.key))
         end
     end
     return table.concat(parts, ", ")
@@ -117,7 +117,7 @@ function HexGeom.stepListString(directions)
     local function flush(dir, n)
         local key = dirKey(dir)
         if key ~= nil then
-            parts[#parts + 1] = tostring(n) .. Text.key(key)
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", n, Text.key(key))
         end
     end
     for i = 2, #directions do

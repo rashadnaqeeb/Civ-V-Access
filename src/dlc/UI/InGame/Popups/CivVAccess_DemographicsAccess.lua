@@ -259,7 +259,7 @@ local function metricRow(labelKey, valueFn, formatFn, measureKey, magSuffix)
             local rank = rankOf(valueFn, pSelf)
             local selfVal = formatFn(valueFn(pSelf))
             if measureKey ~= nil then
-                selfVal = selfVal .. " " .. Text.key(measureKey)
+                selfVal = Text.format("TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT", selfVal, Text.key(measureKey))
             end
             local function shortVal(rawVal)
                 local s = formatFn(rawVal)

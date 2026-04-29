@@ -136,7 +136,7 @@ function SurveyorCore.yields()
     for _, y in ipairs(YIELD_ORDER) do
         local n = totals[y.id]
         if n > 0 then
-            parts[#parts + 1] = tostring(n) .. " " .. Text.key(y.key)
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_YIELD_COUNT", n, Text.key(y.key))
         end
     end
     local body

@@ -201,7 +201,7 @@ local function pillagedSection(getRevealedId, infoTable, isPillaged)
                 return {}
             end
             if isPillaged(plot) then
-                return { name .. " " .. Text.key("TXT_KEY_CIVVACCESS_PILLAGED_SUFFIX") }
+                return { Text.format("TXT_KEY_CIVVACCESS_PILLAGED_NAMED", name) }
             end
             return { name }
         end,
