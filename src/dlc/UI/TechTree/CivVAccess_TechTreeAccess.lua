@@ -415,10 +415,10 @@ local function buildQueueTab()
         },
     })
     tab.bindings[#tab.bindings + 1] = bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6")
-    tab.helpEntries[#tab.helpEntries + 1] = {
+    BaseMenuHelp.addScreenKey(tab, {
         keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6",
         description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6",
-    }
+    })
     -- Rebuild items on every activate so Tab cycling into Queue reflects a
     -- post-commit Network.SendResearch that fired from the Tree tab. Wraps
     -- TabbedShell.menuTab's existing onTabActivated which handles the

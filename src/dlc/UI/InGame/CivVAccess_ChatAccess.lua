@@ -151,10 +151,10 @@ local function toggleChatPanel()
         description = "Close chat",
         fn = closeChatPanel,
     }
-    chatHandler.helpEntries[#chatHandler.helpEntries + 1] = {
+    BaseMenuHelp.addScreenKey(chatHandler, {
         keyLabel = "TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE",
         description = "TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE",
-    }
+    })
     civvaccess_shared.chatPanelActive = true
     HandlerStack.push(chatHandler)
 end

@@ -15,6 +15,12 @@ include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
+-- Scanner / Surveyor handlers are pushed into the hex sub via shared
+-- module refs, but their TXT_KEY help labels and runtime strings
+-- (SCANNER_HERE etc.) resolve in this Context's CivVAccess_Strings,
+-- so the per-feature baselines + locale overlays must load here.
+include("CivVAccess_ScannerStrings_en_US")
+include("CivVAccess_SurveyorStrings_en_US")
 include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
@@ -1591,6 +1597,25 @@ local function pushHexMap()
         { key = Keys.D, mods = MOD_NONE, description = "Move E", fn = moveDir(DirectionTypes.DIRECTION_EAST) },
         { key = Keys.Z, mods = MOD_NONE, description = "Move SW", fn = moveDir(DirectionTypes.DIRECTION_SOUTHWEST) },
         { key = Keys.C, mods = MOD_NONE, description = "Move SE", fn = moveDir(DirectionTypes.DIRECTION_SOUTHEAST) },
+        -- Tile readouts ported from BaselineHandler so the same chord
+        -- speaks the same answer in the hex sub. Cursor.economy / .combat
+        -- read the live plot, so the hex-sub scoping flows through naturally.
+        {
+            key = Keys.W,
+            mods = MOD_NONE,
+            description = "Economy details",
+            fn = function()
+                SpeechPipeline.speakInterrupt(Cursor.economy())
+            end,
+        },
+        {
+            key = Keys.X,
+            mods = MOD_NONE,
+            description = "Combat details",
+            fn = function()
+                SpeechPipeline.speakInterrupt(Cursor.combat())
+            end,
+        },
     }
     local helpEntries = {
         {
@@ -1609,18 +1634,19 @@ local function pushHexMap()
             keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK",
             description = "TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK",
         },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT",
+            description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT",
+        },
     }
-    if type(ScannerHandler) == "table" and type(ScannerHandler.create) == "function" then
-        local scanner = ScannerHandler.create()
-        for _, b in ipairs(scanner.bindings or {}) do
-            bindings[#bindings + 1] = b
-        end
-        for _, h in ipairs(scanner.helpEntries or {}) do
-            helpEntries[#helpEntries + 1] = h
-        end
-    else
-        Log.warn("CityView hex: ScannerHandler not loaded; scanner keys unreachable in hex sub")
-    end
+    -- Surveyor keys come first so their per-feature help reads before
+    -- the scanner's generic page-cycling chords -- the user's mental
+    -- model is "specific (Q radius, A resources...) above general
+    -- (PageUp/Down to walk a snapshot)".
     if type(SurveyorCore) == "table" and type(SurveyorCore.getBindings) == "function" then
         local surv = SurveyorCore.getBindings()
         for _, b in ipairs(surv.bindings or {}) do
@@ -1631,6 +1657,17 @@ local function pushHexMap()
         end
     else
         Log.warn("CityView hex: SurveyorCore not loaded; surveyor keys unreachable in hex sub")
+    end
+    if type(ScannerHandler) == "table" and type(ScannerHandler.create) == "function" then
+        local scanner = ScannerHandler.create()
+        for _, b in ipairs(scanner.bindings or {}) do
+            bindings[#bindings + 1] = b
+        end
+        for _, h in ipairs(scanner.helpEntries or {}) do
+            helpEntries[#helpEntries + 1] = h
+        end
+    else
+        Log.warn("CityView hex: ScannerHandler not loaded; scanner keys unreachable in hex sub")
     end
 
     -- Install scope + announcer right before push so onActivate's Cursor.jumpTo
@@ -1954,11 +1991,11 @@ hubHandler.bindings[#hubHandler.bindings + 1] = {
     description = "Previous city",
     fn = previousCity,
 }
-hubHandler.helpEntries[#hubHandler.helpEntries + 1] = {
+BaseMenuHelp.addScreenKey(hubHandler, {
     keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT",
     description = "TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT",
-}
-hubHandler.helpEntries[#hubHandler.helpEntries + 1] = {
+})
+BaseMenuHelp.addScreenKey(hubHandler, {
     keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_PREV",
     description = "TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_PREV",
-}
+})

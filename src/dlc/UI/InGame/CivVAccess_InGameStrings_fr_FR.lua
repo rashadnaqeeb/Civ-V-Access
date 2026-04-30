@@ -482,7 +482,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL"] = "Diplomatie
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE"] =
     "Sélectionner une unité, ou ouvrir l'écran de ville (annexion pour les vassales, diplomatie avec une civilisation majeure rencontrée), sur la case"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Ctrl plus I"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Contrôle plus I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Ouvrir la Civilopédia pour tout ce qui se trouve sur la case du curseur (unités, merveilles du monde, amélioration, ressource, caractéristique, fleuve, lac, terrain, collines, montagne, route)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articles sur la case"
@@ -618,7 +618,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE"] = "Fermer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT"] = "Annuler la modification"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"] = "Valider la modification"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F12"] = "F12"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12"] = "Ctrl+Shift+F12"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12"] = "Contrôle plus Maj plus F12"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Ouvrir les paramètres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "Fermer les paramètres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] = "Mettre le mod en pause ou le reprendre"
@@ -1148,9 +1148,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "Unités neutres
 -- first, year second) read as a single line.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Tour terminé"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control plus space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Contrôle plus espace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "Terminer le tour, ou annoncer et ouvrir le premier obstacle"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] = "Control plus shift plus space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] = "Contrôle plus Maj plus espace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
     "Terminer le tour malgré l'invite d'ordres aux unités ; les autres obstacles sont annoncés et ouverts"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
@@ -1240,6 +1240,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] = {
 -- summarises what the key reads. The bare-letter variants (T R G H F P I)
 -- speak the headline summary; the Shift+letter _DETAIL variants speak the
 -- per-source breakdown.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TURN"] = "T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TURN"] =
     "Tour et date, avec l'effectif d'unités en cas de dépassement et les pénuries de ressources stratégiques"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH"] = "R"
@@ -1255,24 +1256,24 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY"] = "P"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_POLICY"] = "Culture par tour et délai pour la prochaine politique"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM"] = "I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM"] = "Tourisme par tour et nombre de civilisations sous influence"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH_DETAIL"] = "Shift plus R"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH_DETAIL"] = "Maj plus R"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_RESEARCH_DETAIL"] = "Détail de la science par source"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_GOLD_DETAIL"] = "Shift plus G"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_GOLD_DETAIL"] = "Maj plus G"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_GOLD_DETAIL"] = "Revenus et dépenses en or par source"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_HAPPINESS_DETAIL"] = "Shift plus H"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_HAPPINESS_DETAIL"] = "Maj plus H"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_HAPPINESS_DETAIL"] =
     "Sources de bonheur, sources de mécontentement et effet de l'âge d'or"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_FAITH_DETAIL"] = "Shift plus F"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_FAITH_DETAIL"] = "Maj plus F"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_FAITH_DETAIL"] =
     "Détail de la foi par source et calendrier du prophète ou du panthéon"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY_DETAIL"] = "Shift plus P"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY_DETAIL"] = "Maj plus P"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_POLICY_DETAIL"] = "Détail de la culture par source"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM_DETAIL"] = "Shift plus I"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM_DETAIL"] = "Maj plus I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
     "Chefs-d'oeuvre, emplacements vides et nombre de civilisations sous influence"
 -- Task list readout. Scenario-driven objective tracker; silent when no
 -- active tasks exist (the common case outside scenarios and tutorials).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Shift plus T"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Maj plus T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_DESC"] = "Lire les tâches actives du scénario"
 -- GameMenu (Esc pause menu) tab labels and mod-list payloads. Tab labels
 -- sit alongside the engine-keyed Details tab (TXT_KEY_POPUP_GAME_DETAILS).
@@ -1431,9 +1432,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV"] = "Up/Down/Left/R
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV"] = "Haut/Bas pour parent/enfant, Gauche/Droite pour voisins"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER"] = "Rechercher la technologie ciblée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER"] = "Shift+Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER"] = "Maj plus Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER"] = "Mettre en file d'attente la technologie ciblée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA"] = "Ctrl+I"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_PEDIA"] = "Contrôle plus I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_PEDIA"] = "Ouvrir l'entrée Civilopédia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH"] = "Lettre / chiffre / espace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH"] = "Saisir pour rechercher par nom ou découvertes"
@@ -1661,7 +1662,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "Aucune
 -- cities). Domain words distinguish caravan (land) from cargo ship (sea).
 -- ROUTE_HEADER carries five placeholders: domain word, source city, source
 -- civ, destination city, destination civ.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY"] = "Ctrl+T"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_KEY"] = "Contrôle plus T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_HOTKEY_HELP_DESC"] = "Ouvrir la vue d'ensemble des routes commerciales"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_YOURS"] = "Vos routes commerciales"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_AVAILABLE"] = "Routes commerciales disponibles"
@@ -2006,14 +2007,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_YOURS"] = "votre tourism
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_THEIRS"] = "leur culture cumulée : {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_NO_TARGETS"] = "Aucune civilisation avec des niveaux d'influence"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL"] = "Modificateur de tourisme {1_N} pour cent"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Contrôle plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Ouvrir l'aperçu culturel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "L'aperçu culturel est désactivé dans cette partie"
 -- League Overview (World Congress / United Nations). TabbedShell over the
 -- engine's BUTTONPOPUP_LEAGUE_OVERVIEW: tab 1 status / members, tab 2 current
 -- proposals (View / Propose / Vote modes), tab 3 ongoing effects.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_OVERVIEW"] = "Congrès mondial"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_KEY"] = "Control plus L"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_KEY"] = "Contrôle plus L"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC"] = "Ouvrir l'aperçu du Congrès mondial"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_STATUS"] = "Statut"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_PROPOSALS"] = "Propositions"
@@ -2073,7 +2074,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"] = "Abroger cette ré
 -- Screen title and tab names reuse engine TXT_KEY_RELIGION_OVERVIEW and
 -- TXT_KEY_RO_TAB_*; only the hotkey-help pair and the world-row composition
 -- have no engine equivalent.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY"] = "Control plus R"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY"] = "Contrôle plus R"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Ouvrir l'aperçu des religions"
 -- World Religions row composition. Distinguishing word (religion name) leads;
 -- holy city / founder / city count follow with brief framing words so values
@@ -2088,7 +2089,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
 -- detail with engine tooltips), tab 3 intrigue messages. Screen title and
 -- the Your / Their / Agents / View / Coup / Relocate row labels reuse
 -- engine TXT_KEY_EO_* keys directly.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY"] = "Control plus E"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY"] = "Contrôle plus E"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_DESC"] = "Ouvrir l'aperçu de l'espionnage"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_AGENTS"] = "Agents"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_CITIES"] = "Villes"
@@ -2135,9 +2136,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY"] = "Déplacer {1_
 -- fragments stay byte-identical with the scanner's End readout).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_ADDED"] = "signet ajouté"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_EMPTY"] = "aucun signet"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_SAVE"] = "Control plus une touche numérique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_SAVE"] = "Contrôle plus une touche numérique"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_SAVE"] = "Enregistrer un signet au curseur dans l'emplacement correspondant"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_JUMP"] = "Shift plus une touche numérique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_JUMP"] = "Maj plus une touche numérique"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_JUMP"] =
     "Déplacer le curseur vers le signet de cet emplacement, retour arrière pour revenir"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus une touche numérique"
@@ -2160,9 +2161,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Discussion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "aucun message"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Crochet gauche et crochet droit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_NAV"] = "Message précédent et suivant dans le tampon"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE"] = "Control plus crochet gauche et crochet droit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE"] = "Contrôle plus crochet gauche et crochet droit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] = "Message le plus ancien et le plus récent dans le tampon"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Shift plus crochet gauche et crochet droit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Maj plus crochet gauche et crochet droit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
     "Changer de catégorie de filtre, en ignorant les catégories vides"
 

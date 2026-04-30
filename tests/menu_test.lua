@@ -3812,8 +3812,8 @@ end
 -- and dispatches to Events.SearchForPediaEntry when the focused item
 -- carries pediaName (static) or pediaNameFn (dynamic, re-resolved each
 -- press). Items without either silently no-op. The binding itself is
--- gated on Events.SearchForPediaEntry's presence so FrontEnd Contexts
--- don't advertise a chord that can't work.
+-- gated on the Game global's presence so FrontEnd Contexts (where
+-- Civilopedia isn't loaded) don't advertise a chord that can't work.
 
 local function withPediaStub(fn)
     local captured = {}
@@ -3922,13 +3922,16 @@ function M.test_ctrl_i_pediaNameFn_error_logged_and_swallowed()
     end)
 end
 
-function M.test_ctrl_i_binding_absent_without_pedia_event()
+function M.test_ctrl_i_binding_absent_in_frontend()
     setup()
     setCtrls({ "A" })
-    -- Simulate FrontEnd: no SearchForPediaEntry published. BaseMenu.create
-    -- must skip the Ctrl+I binding entirely so Ctrl+I falls through
-    -- rather than claiming the key.
-    Events.SearchForPediaEntry = nil
+    -- Simulate FrontEnd by clearing the Game global -- BaseMenu.create
+    -- gates the Ctrl+I binding on Game's presence so it doesn't claim
+    -- the key in pre-game menus where Civilopedia isn't loaded. Events.X
+    -- is not a usable gate (the engine auto-creates event slots on access,
+    -- so Events.SearchForPediaEntry is non-nil even in FrontEnd).
+    local savedGame = Game
+    Game = nil
     local h = BaseMenu.create({
         name = "T",
         displayName = "Test",
@@ -3941,13 +3944,14 @@ function M.test_ctrl_i_binding_absent_without_pedia_event()
             }),
         },
     })
+    Game = savedGame
     local hasCtrlI = false
     for _, b in ipairs(h.bindings) do
         if b.key == Keys.I and b.mods == MOD_CTRL then
             hasCtrlI = true
         end
     end
-    T.falsy(hasCtrlI, "no Ctrl+I binding when Events.SearchForPediaEntry is absent")
+    T.falsy(hasCtrlI, "no Ctrl+I binding in FrontEnd (Game == nil)")
 end
 
 -- VirtualSlider --------------------------------------------------------

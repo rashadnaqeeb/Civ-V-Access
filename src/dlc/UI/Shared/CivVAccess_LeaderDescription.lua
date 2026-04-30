@@ -66,10 +66,10 @@ function LeaderDescription.bindF2(handler, getPlayerIdFn)
             LeaderDescription.speakFor(iPlayer)
         end,
     }
-    handler.helpEntries[#handler.helpEntries + 1] = {
+    BaseMenuHelp.addScreenKey(handler, {
         keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
         description = "TXT_KEY_CIVVACCESS_HELP_DESC_LEADER_DESC",
-    }
+    })
 end
 
 return LeaderDescription

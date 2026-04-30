@@ -74,10 +74,12 @@ local function appendAll(dst, src)
 end
 
 -- Compose the authored help list for a BaseMenu-backed handler, reading the
--- spec to decide which templates apply. spec.helpExtras appends handler-
--- specific extras at the tail (for the rare screen with a custom binding).
+-- spec to decide which templates apply. spec.helpExtras leads the list so a
+-- screen's distinguishing chord (StagingRoom F2, TechTree F6, etc.) reads
+-- before the universal nav/search entries it shares with every other menu.
 function BaseMenuHelp.buildHelpEntries(spec)
     local list = {}
+    appendAll(list, spec.helpExtras)
     appendAll(list, BaseMenuHelp.MenuHelpEntries)
     appendAll(list, BaseMenuHelp.ListNavHelpEntries)
     appendAll(list, BaseMenuHelp.NestedNavHelpEntries)
@@ -85,17 +87,35 @@ function BaseMenuHelp.buildHelpEntries(spec)
         appendAll(list, BaseMenuHelp.TabbedHelpEntries)
     end
     list[#list + 1] = BaseMenuHelp.ReadHeaderHelpEntry
-    -- Gate the Civilopedia entry on the event's presence so FrontEnd
-    -- menus (no pedia available) don't advertise a chord that no-ops.
-    -- The binding in BaseMenu.create is similarly gated.
-    if Events ~= nil and Events.SearchForPediaEntry ~= nil then
+    -- Gate the Civilopedia entry on Game's presence so FrontEnd menus
+    -- (no pedia available) don't advertise a chord that no-ops. The
+    -- binding in BaseMenu.create is similarly gated. (Events.X is not
+    -- a usable gate -- the engine auto-creates event slots on access,
+    -- so Events.SearchForPediaEntry is non-nil even in FrontEnd.)
+    if Game ~= nil then
         list[#list + 1] = BaseMenuHelp.CivilopediaHelpEntry
     end
     if spec.escapePops then
         list[#list + 1] = BaseMenuHelp.EscapePopsHelpEntry
     end
-    appendAll(list, spec.helpExtras)
     return list
+end
+
+-- Insert a screen-specific help entry at the top of the handler's help
+-- list, after any previously inserted screen keys (and after spec.helpExtras
+-- the handler was created with). For post-create wiring of "special keys"
+-- that BaseMenu.create couldn't be told about because the binding is added
+-- after the handler is built. Maintains insertion order across multiple
+-- calls so two added keys read in the order they were added. BaseMenu.create
+-- seeds handler._screenKeyCount with #spec.helpExtras so post-create
+-- additions stack after the spec extras, not in front of them.
+function BaseMenuHelp.addScreenKey(handler, entry)
+    if handler.helpEntries == nil then
+        handler.helpEntries = {}
+    end
+    local idx = (handler._screenKeyCount or 0) + 1
+    handler._screenKeyCount = idx
+    table.insert(handler.helpEntries, idx, entry)
 end
 
 return BaseMenuHelp

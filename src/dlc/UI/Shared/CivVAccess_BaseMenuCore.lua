@@ -826,12 +826,11 @@ function BaseMenu.create(spec)
         },
     }
     -- Ctrl+I opens Civilopedia for the focused item when it carries a
-    -- pediaName / pediaNameFn. Gated on Events.SearchForPediaEntry so the
-    -- binding is absent in FrontEnd Contexts (pre-game menus, where the
-    -- Civilopedia event doesn't exist). Items without a pedia string
-    -- silently no-op -- per plan §4.1, Ctrl+I on a non-pediable item is
-    -- ignored, no "no entry" feedback.
-    if Events ~= nil and Events.SearchForPediaEntry ~= nil then
+    -- pediaName / pediaNameFn. Gated on Game's presence so the binding
+    -- is absent in FrontEnd Contexts (pre-game menus, no pedia loaded).
+    -- Items without a pedia string silently no-op -- per plan §4.1,
+    -- Ctrl+I on a non-pediable item is ignored, no "no entry" feedback.
+    if Game ~= nil then
         self.bindings[#self.bindings + 1] = {
             key = Keys.I,
             mods = MOD_CTRL,
@@ -875,8 +874,12 @@ function BaseMenu.create(spec)
 
     -- Authored help list covering every binding the factory wired above.
     -- Spec-driven: tabs/escapePops toggle their own entries, and
-    -- spec.helpExtras appends at the tail for screens with a custom binding.
+    -- spec.helpExtras leads the list so a screen's distinguishing chord
+    -- reads before universal nav entries. _screenKeyCount tracks where
+    -- BaseMenuHelp.addScreenKey should stack post-create additions so
+    -- they appear after spec.helpExtras but still ahead of base nav.
     self.helpEntries = BaseMenuHelp.buildHelpEntries(spec)
+    self._screenKeyCount = type(spec.helpExtras) == "table" and #spec.helpExtras or 0
 
     -- Search-input hook surfaced on the handler so InputRouter can route
     -- printable keys / Backspace / Space to type-ahead without needing a

@@ -785,10 +785,10 @@ local function toggleChatPanel()
         description = "Close chat",
         fn = closeChatPanel,
     }
-    chatHandler.helpEntries[#chatHandler.helpEntries + 1] = {
+    BaseMenuHelp.addScreenKey(chatHandler, {
         keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
         description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE",
-    }
+    })
     HandlerStack.push(chatHandler)
 end
 
@@ -984,7 +984,7 @@ handler.bindings[#handler.bindings + 1] = {
     description = "Open chat",
     fn = toggleChatPanel,
 }
-handler.helpEntries[#handler.helpEntries + 1] = {
+BaseMenuHelp.addScreenKey(handler, {
     keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
     description = "TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN",
-}
+})
