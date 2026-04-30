@@ -1,9 +1,20 @@
--- Per-session digit-keyed cursor bookmarks. Ctrl + 1-0 saves the
--- cursor's current (x, y) into the slot, Shift + 1-0 jumps the
--- cursor there (with backspace return via the scanner's pre-jump
--- cell), Alt + 1-0 speaks a direction (and optional capital-relative
--- coord, gated on the scanner's coord setting) from the live cursor
--- to the saved cell.
+-- Per-session digit-keyed cursor bookmarks plus the Ctrl+S permanent
+-- jump-to-capital. Ctrl + 1-0 saves the cursor's current (x, y) into
+-- the slot, Shift + 1-0 jumps the cursor there (with backspace return
+-- via the scanner's pre-jump cell), Alt + 1-0 speaks a direction (and
+-- optional capital-relative coord, gated on the scanner's coord
+-- setting) from the live cursor to the saved cell. Ctrl+S is the
+-- equivalent of a permanent slot for the player's current capital.
+-- All three jumps go through ScannerNav.jumpCursorTo, the shared
+-- mark-then-jump primitive that also handles the cursor-already-at-
+-- target case (speaks SCANNER_HERE rather than re-running the full
+-- glance).
+--
+-- Lives here rather than inline in BaselineHandler because the jump
+-- pattern is identical to the slot jumps and this file already has
+-- the Cursor / ScannerNav dependencies wired up at boot. The Ctrl+S
+-- help entry is author'd in BaselineHandler so it sits next to the
+-- Shift+S coordinate readout in the map-mode help list.
 --
 -- Storage shape: civvaccess_shared.bookmarks[slot] = {x, y}. Slot
 -- key is the literal digit string ("1".."9","0") -- same form as
@@ -38,21 +49,47 @@ end
 -- Empty slots speak "no bookmark" rather than going silent: a blind
 -- user can't tell whether the keystroke registered or which slots
 -- they've populated, so feedback closes that loop. Same string for
--- jump and direction.
+-- jump and direction. Pre-jump capture, the at-target SCANNER_HERE
+-- short-circuit, and the actual Cursor.jumpTo call all live in
+-- ScannerNav.jumpCursorTo so this file just resolves the slot.
 function Bookmarks.jumpTo(slot)
     local b = civvaccess_shared.bookmarks[slot]
     if b == nil then
         return Text.key("TXT_KEY_CIVVACCESS_BOOKMARK_EMPTY")
     end
-    -- Mirror ScannerNav.jumpToEntry's pre-jump capture so backspace
-    -- on the scanner returns the cursor to where it was before the
-    -- bookmark jump. Skip when already at the target -- a no-op jump
-    -- shouldn't shadow the prior backspace anchor.
-    local cx, cy = Cursor.position()
-    if cx ~= nil and (cx ~= b.x or cy ~= b.y) then
-        ScannerNav.markPreJump(cx, cy)
+    return ScannerNav.jumpCursorTo(b.x, b.y)
+end
+
+-- Active player's current capital city plot, or nil before the first
+-- city is founded. Targets the current capital (player:GetCapitalCity)
+-- rather than the original capital that Shift+S coordinates anchor to
+-- via HexGeom.activeOriginalCapital -- if the original was captured
+-- and the seat of government moved, "go home" should mean "where I
+-- currently rule from", which also matches Cursor.init's initial-
+-- placement choice.
+local function capitalPlot()
+    local player = Players[Game.GetActivePlayer()]
+    if player == nil then
+        return nil
     end
-    return Cursor.jumpTo(b.x, b.y)
+    local capital = player:GetCapitalCity()
+    if capital == nil then
+        return nil
+    end
+    return capital:Plot()
+end
+
+-- Ctrl+S: send the cursor to the active player's current capital.
+-- Routes through ScannerNav.jumpCursorTo so the at-target SCANNER_HERE
+-- short-circuit and the scanner-Backspace pre-jump anchor are shared
+-- with the slot jumps. Speaks NO_CAPITAL rather than going silent
+-- before the first city is founded.
+function Bookmarks.jumpToCapital()
+    local plot = capitalPlot()
+    if plot == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_NO_CAPITAL")
+    end
+    return ScannerNav.jumpCursorTo(plot:GetX(), plot:GetY())
 end
 
 -- A populated slot implies the cursor was set at save time (Bookmarks.save
@@ -115,6 +152,13 @@ function Bookmarks.getBindings()
         bindings[#bindings + 1] = jumpBinding(slot)
         bindings[#bindings + 1] = directionBinding(slot)
     end
+    -- Engine's Ctrl+S is Save game, already swallowed by Baseline's
+    -- capturesAllInput barrier (passthroughKeys covers only F1-F11 +
+    -- Escape). Filling a dead key, not displacing engine behaviour;
+    -- Save remains reachable via Esc menu.
+    bindings[#bindings + 1] = bind(Keys.S, MOD_CTRL, function()
+        speak(Bookmarks.jumpToCapital())
+    end, "Jump cursor to capital")
     local helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_SAVE",

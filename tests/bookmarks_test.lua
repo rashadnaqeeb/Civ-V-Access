@@ -1,11 +1,13 @@
--- Bookmarks: per-session digit-keyed cursor positions. Cover the three
--- entry points (save / jumpTo / directionTo) plus the resetForNewGame
--- wipe and the cross-module pre-jump capture into ScannerNav. Each test
--- exercises a path the others don't: save populates a slot, save warns
--- when the cursor is unset, jumpTo rejects empty slots, jumpTo records
--- the pre-jump cell when the cursor moves, directionTo speaks HERE at
--- zero distance, directionTo composes the optional coord segment under
--- the scannerCoords toggle, resetForNewGame drops every slot.
+-- Bookmarks: per-session digit-keyed cursor positions plus the Ctrl+S
+-- permanent jump-to-capital. Each test exercises a path the others
+-- don't: save populates a slot, save warns when the cursor is unset,
+-- jumpTo rejects empty slots, jumpTo delegates to ScannerNav.jumpCursorTo
+-- (which owns the at-target SCANNER_HERE short-circuit and the pre-jump
+-- anchor; covered in scanner_navigation_test), directionTo speaks HERE
+-- at zero distance, directionTo composes the optional coord segment
+-- under the scannerCoords toggle, resetForNewGame drops every slot,
+-- jumpToCapital speaks NO_CAPITAL pre-founding and otherwise delegates
+-- to jumpCursorTo with the live capital plot.
 
 local T = require("support")
 local M = {}
@@ -39,15 +41,16 @@ local function setup()
         position = function()
             return cursorPosition.x, cursorPosition.y
         end,
-        jumpTo = function(x, y)
-            Cursor._lastJumpTo = { x = x, y = y }
-            return "jumped"
-        end,
     }
 
+    -- Bookmarks delegates every jump to ScannerNav.jumpCursorTo; the suite
+    -- only needs to verify the delegation happened with the right (x, y).
+    -- The at-target SCANNER_HERE branch and the pre-jump anchor live in
+    -- ScannerNav and are covered by scanner_navigation_test.
     ScannerNav = {
-        markPreJump = function(x, y)
-            ScannerNav._marked = { x = x, y = y }
+        jumpCursorTo = function(x, y)
+            ScannerNav._jumped = { x = x, y = y }
+            return "jumped"
         end,
     }
 
@@ -94,46 +97,29 @@ end
 function M.test_jumpTo_speaks_no_bookmark_on_empty_slot()
     -- Blind users can't tell whether the keystroke registered or which
     -- slots they have populated, so an empty slot speaks "no bookmark"
-    -- rather than going silent. Cursor must not move, and the scanner's
-    -- pre-jump anchor must not be touched -- a backspace into a stale
-    -- jump is worse than no return at all.
+    -- rather than going silent. ScannerNav.jumpCursorTo must not be
+    -- invoked -- a Backspace anchor capture into a stale empty-slot
+    -- jump would be worse than no return at all.
     setup()
     cursorPosition = { x = 0, y = 0 }
     local spoken = Bookmarks.jumpTo("7")
     T.eq(spoken, "no bookmark")
-    T.eq(Cursor._lastJumpTo, nil)
-    T.eq(ScannerNav._marked, nil)
+    T.eq(ScannerNav._jumped, nil)
 end
 
-function M.test_jumpTo_records_prejump_and_jumps()
-    -- Live cursor is at (3, 3); slot 2 is at (10, -5). jumpTo must
-    -- (a) call ScannerNav.markPreJump with the live cursor pos, so the
-    --     scanner's Backspace returns to it, and
-    -- (b) call Cursor.jumpTo with the saved bookmark coords.
+function M.test_jumpTo_delegates_to_jumpCursorTo()
+    -- jumpTo's only post-resolve job is to forward the saved cell to
+    -- ScannerNav.jumpCursorTo. The at-target SCANNER_HERE short-circuit
+    -- and the pre-jump anchor capture live there and are covered by
+    -- scanner_navigation_test; here we just verify the delegation.
     setup()
     cursorPosition = { x = 3, y = 3 }
     Bookmarks.save("2")
     civvaccess_shared.bookmarks["2"] = { x = 10, y = -5 }
-    cursorPosition = { x = 3, y = 3 }
     local spoken = Bookmarks.jumpTo("2")
     T.eq(spoken, "jumped")
-    T.eq(Cursor._lastJumpTo.x, 10)
-    T.eq(Cursor._lastJumpTo.y, -5)
-    T.eq(ScannerNav._marked.x, 3)
-    T.eq(ScannerNav._marked.y, 3)
-end
-
-function M.test_jumpTo_skips_prejump_when_already_at_target()
-    -- A no-op jump (cursor already on the saved cell) must not consume
-    -- the existing backspace anchor; otherwise pressing Shift+5 twice
-    -- on the same spot would silently shadow whatever the user had set
-    -- via an earlier scanner Home / different bookmark.
-    setup()
-    cursorPosition = { x = 6, y = 6 }
-    Bookmarks.save("4")
-    cursorPosition = { x = 6, y = 6 }
-    Bookmarks.jumpTo("4")
-    T.eq(ScannerNav._marked, nil, "no pre-jump capture when already on target")
+    T.eq(ScannerNav._jumped.x, 10)
+    T.eq(ScannerNav._jumped.y, -5)
 end
 
 -- ===== directionTo =====
@@ -209,15 +195,48 @@ end
 
 -- ===== Bindings surface =====
 
-function M.test_getBindings_returns_thirty_bindings_and_three_help_entries()
+function M.test_getBindings_returns_thirtyone_bindings_and_three_help_entries()
     -- Ten slots (1-9 + 0) times three modifier variants (Ctrl/Shift/Alt)
-    -- equals thirty bindings; the Help overlay rolls them into three
-    -- chord-style help rows. Asserting the counts catches a future
-    -- accidental drop or duplicate slot entry.
+    -- equals thirty digit-slot bindings; the Ctrl+S jump-to-capital adds
+    -- a thirty-first. The help overlay rolls the slot bindings into
+    -- three chord-style help rows; the Ctrl+S help entry is author'd in
+    -- BaselineHandler so it sits next to Shift+S in the map-mode help
+    -- list, not here -- so helpEntries stays at three. Asserting the
+    -- counts catches a future accidental drop or duplicate.
     setup()
     local bs = Bookmarks.getBindings()
-    T.eq(#bs.bindings, 30)
+    T.eq(#bs.bindings, 31)
     T.eq(#bs.helpEntries, 3)
+end
+
+-- ===== jumpToCapital =====
+
+function M.test_jumpToCapital_speaks_no_capital_pre_founding()
+    -- Before the first city is founded GetCapitalCity returns nil; the
+    -- key must speak "no capital" rather than going silent (a blind
+    -- user can't tell whether the keystroke registered).
+    setup()
+    cursorPosition = { x = 5, y = 5 }
+    Players[0] = T.fakePlayer({}) -- no capital
+    local spoken = Bookmarks.jumpToCapital()
+    T.eq(spoken, "no capital")
+    T.eq(ScannerNav._jumped, nil)
+end
+
+function M.test_jumpToCapital_delegates_to_jumpCursorTo_with_capital_plot()
+    -- Capital plot at (12, 7); jumpToCapital must resolve the plot via
+    -- player:GetCapitalCity():Plot() and forward those coords to the
+    -- shared jumpCursorTo helper. The at-target SCANNER_HERE branch
+    -- and pre-jump anchor live in jumpCursorTo (covered separately).
+    setup()
+    local capPlot = T.fakePlot({ x = 12, y = 7 })
+    local capCity = T.fakeCity({ plot = capPlot })
+    Players[0] = T.fakePlayer({ capital = capCity })
+    cursorPosition = { x = 0, y = 0 }
+    local spoken = Bookmarks.jumpToCapital()
+    T.eq(spoken, "jumped")
+    T.eq(ScannerNav._jumped.x, 12)
+    T.eq(ScannerNav._jumped.y, 7)
 end
 
 return M

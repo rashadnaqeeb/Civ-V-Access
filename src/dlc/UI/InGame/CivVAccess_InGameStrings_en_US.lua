@@ -514,6 +514,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"] = "fog"
 -- and cursor-prefix text stay in sync across locales.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "unseen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capital"
+-- Spoken when the user presses Ctrl+S to jump to their capital before
+-- founding a city. Mirrors the bookmark "no bookmark" pattern -- silence
+-- is indistinguishable from a broken keystroke for a blind player, so we
+-- close the loop with a short status word.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "no capital"
 -- Modified-offset coordinate, capital-relative. {1_X} can be a half-integer
 -- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
@@ -569,6 +574,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Read unit
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift plus S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
     "Coordinates of cursor relative to original capital, in modified offset notation (each step east is plus one in x, each NE step is plus 0.5 in x and plus one in y, each SE is plus 0.5 in x and minus one in y)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control plus S"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "Jump cursor to your capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Economy details for current tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"

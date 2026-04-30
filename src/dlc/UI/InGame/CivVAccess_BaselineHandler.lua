@@ -107,6 +107,10 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES",
     },
     {
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL",
+    },
+    {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA",
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA",
     },
@@ -204,6 +208,11 @@ function BaselineHandler.create()
         bind(Keys.S, MOD_SHIFT, function()
             speak(Cursor.coordinates())
         end, "Coordinates from capital"),
+        -- Ctrl+S (jump cursor to capital) is bound from Bookmarks.getBindings
+        -- so it shares ScannerNav.jumpCursorTo with the digit-slot jumps;
+        -- the help entry stays here in MOVEMENT_AND_INFO_HELP_ENTRIES so it
+        -- sits next to Shift+S in the help list rather than in the
+        -- bookmarks section.
         bind(Keys.W, MOD_NONE, function()
             speak(Cursor.economy())
         end, "Economy details"),

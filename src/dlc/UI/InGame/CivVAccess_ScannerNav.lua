@@ -524,10 +524,11 @@ function ScannerNav.cycleInstance(dir)
 end
 
 -- Home: jump the cursor to the current entry's plot and speak the
--- glance (same text Cursor.move produces after a directional step).
--- The glance covers the "where am I now" need; no re-announcement of
--- the entry label is required because the user just pressed Home on
--- it and already knows.
+-- glance (same text Cursor.move produces after a directional step), or
+-- SCANNER_HERE when the cursor is already on the entry's plot. The
+-- glance covers the "where am I now" need; no re-announcement of the
+-- entry label is required because the user just pressed Home on it and
+-- already knows.
 function ScannerNav.jumpToEntry()
     rebuildAndLocate()
     ensureCurrentInstanceValid()
@@ -535,11 +536,7 @@ function ScannerNav.jumpToEntry()
     if inst == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
-    local cx, cy = Cursor.position()
-    if cx ~= nil and (cx ~= inst.plotX or cy ~= inst.plotY) then
-        _preJumpX, _preJumpY = cx, cy
-    end
-    return Cursor.jumpTo(inst.plotX, inst.plotY)
+    return ScannerNav.jumpCursorTo(inst.plotX, inst.plotY)
 end
 
 -- End: speak the distance/direction from the hex cursor to the
@@ -589,12 +586,34 @@ function ScannerNav.toggleAutoMove()
     end
 end
 
--- Public seam for cross-module pre-jump tracking. Bookmarks calls this
--- before its own Cursor.jumpTo so the scanner's Backspace return still
--- works after a Shift+digit jump. ScannerNav.jumpToEntry / autoMoveIfEnabled
--- writes the same upvalue pair internally.
+-- Public seam for cross-module pre-jump tracking. Used by
+-- ScannerNav.jumpCursorTo (the shared cursor-jump primitive) and by
+-- autoMoveIfEnabled, which writes the same upvalue pair internally for
+-- the no-speech cycle path.
 function ScannerNav.markPreJump(x, y)
     _preJumpX, _preJumpY = x, y
+end
+
+-- Shared cursor-jump primitive for every keystroke that sends the cursor
+-- to a remembered cell: scanner Home (jumpToEntry), Bookmarks Shift+digit
+-- (Bookmarks.jumpTo), and Bookmarks Ctrl+S (Bookmarks.jumpToCapital).
+-- When the cursor is already on the target, speak SCANNER_HERE rather
+-- than re-running Cursor.jumpTo's full glance: a no-op press is a fast
+-- "you are already there" confirmation, not a re-read of details the user
+-- already heard at arrival. Skipping the markPreJump in that case also
+-- preserves whatever Backspace anchor the user had set earlier --
+-- otherwise pressing the same jump key twice on the same spot would
+-- silently shadow it. Lives in ScannerNav because the Backspace anchor
+-- it captures is the scanner's, and ScannerNav already owns markPreJump.
+function ScannerNav.jumpCursorTo(x, y)
+    local cx, cy = Cursor.position()
+    if cx == x and cy == y then
+        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+    end
+    if cx ~= nil then
+        ScannerNav.markPreJump(cx, cy)
+    end
+    return Cursor.jumpTo(x, y)
 end
 
 -- Backspace: restore the cursor to the cell saved at the most recent

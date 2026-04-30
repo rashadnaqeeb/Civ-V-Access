@@ -87,6 +87,60 @@ local function setup()
     Log.warn = function() end
     Log.error = function() end
     Log.info = function() end
+    -- ScannerStrings_en_US is not on run.lua's load list (scanner_announcement
+    -- sets this same key in its own setup); seed it here so the jumpCursorTo
+    -- tests can assert the at-target branch by literal value.
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HERE"] = "here"
+end
+
+-- ===== ScannerNav.jumpCursorTo (shared cursor-jump primitive) =====
+
+function M.test_jumpCursorTo_speaks_here_when_already_at_target()
+    -- A no-op press (cursor on the target) speaks SCANNER_HERE rather
+    -- than re-running Cursor.jumpTo's full glance -- a fast confirmation
+    -- instead of a re-read of details the user already heard.
+    setup()
+    Cursor.position = function()
+        return 5, 5
+    end
+    local jumped
+    Cursor.jumpTo = function(x, y)
+        jumped = { x = x, y = y }
+        return "should not be called"
+    end
+    local spoken = ScannerNav.jumpCursorTo(5, 5)
+    T.eq(spoken, "here")
+    T.eq(jumped, nil, "Cursor.jumpTo must not be invoked on a no-op press")
+    -- And the existing backspace anchor must be preserved -- otherwise
+    -- pressing the same jump key twice on the same spot would silently
+    -- shadow whatever the user had set via an earlier scanner Home.
+    T.eq(ScannerNav.returnToPreJump(), Text.key("TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"))
+end
+
+function M.test_jumpCursorTo_marks_prejump_and_jumps_when_target_differs()
+    -- Live cursor at (3, 3), target (10, 10): mark anchor at the live
+    -- cell, then forward to Cursor.jumpTo. Returning to pre-jump must
+    -- land back at (3, 3).
+    setup()
+    Cursor.position = function()
+        return 3, 3
+    end
+    local spoken = ScannerNav.jumpCursorTo(10, 10)
+    T.eq(spoken, "jumped to 10,10")
+    T.eq(ScannerNav.returnToPreJump(), "jumped to 3,3")
+end
+
+function M.test_jumpCursorTo_skips_prejump_when_cursor_uninit()
+    -- Pre-Cursor.init the position is (nil, nil); the markPreJump call
+    -- must be skipped (an anchor of nil would corrupt the upvalues), but
+    -- the jump itself still proceeds.
+    setup()
+    Cursor.position = function()
+        return nil, nil
+    end
+    local spoken = ScannerNav.jumpCursorTo(7, 7)
+    T.eq(spoken, "jumped to 7,7")
+    T.eq(ScannerNav.returnToPreJump(), Text.key("TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"))
 end
 
 -- ===== Item cycle wrap =====

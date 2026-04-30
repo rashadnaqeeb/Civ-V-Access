@@ -414,6 +414,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOG"] = "brouillard"
 -- and cursor-prefix text stay in sync across locales.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "non vu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capitale"
+-- Spoken when the user presses Ctrl+S to jump to their capital before
+-- founding a city. Mirrors the bookmark "no bookmark" pattern -- silence
+-- is indistinguishable from a broken keystroke for a blind player, so we
+-- close the loop with a short status word.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "pas de capitale"
 -- Modified-offset coordinate, capital-relative. {1_X} can be a half-integer
 -- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
@@ -469,6 +474,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Lire l'un
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Maj plus S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
     "Coordonnées du curseur par rapport à la capitale d'origine, en notation décalée modifiée (chaque pas vers l'est ajoute un en x, chaque pas nord-est ajoute 0.5 en x et un en y, chaque pas sud-est ajoute 0.5 en x et enlève un en y)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Contrôle plus S"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "Déplacer le curseur vers votre capitale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Détails économiques de la case actuelle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
