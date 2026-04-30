@@ -98,6 +98,63 @@ function HandlerStack.push(handler)
     return true
 end
 
+-- Insert a handler at a specific stack position. idx 1 is the bottom; idx
+-- equal to count()+1 is the top and is equivalent to push. onActivate fires
+-- only when the inserted handler becomes the new top -- inserting below the
+-- current top leaves the active handler unchanged, so no announcement.
+--
+-- Used by Boot to seat Baseline / Scanner at the floor of the in-game stack
+-- without burying any popup (PlayerChange in hotseat) that pushed itself
+-- before LoadScreenClose fired.
+function HandlerStack.insertAt(handler, idx)
+    if handler == nil then
+        Log.warn("HandlerStack.insertAt: nil handler")
+        return false
+    end
+    if handler.helpEntries == nil and type(handler.bindings) == "table" and #handler.bindings > 0 then
+        Log.warn(
+            "HandlerStack.insertAt: '"
+                .. tostring(handler.name)
+                .. "' has bindings but no helpEntries; ? help will not list it."
+                .. " Set helpEntries (or an explicit {}) to opt in."
+        )
+    end
+    local n = #_shared.stack
+    if type(idx) ~= "number" or idx < 1 or idx > n + 1 then
+        Log.warn(
+            "HandlerStack.insertAt: idx out of range ("
+                .. tostring(idx)
+                .. ", stack size "
+                .. n
+                .. ") for '"
+                .. tostring(handler.name)
+                .. "'"
+        )
+        return false
+    end
+    if idx == n + 1 then
+        local fn = handler.onActivate
+        if type(fn) == "function" then
+            local ok, err = pcall(fn, handler)
+            if not ok then
+                Log.error(
+                    "HandlerStack.insertAt onActivate failed on '"
+                        .. tostring(handler.name)
+                        .. "': "
+                        .. tostring(err)
+                        .. " (handler not inserted)"
+                )
+                return false
+            end
+        end
+    end
+    table.insert(_shared.stack, idx, handler)
+    Log.debug(
+        "HandlerStack.insertAt '" .. tostring(handler.name) .. "' (idx=" .. idx .. ", depth=" .. #_shared.stack .. ")"
+    )
+    return true
+end
+
 function HandlerStack.pop()
     local n = #_shared.stack
     if n == 0 then

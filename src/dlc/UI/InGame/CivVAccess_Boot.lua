@@ -160,13 +160,22 @@ local function onInGameBoot()
     -- Bookmarks are session-only and tied to the active map's geometry;
     -- a different game has different cells under those (x, y) pairs.
     Bookmarks.resetForNewGame()
+    -- Baseline and Scanner are the floor of the in-game stack: Baseline
+    -- owns map / unit / turn keys and is the capturesAllInput barrier;
+    -- Scanner sits one above for category cycling. They are not modal
+    -- pushes, so they go in at positions 1 and 2 rather than on top.
+    -- This matters when a popup pushed itself before LoadScreenClose
+    -- fired: hotseat's PlayerChange shows during the load-screen-to-game
+    -- transition and is on the stack by the time this listener runs.
+    -- push would bury PlayerChange (Scanner becomes active and its
+    -- bindings reach InputRouter first; PlayerChange's Esc / Enter / item
+    -- bindings never fire). insertAt at the bottom keeps PlayerChange on
+    -- top where it belongs. removeByName first clears the prior game's
+    -- dead-env Baseline / Scanner closures on a load-from-game transition.
     HandlerStack.removeByName("Baseline")
-    HandlerStack.push(BaselineHandler.create())
-    -- Scanner sits directly above Baseline. capturesAllInput=false so
-    -- cursor keys fall through unchanged; removeByName before push keeps
-    -- Context re-entry idempotent.
     HandlerStack.removeByName("Scanner")
-    HandlerStack.push(ScannerHandler.create())
+    HandlerStack.insertAt(BaselineHandler.create(), 1)
+    HandlerStack.insertAt(ScannerHandler.create(), 2)
     TickPump.install(ContextPtr)
     Cursor.init()
     UnitControl.installListeners()

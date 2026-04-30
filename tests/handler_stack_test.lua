@@ -90,6 +90,101 @@ function M.test_push_onactivate_failure_does_not_add()
     T.truthy(#errors >= 1)
 end
 
+-- insertAt --------------------------------------------------------------
+
+function M.test_insertAt_into_empty_stack_activates()
+    setup()
+    local a = makeHandler("a")
+    T.truthy(HandlerStack.insertAt(a, 1))
+    T.eq(HandlerStack.count(), 1)
+    T.eq(HandlerStack.active(), a)
+    T.eq(a.activate, 1, "becoming top fires onActivate")
+end
+
+function M.test_insertAt_below_top_does_not_activate()
+    setup()
+    local existing = makeHandler("existing")
+    HandlerStack.push(existing)
+    local floor = makeHandler("floor")
+    T.truthy(HandlerStack.insertAt(floor, 1))
+    T.eq(HandlerStack.count(), 2)
+    T.eq(HandlerStack.active(), existing, "top unchanged")
+    T.eq(floor.activate, 0, "below-top insert does not fire onActivate")
+    T.eq(existing.activate, 1, "previous top not re-fired")
+    T.eq(HandlerStack.at(1), floor)
+    T.eq(HandlerStack.at(2), existing)
+end
+
+function M.test_insertAt_middle_position_does_not_activate()
+    setup()
+    local a, c = makeHandler("a"), makeHandler("c")
+    HandlerStack.push(a)
+    HandlerStack.push(c)
+    local b = makeHandler("b")
+    T.truthy(HandlerStack.insertAt(b, 2))
+    T.eq(HandlerStack.count(), 3)
+    T.eq(HandlerStack.at(1), a)
+    T.eq(HandlerStack.at(2), b)
+    T.eq(HandlerStack.at(3), c)
+    T.eq(b.activate, 0, "middle insert does not activate")
+    T.eq(c.activate, 1, "previous top not re-fired")
+end
+
+function M.test_insertAt_count_plus_one_acts_like_push()
+    setup()
+    local a = makeHandler("a")
+    HandlerStack.push(a)
+    local b = makeHandler("b")
+    T.truthy(HandlerStack.insertAt(b, 2))
+    T.eq(HandlerStack.active(), b)
+    T.eq(b.activate, 1, "top-equivalent insert fires onActivate")
+end
+
+function M.test_insertAt_idx_out_of_range_warns_and_refuses()
+    setup()
+    local a = makeHandler("a")
+    T.falsy(HandlerStack.insertAt(a, 0), "idx 0 rejected")
+    T.falsy(HandlerStack.insertAt(a, 2), "idx beyond count+1 rejected")
+    T.eq(HandlerStack.count(), 0)
+    T.truthy(#warns >= 2)
+end
+
+function M.test_insertAt_nil_handler_warns()
+    setup()
+    T.falsy(HandlerStack.insertAt(nil, 1))
+    T.truthy(#warns >= 1)
+end
+
+function M.test_insertAt_onactivate_failure_does_not_add()
+    setup()
+    local a = makeHandler("a", { activateError = true })
+    T.falsy(HandlerStack.insertAt(a, 1))
+    T.eq(HandlerStack.count(), 0)
+    T.truthy(#errors >= 1)
+end
+
+function M.test_insertAt_below_existing_popup_preserves_popup_active()
+    -- Mirrors the hotseat-boot scenario: a popup (PlayerChange) is on the
+    -- stack when Boot runs; inserting Baseline/Scanner at the bottom must
+    -- leave the popup as the active handler with no spurious activations.
+    setup()
+    local popup = makeHandler("popup")
+    HandlerStack.push(popup)
+    T.eq(popup.activate, 1)
+    local baseline = makeHandler("baseline")
+    local scanner = makeHandler("scanner")
+    T.truthy(HandlerStack.insertAt(baseline, 1))
+    T.truthy(HandlerStack.insertAt(scanner, 2))
+    T.eq(HandlerStack.count(), 3)
+    T.eq(HandlerStack.at(1), baseline)
+    T.eq(HandlerStack.at(2), scanner)
+    T.eq(HandlerStack.at(3), popup)
+    T.eq(HandlerStack.active(), popup, "popup still active")
+    T.eq(baseline.activate, 0)
+    T.eq(scanner.activate, 0)
+    T.eq(popup.activate, 1, "popup not re-fired by inserts beneath it")
+end
+
 -- replace ---------------------------------------------------------------
 
 function M.test_replace_deactivates_then_activates()
