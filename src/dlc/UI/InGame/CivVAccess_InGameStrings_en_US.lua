@@ -236,6 +236,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED"] = "cannot enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
     "aircraft can't be moved this way, use rebase"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "not adjacent"
+-- Target-specific attack refusals. Spoken when the unit could attack in
+-- principle (preflightAttack passes) but the engine would refuse this
+-- specific target. CITY_ATTACK_ONLY covers Battering Ram and other units
+-- with PROMOTION_ONLY_ATTACKS_CITIES; NAVAL_VS_LAND covers naval melee
+-- (Trireme, Caravel, Ironclad, etc.) against a land tile -- naval melee
+-- can capture coastal cities but cannot strike land units on land tiles.
+-- CANT_ATTACK_TARGET is the generic fallback for engine refusals not
+-- covered by the specific drills (combat-limit reached, only-defensive
+-- advancing into a city, etc.).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CITY_ATTACK_ONLY"] = "only attacks cities"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NAVAL_VS_LAND"] = "naval unit cannot attack land"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK_TARGET"] = "cannot attack this target"
 -- Empty-state tokens spoken when a unit-related key fires with nothing to
 -- act on: NO_UNITS when the active player owns zero selectable units,
 -- NO_ACTIONS when the unit-action menu has no entries to show.

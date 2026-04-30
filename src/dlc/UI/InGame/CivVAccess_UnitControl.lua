@@ -327,6 +327,47 @@ function UnitControl.preflightAttack(unit)
     return nil
 end
 
+-- Target-specific attack gate. preflightAttack only covers unit-level
+-- attributes (ranged / air / can-attack / has-moves); this catches the
+-- engine refusals that depend on the actor / target / terrain triple --
+-- the cases where preflight passes but a melee preview would predict
+-- combat the engine then silently refuses. Currently observed:
+--
+--   - Naval melee against a land tile with a land defender. Engine
+--     rejects in canMoveInto via canEnterTerrain (CvUnit.cpp:2750);
+--     naval melee can still capture coastal cities, so we exclude IsCity
+--     from the naval-vs-land message.
+--   - City-attack-only units (Battering Ram, future siege variants with
+--     PROMOTION_ONLY_ATTACKS_CITIES) against any non-city defender.
+--     CvUnit.cpp:2542 short-circuits with
+--     `IsCityAttackOnly && !plot.isEnemyCity && plot.getBestDefender`.
+--   - Defender already past the actor's combat limit (CvUnit.cpp:2654).
+--   - ONLY_DEFENSIVE units advancing into an enemy city (CvUnit.cpp:2559).
+--
+-- CanMoveOrAttackInto(target, 1, 1) tests both move-without-attack and
+-- attack (engine code at CvUnit.cpp:2760). Callers reach this gate after
+-- they have already established a defender on the plot, so the move
+-- branch is gated by the visibleEnemyUnit check (CvUnit.cpp:2717) and a
+-- true result here can only come from the attack branch. The fork's
+-- CvLuaUnit.cpp lCanMoveOrAttackInto (line 791) returns the actual
+-- result; vanilla discards it and would always read false.
+--
+-- Drill order is most-specific first so the user hears the
+-- distinguishing fact (this unit only attacks cities; this is a naval
+-- domain mismatch) before the generic fallback.
+function UnitControl.preflightAttackTarget(unit, target)
+    if unit:CanMoveOrAttackInto(target, 1, 1) then
+        return nil
+    end
+    if unit:IsCityAttackOnly() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CITY_ATTACK_ONLY")
+    end
+    if unit:GetDomainType() == DomainTypes.DOMAIN_SEA and not target:IsWater() and not target:IsCity() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NAVAL_VS_LAND")
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK_TARGET")
+end
+
 -- Precheck: can this unit enter the target plot at all? Air units get a
 -- dedicated message: CanMoveOrAttackInto correctly rejects every adjacent
 -- plot for them (aircraft don't move directly; they rebase), but "cannot
@@ -388,6 +429,15 @@ local function directMove(dir)
     if attackReason ~= nil then
         clearCombatConfirm()
         speakInterrupt(attackReason)
+        return
+    end
+    -- Target-specific gate covers refusals preflightAttack can't see
+    -- (naval-vs-land, city-attack-only, etc.). Without it the user hears
+    -- combat odds for an attack the engine will silently refuse.
+    local targetReason = UnitControl.preflightAttackTarget(unit, target)
+    if targetReason ~= nil then
+        clearCombatConfirm()
+        speakInterrupt(targetReason)
         return
     end
     -- Melee-attack confirm gate. Screen-reader users can't see the

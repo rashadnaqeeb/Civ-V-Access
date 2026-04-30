@@ -449,11 +449,25 @@ local function buildPreview(self)
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
         end
     elseif isMeleeAttackMode(mode) then
-        local text = combatPreviewAt(actor, plot, tx, ty, false)
-        if text == nil or text == "" then
-            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+        -- Match the gate order of directMove and commitFailureReason:
+        -- preflightAttack first (unit-level reasons hand the user a more
+        -- actionable message, e.g. "ranged unit, use ranged attack" wins
+        -- over the target-level fallback), preflightAttackTarget after.
+        local attackReason = UnitControl.preflightAttack(actor)
+        if attackReason ~= nil then
+            parts[#parts + 1] = attackReason
         else
-            parts[#parts + 1] = text
+            local targetReason = UnitControl.preflightAttackTarget(actor, plot)
+            if targetReason ~= nil then
+                parts[#parts + 1] = targetReason
+            else
+                local text = combatPreviewAt(actor, plot, tx, ty, false)
+                if text == nil or text == "" then
+                    parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+                else
+                    parts[#parts + 1] = text
+                end
+            end
         end
     elseif isMoveMode(mode) then
         -- Move-into-enemy resolves as an attack at commit time (engine
@@ -466,11 +480,16 @@ local function buildPreview(self)
         local hasEnemy = defenderAt(plot, false, actor) ~= nil or enemyCityAt(plot) ~= nil
         local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
         if hasEnemy and dist == 1 then
-            local text = combatPreviewAt(actor, plot, tx, ty, false)
-            if text == nil or text == "" then
-                parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+            local targetReason = UnitControl.preflightAttackTarget(actor, plot)
+            if targetReason ~= nil then
+                parts[#parts + 1] = targetReason
             else
-                parts[#parts + 1] = text
+                local text = combatPreviewAt(actor, plot, tx, ty, false)
+                if text == nil or text == "" then
+                    parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+                else
+                    parts[#parts + 1] = text
+                end
             end
         else
             parts[#parts + 1] = movePathPreview(actor, plot)
@@ -587,7 +606,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
         if defenderAt(plot, false, actor) == nil and enemyCityAt(plot) == nil then
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         end
-        return nil
+        return UnitControl.preflightAttackTarget(actor, plot)
     end
     if isRangeAttackMode(mode) then
         if not actor:CanRangeStrike() then

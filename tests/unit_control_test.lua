@@ -351,4 +351,104 @@ function M.test_dispatched_at_target_does_not_jump_when_follow_disabled()
     T.eq(#jumpedTo, 0)
 end
 
+-- ===== preflightAttackTarget =====
+-- Engine refusals that depend on actor / target / terrain (naval melee
+-- vs land, IsCityAttackOnly vs unit, etc.) aren't visible to
+-- preflightAttack. Guard each drill: a regression that drops a check
+-- shows up here as a wrong assertion before it ships a misleading
+-- combat preview to a Tolk-only player.
+
+local function mkAttacker(opts)
+    opts = opts or {}
+    local u = {
+        _canAttack = (opts.canAttack ~= false),
+        _domain = opts.domain or DomainTypes.DOMAIN_LAND,
+        _cityAttackOnly = opts.cityAttackOnly or false,
+    }
+    function u:CanMoveOrAttackInto(_target, _bDeclareWar, _bDestination)
+        return self._canAttack
+    end
+    function u:IsCityAttackOnly()
+        return self._cityAttackOnly
+    end
+    function u:GetDomainType()
+        return self._domain
+    end
+    return u
+end
+
+local function mkTargetPlot(opts)
+    opts = opts or {}
+    local p = {
+        _isWater = opts.water or false,
+        _isCity = opts.city or false,
+    }
+    function p:IsWater()
+        return self._isWater
+    end
+    function p:IsCity()
+        return self._isCity
+    end
+    return p
+end
+
+function M.test_preflight_attack_target_returns_nil_when_engine_allows()
+    setup()
+    local unit = mkAttacker({ canAttack = true })
+    local target = mkTargetPlot()
+    T.eq(UnitControl.preflightAttackTarget(unit, target), nil)
+end
+
+function M.test_preflight_attack_target_speaks_city_only_for_battering_ram()
+    -- Battering Ram has PROMOTION_ONLY_ATTACKS_CITIES (CityAttackOnly=
+    -- true). Engine rejects at CvUnit.cpp:2542 against a unit defender on
+    -- a non-city plot. Drill must beat the generic fallback so the user
+    -- hears the actionable distinguishing fact (this unit is built only
+    -- for city assault) instead of "cannot attack this target."
+    setup()
+    local unit = mkAttacker({ canAttack = false, cityAttackOnly = true })
+    local target = mkTargetPlot()
+    T.eq(UnitControl.preflightAttackTarget(unit, target), "only attacks cities")
+end
+
+function M.test_preflight_attack_target_speaks_naval_vs_land_for_trireme_vs_warrior()
+    -- Naval melee against a land defender on a land tile. Engine rejects
+    -- at canEnterTerrain (CvUnit.cpp:2750). Cities are excluded from this
+    -- drill because naval melee can capture coastal cities in BNW.
+    setup()
+    local unit = mkAttacker({ canAttack = false, domain = DomainTypes.DOMAIN_SEA })
+    local target = mkTargetPlot({ water = false, city = false })
+    T.eq(UnitControl.preflightAttackTarget(unit, target), "naval unit cannot attack land")
+end
+
+function M.test_preflight_attack_target_falls_through_for_naval_vs_coastal_city()
+    -- Naval melee against an enemy coastal city: engine allows the strike
+    -- (capture path). The naval-vs-land drill must not fire on cities so
+    -- the preview reaches the actual combat odds.
+    setup()
+    local unit = mkAttacker({ canAttack = true, domain = DomainTypes.DOMAIN_SEA })
+    local target = mkTargetPlot({ water = false, city = true })
+    T.eq(UnitControl.preflightAttackTarget(unit, target), nil)
+end
+
+function M.test_preflight_attack_target_falls_through_to_generic_for_other_refusals()
+    -- Engine refuses (e.g. defender past combat limit, ONLY_DEFENSIVE
+    -- into city) but neither specific drill fits. Generic fallback so
+    -- the user knows the attack will not happen.
+    setup()
+    local unit = mkAttacker({ canAttack = false, domain = DomainTypes.DOMAIN_LAND, cityAttackOnly = false })
+    local target = mkTargetPlot({ water = false, city = false })
+    T.eq(UnitControl.preflightAttackTarget(unit, target), "cannot attack this target")
+end
+
+function M.test_preflight_attack_target_city_attack_only_beats_naval_drill()
+    -- A naval city-attack-only unit (none in vanilla, but XML / future
+    -- mods may add one) should hear "only attacks cities" rather than
+    -- "naval unit cannot attack land" -- the more specific reason wins.
+    setup()
+    local unit = mkAttacker({ canAttack = false, domain = DomainTypes.DOMAIN_SEA, cityAttackOnly = true })
+    local target = mkTargetPlot({ water = false, city = false })
+    T.eq(UnitControl.preflightAttackTarget(unit, target), "only attacks cities")
+end
+
 return M

@@ -136,6 +136,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED"] = "ne peut pas en
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
     "l'aéronef ne peut pas se déplacer ainsi, utiliser le transfert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "non adjacent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CITY_ATTACK_ONLY"] = "n'attaque que les villes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NAVAL_VS_LAND"] = "ne peut pas attaquer sur terre"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK_TARGET"] = "ne peut pas attaquer cette cible"
 -- Empty-state tokens spoken when a unit-related key fires with nothing to
 -- act on: NO_UNITS when the active player owns zero selectable units,
 -- NO_ACTIONS when the unit-action menu has no entries to show.
