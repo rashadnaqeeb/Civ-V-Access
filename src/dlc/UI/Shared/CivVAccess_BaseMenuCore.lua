@@ -67,7 +67,11 @@
 --                     narration (tutorial advisor voice clips, civ
 --                     leader intro) where reading the same content
 --                     through Tolk would double-narrate. Preamble stays
---                     reachable via F1 / readHeader.
+--                     reachable via F1 / readHeader. May also be a
+--                     function returning a boolean, evaluated at first-
+--                     open time, for screens whose narration depends on
+--                     per-instance data (e.g. great-work popup only
+--                     narrates writings).
 --   onAltLeft /       optional fn(handler) bound to Alt+Left / Alt+Right
 --   onAltRight        on tab-less screens. Tabs still win when the active
 --                     tab defines its own onAltLeft / onAltRight hook.
@@ -598,8 +602,10 @@ function BaseMenu.create(spec)
         "spec.preamble must be a non-empty string or a function if provided"
     )
     check(
-        spec.silentFirstOpen == nil or type(spec.silentFirstOpen) == "boolean",
-        "spec.silentFirstOpen must be a boolean if provided"
+        spec.silentFirstOpen == nil
+            or type(spec.silentFirstOpen) == "boolean"
+            or type(spec.silentFirstOpen) == "function",
+        "spec.silentFirstOpen must be a boolean or a function if provided"
     )
     check(
         spec.silentDisplayName == nil or type(spec.silentDisplayName) == "boolean",
@@ -633,13 +639,16 @@ function BaseMenu.create(spec)
         -- as the opening tab. Out-of-range values fall back to tab 1 in
         -- openInitial. Clears are done via setInitialTabIndex(nil).
         _initialTabIndex = spec.initialTabIndex,
-        -- When true, the first-open announce speaks only displayName and
-        -- skips preamble / tab-name / first-item. For screens that overlap
-        -- with an external narration (tutorial advisor voice clips, civ
-        -- leader intro on the load screen) where reading the same content
-        -- through Tolk would double-narrate. Preamble stays reachable via
-        -- F1 / readHeader.
-        _silentFirstOpen = spec.silentFirstOpen == true,
+        -- When truthy at first-open time, the first-open announce speaks
+        -- only displayName and skips preamble / tab-name / first-item. For
+        -- screens that overlap with an external narration (tutorial advisor
+        -- voice clips, civ leader intro on the load screen) where reading
+        -- the same content through Tolk would double-narrate. Preamble
+        -- stays reachable via F1 / readHeader. Stored as boolean or
+        -- function; when a function, called (no args) at the gate site so
+        -- per-instance gating (great-work popup, only writings narrate)
+        -- can read the latest captured popup info.
+        _silentFirstOpen = (type(spec.silentFirstOpen) == "function" and spec.silentFirstOpen) or spec.silentFirstOpen == true,
         -- When true, the first-open announce skips the displayName line;
         -- preamble / tab / first-item speak as usual via speakQueued, and
         -- F1 refresh still re-reads displayName on demand. Any in-flight
@@ -930,7 +939,20 @@ function BaseMenu.create(spec)
             -- "Read Subtitles" toggle bypasses the suppression so the user
             -- hears the preamble alongside the engine's narration; read live
             -- so flipping the option affects subsequent opens immediately.
-            if self._silentFirstOpen and not (civvaccess_shared and civvaccess_shared.readSubtitles) then
+            -- Function form is evaluated at this site so per-instance gating
+            -- (great-work popup: writings only) can read just-captured
+            -- popup state.
+            local silentFirstOpen = self._silentFirstOpen
+            if type(silentFirstOpen) == "function" then
+                local ok, result = pcall(silentFirstOpen)
+                if not ok then
+                    Log.error("BaseMenu '" .. tostring(self.name) .. "' silentFirstOpen: " .. tostring(result))
+                    silentFirstOpen = false
+                else
+                    silentFirstOpen = result == true
+                end
+            end
+            if silentFirstOpen and not (civvaccess_shared and civvaccess_shared.readSubtitles) then
                 return
             end
             local preambleText = resolvePreamble(self)

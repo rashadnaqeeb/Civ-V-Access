@@ -1699,7 +1699,7 @@ function M.test_silent_first_open_bypassed_by_read_subtitles()
     T.eq(speaks[3].text, "LABEL_A")
 end
 
-function M.test_silent_first_open_rejects_non_boolean()
+function M.test_silent_first_open_rejects_non_boolean_or_function()
     setup()
     setCtrls({ "A" })
     local ok, err = pcall(function()
@@ -1710,8 +1710,60 @@ function M.test_silent_first_open_rejects_non_boolean()
             silentFirstOpen = "yes",
         })
     end)
-    T.truthy(not ok, "non-boolean rejected")
+    T.truthy(not ok, "non-boolean / non-function rejected")
     T.truthy(tostring(err):find("silentFirstOpen"), "error mentions the field")
+end
+
+-- silentFirstOpen as a function: evaluated at first-open time so per-instance
+-- gating can read just-captured state. Used by the great-work popup, which
+-- only narrates writings; art / music popups go through the normal speech
+-- path even though the same screen / spec is in play.
+function M.test_silent_first_open_function_truthy_suppresses()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A", "B" }),
+        silentFirstOpen = function() return true end,
+    })
+    HandlerStack.push(h)
+    T.eq(#speaks, 1, "only displayName spoken when fn returns true")
+    T.eq(speaks[1].text, "Screen")
+end
+
+function M.test_silent_first_open_function_falsy_speaks()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A", "B" }),
+        silentFirstOpen = function() return false end,
+    })
+    HandlerStack.push(h)
+    T.eq(#speaks, 3, "displayName, preamble, first item all spoken when fn returns false")
+end
+
+-- A throwing silentFirstOpen function is logged and treated as false, so a
+-- broken gate fails open (preamble still speaks) rather than silently
+-- swallowing the screen's announce.
+function M.test_silent_first_open_function_error_treated_as_false()
+    setup()
+    setCtrls({ "A" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        preamble = "body text",
+        items = buttonSpec({ "A" }),
+        silentFirstOpen = function() error("boom") end,
+    })
+    HandlerStack.push(h)
+    T.eq(#errors, 1, "error logged through Log.error")
+    T.truthy(tostring(errors[1]):find("silentFirstOpen"), "log mentions field")
+    T.eq(#speaks, 3, "displayName, preamble, first item still spoken (fail-open)")
 end
 
 -- silentDisplayName: first-open skips displayName but still announces
