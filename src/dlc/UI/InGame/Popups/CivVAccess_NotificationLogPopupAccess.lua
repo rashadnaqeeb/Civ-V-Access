@@ -5,9 +5,11 @@
 --             right-side stack for a sighted player).
 --   Turn Log  mod-authored cross-turn surfaces that don't live on the
 --             engine's notification list: the ForeignUnitWatch four-line
---             delta (units entered / left view during the AI turn) and
---             the CombatLog group (one entry per combat announced while
---             the player was waiting). Both clear at the next TurnEnd.
+--             delta (units entered / left view during the AI turn), the
+--             ForeignClearWatch line (camps and ruins others claimed in
+--             view), and the CombatLog group (one entry per combat
+--             announced while the player was waiting). All clear at the
+--             next TurnEnd.
 --   Dismissed notifications whose dismissed flag is true (activated,
 --             right-clicked, or auto-expired by the engine).
 -- Enter on an active entry calls NotificationSelected(id), which is the
@@ -69,6 +71,19 @@ local function activateAndFollow(notificationId)
     CameraTracker.followAndJumpCursor()
 end
 
+-- Append each line in a watcher's delta (a flat array of strings on
+-- civvaccess_shared, or nil when the watcher has nothing to report this
+-- turn) as a plain Text item. Producers: ForeignUnitWatch (foreignUnit-
+-- Delta), ForeignClearWatch (foreignClearDelta).
+local function appendDeltaLines(turnLog, delta)
+    if delta == nil then
+        return
+    end
+    for _, line in ipairs(delta) do
+        turnLog[#turnLog + 1] = BaseMenuItems.Text({ labelText = line })
+    end
+end
+
 local function buildItems()
     local active = {}
     local dismissed = {}
@@ -109,18 +124,8 @@ local function buildItems()
     -- there's no plot or popup to activate; the Combat Log group drills
     -- into the per-combat entries.
     local turnLog = {}
-    local delta = civvaccess_shared.foreignUnitDelta
-    if delta ~= nil then
-        for _, line in ipairs(delta) do
-            turnLog[#turnLog + 1] = BaseMenuItems.Text({ labelText = line })
-        end
-    end
-    local clearDelta = civvaccess_shared.foreignClearDelta
-    if clearDelta ~= nil then
-        for _, line in ipairs(clearDelta) do
-            turnLog[#turnLog + 1] = BaseMenuItems.Text({ labelText = line })
-        end
-    end
+    appendDeltaLines(turnLog, civvaccess_shared.foreignUnitDelta)
+    appendDeltaLines(turnLog, civvaccess_shared.foreignClearDelta)
     local combatChildren = {}
     local combatLog = civvaccess_shared.combatLog
     if combatLog ~= nil then

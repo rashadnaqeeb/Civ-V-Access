@@ -174,23 +174,23 @@ local function setForeignUnitWatchAnnounce(v)
     Prefs.setBool("ForeignUnitWatchAnnounce", b)
 end
 
--- Foreign-clear speech toggle. On by default: the one-line turn-start
--- summary of camps and ruins others claimed in the active team's view
--- during the AI turn. When off, the line lands silently in the F7 Turn
--- Log instead. The civvaccess_shared.foreignClearDelta write happens
--- regardless so F7 always shows what the watcher produced.
-if civvaccess_shared.foreignClearAnnounce == nil then
-    civvaccess_shared.foreignClearAnnounce = Prefs.getBool("ForeignClearAnnounce", true)
+-- Foreign-clear-watch speech toggle. On by default: the one-line turn-
+-- start summary of camps and ruins others claimed in the active team's
+-- view during the AI turn. When off, the line lands silently in the F7
+-- Turn Log instead. The civvaccess_shared.foreignClearDelta write
+-- happens regardless so F7 always shows what the watcher produced.
+if civvaccess_shared.foreignClearWatchAnnounce == nil then
+    civvaccess_shared.foreignClearWatchAnnounce = Prefs.getBool("ForeignClearWatchAnnounce", true)
 end
 
-local function getForeignClearAnnounce()
-    return civvaccess_shared.foreignClearAnnounce == true
+local function getForeignClearWatchAnnounce()
+    return civvaccess_shared.foreignClearWatchAnnounce == true
 end
 
-local function setForeignClearAnnounce(v)
+local function setForeignClearWatchAnnounce(v)
     local b = v and true or false
-    civvaccess_shared.foreignClearAnnounce = b
-    Prefs.setBool("ForeignClearAnnounce", b)
+    civvaccess_shared.foreignClearWatchAnnounce = b
+    Prefs.setBool("ForeignClearWatchAnnounce", b)
 end
 
 local function audioCueModeChoice(modeConst, textKey)
@@ -287,8 +287,8 @@ local function buildItems()
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE",
-            getValue = getForeignClearAnnounce,
-            setValue = setForeignClearAnnounce,
+            getValue = getForeignClearWatchAnnounce,
+            setValue = setForeignClearWatchAnnounce,
         }),
     }
 end

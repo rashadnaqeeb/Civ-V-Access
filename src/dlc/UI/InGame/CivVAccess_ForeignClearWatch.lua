@@ -36,10 +36,11 @@
 
 ForeignClearWatch = {}
 
--- Module-local counters reset every TurnEnd. Hooks tick these up during
--- the AI turn; TurnStart flushes them into one summary line.
-local _camps = 0
-local _ruins = 0
+-- Module-local counters reset every TurnEnd. Hooks tick the matching
+-- entry up during the AI turn; TurnStart flushes them into one summary
+-- line. Keyed table rather than two scalars so the per-category bump
+-- collapses into a single dispatcher.
+local _counts = { camps = 0, ruins = 0 }
 
 local function isCountableClear(actorID, iX, iY)
     local actor = Players[actorID]
@@ -57,32 +58,29 @@ local function isCountableClear(actorID, iX, iY)
     return plot:IsVisible(activeTeam, false)
 end
 
-function ForeignClearWatch._onForeignBarbCampCleared(actorID, iX, iY)
+local function bumpClear(category, actorID, iX, iY)
     local ok, err = pcall(function()
         if isCountableClear(actorID, iX, iY) then
-            _camps = _camps + 1
+            _counts[category] = _counts[category] + 1
         end
     end)
     if not ok then
-        Log.error("ForeignClearWatch: barb-camp hook failed: " .. tostring(err))
+        Log.error("ForeignClearWatch: " .. category .. " hook failed: " .. tostring(err))
     end
 end
 
+function ForeignClearWatch._onForeignBarbCampCleared(actorID, iX, iY)
+    bumpClear("camps", actorID, iX, iY)
+end
+
 function ForeignClearWatch._onForeignGoodyCleared(actorID, iX, iY)
-    local ok, err = pcall(function()
-        if isCountableClear(actorID, iX, iY) then
-            _ruins = _ruins + 1
-        end
-    end)
-    if not ok then
-        Log.error("ForeignClearWatch: goody-hut hook failed: " .. tostring(err))
-    end
+    bumpClear("ruins", actorID, iX, iY)
 end
 
 function ForeignClearWatch._onTurnEnd()
     local ok, err = pcall(function()
-        _camps = 0
-        _ruins = 0
+        _counts.camps = 0
+        _counts.ruins = 0
         civvaccess_shared.foreignClearDelta = nil
     end)
     if not ok then
@@ -92,29 +90,29 @@ end
 
 function ForeignClearWatch._onTurnStart()
     local ok, err = pcall(function()
-        if _camps == 0 and _ruins == 0 then
+        if _counts.camps == 0 and _counts.ruins == 0 then
             civvaccess_shared.foreignClearDelta = nil
             return
         end
         local parts = {}
-        if _camps > 0 then
-            parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_FOREIGN_CAMP_PART", _camps, _camps)
+        if _counts.camps > 0 then
+            parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_FOREIGN_CAMP_PART", _counts.camps, _counts.camps)
         end
-        if _ruins > 0 then
-            parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART", _ruins, _ruins)
+        if _counts.ruins > 0 then
+            parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART", _counts.ruins, _counts.ruins)
         end
         local body = table.concat(parts, Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND"))
         local line = Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX")
             .. body
             .. Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_SUFFIX")
         civvaccess_shared.foreignClearDelta = { line }
-        -- Speech is gated by the foreignClearAnnounce setting; the F7
-        -- Turn Log entry above lands either way so the user can review
-        -- the clears manually when speech is off. Queued (not interrupt)
-        -- to share the turn-boundary lane with NotificationAnnounce,
-        -- RevealAnnounce, and ForeignUnitWatch -- interrupting here
-        -- would cut whichever of those is currently speaking.
-        if civvaccess_shared.foreignClearAnnounce then
+        -- Speech is gated by the foreignClearWatchAnnounce setting; the
+        -- F7 Turn Log entry above lands either way so the user can
+        -- review the clears manually when speech is off. Queued (not
+        -- interrupt) to share the turn-boundary lane with Notification-
+        -- Announce, RevealAnnounce, and ForeignUnitWatch -- interrupting
+        -- here would cut whichever of those is currently speaking.
+        if civvaccess_shared.foreignClearWatchAnnounce then
             SpeechPipeline.speakQueued(line)
         end
         MessageBuffer.append(line, "reveal")
@@ -128,8 +126,8 @@ end
 -- ForeignUnitWatch: load-game-from-game kills prior-Context closures, so
 -- an install-once guard would lock the watcher to a stranded listener.
 function ForeignClearWatch.installListeners()
-    _camps = 0
-    _ruins = 0
+    _counts.camps = 0
+    _counts.ruins = 0
     civvaccess_shared.foreignClearDelta = nil
     if Events ~= nil and Events.ActivePlayerTurnEnd ~= nil then
         Events.ActivePlayerTurnEnd.Add(ForeignClearWatch._onTurnEnd)

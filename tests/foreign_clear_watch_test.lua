@@ -8,15 +8,6 @@ local M = {}
 
 -- ===== Fixture builders =====
 
-local function makePlayer(opts)
-    opts = opts or {}
-    local p = { _team = opts.team or 0 }
-    function p:GetTeam()
-        return self._team
-    end
-    return p
-end
-
 local function visiblePlot(x, y)
     return T.fakePlot({ x = x, y = y, visible = true })
 end
@@ -49,10 +40,10 @@ local function setup()
         return 0
     end
     Players = {}
-    Players[0] = makePlayer({ team = 0 })
+    Players[0] = T.fakePlayer({ team = 0 })
 
     civvaccess_shared = {
-        foreignClearAnnounce = true,
+        foreignClearWatchAnnounce = true,
     }
 
     Events = {
@@ -86,7 +77,7 @@ end
 
 local function installForeign(slot, opts)
     opts = opts or {}
-    Players[slot] = makePlayer({ team = opts.team or slot })
+    Players[slot] = T.fakePlayer({ team = opts.team or slot })
 end
 
 -- ===== Tests =====
@@ -214,7 +205,7 @@ end
 
 function M.test_announce_off_silent_but_delta_still_set()
     setup()
-    civvaccess_shared.foreignClearAnnounce = false
+    civvaccess_shared.foreignClearWatchAnnounce = false
     installForeign(1, { team = 1 })
     local plot = visiblePlot(3, 4)
     installPlots({ plot })
