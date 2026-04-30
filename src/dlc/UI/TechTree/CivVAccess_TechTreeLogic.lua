@@ -262,67 +262,80 @@ end
 --
 -- Grid mode walks the visual tech tree layout instead of the prereq DAG.
 -- Each tech has GridX (era column) and GridY (row within the column).
--- byRow lets Left / Right walk the row at a given GridY (skipping empty
--- cells); byColumn lets Up / Down walk the column at a given GridX. Both
--- lists are sorted in their primary axis so neighbor lookup is a linear
--- scan with consistent direction. Static across a session, built once at
--- screen-open.
+-- byColumn groups techs by GridX, sorted ascending by GridY. Up / Down
+-- walks that list at the cursor's column; Left / Right steps exactly one
+-- column over and snaps to whichever tech in the adjacent column sits
+-- nearest a caller-supplied "intended row" (so a sequence of horizontal
+-- moves through ragged columns doesn't drift permanently away from the
+-- row the user committed to with their last vertical move). Static across
+-- a session.
 function TechTreeLogic.buildGrid()
-    local byRow = {}
     local byColumn = {}
     for tech in GameInfo.Technologies() do
         if tech.GridX ~= nil and tech.GridY ~= nil then
-            byRow[tech.GridY] = byRow[tech.GridY] or {}
-            byRow[tech.GridY][#byRow[tech.GridY] + 1] = tech
             byColumn[tech.GridX] = byColumn[tech.GridX] or {}
             byColumn[tech.GridX][#byColumn[tech.GridX] + 1] = tech
         end
-    end
-    for _, list in pairs(byRow) do
-        table.sort(list, function(a, b)
-            return a.GridX < b.GridX
-        end)
     end
     for _, list in pairs(byColumn) do
         table.sort(list, function(a, b)
             return a.GridY < b.GridY
         end)
     end
-    return { byRow = byRow, byColumn = byColumn }
+    return { byColumn = byColumn }
 end
 
--- Find the next tech in a given direction along one grid axis. axis is
--- "row" (Left / Right walks GridX at fixed GridY) or "column" (Up / Down
--- walks GridY at fixed GridX); dir is +1 (Right / Down) or -1 (Left / Up).
--- Returns nil at the edge so callers can treat "no neighbor" as a silent
--- stop, matching the DAG cursor's behavior at root / leaf.
-function TechTreeLogic.gridNeighbor(grid, tech, axis, dir)
-    local list, key
-    if axis == "row" then
-        list = grid.byRow[tech.GridY]
-        key = "GridX"
-    else
-        list = grid.byColumn[tech.GridX]
-        key = "GridY"
-    end
-    if list == nil then
+-- Find the next tech under arrow nav.
+--   axis "column" (Up / Down): walk byColumn[tech.GridX] in GridY order;
+--     dir +1 returns the next tech with GridY > tech.GridY, -1 the
+--     previous. Silent at the column edge.
+--   axis "row" (Left / Right): step exactly one column over (GridX + dir)
+--     and return whichever tech in that column is nearest intendedGridY.
+--     Silent when no column exists at GridX + dir or it has no techs.
+--     Tiebreak on equal distance prefers the smaller GridY (visually
+--     higher); since byColumn is sorted ascending, we get this for free
+--     by only replacing on strictly smaller distance.
+-- intendedGridY persists across consecutive horizontal moves; the caller
+-- reseeds it from the cursor's GridY whenever a vertical move lands.
+function TechTreeLogic.gridNeighbor(grid, tech, axis, dir, intendedGridY)
+    if axis == "column" then
+        local list = grid.byColumn[tech.GridX]
+        if list == nil then
+            return nil
+        end
+        local current = tech.GridY
+        if dir > 0 then
+            for i = 1, #list do
+                if list[i].GridY > current then
+                    return list[i]
+                end
+            end
+        else
+            for i = #list, 1, -1 do
+                if list[i].GridY < current then
+                    return list[i]
+                end
+            end
+        end
         return nil
     end
-    local current = tech[key]
-    if dir > 0 then
-        for i = 1, #list do
-            if list[i][key] > current then
-                return list[i]
-            end
-        end
-    else
-        for i = #list, 1, -1 do
-            if list[i][key] < current then
-                return list[i]
-            end
+    local targetX = tech.GridX + dir
+    local list = grid.byColumn[targetX]
+    if list == nil or #list == 0 then
+        return nil
+    end
+    local target = intendedGridY or tech.GridY
+    local best = list[1]
+    local bestDist = math.abs(best.GridY - target)
+    for i = 2, #list do
+        local cand = list[i]
+        local dist = math.abs(cand.GridY - target)
+        if dist < bestDist then
+            best = cand
+            bestDist = dist
         end
     end
-    return nil
+    return best
 end
 
 -- ===== Era prefix =====

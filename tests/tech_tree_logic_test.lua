@@ -616,21 +616,6 @@ local function installGridTechs(techs)
     installTechDB(techs, {})
 end
 
-function M.test_buildGrid_byRow_sorted_by_gridX()
-    setup()
-    installGridTechs({
-        gridTech(0, "T_FAR", 5, 1),
-        gridTech(1, "T_NEAR", 2, 1),
-        gridTech(2, "T_MID", 3, 1),
-    })
-    local grid = TechTreeLogic.buildGrid()
-    local row1 = grid.byRow[1]
-    T.eq(#row1, 3)
-    T.eq(row1[1].Type, "T_NEAR", "lowest GridX first")
-    T.eq(row1[2].Type, "T_MID")
-    T.eq(row1[3].Type, "T_FAR")
-end
-
 function M.test_buildGrid_byColumn_sorted_by_gridY()
     setup()
     installGridTechs({
@@ -645,30 +630,109 @@ function M.test_buildGrid_byColumn_sorted_by_gridY()
     T.eq(col3[3].Type, "T_BOT")
 end
 
-function M.test_gridNeighbor_row_right_finds_next_tech_at_same_gridY()
+function M.test_gridNeighbor_row_right_steps_exactly_one_column()
+    -- Right moves to GridX+1, never skipping ahead to a more-distant column
+    -- even when the adjacent column has no tech at the cursor's row.
     setup()
     installGridTechs({
         gridTech(0, "T_A", 1, 1),
-        gridTech(1, "T_B", 3, 1),
-        gridTech(2, "T_C", 5, 1),
-        gridTech(3, "T_OTHER", 2, 2),
+        gridTech(1, "T_NEXT", 2, 4),
+        gridTech(2, "T_FAR", 3, 1),
     })
     local grid = TechTreeLogic.buildGrid()
     local a = GameInfo.Technologies["T_A"]
     local n = TechTreeLogic.gridNeighbor(grid, a, "row", 1)
-    T.eq(n.Type, "T_B", "skips empty GridX=2 column to land on next tech at row 1")
+    T.eq(n.Type, "T_NEXT", "lands in adjacent column despite row mismatch instead of jumping to T_FAR")
 end
 
-function M.test_gridNeighbor_row_left_finds_prior_tech()
+function M.test_gridNeighbor_row_left_steps_exactly_one_column()
     setup()
     installGridTechs({
-        gridTech(0, "T_A", 1, 1),
-        gridTech(1, "T_B", 5, 1),
+        gridTech(0, "T_FAR", 1, 1),
+        gridTech(1, "T_PREV", 4, 6),
+        gridTech(2, "T_B", 5, 1),
     })
     local grid = TechTreeLogic.buildGrid()
     local b = GameInfo.Technologies["T_B"]
     local n = TechTreeLogic.gridNeighbor(grid, b, "row", -1)
-    T.eq(n.Type, "T_A")
+    T.eq(n.Type, "T_PREV", "left lands one column over, not at the next populated row 1 cell")
+end
+
+function M.test_gridNeighbor_row_snaps_to_nearest_gridY()
+    -- Adjacent column has multiple techs; cursor lands on whichever sits
+    -- closest to intendedGridY in absolute distance.
+    setup()
+    installGridTechs({
+        gridTech(0, "T_CUR", 1, 5),
+        gridTech(1, "T_NEAR", 2, 4),
+        gridTech(2, "T_FAR", 2, 9),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local cur = GameInfo.Technologies["T_CUR"]
+    local n = TechTreeLogic.gridNeighbor(grid, cur, "row", 1, 5)
+    T.eq(n.Type, "T_NEAR", "GridY=4 is closer to intended 5 than GridY=9")
+end
+
+function M.test_gridNeighbor_row_intended_gridY_overrides_current_row()
+    -- The cursor's GridY may have drifted from a prior snap; the next move
+    -- snaps relative to intendedGridY (the row the user actually picked
+    -- with their last vertical move), not the cursor's current GridY.
+    setup()
+    installGridTechs({
+        gridTech(0, "T_DRIFTED", 1, 2),
+        gridTech(1, "T_AT_INTENDED", 2, 5),
+        gridTech(2, "T_AT_DRIFT", 2, 1),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local cur = GameInfo.Technologies["T_DRIFTED"]
+    local n = TechTreeLogic.gridNeighbor(grid, cur, "row", 1, 5)
+    T.eq(
+        n.Type,
+        "T_AT_INTENDED",
+        "snap target is intendedGridY=5, not the cursor's GridY=2"
+    )
+end
+
+function M.test_gridNeighbor_row_falls_back_to_cursor_gridY_when_intended_nil()
+    -- intendedGridY nil at the very start of an open or a search landing
+    -- before any vertical move — fall back to the cursor's GridY so the
+    -- behavior is sensible without the caller having to pre-seed.
+    setup()
+    installGridTechs({
+        gridTech(0, "T_CUR", 1, 3),
+        gridTech(1, "T_HIGH", 2, 1),
+        gridTech(2, "T_NEAR", 2, 4),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local cur = GameInfo.Technologies["T_CUR"]
+    local n = TechTreeLogic.gridNeighbor(grid, cur, "row", 1, nil)
+    T.eq(n.Type, "T_NEAR", "snap target falls back to cursor.GridY=3, nearest is GridY=4")
+end
+
+function M.test_gridNeighbor_row_ties_prefer_smaller_gridY()
+    -- Two equidistant snap candidates: smaller GridY (visually higher) wins.
+    setup()
+    installGridTechs({
+        gridTech(0, "T_CUR", 1, 5),
+        gridTech(1, "T_HIGH", 2, 3),
+        gridTech(2, "T_LOW", 2, 7),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local cur = GameInfo.Technologies["T_CUR"]
+    local n = TechTreeLogic.gridNeighbor(grid, cur, "row", 1, 5)
+    T.eq(n.Type, "T_HIGH", "tie at distance 2 prefers GridY=3 over GridY=7")
+end
+
+function M.test_gridNeighbor_row_silent_when_adjacent_column_empty()
+    -- No tech at GridX+1 at all — return nil rather than skipping ahead.
+    setup()
+    installGridTechs({
+        gridTech(0, "T_CUR", 1, 5),
+        gridTech(1, "T_TWO_OVER", 3, 5),
+    })
+    local grid = TechTreeLogic.buildGrid()
+    local cur = GameInfo.Technologies["T_CUR"]
+    T.eq(TechTreeLogic.gridNeighbor(grid, cur, "row", 1, 5), nil)
 end
 
 function M.test_gridNeighbor_column_down_finds_next_tech_at_same_gridX()
@@ -703,10 +767,10 @@ function M.test_gridNeighbor_returns_nil_at_row_edge()
         gridTech(1, "T_B", 3, 1),
     })
     local grid = TechTreeLogic.buildGrid()
+    -- Right of the rightmost populated column has no GridX+1 to step into.
     local b = GameInfo.Technologies["T_B"]
-    -- Right of the rightmost tech in this row is nothing.
     T.eq(TechTreeLogic.gridNeighbor(grid, b, "row", 1), nil)
-    -- Left of the leftmost is nothing too.
+    -- Left of the leftmost populated column likewise.
     local a = GameInfo.Technologies["T_A"]
     T.eq(TechTreeLogic.gridNeighbor(grid, a, "row", -1), nil)
 end
@@ -724,14 +788,14 @@ function M.test_gridNeighbor_returns_nil_at_column_edge()
     T.eq(TechTreeLogic.gridNeighbor(grid, top, "column", -1), nil)
 end
 
-function M.test_gridNeighbor_returns_nil_when_row_or_column_unpopulated()
+function M.test_gridNeighbor_returns_nil_when_column_unpopulated()
     setup()
     installGridTechs({
         gridTech(0, "T_LONE", 5, 5),
     })
     local grid = TechTreeLogic.buildGrid()
-    -- A made-up tech at a row/column nothing else lives in returns nil
-    -- in every direction (no list at that index).
+    -- A made-up tech at a column with nothing in it (and nothing in the
+    -- adjacent column either) returns nil in every direction.
     local stranded = { ID = 99, Type = "T_GHOST", GridX = 9, GridY = 9 }
     T.eq(TechTreeLogic.gridNeighbor(grid, stranded, "row", 1), nil)
     T.eq(TechTreeLogic.gridNeighbor(grid, stranded, "column", 1), nil)

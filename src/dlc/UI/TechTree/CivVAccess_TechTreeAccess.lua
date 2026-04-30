@@ -4,11 +4,16 @@
 --   Tree    hand-rolled tab object; two arrow-key navigation modes that
 --           the user toggles with Space.
 --             grid (default) walks the visual layout: Up/Down through the
---             era column at the cursor's GridX, Left/Right across the row
---             at the cursor's GridY, both skipping empty cells and
---             stopping silently at edges. Spatial nav is path-independent
---             so the user can cut across to a peer tech they remember
---             without retracing prereq edges.
+--             era column at the cursor's GridX (skipping rows with no tech
+--             at that GridX, silent at edges); Left/Right step exactly one
+--             column at a time, snapping to whichever tech in the adjacent
+--             column is nearest a sticky "intended row" the user committed
+--             to with their last Up/Down move (silent when no tech at all
+--             exists in the adjacent column). Spatial nav is path-
+--             independent so the user can cut across to a peer tech they
+--             remember without retracing prereq edges; the intended-row
+--             stickiness keeps a horizontal run anchored to the chosen
+--             row instead of drifting away through ragged columns.
 --             tree walks the prereq DAG: Right to a child (dependent
 --             tech), Left to a parent (prerequisite), Up/Down across
 --             siblings (children of the parent we descended from, or the
@@ -125,6 +130,15 @@ local _navMode = "grid"
 -- (arrow, search, mode toggle, tab re-entry) so future comparisons are
 -- consistent regardless of how the cursor moved.
 local _prevEraID = nil
+-- Spreadsheet-style intended row for grid-mode horizontal nav. Up / Down
+-- update it to the new tech's GridY (the user explicitly chose that row);
+-- Left / Right read it as the snap target but leave it untouched, so a
+-- run of horizontal moves through columns that don't all have a tech at
+-- the intended row snaps each time without permanently drifting away.
+-- Reseeded on initial cursor placement, search-driven landings, and
+-- mode-toggle reseats so the grid axis is always anchored to the cursor's
+-- current row at the moment vertical context was last meaningful.
+local _intendedGridY = nil
 -- Captured in onShow. Used by the Space toggle to call rebuildExposed()
 -- after swapping the tab's helpEntries so ? help shows the active mode's
 -- arrow description.
@@ -251,6 +265,7 @@ local function buildSearchable()
                 return
             end
             TechTreeLogic.seedCursorSiblings(_cursor, entry.tech, _graph)
+            _intendedGridY = entry.tech.GridY
             speakLandingNoEra(entry.tech.ID)
         end,
     }
@@ -262,17 +277,22 @@ end
 -- the per-mode implementation. Mode-specific implementations both end at
 -- speakLanding, which applies the era prefix uniformly.
 
--- Move along one grid axis. Reseeds siblings on every move so a
--- subsequent toggle into tree mode starts with a fresh sibling list
--- around the new position.
+-- Move along one grid axis. Vertical moves reseed _intendedGridY so a
+-- subsequent horizontal run snaps relative to the just-chosen row;
+-- horizontal moves consult _intendedGridY without changing it. Reseeds
+-- siblings on every move so a subsequent toggle into tree mode starts
+-- with a fresh sibling list around the new position.
 local function gridMove(axis, dir)
     local cur = _cursor and _cursor.current()
     if cur == nil then
         return
     end
-    local n = TechTreeLogic.gridNeighbor(_grid, cur, axis, dir)
+    local n = TechTreeLogic.gridNeighbor(_grid, cur, axis, dir, _intendedGridY)
     if n == nil then
         return
+    end
+    if axis == "column" then
+        _intendedGridY = n.GridY
     end
     TechTreeLogic.seedCursorSiblings(_cursor, n, _graph)
     speakLanding(n.ID)
@@ -366,6 +386,7 @@ local function onToggleMode()
     local cur = _cursor and _cursor.current()
     if cur ~= nil then
         TechTreeLogic.seedCursorSiblings(_cursor, cur, _graph)
+        _intendedGridY = cur.GridY
     end
     if newMode == "grid" then
         _treeTab.helpEntries = _gridHelpEntries
@@ -641,6 +662,7 @@ local function setupForShow()
         return
     end
     TechTreeLogic.seedCursorSiblings(_cursor, landing, _graph)
+    _intendedGridY = landing.GridY
 end
 
 -- Wraps the engine's prior ShowHide so we can tear down the cursor / search
@@ -662,6 +684,7 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
         _search = nil
         _navMode = "grid"
         _prevEraID = nil
+        _intendedGridY = nil
         _shellHandler = nil
         -- Restore the tree tab's help to the grid-mode set so the
         -- subsequent resetTabsForNextOpen-time rebuildExposed (which
