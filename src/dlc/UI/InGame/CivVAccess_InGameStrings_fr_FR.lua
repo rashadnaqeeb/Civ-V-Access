@@ -113,10 +113,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVED_TO"] = {
     one = "déplacé, {1_Num} mouvement restant",
     other = "déplacé, {1_Num} mouvements restants",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT"] = "arrêt prématuré"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT"] = "déplacement en attente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT_TURNS"] = {
-    one = "arrêt prématuré, {1_Num} tour avant l'arrivée",
-    other = "arrêt prématuré, {1_Num} tours avant l'arrivée",
+    one = "déplacement en attente, {1_Num} tour avant l'arrivée",
+    other = "déplacement en attente, {1_Num} tours avant l'arrivée",
 }
 -- Generic "the action you tried did not happen" tail spoken when an Alt+key
 -- attempt completes without effect (engine refused but did not fire a
@@ -154,7 +154,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR"] = "déclarera la 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_NAME"] = "Actions de l'unité"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_ACTIVATE_MENU_NAME"] = "Activer la case"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Promotions"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Constructions de l'ouvrier"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Construire des améliorations"
 -- Spoken on entering a target-picker mode (ranged attack, paradrop, etc.)
 -- as the audible confirmation that the cursor's keys are now picking a
 -- target rather than navigating freely.
