@@ -44,6 +44,8 @@ local function mkUnit(opts)
         _plot = opts.plot,
         _outOfAttacks = opts.outOfAttacks or false,
         _domain = opts.domain or DomainTypes.DOMAIN_LAND,
+        _hasName = opts.hasName or false,
+        _nameNoDesc = opts.nameNoDesc or "",
     }
     function u:GetX()
         return self._x
@@ -63,6 +65,12 @@ local function mkUnit(opts)
     function u:GetNameKey()
         local row = GameInfo.Units[self._unitType]
         return row and row.Description or ""
+    end
+    function u:HasName()
+        return self._hasName or false
+    end
+    function u:GetNameNoDesc()
+        return self._nameNoDesc or ""
     end
     function u:IsEmbarked()
         return self._embarked
@@ -241,6 +249,28 @@ function M.test_selection_not_embarked_no_prefix()
     local u = mkUnit({ embarked = false })
     local out = UnitSpeech.selection(u, 0, 0)
     T.truthy(not out:find("embarked", 1, true), "no embarked prefix when not embarked: " .. out)
+end
+
+-- ===== Selection: named unit (Alt+N rename or great-general name pool) =====
+
+function M.test_selection_named_unit_wraps_civ_form_in_parens()
+    setup()
+    local u = mkUnit({ hasName = true, nameNoDesc = "George" })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(
+        out:find("^George %(Roman Warrior%)"),
+        "named unit must lead with personal name and wrap civ form in parens: " .. out
+    )
+end
+
+function M.test_selection_named_unit_embarked_combines_prefix_and_paren_form()
+    setup()
+    local u = mkUnit({ hasName = true, nameNoDesc = "George", embarked = true })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(
+        out:find("embarked George %(Roman Warrior%)"),
+        "embarked prefix must wrap the personal-name form: " .. out
+    )
 end
 
 -- ===== Selection: HP =====

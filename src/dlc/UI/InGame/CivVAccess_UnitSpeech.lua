@@ -26,18 +26,36 @@
 UnitSpeech = {}
 
 -- Always the civ-adjective form ("Roman Warrior"), even for the active
--- player's own units, mirroring PlotSectionUnits.unitDescription. Civ
--- identity is what disambiguates units of identical type across players,
--- and the alternative GetNickName placeholder ("Player N" / profile
--- name) leaks the user's own name into every announcement of their own
--- unit. Returns "" when the owner can't be resolved so callers fall back
--- to their existing empty-name handling.
+-- player's own units. Civ identity is what disambiguates units of
+-- identical type across players, and the alternative GetNickName
+-- placeholder ("Player N" / profile name) leaks the user's own name
+-- into every announcement of their own unit. Returns "" when the owner
+-- can't be resolved so callers fall back to their existing empty-name
+-- handling.
+--
+-- Named units (custom rename via Alt+N, plus great generals / named
+-- admirals seeded from the engine's name pool) wrap the civ-adjective
+-- form in parens after the personal name -- "George (Roman Warrior)",
+-- "Tomyris (Persian Great General)". GetNameKey() returns only the unit
+-- type's text key regardless of whether m_strName is set (verified in
+-- CvUnit.cpp:16758), so personal names are read separately via
+-- HasName + GetNameNoDesc. Text.key passes plain user-typed strings
+-- through unchanged and resolves engine TXT_KEY_* names from the great-
+-- general pool, so it covers both naming sources.
 local function unitName(unit)
     local owner = Players[unit:GetOwner()]
     if owner == nil then
         return ""
     end
-    return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+    local typeForm = Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+    if unit:HasName() then
+        local personal = Text.key(unit:GetNameNoDesc())
+        if typeForm == "" then
+            return personal
+        end
+        return personal .. " (" .. typeForm .. ")"
+    end
+    return typeForm
 end
 
 -- Base name with the "embarked" compound prefix when the unit is at sea.

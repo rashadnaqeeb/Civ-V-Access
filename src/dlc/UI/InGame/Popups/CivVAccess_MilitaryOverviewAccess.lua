@@ -146,12 +146,30 @@ end
 -- and the announce closure can format on demand without re-querying the unit.
 -- Numeric movesLeft / maxMoves drive the SORT_MOVEMENT / SORT_MOVES compare;
 -- the *Text variants are the speech-ready strings rowLabel inserts.
+--
+-- displayName uses the no-civ form -- the list is the active player's own
+-- military, so a "Roman" prefix on every row would just be noise. Named
+-- units (rename via Alt+N, plus great-general name-pool entries) wrap the
+-- type in parens after the personal name to match UnitSpeech.unitName's
+-- shape elsewhere in the mod.
 local function buildRowEntry(unit)
     local denom = GameDefines["MOVE_DENOMINATOR"]
+    local typeName = Text.key(unit:GetNameKey())
+    local displayName
+    if unit:HasName() then
+        local personal = Text.key(unit:GetNameNoDesc())
+        if typeName == "" then
+            displayName = personal
+        else
+            displayName = personal .. " (" .. typeName .. ")"
+        end
+    else
+        displayName = typeName
+    end
     return {
         unit = unit,
         unitID = unit:GetID(),
-        displayName = Text.key(unit:GetNameKey()),
+        displayName = displayName,
         status = unitStatusText(unit),
         movesLeft = unit:MovesLeft() / denom,
         maxMoves = unit:MaxMoves() / denom,

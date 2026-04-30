@@ -9,24 +9,12 @@
 -- skipped -- they're not "on the tile" in the spatial sense the cursor
 -- cares about.
 
--- The civ-adjective form lives in UnitSpeech.unitName via the shared
--- TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV format. Named units (great
--- generals, named admirals) wrap that form in parens after the personal
--- name -- "Tomyris (Persian Great General)" -- which selection / info
--- speech don't surface so the wrapper stays here.
+-- UnitSpeech.unitName produces the personal-name-aware "George (Roman
+-- Warrior)" / "Tomyris (Persian Great General)" form for named units
+-- and the bare civ-adjective form otherwise. The embarked prefix
+-- ("embarked George (Roman Warrior)") is added on top here.
 local function unitDescription(unit)
-    local typeName = UnitSpeech.unitName(unit)
-    local body
-    if unit:HasName() then
-        local personalName = Text.key(unit:GetNameNoDesc())
-        if typeName ~= "" then
-            body = personalName .. " (" .. typeName .. ")"
-        else
-            body = personalName
-        end
-    else
-        body = typeName
-    end
+    local body = UnitSpeech.unitName(unit)
     if unit:IsEmbarked() then
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_EMBARKED_NAMED", body)
     end
