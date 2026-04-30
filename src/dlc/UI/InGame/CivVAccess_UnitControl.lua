@@ -493,6 +493,29 @@ local function recenterOnUnit()
     speakInterrupt(Cursor.jumpTo(unit:GetX(), unit:GetY()))
 end
 
+-- ===== Rename unit =====
+-- Fires the engine's BUTTONPOPUP_RENAME_UNIT for the selected unit. The
+-- engine exposes this as a pencil button on UnitPanel that's only shown
+-- for promotable units (military), but the popup itself accepts any
+-- selected unit -- we open it for whatever's selected, matching the
+-- BUTTONPOPUP wiring used by base UnitPanel.lua's OnEditNameClick.
+-- Our SetUnitNameAccess wrapper makes the textfield + Accept / Cancel
+-- accessible.
+local function renameUnit()
+    local unit = selectedUnit()
+    if unit == nil then
+        return
+    end
+    Events.SerialEventGameMessagePopup({
+        Type = ButtonPopupTypes.BUTTONPOPUP_RENAME_UNIT,
+        Data1 = unit:GetID(),
+        Data2 = -1,
+        Data3 = -1,
+        Option1 = false,
+        Option2 = false,
+    })
+end
+
 -- ===== Tab action menu =====
 local function openActionMenu()
     local unit = selectedUnit()
@@ -600,6 +623,7 @@ function UnitControl.getBindings()
         bind(Keys.R, MOD_ALT, quickAction(ALT_ACTION_TYPES.RANGED), "Ranged attack"),
         bind(Keys.P, MOD_ALT, quickAction(ALT_ACTION_TYPES.PILLAGE), "Pillage"),
         bind(Keys.U, MOD_ALT, quickAction(ALT_ACTION_TYPES.UPGRADE), "Upgrade unit"),
+        bind(Keys.N, MOD_ALT, renameUnit, "Rename unit"),
     }
     -- Unit section of the map-mode help. BaselineHandler concatenates this
     -- between the cursor cluster and the turn keys, so all unit-relevant
@@ -661,6 +685,10 @@ function UnitControl.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_UPGRADE",
             description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_UPGRADE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_RENAME",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_RENAME",
         },
     }
     return { bindings = bindings, helpEntries = helpEntries }
