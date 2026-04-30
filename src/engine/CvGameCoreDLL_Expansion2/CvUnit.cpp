@@ -13576,6 +13576,27 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 								LuaSupport::CallHook(pkScriptSystem, "CivVAccessBarbarianCampCleared", args.get(), bResult);
 							}
 						}
+						else
+						{
+							// CIVVACCESS: foreign-cleared sibling. The block
+							// above only fires for the active player. When
+							// some other civ clears a camp, a sighted player
+							// would notice if the plot is in their line of
+							// sight; an unsighted player would not. Fire an
+							// unconditional hook so the Lua side can decide
+							// (visibility filter, teammate filter, etc.).
+							// Consumed by CivVAccess_ForeignClearWatch.lua.
+							ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+							if(pkScriptSystem)
+							{
+								CvLuaArgsHandle args;
+								args->Push(getOwner());
+								args->Push(pNewPlot->getX());
+								args->Push(pNewPlot->getY());
+								bool bResult = false;
+								LuaSupport::CallHook(pkScriptSystem, "CivVAccessForeignBarbCampCleared", args.get(), bResult);
+							}
+						}
 					}
 				}
 			}

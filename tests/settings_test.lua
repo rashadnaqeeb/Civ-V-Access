@@ -107,16 +107,16 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_ten_items()
+function M.test_open_builds_eleven_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(
         #h._items,
-        10,
+        11,
         "audio cue group + volume slider + scanner-auto-move toggle + cursor-follows-selection toggle + "
             .. "cursor-coord-mode group + scanner-coords toggle + read-subtitles toggle + reveal-announce toggle + "
-            .. "ai-combat-announce toggle + foreign-unit-watch-announce toggle"
+            .. "ai-combat-announce toggle + foreign-unit-watch-announce toggle + foreign-clear-announce toggle"
     )
 end
 

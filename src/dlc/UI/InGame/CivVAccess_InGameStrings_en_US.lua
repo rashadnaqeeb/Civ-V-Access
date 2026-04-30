@@ -738,6 +738,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Announce vi
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "Announce AI combat resolution"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "Announce visibility changes at turn start"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
+    "Announce camps and ruins others claimed in view"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -1251,6 +1253,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] = "New hostile 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "Hostile units no longer in view: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "New neutral units in view: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "Neutral units no longer in view: {1_List}"
+-- Foreign-clear watch. One line spoken at the start of each player turn
+-- summarising goody huts and barbarian camps that some other civ cleared
+-- on a plot the active team could see during the AI turn just past. Camps
+-- and ruins are tallied separately and joined with the AND key when both
+-- are non-zero. Pluralized via Text.formatPlural; PREFIX / AND / SUFFIX
+-- are bare strings so translators get full control of word order.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] = "Someone else has claimed "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND"] = " and "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_SUFFIX"] = "."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CAMP_PART"] = {
+    one = "{1_Num} visible barbarian camp",
+    other = "{1_Num} visible barbarian camps",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART"] = {
+    one = "{1_Num} visible ancient ruin",
+    other = "{1_Num} visible ancient ruins",
+}
 -- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
 -- the game's AD/BC year, joined by a comma so the moving parts (number
 -- first, year second) read as a single line.

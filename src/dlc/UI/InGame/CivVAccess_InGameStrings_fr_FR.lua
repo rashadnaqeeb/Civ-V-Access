@@ -651,6 +651,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Annoncer le
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "Annoncer la résolution des combats de l'IA"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "Annoncer les changements de visibilité en début de tour"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
+    "Annoncer les campements et ruines réclamés par d'autres en vue"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -1143,6 +1145,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] = "Nouvelles un
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "Unités hostiles hors de vue : {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "Nouvelles unités neutres en vue : {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "Unités neutres hors de vue : {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] = "Quelqu'un d'autre a réclamé "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND"] = " et "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_SUFFIX"] = "."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CAMP_PART"] = {
+    one = "{1_Num} campement barbare visible",
+    other = "{1_Num} campements barbares visibles",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART"] = {
+    one = "{1_Num} ruine antique visible",
+    other = "{1_Num} ruines antiques visibles",
+}
 -- Turn lifecycle speech. Turn-start is the game-side "Turn: N" label plus
 -- the game's AD/BC year, joined by a comma so the moving parts (number
 -- first, year second) read as a single line.

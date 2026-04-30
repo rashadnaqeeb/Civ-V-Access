@@ -6483,6 +6483,28 @@ void CvPlayer::receiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit)
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessGoodyHutReceived", args.get(), bResult);
 		}
 	}
+	else
+	{
+		// CIVVACCESS: foreign-cleared sibling. The active-player block above
+		// covers the player's own goody hut pickups. When some other civ
+		// pops a hut, a sighted player would notice if the plot is in their
+		// line of sight; an unsighted player would not. Fire an unconditional
+		// hook with (actor, plot coords) so the Lua side can decide
+		// (visibility filter, teammate filter). Reward type and amount are
+		// deliberately omitted -- those are private to the actor and a
+		// sighted player wouldn't see them either. Consumed by
+		// CivVAccess_ForeignClearWatch.lua.
+		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+		if(pkScriptSystem)
+		{
+			CvLuaArgsHandle args;
+			args->Push(GetID());
+			args->Push(pPlot->getX());
+			args->Push(pPlot->getY());
+			bool bResult = false;
+			LuaSupport::CallHook(pkScriptSystem, "CivVAccessForeignGoodyCleared", args.get(), bResult);
+		}
+	}
 }
 
 

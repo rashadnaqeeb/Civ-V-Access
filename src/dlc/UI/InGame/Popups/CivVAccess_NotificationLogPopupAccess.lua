@@ -101,16 +101,23 @@ local function buildItems()
     if #dismissed == 0 then dismissed[1] = emptyItem() end
 
     -- Turn Log tab: ForeignUnitWatch's four-line entered / left summary
-    -- (flat array of non-empty strings parked on civvaccess_shared at
-    -- TurnStart, cleared at TurnEnd) followed by the Combat Log group
-    -- whose children are the per-combat lines CombatLog accumulated
-    -- across the AI turn. Plain Text items for the foreign-unit lines
-    -- because there's no plot or popup to activate; the Combat Log
-    -- group drills into the per-combat entries.
+    -- followed by ForeignClearWatch's foreign-claimed-camps-and-ruins line
+    -- (both flat arrays of non-empty strings parked on civvaccess_shared
+    -- at TurnStart and cleared at TurnEnd), followed by the Combat Log
+    -- group whose children are the per-combat lines CombatLog accumulated
+    -- across the AI turn. Plain Text items for the watch lines because
+    -- there's no plot or popup to activate; the Combat Log group drills
+    -- into the per-combat entries.
     local turnLog = {}
     local delta = civvaccess_shared.foreignUnitDelta
     if delta ~= nil then
         for _, line in ipairs(delta) do
+            turnLog[#turnLog + 1] = BaseMenuItems.Text({ labelText = line })
+        end
+    end
+    local clearDelta = civvaccess_shared.foreignClearDelta
+    if clearDelta ~= nil then
+        for _, line in ipairs(clearDelta) do
             turnLog[#turnLog + 1] = BaseMenuItems.Text({ labelText = line })
         end
     end

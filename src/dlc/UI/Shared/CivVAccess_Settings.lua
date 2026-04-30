@@ -174,6 +174,25 @@ local function setForeignUnitWatchAnnounce(v)
     Prefs.setBool("ForeignUnitWatchAnnounce", b)
 end
 
+-- Foreign-clear speech toggle. On by default: the one-line turn-start
+-- summary of camps and ruins others claimed in the active team's view
+-- during the AI turn. When off, the line lands silently in the F7 Turn
+-- Log instead. The civvaccess_shared.foreignClearDelta write happens
+-- regardless so F7 always shows what the watcher produced.
+if civvaccess_shared.foreignClearAnnounce == nil then
+    civvaccess_shared.foreignClearAnnounce = Prefs.getBool("ForeignClearAnnounce", true)
+end
+
+local function getForeignClearAnnounce()
+    return civvaccess_shared.foreignClearAnnounce == true
+end
+
+local function setForeignClearAnnounce(v)
+    local b = v and true or false
+    civvaccess_shared.foreignClearAnnounce = b
+    Prefs.setBool("ForeignClearAnnounce", b)
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -265,6 +284,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE",
             getValue = getForeignUnitWatchAnnounce,
             setValue = setForeignUnitWatchAnnounce,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE",
+            getValue = getForeignClearAnnounce,
+            setValue = setForeignClearAnnounce,
         }),
     }
 end
