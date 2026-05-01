@@ -66,32 +66,50 @@ function HandlerStack.at(i)
     return _shared.stack[i]
 end
 
-function HandlerStack.push(handler)
-    if handler == nil then
-        Log.warn("HandlerStack.push: nil handler")
-        return false
-    end
+-- Warn when a handler exposes bindings but forgot to declare helpEntries
+-- (an empty table opts out cleanly; nil is treated as "the author forgot"
+-- and the ? help overlay won't list the handler's keys).
+local function warnIfMissingHelpEntries(handler, callerName)
     if handler.helpEntries == nil and type(handler.bindings) == "table" and #handler.bindings > 0 then
         Log.warn(
-            "HandlerStack.push: '"
+            "HandlerStack." .. callerName .. ": '"
                 .. tostring(handler.name)
                 .. "' has bindings but no helpEntries; ? help will not list it."
                 .. " Set helpEntries (or an explicit {}) to opt in."
         )
     end
+end
+
+-- Fire onActivate when a handler becomes the new top. Returns false (and
+-- logs) if the callback throws, so the caller can refuse the push and
+-- avoid leaving a half-installed handler on the stack.
+local function fireOnActivate(handler, callerName, abortVerb)
     local fn = handler.onActivate
-    if type(fn) == "function" then
-        local ok, err = pcall(fn, handler)
-        if not ok then
-            Log.error(
-                "HandlerStack.push onActivate failed on '"
-                    .. tostring(handler.name)
-                    .. "': "
-                    .. tostring(err)
-                    .. " (handler not pushed)"
-            )
-            return false
-        end
+    if type(fn) ~= "function" then
+        return true
+    end
+    local ok, err = pcall(fn, handler)
+    if not ok then
+        Log.error(
+            "HandlerStack." .. callerName .. " onActivate failed on '"
+                .. tostring(handler.name)
+                .. "': "
+                .. tostring(err)
+                .. " (handler not " .. abortVerb .. ")"
+        )
+        return false
+    end
+    return true
+end
+
+function HandlerStack.push(handler)
+    if handler == nil then
+        Log.warn("HandlerStack.push: nil handler")
+        return false
+    end
+    warnIfMissingHelpEntries(handler, "push")
+    if not fireOnActivate(handler, "push", "pushed") then
+        return false
     end
     _shared.stack[#_shared.stack + 1] = handler
     Log.debug("HandlerStack.push '" .. tostring(handler.name) .. "' (depth=" .. #_shared.stack .. ")")
@@ -111,14 +129,7 @@ function HandlerStack.insertAt(handler, idx)
         Log.warn("HandlerStack.insertAt: nil handler")
         return false
     end
-    if handler.helpEntries == nil and type(handler.bindings) == "table" and #handler.bindings > 0 then
-        Log.warn(
-            "HandlerStack.insertAt: '"
-                .. tostring(handler.name)
-                .. "' has bindings but no helpEntries; ? help will not list it."
-                .. " Set helpEntries (or an explicit {}) to opt in."
-        )
-    end
+    warnIfMissingHelpEntries(handler, "insertAt")
     local n = #_shared.stack
     if type(idx) ~= "number" or idx < 1 or idx > n + 1 then
         Log.warn(
@@ -132,21 +143,8 @@ function HandlerStack.insertAt(handler, idx)
         )
         return false
     end
-    if idx == n + 1 then
-        local fn = handler.onActivate
-        if type(fn) == "function" then
-            local ok, err = pcall(fn, handler)
-            if not ok then
-                Log.error(
-                    "HandlerStack.insertAt onActivate failed on '"
-                        .. tostring(handler.name)
-                        .. "': "
-                        .. tostring(err)
-                        .. " (handler not inserted)"
-                )
-                return false
-            end
-        end
+    if idx == n + 1 and not fireOnActivate(handler, "insertAt", "inserted") then
+        return false
     end
     table.insert(_shared.stack, idx, handler)
     Log.debug(
