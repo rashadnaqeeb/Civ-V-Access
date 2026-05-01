@@ -727,41 +727,33 @@ local function dropTitleEchoHeader(header, title)
 end
 
 -- FFTextStack: free-form per-instance {header, body} pairs used for
--- Civilizations (unique ability write-up) and richer profile pages. Each
--- instance has FFTextHeader + FFTextLabel. Skip when stack is hidden:
--- ClearArticle hides the stack but leaves stale allocated instances.
-local function harvestFreeFormText(leaves)
-    if ctrlHidden(Controls.FFTextStack) then
+-- Per-instance text-stack harvest. Walks an engine instance manager whose
+-- entries each carry a header/body label pair. Skip when the stack is
+-- hidden: ClearArticle hides the stack but leaves stale allocated
+-- instances. Used by FFTextStack (unique ability write-ups + richer
+-- profile pages) and BBTextStack (full-width intro blurbs on home pages),
+-- which share the per-instance shape but use different control field names.
+local function harvestTextStack(leaves, stackControl, manager, headerField, bodyField)
+    if ctrlHidden(stackControl) then
         return
     end
-    local mgr = g_FreeFormTextManager
-    if mgr == nil or mgr.m_AllocatedInstances == nil then
+    if manager == nil or manager.m_AllocatedInstances == nil then
         return
     end
     local title = ctrlText(Controls.ArticleID)
-    for _, instance in ipairs(mgr.m_AllocatedInstances) do
-        local header = dropTitleEchoHeader(ctrlText(instance.FFTextHeader), title)
-        local body = ctrlText(instance.FFTextLabel)
+    for _, instance in ipairs(manager.m_AllocatedInstances) do
+        local header = dropTitleEchoHeader(ctrlText(instance[headerField]), title)
+        local body = ctrlText(instance[bodyField])
         addLeaf(leaves, header, body)
     end
 end
 
--- BBTextStack: full-width intro blurbs used by home pages. Same shape as
--- FFText: per-instance header + body.
+local function harvestFreeFormText(leaves)
+    harvestTextStack(leaves, Controls.FFTextStack, g_FreeFormTextManager, "FFTextHeader", "FFTextLabel")
+end
+
 local function harvestBBText(leaves)
-    if ctrlHidden(Controls.BBTextStack) then
-        return
-    end
-    local mgr = g_BBTextManager
-    if mgr == nil or mgr.m_AllocatedInstances == nil then
-        return
-    end
-    local title = ctrlText(Controls.ArticleID)
-    for _, instance in ipairs(mgr.m_AllocatedInstances) do
-        local header = dropTitleEchoHeader(ctrlText(instance.BBTextHeader), title)
-        local body = ctrlText(instance.BBTextLabel)
-        addLeaf(leaves, header, body)
-    end
+    harvestTextStack(leaves, Controls.BBTextStack, g_BBTextManager, "BBTextHeader", "BBTextLabel")
 end
 
 -- Relationship frames. Each visible frame produces one leaf per button
@@ -961,16 +953,22 @@ end
 -- At the boundary (no-more-history either way) we speak a short "no
 -- previous / no next" message rather than staying silent: the user has
 -- no other channel to discover that their key did nothing.
-function Civilopedia.goBack(handler)
-    if currentTopic == nil or currentTopic <= 1 then
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
+local function stepHistory(handler, direction, label, boundaryKey)
+    local atBoundary
+    if direction < 0 then
+        atBoundary = currentTopic == nil or currentTopic <= 1
+    else
+        atBoundary = currentTopic == nil or endTopic == nil or currentTopic >= endTopic
+    end
+    if atBoundary then
+        SpeechPipeline.speakInterrupt(Text.key(boundaryKey))
         return
     end
-    local targetTopic = currentTopic - 1
+    local targetTopic = currentTopic + direction
     local article = listOfTopicsViewed[targetTopic]
     if article == nil then
-        Log.warn("Civilopedia.goBack: listOfTopicsViewed[" .. tostring(targetTopic) .. "] is nil")
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"))
+        Log.warn(label .. ": listOfTopicsViewed[" .. tostring(targetTopic) .. "] is nil")
+        SpeechPipeline.speakInterrupt(Text.key(boundaryKey))
         return
     end
     currentTopic = targetTopic
@@ -980,7 +978,8 @@ function Civilopedia.goBack(handler)
         local ok, err = pcall(CivilopediaCategory[cat].SelectArticle, article.entryID, 0)
         if not ok then
             Log.warn(
-                "Civilopedia.goBack SelectArticle("
+                label
+                    .. " SelectArticle("
                     .. tostring(cat)
                     .. ", "
                     .. tostring(article.entryID)
@@ -992,35 +991,12 @@ function Civilopedia.goBack(handler)
     Civilopedia.openArticle(handler, cat, article.entryID)
 end
 
+function Civilopedia.goBack(handler)
+    stepHistory(handler, -1, "Civilopedia.goBack", "TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY")
+end
+
 function Civilopedia.goForward(handler)
-    if currentTopic == nil or endTopic == nil or currentTopic >= endTopic then
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
-        return
-    end
-    local targetTopic = currentTopic + 1
-    local article = listOfTopicsViewed[targetTopic]
-    if article == nil then
-        Log.warn("Civilopedia.goForward: listOfTopicsViewed[" .. tostring(targetTopic) .. "] is nil")
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"))
-        return
-    end
-    currentTopic = targetTopic
-    local cat = article.entryCategory
-    SetSelectedCategory(cat)
-    if CivilopediaCategory[cat] ~= nil and type(CivilopediaCategory[cat].SelectArticle) == "function" then
-        local ok, err = pcall(CivilopediaCategory[cat].SelectArticle, article.entryID, 0)
-        if not ok then
-            Log.warn(
-                "Civilopedia.goForward SelectArticle("
-                    .. tostring(cat)
-                    .. ", "
-                    .. tostring(article.entryID)
-                    .. ") failed: "
-                    .. tostring(err)
-            )
-        end
-    end
-    Civilopedia.openArticle(handler, cat, article.entryID)
+    stepHistory(handler, 1, "Civilopedia.goForward", "TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY")
 end
 
 -- Flat search corpus -----------------------------------------------------
