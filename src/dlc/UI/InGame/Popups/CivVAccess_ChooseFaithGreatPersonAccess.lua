@@ -16,13 +16,11 @@
 -- would silently discard.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_ChoosePopupCommon")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
-
-local function selectionStub()
-    return { SelectionAnim = { SetHide = function() end } }
-end
+local selectionStub = ChoosePopupCommon.selectionStub
 
 local function branchFinished(player, branchType)
     local row = GameInfo.PolicyBranchTypes[branchType]
@@ -60,29 +58,6 @@ local function isEnabled(player, info)
     end
     return true
 end
-
-local function preambleText()
-    local parts = {}
-    local t = Controls.TitleLabel and Controls.TitleLabel:GetText() or ""
-    if t ~= "" then
-        parts[#parts + 1] = t
-    end
-    local d = Controls.DescriptionLabel and Controls.DescriptionLabel:GetText() or ""
-    if d ~= "" then
-        parts[#parts + 1] = d
-    end
-    return table.concat(parts, ", ")
-end
-
-local mainHandler = BaseMenu.install(ContextPtr, {
-    name = "ChooseFaithGreatPerson",
-    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_FAITH_GREAT_PERSON"),
-    preamble = preambleText,
-    priorInput = priorInput,
-    priorShowHide = priorShowHide,
-    deferActivate = true,
-    items = {},
-})
 
 local function buildItems(popupInfo)
     local playerID = popupInfo.Data1
@@ -124,14 +99,12 @@ local function buildItems(popupInfo)
     return items
 end
 
-Events.SerialEventGameMessagePopup.Add(function(popupInfo)
-    if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSE_FAITH_GREAT_PERSON then
-        return
-    end
-    local ok, items = pcall(buildItems, popupInfo)
-    if not ok then
-        Log.error("ChooseFaithGreatPersonAccess buildItems failed: " .. tostring(items))
-        return
-    end
-    mainHandler.setItems(items)
-end)
+ChoosePopupCommon.install({
+    contextPtr = ContextPtr,
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    handlerName = "ChooseFaithGreatPerson",
+    displayKey = "TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_FAITH_GREAT_PERSON",
+    popupType = ButtonPopupTypes.BUTTONPOPUP_CHOOSE_FAITH_GREAT_PERSON,
+    buildItems = buildItems,
+})

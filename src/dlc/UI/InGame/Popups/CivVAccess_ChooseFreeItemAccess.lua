@@ -13,36 +13,11 @@
 -- DisplayPopup, unlike GoodyHut which uses ContextPtr:SetHide).
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_ChoosePopupCommon")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
-
-local function selectionStub()
-    return { SelectionAnim = { SetHide = function() end } }
-end
-
-local function preambleText()
-    local parts = {}
-    local t = Controls.TitleLabel and Controls.TitleLabel:GetText() or ""
-    if t ~= "" then
-        parts[#parts + 1] = t
-    end
-    local d = Controls.DescriptionLabel and Controls.DescriptionLabel:GetText() or ""
-    if d ~= "" then
-        parts[#parts + 1] = d
-    end
-    return table.concat(parts, ", ")
-end
-
-local mainHandler = BaseMenu.install(ContextPtr, {
-    name = "ChooseFreeItem",
-    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_FREE_ITEM"),
-    preamble = preambleText,
-    priorInput = priorInput,
-    priorShowHide = priorShowHide,
-    deferActivate = true,
-    items = {},
-})
+local selectionStub = ChoosePopupCommon.selectionStub
 
 local function buildItems(popupInfo)
     local playerID = popupInfo.Data1
@@ -87,14 +62,12 @@ local function buildItems(popupInfo)
     return items
 end
 
-Events.SerialEventGameMessagePopup.Add(function(popupInfo)
-    if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSE_FREE_GREAT_PERSON then
-        return
-    end
-    local ok, items = pcall(buildItems, popupInfo)
-    if not ok then
-        Log.error("ChooseFreeItemAccess buildItems failed: " .. tostring(items))
-        return
-    end
-    mainHandler.setItems(items)
-end)
+ChoosePopupCommon.install({
+    contextPtr = ContextPtr,
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    handlerName = "ChooseFreeItem",
+    displayKey = "TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_FREE_ITEM",
+    popupType = ButtonPopupTypes.BUTTONPOPUP_CHOOSE_FREE_GREAT_PERSON,
+    buildItems = buildItems,
+})

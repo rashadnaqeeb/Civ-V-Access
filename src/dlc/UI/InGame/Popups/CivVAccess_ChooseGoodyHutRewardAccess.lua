@@ -22,40 +22,11 @@
 -- base's listener returns but before the next frame's push.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_ChoosePopupCommon")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
-
--- SelectedItems entries have shape {key, controlTable}. The base's click
--- handler indexes v[2].SelectionAnim on re-selection, so we supply a stub
--- whose :SetHide is a no-op. That keeps the mirror robust against a stray
--- mouse click on a row while our sub-handler is active.
-local function selectionStub()
-    return { SelectionAnim = { SetHide = function() end } }
-end
-
-local function preambleText()
-    local parts = {}
-    local t = Controls.TitleLabel and Controls.TitleLabel:GetText() or ""
-    if t ~= "" then
-        parts[#parts + 1] = t
-    end
-    local d = Controls.DescriptionLabel and Controls.DescriptionLabel:GetText() or ""
-    if d ~= "" then
-        parts[#parts + 1] = d
-    end
-    return table.concat(parts, ", ")
-end
-
-local mainHandler = BaseMenu.install(ContextPtr, {
-    name = "ChooseGoodyHutReward",
-    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_GOODY_HUT_REWARD"),
-    preamble = preambleText,
-    priorInput = priorInput,
-    priorShowHide = priorShowHide,
-    deferActivate = true,
-    items = {},
-})
+local selectionStub = ChoosePopupCommon.selectionStub
 
 local function buildItems(popupInfo)
     local playerID = popupInfo.Data1
@@ -105,14 +76,12 @@ local function buildItems(popupInfo)
     return items
 end
 
-Events.SerialEventGameMessagePopup.Add(function(popupInfo)
-    if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSE_GOODY_HUT_REWARD then
-        return
-    end
-    local ok, items = pcall(buildItems, popupInfo)
-    if not ok then
-        Log.error("ChooseGoodyHutRewardAccess buildItems failed: " .. tostring(items))
-        return
-    end
-    mainHandler.setItems(items)
-end)
+ChoosePopupCommon.install({
+    contextPtr = ContextPtr,
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    handlerName = "ChooseGoodyHutReward",
+    displayKey = "TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_GOODY_HUT_REWARD",
+    popupType = ButtonPopupTypes.BUTTONPOPUP_CHOOSE_GOODY_HUT_REWARD,
+    buildItems = buildItems,
+})
