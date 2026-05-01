@@ -22,7 +22,6 @@
 CityRangeStrikeMode = {}
 
 local MOD_NONE = 0
-local MOD_ALT = 4
 
 local bind = HandlerStack.bind
 
@@ -196,7 +195,6 @@ function CityRangeStrikeMode.enter(city)
         popHandler()
     end
 
-    local noop = function() end
     self.bindings = {
         bind(Keys.VK_SPACE, MOD_NONE, function()
             local c = resolveCity(ownerID, cityID)
@@ -214,16 +212,12 @@ function CityRangeStrikeMode.enter(city)
             popHandler()
             speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CANCELED"))
         end, "Cancel"),
-        -- Alt+QAZEDC no-ops: Baseline binds these to direct-move, which
-        -- would move a unit while the engine holds CITY_RANGE_ATTACK
-        -- interface mode. Match UnitTargetMode's block pattern.
-        bind(Keys.Q, MOD_ALT, noop, "Block direct-move NW"),
-        bind(Keys.E, MOD_ALT, noop, "Block direct-move NE"),
-        bind(Keys.A, MOD_ALT, noop, "Block direct-move W"),
-        bind(Keys.D, MOD_ALT, noop, "Block direct-move E"),
-        bind(Keys.Z, MOD_ALT, noop, "Block direct-move SW"),
-        bind(Keys.C, MOD_ALT, noop, "Block direct-move SE"),
     }
+    -- Block Baseline's Alt+QAZEDC direct-move while the engine holds
+    -- CITY_RANGE_ATTACK interface mode. Quick-action letter blocks aren't
+    -- needed here: the player isn't in a unit-selection flow that those
+    -- Alt+letter actions would commit against.
+    HandlerStack.appendAltBlocks(self.bindings, { directMove = true })
     -- Movement help is provided by Baseline's cursor entry; we don't
     -- duplicate it here. Listing only the strike-specific keys.
     self.helpEntries = {

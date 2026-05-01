@@ -29,7 +29,6 @@
 GiftMode = {}
 
 local MOD_NONE = 0
-local MOD_ALT = 4
 
 local KIND_UNIT = "unit"
 local KIND_IMPROVEMENT = "improvement"
@@ -261,7 +260,6 @@ function GiftMode.enter(toPlayerID, kind)
         end
     end
 
-    local noop = function() end
     self.bindings = {
         bind(Keys.VK_SPACE, MOD_NONE, function()
             speakInterrupt(previewFn())
@@ -271,27 +269,12 @@ function GiftMode.enter(toPlayerID, kind)
             popHandler()
             speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CANCELED"))
         end, "Cancel"),
-        -- Alt+QAZEDC noops: Baseline binds these to direct-move, which
-        -- would commit against a selected unit while the engine holds the
-        -- gift interface mode. Mirrors UnitTargetMode / CityRangeStrikeMode.
-        bind(Keys.Q, MOD_ALT, noop, "Block direct-move NW"),
-        bind(Keys.E, MOD_ALT, noop, "Block direct-move NE"),
-        bind(Keys.A, MOD_ALT, noop, "Block direct-move W"),
-        bind(Keys.D, MOD_ALT, noop, "Block direct-move E"),
-        bind(Keys.Z, MOD_ALT, noop, "Block direct-move SW"),
-        bind(Keys.C, MOD_ALT, noop, "Block direct-move SE"),
-        -- Alt-letter quick-action noops: same rationale as the direct-move
-        -- block. A fortify / heal / pillage / wake / etc. fired here would
-        -- act on whatever unit is selected and fight the picker.
-        bind(Keys.F, MOD_ALT, noop, "Block sleep/fortify"),
-        bind(Keys.S, MOD_ALT, noop, "Block sentry"),
-        bind(Keys.W, MOD_ALT, noop, "Block wake/cancel"),
-        bind(Keys.H, MOD_ALT, noop, "Block heal"),
-        bind(Keys.P, MOD_ALT, noop, "Block pillage"),
-        bind(Keys.R, MOD_ALT, noop, "Block ranged attack"),
-        bind(Keys.U, MOD_ALT, noop, "Block upgrade"),
-        bind(Keys.VK_SPACE, MOD_ALT, noop, "Block skip turn"),
     }
+    -- Block Baseline's Alt+QAZEDC direct-move and Alt+letter quick-actions
+    -- (fortify / heal / pillage / wake / etc.) while the engine holds the
+    -- gift interface mode; without the blocks a stray Alt+key commits
+    -- against whatever unit is selected and fights the picker.
+    HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
     self.helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_PREVIEW",

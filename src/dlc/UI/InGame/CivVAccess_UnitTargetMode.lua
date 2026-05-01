@@ -29,7 +29,6 @@ UnitTargetMode = {}
 
 local MOD_NONE = 0
 local MOD_SHIFT = 1
-local MOD_ALT = 4
 
 -- CvAStar.h MOVE_DECLARE_WAR. Lets the unit pathfinder route through
 -- tiles whose entry would declare war (peaceful rival territory),
@@ -787,7 +786,6 @@ function UnitTargetMode.enter(actor, iAction, mode)
         _iAction = iAction,
         _mode = mode,
     }
-    local noop = function() end
     self.bindings = {
         bind(Keys.VK_SPACE, MOD_NONE, function()
             speakInterrupt(buildPreview(self))
@@ -808,29 +806,12 @@ function UnitTargetMode.enter(actor, iAction, mode)
             restoreSelection()
             UnitActionMenu.open(actor)
         end, "Switch verb"),
-        -- Alt+QAZEDC no-ops: Baseline binds these to direct-move, which
-        -- would move the actor while an attack / move interface mode is
-        -- live. Bind here so InputRouter matches and returns before the
-        -- key falls through.
-        bind(Keys.Q, MOD_ALT, noop, "Block direct-move NW"),
-        bind(Keys.E, MOD_ALT, noop, "Block direct-move NE"),
-        bind(Keys.A, MOD_ALT, noop, "Block direct-move W"),
-        bind(Keys.D, MOD_ALT, noop, "Block direct-move E"),
-        bind(Keys.Z, MOD_ALT, noop, "Block direct-move SW"),
-        bind(Keys.C, MOD_ALT, noop, "Block direct-move SE"),
-        -- Alt-letter quick-action no-ops, same rationale as the direct-move
-        -- block: a fortify / heal / pillage / wake / etc. commit while the
-        -- engine is mid-target-mode would fire against the actor and fight
-        -- the picker the user is in.
-        bind(Keys.F, MOD_ALT, noop, "Block sleep/fortify"),
-        bind(Keys.S, MOD_ALT, noop, "Block sentry"),
-        bind(Keys.W, MOD_ALT, noop, "Block wake/cancel"),
-        bind(Keys.H, MOD_ALT, noop, "Block heal"),
-        bind(Keys.P, MOD_ALT, noop, "Block pillage"),
-        bind(Keys.R, MOD_ALT, noop, "Block ranged attack"),
-        bind(Keys.U, MOD_ALT, noop, "Block upgrade"),
-        bind(Keys.VK_SPACE, MOD_ALT, noop, "Block skip turn"),
     }
+    -- Block Baseline's Alt+QAZEDC direct-move and Alt+letter quick-actions
+    -- (fortify / heal / pillage / wake / etc.) while the engine is mid-target
+    -- mode; without the blocks a stray Alt+key commits against the actor and
+    -- fights the picker the user is in.
+    HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
     self.helpEntries = {}
     -- onDeactivate always restores the selection mode. Belt-and-
     -- suspenders: every binding that pops also calls restoreSelection,

@@ -50,6 +50,49 @@ function HandlerStack.bind(key, mods, fn, description)
     return { key = key, mods = mods, fn = fn, description = description }
 end
 
+-- MOD_ALT bit-mask value mirrored from individual handlers (Civ V's modifier
+-- mask: 1=Shift, 2=Ctrl, 4=Alt). Hardcoded here so the shared block helper
+-- below doesn't have to take it as a parameter.
+local MOD_ALT = 4
+local function noop() end
+
+-- Append Alt-blocked direct-move and quick-action no-op bindings to a
+-- handler's `bindings` array. Used by interface modes that need to suppress
+-- Baseline's Alt+QAZEDC direct-move and Alt+letter quick-action bindings
+-- while a target / strike / gift picker is live -- e.g. UnitTargetMode,
+-- GiftMode, CityRangeStrikeMode. Without these blocks, a stray Alt+key
+-- during target mode commits a movement / fortify / pillage on the actor
+-- and fights the picker.
+--
+-- opts:
+--   directMove   bool. Block Q,E,A,D,Z,C (the 6 hex-direction keys).
+--                Default true for all three callers.
+--   quickActions bool. Block F,S,W,H,P,R,U,VK_SPACE (sleep / sentry / wake /
+--                heal / pillage / ranged / upgrade / skip turn). Set by
+--                UnitTargetMode and GiftMode; CityRangeStrikeMode leaves
+--                these unblocked.
+function HandlerStack.appendAltBlocks(bindings, opts)
+    opts = opts or {}
+    if opts.directMove ~= false then
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.Q, MOD_ALT, noop, "Block direct-move NW")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.E, MOD_ALT, noop, "Block direct-move NE")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.A, MOD_ALT, noop, "Block direct-move W")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.D, MOD_ALT, noop, "Block direct-move E")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.Z, MOD_ALT, noop, "Block direct-move SW")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.C, MOD_ALT, noop, "Block direct-move SE")
+    end
+    if opts.quickActions then
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.F, MOD_ALT, noop, "Block sleep/fortify")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.S, MOD_ALT, noop, "Block sentry")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.W, MOD_ALT, noop, "Block wake/cancel")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.H, MOD_ALT, noop, "Block heal")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.P, MOD_ALT, noop, "Block pillage")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.R, MOD_ALT, noop, "Block ranged attack")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.U, MOD_ALT, noop, "Block upgrade")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_SPACE, MOD_ALT, noop, "Block skip turn")
+    end
+end
+
 function HandlerStack._reset()
     _shared.stack = {}
 end
