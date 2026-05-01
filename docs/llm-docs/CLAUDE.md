@@ -5,7 +5,7 @@ Reference material extracted from the local Civ V install (game Lua, XML, SDK) a
 ## What's here
 
 ### Lua API surface — `lua-api/`
-Per-class markdown of every method called on each engine class, extracted by scanning the entire shipped game Lua and binning calls by receiver name (`pPlayer:` → Player, `pUnit:` → Unit, etc.). 23 classes, ~1,900 distinct methods, ~48k classified call sites. Signatures are real argument expressions from real call sites — argument names reflect what the game's own authors wrote.
+Per-class markdown of every method called on each engine class, extracted by scanning the entire shipped game Lua and binning calls by receiver name (`pPlayer:` to Player, `pUnit:` to Unit, etc.). At last extraction: 23 classes, ~1,900 distinct methods, ~54k classified call sites (per-class totals in `lua-api/README.md`). Signatures are real argument expressions from real call sites — argument names reflect what the game's own authors wrote.
 
 Start at `lua-api/README.md` for the class index. Open the specific class file when you need a method (e.g. `lua-api/Player.md`). Each entry shows the method, its argument shape(s) (up to 5 distinct shapes shown), call site count, and one example `file:line` you can read for usage context.
 
@@ -15,12 +15,12 @@ Two classes are populated by method-name fingerprinting rather than receiver-nam
 
 `lua-api/_unbinned.md` is the top-100 leftover `:Method(` calls — mostly mod-side map generators (`MultilayeredFractal`, `AssignStartingPlots`, `start_plot_database`) and a long tail of typed handles whose receiver names weren't in the binning map. Useful for spotting genuine misses; the map-generator stuff is not engine API.
 
-`lua-api/_extract.py` is the extractor itself. Re-run it (`python _extract.py` from `llm-docs/lua-api/`) when the shipped game Lua changes or when you extend the receiver map.
+`lua-api/_extract.py` is the extractor itself. Re-run it (`py _extract.py` from `llm-docs/lua-api/`) when the shipped game Lua changes or when you extend the receiver map.
 
-`lua-api/_civvaccess_fork.md` lists methods our engine fork adds (Unit / Game). The extractor scans shipped game Lua and our fork's bindings have no game-side callers, so they never show up in the per-class files. Hand-authored; canonical source is the `CIVVACCESS:` markers in `src/engine/`.
+`lua-api/_civvaccess_fork.md` lists the Lua bindings and `GameEvents.CivVAccess*` hooks our engine fork adds (Unit, Plot, Game bindings plus the CivVAccess* GameEvents). The extractor scans shipped game Lua and our fork's bindings have no game-side callers, so they never show up in the per-class files. Hand-authored; canonical source is the `CIVVACCESS:` markers in `src/engine/`. Grep that marker if you suspect the doc has drifted from the engine.
 
 ### Events catalogs — `events-catalog.md` and `luaevents-catalog.md`
-- `events-catalog.md` — 227 `Events.X` (engine-originated). Each entry tagged with **direction** (observable / fire-only / mixed) so you can triage at a glance: 147 observable, 54 fire-only, 26 mixed. Includes the 69-way `SerialEventGameMessagePopup` `ButtonPopupTypes` enumeration up front. Also lists inferred argument shape, example registration site, example fire site, and counts.
+- `events-catalog.md` — 227 `Events.X` (engine-originated) at last extraction. Each entry tagged with **direction** (observable / fire-only / mixed) so you can triage at a glance: 147 observable, 54 fire-only, 26 mixed. Includes the 69-way `SerialEventGameMessagePopup` `ButtonPopupTypes` enumeration up front. Also lists inferred argument shape, example registration site, example fire site, and counts.
 - `luaevents-catalog.md` — 25 `LuaEvents.X` (pure Lua pub/sub between scripts). Verified complete by independent grep — Civ V's UI relies on `Events.X` and direct globals far more than on Lua-to-Lua pub/sub, so the small count is real.
 
 These are the primary discovery surface for "what can I observe without modifying game files." Filter to **observable** in events-catalog when looking for things to subscribe to.
@@ -35,10 +35,10 @@ Extracted index of UI-label `TXT_KEY_*` entries from every shipped `en_US` text 
 
 Use this before adding any mod-authored string. The project rule is "search the game's text XML before authoring," and this index is the searchable form of that — Ctrl-F a likely label ("Close", "Cancel", "End Turn") and grab the existing key. The text-key namespace is global, so any key here can be looked up via `Locale.ConvertTextKey` from any mod context.
 
-`txt-keys/_extract.py` is the extractor. Re-run (`python _extract.py` from `llm-docs/txt-keys/`) when DLC changes or the include/exclude heuristics need tuning.
+`txt-keys/_extract.py` is the extractor. Re-run (`py _extract.py` from `llm-docs/txt-keys/`) when DLC changes or the include/exclude heuristics need tuning.
 
 ### External resources — `external-resources.md`
-URLs for community references that supplement the local files: Civfanatics modiki, Whoward's BNW Lua reference (parsed from DLL C++, more authoritative than the SDK HTML stub), Vox Populi / EUI / IGE source repos. Also captures partial answers to the open questions in `docs/technical-reference.md` §12.
+URLs for community references that supplement the local files: Civfanatics modiki, Whoward's BNW Lua reference (parsed from DLL C++, more authoritative than the SDK HTML stub), Vox Populi / EUI / IGE source repos.
 
 ## What's NOT here, and why
 
