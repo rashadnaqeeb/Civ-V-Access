@@ -106,16 +106,7 @@ local function canEnableReason(modId, version)
     return result[1]
 end
 
-local function addField(leaves, headerKey, value)
-    if value == nil or value == "" then
-        return
-    end
-    local prefix = ""
-    if headerKey ~= nil and headerKey ~= "" then
-        prefix = Text.key(headerKey) .. ": "
-    end
-    leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = prefix .. value })
-end
+local addField = SavedGameShared.addField
 
 local function yesNoLabel(value)
     if value == "1" then

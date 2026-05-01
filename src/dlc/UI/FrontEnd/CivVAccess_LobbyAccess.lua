@@ -25,6 +25,7 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_PickerReader")
+include("CivVAccess_SavedGameShared")
 include("CivVAccess_LobbyCore")
 
 Log.info("LobbyAccess: wiring PickerReader over base Lobby")

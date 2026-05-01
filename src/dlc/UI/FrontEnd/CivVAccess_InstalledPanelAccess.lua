@@ -24,6 +24,7 @@
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_PickerReader")
+include("CivVAccess_SavedGameShared")
 include("CivVAccess_InstalledPanelCore")
 
 Log.info("InstalledPanelAccess: wiring PickerReader over base InstalledPanel")

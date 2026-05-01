@@ -105,16 +105,7 @@ local function playerNames(listing)
     return names
 end
 
-local function addField(leaves, headerKey, value)
-    if value == nil or value == "" then
-        return
-    end
-    local prefix = ""
-    if headerKey ~= nil and headerKey ~= "" then
-        prefix = Text.key(headerKey) .. ": "
-    end
-    leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = prefix .. value })
-end
+local addField = SavedGameShared.addField
 
 -- Live label for the Refresh choice. Mirrors base UpdateRefreshButton's
 -- text toggle (Lobby.lua lines 157-164) by reading the currently-displayed
