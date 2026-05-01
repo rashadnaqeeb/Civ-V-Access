@@ -127,22 +127,12 @@ local function findFirstImprovementTarget(toPlayerID)
     return nil, nil
 end
 
--- Per-plot Space preview. Same legality-preview shape UnitTargetMode uses
--- for paradrop / airlift / rebase / nuke: legal -> plot glance; illegal ->
--- single "cannot X here" string. The plot glance covers unit identity
--- on the gift-unit path (a plot with my Warrior reads "Warrior" via
--- PlotComposers.glance), so the absence of the "cannot" prefix already
--- tells the user the cursor's unit is the one they'd commit.
-local function legalityPreview(canTarget, illegalKey, plot)
-    if not canTarget then
-        return Text.key(illegalKey)
-    end
-    local glance = PlotComposers.glance(plot)
-    if glance == nil or glance == "" then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-    end
-    return glance
-end
+-- Per-plot Space preview. PlotComposers.legalityPreview returns the plot
+-- glance on legal targets and the "cannot X here" key on illegal -- the
+-- glance covers unit identity on the gift-unit path (a plot with my Warrior
+-- reads "Warrior"), so the absence of the "cannot" prefix already tells
+-- the user the cursor's unit is the one they'd commit.
+local legalityPreview = PlotComposers.legalityPreview
 
 local function commitUnit(toPlayerID)
     local plot, _x, _y = cursorPlot()

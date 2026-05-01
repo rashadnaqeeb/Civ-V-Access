@@ -251,3 +251,21 @@ function PlotComposers.combat(plot)
     readSection(PlotSections.route, plot, {}, out)
     return table.concat(out, ", ")
 end
+
+-- Per-target preview for the modes whose only sighted feedback is a
+-- highlight tint (legal target = colored, otherwise dimmed). The engine
+-- doesn't expose per-target failure reasons, so illegal collapses to a
+-- single "cannot X here" string. Legal speaks the destination plot's
+-- glance summary so the player can sanity-check terrain / units / city
+-- before committing. Used by UnitTargetMode (paradrop / airlift / rebase /
+-- nuke) and GiftMode (gift unit / improvement).
+function PlotComposers.legalityPreview(canTarget, illegalKey, plot)
+    if not canTarget then
+        return Text.key(illegalKey)
+    end
+    local glance = PlotComposers.glance(plot)
+    if glance == nil or glance == "" then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    return glance
+end

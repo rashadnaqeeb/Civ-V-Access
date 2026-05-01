@@ -101,8 +101,10 @@ end
 
 -- Enemy city at plot if any, with the same active-team / war gate enemyAt
 -- uses for units. Used by directMove so an Alt+QAZEDC into an enemy city
--- gates on the same melee-attack confirm path as one into an enemy unit.
-local function enemyCityAt(plot)
+-- gates on the same melee-attack confirm path as one into an enemy unit;
+-- exposed for UnitTargetMode which has the same active-team / war predicate
+-- in its target legality checks.
+function UnitControlMovement.enemyCityAt(plot)
     if plot == nil or not plot:IsCity() then
         return nil
     end
@@ -123,6 +125,7 @@ local function enemyCityAt(plot)
     end
     return city
 end
+local enemyCityAt = UnitControlMovement.enemyCityAt
 
 -- ===== Alt+QAZEDC direct move =====
 -- defender non-nil means the caller already resolved the target as a melee

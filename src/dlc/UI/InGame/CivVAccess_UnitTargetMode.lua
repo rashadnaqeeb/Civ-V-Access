@@ -252,30 +252,7 @@ local function defenderAt(plot, ranged, actor)
     return nil
 end
 
--- Enemy city at plot if any. The active team must be at war with the city's
--- owner -- a peaceful rival's city isn't a combat target (the move that
--- enters it would route through the war-confirm popup, not a strike).
-local function enemyCityAt(plot)
-    if plot == nil or not plot:IsCity() then
-        return nil
-    end
-    local city = plot:GetPlotCity()
-    if city == nil or city:GetOwner() == Game.GetActivePlayer() then
-        return nil
-    end
-    local activeTeam = Teams[Game.GetActiveTeam()]
-    if activeTeam == nil then
-        return nil
-    end
-    local owner = Players[city:GetOwner()]
-    if owner == nil then
-        return nil
-    end
-    if not (owner:IsBarbarian() or activeTeam:IsAtWar(owner:GetTeam())) then
-        return nil
-    end
-    return city
-end
+local enemyCityAt = UnitControl.enemyCityAt
 
 local function isRangeAttackMode(mode)
     return mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE
@@ -295,22 +272,7 @@ local function isRouteMode(mode)
     return mode == InterfaceModeTypes.INTERFACEMODE_ROUTE_TO
 end
 
--- Per-target previews for the modes whose only sighted feedback is a
--- highlight tint (legal target = colored, otherwise dimmed). The engine
--- doesn't expose per-target failure reasons, so illegal collapses to a
--- single "cannot X here" string. Legal speaks the destination plot's
--- glance summary so the player can sanity-check terrain / units / city
--- before committing.
-local function legalityPreview(canTarget, illegalKey, plot)
-    if not canTarget then
-        return Text.key(illegalKey)
-    end
-    local glance = PlotComposers.glance(plot)
-    if glance == nil or glance == "" then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-    end
-    return glance
-end
+local legalityPreview = PlotComposers.legalityPreview
 
 -- Air sweep has no Can*At; the engine accepts any plot in air range and
 -- picks an interceptor at random at commit time. Best signal we can give

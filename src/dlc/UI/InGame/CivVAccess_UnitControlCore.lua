@@ -45,6 +45,7 @@ UnitControl.preflightAttack = UnitControlCombat.preflightAttack
 UnitControl.preflightAttackTarget = UnitControlCombat.preflightAttackTarget
 UnitControl.preflightMove = UnitControlMovement.preflightMove
 UnitControl.enemyAt = UnitControlMovement.enemyAt
+UnitControl.enemyCityAt = UnitControlMovement.enemyCityAt
 UnitControl.registerPending = UnitControlMovement.registerPending
 UnitControl.notifyDeferredCommit = UnitControlMovement.notifyDeferredCommit
 UnitControl.notifyCommitCanceled = UnitControlMovement.notifyCommitCanceled
