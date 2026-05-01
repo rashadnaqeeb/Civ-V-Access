@@ -31,6 +31,7 @@ When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs
 - All logging goes through the mod's log wrapper, never use bare `print` or raw `Events.AppLog` calls
 - All user-facing text goes through `Text.key` / `Text.format`, never `Locale.ConvertTextKey` directly. The wrapper logs missing keys; raw Locale silently returns the key name and the user hears it spelled out. Mod-authored keys (`TXT_KEY_CIVVACCESS_*`) go in `UI/InGame/CivVAccess_InGameStrings_<locale>.lua` or `UI/FrontEnd/CivVAccess_FrontEndStrings_<locale>.lua`, whichever Context consumes them (both, if both do).
 - Lua files: one feature per file where possible; file name matches the `include` stem (Civ V's VFS indexes by bare stem).
+- Access wrappers: `CivVAccess_XAccess.lua` lives next to every overridden vendor `X.lua` and is what the appended `include("CivVAccess_XAccess")` line at the bottom of `X.lua` reaches. Wrappers capture `priorInput` / `priorShowHide` from the vendor file's globals, then call `BaseMenu.install(ContextPtr, spec)` (or `TabbedShell.install` for tabbed screens). Spec fields are documented in the headers of `src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua` and `CivVAccess_BaseMenuCore.lua`.
 
 ## Test
 
@@ -96,11 +97,13 @@ Handler table shape and push/pop rules are documented in the header of `src/dlc/
 - **Three `Civ5Pkg` manifests, one shared GUID, only the BNW manifest carries a payload.** `CivVAccess_2.Civ5Pkg` is the functional one (`<UISkin name="Expansion2Primary" set="Expansion2">`, all the real `<Skin>` / `<GameplaySkin>` directories); `CivVAccess_0.Civ5Pkg` (BaseGame) and `CivVAccess_1.Civ5Pkg` (Expansion1) are sentinels pointing at empty `UI/SkinProbeBase/` and `UI/SkinProbeG/` directories. Without those two siblings the engine CTDs on entering any built-in tutorial or vanilla-era scenario when our DLC is active; mechanism unverified, see `CivVAccess_0.Civ5Pkg`'s header comment. Base-game and G&K *sessions* still load no accessibility code because our payload only lives under the Expansion2 directives. `<TextData>` is omitted from all three — fake-DLC text ingestion is broken in the engine, so mod strings are served from Lua via `Text.key` / `Text.format`.
 - **luacheck W113 (undefined variable) is silenced for `*Access.lua` / `*Core.lua` / `*Shared.lua` wrappers** since they reach into dozens of base-game globals that aren't worth whitelisting. A typo like `OnBakc` in a wrapper won't be flagged — rely on manual review. W113 stays active in pure-mod modules (ScannerCore, SpeechPipeline, etc.) where it's still useful.
 
-### Bootstrap override surfaces
+### Vendor file overrides
 
-A pure `.Civ5Pkg` cannot declare a net-new Context, so bootstrap piggy-backs on overriding base files. Each override is a verbatim copy of the game's file with `include()` lines appended to the Lua. We do not ship XML overrides we don't need — if our DLC doesn't provide a file, the engine loads whichever copy (base or BNW) the active UISkin resolves to naturally.
+A pure `.Civ5Pkg` cannot declare a net-new Context, so the mod piggy-backs on overriding base files. Each override is a verbatim copy of the game's file with one or more `include()` lines appended to the Lua. We do not ship XML overrides we don't need — if our DLC doesn't provide a file, the engine loads whichever copy (base or BNW) the active UISkin resolves to naturally.
 
-Overridden files and the source we copy from:
+The general convention. ~110 vendor `.lua` files under `src/dlc/UI` are overridden, each with a single `include("CivVAccess_XAccess")` appended at the bottom. The wrapper file (`CivVAccess_XAccess.lua`) lives next to the vendor file and carries the entire mod payload for that screen: locale strings, includes for shared infra, a `BaseMenu.install` (or `TabbedShell.install`) call against the screen's `ContextPtr`, plus any listeners. The vendor file's appended include is a one-line stub; the wrapper does the work. (One exception: `WorldView/TradeLogic.lua` doesn't include its wrapper directly because the wrapper is loaded through sibling Contexts — `SimpleDiploTrade` and `DiploTrade` — that depend on it.)
+
+Bootstrap-special overrides. The four below carry *additional* include lines beyond the standard wrapper tail because they own the mod's load sequence or its global key dispatch:
 
 - `WorldView/WorldView.{lua,xml}` — in-game boot seat (module loads, LoadScreenClose wiring) plus pre-InGame key interception. Appends `include("CivVAccess_Boot")` first, then `include("CivVAccess_WorldViewKeys")`. Sourced from `Assets/DLC/Expansion2/UI/...`; BNW overrides.
 - `InGame.lua` — in-game keyboard dispatch. Sourced from `Assets/DLC/Expansion2/UI/...`; BNW overrides it, so shipping from base would shadow BNW's behavior. The companion `InGame.xml` is not overridden because we don't change the layout.
