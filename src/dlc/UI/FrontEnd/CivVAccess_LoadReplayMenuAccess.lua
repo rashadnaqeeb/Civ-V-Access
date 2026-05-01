@@ -47,19 +47,12 @@ local function getHandler()
 end
 
 -- Monkey-patch SetupFileButtonList so every rebuild (OnYes delete,
--- ShowHide open) also refreshes our picker items. The base body must run
--- first (it populates g_FileList / instance visuals); we rebuild from the
--- new state afterwards. Skip when mainHandler hasn't been assigned yet
--- (pre-install ShowHides would also have no handler to setItems on).
-local baseSetupFileButtonList = SetupFileButtonList
-SetupFileButtonList = function(...)
-    baseSetupFileButtonList(...)
-    if mainHandler == nil then
-        return
-    end
-    local newItems = LoadReplayMenu.buildPickerItems(session.Entry, getHandler)
-    mainHandler.setItems(newItems, 1)
-end
+-- ShowHide open) also refreshes our picker items. The base body runs
+-- first (it populates g_FileList / instance visuals) and the helper
+-- then rebuilds from the new state.
+SetupFileButtonList = PickerReader.wrapRebuild(SetupFileButtonList, getHandler, function()
+    return LoadReplayMenu.buildPickerItems(session.Entry, getHandler)
+end, 1)
 
 local pickerItems = LoadReplayMenu.buildPickerItems(session.Entry, getHandler)
 

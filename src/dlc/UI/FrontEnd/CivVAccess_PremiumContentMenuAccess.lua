@@ -21,6 +21,7 @@
 -- time, so reassigning the global takes effect on subsequent invocations.
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_PickerReader")
 
 local priorShowHide = ShowHideHandler
 local priorInput = InputHandler
@@ -83,15 +84,11 @@ local function buildItems()
 end
 
 local mainHandler
-
-local baseRefreshDLC = RefreshDLC
-RefreshDLC = function(...)
-    baseRefreshDLC(...)
-    if mainHandler == nil then
-        return
-    end
-    mainHandler.setItems(buildItems())
+local function getHandler()
+    return mainHandler
 end
+
+RefreshDLC = PickerReader.wrapRebuild(RefreshDLC, getHandler, buildItems)
 
 mainHandler = BaseMenu.install(ContextPtr, {
     name = "PremiumContentMenu",

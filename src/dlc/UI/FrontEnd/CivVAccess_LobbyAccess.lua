@@ -47,15 +47,9 @@ end
 -- RemoveServer from MultiplayerGameListUpdated, clear-on-show, sort toggle)
 -- also refreshes our picker items. The base body populates g_Listings and
 -- the visual Stack; our rebuild reads g_Listings.
-local baseSortAndDisplayListings = SortAndDisplayListings
-SortAndDisplayListings = function(...)
-    baseSortAndDisplayListings(...)
-    if mainHandler == nil then
-        return
-    end
-    local newItems = Lobby.buildPickerItems(session.Entry, getHandler)
-    mainHandler.setItems(newItems, 1)
-end
+SortAndDisplayListings = PickerReader.wrapRebuild(SortAndDisplayListings, getHandler, function()
+    return Lobby.buildPickerItems(session.Entry, getHandler)
+end, 1)
 
 -- Live TitleLabel as preamble. Base's TitleLabel text varies with lobby
 -- mode (Internet / LAN / Pitboss, plus Mod variants) and is set inside

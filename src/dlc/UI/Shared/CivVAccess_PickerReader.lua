@@ -108,6 +108,26 @@ local function entryIsActivatable(self)
     return self:isNavigable()
 end
 
+-- Wrap an engine global that mutates picker-source state (e.g.
+-- SetupFileButtonList, SortAndDisplayListings, RefreshMods, RefreshDLC) so
+-- our installed handler's items are rebuilt on every invocation. Each
+-- caller passes the captured original function, a getHandler closure that
+-- yields the live handler reference (or nil before the install call has
+-- returned), a rebuilder that produces the fresh picker items, and the
+-- 1-based tabIndex to write into (nil for non-tabbed handlers). The
+-- handler-nil guard covers the pre-install invocation that several base
+-- ShowHide paths trigger.
+function PickerReader.wrapRebuild(baseFn, getHandler, rebuilder, tabIndex)
+    return function(...)
+        baseFn(...)
+        local h = getHandler()
+        if h == nil then
+            return
+        end
+        h.setItems(rebuilder(), tabIndex)
+    end
+end
+
 -- Create a PickerReader session. Returns a table with two fields:
 --   Entry(spec) - factory for leaf items that drive cross-tab moves
 --   install(ContextPtr, config) - wraps BaseMenu.install with a two-tab spec

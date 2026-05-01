@@ -58,20 +58,11 @@ end
 
 -- Monkey-patch RefreshMods so every rebuild (sort toggle, enable / disable,
 -- download state transition, explicit Options-apply) also refreshes our
--- picker items. The base body must run first (it repopulates g_SortedMods
--- and the visual Stack); we then rebuild from the new state. Skip when
--- mainHandler hasn't been assigned yet (the pre-install RefreshMods at the
--- bottom of InstalledPanel.lua), which would also fail to have a handler
--- to setItems on.
-local baseRefreshMods = RefreshMods
-RefreshMods = function(...)
-    baseRefreshMods(...)
-    if mainHandler == nil then
-        return
-    end
-    local newItems = InstalledPanel.buildPickerItems(session.Entry, getHandler)
-    mainHandler.setItems(newItems, 1)
-end
+-- picker items. The base body runs first (it repopulates g_SortedMods and
+-- the visual Stack); the helper then rebuilds from the new state.
+RefreshMods = PickerReader.wrapRebuild(RefreshMods, getHandler, function()
+    return InstalledPanel.buildPickerItems(session.Entry, getHandler)
+end, 1)
 
 local pickerItems = InstalledPanel.buildPickerItems(session.Entry, getHandler)
 
