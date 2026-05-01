@@ -65,6 +65,7 @@ end
 local fowListeners
 local revealedListeners
 local tickRunOnceCount
+local spoken
 
 local function setup()
     Game.GetActivePlayer = function()
@@ -132,15 +133,13 @@ local function setup()
         return k
     end
 
-    SpeechPipeline = {
-        _calls = {},
-    }
-    SpeechPipeline.speakInterrupt = function(s)
-        SpeechPipeline._calls[#SpeechPipeline._calls + 1] = { mode = "interrupt", text = s }
-    end
-    SpeechPipeline.speakQueued = function(s)
-        SpeechPipeline._calls[#SpeechPipeline._calls + 1] = { mode = "queued", text = s }
-    end
+    -- Load the real SpeechPipeline + TextFilter and patch the lower
+    -- _speakAction seam so assertions go through the production filter +
+    -- gating path. spoken is repopulated on every setup() call.
+    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
+    SpeechPipeline._reset()
+    spoken = T.captureSpeech()
 
     fowListeners = {}
     revealedListeners = {}
@@ -224,9 +223,9 @@ function M.test_hostile_unit_walks_into_fog()
     RevealAnnounce.installListeners()
     unit._plot = fogPlot()
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "exactly one queued line")
-    T.eq(SpeechPipeline._calls[1].mode, "queued", "hide line uses speakQueued")
-    T.eq(SpeechPipeline._calls[1].text, "Hidden: Enemy: Roman Warrior")
+    T.eq(#spoken, 1, "exactly one queued line")
+    T.eq(spoken[1].interrupt, false, "hide line uses speakQueued")
+    T.eq(spoken[1].text, "Hidden: Enemy: Roman Warrior")
 end
 
 -- A neutral unit going into fog routes through the Units: sub-payload,
@@ -241,7 +240,7 @@ function M.test_neutral_unit_walks_into_fog()
     RevealAnnounce.installListeners()
     unit._plot = fogPlot()
     RevealAnnounce._flush()
-    T.eq(SpeechPipeline._calls[1].text, "Hidden: Units: Roman Warrior")
+    T.eq(spoken[1].text, "Hidden: Units: Roman Warrior")
 end
 
 -- A unit removed from its owner's roster (death or capture) drops out
@@ -258,7 +257,7 @@ function M.test_destroyed_unit_dropped()
     RevealAnnounce.installListeners()
     Players[1]._units = {}
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 0, "destroyed unit must not announce as hidden")
+    T.eq(#spoken, 0, "destroyed unit must not announce as hidden")
 end
 
 -- Unit still visible at flush time means the diff finds nothing. No
@@ -273,7 +272,7 @@ function M.test_persistent_unit_no_announce()
     })
     RevealAnnounce.installListeners()
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 0, "persistent units do not announce")
+    T.eq(#spoken, 0, "persistent units do not announce")
 end
 
 -- Hostile and neutral units both hide in the same flush. The line
@@ -297,9 +296,9 @@ function M.test_enemy_and_neutral_split_into_one_line()
     hostile._plot = fogPlot()
     neutral._plot = fogPlot()
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "single combined hide line")
+    T.eq(#spoken, 1, "single combined hide line")
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "Hidden: Enemy: Roman Warrior. Units: Arabian Warrior",
         "enemy sub-payload precedes units sub-payload"
     )
@@ -323,7 +322,7 @@ function M.test_aggregation_with_count_prefix()
     b._plot = fogPlot()
     c._plot = fogPlot()
     RevealAnnounce._flush()
-    T.eq(SpeechPipeline._calls[1].text, "Hidden: Enemy: 3 Roman Warrior")
+    T.eq(spoken[1].text, "Hidden: Enemy: 3 Roman Warrior")
 end
 
 -- A flush with neither reveal events nor anything left to hide is
@@ -333,7 +332,7 @@ function M.test_empty_flush_silent()
     setup()
     RevealAnnounce.installListeners()
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 0, "empty flush stays silent")
+    T.eq(#spoken, 0, "empty flush stays silent")
 end
 
 -- The recorder gates on isEnabled before scheduling a flush. When
@@ -403,9 +402,9 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
 
     RevealAnnounce._flush()
 
-    T.eq(#SpeechPipeline._calls, 1, "single combined reveal line")
+    T.eq(#spoken, 1, "single combined reveal line")
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "1 tile revealed: Enemy: 2 Roman Warrior",
         "civ adjective prefixes the unit and identical units aggregate"
     )
@@ -427,9 +426,9 @@ function M.test_snapshot_refreshes_after_flush()
     RevealAnnounce.installListeners()
     unit._plot = fogPlot()
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "first flush announces")
+    T.eq(#spoken, 1, "first flush announces")
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "second flush silent -- snapshot already reflects the hide")
+    T.eq(#spoken, 1, "second flush silent -- snapshot already reflects the hide")
 end
 
 -- ===== Gone-on-revisit =====
@@ -519,9 +518,9 @@ function M.test_camp_gone_on_revisit()
     RevealAnnounce.installListeners()
     fireRevisit(plot)
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "single gone line")
-    T.eq(SpeechPipeline._calls[1].mode, "queued", "gone uses speakQueued")
-    T.eq(SpeechPipeline._calls[1].text, "Gone: barbarian camp")
+    T.eq(#spoken, 1, "single gone line")
+    T.eq(spoken[1].interrupt, false, "gone uses speakQueued")
+    T.eq(spoken[1].text, "Gone: barbarian camp")
 end
 
 -- Goody hut path. Classification is by .Goody flag, so the same logic
@@ -537,7 +536,7 @@ function M.test_ruin_gone_on_revisit()
     RevealAnnounce.installListeners()
     fireRevisit(plot)
     RevealAnnounce._flush()
-    T.eq(SpeechPipeline._calls[1].text, "Gone: ancient ruins")
+    T.eq(spoken[1].text, "Gone: ancient ruins")
 end
 
 -- A first-reveal plot has no prior state to diff against. Even if the
@@ -558,7 +557,7 @@ function M.test_first_reveal_does_not_announce_gone()
     RevealAnnounce.installListeners()
     fireFirstReveal(plot)
     RevealAnnounce._flush()
-    for _, call in ipairs(SpeechPipeline._calls) do
+    for _, call in ipairs(spoken) do
         T.falsy(call.text:find("Gone"), "first-reveal must not produce a Gone line")
     end
 end
@@ -579,7 +578,7 @@ function M.test_persistent_camp_no_gone()
     RevealAnnounce.installListeners()
     fireRevisit(plot)
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 0, "still-there camp does not announce as gone")
+    T.eq(#spoken, 0, "still-there camp does not announce as gone")
 end
 
 -- Two camps gone in the same flush aggregate via Text.formatPlural.
@@ -601,8 +600,8 @@ function M.test_two_camps_aggregate_with_plural()
     fireRevisit(plot1)
     fireRevisit(plot2)
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "single combined gone line")
-    T.eq(SpeechPipeline._calls[1].text, "Gone: 2 barbarian camps")
+    T.eq(#spoken, 1, "single combined gone line")
+    T.eq(spoken[1].text, "Gone: 2 barbarian camps")
 end
 
 -- One of each in the same flush joins with the AND key, mirroring
@@ -623,7 +622,7 @@ function M.test_camp_and_ruin_joined_with_and()
     fireRevisit(plot1)
     fireRevisit(plot2)
     RevealAnnounce._flush()
-    T.eq(SpeechPipeline._calls[1].text, "Gone: barbarian camp and ancient ruins")
+    T.eq(spoken[1].text, "Gone: barbarian camp and ancient ruins")
 end
 
 -- After the first gone announcement, the snapshot stores nil for this
@@ -641,10 +640,10 @@ function M.test_repeat_revisit_does_not_re_announce()
     RevealAnnounce.installListeners()
     fireRevisit(plot)
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "first revisit announces once")
+    T.eq(#spoken, 1, "first revisit announces once")
     fireRevisit(plot)
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, 1, "second revisit silent -- snapshot reflects post-flush state")
+    T.eq(#spoken, 1, "second revisit silent -- snapshot reflects post-flush state")
 end
 
 -- Lifecycle path that the bootstrap can't cover: plot the player has
@@ -671,16 +670,16 @@ function M.test_first_reveal_writes_snapshot_for_later_diff()
     -- now record "camp" for this idx so a later revisit has a baseline.
     fireFirstReveal(plot)
     RevealAnnounce._flush()
-    for _, call in ipairs(SpeechPipeline._calls) do
+    for _, call in ipairs(spoken) do
         T.falsy(call.text:find("Gone"), "first-reveal phase must not produce a Gone line")
     end
-    local callsAfterFirstReveal = #SpeechPipeline._calls
+    local callsAfterFirstReveal = #spoken
     -- Phase 2: walk back later. Camp cleared in fog meanwhile.
     plot._currentImp = -1
     fireRevisit(plot)
     RevealAnnounce._flush()
-    T.eq(#SpeechPipeline._calls, callsAfterFirstReveal + 1, "revisit produces exactly one new line")
-    T.eq(SpeechPipeline._calls[#SpeechPipeline._calls].text, "Gone: barbarian camp")
+    T.eq(#spoken, callsAfterFirstReveal + 1, "revisit produces exactly one new line")
+    T.eq(spoken[#spoken].text, "Gone: barbarian camp")
 end
 
 return M

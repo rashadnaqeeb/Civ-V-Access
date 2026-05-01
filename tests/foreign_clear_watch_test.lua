@@ -30,6 +30,8 @@ end
 
 -- ===== Test setup =====
 
+local spoken
+
 local function setup()
     -- Active player slot 0 on team 0. Foreign players sit at 1+ on
     -- distinct teams unless a test overrides.
@@ -55,14 +57,13 @@ local function setup()
         CivVAccessForeignGoodyCleared = { Add = function(_) end },
     }
 
-    -- SpeechPipeline capture so tests can assert what was spoken.
-    SpeechPipeline = { _calls = {} }
-    SpeechPipeline.speakInterrupt = function(s)
-        SpeechPipeline._calls[#SpeechPipeline._calls + 1] = { mode = "interrupt", text = s }
-    end
-    SpeechPipeline.speakQueued = function(s)
-        SpeechPipeline._calls[#SpeechPipeline._calls + 1] = { mode = "queued", text = s }
-    end
+    -- Load the real SpeechPipeline + TextFilter and patch the lower
+    -- _speakAction seam so assertions go through the production filter +
+    -- gating path. spoken is repopulated on every setup() call.
+    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
+    SpeechPipeline._reset()
+    spoken = T.captureSpeech()
 
     -- Real Text + MessageBuffer + ForeignClearWatch. Text.formatPlural
     -- runs against the en_US bundle loaded by run.lua, so plural form
@@ -87,7 +88,7 @@ function M.test_no_clears_no_announce()
     ForeignClearWatch.installListeners()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "no speech when no clears happened")
+    T.eq(#spoken, 0, "no speech when no clears happened")
     T.eq(civvaccess_shared.foreignClearDelta, nil, "delta cleared when no clears")
 end
 
@@ -100,9 +101,9 @@ function M.test_visible_camp_cleared_by_foreign_counts()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 1)
-    T.eq(SpeechPipeline._calls[1].mode, "queued", "all clears queue")
-    T.eq(SpeechPipeline._calls[1].text, "Someone else has claimed 1 visible barbarian camp.")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].interrupt, false, "all clears queue")
+    T.eq(spoken[1].text, "Someone else has claimed 1 visible barbarian camp.")
 end
 
 function M.test_visible_ruin_cleared_by_foreign_counts()
@@ -114,7 +115,7 @@ function M.test_visible_ruin_cleared_by_foreign_counts()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignGoodyCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(SpeechPipeline._calls[1].text, "Someone else has claimed 1 visible ancient ruin.")
+    T.eq(spoken[1].text, "Someone else has claimed 1 visible ancient ruin.")
 end
 
 function M.test_fogged_plot_skipped()
@@ -126,7 +127,7 @@ function M.test_fogged_plot_skipped()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "fogged-plot clears do not announce")
+    T.eq(#spoken, 0, "fogged-plot clears do not announce")
     T.eq(civvaccess_shared.foreignClearDelta, nil)
 end
 
@@ -141,7 +142,7 @@ function M.test_teammate_clears_skipped()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onForeignGoodyCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "teammate clears do not announce")
+    T.eq(#spoken, 0, "teammate clears do not announce")
 end
 
 function M.test_unknown_actor_skipped()
@@ -155,7 +156,7 @@ function M.test_unknown_actor_skipped()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignBarbCampCleared(99, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "unknown actor doesn't count")
+    T.eq(#spoken, 0, "unknown actor doesn't count")
 end
 
 function M.test_plural_form_for_multiple_camps()
@@ -169,7 +170,7 @@ function M.test_plural_form_for_multiple_camps()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(SpeechPipeline._calls[1].text, "Someone else has claimed 3 visible barbarian camps.")
+    T.eq(spoken[1].text, "Someone else has claimed 3 visible barbarian camps.")
 end
 
 function M.test_camps_and_ruins_joined_with_and()
@@ -184,7 +185,7 @@ function M.test_camps_and_ruins_joined_with_and()
     ForeignClearWatch._onForeignGoodyCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "Someone else has claimed 2 visible barbarian camps and 1 visible ancient ruin."
     )
 end
@@ -213,7 +214,7 @@ function M.test_announce_off_silent_but_delta_still_set()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "no speech when announce setting is off")
+    T.eq(#spoken, 0, "no speech when announce setting is off")
     T.truthy(civvaccess_shared.foreignClearDelta, "delta still written so F7 turn log shows the line")
 end
 
@@ -261,14 +262,14 @@ function M.test_counters_reset_between_ai_turns()
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(SpeechPipeline._calls[1].text, "Someone else has claimed 1 visible barbarian camp.")
+    T.eq(spoken[1].text, "Someone else has claimed 1 visible barbarian camp.")
 
     -- Turn 2.
     ForeignClearWatch._onTurnEnd()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 2, "second turn produced its own announcement")
-    T.eq(SpeechPipeline._calls[2].text, "Someone else has claimed 1 visible barbarian camp.")
+    T.eq(#spoken, 2, "second turn produced its own announcement")
+    T.eq(spoken[2].text, "Someone else has claimed 1 visible barbarian camp.")
 end
 
 return M

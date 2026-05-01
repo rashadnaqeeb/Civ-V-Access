@@ -55,6 +55,8 @@ end
 
 -- ===== Test setup =====
 
+local spoken
+
 local function setup()
     -- Game.GetActivePlayer returns 0; activeTeam returns 0. Foreign
     -- player slots start at 1+ so they don't collide with active.
@@ -118,16 +120,13 @@ local function setup()
         return k
     end
 
-    -- SpeechPipeline capture so tests can assert what was spoken.
-    SpeechPipeline = {
-        _calls = {},
-    }
-    SpeechPipeline.speakInterrupt = function(s)
-        SpeechPipeline._calls[#SpeechPipeline._calls + 1] = { mode = "interrupt", text = s }
-    end
-    SpeechPipeline.speakQueued = function(s)
-        SpeechPipeline._calls[#SpeechPipeline._calls + 1] = { mode = "queued", text = s }
-    end
+    -- Load the real SpeechPipeline + TextFilter and patch the lower
+    -- _speakAction seam so assertions go through the production filter +
+    -- gating path. spoken is repopulated on every setup() call.
+    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
+    SpeechPipeline._reset()
+    spoken = T.captureSpeech()
 
     Events = {
         ActivePlayerTurnEnd = { Add = function(_) end },
@@ -162,7 +161,7 @@ function M.test_empty_initial_state_no_announce()
     ForeignUnitWatch.installListeners()
     -- Boot prime then immediate TurnStart (simulates load with no foreigners).
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "no speech when there's nothing to diff")
+    T.eq(#spoken, 0, "no speech when there's nothing to diff")
     T.eq(civvaccess_shared.foreignUnitDelta, nil, "delta cleared when empty")
 end
 
@@ -177,9 +176,9 @@ function M.test_neutral_unit_enters_view()
         units = { makeUnit({ id = 1, plot = visiblePlot() }) },
     })
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 1)
-    T.eq(SpeechPipeline._calls[1].mode, "queued", "all lines queue")
-    T.eq(SpeechPipeline._calls[1].text, "New neutral units in view: Roman Warrior")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].interrupt, false, "all lines queue")
+    T.eq(spoken[1].text, "New neutral units in view: Roman Warrior")
 end
 
 function M.test_hostile_unit_enters_view()
@@ -192,8 +191,8 @@ function M.test_hostile_unit_enters_view()
         units = { makeUnit({ id = 1, plot = visiblePlot() }) },
     })
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 1)
-    T.eq(SpeechPipeline._calls[1].text, "New hostile units in view: Roman Warrior")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].text, "New hostile units in view: Roman Warrior")
 end
 
 function M.test_unit_walks_into_fog()
@@ -210,8 +209,8 @@ function M.test_unit_walks_into_fog()
     -- Move unit to a fogged plot.
     unit._plot = fogPlot()
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 1)
-    T.eq(SpeechPipeline._calls[1].text, "Neutral units no longer in view: Roman Warrior")
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].text, "Neutral units no longer in view: Roman Warrior")
 end
 
 function M.test_unit_destroyed_silently_drops()
@@ -227,7 +226,7 @@ function M.test_unit_destroyed_silently_drops()
     -- Remove the unit from its owner entirely (simulates death).
     Players[1]._units = {}
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "destroyed unit drops, no left announce")
+    T.eq(#spoken, 0, "destroyed unit drops, no left announce")
 end
 
 function M.test_persistent_unit_no_delta()
@@ -241,7 +240,7 @@ function M.test_persistent_unit_no_delta()
     ForeignUnitWatch._onTurnEnd()
     -- Unit still visible at TurnStart.
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "no speech for persistent units")
+    T.eq(#spoken, 0, "no speech for persistent units")
 end
 
 function M.test_war_declared_mid_turn_unit_still_visible()
@@ -258,9 +257,9 @@ function M.test_war_declared_mid_turn_unit_still_visible()
     Teams[0]._atWar[1] = true
     -- TurnStart: same unit, now hostile.
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 1, "war reclassification synthesizes one announcement")
+    T.eq(#spoken, 1, "war reclassification synthesizes one announcement")
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "New hostile units in view: Roman Warrior",
         "neutral->hostile while in view announces as hostile entered"
     )
@@ -279,7 +278,7 @@ function M.test_peace_declared_mid_turn_no_announce()
     -- Peace declared mid-turn.
     Teams[0]._atWar[1] = false
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "hostile->neutral while in view does not announce")
+    T.eq(#spoken, 0, "hostile->neutral while in view does not announce")
 end
 
 function M.test_aggregation_same_civ_same_unit_type()
@@ -297,7 +296,7 @@ function M.test_aggregation_same_civ_same_unit_type()
     })
     ForeignUnitWatch._onTurnStart()
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "New hostile units in view: 3 Roman Warrior",
         "three same-type same-civ units aggregate with count prefix"
     )
@@ -323,7 +322,7 @@ function M.test_aggregation_two_civs_alphabetic_order()
     -- TXT_KEY_CIV_ARABIA_ADJECTIVE sorts before TXT_KEY_CIV_ROME_ADJECTIVE
     -- alphabetically (sort happens on the raw key, before resolution).
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "New hostile units in view: Arabian Warrior, Roman Warrior",
         "civs ordered deterministically by adjective key"
     )
@@ -339,7 +338,7 @@ function M.test_skip_own_units()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "own units never announced")
+    T.eq(#spoken, 0, "own units never announced")
 end
 
 function M.test_skip_teammate_units()
@@ -353,7 +352,7 @@ function M.test_skip_teammate_units()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "teammate units never announced")
+    T.eq(#spoken, 0, "teammate units never announced")
 end
 
 function M.test_skip_dead_player_units()
@@ -366,7 +365,7 @@ function M.test_skip_dead_player_units()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "dead-player units never announced")
+    T.eq(#spoken, 0, "dead-player units never announced")
 end
 
 function M.test_skip_invisible_units()
@@ -379,7 +378,7 @@ function M.test_skip_invisible_units()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "invisible-to-team units never announced")
+    T.eq(#spoken, 0, "invisible-to-team units never announced")
 end
 
 function M.test_skip_units_on_fogged_plots()
@@ -392,7 +391,7 @@ function M.test_skip_units_on_fogged_plots()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "units on fogged plots never announced")
+    T.eq(#spoken, 0, "units on fogged plots never announced")
 end
 
 function M.test_barbarian_treated_as_hostile()
@@ -407,7 +406,7 @@ function M.test_barbarian_treated_as_hostile()
     })
     ForeignUnitWatch._onTurnStart()
     T.eq(
-        SpeechPipeline._calls[1].text,
+        spoken[1].text,
         "New hostile units in view: Barbarian Warrior",
         "barbarians always classified hostile regardless of war state"
     )
@@ -437,15 +436,15 @@ function M.test_multiple_lines_speech_order()
     Players[1]._units[#Players[1]._units + 1] = makeUnit({ id = 3, unitType = 101, plot = visiblePlot() }) -- new hostile Spearman
     Players[2]._units[#Players[2]._units + 1] = makeUnit({ id = 4, unitType = 102, plot = visiblePlot() }) -- new neutral Worker
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 4, "four buckets, four lines")
-    T.eq(SpeechPipeline._calls[1].mode, "queued", "all lines queue")
-    T.eq(SpeechPipeline._calls[1].text, "New hostile units in view: Roman Spearman")
-    T.eq(SpeechPipeline._calls[2].mode, "queued")
-    T.eq(SpeechPipeline._calls[2].text, "Hostile units no longer in view: Roman Warrior")
-    T.eq(SpeechPipeline._calls[3].mode, "queued")
-    T.eq(SpeechPipeline._calls[3].text, "New neutral units in view: Arabian Worker")
-    T.eq(SpeechPipeline._calls[4].mode, "queued")
-    T.eq(SpeechPipeline._calls[4].text, "Neutral units no longer in view: Arabian Warrior")
+    T.eq(#spoken, 4, "four buckets, four lines")
+    T.eq(spoken[1].interrupt, false, "all lines queue")
+    T.eq(spoken[1].text, "New hostile units in view: Roman Spearman")
+    T.eq(spoken[2].interrupt, false)
+    T.eq(spoken[2].text, "Hostile units no longer in view: Roman Warrior")
+    T.eq(spoken[3].interrupt, false)
+    T.eq(spoken[3].text, "New neutral units in view: Arabian Worker")
+    T.eq(spoken[4].interrupt, false)
+    T.eq(spoken[4].text, "Neutral units no longer in view: Arabian Warrior")
 end
 
 function M.test_delta_stored_for_f7()
@@ -474,7 +473,7 @@ function M.test_announce_off_silent_but_delta_still_set()
         units = { makeUnit({ id = 1, plot = visiblePlot() }) },
     })
     ForeignUnitWatch._onTurnStart()
-    T.eq(#SpeechPipeline._calls, 0, "no speech when announce setting is off")
+    T.eq(#spoken, 0, "no speech when announce setting is off")
     T.truthy(civvaccess_shared.foreignUnitDelta, "delta still written so F7 turn log shows the diff")
     T.eq(#civvaccess_shared.foreignUnitDelta, 1)
 end
