@@ -123,6 +123,29 @@ include("CivVAccess_CameraTracker")
 -- UI; both share state via civvaccess_shared._inGameChatLog.
 include("CivVAccess_ChatBuffer")
 
+-- Engine fork probe. Several mod features call fork-added Lua bindings
+-- bare (no pcall, no feature gate): UnitTargetMode does GeneratePath /
+-- GetPath / GetBestBuildRoute / HasLineOfSight; UnitControlMovement does
+-- GeneratePath; UnitControlSelection does Game.GetCycleUnits; etc. On a
+-- vanilla DLL deploy (e.g. ./deploy.ps1 -SkipEngine on a fresh install,
+-- or a sighted MP partner machine that hasn't been deployed against)
+-- those calls raise method-not-found errors that the engine's per-
+-- listener catch swallows -- the user gets no speech with no log line
+-- unless LoggingEnabled=1. This probe runs once per WorldView Context
+-- include and emits one line so a contributor reading Lua.log sees the
+-- missing-fork case immediately. Game methods are the canary: if they're
+-- present, the fork is deployed and the Unit / Plot bindings resolve too.
+if Game ~= nil then
+    if Game.GetBuildRoutePath ~= nil and Game.GetCycleUnits ~= nil then
+        Log.info("CivVAccess_Boot: engine fork bindings present")
+    else
+        Log.warn("CivVAccess_Boot: engine fork DLL not deployed -- "
+            .. "move-target preview, build-route preview, ranged-strike "
+            .. "LoS, and unit cycler will silently fail. "
+            .. "Run ./deploy.ps1 (without -SkipEngine) to install.")
+    end
+end
+
 -- Publish mod modules to other in-game Contexts. Civ V sandboxes Lua
 -- globals per Context, so the modules loaded above are invisible in
 -- CityView / popup / sub-screen Contexts even though they share a
