@@ -50,12 +50,7 @@ local function restoreSelection()
     UI.SetInterfaceMode(InterfaceModeTypes.INTERFACEMODE_SELECTION)
 end
 
-local function speakInterrupt(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(text)
-end
+local speakInterrupt = SpeechPipeline.speakInterrupt
 
 local function cursorPlot()
     local cx, cy = Cursor.position()

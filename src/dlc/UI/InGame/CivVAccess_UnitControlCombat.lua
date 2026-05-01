@@ -53,12 +53,7 @@ function UnitControlCombat.armCombatConfirm(dir)
     _combatConfirm.clock = os.clock()
 end
 
-local function speakQueued(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakQueued(text)
-end
+local speakQueued = SpeechPipeline.speakQueued
 
 -- ===== Preflight =====
 -- Precheck: would a melee attack from this unit be allowed at all? Order

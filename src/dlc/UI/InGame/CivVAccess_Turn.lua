@@ -91,12 +91,7 @@ local UNIT_BLOCKERS = {
     [EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_NEEDS_ORDERS] = true,
 }
 
-local function speak(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(text)
-end
+local speak = SpeechPipeline.speakInterrupt
 
 local function blockerText(player, blockerType)
     if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_ITEMS then

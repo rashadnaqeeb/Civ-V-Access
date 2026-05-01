@@ -120,12 +120,7 @@ end
 
 local bind = HandlerStack.bind
 
-local function speak(s)
-    if s == nil or s == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(s)
-end
+local speak = SpeechPipeline.speakInterrupt
 
 local function saveBinding(slot)
     return bind(Keys[slot], MOD_CTRL, function()

@@ -384,12 +384,7 @@ function SurveyorCore.cities()
 end
 
 -- ===== Bindings =====
-local function speak(s)
-    if s == nil or s == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(s)
-end
+local speak = SpeechPipeline.speakInterrupt
 
 local bind = HandlerStack.bind
 

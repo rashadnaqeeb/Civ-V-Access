@@ -27,12 +27,7 @@ local MOD_SHIFT = 1
 local MOD_CTRL = 2
 local MOD_ALT = 4
 
-local function speak(s)
-    if s == nil or s == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(s)
-end
+local speak = SpeechPipeline.speakInterrupt
 
 local bind = HandlerStack.bind
 

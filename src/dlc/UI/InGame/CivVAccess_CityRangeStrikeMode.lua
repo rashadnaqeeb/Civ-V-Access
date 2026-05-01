@@ -26,12 +26,7 @@ local MOD_ALT = 4
 
 local bind = HandlerStack.bind
 
-local function speakInterrupt(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(text)
-end
+local speakInterrupt = SpeechPipeline.speakInterrupt
 
 local function resolveCity(ownerID, cityID)
     local owner = Players[ownerID]

@@ -36,12 +36,7 @@ local KIND_IMPROVEMENT = "improvement"
 
 local bind = HandlerStack.bind
 
-local function speakInterrupt(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(text)
-end
+local speakInterrupt = SpeechPipeline.speakInterrupt
 
 local function cursorPlot()
     local cx, cy = Cursor.position()

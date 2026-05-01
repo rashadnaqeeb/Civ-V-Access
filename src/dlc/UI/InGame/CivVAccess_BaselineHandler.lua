@@ -47,12 +47,7 @@ local MOD_CTRL = 2
 
 local VK_OEM_5 = 220 -- backslash
 
-local function speak(s)
-    if s == nil or s == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(s)
-end
+local speak = SpeechPipeline.speakInterrupt
 
 local bind = HandlerStack.bind
 

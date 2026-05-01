@@ -71,19 +71,8 @@ function UnitControlMovement.registerPending(unit, targetX, targetY)
 end
 
 -- ===== Helpers =====
-local function speakInterrupt(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(text)
-end
-
-local function speakQueued(text)
-    if text == nil or text == "" then
-        return
-    end
-    SpeechPipeline.speakQueued(text)
-end
+local speakInterrupt = SpeechPipeline.speakInterrupt
+local speakQueued = SpeechPipeline.speakQueued
 
 local function selectedUnit()
     return UI.GetHeadSelectedUnit()

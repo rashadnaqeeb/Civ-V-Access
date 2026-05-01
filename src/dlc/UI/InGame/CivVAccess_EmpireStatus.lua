@@ -58,12 +58,7 @@ local LABEL_RELIGIONS = "TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"
 local LABEL_GREAT_PEOPLE = "TXT_KEY_CIVVACCESS_SECTION_GREAT_PEOPLE"
 local LABEL_INFLUENCE = "TXT_KEY_CIVVACCESS_SECTION_INFLUENCE"
 
-local function speak(s)
-    if s == nil or s == "" then
-        return
-    end
-    SpeechPipeline.speakInterrupt(s)
-end
+local speak = SpeechPipeline.speakInterrupt
 
 -- Concatenate non-empty trailing clauses with ", ". Used by every readout
 -- that may suffix the headline with conditional context.
