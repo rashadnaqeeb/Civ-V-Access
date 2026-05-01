@@ -23,28 +23,8 @@
 -- is intentionally omitted because GPList doesn't list it -- prophet progress
 -- is faith-gated, not GPP-gated, and lives on the Religion Overview screen.
 
-include("CivVAccess_Polyfill")
-include("CivVAccess_Log")
-include("CivVAccess_TextFilter")
-include("CivVAccess_InGameStrings_en_US")
-include("CivVAccess_PluralRules")
-include("CivVAccess_Text")
-include("CivVAccess_Icons")
-include("CivVAccess_SpeechEngine")
-include("CivVAccess_SpeechPipeline")
-include("CivVAccess_HandlerStack")
-include("CivVAccess_InputRouter")
-include("CivVAccess_TickPump")
-include("CivVAccess_Nav")
+include("CivVAccess_PopupBoot")
 include("CivVAccess_CameraTracker")
-include("CivVAccess_BaseMenuItems")
-include("CivVAccess_TypeAheadSearch")
-include("CivVAccess_BaseMenuHelp")
-include("CivVAccess_BaseMenuTabs")
-include("CivVAccess_BaseMenuCore")
-include("CivVAccess_BaseMenuInstall")
-include("CivVAccess_BaseMenuEditMode")
-include("CivVAccess_Help")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler

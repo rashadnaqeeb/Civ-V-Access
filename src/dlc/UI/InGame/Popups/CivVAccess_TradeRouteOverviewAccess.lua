@@ -29,26 +29,8 @@
 -- every tab's items so a fresh open after a turn change reflects updated
 -- TurnsLeft / GPT values.
 
-include("CivVAccess_Polyfill")
-include("CivVAccess_Log")
-include("CivVAccess_TextFilter")
-include("CivVAccess_InGameStrings_en_US")
-include("CivVAccess_PluralRules")
-include("CivVAccess_Text")
-include("CivVAccess_SpeechEngine")
-include("CivVAccess_SpeechPipeline")
-include("CivVAccess_HandlerStack")
-include("CivVAccess_InputRouter")
-include("CivVAccess_TickPump")
-include("CivVAccess_Nav")
-include("CivVAccess_BaseMenuItems")
-include("CivVAccess_TypeAheadSearch")
-include("CivVAccess_BaseMenuHelp")
-include("CivVAccess_BaseMenuTabs")
-include("CivVAccess_BaseMenuCore")
-include("CivVAccess_BaseMenuInstall")
+include("CivVAccess_PopupBoot")
 include("CivVAccess_TabbedShell")
-include("CivVAccess_Help")
 include("CivVAccess_TradeRouteRow")
 
 local priorInput = InputHandler

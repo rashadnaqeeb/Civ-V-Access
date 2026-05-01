@@ -26,27 +26,7 @@
 -- menu item activates it, giving blind users a reliable keyboard path for
 -- every popup regardless of whether a PopupInputHandler is registered.
 
-include("CivVAccess_Polyfill")
-include("CivVAccess_Log")
-include("CivVAccess_TextFilter")
-include("CivVAccess_InGameStrings_en_US")
-include("CivVAccess_PluralRules")
-include("CivVAccess_Text")
-include("CivVAccess_Icons")
-include("CivVAccess_SpeechEngine")
-include("CivVAccess_SpeechPipeline")
-include("CivVAccess_HandlerStack")
-include("CivVAccess_InputRouter")
-include("CivVAccess_TickPump")
-include("CivVAccess_Nav")
-include("CivVAccess_BaseMenuItems")
-include("CivVAccess_TypeAheadSearch")
-include("CivVAccess_BaseMenuHelp")
-include("CivVAccess_BaseMenuTabs")
-include("CivVAccess_BaseMenuCore")
-include("CivVAccess_BaseMenuInstall")
-include("CivVAccess_BaseMenuEditMode")
-include("CivVAccess_Help")
+include("CivVAccess_PopupBoot")
 
 Log.info("GenericPopupAccess: wiring BaseMenu over PopupLayouts dispatch")
 

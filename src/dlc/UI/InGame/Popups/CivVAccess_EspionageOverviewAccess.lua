@@ -41,28 +41,8 @@
 -- the screen hidden because the engine's own Refresh listener does the
 -- same -- a rebuild on a hidden screen is a no-op cost.
 
-include("CivVAccess_Polyfill")
-include("CivVAccess_Log")
-include("CivVAccess_TextFilter")
-include("CivVAccess_InGameStrings_en_US")
-include("CivVAccess_PluralRules")
-include("CivVAccess_Text")
-include("CivVAccess_Icons")
-include("CivVAccess_SpeechEngine")
-include("CivVAccess_SpeechPipeline")
-include("CivVAccess_HandlerStack")
-include("CivVAccess_InputRouter")
-include("CivVAccess_TickPump")
-include("CivVAccess_Nav")
-include("CivVAccess_BaseMenuItems")
-include("CivVAccess_TypeAheadSearch")
-include("CivVAccess_BaseMenuHelp")
-include("CivVAccess_BaseMenuTabs")
-include("CivVAccess_BaseMenuCore")
-include("CivVAccess_BaseMenuInstall")
-include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_PopupBoot")
 include("CivVAccess_TabbedShell")
-include("CivVAccess_Help")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler

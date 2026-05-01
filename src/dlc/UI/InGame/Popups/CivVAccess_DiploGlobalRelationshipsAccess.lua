@@ -7,27 +7,8 @@
 -- Tab / Shift+Tab cycle to sibling tabs (Relations / Deals); see
 -- CivVAccess_DiploOverviewBridge for the cross-Context mechanism.
 
-include("CivVAccess_Polyfill")
-include("CivVAccess_Log")
-include("CivVAccess_TextFilter")
-include("CivVAccess_InGameStrings_en_US")
-include("CivVAccess_PluralRules")
-include("CivVAccess_Text")
-include("CivVAccess_Icons")
-include("CivVAccess_SpeechEngine")
-include("CivVAccess_SpeechPipeline")
-include("CivVAccess_HandlerStack")
-include("CivVAccess_InputRouter")
-include("CivVAccess_TickPump")
-include("CivVAccess_Nav")
-include("CivVAccess_BaseMenuItems")
-include("CivVAccess_TypeAheadSearch")
-include("CivVAccess_BaseMenuHelp")
-include("CivVAccess_BaseMenuTabs")
-include("CivVAccess_BaseMenuCore")
-include("CivVAccess_BaseMenuInstall")
+include("CivVAccess_PopupBoot")
 include("CivVAccess_DiploCommon")
-include("CivVAccess_Help")
 
 -- Return the display name for a third-party player that respects
 -- "nickname for humans, civ short description for AI, TXT_KEY_YOU for
