@@ -30,6 +30,7 @@
 -- LeaderboardPull:RegisterSelectionCallback.
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_GameResultRow")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -58,103 +59,24 @@ OnCategory = function(idx)
     _vanillaOnCategory(idx)
 end
 
-local function lookupDescription(tbl, key)
-    if key == nil then
-        return ""
-    end
-    local row = tbl[key]
-    if row == nil or row.Description == nil then
-        return ""
-    end
-    return Text.key(row.Description)
-end
-
-local function leaderCivText(v)
-    local civ = GameInfo.Civilizations[v.Civ]
-    if civ == nil then
-        return Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    local civName = Text.key(civ.ShortDescription)
-    local linkRow = GameInfo.Civilization_Leaders("CivilizationType = '" .. civ.Type .. "'")()
-    if linkRow == nil then
-        return civName
-    end
-    local leader = GameInfo.Leaders[linkRow.LeaderheadType]
-    if leader == nil then
-        return civName
-    end
-    return Text.joinNonEmpty({ Text.key(leader.Description), civName })
-end
-
-local function winnerText(v)
-    if v.WinningTeamLeaderCivilizationType ~= nil then
-        local winCiv = GameInfo.Civilizations[v.WinningTeamLeaderCivilizationType]
-        if winCiv ~= nil then
-            return Text.key(winCiv.ShortDescription)
-        end
-    end
-    return Text.key("TXT_KEY_CITY_STATE_NOBODY")
-end
-
-local function victoryTypeText(v)
-    if v.VictoryType == nil then
-        return ""
-    end
-    local row = GameInfo.Victories[v.VictoryType]
-    if row == nil or row.VictoryStatement == nil then
-        return ""
-    end
-    return Text.key(row.VictoryStatement)
-end
-
-local function mapTypeText(v)
-    if v.MapName == nil or v.MapName == "" then
-        return ""
-    end
-    local info = MapUtilities.GetBasicInfo(v.MapName)
-    if info == nil or info.Name == nil then
-        return ""
-    end
-    return Text.key(info.Name)
-end
-
-local function eraTurnText(v)
-    local eraName = lookupDescription(GameInfo.Eras, v.StartEraType)
-    if eraName == "" then
-        eraName = Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    return Text.format("TXT_KEY_ERA_TURNS_FORMAT", eraName, v.WinningTurn or 0)
-end
-
-local function statusBangText(v)
-    if v.PlayerTeamWon then
-        return Text.key("TXT_KEY_VICTORY_BANG")
-    end
-    return Text.key("TXT_KEY_DEFEAT_BANG")
-end
-
 local function rankText(v)
     return Text.format("TXT_KEY_CIVVACCESS_LABEL_VALUE", Text.key("TXT_KEY_DEMOGRAPHICS_RANK"), v.GlobalRank or 0)
-end
-
-local function scoreText(v)
-    return Text.format("TXT_KEY_CIVVACCESS_LABEL_VALUE", Text.key("TXT_KEY_POP_SCORE"), v.Score or 0)
 end
 
 local function rowLabel(v)
     return Text.joinNonEmpty({
         rankText(v),
-        scoreText(v),
+        GameResultRow.scoreText(v),
         v.PlayerName or "",
-        leaderCivText(v),
-        statusBangText(v),
-        winnerText(v),
-        victoryTypeText(v),
-        mapTypeText(v),
-        lookupDescription(GameInfo.Worlds, v.WorldSize),
-        lookupDescription(GameInfo.HandicapInfos, v.PlayerHandicapType),
-        lookupDescription(GameInfo.GameSpeeds, v.GameSpeed),
-        eraTurnText(v),
+        GameResultRow.leaderCivFromCivType(v.Civ),
+        GameResultRow.statusText(v),
+        GameResultRow.winnerText(v, false),
+        GameResultRow.victoryTypeText(v),
+        GameResultRow.mapTypeText(v),
+        GameResultRow.lookupDescription(GameInfo.Worlds, v.WorldSize),
+        GameResultRow.lookupDescription(GameInfo.HandicapInfos, v.PlayerHandicapType),
+        GameResultRow.lookupDescription(GameInfo.GameSpeeds, v.GameSpeed),
+        GameResultRow.eraTurnText(v),
         v.GameEndTime or "",
     })
 end
