@@ -51,7 +51,10 @@ local function handle()
     return _handle
 end
 
-function Prefs.getBool(key, default)
+-- Shared get/set scaffolding. Each typed pair below differs only in the
+-- value-decode (bool: nonzero -> true) and value-encode (bool: true -> 1).
+-- The handle / pcall / log-on-throw / nil-as-default branches are identical.
+local function getValue(label, key, default, decode)
     local h = handle()
     if h == nil then
         return default
@@ -60,90 +63,58 @@ function Prefs.getBool(key, default)
         return h.GetValue(key)
     end)
     if not ok then
-        Log.error("Prefs.getBool(" .. tostring(key) .. ") threw: " .. tostring(v))
+        Log.error("Prefs." .. label .. "(" .. tostring(key) .. ") threw: " .. tostring(v))
         return default
     end
     if v == nil then
         return default
     end
-    return v ~= 0
-end
-
-function Prefs.setBool(key, v)
-    local h = handle()
-    if h == nil then
-        return
-    end
-    local encoded = v and 1 or 0
-    local ok, err = pcall(function()
-        h.SetValue(key, encoded)
-    end)
-    if not ok then
-        Log.error("Prefs.setBool(" .. tostring(key) .. ") threw: " .. tostring(err))
-    end
-end
-
-function Prefs.getInt(key, default)
-    local h = handle()
-    if h == nil then
-        return default
-    end
-    local ok, v = pcall(function()
-        return h.GetValue(key)
-    end)
-    if not ok then
-        Log.error("Prefs.getInt(" .. tostring(key) .. ") threw: " .. tostring(v))
-        return default
-    end
-    if v == nil then
-        return default
+    if decode ~= nil then
+        return decode(v)
     end
     return v
 end
 
-function Prefs.setInt(key, v)
+local function setValue(label, key, encoded)
     local h = handle()
     if h == nil then
         return
     end
     local ok, err = pcall(function()
-        h.SetValue(key, v)
+        h.SetValue(key, encoded)
     end)
     if not ok then
-        Log.error("Prefs.setInt(" .. tostring(key) .. ") threw: " .. tostring(err))
+        Log.error("Prefs." .. label .. "(" .. tostring(key) .. ") threw: " .. tostring(err))
     end
+end
+
+local function decodeBool(v)
+    return v ~= 0
+end
+
+function Prefs.getBool(key, default)
+    return getValue("getBool", key, default, decodeBool)
+end
+
+function Prefs.setBool(key, v)
+    setValue("setBool", key, v and 1 or 0)
+end
+
+function Prefs.getInt(key, default)
+    return getValue("getInt", key, default)
+end
+
+function Prefs.setInt(key, v)
+    setValue("setInt", key, v)
 end
 
 -- Float pair. The engine's number roundtrip is documented above to preserve
 -- the value as-is, so float storage is the same code as int with no encoding.
 -- Kept as a separate name so callers express the contract at the call site.
 function Prefs.getFloat(key, default)
-    local h = handle()
-    if h == nil then
-        return default
-    end
-    local ok, v = pcall(function()
-        return h.GetValue(key)
-    end)
-    if not ok then
-        Log.error("Prefs.getFloat(" .. tostring(key) .. ") threw: " .. tostring(v))
-        return default
-    end
-    if v == nil then
-        return default
-    end
-    return v
+    return getValue("getFloat", key, default)
 end
 
 function Prefs.setFloat(key, v)
-    local h = handle()
-    if h == nil then
-        return
-    end
-    local ok, err = pcall(function()
-        h.SetValue(key, v)
-    end)
-    if not ok then
-        Log.error("Prefs.setFloat(" .. tostring(key) .. ") threw: " .. tostring(err))
-    end
+    setValue("setFloat", key, v)
 end
