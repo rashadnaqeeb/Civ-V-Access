@@ -57,19 +57,14 @@ local priorShowHide = ShowHideHandler
 local currentConceptKey = nil
 
 local function buildPreamble()
-    local parts = {}
-    local advisor = Controls.AdvisorLabel:GetText()
-    if advisor ~= nil and advisor ~= "" then
-        parts[#parts + 1] = advisor
-    end
-    local body = Controls.DescriptionLabel:GetText()
-    if body ~= nil and body ~= "" then
-        parts[#parts + 1] = body
-    end
-    if #parts == 0 then
+    local body = Text.joinNonEmpty({
+        Controls.AdvisorLabel:GetText(),
+        Controls.DescriptionLabel:GetText(),
+    }, ". ")
+    if body == "" then
         return nil
     end
-    return table.concat(parts, ". ")
+    return body
 end
 
 local function buildItems()

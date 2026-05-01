@@ -84,16 +84,7 @@ end
 -- LowerCaption (work name) is in displayName, so omit it here to avoid F1
 -- reading it twice.
 local function preamble()
-    local parts = {}
-    local title = labelOf("Title")
-    if title ~= "" then
-        parts[#parts + 1] = title
-    end
-    local quote = labelOf("Quote")
-    if quote ~= "" then
-        parts[#parts + 1] = quote
-    end
-    return table.concat(parts, ", ")
+    return Text.joinNonEmpty({ labelOf("Title"), labelOf("Quote") })
 end
 
 BaseMenu.install(ContextPtr, {

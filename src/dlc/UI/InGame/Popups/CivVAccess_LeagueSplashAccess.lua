@@ -37,16 +37,12 @@ local function labelOf(name)
 end
 
 local function preamble()
-    local parts = {}
-    local title = labelOf("TitleLabel")
-    if title ~= "" then parts[#parts + 1] = title end
-    local description = labelOf("DescriptionLabel")
-    if description ~= "" then parts[#parts + 1] = description end
-    local thisEra = labelOf("ThisEraLabel")
-    if thisEra ~= "" then parts[#parts + 1] = thisEra end
-    local nextEra = labelOf("NextEraLabel")
-    if nextEra ~= "" then parts[#parts + 1] = nextEra end
-    return table.concat(parts, ", ")
+    return Text.joinNonEmpty({
+        labelOf("TitleLabel"),
+        labelOf("DescriptionLabel"),
+        labelOf("ThisEraLabel"),
+        labelOf("NextEraLabel"),
+    })
 end
 
 BaseMenu.install(ContextPtr, {

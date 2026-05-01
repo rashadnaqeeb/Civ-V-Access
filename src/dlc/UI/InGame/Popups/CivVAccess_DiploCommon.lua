@@ -23,19 +23,6 @@ function DiploCommon.shouldActivate()
     return top == nil or top.name ~= "LoadScreen"
 end
 
--- Join non-empty parts with ", ". Used to compose per-civ speech lines
--- from a fixed sequence of optional fields; nil or empty entries drop
--- out so a civ with no tradeable resources doesn't read "...,,,".
-function DiploCommon.joinParts(parts)
-    local out = {}
-    for _, p in ipairs(parts) do
-        if p ~= nil and p ~= "" then
-            out[#out + 1] = tostring(p)
-        end
-    end
-    return table.concat(out, ", ")
-end
-
 -- Open trade with the specified civ. Humans go through the PvP deal
 -- screen event; AI goes through the begin-diplo path that spins up the
 -- leader head + trade screen. Matches base DiploRelationships.lua /

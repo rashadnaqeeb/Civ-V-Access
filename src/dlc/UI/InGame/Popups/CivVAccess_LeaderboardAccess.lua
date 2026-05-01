@@ -58,21 +58,6 @@ OnCategory = function(idx)
     _vanillaOnCategory(idx)
 end
 
-local function joinNonEmpty(parts)
-    local out = nil
-    for i = 1, #parts do
-        local s = parts[i]
-        if s ~= nil and s ~= "" then
-            if out == nil then
-                out = s
-            else
-                out = out .. ", " .. s
-            end
-        end
-    end
-    return out or ""
-end
-
 local function lookupDescription(tbl, key)
     if key == nil then
         return ""
@@ -98,7 +83,7 @@ local function leaderCivText(v)
     if leader == nil then
         return civName
     end
-    return joinNonEmpty({ Text.key(leader.Description), civName })
+    return Text.joinNonEmpty({ Text.key(leader.Description), civName })
 end
 
 local function winnerText(v)
@@ -157,7 +142,7 @@ local function scoreText(v)
 end
 
 local function rowLabel(v)
-    return joinNonEmpty({
+    return Text.joinNonEmpty({
         rankText(v),
         scoreText(v),
         v.PlayerName or "",

@@ -49,19 +49,14 @@ local priorShowHide = OnShowHide
 -- content the engine placed on screen.
 
 local function composePreamble()
-    local parts = {}
-    local mood = Controls.MoodText:GetText()
-    if mood ~= nil and mood ~= "" then
-        parts[#parts + 1] = tostring(mood)
-    end
-    local speech = Controls.LeaderSpeech:GetText()
-    if speech ~= nil and speech ~= "" then
-        parts[#parts + 1] = tostring(speech)
-    end
-    if #parts == 0 then
+    local body = Text.joinNonEmpty({
+        Controls.MoodText:GetText(),
+        Controls.LeaderSpeech:GetText(),
+    })
+    if body == "" then
         return nil
     end
-    return table.concat(parts, ", ")
+    return body
 end
 
 -- War-button tooltip is set dynamically ("Locked into war for N turns",

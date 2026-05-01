@@ -41,19 +41,14 @@ local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 local function buildPreamble()
-    local parts = {}
-    local title = Controls.TitleLabel:GetText()
-    if title ~= nil and title ~= "" then
-        parts[#parts + 1] = title
-    end
-    local body = Controls.DescriptionLabel:GetText()
-    if body ~= nil and body ~= "" then
-        parts[#parts + 1] = body
-    end
-    if #parts == 0 then
+    local body = Text.joinNonEmpty({
+        Controls.TitleLabel:GetText(),
+        Controls.DescriptionLabel:GetText(),
+    }, ". ")
+    if body == "" then
         return nil
     end
-    return table.concat(parts, ". ")
+    return body
 end
 
 BaseMenu.install(ContextPtr, {

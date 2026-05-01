@@ -22,28 +22,13 @@ include("CivVAccess_FrontendCommon")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
-local function joinNonEmpty(parts)
-    local out = nil
-    for i = 1, #parts do
-        local s = parts[i]
-        if s ~= nil and s ~= "" then
-            if out == nil then
-                out = s
-            else
-                out = out .. ", " .. s
-            end
-        end
-    end
-    return out or ""
-end
-
 -- Resolve "Leader, Civ" for a row. Honors player-supplied custom names
 -- (LeaderName / CivilizationName fields are pre-filled by the engine when
 -- the user picked custom names at game start) and falls back to the
 -- canonical leader Description + civ ShortDescription.
 local function leaderCivText(v)
     if v.LeaderName ~= nil and v.LeaderName ~= "" then
-        return joinNonEmpty({
+        return Text.joinNonEmpty({
             Text.key(v.LeaderName),
             Text.key(v.CivilizationName or ""),
         })
@@ -61,7 +46,7 @@ local function leaderCivText(v)
     if leader == nil then
         return civName
     end
-    return joinNonEmpty({ Text.key(leader.Description), civName })
+    return Text.joinNonEmpty({ Text.key(leader.Description), civName })
 end
 
 -- Winner cell. Speaks "you" when the player's team won (matching the
@@ -134,7 +119,7 @@ local function scoreText(v)
 end
 
 local function rowLabel(v)
-    return joinNonEmpty({
+    return Text.joinNonEmpty({
         scoreText(v),
         leaderCivText(v),
         statusText(v),

@@ -255,7 +255,7 @@ local function majorCivItem(iUs, pUs, pUsTeam, iOther)
 
     local capturedOther = iOther
     return BaseMenuItems.Choice({
-        labelText = DiploCommon.joinParts(parts),
+        labelText = Text.joinNonEmpty(parts),
         pediaName = Text.key(GameInfo.Leaders[pOther:GetLeaderType()].Description),
         -- Base LeaderSelected guards on the active player's turn being
         -- live and the network layer not processing; mirror that to
@@ -501,7 +501,7 @@ local function minorCivItem(iUs, pUsTeam, iOther)
 
     local capturedOther = iOther
     return BaseMenuItems.Choice({
-        labelText = DiploCommon.joinParts(parts),
+        labelText = Text.joinNonEmpty(parts),
         pediaName = Text.key(civInfo.Description),
         -- F4 opens DiploOverview with Data1=1 -> InGameUtmost (62).
         -- CityStateDiplo queues at priority 27, far below, so it sits

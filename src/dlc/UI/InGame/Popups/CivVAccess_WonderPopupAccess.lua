@@ -43,12 +43,7 @@ end
 
 -- Title is in displayName, so omit it here to avoid F1 reading it twice.
 local function preamble()
-    local parts = {}
-    local quote = labelOf("Quote")
-    if quote ~= "" then parts[#parts + 1] = quote end
-    local stats = labelOf("Stats")
-    if stats ~= "" then parts[#parts + 1] = stats end
-    return table.concat(parts, ", ")
+    return Text.joinNonEmpty({ labelOf("Quote"), labelOf("Stats") })
 end
 
 BaseMenu.install(ContextPtr, {

@@ -210,6 +210,42 @@ function Text.controlText(control, context)
     return value
 end
 
+-- Concatenate parts with sep (default ", "), dropping nil and empty entries.
+-- Speech composers use this all over: a fixed sequence of optional fields
+-- (status tokens, civ tradeables, deal entries, etc.) where some entries
+-- are nil/empty for the current state and the join must not emit ", ,"
+-- holes. Returns "" when every part is nil/empty so callers can branch
+-- on emptiness with one comparison.
+function Text.joinNonEmpty(parts, sep)
+    local out = {}
+    for _, p in ipairs(parts) do
+        if p ~= nil and p ~= "" then
+            out[#out + 1] = tostring(p)
+        end
+    end
+    return table.concat(out, sep or ", ")
+end
+
+-- Compose a string from a list of Controls names: look up each by name,
+-- skip nil and hidden controls, read text via Text.controlText (pcall +
+-- nil-tolerant), drop empty, and concatenate with sep (default ", ").
+-- The join target for Choose* preambles where the engine shows a screen
+-- with a varying subset of header labels visible and the accessibility
+-- preamble joins exactly the visible ones.
+function Text.joinVisibleControls(controlNames, sep)
+    local parts = {}
+    for _, name in ipairs(controlNames) do
+        local c = Controls[name]
+        if c ~= nil and not c:IsHidden() then
+            local text = Text.controlText(c, name)
+            if text ~= nil and text ~= "" then
+                parts[#parts + 1] = text
+            end
+        end
+    end
+    return table.concat(parts, sep or ", ")
+end
+
 function Text.unitWithCiv(adjKey, nameKey)
     local adj = Text.key(adjKey)
     local name = Text.key(nameKey)

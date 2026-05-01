@@ -45,19 +45,7 @@ local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 local function preambleText()
-    local parts = {}
-    for _, name in ipairs({ "StartingCity", "UnitInfo", "UnitRange" }) do
-        local c = Controls[name]
-        if c ~= nil and not c:IsHidden() then
-            local ok, t = pcall(function()
-                return c:GetText()
-            end)
-            if ok and t ~= nil and t ~= "" then
-                parts[#parts + 1] = tostring(t)
-            end
-        end
-    end
-    return table.concat(parts, ", ")
+    return Text.joinVisibleControls({ "StartingCity", "UnitInfo", "UnitRange" })
 end
 
 local function sideList(dest, isMine)

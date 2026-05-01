@@ -44,12 +44,7 @@ end
 
 -- TechName is in displayName, so omit it here to avoid F1 reading it twice.
 local function preamble()
-    local parts = {}
-    local quote = labelOf("TechQuote")
-    if quote ~= "" then parts[#parts + 1] = quote end
-    local help = labelOf("TechHelp")
-    if help ~= "" then parts[#parts + 1] = help end
-    return table.concat(parts, ", ")
+    return Text.joinNonEmpty({ labelOf("TechQuote"), labelOf("TechHelp") })
 end
 
 local handler = BaseMenu.install(ContextPtr, {
