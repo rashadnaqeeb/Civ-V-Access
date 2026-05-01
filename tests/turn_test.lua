@@ -102,6 +102,9 @@ local function setup()
     Game.GetGameTurnYear = function()
         return 0
     end
+    Game.IsNetworkMultiPlayer = function()
+        return false
+    end
 
     UI.ActivateNotification = function(idx)
         activateNotificationCalls[#activateNotificationCalls + 1] = idx
@@ -354,11 +357,42 @@ function M.test_dispatch_promotion_blocker_iterates_for_ready_unit()
     T.eq(selectedUnits[1], ready)
 end
 
-function M.test_dispatch_mp_already_submitted_unreadies_and_announces_waiting()
+function M.test_dispatch_mp_submit_announces_waiting_for_players()
+    -- In networked MP, Events.ActivePlayerTurnEnd fires only at wave
+    -- completion, so the submit-time speech has to come from the
+    -- dispatcher. "Waiting for players" matches the engine's button
+    -- relabel. Hotseat and SP stay silent (the existing turn-ended
+    -- listener covers them).
+    setup()
+    Game.IsNetworkMultiPlayer = function()
+        return true
+    end
+    Turn._endTurnDispatch()
+    T.eq(#doControlCalls, 1)
+    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_ENDTURN)
+    T.eq(spoken[1].text, "Waiting for players")
+end
+
+function M.test_dispatch_hotseat_submit_stays_silent()
+    -- PreGame.IsMultiplayerGame is true in hotseat too, but
+    -- Game.IsNetworkMultiPlayer is false. Hotseat hands off via
+    -- PlayerChange and has no remote players to wait on, so no
+    -- "Waiting for players" line.
+    setup()
+    PreGame.IsMultiplayerGame = function()
+        return true
+    end
+    Turn._endTurnDispatch()
+    T.eq(#doControlCalls, 1)
+    T.eq(#spoken, 0)
+end
+
+function M.test_dispatch_mp_already_submitted_unreadies_and_announces_canceled()
     -- After the player has already sent the network turn-complete message,
     -- pressing Ctrl+Space un-readies them so they aren't stuck spectating.
-    -- Announcement is gated on SendTurnUnready success so a rejection
-    -- doesn't mislead the user.
+    -- The announcement describes the post-state ("End turn canceled" --
+    -- the player is back in active play), not the state they just left.
+    -- Gated on SendTurnUnready success so a rejection doesn't mislead.
     setup()
     PreGame.IsMultiplayerGame = function()
         return true
@@ -367,7 +401,7 @@ function M.test_dispatch_mp_already_submitted_unreadies_and_announces_waiting()
         return true
     end
     Turn._endTurnDispatch()
-    T.eq(spoken[1].text, "Waiting for players")
+    T.eq(spoken[1].text, "End turn canceled")
     T.eq(sendUnreadyCalls, 1)
     T.eq(#doControlCalls, 0)
 end
@@ -466,9 +500,23 @@ function M.test_force_end_turn_mp_already_submitted_unreadies()
         return true
     end
     Turn._forceEndTurn()
-    T.eq(spoken[1].text, "Waiting for players")
+    T.eq(spoken[1].text, "End turn canceled")
     T.eq(sendUnreadyCalls, 1)
     T.eq(#doControlCalls, 0)
+end
+
+function M.test_force_end_turn_mp_submit_announces_waiting_for_players()
+    -- Ctrl+Shift+Space submit path mirrors Ctrl+Space: in network MP the
+    -- dispatcher carries the submit-time speech because ActivePlayerTurn-
+    -- End fires only at wave completion.
+    setup()
+    Game.IsNetworkMultiPlayer = function()
+        return true
+    end
+    Turn._forceEndTurn()
+    T.eq(#doControlCalls, 1)
+    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_FORCEENDTURN)
+    T.eq(spoken[1].text, "Waiting for players")
 end
 
 function M.test_force_end_turn_respects_is_processing_messages()

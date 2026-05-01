@@ -26,11 +26,19 @@
 -- path as Ctrl+Space so the user hears what's in the way and gets taken
 -- to it, instead of getting silence.
 --
+-- Multiplayer feedback: in networked MP, Events.ActivePlayerTurnEnd does
+-- not fire on submit -- it fires when the wave actually completes -- so
+-- the submit-time speech has to come from the dispatcher itself, right
+-- after a successful DoControl(CONTROL_ENDTURN/FORCEENDTURN). The line is
+-- "Waiting for players", matching the engine's own button relabel.
+--
 -- Multiplayer un-ready: if the player already submitted (HasSentNetTurn-
 -- Complete) pressing Ctrl+Space un-readies them, matching base behavior --
 -- otherwise a player who submitted early would be stuck spectating with no
--- keyboard escape. Announces "Waiting for players" before un-readying so
--- the state transition is audible.
+-- keyboard escape. Announces "End turn canceled" because the post-state
+-- after a successful un-ready is "back in active play"; the prior
+-- "Waiting for players" line described the state the user just left,
+-- which read as the inverse of what just happened.
 
 Turn = {}
 
@@ -155,7 +163,7 @@ local function passEndTurnGates(player)
     end
     if PreGame.IsMultiplayerGame() and Network.HasSentNetTurnComplete() then
         if Network.SendTurnUnready() then
-            speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
+            speak(Text.key("TXT_KEY_CIVVACCESS_END_TURN_CANCELED"))
         else
             -- Server rejected the un-ready (e.g. turn already committed,
             -- host ended the grace period). Silent success would have the
@@ -167,6 +175,16 @@ local function passEndTurnGates(player)
     return true
 end
 
+-- Networked-MP submit-time speech. ActivePlayerTurnEnd fires only at
+-- wave completion in network MP, so without this the user gets silence
+-- between pressing end-turn and the wave finishing (could be minutes).
+-- Skips hotseat: there's no waiting -- hotseat hands off via PlayerChange.
+local function announceSubmitted()
+    if Game:IsNetworkMultiPlayer() then
+        speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
+    end
+end
+
 local function endTurnDispatch()
     local player = Players[Game.GetActivePlayer()]
     if not passEndTurnGates(player) then
@@ -175,6 +193,7 @@ local function endTurnDispatch()
     local blockerType = player:GetEndTurnBlockingType()
     if blockerType == EndTurnBlockingTypes.NO_ENDTURN_BLOCKING_TYPE then
         Game.DoControl(GameInfoTypes.CONTROL_ENDTURN)
+        announceSubmitted()
         return
     end
     announceAndOpenBlocker(player, blockerType)
@@ -195,6 +214,7 @@ local function forceEndTurn()
         or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS
     then
         Game.DoControl(GameInfoTypes.CONTROL_FORCEENDTURN)
+        announceSubmitted()
         return
     end
     announceAndOpenBlocker(player, blockerType)
