@@ -1,192 +1,33 @@
 -- BaseMenu item-interaction tests. Covers click-ack gating (when
 -- activation plays the click sound vs when it stays silent), tooltip
 -- composition / dedupe / dynamic fn / newline handling, and edit-mode
--- (Textfield enter / escape / restore / commit / re-enter). The shared
--- setup() and helpers are duplicated across the four menu_*_test files
--- so each suite is self-contained.
+-- (Textfield enter / escape / restore / commit / re-enter).
+-- Shared setup / helpers / state live in tests/menu_test_setup.lua;
+-- aliased below for terse test bodies.
 local T = require("support")
+local Setup = require("menu_test_setup")
 local M = {}
 
-local warns, errors
-local speaks
-local sounds
-local _test_pd_mt = nil
-
-local function resetPDMetatable()
-    local proto = Polyfill.makePullDown()
-    _test_pd_mt = {
-        __index = {
-            GetButton = proto.GetButton,
-            ClearEntries = proto.ClearEntries,
-            BuildEntry = proto.BuildEntry,
-            CalculateInternals = proto.CalculateInternals,
-            RegisterSelectionCallback = proto.RegisterSelectionCallback,
-            IsHidden = proto.IsHidden,
-            IsDisabled = proto.IsDisabled,
-            SetHide = proto.SetHide,
-            SetDisabled = proto.SetDisabled,
-        },
-    }
-end
+local warns, errors = Setup.warns, Setup.errors
+local speaks, sounds = Setup.speaks, Setup.sounds
+local resetPDMetatable = Setup.resetPDMetatable
+local makePullDownWithMetatable = Setup.makePullDownWithMetatable
+local populateControls = Setup.populateControls
+local patchProbeFromPullDown = Setup.patchProbeFromPullDown
+local registerSliderCallback = Setup.registerSliderCallback
+local registerCheckHandler = Setup.registerCheckHandler
+local makeCtrl = Setup.makeCtrl
+local setCtrls = Setup.setCtrls
+local ctrlState = Setup.ctrlState
+local makeContextPtr = Setup.makeContextPtr
+local buttonSpec = Setup.buttonSpec
+local clearArr = Setup.clearArr
 
 local function setup()
-    warns, errors = {}, {}
-    Log.warn = function(m)
-        warns[#warns + 1] = m
-    end
-    Log.error = function(m)
-        errors[#errors + 1] = m
-    end
-    Log.info = function() end
-    Log.debug = function() end
-
-    UI.ShiftKeyDown = function()
-        return false
-    end
-    UI.CtrlKeyDown = function()
-        return false
-    end
-    UI.AltKeyDown = function()
-        return false
-    end
-
-    sounds = {}
-    Events.AudioPlay2DSound = function(id)
-        sounds[#sounds + 1] = id
-    end
-
-    speaks = {}
-    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
-    SpeechPipeline._reset()
-    SpeechPipeline._speakAction = function(text, interrupt)
-        speaks[#speaks + 1] = { text = text, interrupt = interrupt }
-    end
-    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuHelp.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuTabs.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuEditMode.lua")
-    HandlerStack._reset()
-    TickPump._reset()
-
-    civvaccess_shared.pullDownProbeInstalled = false
-    civvaccess_shared.pullDownCallbacks = {}
-    civvaccess_shared.pullDownEntries = {}
-    civvaccess_shared.sliderProbeInstalled = false
-    civvaccess_shared.sliderCallbacks = {}
-    civvaccess_shared.checkBoxProbeInstalled = false
-    civvaccess_shared.checkBoxCallbacks = {}
-    civvaccess_shared.buttonProbeInstalled = false
-    civvaccess_shared.buttonCallbacks = {}
-
-    CivVAccess_Strings = CivVAccess_Strings or {}
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "search cleared"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
-
-    resetPDMetatable()
+    Setup.fresh()
 end
 
 local WM_KEYDOWN = 256
-
--- Helpers --------------------------------------------------------------
-
-local function populateControls(map)
-    Controls = {}
-    for name, c in pairs(map) do
-        Controls[name] = c
-    end
-end
-
-local function patchProbeFromPullDown(pd)
-    PullDownProbe.ensureInstalled(pd)
-end
-
-local function makePullDownWithMetatable()
-    if _test_pd_mt == nil then
-        resetPDMetatable()
-    end
-    return Polyfill.makePullDownWithMetatable(_test_pd_mt)
-end
-
-local function registerSliderCallback(slider, fn)
-    slider:RegisterSliderCallback(fn)
-    civvaccess_shared.sliderCallbacks[slider] = fn
-end
-
-local function registerCheckHandler(cb, fn)
-    cb:RegisterCheckHandler(fn)
-    civvaccess_shared.checkBoxCallbacks = civvaccess_shared.checkBoxCallbacks or {}
-    civvaccess_shared.checkBoxCallbacks[cb] = fn
-end
-
--- Stub Controls matching the shape button-list tests expect.
-local ctrlState
-local function makeCtrl(name)
-    return setmetatable({ _name = name }, {
-        __index = {
-            IsHidden = function(self)
-                return ctrlState[self._name].hidden
-            end,
-            IsDisabled = function(self)
-                return ctrlState[self._name].disabled
-            end,
-        },
-    })
-end
-local function setCtrls(names)
-    Controls = {}
-    ctrlState = {}
-    for _, name in ipairs(names) do
-        ctrlState[name] = { hidden = false, disabled = false }
-        Controls[name] = makeCtrl(name)
-    end
-end
-local function makeContextPtr()
-    return {
-        SetShowHideHandler = function(self, fn)
-            self._sh = fn
-        end,
-        SetInputHandler = function(self, fn)
-            self._in = fn
-        end,
-        _hidden = false,
-        IsHidden = function(self)
-            return self._hidden
-        end,
-        SetUpdate = function(self, fn)
-            self._update = fn
-        end,
-    }
-end
-
-local function buttonSpec(names)
-    local items = {}
-    for _, name in ipairs(names) do
-        items[#items + 1] = BaseMenuItems.Button({
-            controlName = name,
-            textKey = "LABEL_" .. name,
-            activate = function() end,
-        })
-    end
-    return items
-end
 
 -- Click-ack gating ------------------------------------------------------
 --
@@ -214,7 +55,7 @@ function M.test_button_activate_throw_suppresses_click()
         },
     })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 0, "no click on thrown activate")
     T.truthy(#errors >= 1, "error logged")
@@ -229,8 +70,8 @@ function M.test_text_without_onActivate_reannounces_label_no_click()
         items = { BaseMenuItems.Text({ labelText = "Read only" }) },
     })
     HandlerStack.push(h)
-    sounds = {}
-    speaks = {}
+    clearArr(sounds)
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 0, "no click on informational Text")
     T.eq(#speaks, 1, "label re-spoken as keypress ack")
@@ -255,7 +96,7 @@ function M.test_text_with_onActivate_success_plays_click()
         },
     })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(fired, 1, "onActivate ran")
     T.eq(#sounds, 1, "click plays after successful onActivate")
@@ -278,7 +119,7 @@ function M.test_text_with_throwing_onActivate_suppresses_click()
         },
     })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 0, "no click on thrown Text onActivate")
     T.truthy(#errors >= 1, "error logged")
@@ -295,7 +136,7 @@ function M.test_choice_activate_throw_suppresses_click()
     })
     local h = BaseMenu.create({ name = "T", displayName = "Test", items = { choice } })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     choice:activate(h)
     T.eq(#sounds, 0, "no click on thrown Choice activate")
     T.truthy(#errors >= 1, "error logged")
@@ -311,7 +152,7 @@ function M.test_checkbox_no_captured_callback_suppresses_click()
         items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL" }) },
     })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(cb:IsChecked(), true, "local state still flipped")
     T.eq(#sounds, 0, "no click without a captured callback")
@@ -331,7 +172,7 @@ function M.test_checkbox_throwing_callback_suppresses_click()
         items = { BaseMenuItems.Checkbox({ controlName = "Foo", textKey = "LBL" }) },
     })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 0, "no click when callback throws")
     T.truthy(#errors >= 1, "error logged")
@@ -348,7 +189,7 @@ function M.test_pulldown_no_entries_suppresses_click()
         items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
     })
     HandlerStack.push(h)
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 0, "no click when pulldown has no entries to open")
 end
@@ -374,7 +215,7 @@ function M.test_pulldown_entry_throwing_callback_suppresses_click_still_pops()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 2, "sub pushed")
-    sounds = {}
+    clearArr(sounds)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(#sounds, 0, "no click when entry callback throws")
     T.eq(HandlerStack.count(), 1, "sub still popped after thrown callback")
@@ -575,7 +416,7 @@ function M.test_enter_on_textfield_pushes_edit_submenu()
         items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL" }) },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     local top = HandlerStack.active()
     T.truthy(top._editMode, "edit-mode sub is on top of stack")
@@ -605,7 +446,7 @@ function M.test_escape_during_edit_restores_and_pops()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("partial")
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
     T.eq(HandlerStack.active(), h, "edit sub popped; menu is top")
     T.eq(HandlerStack.count(), 1)
@@ -672,7 +513,7 @@ function M.test_commit_announces_committed_value()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     eb:SetText("new value")
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(speaks[#speaks].text, "new value", "commit speaks the just-saved value")
 end
@@ -688,7 +529,7 @@ function M.test_commit_on_empty_announces_blank()
     })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(speaks[#speaks].text, "blank", "empty commit speaks the blank sentinel")
 end

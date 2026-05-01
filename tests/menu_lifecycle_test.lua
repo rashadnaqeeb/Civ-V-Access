@@ -2,192 +2,33 @@
 -- pop on hide / reactivation / suppressReactivateOnHide / Esc bypass),
 -- preamble (silentFirstOpen variants, ReadSubtitles, function preamble),
 -- refresh, F1 readHeader, single-handler tabs, and the per-tab nameFn /
--- buildSearchable / onAltLeft-Right / onCtrl hooks. The shared setup()
--- and helpers are duplicated across the four menu_*_test files so each
--- suite is self-contained.
+-- buildSearchable / onAltLeft-Right / onCtrl hooks.
+-- Shared setup / helpers / state live in tests/menu_test_setup.lua;
+-- aliased below for terse test bodies.
 local T = require("support")
+local Setup = require("menu_test_setup")
 local M = {}
 
-local warns, errors
-local speaks
-local sounds
-local _test_pd_mt = nil
-
-local function resetPDMetatable()
-    local proto = Polyfill.makePullDown()
-    _test_pd_mt = {
-        __index = {
-            GetButton = proto.GetButton,
-            ClearEntries = proto.ClearEntries,
-            BuildEntry = proto.BuildEntry,
-            CalculateInternals = proto.CalculateInternals,
-            RegisterSelectionCallback = proto.RegisterSelectionCallback,
-            IsHidden = proto.IsHidden,
-            IsDisabled = proto.IsDisabled,
-            SetHide = proto.SetHide,
-            SetDisabled = proto.SetDisabled,
-        },
-    }
-end
+local warns, errors = Setup.warns, Setup.errors
+local speaks, sounds = Setup.speaks, Setup.sounds
+local resetPDMetatable = Setup.resetPDMetatable
+local makePullDownWithMetatable = Setup.makePullDownWithMetatable
+local populateControls = Setup.populateControls
+local patchProbeFromPullDown = Setup.patchProbeFromPullDown
+local registerSliderCallback = Setup.registerSliderCallback
+local registerCheckHandler = Setup.registerCheckHandler
+local makeCtrl = Setup.makeCtrl
+local setCtrls = Setup.setCtrls
+local ctrlState = Setup.ctrlState
+local makeContextPtr = Setup.makeContextPtr
+local buttonSpec = Setup.buttonSpec
+local clearArr = Setup.clearArr
 
 local function setup()
-    warns, errors = {}, {}
-    Log.warn = function(m)
-        warns[#warns + 1] = m
-    end
-    Log.error = function(m)
-        errors[#errors + 1] = m
-    end
-    Log.info = function() end
-    Log.debug = function() end
-
-    UI.ShiftKeyDown = function()
-        return false
-    end
-    UI.CtrlKeyDown = function()
-        return false
-    end
-    UI.AltKeyDown = function()
-        return false
-    end
-
-    sounds = {}
-    Events.AudioPlay2DSound = function(id)
-        sounds[#sounds + 1] = id
-    end
-
-    speaks = {}
-    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
-    SpeechPipeline._reset()
-    SpeechPipeline._speakAction = function(text, interrupt)
-        speaks[#speaks + 1] = { text = text, interrupt = interrupt }
-    end
-    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuHelp.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuTabs.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuEditMode.lua")
-    HandlerStack._reset()
-    TickPump._reset()
-
-    civvaccess_shared.pullDownProbeInstalled = false
-    civvaccess_shared.pullDownCallbacks = {}
-    civvaccess_shared.pullDownEntries = {}
-    civvaccess_shared.sliderProbeInstalled = false
-    civvaccess_shared.sliderCallbacks = {}
-    civvaccess_shared.checkBoxProbeInstalled = false
-    civvaccess_shared.checkBoxCallbacks = {}
-    civvaccess_shared.buttonProbeInstalled = false
-    civvaccess_shared.buttonCallbacks = {}
-
-    CivVAccess_Strings = CivVAccess_Strings or {}
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "search cleared"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
-
-    resetPDMetatable()
+    Setup.fresh()
 end
 
 local WM_KEYDOWN = 256
-
--- Helpers --------------------------------------------------------------
-
-local function populateControls(map)
-    Controls = {}
-    for name, c in pairs(map) do
-        Controls[name] = c
-    end
-end
-
-local function patchProbeFromPullDown(pd)
-    PullDownProbe.ensureInstalled(pd)
-end
-
-local function makePullDownWithMetatable()
-    if _test_pd_mt == nil then
-        resetPDMetatable()
-    end
-    return Polyfill.makePullDownWithMetatable(_test_pd_mt)
-end
-
-local function registerSliderCallback(slider, fn)
-    slider:RegisterSliderCallback(fn)
-    civvaccess_shared.sliderCallbacks[slider] = fn
-end
-
-local function registerCheckHandler(cb, fn)
-    cb:RegisterCheckHandler(fn)
-    civvaccess_shared.checkBoxCallbacks = civvaccess_shared.checkBoxCallbacks or {}
-    civvaccess_shared.checkBoxCallbacks[cb] = fn
-end
-
--- Stub Controls matching the shape button-list tests expect.
-local ctrlState
-local function makeCtrl(name)
-    return setmetatable({ _name = name }, {
-        __index = {
-            IsHidden = function(self)
-                return ctrlState[self._name].hidden
-            end,
-            IsDisabled = function(self)
-                return ctrlState[self._name].disabled
-            end,
-        },
-    })
-end
-local function setCtrls(names)
-    Controls = {}
-    ctrlState = {}
-    for _, name in ipairs(names) do
-        ctrlState[name] = { hidden = false, disabled = false }
-        Controls[name] = makeCtrl(name)
-    end
-end
-local function makeContextPtr()
-    return {
-        SetShowHideHandler = function(self, fn)
-            self._sh = fn
-        end,
-        SetInputHandler = function(self, fn)
-            self._in = fn
-        end,
-        _hidden = false,
-        IsHidden = function(self)
-            return self._hidden
-        end,
-        SetUpdate = function(self, fn)
-            self._update = fn
-        end,
-    }
-end
-
-local function buttonSpec(names)
-    local items = {}
-    for _, name in ipairs(names) do
-        items[#items + 1] = BaseMenuItems.Button({
-            controlName = name,
-            textKey = "LABEL_" .. name,
-            activate = function() end,
-        })
-    end
-    return items
-end
 
 
 -- Tabs ------------------------------------------------------------------
@@ -219,7 +60,7 @@ function M.test_tabs_tab_key_cycles_and_resets_cursor()
         },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(shown, 2)
     T.eq(h._tabIndex, 2)
@@ -647,7 +488,7 @@ function M.test_silent_first_open_readHeader_speaks_preamble()
     SpeechPipeline._speakAction = function(text, interrupt)
         speaks[#speaks + 1] = { text = text, interrupt = interrupt }
     end
-    speaks = {}
+    clearArr(speaks)
     h.readHeader()
     T.eq(#speaks, 2, "readHeader speaks displayName + preamble")
     T.eq(speaks[1].text, "Screen")
@@ -809,7 +650,7 @@ function M.test_refresh_respeaks_when_function_preamble_changes()
         items = buttonSpec({ "A" }),
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     body = "second"
     h.refresh()
     T.eq(#speaks, 1)
@@ -829,7 +670,7 @@ function M.test_refresh_noop_when_unchanged()
         items = buttonSpec({ "A" }),
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     h.refresh()
     T.eq(#speaks, 0)
 end
@@ -844,7 +685,7 @@ function M.test_refresh_noop_when_preamble_is_string()
         items = buttonSpec({ "A" }),
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     h.refresh()
     T.eq(#speaks, 0, "string preamble never re-speaks")
 end
@@ -861,7 +702,7 @@ function M.test_refresh_fn_error_logged_no_crash()
         items = buttonSpec({ "A" }),
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     h.refresh()
     T.truthy(#errors >= 1, "preamble fn error logged")
     T.eq(#speaks, 0)
@@ -879,7 +720,7 @@ function M.test_f1_speaks_displayName_then_preamble()
         items = buttonSpec({ "A" }),
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     SpeechPipeline._reset()
     InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
     T.eq(#speaks, 2)
@@ -894,7 +735,7 @@ function M.test_f1_with_no_preamble_speaks_displayName_only()
     setCtrls({ "A" })
     local h = BaseMenu.create({ name = "T", displayName = "Screen", items = buttonSpec({ "A" }) })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     SpeechPipeline._reset()
     InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
     T.eq(#speaks, 1)
@@ -915,7 +756,7 @@ function M.test_f1_resolves_function_preamble_live()
     })
     HandlerStack.push(h)
     body = "second"
-    speaks = {}
+    clearArr(speaks)
     SpeechPipeline._reset()
     InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
     T.eq(speaks[2].text, "second", "F1 re-resolves the function preamble")
@@ -937,7 +778,7 @@ function M.test_f1_syncs_lastPreambleText_so_refresh_is_noop()
     body = "second"
     SpeechPipeline._reset()
     InputRouter.dispatch(Keys.VK_F1, 0, WM_KEYDOWN)
-    speaks = {}
+    clearArr(speaks)
     h.refresh()
     T.eq(#speaks, 0, "refresh after F1 sees no change vs last spoken value")
 end
@@ -968,13 +809,13 @@ function M.test_tab_nameFn_overrides_tab_name_on_switch()
         },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(speaks[1].text, "first call", "nameFn result replaces tab.name on switch")
     -- Switch away + back; nameFn re-runs and picks up the new value.
     dynamic = "second call"
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     T.eq(speaks[1].text, "second call", "nameFn re-evaluated on every switch")
 end
@@ -1002,7 +843,7 @@ function M.test_tab_nameFn_empty_result_skips_tab_name_announcement()
         },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
     -- Empty nameFn means the tab-name announcement is skipped; the item
     -- announcement still fires (as interrupt, since nothing preceded it).

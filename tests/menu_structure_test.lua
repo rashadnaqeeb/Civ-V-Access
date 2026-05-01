@@ -3,191 +3,33 @@
 -- / deferActivate / dynamic-item features), nested groups (drill / wrap
 -- / Ctrl up-down jumps / pulldown-advanced behavior), type-ahead search
 -- + Choice.selectedFn announce-on-current-value, and the Ctrl+I pedia
--- dispatch chord. The shared setup() and helpers are duplicated across
--- the four menu_*_test files so each suite is self-contained.
+-- dispatch chord.
+-- Shared setup / helpers / state live in tests/menu_test_setup.lua;
+-- aliased below for terse test bodies.
 local T = require("support")
+local Setup = require("menu_test_setup")
 local M = {}
 
-local warns, errors
-local speaks
-local sounds
-local _test_pd_mt = nil
-
-local function resetPDMetatable()
-    local proto = Polyfill.makePullDown()
-    _test_pd_mt = {
-        __index = {
-            GetButton = proto.GetButton,
-            ClearEntries = proto.ClearEntries,
-            BuildEntry = proto.BuildEntry,
-            CalculateInternals = proto.CalculateInternals,
-            RegisterSelectionCallback = proto.RegisterSelectionCallback,
-            IsHidden = proto.IsHidden,
-            IsDisabled = proto.IsDisabled,
-            SetHide = proto.SetHide,
-            SetDisabled = proto.SetDisabled,
-        },
-    }
-end
+local warns, errors = Setup.warns, Setup.errors
+local speaks, sounds = Setup.speaks, Setup.sounds
+local resetPDMetatable = Setup.resetPDMetatable
+local makePullDownWithMetatable = Setup.makePullDownWithMetatable
+local populateControls = Setup.populateControls
+local patchProbeFromPullDown = Setup.patchProbeFromPullDown
+local registerSliderCallback = Setup.registerSliderCallback
+local registerCheckHandler = Setup.registerCheckHandler
+local makeCtrl = Setup.makeCtrl
+local setCtrls = Setup.setCtrls
+local ctrlState = Setup.ctrlState
+local makeContextPtr = Setup.makeContextPtr
+local buttonSpec = Setup.buttonSpec
+local clearArr = Setup.clearArr
 
 local function setup()
-    warns, errors = {}, {}
-    Log.warn = function(m)
-        warns[#warns + 1] = m
-    end
-    Log.error = function(m)
-        errors[#errors + 1] = m
-    end
-    Log.info = function() end
-    Log.debug = function() end
-
-    UI.ShiftKeyDown = function()
-        return false
-    end
-    UI.CtrlKeyDown = function()
-        return false
-    end
-    UI.AltKeyDown = function()
-        return false
-    end
-
-    sounds = {}
-    Events.AudioPlay2DSound = function(id)
-        sounds[#sounds + 1] = id
-    end
-
-    speaks = {}
-    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
-    SpeechPipeline._reset()
-    SpeechPipeline._speakAction = function(text, interrupt)
-        speaks[#speaks + 1] = { text = text, interrupt = interrupt }
-    end
-    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_InputRouter.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_PullDownProbe.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuHelp.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuTabs.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua")
-    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuEditMode.lua")
-    HandlerStack._reset()
-    TickPump._reset()
-
-    civvaccess_shared.pullDownProbeInstalled = false
-    civvaccess_shared.pullDownCallbacks = {}
-    civvaccess_shared.pullDownEntries = {}
-    civvaccess_shared.sliderProbeInstalled = false
-    civvaccess_shared.sliderCallbacks = {}
-    civvaccess_shared.checkBoxProbeInstalled = false
-    civvaccess_shared.checkBoxCallbacks = {}
-    civvaccess_shared.buttonProbeInstalled = false
-    civvaccess_shared.buttonCallbacks = {}
-
-    CivVAccess_Strings = CivVAccess_Strings or {}
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "on"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "off"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH"] = "no match for {1_Buffer}"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SEARCH_CLEARED"] = "search cleared"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "selected"
-
-    resetPDMetatable()
+    Setup.fresh()
 end
 
 local WM_KEYDOWN = 256
-
--- Helpers --------------------------------------------------------------
-
-local function populateControls(map)
-    Controls = {}
-    for name, c in pairs(map) do
-        Controls[name] = c
-    end
-end
-
-local function patchProbeFromPullDown(pd)
-    PullDownProbe.ensureInstalled(pd)
-end
-
-local function makePullDownWithMetatable()
-    if _test_pd_mt == nil then
-        resetPDMetatable()
-    end
-    return Polyfill.makePullDownWithMetatable(_test_pd_mt)
-end
-
-local function registerSliderCallback(slider, fn)
-    slider:RegisterSliderCallback(fn)
-    civvaccess_shared.sliderCallbacks[slider] = fn
-end
-
-local function registerCheckHandler(cb, fn)
-    cb:RegisterCheckHandler(fn)
-    civvaccess_shared.checkBoxCallbacks = civvaccess_shared.checkBoxCallbacks or {}
-    civvaccess_shared.checkBoxCallbacks[cb] = fn
-end
-
--- Stub Controls matching the shape button-list tests expect.
-local ctrlState
-local function makeCtrl(name)
-    return setmetatable({ _name = name }, {
-        __index = {
-            IsHidden = function(self)
-                return ctrlState[self._name].hidden
-            end,
-            IsDisabled = function(self)
-                return ctrlState[self._name].disabled
-            end,
-        },
-    })
-end
-local function setCtrls(names)
-    Controls = {}
-    ctrlState = {}
-    for _, name in ipairs(names) do
-        ctrlState[name] = { hidden = false, disabled = false }
-        Controls[name] = makeCtrl(name)
-    end
-end
-local function makeContextPtr()
-    return {
-        SetShowHideHandler = function(self, fn)
-            self._sh = fn
-        end,
-        SetInputHandler = function(self, fn)
-            self._in = fn
-        end,
-        _hidden = false,
-        IsHidden = function(self)
-            return self._hidden
-        end,
-        SetUpdate = function(self, fn)
-            self._update = fn
-        end,
-    }
-end
-
-local function buttonSpec(names)
-    local items = {}
-    for _, name in ipairs(names) do
-        items[#items + 1] = BaseMenuItems.Button({
-            controlName = name,
-            textKey = "LABEL_" .. name,
-            activate = function() end,
-        })
-    end
-    return items
-end
 
 
 -- Factory ----------------------------------------------------------------
@@ -254,7 +96,7 @@ function M.test_empty_items_onEnter_is_safe_noop()
     populateControls({})
     local h = BaseMenu.create({ name = "S", displayName = "Splash", items = {} })
     HandlerStack.push(h)
-    sounds, speaks, warns = {}, {}, {}
+    clearArr(sounds); clearArr(speaks); clearArr(warns)
     local consumed = InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.truthy(consumed, "Enter still consumed by barrier")
     T.eq(#sounds, 0)
@@ -364,7 +206,7 @@ function M.test_setItems_replaces_items_single_tab()
         items = { BaseMenuItems.Checkbox({ controlName = "A", textKey = "FIRST" }) },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     h.setItems({
         BaseMenuItems.Checkbox({ control = a, labelText = "A2" }),
         BaseMenuItems.Checkbox({ control = b, labelText = "B2" }),
@@ -513,7 +355,7 @@ function M.test_group_drill_on_enter_enters_first_child()
     HandlerStack.push(h)
     -- Move to the group and Enter.
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(h._level, 2, "drilled to level 2")
     T.eq(h._indices[2], 1, "cursor on first child")
@@ -526,7 +368,7 @@ function M.test_group_drill_on_right()
     local child = buttonItem("GCHILD1", "Only Child")
     local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupItem("Group", { child }) } })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
     T.eq(h._level, 2)
     T.eq(speaks[1].text, "Only Child")
@@ -543,7 +385,7 @@ function M.test_left_at_level_2_goes_back()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     T.eq(h._level, 2)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
     T.eq(h._level, 1, "left at level 2 returns to 1")
     T.eq(speaks[1].text, "Parent", "re-announces the group on back")
@@ -628,7 +470,7 @@ function M.test_down_at_level_2_past_last_wraps_to_next_group_first_child()
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into A
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- step within A
     T.eq(h._indices[2], 2)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past last -> cross to B
     T.eq(h._indices[1], 2, "parent advanced to Group B")
     T.eq(h._indices[2], 1, "cursor on first child of B")
@@ -646,7 +488,7 @@ function M.test_up_at_level_2_past_first_wraps_to_prev_group_last_child()
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on Group B
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into B
     T.eq(h._indices[2], 1)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN) -- past first -> cross to A
     T.eq(h._indices[1], 1, "parent moved back to Group A")
     T.eq(h._indices[2], 2, "cursor on last child of A")
@@ -673,7 +515,7 @@ function M.test_cross_parent_skips_leaves_at_parent_level()
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on Group A
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A2
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end -> skip Leaf2 -> B
     T.eq(h._indices[1], 4, "jumped across Leaf2 to Group B")
     T.eq(h._indices[2], 1)
@@ -710,7 +552,7 @@ function M.test_ctrl_down_at_level_1_jumps_across_leaves_to_next_group()
     UI.CtrlKeyDown = function()
         return true
     end
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN)
     T.eq(h._indices[1], 2, "skipped Leaf, landed on Group 1")
     T.eq(speaks[1].text, "Group 1")
@@ -731,7 +573,7 @@ function M.test_ctrl_up_at_level_2_jumps_to_prev_group_first_child()
     UI.CtrlKeyDown = function()
         return true
     end
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_UP, MOD_CTRL, WM_KEYDOWN)
     T.eq(h._indices[1], 1, "parent moved to Group A")
     T.eq(h._indices[2], 1, "landed on first child of A")
@@ -752,7 +594,7 @@ function M.test_empty_group_is_skipped_in_navigation()
     })
     HandlerStack.push(h)
     T.eq(h._indices[1], 1, "open lands on first non-empty group")
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 3, "Down skips the empty group")
     T.eq(speaks[1].text, "Full C")
@@ -772,7 +614,7 @@ function M.test_group_with_only_non_navigable_children_is_skipped()
         },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 3, "Down skips group whose only child is hidden")
     T.eq(speaks[1].text, "Full C")
@@ -787,7 +629,7 @@ function M.test_nested_group_with_inner_drillable_stays_navigable()
     HandlerStack.push(h)
     T.truthy(outerGroup:isNavigable(), "outer group navigable when inner has a leaf")
     T.truthy(innerGroup:isNavigable(), "inner group navigable")
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into outer
     T.eq(h._level, 2, "drilled into outer")
     T.eq(speaks[1].text, "Inner", "inner group announced")
@@ -809,7 +651,7 @@ function M.test_nested_group_with_only_empty_inner_is_hidden()
     })
     HandlerStack.push(h)
     T.falsy(hollowOuter:isNavigable(), "outer group with only empty inner is hidden")
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 1, "Down has nowhere to go; cursor stays on Real")
 end
@@ -912,7 +754,7 @@ function M.test_pulldown_inner_button_disabled_marks_inactivatable()
     HandlerStack.push(h)
     local item = h._items[1]
     T.falsy(item:isActivatable(), "inner button disabled blocks activation")
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 1, "sub not pushed when button disabled")
     -- Announcement should carry the disabled suffix.
@@ -951,7 +793,7 @@ function M.test_pulldown_entry_announce_fn_replaces_entry_text()
         },
     })
     HandlerStack.push(h)
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- drill
     local richHeard = {}
     for _, s in ipairs(speaks) do
@@ -959,7 +801,7 @@ function M.test_pulldown_entry_announce_fn_replaces_entry_text()
     end
     T.truthy(richHeard["rich 1"], "override used for first entry announce")
     -- Move to second entry and confirm its override announce too.
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(speaks[#speaks].text, "rich 2")
 end
@@ -980,7 +822,7 @@ function M.test_pulldown_no_callback_at_all_logs_warn()
         items = { BaseMenuItems.Pulldown({ controlName = "PD", textKey = "LBL_PD" }) },
     })
     HandlerStack.push(h)
-    warns = {}
+    clearArr(warns)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(HandlerStack.count(), 1, "sub not pushed with no callback")
     T.truthy(#warns >= 1, "warn logged")
@@ -1025,7 +867,7 @@ function M.test_hidden_group_is_skipped_in_navigation()
     })
     HandlerStack.push(h)
     -- Only one navigable item at top level: Leaf.
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 1, "hidden group skipped in wrap")
 end
@@ -1038,7 +880,7 @@ function M.test_single_sibling_group_wraps_circularly_within_itself()
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A2
-    speaks = {}
+    clearArr(speaks)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end, only 1 group -> wrap self
     T.eq(h._indices[1], 1, "still same parent")
     T.eq(h._indices[2], 1, "wrapped to first child")
@@ -1134,7 +976,7 @@ function M.test_search_letter_moves_to_first_match()
         { name = "B", label = "Banana" },
         { name = "C", label = "Cherry" },
     })
-    speaks = {}
+    clearArr(speaks)
     T.truthy(keydown(ctx, vkLetter("b")), "letter consumed by search")
     T.eq(h._indices[1], 2, "cursor moved to Banana")
     T.truthy(h._search:isSearchActive())
@@ -1146,7 +988,7 @@ function M.test_search_no_match_speaks_and_stays_active()
         { name = "A", label = "Apple" },
         { name = "B", label = "Banana" },
     })
-    speaks = {}
+    clearArr(speaks)
     keydown(ctx, vkLetter("z"))
     T.truthy(h._search:isSearchActive())
     local saw = false
@@ -1167,7 +1009,7 @@ function M.test_search_escape_clears_instead_of_going_back()
     })
     keydown(ctx, vkLetter("a"))
     T.truthy(h._search:isSearchActive())
-    speaks = {}
+    clearArr(speaks)
     keydown(ctx, Keys.VK_ESCAPE)
     T.falsy(h._search:isSearchActive(), "Escape cleared search")
     T.eq(h._level, 1, "Escape did not change level")
@@ -1321,7 +1163,7 @@ function M.test_choice_selectedfn_prepends_selected_and_reannounces()
     -- Activate A; the activate fires, currentSelection flips, and the
     -- item re-announces through speakInterrupt so the user hears
     -- "selected, Apple" without having to arrow away and back.
-    speaks = {}
+    clearArr(speaks)
     choiceA:activate(h)
     T.eq(currentSelection, "A", "activate ran user fn")
     local reannounce = speaks[#speaks]
@@ -1348,7 +1190,7 @@ function M.test_choice_without_selectedfn_does_not_reannounce()
     local h = BaseMenu.create({ name = "T", displayName = "Test", items = { choice } })
     HandlerStack.push(h)
 
-    speaks = {}
+    clearArr(speaks)
     choice:activate(h)
     T.eq(fired, true)
     -- Without selectedFn we skip the re-announce entirely (the caller
@@ -1418,7 +1260,7 @@ function M.test_choice_selectedfn_skips_reannounce_when_activate_pops_handler()
     HandlerStack.push(parent)
     HandlerStack.push(h)
 
-    speaks = {}
+    clearArr(speaks)
     choice:activate(h)
     -- HandlerStack.pop reactivates parent which speaks its own content.
     -- The critical invariant is that no "selected, Apple" entry appears
