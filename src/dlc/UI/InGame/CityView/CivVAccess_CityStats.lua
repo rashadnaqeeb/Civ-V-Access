@@ -31,23 +31,17 @@ CityStats = {}
 local function yieldTooltipFn(yieldKey)
     if yieldKey == "PRODUCTION" then
         return GetProductionTooltip
-    end
-    if yieldKey == "FOOD" then
+    elseif yieldKey == "FOOD" then
         return GetFoodTooltip
-    end
-    if yieldKey == "GOLD" then
+    elseif yieldKey == "GOLD" then
         return GetGoldTooltip
-    end
-    if yieldKey == "SCIENCE" then
+    elseif yieldKey == "SCIENCE" then
         return GetScienceTooltip
-    end
-    if yieldKey == "CULTURE" then
+    elseif yieldKey == "CULTURE" then
         return GetCultureTooltip
-    end
-    if yieldKey == "FAITH" then
+    elseif yieldKey == "FAITH" then
         return GetFaithTooltip
-    end
-    if yieldKey == "TOURISM" then
+    elseif yieldKey == "TOURISM" then
         return GetTourismTooltip
     end
     return nil
@@ -82,6 +76,26 @@ local function splitTooltipLines(text)
         cursor = e + 1
     end
     return rows
+end
+
+-- Wrap a flat row list in a BaseMenuItems.Group with the given header.
+-- Returns nil when skipIfEmpty is set and the row list is empty so the
+-- top-level assembler can drop the category entirely (vs. landing the
+-- user on a group whose drill-in is "no entries"). Yields keeps its own
+-- builder because each yield row drills into a nested breakdown group.
+local function buildSimpleGroup(groupKey, rows, skipIfEmpty)
+    if skipIfEmpty and #rows == 0 then
+        return nil
+    end
+    local items = {}
+    for _, row in ipairs(rows) do
+        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
+    end
+    return BaseMenuItems.Group({
+        labelText = Text.key(groupKey),
+        items = items,
+        cached = false,
+    })
 end
 
 -- ===== Yields =====
@@ -221,18 +235,6 @@ function CityStats.growthRows(city)
     return rows
 end
 
-local function buildGrowthGroup(city)
-    local items = {}
-    for _, row in ipairs(CityStats.growthRows(city)) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_GROWTH"),
-        items = items,
-        cached = false,
-    })
-end
-
 -- ===== Culture =====
 
 -- Border-expansion turns mirror CityView.lua:1643. When per-turn culture is
@@ -258,18 +260,6 @@ function CityStats.cultureRows(city)
     return rows
 end
 
-local function buildCultureGroup(city)
-    local items = {}
-    for _, row in ipairs(CityStats.cultureRows(city)) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_CULTURE"),
-        items = items,
-        cached = false,
-    })
-end
-
 -- ===== Happiness =====
 
 -- Per-city numbers that mirror what HappinessInfo.lua reads:
@@ -286,18 +276,6 @@ function CityStats.happinessRows(city, player)
     local unhappiness = math.floor(unhappiness100 / 100)
     rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_UNHAPPINESS", unhappiness)
     return rows
-end
-
-local function buildHappinessGroup(city, player)
-    local items = {}
-    for _, row in ipairs(CityStats.happinessRows(city, player)) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_HAPPINESS"),
-        items = items,
-        cached = false,
-    })
 end
 
 -- ===== Religion =====
@@ -360,22 +338,6 @@ function CityStats.religionRows(city)
     return rows
 end
 
-local function buildReligionGroup(city)
-    local rows = CityStats.religionRows(city)
-    if #rows == 0 then
-        return nil
-    end
-    local items = {}
-    for _, row in ipairs(rows) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION"),
-        items = items,
-        cached = false,
-    })
-end
-
 -- ===== Trade =====
 
 -- Filters the active player's GetTradeRoutes() to entries whose FromCity
@@ -427,22 +389,6 @@ function CityStats.tradeRows(city, player)
     return rows
 end
 
-local function buildTradeGroup(city, player)
-    local rows = CityStats.tradeRows(city, player)
-    if #rows == 0 then
-        return nil
-    end
-    local items = {}
-    for _, row in ipairs(rows) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE"),
-        items = items,
-        cached = false,
-    })
-end
-
 -- ===== Resources =====
 
 -- Walks GameInfo.Resources() once per push. ResourceUsage 1 = strategic,
@@ -451,6 +397,10 @@ end
 -- they gate units, then luxes alphabetically; both are presence-only
 -- since the engine exposes per-city presence (IsHasResourceLocal) but
 -- not per-city counts (GetNumResourceAvailable is player-scope).
+local function compareLocale(a, b)
+    return Locale.Compare(a, b) == -1
+end
+
 function CityStats.resourceRows(city)
     local strategics = {}
     local luxes = {}
@@ -468,12 +418,8 @@ function CityStats.resourceRows(city)
             end
         end
     end
-    table.sort(strategics, function(a, b)
-        return Locale.Compare(a, b) == -1
-    end)
-    table.sort(luxes, function(a, b)
-        return Locale.Compare(a, b) == -1
-    end)
+    table.sort(strategics, compareLocale)
+    table.sort(luxes, compareLocale)
     local rows = {}
     for _, line in ipairs(strategics) do
         rows[#rows + 1] = line
@@ -482,22 +428,6 @@ function CityStats.resourceRows(city)
         rows[#rows + 1] = line
     end
     return rows
-end
-
-local function buildResourcesGroup(city)
-    local rows = CityStats.resourceRows(city)
-    if #rows == 0 then
-        return nil
-    end
-    local items = {}
-    for _, row in ipairs(rows) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES"),
-        items = items,
-        cached = false,
-    })
 end
 
 -- ===== Defense =====
@@ -553,18 +483,6 @@ function CityStats.defenseRows(city)
     return rows
 end
 
-local function buildDefenseGroup(city)
-    local items = {}
-    for _, row in ipairs(CityStats.defenseRows(city)) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = row })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEFENSE"),
-        items = items,
-        cached = false,
-    })
-end
-
 -- ===== Demand / WLTKD =====
 
 -- Same gating as the (now-retired) hub-level resourceDemandLabel: if no
@@ -603,27 +521,19 @@ end
 -- in display order. nil-returning builders are filtered out so empty
 -- categories don't appear at all (vs. appearing with a "no entries" leaf).
 function CityStats.buildItems(city, player)
-    local items = {}
-    items[#items + 1] = buildYieldsGroup(city)
-    items[#items + 1] = buildGrowthGroup(city)
-    items[#items + 1] = buildCultureGroup(city)
-    items[#items + 1] = buildHappinessGroup(city, player)
-    local religion = buildReligionGroup(city)
-    if religion ~= nil then
-        items[#items + 1] = religion
+    local items = { buildYieldsGroup(city) }
+    local function append(group)
+        if group ~= nil then
+            items[#items + 1] = group
+        end
     end
-    local trade = buildTradeGroup(city, player)
-    if trade ~= nil then
-        items[#items + 1] = trade
-    end
-    local resources = buildResourcesGroup(city)
-    if resources ~= nil then
-        items[#items + 1] = resources
-    end
-    items[#items + 1] = buildDefenseGroup(city)
-    local demand = buildDemandGroup(city)
-    if demand ~= nil then
-        items[#items + 1] = demand
-    end
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_GROWTH", CityStats.growthRows(city)))
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_CULTURE", CityStats.cultureRows(city)))
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_HAPPINESS", CityStats.happinessRows(city, player)))
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION", CityStats.religionRows(city), true))
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE", CityStats.tradeRows(city, player), true))
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES", CityStats.resourceRows(city), true))
+    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEFENSE", CityStats.defenseRows(city)))
+    append(buildDemandGroup(city))
     return items
 end
