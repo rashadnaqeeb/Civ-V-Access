@@ -25,149 +25,8 @@
 
 LoadReplayMenu = {}
 
-local READER_TAB_IDX = 2
-
-local HEADER_KEYS = SavedGameShared.HEADER_KEYS
 local stripPath = SavedGameShared.stripPath
 local parseId = SavedGameShared.parseId
-local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
-local descOf = SavedGameShared.descOf
-local addField = SavedGameShared.addField
-
--- --------------------------------------------------------------------------
--- Helpers
-
--- Order g_FileList's indices to match the currently-selected engine sort
--- (g_CurrentSort is one of SortByLastModified / SortByName from
--- LoadReplayMenu.lua). Our picker is a separate list from the engine's
--- visual Stack, so we replicate the sort here. Entry ids remain
--- "replay:<original-index>" so PickerReader cursor restoration works.
-local function sortedFileIndices()
-    local records = {}
-    for i, filename in ipairs(g_FileList) do
-        records[#records + 1] = { idx = i, filename = filename }
-    end
-    if g_CurrentSort == SortByLastModified then
-        -- Read mtimes up front; table.sort can fire the comparator N log N
-        -- times and per-compare filesystem reads would hurt on large dirs.
-        for _, r in ipairs(records) do
-            r.high, r.low = UI.GetReplayModificationTimeRaw(r.filename)
-        end
-        table.sort(records, function(a, b)
-            return UI.CompareFileTime(a.high, a.low, b.high, b.low) == 1
-        end)
-    elseif g_CurrentSort == SortByName then
-        for _, r in ipairs(records) do
-            r.name = stripPath(r.filename)
-        end
-        table.sort(records, function(a, b)
-            return Locale.Compare(a.name, b.name) == -1
-        end)
-    end
-    local indices = {}
-    for i, r in ipairs(records) do
-        indices[i] = r.idx
-    end
-    return indices
-end
-
--- Apply a sort choice. Mirrors the base per-entry pulldown callback
--- (LoadReplayMenu.lua lines 464-469) plus a picker rebuild. Visual state
--- is kept in sync for sighted observers: the pulldown's button text
--- changes and SortChildren reorders the hidden Stack.
-local function applySort(entryFactory, handlerRefThunk, sortFn, labelKey)
-    g_CurrentSort = sortFn
-    Controls.SortByPullDown:GetButton():LocalizeAndSetText(labelKey)
-    Controls.LoadFileButtonStack:SortChildren(sortFn)
-    local newItems = LoadReplayMenu.buildPickerItems(entryFactory, handlerRefThunk)
-    handlerRefThunk().setItems(newItems, 1)
-end
-
--- Push a sub-menu listing referenced DLC / Mods names. Mirrors the base
--- ShowModsButton / ShowDLCButton popup at LoadReplayMenu.lua lines 68-126
--- but strips "[ICON_BULLET]" since the bullet carries no information in
--- speech (the icon filter would drop it anyway).
-local function pushRequirementsSub(mainHandler, kind)
-    local list
-    local displayKey
-    if kind == "mods" then
-        list = g_ReplayModsRequired
-        displayKey = "TXT_KEY_LOAD_MENU_REQUIRED_MODS"
-    else
-        list = g_ReplayDLCRequired
-        displayKey = "TXT_KEY_LOAD_MENU_REQUIRED_DLC"
-    end
-    if list == nil or #list == 0 then
-        return
-    end
-    local items = {}
-    for _, v in ipairs(list) do
-        local name
-        if kind == "dlc" and v.DescriptionKey ~= nil and Locale.HasTextKey(v.DescriptionKey) then
-            name = Text.key(v.DescriptionKey)
-        else
-            name = v.Title or ""
-            if Locale.HasTextKey(name) then
-                name = Text.key(name)
-            end
-        end
-        if kind == "mods" and v.Version ~= nil then
-            name = Text.format("TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION", name, v.Version)
-        end
-        items[#items + 1] = BaseMenuItems.Text({ labelText = name })
-    end
-    local sub = BaseMenu.create({
-        name = mainHandler.name .. "/Requirements",
-        displayName = Text.key(displayKey),
-        items = items,
-        escapePops = true,
-    })
-    HandlerStack.push(sub)
-end
-
--- Delete confirmation: bypass the visual DeleteConfirm popup (no speech
--- affordance) and push a pure-speech Yes/No sub. On Yes the delete +
--- SetupFileButtonList fires; the monkey-patched SetupFileButtonList
--- rebuilds the picker, and the reader tab gets a placeholder so stale
--- replay details can't be read back. Esc on the sub pops without
--- committing.
-local function pushDeleteConfirmSub(mainHandler, filename)
-    if filename == nil or filename == "" then
-        return
-    end
-    local displayName = stripPath(filename)
-    local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM", displayName)
-    local subName = mainHandler.name .. "/DeleteConfirm"
-    local sub = BaseMenu.create({
-        name = subName,
-        displayName = confirmLabel,
-        -- No first so arrow-down to Yes is an explicit affirmative step;
-        -- accidental Enter on the default cancels rather than deletes.
-        items = {
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_NO_BUTTON",
-                activate = function()
-                    HandlerStack.removeByName(subName, true)
-                end,
-            }),
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_YES_BUTTON",
-                activate = function()
-                    UI.DeleteReplayFile(filename)
-                    SetupFileButtonList()
-                    mainHandler.setItems({
-                        BaseMenuItems.Text({
-                            textKey = "TXT_KEY_CIVVACCESS_REPLAY_DELETED",
-                        }),
-                    }, READER_TAB_IDX)
-                    HandlerStack.removeByName(subName, true)
-                end,
-            }),
-        },
-        escapePops = true,
-    })
-    HandlerStack.push(sub)
-end
 
 -- --------------------------------------------------------------------------
 -- Reader builder
@@ -198,45 +57,17 @@ function LoadReplayMenu.buildReader(mainHandler, id)
     end
 
     local leaves = {}
-
-    local leaderDescText, civName = resolveLeaderCiv(header)
-    leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
+    -- Replays always emit the era/turn leaf (alwaysEmitEra). CurrentEra may
+    -- be empty on replays of scenarios that never set one; appendStandard
+    -- substitutes TXT_KEY_MISC_UNKNOWN. StartEra uses TXT_KEY_START_ERA_FORMAT
+    -- here vs TXT_KEY_START_ERA in LoadMenu / SaveMenu (replay-specific key).
+    -- Game type is omitted for replays.
+    SavedGameShared.appendStandardHeaderLeaves(leaves, header, {
+        date = UI.GetReplayModificationTime(filename),
+        alwaysEmitEra = true,
+        startEraFormatKey = "TXT_KEY_START_ERA_FORMAT",
+        skipGameType = true,
     })
-
-    local date = UI.GetReplayModificationTime(filename)
-    if date ~= nil and date ~= "" then
-        leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = date })
-    end
-
-    -- Era / turn. Replays always carry a turn count; CurrentEra may be
-    -- empty on replays of scenarios that never set one.
-    local eraDesc
-    if header.CurrentEra ~= nil and header.CurrentEra ~= "" then
-        local era = GameInfo.Eras[header.CurrentEra]
-        eraDesc = Text.key((era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN")
-    else
-        eraDesc = Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
-    })
-
-    if header.StartEra ~= nil and header.StartEra ~= "" then
-        local startEra = GameInfo.Eras[header.StartEra]
-        local startEraDesc = Text.key((startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN")
-        leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_START_ERA_FORMAT", startEraDesc),
-        })
-    end
-
-    local mapInfo = MapUtilities.GetBasicInfo(header.MapScript)
-    if mapInfo ~= nil and mapInfo.Name ~= nil then
-        addField(leaves, HEADER_KEYS.mapType, Text.key(mapInfo.Name))
-    end
-    addField(leaves, HEADER_KEYS.mapSize, descOf(GameInfo.Worlds[header.WorldSize]))
-    addField(leaves, HEADER_KEYS.difficulty, descOf(GameInfo.HandicapInfos[header.Difficulty]))
-    addField(leaves, HEADER_KEYS.gameSpeed, descOf(GameInfo.GameSpeeds[header.GameSpeed]))
 
     -- Select Replay: the primary action. SetSelected just populated the
     -- button's tooltip (missing DLC / incompatible mods reason) and toggled
@@ -266,7 +97,10 @@ function LoadReplayMenu.buildReader(mainHandler, id)
     leaves[#leaves + 1] = BaseMenuItems.Choice({
         textKey = "TXT_KEY_DELETE_BUTTON",
         activate = function()
-            pushDeleteConfirmSub(mainHandler, filename)
+            SavedGameShared.pushDeleteConfirmSub(mainHandler, filename, {
+                deleteFn = UI.DeleteReplayFile,
+                deletedTextKey = "TXT_KEY_CIVVACCESS_REPLAY_DELETED",
+            })
         end,
     })
 
@@ -276,7 +110,8 @@ function LoadReplayMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_DLC",
             activate = function()
-                pushRequirementsSub(mainHandler, "dlc")
+                SavedGameShared.pushRequirementsSub(mainHandler, "dlc",
+                    g_ReplayDLCRequired, g_ReplayModsRequired)
             end,
         })
     end
@@ -284,7 +119,8 @@ function LoadReplayMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_MODS",
             activate = function()
-                pushRequirementsSub(mainHandler, "mods")
+                SavedGameShared.pushRequirementsSub(mainHandler, "mods",
+                    g_ReplayDLCRequired, g_ReplayModsRequired)
             end,
         })
     end
@@ -298,7 +134,10 @@ end
 function LoadReplayMenu.buildPickerItems(entryFactory, mainHandlerRef)
     local items = {}
 
-    for _, i in ipairs(sortedFileIndices()) do
+    local indices = SavedGameShared.sortedFileIndices(g_FileList, {
+        mtimeRawFn = UI.GetReplayModificationTimeRaw,
+    })
+    for _, i in ipairs(indices) do
         local filename = g_FileList[i]
         items[#items + 1] = entryFactory({
             id = "replay:" .. tostring(i),
@@ -317,30 +156,7 @@ function LoadReplayMenu.buildPickerItems(entryFactory, mainHandlerRef)
         })
     end
 
-    items[#items + 1] = BaseMenuItems.Group({
-        textKey = "TXT_KEY_CIVVACCESS_LOAD_SORT_BY",
-        visibilityControlName = "SortByPullDown",
-        items = {
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_SORTBY_LASTMODIFIED",
-                selectedFn = function()
-                    return g_CurrentSort == SortByLastModified
-                end,
-                activate = function()
-                    applySort(entryFactory, mainHandlerRef, SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED")
-                end,
-            }),
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_SORTBY_NAME",
-                selectedFn = function()
-                    return g_CurrentSort == SortByName
-                end,
-                activate = function()
-                    applySort(entryFactory, mainHandlerRef, SortByName, "TXT_KEY_SORTBY_NAME")
-                end,
-            }),
-        },
-    })
+    items[#items + 1] = SavedGameShared.makeSortByGroup(entryFactory, mainHandlerRef, LoadReplayMenu.buildPickerItems)
 
     return items
 end

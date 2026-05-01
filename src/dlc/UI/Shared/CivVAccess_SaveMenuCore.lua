@@ -33,13 +33,9 @@ SaveMenu = {}
 
 local READER_TAB_IDX = 2
 
-local HEADER_KEYS = SavedGameShared.HEADER_KEYS
 local stripPath = SavedGameShared.stripPath
 local parseId = SavedGameShared.parseId
 local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
-local gameTypeLabel = SavedGameShared.gameTypeLabel
-local descOf = SavedGameShared.descOf
-local addField = SavedGameShared.addField
 
 local function isMultiplayerStarted()
     return PreGame.IsMultiplayerGame() and PreGame.GameStarted()
@@ -206,51 +202,13 @@ function SaveMenu.buildReader(mainHandler, id)
         return { items = {} }
     end
 
-    -- Leader + civ line (engine's TXT_KEY_RANDOM_LEADER_CIV renders as
-    -- "<leader> - <civ>", already localized). Mirrors SaveMenu.xml's Title.
-    local leaderDescText, civName = resolveLeaderCiv(header)
-    leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
-    })
-
     -- Saved-on date (disk only; cloud slot headers don't carry an mtime).
+    -- Pre-resolve so the shared header builder gets a plain string.
+    local date
     if not isCloud and entry.FileName ~= nil then
-        local date = UI.GetSavedGameModificationTime(entry.FileName)
-        if date ~= nil and date ~= "" then
-            leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = date })
-        end
+        date = UI.GetSavedGameModificationTime(entry.FileName)
     end
-
-    -- Era / turn. Only emitted when the header carries a current era;
-    -- setup-only saves don't.
-    if header.CurrentEra ~= nil and header.CurrentEra ~= "" then
-        local era = GameInfo.Eras[header.CurrentEra]
-        local eraDesc = Text.key((era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN")
-        leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
-        })
-    end
-
-    if header.StartEra ~= nil and header.StartEra ~= "" then
-        local startEra = GameInfo.Eras[header.StartEra]
-        local startEraDesc = Text.key((startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN")
-        leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_START_ERA", startEraDesc),
-        })
-    end
-
-    local gameType = gameTypeLabel(header)
-    if gameType ~= nil then
-        leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = gameType })
-    end
-
-    local mapInfo = MapUtilities.GetBasicInfo(header.MapScript)
-    if mapInfo ~= nil and mapInfo.Name ~= nil then
-        addField(leaves, HEADER_KEYS.mapType, Text.key(mapInfo.Name))
-    end
-    addField(leaves, HEADER_KEYS.mapSize, descOf(GameInfo.Worlds[header.WorldSize]))
-    addField(leaves, HEADER_KEYS.difficulty, descOf(GameInfo.HandicapInfos[header.Difficulty]))
-    addField(leaves, HEADER_KEYS.gameSpeed, descOf(GameInfo.GameSpeeds[header.GameSpeed]))
+    SavedGameShared.appendStandardHeaderLeaves(leaves, header, { date = date })
 
     -- Overwrite action: fires pushed confirm sub. Disk-save overwrites go
     -- through UI.SaveGame (which overwrites an existing file of the same

@@ -29,163 +29,9 @@
 
 LoadMenu = {}
 
-local READER_TAB_IDX = 2
-
-local HEADER_KEYS = SavedGameShared.HEADER_KEYS
 local stripPath = SavedGameShared.stripPath
 local parseId = SavedGameShared.parseId
 local resolveLeaderCiv = SavedGameShared.resolveLeaderCiv
-local gameTypeLabel = SavedGameShared.gameTypeLabel
-local descOf = SavedGameShared.descOf
-local addField = SavedGameShared.addField
-
--- --------------------------------------------------------------------------
--- Helpers
-
--- Order g_FileList's original indices to match the currently-selected engine
--- sort (g_CurrentSort is one of the SortByLastModified / SortByName globals
--- defined in LoadMenu.lua). Our picker is a separate list from the engine's
--- visual Stack, so we replicate the sort here rather than try to read order
--- out of the Stack. Returns a flat array of g_FileList indices; entry ids
--- remain "save:<original-index>" so the picker's Entry identities stay stable
--- across re-sorts and PickerReader cursor restoration works.
-local function sortedFileIndices()
-    local records = {}
-    for i, filename in ipairs(g_FileList) do
-        records[#records + 1] = { idx = i, filename = filename }
-    end
-    if g_CurrentSort == SortByLastModified then
-        -- Read mtimes once up front; table.sort's comparator can fire
-        -- N log N times and filesystem reads per compare would get
-        -- expensive on large save directories.
-        for _, r in ipairs(records) do
-            r.high, r.low = UI.GetSavedGameModificationTimeRaw(r.filename)
-        end
-        table.sort(records, function(a, b)
-            return UI.CompareFileTime(a.high, a.low, b.high, b.low) == 1
-        end)
-    elseif g_CurrentSort == SortByName then
-        -- SortByName inverts to reverse-alphabetical in autosave mode; match.
-        for _, r in ipairs(records) do
-            r.name = stripPath(r.filename)
-        end
-        if g_ShowAutoSaves then
-            table.sort(records, function(a, b)
-                return Locale.Compare(b.name, a.name) == -1
-            end)
-        else
-            table.sort(records, function(a, b)
-                return Locale.Compare(a.name, b.name) == -1
-            end)
-        end
-    end
-    local indices = {}
-    for i, r in ipairs(records) do
-        indices[i] = r.idx
-    end
-    return indices
-end
-
--- Apply a sort choice. Mirrors the base per-entry button callback from
--- LoadMenu.lua lines 716-721 plus a picker rebuild. Done in Lua (not by
--- wrapping the engine's entry callback) because our Sort-by Group drives
--- its own Choice items rather than going through the base pulldown's
--- sub-menu. Visual state is kept in sync for sighted observers: the
--- pulldown's button text changes and SortChildren reorders the hidden
--- Stack, same as a mouse-driven sort pick.
-local function applySort(entryFactory, handlerRefThunk, sortFn, labelKey)
-    g_CurrentSort = sortFn
-    Controls.SortByPullDown:GetButton():LocalizeAndSetText(labelKey)
-    Controls.LoadFileButtonStack:SortChildren(sortFn)
-    local newItems = LoadMenu.buildPickerItems(entryFactory, handlerRefThunk)
-    handlerRefThunk().setItems(newItems, 1)
-end
-
--- Push an additional sub-menu listing referenced DLC / Mods names. Opened
--- from the Show-DLC / Show-Mods action leaves. List text mirrors LoadMenu.lua
--- lines 145-203 but strips the "[ICON_BULLET]" prefix (the icon filter would
--- drop it anyway and the bullet carries no information in speech).
-local function pushRequirementsSub(mainHandler, kind)
-    local list
-    local displayKey
-    if kind == "mods" then
-        list = g_SavedGameModsRequired
-        displayKey = "TXT_KEY_LOAD_MENU_REQUIRED_MODS"
-    else
-        list = g_SavedGameDLCRequired
-        displayKey = "TXT_KEY_LOAD_MENU_REQUIRED_DLC"
-    end
-    if list == nil or #list == 0 then
-        return
-    end
-    local items = {}
-    for _, v in ipairs(list) do
-        local name
-        if kind == "dlc" and v.DescriptionKey ~= nil and Locale.HasTextKey(v.DescriptionKey) then
-            name = Text.key(v.DescriptionKey)
-        else
-            name = v.Title or ""
-            if Locale.HasTextKey(name) then
-                name = Text.key(name)
-            end
-        end
-        if kind == "mods" and v.Version ~= nil then
-            name = Text.format("TXT_KEY_CIVVACCESS_LOAD_MOD_VERSION", name, v.Version)
-        end
-        items[#items + 1] = BaseMenuItems.Text({ labelText = name })
-    end
-    local sub = BaseMenu.create({
-        name = mainHandler.name .. "/Requirements",
-        displayName = Text.key(displayKey),
-        items = items,
-        escapePops = true,
-    })
-    HandlerStack.push(sub)
-end
-
--- Delete confirmation: we bypass the visual DeleteConfirm popup (it carries
--- no speech affordance and a blind user has no reason to see it) and push a
--- pure-speech Yes/No sub. On Yes the delete + SetupFileButtonList fires;
--- our monkey-patched SetupFileButtonList rebuilds the picker, and the reader
--- tab gets a one-item "deleted" placeholder so the stale save details can't
--- be read back. Esc on the sub pops without committing (escapePops).
-local function pushDeleteConfirmSub(mainHandler, filename)
-    if filename == nil or filename == "" then
-        return
-    end
-    local displayName = stripPath(filename)
-    local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM", displayName)
-    local subName = mainHandler.name .. "/DeleteConfirm"
-    local sub = BaseMenu.create({
-        name = subName,
-        displayName = confirmLabel,
-        -- No first so that arrow-down to Yes is an explicit affirmative step;
-        -- accidental Enter on the default cancels rather than deletes.
-        items = {
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_NO_BUTTON",
-                activate = function()
-                    HandlerStack.removeByName(subName, true)
-                end,
-            }),
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_YES_BUTTON",
-                activate = function()
-                    UI.DeleteSavedGame(filename)
-                    SetupFileButtonList()
-                    mainHandler.setItems({
-                        BaseMenuItems.Text({
-                            textKey = "TXT_KEY_CIVVACCESS_LOAD_DELETED",
-                        }),
-                    }, READER_TAB_IDX)
-                    HandlerStack.removeByName(subName, true)
-                end,
-            }),
-        },
-        escapePops = true,
-    })
-    HandlerStack.push(sub)
-end
 
 -- --------------------------------------------------------------------------
 -- Reader builder
@@ -223,56 +69,14 @@ function LoadMenu.buildReader(mainHandler, id)
 
     local leaves = {}
 
-    -- Leader + civ line. Engine's TXT_KEY_RANDOM_LEADER_CIV renders
-    -- "<leader> - <civ>" (already localized). Used as the reader header
-    -- equivalent to LoadMenu.xml's Title label.
-    local leaderDescText, civName = resolveLeaderCiv(header)
-    leaves[#leaves + 1] = BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_RANDOM_LEADER_CIV", leaderDescText, civName),
-    })
-
     -- Saved-on date (regular / autosave only; cloud saves lack a filesystem
-    -- mtime from our side).
+    -- mtime from our side). Resolved upfront so the shared header builder
+    -- gets a plain string.
+    local date
     if not isCloud and filename ~= nil then
-        local date = UI.GetSavedGameModificationTime(filename)
-        if date ~= nil and date ~= "" then
-            leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = date })
-        end
+        date = UI.GetSavedGameModificationTime(filename)
     end
-
-    -- Era / turn (TXT_KEY_CUR_ERA_TURNS_FORMAT = "<era>: <N> Turns"). Only
-    -- emitted when the header carries a current era; setup-only saves don't.
-    if header.CurrentEra ~= nil and header.CurrentEra ~= "" then
-        local era = GameInfo.Eras[header.CurrentEra]
-        local eraDesc = Text.key((era ~= nil and era.Description) or "TXT_KEY_MISC_UNKNOWN")
-        leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CUR_ERA_TURNS_FORMAT", eraDesc, header.TurnNumber),
-        })
-    end
-
-    -- Start era ("<era> Start").
-    if header.StartEra ~= nil and header.StartEra ~= "" then
-        local startEra = GameInfo.Eras[header.StartEra]
-        local startEraDesc = Text.key((startEra ~= nil and startEra.Description) or "TXT_KEY_MISC_UNKNOWN")
-        leaves[#leaves + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_START_ERA", startEraDesc),
-        })
-    end
-
-    -- Game type (single / hotseat / network).
-    local gameType = gameTypeLabel(header)
-    if gameType ~= nil then
-        leaves[#leaves + 1] = BaseMenuItems.Text({ labelText = gameType })
-    end
-
-    -- Map, size, difficulty, speed.
-    local mapInfo = MapUtilities.GetBasicInfo(header.MapScript)
-    if mapInfo ~= nil and mapInfo.Name ~= nil then
-        addField(leaves, HEADER_KEYS.mapType, Text.key(mapInfo.Name))
-    end
-    addField(leaves, HEADER_KEYS.mapSize, descOf(GameInfo.Worlds[header.WorldSize]))
-    addField(leaves, HEADER_KEYS.difficulty, descOf(GameInfo.HandicapInfos[header.Difficulty]))
-    addField(leaves, HEADER_KEYS.gameSpeed, descOf(GameInfo.GameSpeeds[header.GameSpeed]))
+    SavedGameShared.appendStandardHeaderLeaves(leaves, header, { date = date })
 
     -- Action leaves. Load first (the primary action), Delete second, then
     -- conditional Show-DLC / Show-Mods when the save has unmet requirements.
@@ -309,7 +113,10 @@ function LoadMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_DELETE_BUTTON",
             activate = function()
-                pushDeleteConfirmSub(mainHandler, filename)
+                SavedGameShared.pushDeleteConfirmSub(mainHandler, filename, {
+                    deleteFn = UI.DeleteSavedGame,
+                    deletedTextKey = "TXT_KEY_CIVVACCESS_LOAD_DELETED",
+                })
             end,
         })
     end
@@ -322,7 +129,8 @@ function LoadMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_DLC",
             activate = function()
-                pushRequirementsSub(mainHandler, "dlc")
+                SavedGameShared.pushRequirementsSub(mainHandler, "dlc",
+                    g_SavedGameDLCRequired, g_SavedGameModsRequired)
             end,
         })
     end
@@ -330,7 +138,8 @@ function LoadMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_MODS",
             activate = function()
-                pushRequirementsSub(mainHandler, "mods")
+                SavedGameShared.pushRequirementsSub(mainHandler, "mods",
+                    g_SavedGameDLCRequired, g_SavedGameModsRequired)
             end,
         })
     end
@@ -376,7 +185,12 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
             end
         end
     else
-        for _, i in ipairs(sortedFileIndices()) do
+        local indices = SavedGameShared.sortedFileIndices(g_FileList, {
+            mtimeRawFn = UI.GetSavedGameModificationTimeRaw,
+            -- SortByName inverts to reverse-alphabetical in autosave mode.
+            reverseAlphaSortFn = function() return g_ShowAutoSaves end,
+        })
+        for _, i in ipairs(indices) do
             local filename = g_FileList[i]
             items[#items + 1] = entryFactory({
                 id = "save:" .. tostring(i),
@@ -396,36 +210,10 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
         })
     end
 
-    -- Sort-by Group. Exposes Last Modified / Name as Choice children with
-    -- selectedFn flagging the current sort. Visibility-gated on the engine
-    -- pulldown's hidden state: in cloud mode the base UI hides
-    -- Controls.SortByPullDown (LoadMenu.lua line 106) and we follow suit.
-    -- Each Choice calls applySort which also touches the base pulldown's
-    -- button text and the visual Stack's SortChildren for sighted parity.
-    items[#items + 1] = BaseMenuItems.Group({
-        textKey = "TXT_KEY_CIVVACCESS_LOAD_SORT_BY",
-        visibilityControlName = "SortByPullDown",
-        items = {
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_SORTBY_LASTMODIFIED",
-                selectedFn = function()
-                    return g_CurrentSort == SortByLastModified
-                end,
-                activate = function()
-                    applySort(entryFactory, mainHandlerRef, SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED")
-                end,
-            }),
-            BaseMenuItems.Choice({
-                textKey = "TXT_KEY_SORTBY_NAME",
-                selectedFn = function()
-                    return g_CurrentSort == SortByName
-                end,
-                activate = function()
-                    applySort(entryFactory, mainHandlerRef, SortByName, "TXT_KEY_SORTBY_NAME")
-                end,
-            }),
-        },
-    })
+    -- Sort-by Group. Visibility-gated on the engine pulldown's hidden state:
+    -- in cloud mode the base UI hides Controls.SortByPullDown (LoadMenu.lua
+    -- line 106) and the Group follows suit.
+    items[#items + 1] = SavedGameShared.makeSortByGroup(entryFactory, mainHandlerRef, LoadMenu.buildPickerItems)
 
     -- Filter toggles. Backed by the engine Controls.AutoCheck /
     -- Controls.CloudCheck, whose CheckHandlers the pulldown probe captured
