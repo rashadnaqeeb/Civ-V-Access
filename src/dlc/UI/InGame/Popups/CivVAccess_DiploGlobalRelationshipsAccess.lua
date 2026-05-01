@@ -193,7 +193,7 @@ local function buildItems()
     return items
 end
 
-BaseMenu.install(ContextPtr, {
+BaseMenu.install(ContextPtr, DiploCommon.applyTabBindings({
     name = "DiploGlobalRelationships",
     displayName = Text.key("TXT_KEY_DO_GLOBAL_RELATIONS"),
     priorInput = InputHandler,
@@ -202,20 +202,5 @@ BaseMenu.install(ContextPtr, {
     onShow = function(h)
         h.setItems(buildItems())
     end,
-    onTab = function()
-        civvaccess_shared.DiploOverview.showRelations()
-    end,
-    onShiftTab = function()
-        civvaccess_shared.DiploOverview.showDeals()
-    end,
-    -- See CivVAccess_DiploRelationshipsAccess for the sub-LuaContext
-    -- input-bubbling rationale.
-    onEscape = function()
-        civvaccess_shared.DiploOverview.close()
-        return true
-    end,
-    suppressReactivateOnHide = function()
-        return civvaccess_shared.DiploOverview._switching == true
-    end,
     items = {},
-})
+}, "showRelations", "showDeals"))
