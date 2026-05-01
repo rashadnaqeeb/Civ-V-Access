@@ -37,17 +37,7 @@ local priorShowHide = ShowHide
 local priorInput = InputHandler
 
 local function controlText(control)
-    if control == nil then
-        return ""
-    end
-    local ok, text = pcall(function()
-        return control:GetText()
-    end)
-    if not ok then
-        Log.warn("LoadScreenAccess: GetText failed: " .. tostring(text))
-        return ""
-    end
-    return tostring(text or "")
+    return Text.controlText(control, "LoadScreenAccess") or ""
 end
 
 -- LEFT JOIN onto the default unit/building of the overridden class so

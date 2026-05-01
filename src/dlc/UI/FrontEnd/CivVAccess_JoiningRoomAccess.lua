@@ -46,10 +46,7 @@ civvaccess_shared._joiningRoomHandler = BaseMenu.install(ContextPtr, {
     name = "JoiningRoom",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_JOINING_ROOM"),
     preamble = function()
-        if Controls.JoiningLabel then
-            return Controls.JoiningLabel:GetText()
-        end
-        return nil
+        return Text.controlText(Controls.JoiningLabel, "JoiningRoomAccess")
     end,
     priorShowHide = wrappedPriorShowHide,
     priorInput = priorInput,

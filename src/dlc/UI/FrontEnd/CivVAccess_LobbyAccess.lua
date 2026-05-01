@@ -62,15 +62,7 @@ end
 -- ShowHideHandler line 626-640; reading it at announce time covers every
 -- mode without duplicating that logic here.
 local function titlePreamble()
-    if Controls.TitleLabel ~= nil then
-        local ok, t = pcall(function()
-            return Controls.TitleLabel:GetText()
-        end)
-        if ok and t ~= nil and t ~= "" then
-            return tostring(t)
-        end
-    end
-    return nil
+    return Text.controlText(Controls.TitleLabel, "LobbyAccess title")
 end
 
 local pickerItems = Lobby.buildPickerItems(session.Entry, getHandler)

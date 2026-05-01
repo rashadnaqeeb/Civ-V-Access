@@ -16,24 +16,13 @@ local priorInput = InputHandler
 
 local function labelFromControl(controlName)
     return function()
-        local c = Controls[controlName]
-        if c == nil then
-            return ""
-        end
-        local ok, t = pcall(function()
-            return c:GetText()
-        end)
-        if not ok then
-            Log.warn("GameSetupScreen labelFromControl '" .. controlName .. "' GetText failed: " .. tostring(t))
-            return ""
-        end
-        return t or ""
+        return Text.controlText(Controls[controlName], "GameSetupScreen " .. controlName) or ""
     end
 end
 
 local function civilizationLabel()
-    local title = labelFromControl("Title")()
-    local bonus = labelFromControl("BonusDescription")()
+    local title = Text.controlText(Controls.Title, "GameSetupScreen Title") or ""
+    local bonus = Text.controlText(Controls.BonusDescription, "GameSetupScreen BonusDescription") or ""
     if bonus ~= "" then
         return title .. ", " .. bonus
     end

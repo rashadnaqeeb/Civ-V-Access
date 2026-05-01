@@ -76,20 +76,7 @@ local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 local function controlText(control)
-    if control == nil then
-        return ""
-    end
-    local ok, text = pcall(function()
-        return control:GetText()
-    end)
-    if not ok then
-        Log.warn("AdvisorsAccess: GetText failed: " .. tostring(text))
-        return ""
-    end
-    if text == nil then
-        return ""
-    end
-    return tostring(text)
+    return Text.controlText(control, "AdvisorsAccess") or ""
 end
 
 -- The screen name tracks whoever is currently speaking. base SetAdvisorDisplay

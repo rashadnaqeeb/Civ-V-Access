@@ -14,10 +14,7 @@ civvaccess_shared._frontEndPopupHandler = BaseMenu.install(ContextPtr, {
     name = "FrontEndPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_FRONT_END_POPUP"),
     preamble = function()
-        if Controls.PopupText then
-            return Controls.PopupText:GetText()
-        end
-        return nil
+        return Text.controlText(Controls.PopupText, "FrontEndPopupAccess")
     end,
     priorInput = priorInput,
     items = {

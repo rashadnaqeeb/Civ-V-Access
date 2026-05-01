@@ -186,6 +186,30 @@ local function nameContainsAdj(name, adj)
     return lower(name):find(pat) ~= nil
 end
 
+-- Read live text from a Civ V control. Returns nil for nil/missing
+-- controls and on engine throws so callers can join the result into a
+-- preamble without hitting silent stale-text or crash paths. Some
+-- engine builds throw from :GetText() during teardown / first-tick
+-- showings; the pcall makes that survivable instead of taking the
+-- whole onShow with it. The optional context argument is logged on
+-- throws so debugging can locate which call site failed.
+function Text.controlText(control, context)
+    if control == nil then
+        return nil
+    end
+    local ok, value = pcall(function()
+        return control:GetText()
+    end)
+    if not ok then
+        Log.error("Text.controlText" .. (context and (" [" .. context .. "]") or "") .. " threw: " .. tostring(value))
+        return nil
+    end
+    if value == nil or value == "" then
+        return nil
+    end
+    return value
+end
+
 function Text.unitWithCiv(adjKey, nameKey)
     local adj = Text.key(adjKey)
     local name = Text.key(nameKey)

@@ -11,10 +11,7 @@ BaseMenu.install(ContextPtr, {
     name = "ModsError",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MODS_ERROR"),
     preamble = function()
-        if Controls.ErrorText then
-            return Controls.ErrorText:GetText()
-        end
-        return nil
+        return Text.controlText(Controls.ErrorText, "ModsErrorAccess")
     end,
     priorShowHide = priorShowHide,
     priorInput = priorInput,

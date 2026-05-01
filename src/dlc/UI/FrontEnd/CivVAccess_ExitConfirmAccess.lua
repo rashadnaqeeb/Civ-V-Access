@@ -17,17 +17,7 @@ BaseMenu.install(ContextPtr, {
     name = "ExitConfirm",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EXIT_CONFIRM"),
     preamble = function()
-        local c = Controls.Message
-        if c == nil then
-            return nil
-        end
-        local ok, t = pcall(function()
-            return c:GetText()
-        end)
-        if not ok or t == nil or t == "" then
-            return nil
-        end
-        return t
+        return Text.controlText(Controls.Message, "ExitConfirmAccess")
     end,
     priorShowHide = priorShowHide,
     priorInput = priorInput,
