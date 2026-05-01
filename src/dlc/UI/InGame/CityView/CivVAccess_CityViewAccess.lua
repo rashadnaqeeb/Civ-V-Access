@@ -155,12 +155,9 @@ end
 -- we can't install-once: load-game-from-game kills the prior Context's
 -- env, stranding the old listener. Dead listeners accumulate but throw
 -- silently on global access; the live one runs onCityScreenDirty.
-if Log.installEvent(Events, "SerialEventCityScreenDirty", function()
-    local ok, err = pcall(onCityScreenDirty)
-    if not ok then
-        Log.error("CivVAccess_CityViewAccess: onCityScreenDirty failed: " .. tostring(err))
-    end
-end, "CivVAccess_CityViewAccess") then
+if Log.installEvent(Events, "SerialEventCityScreenDirty",
+    Log.safeListener("CivVAccess_CityViewAccess.onCityScreenDirty", onCityScreenDirty),
+    "CivVAccess_CityViewAccess") then
     Log.info("CivVAccess_CityViewAccess: registered SerialEventCityScreenDirty listener")
 end
 

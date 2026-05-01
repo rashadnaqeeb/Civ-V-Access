@@ -92,6 +92,15 @@ Log = {
         dispatcher[eventName].Add(handler)
         return true
     end,
+    -- Mirrors Log.safeListener: wraps fn in a pcall + Log.error breadcrumb.
+    safeListener = function(scope, fn)
+        return function(...)
+            local ok, err = pcall(fn, ...)
+            if not ok then
+                Log.error(scope .. " listener failed: " .. tostring(err))
+            end
+        end
+    end,
 }
 SpeechEngine = {
     say = function() end,

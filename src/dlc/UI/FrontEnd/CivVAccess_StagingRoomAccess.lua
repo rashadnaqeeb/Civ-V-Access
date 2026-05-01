@@ -872,29 +872,24 @@ end
 -- flag. Engine .Add() chains rather than replaces, so repeated includes
 -- would stack listeners without this guard.
 --
--- Each listener is pcall-wrapped because the engine dispatches Events.X
--- listeners from C and a raw Lua error surfaces as a bare "Runtime Error:
--- ..." line with no Context prefix and no stack trace. The wrapper gives
--- us a breadcrumb identifying which listener threw so the error becomes
--- traceable.
-local function safeListener(name, fn)
-    return function(...)
-        local ok, err = pcall(fn, ...)
-        if not ok then
-            Log.error("StagingRoomAccess listener '" .. name .. "' failed: " .. tostring(err))
-        end
-    end
-end
-
+-- Each listener is pcall-wrapped via Log.safeListener because the engine
+-- dispatches Events.X listeners from C and a raw Lua error surfaces as
+-- a bare "Runtime Error: ..." line with no Context prefix and no stack
+-- trace. The wrapper gives us a breadcrumb identifying which listener
+-- threw so the error becomes traceable.
 local function installListeners()
     if civvaccess_shared._stagingListenersInstalled then
         return
     end
     civvaccess_shared._stagingListenersInstalled = true
-    Events.PreGameDirty.Add(safeListener("PreGameDirty", onPreGameDirty))
-    Events.GameMessageChat.Add(safeListener("GameMessageChat", onChat))
-    Events.MultiplayerGameHostMigration.Add(safeListener("MultiplayerGameHostMigration", onHostMigration))
-    Events.MultiplayerGamePlayerDisconnected.Add(safeListener("MultiplayerGamePlayerDisconnected", onDisconnect))
+    Log.installEvent(Events, "PreGameDirty",
+        Log.safeListener("StagingRoomAccess.onPreGameDirty", onPreGameDirty), "StagingRoomAccess")
+    Log.installEvent(Events, "GameMessageChat",
+        Log.safeListener("StagingRoomAccess.onChat", onChat), "StagingRoomAccess")
+    Log.installEvent(Events, "MultiplayerGameHostMigration",
+        Log.safeListener("StagingRoomAccess.onHostMigration", onHostMigration), "StagingRoomAccess")
+    Log.installEvent(Events, "MultiplayerGamePlayerDisconnected",
+        Log.safeListener("StagingRoomAccess.onDisconnect", onDisconnect), "StagingRoomAccess")
 end
 
 -- Install -------------------------------------------------------------

@@ -44,6 +44,21 @@ end
 -- from-game (see CLAUDE.md "No install-once guards on Events listeners").
 -- This helper expects re-registration on every onInGameBoot; the engine
 -- catches per-listener throws so the freshest live listener still fires.
+-- Wrap a listener so a runtime throw inside it surfaces to Lua.log with a
+-- breadcrumb instead of falling through the engine's per-listener catch
+-- silently. Useful for listener bodies that have non-trivial logic
+-- (closure capture across game transitions, payload-shape assumptions
+-- that a future game patch could shift, MP races where a value the
+-- listener depends on is briefly nil).
+function Log.safeListener(scope, fn)
+    return function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then
+            Log.error(scope .. " listener failed: " .. tostring(err))
+        end
+    end
+end
+
 function Log.installEvent(dispatcher, eventName, handler, scope, missingMsg)
     if dispatcher == nil or dispatcher[eventName] == nil then
         local msg = scope .. ": " .. eventName .. " missing"
