@@ -891,106 +891,40 @@ end
 
 local bind = HandlerStack.bind
 
+-- One row per binding. The bare-letter / Shift+letter pair for each metric
+-- reads as a unit in the help list (T then R + Shift+R then G + Shift+G ...);
+-- Shift+T is intentionally absent because the bare T already includes the
+-- Maya long-form date that CurrentDate's tooltip would have added.
+local function getMetrics()
+    return {
+        { key = Keys.T, mod = MOD_NONE, fn = turnLine, desc = "Turn and date", helpSuffix = "TURN" },
+        { key = Keys.R, mod = MOD_NONE, fn = researchLine, desc = "Current research and science", helpSuffix = "RESEARCH" },
+        { key = Keys.R, mod = MOD_SHIFT, fn = researchDetail, desc = "Research breakdown", helpSuffix = "RESEARCH_DETAIL" },
+        { key = Keys.G, mod = MOD_NONE, fn = goldLine, desc = "Gold, trade routes, shortages", helpSuffix = "GOLD" },
+        { key = Keys.G, mod = MOD_SHIFT, fn = goldDetail, desc = "Gold breakdown", helpSuffix = "GOLD_DETAIL" },
+        { key = Keys.H, mod = MOD_NONE, fn = happinessLine, desc = "Happiness and golden age", helpSuffix = "HAPPINESS" },
+        { key = Keys.H, mod = MOD_SHIFT, fn = happinessDetail, desc = "Happiness and golden age breakdown", helpSuffix = "HAPPINESS_DETAIL" },
+        { key = Keys.F, mod = MOD_NONE, fn = faithLine, desc = "Faith", helpSuffix = "FAITH" },
+        { key = Keys.F, mod = MOD_SHIFT, fn = faithDetail, desc = "Faith breakdown", helpSuffix = "FAITH_DETAIL" },
+        { key = Keys.P, mod = MOD_NONE, fn = policyLine, desc = "Culture and policy timing", helpSuffix = "POLICY" },
+        { key = Keys.P, mod = MOD_SHIFT, fn = policyDetail, desc = "Culture breakdown", helpSuffix = "POLICY_DETAIL" },
+        { key = Keys.I, mod = MOD_NONE, fn = tourismLine, desc = "Tourism and influential civs", helpSuffix = "TOURISM" },
+        { key = Keys.I, mod = MOD_SHIFT, fn = tourismDetail, desc = "Tourism breakdown", helpSuffix = "TOURISM_DETAIL" },
+    }
+end
+
 function EmpireStatus.getBindings()
-    local bindings = {
-        bind(Keys.T, MOD_NONE, function()
-            speak(turnLine())
-        end, "Turn and date"),
-        bind(Keys.R, MOD_NONE, function()
-            speak(researchLine())
-        end, "Current research and science"),
-        bind(Keys.R, MOD_SHIFT, function()
-            speak(researchDetail())
-        end, "Research breakdown"),
-        bind(Keys.G, MOD_NONE, function()
-            speak(goldLine())
-        end, "Gold, trade routes, shortages"),
-        bind(Keys.G, MOD_SHIFT, function()
-            speak(goldDetail())
-        end, "Gold breakdown"),
-        bind(Keys.H, MOD_NONE, function()
-            speak(happinessLine())
-        end, "Happiness and golden age"),
-        bind(Keys.H, MOD_SHIFT, function()
-            speak(happinessDetail())
-        end, "Happiness and golden age breakdown"),
-        bind(Keys.F, MOD_NONE, function()
-            speak(faithLine())
-        end, "Faith"),
-        bind(Keys.F, MOD_SHIFT, function()
-            speak(faithDetail())
-        end, "Faith breakdown"),
-        bind(Keys.P, MOD_NONE, function()
-            speak(policyLine())
-        end, "Culture and policy timing"),
-        bind(Keys.P, MOD_SHIFT, function()
-            speak(policyDetail())
-        end, "Culture breakdown"),
-        bind(Keys.I, MOD_NONE, function()
-            speak(tourismLine())
-        end, "Tourism and influential civs"),
-        bind(Keys.I, MOD_SHIFT, function()
-            speak(tourismDetail())
-        end, "Tourism breakdown"),
-    }
-    -- Help list interleaves bare-letter and Shift+letter rows so each
-    -- metric reads as a unit (T then R + Shift+R then G + Shift+G ...).
-    -- Shift+T is intentionally absent; the bare T already includes the
-    -- Maya long-form date that CurrentDate's tooltip would have added.
-    local helpEntries = {
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TURN",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TURN",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_RESEARCH",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_RESEARCH_DETAIL",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_RESEARCH_DETAIL",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_GOLD",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_GOLD",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_GOLD_DETAIL",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_GOLD_DETAIL",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_HAPPINESS",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_HAPPINESS",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_HAPPINESS_DETAIL",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_HAPPINESS_DETAIL",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_FAITH",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_FAITH",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_FAITH_DETAIL",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_FAITH_DETAIL",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_POLICY",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_POLICY_DETAIL",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_POLICY_DETAIL",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM",
-        },
-        {
-            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TOURISM_DETAIL",
-            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL",
-        },
-    }
+    local bindings = {}
+    local helpEntries = {}
+    for _, m in ipairs(getMetrics()) do
+        bindings[#bindings + 1] = bind(m.key, m.mod, function()
+            speak(m.fn())
+        end, m.desc)
+        helpEntries[#helpEntries + 1] = {
+            keyLabel = "TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_" .. m.helpSuffix,
+            description = "TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_" .. m.helpSuffix,
+        }
+    end
     return { bindings = bindings, helpEntries = helpEntries }
 end
 
