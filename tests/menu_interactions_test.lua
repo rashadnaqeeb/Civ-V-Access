@@ -1,9 +1,9 @@
--- BaseMenu item-interaction tests. Peeled out of menu_test.lua.
--- Covers click-ack gating (when activation plays the click sound vs
--- when it stays silent), tooltip composition / dedupe / dynamic fn /
--- newline handling, and edit-mode (Textfield enter / escape / restore
--- / commit / re-enter). The shared setup() and helpers are duplicated
--- across the four menu_*_test files so each is self-contained.
+-- BaseMenu item-interaction tests. Covers click-ack gating (when
+-- activation plays the click sound vs when it stays silent), tooltip
+-- composition / dedupe / dynamic fn / newline handling, and edit-mode
+-- (Textfield enter / escape / restore / commit / re-enter). The shared
+-- setup() and helpers are duplicated across the four menu_*_test files
+-- so each suite is self-contained.
 local T = require("support")
 local M = {}
 

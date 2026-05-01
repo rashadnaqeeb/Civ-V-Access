@@ -2,10 +2,9 @@
 --
 -- Opens when the engine shows the CityView Context (banner click on own
 -- city, Enter on a friendly hex, etc.). Every section of the screen is
--- reached through a sub-handler pushed on top of this hub. This phase
--- wires only the hub scaffold: preamble announcement, F1 re-read, Esc
--- close, next / previous city hotkeys, and auto-re-announce on
--- city-change. Hub items and sub-handlers are added in later phases.
+-- reached through a sub-handler pushed on top of this hub. The hub owns
+-- the preamble announcement, F1 re-read, Esc close, next / previous city
+-- hotkeys, and auto-re-announce on city-change.
 --
 -- SerialEventCityScreenDirty fires on city switches AND on turn ticks
 -- while the screen is up. A city-ID compare filters out the turn-tick
@@ -44,9 +43,8 @@ include("CivVAccess_CityStats")
 -- orchestrator stays focused on the hub scaffold and the small section
 -- pushers (Wonders, Buildings, Specialists, Great Works, Great People,
 -- Worker Focus, Stats, Ranged Strike, Rename, Raze). Each sub-module
--- declares a global with a single .push() entry point that buildHubItems
--- below references in place of the old local pushProductionQueue /
--- pushHexMap closures.
+-- declares a global with a single .push() entry point referenced from
+-- buildHubItems below.
 include("CivVAccess_CityViewProduction")
 include("CivVAccess_CityViewHexMap")
 

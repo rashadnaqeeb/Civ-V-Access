@@ -1,6 +1,6 @@
--- Offering-tab item builder for the diplomacy trade screen, peeled out
--- of CivVAccess_TradeLogicAccess.lua. Walks the live g_Deal and emits
--- one BaseMenu item per placed entry on the side requested. Read-only
+-- Offering-tab item builder for the diplomacy trade screen. Walks the
+-- live g_Deal and emits one BaseMenu item per placed entry on the side
+-- requested. Read-only
 -- branch (AI demand / request / offer, or g_bTradeReview) drops the
 -- onActivate paths so items announce but cannot be removed.
 --

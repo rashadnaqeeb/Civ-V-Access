@@ -1,10 +1,8 @@
--- BaseMenuItems widgets and Button-list navigation. Peeled out of
--- menu_test.lua. Covers Button-list navigation, disabled-but-visible
--- walking, Checkbox / Slider / PullDown widgets, and the VirtualSlider
--- / VirtualToggle settings-menu items. The shared setup() and helpers
--- are duplicated across the four menu_*_test files so each is self-
--- contained; tests do not change between the pre-split menu_test.lua
--- and the new files, only their home moves.
+-- BaseMenuItems widgets and Button-list navigation. Covers Button-list
+-- navigation, disabled-but-visible walking, Checkbox / Slider / PullDown
+-- widgets, and the VirtualSlider / VirtualToggle settings-menu items.
+-- The shared setup() and helpers are duplicated across the four
+-- menu_*_test files so each suite is self-contained.
 local T = require("support")
 local M = {}
 

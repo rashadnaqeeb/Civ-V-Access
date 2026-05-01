@@ -1,6 +1,6 @@
--- Available-tab item builder for the diplomacy trade screen, peeled out
--- of CivVAccess_TradeLogicAccess.lua. Composes the legal placement
--- options for one side at a time: Gold, Gold-per-turn, Resources
+-- Available-tab item builder for the diplomacy trade screen. Composes
+-- the legal placement options for one side at a time: Gold, Gold-per-
+-- turn, Resources
 -- (luxury / strategic sub-groups), boolean diplo items, Cities,
 -- Other Players (Make Peace / Declare War), and Votes. Each leaf
 -- queries g_Deal:IsPossibleToTradeItem live; illegal items either

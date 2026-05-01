@@ -216,11 +216,8 @@ local function afterLocalDealChange()
     TradeLogicAccess.rebuild()
 end
 
--- Expose shared helpers so the sub-modules (TradeLogicOffering /
--- TradeLogicAvailable) can call them at item-build time. These were
--- file-locals in the pre-split file; promoting them to TradeLogicAccess
--- members is the smallest change that lets the split work without
--- duplicating the helper bodies into each sub-module.
+-- Shared helpers exposed to the sub-modules (TradeLogicOffering /
+-- TradeLogicAvailable) so they can call them at item-build time.
 TradeLogicAccess.dealDuration = dealDuration
 TradeLogicAccess.peaceDuration = peaceDuration
 TradeLogicAccess.turnsSuffix = turnsSuffix
@@ -234,8 +231,8 @@ TradeLogicAccess.clearEngineTable = clearEngineTable
 TradeLogicAccess.emptyPlaceholder = emptyPlaceholder
 TradeLogicAccess.afterLocalDealChange = afterLocalDealChange
 
--- Re-exports so any caller that previously reached for
--- TradeLogicAccess.buildOfferingItems / buildAvailableItems still works.
+-- Re-exports of the sub-module item builders so callers reach a single
+-- TradeLogicAccess namespace.
 TradeLogicAccess.buildOfferingItems = TradeLogicOffering.buildOfferingItems
 TradeLogicAccess.buildAvailableItems = TradeLogicAvailable.buildAvailableItems
 

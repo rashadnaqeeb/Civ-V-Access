@@ -18,10 +18,10 @@
 -- This file declares the `UnitControl` global that external callers
 -- (Boot, BaselineHandler, UnitTargetMode, DeclareWarPopupAccess, the
 -- offline test harness) reach for. It re-exports the public methods of
--- the three sub-modules so those callers do not need to know about the
--- split, and it aggregates the per-module getBindings / installListeners
--- so BaselineHandler still gets one unified bindings list and Boot still
--- makes one installListeners call.
+-- the three sub-modules so callers see one unified surface, and it
+-- aggregates the per-module getBindings / installListeners so
+-- BaselineHandler gets one bindings list and Boot makes one
+-- installListeners call.
 --
 -- Speech policy (lives at the orchestrator level because both Selection
 -- and Combat / Movement participate): user-initiated actions interrupt;
@@ -34,10 +34,10 @@ include("CivVAccess_UnitControlMovement")
 
 UnitControl = {}
 
--- Re-exports: every public method previously on UnitControl, surfaced
--- through the orchestrator so existing callers (UnitTargetMode,
--- DeclareWarPopupAccess via civvaccess_shared.modules.UnitControl, the
--- unit_control_test suite) keep working without touching them.
+-- Re-exports: every public method on UnitControl, surfaced through the
+-- orchestrator so callers (UnitTargetMode, DeclareWarPopupAccess via
+-- civvaccess_shared.modules.UnitControl, the unit_control_test suite)
+-- see one flat namespace.
 UnitControl.markUserInitiatedSelection = UnitControlSelection.markUserInitiatedSelection
 UnitControl.cycleAll = UnitControlSelection.cycleAll
 UnitControl.cycleAllUnits = UnitControlSelection.cycleAllUnits
@@ -59,9 +59,9 @@ local function appendAll(target, source)
     end
 end
 
--- Composed bindings list, in the same order BaselineHandler used to see
--- before the split: Selection (cycle / info / recenter) first, then
--- Movement+Actions (action menu, Alt+QAZEDC, Alt-letter, Alt+N).
+-- Composed bindings list, in BaselineHandler's expected order: Selection
+-- (cycle / info / recenter) first, then Movement+Actions (action menu,
+-- Alt+QAZEDC, Alt-letter, Alt+N).
 function UnitControl.getBindings()
     local sel = UnitControlSelection.getBindings()
     local mov = UnitControlMovement.getBindings()

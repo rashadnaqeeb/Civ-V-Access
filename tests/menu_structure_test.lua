@@ -1,11 +1,10 @@
--- BaseMenu structural and navigation tests. Peeled out of menu_test
--- .lua. Covers factory validation, edge cases (empty items / setItems
--- / capturesAllInput / shouldActivate / deferActivate / dynamic-item
--- features), nested groups (drill / wrap / Ctrl up-down jumps /
--- pulldown-advanced behavior), type-ahead search + Choice.selectedFn
--- announce-on-current-value, and the Ctrl+I pedia dispatch chord.
--- The shared setup() and helpers are duplicated across the four
--- menu_*_test files so each is self-contained.
+-- BaseMenu structural and navigation tests. Covers factory validation,
+-- edge cases (empty items / setItems / capturesAllInput / shouldActivate
+-- / deferActivate / dynamic-item features), nested groups (drill / wrap
+-- / Ctrl up-down jumps / pulldown-advanced behavior), type-ahead search
+-- + Choice.selectedFn announce-on-current-value, and the Ctrl+I pedia
+-- dispatch chord. The shared setup() and helpers are duplicated across
+-- the four menu_*_test files so each suite is self-contained.
 local T = require("support")
 local M = {}
 

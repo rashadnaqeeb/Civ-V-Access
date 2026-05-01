@@ -1,11 +1,10 @@
--- BaseMenu lifecycle and tabbing tests. Peeled out of menu_test.lua.
--- Covers Install (push on show / pop on hide / reactivation /
--- suppressReactivateOnHide / Esc bypass), preamble (silentFirstOpen
--- variants, ReadSubtitles, function preamble), refresh, F1 readHeader,
--- single-handler tabs, and the per-tab nameFn / buildSearchable /
--- onAltLeft-Right / onCtrl hooks. The shared setup() and helpers are
--- duplicated across the four menu_*_test files so each is self-
--- contained.
+-- BaseMenu lifecycle and tabbing tests. Covers Install (push on show /
+-- pop on hide / reactivation / suppressReactivateOnHide / Esc bypass),
+-- preamble (silentFirstOpen variants, ReadSubtitles, function preamble),
+-- refresh, F1 readHeader, single-handler tabs, and the per-tab nameFn /
+-- buildSearchable / onAltLeft-Right / onCtrl hooks. The shared setup()
+-- and helpers are duplicated across the four menu_*_test files so each
+-- suite is self-contained.
 local T = require("support")
 local M = {}
 

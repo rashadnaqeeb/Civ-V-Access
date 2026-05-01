@@ -1,5 +1,4 @@
--- Production queue sub-handler for the CityView accessibility hub. Peeled
--- out of CivVAccess_CityViewAccess.lua. Owns:
+-- Production queue sub-handler for the CityView accessibility hub. Owns:
 --
 -- - The slot-label composers (slotOneLabel for the currently-producing
 --   item with its production meter percentage, slotNLabel for queued

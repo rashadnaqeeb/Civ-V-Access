@@ -12,14 +12,17 @@
 -- we don't drop an event; the engine's own TaskList.lua has the same
 -- shape for the same reason.
 --
--- Listener registers at file scope (matching the engine's TaskList.lua)
--- rather than the mod's usual installListeners() pattern, so it's live
--- before LoadScreenClose. Scenario task pushes from C++ can fire during
--- game setup, before the LoadScreenClose-driven boot path runs; later-
--- registered listeners would miss them. The file is re-evaluated on
--- every WorldView Context include (fresh-game and load-game-from-game),
--- so a fresh-env closure supplants any stranded prior-game listener
--- per the same rationale as Boot.lua's LoadScreenClose registration.
+-- Listener registers at file scope (Boot includes this file at WorldView
+-- Context include time), rather than the mod's usual installListeners()
+-- pattern, so it's live before LoadScreenClose. Scenario task pushes from
+-- C++ can fire during game setup, before the LoadScreenClose-driven boot
+-- path runs; later-registered listeners would miss them. The file is re-
+-- evaluated on every WorldView Context include (fresh-game and load-
+-- game-from-game), so a fresh-env closure supplants any stranded prior-
+-- game listener per the same rationale as Boot.lua's LoadScreenClose
+-- registration. (Not seated on the engine's own TaskList Context: that
+-- Context never re-inits on load-from-game, which is the same reason
+-- the mod's boot seat lives on WorldView.)
 
 TaskList = {}
 

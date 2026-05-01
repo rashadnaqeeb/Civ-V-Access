@@ -13,12 +13,11 @@
 -- DOMAIN_AIR), so dropping the IsCargo gate has no spurious surface.
 --
 -- The city entry's action mirrors vanilla's CityBannerManager OnBannerClick
--- fork and matches what Cursor.activate used to do inline: own city opens
--- the city screen (annex popup first if the city is a puppet and the
--- player may annex), a met minor opens the read-only city screen, a met
--- major opens diplomacy (or the deal screen for human opponents) with
--- the same turn-active guard LeaderSelected uses, and unmet foreigners
--- silent no-op. The unit action is just UI.SelectUnit.
+-- fork: own city opens the city screen (annex popup first if the city
+-- is a puppet and the player may annex), a met minor opens the read-only
+-- city screen, a met major opens diplomacy (or the deal screen for human
+-- opponents) with the same turn-active guard LeaderSelected uses, and
+-- unmet foreigners silent no-op. The unit action is just UI.SelectUnit.
 
 CursorActivate = {}
 

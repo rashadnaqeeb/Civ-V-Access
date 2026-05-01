@@ -1,5 +1,4 @@
--- Hex map sub-handler for the CityView accessibility hub. Peeled out of
--- CivVAccess_CityViewAccess.lua. Owns:
+-- Hex map sub-handler for the CityView accessibility hub. Owns:
 --
 -- - Cursor-driven tile inspection within the city's reach (city center,
 --   workable ring, and every purchasable plot including culture grabs

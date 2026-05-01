@@ -492,11 +492,10 @@ end
 -- the message by the time this fires -- so the listener can decide moved /
 -- stopped-short / queued / failed without a wall-clock timeout.
 --
--- Replaces the prior 2-tick frame-count expiry timer, which assumed
--- SP-style synchronous resolution and false-fired "action failed" while
--- the network was still processing the move in MP. The user heard the
--- bogus failure announcement, then watched the unit move a few seconds
--- later when the round-trip finally resolved.
+-- A frame-count expiry timer would assume SP-style synchronous resolution
+-- and false-fire "action failed" while the network was still processing
+-- the move in MP. Dispatch-event filtering (this listener) waits for the
+-- engine's actual mission resolution instead.
 --
 -- Player + unit ID match is required: the hook fires for every PUSH_MISSION
 -- the engine processes (including AI moves and other-player moves replayed

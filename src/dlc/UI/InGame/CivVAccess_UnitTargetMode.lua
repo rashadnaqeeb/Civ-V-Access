@@ -572,12 +572,13 @@ end
 --   false -- mode unrecognized -> caller falls back to UI.CanDoInterface
 --          Mode as the engine's safety net
 --
--- Replaces a blanket UI.CanDoInterfaceMode gate that returned a single
--- generic "action failed" for every reason. CanDoInterfaceMode also
--- returns false for 0-MP MOVE_TO commits the engine would happily queue
--- for next turn -- preflightMove doesn't gate on MP, so 0-MP moves get
--- pushed and the schedulePendingExpiry path then announces "queued for
--- next turn" instead of falsely reporting failure.
+-- A bare UI.CanDoInterfaceMode gate would return a single generic "action
+-- failed" for every reason; this returns the specific TXT_KEY for the
+-- particular gate that tripped. CanDoInterfaceMode also returns false
+-- for 0-MP MOVE_TO commits the engine would happily queue for next turn
+-- -- preflightMove doesn't gate on MP, so 0-MP moves get pushed and the
+-- schedulePendingExpiry path then announces "queued for next turn"
+-- instead of falsely reporting failure.
 local function commitFailureReason(actor, mode, plot, tx, ty)
     if isMoveMode(mode) then
         return UnitControl.preflightMove(actor, plot)
