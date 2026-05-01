@@ -4,10 +4,10 @@ Per-file declaration outlines for every mod-authored source file in this repo. G
 
 ## What's indexed
 
-291 files total:
+292 files total:
 
 - `src/proxy/proxy.c` (1) — the Lua 5.1 proxy DLL.
-- `src/dlc/UI/**/CivVAccess_*.lua` (227) — every mod-authored Lua file under the DLC payload, including Shared infra, FrontEnd Access wrappers, InGame top-level, Popups, sub-dirs (CityView, LeaderHead, Menus, WorldView), TechTree, and the SkinProbe sentinel shims.
+- `src/dlc/UI/**/CivVAccess_*.lua` (228) — every mod-authored Lua file under the DLC payload, including Shared infra, FrontEnd Access wrappers, InGame top-level, Popups, sub-dirs (CityView, LeaderHead, Menus, WorldView), TechTree, and the SkinProbe sentinel shims.
 - `tests/*.lua` (64) — every test suite plus the runner (`run.lua`) and the shared helpers (`support.lua`).
 
 Scope mirrors the source tree exactly. `<repo>/src/dlc/UI/Shared/CivVAccess_Log.lua` indexes to `code-index/src/dlc/UI/Shared/CivVAccess_Log.lua.md`.

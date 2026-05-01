@@ -60,22 +60,19 @@ ForeignUnitWatch = {}
 
 -- Snapshot entry shape:
 -- { ownerId, unitId, civAdjKey, unitDescKey, bucket = "hostile" | "neutral" }
+-- Visibility walk and metadata recording live in ForeignUnitSnapshot;
+-- this module owns the per-bucket vocabulary and the diff.
 local _snapshot = {}
 
-local function globalKey(ownerId, unitId)
-    return tostring(ownerId) .. ":" .. tostring(unitId)
-end
-
--- "hostile" / "neutral" / nil. Nil for own player, dead players, and
--- teammates -- those don't belong in either announcement bucket.
+-- "hostile" / "neutral" / nil. Nil for own player and teammates -- those
+-- don't belong in either announcement bucket. ForeignUnitSnapshot.collect
+-- already gates on the owner being alive, so this only classifies live
+-- foreign players.
 local function classifyOwner(ownerId, activePlayerId, activeTeam)
     if ownerId == activePlayerId then
         return nil
     end
     local owner = Players[ownerId]
-    if owner == nil or not owner:IsAlive() then
-        return nil
-    end
     if owner:IsBarbarian() then
         return "hostile"
     end
@@ -89,99 +86,15 @@ local function classifyOwner(ownerId, activePlayerId, activeTeam)
     return "neutral"
 end
 
--- Caller (buildVisibleSet) has already proved Players[ownerId] alive,
--- so the lookup here doesn't need a nil guard. The unit description
--- row check guards a real edge case (mod content with missing
--- Description) and stays.
-local function unitMetadata(unit, ownerId, bucket)
-    local civAdjKey = Players[ownerId]:GetCivilizationAdjectiveKey()
-    local row = GameInfo.Units[unit:GetUnitType()]
-    local unitDescKey = row and row.Description or nil
-    return {
-        ownerId = ownerId,
-        unitId = unit:GetID(),
-        civAdjKey = civAdjKey,
-        unitDescKey = unitDescKey,
-        bucket = bucket,
-    }
-end
-
--- Walks every foreign player slot up through the barbarian index and
--- collects visible-to-active-team units into a keyed table. Visibility
--- filter mirrors ScannerBackendUnits (IsVisible AND not IsInvisible) so
--- stealth and recon-blocking behave the same here.
 local function buildVisibleSet()
-    local set = {}
-    local activePlayerId = Game.GetActivePlayer()
-    local activeTeam = Game.GetActiveTeam()
-    local maxIndex = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 63
-    for i = 0, maxIndex do
-        if i ~= activePlayerId then
-            local player = Players[i]
-            if player ~= nil and player:IsAlive() then
-                local bucket = classifyOwner(i, activePlayerId, activeTeam)
-                if bucket ~= nil then
-                    for unit in player:Units() do
-                        if not unit:IsInvisible(activeTeam, false) then
-                            local plot = unit:GetPlot()
-                            if plot ~= nil and plot:IsVisible(activeTeam, false) then
-                                local meta = unitMetadata(unit, i, bucket)
-                                if meta.civAdjKey ~= nil and meta.unitDescKey ~= nil then
-                                    set[globalKey(i, unit:GetID())] = meta
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return set
-end
-
--- "3 Arabian Warrior" form, comma-joined, sorted alphabetically by
--- (civAdjKey, unitDescKey). Sorting matters: pairs() on the counts
--- table is non-deterministic, and an unsorted output reorders the
--- list every turn even when the content is identical, which sounds
--- "wrong" to a screen-reader user who's tracking a familiar list. No
--- plural form -- Civ V's text data has no TXT_KEY_UNIT_*_PLURAL keys,
--- hand-rolling per-unit / per-locale plural rules is a maintenance
--- trap, and screen readers parse "3 Warrior" as plural from context.
-local function formatList(entries)
-    local counts = {}
-    local order = {}
-    for _, e in ipairs(entries) do
-        local key = e.civAdjKey .. "|" .. e.unitDescKey
-        local bucket = counts[key]
-        if bucket == nil then
-            counts[key] = {
-                count = 1,
-                civ = Text.key(e.civAdjKey),
-                unit = Text.key(e.unitDescKey),
-            }
-            order[#order + 1] = key
-        else
-            bucket.count = bucket.count + 1
-        end
-    end
-    table.sort(order)
-    local pieces = {}
-    for _, k in ipairs(order) do
-        local b = counts[k]
-        if b.count > 1 then
-            pieces[#pieces + 1] = tostring(b.count) .. " " .. b.civ .. " " .. b.unit
-        else
-            pieces[#pieces + 1] = b.civ .. " " .. b.unit
-        end
-    end
-    return table.concat(pieces, ", ")
+    return ForeignUnitSnapshot.collect(classifyOwner)
 end
 
 local function formatLine(entries, txtKey)
     if #entries == 0 then
         return ""
     end
-    return Text.format(txtKey, formatList(entries))
+    return Text.format(txtKey, ForeignUnitSnapshot.formatList(entries))
 end
 
 function ForeignUnitWatch._onTurnEnd()

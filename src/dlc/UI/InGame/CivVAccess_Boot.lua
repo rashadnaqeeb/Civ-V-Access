@@ -111,6 +111,7 @@ include("CivVAccess_NotificationAnnounce")
 -- and hot seat, where the popup path covers it.
 include("CivVAccess_MultiplayerRewards")
 include("CivVAccess_MultiplayerTurnEnd")
+include("CivVAccess_ForeignUnitSnapshot")
 include("CivVAccess_RevealAnnounce")
 include("CivVAccess_ForeignUnitWatch")
 include("CivVAccess_ForeignClearWatch")

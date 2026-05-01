@@ -230,14 +230,13 @@ end
 -- logic in ScannerBackendUnits.ownerCategory but collapses "my" and
 -- "teammate" to a single ignored bucket since this announcement is
 -- about things the player just saw, not about own forces.
+-- ForeignUnitSnapshot.collect already gates on the owner being alive,
+-- so this only classifies live foreign players.
 local function unitOwnerBucket(ownerId, activePlayerId, activeTeam)
     if ownerId == activePlayerId then
         return nil
     end
     local owner = Players[ownerId]
-    if owner == nil then
-        return nil
-    end
     if owner:IsBarbarian() then
         return "enemy"
     end
@@ -259,101 +258,11 @@ local function resourceName(resourceId)
     return Text.key(row.Description)
 end
 
-local function visibilityKey(ownerId, unitId)
-    return tostring(ownerId) .. ":" .. tostring(unitId)
-end
-
--- Metadata shape used by both directions: { ownerId, unitId, civAdjKey,
--- unitDescKey, bucket }. The reveal direction populates from plot-walk
--- (announcePlots) and hands the list to formatUnitList for the same
--- "{count} {civ adj} {unit name}" rendering the hide direction uses.
--- Snapshot keys foreign units by "<ownerId>:<unitId>" so the hide diff
--- can drop captures (the captured unit appears under a different
--- ownerId in the new snapshot, so the original key fails to match and
--- the still-alive guard catches the rest).
-local function unitVisibilityMetadata(unit, ownerId, bucket)
-    local civAdjKey = Players[ownerId]:GetCivilizationAdjectiveKey()
-    local row = GameInfo.Units[unit:GetUnitType()]
-    local unitDescKey = row and row.Description or nil
-    return {
-        ownerId = ownerId,
-        unitId = unit:GetID(),
-        civAdjKey = civAdjKey,
-        unitDescKey = unitDescKey,
-        bucket = bucket,
-    }
-end
-
--- Walks every foreign player slot and collects visible-to-active-team
--- units into a keyed table. Mirrors ForeignUnitWatch.buildVisibleSet's
--- visibility filter (IsVisible AND not IsInvisible) so stealth and
--- recon-blocking behave the same way for both directions.
 local function buildVisibleForeignUnits()
-    local set = {}
-    local activePlayerId = Game.GetActivePlayer()
-    local activeTeam = Game.GetActiveTeam()
-    local maxIndex = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 63
-    for i = 0, maxIndex do
-        if i ~= activePlayerId then
-            local player = Players[i]
-            if player ~= nil and player:IsAlive() then
-                local bucket = unitOwnerBucket(i, activePlayerId, activeTeam)
-                if bucket ~= nil then
-                    for unit in player:Units() do
-                        if not unit:IsInvisible(activeTeam, false) then
-                            local plot = unit:GetPlot()
-                            if plot ~= nil and plot:IsVisible(activeTeam, false) then
-                                local meta = unitVisibilityMetadata(unit, i, bucket)
-                                if meta.civAdjKey ~= nil and meta.unitDescKey ~= nil then
-                                    set[visibilityKey(i, unit:GetID())] = meta
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return set
+    return ForeignUnitSnapshot.collect(unitOwnerBucket)
 end
 
--- "3 Arabian Warrior" form, comma-joined, sorted alphabetically by
--- (civAdjKey, unitDescKey). Used by both directions: reveal and hide
--- render their unit lists the same way so the player hears a
--- consistent "<count> <civ adj> <unit name>" shape regardless of
--- direction. Sorting matters: pairs() on the counts table is non-
--- deterministic, and an unsorted output reorders the list across
--- flushes even when the content is identical, which sounds "wrong" to
--- a user tracking a familiar list.
-local function formatUnitList(entries)
-    local counts = {}
-    local order = {}
-    for _, e in ipairs(entries) do
-        local key = e.civAdjKey .. "|" .. e.unitDescKey
-        local bucket = counts[key]
-        if bucket == nil then
-            counts[key] = {
-                count = 1,
-                civ = Text.key(e.civAdjKey),
-                unit = Text.key(e.unitDescKey),
-            }
-            order[#order + 1] = key
-        else
-            bucket.count = bucket.count + 1
-        end
-    end
-    table.sort(order)
-    local pieces = {}
-    for _, k in ipairs(order) do
-        local b = counts[k]
-        if b.count > 1 then
-            pieces[#pieces + 1] = tostring(b.count) .. " " .. b.civ .. " " .. b.unit
-        else
-            pieces[#pieces + 1] = b.civ .. " " .. b.unit
-        end
-    end
-    return table.concat(pieces, ", ")
-end
+local formatUnitList = ForeignUnitSnapshot.formatList
 
 function RevealAnnounce._flush()
     local ok, err = pcall(RevealAnnounce._flushBody)
@@ -428,7 +337,7 @@ function RevealAnnounce._flushBody()
                     local ownerId = unit:GetOwner()
                     local bucket = unitOwnerBucket(ownerId, activePlayerId, activeTeam)
                     if bucket ~= nil and Players[ownerId] ~= nil then
-                        local meta = unitVisibilityMetadata(unit, ownerId, bucket)
+                        local meta = ForeignUnitSnapshot.metadata(unit, ownerId, bucket)
                         if meta.civAdjKey ~= nil and meta.unitDescKey ~= nil then
                             if bucket == "enemy" then
                                 enemyUnits[#enemyUnits + 1] = meta

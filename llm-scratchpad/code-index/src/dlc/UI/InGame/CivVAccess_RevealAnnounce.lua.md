@@ -1,6 +1,6 @@
 # `src/dlc/UI/InGame/CivVAccess_RevealAnnounce.lua`
 
-642 lines · Announces reveal, hide, and gone events after unit moves so blind players know what just entered or left their line of sight.
+550 lines · Announces reveal, hide, and gone events after unit moves so blind players know what just entered or left their line of sight.
 
 ## Header comment
 
@@ -45,23 +45,18 @@
 - L168: `local function recordFirstReveal(eTeam, iX, iY)`
 - L183: `local function recordNowVisible(hexPos, _fowType, bWholeMap)`
 - L205: `local function shouldSkipPlot(plot)`
-- L232: `local function unitOwnerBucket(ownerId, activePlayerId, activeTeam)`
-- L254: `local function resourceName(resourceId)`
-- L262: `local function visibilityKey(ownerId, unitId)`
-- L274: `local function unitVisibilityMetadata(unit, ownerId, bucket)`
-- L291: `local function buildVisibleForeignUnits()`
-- L324: `local function formatUnitList(entries)`
-- L358: `function RevealAnnounce._flush()`
-- L365: `function RevealAnnounce._flushBody()`
-- L592: `function RevealAnnounce._onTurnStart()`
-- L605: `function RevealAnnounce.installListeners()`
-- L624: `GameEvents.CivVAccessPlotRevealed.Add(recordFirstReveal)`
-- L631: `Events.HexFOWStateChanged.Add(recordNowVisible)`
-- L636: `Events.ActivePlayerTurnStart.Add(RevealAnnounce._onTurnStart)`
+- L235: `local function unitOwnerBucket(ownerId, activePlayerId, activeTeam)` -> "enemy" / "other" / nil
+- L253: `local function resourceName(resourceId)`
+- L261: `local function buildVisibleForeignUnits()` -> ForeignUnitSnapshot.collect(unitOwnerBucket)
+- L267: `function RevealAnnounce._flush()`
+- L274: `function RevealAnnounce._flushBody()`
+- L501: `function RevealAnnounce._onTurnStart()`
+- L514: `function RevealAnnounce.installListeners()`
 
 ## Notes
 
 - L79 `_flushTargetFrame`: Set to -1 when no flush is pending; `scheduleFlush` sets it to current frame + `FLUSH_DELAY_FRAMES` so both the synchronous `CivVAccessPlotRevealed` and the deferred `HexFOWStateChanged` events land in the same buffer before speaking.
 - L205 `shouldSkipPlot`: Suppresses natural wonders, goody huts, and barbarian camps from the reveal *payload* (not the count) because the engine fires its own popups for those; the tile still increments the revealed-tile headline count.
-- L365 `RevealAnnounce._flushBody`: The "gone" diff reads `GetImprovementType()` (live) and compares to the Lua snapshot rather than `GetRevealedImprovementType()` because `setRevealed` synchronously overwrites the engine's revealed-type before `HexFOWStateChanged` dispatches.
-- L592 `RevealAnnounce._onTurnStart`: Silently rebuilds `_visibleUnits` at turn start so the first flush after the player's first move doesn't re-announce units that walked into fog during the AI turn.
+- L274 `RevealAnnounce._flushBody`: The "gone" diff reads `GetImprovementType()` (live) and compares to the Lua snapshot rather than `GetRevealedImprovementType()` because `setRevealed` synchronously overwrites the engine's revealed-type before `HexFOWStateChanged` dispatches.
+- L501 `RevealAnnounce._onTurnStart`: Silently rebuilds `_visibleUnits` at turn start so the first flush after the player's first move doesn't re-announce units that walked into fog during the AI turn.
+- Visibility walk and metadata recording live in `CivVAccess_ForeignUnitSnapshot.lua`; this file owns the per-bucket vocabulary ("enemy" / "other") and the reveal/hide diff logic. The plot-walk path in `_flushBody` builds metadata via `ForeignUnitSnapshot.metadata(unit, ownerId, bucket)` since it discovers units one plot at a time rather than via the global slot walk in `collect()`.
