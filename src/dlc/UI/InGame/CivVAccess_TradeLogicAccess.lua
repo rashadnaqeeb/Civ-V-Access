@@ -1,14 +1,25 @@
--- Shared logic for the diplomacy trade screen accessibility layer. Loaded
--- from three Context wrappers (AI DiploTrade, PvP SimpleDiploTrade, review
--- DiploCurrentDeals) via include; each Context gets its own function table
--- bound to that Context's Controls / globals.
+-- Diplomacy trade screen accessibility orchestrator. Loaded via include
+-- from three Context wrappers (AI DiploTrade, PvP SimpleDiploTrade,
+-- review DiploCurrentDeals); each Context calls TradeLogicAccess.install
+-- with a descriptor naming the kind, preamble, and any Context-specific
+-- top-items override.
 --
--- The screen has a flat top-level BaseMenu with six items (Your Offer, Their
--- Offer, an AI query slot, Propose, Cancel, Modify). Activating Your / Their
--- Offer pushes a drawer -- a tabbed BaseMenu with Offering (items on the
--- table) and Available (items that could be placed). Read-only states
--- (AI demand / request / offer, or g_bTradeReview) push a flat Offering-only
--- drawer instead.
+-- The screen has a flat top-level BaseMenu with up to six items
+-- (Your Offer, Their Offer, an AI query slot, Propose, Cancel, Modify).
+-- Activating Your / Their Offer pushes a drawer -- a tabbed BaseMenu with
+-- Offering (items currently on the table) and Available (items that
+-- could be placed). Read-only states (AI demand / request / offer, or
+-- g_bTradeReview) push a flat Offering-only drawer instead.
+--
+-- The Offering and Available item builders live in two sibling files:
+--   CivVAccess_TradeLogicOffering.lua  -> TradeLogicOffering.buildOfferingItems
+--   CivVAccess_TradeLogicAvailable.lua -> TradeLogicAvailable.buildAvailableItems
+-- Both are included from this orchestrator so that whichever Context
+-- pulls in CivVAccess_TradeLogicAccess gets the full split transparently.
+-- The shared per-side helpers (prefix, sidePlayer, sideIsUs, turnsSuffix,
+-- pocketTooltipFn, dealDuration, peaceDuration, afterLocalDealChange,
+-- emptyPlaceholder, clearEngineTable) are exposed on the TradeLogicAccess
+-- table so the sub-modules can call them at item-build time.
 --
 -- Reads of TradeLogic state rely on eight g_* names we promoted to globals
 -- in our shipped TradeLogic.lua override (g_Deal, g_iUs, g_iThem,
@@ -25,6 +36,9 @@
 -- prior game throw harmlessly on first global access under the engine's
 -- per-listener pcall.
 
+include("CivVAccess_TradeLogicOffering")
+include("CivVAccess_TradeLogicAvailable")
+
 TradeLogicAccess = {}
 
 local DRAWER_NAME = "DiploTrade/Drawer"
@@ -37,6 +51,8 @@ local DRAWER_NAME = "DiploTrade/Drawer"
 local _handler = nil
 local _drawerHandler = nil
 local _descriptor = nil
+
+-- Shared helpers ----------------------------------------------------------
 
 -- TradeLogic's g_iDealDuration / g_iPeaceDuration are file-locals, not
 -- globals; we can't reach them from our own file. Re-query the engine each
@@ -110,6 +126,42 @@ local function prefix(side)
     return sideIsUs(side) and "Us" or "Them"
 end
 
+-- Closure over a base-game control name that returns its current
+-- SetToolTipString live. Used as `tooltipFn` on items whose engine
+-- counterpart owns a contextual tooltip the user should hear (disabled
+-- reason, descriptive copy, cost / duration text). Returns nil when the
+-- control or its tooltip is missing so appendTooltip skips silently.
+local function pocketTooltipFn(controlName)
+    return function()
+        local c = Controls[controlName]
+        if c == nil then
+            return nil
+        end
+        return c:GetToolTipString()
+    end
+end
+
+-- DoClearTable mirrors the engine's own post-remove repaint; called after
+-- every mutation that removes a placed item so the engine's InstanceManager
+-- rows drop their contents before DisplayDeal rebuilds them.
+local function clearEngineTable()
+    if type(DoClearTable) ~= "function" then
+        return
+    end
+    local ok, err = pcall(DoClearTable)
+    if not ok then
+        Log.error("TradeLogicAccess DoClearTable failed: " .. tostring(err))
+    end
+end
+
+-- Placeholder Text item appended when a drawer tab would otherwise be
+-- empty. Without it, BaseMenu's tab-switch / first-open announce skips
+-- silently on zero items, leaving the user unsure whether the tab is
+-- empty or the handler is broken.
+local function emptyPlaceholder(textKey)
+    return BaseMenuItems.Text({ labelText = Text.key(textKey) })
+end
+
 -- Drawer rebuild trigger. Called from onCommit / onRemove after a
 -- g_Deal:Add* or Remove* mutation completes, and from the module's top-
 -- level rebuild() on external events. Idempotent: no-op if the drawer is
@@ -138,10 +190,10 @@ local function rebuildDrawer()
         -- Editable: two tabs. Rebuild both so the user's cursor position is
         -- preserved on the active tab and the inactive tab is fresh on
         -- next visit.
-        _drawerHandler.setItems(TradeLogicAccess.buildOfferingItems(side, false), 1)
-        _drawerHandler.setItems(TradeLogicAccess.buildAvailableItems(side), 2)
+        _drawerHandler.setItems(TradeLogicOffering.buildOfferingItems(side, false), 1)
+        _drawerHandler.setItems(TradeLogicAvailable.buildAvailableItems(side), 2)
     else
-        _drawerHandler.setItems(TradeLogicAccess.buildOfferingItems(side, readOnly))
+        _drawerHandler.setItems(TradeLogicOffering.buildOfferingItems(side, readOnly))
     end
 end
 
@@ -164,910 +216,28 @@ local function afterLocalDealChange()
     TradeLogicAccess.rebuild()
 end
 
--- Closure over a base-game control name that returns its current
--- SetToolTipString live. Used as `tooltipFn` on items whose engine
--- counterpart owns a contextual tooltip the user should hear (disabled
--- reason, descriptive copy, cost / duration text). Returns nil when the
--- control or its tooltip is missing so appendTooltip skips silently.
-local function pocketTooltipFn(controlName)
-    return function()
-        local c = Controls[controlName]
-        if c == nil then
-            return nil
-        end
-        return c:GetToolTipString()
-    end
-end
+-- Expose shared helpers so the sub-modules (TradeLogicOffering /
+-- TradeLogicAvailable) can call them at item-build time. These were
+-- file-locals in the pre-split file; promoting them to TradeLogicAccess
+-- members is the smallest change that lets the split work without
+-- duplicating the helper bodies into each sub-module.
+TradeLogicAccess.dealDuration = dealDuration
+TradeLogicAccess.peaceDuration = peaceDuration
+TradeLogicAccess.turnsSuffix = turnsSuffix
+TradeLogicAccess.isReadOnly = isReadOnly
+TradeLogicAccess.isHumanDemand = isHumanDemand
+TradeLogicAccess.sidePlayer = sidePlayer
+TradeLogicAccess.sideIsUs = sideIsUs
+TradeLogicAccess.prefix = prefix
+TradeLogicAccess.pocketTooltipFn = pocketTooltipFn
+TradeLogicAccess.clearEngineTable = clearEngineTable
+TradeLogicAccess.emptyPlaceholder = emptyPlaceholder
+TradeLogicAccess.afterLocalDealChange = afterLocalDealChange
 
--- Offering-tab items ------------------------------------------------------
-
--- Forward declaration: offeringItem is called by buildOfferingItems below
--- but needs the full state-machine switch inline, so it's defined after.
-local offeringItem
-
--- DoClearTable mirrors the engine's own post-remove repaint; called after
--- every mutation that removes a placed item so the engine's InstanceManager
--- rows drop their contents before DisplayDeal rebuilds them.
-local function clearEngineTable()
-    if type(DoClearTable) ~= "function" then
-        return
-    end
-    local ok, err = pcall(DoClearTable)
-    if not ok then
-        Log.error("TradeLogicAccess DoClearTable failed: " .. tostring(err))
-    end
-end
-
--- Walk the live deal and emit one item per placed entry. Peace Treaty is
--- non-activatable (engine forbids removal). Amount items (Gold, GPT,
--- Strategic) become Textfield items bound to the existing XML EditBox so
--- BaseMenuEditMode.push handles commit through TradeLogic's own
--- RegisterCallback handlers. Other placed items become Text items whose
--- Enter removes from the deal.
--- Placeholder Text item appended when a drawer tab would otherwise be
--- empty. Without it, BaseMenu's tab-switch / first-open announce skips
--- silently on zero items, leaving the user unsure whether the tab is
--- empty or the handler is broken.
-local function emptyPlaceholder(textKey)
-    return BaseMenuItems.Text({ labelText = Text.key(textKey) })
-end
-
-function TradeLogicAccess.buildOfferingItems(side, readOnly)
-    local items = {}
-    if g_Deal == nil then
-        items[#items + 1] = emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY")
-        return items
-    end
-    local bFromUs = sideIsUs(side)
-
-    g_Deal:ResetIterator()
-    -- 8-tuple: itemType, duration, finalTurn, data1, data2, data3, flag1,
-    -- fromPlayer. finalTurn is an engine-computed expiry we don't read;
-    -- data3 is load-bearing for votes (proposer choice) so it's captured.
-    local itemType, duration, _, data1, data2, data3, flag1, fromPlayer = g_Deal:GetNextItem()
-    if itemType ~= nil then
-        repeat
-            -- Only show items contributed by this side.
-            local active = Game and Game.GetActivePlayer and Game.GetActivePlayer() or 0
-            local entryFromUs = fromPlayer == active
-            if entryFromUs == bFromUs then
-                local item = offeringItem(itemType, data1, data2, data3, flag1, duration, side, readOnly)
-                if item ~= nil then
-                    items[#items + 1] = item
-                end
-            end
-            itemType, duration, _, data1, data2, data3, flag1, fromPlayer = g_Deal:GetNextItem()
-        until itemType == nil
-    end
-
-    if #items == 0 then
-        items[#items + 1] = emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY")
-    end
-    return items
-end
-
--- Build a single Offering-tab item for one entry type. Returns nil if the
--- item type isn't one we surface.
-offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, readOnly)
-    local p = prefix(side)
-    local iPlayer = sidePlayer(side)
-
-    if itemType == TradeableItems.TRADE_ITEM_PEACE_TREATY then
-        -- Non-activatable: engine forbids removal. Text re-announces on
-        -- Enter by default.
-        return BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0),
-        })
-    end
-
-    if itemType == TradeableItems.TRADE_ITEM_GOLD then
-        local editName = p .. "GoldAmount"
-        local control = Controls[editName]
-        local goldTooltipFn = pocketTooltipFn(p .. "TableGold")
-        if control == nil or readOnly then
-            -- Read-only drawer or missing EditBox (unlikely): fall through
-            -- to a plain Text item showing label + amount.
-            return BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
-                    Text.key("TXT_KEY_DIPLO_GOLD"),
-                    data1 or 0
-                ),
-                tooltipFn = goldTooltipFn,
-            })
-        end
-        return BaseMenuItems.Textfield({
-            controlName = editName,
-            labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
-            tooltipFn = goldTooltipFn,
-            -- Engine ChangeGoldTrade(0) keeps a 0-amount entry in the
-            -- deal; for accessibility we treat 0 / empty on Enter as
-            -- "remove" so the user can clear an offer without hunting
-            -- for the engine's separate UsTableGold remove button.
-            priorCallback = function(text, ctrl, isEnter)
-                if isEnter then
-                    local n = tonumber(text)
-                    if n == nil or n == 0 then
-                        g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_GOLD, iPlayer)
-                        afterLocalDealChange()
-                        return
-                    end
-                end
-                ChangeGoldAmount(text, ctrl, isEnter)
-            end,
-        })
-    end
-
-    if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
-        local editName = p .. "GoldPerTurnAmount"
-        local control = Controls[editName]
-        local gptTooltipFn = pocketTooltipFn(p .. "TableGoldPerTurn")
-        if control == nil or readOnly then
-            return BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE",
-                    Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
-                    data1 or 0,
-                    Text.format("TXT_KEY_DIPLO_TURNS", duration or 0)
-                ),
-                tooltipFn = gptTooltipFn,
-            })
-        end
-        return BaseMenuItems.Textfield({
-            controlName = editName,
-            labelText = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(duration),
-            tooltipFn = gptTooltipFn,
-            priorCallback = function(text, ctrl, isEnter)
-                if isEnter then
-                    local n = tonumber(text)
-                    if n == nil or n == 0 then
-                        g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_GOLD_PER_TURN, iPlayer)
-                        afterLocalDealChange()
-                        return
-                    end
-                end
-                ChangeGoldPerTurnAmount(text, ctrl, isEnter)
-            end,
-        })
-    end
-
-    if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
-        local resInfo = GameInfo.Resources[data1]
-        local resName = resInfo and Text.key(resInfo.Description) or "?"
-        local pediaName = resInfo and Text.key(resInfo.Description) or nil
-        local isStrategic = resInfo and resInfo.ResourceUsage == 1
-        if isStrategic and not readOnly then
-            -- Strategic amount is editable via an IM-built AmountEdit on
-            -- the live instance. Reach it directly rather than via
-            -- Controls[name] which doesn't index IM children.
-            local tbl = sideIsUs(side) and g_UsTableResources or g_ThemTableResources
-            local inst = tbl and tbl[data1]
-            local editBox = inst and inst.AmountEdit
-            if editBox ~= nil then
-                local rType = data1
-                return BaseMenuItems.Textfield({
-                    control = editBox,
-                    labelText = resName .. turnsSuffix(duration),
-                    pediaName = pediaName,
-                    priorCallback = function(text, ctrl, isEnter)
-                        if isEnter then
-                            local n = tonumber(text)
-                            if n == nil or n == 0 then
-                                g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_RESOURCES, iPlayer, rType)
-                                afterLocalDealChange()
-                                return
-                            end
-                        end
-                        ChangeResourceAmount(text, ctrl, isEnter)
-                    end,
-                })
-            end
-        end
-        -- Luxury (or strategic in read-only): Text with optional quantity.
-        local qty = data2 or 0
-        local label
-        if isStrategic then
-            label = Text.format("TXT_KEY_CIVVACCESS_TRADE_STRATEGIC_OFFERING", resName, tostring(qty))
-        else
-            label = resName
-        end
-        label = label .. turnsSuffix(duration)
-        if readOnly then
-            return BaseMenuItems.Text({ labelText = label, pediaName = pediaName })
-        end
-        local rType = data1
-        return BaseMenuItems.Text({
-            labelText = label,
-            pediaName = pediaName,
-            onActivate = function()
-                g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_RESOURCES, iPlayer, rType)
-                clearEngineTable()
-                afterLocalDealChange()
-            end,
-        })
-    end
-
-    if itemType == TradeableItems.TRADE_ITEM_CITIES then
-        local plot = Map.GetPlot(data1, data2)
-        local city = plot and plot:GetPlotCity()
-        local cityID = city and city:GetID()
-        local label
-        if city ~= nil then
-            label =
-                Text.format("TXT_KEY_CIVVACCESS_TRADE_CITY_OFFERING", city:GetName(), tostring(city:GetPopulation()))
-        else
-            label = Text.key("TXT_KEY_RAZED_CITY")
-        end
-        if readOnly or cityID == nil then
-            return BaseMenuItems.Text({ labelText = label })
-        end
-        return BaseMenuItems.Text({
-            labelText = label,
-            onActivate = function()
-                -- Engine's TableCityHandler does RemoveCityTrade(playerID,
-                -- cityID); iterator gives us (x, y) in data1/data2, so
-                -- convert through the plot's city handle.
-                g_Deal:RemoveCityTrade(iPlayer, cityID)
-                clearEngineTable()
-                afterLocalDealChange()
-            end,
-        })
-    end
-
-    if
-        itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE
-        or itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR
-    then
-        -- data1 is the target team id; DisplayOtherPlayerItem resolves
-        -- team -> player -> civ name. Mirror that.
-        local iOtherPlayer = -1
-        for i = 0, (GameDefines.MAX_CIV_PLAYERS or 64) - 1 do
-            local pl = Players[i]
-            if pl and pl:IsEverAlive() and pl:GetTeam() == data1 then
-                iOtherPlayer = i
-                break
-            end
-        end
-        local otherPlayerObj = iOtherPlayer >= 0 and Players[iOtherPlayer] or nil
-        local otherName = otherPlayerObj and otherPlayerObj:GetName() or "?"
-        local leaderInfo = otherPlayerObj and GameInfo.Leaders[otherPlayerObj:GetLeaderType()] or nil
-        local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
-        local labelKey = (itemType == TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE)
-                and "TXT_KEY_CIVVACCESS_TRADE_MAKE_PEACE_WITH"
-            or "TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR_ON"
-        local label = Text.format(labelKey, otherName)
-        if readOnly then
-            return BaseMenuItems.Text({ labelText = label, pediaName = pediaName })
-        end
-        local teamId = data1
-        local capturedType = itemType
-        return BaseMenuItems.Text({
-            labelText = label,
-            pediaName = pediaName,
-            onActivate = function()
-                g_Deal:RemoveByType(capturedType, iPlayer, teamId)
-                clearEngineTable()
-                afterLocalDealChange()
-            end,
-        })
-    end
-
-    if itemType == TradeableItems.TRADE_ITEM_VOTE_COMMITMENT then
-        local pLeague = (Game and Game.GetNumActiveLeagues and Game.GetNumActiveLeagues() > 0)
-                and Game.GetActiveLeague()
-            or nil
-        local iVoteIndex = (type(GetLeagueVoteIndexFromData) == "function")
-                and GetLeagueVoteIndexFromData(data1, data2, flag1)
-            or nil
-        local tVote = iVoteIndex and g_LeagueVoteList and g_LeagueVoteList[iVoteIndex]
-        local label
-        if pLeague ~= nil and tVote ~= nil and type(GetVoteText) == "function" then
-            local proposal = GetVoteText(pLeague, iVoteIndex, flag1, data3)
-            local choice = pLeague:GetTextForChoice(tVote.VoteDecision, tVote.VoteChoice)
-            label = tostring(proposal) .. ", " .. tostring(choice)
-        else
-            label = Text.key("TXT_KEY_CIVVACCESS_TRADE_VOTE_UNKNOWN")
-        end
-        -- Mirror the engine's per-vote table tooltip: GetVoteTooltip with
-        -- (pLeague, iVoteIndex, flag1, data3) -- TradeLogic.lua:2106 passes
-        -- the same arguments when populating cInstance.Button's tooltip.
-        local capturedFlag1 = flag1
-        local capturedData3 = data3
-        local capturedIndex = iVoteIndex
-        local voteTooltipFn = function()
-            if Game.GetNumActiveLeagues == nil or Game.GetNumActiveLeagues() == 0 then
-                return nil
-            end
-            local pL = Game.GetActiveLeague()
-            if pL == nil or capturedIndex == nil or type(GetVoteTooltip) ~= "function" then
-                return nil
-            end
-            return GetVoteTooltip(pL, capturedIndex, capturedFlag1, capturedData3)
-        end
-        if readOnly or pLeague == nil or tVote == nil then
-            return BaseMenuItems.Text({ labelText = label, tooltipFn = voteTooltipFn })
-        end
-        local resolutionId = tVote.ID
-        local voteChoice = tVote.VoteChoice
-        local repeal = tVote.Repeal
-        local capturedLeague = pLeague
-        return BaseMenuItems.Text({
-            labelText = label,
-            tooltipFn = voteTooltipFn,
-            onActivate = function()
-                local numVotes = capturedLeague:GetCoreVotesForMember(iPlayer)
-                g_Deal:RemoveVoteCommitment(iPlayer, resolutionId, voteChoice, numVotes, repeal)
-                clearEngineTable()
-                afterLocalDealChange()
-            end,
-        })
-    end
-
-    -- Boolean diplomacy items: AllowEmbassy, OpenBorders, DefensivePact,
-    -- ResearchAgreement, TradeAgreement, DeclarationOfFriendship. Each has
-    -- the same remove shape: RemoveByType(type, player). DoF and DP remove
-    -- from BOTH sides (engine invariant); our remove fires the matching
-    -- side too. pocketSuffix names the engine pocket control whose tooltip
-    -- we read live for the placed-item announcement -- when an item is in
-    -- the deal the table-row control has no tooltip (engine never sets one
-    -- for booleans), but the pocket control's tooltip (set on the most
-    -- recent RefreshPocketX pass) carries the descriptive copy plus the
-    -- engine's "already in deal" reason.
-    local booleanSpecs = {
-        [TradeableItems.TRADE_ITEM_ALLOW_EMBASSY] = {
-            key = "TXT_KEY_DIPLO_ALLOW_EMBASSY",
-            bothSides = false,
-            pocketSuffix = "PocketAllowEmbassy",
-        },
-        [TradeableItems.TRADE_ITEM_OPEN_BORDERS] = {
-            key = "TXT_KEY_DIPLO_OPEN_BORDERS",
-            bothSides = false,
-            pocketSuffix = "PocketOpenBorders",
-        },
-        [TradeableItems.TRADE_ITEM_DEFENSIVE_PACT] = {
-            key = "TXT_KEY_DIPLO_DEF_PACT",
-            bothSides = true,
-            pocketSuffix = "PocketDefensivePact",
-        },
-        [TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT] = {
-            key = "TXT_KEY_DIPLO_RESCH_AGREEMENT",
-            bothSides = true,
-            pocketSuffix = "PocketResearchAgreement",
-        },
-        [TradeableItems.TRADE_ITEM_TRADE_AGREEMENT] = {
-            key = "TXT_KEY_DIPLO_TRADE_AGREEMENT",
-            bothSides = false,
-            pocketSuffix = "PocketTradeAgreement",
-        },
-        [TradeableItems.TRADE_ITEM_DECLARATION_OF_FRIENDSHIP] = {
-            key = "TXT_KEY_DIPLO_DECLARATION_OF_FRIENDSHIP",
-            bothSides = true,
-            pocketSuffix = "PocketDoF",
-        },
-    }
-    local bSpec = booleanSpecs[itemType]
-    if bSpec ~= nil then
-        local label = Text.key(bSpec.key) .. turnsSuffix(duration)
-        local tipFn = pocketTooltipFn(prefix(side) .. bSpec.pocketSuffix)
-        if readOnly then
-            return BaseMenuItems.Text({ labelText = label, tooltipFn = tipFn })
-        end
-        local capturedType = itemType
-        local bothSides = bSpec.bothSides
-        return BaseMenuItems.Text({
-            labelText = label,
-            tooltipFn = tipFn,
-            onActivate = function()
-                g_Deal:RemoveByType(capturedType, iPlayer)
-                if bothSides then
-                    -- Engine invariant: DP/RA/DoF/TA must be symmetric;
-                    -- the base TableDefensivePactHandler wipes both sides.
-                    local other = sideIsUs(side) and g_iThem or g_iUs
-                    g_Deal:RemoveByType(capturedType, other)
-                end
-                clearEngineTable()
-                afterLocalDealChange()
-            end,
-        })
-    end
-
-    return nil
-end
-
--- Available-tab items -----------------------------------------------------
-
--- Gold / GPT leaves push NumberEntry on activate with an engine-derived
--- max. onCommit invokes the engine's own Add* function, then
--- afterLocalDealChange repaints + rebuilds.
-
--- Build a "<label>, disabled" pocket leaf whose announcement appends the
--- engine's live tooltip on the corresponding base-game control. Mirrors
--- what sighted players see: the base UI greys the pocket control and
--- sets a SetToolTipString explaining why; we surface the same disabled
--- state and the same reason on first navigation, same as enabled items
--- (whose tooltipFn 4de4407 wired). Takes a pre-composed `label` string
--- so callers can include the duration suffix on items where it's
--- meaningful (the "30 turns" applies whether the item is currently legal
--- or not).
-local function disabledPocketLeaf(label, controlName)
-    return BaseMenuItems.Text({
-        labelText = Text.format("TXT_KEY_CIVVACCESS_LABEL_DISABLED", label),
-        tooltipFn = pocketTooltipFn(controlName),
-    })
-end
-
--- BNW gates lump-sum gold trades on a Declaration of Friendship between
--- the two civs (peace deals exempt); the base UI sets
--- TXT_KEY_DIPLO_NEED_DOF_TT_ONE_LINE on the pocket-gold control's tooltip
--- in that state, which disabledPocketLeaf reads live.
-local function availableGoldLeaf(side)
-    local iPlayer = sidePlayer(side)
-    local other = sideIsUs(side) and g_iThem or g_iUs
-    local pocketControlName = prefix(side) .. "PocketGold"
-    if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD, 1) then
-        return disabledPocketLeaf(Text.key("TXT_KEY_DIPLO_GOLD"), pocketControlName)
-    end
-    return BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
-        tooltipFn = pocketTooltipFn(pocketControlName),
-        onActivate = function()
-            local maxGold = g_Deal:GetGoldAvailable(iPlayer, -1) or 0
-            if maxGold <= 0 then
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"))
-                return
-            end
-            BaseMenuNumberEntry.push({
-                promptLabel = Text.key("TXT_KEY_DIPLO_GOLD"),
-                maxValue = maxGold,
-                onCommit = function(amount)
-                    g_Deal:AddGoldTrade(iPlayer, amount)
-                    afterLocalDealChange()
-                end,
-            })
-        end,
-    })
-end
-
--- GPT has its own engine-side gate (RefreshPocketLumpGold's
--- IsPossibleToTradeItem check on TRADE_ITEM_GOLD_PER_TURN). The base UI
--- greys the control without setting a tooltip; disabledPocketLeaf handles
--- that path with a silent no-op on Enter.
-local function availableGoldPerTurnLeaf(side)
-    local iPlayer = sidePlayer(side)
-    local other = sideIsUs(side) and g_iThem or g_iUs
-    local label = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. turnsSuffix(dealDuration())
-    local pocketControlName = prefix(side) .. "PocketGoldPerTurn"
-    if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDuration()) then
-        return disabledPocketLeaf(label, pocketControlName)
-    end
-    return BaseMenuItems.Text({
-        labelText = label,
-        tooltipFn = pocketTooltipFn(pocketControlName),
-        onActivate = function()
-            local pPlayer = Players[iPlayer]
-            local maxGPT = pPlayer and pPlayer:CalculateGoldRate() or 0
-            if maxGPT <= 0 then
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"))
-                return
-            end
-            BaseMenuNumberEntry.push({
-                promptLabel = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
-                maxValue = maxGPT,
-                onCommit = function(amount)
-                    g_Deal:AddGoldPerTurnTrade(iPlayer, amount, dealDuration())
-                    afterLocalDealChange()
-                end,
-            })
-        end,
-    })
-end
-
--- Resource leaf: luxury (one-quantity activate) or strategic (prompt for
--- amount). Shared builder; isStrategic branches on the activation path.
-local function availableResourceLeaf(side, resType, resInfo)
-    local iPlayer = sidePlayer(side)
-    local resName = Text.key(resInfo.Description)
-    local pediaName = resName
-    local isStrategic = resInfo.ResourceUsage == 1
-    local label = resName .. turnsSuffix(dealDuration())
-    if not isStrategic then
-        -- Append the tradeable copy count so the player knows up-front
-        -- whether giving this away costs the only copy (1) or just an
-        -- extra. Phrased "you have N" rather than a bare number so it
-        -- can't be misread as a trade quantity -- luxuries are always
-        -- 1-quantity. Mirrors the engine's "(N)" pocket suffix.
-        local qty = g_Deal:GetNumResource(iPlayer, resType) or 0
-        local luxuryLabel = resName
-            .. turnsSuffix(dealDuration())
-            .. ", "
-            .. Text.format("TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE", qty)
-        return BaseMenuItems.Text({
-            labelText = luxuryLabel,
-            pediaName = pediaName,
-            onActivate = function()
-                -- Luxuries are 1-quantity; engine hardcodes to 1 in
-                -- PocketResource handlers.
-                g_Deal:AddResourceTrade(iPlayer, resType, 1, dealDuration())
-                afterLocalDealChange()
-            end,
-        })
-    end
-    -- Strategic: prompt for amount, capped at g_Deal:GetNumResource.
-    return BaseMenuItems.Text({
-        labelText = label,
-        pediaName = pediaName,
-        onActivate = function()
-            local maxQty = g_Deal:GetNumResource(iPlayer, resType) or 0
-            if maxQty <= 0 then
-                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"))
-                return
-            end
-            BaseMenuNumberEntry.push({
-                promptLabel = resName,
-                maxValue = maxQty,
-                onCommit = function(amount)
-                    g_Deal:AddResourceTrade(iPlayer, resType, amount, dealDuration())
-                    afterLocalDealChange()
-                end,
-            })
-        end,
-    })
-end
-
--- Boolean diplomacy leaf (Embassy / Open Borders / DP / RA / TA / DoF).
--- Legality is re-queried live via IsPossibleToTradeItem; when illegal we
--- surface the same "<label>, disabled" leaf the gold path uses, with the
--- engine's per-side / per-state tooltip read live from the matching base
--- control on Enter (each boolean's RefreshPocket handler builds its own
--- contextual tooltip in TradeLogic.lua, e.g. "no tech" / "they already
--- have one"). controlSuffix is the base-control name without the Us /
--- Them prefix (e.g. "PocketAllowEmbassy").
-local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix, addFn, bothSides)
-    if itemConstant == nil then
-        return nil
-    end
-    local iPlayer = sidePlayer(side)
-    local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
-    -- Legality for boolean items all follow the same 4-arg signature
-    -- IsPossibleToTradeItem(from, to, type, duration) (matching TradeLogic's
-    -- RefreshPocketEmbassy / OpenBorders / DP / RA / TA / DoF handlers).
-    local label = Text.key(labelKey) .. turnsSuffix(dealDuration())
-    local pocketControlName = prefix(side) .. controlSuffix
-    if not g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, itemConstant, dealDuration()) then
-        return disabledPocketLeaf(label, pocketControlName)
-    end
-    -- Engine's RefreshPocket{Embassy,OpenBorders,DefensivePact,
-    -- ResearchAgreement,TradeAgreement,DoF} sets a contextual tooltip on the
-    -- pocket control in both enabled and disabled states. Read live so the
-    -- announce reflects whatever the engine last computed.
-    return BaseMenuItems.Text({
-        labelText = label,
-        tooltipFn = pocketTooltipFn(pocketControlName),
-        onActivate = function()
-            if bothSides then
-                addFn(g_iUs)
-                addFn(g_iThem)
-            else
-                addFn(iPlayer)
-            end
-            afterLocalDealChange()
-        end,
-    })
-end
-
--- Resources group: Luxury and Strategic as separate sub-groups. Iterate
--- GameInfo.Resources once, filter by legality, partition into the two
--- buckets. g_Deal:IsPossibleToTradeItem does the per-resource legality
--- check the engine uses in RefreshPocketResources.
-local function availableResourceGroups(side)
-    local iPlayer = sidePlayer(side)
-    local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
-    local luxuries = {}
-    local strategics = {}
-    for row in GameInfo.Resources() do
-        local resType = row.ID
-        if row.ResourceUsage == 1 or row.ResourceUsage == 2 then
-            if g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_RESOURCES, resType, 1) then
-                local item = availableResourceLeaf(side, resType, row)
-                if row.ResourceUsage == 1 then
-                    strategics[#strategics + 1] = item
-                else
-                    luxuries[#luxuries + 1] = item
-                end
-            end
-        end
-    end
-    -- Engine sets per-side / per-state tooltips on Us/ThemPocketLuxury and
-    -- Us/ThemPocketStrategic in RefreshPocketLuxury / RefreshPocketStrategic
-    -- ("can be traded" / "no luxuries available", etc.). Surface the parent
-    -- pocket's live tooltip on the group label so the user hears the same
-    -- summary sighted players read on hover.
-    local p = prefix(side)
-    local groups = {}
-    if #luxuries > 0 then
-        groups[#groups + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_TRADE_ITEM_LUXURY_RESOURCES"),
-            tooltipFn = pocketTooltipFn(p .. "PocketLuxury"),
-            items = luxuries,
-        })
-    end
-    if #strategics > 0 then
-        groups[#groups + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_TRADE_ITEM_STRATEGIC_RESOURCES"),
-            tooltipFn = pocketTooltipFn(p .. "PocketStrategic"),
-            items = strategics,
-        })
-    end
-    return groups
-end
-
--- Votes group: one leaf per (proposal, voter choice, enact/repeal) entry
--- in g_LeagueVoteList. The list is flattened by UpdateLeagueVotes at
--- display time; here we re-run it so we see current state, then filter by
--- legality.
-local function availableVotesGroup(side)
-    if type(UpdateLeagueVotes) == "function" then
-        local ok, err = pcall(UpdateLeagueVotes)
-        if not ok then
-            Log.error("TradeLogicAccess UpdateLeagueVotes failed: " .. tostring(err))
-        end
-    end
-    if g_LeagueVoteList == nil or #g_LeagueVoteList == 0 then
-        return nil
-    end
-    local pLeague
-    if Game.GetNumActiveLeagues and Game.GetNumActiveLeagues() > 0 then
-        pLeague = Game.GetActiveLeague()
-    end
-    if pLeague == nil then
-        return nil
-    end
-    local iPlayer = sidePlayer(side)
-    local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
-    local items = {}
-    for i, tVote in ipairs(g_LeagueVoteList) do
-        local iNumVotes = pLeague:GetCoreVotesForMember(iPlayer)
-        if
-            iNumVotes > 0
-            and g_Deal:IsPossibleToTradeItem(
-                iPlayer,
-                otherPlayer,
-                TradeableItems.TRADE_ITEM_VOTE_COMMITMENT,
-                tVote.ID,
-                tVote.VoteChoice,
-                iNumVotes,
-                tVote.Repeal
-            )
-        then
-            local proposal = GetVoteText(pLeague, i, tVote.Repeal, tVote.ProposerChoice)
-            local choice = pLeague:GetTextForChoice(tVote.VoteDecision, tVote.VoteChoice)
-            local label = tostring(proposal) .. ", " .. tostring(choice)
-            local id, voteChoice, repeal = tVote.ID, tVote.VoteChoice, tVote.Repeal
-            -- Mirror RefreshPocketVotes: GetVoteTooltip(pLeague, i, repeal,
-            -- iNumVotes) is the same call the engine makes when populating
-            -- cInstance.Button's tooltip on each pocket vote row.
-            local capturedIndex = i
-            local capturedRepeal = repeal
-            local capturedNumVotes = iNumVotes
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = label,
-                tooltipFn = function()
-                    if Game.GetNumActiveLeagues == nil or Game.GetNumActiveLeagues() == 0 then
-                        return nil
-                    end
-                    local pL = Game.GetActiveLeague()
-                    if pL == nil or type(GetVoteTooltip) ~= "function" then
-                        return nil
-                    end
-                    return GetVoteTooltip(pL, capturedIndex, capturedRepeal, capturedNumVotes)
-                end,
-                onActivate = function()
-                    g_Deal:AddVoteCommitment(iPlayer, id, voteChoice, iNumVotes, repeal)
-                    afterLocalDealChange()
-                end,
-            })
-        end
-    end
-    if #items == 0 then
-        return nil
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_TRADE_ITEM_VOTES"),
-        tooltipFn = pocketTooltipFn(prefix(side) .. "PocketVote"),
-        items = items,
-    })
-end
-
--- Cities group: enumerate this side's cities, filter by legality.
-local function availableCitiesGroup(side)
-    local iPlayer = sidePlayer(side)
-    local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
-    local pPlayer = Players[iPlayer]
-    if pPlayer == nil then
-        return nil
-    end
-    local items = {}
-    for pCity in pPlayer:Cities() do
-        if
-            g_Deal:IsPossibleToTradeItem(
-                iPlayer,
-                otherPlayer,
-                TradeableItems.TRADE_ITEM_CITIES,
-                pCity:GetX(),
-                pCity:GetY()
-            )
-        then
-            local name = pCity:GetName()
-            local pop = pCity:GetPopulation()
-            local cityID = pCity:GetID()
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format("TXT_KEY_CIVVACCESS_TRADE_CITY_OFFERING", name, tostring(pop)),
-                onActivate = function()
-                    g_Deal:AddCityTrade(iPlayer, cityID)
-                    afterLocalDealChange()
-                end,
-            })
-        end
-    end
-    if #items == 0 then
-        return nil
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_DIPLO_CITIES"),
-        tooltipFn = pocketTooltipFn(prefix(side) .. "PocketCities"),
-        items = items,
-    })
-end
-
--- Other players group: Make Peace With <civ> and Declare War On <civ> for
--- each legal target. Iterates major civs the active team has met. Civs
--- where the action would be illegal are dropped rather than surfaced as
--- disabled-with-reason: the most common reason ("Not at war") would force
--- the user to walk past every peaceful civ when looking for a war target,
--- and the engine's own peace/war chooser only earns its keep visually -- a
--- list-only reader gains nothing from a long list of "disabled, not at
--- war" entries.
-local function availableOtherPlayersGroup(side)
-    local iPlayer = sidePlayer(side)
-    local otherPlayer = sideIsUs(side) and g_iThem or g_iUs
-    local makePeace = {}
-    local declareWar = {}
-    local maxCivs = (GameDefines.MAX_CIV_PLAYERS or 64)
-    for i = 0, maxCivs - 1 do
-        local pl = Players[i]
-        if pl ~= nil and pl:IsEverAlive() and not pl:IsBarbarian() and i ~= iPlayer and i ~= otherPlayer then
-            local theirTeam = pl:GetTeam()
-            local name = pl:GetName()
-            local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
-            local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
-            if
-                g_Deal:IsPossibleToTradeItem(
-                    iPlayer,
-                    otherPlayer,
-                    TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE,
-                    theirTeam
-                )
-            then
-                local capturedTeam = theirTeam
-                makePeace[#makePeace + 1] = BaseMenuItems.Text({
-                    labelText = name,
-                    pediaName = pediaName,
-                    onActivate = function()
-                        g_Deal:AddThirdPartyPeace(iPlayer, capturedTeam, peaceDuration())
-                        afterLocalDealChange()
-                    end,
-                })
-            end
-            if
-                g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR, theirTeam)
-            then
-                local capturedTeam = theirTeam
-                declareWar[#declareWar + 1] = BaseMenuItems.Text({
-                    labelText = name,
-                    pediaName = pediaName,
-                    onActivate = function()
-                        g_Deal:AddThirdPartyWar(iPlayer, capturedTeam)
-                        afterLocalDealChange()
-                    end,
-                })
-            end
-        end
-    end
-    if #makePeace == 0 and #declareWar == 0 then
-        return nil
-    end
-    local subs = {}
-    if #makePeace > 0 then
-        subs[#subs + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_MAKE_PEACE"),
-            items = makePeace,
-        })
-    end
-    if #declareWar > 0 then
-        subs[#subs + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_DECLARE_WAR"),
-            items = declareWar,
-        })
-    end
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"),
-        tooltipFn = pocketTooltipFn(prefix(side) .. "PocketOtherPlayer"),
-        items = subs,
-    })
-end
-
-function TradeLogicAccess.buildAvailableItems(side)
-    if g_Deal == nil or TradeableItems == nil then
-        return { emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE") }
-    end
-    local items = {}
-    -- Gold + GPT as flat leaves at the top of the list.
-    items[#items + 1] = availableGoldLeaf(side)
-    items[#items + 1] = availableGoldPerTurnLeaf(side)
-
-    -- Resources group (luxury / strategic sub-groups).
-    for _, g in ipairs(availableResourceGroups(side)) do
-        items[#items + 1] = g
-    end
-
-    -- Boolean diplomatic items, in the plan's order. controlSuffix is the
-    -- engine pocket-control name without Us / Them prefix; when the leaf
-    -- is disabled we read that control's tooltip live so the user hears
-    -- the engine's stated reason.
-    local function addBoolean(key, constant, controlSuffix, addFn, bothSides)
-        local it = availableBooleanLeaf(side, key, constant, controlSuffix, addFn, bothSides)
-        if it ~= nil then
-            items[#items + 1] = it
-        end
-    end
-    addBoolean("TXT_KEY_DIPLO_ALLOW_EMBASSY", TradeableItems.TRADE_ITEM_ALLOW_EMBASSY, "PocketAllowEmbassy", function(p)
-        g_Deal:AddAllowEmbassy(p)
-    end, false)
-    addBoolean("TXT_KEY_DIPLO_OPEN_BORDERS", TradeableItems.TRADE_ITEM_OPEN_BORDERS, "PocketOpenBorders", function(p)
-        g_Deal:AddOpenBorders(p, dealDuration())
-    end, false)
-    addBoolean("TXT_KEY_DIPLO_DEF_PACT", TradeableItems.TRADE_ITEM_DEFENSIVE_PACT, "PocketDefensivePact", function(p)
-        g_Deal:AddDefensivePact(p, dealDuration())
-    end, true)
-    addBoolean(
-        "TXT_KEY_DIPLO_RESCH_AGREEMENT",
-        TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT,
-        "PocketResearchAgreement",
-        function(p)
-            g_Deal:AddResearchAgreement(p, dealDuration())
-        end,
-        true
-    )
-    addBoolean(
-        "TXT_KEY_DIPLO_TRADE_AGREEMENT",
-        TradeableItems.TRADE_ITEM_TRADE_AGREEMENT,
-        "PocketTradeAgreement",
-        function(p)
-            g_Deal:AddTradeAgreement(p, dealDuration())
-        end,
-        false
-    )
-
-    -- Cities.
-    local cities = availableCitiesGroup(side)
-    if cities ~= nil then
-        items[#items + 1] = cities
-    end
-
-    -- Other Players (Make Peace / Declare War).
-    local others = availableOtherPlayersGroup(side)
-    if others ~= nil then
-        items[#items + 1] = others
-    end
-
-    -- Votes.
-    local votes = availableVotesGroup(side)
-    if votes ~= nil then
-        items[#items + 1] = votes
-    end
-
-    return items
-end
+-- Re-exports so any caller that previously reached for
+-- TradeLogicAccess.buildOfferingItems / buildAvailableItems still works.
+TradeLogicAccess.buildOfferingItems = TradeLogicOffering.buildOfferingItems
+TradeLogicAccess.buildAvailableItems = TradeLogicAvailable.buildAvailableItems
 
 -- Drawer push -------------------------------------------------------------
 
@@ -1081,7 +251,7 @@ local function pushDrawer(side)
             name = DRAWER_NAME,
             displayName = label,
             escapePops = true,
-            items = TradeLogicAccess.buildOfferingItems(side, true),
+            items = TradeLogicOffering.buildOfferingItems(side, true),
         }
     else
         spec = {
@@ -1091,11 +261,11 @@ local function pushDrawer(side)
             tabs = {
                 {
                     name = "TXT_KEY_CIVVACCESS_TRADE_TAB_OFFERING",
-                    items = TradeLogicAccess.buildOfferingItems(side, false),
+                    items = TradeLogicOffering.buildOfferingItems(side, false),
                 },
                 {
                     name = "TXT_KEY_CIVVACCESS_TRADE_TAB_AVAILABLE",
-                    items = TradeLogicAccess.buildAvailableItems(side),
+                    items = TradeLogicAvailable.buildAvailableItems(side),
                 },
             },
         }
