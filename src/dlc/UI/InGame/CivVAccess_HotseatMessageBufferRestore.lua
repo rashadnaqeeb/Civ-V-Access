@@ -48,16 +48,10 @@ function HotseatMessageBuffer.installListeners()
         Log.info("HotseatMessageBuffer: not a hotseat session, skipping listener registration")
         return
     end
-    if Events == nil then
-        Log.error("HotseatMessageBuffer.installListeners: Events table missing")
-        return
+    if Log.installEvent(Events, "GameplaySetActivePlayer", HotseatMessageBuffer._onActivePlayerChanged,
+        "HotseatMessageBuffer", "per-player buffer disabled") then
+        Log.info("HotseatMessageBuffer: installed")
     end
-    if Events.GameplaySetActivePlayer == nil then
-        Log.warn("HotseatMessageBuffer: Events.GameplaySetActivePlayer missing; per-player buffer disabled")
-        return
-    end
-    Events.GameplaySetActivePlayer.Add(HotseatMessageBuffer._onActivePlayerChanged)
-    Log.info("HotseatMessageBuffer: installed")
 end
 
 function HotseatMessageBuffer._reset()

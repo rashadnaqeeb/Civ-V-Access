@@ -732,9 +732,9 @@ TabbedShell.install(ContextPtr, {
 -- anyway (every mode check re-reads it through TechTreeLogic.currentMode,
 -- which treats >=0 as stealing only when a stealing popup or tree-with-
 -- steal-data is the live context).
-Events.SerialEventGameMessagePopup.Add(function(popupInfo)
+Log.installEvent(Events, "SerialEventGameMessagePopup", function(popupInfo)
     if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_TECH_TREE then
         return
     end
     _stealingTargetID = popupInfo.Data2 or -1
-end)
+end, "TechTreeAccess")

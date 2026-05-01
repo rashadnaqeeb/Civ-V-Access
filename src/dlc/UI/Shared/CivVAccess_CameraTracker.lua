@@ -53,7 +53,7 @@ end
 -- registration for why we can't install-once the listener itself.
 function CameraTracker.install()
     readOriginAndStride()
-    Events.CameraViewChanged.Add(onCameraViewChanged)
+    Log.installEvent(Events, "CameraViewChanged", onCameraViewChanged, "CameraTracker")
     Log.info(
         "CameraTracker: installed, origin=("
             .. tostring(civvaccess_shared.cameraOriginX)

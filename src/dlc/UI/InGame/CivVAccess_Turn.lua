@@ -262,20 +262,8 @@ end
 -- kills the prior Context's env, stranding listeners that referenced its
 -- globals.
 function Turn.installListeners()
-    if Events == nil then
-        Log.error("Turn.installListeners: Events table missing")
-        return
-    end
-    if Events.ActivePlayerTurnStart ~= nil then
-        Events.ActivePlayerTurnStart.Add(onActivePlayerTurnStart)
-    else
-        Log.warn("Turn: Events.ActivePlayerTurnStart missing")
-    end
-    if Events.ActivePlayerTurnEnd ~= nil then
-        Events.ActivePlayerTurnEnd.Add(onActivePlayerTurnEnd)
-    else
-        Log.warn("Turn: Events.ActivePlayerTurnEnd missing")
-    end
+    Log.installEvent(Events, "ActivePlayerTurnStart", onActivePlayerTurnStart, "Turn")
+    Log.installEvent(Events, "ActivePlayerTurnEnd", onActivePlayerTurnEnd, "Turn")
 end
 
 -- Test seams. Listener tests reach the handlers through the Events.Add

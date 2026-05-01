@@ -236,14 +236,11 @@ end
 -- Context from ever registering a live listener. Dead listeners
 -- accumulate (Events.X.Remove is unverified), but the engine catches
 -- per-listener throws so the live one still runs.
-if Events ~= nil and Events.LoadScreenClose ~= nil then
-    Events.LoadScreenClose.Add(function()
-        local ok, err = pcall(onInGameBoot)
-        if not ok then
-            Log.error("CivVAccess_Boot: onInGameBoot failed: " .. tostring(err))
-        end
-    end)
+if Log.installEvent(Events, "LoadScreenClose", function()
+    local ok, err = pcall(onInGameBoot)
+    if not ok then
+        Log.error("CivVAccess_Boot: onInGameBoot failed: " .. tostring(err))
+    end
+end, "CivVAccess_Boot", "in-game boot will not fire") then
     Log.info("CivVAccess_Boot: registered LoadScreenClose listener")
-else
-    Log.warn("CivVAccess_Boot: Events.LoadScreenClose missing; in-game boot will not fire")
 end

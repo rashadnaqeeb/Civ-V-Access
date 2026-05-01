@@ -173,23 +173,12 @@ end
 -- always-installed: the engine still raises the events in SP, and our
 -- handlers return after a single Game:IsNetworkMultiPlayer() check.
 function MultiplayerRewards.installListeners()
-    if GameEvents ~= nil and GameEvents.CivVAccessGoodyHutReceived ~= nil then
-        GameEvents.CivVAccessGoodyHutReceived.Add(MultiplayerRewards._onGoodyHutReceived)
-    else
-        Log.warn(
-            "MultiplayerRewards: GameEvents.CivVAccessGoodyHutReceived missing; goody-hut announces disabled in MP (engine fork not deployed?)"
-        )
-    end
-    if GameEvents ~= nil and GameEvents.CivVAccessBarbarianCampCleared ~= nil then
-        GameEvents.CivVAccessBarbarianCampCleared.Add(MultiplayerRewards._onBarbarianCampCleared)
-    else
-        Log.warn(
-            "MultiplayerRewards: GameEvents.CivVAccessBarbarianCampCleared missing; barb-camp announces disabled in MP (engine fork not deployed?)"
-        )
-    end
-    if Events ~= nil and Events.NaturalWonderRevealed ~= nil then
-        Events.NaturalWonderRevealed.Add(MultiplayerRewards._onNaturalWonderRevealed)
-    else
-        Log.warn("MultiplayerRewards: Events.NaturalWonderRevealed missing")
-    end
+    Log.installEvent(GameEvents, "CivVAccessGoodyHutReceived",
+        MultiplayerRewards._onGoodyHutReceived, "MultiplayerRewards",
+        "goody-hut announces disabled in MP (engine fork not deployed?)")
+    Log.installEvent(GameEvents, "CivVAccessBarbarianCampCleared",
+        MultiplayerRewards._onBarbarianCampCleared, "MultiplayerRewards",
+        "barb-camp announces disabled in MP (engine fork not deployed?)")
+    Log.installEvent(Events, "NaturalWonderRevealed",
+        MultiplayerRewards._onNaturalWonderRevealed, "MultiplayerRewards")
 end

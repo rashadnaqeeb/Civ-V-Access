@@ -151,8 +151,8 @@ end
 -- load-game-from-game.
 function NotificationAnnounce.install()
     local snapshotted = snapshotExisting()
-    Events.NotificationAdded.Add(NotificationAnnounce._onAdded)
-    Events.GameplaySetActivePlayer.Add(NotificationAnnounce._onActivePlayerChanged)
-    Events.ActivePlayerTurnStart.Add(NotificationAnnounce._onTurnStart)
+    Log.installEvent(Events, "NotificationAdded", NotificationAnnounce._onAdded, "NotificationAnnounce")
+    Log.installEvent(Events, "GameplaySetActivePlayer", NotificationAnnounce._onActivePlayerChanged, "NotificationAnnounce")
+    Log.installEvent(Events, "ActivePlayerTurnStart", NotificationAnnounce._onTurnStart, "NotificationAnnounce")
     Log.info("NotificationAnnounce: installed, snapshotted " .. tostring(snapshotted) .. " existing notifications")
 end

@@ -202,14 +202,6 @@ end
 function ForeignUnitWatch.installListeners()
     _snapshot = buildVisibleSet()
     civvaccess_shared.foreignUnitDelta = nil
-    if Events ~= nil and Events.ActivePlayerTurnEnd ~= nil then
-        Events.ActivePlayerTurnEnd.Add(ForeignUnitWatch._onTurnEnd)
-    else
-        Log.warn("ForeignUnitWatch: Events.ActivePlayerTurnEnd missing")
-    end
-    if Events ~= nil and Events.ActivePlayerTurnStart ~= nil then
-        Events.ActivePlayerTurnStart.Add(ForeignUnitWatch._onTurnStart)
-    else
-        Log.warn("ForeignUnitWatch: Events.ActivePlayerTurnStart missing")
-    end
+    Log.installEvent(Events, "ActivePlayerTurnEnd", ForeignUnitWatch._onTurnEnd, "ForeignUnitWatch")
+    Log.installEvent(Events, "ActivePlayerTurnStart", ForeignUnitWatch._onTurnStart, "ForeignUnitWatch")
 end

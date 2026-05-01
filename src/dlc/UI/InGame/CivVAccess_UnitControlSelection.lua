@@ -256,13 +256,5 @@ end
 -- Registers a fresh listener on every call (per CLAUDE.md's no-install-
 -- once-guards rule for load-game-from-game survival).
 function UnitControlSelection.installListeners()
-    if Events == nil then
-        Log.error("UnitControlSelection.installListeners: Events table missing")
-        return
-    end
-    if Events.UnitSelectionChanged ~= nil then
-        Events.UnitSelectionChanged.Add(onUnitSelectionChanged)
-    else
-        Log.warn("UnitControlSelection: Events.UnitSelectionChanged missing")
-    end
+    Log.installEvent(Events, "UnitSelectionChanged", onUnitSelectionChanged, "UnitControlSelection")
 end

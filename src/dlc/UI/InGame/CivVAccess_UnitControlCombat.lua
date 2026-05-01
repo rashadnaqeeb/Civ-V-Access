@@ -440,54 +440,22 @@ end
 -- Registers fresh listeners on every call (per CLAUDE.md's no-install-
 -- once-guards rule for load-game-from-game survival).
 function UnitControlCombat.installListeners()
-    if Events == nil then
-        Log.error("UnitControlCombat.installListeners: Events table missing")
-        return
-    end
-    if Events.SerialEventCityCaptured ~= nil then
-        Events.SerialEventCityCaptured.Add(onCityCaptured)
-    else
-        Log.warn("UnitControlCombat: Events.SerialEventCityCaptured missing")
-    end
+    Log.installEvent(Events, "SerialEventCityCaptured", onCityCaptured, "UnitControlCombat")
     -- Engine-fork hook fired from CvUnitCombat::ResolveCombat. Sole
     -- combat-speech path; the engine's Events.EndCombatSim and
     -- SerialEventCitySetDamage are not subscribed because the hook
     -- already covers every case they would have announced.
-    if GameEvents ~= nil and GameEvents.CivVAccessCombatResolved ~= nil then
-        GameEvents.CivVAccessCombatResolved.Add(onCombatResolved)
-    else
-        Log.warn("UnitControlCombat: GameEvents.CivVAccessCombatResolved missing")
-    end
+    Log.installEvent(GameEvents, "CivVAccessCombatResolved", onCombatResolved, "UnitControlCombat")
     -- Engine-fork hook fired from CvUnitCombat::AttackAirSweep when no
     -- interceptor is in range. CombatResolved never fires for this case;
     -- without a dedicated signal a sweep into nothing reads as silence.
-    if GameEvents ~= nil and GameEvents.CivVAccessAirSweepNoTarget ~= nil then
-        GameEvents.CivVAccessAirSweepNoTarget.Add(onAirSweepNoTarget)
-    else
-        Log.warn("UnitControlCombat: GameEvents.CivVAccessAirSweepNoTarget missing")
-    end
+    Log.installEvent(GameEvents, "CivVAccessAirSweepNoTarget", onAirSweepNoTarget, "UnitControlCombat")
     -- Nuclear strike hook stream: Start, per-entity affected, End. The
     -- accumulator-flush model handles the variable-shape payload (a nuke
     -- can hit zero or many entities) that a single fixed-arg hook can't
     -- carry cleanly.
-    if GameEvents ~= nil and GameEvents.CivVAccessNukeStart ~= nil then
-        GameEvents.CivVAccessNukeStart.Add(onNukeStart)
-    else
-        Log.warn("UnitControlCombat: GameEvents.CivVAccessNukeStart missing")
-    end
-    if GameEvents ~= nil and GameEvents.CivVAccessNukeUnitAffected ~= nil then
-        GameEvents.CivVAccessNukeUnitAffected.Add(onNukeUnitAffected)
-    else
-        Log.warn("UnitControlCombat: GameEvents.CivVAccessNukeUnitAffected missing")
-    end
-    if GameEvents ~= nil and GameEvents.CivVAccessNukeCityAffected ~= nil then
-        GameEvents.CivVAccessNukeCityAffected.Add(onNukeCityAffected)
-    else
-        Log.warn("UnitControlCombat: GameEvents.CivVAccessNukeCityAffected missing")
-    end
-    if GameEvents ~= nil and GameEvents.CivVAccessNukeEnd ~= nil then
-        GameEvents.CivVAccessNukeEnd.Add(onNukeEnd)
-    else
-        Log.warn("UnitControlCombat: GameEvents.CivVAccessNukeEnd missing")
-    end
+    Log.installEvent(GameEvents, "CivVAccessNukeStart", onNukeStart, "UnitControlCombat")
+    Log.installEvent(GameEvents, "CivVAccessNukeUnitAffected", onNukeUnitAffected, "UnitControlCombat")
+    Log.installEvent(GameEvents, "CivVAccessNukeCityAffected", onNukeCityAffected, "UnitControlCombat")
+    Log.installEvent(GameEvents, "CivVAccessNukeEnd", onNukeEnd, "UnitControlCombat")
 end

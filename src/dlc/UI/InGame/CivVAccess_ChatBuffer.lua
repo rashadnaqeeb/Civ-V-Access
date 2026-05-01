@@ -88,9 +88,5 @@ ChatBuffer._onChat = onChat
 
 function ChatBuffer.installListeners()
     civvaccess_shared._inGameChatLog = {}
-    if Events ~= nil and Events.GameMessageChat ~= nil then
-        Events.GameMessageChat.Add(onChat)
-    else
-        Log.warn("ChatBuffer: Events.GameMessageChat missing; chat receive will not fire")
-    end
+    Log.installEvent(Events, "GameMessageChat", onChat, "ChatBuffer", "chat receive will not fire")
 end

@@ -101,14 +101,6 @@ function MultiplayerTurnEnd.installListeners()
             end
         end
     end
-    if Events ~= nil and Events.RemotePlayerTurnEnd ~= nil then
-        Events.RemotePlayerTurnEnd.Add(MultiplayerTurnEnd._onRemoteTurnEnd)
-    else
-        Log.warn("MultiplayerTurnEnd: Events.RemotePlayerTurnEnd missing")
-    end
-    if Events ~= nil and Events.NewGameTurn ~= nil then
-        Events.NewGameTurn.Add(MultiplayerTurnEnd._onNewGameTurn)
-    else
-        Log.warn("MultiplayerTurnEnd: Events.NewGameTurn missing")
-    end
+    Log.installEvent(Events, "RemotePlayerTurnEnd", MultiplayerTurnEnd._onRemoteTurnEnd, "MultiplayerTurnEnd")
+    Log.installEvent(Events, "NewGameTurn", MultiplayerTurnEnd._onNewGameTurn, "MultiplayerTurnEnd")
 end

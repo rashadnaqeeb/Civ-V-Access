@@ -129,28 +129,12 @@ function ForeignClearWatch.installListeners()
     _counts.camps = 0
     _counts.ruins = 0
     civvaccess_shared.foreignClearDelta = nil
-    if Events ~= nil and Events.ActivePlayerTurnEnd ~= nil then
-        Events.ActivePlayerTurnEnd.Add(ForeignClearWatch._onTurnEnd)
-    else
-        Log.warn("ForeignClearWatch: Events.ActivePlayerTurnEnd missing")
-    end
-    if Events ~= nil and Events.ActivePlayerTurnStart ~= nil then
-        Events.ActivePlayerTurnStart.Add(ForeignClearWatch._onTurnStart)
-    else
-        Log.warn("ForeignClearWatch: Events.ActivePlayerTurnStart missing")
-    end
-    if GameEvents ~= nil and GameEvents.CivVAccessForeignBarbCampCleared ~= nil then
-        GameEvents.CivVAccessForeignBarbCampCleared.Add(ForeignClearWatch._onForeignBarbCampCleared)
-    else
-        Log.warn(
-            "ForeignClearWatch: GameEvents.CivVAccessForeignBarbCampCleared missing; foreign barb-camp announces disabled (engine fork not deployed?)"
-        )
-    end
-    if GameEvents ~= nil and GameEvents.CivVAccessForeignGoodyCleared ~= nil then
-        GameEvents.CivVAccessForeignGoodyCleared.Add(ForeignClearWatch._onForeignGoodyCleared)
-    else
-        Log.warn(
-            "ForeignClearWatch: GameEvents.CivVAccessForeignGoodyCleared missing; foreign goody-hut announces disabled (engine fork not deployed?)"
-        )
-    end
+    Log.installEvent(Events, "ActivePlayerTurnEnd", ForeignClearWatch._onTurnEnd, "ForeignClearWatch")
+    Log.installEvent(Events, "ActivePlayerTurnStart", ForeignClearWatch._onTurnStart, "ForeignClearWatch")
+    Log.installEvent(GameEvents, "CivVAccessForeignBarbCampCleared",
+        ForeignClearWatch._onForeignBarbCampCleared, "ForeignClearWatch",
+        "foreign barb-camp announces disabled (engine fork not deployed?)")
+    Log.installEvent(GameEvents, "CivVAccessForeignGoodyCleared",
+        ForeignClearWatch._onForeignGoodyCleared, "ForeignClearWatch",
+        "foreign goody-hut announces disabled (engine fork not deployed?)")
 end

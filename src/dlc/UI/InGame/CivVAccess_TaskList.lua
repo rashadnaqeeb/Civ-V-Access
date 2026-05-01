@@ -39,11 +39,7 @@ local function onTaskListUpdate(info)
     mirror[info.Index] = { status = info.TaskStatus, text = info.Text }
 end
 
-if Events ~= nil and Events.TaskListUpdate ~= nil then
-    Events.TaskListUpdate.Add(onTaskListUpdate)
-else
-    Log.warn("TaskList: Events.TaskListUpdate missing; Shift+T will speak nothing")
-end
+Log.installEvent(Events, "TaskListUpdate", onTaskListUpdate, "TaskList", "Shift+T will speak nothing")
 
 -- Tasks are per-game. The mirror lives on civvaccess_shared which survives
 -- across games on the shared lua_State (main-menu exit and re-load runs

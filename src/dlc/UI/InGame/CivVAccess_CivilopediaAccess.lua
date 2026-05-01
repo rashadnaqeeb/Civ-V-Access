@@ -101,7 +101,7 @@ local handler = session.install(ContextPtr, {
 --
 -- searchString == "OPEN_VIA_HOTKEY" is the bare-Ctrl+I toggle; base
 -- handles the show/hide and there is no article to navigate to.
-Events.SearchForPediaEntry.Add(function(searchString)
+Log.installEvent(Events, "SearchForPediaEntry", function(searchString)
     if searchString == nil or searchString == "" or searchString == "OPEN_VIA_HOTKEY" then
         return
     end
@@ -118,13 +118,13 @@ Events.SearchForPediaEntry.Add(function(searchString)
     else
         Civilopedia.openArticle(handler, article.entryCategory, article.entryID)
     end
-end)
+end, "CivilopediaAccess")
 
 -- AdvisorInfoPopup's "View [concept] page" button fires this with the
 -- concept's CivilopediaPage (a category number). Base selects the
 -- category and QueuePopups; we park the picker cursor on that
 -- category's heading so the user lands in the right spot.
-Events.GoToPediaHomePage.Add(function(iHomePage)
+Log.installEvent(Events, "GoToPediaHomePage", function(iHomePage)
     if iHomePage == nil then
         return
     end
@@ -133,4 +133,4 @@ Events.GoToPediaHomePage.Add(function(iHomePage)
     else
         Civilopedia.openCategory(handler, iHomePage)
     end
-end)
+end, "CivilopediaAccess")

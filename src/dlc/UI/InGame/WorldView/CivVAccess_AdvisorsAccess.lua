@@ -190,7 +190,7 @@ local handler = BaseMenu.install(ContextPtr, {
     },
 })
 
-Events.AdvisorDisplayShow.Add(function()
+Log.installEvent(Events, "AdvisorDisplayShow", function()
     -- Context hidden when the listener runs means base OnAdvisorDisplayShow
     -- has not yet reached its AdvisorOpen() call, or AdvisorOpen's
     -- SetHide(false) has not transitioned yet. Either way, the install
@@ -212,4 +212,4 @@ Events.AdvisorDisplayShow.Add(function()
     if not ok then
         Log.error("Advisors re-show onActivate failed: " .. tostring(err))
     end
-end)
+end, "AdvisorsAccess")

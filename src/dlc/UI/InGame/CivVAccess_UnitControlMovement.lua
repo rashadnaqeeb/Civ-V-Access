@@ -609,45 +609,19 @@ end
 -- Registers fresh listeners on every call (per CLAUDE.md's no-install-
 -- once-guards rule for load-game-from-game survival).
 function UnitControlMovement.installListeners()
-    if Events == nil then
-        Log.error("UnitControlMovement.installListeners: Events table missing")
-        return
-    end
-    if Events.SerialEventUnitMove ~= nil then
-        Events.SerialEventUnitMove.Add(onUnitMoveCompleted)
-    else
-        Log.warn("UnitControlMovement: Events.SerialEventUnitMove missing")
-    end
-    if Events.SerialEventUnitMoveToHexes ~= nil then
-        Events.SerialEventUnitMoveToHexes.Add(onUnitMoveCompleted)
-    else
-        Log.warn("UnitControlMovement: Events.SerialEventUnitMoveToHexes missing")
-    end
+    Log.installEvent(Events, "SerialEventUnitMove", onUnitMoveCompleted, "UnitControlMovement")
+    Log.installEvent(Events, "SerialEventUnitMoveToHexes", onUnitMoveCompleted, "UnitControlMovement")
     -- Quick Movement routes per-hex moves through CvUnit::SetPosition,
     -- which fires SerialEventUnitTeleportedToHex instead of
     -- SerialEventUnitMove(ToHexes). Same handler resolves pending the
     -- same way; the (i, j, playerID, unitID) args are ignored.
-    if Events.SerialEventUnitTeleportedToHex ~= nil then
-        Events.SerialEventUnitTeleportedToHex.Add(onUnitMoveCompleted)
-    else
-        Log.warn("UnitControlMovement: Events.SerialEventUnitTeleportedToHex missing")
-    end
-    if Events.SerialEventGameMessagePopup ~= nil then
-        Events.SerialEventGameMessagePopup.Add(onPopupShown)
-    else
-        Log.warn("UnitControlMovement: Events.SerialEventGameMessagePopup missing")
-    end
+    Log.installEvent(Events, "SerialEventUnitTeleportedToHex", onUnitMoveCompleted, "UnitControlMovement")
+    Log.installEvent(Events, "SerialEventGameMessagePopup", onPopupShown, "UnitControlMovement")
     -- Engine-fork hook fired from CvDllNetMessageHandler::ResponsePushMission
     -- and ResponseSwapUnits after the engine processes a unit-mission net
     -- message. Drives the deterministic post-dispatch resolution of
-    -- _pending; replaces the prior frame-count timeout that false-fired
-    -- "action failed" in MP while the network round-trip was still
-    -- resolving. SerialEventUnitMove still races ahead in SP (per-hex
+    -- _pending. SerialEventUnitMove still races ahead in SP (per-hex
     -- engine event fires inside PushMission), and the _pending == nil
     -- early-return on the second arrival keeps both paths idempotent.
-    if GameEvents ~= nil and GameEvents.CivVAccessMissionDispatched ~= nil then
-        GameEvents.CivVAccessMissionDispatched.Add(onMissionDispatched)
-    else
-        Log.warn("UnitControlMovement: GameEvents.CivVAccessMissionDispatched missing")
-    end
+    Log.installEvent(GameEvents, "CivVAccessMissionDispatched", onMissionDispatched, "UnitControlMovement")
 end

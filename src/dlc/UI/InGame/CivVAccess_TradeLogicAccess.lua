@@ -538,24 +538,14 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
         local function rebuildIfLive()
             TradeLogicAccess.rebuild()
         end
-        if descriptor.kind == "AI" and Events.AILeaderMessage ~= nil then
-            Events.AILeaderMessage.Add(rebuildIfLive)
+        if descriptor.kind == "AI" then
+            Log.installEvent(Events, "AILeaderMessage", rebuildIfLive, "TradeLogicAccess")
         end
-        if LuaEvents.OpenAILeaderDiploTrade ~= nil then
-            LuaEvents.OpenAILeaderDiploTrade.Add(rebuildIfLive)
-        end
-        if LuaEvents.OpenSimpleDiploTrade ~= nil then
-            LuaEvents.OpenSimpleDiploTrade.Add(rebuildIfLive)
-        end
-        if Events.ClearDiplomacyTradeTable ~= nil then
-            Events.ClearDiplomacyTradeTable.Add(rebuildIfLive)
-        end
-        if Events.OpenPlayerDealScreenEvent ~= nil then
-            Events.OpenPlayerDealScreenEvent.Add(rebuildIfLive)
-        end
-        if Events.GameplaySetActivePlayer ~= nil then
-            Events.GameplaySetActivePlayer.Add(rebuildIfLive)
-        end
+        Log.installEvent(LuaEvents, "OpenAILeaderDiploTrade", rebuildIfLive, "TradeLogicAccess")
+        Log.installEvent(LuaEvents, "OpenSimpleDiploTrade", rebuildIfLive, "TradeLogicAccess")
+        Log.installEvent(Events, "ClearDiplomacyTradeTable", rebuildIfLive, "TradeLogicAccess")
+        Log.installEvent(Events, "OpenPlayerDealScreenEvent", rebuildIfLive, "TradeLogicAccess")
+        Log.installEvent(Events, "GameplaySetActivePlayer", rebuildIfLive, "TradeLogicAccess")
     end
 
     return handler

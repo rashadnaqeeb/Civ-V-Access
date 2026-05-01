@@ -29,3 +29,30 @@ function Log.check(cond, msg)
         error(msg, 2)
     end
 end
+
+-- Install a fresh listener on a dispatcher (Events / GameEvents / LuaEvents)
+-- by named slot. Logs a warn if the dispatcher itself or the named slot
+-- is missing rather than throwing -- a feature that depends on a specific
+-- engine event surface fails loudly in Lua.log without taking the rest
+-- of the install path with it. The optional missingMsg is appended to
+-- the warn line so per-feature consequence text ("goody-hut announce
+-- disabled", "Shift+T will speak nothing") survives the conversion.
+--
+-- Why not gate on civvaccess_shared.flagInstalled to avoid duplicate
+-- listeners across game transitions: the install-once pattern strands
+-- listeners with dead envs after Civ V's per-Context env wipe on load-
+-- from-game (see CLAUDE.md "No install-once guards on Events listeners").
+-- This helper expects re-registration on every onInGameBoot; the engine
+-- catches per-listener throws so the freshest live listener still fires.
+function Log.installEvent(dispatcher, eventName, handler, scope, missingMsg)
+    if dispatcher == nil or dispatcher[eventName] == nil then
+        local msg = scope .. ": " .. eventName .. " missing"
+        if missingMsg ~= nil then
+            msg = msg .. "; " .. missingMsg
+        end
+        Log.warn(msg)
+        return false
+    end
+    dispatcher[eventName].Add(handler)
+    return true
+end

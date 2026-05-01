@@ -72,21 +72,10 @@ end
 function CombatLog.installListeners()
     _inAiTurn = false
     civvaccess_shared.combatLog = nil
-    if Events ~= nil and Events.ActivePlayerTurnEnd ~= nil then
-        Events.ActivePlayerTurnEnd.Add(CombatLog._onTurnEnd)
-    else
-        Log.warn("CombatLog: Events.ActivePlayerTurnEnd missing")
-    end
-    if Events ~= nil and Events.ActivePlayerTurnStart ~= nil then
-        Events.ActivePlayerTurnStart.Add(CombatLog._onTurnStart)
-    else
-        Log.warn("CombatLog: Events.ActivePlayerTurnStart missing")
-    end
+    Log.installEvent(Events, "ActivePlayerTurnEnd", CombatLog._onTurnEnd, "CombatLog")
+    Log.installEvent(Events, "ActivePlayerTurnStart", CombatLog._onTurnStart, "CombatLog")
     if Game.IsHotSeat() then
-        if Events ~= nil and Events.GameplaySetActivePlayer ~= nil then
-            Events.GameplaySetActivePlayer.Add(CombatLog._onActivePlayerChanged)
-        else
-            Log.warn("CombatLog: Events.GameplaySetActivePlayer missing in hotseat session")
-        end
+        Log.installEvent(Events, "GameplaySetActivePlayer", CombatLog._onActivePlayerChanged,
+            "CombatLog", "in hotseat session")
     end
 end

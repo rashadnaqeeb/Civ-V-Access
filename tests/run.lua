@@ -76,6 +76,22 @@ Log = {
             error(msg, 2)
         end
     end,
+    -- Mirrors Log.installEvent in src/dlc/UI/Shared/CivVAccess_Log.lua so
+    -- production install paths route through the same shape under tests:
+    -- when the dispatcher / slot exists, Add the handler; otherwise warn
+    -- (through Log.warn so suites patching it still see the call).
+    installEvent = function(dispatcher, eventName, handler, scope, missingMsg)
+        if dispatcher == nil or dispatcher[eventName] == nil then
+            local msg = scope .. ": " .. eventName .. " missing"
+            if missingMsg ~= nil then
+                msg = msg .. "; " .. missingMsg
+            end
+            Log.warn(msg)
+            return false
+        end
+        dispatcher[eventName].Add(handler)
+        return true
+    end,
 }
 SpeechEngine = {
     say = function() end,

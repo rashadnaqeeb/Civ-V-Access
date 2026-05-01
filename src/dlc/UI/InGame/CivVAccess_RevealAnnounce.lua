@@ -530,21 +530,8 @@ function RevealAnnounce.installListeners()
     -- detection on its own.
     _campOrRuinKind = {}
     bootstrapCampOrRuinSnapshot()
-    if GameEvents ~= nil and GameEvents.CivVAccessPlotRevealed ~= nil then
-        GameEvents.CivVAccessPlotRevealed.Add(recordFirstReveal)
-    else
-        Log.warn(
-            "RevealAnnounce: GameEvents.CivVAccessPlotRevealed missing; first-reveal announces disabled (engine fork not deployed?)"
-        )
-    end
-    if Events ~= nil and Events.HexFOWStateChanged ~= nil then
-        Events.HexFOWStateChanged.Add(recordNowVisible)
-    else
-        Log.warn("RevealAnnounce: Events.HexFOWStateChanged missing")
-    end
-    if Events ~= nil and Events.ActivePlayerTurnStart ~= nil then
-        Events.ActivePlayerTurnStart.Add(RevealAnnounce._onTurnStart)
-    else
-        Log.warn("RevealAnnounce: Events.ActivePlayerTurnStart missing")
-    end
+    Log.installEvent(GameEvents, "CivVAccessPlotRevealed", recordFirstReveal, "RevealAnnounce",
+        "first-reveal announces disabled (engine fork not deployed?)")
+    Log.installEvent(Events, "HexFOWStateChanged", recordNowVisible, "RevealAnnounce")
+    Log.installEvent(Events, "ActivePlayerTurnStart", RevealAnnounce._onTurnStart, "RevealAnnounce")
 end

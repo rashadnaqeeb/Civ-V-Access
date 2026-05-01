@@ -82,16 +82,10 @@ function HotseatCursor.installListeners()
         Log.info("HotseatCursor: not a hotseat session, skipping listener registration")
         return
     end
-    if Events == nil then
-        Log.error("HotseatCursor.installListeners: Events table missing")
-        return
+    if Log.installEvent(Events, "GameplaySetActivePlayer", HotseatCursor._onActivePlayerChanged,
+        "HotseatCursor", "cursor restore disabled") then
+        Log.info("HotseatCursor: installed")
     end
-    if Events.GameplaySetActivePlayer == nil then
-        Log.warn("HotseatCursor: Events.GameplaySetActivePlayer missing; cursor restore disabled")
-        return
-    end
-    Events.GameplaySetActivePlayer.Add(HotseatCursor._onActivePlayerChanged)
-    Log.info("HotseatCursor: installed")
 end
 
 function HotseatCursor._reset()
