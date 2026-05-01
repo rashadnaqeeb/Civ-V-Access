@@ -63,7 +63,7 @@ include("CivVAccess_CursorPedia")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_CityRangeStrikeMode")
 include("CivVAccess_GiftMode")
-include("CivVAccess_UnitControl")
+include("CivVAccess_UnitControlCore")
 -- Turn and EmpireStatus must load before BaselineHandler so their
 -- getBindings() are available when BaselineHandler.create concatenates the
 -- binding surface.
