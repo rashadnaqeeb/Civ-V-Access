@@ -390,7 +390,9 @@ function T.fakePlayer(opts)
         _isMinor = opts.isMinor or false,
         _team = opts.team or 0,
         _capital = opts.capital,
-        _isBarbarian = opts.isBarbarian or false,
+        _isBarbarian = opts.isBarbarian or opts.barb or false,
+        _alive = (opts.alive ~= false),
+        _units = opts.units or {},
         _dofWith = opts.dofWith or {},
         _friendsWith = opts.friendsWith or {},
         _alliesWith = opts.alliesWith or {},
@@ -420,6 +422,24 @@ function T.fakePlayer(opts)
     end
     function p:IsBarbarian()
         return self._isBarbarian
+    end
+    function p:IsAlive()
+        return self._alive
+    end
+    function p:Units()
+        local i = 0
+        return function()
+            i = i + 1
+            return self._units[i]
+        end
+    end
+    function p:GetUnitByID(id)
+        for _, u in ipairs(self._units) do
+            if u.GetID and u:GetID() == id then
+                return u
+            end
+        end
+        return nil
     end
     function p:IsDoF(other)
         return self._dofWith[other] or false

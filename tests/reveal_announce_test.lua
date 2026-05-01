@@ -41,41 +41,13 @@ end
 
 local function makePlayer(opts)
     opts = opts or {}
-    local p = {
-        _alive = opts.alive ~= false,
-        _barb = opts.barb or false,
-        _team = opts.team or 0,
-        _adj = opts.adj or "TXT_KEY_CIV_ROME_ADJECTIVE",
-        _units = opts.units or {},
-    }
-    function p:IsAlive()
-        return self._alive
-    end
-    function p:IsBarbarian()
-        return self._barb
-    end
-    function p:GetTeam()
-        return self._team
-    end
-    function p:GetCivilizationAdjectiveKey()
-        return self._adj
-    end
-    function p:Units()
-        local i = 0
-        return function()
-            i = i + 1
-            return self._units[i]
-        end
-    end
-    function p:GetUnitByID(id)
-        for _, u in ipairs(self._units) do
-            if u:GetID() == id then
-                return u
-            end
-        end
-        return nil
-    end
-    return p
+    return T.fakePlayer({
+        adj = opts.adj or "TXT_KEY_CIV_ROME_ADJECTIVE",
+        team = opts.team or 0,
+        barb = opts.barb,
+        alive = opts.alive,
+        units = opts.units,
+    })
 end
 
 local function visiblePlot()

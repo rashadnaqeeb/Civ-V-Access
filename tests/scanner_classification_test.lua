@@ -110,40 +110,13 @@ end
 -- Install a Players table so a unit at the active player shows up in Scan.
 local function installPlayer(playerId, unitList, opts)
     opts = opts or {}
-    local p = {
-        _alive = true,
-        _barb = opts.barb or false,
-        _team = opts.team or 0,
-        _units = unitList,
-    }
-    function p:IsAlive()
-        return self._alive
-    end
-    function p:IsBarbarian()
-        return self._barb
-    end
-    function p:GetTeam()
-        return self._team
-    end
-    function p:Units()
-        local i = 0
-        return function()
-            i = i + 1
-            return self._units[i]
-        end
-    end
-    function p:GetUnitByID(id)
-        for _, u in ipairs(self._units) do
-            if u:GetID() == id then
-                return u
-            end
-        end
-        return nil
-    end
-    function p:GetCivilizationAdjectiveKey()
-        return opts.adjKey or "TXT_KEY_CIV_ADJECTIVE_FIXTURE"
-    end
-    Players[playerId] = p
+    Players[playerId] = T.fakePlayer({
+        alive = true,
+        barb = opts.barb,
+        team = opts.team or 0,
+        units = unitList,
+        adj = opts.adjKey or "TXT_KEY_CIV_ADJECTIVE_FIXTURE",
+    })
 end
 
 local function runUnitsScan()
