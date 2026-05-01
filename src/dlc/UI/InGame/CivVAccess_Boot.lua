@@ -123,6 +123,21 @@ include("CivVAccess_CameraTracker")
 -- UI; both share state via civvaccess_shared._inGameChatLog.
 include("CivVAccess_ChatBuffer")
 
+-- Track the WorldView Context include count across the session. The first
+-- include happens during pre-game setup (before LoadScreenClose); subsequent
+-- includes are triggered by load-game-from-game, which clears every
+-- in-game Context's env and re-initializes a few of them, including
+-- WorldView. The counter is a session-wide breadcrumb that distinguishes
+-- "first install" from "re-init #N" in Lua.log -- helpful when a contributor
+-- is diagnosing why a feature stopped working after a load-from-game.
+civvaccess_shared.bootCount = (civvaccess_shared.bootCount or 0) + 1
+local bootSuffix
+if civvaccess_shared.bootCount == 1 then
+    bootSuffix = "(install)"
+else
+    bootSuffix = "(re-init #" .. civvaccess_shared.bootCount .. ")"
+end
+
 -- Engine fork probe. Several mod features call fork-added Lua bindings
 -- bare (no pcall, no feature gate): UnitTargetMode does GeneratePath /
 -- GetPath / GetBestBuildRoute / HasLineOfSight; UnitControlMovement does
@@ -137,10 +152,10 @@ include("CivVAccess_ChatBuffer")
 -- present, the fork is deployed and the Unit / Plot bindings resolve too.
 if Game ~= nil then
     if Game.GetBuildRoutePath ~= nil and Game.GetCycleUnits ~= nil then
-        Log.info("CivVAccess_Boot: engine fork bindings present")
+        Log.info("CivVAccess_Boot: engine fork bindings present " .. bootSuffix)
     else
-        Log.warn("CivVAccess_Boot: engine fork DLL not deployed -- "
-            .. "move-target preview, build-route preview, ranged-strike "
+        Log.warn("CivVAccess_Boot: engine fork DLL not deployed " .. bootSuffix
+            .. " -- move-target preview, build-route preview, ranged-strike "
             .. "LoS, and unit cycler will silently fail. "
             .. "Run ./deploy.ps1 (without -SkipEngine) to install.")
     end
@@ -239,5 +254,5 @@ end
 if Log.installEvent(Events, "LoadScreenClose",
     Log.safeListener("CivVAccess_Boot.onInGameBoot", onInGameBoot),
     "CivVAccess_Boot", "in-game boot will not fire") then
-    Log.info("CivVAccess_Boot: registered LoadScreenClose listener")
+    Log.info("CivVAccess_Boot: registered LoadScreenClose listener " .. bootSuffix)
 end
