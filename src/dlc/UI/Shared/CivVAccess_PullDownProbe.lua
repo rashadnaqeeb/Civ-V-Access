@@ -70,9 +70,11 @@ end
 
 -- Replace mt.__index with a function that intercepts a fixed set of
 -- methods by name, and forwards everything else to the original __index.
--- Works whether the original is a table or a function. The interceptor
--- map is { [methodName] = wrappedFn } where wrappedFn is the closure we
--- return when the user's code reads that method.
+-- Works whether the original is a table or a function. Per-slider /
+-- pulldown re-patch composes naturally because each call captures the
+-- prior __index in its closure: a slider patch on a metatable already
+-- wrapped for pulldown still forwards non-slider methods to the prior
+-- pulldown layer, which forwards everything else to the engine.
 local function patchIndex(mt, interceptors)
     local origIndex = mt.__index
     mt.__index = function(self, key)
@@ -87,66 +89,87 @@ local function patchIndex(mt, interceptors)
     end
 end
 
+-- Shared install scaffold. Each typed ensure*Installed function below
+-- delegates here with its own interceptor builder. The scaffold owns the
+-- install-once flag, sample-nil and metatable-nil guards, primary-method
+-- resolution, callback-table init, patch installation, and success log;
+-- per-widget logic lives in buildInterceptors and decides whether the
+-- prerequisites it needs are present (returning nil aborts).
+local function installProbe(label, flagField, sample, primaryMethod, callbackField, buildInterceptors)
+    if civvaccess_shared[flagField] then
+        return true
+    end
+    local lowerLabel = label:lower()
+    if sample == nil then
+        Log.warn("PullDownProbe: ensure" .. label .. "Installed called without a sample " .. lowerLabel)
+        return false
+    end
+    local mt = getmetatable(sample)
+    if mt == nil then
+        Log.warn("PullDownProbe: " .. lowerLabel .. " sample has no accessible metatable; " .. lowerLabel .. " probe disabled")
+        return false
+    end
+    local origPrimary = resolveMethod(mt.__index, sample, primaryMethod)
+    if type(origPrimary) ~= "function" then
+        Log.warn("PullDownProbe: " .. primaryMethod .. " missing on metatable")
+        return false
+    end
+    civvaccess_shared[callbackField] = civvaccess_shared[callbackField] or {}
+    local callbacks = civvaccess_shared[callbackField]
+    local interceptors = buildInterceptors(origPrimary, callbacks, mt, sample)
+    if interceptors == nil then
+        return false
+    end
+    patchIndex(mt, interceptors)
+    civvaccess_shared[flagField] = true
+    Log.info("PullDownProbe: " .. lowerLabel .. " metatable patched")
+    return true
+end
+
 -- ---------- PullDown ----------
 
 function PullDownProbe.ensureInstalled(samplePullDown)
-    if civvaccess_shared.pullDownProbeInstalled then
-        return true
-    end
-    if samplePullDown == nil then
-        Log.warn("PullDownProbe: ensureInstalled called without a sample pulldown")
-        return false
-    end
-    local mt = getmetatable(samplePullDown)
-    if mt == nil then
-        Log.warn("PullDownProbe: sample has no accessible metatable; probe disabled")
-        return false
-    end
+    return installProbe(
+        "PullDown",
+        "pullDownProbeInstalled",
+        samplePullDown,
+        "RegisterSelectionCallback",
+        "pullDownCallbacks",
+        function(origReg, callbacks, mt, sample)
+            civvaccess_shared.pullDownEntries = civvaccess_shared.pullDownEntries or {}
+            local entries = civvaccess_shared.pullDownEntries
+            local origBuild = resolveMethod(mt.__index, sample, "BuildEntry")
+            local origClear = resolveMethod(mt.__index, sample, "ClearEntries")
 
-    local origReg = resolveMethod(mt.__index, samplePullDown, "RegisterSelectionCallback")
-    local origBuild = resolveMethod(mt.__index, samplePullDown, "BuildEntry")
-    local origClear = resolveMethod(mt.__index, samplePullDown, "ClearEntries")
-    if type(origReg) ~= "function" then
-        Log.warn("PullDownProbe: RegisterSelectionCallback missing on metatable")
-        return false
-    end
-
-    civvaccess_shared.pullDownCallbacks = civvaccess_shared.pullDownCallbacks or {}
-    civvaccess_shared.pullDownEntries = civvaccess_shared.pullDownEntries or {}
-    local callbacks = civvaccess_shared.pullDownCallbacks
-    local entries = civvaccess_shared.pullDownEntries
-
-    local interceptors = {}
-    interceptors.RegisterSelectionCallback = function(self, fn)
-        callbacks[self] = fn
-        return origReg(self, fn)
-    end
-    if type(origBuild) == "function" then
-        interceptors.BuildEntry = function(self, stem, instance, ...)
-            local list = entries[self]
-            if list == nil then
-                list = {}
-                entries[self] = list
+            local interceptors = {}
+            interceptors.RegisterSelectionCallback = function(self, fn)
+                callbacks[self] = fn
+                return origReg(self, fn)
             end
-            list[#list + 1] = instance
-            return origBuild(self, stem, instance, ...)
+            if type(origBuild) == "function" then
+                interceptors.BuildEntry = function(self, stem, instance, ...)
+                    local list = entries[self]
+                    if list == nil then
+                        list = {}
+                        entries[self] = list
+                    end
+                    list[#list + 1] = instance
+                    return origBuild(self, stem, instance, ...)
+                end
+            else
+                Log.warn("PullDownProbe: BuildEntry missing on metatable")
+            end
+            if type(origClear) == "function" then
+                interceptors.ClearEntries = function(self, ...)
+                    entries[self] = nil
+                    return origClear(self, ...)
+                end
+            else
+                Log.warn("PullDownProbe: ClearEntries missing on metatable")
+            end
+            return interceptors
         end
-    else
-        Log.warn("PullDownProbe: BuildEntry missing on metatable")
-    end
-    if type(origClear) == "function" then
-        interceptors.ClearEntries = function(self, ...)
-            entries[self] = nil
-            return origClear(self, ...)
-        end
-    else
-        Log.warn("PullDownProbe: ClearEntries missing on metatable")
-    end
-
-    patchIndex(mt, interceptors)
-    civvaccess_shared.pullDownProbeInstalled = true
-    Log.info("PullDownProbe: pulldown metatable patched")
-    return true
+    )
 end
 
 function PullDownProbe.callbackFor(pulldown)
@@ -162,42 +185,21 @@ end
 -- ---------- Slider ----------
 
 function PullDownProbe.ensureSliderInstalled(sampleSlider)
-    if civvaccess_shared.sliderProbeInstalled then
-        return true
-    end
-    if sampleSlider == nil then
-        Log.warn("PullDownProbe: ensureSliderInstalled called without a sample slider")
-        return false
-    end
-    local mt = getmetatable(sampleSlider)
-    if mt == nil then
-        Log.warn("PullDownProbe: slider sample has no accessible metatable; slider probe disabled")
-        return false
-    end
-
-    -- Guard against the pulldown and slider sharing a metatable: if we
-    -- already patched __index for pulldowns, the slider's metatable is
-    -- a distinct object and needs its own patch. If they happen to be
-    -- the same table, we add slider interceptors on top of the existing
-    -- patch by re-wrapping.
-    local origReg = resolveMethod(mt.__index, sampleSlider, "RegisterSliderCallback")
-    if type(origReg) ~= "function" then
-        Log.warn("PullDownProbe: RegisterSliderCallback missing on metatable")
-        return false
-    end
-
-    civvaccess_shared.sliderCallbacks = civvaccess_shared.sliderCallbacks or {}
-    local callbacks = civvaccess_shared.sliderCallbacks
-
-    patchIndex(mt, {
-        RegisterSliderCallback = function(self, fn)
-            callbacks[self] = fn
-            return origReg(self, fn)
-        end,
-    })
-    civvaccess_shared.sliderProbeInstalled = true
-    Log.info("PullDownProbe: slider metatable patched")
-    return true
+    return installProbe(
+        "Slider",
+        "sliderProbeInstalled",
+        sampleSlider,
+        "RegisterSliderCallback",
+        "sliderCallbacks",
+        function(origReg, callbacks)
+            return {
+                RegisterSliderCallback = function(self, fn)
+                    callbacks[self] = fn
+                    return origReg(self, fn)
+                end,
+            }
+        end
+    )
 end
 
 function PullDownProbe.sliderCallbackFor(slider)
@@ -208,37 +210,21 @@ end
 -- ---------- CheckBox ----------
 
 function PullDownProbe.ensureCheckBoxInstalled(sampleCheckBox)
-    if civvaccess_shared.checkBoxProbeInstalled then
-        return true
-    end
-    if sampleCheckBox == nil then
-        Log.warn("PullDownProbe: ensureCheckBoxInstalled called without a sample checkbox")
-        return false
-    end
-    local mt = getmetatable(sampleCheckBox)
-    if mt == nil then
-        Log.warn("PullDownProbe: checkbox sample has no accessible metatable; checkbox probe disabled")
-        return false
-    end
-
-    local origReg = resolveMethod(mt.__index, sampleCheckBox, "RegisterCheckHandler")
-    if type(origReg) ~= "function" then
-        Log.warn("PullDownProbe: RegisterCheckHandler missing on metatable")
-        return false
-    end
-
-    civvaccess_shared.checkBoxCallbacks = civvaccess_shared.checkBoxCallbacks or {}
-    local callbacks = civvaccess_shared.checkBoxCallbacks
-
-    patchIndex(mt, {
-        RegisterCheckHandler = function(self, fn)
-            callbacks[self] = fn
-            return origReg(self, fn)
-        end,
-    })
-    civvaccess_shared.checkBoxProbeInstalled = true
-    Log.info("PullDownProbe: checkbox metatable patched")
-    return true
+    return installProbe(
+        "CheckBox",
+        "checkBoxProbeInstalled",
+        sampleCheckBox,
+        "RegisterCheckHandler",
+        "checkBoxCallbacks",
+        function(origReg, callbacks)
+            return {
+                RegisterCheckHandler = function(self, fn)
+                    callbacks[self] = fn
+                    return origReg(self, fn)
+                end,
+            }
+        end
+    )
 end
 
 function PullDownProbe.checkBoxCallbackFor(checkbox)
@@ -256,44 +242,28 @@ end
 -- mouse event; don't capture those).
 
 function PullDownProbe.ensureButtonInstalled(sampleButton)
-    if civvaccess_shared.buttonProbeInstalled then
-        return true
-    end
-    if sampleButton == nil then
-        Log.warn("PullDownProbe: ensureButtonInstalled called without a sample button")
-        return false
-    end
-    local mt = getmetatable(sampleButton)
-    if mt == nil then
-        Log.warn("PullDownProbe: button sample has no accessible metatable; button probe disabled")
-        return false
-    end
-
-    local origReg = resolveMethod(mt.__index, sampleButton, "RegisterCallback")
-    if type(origReg) ~= "function" then
-        Log.warn("PullDownProbe: RegisterCallback missing on button metatable")
-        return false
-    end
-
-    civvaccess_shared.buttonCallbacks = civvaccess_shared.buttonCallbacks or {}
-    local callbacks = civvaccess_shared.buttonCallbacks
-
-    patchIndex(mt, {
-        RegisterCallback = function(self, mouseEvent, fn)
-            if type(mouseEvent) == "number" and type(fn) == "function" then
-                local perButton = callbacks[self]
-                if perButton == nil then
-                    perButton = {}
-                    callbacks[self] = perButton
-                end
-                perButton[mouseEvent] = fn
-            end
-            return origReg(self, mouseEvent, fn)
-        end,
-    })
-    civvaccess_shared.buttonProbeInstalled = true
-    Log.info("PullDownProbe: button metatable patched")
-    return true
+    return installProbe(
+        "Button",
+        "buttonProbeInstalled",
+        sampleButton,
+        "RegisterCallback",
+        "buttonCallbacks",
+        function(origReg, callbacks)
+            return {
+                RegisterCallback = function(self, mouseEvent, fn)
+                    if type(mouseEvent) == "number" and type(fn) == "function" then
+                        local perButton = callbacks[self]
+                        if perButton == nil then
+                            perButton = {}
+                            callbacks[self] = perButton
+                        end
+                        perButton[mouseEvent] = fn
+                    end
+                    return origReg(self, mouseEvent, fn)
+                end,
+            }
+        end
+    )
 end
 
 function PullDownProbe.buttonCallbackFor(button, mouseEvent)
@@ -317,41 +287,17 @@ function PullDownProbe.installFromControls(pullDownNames, sliderNames, checkBoxN
     if type(Controls) ~= "userdata" and type(Controls) ~= "table" then
         return
     end
-    if not civvaccess_shared.pullDownProbeInstalled then
-        for _, name in ipairs(pullDownNames or {}) do
-            local c = Controls[name]
-            if c ~= nil then
-                if PullDownProbe.ensureInstalled(c) then
-                    break
-                end
-            end
-        end
-    end
-    if not civvaccess_shared.sliderProbeInstalled then
-        for _, name in ipairs(sliderNames or {}) do
-            local c = Controls[name]
-            if c ~= nil then
-                if PullDownProbe.ensureSliderInstalled(c) then
-                    break
-                end
-            end
-        end
-    end
-    if not civvaccess_shared.checkBoxProbeInstalled then
-        for _, name in ipairs(checkBoxNames or {}) do
-            local c = Controls[name]
-            if c ~= nil then
-                if PullDownProbe.ensureCheckBoxInstalled(c) then
-                    break
-                end
-            end
-        end
-    end
-    if not civvaccess_shared.buttonProbeInstalled then
-        for _, name in ipairs(buttonNames or {}) do
-            local c = Controls[name]
-            if c ~= nil then
-                if PullDownProbe.ensureButtonInstalled(c) then
+    local kinds = {
+        { flag = "pullDownProbeInstalled", names = pullDownNames, ensure = PullDownProbe.ensureInstalled },
+        { flag = "sliderProbeInstalled", names = sliderNames, ensure = PullDownProbe.ensureSliderInstalled },
+        { flag = "checkBoxProbeInstalled", names = checkBoxNames, ensure = PullDownProbe.ensureCheckBoxInstalled },
+        { flag = "buttonProbeInstalled", names = buttonNames, ensure = PullDownProbe.ensureButtonInstalled },
+    }
+    for _, kind in ipairs(kinds) do
+        if not civvaccess_shared[kind.flag] then
+            for _, name in ipairs(kind.names or {}) do
+                local c = Controls[name]
+                if c ~= nil and kind.ensure(c) then
                     break
                 end
             end
