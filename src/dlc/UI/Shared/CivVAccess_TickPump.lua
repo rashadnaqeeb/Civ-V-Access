@@ -46,10 +46,7 @@ function TickPump.tick()
         -- queues for the next tick, not this one.
         civvaccess_shared.tickOneShots = {}
         for _, fn in ipairs(shots) do
-            local ok, err = pcall(fn)
-            if not ok then
-                Log.error("TickPump.runOnce callback failed: " .. tostring(err))
-            end
+            Log.tryCall("TickPump.runOnce callback", fn)
         end
     end
     local h = HandlerStack.active()
@@ -60,10 +57,7 @@ function TickPump.tick()
     if type(fn) ~= "function" then
         return
     end
-    local ok, err = pcall(fn, h)
-    if not ok then
-        Log.error("TickPump tick failed on '" .. tostring(h.name) .. "': " .. tostring(err))
-    end
+    Log.tryCall("TickPump tick on '" .. tostring(h.name) .. "'", fn, h)
 end
 
 -- Re-appliable: SetUpdate is replace-semantics (the engine exposes ClearUpdate

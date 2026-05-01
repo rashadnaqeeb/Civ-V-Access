@@ -96,11 +96,9 @@ end
 -- tab name (no fallback to tab.name). pcall failure logs and returns nil.
 local function resolveNameText(self, tab)
     if type(tab.nameFn) == "function" then
-        local ok, result = pcall(tab.nameFn, self)
+        local ok, result = Log.tryCall(
+            "BaseMenu '" .. self.name .. "' nameFn for tab '" .. tostring(tab.name) .. "'", tab.nameFn, self)
         if not ok then
-            Log.error(
-                "BaseMenu '" .. self.name .. "' nameFn for tab '" .. tostring(tab.name) .. "': " .. tostring(result)
-            )
             return nil
         end
         return result
@@ -156,12 +154,9 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     self._tabIndex = newTabIndex
     local tab = self.tabs[newTabIndex]
     if type(tab.showPanel) == "function" then
-        local ok, err = pcall(tab.showPanel)
-        if not ok then
-            Log.error(
-                "BaseMenu '" .. self.name .. "' showPanel for tab '" .. tostring(tab.name) .. "': " .. tostring(err)
-            )
-        end
+        Log.tryCall(
+            "BaseMenu '" .. self.name .. "' showPanel for tab '" .. tostring(tab.name) .. "'",
+            tab.showPanel)
     end
     -- Reset nesting on tab switch: the new tab's items are a fresh list.
     self._level = 1
@@ -175,12 +170,9 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     -- _level/_indices directly; the final announcement below speaks the
     -- item the callback landed on.
     if type(tab.onActivate) == "function" then
-        local ok, err = pcall(tab.onActivate, self)
-        if not ok then
-            Log.error(
-                "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "': " .. tostring(err)
-            )
-        end
+        Log.tryCall(
+            "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "'",
+            tab.onActivate, self)
     end
     if type(tab.autoDrillToLevel) == "number" then
         autoDrillTo(self, tab.autoDrillToLevel, nav)
@@ -221,22 +213,16 @@ function BaseMenuTabs.openInitial(self, nav)
     self._tabIndex = idx
     local tab = self.tabs[idx]
     if type(tab.showPanel) == "function" then
-        local ok, err = pcall(tab.showPanel)
-        if not ok then
-            Log.error("BaseMenu '" .. self.name .. "' initial showPanel: " .. tostring(err))
-        end
+        Log.tryCall("BaseMenu '" .. self.name .. "' initial showPanel", tab.showPanel)
     end
     self._level = 1
     local items = nav.currentItems(self)
     local first = nav.nextValidIndex(items, 0, 1)
     self._indices = { first or 1 }
     if type(tab.onActivate) == "function" then
-        local ok, err = pcall(tab.onActivate, self)
-        if not ok then
-            Log.error(
-                "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "': " .. tostring(err)
-            )
-        end
+        Log.tryCall(
+            "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "'",
+            tab.onActivate, self)
     end
     if type(tab.autoDrillToLevel) == "number" then
         autoDrillTo(self, tab.autoDrillToLevel, nav)

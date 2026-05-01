@@ -258,14 +258,9 @@ function HandlerStack.drainAndRemove(name, reactivate)
                     end
                 end
                 if escBinding ~= nil then
-                    local ok, err = pcall(escBinding.fn)
-                    if not ok then
-                        Log.error(
-                            "HandlerStack.drainAndRemove: sub '"
-                                .. tostring(top.name)
-                                .. "' Esc failed: "
-                                .. tostring(err)
-                        )
+                    if not Log.tryCall(
+                        "HandlerStack.drainAndRemove: sub '" .. tostring(top.name) .. "' Esc",
+                        escBinding.fn) then
                         HandlerStack.pop()
                     end
                 else

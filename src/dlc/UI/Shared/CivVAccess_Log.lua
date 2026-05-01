@@ -59,6 +59,28 @@ function Log.safeListener(scope, fn)
     end
 end
 
+-- pcall wrapper that logs on failure with a breadcrumb. Returns
+-- (ok, ...) so callers that capture the inner fn's return values can
+-- still check ok and use them on the success path. On failure, returns
+-- false alone (the inner values are unrecoverable from a thrown call).
+--
+-- Use this for hooks the mod calls into user-supplied callbacks where
+-- a thrown closure shouldn't take the dispatch path with it: HandlerStack
+-- lifecycle hooks, BaseMenuInstall priorShowHide / priorInput /
+-- shouldActivate / suppressReactivateOnHide, TabbedShell per-tab
+-- onActivate / onTabDeactivated / nameFn, TickPump runOnce. Inside
+-- per-feature modules the explicit pcall form is preferred (the per-
+-- site label string is closer to the call) -- this helper exists for
+-- the inner-callback boundaries in shared scaffolding.
+function Log.tryCall(label, fn, ...)
+    local results = { pcall(fn, ...) }
+    if not results[1] then
+        Log.error(label .. " failed: " .. tostring(results[2]))
+        return false
+    end
+    return unpack(results)
+end
+
 function Log.installEvent(dispatcher, eventName, handler, scope, missingMsg)
     if dispatcher == nil or dispatcher[eventName] == nil then
         local msg = scope .. ": " .. eventName .. " missing"

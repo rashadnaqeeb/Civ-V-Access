@@ -145,18 +145,12 @@ end
 
 local function deactivateTab(tab)
     if type(tab.onTabDeactivated) == "function" then
-        local ok, err = pcall(tab.onTabDeactivated, tab)
-        if not ok then
-            Log.error("TabbedShell deactivate '" .. tostring(tab.tabName) .. "': " .. tostring(err))
-        end
+        Log.tryCall("TabbedShell deactivate '" .. tostring(tab.tabName) .. "'", tab.onTabDeactivated, tab)
     end
 end
 
 local function activateTab(tab, announce)
-    local ok, err = pcall(tab.onTabActivated, tab, announce)
-    if not ok then
-        Log.error("TabbedShell activate '" .. tostring(tab.tabName) .. "': " .. tostring(err))
-    end
+    Log.tryCall("TabbedShell activate '" .. tostring(tab.tabName) .. "'", tab.onTabActivated, tab, announce)
 end
 
 -- Switch to a new tab index (forward or backward through the array, with
@@ -298,12 +292,10 @@ function TabbedShell.create(spec)
         if type(tab.handleSearchInput) ~= "function" then
             return false
         end
-        local ok, consumed = pcall(tab.handleSearchInput, tab, vk, mods)
-        if not ok then
-            Log.error("TabbedShell handleSearchInput in '" .. tostring(tab.tabName) .. "': " .. tostring(consumed))
-            return false
-        end
-        return consumed == true
+        local ok, consumed = Log.tryCall(
+            "TabbedShell handleSearchInput in '" .. tostring(tab.tabName) .. "'",
+            tab.handleSearchInput, tab, vk, mods)
+        return ok and consumed == true
     end
 
     -- Programmatic tab jump. Used by F2 wrapper to land on a non-default
@@ -387,19 +379,13 @@ function TabbedShell.menuTab(args)
         -- the only speakInterrupt in that branch), so the flag is harmless
         -- there.
         self._menu._chainSpeech = true
-        local ok, err = pcall(self._menu.onActivate)
+        Log.tryCall("TabbedShell.menuTab '" .. tostring(self.tabName) .. "' onActivate", self._menu.onActivate)
         self._menu._chainSpeech = nil
-        if not ok then
-            Log.error("TabbedShell.menuTab '" .. tostring(self.tabName) .. "' onActivate: " .. tostring(err))
-        end
     end
 
     function tab.onTabDeactivated(self)
         if type(self._menu.onDeactivate) == "function" then
-            local ok, err = pcall(self._menu.onDeactivate)
-            if not ok then
-                Log.error("TabbedShell.menuTab '" .. tostring(self.tabName) .. "' onDeactivate: " .. tostring(err))
-            end
+            Log.tryCall("TabbedShell.menuTab '" .. tostring(self.tabName) .. "' onDeactivate", self._menu.onDeactivate)
         end
     end
 
@@ -474,17 +460,9 @@ function TabbedShell.install(ContextPtr, spec)
     local function resetTabsForNextOpen()
         for _, tab in ipairs(handler._tabs) do
             if type(tab.resetForNextOpen) == "function" then
-                local ok, err = pcall(tab.resetForNextOpen, tab)
-                if not ok then
-                    Log.error(
-                        "TabbedShell '"
-                            .. handler.name
-                            .. "' resetForNextOpen on '"
-                            .. tostring(tab.tabName)
-                            .. "': "
-                            .. tostring(err)
-                    )
-                end
+                Log.tryCall(
+                    "TabbedShell '" .. handler.name .. "' resetForNextOpen on '" .. tostring(tab.tabName) .. "'",
+                    tab.resetForNextOpen, tab)
             end
         end
         handler._initialized = false
@@ -494,10 +472,7 @@ function TabbedShell.install(ContextPtr, spec)
 
     ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
         if priorShowHide then
-            local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
-            if not ok then
-                Log.error("TabbedShell '" .. handler.name .. "' prior ShowHide: " .. tostring(err))
-            end
+            Log.tryCall("TabbedShell '" .. handler.name .. "' priorShowHide", priorShowHide, bIsHide, bIsInit)
         end
         if bIsInit then
             return
@@ -509,20 +484,14 @@ function TabbedShell.install(ContextPtr, spec)
             return
         end
         if shouldActivate ~= nil then
-            local ok, should = pcall(shouldActivate)
-            if not ok then
-                Log.error("TabbedShell '" .. handler.name .. "' shouldActivate: " .. tostring(should))
-                return
-            end
-            if not should then
+            local ok, should = Log.tryCall(
+                "TabbedShell '" .. handler.name .. "' shouldActivate", shouldActivate)
+            if not ok or not should then
                 return
             end
         end
         if onShow ~= nil then
-            local ok, err = pcall(onShow, handler)
-            if not ok then
-                Log.error("TabbedShell '" .. handler.name .. "' onShow: " .. tostring(err))
-            end
+            Log.tryCall("TabbedShell '" .. handler.name .. "' onShow", onShow, handler)
         end
         if deferActivate then
             pendingPush = true
@@ -540,10 +509,9 @@ function TabbedShell.install(ContextPtr, spec)
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
             if top == handler then
                 if onEscape ~= nil then
-                    local ok, consumed = pcall(onEscape, handler)
-                    if not ok then
-                        Log.error("TabbedShell '" .. handler.name .. "' onEscape: " .. tostring(consumed))
-                    elseif consumed then
+                    local ok, consumed = Log.tryCall(
+                        "TabbedShell '" .. handler.name .. "' onEscape", onEscape, handler)
+                    if ok and consumed then
                         return true
                     end
                 end

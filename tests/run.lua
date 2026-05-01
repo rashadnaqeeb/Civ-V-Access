@@ -101,6 +101,15 @@ Log = {
             end
         end
     end,
+    -- Mirrors Log.tryCall: pcall + breadcrumb + (ok, ...) return.
+    tryCall = function(label, fn, ...)
+        local results = { pcall(fn, ...) }
+        if not results[1] then
+            Log.error(label .. " failed: " .. tostring(results[2]))
+            return false
+        end
+        return unpack(results)
+    end,
 }
 SpeechEngine = {
     say = function() end,

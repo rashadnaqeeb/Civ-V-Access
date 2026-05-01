@@ -62,10 +62,7 @@ function BaseMenu.install(ContextPtr, spec)
 
     ContextPtr:SetShowHideHandler(function(bIsHide, bIsInit)
         if priorShowHide then
-            local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name .. "' prior ShowHide: " .. tostring(err))
-            end
+            Log.tryCall("BaseMenu '" .. handler.name .. "' priorShowHide", priorShowHide, bIsHide, bIsInit)
         end
         -- bIsInit=true fires once per Context at boot so the engine can
         -- prime it; for in-game popups pre-loaded at game start, the
@@ -89,10 +86,9 @@ function BaseMenu.install(ContextPtr, spec)
         -- engine event chain.
         local reactivate = bIsHide
         if bIsHide and suppressReactivateOnHide ~= nil then
-            local ok, suppress = pcall(suppressReactivateOnHide)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name .. "' suppressReactivateOnHide: " .. tostring(suppress))
-            elseif suppress then
+            local ok, suppress = Log.tryCall(
+                "BaseMenu '" .. handler.name .. "' suppressReactivateOnHide", suppressReactivateOnHide)
+            if ok and suppress then
                 reactivate = false
             end
         end
@@ -103,12 +99,9 @@ function BaseMenu.install(ContextPtr, spec)
             return
         end
         if shouldActivate ~= nil then
-            local ok, should = pcall(shouldActivate)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name .. "' shouldActivate: " .. tostring(should))
-                return
-            end
-            if not should then
+            local ok, should = Log.tryCall(
+                "BaseMenu '" .. handler.name .. "' shouldActivate", shouldActivate)
+            if not ok or not should then
                 return
             end
         end
@@ -117,10 +110,7 @@ function BaseMenu.install(ContextPtr, spec)
         -- setItems calls land before onActivate reads them). Receives the
         -- handler so callers don't need a forward-declared upvalue.
         if onShow ~= nil then
-            local ok, err = pcall(onShow, handler)
-            if not ok then
-                Log.error("BaseMenu '" .. handler.name .. "' onShow: " .. tostring(err))
-            end
+            Log.tryCall("BaseMenu '" .. handler.name .. "' onShow", onShow, handler)
         end
         if deferActivate then
             pendingPush = true
@@ -160,10 +150,9 @@ function BaseMenu.install(ContextPtr, spec)
                     -- own priorInput (closes the pedia, ExitConfirm, etc.).
                     -- PickerReader uses this to bounce the reader tab back
                     -- to the picker tab rather than closing the screen.
-                    local ok, consumed = pcall(onEscape, handler)
-                    if not ok then
-                        Log.error("BaseMenu '" .. handler.name .. "' onEscape: " .. tostring(consumed))
-                    elseif consumed then
+                    local ok, consumed = Log.tryCall(
+                        "BaseMenu '" .. handler.name .. "' onEscape", onEscape, handler)
+                    if ok and consumed then
                         return true
                     end
                 end
