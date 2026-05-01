@@ -34,10 +34,7 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_TaskList.lua")
 
     SpeechPipeline._reset()
-    spoken = {}
-    SpeechPipeline._speakAction = function(text, interrupt)
-        spoken[#spoken + 1] = { text = text, interrupt = interrupt }
-    end
+    spoken = T.captureSpeech()
 end
 
 function M.test_listener_registers_at_file_scope()

@@ -77,22 +77,7 @@ local function setup()
         CivVAccess_Strings[k] = v
     end
 
-    Locale.ConvertTextKey = function(key, ...)
-        local fmt = CivVAccess_Strings[key] or key
-        local args = { ... }
-        if #args == 0 then
-            return fmt
-        end
-        return (
-            fmt:gsub("{(%d+)_[^}]*}", function(n)
-                local v = args[tonumber(n)]
-                if v == nil then
-                    return ""
-                end
-                return tostring(v)
-            end)
-        )
-    end
+    T.installLocaleStrings(CivVAccess_Strings)
 
     -- Pull in the production modules in dependency order. SpeechPipeline
     -- gets monkey-patched below to capture; Cursor.jumpTo is stubbed to
@@ -113,10 +98,7 @@ local function setup()
     HandlerStack._reset()
     SpeechPipeline._reset()
 
-    spoken = {}
-    SpeechPipeline._speakAction = function(text, interrupt)
-        spoken[#spoken + 1] = { text = text, interrupt = interrupt }
-    end
+    spoken = T.captureSpeech()
 
     jumpedTo = {}
     Cursor = Cursor or {}

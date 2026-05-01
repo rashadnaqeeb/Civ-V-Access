@@ -157,22 +157,7 @@ local function setup(opts)
     -- ENGINE_STRINGS pass straight through unchanged so substring asserts
     -- on the literal key name still work.
     origConvertTextKey = Locale.ConvertTextKey
-    Locale.ConvertTextKey = function(key, ...)
-        local source = ENGINE_STRINGS[key] or key
-        local args = { ... }
-        if #args == 0 then
-            return source
-        end
-        return (
-            source:gsub("{(%d+)_[^}]*}", function(n)
-                local v = args[tonumber(n)]
-                if v == nil then
-                    return ""
-                end
-                return tostring(v)
-            end)
-        )
-    end
+    T.installLocaleStrings(ENGINE_STRINGS)
 
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")

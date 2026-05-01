@@ -624,6 +624,39 @@ function T.mkEntry(cat, sub, name, plotIndex, opts)
     }
 end
 
+-- Install a Locale.ConvertTextKey stub backed by the supplied { key = format }
+-- map. The format string supports the engine's positional `{N_Tag}`
+-- substitution; unmapped keys come back as themselves so missing-key
+-- assertions still see the raw key.
+function T.installLocaleStrings(map)
+    Locale.ConvertTextKey = function(key, ...)
+        local fmt = map[key] or key
+        local args = { ... }
+        if #args == 0 then
+            return fmt
+        end
+        return (fmt:gsub("{(%d+)_[^}]*}", function(n)
+            local v = args[tonumber(n)]
+            if v == nil then
+                return ""
+            end
+            return tostring(v)
+        end))
+    end
+end
+
+-- Replace SpeechPipeline._speakAction with a capturing stub that records
+-- every speech call as { text, interrupt }. Returns the capture table so
+-- the suite can assert against it; subsequent setup() calls re-issue this
+-- helper to reset the table.
+function T.captureSpeech()
+    local spoken = {}
+    SpeechPipeline._speakAction = function(text, interrupt)
+        spoken[#spoken + 1] = { text = text, interrupt = interrupt }
+    end
+    return spoken
+end
+
 function T.run()
     local passed, failed = 0, {}
     for _, c in ipairs(T.cases) do

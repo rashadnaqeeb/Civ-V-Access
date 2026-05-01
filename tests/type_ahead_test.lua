@@ -7,7 +7,6 @@ local M = {}
 local speaks
 
 local function setup()
-    speaks = {}
     Log.warn = function() end
     Log.error = function() end
     Log.info = function() end
@@ -15,9 +14,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
     SpeechPipeline._reset()
-    SpeechPipeline._speakAction = function(text, interrupt)
-        speaks[#speaks + 1] = { text = text, interrupt = interrupt }
-    end
+    speaks = T.captureSpeech()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
 

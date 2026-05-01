@@ -40,10 +40,7 @@ local function setup(existing)
     SpeechPipeline._reset()
     NotificationAnnounce._reset()
 
-    spoken = {}
-    SpeechPipeline._speakAction = function(text, interrupt)
-        spoken[#spoken + 1] = { text = text, interrupt = interrupt }
-    end
+    spoken = T.captureSpeech()
 
     clockNow = 1000.0
     NotificationAnnounce._timeSource = function()

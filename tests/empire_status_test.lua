@@ -41,22 +41,7 @@ local otherPlayers
 local influenceLevels
 
 local function setup()
-    Locale.ConvertTextKey = function(key, ...)
-        local template = GAME_TEXT[key] or key
-        local args = { ... }
-        if #args == 0 then
-            return template
-        end
-        return (
-            template:gsub("{(%d+)_[^}]*}", function(n)
-                local v = args[tonumber(n)]
-                if v == nil then
-                    return ""
-                end
-                return tostring(v)
-            end)
-        )
-    end
+    T.installLocaleStrings(GAME_TEXT)
 
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")

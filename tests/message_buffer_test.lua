@@ -24,10 +24,7 @@ local function setup()
     MessageBuffer._reset()
     MessageBuffer._setCap(5000)
 
-    spoken = {}
-    SpeechPipeline._speakAction = function(text, interrupt)
-        spoken[#spoken + 1] = { text = text, interrupt = interrupt }
-    end
+    spoken = T.captureSpeech()
     -- Edge re-speaks fire the same string twice in a row, and the
     -- pipeline's 50ms interrupt-dedupe would silently swallow the second
     -- call when both happen within the same os.clock() tick. Drive the

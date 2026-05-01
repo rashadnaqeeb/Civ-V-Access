@@ -130,22 +130,7 @@ local greatPeopleUnits
 local capitalCity
 
 local function setup()
-    Locale.ConvertTextKey = function(key, ...)
-        local template = GAME_TEXT[key] or key
-        local args = { ... }
-        if #args == 0 then
-            return template
-        end
-        return (
-            template:gsub("{(%d+)_[^}]*}", function(n)
-                local v = args[tonumber(n)]
-                if v == nil then
-                    return ""
-                end
-                return tostring(v)
-            end)
-        )
-    end
+    T.installLocaleStrings(GAME_TEXT)
     Locale.ToNumber = function(v, _fmt)
         return tostring(v)
     end

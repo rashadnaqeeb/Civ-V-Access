@@ -204,18 +204,7 @@ local function setup(opts)
         return opts.religionsFounded or 0
     end
     Locale = Locale or {}
-    Locale.ConvertTextKey = function(k, ...)
-        local args = { ... }
-        if #args == 0 then
-            return k
-        end
-        return (
-            k:gsub("{(%d+)_[^}]*}", function(n)
-                local v = args[tonumber(n)]
-                return v == nil and "" or tostring(v)
-            end)
-        )
-    end
+    T.installLocaleStrings({})
 
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
