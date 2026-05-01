@@ -176,9 +176,16 @@ local handler = BaseMenu.install(ContextPtr, {
 
 civvaccess_shared.loadScreenHandler = handler
 
-if not civvaccess_shared.loadScreenReadyListenerInstalled then
-    civvaccess_shared.loadScreenReadyListenerInstalled = true
-    Events.SequenceGameInitComplete.Add(function()
+-- Register fresh on every Context include (no civvaccess_shared install-
+-- once flag): the flag persists across Context re-inits but the listener
+-- it gates is stranded with a dead env. handlerRefresh below resolves
+-- the live handler off civvaccess_shared at fire time, so the listener
+-- body itself does not capture a stale ref; only the body's upvalues
+-- (Log, pcall, Events, PreGame) need a live env, which the re-include
+-- supplies.
+Log.installEvent(Events, "SequenceGameInitComplete", Log.safeListener(
+    "LoadScreenAccess.onSequenceGameInitComplete",
+    function()
         if PreGame.IsMultiplayerGame() or PreGame.IsHotSeatGame() then
             return
         end
@@ -193,9 +200,5 @@ if not civvaccess_shared.loadScreenReadyListenerInstalled then
         -- a buffer the user typed during the load doesn't route the
         -- next Up/Down through stale match results.
         h.setIndex(1)
-        local ok, err = pcall(h.onActivate)
-        if not ok then
-            Log.error("LoadScreenAccess: ready re-activate failed: " .. tostring(err))
-        end
-    end)
-end
+        h.onActivate()
+    end), "LoadScreenAccess")

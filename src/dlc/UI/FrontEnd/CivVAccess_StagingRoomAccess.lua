@@ -868,20 +868,24 @@ local function onDisconnect(playerID)
     SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DISCONNECT", resolveNick(playerID)))
 end
 
--- Listener installation is idempotent across Context resets via a shared
--- flag. Engine .Add() chains rather than replaces, so repeated includes
--- would stack listeners without this guard.
---
--- Each listener is pcall-wrapped via Log.safeListener because the engine
--- dispatches Events.X listeners from C and a raw Lua error surfaces as
--- a bare "Runtime Error: ..." line with no Context prefix and no stack
--- trace. The wrapper gives us a breadcrumb identifying which listener
--- threw so the error becomes traceable.
+-- Listener installation is idempotent within one Context lifetime via a
+-- file-scope local. A flag on civvaccess_shared (the natural choice)
+-- would persist across Context re-inits and lock the mod to a stranded
+-- prior-Context listener -- CLAUDE.md's "no install-once guards"
+-- rationale. The local resets to false when the file is re-evaluated
+-- on Context re-include, so a fresh env gets a fresh listener set.
+-- Each listener is pcall-wrapped via Log.safeListener because the
+-- engine dispatches Events.X listeners from C and a raw Lua error
+-- surfaces as a bare "Runtime Error: ..." line with no Context prefix
+-- and no stack trace. The wrapper gives us a breadcrumb identifying
+-- which listener threw so the error becomes traceable.
+local listenersInstalled = false
+
 local function installListeners()
-    if civvaccess_shared._stagingListenersInstalled then
+    if listenersInstalled then
         return
     end
-    civvaccess_shared._stagingListenersInstalled = true
+    listenersInstalled = true
     Log.installEvent(Events, "PreGameDirty",
         Log.safeListener("StagingRoomAccess.onPreGameDirty", onPreGameDirty), "StagingRoomAccess")
     Log.installEvent(Events, "GameMessageChat",

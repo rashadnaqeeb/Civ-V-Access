@@ -16,30 +16,34 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = ShowHideHandler
 local priorInput = InputHandler
 
+-- File-scope local guard rather than civvaccess_shared. A flag on
+-- civvaccess_shared persists across Context re-inits and would lock the
+-- mod to a stranded prior-Context listener (CLAUDE.md "no install-once
+-- guards" rationale); this local lives only in the current Context's
+-- env, so a re-include rebuilds it as false and re-installs fresh
+-- listeners. Each show within one Context lifetime still installs only
+-- once (the listeners persist on Events.X for the life of this env).
+local listenersInstalled = false
+
 local function wrappedPriorShowHide(bIsHide, bIsInit)
     priorShowHide(bIsHide, bIsInit)
     if bIsHide then
         return
     end
-    if civvaccess_shared._joiningRoomListenersInstalled then
+    if listenersInstalled then
         return
     end
-    civvaccess_shared._joiningRoomListenersInstalled = true
-    local function doRefresh()
+    listenersInstalled = true
+    local doRefresh = Log.safeListener("JoiningRoomAccess.refresh", function()
         local h = civvaccess_shared._joiningRoomHandler
         if h == nil then
             return
         end
-        local ok, err = pcall(function()
-            h.refresh()
-        end)
-        if not ok then
-            Log.error("JoiningRoomAccess refresh: " .. tostring(err))
-        end
-    end
-    Events.MultiplayerJoinRoomComplete.Add(doRefresh)
-    Events.ConnectedToNetworkHost.Add(doRefresh)
-    Events.MultiplayerNetRegistered.Add(doRefresh)
+        h.refresh()
+    end)
+    Log.installEvent(Events, "MultiplayerJoinRoomComplete", doRefresh, "JoiningRoomAccess")
+    Log.installEvent(Events, "ConnectedToNetworkHost", doRefresh, "JoiningRoomAccess")
+    Log.installEvent(Events, "MultiplayerNetRegistered", doRefresh, "JoiningRoomAccess")
 end
 
 civvaccess_shared._joiningRoomHandler = BaseMenu.install(ContextPtr, {

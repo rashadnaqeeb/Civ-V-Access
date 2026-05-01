@@ -28,18 +28,20 @@ civvaccess_shared._frontEndPopupHandler = BaseMenu.install(ContextPtr, {
     },
 })
 
-if not civvaccess_shared._frontEndPopupRefreshInstalled then
-    civvaccess_shared._frontEndPopupRefreshInstalled = true
-    Events.FrontEndPopup.Add(function()
-        local h = civvaccess_shared._frontEndPopupHandler
-        if h == nil then
-            return
-        end
-        local ok, err = pcall(function()
-            h.refresh()
-        end)
-        if not ok then
-            Log.error("FrontEndPopupAccess refresh: " .. tostring(err))
-        end
-    end)
-end
+-- Register fresh on every include. CLAUDE.md's "no install-once guards"
+-- rule applies here too: the install-once flag persists on
+-- civvaccess_shared but the listener it gated is stranded with a dead
+-- env after a Context re-init. The handler-stash pattern (publishing
+-- the latest handler on civvaccess_shared and having the listener
+-- look it up at fire time) covers handler ref staleness, but the
+-- listener body's own captured upvalues (Log, pcall, Events) belong
+-- to the prior Context's env. Re-registering each include keeps the
+-- newest listener live; the engine's per-listener catch limits the
+-- accumulation cost.
+Log.installEvent(Events, "FrontEndPopup", Log.safeListener("FrontEndPopupAccess.refresh", function()
+    local h = civvaccess_shared._frontEndPopupHandler
+    if h == nil then
+        return
+    end
+    h.refresh()
+end), "FrontEndPopupAccess")
