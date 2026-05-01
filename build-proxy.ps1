@@ -3,11 +3,14 @@
     Compile the Civ V Lua proxy DLL and stage the proxy stack.
 
 .DESCRIPTION
-    Invokes src/proxy/build_proxy.bat (which uses VS 2026's cl.exe) to compile
-    lua51_Win32.dll. Output goes to dist/proxy/lua51_Win32.dll, which is
-    committed to the repo so contributors can deploy without rebuilding. The
-    Tolk + screen-reader runtime DLLs are not built here; they live (already
-    committed) in third_party/tolk/dist/x86/ and deploy.ps1 reads them directly.
+    Invokes src/proxy/build_proxy.bat to compile lua51_Win32.dll. The batch
+    script uses vswhere -latest -products * to pick whichever Visual Studio
+    install on the machine has the C++ x86/x64 build tools, then runs that
+    install's cl.exe via vcvarsall.bat x86. Output goes to
+    dist/proxy/lua51_Win32.dll, which is committed to the repo so contributors
+    can deploy without rebuilding. The Tolk + screen-reader runtime DLLs are
+    not built here; they live (already committed) in third_party/tolk/dist/x86/
+    and deploy.ps1 reads them directly.
 
     No engine DLL work; that lives in build-engine.ps1.
 #>
