@@ -36,13 +36,6 @@
 
 PickerReader = {}
 
-local function check(cond, msg)
-    if not cond then
-        Log.error(msg)
-        error(msg, 2)
-    end
-end
-
 -- Walk picker items (which may include nested Groups) and invoke visit
 -- at every Entry leaf, passing the 1-based path of indices from the top
 -- level down to the leaf. Returns immediately if visit returns true.
@@ -240,17 +233,17 @@ function PickerReader.create()
     end
 
     function session.Entry(spec)
-        check(type(spec) == "table", "PickerReader.Entry requires a spec table")
-        check(type(spec.id) == "string" and spec.id ~= "", "PickerReader.Entry.id required (non-empty string)")
-        check(
+        Log.check(type(spec) == "table", "PickerReader.Entry requires a spec table")
+        Log.check(type(spec.id) == "string" and spec.id ~= "", "PickerReader.Entry.id required (non-empty string)")
+        Log.check(
             type(spec.textKey) == "string" or type(spec.labelText) == "string" or type(spec.labelFn) == "function",
             "PickerReader.Entry needs textKey, labelText, or labelFn"
         )
-        check(
+        Log.check(
             spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
             "PickerReader.Entry.tooltipFn must be a function if provided"
         )
-        check(type(spec.buildReader) == "function", "PickerReader.Entry.buildReader required (fn(handler, id))")
+        Log.check(type(spec.buildReader) == "function", "PickerReader.Entry.buildReader required (fn(handler, id))")
         local item = {
             kind = "entry",
             id = spec.id,
@@ -284,12 +277,12 @@ function PickerReader.create()
     end
 
     function session.install(ContextPtr, config)
-        check(type(config) == "table", "PickerReader.install requires a config table")
-        check(type(config.name) == "string" and config.name ~= "", "config.name required")
-        check(type(config.displayName) == "string" and config.displayName ~= "", "config.displayName required")
-        check(type(config.pickerTabName) == "string", "config.pickerTabName (TXT_KEY) required")
-        check(type(config.readerTabName) == "string", "config.readerTabName (TXT_KEY) required")
-        check(
+        Log.check(type(config) == "table", "PickerReader.install requires a config table")
+        Log.check(type(config.name) == "string" and config.name ~= "", "config.name required")
+        Log.check(type(config.displayName) == "string" and config.displayName ~= "", "config.displayName required")
+        Log.check(type(config.pickerTabName) == "string", "config.pickerTabName (TXT_KEY) required")
+        Log.check(type(config.readerTabName) == "string", "config.readerTabName (TXT_KEY) required")
+        Log.check(
             type(config.pickerItems) == "table" and #config.pickerItems > 0,
             "config.pickerItems required (non-empty array)"
         )

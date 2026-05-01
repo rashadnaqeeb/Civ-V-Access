@@ -71,6 +71,11 @@ Log = {
     info = function() end,
     warn = function() end,
     error = function() end,
+    check = function(cond, msg)
+        if not cond then
+            error(msg, 2)
+        end
+    end,
 }
 SpeechEngine = {
     say = function() end,

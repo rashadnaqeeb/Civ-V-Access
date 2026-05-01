@@ -13,51 +13,44 @@
 
 BaseMenuTabs = {}
 
-local function check(cond, msg)
-    if not cond then
-        Log.error(msg)
-        error(msg, 2)
-    end
-end
-
 -- Validate spec.tabs and return the array to assign to self.tabs. Caller
 -- (BaseMenu.create) sets self._tabIndex = 1 separately so the rest of
 -- create()'s state init reads in one place.
 function BaseMenuTabs.normalize(specTabs)
-    check(type(specTabs) == "table" and #specTabs > 0, "spec.tabs must be a non-empty array")
+    Log.check(type(specTabs) == "table" and #specTabs > 0, "spec.tabs must be a non-empty array")
     local tabs = {}
     for i, tab in ipairs(specTabs) do
-        check(type(tab.name) == "string", "tab " .. i .. ".name (TXT_KEY) required")
-        check(type(tab.items) == "table", "tab " .. i .. ".items required")
-        check(
+        Log.check(type(tab.name) == "string", "tab " .. i .. ".name (TXT_KEY) required")
+        Log.check(type(tab.items) == "table", "tab " .. i .. ".items required")
+        Log.check(
             tab.onActivate == nil or type(tab.onActivate) == "function",
             "tab " .. i .. ".onActivate must be a function if provided"
         )
-        check(
+        Log.check(
             tab.autoDrillToLevel == nil or (type(tab.autoDrillToLevel) == "number" and tab.autoDrillToLevel >= 1),
             "tab " .. i .. ".autoDrillToLevel must be a positive number"
         )
-        check(
+        Log.check(
             tab.nameFn == nil or type(tab.nameFn) == "function",
             "tab " .. i .. ".nameFn must be a function if provided"
         )
-        check(
+        Log.check(
             tab.onCtrlUp == nil or type(tab.onCtrlUp) == "function",
             "tab " .. i .. ".onCtrlUp must be a function if provided"
         )
-        check(
+        Log.check(
             tab.onCtrlDown == nil or type(tab.onCtrlDown) == "function",
             "tab " .. i .. ".onCtrlDown must be a function if provided"
         )
-        check(
+        Log.check(
             tab.onAltLeft == nil or type(tab.onAltLeft) == "function",
             "tab " .. i .. ".onAltLeft must be a function if provided"
         )
-        check(
+        Log.check(
             tab.onAltRight == nil or type(tab.onAltRight) == "function",
             "tab " .. i .. ".onAltRight must be a function if provided"
         )
-        check(
+        Log.check(
             tab.buildSearchable == nil or type(tab.buildSearchable) == "function",
             "tab " .. i .. ".buildSearchable must be a function if provided"
         )

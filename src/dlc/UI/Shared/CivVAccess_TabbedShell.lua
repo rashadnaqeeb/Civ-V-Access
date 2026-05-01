@@ -51,13 +51,6 @@ TabbedShell = {}
 
 local MOD_SHIFT = 1
 
-local function check(cond, msg)
-    if not cond then
-        Log.error(msg)
-        error(msg, 2)
-    end
-end
-
 -- Strip Tab / Shift+Tab / Esc from a tab handler's bindings so the shell's
 -- own bindings (which compose in front) win those chords. Keep every other
 -- tab-bound chord intact.
@@ -85,22 +78,22 @@ end
 -- so we only require what the shell actually consumes; missing-but-optional
 -- fields (helpEntries, onTabDeactivated, handleSearchInput) are tolerated.
 local function checkTab(tab, i)
-    check(type(tab) == "table", "tabs[" .. i .. "] must be a table")
-    check(type(tab.tabName) == "string" and tab.tabName ~= "", "tabs[" .. i .. "].tabName required")
-    check(type(tab.onTabActivated) == "function", "tabs[" .. i .. "].onTabActivated required")
-    check(
+    Log.check(type(tab) == "table", "tabs[" .. i .. "] must be a table")
+    Log.check(type(tab.tabName) == "string" and tab.tabName ~= "", "tabs[" .. i .. "].tabName required")
+    Log.check(type(tab.onTabActivated) == "function", "tabs[" .. i .. "].onTabActivated required")
+    Log.check(
         tab.bindings == nil or type(tab.bindings) == "table",
         "tabs[" .. i .. "].bindings must be a table if provided"
     )
-    check(
+    Log.check(
         tab.helpEntries == nil or type(tab.helpEntries) == "table",
         "tabs[" .. i .. "].helpEntries must be a table if provided"
     )
-    check(
+    Log.check(
         tab.onTabDeactivated == nil or type(tab.onTabDeactivated) == "function",
         "tabs[" .. i .. "].onTabDeactivated must be a function if provided"
     )
-    check(
+    Log.check(
         tab.handleSearchInput == nil or type(tab.handleSearchInput) == "function",
         "tabs[" .. i .. "].handleSearchInput must be a function if provided"
     )
@@ -244,14 +237,14 @@ local function buildShellHelpEntries()
 end
 
 function TabbedShell.create(spec)
-    check(type(spec) == "table", "TabbedShell.create requires a spec table")
-    check(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
-    check(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
-    check(type(spec.tabs) == "table" and #spec.tabs >= 1, "spec.tabs must be a non-empty array")
+    Log.check(type(spec) == "table", "TabbedShell.create requires a spec table")
+    Log.check(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
+    Log.check(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
+    Log.check(type(spec.tabs) == "table" and #spec.tabs >= 1, "spec.tabs must be a non-empty array")
     for i, tab in ipairs(spec.tabs) do
         checkTab(tab, i)
     end
-    check(
+    Log.check(
         spec.initialTabIndex == nil
             or (
                 type(spec.initialTabIndex) == "number"
@@ -260,7 +253,7 @@ function TabbedShell.create(spec)
             ),
         "spec.initialTabIndex must be a positive number within tabs range if provided"
     )
-    check(spec.onEscape == nil or type(spec.onEscape) == "function", "spec.onEscape must be a function if provided")
+    Log.check(spec.onEscape == nil or type(spec.onEscape) == "function", "spec.onEscape must be a function if provided")
 
     local self = {
         name = spec.name,
@@ -360,9 +353,9 @@ end
 --             one). silentDisplayName is forced to true. displayName must
 --             still be present (BaseMenu requires it) but is unspoken.
 function TabbedShell.menuTab(args)
-    check(type(args) == "table", "TabbedShell.menuTab requires args")
-    check(type(args.tabName) == "string" and args.tabName ~= "", "args.tabName required")
-    check(type(args.menuSpec) == "table", "args.menuSpec required")
+    Log.check(type(args) == "table", "TabbedShell.menuTab requires args")
+    Log.check(type(args.tabName) == "string" and args.tabName ~= "", "args.tabName required")
+    Log.check(type(args.menuSpec) == "table", "args.menuSpec required")
 
     local menuSpec = {}
     for k, v in pairs(args.menuSpec) do

@@ -91,18 +91,6 @@ local MOD_SHIFT = 1
 local MOD_CTRL = 2
 local MOD_ALT = 4
 
--- Spec-validation guard. Logs the failure through the mod's log wrapper
--- before erroring so the message reaches Lua.log uniformly (a bare assert()
--- throws through the engine's own reporting which is not guaranteed to log).
--- error level 2 reports from the caller's frame so traces point at the
--- offending factory call, not this helper.
-local function check(cond, msg)
-    if not cond then
-        Log.error(msg)
-        error(msg, 2)
-    end
-end
-
 -- Walk helpers ------------------------------------------------------------
 
 local function nextValidIndex(items, start, step)
@@ -591,32 +579,32 @@ end
 -- Factory ------------------------------------------------------------------
 
 function BaseMenu.create(spec)
-    check(type(spec) == "table", "BaseMenu.create requires a spec table")
-    check(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
-    check(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
-    check(spec.tabs == nil or spec.items == nil, "spec must have EITHER tabs OR items, not both")
-    check(
+    Log.check(type(spec) == "table", "BaseMenu.create requires a spec table")
+    Log.check(type(spec.name) == "string" and spec.name ~= "", "spec.name required")
+    Log.check(type(spec.displayName) == "string" and spec.displayName ~= "", "spec.displayName required")
+    Log.check(spec.tabs == nil or spec.items == nil, "spec must have EITHER tabs OR items, not both")
+    Log.check(
         spec.preamble == nil
             or (type(spec.preamble) == "string" and spec.preamble ~= "")
             or type(spec.preamble) == "function",
         "spec.preamble must be a non-empty string or a function if provided"
     )
-    check(
+    Log.check(
         spec.silentFirstOpen == nil
             or type(spec.silentFirstOpen) == "boolean"
             or type(spec.silentFirstOpen) == "function",
         "spec.silentFirstOpen must be a boolean or a function if provided"
     )
-    check(
+    Log.check(
         spec.silentDisplayName == nil or type(spec.silentDisplayName) == "boolean",
         "spec.silentDisplayName must be a boolean if provided"
     )
-    check(
+    Log.check(
         spec.initialTabIndex == nil or (type(spec.initialTabIndex) == "number" and spec.initialTabIndex >= 1),
         "spec.initialTabIndex must be a positive number if provided"
     )
-    check(spec.onAltLeft == nil or type(spec.onAltLeft) == "function", "spec.onAltLeft must be a function if provided")
-    check(
+    Log.check(spec.onAltLeft == nil or type(spec.onAltLeft) == "function", "spec.onAltLeft must be a function if provided")
+    Log.check(
         spec.onAltRight == nil or type(spec.onAltRight) == "function",
         "spec.onAltRight must be a function if provided"
     )
@@ -679,7 +667,7 @@ function BaseMenu.create(spec)
     if spec.tabs then
         self.tabs = BaseMenuTabs.normalize(spec.tabs)
     else
-        check(type(spec.items) == "table", "spec.items or spec.tabs required")
+        Log.check(type(spec.items) == "table", "spec.items or spec.tabs required")
         self._items = spec.items
     end
 
@@ -1007,10 +995,10 @@ function BaseMenu.create(spec)
     -- that want an announcement after a rebuild should call refresh()
     -- (for dynamic preambles) or drive their own speakInterrupt.
     function self.setItems(items, tabIndex)
-        check(type(items) == "table", "setItems: items must be a table")
+        Log.check(type(items) == "table", "setItems: items must be a table")
         if self.tabs then
             tabIndex = tabIndex or self._tabIndex
-            check(self.tabs[tabIndex] ~= nil, "setItems: tab " .. tostring(tabIndex) .. " out of range")
+            Log.check(self.tabs[tabIndex] ~= nil, "setItems: tab " .. tostring(tabIndex) .. " out of range")
             self.tabs[tabIndex]._items = items
         else
             self._items = items

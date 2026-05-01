@@ -20,3 +20,12 @@ end
 function Log.error(msg)
     emit("ERROR", msg)
 end
+
+-- Validate a precondition. Logs the failure and re-raises so the caller
+-- aborts rather than continuing in a known-bad state.
+function Log.check(cond, msg)
+    if not cond then
+        emit("ERROR", msg)
+        error(msg, 2)
+    end
+end

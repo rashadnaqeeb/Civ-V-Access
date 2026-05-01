@@ -24,18 +24,6 @@ BaseMenuItems = {}
 local STEP_SMALL = 0.01
 local STEP_BIG = 0.10
 
--- Spec-validation guard. Logs the failure through the mod's log wrapper
--- before erroring so the message reaches Lua.log uniformly (a bare assert()
--- throws through the engine's own reporting which is not guaranteed to log).
--- error level 2 reports from the caller's frame so traces point at the
--- offending factory call, not this helper.
-local function check(cond, msg)
-    if not cond then
-        Log.error(msg)
-        error(msg, 2)
-    end
-end
-
 -- Label / tooltip resolution ----------------------------------------------
 
 local function resolveLabel(item)
@@ -185,7 +173,7 @@ local function resolveControl(spec, kind)
     if spec.control ~= nil then
         return spec.control
     end
-    check(type(spec.controlName) == "string", kind .. " needs controlName or control")
+    Log.check(type(spec.controlName) == "string", kind .. " needs controlName or control")
     local c = Controls[spec.controlName]
     if c == nil then
         Log.warn("BaseMenuItems " .. kind .. ": missing control '" .. spec.controlName .. "'")
@@ -194,14 +182,14 @@ local function resolveControl(spec, kind)
 end
 
 local function assertLabel(spec, kind)
-    check(
+    Log.check(
         type(spec.textKey) == "string" or type(spec.labelText) == "string" or type(spec.labelFn) == "function",
         kind .. " needs textKey, labelText, or labelFn"
     )
 end
 
 local function assertTooltip(spec, kind)
-    check(
+    Log.check(
         spec.tooltipFn == nil or type(spec.tooltipFn) == "function",
         kind .. ".tooltipFn must be a function if provided"
     )
@@ -230,7 +218,7 @@ end
 function BaseMenuItems.Button(spec)
     assertLabel(spec, "Button")
     assertTooltip(spec, "Button")
-    check(type(spec.activate) == "function", "Button '" .. tostring(spec.controlName) .. "' needs activate fn")
+    Log.check(type(spec.activate) == "function", "Button '" .. tostring(spec.controlName) .. "' needs activate fn")
     local item = {
         kind = "button",
         _control = resolveControl(spec, "Button"),
@@ -277,7 +265,7 @@ end
 function BaseMenuItems.Text(spec)
     assertLabel(spec, "Text")
     assertTooltip(spec, "Text")
-    check(
+    Log.check(
         spec.onActivate == nil or type(spec.onActivate) == "function",
         "Text onActivate must be a function if provided"
     )
@@ -324,7 +312,7 @@ end
 function BaseMenuItems.Checkbox(spec)
     assertLabel(spec, "Checkbox")
     assertTooltip(spec, "Checkbox")
-    check(
+    Log.check(
         spec.activateCallback == nil or type(spec.activateCallback) == "function",
         "Checkbox.activateCallback must be a function if provided"
     )
@@ -419,8 +407,8 @@ end
 function BaseMenuItems.Choice(spec)
     assertLabel(spec, "Choice")
     assertTooltip(spec, "Choice")
-    check(type(spec.activate) == "function", "Choice needs activate fn")
-    check(
+    Log.check(type(spec.activate) == "function", "Choice needs activate fn")
+    Log.check(
         spec.selectedFn == nil or type(spec.selectedFn) == "function",
         "Choice.selectedFn must be a function if provided"
     )
@@ -533,7 +521,7 @@ end
 function BaseMenuItems.Slider(spec)
     assertLabel(spec, "Slider")
     assertTooltip(spec, "Slider")
-    check(
+    Log.check(
         type(spec.labelControlName) == "string",
         "Slider '" .. tostring(spec.controlName) .. "' needs labelControlName"
     )
@@ -731,12 +719,12 @@ end
 function BaseMenuItems.Pulldown(spec)
     assertLabel(spec, "Pulldown")
     assertTooltip(spec, "Pulldown")
-    check(spec.valueFn == nil or type(spec.valueFn) == "function", "Pulldown.valueFn must be a function if provided")
-    check(
+    Log.check(spec.valueFn == nil or type(spec.valueFn) == "function", "Pulldown.valueFn must be a function if provided")
+    Log.check(
         spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
         "Pulldown.entryAnnounceFn must be a function if provided"
     )
-    check(
+    Log.check(
         spec.onSelected == nil or type(spec.onSelected) == "function",
         "Pulldown.onSelected must be a function if provided"
     )
@@ -938,7 +926,7 @@ end
 function BaseMenuItems.Group(spec)
     assertLabel(spec, "Group")
     assertTooltip(spec, "Group")
-    check(type(spec.items) == "table" or type(spec.itemsFn) == "function", "Group needs items or itemsFn")
+    Log.check(type(spec.items) == "table" or type(spec.itemsFn) == "function", "Group needs items or itemsFn")
     local item = {
         kind = "group",
         _items = spec.items,
@@ -1029,7 +1017,7 @@ BaseMenuItems._textfieldCurrentValue = textfieldCurrentValue
 function BaseMenuItems.Textfield(spec)
     assertLabel(spec, "Textfield")
     assertTooltip(spec, "Textfield")
-    check(
+    Log.check(
         spec.priorCallback == nil or type(spec.priorCallback) == "function",
         "Textfield '" .. tostring(spec.controlName) .. "' priorCallback must be a function"
     )
@@ -1084,9 +1072,9 @@ end
 function BaseMenuItems.VirtualSlider(spec)
     assertLabel(spec, "VirtualSlider")
     assertTooltip(spec, "VirtualSlider")
-    check(type(spec.getValue) == "function", "VirtualSlider needs getValue fn")
-    check(type(spec.setValue) == "function", "VirtualSlider needs setValue fn")
-    check(type(spec.labelFn) == "function", "VirtualSlider needs labelFn(value) fn")
+    Log.check(type(spec.getValue) == "function", "VirtualSlider needs getValue fn")
+    Log.check(type(spec.setValue) == "function", "VirtualSlider needs setValue fn")
+    Log.check(type(spec.labelFn) == "function", "VirtualSlider needs labelFn(value) fn")
     local item = {
         kind = "slider",
         _getValue = spec.getValue,
@@ -1152,8 +1140,8 @@ end
 function BaseMenuItems.VirtualToggle(spec)
     assertLabel(spec, "VirtualToggle")
     assertTooltip(spec, "VirtualToggle")
-    check(type(spec.getValue) == "function", "VirtualToggle needs getValue fn")
-    check(type(spec.setValue) == "function", "VirtualToggle needs setValue fn")
+    Log.check(type(spec.getValue) == "function", "VirtualToggle needs getValue fn")
+    Log.check(type(spec.setValue) == "function", "VirtualToggle needs setValue fn")
     local item = {
         kind = "checkbox",
         _getValue = spec.getValue,

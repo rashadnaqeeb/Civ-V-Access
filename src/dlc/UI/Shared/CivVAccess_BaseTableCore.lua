@@ -55,13 +55,6 @@ BaseTable = {}
 
 local MOD_CTRL = 2
 
-local function check(cond, msg)
-    if not cond then
-        Log.error(msg)
-        error(msg, 2)
-    end
-end
-
 -- Build the live row list, applying sort if a column is active. Called on
 -- every nav event so values reflect current game state (no-cache rule).
 local function buildRows(self)
@@ -367,28 +360,28 @@ end
 -- Factory ---------------------------------------------------------------
 
 function BaseTable.create(spec)
-    check(type(spec) == "table", "BaseTable.create requires a spec table")
-    check(type(spec.tabName) == "string" and spec.tabName ~= "", "spec.tabName required")
-    check(type(spec.columns) == "table" and #spec.columns >= 1, "spec.columns must be a non-empty array")
+    Log.check(type(spec) == "table", "BaseTable.create requires a spec table")
+    Log.check(type(spec.tabName) == "string" and spec.tabName ~= "", "spec.tabName required")
+    Log.check(type(spec.columns) == "table" and #spec.columns >= 1, "spec.columns must be a non-empty array")
     for i, c in ipairs(spec.columns) do
-        check(type(c) == "table", "columns[" .. i .. "] must be a table")
-        check(type(c.name) == "string" and c.name ~= "", "columns[" .. i .. "].name required")
-        check(type(c.getCell) == "function", "columns[" .. i .. "].getCell required")
-        check(
+        Log.check(type(c) == "table", "columns[" .. i .. "] must be a table")
+        Log.check(type(c.name) == "string" and c.name ~= "", "columns[" .. i .. "].name required")
+        Log.check(type(c.getCell) == "function", "columns[" .. i .. "].getCell required")
+        Log.check(
             c.sortKey == nil or type(c.sortKey) == "function",
             "columns[" .. i .. "].sortKey must be a function if provided"
         )
-        check(
+        Log.check(
             c.enterAction == nil or type(c.enterAction) == "function",
             "columns[" .. i .. "].enterAction must be a function if provided"
         )
-        check(
+        Log.check(
             c.pediaName == nil or type(c.pediaName) == "function",
             "columns[" .. i .. "].pediaName must be a function if provided"
         )
     end
-    check(type(spec.rebuildRows) == "function", "spec.rebuildRows required")
-    check(type(spec.rowLabel) == "function", "spec.rowLabel required")
+    Log.check(type(spec.rebuildRows) == "function", "spec.rebuildRows required")
+    Log.check(type(spec.rowLabel) == "function", "spec.rowLabel required")
 
     local self = {
         tabName = spec.tabName,
