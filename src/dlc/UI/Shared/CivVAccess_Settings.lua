@@ -13,62 +13,48 @@
 
 Settings = {}
 
--- Shared persistence helpers for the scanner auto-move toggle. Mirrors the
--- key + cache field that ScannerNav.toggleAutoMove writes; both paths land
--- on civvaccess_shared.scannerAutoMove so a Shift+End from the binding and
--- a flip from this menu produce the same observable state.
-local function getScannerAutoMove()
-    return civvaccess_shared.scannerAutoMove == true
+-- Standard bool-pref helper. Initializes civvaccess_shared[field] from
+-- Prefs once (idempotent if a sibling module already seeded it), then
+-- returns get/set closures that read the live cache and persist writes
+-- back to Prefs. The shared cache survives the load-from-game env wipe
+-- so toggling here takes effect immediately for any consumer reading
+-- civvaccess_shared[field] live.
+local function defineBoolPref(field, prefKey, default)
+    if civvaccess_shared[field] == nil then
+        civvaccess_shared[field] = Prefs.getBool(prefKey, default)
+    end
+    local function get()
+        return civvaccess_shared[field] == true
+    end
+    local function set(v)
+        local b = v and true or false
+        civvaccess_shared[field] = b
+        Prefs.setBool(prefKey, b)
+    end
+    return get, set
 end
 
-local function setScannerAutoMove(v)
-    local b = v and true or false
-    civvaccess_shared.scannerAutoMove = b
-    Prefs.setBool("ScannerAutoMove", b)
-end
+-- Scanner auto-move toggle. Initialization lives in ScannerNav (which
+-- reads the field at every cycle); calling defineBoolPref here is a
+-- no-op when ScannerNav already seeded the cache, and a safe init
+-- otherwise.
+local getScannerAutoMove, setScannerAutoMove = defineBoolPref("scannerAutoMove", "ScannerAutoMove", false)
 
 -- Read-subtitles toggle. Off by default: several screens (LoadScreen
 -- DawnOfMan, leader dialogue, tech-award quote, advisor intros) declare
 -- silentFirstOpen so their preamble doesn't talk over the engine's own
 -- narration audio. Flipping this on bypasses that suppression so the user
--- hears the screen reader's preamble layered on top. Lives on
--- civvaccess_shared so BaseMenuCore reads it live at the gate site and
--- toggling takes effect on the next screen open.
-if civvaccess_shared.readSubtitles == nil then
-    civvaccess_shared.readSubtitles = Prefs.getBool("ReadSubtitles", false)
-end
-
-local function getReadSubtitles()
-    return civvaccess_shared.readSubtitles == true
-end
-
-local function setReadSubtitles(v)
-    local b = v and true or false
-    civvaccess_shared.readSubtitles = b
-    Prefs.setBool("ReadSubtitles", b)
-end
+-- hears the screen reader's preamble layered on top.
+local getReadSubtitles, setReadSubtitles = defineBoolPref("readSubtitles", "ReadSubtitles", false)
 
 -- Cursor-follows-selected-unit toggle. On by default: the hex cursor
 -- jumps to the unit's tile both when the unit becomes selected and when
 -- it finishes a move. Flipping it off keeps the cursor put in both
 -- cases; the selection announcement still includes the direction from
 -- cursor to unit, and the explicit "speak current unit" hotkey
--- recenters on demand. UnitControl reads
--- civvaccess_shared.cursorFollowsSelection live on every event so
--- toggling takes effect immediately.
-if civvaccess_shared.cursorFollowsSelection == nil then
-    civvaccess_shared.cursorFollowsSelection = Prefs.getBool("CursorFollowsSelection", true)
-end
-
-local function getCursorFollowsSelection()
-    return civvaccess_shared.cursorFollowsSelection == true
-end
-
-local function setCursorFollowsSelection(v)
-    local b = v and true or false
-    civvaccess_shared.cursorFollowsSelection = b
-    Prefs.setBool("CursorFollowsSelection", b)
-end
+-- recenters on demand. UnitControl reads the cache live on every event.
+local getCursorFollowsSelection, setCursorFollowsSelection =
+    defineBoolPref("cursorFollowsSelection", "CursorFollowsSelection", true)
 
 -- Cursor-relative coordinate mode. Off by default: most users orient by
 -- the directional reads (cardinal-distance from cursor / capital), and
@@ -102,59 +88,24 @@ end
 -- prefix only fires on civ-border crossings (the diff in CursorCore against
 -- _lastOwnerIdentity). When on, every cursor move into a civ-owned tile
 -- prepends the civ name; unclaimed tiles get no prefix at all. CursorCore
--- reads civvaccess_shared.borderAlwaysAnnounce live in announceForMove.
--- The PlotSections city banner also reads the same flag and drops the civ
--- adjective when on, since the prefix already says it -- "Arabia. Rome."
--- instead of "Arabia. Arabian Rome." on every step within Arabia.
-if civvaccess_shared.borderAlwaysAnnounce == nil then
-    civvaccess_shared.borderAlwaysAnnounce = Prefs.getBool("BorderAlwaysAnnounce", false)
-end
-
-local function getBorderAlwaysAnnounce()
-    return civvaccess_shared.borderAlwaysAnnounce == true
-end
-
-local function setBorderAlwaysAnnounce(v)
-    local b = v and true or false
-    civvaccess_shared.borderAlwaysAnnounce = b
-    Prefs.setBool("BorderAlwaysAnnounce", b)
-end
+-- reads the cache live in announceForMove. The PlotSections city banner
+-- also reads the same flag and drops the civ adjective when on, since
+-- the prefix already says it -- "Arabia. Rome." instead of "Arabia.
+-- Arabian Rome." on every step within Arabia.
+local getBorderAlwaysAnnounce, setBorderAlwaysAnnounce =
+    defineBoolPref("borderAlwaysAnnounce", "BorderAlwaysAnnounce", false)
 
 -- Scanner coordinate-append toggle. Off by default. When on, scanner
 -- announcements (each cycle's "<name>. <dir>. <N> of <M>.") gain an
--- "<x>, <y>" segment between dir and the count. ScannerNav reads
--- civvaccess_shared.scannerCoords live in formatInstance.
-if civvaccess_shared.scannerCoords == nil then
-    civvaccess_shared.scannerCoords = Prefs.getBool("ScannerCoords", false)
-end
-
-local function getScannerCoords()
-    return civvaccess_shared.scannerCoords == true
-end
-
-local function setScannerCoords(v)
-    local b = v and true or false
-    civvaccess_shared.scannerCoords = b
-    Prefs.setBool("ScannerCoords", b)
-end
+-- "<x>, <y>" segment between dir and the count. ScannerNav reads the
+-- cache live in formatInstance.
+local getScannerCoords, setScannerCoords = defineBoolPref("scannerCoords", "ScannerCoords", false)
 
 -- Reveal-announcement toggle. On by default: tells the user what just
 -- appeared on the map after a unit move (or any reveal source). Reads
--- live from civvaccess_shared.revealAnnounce inside the listeners in
--- RevealAnnounce, so toggling takes effect on the next tick.
-if civvaccess_shared.revealAnnounce == nil then
-    civvaccess_shared.revealAnnounce = Prefs.getBool("RevealAnnounce", true)
-end
-
-local function getRevealAnnounce()
-    return civvaccess_shared.revealAnnounce == true
-end
-
-local function setRevealAnnounce(v)
-    local b = v and true or false
-    civvaccess_shared.revealAnnounce = b
-    Prefs.setBool("RevealAnnounce", b)
-end
+-- live from the cache inside the listeners in RevealAnnounce, so
+-- toggling takes effect on the next tick.
+local getRevealAnnounce, setRevealAnnounce = defineBoolPref("revealAnnounce", "RevealAnnounce", true)
 
 -- AI-combat speech toggle. On by default: combats the active player
 -- didn't initiate (AI attacking the player, or AI vs AI on a visible
@@ -163,57 +114,23 @@ end
 -- initiated combats are unaffected (the gate sits on the speech path
 -- only when attackerPlayer != activePlayer). UnitControl reads the
 -- shared field live, so toggling takes effect on the next combat.
-if civvaccess_shared.aiCombatAnnounce == nil then
-    civvaccess_shared.aiCombatAnnounce = Prefs.getBool("AiCombatAnnounce", true)
-end
-
-local function getAiCombatAnnounce()
-    return civvaccess_shared.aiCombatAnnounce == true
-end
-
-local function setAiCombatAnnounce(v)
-    local b = v and true or false
-    civvaccess_shared.aiCombatAnnounce = b
-    Prefs.setBool("AiCombatAnnounce", b)
-end
+local getAiCombatAnnounce, setAiCombatAnnounce = defineBoolPref("aiCombatAnnounce", "AiCombatAnnounce", true)
 
 -- Foreign-unit-watch speech toggle. On by default: the four-line turn-
 -- start summary of foreign units that entered or left view during the AI
 -- turn speaks at player-turn start. When off, the lines land silently in
 -- the F7 Turn Log instead. The civvaccess_shared.foreignUnitDelta write
 -- happens regardless so F7 always shows what the diff produced.
-if civvaccess_shared.foreignUnitWatchAnnounce == nil then
-    civvaccess_shared.foreignUnitWatchAnnounce = Prefs.getBool("ForeignUnitWatchAnnounce", true)
-end
-
-local function getForeignUnitWatchAnnounce()
-    return civvaccess_shared.foreignUnitWatchAnnounce == true
-end
-
-local function setForeignUnitWatchAnnounce(v)
-    local b = v and true or false
-    civvaccess_shared.foreignUnitWatchAnnounce = b
-    Prefs.setBool("ForeignUnitWatchAnnounce", b)
-end
+local getForeignUnitWatchAnnounce, setForeignUnitWatchAnnounce =
+    defineBoolPref("foreignUnitWatchAnnounce", "ForeignUnitWatchAnnounce", true)
 
 -- Foreign-clear-watch speech toggle. On by default: the one-line turn-
 -- start summary of camps and ruins others claimed in the active team's
 -- view during the AI turn. When off, the line lands silently in the F7
 -- Turn Log instead. The civvaccess_shared.foreignClearDelta write
 -- happens regardless so F7 always shows what the watcher produced.
-if civvaccess_shared.foreignClearWatchAnnounce == nil then
-    civvaccess_shared.foreignClearWatchAnnounce = Prefs.getBool("ForeignClearWatchAnnounce", true)
-end
-
-local function getForeignClearWatchAnnounce()
-    return civvaccess_shared.foreignClearWatchAnnounce == true
-end
-
-local function setForeignClearWatchAnnounce(v)
-    local b = v and true or false
-    civvaccess_shared.foreignClearWatchAnnounce = b
-    Prefs.setBool("ForeignClearWatchAnnounce", b)
-end
+local getForeignClearWatchAnnounce, setForeignClearWatchAnnounce =
+    defineBoolPref("foreignClearWatchAnnounce", "ForeignClearWatchAnnounce", true)
 
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
