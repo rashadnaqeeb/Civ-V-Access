@@ -24,6 +24,7 @@
 -- priorShowHide chains.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_OverviewCivLabels")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -32,24 +33,11 @@ VictoryProgressAccess = VictoryProgressAccess or {}
 
 -- ===== Player / team helpers ==========================================
 
-local function activePlayerId()
-    return Game.GetActivePlayer()
-end
-
-local function activeTeamId()
-    return Game.GetActiveTeam()
-end
-
-local function isMP()
-    return Game:IsNetworkMultiPlayer()
-end
-
--- Vanilla treats network-multiplayer as universally-met for naming purposes
--- (no fog-of-war on player identity in MP). Single-player respects the team's
--- IsHasMet flag.
-local function playerHasMet(pPlayer)
-    return Teams[pPlayer:GetTeam()]:IsHasMet(activeTeamId()) or isMP()
-end
+local activePlayerId = OverviewCivLabels.activePlayerId
+local activeTeamId = OverviewCivLabels.activeTeamId
+local isMP = OverviewCivLabels.isMP
+local playerHasMet = OverviewCivLabels.playerHasMet
+local civDisplayName = OverviewCivLabels.civDisplayName
 
 -- Strip trailing colon + whitespace so engine label strings ("Delegates you
 -- Control:") concatenate cleanly into "Label, value" speech lines.
@@ -58,27 +46,6 @@ local function stripColon(s)
         return ""
     end
     return (s):gsub(":%s*$", "")
-end
-
--- "Augustus of Rome" / "You of Rome" / "Unknown Civilization". Used by
--- score-list rows (as the name segment) and by every section's per-civ
--- rows. Mirrors the met / unmet / nickname / active-player branches of
--- vanilla SetCivName.
-local function civDisplayName(pPlayer)
-    if not playerHasMet(pPlayer) then
-        return Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
-    local strPlayer
-    local nick = pPlayer:GetNickName()
-    if nick ~= "" and isMP() then
-        strPlayer = nick
-    elseif pPlayer:GetID() == activePlayerId() then
-        strPlayer = "TXT_KEY_POP_VOTE_RESULTS_YOU"
-    else
-        strPlayer = pPlayer:GetNameKey()
-    end
-    return Text.format("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
 end
 
 -- Civilopedia search string for a civ row's leader article. Nil when the

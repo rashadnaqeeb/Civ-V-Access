@@ -21,6 +21,7 @@
 -- priorShowHide chains.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_OverviewCivLabels")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -29,44 +30,8 @@ DemographicsAccess = DemographicsAccess or {}
 
 -- ===== Player / team helpers ==========================================
 
-local function activePlayerId()
-    return Game.GetActivePlayer()
-end
-
-local function activeTeamId()
-    return Game.GetActiveTeam()
-end
-
-local function isMP()
-    return Game:IsNetworkMultiPlayer()
-end
-
-local function playerHasMet(pPlayer)
-    return Teams[pPlayer:GetTeam()]:IsHasMet(activeTeamId()) or isMP()
-end
-
--- Met / unmet / active-player / nickname branches mirror vanilla SetCivName.
--- Unmet civs read as "Unknown Civilization" so a sighted player's "?" icon
--- maps to a speakable noun phrase. Same shape as VictoryProgressAccess's
--- helper -- duplicated rather than imported because Popup Contexts each
--- run their own include chain and a cross-Context module reference would
--- break under load-from-game's env wipe.
-local function civDisplayName(pPlayer)
-    if not playerHasMet(pPlayer) then
-        return Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
-    local strPlayer
-    local nick = pPlayer:GetNickName()
-    if nick ~= "" and isMP() then
-        strPlayer = nick
-    elseif pPlayer:GetID() == activePlayerId() then
-        strPlayer = Text.key("TXT_KEY_POP_VOTE_RESULTS_YOU")
-    else
-        strPlayer = pPlayer:GetNameKey()
-    end
-    return Text.format("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
-end
+local activePlayerId = OverviewCivLabels.activePlayerId
+local civDisplayName = OverviewCivLabels.civDisplayName
 
 -- Major civs that are currently alive. Vanilla's GetBest / GetWorst /
 -- GetAverage / GetRank iterate Players[0..MAX_MAJOR_CIVS] filtering by

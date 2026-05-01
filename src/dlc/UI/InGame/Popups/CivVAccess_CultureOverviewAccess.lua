@@ -58,6 +58,7 @@
 -- pulldowns are populated regardless of which engine tab landed.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_OverviewCivLabels")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_PullDownProbe")
 
@@ -101,21 +102,10 @@ local buildSwapItems
 
 -- ===== Helpers =========================================================
 
-local function activePlayer()
-    return Players[Game.GetActivePlayer()]
-end
-
-local function activePlayerID()
-    return Game.GetActivePlayer()
-end
-
-local function activeTeam()
-    return Teams[Game.GetActiveTeam()]
-end
-
-local function isMP()
-    return Game:IsNetworkMultiPlayer()
-end
+local activePlayer = OverviewCivLabels.activePlayer
+local activePlayerID = OverviewCivLabels.activePlayerId
+local activeTeam = OverviewCivLabels.activeTeam
+local isMP = OverviewCivLabels.isMP
 
 local function formatSigned(n)
     if n == nil then
@@ -131,26 +121,7 @@ local function formatNumber(n)
     return Locale.ToNumber(n or 0, "#,###,###")
 end
 
--- "You of Rome" / "Augustus of Rome" / "Unknown Civilization". Same met /
--- nickname / active-player branches VictoryProgressAccess uses; duplicated
--- here because Popup Contexts each run their own include chain and a
--- cross-Context reference would break under load-from-game's env wipe.
-local function civDisplayName(pPlayer)
-    if not Teams[pPlayer:GetTeam()]:IsHasMet(Game.GetActiveTeam()) and not isMP() then
-        return Text.key("TXT_KEY_MISC_UNKNOWN")
-    end
-    local civInfo = GameInfo.Civilizations[pPlayer:GetCivilizationType()]
-    local strPlayer
-    local nick = pPlayer:GetNickName()
-    if nick ~= "" and isMP() then
-        strPlayer = nick
-    elseif pPlayer:GetID() == activePlayerID() then
-        strPlayer = "TXT_KEY_POP_VOTE_RESULTS_YOU"
-    else
-        strPlayer = pPlayer:GetNameKey()
-    end
-    return Text.format("TXT_KEY_RANDOM_LEADER_CIV", strPlayer, civInfo.ShortDescription)
-end
+local civDisplayName = OverviewCivLabels.civDisplayName
 
 -- Resolve a great work's creator to a speakable civ name. The engine can
 -- return -1 here: the ARCHAEOLOGY_ARTIFACT_PLAYER2 path passes
