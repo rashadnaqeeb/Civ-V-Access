@@ -15,10 +15,10 @@
 -- multiplayer, eventually) can call append without re-including this
 -- module's globals. Reset on every onInGameBoot: load-game-from-game
 -- would otherwise carry entries from a different game (different units,
--- different turns, no relation to the current map state). Cap evictions
--- shift position by one so the cursor tracks the same logical entry; an
--- evicted-out-of-band cursor clamps to the new oldest rather than
--- becoming "uninitialized" which would feel like losing your place.
+-- different turns, no relation to the current map state). Each append
+-- resets the cursor to "uninitialized" so the next [ / ] lands on the
+-- newly-arrived message instead of stranding the user mid-scrollback
+-- when there is something new to hear.
 
 MessageBuffer = {}
 
@@ -114,15 +114,12 @@ function MessageBuffer.append(text, category)
     s.entries[#s.entries + 1] = { text = text, category = category }
     if #s.entries > _cap then
         table.remove(s.entries, 1)
-        -- Cap evicted the oldest. If the user's cursor was on a still-
-        -- valid entry, decrement so it tracks the same logical message.
-        -- If they were on the just-evicted entry, clamp to the new
-        -- oldest rather than dropping back to position 0 ("uninitialized")
-        -- which would feel like losing their place mid-scrollback.
-        if s.position > 0 then
-            s.position = math.max(1, s.position - 1)
-        end
     end
+    -- Reset to uninitialized so the next bracket press enters at the
+    -- newest matching entry. A new message means there is something new
+    -- to hear; the user shouldn't have to scroll forward from a stale
+    -- mid-buffer position to reach it.
+    s.position = 0
 end
 
 -- Walking off either end re-speaks the current entry rather than

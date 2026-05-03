@@ -286,31 +286,22 @@ function M.test_cap_eviction_drops_oldest()
     T.eq(s.entries[3].text, "d")
 end
 
-function M.test_cap_eviction_shifts_position_to_track_same_entry()
+function M.test_append_resets_position_to_newest()
     setup()
-    MessageBuffer._setCap(3)
     MessageBuffer.append("a", "combat")
     MessageBuffer.append("b", "combat")
+    MessageBuffer.prev() -- newest = b, position 2
+    MessageBuffer.prev() -- a, position 1
     MessageBuffer.append("c", "combat")
-    MessageBuffer.prev() -- newest = c, position 3
-    MessageBuffer.prev() -- b, position 2
-    MessageBuffer.append("d", "combat") -- evicts a, b moves to index 1
+    -- New message arrived while the user was mid-scrollback. Position
+    -- resets to uninitialized so the next bracket press lands on the
+    -- newest entry instead of walking forward from a stale spot.
     local s = MessageBuffer._snapshot()
-    T.eq(s.position, 1, "position decremented so it still points at b")
-    T.eq(s.entries[s.position].text, "b", "still anchored on the same logical entry")
-end
-
-function M.test_cap_eviction_clamps_when_user_was_on_evicted_entry()
-    setup()
-    MessageBuffer._setCap(3)
-    MessageBuffer.append("a", "combat")
-    MessageBuffer.append("b", "combat")
-    MessageBuffer.append("c", "combat")
-    MessageBuffer.jumpFirst() -- position 1, on "a"
-    MessageBuffer.append("d", "combat") -- evicts a
-    local s = MessageBuffer._snapshot()
-    T.eq(s.position, 1, "clamped to oldest available rather than going to 0")
-    T.eq(s.entries[s.position].text, "b", "now anchored on the new oldest")
+    T.eq(s.position, 0, "append resets position to uninitialized")
+    MessageBuffer.next()
+    T.eq(lastSpoken().text, "c", "next bracket press lands on the new newest")
+    s = MessageBuffer._snapshot()
+    T.eq(s.position, 3)
 end
 
 -- Reset -------------------------------------------------------------------
