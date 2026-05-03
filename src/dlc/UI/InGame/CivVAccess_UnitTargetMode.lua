@@ -252,8 +252,6 @@ local function defenderAt(plot, ranged, actor)
     return nil
 end
 
-local enemyCityAt = UnitControl.enemyCityAt
-
 local function isRangeAttackMode(mode)
     return mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE
 end
@@ -375,7 +373,7 @@ local function combatPreviewAt(actor, plot, tx, ty, ranged)
         end
         return UnitSpeech.meleePreview(actor, defenderUnit, plot)
     end
-    local defenderCity = enemyCityAt(plot)
+    local defenderCity = UnitControl.enemyCityAt(plot)
     if defenderCity ~= nil then
         if ranged then
             return UnitSpeech.cityRangedPreview(actor, defenderCity, plot)
@@ -433,7 +431,7 @@ local function buildPreview(self)
         -- the path as a regular move. War-declaration on move is
         -- surfaced by the engine's popup at commit time (routed through
         -- GenericPopupAccess), so no pre-commit detection here.
-        local hasEnemy = defenderAt(plot, false, actor) ~= nil or enemyCityAt(plot) ~= nil
+        local hasEnemy = defenderAt(plot, false, actor) ~= nil or UnitControl.enemyCityAt(plot) ~= nil
         local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
         if hasEnemy and dist == 1 then
             local targetReason = UnitControl.preflightAttackTarget(actor, plot)
@@ -519,7 +517,7 @@ local function willCauseCombat(actor, plot, mode)
         return true
     end
     if isMoveMode(mode) then
-        if UnitControl.enemyAt(plot) ~= nil or enemyCityAt(plot) ~= nil then
+        if UnitControl.enemyAt(plot) ~= nil or UnitControl.enemyCityAt(plot) ~= nil then
             local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), plot:GetX(), plot:GetY())
             return dist == 1
         end
@@ -560,7 +558,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
         if dist ~= 1 then
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT")
         end
-        if defenderAt(plot, false, actor) == nil and enemyCityAt(plot) == nil then
+        if defenderAt(plot, false, actor) == nil and UnitControl.enemyCityAt(plot) == nil then
             return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         end
         return UnitControl.preflightAttackTarget(actor, plot)
@@ -584,7 +582,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
             -- range / LoS while the user navigates, but commit-time also
             -- emits them so a user who pressed enter without hearing the
             -- prefix still gets a clear reason.
-            if defenderAt(plot, true, actor) == nil and enemyCityAt(plot) == nil then
+            if defenderAt(plot, true, actor) == nil and UnitControl.enemyCityAt(plot) == nil then
                 return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
             end
             local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
