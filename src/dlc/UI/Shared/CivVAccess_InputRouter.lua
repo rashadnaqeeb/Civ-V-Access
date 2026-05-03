@@ -71,6 +71,15 @@ function InputRouter.dispatch(keyCode, modMask, msg)
         return false
     end
 
+    -- Drop any handlers whose owning Context env got wiped (front-end
+    -- skin unload during pre-game-to-in-game, in-game env wipe on load-
+    -- game-from-game). Boot.onInGameBoot purges these at LoadScreenClose
+    -- too, but the engine's exact wipe timing relative to LoadScreenClose
+    -- isn't guaranteed -- if the wipe lands later, a stranded handler with
+    -- capturesAllInput=true sits on top of Baseline / Scanner and consumes
+    -- every key into a failing pcall, no-op'ing the whole map.
+    HandlerStack.purgeDeadEnv()
+
     -- Order matters in both directions: the pause announcement speaks
     -- BEFORE the flag flips (otherwise SpeechPipeline's gate swallows it
     -- and there's no audible confirmation the toggle worked); the resume

@@ -464,4 +464,81 @@ function M.test_collectHelpEntries_common_does_not_duplicate_handler_label()
     HandlerStack.commonHelpEntries = {}
 end
 
+-- purgeDeadEnv ----------------------------------------------------------
+--
+-- Reproduces the FrontEnd-to-InGame skin transition that wipes the
+-- WaitingForPlayers Context env: the handler's _envProbe closure was
+-- captured in that env, so once the env's globals go nil the probe
+-- returns nil/false and the handler is dead.
+
+function M.test_purgeDeadEnv_removes_dead_top()
+    setup()
+    local alive = makeHandler("alive")
+    alive._envProbe = function() return true end
+    local dead = makeHandler("dead")
+    dead._envProbe = function() return nil end
+    HandlerStack.push(alive)
+    HandlerStack.push(dead)
+    local removed = HandlerStack.purgeDeadEnv()
+    T.eq(removed, 1)
+    T.eq(HandlerStack.count(), 1)
+    T.eq(HandlerStack.active(), alive)
+end
+
+function M.test_purgeDeadEnv_removes_buried_dead_entry()
+    setup()
+    local dead = makeHandler("dead")
+    dead._envProbe = function() return false end
+    local alive = makeHandler("alive")
+    alive._envProbe = function() return true end
+    HandlerStack.push(dead)
+    HandlerStack.push(alive)
+    local removed = HandlerStack.purgeDeadEnv()
+    T.eq(removed, 1)
+    T.eq(HandlerStack.count(), 1)
+    T.eq(HandlerStack.active(), alive)
+end
+
+function M.test_purgeDeadEnv_no_probe_treated_as_alive()
+    setup()
+    local h = makeHandler("noprobe")
+    HandlerStack.push(h)
+    T.eq(HandlerStack.purgeDeadEnv(), 0)
+    T.eq(HandlerStack.count(), 1)
+end
+
+function M.test_purgeDeadEnv_probe_throws_treated_as_dead()
+    setup()
+    local h = makeHandler("throws")
+    h._envProbe = function() error("dead env") end
+    HandlerStack.push(h)
+    T.eq(HandlerStack.purgeDeadEnv(), 1)
+    T.eq(HandlerStack.count(), 0)
+end
+
+function M.test_purgeDeadEnv_skips_onDeactivate_on_dead()
+    -- onDeactivate is itself a closure in the dead env; invoking it would
+    -- throw on its first global access. purgeDeadEnv must NOT call it.
+    setup()
+    local h = makeHandler("dead")
+    h._envProbe = function() return false end
+    h.onDeactivate = function() error("would crash in dead env") end
+    HandlerStack.push(h)
+    HandlerStack.purgeDeadEnv()
+    T.eq(HandlerStack.count(), 0)
+    T.eq(#errors, 0, "onDeactivate must not run on dead-env handlers")
+end
+
+function M.test_purgeDeadEnv_logs_warning_per_eviction()
+    setup()
+    local d1 = makeHandler("d1")
+    d1._envProbe = function() return false end
+    local d2 = makeHandler("d2")
+    d2._envProbe = function() return false end
+    HandlerStack.push(d1)
+    HandlerStack.push(d2)
+    HandlerStack.purgeDeadEnv()
+    T.eq(#warns, 2)
+end
+
 return M

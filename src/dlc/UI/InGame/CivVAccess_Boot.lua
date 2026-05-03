@@ -217,6 +217,12 @@ local function onInGameBoot()
     -- bindings never fire). insertAt at the bottom keeps PlayerChange on
     -- top where it belongs. removeByName first clears the prior game's
     -- dead-env Baseline / Scanner closures on a load-from-game transition.
+    -- purgeDeadEnv covers the harder case: pre-game-to-in-game can leave
+    -- a front-end handler (WaitingForPlayers, LoadScreen) at the top of
+    -- the stack with its owning Context's env wiped. Without eviction,
+    -- that handler's capturesAllInput=true and its dead-env bindings
+    -- swallow every key the user presses on the map.
+    HandlerStack.purgeDeadEnv()
     HandlerStack.removeByName("Baseline")
     HandlerStack.removeByName("Scanner")
     HandlerStack.insertAt(BaselineHandler.create(), 1)

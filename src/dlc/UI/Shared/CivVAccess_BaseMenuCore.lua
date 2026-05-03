@@ -614,6 +614,16 @@ function BaseMenu.create(spec)
         displayName = spec.displayName,
         preamble = spec.preamble,
         capturesAllInput = spec.capturesAllInput ~= false,
+        -- HandlerStack.purgeDeadEnv probes this to detect a wiped owning-
+        -- Context env. The closure captures BaseMenu from its creation env;
+        -- when the engine unloads the Context's skin (front-end skin on
+        -- pre-game-to-in-game, in-game skin on load-game-from-game) the env
+        -- table is cleared and BaseMenu reads as nil. Probing through a
+        -- closure rather than checking BaseMenu inline at probe time matters
+        -- because purgeDeadEnv may run from a different Context (Boot's
+        -- WorldView, InputRouter's WorldView) where BaseMenu is alive in
+        -- the caller's env regardless of this handler's env state.
+        _envProbe = function() return BaseMenu ~= nil end,
         _level = 1,
         _indices = { 1 },
         _tabIndex = 1,

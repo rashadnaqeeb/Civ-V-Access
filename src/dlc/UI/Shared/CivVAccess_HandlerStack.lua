@@ -97,6 +97,50 @@ function HandlerStack._reset()
     _shared.stack = {}
 end
 
+-- Detect whether a handler's owning Context env has been wiped. The probe
+-- is a closure captured in the handler's home env at create time; if that
+-- env's globals are nil (the case after a skin-set transition unloads the
+-- Context, e.g. front-end-to-in-game on game start, or load-game-from-game
+-- wiping in-game Contexts), the probe returns nil/false and we treat the
+-- handler as dead. Handlers without a probe are assumed alive (subs that
+-- aren't BaseMenu-built, like Help / per-screen pickers, opt out by
+-- omission).
+local function isDeadEnv(handler)
+    if handler == nil then
+        return false
+    end
+    local probe = handler._envProbe
+    if type(probe) ~= "function" then
+        return false
+    end
+    local ok, alive = pcall(probe)
+    return not (ok and alive)
+end
+
+-- Walk the stack top-to-bottom and remove any entry whose env probe says
+-- the owning Context's env has been wiped. Used at LoadScreenClose to
+-- evict front-end handlers stranded by the skin transition (WaitingForPlayers,
+-- LoadScreen, etc.) before in-game seating runs, and at the start of every
+-- InputRouter dispatch as defense-in-depth in case the wipe lands after
+-- LoadScreenClose. onDeactivate is intentionally NOT invoked: it is itself
+-- a closure in the dead env and would throw on its first global access.
+function HandlerStack.purgeDeadEnv()
+    local removed = 0
+    for i = #_shared.stack, 1, -1 do
+        local h = _shared.stack[i]
+        if isDeadEnv(h) then
+            table.remove(_shared.stack, i)
+            removed = removed + 1
+            Log.warn(
+                "HandlerStack.purgeDeadEnv: evicted dead-env handler '"
+                    .. tostring(h.name)
+                    .. "' (depth=" .. #_shared.stack .. ")"
+            )
+        end
+    end
+    return removed
+end
+
 function HandlerStack.count()
     return #_shared.stack
 end

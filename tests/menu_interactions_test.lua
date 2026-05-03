@@ -640,5 +640,39 @@ function M.test_edit_mode_enter_keyup_is_claimed()
     T.truthy(consumed, "KEYUP claimed during edit mode")
 end
 
+-- Dead-env detection ----------------------------------------------------
+
+function M.test_create_handler_has_envProbe_returning_true_when_alive()
+    setup()
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = {} })
+    T.eq(type(h._envProbe), "function")
+    T.truthy(h._envProbe(), "probe returns truthy when BaseMenu is set in env")
+end
+
+function M.test_create_handler_envProbe_detects_wiped_env()
+    -- Mirror the front-end-to-in-game skin transition: the Context env
+    -- table is cleared, so global BaseMenu reads as nil. The probe was
+    -- captured in that env, so it returns nil/false.
+    setup()
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = {} })
+    local saved = BaseMenu
+    BaseMenu = nil
+    local probed = h._envProbe()
+    BaseMenu = saved
+    T.falsy(probed, "probe returns falsy when env's BaseMenu is nil")
+end
+
+function M.test_purgeDeadEnv_evicts_basemenu_handler_with_dead_env()
+    setup()
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = {} })
+    HandlerStack.push(h)
+    T.eq(HandlerStack.count(), 1)
+    local saved = BaseMenu
+    BaseMenu = nil
+    local removed = HandlerStack.purgeDeadEnv()
+    BaseMenu = saved
+    T.eq(removed, 1)
+    T.eq(HandlerStack.count(), 0)
+end
 
 return M
