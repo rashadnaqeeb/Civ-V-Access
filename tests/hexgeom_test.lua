@@ -324,4 +324,110 @@ function M.test_coordinateString_no_wrap_keeps_far_east_positive()
     T.eq(HexGeom.coordinateString(78, 0), "68, 0")
 end
 
+-- ===== Cube wrap fold =====
+-- directionString / cubeDistance / directionRank all share the same
+-- nearestWrappedTo helper. Without it, a target one tile across the seam
+-- on a wrap-X map (cursor near col 78, target at col 2 on width-80) reads
+-- as 76 west -- the user hears a wildly wrong direction for an adjacent
+-- tile.
+local function wrapSetup(width, height, wrapX, wrapY)
+    setupSteps()
+    Map.IsWrapX = function()
+        return wrapX
+    end
+    Map.IsWrapY = function()
+        return wrapY
+    end
+    Map.GetGridSize = function()
+        return width, height
+    end
+end
+
+function M.test_directionString_wrapX_folds_seam_short_east_across_seam()
+    -- W=80 wrap-X. cursor=(78,10), target=(2,10). Naive delta is -76 (west);
+    -- folded delta is +4 (east, across the seam: 78 -> 79 -> 0 -> 1 -> 2).
+    wrapSetup(80, 40, true, false)
+    T.eq(HexGeom.directionString(78, 10, 2, 10), "4e")
+end
+
+function M.test_directionString_wrapX_folds_seam_short_west_across_seam()
+    -- Mirror direction: cursor=(2,10), target=(78,10). Naive +76 east;
+    -- folded -4 west (2 -> 1 -> 0 -> 79 -> 78).
+    wrapSetup(80, 40, true, false)
+    T.eq(HexGeom.directionString(2, 10, 78, 10), "4w")
+end
+
+function M.test_directionString_no_wrap_keeps_long_path()
+    -- Same coords on a flat map. No fold; the long-way decomposition wins.
+    wrapSetup(80, 40, false, false)
+    -- Don't pin the exact decomposition, just verify it isn't the short
+    -- 4w/4e the wrap fold would have produced. A flat-map cursor that far
+    -- from its target legitimately speaks a many-step direction.
+    local s = HexGeom.directionString(78, 10, 2, 10)
+    T.truthy(s ~= "4w" and s ~= "4e", "no-wrap path must not collapse to 4-tile delta")
+end
+
+function M.test_directionString_wrapX_within_half_unchanged()
+    -- Delta inside [-W/2, W/2] is the short path already; no fold.
+    wrapSetup(80, 40, true, false)
+    T.eq(HexGeom.directionString(10, 10, 30, 10), "20e")
+end
+
+function M.test_cubeDistance_wrapX_folds_to_short_distance()
+    -- Same width-80 wrap. cubeDistance must mirror the engine's plotDistance:
+    -- 4, not 76.
+    wrapSetup(80, 40, true, false)
+    T.eq(HexGeom.cubeDistance(78, 10, 2, 10), 4)
+end
+
+function M.test_cubeDistance_no_wrap_uses_naive_delta()
+    wrapSetup(80, 40, false, false)
+    T.eq(HexGeom.cubeDistance(78, 10, 2, 10), 76)
+end
+
+function M.test_directionRank_wrapX_returns_e_rank_across_seam()
+    -- (78,0) -> (2,0) on width-80 wrap folds to dx=+4 (east, across the
+    -- seam), so directionRank must report E (rank 1). Without the fold
+    -- the cube delta would land in W and report rank 4.
+    wrapSetup(80, 40, true, false)
+    T.eq(HexGeom.directionRank(78, 0, 2, 0), 1)
+end
+
+function M.test_directionString_wrapY_folds_seam()
+    -- Toroidal-Y fold. H=40 wrap-Y. cursor=(0,38), target=(0,2). Naive
+    -- delta is 36 rows north; folded delta is 4 rows south. Don't pin the
+    -- exact decomposition (rows-with-parity make the cube projection
+    -- non-trivial), just verify it isn't the unfolded north reading.
+    wrapSetup(80, 40, false, true)
+    local folded = HexGeom.directionString(0, 38, 0, 2)
+    -- Folded path: dy=-4 in cube, so output is in the SE/SW family. Naive
+    -- path would be in the NE/NW family with magnitude order ~36. We
+    -- confirm the magnitude collapsed: total step count must be small.
+    local total = 0
+    for n in folded:gmatch("(%d+)") do
+        total = total + tonumber(n)
+    end
+    T.truthy(total < 10, "wrap-Y fold must collapse 36-row delta to <10 steps; got " .. folded)
+end
+
+-- Reset wrap state so subsequent suites don't inherit a non-default Map.
+local function resetWrap()
+    setupSteps()
+    Map.IsWrapX = function()
+        return false
+    end
+    Map.IsWrapY = function()
+        return false
+    end
+    Map.GetGridSize = function()
+        return 0, 0
+    end
+end
+
+function M.test_zzz_reset_wrap_state()
+    resetWrap()
+    T.eq(Map.IsWrapX(), false)
+    T.eq(Map.IsWrapY(), false)
+end
+
 return M

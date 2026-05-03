@@ -29,6 +29,39 @@ local function cubeToOffset(x, _y, z)
     return col, row
 end
 
+-- Fold (toX, toY) to its nearest virtual position relative to (fromX, fromY)
+-- across map wrap. dx is folded into [-W/2, +W/2] when Map.IsWrapX, dy
+-- likewise on Map.IsWrapY. The return is no longer guaranteed to be a real
+-- on-grid index, but the cube delta computed from it is the shortest-path
+-- delta the engine's plotDistance also uses. Strict inequality at the
+-- antipode keeps dx = +/-W/2 on whichever side it landed -- a tie at the
+-- exact opposite point picks a side without changing magnitude. Without
+-- this, cube math on raw offset coords reads a target one tile west of
+-- the cursor as W-1 east on the wrong side of the seam.
+local function nearestWrappedTo(fromX, fromY, toX, toY)
+    local dx = toX - fromX
+    local dy = toY - fromY
+    if Map.IsWrapX() then
+        local w = Map.GetGridSize()
+        local half = w / 2
+        if dx > half then
+            dx = dx - w
+        elseif dx < -half then
+            dx = dx + w
+        end
+    end
+    if Map.IsWrapY() then
+        local _, h = Map.GetGridSize()
+        local half = h / 2
+        if dy > half then
+            dy = dy - h
+        elseif dy < -half then
+            dy = dy + h
+        end
+    end
+    return fromX + dx, fromY + dy
+end
+
 -- Cube delta D decomposes into a*u + b*v where (u, v) is one of the six
 -- adjacent CW pairs from E. Each pair has a closed-form solution; pick
 -- the first one whose (a, b) are both non-negative. The output is then
@@ -88,6 +121,7 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
     if fromX == toX and fromY == toY then
         return ""
     end
+    toX, toY = nearestWrappedTo(fromX, fromY, toX, toY)
     local fx, fy, fz = offsetToCube(fromX, fromY)
     local tx, ty, tz = offsetToCube(toX, toY)
     local counts = decomposeCube(tx - fx, ty - fy, tz - fz)
@@ -225,6 +259,7 @@ end
 -- Cube distance between two offset coords. Exposed so callers that already
 -- hold plots and need a sort key don't reconstruct the cube math.
 function HexGeom.cubeDistance(x1, y1, x2, y2)
+    x2, y2 = nearestWrappedTo(x1, y1, x2, y2)
     local ax, ay, az = offsetToCube(x1, y1)
     local bx, by, bz = offsetToCube(x2, y2)
     return (math.abs(ax - bx) + math.abs(ay - by) + math.abs(az - bz)) / 2
@@ -241,6 +276,7 @@ function HexGeom.directionRank(cx, cy, tx, ty)
     if cx == tx and cy == ty then
         return 0
     end
+    tx, ty = nearestWrappedTo(cx, cy, tx, ty)
     local fx, fy, fz = offsetToCube(cx, cy)
     local ttx, tty, ttz = offsetToCube(tx, ty)
     local counts = decomposeCube(ttx - fx, tty - fy, ttz - fz)
