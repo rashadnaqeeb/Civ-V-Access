@@ -172,6 +172,14 @@ function Setup.fresh()
     Events.AudioPlay2DSound = function(id)
         Setup.sounds[#Setup.sounds + 1] = id
     end
+    -- BaseMenuCore lazy-loads its menu_wrap / drillable cues into
+    -- civvaccess_shared.menuSoundHandles. Reset both the cache and the
+    -- audio stub between tests so handle ids and the audio._calls log
+    -- both start fresh -- otherwise a prior test's load lives on and
+    -- the next test's "did this play menu_wrap" lookup gets the stale id.
+    civvaccess_shared.menuSoundHandles = nil
+    civvaccess_shared.muted = nil
+    audio._reset()
 
     clearArr(Setup.speaks)
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")

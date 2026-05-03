@@ -8,11 +8,21 @@
 --   each level (_indices[level]). Right drills into a group; Left at level > 1
 --   goes back up a level. Esc never drills out — it bypasses to the screen's
 --   priorInput at any level (so 5 Esc presses aren't needed to close a menu
---   drilled 5 levels deep). At level > 1 Up/Down wraps across sibling
---   groups (skipping leaves at the parent level), announcing the new group
---   before the first child on a boundary crossing. Ctrl+Up / Ctrl+Down jump
---   to the prev / next sibling group at the parent level, or across groups
---   at level 1.
+--   drilled 5 levels deep). At level > 1 Up/Down crosses to sibling groups
+--   on past-end, announcing the new group before the first child on a real
+--   boundary crossing.
+--
+-- Wrap regions:
+--   Sibling-group navigation respects "wrap regions" -- maximal contiguous
+--   runs of navigable groups at the parent level. A visible non-Group item
+--   (a Button, Text, Checkbox leaf) breaks the region; non-navigable items
+--   (hidden groups / leaves) are transparent. Cross-sibling Up/Down at
+--   level > 1 and Ctrl+Up/Down at level 1 stay inside the cursor's region
+--   and wrap at its edges rather than continuing across leaf boundaries.
+--   When the cursor sits on a leaf at level 1, Ctrl+Up/Down can step onto
+--   one immediately-adjacent group but never crosses another leaf.
+--   menu_wrap fires on every wrap (region edge or full level-1 list);
+--   "drillable" fires whenever the cursor lands on a Group item.
 --
 -- Key bindings:
 --   Up / Down             previous / next within current level (wraps at
@@ -91,6 +101,83 @@ local MOD_SHIFT = 1
 local MOD_CTRL = 2
 local MOD_ALT = 4
 
+-- Sound cues --------------------------------------------------------------
+--
+-- Two short navigation sounds: "menu_wrap" fires when the cursor wraps
+-- around (Up/Down past the end of a wrap region) so the user hears that
+-- they're back at the top instead of having to listen to the announced
+-- label and reason about it; "drillable" fires when the cursor lands on
+-- a Group item so the user knows Right/Enter will descend.
+--
+-- Lazy-loaded: the proxy's audio engine spins up on first audio.load and
+-- not every Context that includes BaseMenuCore plays cues (FrontEnd
+-- splash screens often go untouched). civvaccess_shared.menuSoundHandles
+-- caches the bank slots across Contexts; the proxy's bank also dedups by
+-- name, so a fresh-Context first call after a load-from-game env wipe
+-- re-resolves to the same slot.
+--
+-- civvaccess_shared.muted is the master mute (the speech mute toggle also
+-- mutes audio cues). AudioCueMode is intentionally not consulted: it
+-- governs per-hex plot cues, but menu sounds are UI feedback that the user
+-- relies on regardless of the speech-vs-cue tradeoff for the map.
+
+local function menuSoundHandle(name)
+    if audio == nil then
+        return nil
+    end
+    local cache = civvaccess_shared.menuSoundHandles
+    if cache == nil then
+        cache = {}
+        civvaccess_shared.menuSoundHandles = cache
+    end
+    local h = cache[name]
+    if h ~= nil then
+        return h
+    end
+    h = audio.load(name)
+    if h == nil then
+        Log.warn("BaseMenuCore: failed to load menu sound '" .. name .. "'")
+        return nil
+    end
+    cache[name] = h
+    return h
+end
+
+local function playMenuSound(name)
+    if civvaccess_shared.muted then
+        return
+    end
+    local h = menuSoundHandle(name)
+    if h == nil then
+        return
+    end
+    audio.play(h)
+end
+
+local function playWrap()
+    playMenuSound("menu_wrap")
+end
+
+local function playDrillableIfGroup(item)
+    if item ~= nil and item.kind == "group" then
+        playMenuSound("drillable")
+    end
+end
+
+BaseMenu._playWrap = playWrap
+BaseMenu._playDrillableIfGroup = playDrillableIfGroup
+
+-- Speak the announce text for an item the cursor just landed on, and play
+-- the drillable cue when the landing target is a Group. Centralizes the
+-- "moved cursor onto an item" path so every nav site (Up/Down, Home/End,
+-- drill in/out, cross-sibling jump, search hit) gets the cue without each
+-- caller remembering it.
+local function landingSpeak(menu, item, queued)
+    local fn = queued and SpeechPipeline.speakQueued or SpeechPipeline.speakInterrupt
+    fn(item:announce(menu))
+    playDrillableIfGroup(item)
+end
+
 -- Walk helpers ------------------------------------------------------------
 
 local function nextValidIndex(items, start, step)
@@ -114,6 +201,76 @@ local function stepValid(items, start, step)
             return i
         end
     end
+end
+
+local function isNavGroup(it)
+    return it ~= nil and it.kind == "group" and it:isNavigable()
+end
+
+-- Compute the [start, end] index range of the maximal contiguous run of
+-- navigable groups that contains idx. Non-navigable items (hidden groups,
+-- hidden leaves) are transparent and do not break the run -- they're
+-- invisible to the user and skipping them keeps regions stable as
+-- visibility flags toggle. Visible non-Group items (buttons, text, etc.)
+-- are region boundaries: wrap stops there. Returns nil when items[idx]
+-- is not a navigable group.
+local function regionOfNavGroup(items, idx)
+    if not isNavGroup(items[idx]) then
+        return nil
+    end
+    local function transparent(j)
+        local it = items[j]
+        if it == nil then
+            return false
+        end
+        if not it:isNavigable() then
+            return true
+        end
+        return it.kind == "group"
+    end
+    local s = idx
+    while s > 1 and transparent(s - 1) do
+        s = s - 1
+    end
+    while s <= idx and not isNavGroup(items[s]) do
+        s = s + 1
+    end
+    local e = idx
+    while e < #items and transparent(e + 1) do
+        e = e + 1
+    end
+    while e >= idx and not isNavGroup(items[e]) do
+        e = e - 1
+    end
+    return s, e
+end
+
+-- Step within the region of navigable groups containing idx, wrapping at
+-- the region's edges. Returns (newIdx, wrapped). `wrapped` is true when
+-- the step crossed the region edge (including the single-group region's
+-- self-wrap). Returns nil when idx is not in any region (e.g., on a
+-- non-Group leaf).
+local function nextGroupInRegion(items, idx, step)
+    local rStart, rEnd = regionOfNavGroup(items, idx)
+    if rStart == nil then
+        return nil
+    end
+    local i = idx
+    local wrapped = false
+    for _ = 1, rEnd - rStart + 1 do
+        i = i + step
+        if i < rStart then
+            i = rEnd
+            wrapped = true
+        elseif i > rEnd then
+            i = rStart
+            wrapped = true
+        end
+        if isNavGroup(items[i]) then
+            return i, wrapped
+        end
+    end
+    return nil
 end
 
 local function topLevelItems(self)
@@ -147,26 +304,25 @@ local function currentIndex(self)
     return self._indices[self._level] or 1
 end
 
--- Scan `items` starting from startIdx in `step` direction, wrapping around,
--- for the next navigable Group. Returns nil if none exist. The starting
--- index itself is not returned (only proper siblings and wrap-around).
-local function findSiblingGroup(items, startIdx, step)
+-- Walk one step in `step` direction from idx, skipping non-navigable items,
+-- and return the first navigable item iff it's a Group. Stops the moment
+-- it hits a navigable non-Group (a leaf is a region boundary). Used by
+-- Ctrl+Up/Down at level 1 when the cursor sits on a leaf so the chord can
+-- enter an adjacent group region but not jump past another leaf.
+local function adjacentGroup(items, idx, step)
     local n = #items
-    if n == 0 then
-        return nil
-    end
-    local i = startIdx
+    local i = idx
     for _ = 1, n do
         i = i + step
-        if i < 1 then
-            i = n
+        if i < 1 or i > n then
+            return nil
         end
-        if i > n then
-            i = 1
-        end
-        local sib = items[i]
-        if sib ~= nil and sib.kind == "group" and sib:isNavigable() then
-            return i
+        local it = items[i]
+        if it ~= nil and it:isNavigable() then
+            if it.kind == "group" then
+                return i
+            end
+            return nil
         end
     end
     return nil
@@ -208,6 +364,7 @@ local nav = {
     currentItems = currentItems,
     currentIndex = currentIndex,
     resetSearch = resetSearch,
+    playDrillableIfGroup = playDrillableIfGroup,
 }
 
 -- Navigation / activation -------------------------------------------------
@@ -221,7 +378,7 @@ local function moveToIndex(self, newIndex)
     if item == nil then
         return
     end
-    SpeechPipeline.speakInterrupt(item:announce(self))
+    landingSpeak(self, item)
 end
 
 -- Enter a group at the current cursor. If the group is empty or has no
@@ -242,7 +399,7 @@ local function drillInto(self)
     self._level = self._level + 1
     self._indices[self._level] = first
     resetSearch(self)
-    SpeechPipeline.speakInterrupt(children[first]:announce(self))
+    landingSpeak(self, children[first])
 end
 
 local function goBackLevel(self)
@@ -256,13 +413,16 @@ local function goBackLevel(self)
     if item == nil then
         return
     end
-    SpeechPipeline.speakInterrupt(item:announce(self))
+    landingSpeak(self, item)
 end
 
 -- Cross-parent jump at the parent level (self._level - 1). Lands on the
 -- first / last valid child of the new group and announces "<group label>,
--- <child>" on a real boundary crossing; on same-group wrap (1 sibling group)
--- speaks just the child.
+-- <child>" when the parent actually changed; on same-group wrap (single-
+-- group region wrapping back to itself) speaks just the child. Plays
+-- menu_wrap when the step crossed the region's edge -- including the
+-- single-group self-wrap, where the parent index doesn't change but the
+-- user has logically wrapped.
 local function jumpSiblingGroup(self, step, landOnLast)
     if self._level <= 1 then
         return
@@ -270,7 +430,7 @@ local function jumpSiblingGroup(self, step, landOnLast)
     local parentLevel = self._level - 1
     local parents = itemsAtLevel(self, parentLevel)
     local startParent = self._indices[parentLevel]
-    local newParent = findSiblingGroup(parents, startParent, step)
+    local newParent, wrapped = nextGroupInRegion(parents, startParent, step)
     if newParent == nil then
         return
     end
@@ -287,12 +447,15 @@ local function jumpSiblingGroup(self, step, landOnLast)
         return
     end
     self._indices[self._level] = target
+    if wrapped then
+        playWrap()
+    end
     local crossed = (newParent ~= startParent)
     if crossed then
         SpeechPipeline.speakInterrupt(parents[newParent]:announce(self))
-        SpeechPipeline.speakQueued(newItems[target]:announce(self))
+        landingSpeak(self, newItems[target], true)
     else
-        SpeechPipeline.speakInterrupt(newItems[target]:announce(self))
+        landingSpeak(self, newItems[target])
     end
 end
 
@@ -303,7 +466,12 @@ local function onUp(self)
     end
     local items = currentItems(self)
     if self._level == 1 then
-        moveToIndex(self, nextValidIndex(items, currentIndex(self), -1))
+        local cur = currentIndex(self)
+        local newIdx = nextValidIndex(items, cur, -1)
+        if newIdx ~= nil and newIdx > cur then
+            playWrap()
+        end
+        moveToIndex(self, newIdx)
         return
     end
     local prev = stepValid(items, currentIndex(self), -1)
@@ -321,7 +489,12 @@ local function onDown(self)
     end
     local items = currentItems(self)
     if self._level == 1 then
-        moveToIndex(self, nextValidIndex(items, currentIndex(self), 1))
+        local cur = currentIndex(self)
+        local newIdx = nextValidIndex(items, cur, 1)
+        if newIdx ~= nil and newIdx < cur then
+            playWrap()
+        end
+        moveToIndex(self, newIdx)
         return
     end
     local next = stepValid(items, currentIndex(self), 1)
@@ -375,7 +548,7 @@ local function onEnter(self)
         local next = nextValidIndex(currentItems(self), currentIndex(self), 1)
         if next ~= nil then
             self._indices[self._level] = next
-            SpeechPipeline.speakQueued(currentItems(self)[next]:announce(self))
+            landingSpeak(self, currentItems(self)[next], true)
         end
     end
 end
@@ -416,10 +589,34 @@ local function onRight(self, big)
     end
 end
 
--- Ctrl+Up/Down at level 1 jumps among top-level groups (skipping leaves);
--- at level > 1 jumps to the prev/next sibling group at the parent level.
+-- Ctrl+Up/Down at level 1 walks among top-level groups, but stays inside
+-- the wrap region of the cursor's group (a maximal contiguous run of
+-- navigable groups). When the cursor sits on a leaf, the chord can step
+-- one slot in `step` direction onto an adjacent group, but never across
+-- another leaf -- "stops at leaf boundaries" per the design. At level > 1
+-- the same region rule applies via jumpSiblingGroup.
 -- A tab can override either direction via tab.onCtrlUp / onCtrlDown (pedia
 -- reader uses these to move across articles).
+local function ctrlStepLevel1(self, step)
+    local items = currentItems(self)
+    local cur = currentIndex(self)
+    if isNavGroup(items[cur]) then
+        local target, wrapped = nextGroupInRegion(items, cur, step)
+        if target == nil then
+            return
+        end
+        if wrapped then
+            playWrap()
+        end
+        moveToIndex(self, target)
+        return
+    end
+    local target = adjacentGroup(items, cur, step)
+    if target ~= nil then
+        moveToIndex(self, target)
+    end
+end
+
 local function onCtrlUp(self)
     local hook = BaseMenuTabs.hook(self, "onCtrlUp")
     if hook ~= nil then
@@ -430,10 +627,7 @@ local function onCtrlUp(self)
         return
     end
     if self._level == 1 then
-        local target = findSiblingGroup(currentItems(self), currentIndex(self), -1)
-        if target ~= nil then
-            moveToIndex(self, target)
-        end
+        ctrlStepLevel1(self, -1)
         return
     end
     jumpSiblingGroup(self, -1, false)
@@ -449,10 +643,7 @@ local function onCtrlDown(self)
         return
     end
     if self._level == 1 then
-        local target = findSiblingGroup(currentItems(self), currentIndex(self), 1)
-        if target ~= nil then
-            moveToIndex(self, target)
-        end
+        ctrlStepLevel1(self, 1)
         return
     end
     jumpSiblingGroup(self, 1, false)
@@ -517,7 +708,7 @@ local function defaultSearchable(self)
             if item == nil then
                 return
             end
-            SpeechPipeline.speakInterrupt(item:announce(self))
+            landingSpeak(self, item)
         end,
     }
 end
@@ -967,7 +1158,7 @@ function BaseMenu.create(spec)
             items = currentItems(self)
             local cur = items[currentIndex(self)]
             if cur ~= nil then
-                SpeechPipeline.speakQueued(cur:announce(self))
+                landingSpeak(self, cur, true)
             end
             return
         end
@@ -989,8 +1180,7 @@ function BaseMenu.create(spec)
         -- the shell can speakInterrupt the tab name and have BaseMenu's
         -- re-activation content chain after it instead of clobbering. Stays
         -- nil for normal stack-pushed BaseMenus and for sub-pop re-exposure.
-        local speak = self._chainSpeech and SpeechPipeline.speakQueued or SpeechPipeline.speakInterrupt
-        speak(item:announce(self))
+        landingSpeak(self, item, self._chainSpeech == true)
     end
 
     function self.onDeactivate() end

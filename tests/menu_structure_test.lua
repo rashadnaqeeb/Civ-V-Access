@@ -496,9 +496,13 @@ function M.test_up_at_level_2_past_first_wraps_to_prev_group_last_child()
     T.eq(speaks[2].text, "A2")
 end
 
-function M.test_cross_parent_skips_leaves_at_parent_level()
+function M.test_cross_parent_does_not_skip_leaves_at_parent_level()
     setup()
     setCtrls({ "LEAF1", "A1", "A2", "LEAF2", "B1" })
+    -- A leaf at the parent level acts as a wrap-region boundary: groupA
+    -- and groupB are NOT contiguous because Leaf2 sits between them, so
+    -- A's region is just {A}. Down past A's last child wraps back to A's
+    -- first child rather than crossing Leaf2 to B.
     local groupA = groupItem("A", { buttonItem("A1"), buttonItem("A2") })
     local groupB = groupItem("B", { buttonItem("B1") })
     local h = BaseMenu.create({
@@ -516,10 +520,73 @@ function M.test_cross_parent_skips_leaves_at_parent_level()
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A2
     clearArr(speaks)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end -> skip Leaf2 -> B
-    T.eq(h._indices[1], 4, "jumped across Leaf2 to Group B")
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end of A -> wrap to A1
+    T.eq(h._indices[1], 2, "stayed on Group A; Leaf2 blocked the cross to B")
+    T.eq(h._indices[2], 1, "wrapped to A's first child")
+    T.eq(speaks[1].text, "LBL_A1", "single announce; no parent label since parent didn't change")
+end
+
+function M.test_contiguous_drillables_wrap_back_on_each_other()
+    setup()
+    setCtrls({ "A1", "B1", "C1" })
+    -- A and B are contiguous (no leaf between them), so they share a wrap
+    -- region; C is past Leaf X and forms its own region. Down past B's
+    -- last child wraps back to A's first child; Down past C's last child
+    -- wraps to C's own first child.
+    local groupA = groupItem("A", { buttonItem("A1") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local groupC = groupItem("C", { buttonItem("C1") })
+    local leaf = BaseMenuItems.Text({ labelText = "Leaf X" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { groupA, groupB, leaf, groupC },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into A
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A's last child -> first of B
+    T.eq(h._indices[1], 2, "advanced to Group B (contiguous with A)")
     T.eq(h._indices[2], 1)
-    T.eq(speaks[1].text, "B")
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- B's last -> wrap back to A1
+    T.eq(h._indices[1], 1, "wrapped back to Group A within the {A,B} region")
+    T.eq(h._indices[2], 1)
+    -- Now drill into C and confirm it wraps within itself.
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN) -- back to level 1, on A
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- B
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- Leaf X
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- C
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into C
+    T.eq(h._indices[1], 4)
+    T.eq(h._indices[2], 1)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past last of C -> wrap to C1
+    T.eq(h._indices[1], 4, "stayed on Group C; Leaf X blocked the cross back to B")
+    T.eq(h._indices[2], 1, "wrapped to C's own first child")
+end
+
+function M.test_ctrl_down_at_level_1_stops_at_leaf_boundary()
+    setup()
+    setCtrls({ "A1", "B1", "C1" })
+    local groupA = groupItem("A", { buttonItem("A1") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local groupC = groupItem("C", { buttonItem("C1") })
+    local leaf = BaseMenuItems.Text({ labelText = "Leaf X" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { groupA, groupB, leaf, groupC },
+    })
+    HandlerStack.push(h)
+    UI.CtrlKeyDown = function()
+        return true
+    end
+    -- Cursor on A. Ctrl+Down advances to B (contiguous). Ctrl+Down again
+    -- wraps within {A, B} back to A; it does NOT cross Leaf X to C.
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN)
+    T.eq(h._indices[1], 2, "Ctrl+Down advanced to B")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN)
+    T.eq(h._indices[1], 1, "Ctrl+Down wrapped within region back to A; Leaf X not crossed")
 end
 
 function M.test_home_at_level_2_stays_within_group()
@@ -1416,6 +1483,187 @@ function M.test_ctrl_i_binding_absent_in_frontend()
         end
     end
     T.falsy(hasCtrlI, "no Ctrl+I binding in FrontEnd (Game == nil)")
+end
+
+-- Audio cues -------------------------------------------------------------
+--
+-- Two short bank slots: "menu_wrap" fires when the cursor wraps around
+-- (Up/Down past the end of a wrap region); "drillable" fires on every
+-- cursor landing on a Group so the user knows Right/Enter will descend.
+-- Tests inspect audio._calls (the run.lua capturing stub) and resolve
+-- the per-name handle from civvaccess_shared.menuSoundHandles, mirroring
+-- how plot_audio_test maps fog volume to its handle.
+
+local function playsOf(name)
+    local h = civvaccess_shared.menuSoundHandles and civvaccess_shared.menuSoundHandles[name]
+    if h == nil then
+        return 0
+    end
+    local count = 0
+    for _, c in ipairs(audio._calls) do
+        if c.op == "play" and c.id == h then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+function M.test_wrap_sound_plays_on_level_1_down_past_end()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B" }) })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on B
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past end -> wrap to A
+    T.eq(h._indices[1], 1, "wrapped to first item")
+    T.eq(playsOf("menu_wrap"), 1, "menu_wrap plays on level-1 wrap")
+end
+
+function M.test_wrap_sound_plays_on_level_1_up_past_start()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B" }) })
+    HandlerStack.push(h)
+    -- Cursor on A. Up wraps to B.
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_UP, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 2, "wrapped to last item")
+    T.eq(playsOf("menu_wrap"), 1, "menu_wrap plays on level-1 backward wrap")
+end
+
+function M.test_wrap_sound_does_not_play_on_normal_step()
+    setup()
+    setCtrls({ "A", "B", "C" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B", "C" }) })
+    HandlerStack.push(h)
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A -> B (no wrap)
+    T.eq(playsOf("menu_wrap"), 0, "menu_wrap does not play on a forward step")
+end
+
+function M.test_wrap_sound_plays_on_cross_sibling_wrap_within_region()
+    setup()
+    setCtrls({ "A1", "B1" })
+    local groupA = groupItem("A", { buttonItem("A1") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on B
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into B
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- past last of B -> wrap to A1 within {A,B}
+    T.eq(h._indices[1], 1)
+    T.eq(playsOf("menu_wrap"), 1, "menu_wrap plays when the cross-sibling jump wrapped within the region")
+end
+
+function M.test_wrap_sound_does_not_play_on_cross_sibling_forward()
+    setup()
+    setCtrls({ "A1", "B1" })
+    local groupA = groupItem("A", { buttonItem("A1") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill into A
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A -> B (forward, not wrap)
+    T.eq(h._indices[1], 2)
+    T.eq(playsOf("menu_wrap"), 0, "menu_wrap does not play when stepping forward across siblings")
+end
+
+function M.test_wrap_sound_plays_on_single_group_self_wrap()
+    setup()
+    setCtrls({ "C1", "C2" })
+    -- Single group region: Down past last child wraps back to the same
+    -- group's first child. Counts as a wrap because the user crossed the
+    -- region edge -- there's no other group to step to.
+    local groupC = groupItem("Solo", { buttonItem("C1"), buttonItem("C2") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupC } })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- C2
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- wrap to C1
+    T.eq(playsOf("menu_wrap"), 1, "single-group self-wrap counts as a wrap")
+end
+
+function M.test_drillable_sound_plays_when_landing_on_group()
+    setup()
+    setCtrls({ "LEAF", "C1" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            buttonItem("LEAF", "Leaf"),
+            groupItem("G", { buttonItem("C1", "Child") }),
+        },
+    })
+    HandlerStack.push(h)
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- Leaf -> G (a group)
+    T.eq(playsOf("drillable"), 1, "drillable plays when cursor lands on a Group")
+end
+
+function M.test_drillable_sound_does_not_play_when_landing_on_leaf()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B" }) })
+    HandlerStack.push(h)
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- A -> B (button leaf)
+    T.eq(playsOf("drillable"), 0, "drillable does not play when landing on a non-Group leaf")
+end
+
+function M.test_drillable_sound_plays_on_drill_in()
+    setup()
+    setCtrls({ "C1" })
+    local subGroup = groupItem("Inner", { buttonItem("C1") })
+    local outerGroup = groupItem("Outer", { subGroup })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { outerGroup } })
+    HandlerStack.push(h)
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    -- Drill into outer; the first child (Inner) is itself a Group, so
+    -- landing announces it AND fires the drillable cue.
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(playsOf("drillable"), 1, "drillable plays when drill-in lands on a Group child")
+end
+
+function M.test_drillable_sound_plays_on_back_out_to_group()
+    setup()
+    setCtrls({ "C1" })
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { groupItem("Parent", { buttonItem("C1") }) },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN) -- drill in
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN) -- back up
+    T.eq(playsOf("drillable"), 1, "drillable plays when going back up onto the parent group")
+end
+
+function M.test_menu_sounds_suppressed_when_muted()
+    setup()
+    setCtrls({ "A", "B" })
+    local h = BaseMenu.create({ name = "T", displayName = "Test", items = buttonSpec({ "A", "B" }) })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- on B
+    civvaccess_shared.muted = true
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- wrap to A
+    T.eq(playsOf("menu_wrap"), 0, "muted state suppresses menu sounds")
 end
 
 

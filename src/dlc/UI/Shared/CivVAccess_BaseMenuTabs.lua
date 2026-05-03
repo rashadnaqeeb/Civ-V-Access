@@ -189,6 +189,7 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
         else
             SpeechPipeline.speakInterrupt(finalItem:announce(self))
         end
+        nav.playDrillableIfGroup(finalItem)
     end
 end
 
