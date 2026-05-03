@@ -34,10 +34,14 @@
 -- guard) fires only on first reveal of a plot for a team. Events.Hex-
 -- FOWStateChanged fires on every visibility transition. We listen to
 -- both: first-reveal plots get the full payload (units + cities +
--- resources), revisit plots (came back into sight on a known tile)
--- get just units + cities, since the resource and terrain weren't new
--- there. Mixed ticks combine: total count plus the union, with
--- resources still scoped to the first-reveal subset.
+-- resources); revisit plots (came back into sight on a known tile)
+-- only contribute units that aren't already in _visibleUnits. The
+-- resource / terrain / city weren't new on a revisit, so re-
+-- announcing them every time the player's vision flickers across the
+-- plot is noise; and re-announcing a known-visible unit overlaps
+-- with ForeignUnitWatch's TurnStart "entered" line. Mixed ticks
+-- combine: total count plus the union of payloads, with the
+-- per-piece gates above applied.
 --
 -- Coalescing. A single move emits a burst of events from two sources
 -- that don't share timing: CivVAccessPlotRevealed fires synchronously
@@ -314,15 +318,40 @@ function RevealAnnounce._flushBody()
     local goneCamps, goneRuins = 0, 0
 
     for idx, plot in pairs(announcePlots) do
-        local city = plot:GetPlotCity()
-        if city ~= nil then
-            local cityOwner = Players[city:GetOwner()]
-            if cityOwner ~= nil and cityOwner:GetTeam() ~= activeTeam then
-                cities[#cities + 1] = city:GetName()
+        -- Cities and resources only on first-reveal plots. Neither
+        -- changes on revisit, so re-announcing London every time the
+        -- player walks back into the city plot's vision (or iron every
+        -- time the unit passes the resource) would be noise. The
+        -- engine fires its own city-founded notification for cities
+        -- discovered after that plot was already revealed.
+        -- Plot:GetResourceType(team) returns NO_RESOURCE when the
+        -- team lacks the prereq tech, so tech-gating is automatic.
+        if firstReveals[idx] then
+            local city = plot:GetPlotCity()
+            if city ~= nil then
+                local cityOwner = Players[city:GetOwner()]
+                if cityOwner ~= nil and cityOwner:GetTeam() ~= activeTeam then
+                    cities[#cities + 1] = city:GetName()
+                end
+            end
+            local rType = plot:GetResourceType(activeTeam)
+            if rType ~= nil and rType >= 0 then
+                local name = resourceName(rType)
+                if name ~= nil then
+                    resources[#resources + 1] = name
+                end
             end
         end
-        -- Units only on currently-visible plots. A map-share-only
-        -- reveal puts the plot in firstReveals without nowVisible:
+        -- Units only on currently-visible plots, and only units that
+        -- aren't already in _visibleUnits (the snapshot from the
+        -- previous flush, also rebuilt at TurnStart). A known-visible
+        -- foreign unit shouldn't re-announce every time the player
+        -- walks in / out of fog on its plot, and the TurnStart reset
+        -- means a unit that entered view during the AI turn is in
+        -- the snapshot before the player's first move flushes here --
+        -- ForeignUnitWatch already announced it as "entered" so
+        -- repeating "revealed" would double-speak. Map-share-only
+        -- reveals put the plot in firstReveals without nowVisible:
         -- the terrain is known but unit positions are not. Collect
         -- metadata (civ adjective + unit description key) rather than
         -- a flat name so formatUnitList can aggregate identical units
@@ -337,29 +366,18 @@ function RevealAnnounce._flushBody()
                     local ownerId = unit:GetOwner()
                     local bucket = unitOwnerBucket(ownerId, activePlayerId, activeTeam)
                     if bucket ~= nil and Players[ownerId] ~= nil then
-                        local meta = ForeignUnitSnapshot.metadata(unit, ownerId, bucket)
-                        if meta.civAdjKey ~= nil and meta.unitDescKey ~= nil then
-                            if bucket == "enemy" then
-                                enemyUnits[#enemyUnits + 1] = meta
-                            else
-                                otherUnits[#otherUnits + 1] = meta
+                        local key = ForeignUnitSnapshot.unitKey(ownerId, unit:GetID())
+                        if _visibleUnits[key] == nil then
+                            local meta = ForeignUnitSnapshot.metadata(unit, ownerId, bucket)
+                            if meta.civAdjKey ~= nil and meta.unitDescKey ~= nil then
+                                if bucket == "enemy" then
+                                    enemyUnits[#enemyUnits + 1] = meta
+                                else
+                                    otherUnits[#otherUnits + 1] = meta
+                                end
                             end
                         end
                     end
-                end
-            end
-        end
-        -- Resources only on first-reveal plots: they don't change on a
-        -- revisit, so re-announcing iron every time the player walks
-        -- past it would be noise. Plot:GetResourceType(team) returns
-        -- NO_RESOURCE when the team lacks the prereq tech, so
-        -- tech-gating is automatic.
-        if firstReveals[idx] then
-            local rType = plot:GetResourceType(activeTeam)
-            if rType ~= nil and rType >= 0 then
-                local name = resourceName(rType)
-                if name ~= nil then
-                    resources[#resources + 1] = name
                 end
             end
         end

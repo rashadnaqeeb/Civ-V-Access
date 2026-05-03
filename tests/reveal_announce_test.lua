@@ -355,8 +355,11 @@ end
 -- routes the line ("Units:" instead of "Enemy:" for an at-war owner).
 function M.test_reveal_uses_civ_adjective_and_aggregates()
     setup()
-    local unit1 = makeUnit({ id = 1 })
-    local unit2 = makeUnit({ id = 2 })
+    -- Units start in fog so the install-time _visibleUnits snapshot
+    -- doesn't capture them; the reveal walk's snapshot gate would
+    -- otherwise filter them out as already-known.
+    local unit1 = makeUnit({ id = 1, plot = fogPlot() })
+    local unit2 = makeUnit({ id = 2, plot = fogPlot() })
     installForeign(1, {
         adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
         atWar = true,
@@ -374,8 +377,6 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
     plot.GetImprovementType = function()
         return -1
     end
-    unit1._plot = plot
-    unit2._plot = plot
     Map.GetPlot = function()
         return plot
     end
@@ -390,6 +391,11 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
     end
 
     RevealAnnounce.installListeners()
+    -- Player moves; the units are now on a visible plot. Their
+    -- _plot becomes the reveal plot AFTER installListeners' snapshot
+    -- ran, so they're not in _visibleUnits.
+    unit1._plot = plot
+    unit2._plot = plot
     -- Fire CivVAccessPlotRevealed so the plot enters firstReveals
     -- (driving the count) and HexFOWStateChanged so it enters
     -- nowVisible (driving the unit-payload collection).
@@ -408,6 +414,97 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
         "1 tile revealed: Enemy: 2 Roman Warrior",
         "civ adjective prefixes the unit and identical units aggregate"
     )
+end
+
+-- Snapshot gate on the reveal direction. A foreign unit already in
+-- _visibleUnits at flush time (entered view during the AI turn, or
+-- was already on a known-visible plot) must NOT re-announce when the
+-- player's move flickers fog->visible on its plot. Without this gate,
+-- walking in / out of vision range of a known foreign unit re-emits
+-- "Revealed: enemy <unit>" on every visibility transition, and at
+-- TurnStart it duplicates ForeignUnitWatch's "entered" line.
+function M.test_known_visible_unit_skipped_on_revisit()
+    setup()
+    local unit = makeUnit({ id = 1 })
+    local plot = T.fakePlot({
+        visible = true,
+        plotIndex = 1,
+        layerUnits = { unit },
+    })
+    plot.GetImprovementType = function()
+        return -1
+    end
+    unit._plot = plot
+    installForeign(1, {
+        adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
+        atWar = true,
+        units = { unit },
+    })
+    Map.GetPlot = function()
+        return plot
+    end
+    Map.GetPlotByIndex = function(idx)
+        if idx == 1 then
+            return plot
+        end
+        return nil
+    end
+    ToGridFromHex = function(hx, hy)
+        return hx, hy
+    end
+
+    -- Install snapshots the unit (already on a visible plot).
+    RevealAnnounce.installListeners()
+    -- Revisit only: HexFOWStateChanged fires, but no CivVAccessPlot-
+    -- Revealed (the plot's been revealed before).
+    for _, fn in ipairs(fowListeners) do
+        fn({ x = 0, y = 0 }, 0, false)
+    end
+    RevealAnnounce._flush()
+    T.eq(#spoken, 0, "known-visible unit must not re-announce on revisit")
+end
+
+-- Cities are only announced on first-reveal of their plot. A revisit
+-- (HexFOWStateChanged on a previously-revealed plot) must not re-emit
+-- "Revealed: <city>" -- once you've discovered London, walking back
+-- into vision range shouldn't repeat it. Failure mode this catches:
+-- city collection runs unconditionally on every plot in announcePlots.
+function M.test_city_not_re_announced_on_revisit()
+    setup()
+    local plot = T.fakePlot({
+        visible = true,
+        plotIndex = 1,
+        city = { GetName = function() return "London" end, GetOwner = function() return 1 end },
+    })
+    plot.GetImprovementType = function()
+        return -1
+    end
+    -- Foreign owner of the city, on a different team than active.
+    installForeign(1, {
+        adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
+        team = 1,
+        units = {},
+    })
+    Map.GetPlot = function()
+        return plot
+    end
+    Map.GetPlotByIndex = function(idx)
+        if idx == 1 then
+            return plot
+        end
+        return nil
+    end
+    ToGridFromHex = function(hx, hy)
+        return hx, hy
+    end
+
+    RevealAnnounce.installListeners()
+    -- Revisit only -- no CivVAccessPlotRevealed.
+    for _, fn in ipairs(fowListeners) do
+        fn({ x = 0, y = 0 }, 0, false)
+    end
+    RevealAnnounce._flush()
+    T.eq(#spoken, 0, "known city must not re-announce on a fog->visible flicker")
 end
 
 -- Snapshot is rebuilt at the end of every flush. After the first hide
