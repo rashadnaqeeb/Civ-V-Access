@@ -984,6 +984,29 @@ function M.test_combat_result_defender_killed_appends_kill_line()
     T.truthy(out:find("Swordsman killed", 1, true), "kill line expected: " .. out)
 end
 
+-- Captured city: HP went to max (engine signals "down") but the city
+-- was taken, not destroyed. The defender outcome line swaps "killed"
+-- for "captured" so the combat readout pins the outcome to the combat
+-- itself; SerialEventCityCaptured still speaks the ownership-aware
+-- "We captured X" / "We lost X" alongside.
+function M.test_combat_result_captured_city_uses_captured_line()
+    setup()
+    local out = UnitSpeech.combatResult({
+        attackerName = "Warrior",
+        attackerDamage = 5,
+        attackerFinalDamage = 5,
+        attackerMaxHP = 100,
+        defenderName = "Babylon",
+        defenderDamage = 50,
+        defenderFinalDamage = 200,
+        defenderMaxHP = 200,
+        defenderCaptured = true,
+    })
+    T.truthy(not out:find("Babylon killed", 1, true), "captured city must not say killed: " .. out)
+    T.truthy(out:find("Babylon captured", 1, true), "captured line expected: " .. out)
+    T.truthy(out:find("Babylon %-50 hp"), "damage line still expected: " .. out)
+end
+
 -- Ranged combat routinely leaves the attacker undamaged. The prior
 -- "skip if zero" formatter dropped the attacker from the readout
 -- entirely, leaving the user unsure who fired. Both sides must always

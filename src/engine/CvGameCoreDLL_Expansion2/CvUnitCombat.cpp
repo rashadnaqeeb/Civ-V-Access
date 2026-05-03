@@ -2447,12 +2447,23 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 	// don't take damage from their own ranged strikes so iAtkCityPreDamage
 	// is captured but the post-combat delta will always be 0 (mod-side
 	// "unhurt" branch handles the readout naturally).
+	//
+	// The defender city snapshots (owner, ID, max HP) are also needed to
+	// survive the city-capture path: ResolveCityMeleeCombat triggers
+	// pkAttacker->UnitMove which calls acquireCity, and acquireCity
+	// "will delete the pointer" (CvUnit.cpp:13287). After capture
+	// pDefenderCityForHook is dangling; reading its fields in the post-
+	// resolve payload is use-after-free. The capture branch below uses
+	// these snapshots instead.
 	CvCity* pDefenderCityForHook = kInfo.getCity(BATTLE_UNIT_DEFENDER);
 	CvCity* pAttackerCityForHook = kInfo.getCity(BATTLE_UNIT_ATTACKER);
 	const int iAtkPreDamage = pAttacker ? pAttacker->getDamage() : 0;
 	const int iAtkCityPreDamage = pAttackerCityForHook ? pAttackerCityForHook->getDamage() : 0;
 	const int iDefUnitPreDamage = pDefender ? pDefender->getDamage() : 0;
 	const int iDefCityPreDamage = pDefenderCityForHook ? pDefenderCityForHook->getDamage() : 0;
+	const PlayerTypes eDefCityPreOwner = pDefenderCityForHook ? pDefenderCityForHook->getOwner() : NO_PLAYER;
+	const int iDefCityPreID = pDefenderCityForHook ? pDefenderCityForHook->GetID() : -1;
+	const int iDefCityMaxHP = pDefenderCityForHook ? pDefenderCityForHook->GetMaxHitPoints() : 0;
 	// Nuclear Mission
 	if(kInfo.getAttackIsNuclear())
 	{
@@ -2508,6 +2519,38 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			if (kInfo.getUnit(BATTLE_UNIT_ATTACKER) && kInfo.getUnit(BATTLE_UNIT_DEFENDER) && pPlot)
 			{
 				pPlot->AddArchaeologicalRecord(CvTypes::getARTIFACT_BATTLE_MELEE(), kInfo.getUnit(BATTLE_UNIT_ATTACKER)->getOwner(), kInfo.getUnit(BATTLE_UNIT_DEFENDER)->getOwner());
+			}
+		}
+	}
+
+	// CIVVACCESS: detect a city defender that was captured by this combat.
+	// ResolveCityMeleeCombat's conquest branch invokes acquireCity inside
+	// pkAttacker->UnitMove, which deletes the original CvCity. After the
+	// dispatcher returns to here the post-resolve plot holds a NEW city
+	// owned by the conqueror with the same name on the same tile; the
+	// owner change is the cleanest signal that capture happened.
+	// Barbarian ransom (ResolveCityMeleeCombat:1006) leaves the original
+	// city with its old owner at maxHP-1, so the verify-still-alive path
+	// flips this back to false there and the existing dereference branch
+	// remains safe.
+	//
+	// Default is true (use safe pre-resolve snapshots) for any city
+	// defender; we only flip to false after affirmatively verifying the
+	// original city is still on its plot with its original owner. If the
+	// plot is NULL or the post-resolve city is NULL or the owner changed,
+	// we cannot safely dereference pDefenderCityForHook -- so we leave
+	// the captured branch in charge.
+	bool bDefenderCityCaptured = false;
+	if(pDefenderCityForHook != NULL && pDefender == NULL)
+	{
+		bDefenderCityCaptured = true;
+		CvPlot* pCapturePlot = kInfo.getPlot();
+		if(pCapturePlot != NULL)
+		{
+			CvCity* pPostResolveCity = pCapturePlot->getPlotCity();
+			if(pPostResolveCity != NULL && pPostResolveCity->getOwner() == eDefCityPreOwner)
+			{
+				bDefenderCityCaptured = false;
 			}
 		}
 	}
@@ -2582,6 +2625,39 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			//                                   attackerCityId != -1 to pick
 			//                                   the city-name path for the
 			//                                   attacker side.)
+			//   20: defenderCityCaptured       (1 when the defender was a
+			//                                   city captured by this combat
+			//                                   -- the post-resolve city on
+			//                                   the plot has a different
+			//                                   owner than the pre-resolve
+			//                                   snapshot. acquireCity freed
+			//                                   the original CvCity, so the
+			//                                   defender payload (args 6-11)
+			//                                   uses pre-resolve snapshots
+			//                                   instead of the dangling
+			//                                   pointer. Lua suppresses its
+			//                                   "killed" line on this flag
+			//                                   so SerialEventCityCaptured
+			//                                   owns the capture announcement
+			//                                   without doubling it. 0 for
+			//                                   non-city defenders, surviving
+			//                                   cities, and barbarian ransom
+			//                                   (which keeps the original
+			//                                   owner.))
+			//   21: plotX                      (combat plot x coordinate; -1
+			//                                   if pHookPlot is null. Lua
+			//                                   uses (plotX, plotY) to look
+			//                                   up the post-capture city via
+			//                                   Map.GetPlot:GetPlotCity since
+			//                                   GetCityByID against the pre-
+			//                                   capture (owner, ID) fails
+			//                                   after acquireCity. Cities
+			//                                   retain their name on
+			//                                   capture so the new city on
+			//                                   the same plot reads back the
+			//                                   same name.)
+			//   22: plotY                      (combat plot y coordinate;
+			//                                   paired with plotX above.)
 			// Lua dispatches on (defenderUnitId != -1) to pick unit vs city naming.
 			// Adding fields means updating both branches AND the Lua handler;
 			// the unit branch uses (unit, -1) and the city branch (-1, city) so
@@ -2655,6 +2731,30 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 				args->Push(pDefender->getDamage());
 				args->Push(pDefender->GetMaxHitPoints());
 			}
+			else if(bDefenderCityCaptured)
+			{
+				// City was captured this combat -- pDefenderCityForHook is
+				// freed (acquireCity deleted it inside UnitMove). Use the
+				// pre-resolve snapshots and derive the per-combat damage
+				// from kInfo.getDamageInflicted, capped at remaining HP so
+				// the readout matches the engine-applied damage rather
+				// than the rolled value. Final damage = max HP signals the
+				// city went down; the Lua handler reads the captured flag
+				// (arg 20) to suppress its "killed" line so the
+				// SerialEventCityCaptured listener owns the capture
+				// announcement.
+				const int iDmgInflicted = kInfo.getDamageInflicted(BATTLE_UNIT_DEFENDER);
+				int iCappedDmg = iDmgInflicted;
+				const int iRemainingHP = iDefCityMaxHP - iDefCityPreDamage;
+				if(iCappedDmg > iRemainingHP)
+					iCappedDmg = iRemainingHP;
+				args->Push(eDefCityPreOwner);
+				args->Push(-1);
+				args->Push(iDefCityPreID);
+				args->Push(iCappedDmg);
+				args->Push(iDefCityMaxHP);
+				args->Push(iDefCityMaxHP);
+			}
 			else
 			{
 				args->Push(pDefenderCityForHook->getOwner());
@@ -2688,6 +2788,19 @@ void CvUnitCombat::ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID
 			args->Push(bAttackerKnown ? 1 : 0);
 			args->Push(bDefenderKnown ? 1 : 0);
 			args->Push(pAttackerCityForHook ? pAttackerCityForHook->GetID() : -1);
+			// Args 20-22: city-defender capture metadata. defenderCaptured
+			// flags the captured-this-combat case so the Lua handler can
+			// suppress its "killed" line (SerialEventCityCaptured speaks
+			// the capture announcement). plotX/plotY let Lua resolve the
+			// post-capture city name via Map.GetPlot:GetPlotCity since the
+			// pre-capture CvCity ID lookup fails (the original object was
+			// freed by acquireCity); cities retain their name on capture
+			// so the new city on the same plot reads the same name back.
+			// All three are 0/0/0 sentinels for non-city-defender combats
+			// and (-1, -1) plot fallback should pHookPlot ever be null.
+			args->Push(bDefenderCityCaptured ? 1 : 0);
+			args->Push(pHookPlot ? pHookPlot->getX() : -1);
+			args->Push(pHookPlot ? pHookPlot->getY() : -1);
 			bool bResult;
 			LuaSupport::CallHook(pkScriptSystem, "CivVAccessCombatResolved", args.get(), bResult);
 		}

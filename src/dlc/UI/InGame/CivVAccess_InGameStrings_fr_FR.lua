@@ -321,6 +321,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_DAMAGE"] = "défenseur {1
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_UNHURT"] = "attaquant {1_Name} indemne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_DEFENDER_UNHURT"] = "défenseur {1_Name} indemne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_KILLED"] = "{1_Name} tué"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_CAPTURED"] = "{1_Name} capturé"
 -- Substituted for the attacker / defender name in AI-vs-AI combat on a
 -- visible plot when one side is invisible to the active team (e.g., AI
 -- submarine ambushing AI ship). Matches what sighted players perceive:

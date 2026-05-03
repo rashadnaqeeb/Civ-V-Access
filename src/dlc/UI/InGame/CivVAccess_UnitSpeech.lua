@@ -1141,8 +1141,16 @@ function UnitSpeech.combatResult(args)
     if args.attackerFinalDamage >= args.attackerMaxHP then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", atkName)
     end
+    -- Captured cities take the captured line instead of killed: the
+    -- city wasn't destroyed, it changed hands. SerialEventCityCaptured
+    -- still speaks "We captured Babylon" / "We lost Babylon" with the
+    -- ownership perspective; this clause pins the outcome to the combat
+    -- itself so the readout is self-contained.
     if args.defenderFinalDamage >= args.defenderMaxHP then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", defName)
+        local outcomeKey = args.defenderCaptured
+            and "TXT_KEY_CIVVACCESS_COMBAT_CAPTURED"
+            or "TXT_KEY_CIVVACCESS_COMBAT_KILLED"
+        parts[#parts + 1] = Text.format(outcomeKey, defName)
     end
     return table.concat(parts, ", ")
 end

@@ -169,7 +169,10 @@ local function onCombatResolved(
     plotVisibleToActiveTeam,
     attackerKnown,
     defenderKnown,
-    attackerCity
+    attackerCity,
+    defenderCityCaptured,
+    plotX,
+    plotY
 )
     local activePlayer = Game.GetActivePlayer()
     local activeInvolved = (attackerPlayer == activePlayer or defenderPlayer == activePlayer)
@@ -206,6 +209,16 @@ local function onCombatResolved(
         defenderName = Text.key("TXT_KEY_CIVVACCESS_COMBAT_UNKNOWN_COMBATANT")
     elseif defenderUnit ~= -1 then
         defenderName = UnitSpeech.combatantName(defenderPlayer, defenderUnit)
+    elseif defenderCityCaptured == 1 then
+        -- City was captured this combat -- the original CvCity object was
+        -- freed by acquireCity inside ResolveCityMeleeCombat, so the pre-
+        -- capture (owner, ID) lookup against Players[...]:GetCityByID is
+        -- guaranteed to miss. The post-capture city on the same plot
+        -- reads back the same name (cities retain their name on capture),
+        -- so resolve the name via Map.GetPlot.
+        local plot = Map.GetPlot(plotX, plotY)
+        local capturedCity = plot and plot:GetPlotCity()
+        defenderName = capturedCity and capturedCity:GetName() or ""
     else
         defenderName = UnitSpeech.cityCombatantName(defenderPlayer, defenderCity)
     end
@@ -238,6 +251,7 @@ local function onCombatResolved(
         defenderMaxHP = defenderMaxHP,
         interceptorName = interceptorName,
         combatKind = combatKind,
+        defenderCaptured = defenderCityCaptured == 1,
     })
     -- Player-initiated combat always speaks: it's direct feedback for the
     -- key the user just pressed. Combat the active player didn't initiate
