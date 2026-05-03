@@ -1593,6 +1593,26 @@ function M.test_wrap_sound_plays_on_single_group_self_wrap()
     T.eq(playsOf("menu_wrap"), 1, "single-group self-wrap counts as a wrap")
 end
 
+function M.test_wrap_sound_plays_on_ctrl_down_level1_wrap()
+    setup()
+    setCtrls({ "A1", "B1" })
+    -- ctrlStepLevel1 is a distinct path from onDown: it walks
+    -- nextGroupInRegion at the top level rather than nextValidIndex.
+    local groupA = groupItem("A", { buttonItem("A1") })
+    local groupB = groupItem("B", { buttonItem("B1") })
+    local h = BaseMenu.create({ name = "T", displayName = "Screen", items = { groupA, groupB } })
+    HandlerStack.push(h)
+    UI.CtrlKeyDown = function()
+        return true
+    end
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN) -- A -> B
+    audio._reset()
+    civvaccess_shared.menuSoundHandles = nil
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_CTRL, WM_KEYDOWN) -- B -> wrap to A within {A, B}
+    T.eq(h._indices[1], 1, "wrapped to A")
+    T.eq(playsOf("menu_wrap"), 1, "menu_wrap plays on Ctrl+Down level-1 wrap")
+end
+
 function M.test_drillable_sound_plays_when_landing_on_group()
     setup()
     setCtrls({ "LEAF", "C1" })
