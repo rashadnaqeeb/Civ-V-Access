@@ -226,6 +226,78 @@ function M.test_cueForPlot_no_route_means_no_road_stinger()
     T.eq(#PlotAudio.cueForPlot(p).stingers, 0)
 end
 
+-- ===== cueForPlot: river / bridge crossing =====
+
+function M.test_cueForPlot_no_prevPlot_means_no_crossing()
+    -- Programmatic jumps (Cursor.jumpTo) supply no previous plot. Even if
+    -- the destination has river edges, no crossing layer fires -- the
+    -- player didn't traverse an edge.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    local p = T.fakePlot({ terrain = 0 })
+    T.eq(PlotAudio.cueForPlot(p).crossing, nil)
+end
+
+function M.test_cueForPlot_prev_without_river_edge_no_crossing()
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    local prev = T.fakePlot({ terrain = 0 })
+    local p = T.fakePlot({ terrain = 0 })
+    T.eq(PlotAudio.cueForPlot(p, prev).crossing, nil)
+end
+
+function M.test_cueForPlot_river_crossing_without_roads_is_river()
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    local prev = T.fakePlot({ terrain = 0, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0 })
+    T.eq(PlotAudio.cueForPlot(p, prev).crossing, "river")
+end
+
+function M.test_cueForPlot_river_crossing_road_only_one_side_is_river()
+    -- Engine model: bridge needs route on BOTH endpoint plots. One-sided
+    -- road means foot-ford -- still the plain river token.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = -1 })
+    T.eq(PlotAudio.cueForPlot(p, prev).crossing, "river")
+end
+
+function M.test_cueForPlot_river_crossing_no_bridge_tech_is_river()
+    -- Both endpoints have routes but the team hasn't researched Construction:
+    -- there's no bridge built across the edge yet.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = false })
+    local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = 0 })
+    T.eq(PlotAudio.cueForPlot(p, prev).crossing, "river")
+end
+
+function M.test_cueForPlot_river_crossing_with_roads_and_bridge_tech_is_bridge()
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = 0 })
+    T.eq(PlotAudio.cueForPlot(p, prev).crossing, "bridge")
+end
+
+function M.test_cueForPlot_unrevealed_destination_no_cue_even_with_crossing()
+    -- An unrevealed plot returns nil from cueForPlot regardless of the
+    -- prev/edge state -- the player gets the "unexplored" speech path
+    -- with no audio at all, matching the existing reveal gate.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = 0, revealed = false })
+    T.eq(PlotAudio.cueForPlot(p, prev), nil)
+end
+
 -- ===== emit: dispatch ordering =====
 -- emit pulls handles out of civvaccess_shared.plotAudioHandles (populated
 -- by loadAll). Tests run loadAll in setup so emit has something to call.
@@ -290,6 +362,85 @@ function M.test_emit_plays_fog_alongside_bed_at_t_zero()
     T.eq(ops[3], "play", "fog at t=0 (not play_delayed)")
 end
 
+function M.test_emit_with_crossing_layers_river_then_bed_then_stinger()
+    -- Cascading three-slot dispatch when there's a crossing: river/bridge
+    -- at t=0, bed pushed to +100, stingers (road in this fixture) to +200.
+    -- Same 100ms gap between successive layers as the no-crossing case.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = false })
+    PlotAudio.loadAll()
+    audio._reset()
+
+    local prev = T.fakePlot({ terrain = 0, isRiverCrossingTo = true, revealed = true, visible = true })
+    local p = T.fakePlot({ terrain = 0, route = 0, revealed = true, visible = true })
+    PlotAudio.emit(p, prev)
+
+    local riverId = civvaccess_shared.plotAudioHandles.river
+    local grasslandId = civvaccess_shared.plotAudioHandles.grassland
+    local roadId = civvaccess_shared.plotAudioHandles.road
+
+    T.eq(audio._calls[1].op, "cancel_all")
+    -- River plays at t=0 (no delay).
+    T.eq(audio._calls[2].op, "play")
+    T.eq(audio._calls[2].id, riverId)
+    -- Bed fires next, delayed by one slot. Asserting the grassland id (not
+    -- just the op) catches a bed-resolution regression at the dispatch seam:
+    -- a wrong cue.bed name would still produce a play_delayed at +100, but
+    -- against the wrong handle.
+    T.eq(audio._calls[3].op, "play_delayed")
+    T.eq(audio._calls[3].id, grasslandId)
+    T.eq(audio._calls[3].ms, 100)
+    -- Road stinger fires last, delayed by two slots.
+    T.eq(audio._calls[4].op, "play_delayed")
+    T.eq(audio._calls[4].id, roadId)
+    T.eq(audio._calls[4].ms, 200)
+end
+
+function M.test_emit_with_bridge_crossing_plays_bridge_handle()
+    -- Bridge variant: same timing as river crossing but the t=0 sound is
+    -- the bridge handle, not the river handle.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    PlotAudio.loadAll()
+    audio._reset()
+
+    local prev = T.fakePlot({
+        terrain = 0,
+        route = 0,
+        isRiverCrossingTo = true,
+        revealed = true,
+        visible = true,
+    })
+    local p = T.fakePlot({ terrain = 0, route = 0, revealed = true, visible = true })
+    PlotAudio.emit(p, prev)
+
+    local bridgeId = civvaccess_shared.plotAudioHandles.bridge
+    T.eq(audio._calls[2].op, "play")
+    T.eq(audio._calls[2].id, bridgeId, "bridge handle plays at t=0 when bridged")
+end
+
+function M.test_emit_without_crossing_keeps_original_timing()
+    -- Regression guard: the no-crossing path keeps the bed at t=0 and
+    -- stingers at +100; the crossing changes are additive.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    feature(6, "FEATURE_FOREST")
+    PlotAudio.loadAll()
+    audio._reset()
+
+    local prev = T.fakePlot({ terrain = 0, revealed = true, visible = true })
+    local p = T.fakePlot({ terrain = 0, feature = 6, revealed = true, visible = true })
+    PlotAudio.emit(p, prev)
+
+    -- Two payload calls after cancel_all: bed (t=0) then forest stinger (+100).
+    T.eq(audio._calls[1].op, "cancel_all")
+    T.eq(audio._calls[2].op, "play")
+    T.eq(audio._calls[3].op, "play_delayed")
+    T.eq(audio._calls[3].ms, 100)
+end
+
 function M.test_emit_on_unrevealed_plot_only_cancels()
     -- Unrevealed has no cue; emit still cancels in-flight audio so a prior
     -- tile's cue doesn't bleed past the move.
@@ -333,6 +484,24 @@ function M.test_loadAll_sets_fog_to_half_volume()
     end
     T.truthy(found ~= nil, "loadAll must set_volume on the fog handle")
     T.eq(found.v, 0.5, "fog volume must be 0.5")
+end
+
+function M.test_loadAll_boosts_road_volume()
+    -- Road stinger plays louder than the rest of the palette so a route on
+    -- the tile reads distinctly through the bed. Same one-shot pattern as
+    -- fog, on the other side of unity.
+    setup()
+    PlotAudio.loadAll()
+    local roadId = civvaccess_shared.plotAudioHandles.road
+    local found
+    for _, c in ipairs(audio._calls) do
+        if c.op == "set_volume" and c.id == roadId then
+            found = c
+            break
+        end
+    end
+    T.truthy(found ~= nil, "loadAll must set_volume on the road handle")
+    T.eq(found.v, 1.25, "road volume must be 1.25")
 end
 
 return M

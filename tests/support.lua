@@ -187,6 +187,19 @@ function T.fakePlot(opts)
     function p:IsRiver()
         return self._isRiver
     end
+    -- Edge-crossing probe. Tests pass opts.isRiverCrossingTo as either a
+    -- boolean (any other plot crosses) or a table keyed by the other plot's
+    -- handle. Default: never a crossing.
+    function p:IsRiverCrossingToPlot(other)
+        local rc = opts.isRiverCrossingTo
+        if rc == nil then
+            return false
+        end
+        if type(rc) == "boolean" then
+            return rc
+        end
+        return rc[other] or false
+    end
     function p:CalculateYield(yid, _disp)
         return self._yields[yid] or 0
     end
@@ -511,6 +524,9 @@ function T.fakeTeam(opts)
     end
     function team:CanEmbark()
         return self._canEmbark
+    end
+    function team:IsBridgeBuilding()
+        return opts.bridgeBuilding or false
     end
     return team
 end

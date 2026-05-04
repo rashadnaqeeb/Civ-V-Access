@@ -151,12 +151,16 @@ end
 -- diff only tracks real ownership states (unclaimed / civ / city); it is
 -- not touched while unexplored, so an Arabia → unexplored → Arabia walk
 -- doesn't re-fire the prefix on re-entry.
-local function announceForMove(plot)
+-- prevPlot is supplied by Cursor.move (the cell we just left) so PlotAudio
+-- can resolve a river / bridge crossing on the edge between the two. Jumps
+-- (Cursor.jumpTo, scanner Home, auto-move) leave it nil; the crossing layer
+-- only fires for actual cursor steps.
+local function announceForMove(plot, prevPlot)
     local cueEnabled = AudioCueMode.isCueEnabled()
     local cueOnly = AudioCueMode.isCueOnly()
 
     if cueEnabled then
-        PlotAudio.emit(plot)
+        PlotAudio.emit(plot, prevPlot)
     end
 
     local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
@@ -255,13 +259,14 @@ function Cursor.move(direction)
     if scope ~= nil and not scope(next:GetX(), next:GetY()) then
         return Text.key("TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE")
     end
+    local prev = Map.GetPlot(_x, _y)
     setCursor(next)
     local announcer = civvaccess_shared.mapAnnouncer
     local glance
     if announcer ~= nil then
         glance = announcer(next)
     else
-        glance = announceForMove(next)
+        glance = announceForMove(next, prev)
     end
     return withCoords(next, glance)
 end

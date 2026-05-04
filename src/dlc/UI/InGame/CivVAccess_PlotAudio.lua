@@ -1,15 +1,18 @@
 -- Plot-handle-in, cue-out mapping for the per-hex audio layer. Output shape:
--- { bed = "<name>", fog = bool, stingers = { "<name>", ... } } or nil for an
--- unrevealed plot.
+-- { bed = "<name>", fog = bool, crossing = "river"|"bridge"|nil,
+--   stingers = { "<name>", ... } } or nil for an unrevealed plot.
 --
 -- PlotAudio.loadAll() preloads every sound in the palette into the proxy's
 -- audio bank and stashes the name-to-handle map on civvaccess_shared so
 -- re-entered Contexts reuse the existing handles (the proxy also dedups by
 -- name; both guards keep the bank from filling up with duplicates).
 --
--- PlotAudio.emit(plot) is the one-call dispatcher used by the cursor layer:
--- cancel in-flight audio, play bed + optional fog at t=0, fire each stinger
--- at the offset.
+-- PlotAudio.emit(plot, prevPlot) is the one-call dispatcher used by the
+-- cursor layer: cancel in-flight audio, then play crossing (if any) at t=0,
+-- bed + optional fog at the post-crossing slot, and stingers one slot
+-- later. prevPlot is optional; supply it when the cursor moved across an
+-- edge so the river/bridge layer can resolve. A nil prevPlot (programmatic
+-- jump) suppresses the edge layer.
 --
 -- Natural wonders do NOT promote to a feature bed here. The bed for a
 -- wonder plot comes from the plot's mountain/terrain core, and wonder
@@ -20,14 +23,22 @@
 
 PlotAudio = PlotAudio or {}
 
--- Upper end of the plan's 50-100 ms range for stinger onset relative to
--- the bed; revisit by ear.
+-- Inter-layer spacing. Stingers fire one slot after the bed so they read
+-- as discrete events on top rather than fusing into the bed's onset.
+-- The river/bridge crossing layer reuses the same slot length, plays one
+-- step earlier than the bed, and pushes the rest of the stack back by one
+-- slot. Upper end of the plan's 50-100 ms range; revisit by ear.
 local STINGER_OFFSET_MS = 100
 
 -- Fog wash plays at half per-sound volume so it reads as a tint on the bed
 -- rather than a discrete event. Applied once at load via audio.set_volume
 -- and inherited on every subsequent play of the fog slot.
 local FOG_VOLUME = 0.5
+
+-- Road stinger plays louder than the rest so a route on the tile reads
+-- distinctly through the bed instead of getting buried in it. Same one-shot
+-- audio.set_volume pattern as fog, just on the other side of unity.
+local ROAD_VOLUME = 1.25
 
 -- Features whose bed replaces the terrain bed. Each has exactly one allowed
 -- base terrain per Feature_TerrainBooleans, so the underlying terrain is
@@ -61,7 +72,7 @@ local TERRAIN_BEDS = {
 }
 
 local function allSoundNames()
-    local set = { mountain = true, fog = true, road = true }
+    local set = { mountain = true, fog = true, road = true, river = true, bridge = true }
     for _, v in pairs(PROMOTABLE_FEATURES) do
         set[v] = true
     end
@@ -86,7 +97,30 @@ local function featureRow(plot)
     return GameInfo.Features[fid]
 end
 
-function PlotAudio.cueForPlot(plot)
+-- Edge-crossing layer. Engine model from CvUnitMovement.cpp:74:
+--   bridge in effect = both endpoint plots have a (non-pillaged) route
+--                      AND the team has bridge-building tech.
+-- "Revealed route" here matches the road stinger's fog-respecting check
+-- so the cue stays consistent with what speech says about the tile.
+local function crossingFor(plot, prevPlot, team, debug)
+    if prevPlot == nil then
+        return nil
+    end
+    if not prevPlot:IsRiverCrossingToPlot(plot) then
+        return nil
+    end
+    local fromRoute = prevPlot:GetRevealedRouteType(team, debug) or -1
+    local toRoute = plot:GetRevealedRouteType(team, debug) or -1
+    if fromRoute >= 0 and toRoute >= 0 then
+        local activeTeam = Teams[team]
+        if activeTeam ~= nil and activeTeam:IsBridgeBuilding() then
+            return "bridge"
+        end
+    end
+    return "river"
+end
+
+function PlotAudio.cueForPlot(plot, prevPlot)
     if plot == nil then
         return nil
     end
@@ -137,7 +171,12 @@ function PlotAudio.cueForPlot(plot)
         stingers[#stingers + 1] = "road"
     end
 
-    return { bed = bed, fog = fog, stingers = stingers }
+    return {
+        bed = bed,
+        fog = fog,
+        crossing = crossingFor(plot, prevPlot, team, debug),
+        stingers = stingers,
+    }
 end
 
 function PlotAudio.loadAll()
@@ -164,6 +203,9 @@ function PlotAudio.loadAll()
     if handles.fog ~= nil then
         audio.set_volume(handles.fog, FOG_VOLUME)
     end
+    if handles.road ~= nil then
+        audio.set_volume(handles.road, ROAD_VOLUME)
+    end
     Log.info("PlotAudio.loadAll: loaded " .. tostring(loaded) .. ", missed " .. tostring(missed))
 end
 
@@ -172,30 +214,43 @@ local function handleFor(name)
     return h and h[name] or nil
 end
 
-function PlotAudio.emit(plot)
+local function playAt(name, delayMs)
+    local h = handleFor(name)
+    if h == nil then
+        return
+    end
+    if delayMs == 0 then
+        audio.play(h)
+    else
+        audio.play_delayed(h, delayMs)
+    end
+end
+
+function PlotAudio.emit(plot, prevPlot)
     if audio == nil then
         return
     end
-    local cue = PlotAudio.cueForPlot(plot)
+    local cue = PlotAudio.cueForPlot(plot, prevPlot)
     audio.cancel_all()
     if cue == nil then
         return
     end
 
-    local bedH = handleFor(cue.bed)
-    if bedH ~= nil then
-        audio.play(bedH)
+    -- Layered onset. With a crossing, river/bridge plays at t=0 and the
+    -- bed/stinger stack shifts down by one slot so the crossing has the
+    -- foreground for the same gap the bed and stingers always have between
+    -- themselves. Without a crossing, timing is unchanged from before.
+    local bedDelay = 0
+    if cue.crossing ~= nil then
+        playAt(cue.crossing, 0)
+        bedDelay = STINGER_OFFSET_MS
     end
+
+    playAt(cue.bed, bedDelay)
     if cue.fog then
-        local fogH = handleFor("fog")
-        if fogH ~= nil then
-            audio.play(fogH)
-        end
+        playAt("fog", bedDelay)
     end
     for _, name in ipairs(cue.stingers) do
-        local h = handleFor(name)
-        if h ~= nil then
-            audio.play_delayed(h, STINGER_OFFSET_MS)
-        end
+        playAt(name, bedDelay + STINGER_OFFSET_MS)
     end
 end

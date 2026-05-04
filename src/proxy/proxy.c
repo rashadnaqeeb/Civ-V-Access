@@ -542,9 +542,12 @@ static int la_set_volume(lua_State *L) {
         return 0;
     }
     if (v < 0.0) v = 0.0;
-    if (v > 1.0) v = 1.0;
     /* Per-sound volume is persistent: set once here, every subsequent
-       play of this slot inherits it. Multiplied by the engine master. */
+       play of this slot inherits it. Multiplied by the engine master.
+       Upper bound permits boost (>1.0) so individual cues can sit louder
+       than the rest of the palette without rebalancing every other sound;
+       4.0 is a generous +12 dB ceiling, kept to bound the API. */
+    if (v > 4.0) v = 4.0;
     ma_sound_set_volume(&g_audioBank[slot], (float)v);
     return 0;
 }
