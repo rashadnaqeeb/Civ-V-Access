@@ -246,14 +246,28 @@ function Text.joinVisibleControls(controlNames, sep)
     return table.concat(parts, sep or ", ")
 end
 
-function Text.unitWithCiv(adjKey, nameKey)
+-- religion is an optional already-resolved string (e.g. "Buddhism" or a
+-- player-chosen custom religion name). When present it sits adjacent to
+-- the unit-type word so the distinguishing token leads in adjective-first
+-- locales ("Roman Buddhism Missionary") and stays close to the noun in
+-- noun-adjective locales ("Missionnaire Buddhism romain"). Religion is
+-- never run through the nameContainsAdj dedup -- religious unit types
+-- (Missionary / Inquisitor / Great Prophet) never embed a civ adjective
+-- in their name, so the dedup branch can't fire alongside a religion arg.
+function Text.unitWithCiv(adjKey, nameKey, religion)
     local adj = Text.key(adjKey)
     local name = Text.key(nameKey)
     if nameContainsAdj(name, adj) then
         return name
     end
     if NOUN_ADJ_LOCALES[activeLocale()] then
+        if religion ~= nil and religion ~= "" then
+            return name .. " " .. religion .. " " .. adj
+        end
         return name .. " " .. adj
+    end
+    if religion ~= nil and religion ~= "" then
+        return adj .. " " .. religion .. " " .. name
     end
     return adj .. " " .. name
 end

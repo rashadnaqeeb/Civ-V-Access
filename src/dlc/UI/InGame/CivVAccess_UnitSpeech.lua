@@ -25,6 +25,32 @@
 
 UnitSpeech = {}
 
+-- Religious units (Missionary / Inquisitor / Great Prophet) carry a
+-- religion stamp set at creation from the purchasing city's majority
+-- religion (CvUnit.cpp:586-600). Capture preserves the original stamp
+-- (CvUnit.cpp:1520-1522), so a captured Buddhist Missionary in Roman
+-- hands still spreads Buddhism. The religion is the distinguishing
+-- token a sighted player reads off the unit flag's religion icon, so
+-- speech surfaces it adjacent to the unit-type word. Returns nil for
+-- non-religious units, and for the freshly-spawned Great Prophet that
+-- has no city-majority religion above pantheon (the standard case
+-- before the prophet founds anything) -- GetReligion comes back as
+-- NO_RELIGION (-1) or RELIGION_PANTHEON, both of which we filter.
+-- Game.GetReligionName returns either a player-chosen custom string
+-- ("Sun Religion") or a TXT_KEY_RELIGION_* key for the default
+-- pantheon set, so Text.key normalizes both into a speakable noun.
+local function unitReligion(unit)
+    local eReligion = unit:GetReligion()
+    if eReligion == nil or eReligion <= ReligionTypes.RELIGION_PANTHEON then
+        return nil
+    end
+    local raw = Game.GetReligionName(eReligion)
+    if raw == nil or raw == "" then
+        return nil
+    end
+    return Text.key(raw)
+end
+
 -- Always the civ-adjective form ("Roman Warrior"), even for the active
 -- player's own units. Civ identity is what disambiguates units of
 -- identical type across players, and the alternative GetNickName
@@ -32,6 +58,11 @@ UnitSpeech = {}
 -- into every announcement of their own unit. Returns "" when the owner
 -- can't be resolved so callers fall back to their existing empty-name
 -- handling.
+--
+-- Religious units inject the religion between the civ adjective and
+-- the unit-type word ("Roman Buddhism Missionary") so the religion --
+-- the part that determines what the unit actually does on a spread or
+-- inquisition -- leads the type word it modifies.
 --
 -- Named units (custom rename via Alt+N, plus great generals / named
 -- admirals seeded from the engine's name pool) wrap the civ-adjective
@@ -47,7 +78,7 @@ local function unitName(unit)
     if owner == nil then
         return ""
     end
-    local typeForm = Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), unit:GetNameKey())
+    local typeForm = Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), unit:GetNameKey(), unitReligion(unit))
     if unit:HasName() then
         local personal = Text.key(unit:GetNameNoDesc())
         if typeForm == "" then

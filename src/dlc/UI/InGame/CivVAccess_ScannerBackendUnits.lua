@@ -101,25 +101,61 @@ local function ownerCategory(ownerId, activePlayerId, activeTeam)
     return "units_neutral"
 end
 
+-- Religious units (Missionary / Inquisitor / Great Prophet) carry a
+-- religion stamp set at creation from the purchasing city's majority
+-- religion (CvUnit.cpp:586-600). Capture preserves the original stamp
+-- (CvUnit.cpp:1520-1522), so a captured Buddhist Missionary in Roman
+-- hands still spreads Buddhism. Returns nil for non-religious units, and
+-- for the freshly-spawned Great Prophet whose city had no majority above
+-- pantheon (the standard pre-founding case). Game.GetReligionName returns
+-- either a player-chosen custom string ("Sun Religion") or a
+-- TXT_KEY_RELIGION_* key, so Text.key normalizes both into a speakable
+-- noun. Mirror lives in UnitSpeech.unitReligion for the selection /
+-- combat-preview path; kept local here so the scanner backend doesn't
+-- depend on the UnitSpeech load order.
+local function unitReligion(unit)
+    local eReligion = unit:GetReligion()
+    if eReligion == nil or eReligion <= ReligionTypes.RELIGION_PANTHEON then
+        return nil
+    end
+    local raw = Game.GetReligionName(eReligion)
+    if raw == nil or raw == "" then
+        return nil
+    end
+    return Text.key(raw)
+end
+
 -- itemName is also the collapse-by-name key in ScannerSnap, so the civ
 -- adjective on non-own units does double duty: the user hears whose
 -- units they're scanning, and Roman Warriors stay separate from
 -- Babylonian Warriors in the collapsed item list. Own units keep the
 -- bare description because the category (units_my) already disambiguates.
+--
+-- Religious units carry their religion through the same name in every
+-- category, including units_my -- a captured Buddhist Missionary in the
+-- player's own list is functionally distinct from a Christian one they
+-- bought, and collapsing both under bare "Missionary" would hide that.
 local function unitItemName(unit, category)
     local unitType = unit:GetUnitType()
     local row = GameInfo.Units[unitType]
     if row == nil or row.Description == nil then
         return nil
     end
+    local religion = unitReligion(unit)
     if category == "units_my" then
+        if religion ~= nil and religion ~= "" then
+            return religion .. " " .. Text.key(row.Description)
+        end
         return Text.key(row.Description)
     end
     local owner = Players[unit:GetOwner()]
     if owner == nil then
+        if religion ~= nil and religion ~= "" then
+            return religion .. " " .. Text.key(row.Description)
+        end
         return Text.key(row.Description)
     end
-    return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), row.Description)
+    return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), row.Description, religion)
 end
 
 -- Own-team trade units sit on plots the engine considers fogged because

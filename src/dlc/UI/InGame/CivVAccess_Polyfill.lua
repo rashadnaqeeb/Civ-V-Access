@@ -167,7 +167,15 @@ Game = Game
         GetClosestSearchedPlot = function(_tx, _ty)
             return nil
         end,
+        GetReligionName = function(_eReligion)
+            return ""
+        end,
     }
+if Game.GetReligionName == nil then
+    Game.GetReligionName = function(_eReligion)
+        return ""
+    end
+end
 if Game.IsHotSeat == nil then
     Game.IsHotSeat = function()
         return false
@@ -289,6 +297,16 @@ PlotTypes = PlotTypes
         PLOT_HILLS = 1,
         PLOT_LAND = 2,
         PLOT_OCEAN = 3,
+    }
+
+-- Religion enum. Engine constants: NO_RELIGION = -1, RELIGION_PANTHEON = 0,
+-- founded religions = 1..N. Only the pantheon-or-below check matters offline
+-- (UnitSpeech / ScannerBackendUnits filter eReligion > RELIGION_PANTHEON to
+-- decide whether to surface a religion stamp on a unit).
+ReligionTypes = ReligionTypes
+    or {
+        NO_RELIGION = -1,
+        RELIGION_PANTHEON = 0,
     }
 
 FeatureTypes = FeatureTypes or { NO_FEATURE = -1 }

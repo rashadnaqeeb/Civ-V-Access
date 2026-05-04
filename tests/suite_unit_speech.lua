@@ -164,6 +164,9 @@ local function mkUnit(opts)
     function u:GetDomainType()
         return self._domain
     end
+    function u:GetReligion()
+        return opts.religion or ReligionTypes.NO_RELIGION
+    end
     return u
 end
 
@@ -268,6 +271,78 @@ function M.test_selection_named_unit_embarked_combines_prefix_and_paren_form()
     local u = mkUnit({ hasName = true, nameNoDesc = "George", embarked = true })
     local out = UnitSpeech.selection(u, 0, 0)
     T.truthy(out:find("embarked George %(Roman Warrior%)"), "embarked prefix must wrap the personal-name form: " .. out)
+end
+
+-- ===== Selection: religious unit stamps the religion before the type word =====
+
+function M.test_selection_religious_unit_inserts_religion_between_civ_and_type()
+    setup()
+    GameInfo.Units[200] = { Description = "Missionary" }
+    -- Game.GetReligionName returns either a custom string or a TXT_KEY_*.
+    -- Stub it to return a plain string so Text.key passes it through.
+    Game.GetReligionName = function(_e)
+        return "Buddhism"
+    end
+    local u = mkUnit({ unitType = 200, religion = 7 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(
+        out:find("^Roman Buddhism Missionary"),
+        "religion must sit between civ adjective and type: " .. out
+    )
+end
+
+function M.test_selection_no_religion_falls_back_to_plain_civ_form()
+    setup()
+    -- A religious unit type whose stamped religion is NO_RELIGION (e.g. a
+    -- freshly-spawned Great Prophet from a city with only a pantheon) must
+    -- fall through to the bare "Roman Missionary" form, no extra token.
+    GameInfo.Units[200] = { Description = "Missionary" }
+    Game.GetReligionName = function(_e)
+        return "Buddhism"
+    end
+    local u = mkUnit({ unitType = 200, religion = ReligionTypes.NO_RELIGION })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("^Roman Missionary"), "no religion must produce plain civ form: " .. out)
+    T.truthy(not out:find("Buddhism", 1, true), "must not surface religion when none stamped: " .. out)
+end
+
+function M.test_selection_pantheon_stamp_does_not_surface_as_religion()
+    setup()
+    -- RELIGION_PANTHEON is the engine's "this unit pre-dates a real religion"
+    -- sentinel; the missionary spread / inquisitor heresy paths gate on
+    -- eReligion > RELIGION_PANTHEON, so speech must mirror that filter.
+    GameInfo.Units[200] = { Description = "Missionary" }
+    Game.GetReligionName = function(_e)
+        return "Pantheon"
+    end
+    local u = mkUnit({ unitType = 200, religion = ReligionTypes.RELIGION_PANTHEON })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(not out:find("Pantheon", 1, true), "pantheon-only must not be surfaced: " .. out)
+end
+
+function M.test_selection_religion_resolves_txt_key_form()
+    setup()
+    -- Game.GetReligionName for a non-custom religion returns the TXT_KEY_
+    -- form ("TXT_KEY_RELIGION_BUDDHISM"). UnitSpeech.unitReligion routes
+    -- through Text.key, which resolves TXT_KEY_* via Locale.ConvertTextKey.
+    GameInfo.Units[200] = { Description = "Missionary" }
+    Game.GetReligionName = function(_e)
+        return "TXT_KEY_RELIGION_BUDDHISM"
+    end
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_RELIGION_BUDDHISM" then
+            return "Buddhism"
+        end
+        return origConvert and origConvert(key) or key
+    end
+    local u = mkUnit({ unitType = 200, religion = 7 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    Locale.ConvertTextKey = origConvert
+    T.truthy(
+        out:find("^Roman Buddhism Missionary"),
+        "TXT_KEY religion must resolve to its localized form: " .. out
+    )
 end
 
 -- ===== Selection: HP =====

@@ -143,6 +143,71 @@ function M.test_unit_with_civ_dedup_is_word_bounded()
     teardown()
 end
 
+function M.test_unit_with_civ_religion_default_locale_inserts_between_adj_and_name()
+    setup()
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_ROME_ADJECTIVE" then
+            return "Roman"
+        end
+        if key == "TXT_KEY_UNIT_MISSIONARY" then
+            return "Missionary"
+        end
+        return key
+    end
+    -- Religion is already a resolved string by the time it reaches
+    -- Text.unitWithCiv (UnitSpeech.unitReligion / scanner backend resolve
+    -- it via Game.GetReligionName + Text.key first). Religion sits between
+    -- civ adj and unit name so the distinguishing word leads into the noun.
+    T.eq(
+        Text.unitWithCiv("TXT_KEY_CIV_ROME_ADJECTIVE", "TXT_KEY_UNIT_MISSIONARY", "Buddhism"),
+        "Roman Buddhism Missionary"
+    )
+    teardown()
+end
+
+function M.test_unit_with_civ_religion_french_orders_noun_first_then_religion_then_adj()
+    setup()
+    Locale.GetCurrentSpokenLanguage = function()
+        return { Type = "fr_FR" }
+    end
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_ROME_ADJECTIVE" then
+            return "romain"
+        end
+        if key == "TXT_KEY_UNIT_MISSIONARY" then
+            return "Missionnaire"
+        end
+        return key
+    end
+    -- Noun-adjective grammars place modifiers after the noun. Religion stays
+    -- adjacent to the noun so the unit type and its religion stay together
+    -- regardless of locale.
+    T.eq(
+        Text.unitWithCiv("TXT_KEY_CIV_ROME_ADJECTIVE", "TXT_KEY_UNIT_MISSIONARY", "Buddhism"),
+        "Missionnaire Buddhism romain"
+    )
+    teardown()
+end
+
+function M.test_unit_with_civ_nil_religion_matches_legacy_two_arg_form()
+    setup()
+    -- Religion is optional. Passing nil must be byte-for-byte equivalent to
+    -- the original two-arg call so existing call sites that don't pass a
+    -- religion are unaffected.
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_ROME_ADJECTIVE" then
+            return "Roman"
+        end
+        if key == "TXT_KEY_UNIT_WORKER" then
+            return "Worker"
+        end
+        return key
+    end
+    T.eq(Text.unitWithCiv("TXT_KEY_CIV_ROME_ADJECTIVE", "TXT_KEY_UNIT_WORKER", nil), "Roman Worker")
+    T.eq(Text.unitWithCiv("TXT_KEY_CIV_ROME_ADJECTIVE", "TXT_KEY_UNIT_WORKER", ""), "Roman Worker")
+    teardown()
+end
+
 function M.test_format_passes_varargs_through()
     setup()
     local capturedArgs

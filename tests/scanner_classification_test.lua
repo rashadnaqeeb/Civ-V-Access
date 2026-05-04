@@ -102,6 +102,9 @@ local function makeUnit(opts)
     function u:GetPlot()
         return opts.plot
     end
+    function u:GetReligion()
+        return opts.religion or ReligionTypes.NO_RELIGION
+    end
     return u
 end
 
@@ -271,6 +274,84 @@ function M.test_unit_barbarian_routes_to_enemy_with_barbarians_sub()
     T.eq(#out, 1)
     T.eq(out[1].category, "units_enemy")
     T.eq(out[1].subcategory, "barbarians", "barb units must land in the barbarians sub, not a role sub")
+end
+
+function M.test_unit_religious_unit_surfaces_religion_in_own_item_name()
+    -- Own missionaries / inquisitors / great prophets keep the bare
+    -- description for the type word but prepend the religion stamp so
+    -- captured units of a foreign religion don't collapse with bought
+    -- units of the player's own religion in the scanner list.
+    setup()
+    loadUnitsBackend()
+    GameInfo.Units = { [42] = { Description = "Missionary" } }
+    Game.GetReligionName = function(_e)
+        return "Buddhism"
+    end
+    local plot = makePlotAt(0, 0, 0)
+    local missionary = makeUnit({ id = 1, owner = 0, combat = false, plot = plot, religion = 7 })
+    installPlayer(0, { missionary }, { team = 0 })
+    mapFromPlots({ plot })
+    local out = runUnitsScan()
+    T.eq(#out, 1)
+    T.eq(out[1].category, "units_my")
+    T.eq(out[1].itemName, "Buddhism Missionary", "religion must lead the type word for own religious units")
+end
+
+function M.test_unit_religious_unit_surfaces_religion_with_civ_for_other_player()
+    -- Foreign religious units already carry the civ adjective for owner
+    -- disambiguation; religion sits between the adjective and the type
+    -- word so the form reads "Roman Buddhism Missionary".
+    setup()
+    loadUnitsBackend()
+    GameInfo.Units = { [42] = { Description = "Missionary" } }
+    Game.GetReligionName = function(_e)
+        return "Buddhism"
+    end
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local plot = makePlotAt(0, 0, 0)
+    installPlayer(0, {}, { team = 0 })
+    installPlayer(
+        1,
+        { makeUnit({ id = 11, owner = 1, combat = false, plot = plot, religion = 7 }) },
+        { team = 1, adjKey = "TXT_KEY_CIV_ROME_ADJECTIVE" }
+    )
+    mapFromPlots({ plot })
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_ROME_ADJECTIVE" then
+            return "Roman"
+        end
+        return origConvert and origConvert(key) or key
+    end
+    local out = runUnitsScan()
+    Locale.ConvertTextKey = origConvert
+    T.eq(#out, 1)
+    T.eq(out[1].category, "units_enemy")
+    T.eq(
+        out[1].itemName,
+        "Roman Buddhism Missionary",
+        "religion must sit between civ adj and type word for foreign religious units"
+    )
+end
+
+function M.test_unit_no_religion_keeps_bare_form()
+    -- Non-religious units (and religious units with no stamp -- e.g. a
+    -- prophet from a city without a real-religion majority) must keep the
+    -- existing name shape unchanged.
+    setup()
+    loadUnitsBackend()
+    GameInfo.UnitCombatInfos = { [1] = { Type = "UNITCOMBAT_MELEE" } }
+    GameInfo.Units = { [42] = { Description = "Warrior" } }
+    local plot = makePlotAt(0, 0, 0)
+    installPlayer(
+        0,
+        { makeUnit({ id = 1, owner = 0, combatId = 1, plot = plot }) },
+        { team = 0 }
+    )
+    mapFromPlots({ plot })
+    local out = runUnitsScan()
+    T.eq(#out, 1)
+    T.eq(out[1].itemName, "Warrior", "non-religious unit name must be unchanged")
 end
 
 function M.test_unit_invisible_unit_excluded()

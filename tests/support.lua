@@ -329,6 +329,9 @@ function T.fakeUnit(opts)
     function u:GetUnitType()
         return self._unitType
     end
+    function u:GetReligion()
+        return opts.religion or ReligionTypes.NO_RELIGION
+    end
     function u:MaxMoves()
         return self._maxMoves
     end
