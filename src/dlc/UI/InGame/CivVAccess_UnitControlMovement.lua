@@ -296,7 +296,7 @@ end
 -- the menu uses.
 --
 -- Type lists are ordered: commitByType walks them in caller order and
--- takes the first that's currently available. For Alt+F this means
+-- takes the first that's currently available. For Alt+S this means
 -- MISSION_FORTIFY wins on military units and falls through to
 -- MISSION_SLEEP on civilians (mirroring the engine's plain-F binding,
 -- which picks by unit type the same way). For Alt+W, COMMAND_WAKE handles
@@ -363,8 +363,8 @@ function UnitControlMovement.getBindings()
         bind(Keys.C, MOD_ALT, function()
             directMove(DirectionTypes.DIRECTION_SOUTHEAST)
         end, "Move unit SE"),
-        bind(Keys.F, MOD_ALT, quickAction(ALT_ACTION_TYPES.SLEEP), "Sleep or fortify"),
-        bind(Keys.S, MOD_ALT, quickAction(ALT_ACTION_TYPES.SENTRY), "Sentry"),
+        bind(Keys.F, MOD_ALT, quickAction(ALT_ACTION_TYPES.SENTRY), "Sentry"),
+        bind(Keys.S, MOD_ALT, quickAction(ALT_ACTION_TYPES.SLEEP), "Sleep or fortify"),
         bind(Keys.W, MOD_ALT, quickAction(ALT_ACTION_TYPES.WAKE), "Wake or cancel"),
         bind(Keys.X, MOD_ALT, quickAction(ALT_ACTION_TYPES.SKIP), "Skip turn"),
         bind(Keys.H, MOD_ALT, quickAction(ALT_ACTION_TYPES.HEAL), "Heal"),
