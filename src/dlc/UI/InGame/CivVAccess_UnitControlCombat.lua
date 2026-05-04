@@ -23,34 +23,37 @@
 
 UnitControlCombat = {}
 
-local COMBAT_CONFIRM_WINDOW_SECONDS = 1.0
-
 -- ===== Combat-confirm state (consumed by Movement's directMove) =====
 -- Module-local rather than civvaccess_shared because a Context re-entry
 -- should drop any in-flight confirm window.
-local _combatConfirm = { dir = nil, clock = 0 }
+--
+-- Keyed on the target plot's index, mirroring UnitTargetMode's
+-- _pendingFallback. State changes that should invalidate the latch
+-- (selection cycle, the actor moving, a different direction pressed)
+-- naturally compute a different target plot index, so the consume check
+-- silently misses without explicit clear hooks.
+local _combatConfirm = { targetPlotIndex = nil }
 
 function UnitControlCombat.clearCombatConfirm()
-    _combatConfirm.dir = nil
-    _combatConfirm.clock = 0
+    _combatConfirm.targetPlotIndex = nil
 end
 
--- Consume the confirm window if `dir` matches the armed direction within
--- COMBAT_CONFIRM_WINDOW_SECONDS. Returns true and clears on match;
--- returns false (without arming) on miss. Pair with armCombatConfirm to
--- start the window on the first tap.
-function UnitControlCombat.consumeCombatConfirm(dir)
-    if _combatConfirm.dir == dir
-        and (os.clock() - _combatConfirm.clock) < COMBAT_CONFIRM_WINDOW_SECONDS then
+-- Consume the confirm latch when `target` (a plot) matches the armed
+-- target plot. Returns true and clears on match; returns false (without
+-- arming) on miss. Pair with armCombatConfirm to arm on the first tap.
+function UnitControlCombat.consumeCombatConfirm(target)
+    if target == nil then
+        return false
+    end
+    if _combatConfirm.targetPlotIndex == target:GetPlotIndex() then
         UnitControlCombat.clearCombatConfirm()
         return true
     end
     return false
 end
 
-function UnitControlCombat.armCombatConfirm(dir)
-    _combatConfirm.dir = dir
-    _combatConfirm.clock = os.clock()
+function UnitControlCombat.armCombatConfirm(target)
+    _combatConfirm.targetPlotIndex = target:GetPlotIndex()
 end
 
 local speakQueued = SpeechPipeline.speakQueued

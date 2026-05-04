@@ -43,7 +43,6 @@ UnitControl.cycleAll = UnitControlSelection.cycleAll
 UnitControl.cycleAllUnits = UnitControlSelection.cycleAllUnits
 UnitControl.preflightAttack = UnitControlCombat.preflightAttack
 UnitControl.preflightAttackTarget = UnitControlCombat.preflightAttackTarget
-UnitControl.preflightMove = UnitControlMovement.preflightMove
 UnitControl.enemyAt = UnitControlMovement.enemyAt
 UnitControl.enemyCityAt = UnitControlMovement.enemyCityAt
 UnitControl.registerPending = UnitControlMovement.registerPending

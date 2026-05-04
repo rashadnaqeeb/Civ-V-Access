@@ -647,10 +647,9 @@ end
 -- A bare UI.CanDoInterfaceMode gate would return a single generic "action
 -- failed" for every reason; this returns the specific TXT_KEY for the
 -- particular gate that tripped. CanDoInterfaceMode also returns false
--- for 0-MP MOVE_TO commits the engine would happily queue for next turn
--- -- preflightMove doesn't gate on MP, so 0-MP moves get pushed and the
--- schedulePendingExpiry path then announces "queued for next turn"
--- instead of falsely reporting failure.
+-- for 0-MP MOVE_TO commits the engine would happily queue for next turn,
+-- so move mode skips this function entirely and runs through
+-- moveModePreview / discriminativePath instead, which doesn't gate on MP.
 local function commitFailureReason(actor, mode, plot, tx, ty)
     -- Move-mode commits do not flow through this function; commitAtCursor
     -- calls moveModePreview directly because the latch state machine is

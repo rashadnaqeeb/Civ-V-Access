@@ -132,7 +132,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_RANGED"] = "unité à dista
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR"] = "unité aérienne, utiliser l'attaque à distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK"] = "ne peut pas attaquer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES"] = "pas de mouvements"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED"] = "ne peut pas entrer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
     "l'aéronef ne peut pas se déplacer ainsi, utiliser le transfert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "non adjacent"

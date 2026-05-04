@@ -153,35 +153,6 @@ local function commitDirectMove(unit, target, targetX, targetY, defender)
     Game.SelectionListMove(target, false, false, false)
 end
 
--- Precheck: can this unit enter the target plot at all? Air units get a
--- dedicated message: CanMoveOrAttackInto correctly rejects every adjacent
--- plot for them (aircraft don't move directly; they rebase), but "cannot
--- enter" reads as a per-tile failure and obscures that no direction will
--- ever work. bDeclareWar=1 so a step into a peaceful rival's tile passes
--- the gate -- the engine will queue BUTTONPOPUP_DECLAREWARMOVE downstream
--- and DeclareWarPopupAccess speaks the confirmation prompt. bDestination=1
--- so destination-only checks (e.g., transport offload at the final tile)
--- apply. No MP check: a 0-MP move is legitimately queued for next turn
--- and the expiry path announces "queued" rather than treating it as
--- failure. Flags are int, not bool: the binding uses luaL_optint and
--- rejects Lua true/false outright. Exported so UnitTargetMode can use
--- this in place of UI.CanDoInterfaceMode(MOVE_TO), which wrongly fails
--- 0-MP moves the engine is happy to queue.
-function UnitControlMovement.preflightMove(unit, target)
-    if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE")
-    end
-    -- bPretendCorrectEmbarkState=1 mirrors the engine pathfinder's PathValid
-    -- (CvAStar.cpp), which sets MOVEFLAG_PRETEND_CORRECT_EMBARK_STATE on
-    -- every probed node so cross-domain steps are gated against the unit's
-    -- post-transition state, not its current embark state. Without it, this
-    -- check rejects every embark / disembark step the pathfinder routes.
-    if not unit:CanMoveOrAttackInto(target, 1, 1, 1) then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED")
-    end
-    return nil
-end
-
 local function directMove(dir)
     local unit = selectedUnit()
     if unit == nil then
@@ -202,9 +173,26 @@ local function directMove(dir)
     end
     if enemy == nil and enemyCity == nil then
         UnitControlCombat.clearCombatConfirm()
-        local moveReason = UnitControlMovement.preflightMove(unit, target)
-        if moveReason ~= nil then
-            speakInterrupt(moveReason)
+        -- Air units don't direct-move; they rebase. The path diagnostic
+        -- would just say "blocked," which reads as a per-tile failure
+        -- and obscures that no direction will ever work.
+        if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
+            speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"))
+            return
+        end
+        -- discriminativePath: if strict succeeds, we move. declareWar
+        -- success also moves -- the engine queues BUTTONPOPUP_DECLAREWAR
+        -- MOVE downstream and DeclareWarPopupAccess speaks the prompt.
+        -- Any other outcome (stacking / enemy / unreachable with
+        -- sub-cause) means the engine will refuse the step; speak the
+        -- specific reason. closest-reachable direction is suppressed for
+        -- the directMove case: for a 1-tile attempt the closest tile is
+        -- usually the actor's own plot, which reads as the opposite of
+        -- the direction the user just pressed.
+        local diag = PathDiagnostic.discriminativePath(unit, target)
+        if diag.ok ~= "strict" and diag.ok ~= "declareWar" then
+            diag.closest = nil
+            speakInterrupt(PathDiagnostic.formatFailure(diag, tx, ty))
             return
         end
         commitDirectMove(unit, target, tx, ty, nil)
@@ -231,13 +219,13 @@ local function directMove(dir)
         return
     end
     -- Melee-attack confirm gate. Screen-reader users can't see the
-    -- hover preview a mouse user does, so a second press within the
-    -- window is the cheap "are you sure" check.
-    if UnitControlCombat.consumeCombatConfirm(dir) then
+    -- hover preview a mouse user does, so a second press into the same
+    -- target plot is the cheap "are you sure" check.
+    if UnitControlCombat.consumeCombatConfirm(target) then
         commitDirectMove(unit, target, tx, ty, enemy or enemyCity)
         return
     end
-    UnitControlCombat.armCombatConfirm(dir)
+    UnitControlCombat.armCombatConfirm(target)
     if enemy ~= nil then
         speakInterrupt(UnitSpeech.meleePreview(unit, enemy, target))
     else
