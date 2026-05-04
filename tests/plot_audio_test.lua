@@ -268,22 +268,48 @@ end
 
 function M.test_cueForPlot_river_crossing_no_bridge_tech_is_river()
     -- Both endpoints have routes but the team hasn't researched Construction:
-    -- there's no bridge built across the edge yet.
+    -- there's no bridge built across the edge yet. Road stinger still fires
+    -- on the destination tile -- the river token doesn't subsume it.
     setup()
     terrain(0, "TERRAIN_GRASS")
     Teams[0] = T.fakeTeam({ bridgeBuilding = false })
     local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
     local p = T.fakePlot({ terrain = 0, route = 0 })
-    T.eq(PlotAudio.cueForPlot(p, prev).crossing, "river")
+    local cue = PlotAudio.cueForPlot(p, prev)
+    T.eq(cue.crossing, "river")
+    T.eq(cue.stingers[1], "road", "river crossing must keep the road stinger")
 end
 
 function M.test_cueForPlot_river_crossing_with_roads_and_bridge_tech_is_bridge()
+    -- Bridge is the engine's no-penalty crossing: routes both sides plus
+    -- bridge tech. The road stinger drops out -- bridge already encodes
+    -- the route on the destination plot, so the second event would be
+    -- redundant.
     setup()
     terrain(0, "TERRAIN_GRASS")
     Teams[0] = T.fakeTeam({ bridgeBuilding = true })
     local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
     local p = T.fakePlot({ terrain = 0, route = 0 })
-    T.eq(PlotAudio.cueForPlot(p, prev).crossing, "bridge")
+    local cue = PlotAudio.cueForPlot(p, prev)
+    T.eq(cue.crossing, "bridge")
+    for _, s in ipairs(cue.stingers) do
+        T.truthy(s ~= "road", "bridge must suppress the road stinger; got " .. s)
+    end
+end
+
+function M.test_cueForPlot_bridge_crossing_keeps_non_road_stingers()
+    -- Bridge only swallows the road stinger; other stingers (e.g. forest)
+    -- on the destination plot must still fire.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    feature(6, "FEATURE_FOREST")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    local prev = T.fakePlot({ terrain = 0, route = 0, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = 0, feature = 6 })
+    local cue = PlotAudio.cueForPlot(p, prev)
+    T.eq(cue.crossing, "bridge")
+    T.eq(#cue.stingers, 1)
+    T.eq(cue.stingers[1], "forest")
 end
 
 function M.test_cueForPlot_unrevealed_destination_no_cue_even_with_crossing()
@@ -398,8 +424,10 @@ function M.test_emit_with_crossing_layers_river_then_bed_then_stinger()
 end
 
 function M.test_emit_with_bridge_crossing_plays_bridge_handle()
-    -- Bridge variant: same timing as river crossing but the t=0 sound is
-    -- the bridge handle, not the river handle.
+    -- Bridge variant: bridge handle at t=0, bed delayed to +100. The road
+    -- stinger that would normally chase the bed at +200 is dropped because
+    -- the bridge token already conveys "route on this tile" -- a separate
+    -- road event after the bridge would be redundant.
     setup()
     terrain(0, "TERRAIN_GRASS")
     Teams[0] = T.fakeTeam({ bridgeBuilding = true })
@@ -417,8 +445,19 @@ function M.test_emit_with_bridge_crossing_plays_bridge_handle()
     PlotAudio.emit(p, prev)
 
     local bridgeId = civvaccess_shared.plotAudioHandles.bridge
+    local grasslandId = civvaccess_shared.plotAudioHandles.grassland
+    local roadId = civvaccess_shared.plotAudioHandles.road
+
+    T.eq(audio._calls[1].op, "cancel_all")
     T.eq(audio._calls[2].op, "play")
     T.eq(audio._calls[2].id, bridgeId, "bridge handle plays at t=0 when bridged")
+    T.eq(audio._calls[3].op, "play_delayed")
+    T.eq(audio._calls[3].id, grasslandId)
+    T.eq(audio._calls[3].ms, 100)
+    T.eq(#audio._calls, 3, "no further calls; road stinger is suppressed under bridge")
+    for _, c in ipairs(audio._calls) do
+        T.truthy(c.id ~= roadId, "road handle must not play when bridge plays")
+    end
 end
 
 function M.test_emit_without_crossing_keeps_original_timing()

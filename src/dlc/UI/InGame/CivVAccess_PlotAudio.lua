@@ -154,6 +154,7 @@ function PlotAudio.cueForPlot(plot, prevPlot)
     end
 
     local fog = not plot:IsVisible(team, debug)
+    local crossing = crossingFor(plot, prevPlot, team, debug)
 
     local stingers = {}
     if fRow then
@@ -166,15 +167,20 @@ function PlotAudio.cueForPlot(plot, prevPlot)
     -- built or pillaged while the player wasn't looking, we must match what
     -- speech says about the tile. The route section uses the Revealed*
     -- variant; so do we, with the same team/debug values.
+    --
+    -- The bridge crossing already implies a route on the destination plot
+    -- (that's a precondition of the bridge resolution), so a separate road
+    -- stinger would be redundant after the bridge sound. The river crossing
+    -- carries no such implication and the stinger still fires there.
     local rid = plot:GetRevealedRouteType(team, debug)
-    if rid ~= nil and rid >= 0 then
+    if rid ~= nil and rid >= 0 and crossing ~= "bridge" then
         stingers[#stingers + 1] = "road"
     end
 
     return {
         bed = bed,
         fog = fog,
-        crossing = crossingFor(plot, prevPlot, team, debug),
+        crossing = crossing,
         stingers = stingers,
     }
 end
