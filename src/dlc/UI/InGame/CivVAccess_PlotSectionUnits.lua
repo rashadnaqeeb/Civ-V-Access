@@ -8,6 +8,17 @@
 -- (inside a transport) and air (parked in a city / on a carrier) are
 -- skipped -- they're not "on the tile" in the spatial sense the cursor
 -- cares about.
+--
+-- Visibility carve-out for own-team trade units. CvUnit::canChangeVisibility
+-- returns false for any unit on a non-default map layer, so trade units
+-- skip the changeAdjacentSight call in setXY -- their owner does not gain
+-- sight of the plot they sit on. Sighted players still see the caravan /
+-- cargo ship via the trade visuals system regardless of fog, and the trade
+-- overview lists current locations. On fogged-but-revealed plots, this
+-- section therefore lets own-team trade units through; everything else
+-- still requires plot visibility (a non-trade unit on a fogged plot would
+-- be a stale read, and an enemy trade unit on a fogged plot is a leak the
+-- engine deliberately withholds).
 
 -- UnitSpeech.unitName produces the personal-name-aware "George (Roman
 -- Warrior)" / "Tomyris (Persian Great General)" form for named units
@@ -56,12 +67,13 @@ PlotSectionUnits = {
     Read = function(plot)
         local team = Game.GetActiveTeam()
         local isDebug = Game.IsDebugMode()
+        local visible = plot:IsVisible(team, isDebug)
         local out = {}
 
         local n = plot:GetNumLayerUnits(-1)
         for i = 0, n - 1 do
             local u = plot:GetLayerUnit(i, -1)
-            if u ~= nil then
+            if u ~= nil and (visible or (u:IsTrade() and u:GetTeam() == team)) then
                 local desc = describeUnit(u, team, isDebug)
                 if desc ~= nil then
                     out[#out + 1] = desc

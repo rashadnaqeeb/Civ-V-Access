@@ -48,9 +48,10 @@ function PlotComposers.glance(plot, opts)
     if not visible and not cueOnly then
         tokens[#tokens + 1] = Text.key("TXT_KEY_CIVVACCESS_FOG")
     end
-    if visible then
-        readSection(PlotSectionUnits, plot, ctx, tokens)
-    end
+    -- PlotSectionUnits applies its own visibility filter: full unit list on
+    -- visible plots, own-team trade units only on fogged plots (their owner
+    -- does not gain plot sight from them but still sees the unit visually).
+    readSection(PlotSectionUnits, plot, ctx, tokens)
     readSection(PlotSections.city, plot, ctx, tokens)
     if not cueOnly then
         readSection(PlotSections.route, plot, ctx, tokens)

@@ -535,6 +535,47 @@ function M.test_glance_visible_omits_fog_marker()
     T.truthy(not out:find("fog", 1, true), "visible plot must not carry a fog marker: " .. out)
 end
 
+function M.test_glance_own_trade_unit_surfaces_on_fogged_plot()
+    -- Trade units skip changeAdjacentSight in the engine (canChangeVisibility
+    -- returns false for non-default map layers) so a player's own caravan can
+    -- sit on a fogged plot. Sighted players still see the unit through the
+    -- trade visuals system; mirror that by surfacing own-team trade units
+    -- regardless of fog.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local caravan = T.fakeUnit({ owner = 0, team = 0, nameKey = "Caravan", trade = true })
+    local p = T.fakePlot({ revealed = true, visible = false, terrain = 1, units = { caravan } })
+    local out = PlotComposers.glance(p)
+    T.truthy(out:find("Caravan", 1, true), "own-team trade unit must surface on fogged plot: " .. out)
+end
+
+function M.test_glance_enemy_trade_unit_stays_hidden_on_fogged_plot()
+    -- Enemy trade units on fogged plots are a leak the engine deliberately
+    -- withholds; the carve-out is own-team only.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Arabian" })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local enemyCaravan = T.fakeUnit({ owner = 1, team = 1, nameKey = "Caravan", trade = true })
+    local p = T.fakePlot({ revealed = true, visible = false, terrain = 1, units = { enemyCaravan } })
+    local out = PlotComposers.glance(p)
+    T.truthy(not out:find("Caravan", 1, true), "enemy trade unit must stay hidden on fogged plot: " .. out)
+end
+
+function M.test_glance_own_non_trade_unit_stays_hidden_on_fogged_plot()
+    -- Carve-out is trade-units-only. A non-trade own unit on a fogged plot
+    -- shouldn't normally happen (their presence reveals the plot) but if it
+    -- does, the read would be stale relative to the engine's view -- gate it.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    GameInfo.Terrains[1] = { Description = "Plains" }
+    local warrior = T.fakeUnit({ owner = 0, team = 0, nameKey = "Warrior" })
+    local p = T.fakePlot({ revealed = true, visible = false, terrain = 1, units = { warrior } })
+    local out = PlotComposers.glance(p)
+    T.truthy(not out:find("Warrior", 1, true), "non-trade own unit must stay gated on fogged plot: " .. out)
+end
+
 function M.test_economy_yields_skip_zeros()
     setup()
     local yields = { [YieldTypes.YIELD_FOOD] = 2, [YieldTypes.YIELD_PRODUCTION] = 0, [YieldTypes.YIELD_GOLD] = 1 }
