@@ -363,6 +363,40 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "blocked by 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] = "blocked by a unit, closest reachable {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "blocked by a unit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "no path, closest reachable {1_Dir}"
+-- Unreachable-branch sub-causes. PathDiagnostic identifies these by
+-- inspecting the unit's tech state (no embark / no astronomy), the
+-- closest-reachable's neighbors toward target (mountain / natural
+-- wonder), the destination's units (foreign-unit blocker for non-combat
+-- units, sharing the existing BLOCKED_UNIT format), and the unit's
+-- domain + target's water-area mismatch (naval no water connection).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH"] = "no embark tech, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH_NO_DIR"] = "no embark tech"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NEEDS_ASTRONOMY"] = "needs astronomy, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NEEDS_ASTRONOMY_NO_DIR"] = "needs astronomy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN"] = "blocked by mountains, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN_NO_DIR"] = "blocked by mountains"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_WONDER"] = "blocked by {1_Wonder}, closest reachable {2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_WONDER_NO_DIR"] = "blocked by {1_Wonder}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_WATER_CONNECTION"] = "no water connection, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_WATER_CONNECTION_NO_DIR"] = "no water connection"
+-- Domain-incompatible combat. Land warrior can't melee a trireme on
+-- water (engine's ATTACK gate at CvUnit.cpp:2583 hard-rejects
+-- domain==LAND + water plot regardless of embark state). Naval unit
+-- can't enter non-city land tiles to attack land units. Surfacing
+-- these as "cannot attack from [unit's domain]" tells the user the
+-- block is fundamental, not a tech gap.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_LAND"] =
+    "cannot attack from land, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_LAND_NO_DIR"] = "cannot attack from land"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER"] =
+    "cannot attack from water, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER_NO_DIR"] = "cannot attack from water"
+-- Naval unit targeting empty / peaceful-occupied non-city land. Same
+-- engine block as cantAttackFromWater but no combat intent on the user
+-- side, so the framing is "travel" not "attack".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND"] =
+    "cannot travel to land, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND_NO_DIR"] = "cannot travel to land"
 -- Embark / disembark hint appended to a successful move-path preview
 -- when the start and destination share a domain but the route crosses
 -- the opposite one (land -> water -> land, or water -> land -> water).

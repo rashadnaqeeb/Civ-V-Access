@@ -90,6 +90,185 @@ local function readClosedListClosest(targetX, targetY)
     return { x = cx, y = cy, distance = cdist }
 end
 
+-- Cached lookup of the tech that grants deep-water passage. Vanilla is
+-- TECH_ASTRONOMY; we query the database by the EmbarkedAllWaterPassage
+-- column (the engine's gate) so scenarios that retag the tech still work.
+local _deepWaterTech = nil
+local _deepWaterTechResolved = false
+local function findDeepWaterTech()
+    if _deepWaterTechResolved then
+        return _deepWaterTech
+    end
+    _deepWaterTechResolved = true
+    for tech in GameInfo.Technologies() do
+        if tech.EmbarkedAllWaterPassage then
+            _deepWaterTech = tech.ID
+            break
+        end
+    end
+    return _deepWaterTech
+end
+
+-- Examine the closest-reachable tile and the tiles adjacent to it that
+-- are closer to the original target. Returns the first unreachable-cause
+-- match in priority order, or nil for fall-through. Priority is set so
+-- the most actionable / specific cause wins:
+--
+--   1. Tech (no embark / no astronomy) -- fundamental capability gap;
+--      tells the user which tech they need.
+--   2. Natural wonder at the boundary -- specific named obstacle, more
+--      useful than generic "blocked by mountain".
+--   3. Mountain at the boundary -- generic but common.
+--   4. Foreign unit on a path tile (non-combat units only; combat units
+--      aren't blocked by peaceful foreign units in the pathfinder, and
+--      the at-war combat case is handled by UNITS_THROUGH_ENEMY retry).
+--   5. Naval unit, target in a different water body.
+local function identifyUnreachableCause(unit, target, closest)
+    local activeTeam = Game.GetActiveTeam()
+    local team = Teams[activeTeam]
+    local domain = unit:GetDomainType()
+    local unitPlot = unit:GetPlot()
+    local unitArea = unitPlot:GetArea()
+    local tx, ty = target:GetX(), target:GetY()
+    local isLandUnit = domain == DomainTypes.DOMAIN_LAND and not unit:CanMoveAllTerrain()
+
+    -- Domain-incompatible combat scenarios fire first because tech
+    -- progress doesn't fix them. A land warrior can't melee a trireme
+    -- on water from any state -- not on land, not embarked (canMoveInto's
+    -- ATTACK branch at CvUnit.cpp:2583 hard-rejects domain==LAND + water).
+    -- A naval unit can't enter non-city land tiles. Surfacing the tech
+    -- message instead would mislead the user into researching Optics
+    -- thinking it'd help.
+    if domain == DomainTypes.DOMAIN_LAND and target:IsWater() then
+        for i = 0, target:GetNumUnits() - 1 do
+            local u = target:GetUnit(i)
+            if u ~= nil and team:IsAtWar(u:GetTeam()) then
+                return { subCause = "cantAttackFromLand" }
+            end
+        end
+    end
+    if domain == DomainTypes.DOMAIN_SEA and not target:IsWater() and not target:IsCity() then
+        -- Distinguish combat vs travel: an at-war unit on the land tile
+        -- means the user was trying to attack ("cannot attack from water"),
+        -- a clear / peaceful tile means they were trying to move there
+        -- ("cannot travel to land"). Same engine block in both cases (sea
+        -- unit can't enter non-city land per CvUnit.cpp:2249-2253), but
+        -- the framing reflects the user's intent.
+        for i = 0, target:GetNumUnits() - 1 do
+            local u = target:GetUnit(i)
+            if u ~= nil and team:IsAtWar(u:GetTeam()) then
+                return { subCause = "cantAttackFromWater" }
+            end
+        end
+        return { subCause = "cantTravelToLand" }
+    end
+
+    -- Tech-based: water crossing is implied by target being water OR on
+    -- a different landmass than the unit. If the team lacks the relevant
+    -- tech, attribute it. If they have both, fall through (the cause is
+    -- something else and we shouldn't false-attribute "needs astronomy").
+    if isLandUnit and (target:IsWater() or target:GetArea() ~= unitArea) then
+        if not team:CanEmbark() then
+            return { subCause = "noEmbark" }
+        end
+        local astronomyTech = findDeepWaterTech()
+        if astronomyTech ~= nil and not team:IsHasTech(astronomyTech) then
+            return { subCause = "noAstronomy" }
+        end
+    end
+
+    -- Naval target on a different water body. Naval units (DOMAIN_SEA)
+    -- can't cross land, so a target in a different water area is
+    -- unreachable if there's no connecting strait the unit can traverse.
+    if domain == DomainTypes.DOMAIN_SEA then
+        if target:IsWater() and target:GetArea() ~= unitArea then
+            return { subCause = "navalNoConnection" }
+        end
+    end
+
+    -- Boundary inspection: walk the neighbors of closest-reachable that
+    -- are closer to the target than closest itself. The first such tile
+    -- with an identifiable blocker names the cause. Looking at multiple
+    -- neighbors handles cases where the boundary isn't a single tile.
+    if closest == nil then
+        return nil
+    end
+    local closestPlot = Map.GetPlot(closest.x, closest.y)
+    if closestPlot == nil then
+        return nil
+    end
+    local closestDist = Map.PlotDistance(closest.x, closest.y, tx, ty)
+    local boundaryFound = nil
+
+    for dir = 0, 5 do
+        local n = Map.PlotDirection(closest.x, closest.y, dir)
+        if n ~= nil then
+            local nx, ny = n:GetX(), n:GetY()
+            if Map.PlotDistance(nx, ny, tx, ty) < closestDist then
+                -- Natural wonder feature -- check first (more specific
+                -- than mountain when both apply, since a few wonders are
+                -- on mountain tiles).
+                local feat = n:GetFeatureType()
+                if feat ~= -1 then
+                    local featInfo = GameInfo.Features[feat]
+                    if featInfo ~= nil and featInfo.NaturalWonder then
+                        return { subCause = "wonder", wonderName = Text.key(featInfo.Description) }
+                    end
+                end
+
+                -- Mountain. Self-correcting attribution: this fires only
+                -- when the mountain tile is on the boundary frontier (in
+                -- adjacent-to-closest-reachable, closer to target, NOT in
+                -- m_pClosed). For units that can cross mountains (Carthage's
+                -- IsAbleToCrossMountains trait, hovering units, canMoveAllTerrain),
+                -- mountains are reachable and end up in m_pClosed, so they
+                -- never appear on the boundary frontier -- the binding
+                -- picks one of those mountain tiles as closest-reachable
+                -- instead. We don't need to verify the trait Lua-side.
+                if n:IsMountain() then
+                    boundaryFound = "mountain"
+                end
+
+                -- Foreign unit on the boundary tile. Only attribute for
+                -- non-combat units (settler/worker/great person) -- combat
+                -- units aren't blocked by peaceful foreign units (PathValid
+                -- only rejects via at-war checks UNITS_THROUGH_ENEMY would
+                -- have caught). For non-combat, ANY foreign unit blocks
+                -- (PathValid:1417-1428).
+                if not unit:IsCombatUnit() then
+                    local activeOwner = Game.GetActivePlayer()
+                    for i = 0, n:GetNumUnits() - 1 do
+                        local u = n:GetUnit(i)
+                        if u ~= nil and u:GetOwner() ~= activeOwner then
+                            return { subCause = "foreignUnit", blockingUnit = u }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Also check the destination plot itself for a foreign-unit blocker
+    -- on non-combat units. Settler trying to settle on a tile occupied
+    -- by a peaceful foreign worker hits this; closest-reachable might be
+    -- adjacent to target but the blocker is on the target itself.
+    if not unit:IsCombatUnit() then
+        local activeOwner = Game.GetActivePlayer()
+        for i = 0, target:GetNumUnits() - 1 do
+            local u = target:GetUnit(i)
+            if u ~= nil and u:GetOwner() ~= activeOwner then
+                return { subCause = "foreignUnit", blockingUnit = u }
+            end
+        end
+    end
+
+    if boundaryFound == "mountain" then
+        return { subCause = "mountain" }
+    end
+
+    return nil
+end
+
 -- Run the discriminative retry sequence. Returns one of:
 --
 --   { ok = "strict" }                                           -- strict succeeded
@@ -178,7 +357,15 @@ function PathDiagnostic.discriminativePath(unit, target)
     -- unit can't take, so the search exhausts naturally on unreachable
     -- destinations and m_pClosed has the reachable region.
     unit:GeneratePath(target, MOVE_CIVVACCESS_FORCE_DEST_VALID)
-    return { ok = "unreachable", closest = readClosedListClosest(tx, ty) }
+    local closest = readClosedListClosest(tx, ty)
+    local result = { ok = "unreachable", closest = closest }
+    local cause = identifyUnreachableCause(unit, target, closest)
+    if cause ~= nil then
+        for k, v in pairs(cause) do
+            result[k] = v
+        end
+    end
+    return result
 end
 
 -- Render a unit as "[civ adjective] [unit name]" -- e.g. "Roman Warrior"
@@ -226,14 +413,16 @@ function PathDiagnostic.formatFailure(diag, fromX, fromY)
         return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_NO_DIR")
     end
 
-    -- Stacking and enemy share one shape: "blocked by [civ-adj] [unit]"
-    -- with the civ adjective as the distinguisher between your-own and
-    -- foreign. _FALLBACK fires only if the path walker couldn't locate
-    -- a unit on the blocker tile, which can happen when the binary-
-    -- search boundary lands on a tile whose blocker isn't a unit (e.g.
-    -- the path's first turn-boundary tile triggered the stack gate but
-    -- the unit on it has since moved).
-    if diag.ok == "stacking" or diag.ok == "enemy" then
+    -- Stacking and enemy from relaxed-retry success share one shape:
+    -- "blocked by [civ-adj] [unit]" with the civ adjective as the
+    -- distinguisher between your-own and foreign. The "foreignUnit"
+    -- subCause from the unreachable branch (non-combat unit + foreign
+    -- unit blocker) reuses the same shape -- same gate, same vocabulary.
+    -- _FALLBACK fires only if the blocker lookup couldn't locate a unit
+    -- on the relevant tile, which can happen when the binary-search
+    -- boundary lands on a tile whose blocker isn't a unit.
+    local isUnitCause = diag.ok == "stacking" or diag.ok == "enemy" or diag.subCause == "foreignUnit"
+    if isUnitCause then
         if diag.blockingUnit ~= nil then
             local descriptor = describeUnit(diag.blockingUnit)
             if closestDir ~= "" then
@@ -247,7 +436,66 @@ function PathDiagnostic.formatFailure(diag, fromX, fromY)
         return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR")
     end
 
-    -- unreachable
+    -- Unreachable-branch sub-causes (tech, terrain, naval). Each has its
+    -- own TXT key with a _NO_DIR variant for the rare degenerate case
+    -- where the closest-reachable direction is empty (cursor at start).
+    if diag.subCause == "noEmbark" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH_NO_DIR")
+    end
+    if diag.subCause == "noAstronomy" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_NEEDS_ASTRONOMY", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_NEEDS_ASTRONOMY_NO_DIR")
+    end
+    if diag.subCause == "mountain" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN_NO_DIR")
+    end
+    if diag.subCause == "wonder" then
+        if diag.wonderName ~= nil and closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_WONDER", diag.wonderName, closestDir)
+        elseif diag.wonderName ~= nil then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_WONDER_NO_DIR", diag.wonderName)
+        end
+        -- Wonder name lookup failed -- fall through to mountain phrasing
+        -- (wonders are mostly mountain-class obstacles in vanilla).
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN_NO_DIR")
+    end
+    if diag.subCause == "navalNoConnection" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_NO_WATER_CONNECTION", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_NO_WATER_CONNECTION_NO_DIR")
+    end
+    if diag.subCause == "cantAttackFromLand" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_LAND", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_LAND_NO_DIR")
+    end
+    if diag.subCause == "cantAttackFromWater" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER_NO_DIR")
+    end
+    if diag.subCause == "cantTravelToLand" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND_NO_DIR")
+    end
+
+    -- Unattributed unreachable.
     if closestDir ~= "" then
         return Text.format("TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST", closestDir)
     end
