@@ -26,8 +26,11 @@
 #include "../CvInternalGameCoreUtils.h"
 #include "../CvGameTextMgr.h"
 #include "../CvReplayMessage.h"
-// CIVVACCESS: Game.GetCycleUnits / Game.GetBuildRoutePath bindings.
+// CIVVACCESS: Game.GetCycleUnits / Game.GetBuildRoutePath /
+// Game.GetClosestSearchedPlot bindings.
 #include "../CvUnitCycler.h"
+#include "../CvAStar.h"
+#include "../CvGameCoreUtils.h"
 
 #define Method(func) RegisterMethod(L, l##func, #func);
 
@@ -52,6 +55,7 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 	Method(CyclePlotUnits);
 	Method(GetCycleUnits);
 	Method(GetBuildRoutePath);
+	Method(GetClosestSearchedPlot);
 
 	Method(SelectionListMove);
 	Method(SelectionListGameNetMessage);
@@ -515,6 +519,64 @@ int CvLuaGame::lGetBuildRoutePath(lua_State* L)
 		lua_rawseti(L, -2, i + 1);
 	}
 	return 1;
+}
+//------------------------------------------------------------------------------
+// CIVVACCESS: After a failed Unit:GeneratePath, the underlying CvAStar's
+// closed list still chains every node the search reached before exhaustion.
+// This binding walks that closed list and returns the (x, y) of the node
+// at minimum hex distance from the supplied target. That tile is the "got
+// as far as X" answer for unreachable destinations -- the strict-reachable
+// frontier in the direction of the original target.
+//
+// Usage: caller MUST invoke this immediately after the failed GeneratePath,
+// before any subsequent search runs (the next GeneratePath with bReuse=false
+// wipes the closed list at the start of its run, line 236-244 of CvAStar.cpp).
+//
+// Args: (iTargetX, iTargetY).
+// Returns: (x, y, distance) on success, or no return values when the closed
+// list is empty (e.g., search never started, or the start position itself
+// was invalid).
+int CvLuaGame::lGetClosestSearchedPlot(lua_State* L)
+{
+	const int iTargetX = luaL_checkint(L, 1);
+	const int iTargetY = luaL_checkint(L, 2);
+
+	CvAStar& kFinder = GC.getPathFinder();
+	const CvAStarNode* pBest = NULL;
+	int iBestDist = INT_MAX;
+	for(const CvAStarNode* p = kFinder.GetClosedListHead(); p != NULL; p = p->m_pNext)
+	{
+		const int iDist = plotDistance(p->m_iX, p->m_iY, iTargetX, iTargetY);
+		if(iDist < iBestDist)
+		{
+			iBestDist = iDist;
+			pBest = p;
+		}
+	}
+
+	if(pBest != NULL)
+	{
+		lua_pushinteger(L, pBest->m_iX);
+		lua_pushinteger(L, pBest->m_iY);
+		lua_pushinteger(L, iBestDist);
+		return 3;
+	}
+
+	// Closed list empty -- search bailed at PathDestValid before any node
+	// was closed (e.g., destination in foreign territory we can't enter,
+	// destination is a mountain for a non-mountain unit). The unit's
+	// start position is the only meaningful "reached" tile in that case.
+	const int iStartX = kFinder.GetStartX();
+	const int iStartY = kFinder.GetStartY();
+	if(iStartX < 0 || iStartY < 0)
+	{
+		return 0;
+	}
+	const int iDist = plotDistance(iStartX, iStartY, iTargetX, iTargetY);
+	lua_pushinteger(L, iStartX);
+	lua_pushinteger(L, iStartY);
+	lua_pushinteger(L, iDist);
+	return 3;
 }
 //------------------------------------------------------------------------------
 // void selectionListMove(CyPlot* pPlot, bool bAlt, bool bShift, bool bCtrl);

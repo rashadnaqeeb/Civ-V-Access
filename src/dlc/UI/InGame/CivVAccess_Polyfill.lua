@@ -164,6 +164,9 @@ Game = Game
         IsHotSeat = function()
             return false
         end,
+        GetClosestSearchedPlot = function(_tx, _ty)
+            return nil
+        end,
     }
 if Game.IsHotSeat == nil then
     Game.IsHotSeat = function()

@@ -30,11 +30,6 @@ UnitTargetMode = {}
 local MOD_NONE = 0
 local MOD_SHIFT = 1
 
--- CvAStar.h MOVE_DECLARE_WAR. Lets the unit pathfinder route through
--- tiles whose entry would declare war (peaceful rival territory),
--- matching the engine's interface pathfinder for hover-path display.
-local MOVE_DECLARE_WAR = 0x00000020
-
 -- Tracks the actor's unit ID while this handler is on the stack.
 -- Exposed via UnitTargetMode.currentActorID so UnitControl's selection-
 -- changed listener can tell whether a selection event reflects a cycle
@@ -81,19 +76,14 @@ local function movePathPreview(actor, targetPlot)
     if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end
-    -- Match the engine's interface pathfinder (CvDllContext.cpp:1269):
-    -- it pathfinds through fog (no MOVE_TERRITORY_NO_UNEXPLORED) and uses
-    -- MOVE_DECLARE_WAR so peaceful rival tiles still route. Try the plain
-    -- search first; if it fails, retry with MOVE_DECLARE_WAR so we can
-    -- distinguish "would declare war" from "physically unreachable".
-    local ok = actor:GeneratePath(targetPlot)
-    local declaresWar = false
-    if not ok then
-        ok = actor:GeneratePath(targetPlot, MOVE_DECLARE_WAR)
-        declaresWar = ok
-    end
-    if not ok then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+    -- Discriminative retry: strict first, then DECLARE_WAR / IGNORE_STACKING /
+    -- UNITS_THROUGH_ENEMY in turn. The first relaxation that recovers the
+    -- path names the cause. None work -> closest-reached fallback. Closest-
+    -- reached coords come from the strict-failure closed list (saved in
+    -- diag.closest before any retry overwrites it).
+    local diag = PathDiagnostic.discriminativePath(actor, targetPlot)
+    if diag.ok ~= "strict" then
+        return PathDiagnostic.formatFailure(diag, targetPlot:GetX(), targetPlot:GetY())
     end
     local path = actor:GetPath()
     -- Engine path nodes carry m_iData1=moves remaining and m_iData2=turn
@@ -180,9 +170,6 @@ local function movePathPreview(actor, targetPlot)
         if steps ~= "" then
             summary = summary .. ", " .. steps
         end
-    end
-    if declaresWar then
-        summary = summary .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIT_WILL_DECLARE_WAR")
     end
     return summary
 end
@@ -540,7 +527,17 @@ end
 -- instead of falsely reporting failure.
 local function commitFailureReason(actor, mode, plot, tx, ty)
     if isMoveMode(mode) then
-        return UnitControl.preflightMove(actor, plot)
+        -- Discriminative path-level diagnostic. Strict success and
+        -- DECLARE_WAR success both pass through to commit (the engine
+        -- handles the war-confirm popup on the latter). The other
+        -- failure modes (stacking / enemy / unreachable) report a
+        -- specific cause and abort, sparing the user the silent no-op
+        -- that the engine would produce if we let the mission push.
+        local diag = PathDiagnostic.discriminativePath(actor, plot)
+        if diag.ok == "strict" or diag.ok == "declareWar" then
+            return nil
+        end
+        return PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY())
     end
     if isRouteMode(mode) then
         local path = Game.GetBuildRoutePath(actor:GetX(), actor:GetY(), tx, ty, actor:GetOwner())

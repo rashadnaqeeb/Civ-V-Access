@@ -339,6 +339,30 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_T
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE"] = "no path"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR"] = "too far to compute"
+-- Discriminative path-failure diagnostics. PathDiagnostic.discriminativePath
+-- runs the strict pathfinder, then re-runs with progressively relaxed flag
+-- combos; whichever relaxation recovers the path names the cause. Closest-
+-- reachable is rendered as the cursor-relative direction string used by the
+-- scanner / bookmarks / surveyor, so the spatial vocabulary stays uniform
+-- across the mod. _NO_DIR variants fire when the closest-reachable tile is
+-- the cursor itself (unit can't get any closer than where you're pointing,
+-- e.g. unit already at start with no exit).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_CIV"] =
+    "blocked by {1_Civ} borders, closest reachable {2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_CIV_NO_DIR"] = "blocked by {1_Civ} borders"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS"] = "blocked by closed borders, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_NO_DIR"] = "blocked by closed borders"
+-- Stacking / enemy collapse to one shape: "blocked by [civ-adjective]
+-- [unit name]" -- the adjective distinguishes your-own ("Roman Warrior")
+-- from foreign ("Mongol Warrior") naturally. UNIT_DESCRIPTOR is the
+-- adj+name combiner so the locale can reorder ({2_Name} {1_Adj}) without
+-- touching the parent strings.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNIT_DESCRIPTOR"] = "{1_Adj} {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT"] = "blocked by {1_Unit}, closest reachable {2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "blocked by {1_Unit}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] = "blocked by a unit, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "blocked by a unit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "no path, closest reachable {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"] = "no target here"
 -- Route-to (auto-route) preview. Tile count is the path length excluding
 -- the worker's start tile -- "the road will reach N tiles further from

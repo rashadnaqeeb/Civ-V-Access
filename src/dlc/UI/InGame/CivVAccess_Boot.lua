@@ -60,6 +60,10 @@ include("CivVAccess_CitySpeech")
 include("CivVAccess_UnitActionMenu")
 include("CivVAccess_CursorActivate")
 include("CivVAccess_CursorPedia")
+-- PathDiagnostic loads before UnitTargetMode (which uses it for target
+-- preview + commit failure messages). Depends on HexGeom (already loaded
+-- above) plus engine globals; no Context state.
+include("CivVAccess_PathDiagnostic")
 include("CivVAccess_UnitTargetMode")
 include("CivVAccess_CityRangeStrikeMode")
 include("CivVAccess_GiftMode")
@@ -151,12 +155,12 @@ end
 -- missing-fork case immediately. Game methods are the canary: if they're
 -- present, the fork is deployed and the Unit / Plot bindings resolve too.
 if Game ~= nil then
-    if Game.GetBuildRoutePath ~= nil and Game.GetCycleUnits ~= nil then
+    if Game.GetBuildRoutePath ~= nil and Game.GetCycleUnits ~= nil and Game.GetClosestSearchedPlot ~= nil then
         Log.info("CivVAccess_Boot: engine fork bindings present " .. bootSuffix)
     else
         Log.warn("CivVAccess_Boot: engine fork DLL not deployed " .. bootSuffix
             .. " -- move-target preview, build-route preview, ranged-strike "
-            .. "LoS, and unit cycler will silently fail. "
+            .. "LoS, unit cycler, and path-failure diagnostic will silently fail. "
             .. "Run ./deploy.ps1 (without -SkipEngine) to install.")
     end
 end
