@@ -228,8 +228,90 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_T
     one = "{1_Turns} tour, {2_Steps} puis inexploré",
     other = "{1_Turns} tours, {2_Steps} puis inexploré",
 }
+-- Combat-with-pathfinding suffix appended to the combat preview when an
+-- attack target is reachable but not adjacent. The truncated step list
+-- (start through the attack-from tile) names the route; "then attack"
+-- marks the terminal step. Mirrors the FOG_PREFIX shape so localizers
+-- already have the pattern. MP cost is omitted: the engine consumes all
+-- remaining MP on attack and promotion bonuses can grant extra attacks,
+-- so any predicted MP-after-attack number would be wrong.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_THIS_TURN"] =
+    "ce tour, {1_Steps} puis attaque"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN"] = {
+    one = "{1_Turns} tour, {2_Steps} puis attaque",
+    other = "{1_Turns} tours, {2_Steps} puis attaque",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE"] = "aucun chemin"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR"] = "trop loin pour calculer"
+-- Discriminative path-failure diagnostics. PathDiagnostic.discriminativePath
+-- runs the strict pathfinder, then re-runs with progressively relaxed flag
+-- combos; whichever relaxation recovers the path names the cause. Closest-
+-- reachable is rendered as the cursor-relative direction string used by the
+-- scanner / bookmarks / surveyor, so the spatial vocabulary stays uniform
+-- across the mod. _NO_DIR variants fire when the closest-reachable tile is
+-- the cursor itself (unit can't get any closer than where you're pointing,
+-- e.g. unit already at start with no exit).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_CIV"] =
+    "bloqué par frontières {1_Civ}, plus proche atteignable {2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_CIV_NO_DIR"] = "bloqué par frontières {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS"] =
+    "bloqué par frontières fermées, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_NO_DIR"] = "bloqué par frontières fermées"
+-- Stacking / enemy collapse to one shape: "blocked by [civ-adjective]
+-- [unit name]" -- the adjective distinguishes your-own ("Roman Warrior")
+-- from foreign ("Mongol Warrior") naturally. UNIT_DESCRIPTOR is the
+-- adj+name combiner so the locale can reorder ({2_Name} {1_Adj}) without
+-- touching the parent strings.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNIT_DESCRIPTOR"] = "{2_Name} {1_Adj}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT"] = "bloqué par {1_Unit}, plus proche atteignable {2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "bloqué par {1_Unit}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] =
+    "bloqué par une unité, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "bloqué par une unité"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "aucun chemin, plus proche atteignable {1_Dir}"
+-- Unreachable-branch sub-causes. PathDiagnostic identifies these by
+-- inspecting the unit's tech state (no embark / no astronomy), the
+-- closest-reachable's neighbors toward target (mountain / natural
+-- wonder), the destination's units (foreign-unit blocker for non-combat
+-- units, sharing the existing BLOCKED_UNIT format), and the unit's
+-- domain + target's water-area mismatch (naval no water connection).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH"] =
+    "technologie d'embarquement manquante, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH_NO_DIR"] = "technologie d'embarquement manquante"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NEEDS_ASTRONOMY"] = "astronomie requise, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NEEDS_ASTRONOMY_NO_DIR"] = "astronomie requise"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN"] = "bloqué par montagnes, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN_NO_DIR"] = "bloqué par montagnes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_WONDER"] = "bloqué par {1_Wonder}, plus proche atteignable {2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_WONDER_NO_DIR"] = "bloqué par {1_Wonder}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_WATER_CONNECTION"] =
+    "aucune connexion maritime, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_WATER_CONNECTION_NO_DIR"] = "aucune connexion maritime"
+-- Domain-incompatible combat. Land warrior can't melee a trireme on
+-- water (engine's ATTACK gate at CvUnit.cpp:2583 hard-rejects
+-- domain==LAND + water plot regardless of embark state). Naval unit
+-- can't enter non-city land tiles to attack land units. Surfacing
+-- these as "cannot attack from [unit's domain]" tells the user the
+-- block is fundamental, not a tech gap.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_LAND"] =
+    "impossible d'attaquer depuis la terre, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_LAND_NO_DIR"] = "impossible d'attaquer depuis la terre"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER"] =
+    "impossible d'attaquer depuis l'eau, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER_NO_DIR"] = "impossible d'attaquer depuis l'eau"
+-- Naval unit targeting empty / peaceful-occupied non-city land. Same
+-- engine block as cantAttackFromWater but no combat intent on the user
+-- side, so the framing is "travel" not "attack".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND"] =
+    "impossible d'aller à terre, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND_NO_DIR"] = "impossible d'aller à terre"
+-- Embark / disembark hint appended to a successful move-path preview
+-- when the start and destination share a domain but the route crosses
+-- the opposite one (land -> water -> land, or water -> land -> water).
+-- Cross-domain endpoints (land -> water, water -> land) need no hint
+-- because the destination's domain already implies the transition.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_REQUIRES_EMBARK"] = "embarquement requis"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_REQUIRES_DISEMBARK"] = "débarquement requis"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"] = "pas de cible ici"
 -- Route-to (auto-route) preview. Tile count is the path length excluding
 -- the worker's start tile -- "the road will reach N tiles further from
