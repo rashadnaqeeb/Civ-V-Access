@@ -35,10 +35,11 @@ local STINGER_OFFSET_MS = 100
 -- and inherited on every subsequent play of the fog slot.
 local FOG_VOLUME = 0.5
 
--- Road stinger plays louder than the rest so a route on the tile reads
--- distinctly through the bed instead of getting buried in it. Same one-shot
--- audio.set_volume pattern as fog, just on the other side of unity.
-local ROAD_VOLUME = 1.25
+-- Route stinger plays louder than the rest so a route on the tile reads
+-- distinctly through the bed instead of getting buried in it. Applies to
+-- both road and railroad slots; same one-shot audio.set_volume pattern as
+-- fog, just on the other side of unity.
+local ROUTE_VOLUME = 1.25
 
 -- Features whose bed replaces the terrain bed. Each has exactly one allowed
 -- base terrain per Feature_TerrainBooleans, so the underlying terrain is
@@ -72,7 +73,14 @@ local TERRAIN_BEDS = {
 }
 
 local function allSoundNames()
-    local set = { mountain = true, fog = true, road = true, river = true, bridge = true }
+    local set = {
+        mountain = true,
+        fog = true,
+        road = true,
+        railroad = true,
+        river = true,
+        bridge = true,
+    }
     for _, v in pairs(PROMOTABLE_FEATURES) do
         set[v] = true
     end
@@ -169,12 +177,21 @@ function PlotAudio.cueForPlot(plot, prevPlot)
     -- variant; so do we, with the same team/debug values.
     --
     -- The bridge crossing already implies a route on the destination plot
-    -- (that's a precondition of the bridge resolution), so a separate road
+    -- (that's a precondition of the bridge resolution), so a separate route
     -- stinger would be redundant after the bridge sound. The river crossing
     -- carries no such implication and the stinger still fires there.
+    --
+    -- Railroad and road share dispatch shape but distinct sounds; the
+    -- type-switch picks which slot fires. Unknown route types fall back
+    -- to the road slot rather than going silent.
     local rid = plot:GetRevealedRouteType(team, debug)
     if rid ~= nil and rid >= 0 and crossing ~= "bridge" then
-        stingers[#stingers + 1] = "road"
+        local rRow = GameInfo.Routes[rid]
+        if rRow and rRow.Type == "ROUTE_RAILROAD" then
+            stingers[#stingers + 1] = "railroad"
+        else
+            stingers[#stingers + 1] = "road"
+        end
     end
 
     return {
@@ -210,7 +227,10 @@ function PlotAudio.loadAll()
         audio.set_volume(handles.fog, FOG_VOLUME)
     end
     if handles.road ~= nil then
-        audio.set_volume(handles.road, ROAD_VOLUME)
+        audio.set_volume(handles.road, ROUTE_VOLUME)
+    end
+    if handles.railroad ~= nil then
+        audio.set_volume(handles.railroad, ROUTE_VOLUME)
     end
     Log.info("PlotAudio.loadAll: loaded " .. tostring(loaded) .. ", missed " .. tostring(missed))
 end

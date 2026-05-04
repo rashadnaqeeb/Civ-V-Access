@@ -19,6 +19,13 @@ local function setup()
     GameInfo = {}
     GameInfo.Terrains = {}
     GameInfo.Features = {}
+    -- Routes are pre-registered (id 0 = road, id 1 = railroad) so existing
+    -- route-bearing tests resolve a Type without each one having to wire it.
+    -- Tests that need a different mapping can overwrite these entries.
+    GameInfo.Routes = {
+        [0] = { Type = "ROUTE_ROAD" },
+        [1] = { Type = "ROUTE_RAILROAD" },
+    }
 
     audio._reset()
     civvaccess_shared.plotAudioHandles = nil
@@ -190,9 +197,9 @@ function M.test_cueForPlot_fallout_stinger_on_any_terrain()
 end
 
 function M.test_cueForPlot_road_stinger_when_route_present()
-    -- Route id >= 0 means some road/railroad is built. Type distinction
-    -- (road vs railroad) isn't in the palette; a single stinger covers
-    -- both.
+    -- Route id 0 resolves to ROUTE_ROAD via GameInfo.Routes; the road
+    -- stinger fires. The railroad-route variant of this test lives in
+    -- test_cueForPlot_railroad_route_uses_railroad_stinger.
     setup()
     terrain(0, "TERRAIN_GRASS")
     local p = T.fakePlot({ terrain = 0, route = 0 })
@@ -224,6 +231,29 @@ function M.test_cueForPlot_no_route_means_no_road_stinger()
     terrain(0, "TERRAIN_GRASS")
     local p = T.fakePlot({ terrain = 0, route = -1 })
     T.eq(#PlotAudio.cueForPlot(p).stingers, 0)
+end
+
+function M.test_cueForPlot_railroad_route_uses_railroad_stinger()
+    -- Route id 1 maps to ROUTE_RAILROAD via the suite-wide GameInfo.Routes
+    -- registration. The stinger slot picks "railroad" instead of "road".
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    local p = T.fakePlot({ terrain = 0, route = 1 })
+    local cue = PlotAudio.cueForPlot(p)
+    T.eq(#cue.stingers, 1)
+    T.eq(cue.stingers[1], "railroad")
+end
+
+function M.test_cueForPlot_unknown_route_type_falls_back_to_road_stinger()
+    -- A route id that GameInfo.Routes doesn't recognize (mod data corruption,
+    -- a future route type the cue palette hasn't learned) falls back to
+    -- "road" rather than going silent -- the player still hears a route
+    -- stinger, just the generic one.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    GameInfo.Routes[5] = { Type = "ROUTE_FUTURE_MAGLEV" }
+    local p = T.fakePlot({ terrain = 0, route = 5 })
+    T.eq(PlotAudio.cueForPlot(p).stingers[1], "road")
 end
 
 -- ===== cueForPlot: river / bridge crossing =====
@@ -295,6 +325,35 @@ function M.test_cueForPlot_river_crossing_with_roads_and_bridge_tech_is_bridge()
     for _, s in ipairs(cue.stingers) do
         T.truthy(s ~= "road", "bridge must suppress the road stinger; got " .. s)
     end
+end
+
+function M.test_cueForPlot_bridge_crossing_suppresses_railroad_stinger()
+    -- Bridge subsumes the route stinger regardless of route type: with
+    -- railroads on both sides plus bridge tech, the bridge token plays and
+    -- the railroad stinger drops, same as road.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = true })
+    local prev = T.fakePlot({ terrain = 0, route = 1, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = 1 })
+    local cue = PlotAudio.cueForPlot(p, prev)
+    T.eq(cue.crossing, "bridge")
+    for _, s in ipairs(cue.stingers) do
+        T.truthy(s ~= "railroad", "bridge must suppress the railroad stinger; got " .. s)
+    end
+end
+
+function M.test_cueForPlot_river_crossing_keeps_railroad_stinger()
+    -- River crossing (no bridge tech) keeps the route stinger. With a
+    -- railroad on the destination, the railroad stinger fires -- not road.
+    setup()
+    terrain(0, "TERRAIN_GRASS")
+    Teams[0] = T.fakeTeam({ bridgeBuilding = false })
+    local prev = T.fakePlot({ terrain = 0, route = 1, isRiverCrossingTo = true })
+    local p = T.fakePlot({ terrain = 0, route = 1 })
+    local cue = PlotAudio.cueForPlot(p, prev)
+    T.eq(cue.crossing, "river")
+    T.eq(cue.stingers[1], "railroad")
 end
 
 function M.test_cueForPlot_bridge_crossing_keeps_non_road_stingers()
@@ -525,22 +584,36 @@ function M.test_loadAll_sets_fog_to_half_volume()
     T.eq(found.v, 0.5, "fog volume must be 0.5")
 end
 
+local function findVolumeCall(handle)
+    for _, c in ipairs(audio._calls) do
+        if c.op == "set_volume" and c.id == handle then
+            return c
+        end
+    end
+    return nil
+end
+
 function M.test_loadAll_boosts_road_volume()
-    -- Road stinger plays louder than the rest of the palette so a route on
-    -- the tile reads distinctly through the bed. Same one-shot pattern as
-    -- fog, on the other side of unity.
+    -- Route stingers (road / railroad) play louder than the rest of the
+    -- palette so a route on the tile reads distinctly through the bed.
+    -- Same one-shot pattern as fog, on the other side of unity.
     setup()
     PlotAudio.loadAll()
     local roadId = civvaccess_shared.plotAudioHandles.road
-    local found
-    for _, c in ipairs(audio._calls) do
-        if c.op == "set_volume" and c.id == roadId then
-            found = c
-            break
-        end
-    end
+    local found = findVolumeCall(roadId)
     T.truthy(found ~= nil, "loadAll must set_volume on the road handle")
     T.eq(found.v, 1.25, "road volume must be 1.25")
+end
+
+function M.test_loadAll_boosts_railroad_volume()
+    -- Railroad shares the route preset with road; both must be set_volume'd
+    -- to 1.25 so they play at the same effective level relative to the bed.
+    setup()
+    PlotAudio.loadAll()
+    local railroadId = civvaccess_shared.plotAudioHandles.railroad
+    local found = findVolumeCall(railroadId)
+    T.truthy(found ~= nil, "loadAll must set_volume on the railroad handle")
+    T.eq(found.v, 1.25, "railroad volume must be 1.25")
 end
 
 return M
