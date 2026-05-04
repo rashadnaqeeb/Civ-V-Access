@@ -171,7 +171,12 @@ function UnitControlMovement.preflightMove(unit, target)
     if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE")
     end
-    if not unit:CanMoveOrAttackInto(target, 1, 1) then
+    -- bPretendCorrectEmbarkState=1 mirrors the engine pathfinder's PathValid
+    -- (CvAStar.cpp), which sets MOVEFLAG_PRETEND_CORRECT_EMBARK_STATE on
+    -- every probed node so cross-domain steps are gated against the unit's
+    -- post-transition state, not its current embark state. Without it, this
+    -- check rejects every embark / disembark step the pathfinder routes.
+    if not unit:CanMoveOrAttackInto(target, 1, 1, 1) then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_BLOCKED")
     end
     return nil

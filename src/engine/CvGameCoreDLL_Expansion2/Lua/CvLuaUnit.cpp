@@ -764,13 +764,21 @@ int CvLuaUnit::lGetDeclareWarRangeStrike(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-//bool canMoveOrAttackInto(CyPlot* pPlot, bool bDeclareWar = false, bDestination = false);
+//bool canMoveOrAttackInto(CyPlot* pPlot, bool bDeclareWar = false, bDestination = false, bPretendCorrectEmbarkState = false);
 int CvLuaUnit::lCanMoveOrAttackInto(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
 	const bool bDeclareWar = luaL_optint(L, 3, 0);
 	const bool bDestination = luaL_optint(L, 4, 0);
+	// CIVVACCESS: bPretendCorrectEmbarkState lets callers gate cross-domain
+	// steps (embark / disembark) the same way the engine pathfinder does.
+	// Without it, an embarked unit hitting a land destination always returns
+	// false because canEnterTerrain tests against the unit's *current* embark
+	// state; PathValid (CvAStar.cpp) sets this flag on every node, which is
+	// why GeneratePath accepts the route while a bare canMoveOrAttackInto
+	// rejects it. Defaults off so existing callers see no behavior change.
+	const bool bPretendCorrectEmbarkState = luaL_optint(L, 5, 0);
 
 	byte bMoveFlags = 0;
 	if(bDeclareWar)
@@ -780,6 +788,10 @@ int CvLuaUnit::lCanMoveOrAttackInto(lua_State* L)
 	if(bDestination)
 	{
 		bMoveFlags |= CvUnit::MOVEFLAG_DESTINATION;
+	}
+	if(bPretendCorrectEmbarkState)
+	{
+		bMoveFlags |= CvUnit::MOVEFLAG_PRETEND_CORRECT_EMBARK_STATE;
 	}
 
 	bool bResult = false;
