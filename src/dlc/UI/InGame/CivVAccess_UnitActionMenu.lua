@@ -220,9 +220,8 @@ end
 -- there is no keyboard route to queue ahead. Plain Enter at 0 MP on
 -- a path-bearing mission still falls through to commitAtCursor's
 -- CanDoInterfaceMode rejection and speaks "action failed."
--- GameInfoActions Types for path-bearing interface modes. Move To,
--- Route To, Embark, Disembark all back the MISSION_MOVE_TO /
--- MISSION_ROUTE_TO / MISSION_EMBARK / MISSION_DISEMBARK missions
+-- GameInfoActions Types for path-bearing interface modes. Move To and
+-- Route To back the MISSION_MOVE_TO / MISSION_ROUTE_TO missions
 -- (CIV5InterfaceModes.xml Mission field) -- the engine accepts a
 -- queued PUSH_MISSION on those at 0 MP. MOVE_TO_TYPE / MOVE_TO_ALL
 -- are the shift-modifier-on-click variants for moving same-type or
@@ -235,11 +234,24 @@ local QUEUEABLE_AT_ZERO_MP = {
     INTERFACEMODE_MOVE_TO_TYPE = true,
     INTERFACEMODE_MOVE_TO_ALL = true,
     INTERFACEMODE_ROUTE_TO = true,
+}
+
+-- Embark and Disembark are filtered out of the menu. MISSION_MOVE_TO
+-- already handles cross-domain transitions inside CvUnit::move()
+-- (CvUnit.cpp ~line 2910): a Move To target on water auto-embarks at
+-- the coast step, a target on land auto-disembarks at the shore step.
+-- The dedicated INTERFACEMODE_EMBARK / INTERFACEMODE_DISEMBARK only
+-- differ in restricting the click target to a single adjacent boundary
+-- tile, which is a mouse-UX affordance with no benefit on keyboard.
+local HIDDEN_ACTION_TYPES = {
     INTERFACEMODE_EMBARK = true,
     INTERFACEMODE_DISEMBARK = true,
 }
 
 local function isAvailable(unit, iAction, action)
+    if HIDDEN_ACTION_TYPES[action.Type] then
+        return false
+    end
     if not action.Visible then
         return false
     end
