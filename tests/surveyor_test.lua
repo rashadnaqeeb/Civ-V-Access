@@ -289,6 +289,28 @@ function M.test_own_units_empty_fallback()
     T.truthy(out:find("no own units in range", 1, true), "empty fallback expected: " .. out)
 end
 
+function M.test_own_units_picks_up_trade_unit_on_fogged_plot()
+    -- Trade units skip changeAdjacentSight in the engine (canChangeVisibility
+    -- returns false for non-default map layers), so a player's own caravan
+    -- can sit on a fogged plot. The Surveyor's own-units scope already
+    -- iterates GetLayerUnit(-1) without an IsVisible gate, so trade units
+    -- should appear naturally; pin that behaviour.
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    GameInfo.Units[60] = { Description = "Caravan" }
+    local caravan = T.fakeUnit({ owner = 0, team = 0, unitType = 60, trade = true })
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._isVisible = false
+            p._units = { caravan }
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.ownUnits()
+    T.truthy(out:find("Caravan", 1, true), "own caravan must surface on fogged plot: " .. out)
+end
+
 -- ===== Enemy units =====
 
 function M.test_enemy_units_filters_invisible_and_requires_visible_plot()

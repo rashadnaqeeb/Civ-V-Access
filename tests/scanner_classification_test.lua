@@ -78,6 +78,12 @@ local function makeUnit(opts)
     function u:IsCombatUnit()
         return opts.combat ~= false
     end
+    function u:IsTrade()
+        return opts.trade or false
+    end
+    function u:GetTeam()
+        return opts.team or 0
+    end
     function u:GetDomainType()
         return opts.domain or DomainTypes.DOMAIN_LAND
     end
@@ -279,6 +285,79 @@ function M.test_unit_invisible_unit_excluded()
     installPlayer(2, { makeUnit({ id = 77, owner = 2, combatId = 1, plot = plot, invisible = true }) }, { team = 2 })
     mapFromPlots({ plot })
     T.eq(#runUnitsScan(), 0, "invisible enemy unit must not appear in Scan output")
+end
+
+function M.test_unit_own_trade_unit_surfaces_on_fogged_plot()
+    -- Trade units skip changeAdjacentSight in the engine (canChangeVisibility
+    -- returns false for non-default map layers) so a player's own caravan can
+    -- sit on a fogged plot. Sighted players still see the unit through the
+    -- trade visuals system; the scanner mirrors that by accepting an own-team
+    -- trade unit on a fogged-but-revealed plot.
+    setup()
+    loadUnitsBackend()
+    GameInfo.Units = { [42] = { Description = "TXT_KEY_UNIT_CARAVAN" } }
+    local fogged = makePlotAt(0, 0, 0, { revealed = true, visible = false })
+    local caravan = makeUnit({
+        id = 1,
+        owner = 0,
+        team = 0,
+        combat = false,
+        trade = true,
+        plot = fogged,
+    })
+    installPlayer(0, { caravan }, { team = 0 })
+    mapFromPlots({ fogged })
+    local out = runUnitsScan()
+    T.eq(#out, 1, "own-team trade unit must surface on fogged plot")
+    T.eq(out[1].category, "units_my")
+    T.eq(out[1].subcategory, "civilian", "trade units bucket as civilian (no combat strength)")
+end
+
+function M.test_unit_enemy_trade_unit_stays_hidden_on_fogged_plot()
+    -- Carve-out is own-team only. An enemy caravan on a fogged plot would
+    -- leak their trade route to a player who can't see it; the engine
+    -- deliberately withholds that, so we must too.
+    setup()
+    loadUnitsBackend()
+    GameInfo.Units = { [42] = { Description = "TXT_KEY_UNIT_CARAVAN" } }
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local fogged = makePlotAt(0, 0, 0, { revealed = true, visible = false })
+    local enemyCaravan = makeUnit({
+        id = 1,
+        owner = 1,
+        team = 1,
+        combat = false,
+        trade = true,
+        plot = fogged,
+    })
+    installPlayer(1, { enemyCaravan }, { team = 1 })
+    mapFromPlots({ fogged })
+    T.eq(#runUnitsScan(), 0, "enemy trade unit must stay hidden on fogged plot")
+end
+
+function M.test_unit_validate_entry_keeps_own_trade_unit_on_fogged_plot()
+    -- Mirror Scan's carve-out so an own-team trade unit doesn't get pruned
+    -- on the next ValidateEntry pass after walking onto a fogged plot.
+    setup()
+    loadUnitsBackend()
+    GameInfo.Units = { [42] = { Description = "TXT_KEY_UNIT_CARAVAN" } }
+    local fogged = makePlotAt(0, 0, 0, { revealed = true, visible = false })
+    local caravan = makeUnit({
+        id = 1,
+        owner = 0,
+        team = 0,
+        combat = false,
+        trade = true,
+        plot = fogged,
+    })
+    installPlayer(0, { caravan }, { team = 0 })
+    mapFromPlots({ fogged })
+    local entries = runUnitsScan()
+    T.eq(#entries, 1, "scan precondition: one trade-unit entry")
+    T.truthy(
+        ScannerBackendUnits.ValidateEntry(entries[1], nil),
+        "ValidateEntry must keep own-team trade units on fogged plots"
+    )
 end
 
 -- ===== Resources backend =====

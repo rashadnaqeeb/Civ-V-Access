@@ -122,6 +122,23 @@ local function unitItemName(unit, category)
     return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), row.Description)
 end
 
+-- Own-team trade units sit on plots the engine considers fogged because
+-- CvUnit::canChangeVisibility returns false on non-default map layers, so
+-- setXY skips changeAdjacentSight when the unit moves. Sighted players
+-- still see the caravan / cargo ship via the trade visuals system, so the
+-- scanner mirrors that by accepting an own-team trade unit even when its
+-- plot fails IsVisible. Enemy / neutral trade units stay gated by fog --
+-- the engine deliberately withholds those from the active team.
+local function unitVisibleToScanner(plot, unit, category, activeTeam, isDebug)
+    if plot:IsVisible(activeTeam, isDebug) then
+        return not unit:IsInvisible(activeTeam, isDebug)
+    end
+    if category == "units_my" and unit:IsTrade() then
+        return not unit:IsInvisible(activeTeam, isDebug)
+    end
+    return false
+end
+
 function ScannerBackendUnits.Scan(activePlayer, activeTeam)
     local out = {}
     local isDebug = Game.IsDebugMode()
@@ -133,11 +150,7 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
             if category ~= nil then
                 for unit in player:Units() do
                     local plot = unit:GetPlot()
-                    if
-                        plot ~= nil
-                        and plot:IsVisible(activeTeam, isDebug)
-                        and not unit:IsInvisible(activeTeam, isDebug)
-                    then
+                    if plot ~= nil and unitVisibleToScanner(plot, unit, category, activeTeam, isDebug) then
                         local subcategory
                         if isBarb then
                             subcategory = "barbarians"
@@ -184,10 +197,7 @@ function ScannerBackendUnits.ValidateEntry(entry, _cursorPlotIndex)
     end
     local activeTeam = Game.GetActiveTeam()
     local isDebug = Game.IsDebugMode()
-    if not plot:IsVisible(activeTeam, isDebug) then
-        return false
-    end
-    if unit:IsInvisible(activeTeam, isDebug) then
+    if not unitVisibleToScanner(plot, unit, entry.category, activeTeam, isDebug) then
         return false
     end
     -- Stale plotIndex from a unit that moved is still a valid entry for
