@@ -405,10 +405,118 @@ local function combatPreviewAt(actor, plot, tx, ty, ranged)
     return nil
 end
 
+-- Path-after-move suffix for the combat preview when a melee target is
+-- reachable but not adjacent. The path's last node is the enemy tile;
+-- the second-to-last is the tile the unit attacks from. Truncate the
+-- path to (start through attack-from) and run it through the existing
+-- direction-step formatter, then format with the new attack-after-move
+-- key. Path length 2 (adjacent attack) yields a single-node truncated
+-- path, stepListFromPath returns "", and the caller skips appending,
+-- preserving the unchanged adjacent combat readout. MP cost is omitted
+-- on purpose: the engine consumes all remaining MP on attack and
+-- promotion bonuses can grant extra attacks, so any predicted MP-after-
+-- attack number would mislead.
+local function formatAttackAfterMove(path)
+    if path == nil or #path < 3 then
+        return ""
+    end
+    local truncated = {}
+    for i = 1, #path - 1 do
+        truncated[i] = path[i]
+    end
+    local steps = HexGeom.stepListFromPath(truncated)
+    if steps == "" then
+        return ""
+    end
+    local turns = path[#path].turn
+    if turns <= 1 then
+        return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_THIS_TURN", steps)
+    end
+    return Text.formatPlural(
+        "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN",
+        turns,
+        turns,
+        steps
+    )
+end
+
+-- Combined move-mode preview + latch driver. Returns (text, commitPlot).
+-- text: speech to read aloud.
+-- commitPlot: when non-nil, signals that this commit needs a follow-up
+--   confirmation; the caller arms self._pendingFallback with this plot
+--   so the next Enter on the same cursor commits MOVE_TO commitPlot.
+--
+-- Two latch-arming cases collapsed into one return:
+--   - Path failure (stacking / enemy / unreachable): commitPlot is the
+--     closest reachable tile from the diagnostic, when it differs from
+--     the unit's own plot.
+--   - Combat-causing strict success (move-into at-war defender or city):
+--     commitPlot is the cursor plot itself; second-Enter commits MOVE_TO
+--     target which the engine resolves as MoveOrAttack.
+--
+-- declareWar success returns commitPlot=nil. The engine pops a war-
+-- confirm popup at commit time and that popup is the safety net, so a
+-- second-press confirmation on top would be redundant.
+--
+-- preflightAttackTarget short-circuits the adjacent-but-can't-attack
+-- cases (naval vs land, city-attack-only) before discriminativePath
+-- runs, so the user hears a unit-attribute reason rather than a generic
+-- pathfinding failure.
+local function moveModePreview(actor, plot)
+    local fromPlot = actor:GetPlot()
+    if fromPlot:GetPlotIndex() == plot:GetPlotIndex() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"), nil
+    end
+    local hasEnemy = defenderAt(plot, false, actor) ~= nil or UnitControl.enemyCityAt(plot) ~= nil
+    local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), plot:GetX(), plot:GetY())
+    if hasEnemy and dist == 1 then
+        local targetReason = UnitControl.preflightAttackTarget(actor, plot)
+        if targetReason ~= nil then
+            return targetReason, nil
+        end
+    end
+
+    local diag = PathDiagnostic.discriminativePath(actor, plot)
+
+    if diag.ok ~= "strict" and diag.ok ~= "declareWar" then
+        local text = PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY())
+        local commitPlot = nil
+        if diag.closest ~= nil then
+            local cp = Map.GetPlot(diag.closest.x, diag.closest.y)
+            if cp ~= nil and cp:GetPlotIndex() ~= fromPlot:GetPlotIndex() then
+                commitPlot = cp
+            end
+        end
+        return text, commitPlot
+    end
+
+    if diag.ok == "declareWar" then
+        return PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY()), nil
+    end
+
+    if hasEnemy then
+        local text = combatPreviewAt(actor, plot, plot:GetX(), plot:GetY(), false)
+        if text == nil or text == "" then
+            text = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+        end
+        local path = actor:GetPath()
+        local suffix = formatAttackAfterMove(path)
+        if suffix ~= "" then
+            text = text .. ", " .. suffix
+        end
+        return text, plot
+    end
+
+    -- Reachable, no enemy. Delegate to movePathPreview for full path
+    -- formatting (MP, fog, embark hints). It re-runs discriminativePath
+    -- internally; one redundant GeneratePath call, no correctness issue.
+    return movePathPreview(actor, plot), nil
+end
+
 local function buildPreview(self)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
-        return ""
+        return "", nil
     end
     local mode = self._mode
     local actor = self._actor
@@ -446,30 +554,11 @@ local function buildPreview(self)
             end
         end
     elseif isMoveMode(mode) then
-        -- Move-into-enemy resolves as an attack at commit time (engine
-        -- MoveOrAttack). Speak the matching combat preview when adjacent
-        -- so the user gets damage prediction; further away the engine
-        -- queues a multi-turn move that won't attack this turn -- speak
-        -- the path as a regular move. War-declaration on move is
-        -- surfaced by the engine's popup at commit time (routed through
-        -- GenericPopupAccess), so no pre-commit detection here.
-        local hasEnemy = defenderAt(plot, false, actor) ~= nil or UnitControl.enemyCityAt(plot) ~= nil
-        local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
-        if hasEnemy and dist == 1 then
-            local targetReason = UnitControl.preflightAttackTarget(actor, plot)
-            if targetReason ~= nil then
-                parts[#parts + 1] = targetReason
-            else
-                local text = combatPreviewAt(actor, plot, tx, ty, false)
-                if text == nil or text == "" then
-                    parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-                else
-                    parts[#parts + 1] = text
-                end
-            end
-        else
-            parts[#parts + 1] = movePathPreview(actor, plot)
-        end
+        -- Move-mode preview is bundled with the latch decision (combat
+        -- vs path-failure both arm the latch differently). moveModePreview
+        -- handles the combined logic and returns (text, commitPlot); the
+        -- early return propagates commitPlot up to the caller.
+        return moveModePreview(actor, plot)
     elseif isRouteMode(mode) then
         parts[#parts + 1] = routePathPreview(actor, plot)
     elseif mode == InterfaceModeTypes.INTERFACEMODE_PARADROP then
@@ -507,7 +596,7 @@ local function buildPreview(self)
     else
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end
-    return table.concat(parts, ", ")
+    return table.concat(parts, ", "), nil
 end
 
 -- Generic "commit current interface mode at cursor plot" path. Mirrors
@@ -548,10 +637,12 @@ local function willCauseCombat(actor, plot, mode)
 end
 
 -- Per-mode commit-time precheck. Returns:
---   nil  -- mode recognized + gate passed -> push the mission
---   key  -- mode recognized + gate failed -> speak the key, abort
+--   nil   -- mode recognized + gate passed -> push the mission
+--   table -- mode recognized + gate failed -> { reason = TXT, closestPlot? }
+--           closestPlot, when set, is the fallback target the latch in
+--           commitAtCursor uses on a follow-up Enter (move mode only).
 --   false -- mode unrecognized -> caller falls back to UI.CanDoInterface
---          Mode as the engine's safety net
+--           Mode as the engine's safety net
 --
 -- A bare UI.CanDoInterfaceMode gate would return a single generic "action
 -- failed" for every reason; this returns the specific TXT_KEY for the
@@ -561,46 +652,41 @@ end
 -- schedulePendingExpiry path then announces "queued for next turn"
 -- instead of falsely reporting failure.
 local function commitFailureReason(actor, mode, plot, tx, ty)
-    if isMoveMode(mode) then
-        -- Discriminative path-level diagnostic. Strict success and
-        -- DECLARE_WAR success both pass through to commit (the engine
-        -- handles the war-confirm popup on the latter). The other
-        -- failure modes (stacking / enemy / unreachable) report a
-        -- specific cause and abort, sparing the user the silent no-op
-        -- that the engine would produce if we let the mission push.
-        local diag = PathDiagnostic.discriminativePath(actor, plot)
-        if diag.ok == "strict" or diag.ok == "declareWar" then
-            return nil
-        end
-        return PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY())
-    end
+    -- Move-mode commits do not flow through this function; commitAtCursor
+    -- calls moveModePreview directly because the latch state machine is
+    -- specific to move mode (combat-causing and path-failure cases both
+    -- arm the latch differently).
     if isRouteMode(mode) then
         local path = Game.GetBuildRoutePath(actor:GetX(), actor:GetY(), tx, ty, actor:GetOwner())
         if #path == 0 then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE") }
         end
         return nil
     end
     if isMeleeAttackMode(mode) then
         local r = UnitControl.preflightAttack(actor)
         if r ~= nil then
-            return r
+            return { reason = r }
         end
         local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
         if dist ~= 1 then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT") }
         end
         if defenderAt(plot, false, actor) == nil and UnitControl.enemyCityAt(plot) == nil then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY") }
         end
-        return UnitControl.preflightAttackTarget(actor, plot)
+        local targetReason = UnitControl.preflightAttackTarget(actor, plot)
+        if targetReason ~= nil then
+            return { reason = targetReason }
+        end
+        return nil
     end
     if isRangeAttackMode(mode) then
         if not actor:CanRangeStrike() then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK") }
         end
         if actor:MovesLeft() <= 0 then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES") }
         end
         -- bNeedWar=false: a strike on a peaceful rival's tile passes
         -- the gate; the engine queues BUTTONPOPUP_DECLAREWARRANGESTRIKE
@@ -615,57 +701,87 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
             -- emits them so a user who pressed enter without hearing the
             -- prefix still gets a clear reason.
             if defenderAt(plot, true, actor) == nil and UnitControl.enemyCityAt(plot) == nil then
-                return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+                return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY") }
             end
             local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), tx, ty)
             if dist > actor:Range() then
-                return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE")
+                return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE") }
             end
             local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR or actor:IsRangeAttackIgnoreLOS()
             if not ignoresLoS and not actor:GetPlot():HasLineOfSight(plot, actor:GetTeam()) then
-                return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
+                return { reason = Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") }
             end
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED") }
         end
         return nil
     end
     if mode == InterfaceModeTypes.INTERFACEMODE_PARADROP then
         if not actor:CanParadropAt(actor:GetPlot(), tx, ty) then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL") }
         end
         return nil
     end
     if mode == InterfaceModeTypes.INTERFACEMODE_AIRLIFT then
         if not actor:CanAirliftAt(actor:GetPlot(), tx, ty) then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL") }
         end
         return nil
     end
     if mode == InterfaceModeTypes.INTERFACEMODE_REBASE then
         if not actor:CanRebaseAt(actor:GetPlot(), tx, ty) then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL") }
         end
         return nil
     end
     if mode == InterfaceModeTypes.INTERFACEMODE_EMBARK then
         if not actor:CanEmbarkOnto(actor:GetPlot(), plot) then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL") }
         end
         return nil
     end
     if mode == InterfaceModeTypes.INTERFACEMODE_DISEMBARK then
         if not actor:CanDisembarkOnto(plot) then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL") }
         end
         return nil
     end
     if mode == InterfaceModeTypes.INTERFACEMODE_NUKE then
         if not actor:CanNukeAt(tx, ty) then
-            return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL")
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL") }
         end
         return nil
     end
     return false
+end
+
+-- Push the configured mission against `plot`. queued=true sends a bShift
+-- append (with the empty-queue quirk noted below) and skips pending
+-- registration; queued=false fires immediately and registers a move-
+-- resolution snapshot, except on combat-causing commits where the engine
+-- fork's CivVAccessCombatResolved hook owns the announcement. Used for
+-- every non-melee commit (including the latch fallback to closest-
+-- reachable) so all of them share the same pending-snapshot rules.
+local function pushMission(self, mission, plot, mode, queued)
+    local tx, ty = plot:GetX(), plot:GetY()
+    local bShift = false
+    if queued then
+        -- Send bShift=true only if the queue is non-empty. Engine quirk:
+        -- CvUnitMission::InsertAtEndMissionQueue only calls
+        -- ActivateHeadMission when bStart (= !bAppend) is true. bShift=true
+        -- maps to bAppend=true, so a shift-push onto an empty queue lands
+        -- in the queue with no active head and the unit sits there.
+        -- Vanilla mouse shift+click hits the same wall; the difference is
+        -- that base UI's mouse path expects a prior plain click to have
+        -- already activated a head. We treat the first shift+enter as
+        -- equivalent to plain enter (queue starts immediately), and only
+        -- second-and-later shift+enters as true appends.
+        bShift = #self._actor:GetMissionQueue() > 0
+    else
+        if not willCauseCombat(self._actor, plot, mode) then
+            UnitControl.registerPending(self._actor, tx, ty)
+        end
+    end
+    Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, bShift)
 end
 
 -- queued=true is shift+enter: append the mission to the unit's queue
@@ -681,6 +797,17 @@ end
 -- way to inspect it before then), and bShift on a non-MOVE mission is
 -- a base-engine pass-through with no on-screen path line for sighted
 -- players either.
+--
+-- Move-mode latch: when moveModePreview returns a non-nil commitPlot,
+-- the commit is "non-trivial" -- either a path failure with a usable
+-- closest-reachable fallback, or a strict success that would resolve as
+-- combat at the destination. The first Space or Enter on such a plot
+-- speaks the diagnostic / preview and arms self._pendingFallback. A
+-- second Enter (or Shift+Enter) on the same plot fires the latch and
+-- commits MOVE_TO commitPlot, which is the closest plot for failures
+-- and the cursor plot itself for combat (the engine resolves MOVE_TO an
+-- enemy hex as MoveOrAttack). Cursor moves invalidate the latch
+-- implicitly via the targetPlotIndex check.
 local function commitAtCursor(self, queued)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
@@ -700,52 +827,98 @@ local function commitAtCursor(self, queued)
         restoreSelection()
         return
     end
-    -- Queued branch runs before the CanDoInterfaceMode gate: a 0-MP unit
-    -- has CanDoInterfaceMode(MOVE_TO) returning false, but the engine
-    -- accepts a queued PUSH_MISSION regardless (StartMission sets
-    -- ACTIVITY_HOLD until the next turn brings MP). Plain enter still
-    -- hits the gate below and speaks "action failed."
-    if queued then
-        if isMeleeAttackMode(mode) then
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"))
+    local plotIndex = plot:GetPlotIndex()
+
+    -- Latch fast-path. Armed by a prior Space or Enter on this same plot
+    -- whose moveModePreview returned a non-nil commitPlot. Second press
+    -- commits MOVE_TO commitPlot. The commit plot is reachable by
+    -- construction (strict succeeded against it during binary search,
+    -- came from m_pClosed, or is the cursor target itself for combat),
+    -- so we skip re-running diagnostics and CanDoInterfaceMode.
+    if self._pendingFallback ~= nil and self._pendingFallback.targetPlotIndex == plotIndex then
+        local cp = self._pendingFallback.commitPlot
+        self._pendingFallback = nil
+        pushMission(self, mission, cp, mode, queued)
+        if queued then
+            -- Stay in target mode after a queued latch fire so the user
+            -- can chain more Shift+Enter legs, matching the non-latch
+            -- queued path below.
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
             return
         end
-        -- Send bShift=true only if the queue is non-empty. Engine quirk:
-        -- CvUnitMission::InsertAtEndMissionQueue only calls
-        -- ActivateHeadMission when bStart (= !bAppend) is true. bShift=true
-        -- maps to bAppend=true, so a shift-push onto an empty queue lands
-        -- in the queue with no active head and the unit sits there.
-        -- Vanilla mouse shift+click hits the same wall; the difference is
-        -- that base UI's mouse path expects a prior plain click to have
-        -- already activated a head. We treat the first shift+enter as
-        -- equivalent to plain enter (queue starts immediately), and only
-        -- second-and-later shift+enters as true appends.
-        local bShift = #self._actor:GetMissionQueue() > 0
-        Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, bShift)
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
-        return
-    end
-    -- Per-mode reason check. Returns nil to allow commit, a TXT key to
-    -- speak and abort, or false for "unrecognized mode -- defer to the
-    -- engine gate." The engine gate is only consulted on fall-through;
-    -- for recognized modes we are the source of truth so MOVE_TO can
-    -- bypass CanDoInterfaceMode's wrong-for-0-MP false negative.
-    local reason = commitFailureReason(self._actor, mode, plot, tx, ty)
-    if reason == false then
-        if not UI.CanDoInterfaceMode(mode) then
-            reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED")
-        else
-            reason = nil
-        end
-    end
-    if reason ~= nil then
-        SpeechPipeline.speakInterrupt(reason)
         HandlerStack.removeByName("UnitTargetMode", false)
         restoreSelection()
         return
     end
-    if not willCauseCombat(self._actor, plot, mode) then
-        UnitControl.registerPending(self._actor, tx, ty)
+
+    -- Queued melee rejection: combat doesn't queue meaningfully.
+    if queued and isMeleeAttackMode(mode) then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"))
+        return
+    end
+
+    -- Move mode runs through the combined preview-and-latch driver. A
+    -- non-nil commitPlot means we speak the diagnostic / preview and
+    -- stay in target mode with the latch armed; a nil commitPlot means
+    -- the commit is benign (regular reachable move, or declareWar where
+    -- the engine's war-confirm popup is the safety net) and proceeds to
+    -- mission dispatch.
+    if isMoveMode(mode) then
+        local text, commitPlot = moveModePreview(self._actor, plot)
+        if commitPlot ~= nil then
+            SpeechPipeline.speakInterrupt(text)
+            self._pendingFallback = {
+                targetPlotIndex = plotIndex,
+                commitPlot = commitPlot,
+            }
+            return
+        end
+        -- A latch armed for this plot from a prior Space or Enter is now
+        -- stale (the diagnostic returned no commitPlot this time). Clear
+        -- it so a subsequent Enter doesn't fire an outdated fallback.
+        if self._pendingFallback ~= nil and self._pendingFallback.targetPlotIndex == plotIndex then
+            self._pendingFallback = nil
+        end
+        if queued then
+            pushMission(self, mission, plot, mode, true)
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+            return
+        end
+        pushMission(self, mission, plot, mode, false)
+        HandlerStack.removeByName("UnitTargetMode", false)
+        restoreSelection()
+        return
+    end
+
+    -- Non-move modes. Per-mode reason check returns nil to allow commit,
+    -- a {reason} table to speak and abort, or false for "unrecognized
+    -- mode -- defer to the engine gate." Queued non-move commits skip
+    -- the reason check so they bypass CanDoInterfaceMode (the engine
+    -- accepts queued missions regardless of MP state).
+    local result
+    if not queued then
+        result = commitFailureReason(self._actor, mode, plot, tx, ty)
+        if result == false then
+            if not UI.CanDoInterfaceMode(mode) then
+                result = { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED") }
+            else
+                result = nil
+            end
+        end
+    end
+
+    if result ~= nil then
+        SpeechPipeline.speakInterrupt(result.reason)
+        HandlerStack.removeByName("UnitTargetMode", false)
+        restoreSelection()
+        return
+    end
+
+    self._pendingFallback = nil
+    if queued then
+        pushMission(self, mission, plot, mode, true)
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+        return
     end
     if isMeleeAttackMode(mode) then
         -- Match base UI's AttackIntoTile (InGame.lua); SelectionListMove
@@ -753,7 +926,7 @@ local function commitAtCursor(self, queued)
         -- AND cities.
         Game.SelectionListMove(plot, false, false, false)
     else
-        Game.SelectionListGameNetMessage(GameMessageTypes.GAMEMESSAGE_PUSH_MISSION, mission, tx, ty, 0, false, false)
+        pushMission(self, mission, plot, mode, false)
     end
     HandlerStack.removeByName("UnitTargetMode", false)
     restoreSelection()
@@ -777,10 +950,36 @@ function UnitTargetMode.enter(actor, iAction, mode)
         _actor = actor,
         _iAction = iAction,
         _mode = mode,
+        -- { targetPlotIndex, commitPlot } when a Space or Enter on
+        -- `targetPlotIndex` armed the two-press confirm latch. commitPlot
+        -- is what the next Enter / Shift+Enter on the same plot commits
+        -- MOVE_TO: the closest reachable plot for path failures, or the
+        -- cursor target itself for combat-causing strict success.
+        -- Cleared by successful commits, by handler pop, and by a fresh
+        -- Space / Enter that returns no commitPlot for the same plot.
+        -- See the block comment on commitAtCursor for the state machine.
+        _pendingFallback = nil,
     }
     self.bindings = {
         bind(Keys.VK_SPACE, MOD_NONE, function()
-            speakInterrupt(buildPreview(self))
+            local plot = cursorPlot()
+            local plotIndex = plot ~= nil and plot:GetPlotIndex() or nil
+            local text, commitPlot = buildPreview(self)
+            speakInterrupt(text)
+            if commitPlot ~= nil and plotIndex ~= nil then
+                self._pendingFallback = {
+                    targetPlotIndex = plotIndex,
+                    commitPlot = commitPlot,
+                }
+            elseif plotIndex ~= nil
+                and self._pendingFallback ~= nil
+                and self._pendingFallback.targetPlotIndex == plotIndex
+            then
+                -- Latch was armed for this plot from a prior arm but
+                -- the current preview produces no commitPlot. State
+                -- changed; drop the stale latch.
+                self._pendingFallback = nil
+            end
         end, "Target preview"),
         bind(Keys.VK_RETURN, MOD_NONE, function()
             commitAtCursor(self)

@@ -337,6 +337,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_T
     one = "{1_Turns} turn, {2_Steps} then unexplored",
     other = "{1_Turns} turns, {2_Steps} then unexplored",
 }
+-- Combat-with-pathfinding suffix appended to the combat preview when an
+-- attack target is reachable but not adjacent. The truncated step list
+-- (start through the attack-from tile) names the route; "then attack"
+-- marks the terminal step. Mirrors the FOG_PREFIX shape so localizers
+-- already have the pattern. MP cost is omitted: the engine consumes all
+-- remaining MP on attack and promotion bonuses can grant extra attacks,
+-- so any predicted MP-after-attack number would be wrong.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_THIS_TURN"] =
+    "this turn, {1_Steps} then attack"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN"] = {
+    one = "{1_Turns} turn, {2_Steps} then attack",
+    other = "{1_Turns} turns, {2_Steps} then attack",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE"] = "no path"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_TOO_FAR"] = "too far to compute"
 -- Discriminative path-failure diagnostics. PathDiagnostic.discriminativePath
