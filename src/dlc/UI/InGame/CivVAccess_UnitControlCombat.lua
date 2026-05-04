@@ -79,7 +79,7 @@ function UnitControlCombat.preflightAttack(unit)
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK")
     end
     if unit:MovesLeft() <= 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES")
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_ATTACKS")
     end
     return nil
 end

@@ -685,7 +685,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
             return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK") }
         end
         if actor:MovesLeft() <= 0 then
-            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES") }
+            return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_ATTACKS") }
         end
         -- bNeedWar=false: a strike on a peaceful rival's tile passes
         -- the gate; the engine queues BUTTONPOPUP_DECLAREWARRANGESTRIKE
