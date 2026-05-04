@@ -40,19 +40,6 @@ local function refuseForeign(textKey)
     SpeechPipeline.speakInterrupt(Text.key(textKey))
 end
 
--- Every CityView sub-handler shares the same BaseMenu spec: escapePops
--- back to the hub, capturesAllInput=false so Baseline's letter capture
--- still reaches. Only the name, displayName, and items differ per sub.
-local function pushCitySub(subName, displayName, items)
-    HandlerStack.push(BaseMenu.create({
-        name = "CityView." .. subName,
-        displayName = displayName,
-        items = items,
-        escapePops = true,
-        capturesAllInput = false,
-    }))
-end
-
 -- ===== Order metadata =====
 
 local ORDER_INFO_TABLE = {
@@ -205,7 +192,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         end,
     })
 
-    pushCitySub("ProdActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName), items)
+    CityViewHub.pushSub("ProdActions", Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS", slotName), items)
 end
 
 -- Rebuilt on every re-activation of the Production sub-handler so the slot

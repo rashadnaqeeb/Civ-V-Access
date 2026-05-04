@@ -241,6 +241,12 @@ local function pushCitySub(subName, displayName, items)
     }))
 end
 
+-- Cross-file API for the CityView orchestrator. Sibling files (Production
+-- sub, etc.) call CityViewHub.pushSub instead of redeclaring an identical
+-- helper. Civ V's per-Context env makes module tables the standard sharing
+-- mechanism here -- same pattern as CityViewProduction / CityViewHexMap.
+CityViewHub = { pushSub = pushCitySub }
+
 local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
