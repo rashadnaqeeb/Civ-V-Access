@@ -58,6 +58,24 @@ local VK_OEM_PERIOD = 190
 
 local hubHandler -- forward; assigned after BaseMenu.install returns.
 
+-- ===== Foreign / spy-screen detection =====
+--
+-- The engine reaches CityView for a city the active player does not own
+-- when a spy is stationed there ("View City" on the espionage screen).
+-- Vanilla disables every write surface in this case via
+-- pCity:GetOwner() ~= Game.GetActivePlayer() and / or
+-- UI.IsCityScreenViewingMode(); we mirror both gates so neither flow
+-- slips through. Treating either signal as foreign keeps us strict on
+-- the rare engine paths that flip viewing-mode without an owner mismatch
+-- (annexed-vassal lookback, etc.).
+local function isActiveOwn(city)
+    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+end
+
+local function refuseForeign(textKey)
+    SpeechPipeline.speakInterrupt(Text.key(textKey))
+end
+
 -- ===== Preamble composition =====
 --
 -- Trimmed to identifying-and-urgent: name, status tokens (razing /
@@ -74,6 +92,9 @@ local function preamble()
         return ""
     end
     local parts = {}
+    if not isActiveOwn(city) then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX")
+    end
     parts[#parts + 1] = city:GetName()
     for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
@@ -101,6 +122,10 @@ local function hasOtherCities()
 end
 
 local function nextCity()
+    if not isActiveOwn(UI.GetHeadSelectedCity()) then
+        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING")
+        return
+    end
     if not hasOtherCities() then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_NO_NEXT_CITY"))
         return
@@ -109,6 +134,10 @@ local function nextCity()
 end
 
 local function previousCity()
+    if not isActiveOwn(UI.GetHeadSelectedCity()) then
+        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING")
+        return
+    end
     if not hasOtherCities() then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_NO_PREV_CITY"))
         return
@@ -359,7 +388,14 @@ local function pushWorkerFocus()
             end,
             onActivate = function()
                 local city = UI.GetHeadSelectedCity()
-                if city == nil or not isTurnActive() then
+                if city == nil then
+                    return
+                end
+                if not isActiveOwn(city) then
+                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS")
+                    return
+                end
+                if not isTurnActive() then
                     return
                 end
                 Network.SendSetCityAIFocus(city:GetID(), focusType)
@@ -380,7 +416,14 @@ local function pushWorkerFocus()
         end,
         onActivate = function(self, menu)
             local city = UI.GetHeadSelectedCity()
-            if city == nil or not isTurnActive() then
+            if city == nil then
+                return
+            end
+            if not isActiveOwn(city) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS")
+                return
+            end
+            if not isTurnActive() then
                 return
             end
             Network.SendSetCityAvoidGrowth(city:GetID(), not city:IsForcedAvoidGrowth())
@@ -399,7 +442,14 @@ local function pushWorkerFocus()
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET"),
         onActivate = function()
             local city = UI.GetHeadSelectedCity()
-            if city == nil or not isTurnActive() then
+            if city == nil then
+                return
+            end
+            if not isActiveOwn(city) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS")
+                return
+            end
+            if not isTurnActive() then
                 return
             end
             Network.SendDoTask(city:GetID(), TaskTypes.TASK_CHANGE_WORKING_PLOT, 0, -1, false, false, false, false)
@@ -428,7 +478,14 @@ end
 
 local function activateUnemployed()
     local city = UI.GetHeadSelectedCity()
-    if city == nil or not isTurnActive() then
+    if city == nil then
+        return
+    end
+    if not isActiveOwn(city) then
+        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER")
+        return
+    end
+    if not isTurnActive() then
         return
     end
     if city:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST) <= 0 then
@@ -475,7 +532,12 @@ local function pushSellConfirmSub(buildingID)
                 textKey = "TXT_KEY_YES_BUTTON",
                 activate = function()
                     local city = UI.GetHeadSelectedCity()
-                    if city ~= nil and isTurnActive() then
+                    -- The confirm sub can sit open across ticks. Re-check
+                    -- ownership at the moment of Yes so a mid-flight
+                    -- ownership flip (multiplayer conquest, trade) does
+                    -- not let a sell command escape against a city we
+                    -- no longer own.
+                    if city ~= nil and isActiveOwn(city) and isTurnActive() then
                         Network.SendSellBuilding(city:GetID(), buildingID)
                     end
                     HandlerStack.removeByName(subName, false)
@@ -518,6 +580,10 @@ local function pushBuildings()
                 onActivate = function()
                     local liveCity = UI.GetHeadSelectedCity()
                     if liveCity == nil then
+                        return
+                    end
+                    if not isActiveOwn(liveCity) then
+                        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL")
                         return
                     end
                     if not liveCity:IsBuildingSellable(capturedID) or liveCity:IsPuppet() then
@@ -662,7 +728,14 @@ local function pushSpecialists()
                     pediaName = specName,
                     onActivate = function()
                         local c = UI.GetHeadSelectedCity()
-                        if c == nil or not isTurnActive() then
+                        if c == nil then
+                            return
+                        end
+                        if not isActiveOwn(c) then
+                            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST")
+                            return
+                        end
+                        if not isTurnActive() then
                             return
                         end
                         if not c:IsNoAutoAssignSpecialists() then
@@ -737,7 +810,14 @@ local function pushSpecialists()
         end,
         onActivate = function(self, menu)
             local c = UI.GetHeadSelectedCity()
-            if c == nil or not isTurnActive() then
+            if c == nil then
+                return
+            end
+            if not isActiveOwn(c) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST")
+                return
+            end
+            if not isTurnActive() then
                 return
             end
             local newVal = not c:IsNoAutoAssignSpecialists()
@@ -857,6 +937,10 @@ local function pushGreatWorks()
                     if c == nil then
                         return
                     end
+                    if not isActiveOwn(c) then
+                        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN")
+                        return
+                    end
                     local gwIndex = c:GetBuildingGreatWork(bClassID, slotZero)
                     if gwIndex < 0 then
                         return
@@ -916,7 +1000,14 @@ end
 
 local function pushRangedStrike()
     local city = UI.GetHeadSelectedCity()
-    if city == nil or not city:CanRangeStrikeNow() then
+    if city == nil then
+        return
+    end
+    if not isActiveOwn(city) then
+        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED")
+        return
+    end
+    if not city:CanRangeStrikeNow() then
         return
     end
     local ownerID = city:GetOwner()
@@ -1007,10 +1098,13 @@ end
 -- disabled with a tooltip, but we'd rather omit the dead-end item.
 
 local function canShowRaze(city)
+    if not isActiveOwn(city) then
+        return false
+    end
     if not city:IsOccupied() or city:IsRazing() then
         return false
     end
-    local player = Players[city:GetOwner()]
+    local player = Players[Game.GetActivePlayer()]
     if player == nil then
         return false
     end
@@ -1031,7 +1125,17 @@ end
 
 local function activateUnraze()
     local city = UI.GetHeadSelectedCity()
-    if city == nil or not isTurnActive() then
+    if city == nil then
+        return
+    end
+    -- Defense in depth. The hub item is only built when isActiveOwn was
+    -- true at build time, but ownership can flip between hub rebuild and
+    -- press (multiplayer trade, conquest). Re-check at activate so the
+    -- success speech can never run on a city we no longer own.
+    if not isActiveOwn(city) then
+        return
+    end
+    if not isTurnActive() then
         return
     end
     Network.SendDoTask(city:GetID(), TaskTypes.TASK_UNRAZE, -1, -1, false, false, false, false)
@@ -1051,7 +1155,12 @@ local function pushStats()
     if city == nil then
         return
     end
-    local player = Players[city:GetOwner()]
+    -- Use the active player (not city:GetOwner()) so a spy-screen Stats
+    -- view doesn't pump the foreign player's data through trade /
+    -- happiness rows. CityStats.buildItems also drops the Trade and
+    -- Resources groups for foreign cities, since those are mod-authored
+    -- aggregations vanilla doesn't put on the espionage view.
+    local player = Players[Game.GetActivePlayer()]
     pushCitySub("Stats", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS"), CityStats.buildItems(city, player))
 end
 
@@ -1075,7 +1184,13 @@ end
 -- whose label carries its own zero-state).
 local function buildHubItems(city)
     local items = {}
-    if city:CanRangeStrikeNow() then
+    -- isActiveOwn matches vanilla CityBannerManager.lua:33 which hides the
+    -- range-strike button on foreign cities. CanRangeStrikeNow is purely
+    -- engine-side (attack points, valid targets) and does not check
+    -- ownership; without the AND the item would appear in spy-screen hubs
+    -- whenever a foreign city has ammo and a target, which is intel a
+    -- sighted player never sees on the espionage view.
+    if isActiveOwn(city) and city:CanRangeStrikeNow() then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)
     end
@@ -1111,12 +1226,18 @@ local function buildHubItems(city)
     local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
     local slackerPedia = slackerInfo and Text.key(slackerInfo.Description) or nil
     items[#items + 1] = makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME") }, activateRename)
-    if city:IsRazing() then
+    -- Rename is hidden on foreign cities to match vanilla (EditButton:SetHide(true)
+    -- when the city's owner is not the active player or viewing mode is on).
+    if isActiveOwn(city) then
         items[#items + 1] =
-            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") }, activateUnraze)
-    elseif canShowRaze(city) then
-        items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") }, activateRaze)
+            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME") }, activateRename)
+        if city:IsRazing() then
+            items[#items + 1] =
+                makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE") }, activateUnraze)
+        elseif canShowRaze(city) then
+            items[#items + 1] =
+                makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE") }, activateRaze)
+        end
     end
     return items
 end

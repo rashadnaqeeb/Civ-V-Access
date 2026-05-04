@@ -520,6 +520,16 @@ end
 -- Entry point. Returns the list of group items for the Stats sub-handler
 -- in display order. nil-returning builders are filtered out so empty
 -- categories don't appear at all (vs. appearing with a "no entries" leaf).
+-- Trade and Resources are mod-authored aggregations that vanilla CityView
+-- does not expose. On a spy-screen view they would leak intel beyond what
+-- a sighted player sees on the espionage panel, so we drop them when the
+-- city isn't the active player's. Yields, Growth, Culture, Happiness,
+-- Religion, Defense, and the WLTKD line are all in vanilla CityView and
+-- stay visible.
+local function isActiveOwn(city)
+    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+end
+
 function CityStats.buildItems(city, player)
     local items = { buildYieldsGroup(city) }
     local function append(group)
@@ -527,12 +537,23 @@ function CityStats.buildItems(city, player)
             items[#items + 1] = group
         end
     end
+    local own = isActiveOwn(city)
     append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_GROWTH", CityStats.growthRows(city)))
     append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_CULTURE", CityStats.cultureRows(city)))
-    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_HAPPINESS", CityStats.happinessRows(city, player)))
+    -- Happiness uses player:GetUnhappinessFromCityForUI(city), which only
+    -- makes sense when player is the city's owner -- on a spy screen the
+    -- active player's per-city unhappiness against a foreign city is a
+    -- meaningless number. Drop the group entirely on foreign rather than
+    -- swap to the foreign player's handle (which would expose the foreign
+    -- empire's per-city unhappiness contribution -- intel beyond espionage).
+    if own then
+        append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_HAPPINESS", CityStats.happinessRows(city, player)))
+    end
     append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION", CityStats.religionRows(city), true))
-    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE", CityStats.tradeRows(city, player), true))
-    append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES", CityStats.resourceRows(city), true))
+    if own then
+        append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE", CityStats.tradeRows(city, player), true))
+        append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES", CityStats.resourceRows(city), true))
+    end
     append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEFENSE", CityStats.defenseRows(city)))
     append(buildDemandGroup(city))
     return items

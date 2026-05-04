@@ -41,6 +41,17 @@ local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
 
+-- Foreign / spy-screen predicate. Duplicated from the orchestrator;
+-- trivial enough that a shared module table would be more ceremony than
+-- it saves.
+local function isActiveOwn(city)
+    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+end
+
+local function refuseForeign(textKey)
+    SpeechPipeline.speakInterrupt(Text.key(textKey))
+end
+
 -- ===== Hex-map predicates =====
 
 -- GetCityIndexPlot iterates the FULL 37-plot 3-hex ring regardless of
@@ -127,11 +138,21 @@ local function hexTileAnnouncement(plot)
                 parts[#parts + 1] = t
             end
         elseif city:CanBuyPlotAt(px, py, true) then
-            local cost = city:GetBuyPlotCost(px, py)
-            if city:CanBuyPlotAt(px, py, false) then
-                parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST", cost)
+            -- On a foreign / spy city, suppress the gold cost. The number
+            -- is mod-authored intel vanilla doesn't surface on the espionage
+            -- view; the bare "purchasable" token still tells the user the
+            -- tile would be available to its owner. Affordability is also
+            -- skipped because the gold being asked is the foreign player's,
+            -- not ours.
+            if not isActiveOwn(city) then
+                parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_PURCHASABLE_FOREIGN")
             else
-                parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_UNAFFORDABLE", cost)
+                local cost = city:GetBuyPlotCost(px, py)
+                if city:CanBuyPlotAt(px, py, false) then
+                    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_COST", cost)
+                else
+                    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_UNAFFORDABLE", cost)
+                end
             end
         end
     end
@@ -202,6 +223,10 @@ local function activateHexTile()
     -- false (blocked, out of radius) -- the task wouldn't apply and speech
     -- already explained why.
     if isInWorkingArea(city, plot) then
+        if not isActiveOwn(city) then
+            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE")
+            return
+        end
         if not city:CanWork(plot) then
             return
         end
@@ -233,6 +258,14 @@ local function activateHexTile()
         return
     end
     if city:CanBuyPlotAt(cx, cy, true) then
+        -- Refuse before the network call AND before the audio cue. Vanilla
+        -- disables BuyPlotButton in viewing mode; we surface the same
+        -- "purchasable" token in the announcer but block the action so the
+        -- engine's silent reject doesn't read as success.
+        if not isActiveOwn(city) then
+            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT")
+            return
+        end
         if not city:CanBuyPlotAt(cx, cy, false) then
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_CANNOT_AFFORD"))
             return
@@ -255,6 +288,15 @@ end
 local function listWorkedTilesFromCursor()
     local city = UI.GetHeadSelectedCity()
     if city == nil then
+        return
+    end
+    -- Vanilla CityView has no "list worked tiles" feature on the
+    -- espionage panel; speaking the foreign city's worked tile set with
+    -- terrain / improvement context would be pure mod-surface intel.
+    -- Refuse on foreign with the same wording as the per-tile work refusal
+    -- so the user understands the L chord is owner-scoped.
+    if not isActiveOwn(city) then
+        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE")
         return
     end
     local cx, cy = Cursor.position()

@@ -1241,6 +1241,30 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Renommer la vill
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Incendier la ville"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Arrêter l'incendie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "incendie arrêté"
+-- Refus pour l'écran d'espionnage / ville étrangère. Voix calquée sur les
+-- autres refus du mod ("impossible de X"), concise pour le lecteur d'écran.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "espionnage"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING"] =
+    "défilement entre villes indisponible pendant l'espionnage"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED"] =
+    "impossible de tirer à distance depuis une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION"] =
+    "impossible de modifier la production d'une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE"] =
+    "impossible d'exploiter une case d'une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT"] =
+    "impossible d'acheter une case pour une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL"] =
+    "impossible de vendre un bâtiment dans une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS"] =
+    "impossible de modifier l'orientation d'une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST"] =
+    "impossible de gérer les spécialistes d'une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN"] =
+    "impossible de consulter les chefs-d'œuvre d'une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER"] =
+    "impossible d'affecter un citoyen dans une ville qui n'est pas à vous"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_PURCHASABLE_FOREIGN"] = "achetable"
 -- Reveal-announce. After a unit moves (or any reveal source -- map share,
 -- embassy, scouting agreement), build one line listing what just appeared
 -- in the active player's view. Count is plots whose revealed/visibility

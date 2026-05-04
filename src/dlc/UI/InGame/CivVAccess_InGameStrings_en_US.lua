@@ -1389,6 +1389,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Rename city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Raze city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Stop razing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "razing stopped"
+-- Foreign / spy-screen refusals. Spying on a foreign city opens CityView
+-- in viewing mode (UI.IsCityScreenViewingMode true and / or owner not the
+-- active player). Vanilla disables every write surface; we surface the same
+-- items but speak a refusal on press so a blind player hears why nothing
+-- happened. The HEX_PURCHASABLE_FOREIGN variant strips the gold cost from
+-- the buy-cost line because that number is mod-authored intel vanilla
+-- doesn't show on the espionage view.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "spying"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING"] = "city cycling not available while spying"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED"] = "you cannot fire ranged strikes for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION"] = "you cannot change production for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE"] = "you cannot work tiles for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT"] = "you cannot buy tiles for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL"] = "you cannot sell buildings in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS"] = "you cannot change focus for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST"] = "you cannot manage specialists in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN"] = "you cannot view great works in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER"] = "you cannot assign citizens in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_PURCHASABLE_FOREIGN"] = "purchasable"
 -- Reveal-announce. After a unit moves (or any reveal source -- map share,
 -- embassy, scouting agreement), build one line listing what just appeared
 -- in the active player's view. Count is plots whose revealed/visibility

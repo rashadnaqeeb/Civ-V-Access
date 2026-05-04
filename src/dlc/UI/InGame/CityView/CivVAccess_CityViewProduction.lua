@@ -27,6 +27,19 @@ local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
 
+-- Foreign / spy-screen predicate. Duplicated from the orchestrator;
+-- trivial enough that a shared module table would be more ceremony than
+-- it saves. See CivVAccess_CityViewAccess.lua's isActiveOwn for the
+-- rationale -- we treat both owner-mismatch and viewing-mode as foreign
+-- so neither engine path slips a write through.
+local function isActiveOwn(city)
+    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+end
+
+local function refuseForeign(textKey)
+    SpeechPipeline.speakInterrupt(Text.key(textKey))
+end
+
 -- Every CityView sub-handler shares the same BaseMenu spec: escapePops
 -- back to the hub, capturesAllInput=false so Baseline's letter capture
 -- still reaches. Only the name, displayName, and items differ per sub.
@@ -137,6 +150,10 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP"),
             onActivate = function()
+                if not isActiveOwn(UI.GetHeadSelectedCity()) then
+                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                    return
+                end
                 if not isTurnActive() then
                     return
                 end
@@ -151,6 +168,10 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN"),
             onActivate = function()
+                if not isActiveOwn(UI.GetHeadSelectedCity()) then
+                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                    return
+                end
                 if not isTurnActive() then
                     return
                 end
@@ -164,6 +185,10 @@ local function pushQueueSlotActions(zeroIdx, slotName)
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVE"),
         onActivate = function()
+            if not isActiveOwn(UI.GetHeadSelectedCity()) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                return
+            end
             if not isTurnActive() then
                 return
             end
@@ -263,6 +288,14 @@ local function buildProductionQueueItems()
             return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE", state)
         end,
         onActivate = function(self, menu)
+            -- Controls.HideQueueButton is a global UI flag, not per-city.
+            -- Toggling from a spy-screen visit would mutate the user's own
+            -- queue-mode setting permanently -- vanilla has no analogue
+            -- (this toggle is mod-authored). Refuse on foreign.
+            if not isActiveOwn(UI.GetHeadSelectedCity()) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                return
+            end
             if Controls.HideQueueButton == nil then
                 return
             end
@@ -284,6 +317,10 @@ local function buildProductionQueueItems()
             if c == nil then
                 return
             end
+            if not isActiveOwn(c) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                return
+            end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
             Events.SerialEventGameMessagePopup({
                 Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
@@ -303,6 +340,10 @@ local function buildProductionQueueItems()
         onActivate = function()
             local c = UI.GetHeadSelectedCity()
             if c == nil then
+                return
+            end
+            if not isActiveOwn(c) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
                 return
             end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
