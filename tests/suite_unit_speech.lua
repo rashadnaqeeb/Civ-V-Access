@@ -320,6 +320,30 @@ function M.test_selection_pantheon_stamp_does_not_surface_as_religion()
     T.truthy(not out:find("Pantheon", 1, true), "pantheon-only must not be surfaced: " .. out)
 end
 
+function M.test_selection_named_religious_unit_wraps_civ_religion_form_in_parens()
+    -- Three variables interact in this path: HasName -> personal-name
+    -- prefix, civ adj -> "Roman" lead, religion -> stamp adjacent to type.
+    -- A future refactor of unitName that builds typeForm without the
+    -- religion arg would still pass the existing named-unit and
+    -- religion-only tests; this test catches that combined-path drop.
+    setup()
+    GameInfo.Units[200] = { Description = "Great Prophet" }
+    Game.GetReligionName = function(_e)
+        return "Buddhism"
+    end
+    local u = mkUnit({
+        unitType = 200,
+        religion = 7,
+        hasName = true,
+        nameNoDesc = "George",
+    })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(
+        out:find("^George %(Roman Buddhism Great Prophet%)"),
+        "named religious unit must wrap civ + religion + type in parens after personal name: " .. out
+    )
+end
+
 function M.test_selection_religion_resolves_txt_key_form()
     setup()
     -- Game.GetReligionName for a non-custom religion returns the TXT_KEY_
