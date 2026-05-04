@@ -56,7 +56,14 @@ local function clearPending()
     _pending = nil
 end
 
-function UnitControlMovement.registerPending(unit, targetX, targetY)
+-- opts.kind / opts.destLabel: discriminator + payload for the announcement
+-- path. Default (nil opts) speaks the MOVE_TO-style "moved, N moves left" /
+-- "stopped short" lines through UnitSpeech.moveResult. kind = "rebase" with
+-- destLabel = "{Name}" routes through UnitSpeech.rebaseConfirm so the
+-- announcement is "rebased to {Name}" rather than the misleading
+-- "moved, 0 moves left" (rebase always finishMoves, so the MP suffix in
+-- moveResult would imply a partial / failed move).
+function UnitControlMovement.registerPending(unit, targetX, targetY, opts)
     if unit == nil then
         return
     end
@@ -67,6 +74,10 @@ function UnitControlMovement.registerPending(unit, targetX, targetY)
         targetX = targetX,
         targetY = targetY,
     }
+    if opts ~= nil then
+        snapshot.kind = opts.kind
+        snapshot.destLabel = opts.destLabel
+    end
     _pending = snapshot
 end
 
@@ -178,6 +189,17 @@ local function directMove(dir)
         -- and obscures that no direction will ever work.
         if unit:GetDomainType() == DomainTypes.DOMAIN_AIR then
             speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"))
+            return
+        end
+        -- 0-MP gate. Without this, the engine accepts the PUSH_MISSION
+        -- and queues the move for next turn, which then resolves through
+        -- onMissionDispatched as "queued for next turn." Alt+QAZEDC is
+        -- the keyboard equivalent of mouse-click-to-step; queueing a
+        -- single step has no UI affordance on the sighted side and
+        -- collides with target mode, which is the explicit-queue surface
+        -- (Shift+Enter, plus implicit 0-MP queueing on plain Enter).
+        if unit:MovesLeft() <= 0 then
+            speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_MOVES"))
             return
         end
         -- discriminativePath: if strict succeeds, we move. declareWar
@@ -419,22 +441,26 @@ end
 -- pending clear happen here so both call sites stay symmetric.
 local function speakMoveResult(unit, cx, cy)
     local tx, ty = _pending.targetX, _pending.targetY
-    local reachedTarget = (cx == tx and cy == ty)
-    local turnsToArrival
-    if not reachedTarget then
-        local targetPlot = plotAt(tx, ty)
-        if targetPlot ~= nil then
-            local ok, pathTurns = unit:GeneratePath(targetPlot)
-            if ok then
-                -- Engine's iPathTurns starts at 1 (initial node) and
-                -- bumps on turn boundaries. The unit has just stopped
-                -- with 0 MP *this* turn; the next move begins turn+1,
-                -- which engine has already counted, so drop one.
-                turnsToArrival = pathTurns - 1
+    if _pending.kind == "rebase" then
+        speakQueued(UnitSpeech.rebaseConfirm(_pending.destLabel))
+    else
+        local reachedTarget = (cx == tx and cy == ty)
+        local turnsToArrival
+        if not reachedTarget then
+            local targetPlot = plotAt(tx, ty)
+            if targetPlot ~= nil then
+                local ok, pathTurns = unit:GeneratePath(targetPlot)
+                if ok then
+                    -- Engine's iPathTurns starts at 1 (initial node) and
+                    -- bumps on turn boundaries. The unit has just stopped
+                    -- with 0 MP *this* turn; the next move begins turn+1,
+                    -- which engine has already counted, so drop one.
+                    turnsToArrival = pathTurns - 1
+                end
             end
         end
+        speakQueued(UnitSpeech.moveResult(unit, tx, ty, turnsToArrival))
     end
-    speakQueued(UnitSpeech.moveResult(unit, tx, ty, turnsToArrival))
     -- Same toggle that gates the selection auto-jump: when off, the
     -- cursor stays where the player parked it and they can recenter
     -- with the explicit hotkey if they want to inspect the

@@ -1225,6 +1225,16 @@ function UnitSpeech.moveResult(unit, targetX, targetY, turnsToArrival)
     return Text.key("TXT_KEY_CIVVACCESS_UNIT_STOPPED_SHORT")
 end
 
+-- Rebase teleport confirmation. Replaces UnitSpeech.moveResult on the
+-- pending-resolve path when _pending.kind == "rebase". moveResult would
+-- speak "moved, 0 moves left" (CvUnit::rebase calls finishMoves before
+-- setXY) which reads as a partial / failed move; rebase is atomic and
+-- always lands at the destination, so the confirm is a single phrase
+-- naming what the user picked from the destination menu.
+function UnitSpeech.rebaseConfirm(destLabel)
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_REBASED_TO", destLabel)
+end
+
 -- Self-plot action confirms. Dispatches off a normalized token rather
 -- than GameInfoActions hashes so the menu can pass a symbolic name and
 -- the formatter stays decoupled from engine hash churn. Returns "" for

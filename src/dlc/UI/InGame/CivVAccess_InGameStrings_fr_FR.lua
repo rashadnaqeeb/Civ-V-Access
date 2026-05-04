@@ -131,7 +131,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"] = "en file d'atte
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_RANGED"] = "unité à distance, utiliser l'attaque à distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR"] = "unité aérienne, utiliser l'attaque à distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK"] = "ne peut pas attaquer"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES"] = "pas de mouvements"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_ATTACKS"] = "à court d'attaques"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_MOVES"] = "à court de mouvements"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
     "l'aéronef ne peut pas se déplacer ainsi, utiliser le transfert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "non adjacent"
@@ -270,6 +271,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL"] = "frappe nuc
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_ILLEGAL"] = "don d'unité impossible ici"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_ILLEGAL"] = "amélioration impossible ici"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NO_INTERCEPTORS"] = "aucun intercepteur visible"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_DEST"] = {
+    one = "{1_Name}, {2_N} case",
+    other = "{1_Name}, {2_N} cases",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_NO_DESTINATIONS"] = "aucune destination de transfert à portée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASED_TO"] = "transfert vers {1_Name}"
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "Point, virgule"

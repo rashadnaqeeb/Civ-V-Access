@@ -46,6 +46,128 @@ local function isTargetedAction(actionType)
     return type(actionType) == "string" and actionType:sub(1, 14) == "INTERFACEMODE_"
 end
 
+-- Rebase destination enumeration. Cursor-driven target mode is unusable on
+-- keyboard for rebase / airlift -- the player can't see which plots are
+-- valid -- so the action menu replaces the engine's INTERFACEMODE_REBASE
+-- target picker with a list of valid destinations sorted by hex distance
+-- from the unit. Each entry commits MISSION_REBASE directly against its
+-- plot via the same PUSH_MISSION net message base UI's mouse-click path
+-- uses, bypassing INTERFACEMODE_REBASE entirely (the engine processes the
+-- mission regardless of UI mode; interface mode only drives the range
+-- overlay and cursor, neither of which matters to a blind player).
+--
+-- Candidates: the active player's own cities (canRebaseAt requires strict
+-- owner match for cities -- teammate cities are rejected by the engine
+-- absent a CanRebaseInCity script hook, so iterating own cities matches
+-- the engine's reachable set) plus the active player's own air-cargo
+-- units (carriers). Each candidate is tested with canRebaseAt against its
+-- plot; the engine's check covers range, capacity, canLoad, and same-plot
+-- exclusion in one call. Dedupe by plot index in case a carrier sits on
+-- a city tile.
+local function rebaseDestinations(unit)
+    local startPlot = unit:GetPlot()
+    local ux, uy = unit:GetX(), unit:GetY()
+    local actorID = unit:GetID()
+    local player = Players[Game.GetActivePlayer()]
+    local seen = {}
+    local out = {}
+
+    local function add(plot, label, pediaName)
+        if plot == nil then
+            return
+        end
+        local idx = plot:GetPlotIndex()
+        if seen[idx] then
+            return
+        end
+        local x, y = plot:GetX(), plot:GetY()
+        if not unit:CanRebaseAt(startPlot, x, y) then
+            return
+        end
+        seen[idx] = true
+        out[#out + 1] = {
+            x = x,
+            y = y,
+            dist = Map.PlotDistance(ux, uy, x, y),
+            label = label,
+            pediaName = pediaName,
+        }
+    end
+
+    for city in player:Cities() do
+        local cityName = Text.key(city:GetNameKey())
+        add(city:Plot(), cityName, cityName)
+    end
+
+    for u in player:Units() do
+        if u:GetID() ~= actorID and u:CargoSpace() > 0 then
+            local typeRow = GameInfo.Units[u:GetUnitType()]
+            local typeName = typeRow ~= nil and Text.key(typeRow.Description) or u:GetName()
+            add(u:GetPlot(), u:GetName(), typeName)
+        end
+    end
+
+    table.sort(out, function(a, b)
+        if a.dist ~= b.dist then
+            return a.dist < b.dist
+        end
+        return a.label < b.label
+    end)
+    return out
+end
+
+local function buildRebaseDestinationItems(unit)
+    local items = {}
+    for _, d in ipairs(rebaseDestinations(unit)) do
+        local x, y, dist, destLabel = d.x, d.y, d.dist, d.label
+        local labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_REBASE_DEST", dist, destLabel, dist)
+        items[#items + 1] = BaseMenuItems.Choice({
+            labelText = labelText,
+            pediaName = d.pediaName,
+            activate = function()
+                UnitControl.registerPending(unit, x, y, { kind = "rebase", destLabel = destLabel })
+                Game.SelectionListGameNetMessage(
+                    GameMessageTypes.GAMEMESSAGE_PUSH_MISSION,
+                    GameInfoTypes.MISSION_REBASE,
+                    x,
+                    y,
+                    0,
+                    false,
+                    false
+                )
+                HandlerStack.removeByName("UnitActionMenu", false)
+            end,
+        })
+    end
+    if #items == 0 then
+        -- Game.CanHandleAction(REBASE) is per-unit (canRebase: air, immobile,
+        -- has moves), not per-destination. An air unit with no friendly
+        -- cities or carriers in rebase range satisfies the unit gate but
+        -- has nowhere to go. Without an entry the menu would silently drop
+        -- Rebase, leaving the user wondering. Surface a single info Choice
+        -- that speaks the empty-list reason on activate; no engine call.
+        items[#items + 1] = BaseMenuItems.Choice({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_UNIT_REBASE_NO_DESTINATIONS"),
+            activate = function()
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_REBASE_NO_DESTINATIONS"))
+            end,
+        })
+    end
+    return items
+end
+
+-- Targeted actions whose action-menu entry expands into a destination list
+-- instead of entering the engine's cursor-driven target mode. Keyed on
+-- action.Type. Each builder returns the list of Choice items to nest under
+-- a drill-in Group; the builder is responsible for surfacing a "no
+-- destinations" info Choice when the candidate set is empty, so the entry
+-- always stays present and answers the user (the engine's CanHandleAction
+-- gate is per-unit, not per-destination, so we can't rely on the outer
+-- gate to filter out the no-destinations case).
+local DESTINATION_LIST_BUILDERS = {
+    INTERFACEMODE_REBASE = buildRebaseDestinationItems,
+}
+
 local function isPromotionAction(action)
     local subTypes = ActionSubTypes
     return subTypes ~= nil and action.SubType == subTypes.ACTIONSUBTYPE_PROMOTION
@@ -348,8 +470,28 @@ local function buildTopLevelItems(unit, buckets)
         local iAction = row.iAction
         local action = row.action
         local label = actionLabel(action)
+        local destBuilder = DESTINATION_LIST_BUILDERS[action.Type]
         if label == "" then
             Log.warn("UnitActionMenu: action iAction=" .. tostring(iAction) .. " has no label; omitting")
+        elseif destBuilder ~= nil then
+            -- Drill-in Group of valid destinations. cached=false rebuilds
+            -- on every drill so the list reflects the current game state
+            -- (mission queue changes, MP, capacity) without a stale cache.
+            -- The builder is responsible for surfacing an empty-list info
+            -- entry when no destinations qualify (the engine's
+            -- CanHandleAction gate is per-unit, not per-destination, so an
+            -- air unit with no valid targets in range still passes the
+            -- outer gate and the user expects a non-silent answer here).
+            items[#items + 1] = BaseMenuItems.Group({
+                labelText = label,
+                tooltipFn = function()
+                    return staticHelpText(action)
+                end,
+                cached = false,
+                itemsFn = function()
+                    return destBuilder(unit)
+                end,
+            })
         elseif isTargetedAction(action.Type) then
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = label,

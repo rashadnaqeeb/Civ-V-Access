@@ -231,7 +231,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"] = "queued for nex
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_RANGED"] = "ranged unit, use ranged attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR"] = "air unit, use ranged attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_CANT_ATTACK"] = "cannot attack"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NO_MOVES"] = "no moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_ATTACKS"] = "out of attacks"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_OUT_OF_MOVES"] = "out of moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_AIR_NO_DIRECT_MOVE"] =
     "aircraft can't be moved this way, use rebase"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PRECHECK_NOT_ADJACENT"] = "not adjacent"
@@ -451,6 +452,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "no route
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL"] = "cannot paradrop here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL"] = "cannot airlift here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL"] = "cannot rebase here"
+-- Rebase destination entry in the unit action menu's Rebase drill-in. The
+-- menu replaces engine target mode (cursor probe) with a proximity-sorted
+-- list of valid destinations so a blind player can pick by name; the
+-- distance suffix is the salient distinguishing feature when several
+-- candidates share a label (e.g. multiple unnamed Aircraft Carriers).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_DEST"] = {
+    one = "{1_Name}, {2_N} tile",
+    other = "{1_Name}, {2_N} tiles",
+}
+-- Spoken when the user activates the Rebase action menu entry but no
+-- friendly cities or air-cargo units are within rebase range. The action
+-- itself is available (the unit satisfies canRebase) but no destination
+-- qualifies; surface that explicitly rather than letting the entry
+-- silently disappear.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_NO_DESTINATIONS"] = "no rebase destinations in range"
+-- Spoken on rebase resolution. The pending machinery normally speaks
+-- moveResult ("moved, N moves left" / "stopped short"), but rebase calls
+-- finishMoves before setXY so MovesLeft is always 0 -- the moveResult
+-- phrasing would imply a partial / failed move. The user already picked
+-- the destination by name from the action menu; the confirm names what
+-- they picked.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASED_TO"] = "rebased to {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL"] = "cannot embark here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL"] = "cannot disembark here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL"] = "cannot nuke here"
