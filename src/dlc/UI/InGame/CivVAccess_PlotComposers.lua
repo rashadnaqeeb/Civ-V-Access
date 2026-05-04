@@ -258,13 +258,21 @@ end
 -- Per-target preview for the modes whose only sighted feedback is a
 -- highlight tint (legal target = colored, otherwise dimmed). The engine
 -- doesn't expose per-target failure reasons, so illegal collapses to a
--- single "cannot X here" string. Legal speaks the destination plot's
--- glance summary so the player can sanity-check terrain / units / city
--- before committing. Used by UnitTargetMode (paradrop / airlift / rebase /
--- nuke) and GiftMode (gift unit / improvement).
-function PlotComposers.legalityPreview(canTarget, illegalKey, plot)
+-- single "cannot X here" string. Legal speaks `legalText` when the caller
+-- supplies one (action-affirming phrase like "airlift here" or "gift
+-- Warrior to Vilnius"); otherwise falls back to the destination plot's
+-- glance so the player can sanity-check terrain / units / city. Action-
+-- affirming variants are preferred for modes the user reaches via a menu
+-- pick (the cursor was already read during navigation, so re-reading on
+-- Space is redundant); the glance fallback stays for legacy reach paths
+-- (embark / disembark / rebase target mode) where the picker doesn't
+-- pre-name the destination.
+function PlotComposers.legalityPreview(canTarget, illegalKey, plot, legalText)
     if not canTarget then
         return Text.key(illegalKey)
+    end
+    if legalText ~= nil then
+        return legalText
     end
     local glance = PlotComposers.glance(plot)
     if glance == nil or glance == "" then

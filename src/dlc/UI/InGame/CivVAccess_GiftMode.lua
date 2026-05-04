@@ -63,14 +63,6 @@ local function firstOwnUnit(plot)
     return pUnit
 end
 
-local function canGiftUnitFromPlot(plot, toPlayerID)
-    local unit = firstOwnUnit(plot)
-    if unit == nil then
-        return false
-    end
-    return unit:CanDistanceGift(toPlayerID)
-end
-
 local function canGiftImprovementAtPlot(x, y, toPlayerID)
     local pToPlayer = Players[toPlayerID]
     if pToPlayer == nil then
@@ -127,12 +119,29 @@ local function findFirstImprovementTarget(toPlayerID)
     return nil, nil
 end
 
--- Per-plot Space preview. PlotComposers.legalityPreview returns the plot
--- glance on legal targets and the "cannot X here" key on illegal -- the
--- glance covers unit identity on the gift-unit path (a plot with my Warrior
--- reads "Warrior"), so the absence of the "cannot" prefix already tells
--- the user the cursor's unit is the one they'd commit.
+-- Per-plot Space preview. PlotComposers.legalityPreview returns
+-- `legalText` on legal targets (an action-affirming phrase the user
+-- hears in place of the cursor glance they already heard while
+-- navigating) and the "cannot X here" key on illegal. Each gift kind
+-- composes its own legal phrase below: "gift {Unit} to {Recipient}"
+-- names what's being given and to whom; "improve {Resource} for
+-- {Recipient}" names the resource the picked plot's improvement would
+-- connect (the engine picks the specific improvement at commit time
+-- from the resource).
 local legalityPreview = PlotComposers.legalityPreview
+
+-- Recipient civ name resolved through the standard short-description
+-- key both PlotSectionsCore (territory speech) and the diplo screens use.
+-- Cached at mode entry because the recipient doesn't change while the
+-- handler is on the stack (the picker exits on commit / cancel; a new
+-- recipient enters via a fresh GiftMode.enter call).
+local function recipientName(toPlayerID)
+    local p = Players[toPlayerID]
+    if p == nil then
+        return ""
+    end
+    return Text.key(p:GetCivilizationShortDescriptionKey())
+end
 
 local function commitUnit(toPlayerID)
     local plot, _x, _y = cursorPlot()
@@ -206,17 +215,28 @@ function GiftMode.enter(toPlayerID, kind)
     local commitFn
     local modeWordKey
     local jumpFn
+    local recipient = recipientName(toPlayerID)
     if kind == KIND_UNIT then
         previewFn = function()
             local plot = cursorPlot()
             if plot == nil then
                 return ""
             end
-            return legalityPreview(
-                canGiftUnitFromPlot(plot, toPlayerID),
-                "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_ILLEGAL",
-                plot
-            )
+            -- Single firstOwnUnit lookup drives both the legality gate and
+            -- the legal-text unit name. nil is the "no own unit on this
+            -- plot" case (cursor moved off the giftable unit) and routes
+            -- straight to the illegal branch.
+            local unit = firstOwnUnit(plot)
+            local legal = unit ~= nil and unit:CanDistanceGift(toPlayerID)
+            local legalText
+            if legal then
+                legalText = Text.format(
+                    "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_LEGAL",
+                    unit:GetName(),
+                    recipient
+                )
+            end
+            return legalityPreview(legal, "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_ILLEGAL", plot, legalText)
         end
         commitFn = function()
             if commitUnit(toPlayerID) then
@@ -233,10 +253,27 @@ function GiftMode.enter(toPlayerID, kind)
             if plot == nil then
                 return ""
             end
+            local legal = canGiftImprovementAtPlot(cx, cy, toPlayerID)
+            local legalText
+            if legal then
+                -- Resource is guaranteed present and valid when
+                -- canGiftImprovementAtPlot returns true (the engine gate
+                -- rejects plots without a luxury / strategic resource);
+                -- a nil row here is a contract violation that should
+                -- crash into Lua.log rather than collapse to a blank name.
+                local resourceName =
+                    Text.key(GameInfo.Resources[plot:GetResourceType(Game.GetActiveTeam())].Description)
+                legalText = Text.format(
+                    "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_LEGAL",
+                    resourceName,
+                    recipient
+                )
+            end
             return legalityPreview(
-                canGiftImprovementAtPlot(cx, cy, toPlayerID),
+                legal,
                 "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_ILLEGAL",
-                plot
+                plot,
+                legalText
             )
         end
         commitFn = function()

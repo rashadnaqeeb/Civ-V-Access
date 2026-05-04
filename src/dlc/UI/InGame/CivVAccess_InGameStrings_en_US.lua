@@ -494,6 +494,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL"] = "cannot nuk
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_ILLEGAL"] = "cannot gift unit here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_ILLEGAL"] = "cannot improve here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NO_INTERCEPTORS"] = "no visible interceptors"
+-- Action-affirming legal previews. Spoken on Space when the cursor is on
+-- a valid target hex for the active picker, in place of the cursor's
+-- tile glance (which the user already heard while navigating). Each
+-- mirrors its ILLEGAL counterpart but names what the action will do
+-- rather than re-describing what's at the hex. NUKE additionally surfaces
+-- the engine's NUKE_BLAST_RADIUS so the user can judge collateral. GIFT_*
+-- name the recipient and the gifted unit / connected resource so the
+-- Space probe answers "what will happen if I commit here" rather than
+-- "what's at this hex."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_LEGAL"] = "airlift here"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_LEGAL"] = "paradrop here"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_LEGAL"] = "nuke here, blast radius {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_LEGAL"] = "gift {1_Unit} to {2_Recipient}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_LEGAL"] = "improve {1_Resource} for {2_Recipient}"
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "Period, comma"

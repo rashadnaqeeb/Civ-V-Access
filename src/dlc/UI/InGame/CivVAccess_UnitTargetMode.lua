@@ -565,13 +565,15 @@ local function buildPreview(self)
         parts[#parts + 1] = legalityPreview(
             actor:CanParadropAt(actor:GetPlot(), tx, ty),
             "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL",
-            plot
+            plot,
+            Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_LEGAL")
         )
     elseif mode == InterfaceModeTypes.INTERFACEMODE_AIRLIFT then
         parts[#parts + 1] = legalityPreview(
             actor:CanAirliftAt(actor:GetPlot(), tx, ty),
             "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL",
-            plot
+            plot,
+            Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_LEGAL")
         )
     elseif mode == InterfaceModeTypes.INTERFACEMODE_REBASE then
         parts[#parts + 1] = legalityPreview(
@@ -589,8 +591,13 @@ local function buildPreview(self)
         parts[#parts + 1] =
             legalityPreview(actor:CanDisembarkOnto(plot), "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL", plot)
     elseif mode == InterfaceModeTypes.INTERFACEMODE_NUKE then
-        parts[#parts + 1] =
-            legalityPreview(actor:CanNukeAt(tx, ty), "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL", plot)
+        local blastRadius = (GameDefines and GameDefines.NUKE_BLAST_RADIUS) or 2
+        parts[#parts + 1] = legalityPreview(
+            actor:CanNukeAt(tx, ty),
+            "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL",
+            plot,
+            Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_LEGAL", blastRadius)
+        )
     elseif mode == InterfaceModeTypes.INTERFACEMODE_AIR_SWEEP then
         parts[#parts + 1] = airSweepPreview(actor, plot)
     else
