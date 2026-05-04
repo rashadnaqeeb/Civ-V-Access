@@ -1,13 +1,17 @@
--- Bookmarks: per-session digit-keyed cursor positions plus the Ctrl+S
--- permanent jump-to-capital. Each test exercises a path the others
--- don't: save populates a slot, save warns when the cursor is unset,
--- jumpTo rejects empty slots, jumpTo delegates to ScannerNav.jumpCursorTo
--- (which owns the at-target SCANNER_HERE short-circuit and the pre-jump
--- anchor; covered in scanner_navigation_test), directionTo speaks HERE
--- at zero distance, directionTo composes the optional coord segment
--- under the scannerCoords toggle, resetForNewGame drops every slot,
--- jumpToCapital speaks NO_CAPITAL pre-founding and otherwise delegates
--- to jumpCursorTo with the live capital plot.
+-- Bookmarks: persistent digit-keyed cursor positions plus the Ctrl+S
+-- jump-to-capital. Each test exercises a path the others don't: save
+-- populates a slot, save warns when the cursor is unset, save writes
+-- through to the user-data store, jumpTo rejects empty slots, jumpTo
+-- delegates to ScannerNav.jumpCursorTo (which owns the at-target
+-- SCANNER_HERE short-circuit and the pre-jump anchor; covered in
+-- scanner_navigation_test), directionTo speaks HERE at zero distance,
+-- directionTo composes the optional coord segment under the
+-- scannerCoords toggle, hydrateForCurrentGame loads the saved blob
+-- under the current (map seed, player slot) key, the (map seed, player
+-- slot) scope keeps separate games and hotseat players from cross-
+-- reading each other's slots, jumpToCapital speaks NO_CAPITAL pre-
+-- founding and otherwise delegates to jumpCursorTo with the live
+-- capital plot.
 
 local T = require("support")
 local M = {}
@@ -36,6 +40,33 @@ local function setup()
         return false
     end
 
+    -- Reinstall a fresh in-memory user-data store on every setup. Tests
+    -- that exercise the failure path (malformed deserialize, OpenUserData
+    -- throws) overwrite Modding.OpenUserData; this assignment restores
+    -- the working stub for the next test, so suite ordering is irrelevant.
+    -- Pin the seed and active player so the storage key is deterministic.
+    -- Tests that exercise multi-game or hotseat scoping override these.
+    local userDataBucket = {}
+    Modding.OpenUserData = function()
+        return {
+            GetValue = function(key)
+                return userDataBucket[key]
+            end,
+            SetValue = function(key, value)
+                userDataBucket[key] = value
+            end,
+        }
+    end
+    Network.GetMapRandSeed = function()
+        return 100
+    end
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.IsHotSeat = function()
+        return false
+    end
+
     cursorPosition = { x = nil, y = nil }
     Cursor = {
         position = function()
@@ -55,7 +86,7 @@ local function setup()
     }
 
     dofile("src/dlc/UI/InGame/CivVAccess_Bookmarks.lua")
-    Bookmarks.resetForNewGame()
+    Bookmarks.hydrateForCurrentGame()
 end
 
 -- ===== Save =====
@@ -182,15 +213,125 @@ function M.test_directionTo_omits_coord_when_scannerCoords_off()
     T.eq(out:find(",") ~= nil, false, "coord segment must be omitted when toggle is off")
 end
 
--- ===== resetForNewGame =====
+-- ===== Persistence =====
 
-function M.test_resetForNewGame_drops_every_slot()
+function M.test_save_writes_through_so_hydrate_round_trips()
+    -- Save populates the in-memory table AND writes to the user-data
+    -- store; hydrating after a wipe of the in-memory table must restore
+    -- the same slots, keyed by the current (map seed, active player).
+    setup()
+    cursorPosition = { x = 4, y = -2 }
+    Bookmarks.save("3")
+    cursorPosition = { x = 7, y = 8 }
+    Bookmarks.save("9")
+    civvaccess_shared.bookmarks = {}
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(civvaccess_shared.bookmarks["3"].x, 4)
+    T.eq(civvaccess_shared.bookmarks["3"].y, -2)
+    T.eq(civvaccess_shared.bookmarks["9"].x, 7)
+    T.eq(civvaccess_shared.bookmarks["9"].y, 8)
+end
+
+function M.test_hydrate_yields_empty_table_when_no_prior_save()
+    -- A fresh game (no prior writes under this map seed and player
+    -- slot) must hydrate to an empty table, not leave bookmarks nil
+    -- -- the binding handlers index civvaccess_shared.bookmarks
+    -- without nil-guarding.
+    setup()
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(type(civvaccess_shared.bookmarks), "table")
+    T.eq(next(civvaccess_shared.bookmarks), nil)
+end
+
+function M.test_different_map_seed_isolates_slots()
+    -- The storage key is "<seed>:<player>"; switching seeds (loading a
+    -- separately rolled game) must yield an empty hydrate even if the
+    -- prior game had populated slots in the same store.
     setup()
     cursorPosition = { x = 1, y = 1 }
     Bookmarks.save("1")
-    Bookmarks.save("9")
-    Bookmarks.resetForNewGame()
-    T.eq(next(civvaccess_shared.bookmarks), nil, "table must be empty after reset")
+    Network.GetMapRandSeed = function()
+        return 999
+    end
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(next(civvaccess_shared.bookmarks), nil, "different map seed must isolate slots")
+end
+
+function M.test_different_active_player_isolates_slots_in_hotseat()
+    -- Same map seed, different player slot (hotseat handover) must
+    -- isolate too: the "<seed>:<player>" key includes the player.
+    setup()
+    cursorPosition = { x = 1, y = 1 }
+    Bookmarks.save("1")
+    Game.GetActivePlayer = function()
+        return 1
+    end
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(next(civvaccess_shared.bookmarks), nil, "different active player must isolate slots")
+    -- And switching back restores the original player's slot.
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(civvaccess_shared.bookmarks["1"].x, 1)
+end
+
+function M.test_save_in_memory_survives_persist_failure()
+    -- Save's contract: write the in-memory slot first, persist second,
+    -- so a thrown SetValue still gives the user the slot for this
+    -- session. Reordering those two lines breaks the contract; this
+    -- test pins the order. Failure is logged but not propagated.
+    setup()
+    Modding.OpenUserData = function()
+        return {
+            GetValue = function() return nil end,
+            SetValue = function() error("simulated SQLite failure") end,
+        }
+    end
+    local errored
+    Log.error = function(msg) errored = msg end
+    cursorPosition = { x = 5, y = 6 }
+    local spoken = Bookmarks.save("4")
+    T.eq(spoken, "bookmark added", "save must still return the success string")
+    T.eq(civvaccess_shared.bookmarks["4"].x, 5, "in-memory slot must be set despite persist failure")
+    T.eq(civvaccess_shared.bookmarks["4"].y, 6)
+    T.truthy(errored, "Log.error must fire so the failure is traceable to Bookmarks")
+end
+
+function M.test_hydrate_leaves_empty_table_when_store_unavailable()
+    -- If OpenUserData throws at boot the bindings still need a non-nil
+    -- table to index. Hydrate must always leave civvaccess_shared.bookmarks
+    -- as a (possibly empty) table, never nil.
+    setup()
+    Modding.OpenUserData = function()
+        error("simulated open failure")
+    end
+    Log.error = function() end
+    civvaccess_shared.bookmarks = nil
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(type(civvaccess_shared.bookmarks), "table")
+    T.eq(next(civvaccess_shared.bookmarks), nil)
+end
+
+function M.test_deserialize_skips_malformed_entries()
+    -- A corrupt store row (manual edit, partial write, truncated value)
+    -- must be skipped rather than yielding {x=nil, y=nil}, which would
+    -- crash downstream HexGeom calls when the slot is jumped.
+    setup()
+    Modding.OpenUserData = function()
+        return {
+            GetValue = function() return "1,abc,5;2,3,4;9,,7" end,
+            SetValue = function() end,
+        }
+    end
+    local warned
+    Log.warn = function(msg) warned = msg end
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(civvaccess_shared.bookmarks["1"], nil, "non-numeric x must be dropped")
+    T.eq(civvaccess_shared.bookmarks["2"].x, 3, "well-formed entry must survive")
+    T.eq(civvaccess_shared.bookmarks["2"].y, 4)
+    T.eq(civvaccess_shared.bookmarks["9"], nil, "empty x capture must be dropped")
+    T.truthy(warned, "Log.warn must fire on malformed entry")
 end
 
 -- ===== Bindings surface =====

@@ -179,6 +179,42 @@ Teams = Teams or {}
 GameInfo = GameInfo or {}
 GameInfoTypes = GameInfoTypes or {}
 
+-- Network: bookmarks key off GetMapRandSeed for per-game scoping. Fixed
+-- seed in tests so suites get deterministic storage keys; suites that
+-- exercise multi-game scoping overwrite GetMapRandSeed in setup().
+Network = Network or {}
+if Network.GetMapRandSeed == nil then
+    Network.GetMapRandSeed = function()
+        return 1
+    end
+end
+
+-- Modding.OpenUserData: per-mod local key/value store backed by SQLite
+-- in-game. Tests get an in-memory backing keyed by (id, version) so the
+-- Bookmarks suite (or any future module that persists user data) can
+-- round-trip writes within a single test. Modding._resetUserData()
+-- clears the store between tests.
+Modding = Modding or {}
+if Modding.OpenUserData == nil then
+    local _userDataStore = {}
+    Modding.OpenUserData = function(id, version)
+        local scope = tostring(id) .. "/" .. tostring(version)
+        _userDataStore[scope] = _userDataStore[scope] or {}
+        local bucket = _userDataStore[scope]
+        return {
+            GetValue = function(key)
+                return bucket[key]
+            end,
+            SetValue = function(key, value)
+                bucket[key] = value
+            end,
+        }
+    end
+    Modding._resetUserData = function()
+        _userDataStore = {}
+    end
+end
+
 -- OptionsManager: detail readouts (and any future production code that
 -- branches on engine option flags) read this. Default false / no-op so a
 -- module dofiled in tests without explicit setup behaves as if the option

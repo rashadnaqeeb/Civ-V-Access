@@ -206,9 +206,12 @@ local function onInGameBoot()
     -- initialized. Setting before loadAll would be a silent no-op.
     VolumeControl.restore()
     TaskList.resetForNewGame()
-    -- Bookmarks are session-only and tied to the active map's geometry;
-    -- a different game has different cells under those (x, y) pairs.
-    Bookmarks.resetForNewGame()
+    -- Bookmarks persist via Modding.OpenUserData scoped by map seed and
+    -- active player. Hydrate before any binding can fire so Shift+digit
+    -- jumps and Alt+digit directions resolve against the saved cells.
+    -- A different map's seed yields an empty hydrate; same map round-
+    -- trips its slots from disk.
+    Bookmarks.hydrateForCurrentGame()
     -- Baseline and Scanner are the floor of the in-game stack: Baseline
     -- owns map / unit / turn keys and is the capturesAllInput barrier;
     -- Scanner sits one above for category cycling. They are not modal
@@ -236,6 +239,7 @@ local function onInGameBoot()
     UnitControl.installListeners()
     Turn.installListeners()
     HotseatCursor.installListeners()
+    Bookmarks.installListeners()
     MessageBuffer.installListeners()
     HotseatMessageBuffer.installListeners()
     NotificationAnnounce.install()
