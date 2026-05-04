@@ -2,11 +2,13 @@
 -- (combat) detail keys. Each composer reads sections in a fixed order,
 -- joins non-empty tokens with ", ", and returns a single speech string.
 --
--- Visibility gating happens here, not in the sections themselves: a fogged
--- plot reads stale GetRevealed* data fine, but live data (units, yields,
--- build progress, ZoC) only makes sense when IsVisible. The per-move
--- composer also handles the "never revealed" short-circuit so unexplored
--- tiles don't leak any information at all.
+-- Visibility gating: a fogged plot reads stale GetRevealed* data fine, but
+-- live data (yields, build progress, ZoC) only makes sense when IsVisible,
+-- so those sections are gated by the composer. PlotSectionUnits is the
+-- exception -- it owns its own per-unit policy because own-team trade units
+-- legitimately sit on fogged plots and need to surface anyway. The Cursor
+-- handles the "never revealed" short-circuit so unexplored tiles never
+-- reach the composer at all.
 
 PlotComposers = {}
 
