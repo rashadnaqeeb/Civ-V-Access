@@ -316,6 +316,7 @@ local ALT_ACTION_TYPES = {
     HEAL = { "MISSION_HEAL" },
     PILLAGE = { "MISSION_PILLAGE" },
     RANGED = { "INTERFACEMODE_RANGE_ATTACK", "INTERFACEMODE_AIRSTRIKE" },
+    MOVE_TO = { "INTERFACEMODE_MOVE_TO" },
     SKIP = { "MISSION_SKIP" },
     UPGRADE = { "COMMAND_UPGRADE" },
 }
@@ -363,6 +364,7 @@ function UnitControlMovement.getBindings()
         bind(Keys.C, MOD_ALT, function()
             directMove(DirectionTypes.DIRECTION_SOUTHEAST)
         end, "Move unit SE"),
+        bind(Keys.M, MOD_ALT, quickAction(ALT_ACTION_TYPES.MOVE_TO), "Move to target"),
         bind(Keys.F, MOD_ALT, quickAction(ALT_ACTION_TYPES.SENTRY), "Sentry"),
         bind(Keys.S, MOD_ALT, quickAction(ALT_ACTION_TYPES.SLEEP), "Sleep or fortify"),
         bind(Keys.W, MOD_ALT, quickAction(ALT_ACTION_TYPES.WAKE), "Wake or cancel"),
@@ -381,6 +383,10 @@ function UnitControlMovement.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_MOVE",
             description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_MOVE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_MOVE_TO",
+            description = "TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_MOVE_TO",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SLEEP",
