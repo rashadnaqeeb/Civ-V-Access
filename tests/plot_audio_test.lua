@@ -584,36 +584,5 @@ function M.test_loadAll_sets_fog_to_half_volume()
     T.eq(found.v, 0.5, "fog volume must be 0.5")
 end
 
-local function findVolumeCall(handle)
-    for _, c in ipairs(audio._calls) do
-        if c.op == "set_volume" and c.id == handle then
-            return c
-        end
-    end
-    return nil
-end
-
-function M.test_loadAll_boosts_road_volume()
-    -- Route stingers (road / railroad) play louder than the rest of the
-    -- palette so a route on the tile reads distinctly through the bed.
-    -- Same one-shot pattern as fog, on the other side of unity.
-    setup()
-    PlotAudio.loadAll()
-    local roadId = civvaccess_shared.plotAudioHandles.road
-    local found = findVolumeCall(roadId)
-    T.truthy(found ~= nil, "loadAll must set_volume on the road handle")
-    T.eq(found.v, 1.25, "road volume must be 1.25")
-end
-
-function M.test_loadAll_boosts_railroad_volume()
-    -- Railroad shares the route preset with road; both must be set_volume'd
-    -- to 1.25 so they play at the same effective level relative to the bed.
-    setup()
-    PlotAudio.loadAll()
-    local railroadId = civvaccess_shared.plotAudioHandles.railroad
-    local found = findVolumeCall(railroadId)
-    T.truthy(found ~= nil, "loadAll must set_volume on the railroad handle")
-    T.eq(found.v, 1.25, "railroad volume must be 1.25")
-end
 
 return M

@@ -35,12 +35,6 @@ local STINGER_OFFSET_MS = 100
 -- and inherited on every subsequent play of the fog slot.
 local FOG_VOLUME = 0.5
 
--- Route stinger plays louder than the rest so a route on the tile reads
--- distinctly through the bed instead of getting buried in it. Applies to
--- both road and railroad slots; same one-shot audio.set_volume pattern as
--- fog, just on the other side of unity.
-local ROUTE_VOLUME = 1.25
-
 -- Features whose bed replaces the terrain bed. Each has exactly one allowed
 -- base terrain per Feature_TerrainBooleans, so the underlying terrain is
 -- recoverable from the feature bed alone.
@@ -225,12 +219,6 @@ function PlotAudio.loadAll()
     civvaccess_shared.plotAudioHandles = handles
     if handles.fog ~= nil then
         audio.set_volume(handles.fog, FOG_VOLUME)
-    end
-    if handles.road ~= nil then
-        audio.set_volume(handles.road, ROUTE_VOLUME)
-    end
-    if handles.railroad ~= nil then
-        audio.set_volume(handles.railroad, ROUTE_VOLUME)
     end
     Log.info("PlotAudio.loadAll: loaded " .. tostring(loaded) .. ", missed " .. tostring(missed))
 end
