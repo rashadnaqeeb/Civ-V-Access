@@ -171,9 +171,17 @@ local function identifyUnreachableCause(unit, target, closest)
         if not team:CanEmbark() then
             return { subCause = "noEmbark" }
         end
-        local astronomyTech = findDeepWaterTech()
-        if astronomyTech ~= nil and not team:IsHasTech(astronomyTech) then
-            return { subCause = "noAstronomy" }
+        -- Astronomy (EmbarkedAllWaterPassage) gates deep water (ocean),
+        -- not shallow lakes -- Optics alone is sufficient for lake travel.
+        -- Skip the astronomy attribution when the target is a lake so we
+        -- don't tell the user to research a tech that wouldn't unlock
+        -- the route. The block is more likely terrain (mountains around
+        -- a landlocked lake), which the boundary inspection below catches.
+        if not target:IsLake() then
+            local astronomyTech = findDeepWaterTech()
+            if astronomyTech ~= nil and not team:IsHasTech(astronomyTech) then
+                return { subCause = "noAstronomy" }
+            end
         end
     end
 
