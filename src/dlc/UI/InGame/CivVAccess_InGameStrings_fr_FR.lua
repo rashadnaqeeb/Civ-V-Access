@@ -277,6 +277,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_DEST"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_NO_DESTINATIONS"] = "aucune destination de transfert à portée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASED_TO"] = "transfert vers {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_PREAMBLE"] =
+    "Choisissez une ville où aérotransporter cette unité. Une fois sélectionnée, choisissez la case exacte où l'unité atterrira, qui ne peut pas être à plus d'une case de la ville."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_DEST"] = {
+    one = "{1_Name}, {2_N} case",
+    other = "{1_Name}, {2_N} cases",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_NO_DESTINATIONS"] = "aucune destination de pont aérien disponible"
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "Point, virgule"

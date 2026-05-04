@@ -474,6 +474,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASE_NO_DESTINATIONS"] = "no rebas
 -- the destination by name from the action menu; the confirm names what
 -- they picked.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_REBASED_TO"] = "rebased to {1_Name}"
+-- Airlift sub-menu. Two-stage picker: pick a destination city from this
+-- list (own-team cities with airports that have at least one valid hex
+-- around them), then the cursor jumps there and target mode opens so the
+-- user can pick the exact landing tile (the city plot or any of its six
+-- neighbors). Preamble explains the two stages on menu open; DEST is the
+-- per-city entry; NO_DESTINATIONS surfaces when the unit can't reach any
+-- friendly airport from its current plot.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_PREAMBLE"] =
+    "Pick a city to airlift this unit to. Once selected, pick the exact hex where the unit will land, cannot be more than 1 tile away from the city."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_DEST"] = {
+    one = "{1_Name}, {2_N} tile",
+    other = "{1_Name}, {2_N} tiles",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_NO_DESTINATIONS"] = "no airlift destinations available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMBARK_ILLEGAL"] = "cannot embark here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_DISEMBARK_ILLEGAL"] = "cannot disembark here"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_NUKE_ILLEGAL"] = "cannot nuke here"

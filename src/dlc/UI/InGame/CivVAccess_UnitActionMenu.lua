@@ -168,6 +168,152 @@ local DESTINATION_LIST_BUILDERS = {
     INTERFACEMODE_REBASE = buildRebaseDestinationItems,
 }
 
+-- Airlift destination enumeration. Different shape from rebase: airlift
+-- lands within one tile of a friendly airlift-capable city (the city plot
+-- itself or any of the six neighbors), so the picker is two-stage --
+-- pick a city, then pick the exact landing hex. The sub-menu lists
+-- candidate cities; each Choice's activate pops back to selection mode,
+-- jumps the cursor to the city, and enters the engine's
+-- INTERFACEMODE_AIRLIFT target picker. From there the user navigates
+-- with QAZEDC and commits with Enter against any of the seven candidate
+-- hexes (engine's canAirliftAt filters per-hex).
+--
+-- Candidates: every alive same-team player's cities (the engine's
+-- canAirliftAt resolves the destination via GetAdjacentFriendlyCity which
+-- is team-keyed, so teammate cities are valid airlift targets unlike
+-- rebase's strict-owner gate). Filter to cities where at least one of
+-- the seven candidate hexes (city + 6 neighbors) passes canAirliftAt --
+-- otherwise the user picks a city, jumps there, and hears "cannot
+-- airlift here" on every cursor position. The "city has airport"
+-- requirement is enforced inside canAirliftAt's pTargetCity->CanAirlift()
+-- check; we don't pre-filter here because CanAirlift isn't bound on
+-- CvLuaCity (the engine binding only exposes the unit-side method).
+local function airliftCityHasValidHex(unit, startPlot, city)
+    local cx, cy = city:GetX(), city:GetY()
+    if unit:CanAirliftAt(startPlot, cx, cy) then
+        return true
+    end
+    for dir = 0, DirectionTypes.NUM_DIRECTION_TYPES - 1 do
+        local p = Map.PlotDirection(cx, cy, dir)
+        if p ~= nil and unit:CanAirliftAt(startPlot, p:GetX(), p:GetY()) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Major-civ slot count. Matches CivVAccess_ScannerBackendCities's pattern.
+-- Iterating only major slots is correct here: the team-match filter below
+-- excludes city-states and barbs (they don't share a team with the active
+-- player), and they don't have CanAirlift() cities anyway. The 64 fallback
+-- exists for the offline test harness where GameDefines isn't injected.
+local MAX_MAJOR_PLAYERS = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 64
+
+local function airliftDestinationCities(unit)
+    local startPlot = unit:GetPlot()
+    local ux, uy = unit:GetX(), unit:GetY()
+    local activeTeam = Game.GetActiveTeam()
+    local out = {}
+    for playerId = 0, MAX_MAJOR_PLAYERS - 1 do
+        local player = Players[playerId]
+        if player ~= nil and player:IsAlive() and player:GetTeam() == activeTeam then
+            for city in player:Cities() do
+                -- No CanAirlift() prefilter on the city itself: the engine
+                -- method exists in C++ but isn't bound on CvLuaCity. The
+                -- seven-hex sweep below tests canAirliftAt per hex, which
+                -- internally checks pTargetCity->CanAirlift() -- a city
+                -- without an airport fails every hex and gets dropped here
+                -- for free.
+                if airliftCityHasValidHex(unit, startPlot, city) then
+                    local cx, cy = city:GetX(), city:GetY()
+                    local cityName = Text.key(city:GetNameKey())
+                    out[#out + 1] = {
+                        x = cx,
+                        y = cy,
+                        dist = Map.PlotDistance(ux, uy, cx, cy),
+                        label = cityName,
+                    }
+                end
+            end
+        end
+    end
+    table.sort(out, function(a, b)
+        if a.dist ~= b.dist then
+            return a.dist < b.dist
+        end
+        return a.label < b.label
+    end)
+    return out
+end
+
+-- Pop both menus (sub on top, action menu underneath), jump the cursor to
+-- the picked city, then enter target mode against INTERFACEMODE_AIRLIFT
+-- the same way commitTargeted does for the non-airlift flow. The
+-- per-hex legality check inside target mode (canAirliftAt against every
+-- cursor position) handles the seven-fan validation; the existing
+-- legality preview speaks "cannot airlift here" / the destination tile
+-- glance per hex on Space.
+--
+-- ScannerNav.jumpCursorTo (not bare Cursor.jumpTo) is the shared cursor-
+-- jump primitive every "send the cursor to a remembered cell" path uses
+-- (scanner Home, Bookmarks Shift+digit, Bookmarks Ctrl+S). It handles
+-- the markPreJump bookkeeping so Backspace restores the pre-jump cursor
+-- position -- the user picked Berlin from the menu and changed their
+-- mind, Backspace returns them to where they were navigating before.
+-- Return value (tile glance string) is dropped: target mode's onActivate
+-- speakInterrupts "target mode" right after, which would clobber any
+-- glance we tried to speak first; user inspects the destination by
+-- pressing Space inside target mode like every other targeted action.
+local function commitAirliftCityPick(unit, action, iAction, cx, cy)
+    HandlerStack.removeByName("UnitAirliftMenu", false)
+    HandlerStack.removeByName("UnitActionMenu", false)
+    ScannerNav.jumpCursorTo(cx, cy)
+    Game.HandleAction(iAction)
+    UnitTargetMode.enter(unit, iAction, UI.GetInterfaceMode())
+end
+
+local function openAirliftSubMenu(unit, action, iAction, displayName)
+    local cities = airliftDestinationCities(unit)
+    local items = {}
+    for _, c in ipairs(cities) do
+        local cx, cy, dist, label = c.x, c.y, c.dist, c.label
+        local labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_DEST", dist, label, dist)
+        items[#items + 1] = BaseMenuItems.Choice({
+            labelText = labelText,
+            pediaName = label,
+            activate = function()
+                commitAirliftCityPick(unit, action, iAction, cx, cy)
+            end,
+        })
+    end
+    if #items == 0 then
+        items[#items + 1] = BaseMenuItems.Choice({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_NO_DESTINATIONS"),
+            activate = function()
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_NO_DESTINATIONS"))
+            end,
+        })
+    end
+    local menu = BaseMenu.create({
+        name = "UnitAirliftMenu",
+        displayName = displayName,
+        preamble = Text.key("TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_PREAMBLE"),
+        items = items,
+        capturesAllInput = true,
+        escapePops = true,
+        escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
+    })
+    HandlerStack.push(menu)
+end
+
+-- Targeted actions whose action-menu entry pushes a sub-menu (rather than
+-- nesting items as a drill-in Group). Used when the picker needs a
+-- preamble, or when the entries don't commit directly but instead set up
+-- a follow-on interaction (airlift's two-stage pick-city-then-pick-hex).
+local SUBMENU_OPENERS = {
+    INTERFACEMODE_AIRLIFT = openAirliftSubMenu,
+}
+
 local function isPromotionAction(action)
     local subTypes = ActionSubTypes
     return subTypes ~= nil and action.SubType == subTypes.ACTIONSUBTYPE_PROMOTION
@@ -471,8 +617,26 @@ local function buildTopLevelItems(unit, buckets)
         local action = row.action
         local label = actionLabel(action)
         local destBuilder = DESTINATION_LIST_BUILDERS[action.Type]
+        local submenuOpener = SUBMENU_OPENERS[action.Type]
         if label == "" then
             Log.warn("UnitActionMenu: action iAction=" .. tostring(iAction) .. " has no label; omitting")
+        elseif submenuOpener ~= nil then
+            -- Pushes a separate BaseMenu (with its own preamble) on top of
+            -- the action menu rather than nesting items as a Group. Used
+            -- when the picker needs an introductory help string or a
+            -- two-stage flow where activating an entry doesn't commit
+            -- but kicks off a follow-on interaction (airlift jumps the
+            -- cursor and enters target mode). Action menu stays on the
+            -- stack underneath so Esc on the sub returns to it.
+            items[#items + 1] = BaseMenuItems.Choice({
+                labelText = label,
+                tooltipFn = function()
+                    return staticHelpText(action)
+                end,
+                activate = function()
+                    submenuOpener(unit, action, iAction, label)
+                end,
+            })
         elseif destBuilder ~= nil then
             -- Drill-in Group of valid destinations. cached=false rebuilds
             -- on every drill so the list reflects the current game state
