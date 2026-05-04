@@ -363,6 +363,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "blocked by 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] = "blocked by a unit, closest reachable {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "blocked by a unit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "no path, closest reachable {1_Dir}"
+-- Embark / disembark hint appended to a successful move-path preview
+-- when the start and destination share a domain but the route crosses
+-- the opposite one (land -> water -> land, or water -> land -> water).
+-- Cross-domain endpoints (land -> water, water -> land) need no hint
+-- because the destination's domain already implies the transition.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_REQUIRES_EMBARK"] = "requires embark"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_REQUIRES_DISEMBARK"] = "requires disembark"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"] = "no target here"
 -- Route-to (auto-route) preview. Tile count is the path length excluding
 -- the worker's start tile -- "the road will reach N tiles further from

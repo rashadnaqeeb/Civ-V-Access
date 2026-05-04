@@ -53,6 +53,15 @@ typedef void(*CvAEnd)(const void*, CvAStar*);
 #define MOVE_ANY_ROUTE					    (0x80000000) // because we're passing in the player number as well as the route flag
 #define MOVE_ROUTE_ALLOW_UNEXPLORED			(0x40000000) // When searching for a route, allow the search to use unrevealed plots
 //#define MOVE_NON_WAR_ROUTE				 // we're passing the player id and other flags in as well. This flag checks to see if it can get from point to point without going into territory with a team we're at war with
+// CIVVACCESS: Diagnostic exploration mode. When set, PathDestValid returns
+// TRUE unconditionally so the search runs even when the destination is one
+// the unit can't actually enter (water target for non-embarking land unit,
+// deep ocean without Astronomy, water tile occupied by an at-war unit a
+// land unit can't melee, etc.). Search exhausts naturally as PathValid
+// rejects intermediate steps the unit can't take, populating m_pClosed
+// with the unit's reachable region. Reserved for the path-failure
+// diagnostic; do not use for real mission flags.
+#define MOVE_CIVVACCESS_FORCE_DEST_VALID	(0x20000000)
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //

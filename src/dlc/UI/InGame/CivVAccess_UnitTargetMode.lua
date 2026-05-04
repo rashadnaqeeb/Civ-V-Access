@@ -171,6 +171,41 @@ local function movePathPreview(actor, targetPlot)
             summary = summary .. ", " .. steps
         end
     end
+    -- Embark/disembark hint for the non-obvious cases only: same-domain
+    -- start and end with the OPPOSITE domain in the middle. Land->land
+    -- across water means the unit must embark mid-trip; water->water
+    -- across a land hop means it must disembark. Cross-domain endpoints
+    -- (land->water, water->land) make the transition self-evident from
+    -- the destination, no announcement needed. DOMAIN_LAND gate filters
+    -- naval / air, where the announcement doesn't apply (naval routes
+    -- through cities don't count as disembarking). CanMoveAllTerrain
+    -- filters Helicopter Gunship and similar units that bypass the
+    -- embark mechanic via the canMoveAllTerrain branch of PathValid
+    -- (CvAStar.cpp:1365) -- they cross water without embarking, so
+    -- "requires embark" would be wrong for them. Land units without
+    -- embark tech can't produce a water-crossing path in the first
+    -- place, so no extra gate needed for that.
+    if
+        actor:GetDomainType() == DomainTypes.DOMAIN_LAND
+        and not actor:CanMoveAllTerrain()
+        and #path >= 3
+    then
+        local startWater = Map.GetPlot(path[1].x, path[1].y):IsWater()
+        local endWater = Map.GetPlot(path[#path].x, path[#path].y):IsWater()
+        if startWater == endWater then
+            for i = 2, #path - 1 do
+                local plot = Map.GetPlot(path[i].x, path[i].y)
+                if plot:IsWater() ~= startWater then
+                    if startWater then
+                        summary = summary .. ", " .. Text.key("TXT_KEY_CIVVACCESS_PATH_REQUIRES_DISEMBARK")
+                    else
+                        summary = summary .. ", " .. Text.key("TXT_KEY_CIVVACCESS_PATH_REQUIRES_EMBARK")
+                    end
+                    break
+                end
+            end
+        end
+    end
     return summary
 end
 

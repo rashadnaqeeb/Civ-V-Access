@@ -544,12 +544,31 @@ int CvLuaGame::lGetClosestSearchedPlot(lua_State* L)
 	CvAStar& kFinder = GC.getPathFinder();
 	const CvAStarNode* pBest = NULL;
 	int iBestDist = INT_MAX;
+	int iBestCost = INT_MAX;
 	for(const CvAStarNode* p = kFinder.GetClosedListHead(); p != NULL; p = p->m_pNext)
 	{
+		// Skip the target tile itself. PathValid's first-step trivial pass
+		// (line ~1400, "if pUnitPlot == pFromPlot return TRUE") admits any
+		// tile adjacent to the unit's start as a child without re-validating,
+		// so a water target adjacent to a land unit ends up in the closed
+		// list even though the unit can't actually be there. Returning the
+		// target as "closest reachable" is meaningless -- it's exactly where
+		// the user is pointing.
+		if(p->m_iX == iTargetX && p->m_iY == iTargetY)
+		{
+			continue;
+		}
 		const int iDist = plotDistance(p->m_iX, p->m_iY, iTargetX, iTargetY);
-		if(iDist < iBestDist)
+		const int iCost = p->m_iKnownCost;
+		// Primary: minimum hex distance to target. Tiebreaker: minimum
+		// A* g-cost from the unit's start (cheaper to reach). Without the
+		// tiebreaker, tiles at equal hex distance get picked by closed-list
+		// iteration order, which can return e.g. a tile costing 12 MP when
+		// an equally-close tile costing 6 MP exists.
+		if(iDist < iBestDist || (iDist == iBestDist && iCost < iBestCost))
 		{
 			iBestDist = iDist;
+			iBestCost = iCost;
 			pBest = p;
 		}
 	}

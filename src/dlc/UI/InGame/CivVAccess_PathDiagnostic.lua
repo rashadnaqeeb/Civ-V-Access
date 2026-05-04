@@ -33,6 +33,14 @@ PathDiagnostic = {}
 local MOVE_IGNORE_STACKING = 0x00000004
 local MOVE_DECLARE_WAR = 0x00000020
 local MOVE_UNITS_THROUGH_ENEMY = 0x00000010
+-- Engine-fork-only flag (CvAStar.h). Forces PathDestValid to accept any
+-- destination so the search runs regardless of whether the unit can
+-- actually enter that tile. Used in the unreachable branch to populate
+-- m_pClosed with the unit's reachable region for the closest-reachable
+-- readout when the destination is fundamentally inaccessible (water for
+-- non-embarking land unit, water tile with at-war unit a land unit can't
+-- melee, deep ocean without Astronomy).
+local MOVE_CIVVACCESS_FORCE_DEST_VALID = 0x20000000
 
 -- Snapshot the current path's coords into a stable Lua array. Each
 -- subsequent GeneratePath call wipes the unit's m_kLastPath, so the
@@ -154,17 +162,22 @@ function PathDiagnostic.discriminativePath(unit, target)
         return { ok = "enemy", blockingUnit = blockingUnit, closest = closest }
     end
 
-    -- No relaxation recovered the path. Destination is genuinely
-    -- unreachable. Use the strict-failure closed list (which the binding
-    -- falls back to the unit's start position when PathDestValid bailed
-    -- before any node was closed).
+    -- No relaxation recovered the path. Run a force-valid exploration
+    -- search to populate m_pClosed with the unit's reachable region,
+    -- then read the closest tile to the original target.
     --
-    -- The earlier strict failure's closed list has been overwritten by
-    -- the three retries above, so re-run strict to repopulate it before
-    -- reading. (We could save the closed list before retries, but the
-    -- fork binding only exposes "closest to a target," not the whole
-    -- list, so the simpler path is to rerun.)
-    unit:GeneratePath(target)
+    -- The flag tells PathDestValid to return TRUE unconditionally, which
+    -- matters because the destination might be one PathDestValid would
+    -- otherwise reject before any search step runs (water target for a
+    -- non-embarking land unit, water tile with an at-war unit a land
+    -- unit can't melee, deep ocean without Astronomy). Without the flag
+    -- the search never starts and m_pClosed is empty, so the closest-
+    -- reachable readout falls back to the unit's start position --
+    -- objectively wrong when there's a coastal tile next to the target.
+    -- With the flag, intermediate PathValid still rejects steps the
+    -- unit can't take, so the search exhausts naturally on unreachable
+    -- destinations and m_pClosed has the reachable region.
+    unit:GeneratePath(target, MOVE_CIVVACCESS_FORCE_DEST_VALID)
     return { ok = "unreachable", closest = readClosedListClosest(tx, ty) }
 end
 

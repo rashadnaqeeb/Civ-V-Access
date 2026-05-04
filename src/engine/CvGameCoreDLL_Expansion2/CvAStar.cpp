@@ -833,6 +833,15 @@ void UnitPathUninitialize(const void* pointer, CvAStar* finder)
 //	--------------------------------------------------------------------------------
 int PathDest(int iToX, int iToY, const void* pointer, CvAStar* finder)
 {
+	// CIVVACCESS: Force-valid mode runs the search purely to populate
+	// m_pClosed with the unit's reachable region; we never want it to
+	// "succeed" by reaching the destination. Returning false here keeps
+	// Step() looping until the open list exhausts. Pairs with the
+	// matching short-circuit in PathDestValid.
+	if(finder->GetInfo() & MOVE_CIVVACCESS_FORCE_DEST_VALID)
+	{
+		return false;
+	}
 	if(iToX == finder->GetDestX() && iToY == finder->GetDestY())
 	{
 		return true;
@@ -860,6 +869,17 @@ int PathDestValid(int iToX, int iToY, const void* pointer, CvAStar* finder)
 
 	if(pToPlot == NULL || pUnit == NULL)
 		return FALSE;
+
+	// CIVVACCESS: Force-valid mode for the diagnostic exploration. Skips
+	// every gate below and lets the search run; intermediate PathValid
+	// still rejects steps the unit can't take, so the search exhausts
+	// naturally on unreachable destinations and m_pClosed populates with
+	// the reachable region. See CvAStar.h's MOVE_CIVVACCESS_FORCE_DEST_VALID
+	// for full rationale.
+	if(finder->GetInfo() & MOVE_CIVVACCESS_FORCE_DEST_VALID)
+	{
+		return TRUE;
+	}
 
 	if(pUnit->plot() == pToPlot)
 	{
