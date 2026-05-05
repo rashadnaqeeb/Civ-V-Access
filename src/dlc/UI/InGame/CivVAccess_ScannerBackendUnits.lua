@@ -135,6 +135,17 @@ end
 -- category, including units_my -- a captured Buddhist Missionary in the
 -- player's own list is functionally distinct from a Christian one they
 -- bought, and collapsing both under bare "Missionary" would hide that.
+--
+-- Named units (Alt+N rename, plus great-general / named-admiral entries
+-- seeded from the engine pool) wrap the type form in parens after the
+-- personal name -- "Beowulf (Great General)" for own, "Tomyris (Persian
+-- Great General)" for foreign -- mirroring UnitSpeech.unitName and
+-- MilitaryOverview.unitDisplayName. Each named unit becomes its own
+-- collapse bucket because the personal name leads, so a search for the
+-- personal name lands at TypeAheadSearch tier 0 (start-of-string) and
+-- two same-type named units don't merge instances. GetNameKey returns
+-- only the type's text key regardless of m_strName (CvUnit.cpp:16758),
+-- so the personal name is read separately via HasName + GetNameNoDesc.
 local function unitItemName(unit, category)
     local unitType = unit:GetUnitType()
     local row = GameInfo.Units[unitType]
@@ -142,20 +153,35 @@ local function unitItemName(unit, category)
         return nil
     end
     local religion = unitReligion(unit)
+    local typeForm
     if category == "units_my" then
         if religion ~= nil and religion ~= "" then
-            return religion .. " " .. Text.key(row.Description)
+            typeForm = religion .. " " .. Text.key(row.Description)
+        else
+            typeForm = Text.key(row.Description)
         end
-        return Text.key(row.Description)
-    end
-    local owner = Players[unit:GetOwner()]
-    if owner == nil then
-        if religion ~= nil and religion ~= "" then
-            return religion .. " " .. Text.key(row.Description)
+    else
+        local owner = Players[unit:GetOwner()]
+        if owner == nil then
+            if religion ~= nil and religion ~= "" then
+                typeForm = religion .. " " .. Text.key(row.Description)
+            else
+                typeForm = Text.key(row.Description)
+            end
+        else
+            typeForm = Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), row.Description, religion)
         end
-        return Text.key(row.Description)
     end
-    return Text.unitWithCiv(owner:GetCivilizationAdjectiveKey(), row.Description, religion)
+    if unit:HasName() then
+        local personal = Text.key(unit:GetNameNoDesc())
+        if personal ~= nil and personal ~= "" then
+            if typeForm == nil or typeForm == "" then
+                return personal
+            end
+            return personal .. " (" .. typeForm .. ")"
+        end
+    end
+    return typeForm
 end
 
 -- Own-team trade units sit on plots the engine considers fogged because

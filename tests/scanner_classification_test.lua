@@ -105,6 +105,12 @@ local function makeUnit(opts)
     function u:GetReligion()
         return opts.religion or ReligionTypes.NO_RELIGION
     end
+    function u:HasName()
+        return opts.personalName ~= nil and opts.personalName ~= ""
+    end
+    function u:GetNameNoDesc()
+        return opts.personalName or ""
+    end
     return u
 end
 
@@ -331,6 +337,60 @@ function M.test_unit_religious_unit_surfaces_religion_with_civ_for_other_player(
         out[1].itemName,
         "Roman Buddhism Missionary",
         "religion must sit between civ adj and type word for foreign religious units"
+    )
+end
+
+function M.test_unit_named_unit_wraps_type_form_in_parens_for_own()
+    -- A renamed own unit (Alt+N or great-general pool entry) keeps the
+    -- bare type form for the parenthetical because units_my already
+    -- disambiguates owner. Personal name leads so a search for the
+    -- personal name lands at TypeAheadSearch tier 0.
+    setup()
+    loadUnitsBackend()
+    GameInfo.UnitCombatInfos = {}
+    GameInfo.Units = { [42] = { Description = "Great General" } }
+    GameInfoTypes.SPECIALUNIT_PEOPLE = 1
+    local plot = makePlotAt(0, 0, 0)
+    local u = makeUnit({ id = 1, owner = 0, combat = false, specialUnit = 1, plot = plot, personalName = "Beowulf" })
+    installPlayer(0, { u }, { team = 0 })
+    mapFromPlots({ plot })
+    local out = runUnitsScan()
+    T.eq(#out, 1)
+    T.eq(out[1].itemName, "Beowulf (Great General)", "personal name leads with type form in parens for own units")
+end
+
+function M.test_unit_named_unit_wraps_civ_typed_form_for_foreign()
+    -- Foreign named units carry the civ adjective inside the parens; the
+    -- personal name still leads so it remains the start-of-string search
+    -- match.
+    setup()
+    loadUnitsBackend()
+    GameInfo.UnitCombatInfos = {}
+    GameInfo.Units = { [42] = { Description = "Great General" } }
+    GameInfoTypes.SPECIALUNIT_PEOPLE = 1
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local plot = makePlotAt(0, 0, 0)
+    installPlayer(0, {}, { team = 0 })
+    installPlayer(
+        1,
+        { makeUnit({ id = 1, owner = 1, combat = false, specialUnit = 1, plot = plot, personalName = "Tomyris" }) },
+        { team = 1, adjKey = "TXT_KEY_CIV_PERSIA_ADJECTIVE" }
+    )
+    mapFromPlots({ plot })
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_PERSIA_ADJECTIVE" then
+            return "Persian"
+        end
+        return origConvert and origConvert(key) or key
+    end
+    local out = runUnitsScan()
+    Locale.ConvertTextKey = origConvert
+    T.eq(#out, 1)
+    T.eq(
+        out[1].itemName,
+        "Tomyris (Persian Great General)",
+        "foreign named unit must wrap civ-prefixed type form in parens after the personal name"
     )
 end
 
