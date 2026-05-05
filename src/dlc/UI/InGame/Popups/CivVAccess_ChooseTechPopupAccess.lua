@@ -116,6 +116,7 @@ local function buildItems()
                 Text.key(currentEntry.info.Description),
                 turns
             ),
+            pediaName = Text.key(currentEntry.info.Description),
         })
     end
     for _, entry in ipairs(entries) do

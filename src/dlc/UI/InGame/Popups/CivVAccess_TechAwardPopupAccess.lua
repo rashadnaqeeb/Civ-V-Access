@@ -27,6 +27,19 @@ local function preamble()
     return Text.joinNonEmpty({ labelOf("TechQuote"), labelOf("TechHelp") })
 end
 
+-- Ctrl+I from either button opens the awarded tech's pedia article. The
+-- TechName control is populated by OnPopup with the localized tech name,
+-- which the pedia search resolves through searchableList. pediaNameFn so
+-- the lookup happens at keypress time -- the buttons are static specs but
+-- the awarded tech varies per popup open.
+local function awardedTechPedia()
+    local name = labelOf("TechName")
+    if name == "" then
+        return nil
+    end
+    return name
+end
+
 local handler = BaseMenu.install(ContextPtr, {
     name            = "TechAwardPopup",
     displayName     = Text.key("TXT_KEY_TECH_AWARD_TITLE"),
@@ -39,11 +52,13 @@ local handler = BaseMenu.install(ContextPtr, {
             controlName = "ContinueButton",
             textKey     = "TXT_KEY_TECH_AWARD_BUTTON",
             activate    = function() OnContinueButtonClicked() end,
+            pediaNameFn = awardedTechPedia,
         }),
         BaseMenuItems.Button({
             controlName = "CloseButton",
             textKey     = "TXT_KEY_CLOSE",
             activate    = function() OnClose() end,
+            pediaNameFn = awardedTechPedia,
         }),
     },
     onShow          = function(h)
