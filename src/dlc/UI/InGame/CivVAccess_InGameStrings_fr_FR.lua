@@ -2336,12 +2336,36 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"] = "Abroger cette ré
 -- have no engine equivalent.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY"] = "Contrôle plus R"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Ouvrir l'aperçu des religions"
--- World Religions row composition. Distinguishing word (religion name) leads;
--- holy city / founder / city count follow with brief framing words so values
--- that could otherwise read as a list of names stay disambiguated.
+-- Forme étiquette « Religion fondée par vous : X » plutôt que phrase verbale
+-- pour contourner l'absence de sélecteur de genre/élision dans nos chaînes :
+-- « fondateur de Christianisme » est agrammatical (il faudrait « du
+-- Christianisme » / « de l'Islam »), mais nos clés contournent Locale et ne
+-- déclenchent pas le sélecteur {@1: gender ...} du moteur. La forme
+-- deux-points reste correcte quel que soit le nom (par défaut ou personnalisé).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER"] = "Religion fondée par vous : {1_Religion}"
+-- Mot de type de croyance puis le mot « croyance » pour désambiguïser la
+-- ligne. Le mot du moteur ({1_Type}) varie en nombre et en genre
+-- (« Fondateur » masc. sing., « Adeptes » masc. plur., « Panthéon »,
+-- « Développement », « Réforme »), donc une apposition par virgule -- qui
+-- ne demande aucun accord -- vaut mieux qu'une construction génitive
+-- (« croyance du fondateur » / « croyance des adeptes ») qui exigerait
+-- des cas séparés par type.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_BELIEF_TYPE"] = "{1_Type}, croyance"
+-- Composition de la ligne d'une religion mondiale. Le nom de la religion
+-- mène ; ville sainte et fondateur suivent comme étiquettes apposées ;
+-- le nombre de villes adeptes en queue est la statistique propre à la
+-- religion (« Christianisme, ..., 12 villes ») que les joueurs voyants
+-- lisent dans la ligne du moteur. La ligne est aussi un groupe explorable
+-- dont les enfants sont les villes adeptes -- le nombre est calculé sur
+-- toutes les civilisations (Game.GetNumCitiesFollowing), pas un compteur
+-- du contenu de la liste explorable, donc il reste.
+-- « fondateur {Civ} » plutôt que « fondée par {Civ} » : le participe passé
+-- exigerait l'accord avec la religion (« Christianisme... fondé » masc.,
+-- « Religion X... fondée » fém.), mais le genre des noms de religion
+-- personnalisés est indéterminé. Le nom-étiquette esquive l'accord.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
-    one = "{1_Religion}, ville sainte {2_HolyCity}, fondée par {3_Founder}, {4_NumCities} ville",
-    other = "{1_Religion}, ville sainte {2_HolyCity}, fondée par {3_Founder}, {4_NumCities} villes",
+    one = "{1_Religion}, ville sainte {2_HolyCity}, fondateur {3_Founder}, {4_NumCities} ville",
+    other = "{1_Religion}, ville sainte {2_HolyCity}, fondateur {3_Founder}, {4_NumCities} villes",
 }
 -- Espionage Overview (BNW only). TabbedShell over the engine's
 -- BUTTONPOPUP_ESPIONAGE_OVERVIEW: tab 1 agents (flat list, drill in for

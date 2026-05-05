@@ -36,7 +36,32 @@ local m_yourTab
 local m_worldTab
 local m_beliefsTab
 
-local function beliefTypeText(belief)
+-- Resolve Cursor module published on civvaccess_shared by the WorldView
+-- boot. The popup only opens in-game so the registry is populated by the
+-- time activate fires; the nil branch is purely defensive.
+local function cursorModule()
+    return civvaccess_shared.modules and civvaccess_shared.modules.Cursor
+end
+
+-- Civilopedia lookup target for a religion line. Use the underlying
+-- religion's Description text key (canonical "Christianity") rather than
+-- the custom name the founder picks ("Cult of the Wolf"), so Ctrl+I lands
+-- on the religion's pedia entry instead of falling through to GameConcepts.
+local function religionPediaName(eReligion)
+    local info = GameInfo.Religions[eReligion]
+    if info == nil then
+        return nil
+    end
+    return Text.key(info.Description)
+end
+
+-- Beliefs are a single pedia category indexed by ShortDescription
+-- (CivilopediaScreen Beliefs section uses Locale.ConvertTextKey on it).
+local function beliefPediaName(belief)
+    return Text.key(belief.ShortDescription)
+end
+
+local function beliefTypeWord(belief)
     if belief.Pantheon then
         return Text.key("TXT_KEY_RO_BELIEF_TYPE_PANTHEON")
     elseif belief.Founder then
@@ -51,10 +76,21 @@ local function beliefTypeText(belief)
     return ""
 end
 
+-- "{TYPE} belief" -- the engine type word ("Founder") on its own reads as
+-- a noun about the player; the suffix disambiguates that this row is a
+-- belief slot of that type rather than a status line.
+local function beliefTypeText(belief)
+    local word = beliefTypeWord(belief)
+    if word == "" then
+        return ""
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_BELIEF_TYPE", word)
+end
+
 local function religiousStatusText(player)
     if player:HasCreatedReligion() then
         return Text.format(
-            "TXT_KEY_RO_STATUS_FOUNDER",
+            "TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER",
             Text.key(Game.GetReligionName(player:GetReligionCreatedByPlayer()))
         )
     elseif player:HasCreatedPantheon() then
@@ -69,13 +105,15 @@ local function religiousStatusText(player)
 end
 
 -- Belief row used as a Group child (Tab 1's "Your Religion" status block,
--- Tab 3's per-religion / per-pantheon group). The parent carries religion
--- context, so the row only needs type / name / description.
+-- Tab 3's per-religion group). The parent carries religion context, so
+-- the row only needs type / name / description. Ctrl+I jumps to the
+-- belief's pedia entry.
 local function buildBeliefRow(belief)
     return BaseMenuItems.Text({
         labelText = TextFilter.filter(
             beliefTypeText(belief) .. ", " .. Text.key(belief.ShortDescription) .. ", " .. Text.key(belief.Description)
         ),
+        pediaName = beliefPediaName(belief),
     })
 end
 
@@ -85,7 +123,20 @@ local function buildYourReligionItems()
     local player = Players[Game.GetActivePlayer()]
     local items = {}
 
-    items[#items + 1] = BaseMenuItems.Text({ labelText = religiousStatusText(player) })
+    -- Status row carries Ctrl+I to the founded religion's pedia entry when
+    -- the player has founded one; pre-pantheon and post-deadline forms
+    -- have no pediable target. pediaNameFn re-resolves at keypress time
+    -- so a pantheon-then-religion progression doesn't need the row rebuilt.
+    items[#items + 1] = BaseMenuItems.Text({
+        labelText = religiousStatusText(player),
+        pediaNameFn = function()
+            local p = Players[Game.GetActivePlayer()]
+            if p:HasCreatedReligion() then
+                return religionPediaName(p:GetReligionCreatedByPlayer())
+            end
+            return nil
+        end,
+    })
 
     if player:HasCreatedReligion() then
         for _, v in ipairs(Game.GetBeliefsInReligion(player:GetReligionCreatedByPlayer())) do
@@ -165,7 +216,11 @@ local function buildYourReligionItems()
         })
     else
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CIVVACCESS_LABELED_LIST", gpLabel, Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE")),
+            labelText = Text.format(
+                "TXT_KEY_CIVVACCESS_LABELED_LIST",
+                gpLabel,
+                Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE")
+            ),
         })
     end
 
@@ -207,51 +262,126 @@ end
 
 -- Tab 2: World Religions --------------------------------------------------
 
+-- Cities following a religion across every met civ. Filters by
+-- Teams:IsHasMet so unmet civs' cities don't leak through; further
+-- gates each city by plot:IsRevealed because that's the strictest
+-- "can the user navigate there" filter (jumping the cursor onto an
+-- unrevealed plot is meaningless). Returns city handles, not snapshots,
+-- so onActivate reads live coordinates.
+local function citiesFollowingReligion(eReligion, activePlayerId, activeTeamId)
+    local activeTeam = Teams[activeTeamId]
+    local out = {}
+    for iPlayer = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+        local p = Players[iPlayer]
+        if p ~= nil and p:IsAlive() and not p:IsBarbarian() then
+            local met = (iPlayer == activePlayerId) or activeTeam:IsHasMet(p:GetTeam())
+            if met then
+                for city in p:Cities() do
+                    if city:GetReligiousMajority() == eReligion then
+                        local plot = city:Plot()
+                        if plot ~= nil and plot:IsRevealed(activeTeamId) then
+                            out[#out + 1] = city
+                        end
+                    end
+                end
+            end
+        end
+    end
+    table.sort(out, function(a, b)
+        return Locale.Compare(a:GetName(), b:GetName()) == -1
+    end)
+    return out
+end
+
+-- One row per city following a religion. Enter dismisses the popup and
+-- jumps the hex cursor onto the city plot so the user can keep navigating
+-- from there. OnClose is the engine ReligionOverview global (same Context
+-- as the wrapper); calling it before the cursor jump matches MilitaryOverview's
+-- pattern -- close the modal first so the world hex announcement isn't
+-- talking under it.
+local function buildCityRow(city)
+    local cityX, cityY = city:GetX(), city:GetY()
+    local cityName = city:GetName()
+    return BaseMenuItems.Text({
+        labelText = cityName,
+        onActivate = function()
+            OnClose()
+            local Cursor = cursorModule()
+            if Cursor ~= nil then
+                Cursor.jumpTo(cityX, cityY)
+            end
+        end,
+    })
+end
+
+local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId, activeTeamId)
+    local activeTeam = Teams[activeTeamId]
+    local holyCity = Game.GetHolyCityForReligion(eReligion, founderPlayer:GetID())
+    local holyCityName, founderName
+    if activeTeam:IsHasMet(founderPlayer:GetTeam()) then
+        holyCityName = holyCity:GetName()
+        founderName = founderPlayer:GetCivilizationDescription()
+    else
+        holyCityName = "TXT_KEY_RO_WR_UNKNOWN_HOLY_CITY"
+        founderName = "TXT_KEY_RO_WR_UNKNOWN_CIV"
+    end
+    -- Count is the global Game.GetNumCitiesFollowing -- a religion-level
+    -- statistic the user wants for comparison ("Christianity: 12 cities,
+    -- Islam: 4 cities") rather than a "how many entries in this drilldown"
+    -- count. The drilled-in list filters by met civ + revealed plot, so
+    -- the navigable subset can be smaller than the global total; that's
+    -- fine -- the count is what a sighted player would see in the engine's
+    -- own row, and the drilldown is the navigable subset.
+    local numCities = Game.GetNumCitiesFollowing(eReligion)
+    local label = TextFilter.filter(
+        Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW",
+            numCities,
+            Text.key(Game.GetReligionName(eReligion)),
+            Text.key(holyCityName),
+            Text.key(founderName),
+            numCities
+        )
+    )
+    local cities = citiesFollowingReligion(eReligion, activePlayerId, activeTeamId)
+    local children = {}
+    for _, city in ipairs(cities) do
+        children[#children + 1] = buildCityRow(city)
+    end
+    -- A Group with no navigable children would be skipped by the parent's
+    -- nav, hiding extinct religions (no follower cities). Fall back to a
+    -- flat Text row in that edge case so the religion still shows up.
+    if #children == 0 then
+        return BaseMenuItems.Text({
+            labelText = label,
+            pediaName = religionPediaName(eReligion),
+        })
+    end
+    return BaseMenuItems.Group({
+        labelText = label,
+        items = children,
+        pediaName = religionPediaName(eReligion),
+    })
+end
+
 local function buildWorldReligionsItems()
     local items = {}
-    local activePlayer = Players[Game.GetActivePlayer()]
-    local activeTeam = Teams[activePlayer:GetTeam()]
+    local activePlayerId = Game.GetActivePlayer()
+    local activePlayer = Players[activePlayerId]
+    local activeTeamId = activePlayer:GetTeam()
 
     local found = 0
     for iPlayer = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
         local p = Players[iPlayer]
         if p:IsEverAlive() and p:HasCreatedReligion() then
             found = found + 1
-            local eReligion = p:GetReligionCreatedByPlayer()
-            local holyCity = Game.GetHolyCityForReligion(eReligion, iPlayer)
-            local holyCityName, founderName
-            if activeTeam:IsHasMet(p:GetTeam()) then
-                holyCityName = holyCity:GetName()
-                founderName = p:GetCivilizationDescription()
-            else
-                holyCityName = "TXT_KEY_RO_WR_UNKNOWN_HOLY_CITY"
-                founderName = "TXT_KEY_RO_WR_UNKNOWN_CIV"
-            end
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = TextFilter.filter(
-                    Text.formatPlural(
-                        "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW",
-                        Game.GetNumCitiesFollowing(eReligion),
-                        Text.key(Game.GetReligionName(eReligion)),
-                        Text.key(holyCityName),
-                        Text.key(founderName),
-                        Game.GetNumCitiesFollowing(eReligion)
-                    )
-                ),
-            })
+            items[#items + 1] = buildWorldReligionGroup(p:GetReligionCreatedByPlayer(), p, activePlayerId, activeTeamId)
         end
     end
 
     if found == 0 then
         items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_RO_NO_WORLD_RELIGIONS") })
     end
-
-    -- OVERALL STATUS footer at the bottom (matches engine layout).
-    local left = math.max(Game.GetNumReligionsStillToFound(), 0)
-    items[#items + 1] = BaseMenuItems.Text({
-        labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_RELIGIONS_LEFT", left)),
-    })
-    items[#items + 1] = BaseMenuItems.Text({ labelText = religiousStatusText(activePlayer) })
 
     return items
 end
@@ -269,10 +399,16 @@ local function buildReligionBeliefGroup(eReligion)
     return BaseMenuItems.Group({
         labelText = Text.key(Game.GetReligionName(eReligion)),
         items = children,
+        pediaName = religionPediaName(eReligion),
     })
 end
 
-local function buildPantheonBeliefGroup(player, activeTeam)
+-- Pantheon-only civs carry a single belief, so a drillable Group is just
+-- one click of friction. Front-load it as a flat Text row that announces
+-- the civ-adjective header and the belief inline. Ctrl+I jumps to the
+-- belief's pedia entry (the pantheon religion type itself isn't a useful
+-- pedia destination -- one entry covers all pantheon beliefs).
+local function buildPantheonBeliefRow(player, activeTeam)
     local belief = GameInfo.Beliefs[player:GetBeliefInPantheon()]
     if belief == nil then
         return nil
@@ -283,9 +419,17 @@ local function buildPantheonBeliefGroup(player, activeTeam)
     else
         header = Text.key("TXT_KEY_RO_BELIEF_UNKNOWN_PANTHEON")
     end
-    return BaseMenuItems.Group({
-        labelText = TextFilter.filter(header),
-        items = { buildBeliefRow(belief) },
+    return BaseMenuItems.Text({
+        labelText = TextFilter.filter(
+            header
+                .. ", "
+                .. beliefTypeText(belief)
+                .. ", "
+                .. Text.key(belief.ShortDescription)
+                .. ", "
+                .. Text.key(belief.Description)
+        ),
+        pediaName = beliefPediaName(belief),
     })
 end
 
@@ -300,9 +444,9 @@ local function buildBeliefsItems()
             if p:HasCreatedReligion() then
                 items[#items + 1] = buildReligionBeliefGroup(p:GetReligionCreatedByPlayer())
             elseif p:HasCreatedPantheon() then
-                local group = buildPantheonBeliefGroup(p, activeTeam)
-                if group ~= nil then
-                    items[#items + 1] = group
+                local row = buildPantheonBeliefRow(p, activeTeam)
+                if row ~= nil then
+                    items[#items + 1] = row
                 end
             end
         end

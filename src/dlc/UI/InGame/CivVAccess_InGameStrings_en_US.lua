@@ -2643,9 +2643,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"] = "Repeal this resol
 -- have no engine equivalent.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY"] = "Control plus R"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Open Religion Overview"
--- World Religions row composition. Distinguishing word (religion name) leads;
--- holy city / founder / city count follow with brief framing words so values
--- that could otherwise read as a list of names stay disambiguated.
+-- "You are the founder of X" replaces the engine's bare "Founder of X" so
+-- the status row reads as a sentence about the active player rather than a
+-- column heading. {1_Religion} is the religion's localized name (custom
+-- if the founder renamed it).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER"] = "You are the founder of {1_Religion}"
+-- Belief type word with " belief" suffix. The engine's TXT_KEY_RO_BELIEF_TYPE_*
+-- ("Founder", "Follower", ...) reads as a noun about the player on its own;
+-- the suffix disambiguates that this row is a belief slot of that type.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_BELIEF_TYPE"] = "{1_Type} belief"
+-- World Religions row composition. Religion name leads; holy city and
+-- founder follow as framing prepositions; trailing follower-city count is
+-- the religion-level statistic ("Christianity, ..., 12 cities") sighted
+-- players read in the engine row. The row is also a drillable group whose
+-- children are cities following the religion -- the count is religion-level
+-- (Game.GetNumCitiesFollowing across all civs), not a "how many entries
+-- in this drilldown" count, so it stays.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
     one = "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} city",
     other = "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} cities",
