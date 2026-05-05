@@ -2237,6 +2237,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES"] = "City happiness
 -- Renamed because most happiness buildings (Colosseum, Theatre, Stadium,
 -- etc.) feed THIS row, not the engine "Buildings" row -- the engine label
 -- gets it backwards. Tooltip explains the engine source for cross-reference.
+-- Per-city local happiness from buildings, garrisons, religion, and
+-- policy synergies; capped at city population. Most regular happiness
+-- buildings (Colosseum, Theatre, Stadium, Circus Maximus, Hotel) feed
+-- this row.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY"] = "Buildings, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY_TT"] =
     "Happiness from buildings, garrisons, religion, and policy synergies in each city. "
@@ -2250,6 +2254,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT"] =
     "Happiness from wonders with specialty effects: building-class synergies, "
         .. "unmodded happiness, or per-policy bonuses. Most happiness buildings "
         .. "feed Buildings (per city) above, not this row."
+-- Residual row inside the Wonder bonuses drilldown. Empire-wide
+-- BuildingClass synergies and the happiness-per-X-policies wonder bonus
+-- don't decompose per city, so the per-city children sum to less than
+-- the parent header for any player who owns those wonders. This row
+-- carries the difference.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_EMPIRE"] = "Empire-wide bonuses, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TRADE_ROUTES"] = "Trade routes, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES"] = "City-states, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_POLICIES"] = "Policies, {1_Value}"

@@ -641,6 +641,31 @@ end
 
 -- ===== Happiness tab ===================================================
 
+-- Cities the engine attributes occupied-city / occupied-population
+-- unhappiness to (occupied AND not the no-occupied-unhappiness exemption).
+-- Engine HappinessInfo iterates the same predicate to compute its
+-- occupied counts. Shared by visibility-gating in the unhappiness sources
+-- group and by each amount-row labelFn that re-iterates for freshness.
+local function countOccupiedCities(player)
+    local n = 0
+    for c in player:Cities() do
+        if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+local function sumOccupiedPop(player)
+    local n = 0
+    for c in player:Cities() do
+        if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
+            n = n + c:GetPopulation()
+        end
+    end
+    return n
+end
+
 -- Per-city happiness sub-list. amountFn returns the per-city amount;
 -- annotateFn (optional) returns a string suffix appended to the row, used
 -- by the unhappiness breakdown to flag occupied cities.
@@ -678,24 +703,30 @@ local function perCityHappinessEntries(amountFn, includePred, annotateFn)
     return items
 end
 
--- Walks owned luxuries (positive base happiness from GetHappinessFromLuxury)
--- and returns the true base sum + count. The Lua binding for
--- GetHappinessFromLuxury silently adds GetExtraHappinessPerLuxury to its
--- C++ return when positive (CvLuaPlayer.cpp lGetHappinessFromLuxury), so
--- iterating Lua-side and accumulating raw returns gives base + perLux per
--- luxury -- the bonus already folded in. Strip it back out per luxury so
--- baseSum reflects the per-resource XML happiness alone, and the misc
--- residual formula doesn't double-subtract the bonus.
-local function luxuryBaseSumAndCount(player)
+-- Iterate the player's owned luxuries (those with positive base happiness
+-- per the Expansion2 binding) and invoke fn(resource, hBase) for each.
+-- The Lua binding for GetHappinessFromLuxury silently adds
+-- GetExtraHappinessPerLuxury to its C++ return when positive
+-- (CvLuaPlayer.cpp lGetHappinessFromLuxury), so the raw Lua return is
+-- base + perLux per luxury. Strip the bonus back out so callers see the
+-- per-resource XML happiness alone; the misc-residual formula and the
+-- per-row display both rely on a true base.
+local function forEachOwnedLuxury(player, fn)
     local perLux = player:GetExtraHappinessPerLuxury()
-    local baseSum, count = 0, 0
     for resource in GameInfo.Resources() do
         local h = player:GetHappinessFromLuxury(resource.ID)
         if h and h > 0 then
-            baseSum = baseSum + (h - perLux)
-            count = count + 1
+            fn(resource, h - perLux)
         end
     end
+end
+
+local function luxuryBaseSumAndCount(player)
+    local baseSum, count = 0, 0
+    forEachOwnedLuxury(player, function(_, hBase)
+        baseSum = baseSum + hBase
+        count = count + 1
+    end)
     return baseSum, count
 end
 
@@ -737,30 +768,20 @@ local function perLuxuryHappinessEntries()
     if p == nil then
         return {}
     end
-    -- The Lua binding for GetHappinessFromLuxury silently adds the
-    -- per-luxury bonus to its C++ return when positive. Subtract it
-    -- back out per row so the displayed value is the resource's true
-    -- base happiness, and the bonus contribution surfaces only once
-    -- via the multiplied-total row below.
-    local perLux = p:GetExtraHappinessPerLuxury()
     local items = {}
     local baseSum, count = 0, 0
-    for resource in GameInfo.Resources() do
-        local h = p:GetHappinessFromLuxury(resource.ID)
-        if h and h > 0 then
-            local hBase = h - perLux
-            baseSum = baseSum + hBase
-            count = count + 1
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
-                    Text.key(resource.Description),
-                    formatNumber(hBase)
-                ),
-                pediaName = Text.key(resource.Description),
-            })
-        end
-    end
+    forEachOwnedLuxury(p, function(resource, hBase)
+        baseSum = baseSum + hBase
+        count = count + 1
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.format(
+                "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
+                Text.key(resource.Description),
+                formatNumber(hBase)
+            ),
+            pediaName = Text.key(resource.Description),
+        })
+    end)
     local variety = p:GetHappinessFromResourceVariety()
     if variety > 0 then
         items[#items + 1] = BaseMenuItems.Text({
@@ -770,9 +791,9 @@ local function perLuxuryHappinessEntries()
     -- Per-luxury bonus shown as the multiplied contribution (rate * count),
     -- not the rate. Within the additive drilldown, the listener can place
     -- the value alongside the per-resource numbers and confirm the sum
-    -- matches the header total. Showing the bare rate in this context made
-    -- the row look like another individual luxury entry rather than a
-    -- separate bonus bucket.
+    -- matches the header total. The bare rate in this context reads as
+    -- another individual luxury entry rather than a separate bonus bucket.
+    local perLux = p:GetExtraHappinessPerLuxury()
     local bonusTotal = perLux * count
     if perLux >= 1 and count > 0 then
         items[#items + 1] = BaseMenuItems.Text({
@@ -803,9 +824,12 @@ local function appendModifier(extras, key, ...)
     extras[#extras + 1] = "[NEWLINE][NEWLINE]" .. Text.format(key, ...)
 end
 
-local function citiesUnhappinessTooltip()
-    local p = activePlayer()
-    local handicap = activeHandicap()
+-- Modifier extras shared by the Cities and Occupied Cities tooltips:
+-- handicap, player city-count mod, civ trait city-count mod, world-size
+-- mod. Both rows attach the same chain because both compute against the
+-- same per-city scaling (engine HappinessInfo applies these to both rows
+-- with identical predicates).
+local function citiesModifierExtras(p, handicap)
     local extras = {}
     local mod = handicap.NumCitiesUnhappinessMod
     if mod ~= 100 then
@@ -823,9 +847,27 @@ local function citiesUnhappinessTooltip()
     if mod ~= 100 then
         appendModifier(extras, "TXT_KEY_UNHAPPINESS_MOD_MAP", 100 - mod)
     end
+    return extras
+end
+
+-- Assemble a base tooltip with the "(Normally)" qualifier when modifier
+-- extras attach. [NEWLINE] separates the segments so TextFilter normalizes
+-- prosody at speech time -- raw " " glue would inject an unnormalized
+-- space between localized fragments and break sentence boundaries in some
+-- locales.
+local function tooltipWithNormally(base, extras)
+    if #extras > 0 then
+        return base .. "[NEWLINE]" .. Text.key("TXT_KEY_NORMALLY") .. "." .. table.concat(extras)
+    end
+    return base .. "."
+end
+
+local function citiesUnhappinessTooltip()
+    local p = activePlayer()
+    local extras = citiesModifierExtras(p, activeHandicap())
     -- Cities is the one row whose base text has two variants: engine swaps
     -- to TT_NORMALLY when modifiers attach instead of inlining "(Normally)"
-    -- like the other three rows below do.
+    -- like the other three rows do.
     if #extras > 0 then
         return Text.key("TXT_KEY_NUMBER_OF_CITIES_TT_NORMALLY") .. table.concat(extras)
     end
@@ -834,29 +876,8 @@ end
 
 local function occupiedCitiesUnhappinessTooltip()
     local p = activePlayer()
-    local handicap = activeHandicap()
-    local extras = {}
-    local mod = handicap.NumCitiesUnhappinessMod
-    if mod ~= 100 then
-        appendModifier(extras, "TXT_KEY_NUMBER_OF_CITIES_HANDICAP_TT", 100 - mod)
-    end
-    mod = p:GetCityCountUnhappinessMod()
-    if mod ~= 0 then
-        appendModifier(extras, "TXT_KEY_UNHAPPINESS_MOD_PLAYER", mod)
-    end
-    mod = p:GetTraitCityUnhappinessMod()
-    if mod ~= 0 then
-        appendModifier(extras, "TXT_KEY_UNHAPPINESS_MOD_TRAIT", mod)
-    end
-    mod = Game:GetWorldNumCitiesUnhappinessPercent()
-    if mod ~= 100 then
-        appendModifier(extras, "TXT_KEY_UNHAPPINESS_MOD_MAP", 100 - mod)
-    end
-    local base = Text.key("TXT_KEY_NUMBER_OF_OCCUPIED_CITIES_TT")
-    if #extras > 0 then
-        return base .. " " .. Text.key("TXT_KEY_NORMALLY") .. "." .. table.concat(extras)
-    end
-    return base .. "."
+    local extras = citiesModifierExtras(p, activeHandicap())
+    return tooltipWithNormally(Text.key("TXT_KEY_NUMBER_OF_OCCUPIED_CITIES_TT"), extras)
 end
 
 local function citizensUnhappinessTooltip()
@@ -882,11 +903,7 @@ local function citizensUnhappinessTooltip()
     if p:IsHalfSpecialistUnhappiness() then
         extras[#extras + 1] = "[NEWLINE][NEWLINE]" .. Text.key("TXT_KEY_UNHAPPINESS_MOD_SPECIALIST")
     end
-    local base = Text.key("TXT_KEY_POP_UNHAPPINESS_TT")
-    if #extras > 0 then
-        return base .. " " .. Text.key("TXT_KEY_NORMALLY") .. "." .. table.concat(extras)
-    end
-    return base .. "."
+    return tooltipWithNormally(Text.key("TXT_KEY_POP_UNHAPPINESS_TT"), extras)
 end
 
 local function occupiedCitizensUnhappinessTooltip()
@@ -904,11 +921,7 @@ local function occupiedCitizensUnhappinessTooltip()
     if p:IsHalfSpecialistUnhappiness() then
         extras[#extras + 1] = "[NEWLINE][NEWLINE]" .. Text.key("TXT_KEY_UNHAPPINESS_MOD_SPECIALIST")
     end
-    local base = Text.key("TXT_KEY_OCCUPIED_POP_UNHAPPINESS_TT")
-    if #extras > 0 then
-        return base .. " " .. Text.key("TXT_KEY_NORMALLY") .. "." .. table.concat(extras)
-    end
-    return base .. "."
+    return tooltipWithNormally(Text.key("TXT_KEY_OCCUPIED_POP_UNHAPPINESS_TT"), extras)
 end
 
 -- Order mirrors HappinessInfo.lua: Luxuries (drillable, base sum at
@@ -999,11 +1012,15 @@ local function buildHappinessItems()
                             })
                         end
                         -- Wonder bonuses: empire-wide specialty bucket.
-                        -- Building-class-on-class synergies, "unmodded"
-                        -- happiness, happiness-per-X-policies wonder bonus.
-                        -- Most happiness buildings DON'T feed this row --
-                        -- they feed Buildings (per city) above. Engine label:
-                        -- "City Buildings".
+                        -- Per-city sub-rows show each city's
+                        -- UnmoddedHappinessFromBuildings contribution; an
+                        -- "Empire-wide" residual row catches the gap to the
+                        -- header for sources that don't decompose per city
+                        -- (BuildingClass-on-class synergies, the
+                        -- happiness-per-X-policies wonder bonus). Without
+                        -- the residual row the children sum to less than
+                        -- the parent header for any player who owns those
+                        -- wonders, with no row labeling the difference.
                         if wonderBonuses ~= 0 then
                             children[#children + 1] = BaseMenuItems.Group({
                                 labelFn = function()
@@ -1017,9 +1034,31 @@ local function buildHappinessItems()
                                     return Text.key("TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT")
                                 end,
                                 itemsFn = function()
-                                    return perCityHappinessEntries(function(_, c)
+                                    local pl = activePlayer()
+                                    local rows = perCityHappinessEntries(function(_, c)
                                         return c:GetHappiness()
                                     end)
+                                    local perCitySum = 0
+                                    for c in pl:Cities() do
+                                        perCitySum = perCitySum + c:GetHappiness()
+                                    end
+                                    local empireBonus = pl:GetHappinessFromBuildings() - perCitySum
+                                    if empireBonus ~= 0 then
+                                        rows[#rows + 1] = BaseMenuItems.Text({
+                                            labelFn = function()
+                                                local pl2 = activePlayer()
+                                                local sum = 0
+                                                for c in pl2:Cities() do
+                                                    sum = sum + c:GetHappiness()
+                                                end
+                                                return Text.format(
+                                                    "TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_EMPIRE",
+                                                    pl2:GetHappinessFromBuildings() - sum
+                                                )
+                                            end,
+                                        })
+                                    end
+                                    return rows
                                 end,
                             })
                         end
@@ -1138,17 +1177,12 @@ local function buildHappinessItems()
             cached = false,
             itemsFn = function()
                 local p = activePlayer()
-                -- Iterate cities once for visibility gating; counts get
-                -- recomputed per-row inside labelFn so the displayed
-                -- "{N} cities, {M} unhappiness" pair is always fresh
-                -- against the live player state.
-                local numOccupiedCities, occupiedPop = 0, 0
-                for c in p:Cities() do
-                    if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
-                        numOccupiedCities = numOccupiedCities + 1
-                        occupiedPop = occupiedPop + c:GetPopulation()
-                    end
-                end
+                -- Counts upfront for visibility gating; row labelFns
+                -- re-iterate via the helpers below so the displayed
+                -- "{N} cities, {M} unhappiness" pair stays fresh against
+                -- the live player state.
+                local numOccupiedCities = countOccupiedCities(p)
+                local occupiedPop = sumOccupiedPop(p)
                 local publicOpinion = p:GetUnhappinessFromPublicOpinion()
 
                 local items = {}
@@ -1160,13 +1194,7 @@ local function buildHappinessItems()
                 items[#items + 1] = BaseMenuItems.Text({
                     labelFn = function()
                         local pl = activePlayer()
-                        local nOcc = 0
-                        for c in pl:Cities() do
-                            if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
-                                nOcc = nOcc + 1
-                            end
-                        end
-                        local count = pl:GetNumCities() - nOcc
+                        local count = pl:GetNumCities() - countOccupiedCities(pl)
                         return Text.formatPlural(
                             "TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES",
                             count,
@@ -1180,16 +1208,11 @@ local function buildHappinessItems()
                     items[#items + 1] = BaseMenuItems.Text({
                         labelFn = function()
                             local pl = activePlayer()
-                            local nOcc = 0
-                            for c in pl:Cities() do
-                                if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
-                                    nOcc = nOcc + 1
-                                end
-                            end
+                            local count = countOccupiedCities(pl)
                             return Text.formatPlural(
                                 "TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES",
-                                nOcc,
-                                nOcc,
+                                count,
+                                count,
                                 formatGoldT100(pl:GetUnhappinessFromCapturedCityCount())
                             )
                         end,
@@ -1199,13 +1222,7 @@ local function buildHappinessItems()
                 items[#items + 1] = BaseMenuItems.Text({
                     labelFn = function()
                         local pl = activePlayer()
-                        local oPop = 0
-                        for c in pl:Cities() do
-                            if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
-                                oPop = oPop + c:GetPopulation()
-                            end
-                        end
-                        local count = pl:GetTotalPopulation() - oPop
+                        local count = pl:GetTotalPopulation() - sumOccupiedPop(pl)
                         return Text.formatPlural(
                             "TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION",
                             count,
@@ -1219,16 +1236,11 @@ local function buildHappinessItems()
                     items[#items + 1] = BaseMenuItems.Text({
                         labelFn = function()
                             local pl = activePlayer()
-                            local oPop = 0
-                            for c in pl:Cities() do
-                                if c:IsOccupied() and not c:IsNoOccupiedUnhappiness() then
-                                    oPop = oPop + c:GetPopulation()
-                                end
-                            end
+                            local count = sumOccupiedPop(pl)
                             return Text.formatPlural(
                                 "TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP",
-                                oPop,
-                                oPop,
+                                count,
+                                count,
                                 formatGoldT100(pl:GetUnhappinessFromOccupiedCities())
                             )
                         end,

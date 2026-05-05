@@ -2045,6 +2045,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT"] =
     "Bonheur des merveilles à effets spéciaux : synergies de classes de bâtiment, "
         .. "bonheur non modifié, ou bonus par politique. La plupart des bâtiments à bonheur "
         .. "alimentent Bâtiments (par ville) ci-dessus, pas cette ligne."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_EMPIRE"] = "Bonus à l'échelle de l'empire, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TRADE_ROUTES"] = "Routes commerciales, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES"] = "Cités-États, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_POLICIES"] = "Politiques, {1_Value}"
