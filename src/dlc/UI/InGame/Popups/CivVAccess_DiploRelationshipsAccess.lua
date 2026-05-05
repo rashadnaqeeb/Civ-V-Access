@@ -239,6 +239,53 @@ local function yourRelationshipCell(iOther)
     return joined
 end
 
+-- Numeric rank for sorting Your-relationship best-to-worst. Mirrors the
+-- branch order in stancePhrase so a new stance added there should get a
+-- rank here. Same-team is best (permanent ally); war is worst. Treaty
+-- count rides as a sub-stance tiebreaker so within one stance, more
+-- treaties sort higher; the engine caps treaties well under 10 so the
+-- stance band stays intact.
+local function yourRelationshipRank(iOther)
+    local iUs = Game.GetActivePlayer()
+    local pUs = Players[iUs]
+    local pUsTeam = Teams[pUs:GetTeam()]
+    local pOther = Players[iOther]
+    local stance
+    if pOther:GetTeam() == pUs:GetTeam() then
+        stance = 100
+    elseif pUsTeam:IsAtWar(pOther:GetTeam()) then
+        stance = 0
+    elseif pUs:IsDenouncedPlayer(iOther) then
+        if pOther:IsFriendDenouncedUs(iUs) or pOther:IsFriendDeclaredWarOnUs(iUs) then
+            stance = 5
+        else
+            stance = 10
+        end
+    elseif pOther:IsDenouncingPlayer(iUs) then
+        stance = 20
+    elseif pOther:WasResurrectedThisTurnBy(iUs) then
+        stance = 80
+    else
+        local approach = pUs:GetApproachTowardsUsGuess(iOther)
+        if approach == MajorCivApproachTypes.MAJOR_CIV_APPROACH_WAR then
+            stance = 0
+        elseif approach == MajorCivApproachTypes.MAJOR_CIV_APPROACH_HOSTILE then
+            stance = 30
+        elseif approach == MajorCivApproachTypes.MAJOR_CIV_APPROACH_GUARDED then
+            stance = 40
+        elseif approach == MajorCivApproachTypes.MAJOR_CIV_APPROACH_AFRAID then
+            stance = 50
+        elseif approach == MajorCivApproachTypes.MAJOR_CIV_APPROACH_NEUTRAL then
+            stance = 60
+        elseif approach == MajorCivApproachTypes.MAJOR_CIV_APPROACH_FRIENDLY then
+            stance = 70
+        else
+            stance = 60
+        end
+    end
+    return stance * 10 + #treatyFragments(iOther)
+end
+
 -- Render a third-party display name. Mirrors base DiploGlobalRelationships
 -- thirdName branches: TXT_KEY_YOU for self, nickname for human, civ
 -- short description for AI.
@@ -340,9 +387,9 @@ local function goldCell(iOther)
 end
 
 -- Tradeable strategics + luxuries that pOther could trade to us right now.
--- Returns a single comma-separated string ("strategic: iron 5, oil 2,
--- luxury: silk 4") or "none".
-local function resourcesCell(iOther)
+-- Returns two arrays so resourcesCell can format them and the sort helper
+-- can count them without re-running the scan logic in two places.
+local function tradeableResources(iOther)
     local iUs = Game.GetActivePlayer()
     local g_Deal = UI.GetScratchDeal()
     local strategic, luxury = {}, {}
@@ -358,6 +405,11 @@ local function resourcesCell(iOther)
             end
         end
     end
+    return strategic, luxury
+end
+
+local function resourcesCell(iOther)
+    local strategic, luxury = tradeableResources(iOther)
     local out = {}
     if #strategic > 0 then
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST", table.concat(strategic, ", "))
@@ -369,6 +421,11 @@ local function resourcesCell(iOther)
         return noneCell()
     end
     return table.concat(out, ", ")
+end
+
+local function tradeableResourceCount(iOther)
+    local strategic, luxury = tradeableResources(iOther)
+    return #strategic + #luxury
 end
 
 local function eraCell(iOther)
@@ -538,6 +595,31 @@ local function relationshipCell(iOther)
         end
     end
     return table.concat(items, ", ")
+end
+
+-- Numeric rank for sorting the Relationship cell best-to-worst. Allied
+-- and Friend are the tiers where bonuses actually flow; Neutral and
+-- below carry no bonuses but stay above War. Influence column already
+-- sorts by raw influence value; this column groups by tier so the
+-- Allies cluster together regardless of small influence differences.
+local function minorRelationshipRank(iOther)
+    local iUs = Game.GetActivePlayer()
+    local pUsTeam = Teams[Players[iUs]:GetTeam()]
+    local pOther = Players[iOther]
+    if pUsTeam:IsAtWar(pOther:GetTeam()) then
+        return 0
+    end
+    if pOther:IsAllies(iUs) then
+        return 4
+    end
+    if pOther:IsFriends(iUs) then
+        return 3
+    end
+    local inf = pOther:GetMinorCivFriendshipWithMajor(iUs)
+    if inf >= GameDefines.FRIENDSHIP_THRESHOLD_NEUTRAL then
+        return 2
+    end
+    return 1
 end
 
 -- Trait and personality cell. Trait first (the type that determines what
@@ -761,6 +843,7 @@ local function buildMajorColumns()
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_YOUR_RELATIONSHIP",
             getCell = yourRelationshipCell,
+            sortKey = yourRelationshipRank,
             enterAction = activateMajor,
             pediaName = leaderPedia,
         },
@@ -783,6 +866,7 @@ local function buildMajorColumns()
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_RESOURCES",
             getCell = resourcesCell,
+            sortKey = tradeableResourceCount,
             enterAction = activateMajor,
             pediaName = leaderPedia,
         },
@@ -829,6 +913,7 @@ local function buildMinorColumns()
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_RELATIONSHIP",
             getCell = relationshipCell,
+            sortKey = minorRelationshipRank,
             enterAction = activateMinor,
             pediaName = minorCivPedia,
         },
