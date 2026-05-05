@@ -34,7 +34,24 @@ local function withSwitching(fn)
     end
 end
 
-civvaccess_shared.DiploOverview.showRelations = withSwitching(OnRelations)
+-- showRelations stages a one-shot landing index on civvaccess_shared so the
+-- Relations TabbedShell's onShow can pick the active tab (1 = Majors,
+-- 2 = Minors) before its first push. Consumed and cleared by onShow.
+-- Default landing is 1 (Majors) when nil, matching the F4-from-cold open.
+--
+-- Belt-and-suspenders clear after relationsBase returns: if OnRelations
+-- threw inside withSwitching's pcall (dead env after load-from-game,
+-- runtime error in base panel-flip code) the shell's onShow never ran
+-- and relationsLanding would otherwise persist into the next legitimate
+-- F4 open, landing the user on the wrong tab. The trailing clear is a
+-- no-op on the success path (onShow already consumed it) and a recovery
+-- on the error path.
+local relationsBase = withSwitching(OnRelations)
+civvaccess_shared.DiploOverview.showRelations = function(landing)
+    civvaccess_shared.DiploOverview.relationsLanding = landing
+    relationsBase()
+    civvaccess_shared.DiploOverview.relationsLanding = nil
+end
 civvaccess_shared.DiploOverview.showDeals = withSwitching(OnDeals)
 civvaccess_shared.DiploOverview.showGlobal = withSwitching(OnGlobal)
 -- Inline lambda instead of `close = OnClose`: captures THIS Context's

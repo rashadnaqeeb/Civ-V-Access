@@ -46,6 +46,12 @@
 --   capturesAllInput  (bool, default true) modal barrier for InputRouter.
 --   onEscape          (fn(self) -> bool, optional) consulted by install's Esc
 --                     handler before priorInput. Return true to consume.
+--   onCycleEdge       (fn(direction) -> bool, optional) called when a Tab /
+--                     Shift+Tab cycle would wrap (advancing past the last tab
+--                     or before the first). direction is +1 / -1. Return true
+--                     to suppress the wrap (e.g. when the hook fires a
+--                     cross-Context tab switch and the shell will be popped
+--                     by a subsequent ShowHide). Default: wrap as today.
 --
 -- TabbedShell.install wraps a Context's existing ShowHide / Input handlers
 -- the same way BaseMenu.install does: pushes the shell on show, pops on
@@ -181,12 +187,30 @@ end
 -- Switch to a new tab index (forward or backward through the array, with
 -- wrap). Same-index calls are no-ops because cycling onto the active tab
 -- is meaningless and would re-fire onActivate spuriously.
+--
+-- If spec.onCycleEdge is set and the cycle would wrap, the hook is called
+-- and (when it returns true) wrap is suppressed -- used by the F4 shell to
+-- fire a cross-Context switch (showDeals) instead of looping back to the
+-- first tab. The shell will be popped by the subsequent ShowHide so we
+-- don't deactivate or update _activeIdx here; resetTabsForNextOpen during
+-- the hide path handles the next-open state.
 local function cycleTab(self, direction)
     local n = #self._tabs
+    local newIdx = self._activeIdx + direction
+    local wraps = newIdx < 1 or newIdx > n
+    if wraps and type(self._onCycleEdge) == "function" then
+        local ok, consumed = Log.tryCall(
+            "TabbedShell '" .. tostring(self.name) .. "' onCycleEdge",
+            self._onCycleEdge,
+            direction
+        )
+        if ok and consumed then
+            return
+        end
+    end
     if n <= 1 then
         return
     end
-    local newIdx = self._activeIdx + direction
     if newIdx < 1 then
         newIdx = n
     end
@@ -279,6 +303,10 @@ function TabbedShell.create(spec)
     )
     Log.check(spec.onEscape == nil or type(spec.onEscape) == "function", "spec.onEscape must be a function if provided")
     Log.check(
+        spec.onCycleEdge == nil or type(spec.onCycleEdge) == "function",
+        "spec.onCycleEdge must be a function if provided"
+    )
+    Log.check(
         spec.preamble == nil
             or (type(spec.preamble) == "string" and spec.preamble ~= "")
             or type(spec.preamble) == "function",
@@ -293,6 +321,7 @@ function TabbedShell.create(spec)
         _tabs = spec.tabs,
         _activeIdx = spec.initialTabIndex or 1,
         _onEscape = spec.onEscape,
+        _onCycleEdge = spec.onCycleEdge,
         _initialized = false,
     }
 
@@ -480,6 +509,13 @@ end
 --                     same-frame hide can cancel before speech.
 --   tickOwner         default true; install wires ContextPtr SetUpdate to
 --                     TickPump for runOnce callbacks.
+--   suppressReactivateOnHide
+--                     fn() -> bool. When the panel hides and this returns
+--                     true, removeByName passes reactivate=false so the
+--                     handler beneath us does not re-announce. Used by
+--                     cross-Context tab switches (F4 Relations to Deals)
+--                     to keep Scanner from saying "map mode" in the gap
+--                     between this panel hiding and the sibling pushing.
 function TabbedShell.install(ContextPtr, spec)
     local handler = TabbedShell.create(spec)
     local priorShowHide = spec.priorShowHide
@@ -489,6 +525,7 @@ function TabbedShell.install(ContextPtr, spec)
     local onShow = spec.onShow
     local tickOwner = spec.tickOwner ~= false
     local onEscape = spec.onEscape
+    local suppressReactivateOnHide = spec.suppressReactivateOnHide
     local pendingPush = false
 
     if tickOwner then
@@ -528,7 +565,17 @@ function TabbedShell.install(ContextPtr, spec)
         if bIsInit then
             return
         end
-        HandlerStack.removeByName(handler.name, bIsHide)
+        local reactivate = bIsHide
+        if bIsHide and suppressReactivateOnHide ~= nil then
+            local ok, suppress = Log.tryCall(
+                "TabbedShell '" .. handler.name .. "' suppressReactivateOnHide",
+                suppressReactivateOnHide
+            )
+            if ok and suppress then
+                reactivate = false
+            end
+        end
+        HandlerStack.removeByName(handler.name, reactivate)
         if bIsHide then
             resetTabsForNextOpen()
             pendingPush = false

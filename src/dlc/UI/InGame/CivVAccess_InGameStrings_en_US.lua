@@ -1950,6 +1950,66 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_EXPORTS_LIST"] = "exporting {1_List
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPEN_BORDERS"] = "open borders"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BULLYABLE"] = "bullyable"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_OF"] = "ally of {1_Civ}"
+-- F4 Diplomatic Overview tabs (Majors / Minors). Tab names reuse the
+-- _MAJORS_GROUP / _MINORS_GROUP labels above. Column-header strings are
+-- spoken when the user navigates onto a column; cell-content templates are
+-- separate keys below. Headers stay terse since the column name already
+-- carries the type and the cell value supplies the data.
+-- Major civ columns. _YOUR_RELATIONSHIP carries the AI's stance toward us
+-- (war / hostile / guarded / etc.) followed by active treaties (embassies,
+-- open borders, defensive pact, research agreement, trade-agreement
+-- legality). _FOREIGN_RELATIONS carries the same civ's third-party state
+-- (their wars with other majors, DoFs, denouncements, CS alliances).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_YOUR_RELATIONSHIP"] = "your relationship"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_FOREIGN_RELATIONS"] = "foreign relations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_GOLD"] = "gold"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_RESOURCES"] = "resources"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ERA"] = "era"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES"] = "policies"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS"] = "wonders"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE"] = "score"
+-- Minor civ columns. _RELATIONSHIP carries the bonuses currently flowing
+-- from a Friends / Allies CS (culture, food, science, faith, happiness,
+-- spawn estimate). _TRAIT_PERSONALITY carries trait then personality as a
+-- thematic pair. Influence column carries value + per-turn + anchor +
+-- threshold-gap to the next state. Allied-with carries the current ally
+-- (or "nobody") plus displacement value. Quests and Nearby resources
+-- carry their respective lists.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_RELATIONSHIP"] = "relationship"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_TRAIT_PERSONALITY"] = "trait and personality"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_INFLUENCE"] = "influence"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ALLIED_WITH"] = "allied with"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_QUESTS"] = "quests"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_NEARBY"] = "nearby resources"
+-- Empty-cell labels. "none" for absent items in a list-shaped cell;
+-- "nobody" for the Allied-with column where the absence is an actor, not
+-- an item.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NONE"] = "none"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NOBODY"] = "nobody"
+-- Gold cell: gold on hand plus per-turn rate. {2_GPT} carries its sign so
+-- the same template covers gain and loss.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_CELL"] = "{1_Gold}, {2_GPT} per turn"
+-- Influence threshold gap fragments, appended after the value / per-turn /
+-- anchor block in the Influence cell. _TO_FRIENDS shows when below friends
+-- threshold; _TO_ALLIES shows when between thresholds.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_TO_FRIENDS"] = "{1_N} needed to become friends"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_TO_ALLIES"] = "{1_N} needed to become allies"
+-- Allied-with cell variants. _ALLY_IS_YOU when we're the ally (no
+-- displacement number to compute). _ALLY_AND_DISPLACE when someone else is
+-- allied: civ short name plus the influence we'd need to gain over the
+-- current ally.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_IS_YOU"] = "you"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_AND_DISPLACE"] = "{1_Civ}, {2_N} needed to displace"
+-- Unmet-ally variant: a civ we haven't met holds the alliance. The
+-- displacement number is still meaningful (we know our own influence
+-- and can read the engine's record of theirs) but we can't name them,
+-- so the cell distinguishes from "nobody" (the genuine no-ally case)
+-- with a generic civ word.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_UNMET_DISPLACE"] = "unmet civilization, {1_N} needed to displace"
+-- Trait-and-personality cell. Trait first, personality second, paired
+-- since trait determines what kind of bonus would flow and personality
+-- modifies how easily influence shifts.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TRAIT_PERSONALITY_CELL"] = "{1_Trait}, {2_Personality}"
 -- City Stats drillable. The Stats hub item pushes a sub-handler whose
 -- top-level items are these category groups. Per-yield drill-ins reuse
 -- the existing CITYVIEW_YIELD_* one-line headers (food / production /

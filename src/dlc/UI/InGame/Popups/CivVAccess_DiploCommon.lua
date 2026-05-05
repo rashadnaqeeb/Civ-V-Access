@@ -57,39 +57,4 @@ function DiploCommon.openTradeWith(iOther)
     end
 end
 
--- Apply Tab / Shift+Tab cycling, Esc-bubble close, and the _switching-aware
--- suppressReactivateOnHide to a BaseMenu.install spec. Mutates and returns
--- the spec.
---
--- nextSibling / prevSibling are method names on civvaccess_shared.DiploOverview
--- (e.g. "showGlobal", "showDeals", "showRelations"). The bridge is set up by
--- DiploOverview's bridge module; each tab references the sibling-show
--- methods by name to avoid hard-coding closures into the spec.
---
--- onEscape: base DiploOverview's InputHandler maps Esc/Enter to OnClose, but
--- it's installed on the DiploOverview Context. Sub-LuaContext InputHandlers
--- (our BaseMenu wrappers) consume keys first; Civ V doesn't bubble an
--- unclaimed key back to the parent Context, so the user can never close the
--- popup from a sub-tab without the explicit bridge.
---
--- suppressReactivateOnHide: the bridge wraps showX with a _switching flag so
--- Scanner's onActivate doesn't fire in the gap between this panel hiding and
--- the sibling pushing.
-function DiploCommon.applyTabBindings(spec, nextSibling, prevSibling)
-    spec.onTab = function()
-        civvaccess_shared.DiploOverview[nextSibling]()
-    end
-    spec.onShiftTab = function()
-        civvaccess_shared.DiploOverview[prevSibling]()
-    end
-    spec.onEscape = function()
-        civvaccess_shared.DiploOverview.close()
-        return true
-    end
-    spec.suppressReactivateOnHide = function()
-        return civvaccess_shared.DiploOverview._switching == true
-    end
-    return spec
-end
-
 return DiploCommon

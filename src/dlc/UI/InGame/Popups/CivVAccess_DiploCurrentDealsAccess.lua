@@ -15,12 +15,20 @@
 include("CivVAccess_PopupBoot")
 include("CivVAccess_DiploCommon")
 
--- Tab / Shift+Tab cycle to Global / Relations. See
--- CivVAccess_DiploOverviewBridge for the cross-Context mechanism; the
--- sibling panel's visibility flip fires ShowHide on both panels, which
--- pops our BaseMenu and pushes the sibling's.
+-- Tab / Shift+Tab both cycle to the Relations Context, which now hosts
+-- a TabbedShell with Majors and Minors sub-tabs. Forward Tab lands on
+-- Majors (the conceptual "next" after Deals); Shift+Tab lands on Minors
+-- (the conceptual "previous"). The bridge stages the landing index on
+-- civvaccess_shared.DiploOverview.relationsLanding and the shell's
+-- onShow consumes it. See CivVAccess_DiploOverviewBridge for the
+-- cross-Context mechanism; the sibling panel's visibility flip fires
+-- ShowHide on both panels, which pops our BaseMenu and pushes the
+-- sibling's.
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
+
+local RELATIONS_TAB_MAJORS = 1
+local RELATIONS_TAB_MINORS = 2
 
 -- Per-item duration suffix. Empty string for items that don't carry one
 -- (lump gold, cities, third-party, vote, allow embassy in BNW where it's
@@ -230,7 +238,7 @@ local function buildItems()
     return items
 end
 
-BaseMenu.install(ContextPtr, DiploCommon.applyTabBindings({
+BaseMenu.install(ContextPtr, {
     name = "DiploCurrentDeals",
     displayName = Text.key("TXT_KEY_CIVVACCESS_DIPLO_DEALS_TAB"),
     priorInput = priorInput,
@@ -240,4 +248,17 @@ BaseMenu.install(ContextPtr, DiploCommon.applyTabBindings({
         h.setItems(buildItems())
     end,
     items = {},
-}, "showGlobal", "showRelations"))
+    onTab = function()
+        civvaccess_shared.DiploOverview.showRelations(RELATIONS_TAB_MAJORS)
+    end,
+    onShiftTab = function()
+        civvaccess_shared.DiploOverview.showRelations(RELATIONS_TAB_MINORS)
+    end,
+    onEscape = function()
+        civvaccess_shared.DiploOverview.close()
+        return true
+    end,
+    suppressReactivateOnHide = function()
+        return civvaccess_shared.DiploOverview._switching == true
+    end,
+})
