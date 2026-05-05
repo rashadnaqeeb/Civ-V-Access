@@ -642,7 +642,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RESISTANCE"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_OCCUPIED"] = "occupée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PUPPET"] = "vassale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "sous blocus"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} population"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} habitants"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} défense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} sur {2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "en garnison {1_Name}"
@@ -2076,10 +2076,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Opinion publique, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Détail par ville"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Disponible"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Importé"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Exporté"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Local"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Disponibles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Importées"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Exportées"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Locales"
 -- Victory Progress (F8 / Who is winning): button labels for the five drill-
 -- in sections, score-row format, and per-section row formats consumed by
 -- CivVAccess_VictoryProgressAccess.lua. Disabled-victory and tooltip
