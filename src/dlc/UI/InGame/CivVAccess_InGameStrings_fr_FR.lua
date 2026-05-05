@@ -1873,6 +1873,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_YOU_GET"] = "Vous recevez {1_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "Ils reçoivent {1_Yields}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS"] = "{1_City} reçoit {2_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pression"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] = "Aucune destination valide."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "Aucune ville d'attache valide."
@@ -1892,7 +1893,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_WITH_YOU"] = "Routes commerciales
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND"] = "caravane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_SEA"] = "navire marchand"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] =
-    "{1_Domain}, {2_FromCity} ({3_FromCiv}) vers {4_ToCity} ({5_ToCiv})"
+    "{1_Domain}, {2_From} vers {3_To}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_CITY_STATE_OF"] =
+    "la cité-État de {1_City}"
 -- Plural driven by {1_Num} (turns until the route arrives at its
 -- destination and resolves).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = {
@@ -1901,6 +1904,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_ROUTES"] = "Aucune route."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_NO_DETAILS"] = "Aucune ventilation de source disponible."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_LABEL"] = "Trier par : {1_Sort}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PROMPT"] = "Trier par"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_GOLD"] = "or reçu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_SCIENCE"] = "science reçue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_FOOD"] = "nourriture reçue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRODUCTION"] = "production reçue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE"] = "pression religieuse vers la destination"
 -- Defense group of the City Stats drillable. Each defensive building
 -- announces with the same {Building} format string so adding a new
 -- defensive building only adds a row, not a new label.
