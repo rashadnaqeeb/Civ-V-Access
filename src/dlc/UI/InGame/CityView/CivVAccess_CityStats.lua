@@ -237,26 +237,14 @@ end
 
 -- ===== Culture =====
 
--- Border-expansion turns mirror CityView.lua:1643. When per-turn culture is
--- zero or negative the engine hides the line entirely; we substitute a
--- "stalled" marker so the user hears the situation rather than silence.
+-- Stored / threshold / per-turn triple, then the next-tile countdown via
+-- CitySpeech.borderGrowthToken (which collapses to a stalled marker when
+-- per-turn culture is zero or negative).
 function CityStats.cultureRows(city)
     local rows = {}
-    local stored = city:GetJONSCultureStored()
-    local threshold = city:GetJONSCultureThreshold()
-    local perTurn = city:GetJONSCulturePerTurn()
-    rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS", stored, threshold)
-    rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PER_TURN", perTurn)
-    if perTurn > 0 then
-        local diff = threshold - stored
-        local turns = math.ceil(diff / perTurn)
-        if turns < 1 then
-            turns = 1
-        end
-        rows[#rows + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN", turns, turns)
-    else
-        rows[#rows + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED")
-    end
+    rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS", city:GetJONSCultureStored(), city:GetJONSCultureThreshold())
+    rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PER_TURN", city:GetJONSCulturePerTurn())
+    rows[#rows + 1] = CitySpeech.borderGrowthToken(city)
     return rows
 end
 

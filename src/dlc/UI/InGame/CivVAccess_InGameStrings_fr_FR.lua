@@ -2011,6 +2011,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_CELL"] = {
     other = "{1_Turns} tours : {2_Name}",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_FULL"] = "{1_PerTurn} par tour, {2_Cell}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_POP_CELL"] = "{1_Pop}, {2_Growth}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_DEF_CELL"] = "{1_Def}, {2_Hp}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_FOOD_CELL"] = "{1_Food}, {2_Progress}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CULTURE_CELL"] = "{1_Culture}, {2_Border}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_NONE"] = "aucun"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL"] = "Trésor, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_NET"] = "Net par tour, {1_Value}"

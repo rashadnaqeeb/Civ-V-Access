@@ -1,11 +1,11 @@
 -- Economic Overview accessibility (F2 / Domestic Advisor). Wraps the engine
 -- popup as a four-tab TabbedShell:
 --
---   Cities    -- BaseTable, one row per owned city, columns for population,
---                 name, defensive strength, food, science, gold, culture,
---                 faith, production. Sortable on every column. Enter on the
---                 Production cell opens the city's Choose Production popup;
---                 Enter on the Name cell focuses the city on the map.
+--   Cities    -- BaseTable, one row per owned city (city name read as the
+--                 row label), columns for population, defensive strength,
+--                 food, science, gold, culture, faith, production. Sortable
+--                 on every column. Enter on the Production cell opens the
+--                 city's Choose Production popup.
 --   Gold      -- BaseMenu list, treasury / income / expense breakdown with
 --                 expandable per-city sub-lists for cities, trade routes,
 --                 and building maintenance.
@@ -31,6 +31,10 @@
 include("CivVAccess_PopupBoot")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_BaseTableCore")
+-- CitySpeech.growthToken supplies the population cell's growth clause so the
+-- EO row reuses the same starving / stopped / "grows in N turns" wording the
+-- cursor / CityView already speak.
+include("CivVAccess_CitySpeech")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -151,11 +155,17 @@ local function productionColumnCell(city)
     )
 end
 
-local function focusCity(city)
-    UI.LookAt(city:Plot(), 0)
-    UI.SelectCity(city)
+-- Mirror of EconomicOverview.lua's OnClose: dequeue this popup so the engine
+-- pops it off its own popup stack and our SetShowHideHandler hide branch
+-- removes us from HandlerStack.
+local function dismissPopup()
+    UIManager:DequeuePopup(ContextPtr)
 end
 
+-- Production stacks on top of EO via the engine's own popup queue (the
+-- ChooseProductionPopup HandlerStack push lands at depth+1 above EO and
+-- pops back to EO when closed), so we don't dismiss EO here -- the user
+-- queues a build and returns to the table.
 local function openChooseProduction(city)
     local popup = {
         Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
@@ -168,6 +178,40 @@ local function openChooseProduction(city)
     Events.SerialEventGameMessagePopup(popup)
 end
 
+-- Tech tree won't stack on top of EO -- the engine's popup queue blocks
+-- BUTTONPOPUP_TECH_TREE behind any open popup, so dispatching while EO
+-- is showing leaves the tree pending until the user manually closes EO.
+-- Mirror TechPopup.OpenTechTree's "ClosePopup() then fire" pattern by
+-- dismissing EO first; the queued tree opens immediately on the next tick.
+-- The row's city is unused (the tree is a per-player resource).
+local function openTechTree(_city)
+    dismissPopup()
+    Events.SerialEventGameMessagePopup({
+        Type = ButtonPopupTypes.BUTTONPOPUP_TECH_TREE,
+        Data1 = -1,
+        Data2 = -1,
+        Data3 = -1,
+        Option1 = false,
+        Option2 = false,
+    })
+end
+
+-- Sends the cursor to the city's hex via ScannerNav.jumpCursorTo so the
+-- jump shares the bookmark / scanner Home semantics: "already here"
+-- short-circuit, Backspace pre-jump anchor, Cursor.jumpTo's announce
+-- composer. Dismisses EO first so the user lands back in world view with
+-- the cursor seated on the picked city instead of staring at a still-open
+-- popup. Speech for the new cursor position is the glance text that
+-- jumpCursorTo returns.
+local function focusCity(city)
+    local plot = city:Plot()
+    dismissPopup()
+    local glance = civvaccess_shared.modules.ScannerNav.jumpCursorTo(plot:GetX(), plot:GetY())
+    if glance ~= nil and glance ~= "" then
+        SpeechPipeline.speakInterrupt(glance)
+    end
+end
+
 -- Per-stat Civilopedia anchor. Each stat column gets a constant pediaName
 -- routing Ctrl+I to the matching concept article. The strings are the raw
 -- TXT_KEY of each concept's Description, which CivilopediaScreen indexes
@@ -176,30 +220,61 @@ local function constPedia(textKey)
     return function(_) return textKey end
 end
 
+-- Enter on a stat column with no more specific destination defaults to
+-- focusing the row's city on the world view. Science is the one stat with
+-- a screen of its own (the tech tree); production keeps its own commit
+-- popup. Every other column piggy-backs on focusCity so Enter is never a
+-- no-op.
 local function buildCityColumns()
     local cols = {
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_POPULATION",
-            getCell = function(c) return tostring(c:GetPopulation()) end,
+            getCell = function(c)
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_POP_CELL",
+                    c:GetPopulation(),
+                    CitySpeech.growthToken(c)
+                )
+            end,
             sortKey = function(c) return c:GetPopulation() end,
+            enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_FOOD_CITYGROWTH_HEADING2_TITLE"),
         },
         {
-            name = "TXT_KEY_PRODPANEL_CITY_NAME",
-            getCell = function(c) return c:GetName() end,
-            sortKey = function(c) return c:GetName() end,
-            enterAction = focusCity,
-        },
-        {
             name = "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH",
-            getCell = function(c) return tostring(math.floor(c:GetStrengthValue() / 100)) end,
+            getCell = function(c)
+                local maxHP = GameDefines.MAX_CITY_HIT_POINTS
+                local hpText = Text.format(
+                    "TXT_KEY_CIVVACCESS_CITY_HP_FRACTION",
+                    maxHP - c:GetDamage(),
+                    maxHP
+                )
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_DEF_CELL",
+                    math.floor(c:GetStrengthValue() / 100),
+                    hpText
+                )
+            end,
             sortKey = function(c) return c:GetStrengthValue() end,
+            enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_COMBAT_COMBATSTRENGTH_HEADING3_TITLE"),
         },
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FOOD",
-            getCell = function(c) return formatSigned(c:FoodDifference()) end,
+            getCell = function(c)
+                local progress = Text.format(
+                    "TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS",
+                    c:GetFood(),
+                    c:GrowthThreshold()
+                )
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_FOOD_CELL",
+                    formatSigned(c:FoodDifference()),
+                    progress
+                )
+            end,
             sortKey = function(c) return c:FoodDifference() end,
+            enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_FOOD_HEADING1_TITLE"),
         },
     }
@@ -208,6 +283,7 @@ local function buildCityColumns()
             name = "TXT_KEY_CIVVACCESS_EO_COL_SCIENCE",
             getCell = function(c) return formatSigned(c:GetYieldRate(YieldTypes.YIELD_SCIENCE)) end,
             sortKey = function(c) return c:GetYieldRate(YieldTypes.YIELD_SCIENCE) end,
+            enterAction = openTechTree,
             pediaName = constPedia("TXT_KEY_TECH_HEADING1_TITLE"),
         }
     end
@@ -215,12 +291,20 @@ local function buildCityColumns()
         name = "TXT_KEY_CIVVACCESS_EO_COL_GOLD",
         getCell = function(c) return formatSigned(c:GetYieldRate(YieldTypes.YIELD_GOLD)) end,
         sortKey = function(c) return c:GetYieldRate(YieldTypes.YIELD_GOLD) end,
+        enterAction = focusCity,
         pediaName = constPedia("TXT_KEY_GOLD_HEADING1_TITLE"),
     }
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_EO_COL_CULTURE",
-        getCell = function(c) return formatSigned(c:GetJONSCulturePerTurn()) end,
+        getCell = function(c)
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_EO_CULTURE_CELL",
+                formatSigned(c:GetJONSCulturePerTurn()),
+                CitySpeech.borderGrowthToken(c)
+            )
+        end,
         sortKey = function(c) return c:GetJONSCulturePerTurn() end,
+        enterAction = focusCity,
         pediaName = constPedia("TXT_KEY_CULTURE_HEADING1_TITLE"),
     }
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
@@ -228,6 +312,7 @@ local function buildCityColumns()
             name = "TXT_KEY_CIVVACCESS_EO_COL_FAITH",
             getCell = function(c) return formatSigned(c:GetFaithPerTurn()) end,
             sortKey = function(c) return c:GetFaithPerTurn() end,
+            enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION"),
         }
     end

@@ -137,6 +137,25 @@ function CitySpeech.growthToken(city)
     return Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", foodTurnsLeft, foodTurnsLeft)
 end
 
+-- Next-tile-from-culture line. Same math as CityView.lua:1643: ceil of
+-- (threshold - stored) / perTurn, floored at 1 turn so a city that just
+-- expanded and is one turn from the next still reads "1 turn" rather than
+-- "0". perTurn <= 0 (zero culture, or negative from policies) collapses to
+-- the stalled marker; the engine hides the visual line entirely in that
+-- state and we surface the situation rather than silence.
+function CitySpeech.borderGrowthToken(city)
+    local perTurn = city:GetJONSCulturePerTurn()
+    if perTurn <= 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED")
+    end
+    local diff = city:GetJONSCultureThreshold() - city:GetJONSCultureStored()
+    local turns = math.ceil(diff / perTurn)
+    if turns < 1 then
+        turns = 1
+    end
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN", turns, turns)
+end
+
 -- Short production token: name + turns-left, or "not producing" / process
 -- form. Does NOT include the progress fraction that development() speaks;
 -- callers who want that build it separately.

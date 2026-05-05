@@ -170,6 +170,7 @@ local GAME_KEY_TEMPLATES = {
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_CitySpeech.lua")
     dofile("src/dlc/UI/InGame/CityView/CivVAccess_CityStats.lua")
 
     -- Locale.Compare is nil under the runner's polyfill (it only stubs

@@ -2179,6 +2179,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_CELL"] = {
     other = "{1_Turns} turns: {2_Name}",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_PROD_FULL"] = "{1_PerTurn} per turn, {2_Cell}"
+-- Population and defense cells append a status clause: growth state on the
+-- population cell (reuses CITY_GROWS_IN / CITY_STARVING / CITY_STOPPED_GROWING
+-- via CitySpeech.growthToken), HP fraction on the defense cell.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_POP_CELL"] = "{1_Pop}, {2_Growth}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_DEF_CELL"] = "{1_Def}, {2_Hp}"
+-- Food cell appends stored / threshold via CITY_FOOD_PROGRESS; culture cell
+-- appends the next-tile countdown via CitySpeech.borderGrowthToken.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_FOOD_CELL"] = "{1_Food}, {2_Progress}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CULTURE_CELL"] = "{1_Culture}, {2_Border}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_NONE"] = "none"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL"] = "Treasury, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_NET"] = "Net per turn, {1_Value}"

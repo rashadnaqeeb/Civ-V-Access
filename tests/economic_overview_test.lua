@@ -32,6 +32,7 @@ local function setup()
     }
     ButtonPopupTypes = ButtonPopupTypes or {}
     ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION = 100
+    ButtonPopupTypes.BUTTONPOPUP_TECH_TREE = 101
 
     Game = Game or {}
     Game.IsOption = function()
@@ -44,6 +45,9 @@ local function setup()
         return 0
     end
 
+    GameDefines = GameDefines or {}
+    GameDefines.MAX_CITY_HIT_POINTS = 200
+
     ResourceUsageTypes = ResourceUsageTypes or { RESOURCEUSAGE_BONUS = 0 }
 
     Players = {}
@@ -53,6 +57,18 @@ local function setup()
     UI = UI or {}
     UI.LookAt = function() end
     UI.SelectCity = function() end
+
+    -- Popup dismissal goes through UIManager:DequeuePopup; the wrapper calls
+    -- this when the science cell or a focusCity row Enter fires so EO closes
+    -- before the next popup / cursor jump runs. Stub records that it ran.
+    UIManager = UIManager or {}
+    function UIManager:DequeuePopup() end
+
+    -- ScannerNav.jumpCursorTo lives on civvaccess_shared.modules in-game;
+    -- stub it here so focusCity has the same shared-module surface to call.
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.modules = civvaccess_shared.modules or {}
+    civvaccess_shared.modules.ScannerNav = { jumpCursorTo = function() return "" end }
 
     -- include() in the wrapper resolves to a noop here; the deps the wrapper
     -- needs (HandlerStack, BaseMenu, BaseTable, TabbedShell) are dofiled by
@@ -72,6 +88,9 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TabbedShell.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseTableCore.lua")
+    -- Real CitySpeech so growthToken in the population cell test exercises
+    -- the same code path the cursor / CityView do.
+    dofile("src/dlc/UI/InGame/CivVAccess_CitySpeech.lua")
 
     -- Make sure the install guard skips: ContextPtr is not a table-with-methods.
     ContextPtr = nil
@@ -98,8 +117,32 @@ local function stubCity(opts)
     function c:GetStrengthValue()
         return opts.strength or 1500
     end
+    function c:GetDamage()
+        return opts.damage or 0
+    end
     function c:FoodDifference()
         return opts.food or 3
+    end
+    function c:FoodDifferenceTimes100()
+        return (opts.food or 3) * 100
+    end
+    function c:IsFoodProduction()
+        return opts.foodProd or false
+    end
+    function c:GetFoodTurnsLeft()
+        return opts.growsIn or 8
+    end
+    function c:GetFood()
+        return opts.foodStored or 0
+    end
+    function c:GrowthThreshold()
+        return opts.foodThreshold or 30
+    end
+    function c:GetJONSCultureStored()
+        return opts.cultureStored or 0
+    end
+    function c:GetJONSCultureThreshold()
+        return opts.cultureThreshold or 30
     end
     function c:GetYieldRate(yieldType)
         return (opts.yields or {})[yieldType] or 0
@@ -290,75 +333,190 @@ function M.test_buildCityColumns_all_have_getCell_and_sortKey()
     end
 end
 
-function M.test_buildCityColumns_name_column_has_enterAction()
+function M.test_buildCityColumns_omits_name_column()
     setup()
     local cols = EconomicOverviewAccess.buildCityColumns()
-    for _, c in ipairs(cols) do
-        if c.name == "TXT_KEY_PRODPANEL_CITY_NAME" then
-            T.eq(type(c.enterAction), "function")
-            return
-        end
-    end
-    T.truthy(false, "name column not found")
+    T.falsy(
+        hasColumn(cols, "TXT_KEY_PRODPANEL_CITY_NAME"),
+        "city name column should not be present (row label carries the name)"
+    )
 end
 
-function M.test_buildCityColumns_production_column_has_enterAction()
+function M.test_buildCityColumns_every_column_has_enterAction()
     setup()
     local cols = EconomicOverviewAccess.buildCityColumns()
     for _, c in ipairs(cols) do
-        if c.name == "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION" then
-            T.eq(type(c.enterAction), "function")
-            return
+        T.eq(type(c.enterAction), "function", "column " .. c.name .. " missing enterAction")
+    end
+end
+
+local function findColumn(cols, key)
+    for _, c in ipairs(cols) do
+        if c.name == key then
+            return c
         end
     end
-    T.truthy(false, "production column not found")
+    return nil
+end
+
+function M.test_production_column_enterAction_fires_choose_production_popup()
+    setup()
+    local fired
+    Events.SerialEventGameMessagePopup = function(p) fired = p end
+    local prod = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION")
+    T.truthy(prod)
+    prod.enterAction(stubCity({ id = 42 }))
+    T.eq(fired.Type, ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION)
+    T.eq(fired.Data1, 42, "Data1 carries the row's city id")
+end
+
+function M.test_production_column_enterAction_does_not_dismiss_eo()
+    setup()
+    -- Production stacks on top of EO; dismissing here would break the
+    -- "queue a build then return to the table" flow that worked correctly
+    -- in the field log.
+    local dismissed = false
+    function UIManager:DequeuePopup() dismissed = true end
+    local prod = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION")
+    prod.enterAction(stubCity({ id = 1 }))
+    T.eq(dismissed, false, "production must not dismiss EO before firing the popup")
+end
+
+function M.test_science_column_enterAction_dismisses_eo_then_opens_tech_tree()
+    setup()
+    local order = {}
+    function UIManager:DequeuePopup()
+        order[#order + 1] = "dismiss"
+    end
+    Events.SerialEventGameMessagePopup = function(p)
+        order[#order + 1] = p.Type
+    end
+    local science = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_SCIENCE")
+    T.truthy(science)
+    science.enterAction(stubCity())
+    -- Dismiss must precede the popup dispatch -- the engine queues
+    -- BUTTONPOPUP_TECH_TREE behind any open popup, so a reversed order
+    -- leaves the tree pending until the user manually closes EO.
+    T.eq(order[1], "dismiss", "EO must dismiss before tech tree fires")
+    T.eq(order[2], ButtonPopupTypes.BUTTONPOPUP_TECH_TREE)
+end
+
+function M.test_focus_city_columns_dismiss_eo_then_jump_cursor_via_scanner()
+    setup()
+    -- Capture the dismiss + cursor-jump call order; assert each focus column
+    -- routes through ScannerNav.jumpCursorTo (the shared bookmark / scanner
+    -- Home primitive) rather than bare UI.LookAt + UI.SelectCity.
+    local order
+    function UIManager:DequeuePopup()
+        order[#order + 1] = "dismiss"
+    end
+    local jumpedTo
+    civvaccess_shared.modules.ScannerNav.jumpCursorTo = function(x, y)
+        order[#order + 1] = "jump"
+        jumpedTo = { x = x, y = y }
+        return ""
+    end
+    local city = stubCity({ id = 7 })
+    function city:Plot()
+        return { GetX = function() return 12 end, GetY = function() return 9 end }
+    end
+    local focusKeys = {
+        "TXT_KEY_CIVVACCESS_EO_COL_POPULATION",
+        "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH",
+        "TXT_KEY_CIVVACCESS_EO_COL_FOOD",
+        "TXT_KEY_CIVVACCESS_EO_COL_GOLD",
+        "TXT_KEY_CIVVACCESS_EO_COL_CULTURE",
+        "TXT_KEY_CIVVACCESS_EO_COL_FAITH",
+    }
+    local cols = EconomicOverviewAccess.buildCityColumns()
+    for _, key in ipairs(focusKeys) do
+        order, jumpedTo = {}, nil
+        local col = findColumn(cols, key)
+        T.truthy(col, key .. " column missing")
+        col.enterAction(city)
+        T.eq(order[1], "dismiss", key .. ": EO must dismiss before cursor jump")
+        T.eq(order[2], "jump", key .. ": cursor jump must follow dismiss")
+        T.eq(jumpedTo.x, 12, key .. ": jumpCursorTo received plot x")
+        T.eq(jumpedTo.y, 9, key .. ": jumpCursorTo received plot y")
+    end
 end
 
 -- Column getCell results ----------------------------------------------
 
-function M.test_food_column_getCell_signs_positive_yield()
+function M.test_food_column_getCell_signs_yield_and_appends_progress()
     setup()
-    local cols = EconomicOverviewAccess.buildCityColumns()
-    local food
-    for _, c in ipairs(cols) do
-        if c.name == "TXT_KEY_CIVVACCESS_EO_COL_FOOD" then
-            food = c
-            break
-        end
-    end
+    local food = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_FOOD")
     T.truthy(food)
-    local city = stubCity({ food = 4 })
-    T.eq(food.getCell(city), "+4")
+    local city = stubCity({ food = 4, foodStored = 12, foodThreshold = 30 })
+    T.eq(food.getCell(city), "+4, 12 of 30 food")
 end
 
-function M.test_strength_column_getCell_divides_by_100()
+function M.test_food_column_getCell_signs_negative_yield_and_appends_progress()
     setup()
-    local cols = EconomicOverviewAccess.buildCityColumns()
-    local strength
-    for _, c in ipairs(cols) do
-        if c.name == "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH" then
-            strength = c
-            break
-        end
-    end
+    local food = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_FOOD")
+    local city = stubCity({ food = -2, foodStored = 5, foodThreshold = 25 })
+    T.eq(food.getCell(city), "-2, 5 of 25 food")
+end
+
+function M.test_culture_column_getCell_appends_next_tile_clause()
+    setup()
+    local culture = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_CULTURE")
+    T.truthy(culture)
+    -- (30 - 10) / 5 = 4 turns to next tile.
+    local city = stubCity({ culture = 5, cultureStored = 10, cultureThreshold = 30 })
+    T.eq(culture.getCell(city), "+5, next tile in 4 turns")
+end
+
+function M.test_culture_column_getCell_appends_stalled_when_perTurn_zero()
+    setup()
+    local culture = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_CULTURE")
+    local city = stubCity({ culture = 0 })
+    T.eq(culture.getCell(city), "0, tile expansion stalled")
+end
+
+function M.test_strength_column_getCell_divides_by_100_and_appends_full_hp()
+    setup()
+    local strength = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH")
     T.truthy(strength)
-    local city = stubCity({ strength = 1750 })
-    T.eq(strength.getCell(city), "17")
+    local city = stubCity({ strength = 1750, damage = 0 })
+    T.eq(strength.getCell(city), "17, 200 of 200 hp")
 end
 
-function M.test_population_column_getCell_returns_count_string()
+function M.test_strength_column_getCell_appends_damaged_hp()
     setup()
-    local cols = EconomicOverviewAccess.buildCityColumns()
-    local pop
-    for _, c in ipairs(cols) do
-        if c.name == "TXT_KEY_CIVVACCESS_EO_COL_POPULATION" then
-            pop = c
-            break
-        end
-    end
+    local strength = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH")
+    local city = stubCity({ strength = 2000, damage = 75 })
+    T.eq(strength.getCell(city), "20, 125 of 200 hp")
+end
+
+function M.test_population_column_getCell_appends_grows_in_clause()
+    setup()
+    local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
     T.truthy(pop)
-    local city = stubCity({ pop = 7 })
-    T.eq(pop.getCell(city), "7")
+    local city = stubCity({ pop = 7, food = 4, growsIn = 8 })
+    T.eq(pop.getCell(city), "7, grows in 8 turns")
+end
+
+function M.test_population_column_getCell_appends_starving_clause()
+    setup()
+    local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
+    local city = stubCity({ pop = 5, food = -2 })
+    T.eq(pop.getCell(city), "5, starving")
+end
+
+function M.test_population_column_getCell_appends_stopped_growing_clause()
+    setup()
+    local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
+    local city = stubCity({ pop = 5, food = 0 })
+    T.eq(pop.getCell(city), "5, stopped growing")
+end
+
+function M.test_population_column_sortKey_uses_bare_population()
+    setup()
+    -- Sort dimension shouldn't shift just because the cell speaks growth too;
+    -- a player wants the column to sort by population size, not turns-to-grow.
+    local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
+    T.eq(pop.sortKey(stubCity({ pop = 7, growsIn = 1 })), 7)
 end
 
 -- productionColumnCell -------------------------------------------------
