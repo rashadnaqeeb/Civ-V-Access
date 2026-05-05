@@ -427,10 +427,12 @@ local function appendTeamSuffix(line, pPlayer)
 end
 
 local function buildDominationItems()
+    local sectionPedia = "TXT_KEY_VICTORY_DOMINATION_HEADING3_TITLE"
     if not PreGame.IsVictory(GameInfo.Victories["VICTORY_DOMINATION"].ID) then
         return {
             BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_VP_DOMINATION_VICTORY_DISABLED"),
+                pediaName = sectionPedia,
             }),
         }
     end
@@ -438,7 +440,7 @@ local function buildDominationItems()
     local items = {}
     local leading = dominationLeadingLine(state)
     if leading ~= nil and leading ~= "" then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = leading })
+        items[#items + 1] = BaseMenuItems.Text({ labelText = leading, pediaName = sectionPedia })
     end
 
     -- Sort: civs whose original capital is currently held by themselves go
@@ -464,7 +466,7 @@ local function buildDominationItems()
         sentence = appendTeamSuffix(sentence, pPlayer)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = sentence,
-            pediaName = leaderPediaNameFor(pPlayer),
+            pediaName = leaderPediaNameFor(pPlayer) or sectionPedia,
         })
     end
     return items
@@ -584,10 +586,12 @@ local function scienceCivLine(pPlayer)
 end
 
 local function buildScienceItems()
+    local sectionPedia = "TXT_KEY_VICTORY_SCIENCE_HEADING3_TITLE"
     if not PreGame.IsVictory(GameInfo.Victories["VICTORY_SPACE_RACE"].ID) then
         return {
             BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_VP_SCIENCE_VICTORY_DISABLED"),
+                pediaName = sectionPedia,
             }),
         }
     end
@@ -606,16 +610,19 @@ local function buildScienceItems()
             if parts == nil then
                 items[#items + 1] = BaseMenuItems.Text({
                     labelText = Text.key("TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_BARE_SELF"),
+                    pediaName = sectionPedia,
                 })
             else
                 items[#items + 1] = BaseMenuItems.Text({
                     labelText = Text.format("TXT_KEY_CIVVACCESS_VP_SCIENCE_SELF_PARTS", parts),
+                    pediaName = sectionPedia,
                 })
             end
         else
             local got, total = activeTeamPrereqsResearched()
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS", total, got, total),
+                pediaName = sectionPedia,
             })
         end
 
@@ -633,6 +640,7 @@ local function buildScienceItems()
                 numApollo,
                 "TXT_KEY_PROJECT_APOLLO_PROGRAM"
             ),
+            pediaName = sectionPedia,
         })
     end
 
@@ -657,7 +665,7 @@ local function buildScienceItems()
         local pPlayer = Players[id]
         items[#items + 1] = BaseMenuItems.Text({
             labelText = scienceCivLine(pPlayer),
-            pediaName = leaderPediaNameFor(pPlayer),
+            pediaName = leaderPediaNameFor(pPlayer) or sectionPedia,
         })
     end
 
@@ -667,11 +675,13 @@ end
 -- ===== Diplomatic section ==============================================
 
 local function buildDiplomaticItems()
+    local sectionPedia = "TXT_KEY_VICTORY_DIPLOMATIC_HEADING3_TITLE"
     local victoryInfo = GameInfo.Victories["VICTORY_DIPLOMATIC"]
     if victoryInfo == nil or not PreGame.IsVictory(victoryInfo.ID) then
         return {
             BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_VP_DIPLO_VICTORY_DISABLED"),
+                pediaName = sectionPedia,
             }),
         }
     end
@@ -689,6 +699,7 @@ local function buildDiplomaticItems()
         return {
             BaseMenuItems.Text({
                 labelText = Text.format("TXT_KEY_VP_DIPLO_SOMEONE_WON", name),
+                pediaName = leaderPediaNameFor(pLeader) or sectionPedia,
             }),
         }
     end
@@ -712,6 +723,7 @@ local function buildDiplomaticItems()
     if pLeague == nil then
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
+            pediaName = sectionPedia,
         })
         return items
     end
@@ -719,6 +731,7 @@ local function buildDiplomaticItems()
     if Game.IsUnitedNationsActive() then
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_VP_DIPLO_UN_ACTIVE"),
+            pediaName = sectionPedia,
         })
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.format(
@@ -726,10 +739,12 @@ local function buildDiplomaticItems()
                 stripColon(Text.key("TXT_KEY_VP_DIPLO_TURNS_UNTIL_SESSION")),
                 pLeague:GetTurnsUntilVictorySession()
             ),
+            pediaName = sectionPedia,
         })
     else
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_VP_DIPLO_UN_INACTIVE"),
+            pediaName = sectionPedia,
         })
     end
 
@@ -739,6 +754,7 @@ local function buildDiplomaticItems()
             stripColon(Text.key("TXT_KEY_VP_DIPLO_DELEGATES_CONTROLLED")),
             pLeague:CalculateStartingVotesForMember(activePlayerId())
         ),
+        pediaName = sectionPedia,
     })
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.format(
@@ -746,6 +762,7 @@ local function buildDiplomaticItems()
             stripColon(Text.key("TXT_KEY_VP_DIPLO_DELEGATES_NEEDED")),
             Game.GetVotesNeededForDiploVictory()
         ),
+        pediaName = sectionPedia,
     })
 
     return items
@@ -764,11 +781,13 @@ local function influencePercentOf(otherPlayerId)
 end
 
 local function buildCulturalItems()
+    local sectionPedia = "TXT_KEY_VICTORY_CULTURAL_HEADING3_TITLE"
     local cultureVictory = GameInfo.Victories["VICTORY_CULTURAL"]
     if cultureVictory == nil or not PreGame.IsVictory(cultureVictory.ID) then
         return {
             BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_VP_CULTURE_VICTORY_DISABLED"),
+                pediaName = sectionPedia,
             }),
         }
     end
@@ -798,7 +817,7 @@ local function buildCulturalItems()
         end
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.format(key, pct, pOther:GetCivilizationShortDescriptionKey()),
-            pediaName = leaderPediaNameFor(pOther),
+            pediaName = leaderPediaNameFor(pOther) or sectionPedia,
         })
     end
     return items
@@ -833,6 +852,7 @@ local function buildVictoriesItems()
                     remainingTurns()
                 )
             end,
+            pediaName = "TXT_KEY_SCORE_TIMETOVICTORY_HEADING2_TITLE",
         })
     end
     items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION", buildDominationItems,
