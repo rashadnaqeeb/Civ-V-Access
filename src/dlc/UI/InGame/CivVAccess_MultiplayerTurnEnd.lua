@@ -80,6 +80,7 @@ function MultiplayerTurnEnd._onRemoteTurnEnd()
         if isAnnounceable(pPlayer) and pPlayer:HasReceivedNetTurnComplete() and not s[i] then
             s[i] = true
             local text = Text.format("TXT_KEY_PLAYER_TURN_ENDED", pPlayer:GetNickName())
+            Events.AudioPlay2DSound("AS2D_IF_MP_CHAT_DING")
             SpeechPipeline.speakQueued(text)
             MessageBuffer.append(text, "notification")
         end
