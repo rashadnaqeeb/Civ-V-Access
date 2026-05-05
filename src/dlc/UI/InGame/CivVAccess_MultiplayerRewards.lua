@@ -173,12 +173,19 @@ end
 -- always-installed: the engine still raises the events in SP, and our
 -- handlers return after a single Game:IsNetworkMultiPlayer() check.
 function MultiplayerRewards.installListeners()
-    Log.installEvent(GameEvents, "CivVAccessGoodyHutReceived",
-        MultiplayerRewards._onGoodyHutReceived, "MultiplayerRewards",
-        "goody-hut announces disabled in MP (engine fork not deployed?)")
-    Log.installEvent(GameEvents, "CivVAccessBarbarianCampCleared",
-        MultiplayerRewards._onBarbarianCampCleared, "MultiplayerRewards",
-        "barb-camp announces disabled in MP (engine fork not deployed?)")
-    Log.installEvent(Events, "NaturalWonderRevealed",
-        MultiplayerRewards._onNaturalWonderRevealed, "MultiplayerRewards")
+    Log.installEvent(
+        GameEvents,
+        "CivVAccessGoodyHutReceived",
+        MultiplayerRewards._onGoodyHutReceived,
+        "MultiplayerRewards",
+        "goody-hut announces disabled in MP (engine fork not deployed?)"
+    )
+    Log.installEvent(
+        GameEvents,
+        "CivVAccessBarbarianCampCleared",
+        MultiplayerRewards._onBarbarianCampCleared,
+        "MultiplayerRewards",
+        "barb-camp announces disabled in MP (engine fork not deployed?)"
+    )
+    Log.installEvent(Events, "NaturalWonderRevealed", MultiplayerRewards._onNaturalWonderRevealed, "MultiplayerRewards")
 end

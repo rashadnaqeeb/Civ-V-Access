@@ -134,7 +134,9 @@ function HandlerStack.purgeDeadEnv()
             Log.warn(
                 "HandlerStack.purgeDeadEnv: evicted dead-env handler '"
                     .. tostring(h.name)
-                    .. "' (depth=" .. #_shared.stack .. ")"
+                    .. "' (depth="
+                    .. #_shared.stack
+                    .. ")"
             )
         end
     end
@@ -159,7 +161,9 @@ end
 local function warnIfMissingHelpEntries(handler, callerName)
     if handler.helpEntries == nil and type(handler.bindings) == "table" and #handler.bindings > 0 then
         Log.warn(
-            "HandlerStack." .. callerName .. ": '"
+            "HandlerStack."
+                .. callerName
+                .. ": '"
                 .. tostring(handler.name)
                 .. "' has bindings but no helpEntries; ? help will not list it."
                 .. " Set helpEntries (or an explicit {}) to opt in."
@@ -178,11 +182,15 @@ local function fireOnActivate(handler, callerName, abortVerb)
     local ok, err = pcall(fn, handler)
     if not ok then
         Log.error(
-            "HandlerStack." .. callerName .. " onActivate failed on '"
+            "HandlerStack."
+                .. callerName
+                .. " onActivate failed on '"
                 .. tostring(handler.name)
                 .. "': "
                 .. tostring(err)
-                .. " (handler not " .. abortVerb .. ")"
+                .. " (handler not "
+                .. abortVerb
+                .. ")"
         )
         return false
     end
@@ -345,9 +353,12 @@ function HandlerStack.drainAndRemove(name, reactivate)
                     end
                 end
                 if escBinding ~= nil then
-                    if not Log.tryCall(
-                        "HandlerStack.drainAndRemove: sub '" .. tostring(top.name) .. "' Esc",
-                        escBinding.fn) then
+                    if
+                        not Log.tryCall(
+                            "HandlerStack.drainAndRemove: sub '" .. tostring(top.name) .. "' Esc",
+                            escBinding.fn
+                        )
+                    then
                         HandlerStack.pop()
                     end
                 else

@@ -719,7 +719,10 @@ end
 function BaseMenuItems.Pulldown(spec)
     assertLabel(spec, "Pulldown")
     assertTooltip(spec, "Pulldown")
-    Log.check(spec.valueFn == nil or type(spec.valueFn) == "function", "Pulldown.valueFn must be a function if provided")
+    Log.check(
+        spec.valueFn == nil or type(spec.valueFn) == "function",
+        "Pulldown.valueFn must be a function if provided"
+    )
     Log.check(
         spec.entryAnnounceFn == nil or type(spec.entryAnnounceFn) == "function",
         "Pulldown.entryAnnounceFn must be a function if provided"

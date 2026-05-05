@@ -296,7 +296,11 @@ function TabbedShell.create(spec)
         end
         local ok, consumed = Log.tryCall(
             "TabbedShell handleSearchInput in '" .. tostring(tab.tabName) .. "'",
-            tab.handleSearchInput, tab, vk, mods)
+            tab.handleSearchInput,
+            tab,
+            vk,
+            mods
+        )
         return ok and consumed == true
     end
 
@@ -464,7 +468,9 @@ function TabbedShell.install(ContextPtr, spec)
             if type(tab.resetForNextOpen) == "function" then
                 Log.tryCall(
                     "TabbedShell '" .. handler.name .. "' resetForNextOpen on '" .. tostring(tab.tabName) .. "'",
-                    tab.resetForNextOpen, tab)
+                    tab.resetForNextOpen,
+                    tab
+                )
             end
         end
         handler._initialized = false
@@ -486,8 +492,7 @@ function TabbedShell.install(ContextPtr, spec)
             return
         end
         if shouldActivate ~= nil then
-            local ok, should = Log.tryCall(
-                "TabbedShell '" .. handler.name .. "' shouldActivate", shouldActivate)
+            local ok, should = Log.tryCall("TabbedShell '" .. handler.name .. "' shouldActivate", shouldActivate)
             if not ok or not should then
                 return
             end
@@ -511,8 +516,7 @@ function TabbedShell.install(ContextPtr, spec)
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
             if top == handler then
                 if onEscape ~= nil then
-                    local ok, consumed = Log.tryCall(
-                        "TabbedShell '" .. handler.name .. "' onEscape", onEscape, handler)
+                    local ok, consumed = Log.tryCall("TabbedShell '" .. handler.name .. "' onEscape", onEscape, handler)
                     if ok and consumed then
                         return true
                     end

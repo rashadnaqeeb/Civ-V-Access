@@ -38,7 +38,8 @@ function M.test_legal_with_legalText_returns_legalText_verbatim()
     PlotComposers.glance = function()
         error("glance must not be called when legalText is supplied")
     end
-    local out = PlotComposers.legalityPreview(true, "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL", {}, "airlift here")
+    local out =
+        PlotComposers.legalityPreview(true, "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL", {}, "airlift here")
     T.eq(out, "airlift here")
 end
 

@@ -230,11 +230,7 @@ function GiftMode.enter(toPlayerID, kind)
             local legal = unit ~= nil and unit:CanDistanceGift(toPlayerID)
             local legalText
             if legal then
-                legalText = Text.format(
-                    "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_LEGAL",
-                    unit:GetName(),
-                    recipient
-                )
+                legalText = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_LEGAL", unit:GetName(), recipient)
             end
             return legalityPreview(legal, "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_UNIT_ILLEGAL", plot, legalText)
         end
@@ -263,18 +259,10 @@ function GiftMode.enter(toPlayerID, kind)
                 -- crash into Lua.log rather than collapse to a blank name.
                 local resourceName =
                     Text.key(GameInfo.Resources[plot:GetResourceType(Game.GetActiveTeam())].Description)
-                legalText = Text.format(
-                    "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_LEGAL",
-                    resourceName,
-                    recipient
-                )
+                legalText =
+                    Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_LEGAL", resourceName, recipient)
             end
-            return legalityPreview(
-                legal,
-                "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_ILLEGAL",
-                plot,
-                legalText
-            )
+            return legalityPreview(legal, "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_ILLEGAL", plot, legalText)
         end
         commitFn = function()
             if commitImprovement(toPlayerID) then

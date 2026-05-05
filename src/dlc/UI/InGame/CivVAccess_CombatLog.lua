@@ -75,7 +75,12 @@ function CombatLog.installListeners()
     Log.installEvent(Events, "ActivePlayerTurnEnd", CombatLog._onTurnEnd, "CombatLog")
     Log.installEvent(Events, "ActivePlayerTurnStart", CombatLog._onTurnStart, "CombatLog")
     if Game.IsHotSeat() then
-        Log.installEvent(Events, "GameplaySetActivePlayer", CombatLog._onActivePlayerChanged,
-            "CombatLog", "in hotseat session")
+        Log.installEvent(
+            Events,
+            "GameplaySetActivePlayer",
+            CombatLog._onActivePlayerChanged,
+            "CombatLog",
+            "in hotseat session"
+        )
     end
 end

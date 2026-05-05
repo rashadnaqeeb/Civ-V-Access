@@ -152,7 +152,12 @@ end
 function NotificationAnnounce.install()
     local snapshotted = snapshotExisting()
     Log.installEvent(Events, "NotificationAdded", NotificationAnnounce._onAdded, "NotificationAnnounce")
-    Log.installEvent(Events, "GameplaySetActivePlayer", NotificationAnnounce._onActivePlayerChanged, "NotificationAnnounce")
+    Log.installEvent(
+        Events,
+        "GameplaySetActivePlayer",
+        NotificationAnnounce._onActivePlayerChanged,
+        "NotificationAnnounce"
+    )
     Log.installEvent(Events, "ActivePlayerTurnStart", NotificationAnnounce._onTurnStart, "NotificationAnnounce")
     Log.info("NotificationAnnounce: installed, snapshotted " .. tostring(snapshotted) .. " existing notifications")
 end

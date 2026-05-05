@@ -242,7 +242,11 @@ end
 -- per-turn culture is zero or negative).
 function CityStats.cultureRows(city)
     local rows = {}
-    rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS", city:GetJONSCultureStored(), city:GetJONSCultureThreshold())
+    rows[#rows + 1] = Text.format(
+        "TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS",
+        city:GetJONSCultureStored(),
+        city:GetJONSCultureThreshold()
+    )
     rows[#rows + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PER_TURN", city:GetJONSCulturePerTurn())
     rows[#rows + 1] = CitySpeech.borderGrowthToken(city)
     return rows

@@ -548,8 +548,13 @@ function RevealAnnounce.installListeners()
     -- detection on its own.
     _campOrRuinKind = {}
     bootstrapCampOrRuinSnapshot()
-    Log.installEvent(GameEvents, "CivVAccessPlotRevealed", recordFirstReveal, "RevealAnnounce",
-        "first-reveal announces disabled (engine fork not deployed?)")
+    Log.installEvent(
+        GameEvents,
+        "CivVAccessPlotRevealed",
+        recordFirstReveal,
+        "RevealAnnounce",
+        "first-reveal announces disabled (engine fork not deployed?)"
+    )
     Log.installEvent(Events, "HexFOWStateChanged", recordNowVisible, "RevealAnnounce")
     Log.installEvent(Events, "ActivePlayerTurnStart", RevealAnnounce._onTurnStart, "RevealAnnounce")
 end

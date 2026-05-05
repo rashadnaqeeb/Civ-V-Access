@@ -898,18 +898,54 @@ local bind = HandlerStack.bind
 local function getMetrics()
     return {
         { key = Keys.T, mod = MOD_NONE, fn = turnLine, desc = "Turn and date", helpSuffix = "TURN" },
-        { key = Keys.R, mod = MOD_NONE, fn = researchLine, desc = "Current research and science", helpSuffix = "RESEARCH" },
-        { key = Keys.R, mod = MOD_SHIFT, fn = researchDetail, desc = "Research breakdown", helpSuffix = "RESEARCH_DETAIL" },
+        {
+            key = Keys.R,
+            mod = MOD_NONE,
+            fn = researchLine,
+            desc = "Current research and science",
+            helpSuffix = "RESEARCH",
+        },
+        {
+            key = Keys.R,
+            mod = MOD_SHIFT,
+            fn = researchDetail,
+            desc = "Research breakdown",
+            helpSuffix = "RESEARCH_DETAIL",
+        },
         { key = Keys.G, mod = MOD_NONE, fn = goldLine, desc = "Gold, trade routes, shortages", helpSuffix = "GOLD" },
         { key = Keys.G, mod = MOD_SHIFT, fn = goldDetail, desc = "Gold breakdown", helpSuffix = "GOLD_DETAIL" },
-        { key = Keys.H, mod = MOD_NONE, fn = happinessLine, desc = "Happiness and golden age", helpSuffix = "HAPPINESS" },
-        { key = Keys.H, mod = MOD_SHIFT, fn = happinessDetail, desc = "Happiness and golden age breakdown", helpSuffix = "HAPPINESS_DETAIL" },
+        {
+            key = Keys.H,
+            mod = MOD_NONE,
+            fn = happinessLine,
+            desc = "Happiness and golden age",
+            helpSuffix = "HAPPINESS",
+        },
+        {
+            key = Keys.H,
+            mod = MOD_SHIFT,
+            fn = happinessDetail,
+            desc = "Happiness and golden age breakdown",
+            helpSuffix = "HAPPINESS_DETAIL",
+        },
         { key = Keys.F, mod = MOD_NONE, fn = faithLine, desc = "Faith", helpSuffix = "FAITH" },
         { key = Keys.F, mod = MOD_SHIFT, fn = faithDetail, desc = "Faith breakdown", helpSuffix = "FAITH_DETAIL" },
         { key = Keys.P, mod = MOD_NONE, fn = policyLine, desc = "Culture and policy timing", helpSuffix = "POLICY" },
         { key = Keys.P, mod = MOD_SHIFT, fn = policyDetail, desc = "Culture breakdown", helpSuffix = "POLICY_DETAIL" },
-        { key = Keys.I, mod = MOD_NONE, fn = tourismLine, desc = "Tourism and influential civs", helpSuffix = "TOURISM" },
-        { key = Keys.I, mod = MOD_SHIFT, fn = tourismDetail, desc = "Tourism breakdown", helpSuffix = "TOURISM_DETAIL" },
+        {
+            key = Keys.I,
+            mod = MOD_NONE,
+            fn = tourismLine,
+            desc = "Tourism and influential civs",
+            helpSuffix = "TOURISM",
+        },
+        {
+            key = Keys.I,
+            mod = MOD_SHIFT,
+            fn = tourismDetail,
+            desc = "Tourism breakdown",
+            helpSuffix = "TOURISM_DETAIL",
+        },
     }
 end
 

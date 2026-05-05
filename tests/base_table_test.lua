@@ -45,7 +45,11 @@ local function setup()
     -- much larger transitive include chain) so the column-edge wrap tests
     -- can assert the cue fired.
     wrapPlays = 0
-    BaseMenu = { _playWrap = function() wrapPlays = wrapPlays + 1 end }
+    BaseMenu = {
+        _playWrap = function()
+            wrapPlays = wrapPlays + 1
+        end,
+    }
     dofile("src/dlc/UI/Shared/CivVAccess_BaseTableCore.lua")
 
     pediaCalls = {}
@@ -467,17 +471,29 @@ local function makeMultiMatchSpec()
         columns = {
             {
                 name = "TXT_KEY_CIVVACCESS_TBL_COL_NAME",
-                getCell = function(r) return r.name end,
-                sortKey = function(r) return r.name end,
+                getCell = function(r)
+                    return r.name
+                end,
+                sortKey = function(r)
+                    return r.name
+                end,
             },
             {
                 name = "TXT_KEY_CIVVACCESS_TBL_COL_POP",
-                getCell = function(r) return tostring(r.pop) end,
-                sortKey = function(r) return r.pop end,
+                getCell = function(r)
+                    return tostring(r.pop)
+                end,
+                sortKey = function(r)
+                    return r.pop
+                end,
             },
         },
-        rebuildRows = function() return rows end,
-        rowLabel = function(r) return r.name end,
+        rebuildRows = function()
+            return rows
+        end,
+        rowLabel = function(r)
+            return r.name
+        end,
     }
 end
 

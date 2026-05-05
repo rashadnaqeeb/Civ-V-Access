@@ -584,5 +584,4 @@ function M.test_loadAll_sets_fog_to_half_volume()
     T.eq(found.v, 0.5, "fog volume must be 0.5")
 end
 
-
 return M

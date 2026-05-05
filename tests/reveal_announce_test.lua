@@ -474,7 +474,14 @@ function M.test_city_not_re_announced_on_revisit()
     local plot = T.fakePlot({
         visible = true,
         plotIndex = 1,
-        city = { GetName = function() return "London" end, GetOwner = function() return 1 end },
+        city = {
+            GetName = function()
+                return "London"
+            end,
+            GetOwner = function()
+                return 1
+            end,
+        },
     })
     plot.GetImprovementType = function()
         return -1

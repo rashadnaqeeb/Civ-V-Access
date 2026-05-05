@@ -309,8 +309,15 @@ function Bookmarks.installListeners()
     if not Game.IsHotSeat() then
         return
     end
-    if Log.installEvent(Events, "GameplaySetActivePlayer", Bookmarks._onActivePlayerChanged,
-        "Bookmarks", "hotseat per-player bookmark restore disabled") then
+    if
+        Log.installEvent(
+            Events,
+            "GameplaySetActivePlayer",
+            Bookmarks._onActivePlayerChanged,
+            "Bookmarks",
+            "hotseat per-player bookmark restore disabled"
+        )
+    then
         Log.info("Bookmarks: installed hotseat listener")
     end
 end

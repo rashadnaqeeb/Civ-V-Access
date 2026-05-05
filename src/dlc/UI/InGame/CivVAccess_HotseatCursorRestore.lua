@@ -82,8 +82,15 @@ function HotseatCursor.installListeners()
         Log.info("HotseatCursor: not a hotseat session, skipping listener registration")
         return
     end
-    if Log.installEvent(Events, "GameplaySetActivePlayer", HotseatCursor._onActivePlayerChanged,
-        "HotseatCursor", "cursor restore disabled") then
+    if
+        Log.installEvent(
+            Events,
+            "GameplaySetActivePlayer",
+            HotseatCursor._onActivePlayerChanged,
+            "HotseatCursor",
+            "cursor restore disabled"
+        )
+    then
         Log.info("HotseatCursor: installed")
     end
 end

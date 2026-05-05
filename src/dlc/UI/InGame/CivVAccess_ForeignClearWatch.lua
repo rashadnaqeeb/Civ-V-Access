@@ -131,10 +131,18 @@ function ForeignClearWatch.installListeners()
     civvaccess_shared.foreignClearDelta = nil
     Log.installEvent(Events, "ActivePlayerTurnEnd", ForeignClearWatch._onTurnEnd, "ForeignClearWatch")
     Log.installEvent(Events, "ActivePlayerTurnStart", ForeignClearWatch._onTurnStart, "ForeignClearWatch")
-    Log.installEvent(GameEvents, "CivVAccessForeignBarbCampCleared",
-        ForeignClearWatch._onForeignBarbCampCleared, "ForeignClearWatch",
-        "foreign barb-camp announces disabled (engine fork not deployed?)")
-    Log.installEvent(GameEvents, "CivVAccessForeignGoodyCleared",
-        ForeignClearWatch._onForeignGoodyCleared, "ForeignClearWatch",
-        "foreign goody-hut announces disabled (engine fork not deployed?)")
+    Log.installEvent(
+        GameEvents,
+        "CivVAccessForeignBarbCampCleared",
+        ForeignClearWatch._onForeignBarbCampCleared,
+        "ForeignClearWatch",
+        "foreign barb-camp announces disabled (engine fork not deployed?)"
+    )
+    Log.installEvent(
+        GameEvents,
+        "CivVAccessForeignGoodyCleared",
+        ForeignClearWatch._onForeignGoodyCleared,
+        "ForeignClearWatch",
+        "foreign goody-hut announces disabled (engine fork not deployed?)"
+    )
 end

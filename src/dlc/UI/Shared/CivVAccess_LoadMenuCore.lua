@@ -129,8 +129,7 @@ function LoadMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_DLC",
             activate = function()
-                SavedGameShared.pushRequirementsSub(mainHandler, "dlc",
-                    g_SavedGameDLCRequired, g_SavedGameModsRequired)
+                SavedGameShared.pushRequirementsSub(mainHandler, "dlc", g_SavedGameDLCRequired, g_SavedGameModsRequired)
             end,
         })
     end
@@ -138,8 +137,12 @@ function LoadMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_MODS",
             activate = function()
-                SavedGameShared.pushRequirementsSub(mainHandler, "mods",
-                    g_SavedGameDLCRequired, g_SavedGameModsRequired)
+                SavedGameShared.pushRequirementsSub(
+                    mainHandler,
+                    "mods",
+                    g_SavedGameDLCRequired,
+                    g_SavedGameModsRequired
+                )
             end,
         })
     end
@@ -188,7 +191,9 @@ function LoadMenu.buildPickerItems(entryFactory, mainHandlerRef)
         local indices = SavedGameShared.sortedFileIndices(g_FileList, {
             mtimeRawFn = UI.GetSavedGameModificationTimeRaw,
             -- SortByName inverts to reverse-alphabetical in autosave mode.
-            reverseAlphaSortFn = function() return g_ShowAutoSaves end,
+            reverseAlphaSortFn = function()
+                return g_ShowAutoSaves
+            end,
         })
         for _, i in ipairs(indices) do
             local filename = g_FileList[i]

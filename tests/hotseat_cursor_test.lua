@@ -49,7 +49,11 @@ local function makePlayer(opts)
     local capital = nil
     if opts.capitalAt ~= nil then
         local plot = makePlot(opts.capitalAt[1], opts.capitalAt[2])
-        capital = { Plot = function() return plot end }
+        capital = {
+            Plot = function()
+                return plot
+            end,
+        }
     end
     return {
         IsHuman = function()

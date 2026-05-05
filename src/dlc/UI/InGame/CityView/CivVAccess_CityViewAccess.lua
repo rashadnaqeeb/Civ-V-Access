@@ -184,9 +184,14 @@ end
 -- we can't install-once: load-game-from-game kills the prior Context's
 -- env, stranding the old listener. Dead listeners accumulate but throw
 -- silently on global access; the live one runs onCityScreenDirty.
-if Log.installEvent(Events, "SerialEventCityScreenDirty",
-    Log.safeListener("CivVAccess_CityViewAccess.onCityScreenDirty", onCityScreenDirty),
-    "CivVAccess_CityViewAccess") then
+if
+    Log.installEvent(
+        Events,
+        "SerialEventCityScreenDirty",
+        Log.safeListener("CivVAccess_CityViewAccess.onCityScreenDirty", onCityScreenDirty),
+        "CivVAccess_CityViewAccess"
+    )
+then
     Log.info("CivVAccess_CityViewAccess: registered SerialEventCityScreenDirty listener")
 end
 
@@ -1203,7 +1208,8 @@ local function buildHubItems(city)
     items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS") }, pushStats)
     items[#items + 1] =
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, CityViewProduction.push)
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, CityViewHexMap.push)
+    items[#items + 1] =
+        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, CityViewHexMap.push)
     if cityHasAnyNonWonderBuilding(city) then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") }, pushBuildings)

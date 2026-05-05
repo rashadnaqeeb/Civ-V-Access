@@ -303,11 +303,10 @@ PlotTypes = PlotTypes
 -- founded religions = 1..N. Only the pantheon-or-below check matters offline
 -- (UnitSpeech / ScannerBackendUnits filter eReligion > RELIGION_PANTHEON to
 -- decide whether to surface a religion stamp on a unit).
-ReligionTypes = ReligionTypes
-    or {
-        NO_RELIGION = -1,
-        RELIGION_PANTHEON = 0,
-    }
+ReligionTypes = ReligionTypes or {
+    NO_RELIGION = -1,
+    RELIGION_PANTHEON = 0,
+}
 
 FeatureTypes = FeatureTypes or { NO_FEATURE = -1 }
 TerrainTypes = TerrainTypes or { NO_TERRAIN = -1 }

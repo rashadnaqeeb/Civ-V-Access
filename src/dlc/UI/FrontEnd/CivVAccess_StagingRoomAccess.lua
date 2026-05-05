@@ -886,14 +886,30 @@ local function installListeners()
         return
     end
     listenersInstalled = true
-    Log.installEvent(Events, "PreGameDirty",
-        Log.safeListener("StagingRoomAccess.onPreGameDirty", onPreGameDirty), "StagingRoomAccess")
-    Log.installEvent(Events, "GameMessageChat",
-        Log.safeListener("StagingRoomAccess.onChat", onChat), "StagingRoomAccess")
-    Log.installEvent(Events, "MultiplayerGameHostMigration",
-        Log.safeListener("StagingRoomAccess.onHostMigration", onHostMigration), "StagingRoomAccess")
-    Log.installEvent(Events, "MultiplayerGamePlayerDisconnected",
-        Log.safeListener("StagingRoomAccess.onDisconnect", onDisconnect), "StagingRoomAccess")
+    Log.installEvent(
+        Events,
+        "PreGameDirty",
+        Log.safeListener("StagingRoomAccess.onPreGameDirty", onPreGameDirty),
+        "StagingRoomAccess"
+    )
+    Log.installEvent(
+        Events,
+        "GameMessageChat",
+        Log.safeListener("StagingRoomAccess.onChat", onChat),
+        "StagingRoomAccess"
+    )
+    Log.installEvent(
+        Events,
+        "MultiplayerGameHostMigration",
+        Log.safeListener("StagingRoomAccess.onHostMigration", onHostMigration),
+        "StagingRoomAccess"
+    )
+    Log.installEvent(
+        Events,
+        "MultiplayerGamePlayerDisconnected",
+        Log.safeListener("StagingRoomAccess.onDisconnect", onDisconnect),
+        "StagingRoomAccess"
+    )
 end
 
 -- Install -------------------------------------------------------------

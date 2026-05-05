@@ -356,9 +356,10 @@ local function handleSearchInput(self, vk, mods)
     -- onEnd, whose clearSearch call would drop the buffer and strand the
     -- user on the first match -- a regression for multi-match queries
     -- like "M" on a city list with Milan, Memphis, Moscow.
-    if search:isSearchActive()
-        and (vk == Keys.VK_UP or vk == Keys.VK_DOWN
-            or vk == Keys.VK_HOME or vk == Keys.VK_END) then
+    if
+        search:isSearchActive()
+        and (vk == Keys.VK_UP or vk == Keys.VK_DOWN or vk == Keys.VK_HOME or vk == Keys.VK_END)
+    then
         return search:handleKey(vk, false, false, buildSearchable(self))
     end
     if vk >= 0x41 and vk <= 0x5A then

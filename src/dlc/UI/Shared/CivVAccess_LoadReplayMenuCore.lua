@@ -110,8 +110,7 @@ function LoadReplayMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_DLC",
             activate = function()
-                SavedGameShared.pushRequirementsSub(mainHandler, "dlc",
-                    g_ReplayDLCRequired, g_ReplayModsRequired)
+                SavedGameShared.pushRequirementsSub(mainHandler, "dlc", g_ReplayDLCRequired, g_ReplayModsRequired)
             end,
         })
     end
@@ -119,8 +118,7 @@ function LoadReplayMenu.buildReader(mainHandler, id)
         leaves[#leaves + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_LOAD_MENU_MODS",
             activate = function()
-                SavedGameShared.pushRequirementsSub(mainHandler, "mods",
-                    g_ReplayDLCRequired, g_ReplayModsRequired)
+                SavedGameShared.pushRequirementsSub(mainHandler, "mods", g_ReplayDLCRequired, g_ReplayModsRequired)
             end,
         })
     end

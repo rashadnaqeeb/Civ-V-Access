@@ -86,8 +86,8 @@ function BaseMenu.install(ContextPtr, spec)
         -- engine event chain.
         local reactivate = bIsHide
         if bIsHide and suppressReactivateOnHide ~= nil then
-            local ok, suppress = Log.tryCall(
-                "BaseMenu '" .. handler.name .. "' suppressReactivateOnHide", suppressReactivateOnHide)
+            local ok, suppress =
+                Log.tryCall("BaseMenu '" .. handler.name .. "' suppressReactivateOnHide", suppressReactivateOnHide)
             if ok and suppress then
                 reactivate = false
             end
@@ -99,8 +99,7 @@ function BaseMenu.install(ContextPtr, spec)
             return
         end
         if shouldActivate ~= nil then
-            local ok, should = Log.tryCall(
-                "BaseMenu '" .. handler.name .. "' shouldActivate", shouldActivate)
+            local ok, should = Log.tryCall("BaseMenu '" .. handler.name .. "' shouldActivate", shouldActivate)
             if not ok or not should then
                 return
             end
@@ -150,8 +149,7 @@ function BaseMenu.install(ContextPtr, spec)
                     -- own priorInput (closes the pedia, ExitConfirm, etc.).
                     -- PickerReader uses this to bounce the reader tab back
                     -- to the picker tab rather than closing the screen.
-                    local ok, consumed = Log.tryCall(
-                        "BaseMenu '" .. handler.name .. "' onEscape", onEscape, handler)
+                    local ok, consumed = Log.tryCall("BaseMenu '" .. handler.name .. "' onEscape", onEscape, handler)
                     if ok and consumed then
                         return true
                     end

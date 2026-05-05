@@ -344,8 +344,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_FOG_PREFIX_MULTI_T
 -- already have the pattern. MP cost is omitted: the engine consumes all
 -- remaining MP on attack and promotion bonuses can grant extra attacks,
 -- so any predicted MP-after-attack number would be wrong.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_THIS_TURN"] =
-    "this turn, {1_Steps} then attack"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_THIS_TURN"] = "this turn, {1_Steps} then attack"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN"] = {
     one = "{1_Turns} turn, {2_Steps} then attack",
     other = "{1_Turns} turns, {2_Steps} then attack",
@@ -407,8 +406,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_ATTACK_FROM_WATER_NO_DIR"] = "c
 -- Naval unit targeting empty / peaceful-occupied non-city land. Same
 -- engine block as cantAttackFromWater but no combat intent on the user
 -- side, so the framing is "travel" not "attack".
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND"] =
-    "cannot travel to land, closest reachable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND"] = "cannot travel to land, closest reachable {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_CANT_TRAVEL_TO_LAND_NO_DIR"] = "cannot travel to land"
 -- Embark / disembark hint appended to a successful move-path preview
 -- when the start and destination share a domain but the route crosses
@@ -1398,15 +1396,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "razing stopped"
 -- doesn't show on the espionage view.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "spying"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING"] = "city cycling not available while spying"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED"] = "you cannot fire ranged strikes for a city you do not own"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION"] = "you cannot change production for a city you do not own"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE"] = "you cannot work tiles for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED"] =
+    "you cannot fire ranged strikes for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION"] =
+    "you cannot change production for a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE"] =
+    "you cannot work tiles for a city you do not own"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT"] = "you cannot buy tiles for a city you do not own"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL"] = "you cannot sell buildings in a city you do not own"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS"] = "you cannot change focus for a city you do not own"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST"] = "you cannot manage specialists in a city you do not own"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN"] = "you cannot view great works in a city you do not own"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER"] = "you cannot assign citizens in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST"] =
+    "you cannot manage specialists in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN"] =
+    "you cannot view great works in a city you do not own"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER"] =
+    "you cannot assign citizens in a city you do not own"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_PURCHASABLE_FOREIGN"] = "purchasable"
 -- Reveal-announce. After a unit moves (or any reveal source -- map share,
 -- embassy, scouting agreement), build one line listing what just appeared

@@ -1178,8 +1178,7 @@ function UnitSpeech.combatResult(args)
     -- ownership perspective; this clause pins the outcome to the combat
     -- itself so the readout is self-contained.
     if args.defenderFinalDamage >= args.defenderMaxHP then
-        local outcomeKey = args.defenderCaptured
-            and "TXT_KEY_CIVVACCESS_COMBAT_CAPTURED"
+        local outcomeKey = args.defenderCaptured and "TXT_KEY_CIVVACCESS_COMBAT_CAPTURED"
             or "TXT_KEY_CIVVACCESS_COMBAT_KILLED"
         parts[#parts + 1] = Text.format(outcomeKey, defName)
     end

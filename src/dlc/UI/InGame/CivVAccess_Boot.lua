@@ -158,10 +158,13 @@ if Game ~= nil then
     if Game.GetBuildRoutePath ~= nil and Game.GetCycleUnits ~= nil and Game.GetClosestSearchedPlot ~= nil then
         Log.info("CivVAccess_Boot: engine fork bindings present " .. bootSuffix)
     else
-        Log.warn("CivVAccess_Boot: engine fork DLL not deployed " .. bootSuffix
-            .. " -- move-target preview, build-route preview, ranged-strike "
-            .. "LoS, unit cycler, and path-failure diagnostic will silently fail. "
-            .. "Run ./deploy.ps1 (without -SkipEngine) to install.")
+        Log.warn(
+            "CivVAccess_Boot: engine fork DLL not deployed "
+                .. bootSuffix
+                .. " -- move-target preview, build-route preview, ranged-strike "
+                .. "LoS, unit cycler, and path-failure diagnostic will silently fail. "
+                .. "Run ./deploy.ps1 (without -SkipEngine) to install."
+        )
     end
 end
 
@@ -265,8 +268,14 @@ end
 -- Context from ever registering a live listener. Dead listeners
 -- accumulate (Events.X.Remove is unverified), but the engine catches
 -- per-listener throws so the live one still runs.
-if Log.installEvent(Events, "LoadScreenClose",
-    Log.safeListener("CivVAccess_Boot.onInGameBoot", onInGameBoot),
-    "CivVAccess_Boot", "in-game boot will not fire") then
+if
+    Log.installEvent(
+        Events,
+        "LoadScreenClose",
+        Log.safeListener("CivVAccess_Boot.onInGameBoot", onInGameBoot),
+        "CivVAccess_Boot",
+        "in-game boot will not fire"
+    )
+then
     Log.info("CivVAccess_Boot: registered LoadScreenClose listener " .. bootSuffix)
 end

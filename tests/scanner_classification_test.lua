@@ -343,11 +343,7 @@ function M.test_unit_no_religion_keeps_bare_form()
     GameInfo.UnitCombatInfos = { [1] = { Type = "UNITCOMBAT_MELEE" } }
     GameInfo.Units = { [42] = { Description = "Warrior" } }
     local plot = makePlotAt(0, 0, 0)
-    installPlayer(
-        0,
-        { makeUnit({ id = 1, owner = 0, combatId = 1, plot = plot }) },
-        { team = 0 }
-    )
+    installPlayer(0, { makeUnit({ id = 1, owner = 0, combatId = 1, plot = plot }) }, { team = 0 })
     mapFromPlots({ plot })
     local out = runUnitsScan()
     T.eq(#out, 1)

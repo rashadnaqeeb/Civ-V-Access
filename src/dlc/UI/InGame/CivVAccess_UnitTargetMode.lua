@@ -185,11 +185,7 @@ local function movePathPreview(actor, targetPlot)
     -- "requires embark" would be wrong for them. Land units without
     -- embark tech can't produce a water-crossing path in the first
     -- place, so no extra gate needed for that.
-    if
-        actor:GetDomainType() == DomainTypes.DOMAIN_LAND
-        and not actor:CanMoveAllTerrain()
-        and #path >= 3
-    then
+    if actor:GetDomainType() == DomainTypes.DOMAIN_LAND and not actor:CanMoveAllTerrain() and #path >= 3 then
         local startWater = Map.GetPlot(path[1].x, path[1].y):IsWater()
         local endWater = Map.GetPlot(path[#path].x, path[#path].y):IsWater()
         if startWater == endWater then
@@ -432,12 +428,7 @@ local function formatAttackAfterMove(path)
     if turns <= 1 then
         return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_THIS_TURN", steps)
     end
-    return Text.formatPlural(
-        "TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN",
-        turns,
-        turns,
-        steps
-    )
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN", turns, turns, steps)
 end
 
 -- Combined move-mode preview + latch driver. Returns (text, commitPlot).
@@ -977,7 +968,8 @@ function UnitTargetMode.enter(actor, iAction, mode)
                     targetPlotIndex = plotIndex,
                     commitPlot = commitPlot,
                 }
-            elseif plotIndex ~= nil
+            elseif
+                plotIndex ~= nil
                 and self._pendingFallback ~= nil
                 and self._pendingFallback.targetPlotIndex == plotIndex
             then

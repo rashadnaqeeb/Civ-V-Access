@@ -159,8 +159,14 @@ local function toggleChatPanel()
     HandlerStack.push(chatHandler)
 end
 
-if Log.installEvent(LuaEvents, "CivVAccessChatToggle",
-    Log.safeListener("ChatAccess.toggleChatPanel", toggleChatPanel),
-    "ChatAccess", "\\ key will no-op") then
+if
+    Log.installEvent(
+        LuaEvents,
+        "CivVAccessChatToggle",
+        Log.safeListener("ChatAccess.toggleChatPanel", toggleChatPanel),
+        "ChatAccess",
+        "\\ key will no-op"
+    )
+then
     Log.info("ChatAccess: registered LuaEvents.CivVAccessChatToggle listener")
 end

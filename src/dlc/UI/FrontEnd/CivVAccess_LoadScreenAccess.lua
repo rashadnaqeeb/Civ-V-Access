@@ -183,9 +183,10 @@ civvaccess_shared.loadScreenHandler = handler
 -- body itself does not capture a stale ref; only the body's upvalues
 -- (Log, pcall, Events, PreGame) need a live env, which the re-include
 -- supplies.
-Log.installEvent(Events, "SequenceGameInitComplete", Log.safeListener(
-    "LoadScreenAccess.onSequenceGameInitComplete",
-    function()
+Log.installEvent(
+    Events,
+    "SequenceGameInitComplete",
+    Log.safeListener("LoadScreenAccess.onSequenceGameInitComplete", function()
         if PreGame.IsMultiplayerGame() or PreGame.IsHotSeatGame() then
             return
         end
@@ -201,4 +202,6 @@ Log.installEvent(Events, "SequenceGameInitComplete", Log.safeListener(
         -- next Up/Down through stale match results.
         h.setIndex(1)
         h.onActivate()
-    end), "LoadScreenAccess")
+    end),
+    "LoadScreenAccess"
+)

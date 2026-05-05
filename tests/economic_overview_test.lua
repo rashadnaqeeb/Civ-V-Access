@@ -68,7 +68,11 @@ local function setup()
     -- stub it here so focusCity has the same shared-module surface to call.
     civvaccess_shared = civvaccess_shared or {}
     civvaccess_shared.modules = civvaccess_shared.modules or {}
-    civvaccess_shared.modules.ScannerNav = { jumpCursorTo = function() return "" end }
+    civvaccess_shared.modules.ScannerNav = {
+        jumpCursorTo = function()
+            return ""
+        end,
+    }
 
     -- include() in the wrapper resolves to a noop here; the deps the wrapper
     -- needs (HandlerStack, BaseMenu, BaseTable, TabbedShell) are dofiled by
@@ -362,7 +366,9 @@ end
 function M.test_production_column_enterAction_fires_choose_production_popup()
     setup()
     local fired
-    Events.SerialEventGameMessagePopup = function(p) fired = p end
+    Events.SerialEventGameMessagePopup = function(p)
+        fired = p
+    end
     local prod = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION")
     T.truthy(prod)
     prod.enterAction(stubCity({ id = 42 }))
@@ -376,7 +382,9 @@ function M.test_production_column_enterAction_does_not_dismiss_eo()
     -- "queue a build then return to the table" flow that worked correctly
     -- in the field log.
     local dismissed = false
-    function UIManager:DequeuePopup() dismissed = true end
+    function UIManager:DequeuePopup()
+        dismissed = true
+    end
     local prod = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION")
     prod.enterAction(stubCity({ id = 1 }))
     T.eq(dismissed, false, "production must not dismiss EO before firing the popup")
@@ -415,7 +423,14 @@ function M.test_focus_city_speaks_glance_returned_by_jumpCursorTo()
     end
     local city = stubCity({ id = 1 })
     function city:Plot()
-        return { GetX = function() return 0 end, GetY = function() return 0 end }
+        return {
+            GetX = function()
+                return 0
+            end,
+            GetY = function()
+                return 0
+            end,
+        }
     end
     local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
     pop.enterAction(city)
@@ -427,12 +442,23 @@ function M.test_focus_city_silent_on_empty_glance()
     setup()
     -- Empty glance is the Map.GetPlot-failure signal Cursor.jumpTo emits
     -- after logging; speaking it would surface a blank string to Tolk.
-    civvaccess_shared.modules.ScannerNav.jumpCursorTo = function() return "" end
+    civvaccess_shared.modules.ScannerNav.jumpCursorTo = function()
+        return ""
+    end
     local spoken = false
-    SpeechPipeline._speakAction = function() spoken = true end
+    SpeechPipeline._speakAction = function()
+        spoken = true
+    end
     local city = stubCity({ id = 1 })
     function city:Plot()
-        return { GetX = function() return 0 end, GetY = function() return 0 end }
+        return {
+            GetX = function()
+                return 0
+            end,
+            GetY = function()
+                return 0
+            end,
+        }
     end
     local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
     pop.enterAction(city)
@@ -456,7 +482,14 @@ function M.test_focus_city_columns_dismiss_eo_then_jump_cursor_via_scanner()
     end
     local city = stubCity({ id = 7 })
     function city:Plot()
-        return { GetX = function() return 12 end, GetY = function() return 9 end }
+        return {
+            GetX = function()
+                return 12
+            end,
+            GetY = function()
+                return 9
+            end,
+        }
     end
     local focusKeys = {
         "TXT_KEY_CIVVACCESS_EO_COL_POPULATION",

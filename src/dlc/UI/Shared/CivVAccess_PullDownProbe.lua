@@ -106,7 +106,13 @@ local function installProbe(label, flagField, sample, primaryMethod, callbackFie
     end
     local mt = getmetatable(sample)
     if mt == nil then
-        Log.warn("PullDownProbe: " .. lowerLabel .. " sample has no accessible metatable; " .. lowerLabel .. " probe disabled")
+        Log.warn(
+            "PullDownProbe: "
+                .. lowerLabel
+                .. " sample has no accessible metatable; "
+                .. lowerLabel
+                .. " probe disabled"
+        )
         return false
     end
     local origPrimary = resolveMethod(mt.__index, sample, primaryMethod)

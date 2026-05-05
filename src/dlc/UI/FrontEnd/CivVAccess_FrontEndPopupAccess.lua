@@ -38,10 +38,15 @@ civvaccess_shared._frontEndPopupHandler = BaseMenu.install(ContextPtr, {
 -- to the prior Context's env. Re-registering each include keeps the
 -- newest listener live; the engine's per-listener catch limits the
 -- accumulation cost.
-Log.installEvent(Events, "FrontEndPopup", Log.safeListener("FrontEndPopupAccess.refresh", function()
-    local h = civvaccess_shared._frontEndPopupHandler
-    if h == nil then
-        return
-    end
-    h.refresh()
-end), "FrontEndPopupAccess")
+Log.installEvent(
+    Events,
+    "FrontEndPopup",
+    Log.safeListener("FrontEndPopupAccess.refresh", function()
+        local h = civvaccess_shared._frontEndPopupHandler
+        if h == nil then
+            return
+        end
+        h.refresh()
+    end),
+    "FrontEndPopupAccess"
+)

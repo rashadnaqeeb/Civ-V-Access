@@ -284,12 +284,18 @@ function M.test_save_in_memory_survives_persist_failure()
     setup()
     Modding.OpenUserData = function()
         return {
-            GetValue = function() return nil end,
-            SetValue = function() error("simulated SQLite failure") end,
+            GetValue = function()
+                return nil
+            end,
+            SetValue = function()
+                error("simulated SQLite failure")
+            end,
         }
     end
     local errored
-    Log.error = function(msg) errored = msg end
+    Log.error = function(msg)
+        errored = msg
+    end
     cursorPosition = { x = 5, y = 6 }
     local spoken = Bookmarks.save("4")
     T.eq(spoken, "bookmark added", "save must still return the success string")
@@ -320,12 +326,16 @@ function M.test_deserialize_skips_malformed_entries()
     setup()
     Modding.OpenUserData = function()
         return {
-            GetValue = function() return "1,abc,5;2,3,4;9,,7" end,
+            GetValue = function()
+                return "1,abc,5;2,3,4;9,,7"
+            end,
             SetValue = function() end,
         }
     end
     local warned
-    Log.warn = function(msg) warned = msg end
+    Log.warn = function(msg)
+        warned = msg
+    end
     Bookmarks.hydrateForCurrentGame()
     T.eq(civvaccess_shared.bookmarks["1"], nil, "non-numeric x must be dropped")
     T.eq(civvaccess_shared.bookmarks["2"].x, 3, "well-formed entry must survive")

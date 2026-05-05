@@ -97,7 +97,10 @@ end
 local function resolveNameText(self, tab)
     if type(tab.nameFn) == "function" then
         local ok, result = Log.tryCall(
-            "BaseMenu '" .. self.name .. "' nameFn for tab '" .. tostring(tab.name) .. "'", tab.nameFn, self)
+            "BaseMenu '" .. self.name .. "' nameFn for tab '" .. tostring(tab.name) .. "'",
+            tab.nameFn,
+            self
+        )
         if not ok then
             return nil
         end
@@ -154,9 +157,7 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     self._tabIndex = newTabIndex
     local tab = self.tabs[newTabIndex]
     if type(tab.showPanel) == "function" then
-        Log.tryCall(
-            "BaseMenu '" .. self.name .. "' showPanel for tab '" .. tostring(tab.name) .. "'",
-            tab.showPanel)
+        Log.tryCall("BaseMenu '" .. self.name .. "' showPanel for tab '" .. tostring(tab.name) .. "'", tab.showPanel)
     end
     -- Reset nesting on tab switch: the new tab's items are a fresh list.
     self._level = 1
@@ -172,7 +173,9 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     if type(tab.onActivate) == "function" then
         Log.tryCall(
             "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "'",
-            tab.onActivate, self)
+            tab.onActivate,
+            self
+        )
     end
     if type(tab.autoDrillToLevel) == "number" then
         autoDrillTo(self, tab.autoDrillToLevel, nav)
@@ -223,7 +226,9 @@ function BaseMenuTabs.openInitial(self, nav)
     if type(tab.onActivate) == "function" then
         Log.tryCall(
             "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "'",
-            tab.onActivate, self)
+            tab.onActivate,
+            self
+        )
     end
     if type(tab.autoDrillToLevel) == "number" then
         autoDrillTo(self, tab.autoDrillToLevel, nav)

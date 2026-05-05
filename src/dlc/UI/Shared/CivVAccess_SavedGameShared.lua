@@ -165,12 +165,21 @@ function SavedGameShared.appendStandardHeaderLeaves(leaves, header, opts)
     if mapInfo ~= nil and mapInfo.Name ~= nil then
         SavedGameShared.addField(leaves, SavedGameShared.HEADER_KEYS.mapType, Text.key(mapInfo.Name))
     end
-    SavedGameShared.addField(leaves, SavedGameShared.HEADER_KEYS.mapSize,
-        SavedGameShared.descOf(GameInfo.Worlds[header.WorldSize]))
-    SavedGameShared.addField(leaves, SavedGameShared.HEADER_KEYS.difficulty,
-        SavedGameShared.descOf(GameInfo.HandicapInfos[header.Difficulty]))
-    SavedGameShared.addField(leaves, SavedGameShared.HEADER_KEYS.gameSpeed,
-        SavedGameShared.descOf(GameInfo.GameSpeeds[header.GameSpeed]))
+    SavedGameShared.addField(
+        leaves,
+        SavedGameShared.HEADER_KEYS.mapSize,
+        SavedGameShared.descOf(GameInfo.Worlds[header.WorldSize])
+    )
+    SavedGameShared.addField(
+        leaves,
+        SavedGameShared.HEADER_KEYS.difficulty,
+        SavedGameShared.descOf(GameInfo.HandicapInfos[header.Difficulty])
+    )
+    SavedGameShared.addField(
+        leaves,
+        SavedGameShared.HEADER_KEYS.gameSpeed,
+        SavedGameShared.descOf(GameInfo.GameSpeeds[header.GameSpeed])
+    )
 end
 
 -- Push a sub-menu listing referenced DLC / Mods names. Mirrors the base
@@ -297,9 +306,13 @@ function SavedGameShared.sortedFileIndices(fileList, opts)
         end
         local reverse = opts.reverseAlphaSortFn and opts.reverseAlphaSortFn()
         if reverse then
-            table.sort(records, function(a, b) return Locale.Compare(b.name, a.name) == -1 end)
+            table.sort(records, function(a, b)
+                return Locale.Compare(b.name, a.name) == -1
+            end)
         else
-            table.sort(records, function(a, b) return Locale.Compare(a.name, b.name) == -1 end)
+            table.sort(records, function(a, b)
+                return Locale.Compare(a.name, b.name) == -1
+            end)
         end
     end
     local indices = {}
@@ -329,13 +342,21 @@ function SavedGameShared.makeSortByGroup(entryFactory, handlerRef, buildPickerIt
         items = {
             BaseMenuItems.Choice({
                 textKey = "TXT_KEY_SORTBY_LASTMODIFIED",
-                selectedFn = function() return g_CurrentSort == SortByLastModified end,
-                activate = function() applySort(SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED") end,
+                selectedFn = function()
+                    return g_CurrentSort == SortByLastModified
+                end,
+                activate = function()
+                    applySort(SortByLastModified, "TXT_KEY_SORTBY_LASTMODIFIED")
+                end,
             }),
             BaseMenuItems.Choice({
                 textKey = "TXT_KEY_SORTBY_NAME",
-                selectedFn = function() return g_CurrentSort == SortByName end,
-                activate = function() applySort(SortByName, "TXT_KEY_SORTBY_NAME") end,
+                selectedFn = function()
+                    return g_CurrentSort == SortByName
+                end,
+                activate = function()
+                    applySort(SortByName, "TXT_KEY_SORTBY_NAME")
+                end,
             }),
         },
     })

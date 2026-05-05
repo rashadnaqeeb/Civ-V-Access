@@ -48,8 +48,15 @@ function HotseatMessageBuffer.installListeners()
         Log.info("HotseatMessageBuffer: not a hotseat session, skipping listener registration")
         return
     end
-    if Log.installEvent(Events, "GameplaySetActivePlayer", HotseatMessageBuffer._onActivePlayerChanged,
-        "HotseatMessageBuffer", "per-player buffer disabled") then
+    if
+        Log.installEvent(
+            Events,
+            "GameplaySetActivePlayer",
+            HotseatMessageBuffer._onActivePlayerChanged,
+            "HotseatMessageBuffer",
+            "per-player buffer disabled"
+        )
+    then
         Log.info("HotseatMessageBuffer: installed")
     end
 end

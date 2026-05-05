@@ -184,10 +184,7 @@ function M.test_camps_and_ruins_joined_with_and()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onForeignGoodyCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
-    T.eq(
-        spoken[1].text,
-        "Someone else has claimed 2 visible barbarian camps and 1 visible ancient ruin."
-    )
+    T.eq(spoken[1].text, "Someone else has claimed 2 visible barbarian camps and 1 visible ancient ruin.")
 end
 
 function M.test_delta_stored_for_f7()

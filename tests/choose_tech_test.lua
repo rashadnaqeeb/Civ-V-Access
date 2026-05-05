@@ -467,8 +467,7 @@ function M.test_filterHelpText_strips_localized_researched_marker()
     -- Same shape with a localized inner word. The %b() balanced-parens
     -- match doesn't care what's between them, so non-English plays right.
     setup()
-    local raw = "VOILE [COLOR_POSITIVE_TEXT](RECHERCHÉ)[ENDCOLOR]"
-        .. "[NEWLINE]Coût: 57 Science"
+    local raw = "VOILE [COLOR_POSITIVE_TEXT](RECHERCHÉ)[ENDCOLOR]" .. "[NEWLINE]Coût: 57 Science"
     local out = ChooseTechLogic.filterHelpText(raw, "Voile")
     T.falsy(out:find("RECHERCHÉ"))
     T.truthy(out:find("57 Science"))
@@ -479,8 +478,7 @@ function M.test_filterHelpText_preserves_leads_to_color_span()
     -- the inner content, so the strip pattern must not match it; the
     -- tech name (Optics) must survive into the cleaned output.
     setup()
-    local raw = "SAILING[NEWLINE]Cost: 57 Science"
-        .. "[NEWLINE]Leads to: [COLOR_POSITIVE_TEXT]Optics[ENDCOLOR]"
+    local raw = "SAILING[NEWLINE]Cost: 57 Science" .. "[NEWLINE]Leads to: [COLOR_POSITIVE_TEXT]Optics[ENDCOLOR]"
     local out = ChooseTechLogic.filterHelpText(raw, "Sailing")
     T.truthy(out:find("Optics"), "leads-to color span keeps its content")
     T.truthy(out:find("Leads to:"))

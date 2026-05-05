@@ -794,7 +794,10 @@ function BaseMenu.create(spec)
         spec.initialTabIndex == nil or (type(spec.initialTabIndex) == "number" and spec.initialTabIndex >= 1),
         "spec.initialTabIndex must be a positive number if provided"
     )
-    Log.check(spec.onAltLeft == nil or type(spec.onAltLeft) == "function", "spec.onAltLeft must be a function if provided")
+    Log.check(
+        spec.onAltLeft == nil or type(spec.onAltLeft) == "function",
+        "spec.onAltLeft must be a function if provided"
+    )
     Log.check(
         spec.onAltRight == nil or type(spec.onAltRight) == "function",
         "spec.onAltRight must be a function if provided"
@@ -814,7 +817,9 @@ function BaseMenu.create(spec)
         -- because purgeDeadEnv may run from a different Context (Boot's
         -- WorldView, InputRouter's WorldView) where BaseMenu is alive in
         -- the caller's env regardless of this handler's env state.
-        _envProbe = function() return BaseMenu ~= nil end,
+        _envProbe = function()
+            return BaseMenu ~= nil
+        end,
         _level = 1,
         _indices = { 1 },
         _tabIndex = 1,

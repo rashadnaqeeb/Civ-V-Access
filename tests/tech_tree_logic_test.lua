@@ -675,11 +675,7 @@ function M.test_gridNeighbor_row_intended_gridY_overrides_current_row()
     local grid = TechTreeLogic.buildGrid()
     local cur = GameInfo.Technologies["T_DRIFTED"]
     local n = TechTreeLogic.gridNeighbor(grid, cur, "row", 1, 5)
-    T.eq(
-        n.Type,
-        "T_AT_INTENDED",
-        "snap target is intendedGridY=5, not the cursor's GridY=2"
-    )
+    T.eq(n.Type, "T_AT_INTENDED", "snap target is intendedGridY=5, not the cursor's GridY=2")
 end
 
 function M.test_gridNeighbor_row_falls_back_to_cursor_gridY_when_intended_nil()

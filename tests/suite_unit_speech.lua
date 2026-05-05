@@ -285,10 +285,7 @@ function M.test_selection_religious_unit_inserts_religion_between_civ_and_type()
     end
     local u = mkUnit({ unitType = 200, religion = 7 })
     local out = UnitSpeech.selection(u, 0, 0)
-    T.truthy(
-        out:find("^Roman Buddhism Missionary"),
-        "religion must sit between civ adjective and type: " .. out
-    )
+    T.truthy(out:find("^Roman Buddhism Missionary"), "religion must sit between civ adjective and type: " .. out)
 end
 
 function M.test_selection_no_religion_falls_back_to_plain_civ_form()
@@ -363,10 +360,7 @@ function M.test_selection_religion_resolves_txt_key_form()
     local u = mkUnit({ unitType = 200, religion = 7 })
     local out = UnitSpeech.selection(u, 0, 0)
     Locale.ConvertTextKey = origConvert
-    T.truthy(
-        out:find("^Roman Buddhism Missionary"),
-        "TXT_KEY religion must resolve to its localized form: " .. out
-    )
+    T.truthy(out:find("^Roman Buddhism Missionary"), "TXT_KEY religion must resolve to its localized form: " .. out)
 end
 
 -- ===== Selection: HP =====
