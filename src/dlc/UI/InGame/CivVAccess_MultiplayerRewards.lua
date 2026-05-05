@@ -1,15 +1,18 @@
 -- !!! MULTIPLAYER-ONLY MODULE !!!
 --
--- Civ V's engine suppresses three reward popups in networked multiplayer
--- (the !isNetworkMultiPlayer guard in CvPlayer.cpp / CvUnit.cpp / CvPlot.cpp
--- around BUTTONPOPUP_GOODY_HUT_REWARD, BUTTONPOPUP_BARBARIAN_CAMP_REWARD,
--- BUTTONPOPUP_NATURAL_WONDER_REWARD). In single-player the standard
--- *PopupAccess wrappers (GoodyHutPopup / BarbarianCampPopup /
--- NaturalWonderPopup) read the popup's DescriptionLabel and announce
--- through BaseMenu's preamble. In MP those popups never fire, so a blind
--- player would silently miss every ruin reward, every barbarian-camp
--- reward, and every natural-wonder discovery. This module is the MP
--- fallback that closes that gap and only that gap.
+-- Civ V's engine suppresses three reward popups and the major-civ first-
+-- contact path in networked multiplayer (the !isNetworkMultiPlayer guards
+-- in CvPlayer.cpp / CvUnit.cpp / CvPlot.cpp around BUTTONPOPUP_GOODY_HUT_-
+-- REWARD, BUTTONPOPUP_BARBARIAN_CAMP_REWARD, BUTTONPOPUP_NATURAL_WONDER_-
+-- REWARD, plus CvDiplomacyAI.cpp's DoFirstContact which gates both the AI
+-- leader-greet popup and the human-to-human notification fallback). In
+-- single-player the standard *PopupAccess wrappers (GoodyHutPopup /
+-- BarbarianCampPopup / NaturalWonderPopup) plus the leader-popup speech
+-- cover these. In MP those paths never fire, so a blind player would
+-- silently miss every ruin reward, every barbarian-camp reward, every
+-- natural-wonder discovery, and every first contact with a major civ.
+-- This module is the MP fallback that closes those gaps and only those
+-- gaps.
 --
 -- Hot seat is unaffected: the engine gate is on isNetworkMultiPlayer (not
 -- isGameMultiPlayer), so hot seat sees the popups normally and rides the
@@ -30,6 +33,11 @@
 -- * Natural wonder: Events.NaturalWonderRevealed (vanilla, fired
 --   unconditionally for the active team via gDLL->GameplayNaturalWonder-
 --   Revealed). Args (iX, iY). No engine change needed for this one.
+-- * Major-civ first contact: GameEvents.TeamMeet (vanilla, fired
+--   unconditionally from CvTeam::meet via LuaSupport::CallHook). Args
+--   (eTeamMet, eTeamMoving). City-state first contact is not handled here
+--   because NOTIFICATION_MET_MINOR fires unconditionally in CvTeam::make-
+--   HasMet and our existing NotificationAnnounce already speaks it.
 --
 -- Speech path: speakQueued + MessageBuffer.append("notification") for
 -- every announcement. Queueing matches NotificationAnnounce: these
@@ -167,6 +175,39 @@ function MultiplayerRewards._onNaturalWonderRevealed(iX, iY)
     emit(yieldString)
 end
 
+-- Major-civ first contact. Mirrors the engine's suppressed human-to-human
+-- notification path (CvDiplomacyAI.cpp DoFirstContact, gated by
+-- !isNetworkMultiPlayer): same TXT_KEY_NOTIFICATION_SUMMARY_MET_MINOR_CIV
+-- template, same leader nameKey arg. The key's name is misleading -- it
+-- generalizes to "You have met {1_CivName:textkey}" and Firaxis reuses it
+-- for human-to-human, which is the path we're standing in for.
+--
+-- City-states are skipped because NOTIFICATION_MET_MINOR fires uncondi-
+-- tionally from CvTeam::makeHasMet (no MP gate) and NotificationAnnounce
+-- already speaks it. Barbarians are skipped because first-contact-with-
+-- barbarians is not a meaningful announcement.
+function MultiplayerRewards._onTeamMeet(eTeamMet, eTeamMoving)
+    if not Game:IsNetworkMultiPlayer() then
+        return
+    end
+    local activeTeam = Game.GetActiveTeam()
+    local otherTeam
+    if eTeamMet == activeTeam then
+        otherTeam = eTeamMoving
+    elseif eTeamMoving == activeTeam then
+        otherTeam = eTeamMet
+    else
+        return
+    end
+    local team = Teams[otherTeam]
+    if team:IsMinorCiv() or team:IsBarbarian() then
+        return
+    end
+    local leaderID = team:GetLeaderID()
+    local leader = Players[leaderID]
+    emit(Text.format("TXT_KEY_NOTIFICATION_SUMMARY_MET_MINOR_CIV", leader:GetNameKey()))
+end
+
 -- Registers fresh listeners on every call (onInGameBoot invokes this once
 -- per game load). Even though MP-only feature, the boot wiring runs in SP
 -- too -- the gates inside each handler reject the events. Cheap to be
@@ -188,4 +229,5 @@ function MultiplayerRewards.installListeners()
         "barb-camp announces disabled in MP (engine fork not deployed?)"
     )
     Log.installEvent(Events, "NaturalWonderRevealed", MultiplayerRewards._onNaturalWonderRevealed, "MultiplayerRewards")
+    Log.installEvent(GameEvents, "TeamMeet", MultiplayerRewards._onTeamMeet, "MultiplayerRewards")
 end
