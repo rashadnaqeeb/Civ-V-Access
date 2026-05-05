@@ -437,6 +437,15 @@ local function scoreCell(iOther)
     return tostring(Players[iOther]:GetScore())
 end
 
+-- Civilopedia entry for a major: the leader article. Every column on the
+-- Majors tab uses this so Ctrl+I always lands on the same place
+-- regardless of which cell the user is reading -- the row IS the civ /
+-- leader, and per-cell-specific articles (era, score, gold) either don't
+-- exist as concepts or are too generic to be useful.
+local function leaderPedia(iOther)
+    return Text.key(GameInfo.Leaders[Players[iOther]:GetLeaderType()].Description)
+end
+
 -- ===== Major civ activate =============================================
 
 -- Mirrors base LeaderSelected: skip when our turn isn't active or the
@@ -706,6 +715,33 @@ local function minorRowLabel(iOther)
     return Text.joinNonEmpty(parts)
 end
 
+-- Civilopedia entry for a minor: the city-state article. Default fallback
+-- for every column on the Minors tab. The Trait/Personality column
+-- additionally honours the trait-specific concept article when the trait
+-- has one (every shipped MinorCivTrait does today).
+local function minorCivPedia(iOther)
+    return Text.key(GameInfo.MinorCivilizations[Players[iOther]:GetMinorCivType()].Description)
+end
+
+-- CS trait → concept article. Each base / G&K / BNW trait has its own
+-- pedia article describing what the trait grants at Friends and Allies
+-- tier. Personalities have no dedicated article; the Trait/Personality
+-- cell pedias to the trait's article (the more decision-relevant of the
+-- two), with a fallback to the city-state pedia entry when a future
+-- modded trait isn't in this map.
+local TRAIT_PEDIA = {
+    MINOR_TRAIT_CULTURED = "TXT_KEY_CITYSTATE_CULTURED_HEADING3_TITLE",
+    MINOR_TRAIT_MARITIME = "TXT_KEY_CITYSTATE_MARITIME_HEADING3_TITLE",
+    MINOR_TRAIT_MILITARISTIC = "TXT_KEY_CITYSTATE_MILITARISTIC_HEADING3_TITLE",
+    MINOR_TRAIT_MERCANTILE = "TXT_KEY_CONCEPT_CITY_STATE_MERCANTILE_DESCRIPTION",
+    MINOR_TRAIT_RELIGIOUS = "TXT_KEY_CONCEPT_CITY_STATE_RELIGIOUS_DESCRIPTION",
+}
+
+local function traitPersonalityPedia(iOther)
+    local civInfo = GameInfo.MinorCivilizations[Players[iOther]:GetMinorCivType()]
+    return TRAIT_PEDIA[civInfo.MinorCivTrait] or Text.key(civInfo.Description)
+end
+
 -- F4 opens DiploOverview at PopupPriority.InGameUtmost, which sits above
 -- CityStateDiplo's PopupPriority. Without closing first the new popup
 -- queues behind us and ShowHide doesn't fire until DiploOverview is
@@ -726,11 +762,13 @@ local function buildMajorColumns()
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_YOUR_RELATIONSHIP",
             getCell = yourRelationshipCell,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_FOREIGN_RELATIONS",
             getCell = foreignRelationsCell,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_GOLD",
@@ -740,11 +778,13 @@ local function buildMajorColumns()
                 return gold
             end,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_RESOURCES",
             getCell = resourcesCell,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_ERA",
@@ -753,12 +793,14 @@ local function buildMajorColumns()
                 return Players[iOther]:GetCurrentEra()
             end,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES",
             getCell = policiesCell,
             sortKey = policyTotalCount,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS",
@@ -767,6 +809,7 @@ local function buildMajorColumns()
                 return #wondersList(iOther)
             end,
             enterAction = activateMajor,
+            pediaName = leaderPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE",
@@ -775,12 +818,7 @@ local function buildMajorColumns()
                 return Players[iOther]:GetScore()
             end,
             enterAction = activateMajor,
-            -- Civilopedia entry: leader article. Single column carries
-            -- pedia routing since the row is the civ; per-column pedias
-            -- would all point to the same article.
-            pediaName = function(iOther)
-                return Text.key(GameInfo.Leaders[Players[iOther]:GetLeaderType()].Description)
-            end,
+            pediaName = leaderPedia,
         },
     }
     return cols
@@ -792,11 +830,13 @@ local function buildMinorColumns()
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_RELATIONSHIP",
             getCell = relationshipCell,
             enterAction = activateMinor,
+            pediaName = minorCivPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_TRAIT_PERSONALITY",
             getCell = traitPersonalityCell,
             enterAction = activateMinor,
+            pediaName = traitPersonalityPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_INFLUENCE",
@@ -805,22 +845,26 @@ local function buildMinorColumns()
                 return Players[iOther]:GetMinorCivFriendshipWithMajor(Game.GetActivePlayer())
             end,
             enterAction = activateMinor,
+            pediaName = minorCivPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_ALLIED_WITH",
             getCell = alliedWithCell,
             enterAction = activateMinor,
+            pediaName = minorCivPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_QUESTS",
             getCell = questsCell,
             sortKey = questCount,
             enterAction = activateMinor,
+            pediaName = minorCivPedia,
         },
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_NEARBY",
             getCell = nearbyResourcesCell,
             enterAction = activateMinor,
+            pediaName = minorCivPedia,
         },
     }
     return cols
