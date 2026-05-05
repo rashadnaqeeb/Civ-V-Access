@@ -574,27 +574,55 @@ end
 
 -- Relationship cell: everything currently flowing because of the
 -- relationship. Yield bonuses (culture, food, science, faith, happiness,
--- military spawn estimate) plus exported resources (the strategics and
--- luxuries an allied / friend CS sends us). Mirrors what the engine
--- credits the player from the city-state. Empty case is silent rather
--- than "none": the row label already names the CS and its status, so an
--- empty cell on a Neutral CS reads naturally as "no bonuses, no exports
--- flowing right now" without an explicit filler word.
+-- military spawn estimate) prefixed with "bonus:", plus the strategics
+-- and luxuries the CS exports when we are its ally. The yield-bonus
+-- engine getters (GetMinorCivCurrentCultureBonus, GetCurrentCapitalFoodBonus,
+-- ...) filter on IsFriends / IsAllies internally so they return 0 for a
+-- neutral or below CS. The export query (pOther:GetResourceExport) does
+-- NOT filter -- it returns whatever pOther is currently exporting to its
+-- ally, which is some other major when pOther is neutral toward us. Gate
+-- the export loop on IsAllies(iUs) so only resources actually flowing to
+-- us appear. Empty case is silent rather than "none": the row label
+-- already names the CS and its status, so an empty cell on a neutral CS
+-- reads naturally as "no bonuses, no exports flowing right now" without
+-- an explicit filler word.
 local function relationshipCell(iOther)
+    local iUs = Game.GetActivePlayer()
     local pOther = Players[iOther]
-    local items = minorBonusFragments(iOther)
-    for row in GameInfo.Resources() do
-        local rid = row.ID
-        local count = pOther:GetResourceExport(rid)
-        if count > 0 and Game.GetResourceUsageType(rid) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS then
-            items[#items + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT",
-                Text.key(row.Description),
-                tostring(count)
-            )
+    local out = {}
+
+    local bonuses = minorBonusFragments(iOther)
+    if #bonuses > 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST", table.concat(bonuses, ", "))
+    end
+
+    if pOther:IsAllies(iUs) then
+        local strategic, luxury = {}, {}
+        for row in GameInfo.Resources() do
+            local rid = row.ID
+            local count = pOther:GetResourceExport(rid)
+            if count > 0 and Game.GetResourceUsageType(rid) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS then
+                local entry = Text.format(
+                    "TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT",
+                    Text.key(row.Description),
+                    tostring(count)
+                )
+                if row.ResourceClassType == "RESOURCECLASS_LUXURY" then
+                    luxury[#luxury + 1] = entry
+                else
+                    strategic[#strategic + 1] = entry
+                end
+            end
+        end
+        if #strategic > 0 then
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST", table.concat(strategic, ", "))
+        end
+        if #luxury > 0 then
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST", table.concat(luxury, ", "))
         end
     end
-    return table.concat(items, ", ")
+
+    return table.concat(out, ", ")
 end
 
 -- Numeric rank for sorting the Relationship cell best-to-worst. Allied
