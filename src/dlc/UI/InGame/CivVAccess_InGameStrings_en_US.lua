@@ -2372,18 +2372,24 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Local"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Imported"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Exported"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/a"
--- Victory Progress (F8 / Who is winning): button labels for the five drill-
--- in sections, score-row format, and per-section row formats consumed by
--- CivVAccess_VictoryProgressAccess.lua. Disabled-victory and tooltip
--- sentence strings reuse engine TXT_KEY_VP_* keys directly.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_MY_SCORE"] = "My score"
+-- Victory Progress (F8 / Who is winning): two-tab layout. Tab 1 is the
+-- score table (one row per civ, columns from DiploList's score-breakdown
+-- tooltip); Tab 2 is the victory-conditions menu (Time, Domination,
+-- Science, Diplomatic, Cultural). Score column headers reuse engine
+-- TXT_KEY_VP_CITIES / _POPULATION / _LAND / _WONDERS / _TECH /
+-- _FUTURE_TECH / _POLICIES / _GREAT_WORKS / _RELIGION / _SCENARIO1-4
+-- so only the Total header and row-state suffix are mod-authored.
+-- Disabled-victory and tooltip sentence strings reuse engine TXT_KEY_VP_*
+-- keys directly.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_SCORE"] = "Score"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "Victories"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "Total"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, capital lost"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "Domination"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE"] = "Science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC"] = "Diplomatic"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL"] = "Cultural"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_LABEL_VALUE"] = "{1_Label}, {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCORE_ROW"] = "{1_Name}, score {2_Score}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCORE_ROW_LOST"] = "{1_Name}, score {2_Score}, capital lost"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TEAM_SUFFIX"] = "team {1_Num}"
 -- Plural driven by {1_Num} (count of boosters built for the spaceship,
 -- vanilla allows up to 3).

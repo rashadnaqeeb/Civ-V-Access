@@ -1,29 +1,39 @@
 -- Victory Progress accessibility (F8 / Who is winning). Wraps the engine
--- VictoryProgress popup as a single BaseMenu landing page: the cross-civ
--- score ranking populates the top of the list, then five Group items
--- (My Score, Domination, Science, Diplomatic, Cultural) drill into per-
--- victory-condition flat lists. Right or Enter on a Group drills in;
--- Left walks back up; Esc closes the popup outright; F8 toggles it shut
--- (matches the engine's own Data1==1 toggle behavior).
+-- VictoryProgress popup as a two-tab TabbedShell:
 --
--- Strict vanilla parity per section: every line corresponds to something
--- the vanilla F8 main panel or its detail subscreen shows. Diplomatic has
--- no per-civ list because vanilla's was commented out; Cultural reports
--- influence percent (the engine grid's tooltip) without trend or turns-
--- to-influential, since those live on CultureOverview, not F8.
+--   Score      -- BaseTable, one row per major civ ever alive. Columns are
+--                 the score components the engine surfaces in the DiploList
+--                 hover tooltip (DLC/Expansion2/UI/InGame/DiploList.lua):
+--                 Total, Cities, Population, Land, Wonders, Tech, Future
+--                 Tech, Policies, Great Works, Religion, plus Scenario1-4
+--                 when a WB scenario is loaded. Tech / Future Tech /
+--                 Policies / Religion columns drop when their respective
+--                 game options disable the system. Default order is Total
+--                 descending (the vanilla F8 ranking); Enter on any header
+--                 cycles sort. Civs that lost their capital append
+--                 ", capital lost" to the row label so the speech mirrors
+--                 vanilla's gray-out + sword overlay.
+--   Victories  -- BaseMenu list. Leads with a flat turns-remaining row when
+--                 the time victory is enabled (omitted when disabled), then
+--                 four drillable Group items (Domination, Science,
+--                 Diplomatic, Cultural). The four groups are unchanged from
+--                 the prior landing page; turns remaining displaces the
+--                 dropped "My Score" group, whose score components moved to
+--                 the table.
 --
--- Top-level rows rebuild on every show via onShow -> setItems so the
--- score ranking tracks the engine across turn ends. Section Group items
--- carry cached=false so each drill rebuilds its child list from a fresh
--- query (matches the no-cache rule).
+-- Initial tab is Score. F8 toggles the popup shut from either tab,
+-- matching the engine's own Data1==1 toggle behavior. Esc closes the
+-- popup outright (priorInput chain).
 --
 -- Engine integration: ships an override of VictoryProgress.lua (verbatim
 -- BNW copy + an include for this module). The engine's OnPopup, OnBack,
 -- ShowHideHandler, InputHandler, and GameplaySetActivePlayer wiring stay
--- intact; BaseMenu.install layers our handler on top via priorInput /
+-- intact; TabbedShell.install layers our handler on top via priorInput /
 -- priorShowHide chains.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_TabbedShell")
+include("CivVAccess_BaseTableCore")
 include("CivVAccess_OverviewCivLabels")
 
 local priorInput = InputHandler
@@ -81,56 +91,86 @@ local function eachMajorEverAlive()
     end
 end
 
--- ===== Score list (landing page top) ===================================
+-- ===== Score table =====================================================
 
--- Per-row text for the cross-civ score ranking. Mirrors vanilla
--- PopulateScoreScreen but speaks "name, score N" / "name, score N, capital
--- lost" instead of vanilla's visual gray-out + sword overlay.
-local function scoreRowText(rank, pPlayer)
-    local rankPrefix = Text.format("TXT_KEY_NUMBERING_FORMAT", rank)
-    local name = rankPrefix .. " " .. civDisplayName(pPlayer)
-    local score = pPlayer:GetScore()
-    if pPlayer:IsHasLostCapital() then
-        return Text.format("TXT_KEY_CIVVACCESS_VP_SCORE_ROW_LOST", name, score)
+-- Default rebuild order: Total descending. BaseTable's sort cycle starts in
+-- the "no sort" state, so without this the rows would land in player-id
+-- order on first open. Pre-sorting matches the vanilla F8 ranking the user
+-- expects when opening the screen, and Enter on any header still overrides.
+local function rebuildScoreRows()
+    local rows = {}
+    for _, p in eachMajorEverAlive() do
+        rows[#rows + 1] = p
     end
-    return Text.format("TXT_KEY_CIVVACCESS_VP_SCORE_ROW", name, score)
-end
-
-local function buildScoreRowItems()
-    local players = {}
-    for id, _ in eachMajorEverAlive() do
-        players[#players + 1] = id
-    end
-    table.sort(players, function(a, b)
-        return Players[b]:GetScore() < Players[a]:GetScore()
+    table.sort(rows, function(a, b)
+        return b:GetScore() < a:GetScore()
     end)
-    local items = {}
-    for rank, id in ipairs(players) do
-        local pPlayer = Players[id]
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = scoreRowText(rank, pPlayer),
-            pediaName = leaderPediaNameFor(pPlayer),
-        })
-    end
-    return items
+    return rows
 end
 
--- ===== My Score section ================================================
+local function scoreRowLabel(pPlayer)
+    local name = civDisplayName(pPlayer)
+    if pPlayer:IsHasLostCapital() then
+        return Text.format("TXT_KEY_CIVVACCESS_VP_ROW_LOST", name)
+    end
+    return name
+end
 
--- One key/value Text item for a score component. Hidden when the gating
--- option suppresses it (no-science strips Tech / Future Tech, no-policies
--- strips Policies, no-religion strips Religion).
-local function scoreLine(labelKey, valueFn)
-    return BaseMenuItems.Text({
-        labelFn = function()
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
-                stripColon(Text.key(labelKey)),
-                valueFn()
-            )
+-- Compose one column from the (header key, score accessor) pair. Every
+-- column is sortable on its raw int and routes Ctrl+I to the row's leader
+-- pedia (the row's identity, not the column's concept -- F8 cells only
+-- read meaningfully against a specific civ).
+local function scoreColumn(nameKey, scoreFn)
+    return {
+        name = nameKey,
+        getCell = function(p)
+            return tostring(scoreFn(p))
         end,
+        sortKey = function(p)
+            return scoreFn(p)
+        end,
+        pediaName = leaderPediaNameFor,
+    }
+end
+
+local function buildScoreColumns()
+    local cols = {
+        scoreColumn("TXT_KEY_CIVVACCESS_VP_COL_TOTAL", function(p) return p:GetScore() end),
+        scoreColumn("TXT_KEY_VP_CITIES", function(p) return p:GetScoreFromCities() end),
+        scoreColumn("TXT_KEY_VP_POPULATION", function(p) return p:GetScoreFromPopulation() end),
+        scoreColumn("TXT_KEY_VP_LAND", function(p) return p:GetScoreFromLand() end),
+        scoreColumn("TXT_KEY_VP_WONDERS", function(p) return p:GetScoreFromWonders() end),
+    }
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_TECH", function(p) return p:GetScoreFromTechs() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_FUTURE_TECH", function(p) return p:GetScoreFromFutureTech() end)
+    end
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_POLICIES) then
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_POLICIES", function(p) return p:GetScoreFromPolicies() end)
+    end
+    cols[#cols + 1] = scoreColumn("TXT_KEY_VP_GREAT_WORKS", function(p) return p:GetScoreFromGreatWorks() end)
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_RELIGION", function(p) return p:GetScoreFromReligion() end)
+    end
+    if PreGame.GetLoadWBScenario() then
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO1", function(p) return p:GetScoreFromScenario1() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO2", function(p) return p:GetScoreFromScenario2() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO3", function(p) return p:GetScoreFromScenario3() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO4", function(p) return p:GetScoreFromScenario4() end)
+    end
+    return cols
+end
+
+local function buildScoreTab()
+    return BaseTable.create({
+        tabName = "TXT_KEY_CIVVACCESS_VP_TAB_SCORE",
+        columns = buildScoreColumns(),
+        rebuildRows = rebuildScoreRows,
+        rowLabel = scoreRowLabel,
     })
 end
+
+-- ===== Time line =======================================================
 
 local function remainingTurns()
     local r = Game.GetMaxTurns() - Game.GetElapsedGameTurns()
@@ -138,43 +178,6 @@ local function remainingTurns()
         r = 0
     end
     return r
-end
-
-local function buildMyScoreItems()
-    if not PreGame.IsVictory(GameInfo.Victories["VICTORY_TIME"].ID) then
-        return {
-            BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_VP_TIME_VICTORY_DISABLED"),
-            }),
-        }
-    end
-    local p = Players[activePlayerId()]
-    local items = {
-        scoreLine("TXT_KEY_VP_CITIES", function() return p:GetScoreFromCities() end),
-        scoreLine("TXT_KEY_VP_POPULATION", function() return p:GetScoreFromPopulation() end),
-        scoreLine("TXT_KEY_VP_LAND", function() return p:GetScoreFromLand() end),
-        scoreLine("TXT_KEY_VP_WONDERS", function() return p:GetScoreFromWonders() end),
-    }
-    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
-        items[#items + 1] = scoreLine("TXT_KEY_VP_TECH", function() return p:GetScoreFromTechs() end)
-        items[#items + 1] = scoreLine("TXT_KEY_VP_FUTURE_TECH", function() return p:GetScoreFromFutureTech() end)
-    end
-    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_POLICIES) then
-        items[#items + 1] = scoreLine("TXT_KEY_VP_POLICIES", function() return p:GetScoreFromPolicies() end)
-    end
-    items[#items + 1] = scoreLine("TXT_KEY_VP_GREAT_WORKS", function() return p:GetScoreFromGreatWorks() end)
-    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
-        items[#items + 1] = scoreLine("TXT_KEY_VP_RELIGION", function() return p:GetScoreFromReligion() end)
-    end
-    if PreGame.GetLoadWBScenario() then
-        items[#items + 1] = scoreLine("TXT_KEY_VP_SCENARIO1", function() return p:GetScoreFromScenario1() end)
-        items[#items + 1] = scoreLine("TXT_KEY_VP_SCENARIO2", function() return p:GetScoreFromScenario2() end)
-        items[#items + 1] = scoreLine("TXT_KEY_VP_SCENARIO3", function() return p:GetScoreFromScenario3() end)
-        items[#items + 1] = scoreLine("TXT_KEY_VP_SCENARIO4", function() return p:GetScoreFromScenario4() end)
-    end
-    items[#items + 1] = scoreLine("TXT_KEY_VP_SCORE", function() return p:GetScore() end)
-    items[#items + 1] = scoreLine("TXT_KEY_VP_TURNS", remainingTurns)
-    return items
 end
 
 -- ===== Domination section ==============================================
@@ -233,7 +236,7 @@ end
 
 -- Leading-team summary string. Returns nil for the rare case (vanilla's
 -- "weird circumstance" branch) where someone lost a capital but no team is
--- ahead — vanilla hides the label there; we omit the row.
+-- ahead -- vanilla hides the label there; we omit the row.
 local function dominationLeadingLine(state)
     if state.leadingTeam == -1 then
         if state.anyoneLostCapital then
@@ -279,7 +282,7 @@ end
 -- Per-civ capital sentence. Picks one of vanilla's TT_* tooltip strings
 -- based on (active-player? known? has lost capital? known dominator?)
 -- combinations. The TT_* strings already read as full sentences so we use
--- them directly — same content vanilla shows in its hover tooltip.
+-- them directly -- same content vanilla shows in its hover tooltip.
 local function dominationCivSentence(pPlayer, dominatingPlayerId)
     local iPlayer = pPlayer:GetID()
     local hasMetSubject = playerHasMet(pPlayer)
@@ -553,15 +556,17 @@ end
 -- Returns (apolloBuilt, totalParts) for sort comparison. totalParts counts
 -- threshold-clamped parts (so a hypothetical mod allowing extras doesn't
 -- make a player out-rank a fully-built spaceship just by spamming).
+-- Each teamPartCount call returns (built, threshold); we want only built,
+-- so capture into a named local instead of relying on Lua's implicit
+-- multi-return truncation in an arithmetic context.
 local function teamApolloAndParts(pTeam)
     local apolloProj = GameInfoTypes["PROJECT_APOLLO_PROGRAM"]
     local apolloBuilt = apolloProj ~= nil and apolloProj ~= -1 and pTeam:GetProjectCount(apolloProj) >= 1
-    local count = 0
-    count = count + teamPartCount(pTeam, "PROJECT_SS_BOOSTER")
-    count = count + teamPartCount(pTeam, "PROJECT_SS_COCKPIT")
-    count = count + teamPartCount(pTeam, "PROJECT_SS_STASIS_CHAMBER")
-    count = count + teamPartCount(pTeam, "PROJECT_SS_ENGINE")
-    return apolloBuilt, count
+    local boosters = teamPartCount(pTeam, "PROJECT_SS_BOOSTER")
+    local cockpit = teamPartCount(pTeam, "PROJECT_SS_COCKPIT")
+    local chamber = teamPartCount(pTeam, "PROJECT_SS_STASIS_CHAMBER")
+    local engine = teamPartCount(pTeam, "PROJECT_SS_ENGINE")
+    return apolloBuilt, boosters + cockpit + chamber + engine
 end
 
 local function scienceCivLine(pPlayer)
@@ -799,7 +804,7 @@ local function buildCulturalItems()
     return items
 end
 
--- ===== Section group factory ==========================================
+-- ===== Victories tab ===================================================
 
 -- pediaKey routes Ctrl+I to the section's matching Civilopedia concept
 -- article. The text-key form is what searchableTextKeyList is indexed by
@@ -813,12 +818,23 @@ local function sectionGroup(buttonKey, builder, pediaKey)
     })
 end
 
--- ===== Landing-page items ==============================================
-
-local function buildLandingItems()
-    local items = buildScoreRowItems()
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_MY_SCORE", buildMyScoreItems,
-        "TXT_KEY_VICTORY_2050ARRIVES_HEADING3_TITLE")
+local function buildVictoriesItems()
+    local items = {}
+    -- Turns remaining leads the tab when the time victory is enabled. When
+    -- disabled, the row is omitted -- the lack of a turns line is the
+    -- indicator, and "Time Victory Disabled" as a standalone row was no
+    -- richer than absence.
+    if PreGame.IsVictory(GameInfo.Victories["VICTORY_TIME"].ID) then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_VP_LABEL_VALUE",
+                    stripColon(Text.key("TXT_KEY_VP_TURNS")),
+                    remainingTurns()
+                )
+            end,
+        })
+    end
     items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION", buildDominationItems,
         "TXT_KEY_VICTORY_DOMINATION_HEADING3_TITLE")
     items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE", buildScienceItems,
@@ -830,48 +846,76 @@ local function buildLandingItems()
     return items
 end
 
+-- Hoisted so the install onShow can call setItems(buildVictoriesItems()) on
+-- each screen open and refresh per-section state (turns remaining, capital
+-- ownership, league activity, influence percents).
+local m_victoriesTab
+
+local function buildVictoriesTab()
+    m_victoriesTab = TabbedShell.menuTab({
+        tabName = "TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES",
+        menuSpec = {
+            displayName = Text.key("TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"),
+            items = buildVictoriesItems(),
+        },
+    })
+    return m_victoriesTab
+end
+
 -- ===== Module exports for tests ========================================
 
-VictoryProgressAccess.scoreRowText = scoreRowText
+VictoryProgressAccess.scoreRowLabel = scoreRowLabel
+VictoryProgressAccess.buildScoreColumns = buildScoreColumns
+VictoryProgressAccess.rebuildScoreRows = rebuildScoreRows
 VictoryProgressAccess.civDisplayName = civDisplayName
 VictoryProgressAccess.dominationState = dominationState
 VictoryProgressAccess.dominationLeadingLine = dominationLeadingLine
 VictoryProgressAccess.dominationCivSentence = dominationCivSentence
 VictoryProgressAccess.partsBuiltSummary = partsBuiltSummary
 VictoryProgressAccess.influencePercentOf = influencePercentOf
-VictoryProgressAccess.buildLandingItems = buildLandingItems
+VictoryProgressAccess.remainingTurns = remainingTurns
+VictoryProgressAccess.buildVictoriesItems = buildVictoriesItems
 VictoryProgressAccess.stripColon = stripColon
 
 -- ===== Install =========================================================
 
 if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "function" then
-    local handler = BaseMenu.install(ContextPtr, {
-        name = "VictoryProgress",
-        displayName = Text.key("TXT_KEY_VP_TITLE"),
-        items = buildLandingItems(),
-        priorInput = priorInput,
-        priorShowHide = priorShowHide,
-        -- Re-source rows on every show so the score ranking, victory
-        -- enable / disable state, and section content refresh against
-        -- the engine. setItems also resets the cursor to the first
-        -- navigable row, which is the rank-1 civ — the user's intended
-        -- landing position.
-        onShow = function(h)
-            h.setItems(buildLandingItems())
-        end,
-    })
+    local scoreTab = buildScoreTab()
+    local victoriesTab = buildVictoriesTab()
 
     -- F8 toggles the screen shut while open, matching the engine's own
-    -- Data1==1 toggle behavior. Append a binding to the handler's array
-    -- after install so it composes alongside the BaseMenu defaults.
-    if handler ~= nil and type(handler.bindings) == "table" then
-        handler.bindings[#handler.bindings + 1] = {
-            key = Keys.VK_F8,
-            mods = 0,
-            description = "Close Victory Progress",
-            fn = function()
-                UIManager:DequeuePopup(ContextPtr)
-            end,
-        }
+    -- Data1==1 toggle behavior. Append to each tab's bindings so the chord
+    -- works regardless of which tab the cursor is on. Shell-level binding
+    -- isn't exposed; per-tab is the documented extension point and matches
+    -- the F6 / TechTree pattern.
+    local function toggleClose()
+        UIManager:DequeuePopup(ContextPtr)
     end
+    local f8Binding = {
+        key = Keys.VK_F8,
+        mods = 0,
+        description = "Close Victory Progress",
+        fn = toggleClose,
+    }
+    scoreTab.bindings[#scoreTab.bindings + 1] = f8Binding
+    victoriesTab.bindings[#victoriesTab.bindings + 1] = f8Binding
+
+    TabbedShell.install(ContextPtr, {
+        name = "VictoryProgress",
+        displayName = Text.key("TXT_KEY_VP_TITLE"),
+        tabs = { scoreTab, victoriesTab },
+        initialTabIndex = 1,
+        priorInput = priorInput,
+        priorShowHide = priorShowHide,
+        -- Refresh tab 2 menu items on every open. Per-section content
+        -- (turns remaining, capital ownership, league state, influence
+        -- percents) updates between turns; without this rebuild each open
+        -- the items would freeze at install state. Tab 1 (BaseTable) self-
+        -- refreshes via rebuildRows on every nav event.
+        onShow = function()
+            if m_victoriesTab ~= nil then
+                m_victoriesTab.menu().setItems(buildVictoriesItems())
+            end
+        end,
+    })
 end
