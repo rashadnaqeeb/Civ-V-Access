@@ -606,9 +606,17 @@ local function buildGoldItems()
     if p ~= nil and p:CalculateGoldRateTimes100() < 0 then
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
+                -- Engine returns this signed-negative (it sums the negative
+                -- treasury+gpt to come up with how much science gets clawed
+                -- back). The visual panel passes that through verbatim, so
+                -- sighted players read "Science Lost / Turn: -2.5", which
+                -- the eye parses instantly. Spoken sequentially, "Science
+                -- lost from gold deficit, negative two point five" is a
+                -- double-negative -- the label already carries the "lost"
+                -- meaning. Negate so the row reads as a positive magnitude.
                 return Text.format(
                     "TXT_KEY_CIVVACCESS_EO_SCIENCE_PENALTY",
-                    formatGoldT100(activePlayer():GetScienceFromBudgetDeficitTimes100())
+                    formatGoldT100(-activePlayer():GetScienceFromBudgetDeficitTimes100())
                 )
             end,
         })
