@@ -241,6 +241,15 @@ local function pushTenetPicker(level)
                     end
                     pushTenetConfirm(name)
                 end,
+                -- Ctrl+I jumps to the tenet's pedia article. The Civilopedia
+                -- queues at eUtmost which hides SocialPolicyPopup, and our
+                -- ShowHide cleanup tears down this picker (and fires the
+                -- engine's OnCancel via onDeactivate). After closing the
+                -- pedia the user lands back on the slot they activated and
+                -- presses Enter to reopen the picker if they want to pick
+                -- a different tenet -- accepted UX cost in exchange for any
+                -- in-flow access to the tenet's article.
+                pediaName = row.Description,
             })
         end
     end
