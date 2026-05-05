@@ -9,16 +9,13 @@ local M = {}
 
 local warns, errors = Setup.warns, Setup.errors
 local speaks, sounds = Setup.speaks, Setup.sounds
-local resetPDMetatable = Setup.resetPDMetatable
 local makePullDownWithMetatable = Setup.makePullDownWithMetatable
 local populateControls = Setup.populateControls
 local patchProbeFromPullDown = Setup.patchProbeFromPullDown
 local registerSliderCallback = Setup.registerSliderCallback
 local registerCheckHandler = Setup.registerCheckHandler
-local makeCtrl = Setup.makeCtrl
 local setCtrls = Setup.setCtrls
 local ctrlState = Setup.ctrlState
-local makeContextPtr = Setup.makeContextPtr
 local buttonSpec = Setup.buttonSpec
 local clearArr = Setup.clearArr
 
@@ -889,6 +886,5 @@ function M.test_virtual_toggle_focus_announces_current_state()
     -- The first announcement after push is "Screen" then the focused item.
     T.eq(speaks[2].text, "LBL_T, on")
 end
-
 
 return M

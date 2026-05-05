@@ -4,8 +4,6 @@
 local T = require("support")
 local M = {}
 
-local speaks
-
 local function setup()
     Log.warn = function() end
     Log.error = function() end
@@ -14,7 +12,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
     SpeechPipeline._reset()
-    speaks = T.captureSpeech()
+    T.captureSpeech()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
 

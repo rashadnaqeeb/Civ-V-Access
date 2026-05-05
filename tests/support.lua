@@ -669,18 +669,20 @@ end
 -- assertions still see the raw key.
 function T.installLocaleStrings(map)
     Locale.ConvertTextKey = function(key, ...)
-        local fmt = map[key] or key
+        local template = map[key] or key
         local args = { ... }
         if #args == 0 then
-            return fmt
+            return template
         end
-        return (fmt:gsub("{(%d+)_[^}]*}", function(n)
-            local v = args[tonumber(n)]
-            if v == nil then
-                return ""
-            end
-            return tostring(v)
-        end))
+        return (
+            template:gsub("{(%d+)_[^}]*}", function(n)
+                local v = args[tonumber(n)]
+                if v == nil then
+                    return ""
+                end
+                return tostring(v)
+            end)
+        )
     end
 end
 

@@ -53,6 +53,7 @@ read_globals = {
     "InterfaceModeTypes", "MissionTypes", "GameMessageTypes",
     "ActionSubTypes", "GameInfoActions", "EndTurnBlockingTypes",
     "TaskTypes", "InfluenceLevelTypes",
+    "OrderTypes", "ReligionTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -126,7 +127,7 @@ globals = {
 
     -- InGame modules
     "Cursor", "CursorActivate", "CursorPedia", "HexGeom", "Pathfinder",
-    "RoutePathfinder",
+    "RoutePathfinder", "PathDiagnostic",
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
     "PlotAudio",
     "EmpireStatus",
@@ -139,6 +140,7 @@ globals = {
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",
+    "CityViewHexMap", "CityViewProduction", "CityViewHub",
     "GiftMode",
     "ChooseProductionLogic", "ChooseTechLogic",
     "NotificationAnnounce",
@@ -146,14 +148,16 @@ globals = {
     "SocialPolicyLogic",
     "TechTreeLogic",
     "DiploCommon",
-    "TradeLogicAccess",
+    "TradeLogicAccess", "TradeLogicAvailable", "TradeLogicOffering",
     "LeagueOverviewRow", "LeagueOverviewVote", "LeagueOverviewProposal",
     "TaskList",
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
+    "UnitControlCombat", "UnitControlMovement", "UnitControlSelection",
     "Bookmarks", "Waypoints",
     "MessageBuffer", "ChatBuffer", "CombatLog",
-    "RevealAnnounce", "ForeignUnitWatch", "ForeignClearWatch",
+    "RevealAnnounce", "ForeignUnitSnapshot", "ForeignUnitWatch", "ForeignClearWatch",
+    "HotseatCursor", "HotseatMessageBuffer", "MultiplayerTurnEnd",
     "MultiplayerRewards",
 
     -- Base-game helpers pulled in by TechTree's include chain
@@ -233,6 +237,10 @@ files["tests/"] = {
         -- paths (e.g. turn_test flips PreGame.IsMultiplayerGame to cover
         -- both SP and MP endturn dispatch).
         "PreGame", "Network", "OptionsManager",
+        -- Modding.OpenUserData stubbed by bookmarks_test to control the
+        -- per-mod user-data path; UIManager.DequeuePopup stubbed by
+        -- economic_overview_test to capture popup-close calls.
+        "Modding", "UIManager",
         -- Engine enum the suites stub to drive popup dispatch tests.
         "ButtonPopupTypes",
         -- Engine enums only the ChooseProduction suite needs; shimmed in
@@ -302,6 +310,15 @@ files["**/CivVAccess_FrontendCommon.lua"] = { ignore = { "113" } }
 files["**/CivVAccess_ProbeBoot.lua"]      = { ignore = { "113" } }
 files["**/CivVAccess_ModListPreamble.lua"] = { ignore = { "113" } }
 
+-- Screen-companion modules that aren't named *Access but reach into the
+-- same Context's base-game globals (TradeLogic siblings read g_Deal /
+-- g_iThem / g_iUs / TradeableItems / g_LeagueVoteList; CityViewProduction
+-- reads OnHideQueue from CityView). Same rationale as the *Access glob:
+-- whitelisting every screen-specific symbol is unsustainable.
+files["**/CivVAccess_TradeLogicAvailable.lua"] = { ignore = { "113" } }
+files["**/CivVAccess_TradeLogicOffering.lua"]  = { ignore = { "113" } }
+files["**/CivVAccess_CityViewProduction.lua"]  = { ignore = { "113" } }
+
 -- Polyfill's whole job is to create engine globals when ContextPtr is nil.
 -- Every assignment is intentional; suppress the "setting ... global" warnings
 -- and the self-shadowing from method definitions inside widget factories.
@@ -319,6 +336,7 @@ files["src/dlc/UI/InGame/CivVAccess_Polyfill.lua"] = {
 -- base-game code we don't control. Don't lint them; just check syntax.
 files["src/dlc/UI/InGame/TaskList.lua"]           = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/InGame.lua"]             = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/ChangePassword.lua"]     = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/TradeLogic.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }

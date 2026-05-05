@@ -12,13 +12,9 @@ local M = {}
 
 local warns, errors = Setup.warns, Setup.errors
 local speaks, sounds = Setup.speaks, Setup.sounds
-local resetPDMetatable = Setup.resetPDMetatable
 local makePullDownWithMetatable = Setup.makePullDownWithMetatable
 local populateControls = Setup.populateControls
 local patchProbeFromPullDown = Setup.patchProbeFromPullDown
-local registerSliderCallback = Setup.registerSliderCallback
-local registerCheckHandler = Setup.registerCheckHandler
-local makeCtrl = Setup.makeCtrl
 local setCtrls = Setup.setCtrls
 local ctrlState = Setup.ctrlState
 local makeContextPtr = Setup.makeContextPtr
@@ -30,7 +26,6 @@ local function setup()
 end
 
 local WM_KEYDOWN = 256
-
 
 -- Factory ----------------------------------------------------------------
 
@@ -96,7 +91,9 @@ function M.test_empty_items_onEnter_is_safe_noop()
     populateControls({})
     local h = BaseMenu.create({ name = "S", displayName = "Splash", items = {} })
     HandlerStack.push(h)
-    clearArr(sounds); clearArr(speaks); clearArr(warns)
+    clearArr(sounds)
+    clearArr(speaks)
+    clearArr(warns)
     local consumed = InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.truthy(consumed, "Enter still consumed by barrier")
     T.eq(#sounds, 0)
@@ -1685,6 +1682,5 @@ function M.test_menu_sounds_suppressed_when_muted()
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN) -- wrap to A
     T.eq(playsOf("menu_wrap"), 0, "muted state suppresses menu sounds")
 end
-
 
 return M

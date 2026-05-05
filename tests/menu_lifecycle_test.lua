@@ -9,17 +9,12 @@ local T = require("support")
 local Setup = require("menu_test_setup")
 local M = {}
 
-local warns, errors = Setup.warns, Setup.errors
-local speaks, sounds = Setup.speaks, Setup.sounds
-local resetPDMetatable = Setup.resetPDMetatable
+local errors = Setup.errors
+local speaks = Setup.speaks
 local makePullDownWithMetatable = Setup.makePullDownWithMetatable
 local populateControls = Setup.populateControls
 local patchProbeFromPullDown = Setup.patchProbeFromPullDown
-local registerSliderCallback = Setup.registerSliderCallback
-local registerCheckHandler = Setup.registerCheckHandler
-local makeCtrl = Setup.makeCtrl
 local setCtrls = Setup.setCtrls
-local ctrlState = Setup.ctrlState
 local makeContextPtr = Setup.makeContextPtr
 local buttonSpec = Setup.buttonSpec
 local clearArr = Setup.clearArr
@@ -29,7 +24,6 @@ local function setup()
 end
 
 local WM_KEYDOWN = 256
-
 
 -- Tabs ------------------------------------------------------------------
 
@@ -1255,6 +1249,5 @@ function M.test_tab_first_init_onActivate_can_override_cursor()
     local lastSpoken = speaks[#speaks].text
     T.eq(lastSpoken, "Second", "speech announces the overridden cursor item")
 end
-
 
 return M
