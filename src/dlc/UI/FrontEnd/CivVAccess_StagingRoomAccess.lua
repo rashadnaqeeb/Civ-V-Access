@@ -671,13 +671,13 @@ local function wrapCountdown()
     end
 end
 
--- F2 chat panel -------------------------------------------------------
+-- Chat panel ---------------------------------------------------------
 --
 -- Pushed (not installed) BaseMenu. Messages tab lists the cross-Context
 -- history on civvaccess_shared._stagingChatLog in newest-first order so
 -- the user lands on the latest line; Compose tab wraps Controls.ChatEntry
 -- in a Textfield pointing at base's SendChat as the commit callback.
--- Esc and F2 both pop the panel.
+-- Esc and backslash both pop the panel.
 --
 -- History buffer is separate from base's g_ChatInstances because the base
 -- drops old boxes from the Stack when it rotates them; we need a stable
@@ -697,7 +697,7 @@ local function appendChatEntry(name, text)
     civvaccess_shared._stagingChatLog = log
 end
 
--- True while the F2 panel OR its edit-mode sub is the active handler, so
+-- True while the chat panel OR its edit-mode sub is the active handler, so
 -- onChat's inline announce can back off while the user is focused there.
 local function chatPanelActive()
     for i = HandlerStack.count(), 1, -1 do
@@ -776,17 +776,17 @@ local function toggleChatPanel()
             },
         },
     })
-    -- F2 closes the panel (same key that opened it). VK_F2 = 113 per the
-    -- Windows VK table; Keys.VK_F2 is populated by the engine but falls
-    -- back to the literal for the polyfilled test harness.
+    -- Backslash closes the panel (same key that opened it). VK_OEM_5 = 220
+    -- per the Windows VK table; Keys.VK_OEM_5 is populated by the engine
+    -- but falls back to the literal for the polyfilled test harness.
     chatHandler.bindings[#chatHandler.bindings + 1] = {
-        key = Keys.VK_F2 or 113,
+        key = Keys.VK_OEM_5 or 220,
         mods = 0,
         description = "Close chat",
         fn = closeChatPanel,
     }
     BaseMenuHelp.addScreenKey(chatHandler, {
-        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
+        keyLabel = "TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_KEY_CLOSE",
         description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE",
     })
     HandlerStack.push(chatHandler)
@@ -921,7 +921,7 @@ local function wrappedShowHide(bIsHide, bIsInit)
     end
     if bIsHide then
         -- Auto-close the chat panel (+ any edit sub) so nothing orphans on
-        -- the stack when the user leaves StagingRoom with F2 still open.
+        -- the stack when the user leaves StagingRoom with the panel open.
         closeChatPanel(false)
         return
     end
@@ -989,17 +989,17 @@ handler = BaseMenu.install(ContextPtr, {
     },
 })
 
--- F2 opens the chat panel. Engine binds F2 to Domestic Advisor in-game,
--- but no front-end screen binds F2; StagingRoom.InputHandler doesn't
--- claim it either, so layering on top of the engine default is safe here.
--- Documented in docs/hotkey-reference.md under CivVAccess additions.
+-- Backslash opens the chat panel. Backslash is unbound by every Civ V XML
+-- so the chord is free across base / G&K / BNW, mirroring the in-game chat
+-- key handled by Baseline. Documented in docs/hotkey-reference.md under
+-- CivVAccess additions.
 handler.bindings[#handler.bindings + 1] = {
-    key = Keys.VK_F2 or 113,
+    key = Keys.VK_OEM_5 or 220,
     mods = 0,
     description = "Open chat",
     fn = toggleChatPanel,
 }
 BaseMenuHelp.addScreenKey(handler, {
-    keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
+    keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_BACKSLASH",
     description = "TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN",
 })

@@ -163,15 +163,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} disconne
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Launching in 10 seconds"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Countdown cancelled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
--- F2 chat panel: title, tab labels, compose field label, empty-history
--- placeholder, and the help-overlay line for F2 itself. The F2 key-label
--- (TXT_KEY_CIVVACCESS_HELP_KEY_F2) lives next to HELP_KEY_F1 further down.
+-- Chat panel: title, tab labels, compose field label, empty-history
+-- placeholder, the help-overlay line for the open chord, and the close
+-- key-label (Backslash or Escape, mirroring the in-game chat panel since
+-- both bindings self-toggle and Esc also pops via escapePops). The
+-- backslash key-label (TXT_KEY_CIVVACCESS_HELP_KEY_BACKSLASH) lives next
+-- to HELP_KEY_F1 further down.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_PANEL"] = "Chat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MESSAGES_TAB"] = "Messages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE_TAB"] = "Compose"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE"] = "Message"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_EMPTY"] = "No messages yet."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN"] = "Open chat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_KEY_CLOSE"] = "Backslash or Escape"
 -- Lobby (PickerReader over the server listing). Row format reads as
 -- "<server>, <members>, <map>" so the distinguishing server name comes
 -- first; Members format speaks "X of Y" instead of the engine's "X/Y"
@@ -328,7 +332,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN"] = "Control plus u
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_TAB"] = "Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB"] = "Shift plus tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F1"] = "F1"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F2"] = "F2"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_BACKSLASH"] = "Backslash"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ESC"] = "Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ENTER"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION"] = "Question mark"

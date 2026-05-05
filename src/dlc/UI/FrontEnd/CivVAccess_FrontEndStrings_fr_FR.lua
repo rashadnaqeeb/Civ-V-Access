@@ -53,6 +53,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE_TAB"] = "Rediger"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE"] = "Message"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_EMPTY"] = "Aucun message pour l'instant."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN"] = "Ouvrir la discussion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_KEY_CLOSE"] = "Antislash ou Echap"
 -- Lobby (PickerReader over the server listing). Row format reads as
 -- "<server>, <members>, <map>" so the distinguishing server name comes
 -- first; Members format speaks "X of Y" instead of the engine's "X/Y"
@@ -144,7 +145,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN"] = "Contrôle plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_TAB"] = "Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB"] = "Maj plus Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F1"] = "F1"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F2"] = "F2"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_BACKSLASH"] = "Antislash"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ESC"] = "Echap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ENTER"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION"] = "Point d'interrogation"
