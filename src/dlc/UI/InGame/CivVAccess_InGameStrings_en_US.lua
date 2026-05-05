@@ -2188,18 +2188,24 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_DEF_CELL"] = "{1_Def}, {2_Hp}"
 -- appends the next-tile countdown via CitySpeech.borderGrowthToken.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_FOOD_CELL"] = "{1_Food}, {2_Progress}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_CULTURE_CELL"] = "{1_Culture}, {2_Border}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_NONE"] = "none"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL"] = "Treasury, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL"] = "Total gold, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_TOTAL"] = "Income, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSES_TOTAL"] = "Expenses, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_NET"] = "Net per turn, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_PENALTY"] = "Science penalty, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_GROSS"] = "Gross gold per turn, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GOLD_EXPENSES"] = "Total expenses per turn, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_INCOME"] = "Income"
+-- Mirrors the engine's "Penalty From Gold Deficit" tooltip: only present
+-- when net gold per turn is negative (the engine debits science 1:1 against
+-- the deficit), so the row is omitted entirely the rest of the time rather
+-- than reading a misleading 0.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_SCIENCE_PENALTY"] = "Science lost from gold deficit, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_CITIES"] = "Cities, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_DIPLO"] = "Diplomacy, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_RELIGION"] = "Religion, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_TRADE"] = "Trade routes, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_EXPENSES"] = "Expenses"
+-- Engine renamed this from "Trade routes" to "City connections" in BNW
+-- (TXT_KEY_EO_INCOME_TRADE = "Income From City Connections") to disambiguate
+-- the legacy road-network gold (GetCityConnectionGoldTimes100, what this
+-- row reads) from BNW's caravan trade-route system shown on the F4 Trade
+-- Route Overview. Internal key keeps the legacy name to avoid churn.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_INCOME_TRADE"] = "City connections, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_UNITS"] = "Units, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_BUILDINGS"] = "Buildings, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_IMPROVEMENTS"] = "Improvements, {1_Value}"

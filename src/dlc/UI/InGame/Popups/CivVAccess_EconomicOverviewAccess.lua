@@ -354,10 +354,17 @@ local function goldTextItem(labelKey, valueFn)
     })
 end
 
--- Per-city sub-list builder: each city contributing a non-zero amount becomes
--- a Text row labeled "<city>: <amount>". cached=false on the parent group so
--- each drill-in re-queries (turns can elapse off-screen via end-turn from a
--- nested popup, even though F2 itself is read-only).
+local function activeHandicap()
+    return GameInfo.HandicapInfos[Game.GetHandicapType()]
+end
+
+-- Per-city sub-list builder for the gold-tab drillables (Cities income,
+-- City connections income, Buildings expense). Each city contributing a
+-- non-zero amount becomes a Text row "<city>, <amount>". includePred is
+-- optional and filters which cities to consider -- City connections needs
+-- it to mirror the engine's "only when capital-connected" rule. cached=false
+-- on the parent Group so each drill-in re-queries; empty result emits a
+-- placeholder so the drillable never reads as a silent dead-end.
 local function perCityGoldEntries(amountFn, includePred)
     local p = activePlayer()
     if p == nil then
@@ -368,12 +375,12 @@ local function perCityGoldEntries(amountFn, includePred)
         if includePred == nil or includePred(p, city) then
             local amount = amountFn(p, city)
             if amount and amount ~= 0 then
-                local row = {
-                    name = city:GetName(),
-                    amount = amount,
-                }
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format("TXT_KEY_CIVVACCESS_EO_CITY_LINE", row.name, formatNumber(row.amount)),
+                    labelText = Text.format(
+                        "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
+                        city:GetName(),
+                        formatNumber(amount)
+                    ),
                 })
             end
         end
@@ -384,140 +391,244 @@ local function perCityGoldEntries(amountFn, includePred)
     return items
 end
 
+-- Tooltip builders that mirror the engine's row tooltips on the gold
+-- screen. Each row inside Income / Expenses is a flat Text item; the
+-- BaseMenuItems tooltipFn lets us append the engine's hover text to the
+-- spoken announcement (with the framework's dedupe + [NEWLINE]
+-- normalization). For static tooltips we just point at the engine
+-- TXT_KEY via tooltipKey; the dynamic ones (Trade routes, Units,
+-- Buildings, Improvements) need handicap- / formula-aware composition,
+-- so they assemble through Text.key / Text.format which keeps the
+-- engine's icon / NEWLINE markup intact for TextFilter to strip at
+-- speech time.
+-- The engine's tooltip leads with TXT_KEY_EO_INCOME_TRADE ("Income From
+-- City Connections"), which is now a verbatim rephrasal of our row label
+-- since we matched BNW's terminology. Skip that opener and surface only
+-- the parts the row label doesn't already cover: the active gold
+-- modifier (when non-zero) and the base / per-citizen formula.
+local function tradeRoutesIncomeTooltip()
+    local parts = {}
+    local p = activePlayer()
+    local mod = p:GetCityConnectionTradeRouteGoldModifier()
+    if mod ~= 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_EGI_TRADE_ROUTE_MOD_INFO", mod)
+    end
+    parts[#parts + 1] = Text.format(
+        "TXT_KEY_TRADE_ROUTE_INCOME_INFO",
+        GameDefines.TRADE_ROUTE_BASE_GOLD / 100,
+        GameDefines.TRADE_ROUTE_CITY_POP_GOLD_MULTIPLIER / 100
+    )
+    return table.concat(parts, "[NEWLINE]")
+end
+
+local function unitsExpenseTooltip()
+    local p = activePlayer()
+    local total = p:GetNumUnits()
+    local free = p:GetNumMaintenanceFreeUnits(DomainTypes.NO_DOMAIN, false)
+    local paid = total - free
+    local costPer = paid > 0 and p:CalculateUnitCost() / paid or 0
+    local parts = {
+        Text.format("TXT_KEY_EO_EX_UNITS", Locale.ToNumber(costPer, "#.##"), total),
+    }
+    if free > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_EO_EX_UNITS_NO_MAINT", free)
+    end
+    local pct = activeHandicap().UnitCostPercent
+    if pct ~= 100 then
+        parts[#parts + 1] = Text.format("TXT_KEY_HANDICAP_MAINTENANCE_MOD", pct)
+    end
+    return table.concat(parts, "[NEWLINE]")
+end
+
+local function buildingsExpenseTooltip()
+    local parts = { Text.key("TXT_KEY_EO_EX_BUILDINGS") }
+    local pct = activeHandicap().BuildingCostPercent
+    if pct ~= 100 then
+        parts[#parts + 1] = Text.format("TXT_KEY_HANDICAP_MAINTENANCE_MOD", pct)
+    end
+    return table.concat(parts, "[NEWLINE]")
+end
+
+local function improvementsExpenseTooltip()
+    local parts = { Text.key("TXT_KEY_EO_EX_IMPROVEMENTS") }
+    local pct = activeHandicap().RouteCostPercent
+    if pct ~= 100 then
+        parts[#parts + 1] = Text.format("TXT_KEY_HANDICAP_MAINTENANCE_MOD", pct)
+    end
+    return table.concat(parts, "[NEWLINE]")
+end
+
+-- Income breakdown. Cities drills into per-city contributions (the only
+-- per-city slice the user actually wants on this screen); Trade routes
+-- carries the engine's formula tooltip inline; Diplomacy and Religion
+-- get no tooltip since the engine's text ("Income From X") is just the
+-- row name in a sentence and adds nothing the in-context label hasn't
+-- already conveyed.
+local function buildIncomeBreakdownItems()
+    return {
+        BaseMenuItems.Group({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_INCOME_CITIES",
+                    formatGoldT100(activePlayer():GetGoldFromCitiesTimes100())
+                )
+            end,
+            cached = false,
+            itemsFn = function()
+                return perCityGoldEntries(function(_, c)
+                    return c:GetYieldRateTimes100(YieldTypes.YIELD_GOLD) / 100
+                end)
+            end,
+        }),
+        BaseMenuItems.Text({
+            labelFn = function()
+                local v = activePlayer():GetGoldPerTurnFromDiplomacy()
+                if v < 0 then v = 0 end
+                return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_DIPLO", formatNumber(v))
+            end,
+        }),
+        BaseMenuItems.Text({
+            labelFn = function()
+                local v = activePlayer():GetGoldPerTurnFromReligion()
+                if v < 0 then v = 0 end
+                return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_RELIGION", formatNumber(v))
+            end,
+        }),
+        BaseMenuItems.Group({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_INCOME_TRADE",
+                    formatGoldT100(activePlayer():GetCityConnectionGoldTimes100())
+                )
+            end,
+            cached = false,
+            tooltipFn = tradeRoutesIncomeTooltip,
+            itemsFn = function()
+                return perCityGoldEntries(
+                    function(p, c)
+                        return p:GetCityConnectionRouteGoldTimes100(c) / 100
+                    end,
+                    function(p, c)
+                        return p:IsCapitalConnectedToCity(c)
+                    end
+                )
+            end,
+        }),
+    }
+end
+
+-- Expense breakdown. Units / Buildings / Improvements all carry the
+-- engine maintenance tooltips (cost-per-unit, handicap modifier, the
+-- roads / RR formula). Diplomacy expense gets no tooltip for the same
+-- "engine text just rephrases the row name" reason as the income side.
+local function buildExpensesBreakdownItems()
+    return {
+        BaseMenuItems.Text({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_EXPENSE_UNITS",
+                    formatNumber(activePlayer():CalculateUnitCost())
+                )
+            end,
+            tooltipFn = unitsExpenseTooltip,
+        }),
+        BaseMenuItems.Group({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_EXPENSE_BUILDINGS",
+                    formatNumber(activePlayer():GetBuildingGoldMaintenance())
+                )
+            end,
+            cached = false,
+            tooltipFn = buildingsExpenseTooltip,
+            itemsFn = function()
+                return perCityGoldEntries(function(_, c)
+                    return c:GetTotalBaseBuildingMaintenance()
+                end)
+            end,
+        }),
+        BaseMenuItems.Text({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_EXPENSE_IMPROVEMENTS",
+                    formatNumber(activePlayer():GetImprovementGoldMaintenance())
+                )
+            end,
+            tooltipFn = improvementsExpenseTooltip,
+        }),
+        BaseMenuItems.Text({
+            labelFn = function()
+                local v = activePlayer():GetGoldPerTurnFromDiplomacy()
+                if v > 0 then v = 0 else v = -v end
+                return Text.format("TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO", formatNumber(v))
+            end,
+        }),
+    }
+end
+
+-- Build the gold tab's items list. The science-penalty row is appended
+-- conditionally on net gold being negative -- the engine's "Penalty From
+-- Gold Deficit" only kicks in then (science is debited 1:1 against the
+-- deficit), and at any other time speaking the row would either be a
+-- misleading 0 or just noise. Re-evaluated per screen open via the
+-- install onShow hook so a player who flips between surplus and deficit
+-- across turns sees the row appear / disappear accordingly.
 local function buildGoldItems()
     local items = {
         goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL", function()
             return formatNumber(activePlayer():GetGold())
         end),
+        BaseMenuItems.Group({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_INCOME_TOTAL",
+                    formatGoldT100(activePlayer():CalculateGrossGoldTimes100())
+                )
+            end,
+            cached = false,
+            itemsFn = buildIncomeBreakdownItems,
+        }),
+        BaseMenuItems.Group({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_EXPENSES_TOTAL",
+                    formatNumber(activePlayer():CalculateInflatedCosts())
+                )
+            end,
+            cached = false,
+            itemsFn = buildExpensesBreakdownItems,
+        }),
         goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_NET", function()
             return formatGoldT100(activePlayer():CalculateGoldRateTimes100())
         end),
-        goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_PENALTY", function()
-            local p = activePlayer()
-            local net = p:CalculateGoldRateTimes100() / 100
-            if net >= 0 then
-                return Text.key("TXT_KEY_CIVVACCESS_EO_NONE")
-            end
-            return formatGoldT100(p:GetScienceFromBudgetDeficitTimes100())
-        end),
-        goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_GROSS", function()
-            return formatGoldT100(activePlayer():CalculateGrossGoldTimes100())
-        end),
-        goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_EXPENSES", function()
-            return formatNumber(activePlayer():CalculateInflatedCosts())
-        end),
-        BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_EO_GROUP_INCOME"),
-            cached = false,
-            itemsFn = function()
-                return {
-                    BaseMenuItems.Group({
-                        labelFn = function()
-                            return Text.format(
-                                "TXT_KEY_CIVVACCESS_EO_INCOME_CITIES",
-                                formatGoldT100(activePlayer():GetGoldFromCitiesTimes100())
-                            )
-                        end,
-                        cached = false,
-                        itemsFn = function()
-                            return perCityGoldEntries(function(_, c)
-                                return c:GetYieldRateTimes100(YieldTypes.YIELD_GOLD) / 100
-                            end)
-                        end,
-                    }),
-                    BaseMenuItems.Text({
-                        labelFn = function()
-                            local v = activePlayer():GetGoldPerTurnFromDiplomacy()
-                            if v < 0 then v = 0 end
-                            return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_DIPLO", formatNumber(v))
-                        end,
-                    }),
-                    BaseMenuItems.Text({
-                        labelFn = function()
-                            local v = activePlayer():GetGoldPerTurnFromReligion()
-                            if v < 0 then v = 0 end
-                            return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_RELIGION", formatNumber(v))
-                        end,
-                    }),
-                    BaseMenuItems.Group({
-                        labelFn = function()
-                            return Text.format(
-                                "TXT_KEY_CIVVACCESS_EO_INCOME_TRADE",
-                                formatGoldT100(activePlayer():GetCityConnectionGoldTimes100())
-                            )
-                        end,
-                        cached = false,
-                        itemsFn = function()
-                            return perCityGoldEntries(
-                                function(p, c)
-                                    return p:GetCityConnectionRouteGoldTimes100(c) / 100
-                                end,
-                                function(p, c)
-                                    return p:IsCapitalConnectedToCity(c)
-                                end
-                            )
-                        end,
-                    }),
-                }
-            end,
-        }),
-        BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_EO_GROUP_EXPENSES"),
-            cached = false,
-            itemsFn = function()
-                return {
-                    BaseMenuItems.Text({
-                        labelFn = function()
-                            return Text.format(
-                                "TXT_KEY_CIVVACCESS_EO_EXPENSE_UNITS",
-                                formatNumber(activePlayer():CalculateUnitCost())
-                            )
-                        end,
-                    }),
-                    BaseMenuItems.Group({
-                        labelFn = function()
-                            return Text.format(
-                                "TXT_KEY_CIVVACCESS_EO_EXPENSE_BUILDINGS",
-                                formatNumber(activePlayer():GetBuildingGoldMaintenance())
-                            )
-                        end,
-                        cached = false,
-                        itemsFn = function()
-                            return perCityGoldEntries(function(_, c)
-                                return c:GetTotalBaseBuildingMaintenance()
-                            end)
-                        end,
-                    }),
-                    BaseMenuItems.Text({
-                        labelFn = function()
-                            return Text.format(
-                                "TXT_KEY_CIVVACCESS_EO_EXPENSE_IMPROVEMENTS",
-                                formatNumber(activePlayer():GetImprovementGoldMaintenance())
-                            )
-                        end,
-                    }),
-                    BaseMenuItems.Text({
-                        labelFn = function()
-                            local v = activePlayer():GetGoldPerTurnFromDiplomacy()
-                            if v > 0 then v = 0 else v = -v end
-                            return Text.format("TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO", formatNumber(v))
-                        end,
-                    }),
-                }
-            end,
-        }),
     }
+    local p = activePlayer()
+    if p ~= nil and p:CalculateGoldRateTimes100() < 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_EO_SCIENCE_PENALTY",
+                    formatGoldT100(activePlayer():GetScienceFromBudgetDeficitTimes100())
+                )
+            end,
+        })
+    end
     return items
 end
 
+-- Hoisted so the install onShow can call setItems(buildGoldItems()) on
+-- each screen open and refresh the conditional science-penalty row.
+local m_goldTab
+
 local function buildGoldTab()
-    return TabbedShell.menuTab({
+    m_goldTab = TabbedShell.menuTab({
         tabName = "TXT_KEY_CIVVACCESS_EO_TAB_GOLD",
         menuSpec = {
             displayName = Text.key("TXT_KEY_CIVVACCESS_EO_TAB_GOLD"),
             items = buildGoldItems(),
         },
     })
+    return m_goldTab
 end
 
 -- ===== Happiness tab ===================================================
@@ -912,5 +1023,15 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         initialTabIndex = 1,
         priorInput = priorInput,
         priorShowHide = priorShowHide,
+        -- Gold tab carries the conditional science-penalty row whose
+        -- presence depends on net gold per turn. Items are built once at
+        -- TabbedShell.menuTab time, so without this refresh the row's
+        -- presence would freeze at install state and never reflect a
+        -- between-turn flip from surplus to deficit (or back).
+        onShow = function()
+            if m_goldTab ~= nil then
+                m_goldTab.menu().setItems(buildGoldItems())
+            end
+        end,
     })
 end
