@@ -426,19 +426,18 @@ function M.test_search_ignores_ctrl_chord()
     T.eq(consumed, false)
 end
 
-function M.test_search_buffer_clears_on_user_navigation()
+function M.test_search_buffer_clears_on_left_right_column_nav()
     setup()
     local h = BaseTable.create(makeBasicSpec())
     h.onTabActivated(h, false)
     -- Type 'a' to start a search (matches Athens).
     h.handleSearchInput(h, 0x41, 0)
     T.truthy(h._search:isSearchActive(), "search active after typing")
-    T.truthy(h._search:hasBuffer(), "buffer carries the typed character")
-    -- Any cursor-moving key drops the buffer so the next typed letter starts
-    -- a fresh query rather than appending to "a".
-    findBinding(h, Keys.VK_DOWN)()
-    T.falsy(h._search:hasBuffer(), "Down clears the search buffer")
-    T.falsy(h._search:isSearchActive(), "Down also drops search-active state")
+    -- Moving across columns is a hard exit from the search session: the
+    -- user is now reading along a row, not refining a query.
+    findBinding(h, Keys.VK_RIGHT)()
+    T.falsy(h._search:hasBuffer(), "Right clears the search buffer")
+    T.falsy(h._search:isSearchActive(), "Right drops search-active state")
 end
 
 function M.test_search_buffer_survives_search_driven_jump()
@@ -451,6 +450,82 @@ function M.test_search_buffer_survives_search_driven_jump()
     -- typed chars or by pressing the same letter again to cycle results.
     T.truthy(h._search:hasBuffer(), "buffer survives the search-driven move")
     T.truthy(h._search:isSearchActive(), "search stays active for cycling")
+end
+
+-- Multi-match navigation: spec with three rows whose names share a 'M'
+-- prefix so search-result cycling has something to cycle through. (The
+-- basic spec's only M-row is Memphis; that's a single match and would
+-- never exercise navigateResults.)
+local function makeMultiMatchSpec()
+    local rows = {
+        { name = "Memphis", pop = 7 },
+        { name = "Milan", pop = 4 },
+        { name = "Moscow", pop = 9 },
+    }
+    return {
+        tabName = "TXT_KEY_CIVVACCESS_TBL_TAB",
+        columns = {
+            {
+                name = "TXT_KEY_CIVVACCESS_TBL_COL_NAME",
+                getCell = function(r) return r.name end,
+                sortKey = function(r) return r.name end,
+            },
+            {
+                name = "TXT_KEY_CIVVACCESS_TBL_COL_POP",
+                getCell = function(r) return tostring(r.pop) end,
+                sortKey = function(r) return r.pop end,
+            },
+        },
+        rebuildRows = function() return rows end,
+        rowLabel = function(r) return r.name end,
+    }
+end
+
+function M.test_up_down_during_active_search_cycles_results_without_clearing()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    -- 'M' matches all three rows. TypeAheadSearch sorts within a tier by
+    -- name length ascending: Milan (5), Moscow (6), Memphis (7). So result
+    -- 1 is Milan (rows[2]), 2 is Moscow (rows[3]), 3 is Memphis (rows[1]).
+    local consumed = h.handleSearchInput(h, 0x4D, 0)
+    T.eq(consumed, true)
+    T.eq(h._row, 2, "first match is shortest name (Milan)")
+    -- Down forwards to TypeAheadSearch.navigateResults, advancing to Moscow.
+    consumed = h.handleSearchInput(h, Keys.VK_DOWN, 0)
+    T.eq(consumed, true, "Down during active search must be consumed by handleSearchInput")
+    T.eq(h._row, 3, "Down cycles to next match (Moscow)")
+    T.truthy(h._search:hasBuffer(), "buffer survives result cycling")
+    -- Up cycles back to Milan.
+    consumed = h.handleSearchInput(h, Keys.VK_UP, 0)
+    T.eq(consumed, true)
+    T.eq(h._row, 2, "Up cycles to previous match (Milan)")
+end
+
+function M.test_home_end_during_active_search_jump_to_first_last_result()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    h.handleSearchInput(h, 0x4D, 0) -- lands on Milan (row 2)
+    -- End jumps to last match (Memphis, row 1).
+    local consumed = h.handleSearchInput(h, Keys.VK_END, 0)
+    T.eq(consumed, true, "End during active search must be consumed by handleSearchInput")
+    T.eq(h._row, 1, "End jumps to last match (Memphis)")
+    -- Home jumps to first match (Milan, row 2).
+    consumed = h.handleSearchInput(h, Keys.VK_HOME, 0)
+    T.eq(consumed, true)
+    T.eq(h._row, 2, "Home jumps to first match (Milan)")
+    T.truthy(h._search:hasBuffer(), "buffer survives Home / End within search")
+end
+
+function M.test_up_down_when_search_inactive_falls_through_to_nav_handlers()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    -- No search active. Down must NOT be consumed by handleSearchInput so
+    -- InputRouter falls through to the binding walk that fires onDown.
+    local consumed = h.handleSearchInput(h, Keys.VK_DOWN, 0)
+    T.eq(consumed, false, "inactive Down falls through to onDown")
 end
 
 -- Pedia ---------------------------------------------------------------
