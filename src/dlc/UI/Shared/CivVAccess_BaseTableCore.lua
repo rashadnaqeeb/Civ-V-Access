@@ -55,6 +55,18 @@ BaseTable = {}
 
 local MOD_CTRL = 2
 
+-- Reuse BaseMenu's wrap-sound primitive so column-edge wraps share the
+-- "menu_wrap" cue that lists already use, and the same audio handle cache
+-- on civvaccess_shared.menuSoundHandles. BaseMenu loads alongside BaseTable
+-- in every Context that ships either (PopupBoot / FrontendCommon include
+-- both); the nil guard keeps unit tests that load BaseTable in isolation
+-- silent rather than crashing on a missing global.
+local function playWrap()
+    if BaseMenu ~= nil and type(BaseMenu._playWrap) == "function" then
+        BaseMenu._playWrap()
+    end
+end
+
 -- Build the live row list, applying sort if a column is active. Called on
 -- every nav event so values reflect current game state (no-cache rule).
 local function buildRows(self)
@@ -151,7 +163,16 @@ end
 
 -- Navigation -----------------------------------------------------------
 
+-- Any user-initiated cursor move drops the type-ahead buffer so the next
+-- typed letter starts a fresh search rather than appending to the previous
+-- query. Search-driven moves (search:_announceCurrentResult -> moveTo) bypass
+-- these handlers and keep the buffer alive so the user can keep refining.
+local function clearSearch(self)
+    self._search:clear()
+end
+
 local function onUp(self)
+    clearSearch(self)
     if self._row == 0 then
         return
     end
@@ -160,6 +181,7 @@ local function onUp(self)
 end
 
 local function onDown(self)
+    clearSearch(self)
     local rows = buildRows(self)
     if self._row >= #rows then
         return
@@ -169,6 +191,7 @@ local function onDown(self)
 end
 
 local function onLeft(self)
+    clearSearch(self)
     local n = #self.columns
     if n == 0 then
         return
@@ -177,11 +200,13 @@ local function onLeft(self)
         self._col = self._col - 1
     else
         self._col = n
+        playWrap()
     end
     speakCell(self, false)
 end
 
 local function onRight(self)
+    clearSearch(self)
     local n = #self.columns
     if n == 0 then
         return
@@ -190,11 +215,13 @@ local function onRight(self)
         self._col = self._col + 1
     else
         self._col = 1
+        playWrap()
     end
     speakCell(self, false)
 end
 
 local function onHome(self)
+    clearSearch(self)
     -- First data row, current column. From the header row the user can
     -- press Down to enter data; Home is for jumping among data rows, so
     -- it always lands on row 1.
@@ -207,6 +234,7 @@ local function onHome(self)
 end
 
 local function onEnd(self)
+    clearSearch(self)
     local rows = buildRows(self)
     if #rows == 0 then
         return
@@ -283,22 +311,32 @@ local function onPedia(self)
     end
 end
 
--- Type-ahead column search ----------------------------------------------
-
+-- Type-ahead row search ------------------------------------------------
+--
+-- Type-ahead matches against the row label (e.g. city name on the F2
+-- Cities tab) and jumps the cursor through rows in the currently focused
+-- column, leaving _col untouched. Row-name search is the natural fit for
+-- city / unit / leader tables: the user knows what they're looking for by
+-- name, then arrows left/right along that row's columns to read the
+-- remaining stats. rebuildRows is called once per handleSearchInput
+-- invocation so a single keystroke sees a consistent snapshot; later
+-- moveTo calls (from result-cycling within TypeAheadSearch) still map
+-- to the snapshot's indices.
 local function buildSearchable(self)
+    local rows = buildRows(self)
     return {
         itemCount = function()
-            return #self.columns
+            return #rows
         end,
         getLabel = function(i)
-            local c = self.columns[i]
-            if c == nil then
+            local row = rows[i]
+            if row == nil then
                 return nil
             end
-            return TextFilter.filter(Text.key(c.name))
+            return TextFilter.filter(self.rowLabel(row))
         end,
         moveTo = function(i)
-            self._col = i
+            self._row = i
             speakCell(self, false)
         end,
     }

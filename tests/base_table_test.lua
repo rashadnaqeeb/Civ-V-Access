@@ -8,6 +8,7 @@ local M = {}
 local warns, errors
 local speaks
 local pediaCalls
+local wrapPlays
 
 local function setup()
     warns, errors = {}, {}
@@ -39,6 +40,12 @@ local function setup()
     end
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
+    -- BaseTable delegates wrap-sound playback to BaseMenu._playWrap. Stub
+    -- it here (counter rather than dofiling BaseMenu, which would pull a
+    -- much larger transitive include chain) so the column-edge wrap tests
+    -- can assert the cue fired.
+    wrapPlays = 0
+    BaseMenu = { _playWrap = function() wrapPlays = wrapPlays + 1 end }
     dofile("src/dlc/UI/Shared/CivVAccess_BaseTableCore.lua")
 
     pediaCalls = {}
@@ -240,13 +247,29 @@ function M.test_left_right_wrap_columns()
     h.onTabActivated(h, false)
     speaks = {}
     SpeechPipeline._reset()
+    wrapPlays = 0
     -- From col 1 (Name), Left wraps to col 3 (Gold).
     findBinding(h, Keys.VK_LEFT)()
     -- Row didn't change so only column name + cell speak (dedup elides row label).
     T.truthy(speaks[#speaks].text:find("Gold"))
+    T.eq(wrapPlays, 1, "wrap sound fires when Left wraps from first column")
     -- Right wraps back to col 1 (Name).
     findBinding(h, Keys.VK_RIGHT)()
     T.truthy(speaks[#speaks].text:find("Name"))
+    T.eq(wrapPlays, 2, "wrap sound fires when Right wraps from last column")
+end
+
+function M.test_non_wrap_left_right_does_not_play_wrap_sound()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, false)
+    -- From col 1 (Name), Right to col 2 (Pop) is a non-wrap step.
+    wrapPlays = 0
+    findBinding(h, Keys.VK_RIGHT)()
+    T.eq(wrapPlays, 0, "non-wrap Right is silent")
+    -- From col 2, Left back to col 1 is also non-wrap.
+    findBinding(h, Keys.VK_LEFT)()
+    T.eq(wrapPlays, 0, "non-wrap Left is silent")
 end
 
 function M.test_home_jumps_to_first_data_row_end_jumps_to_last()
@@ -375,26 +398,59 @@ end
 
 -- Type-ahead search ---------------------------------------------------
 
-function M.test_search_jumps_to_matching_column()
+function M.test_search_jumps_to_matching_row_by_label()
     setup()
     local h = BaseTable.create(makeBasicSpec())
     h.onTabActivated(h, false)
+    -- Land cursor in column 2 (Pop) so the search-target column is non-default.
+    findBinding(h, Keys.VK_RIGHT)()
     speaks = {}
     SpeechPipeline._reset()
-    -- Press 'g' (lowercase) to search for "Gold".
-    local consumed = h.handleSearchInput(h, 0x47, 0) -- 'G'
+    -- 'A' matches "Athens" by row label (Rome / Athens / Memphis).
+    local consumed = h.handleSearchInput(h, 0x41, 0)
     T.eq(consumed, true)
-    -- Should have moved to col 3 (Gold) and spoken the cell.
-    T.truthy(speaks[#speaks].text:find("Gold"))
+    -- Cursor moved to Athens; column stays on Pop. Speech includes row name
+    -- and (since column is unchanged from last spoken) the cell value, and
+    -- elides the column name.
+    T.truthy(speaks[#speaks].text:find("Athens"), "row label spoken")
+    T.eq(h._col, 2, "search must not move the column")
+    T.eq(h._row, 2, "cursor lands on the matched row index")
 end
 
 function M.test_search_ignores_ctrl_chord()
     setup()
     local h = BaseTable.create(makeBasicSpec())
     h.onTabActivated(h, false)
-    -- Ctrl+G should NOT route to search.
-    local consumed = h.handleSearchInput(h, 0x47, 2) -- 'G' with Ctrl
+    -- Ctrl+A should NOT route to search.
+    local consumed = h.handleSearchInput(h, 0x41, 2)
     T.eq(consumed, false)
+end
+
+function M.test_search_buffer_clears_on_user_navigation()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, false)
+    -- Type 'a' to start a search (matches Athens).
+    h.handleSearchInput(h, 0x41, 0)
+    T.truthy(h._search:isSearchActive(), "search active after typing")
+    T.truthy(h._search:hasBuffer(), "buffer carries the typed character")
+    -- Any cursor-moving key drops the buffer so the next typed letter starts
+    -- a fresh query rather than appending to "a".
+    findBinding(h, Keys.VK_DOWN)()
+    T.falsy(h._search:hasBuffer(), "Down clears the search buffer")
+    T.falsy(h._search:isSearchActive(), "Down also drops search-active state")
+end
+
+function M.test_search_buffer_survives_search_driven_jump()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, false)
+    h.handleSearchInput(h, 0x41, 0) -- 'a' -> Athens
+    -- The internal moveTo(i) inside TypeAheadSearch.search must not loop
+    -- back through clearSearch -- otherwise the user can't refine via more
+    -- typed chars or by pressing the same letter again to cycle results.
+    T.truthy(h._search:hasBuffer(), "buffer survives the search-driven move")
+    T.truthy(h._search:isSearchActive(), "search stays active for cycling")
 end
 
 -- Pedia ---------------------------------------------------------------
