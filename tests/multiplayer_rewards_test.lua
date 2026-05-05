@@ -368,8 +368,8 @@ function M.test_install_warns_when_engine_fork_hooks_missing()
     dofile("src/dlc/UI/InGame/CivVAccess_MultiplayerRewards.lua")
     MultiplayerRewards.installListeners()
 
-    -- Goody and barb hooks should warn; natural wonder still wires.
-    T.eq(#warned, 2, "two missing fork hooks expected to warn")
+    -- Goody, barb, and TeamMeet hooks should warn; natural wonder still wires.
+    T.eq(#warned, 3, "three missing GameEvents hooks expected to warn")
     T.eq(#naturalWonderListeners, 1, "the vanilla event still wires up")
 end
 
