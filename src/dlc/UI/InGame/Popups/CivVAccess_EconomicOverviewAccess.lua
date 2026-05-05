@@ -13,9 +13,11 @@
 --                 (engine pairs them in one column already), per-city
 --                 expansions for resources, buildings, trade routes, local
 --                 cities, and per-city unhappiness with occupation flag.
---   Resources -- BaseMenu list, four collapsible sections: Available,
---                 Imported, Exported, Local. Lists each resource and its
---                 net count. Bonus resources excluded.
+--   Resources -- BaseTable, one row per luxury or strategic resource (bonus
+--                 excluded). Columns: Available, Used, Local, Imported,
+--                 Exported. Used reads "n/a" for luxuries since the engine's
+--                 NumResourceUsed counter only tracks strategic consumption.
+--                 Ctrl+I jumps to the resource's Civilopedia entry.
 --
 -- Initial tab is Cities (the densest user-facing data; matches the engine's
 -- default landing tab "General Information" of which the city table is the
@@ -1293,87 +1295,153 @@ end
 
 -- ===== Resources tab ===================================================
 
--- Skip ResourceUsageTypes.RESOURCEUSAGE_BONUS so the lists stay focused on
--- luxuries and strategics (matches engine HappinessInfo's resource panels).
+-- Strategic vs luxury discriminator. The Used column reads "n/a" for any
+-- resource that isn't strategic, since GetNumResourceUsed only ever
+-- accrues against strategic consumption (units / buildings with a
+-- ResourceQuantityRequirement) -- a luxury cell of "0 used" would
+-- misrepresent the engine state by implying zero out of some total
+-- when the row simply doesn't apply.
+local function isStrategic(resourceID)
+    return Game.GetResourceUsageType(resourceID) == ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
+end
+
+-- Bonus resources (Wheat, Cattle, Fish, etc.) are tile-yield helpers with
+-- no trade or consumption mechanics, so they have nothing to surface in
+-- any of the five columns. Excluding them matches the engine F2 panel.
 local function isLuxOrStrategic(resourceID)
     return Game.GetResourceUsageType(resourceID) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS
 end
 
-local function resourceEntries(amountFn)
+-- Local production (raw on-map count, agnostic to trade and use). Mirrors
+-- the engine F2 "Local Resources" formula in
+-- Assets/DLC/Expansion2/UI/InGame/Popups/HappinessInfo.lua. The +Export
+-- term reverses CvPlayer::getNumResourceTotal's unconditional -Export, so
+-- the result is what the player's tiles actually produce post-strategic-mod.
+local function resourceLocal(player, resourceID)
+    return player:GetNumResourceTotal(resourceID, false) + player:GetResourceExport(resourceID)
+end
+
+-- Inclusion rule mirrors engine ResourceList.lua: list anything you own or
+-- ship out. A captured strategic deal item shows up via Import; a pure
+-- import-and-burn (importing iron and using it on units) shows up via
+-- both Import and Used. The Used > 0 branch catches the rare case where
+-- imports already netted to zero (treaties expired mid-turn) but the
+-- engine has yet to release the unit's reservation -- without it the row
+-- vanishes mid-turn even though the unit is still consuming the resource.
+local function resourceHasAnyData(player, resourceID)
+    if player:GetNumResourceTotal(resourceID, true) > 0 then
+        return true
+    end
+    if player:GetResourceExport(resourceID) > 0 then
+        return true
+    end
+    if isStrategic(resourceID) and player:GetNumResourceUsed(resourceID) > 0 then
+        return true
+    end
+    return false
+end
+
+local function rebuildResourceRows()
     local p = activePlayer()
     if p == nil then
         return {}
     end
-    local items = {}
+    local rows = {}
     for resource in GameInfo.Resources() do
-        if isLuxOrStrategic(resource.ID) then
-            local amount = amountFn(p, resource.ID)
-            if amount and amount > 0 then
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format(
-                        "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
-                        Text.key(resource.Description),
-                        amount
-                    ),
-                    pediaName = Text.key(resource.Description),
-                })
-            end
+        if isLuxOrStrategic(resource.ID) and resourceHasAnyData(p, resource.ID) then
+            rows[#rows + 1] = resource
         end
     end
-    if #items == 0 then
-        items[1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_EO_GROUP_EMPTY") })
-    end
-    return items
+    -- Default order: alphabetical by localized name. BaseTable's sort cycle
+    -- only operates on column sortKeys, so without a stable default the
+    -- user lands in raw GameInfo iteration order (XML sequence) which has
+    -- no semantic meaning at the table level.
+    table.sort(rows, function(a, b)
+        return Text.key(a.Description) < Text.key(b.Description)
+    end)
+    return rows
 end
 
-local function buildResourcesItems()
+local function resourceRowLabel(resource)
+    return Text.key(resource.Description)
+end
+
+local function resourcePedia(resource)
+    return Text.key(resource.Description)
+end
+
+-- Used cell: strategic-only. Sentinel -1 in the sortKey for non-strategics
+-- pushes "n/a" rows to the bottom on descending sort (the natural intent
+-- for "show me what I'm spending the most strategics on"); they cluster
+-- at the top on ascending sort, which is fine since the user explicitly
+-- asked for that direction.
+local function buildResourceColumns()
     return {
-        BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"),
-            cached = false,
-            itemsFn = function()
-                return resourceEntries(function(p, id)
-                    return p:GetNumResourceTotal(id, true)
-                end)
+        {
+            name = "TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE",
+            getCell = function(r)
+                return tostring(activePlayer():GetNumResourceAvailable(r.ID, true))
             end,
-        }),
-        BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"),
-            cached = false,
-            itemsFn = function()
-                return resourceEntries(function(p, id)
-                    return p:GetResourceImport(id)
-                end)
+            sortKey = function(r)
+                return activePlayer():GetNumResourceAvailable(r.ID, true)
             end,
-        }),
-        BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"),
-            cached = false,
-            itemsFn = function()
-                return resourceEntries(function(p, id)
-                    return p:GetResourceExport(id)
-                end)
+            pediaName = resourcePedia,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_EO_RES_USED",
+            getCell = function(r)
+                if not isStrategic(r.ID) then
+                    return Text.key("TXT_KEY_CIVVACCESS_EO_RES_NA")
+                end
+                return tostring(activePlayer():GetNumResourceUsed(r.ID))
             end,
-        }),
-        BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_EO_RES_LOCAL"),
-            cached = false,
-            itemsFn = function()
-                return resourceEntries(function(p, id)
-                    return p:GetNumResourceTotal(id, false) + p:GetResourceExport(id)
-                end)
+            sortKey = function(r)
+                if not isStrategic(r.ID) then
+                    return -1
+                end
+                return activePlayer():GetNumResourceUsed(r.ID)
             end,
-        }),
+            pediaName = resourcePedia,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_EO_RES_LOCAL",
+            getCell = function(r)
+                return tostring(resourceLocal(activePlayer(), r.ID))
+            end,
+            sortKey = function(r)
+                return resourceLocal(activePlayer(), r.ID)
+            end,
+            pediaName = resourcePedia,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_EO_RES_IMPORTED",
+            getCell = function(r)
+                return tostring(activePlayer():GetResourceImport(r.ID))
+            end,
+            sortKey = function(r)
+                return activePlayer():GetResourceImport(r.ID)
+            end,
+            pediaName = resourcePedia,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_EO_RES_EXPORTED",
+            getCell = function(r)
+                return tostring(activePlayer():GetResourceExport(r.ID))
+            end,
+            sortKey = function(r)
+                return activePlayer():GetResourceExport(r.ID)
+            end,
+            pediaName = resourcePedia,
+        },
     }
 end
 
 local function buildResourcesTab()
-    return TabbedShell.menuTab({
+    return BaseTable.create({
         tabName = "TXT_KEY_CIVVACCESS_EO_TAB_RESOURCES",
-        menuSpec = {
-            displayName = Text.key("TXT_KEY_CIVVACCESS_EO_TAB_RESOURCES"),
-            items = buildResourcesItems(),
-        },
+        columns = buildResourceColumns(),
+        rebuildRows = rebuildResourceRows,
+        rowLabel = resourceRowLabel,
     })
 end
 
@@ -1395,6 +1463,12 @@ EconomicOverviewAccess.citiesUnhappinessTooltip = citiesUnhappinessTooltip
 EconomicOverviewAccess.occupiedCitiesUnhappinessTooltip = occupiedCitiesUnhappinessTooltip
 EconomicOverviewAccess.citizensUnhappinessTooltip = citizensUnhappinessTooltip
 EconomicOverviewAccess.occupiedCitizensUnhappinessTooltip = occupiedCitizensUnhappinessTooltip
+EconomicOverviewAccess.isStrategic = isStrategic
+EconomicOverviewAccess.isLuxOrStrategic = isLuxOrStrategic
+EconomicOverviewAccess.resourceLocal = resourceLocal
+EconomicOverviewAccess.rebuildResourceRows = rebuildResourceRows
+EconomicOverviewAccess.resourceRowLabel = resourceRowLabel
+EconomicOverviewAccess.buildResourceColumns = buildResourceColumns
 
 -- ===== Install =========================================================
 

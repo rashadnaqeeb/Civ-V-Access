@@ -48,7 +48,12 @@ local function setup()
     GameDefines = GameDefines or {}
     GameDefines.MAX_CITY_HIT_POINTS = 200
 
-    ResourceUsageTypes = ResourceUsageTypes or { RESOURCEUSAGE_BONUS = 0 }
+    ResourceUsageTypes = ResourceUsageTypes
+        or {
+            RESOURCEUSAGE_BONUS = 0,
+            RESOURCEUSAGE_STRATEGIC = 1,
+            RESOURCEUSAGE_LUXURY = 2,
+        }
 
     Players = {}
     Events = Events or {}
@@ -922,6 +927,274 @@ function M.test_occupiedCitizensUnhappinessTooltip_uses_occupied_pop_mod_not_gen
     -- Must not include the general-population trait/capital paths.
     T.falsy(tip:find("TXT_KEY_UNHAPPINESS_MOD_TRAIT"))
     T.falsy(tip:find("TXT_KEY_UNHAPPINESS_MOD_CAPITAL"))
+end
+
+-- Resources tab fixtures and tests --------------------------------------
+--
+-- Builds a player + GameInfo.Resources fixture in one call. `resources` is
+-- an array of {id, description, usage, available, used, local, import,
+-- export}; missing fields default to 0/luxury. Wires Game.GetResourceUsageType
+-- to read each row's `usage` and Players[0] to a stub returning each row's
+-- per-resource counts. Order in the array becomes the order GameInfo.Resources
+-- iterates, which the row-builder sorts alphabetically anyway.
+local function installResourceTabFixture(resources)
+    local byID = {}
+    for _, r in ipairs(resources) do
+        byID[r.id] = r
+    end
+    GameInfo = GameInfo or {}
+    GameInfo.Resources = function()
+        local i = 0
+        return function()
+            i = i + 1
+            local row = resources[i]
+            if row == nil then
+                return nil
+            end
+            return { ID = row.id, Description = row.description }
+        end
+    end
+    Game.GetResourceUsageType = function(id)
+        local r = byID[id]
+        if r == nil then
+            return ResourceUsageTypes.RESOURCEUSAGE_BONUS
+        end
+        return r.usage or ResourceUsageTypes.RESOURCEUSAGE_LUXURY
+    end
+    local p = stubPlayer({})
+    function p:GetNumResourceAvailable(id, _includeImport)
+        return (byID[id] or {}).available or 0
+    end
+    function p:GetNumResourceUsed(id)
+        return (byID[id] or {}).used or 0
+    end
+    function p:GetNumResourceTotal(id, includeImport)
+        local r = byID[id] or {}
+        local total = (r["local"] or 0) - (r.export or 0)
+        if includeImport then
+            total = total + (r.import or 0)
+        end
+        return total
+    end
+    function p:GetResourceImport(id)
+        return (byID[id] or {}).import or 0
+    end
+    function p:GetResourceExport(id)
+        return (byID[id] or {}).export or 0
+    end
+    Players[0] = p
+    return p
+end
+
+local function findResourceColumn(name)
+    for _, c in ipairs(EconomicOverviewAccess.buildResourceColumns()) do
+        if c.name == name then
+            return c
+        end
+    end
+    return nil
+end
+
+-- buildResourceColumns shape -------------------------------------------
+
+function M.test_buildResourceColumns_order_available_used_local_imported_exported()
+    setup()
+    local cols = EconomicOverviewAccess.buildResourceColumns()
+    -- Screen-reader users hear the column name in every cell announcement
+    -- (BaseTable speaks "row, column, value"). Available is the first
+    -- thing the user wants to know on entering a row, so it must come
+    -- first; reordering this is a UX regression.
+    T.eq(cols[1].name, "TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE")
+    T.eq(cols[2].name, "TXT_KEY_CIVVACCESS_EO_RES_USED")
+    T.eq(cols[3].name, "TXT_KEY_CIVVACCESS_EO_RES_LOCAL")
+    T.eq(cols[4].name, "TXT_KEY_CIVVACCESS_EO_RES_IMPORTED")
+    T.eq(cols[5].name, "TXT_KEY_CIVVACCESS_EO_RES_EXPORTED")
+    T.eq(#cols, 5, "exactly five columns")
+end
+
+function M.test_buildResourceColumns_all_have_getCell_sortKey_pediaName()
+    setup()
+    for _, c in ipairs(EconomicOverviewAccess.buildResourceColumns()) do
+        T.eq(type(c.getCell), "function", "column " .. c.name .. " getCell")
+        T.eq(type(c.sortKey), "function", "column " .. c.name .. " sortKey")
+        T.eq(type(c.pediaName), "function", "column " .. c.name .. " pediaName")
+    end
+end
+
+function M.test_buildResourceColumns_no_enterAction()
+    setup()
+    -- The engine has no per-counterparty trade or per-unit consumption
+    -- breakdown surface, so Enter on a cell has nothing to drill into;
+    -- BaseTable's default re-speak is the right behavior. An accidental
+    -- enterAction would shadow that.
+    for _, c in ipairs(EconomicOverviewAccess.buildResourceColumns()) do
+        T.eq(c.enterAction, nil, "column " .. c.name .. " must not define enterAction")
+    end
+end
+
+-- Used column: strategic vs luxury behavior -----------------------------
+
+function M.test_used_column_speaks_count_for_strategic()
+    setup()
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, used = 4 },
+    })
+    local used = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_USED")
+    T.eq(used.getCell({ ID = 10 }), "4")
+end
+
+function M.test_used_column_speaks_na_for_luxury_not_zero()
+    setup()
+    -- A luxury cell of "0" would imply zero out of some pool, but luxuries
+    -- have no consumption pool at all -- the "n/a" sentinel is the spoken
+    -- distinction the user asked for. The harness loads the en_US strings
+    -- file, so the TXT_KEY resolves to the localized "n/a" value rather
+    -- than echoing the key verbatim.
+    installResourceTabFixture({
+        { id = 20, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, used = 0 },
+    })
+    local used = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_USED")
+    T.eq(used.getCell({ ID = 20 }), "n/a")
+end
+
+function M.test_used_sortKey_negative_for_luxury_so_descending_sinks_to_bottom()
+    setup()
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, used = 0 },
+        { id = 20, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, used = 0 },
+    })
+    local used = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_USED")
+    -- Strategic with 0 used still ranks above luxuries on descending sort.
+    T.eq(used.sortKey({ ID = 10 }), 0)
+    T.eq(used.sortKey({ ID = 20 }), -1)
+end
+
+-- Available / Local / Import / Export plumbing -------------------------
+
+function M.test_available_column_reads_GetNumResourceAvailable()
+    setup()
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, available = 7 },
+    })
+    local avail = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE")
+    T.eq(avail.getCell({ ID = 10 }), "7")
+end
+
+function M.test_local_column_returns_raw_owned_agnostic_to_trade_and_use()
+    setup()
+    -- Local should read 5 even when 2 are exported and 3 are tied up in
+    -- units: it's what your own tiles produce post-strategic-mod, not net
+    -- of trade or consumption. Verify against the engine's
+    -- HappinessInfo.lua formula: GetNumResourceTotal(false) + Export.
+    installResourceTabFixture({
+        {
+            id = 10,
+            description = "Iron",
+            usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC,
+            ["local"] = 5,
+            export = 2,
+            used = 3,
+        },
+    })
+    local localCol = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_LOCAL")
+    T.eq(localCol.getCell({ ID = 10 }), "5")
+end
+
+function M.test_imported_and_exported_columns_pass_through_player_methods()
+    setup()
+    installResourceTabFixture({
+        { id = 20, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, import = 3, export = 1 },
+    })
+    local imp = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_IMPORTED")
+    local exp = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_EXPORTED")
+    T.eq(imp.getCell({ ID = 20 }), "3")
+    T.eq(exp.getCell({ ID = 20 }), "1")
+end
+
+-- rebuildResourceRows filtering ----------------------------------------
+
+local function rowDescriptions(rows)
+    local out = {}
+    for _, r in ipairs(rows) do
+        out[#out + 1] = r.Description
+    end
+    return out
+end
+
+function M.test_rebuildResourceRows_excludes_bonus_resources()
+    setup()
+    -- Wheat / Cattle / Fish have tile yields but no trade or consumption
+    -- mechanics; including them would be six dead rows on every player's
+    -- table.
+    installResourceTabFixture({
+        { id = 1, description = "Wheat", usage = ResourceUsageTypes.RESOURCEUSAGE_BONUS, ["local"] = 5 },
+        { id = 2, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, ["local"] = 2 },
+    })
+    local rows = EconomicOverviewAccess.rebuildResourceRows()
+    T.eq(#rows, 1)
+    T.eq(rows[1].Description, "Wine")
+end
+
+function M.test_rebuildResourceRows_excludes_resources_with_no_data()
+    setup()
+    -- Resources you have no exposure to (Uranium before Atomic Theory etc.)
+    -- shouldn't waste a row.
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC },
+        { id = 20, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, ["local"] = 2 },
+    })
+    local rows = EconomicOverviewAccess.rebuildResourceRows()
+    T.eq(#rows, 1)
+    T.eq(rows[1].Description, "Wine")
+end
+
+function M.test_rebuildResourceRows_includes_strategic_known_only_through_usage()
+    setup()
+    -- Engine corner case: imports already netted to zero (treaty expired
+    -- mid-turn) but the unit's reservation hasn't released yet, so Used > 0
+    -- with everything else zero. The row must still surface so the player
+    -- can see that strategics are tied up despite no apparent stockpile.
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, used = 2 },
+    })
+    local rows = EconomicOverviewAccess.rebuildResourceRows()
+    T.eq(#rows, 1)
+    T.eq(rows[1].Description, "Iron")
+end
+
+function M.test_rebuildResourceRows_includes_strategic_visible_via_export_only()
+    setup()
+    -- Edge case: a captured city's strategic gets immediately exported in
+    -- a deal, so Local is zero but Export > 0. ResourceList.lua's same
+    -- inclusion rule keeps it visible.
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, export = 2 },
+    })
+    local rows = EconomicOverviewAccess.rebuildResourceRows()
+    T.eq(#rows, 1)
+end
+
+function M.test_rebuildResourceRows_sorts_alphabetically_by_default()
+    setup()
+    installResourceTabFixture({
+        { id = 1, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, ["local"] = 1 },
+        { id = 2, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, ["local"] = 1 },
+        { id = 3, description = "Citrus", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, ["local"] = 1 },
+    })
+    local rows = EconomicOverviewAccess.rebuildResourceRows()
+    T.eq(rowDescriptions(rows)[1], "Citrus")
+    T.eq(rowDescriptions(rows)[2], "Iron")
+    T.eq(rowDescriptions(rows)[3], "Wine")
+end
+
+-- resourceRowLabel ------------------------------------------------------
+
+function M.test_resourceRowLabel_returns_localized_description()
+    setup()
+    -- Description is the resource's TXT_KEY; the harness's missing-key
+    -- fallback returns the key verbatim, exercising the same Text.key path
+    -- the in-game wrapper hits.
+    T.eq(EconomicOverviewAccess.resourceRowLabel({ Description = "TXT_KEY_RESOURCE_WINE" }), "TXT_KEY_RESOURCE_WINE")
 end
 
 return M

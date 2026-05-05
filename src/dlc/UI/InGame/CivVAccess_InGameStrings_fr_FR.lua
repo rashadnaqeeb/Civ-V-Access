@@ -2075,9 +2075,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Opinion publique, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Détail par ville"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Disponibles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Utilisées"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Locales"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Importées"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Exportées"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Locales"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "s/o"
 -- Victory Progress (F8 / Who is winning): button labels for the five drill-
 -- in sections, score-row format, and per-section row formats consumed by
 -- CivVAccess_VictoryProgressAccess.lua. Disabled-victory and tooltip
