@@ -61,6 +61,61 @@ local function currentIdeology()
     return player:GetLateGamePolicyTree()
 end
 
+-- ========== Civilopedia anchors ==========
+--
+-- Pedia indexes individual policies by Description (CivilopediaScreen line
+-- 931). Branches aren't direct articles, but every branch's FreePolicy IS
+-- one and represents the branch in the pedia (the unlock-policy describes
+-- the branch's identity), so the FreePolicy's Description is the right
+-- anchor for branch-level rows.
+
+local function branchPediaForRow(branch)
+    if branch == nil then
+        return nil
+    end
+    if branch.FreePolicy ~= nil then
+        local opener = GameInfo.Policies[branch.FreePolicy]
+        if opener ~= nil then
+            return opener.Description
+        end
+    end
+    return Text.key(branch.Description)
+end
+
+-- Pedia anchor for the active player's ideology branch (Freedom / Order /
+-- Autocracy). Returns nil before an ideology is chosen; callers wire this
+-- only on items that exist after that point.
+local function ideologyBranchPedia()
+    local id = currentIdeology()
+    if id < 0 then
+        return nil
+    end
+    return branchPediaForRow(GameInfo.PolicyBranchTypes[id])
+end
+
+-- Pedia anchor for a tenet slot. Filled slots pedia to the adopted
+-- tenet's article; empty slots fall back to the ideology branch so Ctrl+I
+-- still says something useful while planning the next pick. pediaNameFn
+-- because the slot's filled state can change between activations.
+local function tenetSlotPedia(level, slotIndex)
+    local player = currentPlayer()
+    if player == nil then
+        return nil
+    end
+    local id = currentIdeology()
+    if id < 0 then
+        return nil
+    end
+    local tenetID = player:GetTenet(id, level, slotIndex)
+    if tenetID >= 0 then
+        local row = GameInfo.Policies[tenetID]
+        if row ~= nil then
+            return row.Description
+        end
+    end
+    return branchPediaForRow(GameInfo.PolicyBranchTypes[id])
+end
+
 -- ========== Confirm subs ==========
 --
 -- Each overlay is a child of the SocialPolicyPopup Context toggled by the base
@@ -378,6 +433,7 @@ local function buildBranchChildren(branchRow)
             onActivate = function()
                 activateBranchUnlock(branch)
             end,
+            pediaName = branchPediaForRow(branch),
         })
     end
 
@@ -387,6 +443,7 @@ local function buildBranchChildren(branchRow)
             labelFn = function()
                 return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), op, branch)
             end,
+            pediaName = op.Description,
         })
     end
 
@@ -399,6 +456,7 @@ local function buildBranchChildren(branchRow)
             onActivate = function()
                 activatePolicy(pol, branch)
             end,
+            pediaName = pol.Description,
         })
     end
 
@@ -408,6 +466,7 @@ local function buildBranchChildren(branchRow)
             labelFn = function()
                 return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), fin, branch)
             end,
+            pediaName = fin.Description,
         })
     end
 
@@ -432,6 +491,9 @@ local function buildLevelChildren(level)
             end,
             onActivate = function()
                 activateSlot(lvl, idx)
+            end,
+            pediaNameFn = function()
+                return tenetSlotPedia(lvl, idx)
             end,
         })
     end
@@ -462,6 +524,7 @@ local function buildPoliciesTabItems()
                 return buildBranchChildren(br)
             end,
             cached = false,
+            pediaName = branchPediaForRow(br),
         })
     end
     items[#items + 1] = closeItem()
@@ -494,6 +557,7 @@ local function buildIdeologyTabItems()
         "TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_2",
         "TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_3",
     }
+    local ideologyPedia = ideologyBranchPedia()
     for level = 1, 3 do
         local lvl = level
         items[#items + 1] = BaseMenuItems.Group({
@@ -502,6 +566,7 @@ local function buildIdeologyTabItems()
                 return buildLevelChildren(lvl)
             end,
             cached = false,
+            pediaName = ideologyPedia,
         })
     end
 
@@ -513,6 +578,7 @@ local function buildIdeologyTabItems()
             end
             return SocialPolicyLogic.buildPublicOpinionSpeech(player)
         end,
+        pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
     })
 
     items[#items + 1] = BaseMenuItems.Text({
@@ -527,6 +593,7 @@ local function buildIdeologyTabItems()
         onActivate = function()
             activateSwitchIdeology()
         end,
+        pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
     })
 
     items[#items + 1] = closeItem()
