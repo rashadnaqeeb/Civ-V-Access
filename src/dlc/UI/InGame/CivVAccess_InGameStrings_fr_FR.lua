@@ -1592,7 +1592,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN"] = "{1_Name} vo
 -- composes name, status, queue slot (if queued), turns, and unlocks
 -- prose. Mode preamble reuses CHOOSETECH_PREAMBLE_* keys.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"] = "Arbre technologique"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "Arbre"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "Toutes les technologies"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"] = "File d'attente"
 -- Per-tech state words. AVAILABLE: pickable now. UNAVAILABLE: prereqs not
 -- met by the player's current research state. LOCKED: in the queue but

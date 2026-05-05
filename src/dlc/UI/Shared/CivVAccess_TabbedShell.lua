@@ -15,10 +15,11 @@
 --                  shell's own help entries.
 --   onTabActivated(announce)
 --                  announce=false on first-open: the shell already
---                  speakInterrupted displayName; the tab speakQueueds its
---                  opening content. announce=true on Tab cycle and on
---                  shell re-activation after a sub pop: the tab
---                  speakInterrupts its tabName then speakQueueds content.
+--                  speakInterrupted displayName + speakQueued tabName; the
+--                  tab speakQueueds its opening content. announce=true on
+--                  Tab cycle and on shell re-activation after a sub pop:
+--                  the tab speakInterrupts its tabName then speakQueueds
+--                  content.
 --   onTabDeactivated()
 --                  optional cleanup; called before each tab change and on
 --                  shell hide.
@@ -267,10 +268,11 @@ function TabbedShell.create(spec)
         if not self._initialized then
             self._initialized = true
             SpeechPipeline.speakInterrupt(self.displayName)
-            -- Initial tab: shell already spoke screen name. Tab speakQueueds
-            -- content so it chains. announce=false suppresses the tab's
-            -- tabName speech (the user already heard the screen name; they
-            -- don't need a second header line on first open).
+            -- Queue the active tab's name after the screen header so the
+            -- user knows where they landed. Tab content then speakQueueds
+            -- after; announce=false suppresses an interrupt on the tab's
+            -- own tabName speech that would clobber the chain.
+            SpeechPipeline.speakQueued(resolveTabName(self._tabs[self._activeIdx]))
             activateTab(self._tabs[self._activeIdx], false)
             return
         end

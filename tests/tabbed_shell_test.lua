@@ -170,13 +170,16 @@ function M.test_first_open_speaks_screen_then_chains_first_tab_content()
         },
     })
     HandlerStack.push(h)
-    -- Speech: speakInterrupt("TestScreen"), then activeTab onTabActivated(false)
-    -- which does NOT speak tabName but does speakQueued("ItemA").
-    T.eq(#speaks, 2)
+    -- Speech: speakInterrupt("TestScreen"), speakQueued tab name ("TabA"),
+    -- then activeTab onTabActivated(false) which does NOT re-speak tabName
+    -- but does speakQueued("ItemA").
+    T.eq(#speaks, 3)
     T.eq(speaks[1].text, "TestScreen")
     T.eq(speaks[1].interrupt, true)
-    T.eq(speaks[2].text, "ItemA")
+    T.eq(speaks[2].text, "TabA")
     T.eq(speaks[2].interrupt, false)
+    T.eq(speaks[3].text, "ItemA")
+    T.eq(speaks[3].interrupt, false)
     T.eq(h._tabs[1]._calls.activated[1], false)
 end
 
@@ -633,11 +636,14 @@ function M.test_menuTab_chains_first_open_speech_after_shell_displayName()
         tabs = { tab },
     })
     HandlerStack.push(h)
-    -- Expected: speakInterrupt(TestScreen), then BaseMenu.onActivate first-
-    -- open speech: speakQueued for first item. The BaseMenu's own
-    -- displayName speech is suppressed because silentDisplayName=true.
+    -- Expected: speakInterrupt(TestScreen), speakQueued(tabName "TabA"),
+    -- then BaseMenu.onActivate first-open speech: speakQueued for first
+    -- item. The BaseMenu's own displayName speech is suppressed because
+    -- silentDisplayName=true.
     T.eq(speaks[1].text, "TestScreen")
     T.eq(speaks[1].interrupt, true)
+    T.eq(speaks[2].text, "TabA")
+    T.eq(speaks[2].interrupt, false)
     -- The first item gets spoken queued at some point; it must not interrupt.
     local sawItem = false
     for _, s in ipairs(speaks) do

@@ -1742,7 +1742,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN"] = "stole {1_Na
 -- composes name, status, queue slot (if queued), turns, and unlocks
 -- prose. Mode preamble reuses CHOOSETECH_PREAMBLE_* keys.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"] = "Tech Tree"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "Tree"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "All techs"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"] = "Queue"
 -- Per-tech state words. AVAILABLE: pickable now. UNAVAILABLE: prereqs not
 -- met by the player's current research state. LOCKED: in the queue but
