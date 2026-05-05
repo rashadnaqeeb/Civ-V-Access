@@ -475,10 +475,14 @@ local function buildSpecialistGroup(specialistInfo)
     end)
     local items = {}
     for i, entry in ipairs(entries) do
-        items[i] = BaseMenuItems.Text({ labelText = entry.labelText })
+        items[i] = BaseMenuItems.Text({
+            labelText = entry.labelText,
+            pediaName = unitClass.Description,
+        })
     end
     return BaseMenuItems.Group({
         labelText = Text.key(unitClass.Description),
+        pediaName = unitClass.Description,
         items = items,
     })
 end
@@ -488,12 +492,13 @@ end
 -- fraction as part of its body, but the numerator and denominator are
 -- the specific information carriers; reading the full tooltip would
 -- pad with the same explanatory prose every time.
-local function gpProgressWidget(labelKey, currentFn, thresholdFn)
+local function gpProgressWidget(labelKey, currentFn, thresholdFn, pediaName)
     return BaseMenuItems.Text({
         labelFn = function()
             local p = Players[Game.GetActivePlayer()]
             return Text.format("TXT_KEY_CIVVACCESS_MO_GP_PROGRESS", Text.key(labelKey), currentFn(p), thresholdFn(p))
         end,
+        pediaName = pediaName,
     })
 end
 
@@ -521,12 +526,12 @@ local function buildGreatPeopleItems()
         return p:GetCombatExperience()
     end, function(p)
         return p:GreatGeneralThreshold()
-    end)
+    end, "TXT_KEY_UNIT_GREAT_GENERAL")
     items[#items + 1] = gpProgressWidget("TXT_KEY_MO_GA_PROGRESS", function(p)
         return p:GetNavalCombatExperience()
     end, function(p)
         return p:GreatAdmiralThreshold()
-    end)
+    end, "TXT_KEY_UNIT_GREAT_ADMIRAL")
     -- Specialist subgroups in priority order. Collect first then sort
     -- so the iteration order of GameInfo.Specialists doesn't leak
     -- through.
