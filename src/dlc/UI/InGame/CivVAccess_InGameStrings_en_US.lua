@@ -2217,6 +2217,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO"] = "Diplomacy, {1_Value
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL"] = "Total happiness, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_HAPPY_SOURCES"] = "Happiness sources"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURIES"] = "Luxuries, {1_Value}"
+-- Three sub-rows nested under Luxuries that the per-resource list doesn't
+-- capture: diversity bonus, flat per-luxury bonuses (Aesthetics/Protectionism
+-- etc.) shown as the multiplied total contribution, and a residual bucket
+-- for anything else GetHappinessFromResources covers.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_VARIETY"] = "Luxury variety, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_BONUS"] = "Luxury bonus, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_MISC"] = "Other luxury bonuses, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS"] = "Buildings, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TRADE_ROUTES"] = "Trade routes, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LOCAL_CITIES"] = "Local cities, {1_Value}"
@@ -2226,12 +2233,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_RELIGION"] = "Religion, {1_Value
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS"] = "Natural wonders, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_FREE_PER_CITY"] = "Free per city, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LEAGUES"] = "Leagues, {1_Value}"
+-- Difficulty handicap residual: total happiness minus all other listed
+-- sources. The engine has no accessor; both engine and we back-compute it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_DIFFICULTY"] = "Difficulty level, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL"] = "Total unhappiness, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_UNHAPPY_SOURCES"] = "Unhappiness sources"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = "Number of cities, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = "Occupied cities, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = "Population, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = "Occupied population, {1_Value}"
+-- Each row pairs a source count (cities or citizens contributing) with its
+-- unhappiness amount. The label-only formulation "Number of cities, 8.5"
+-- reads ambiguously to a screen reader: 8.5 could be cities or unhappiness.
+-- Surfacing both numbers, the second explicitly labeled, removes the trap.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = "Cities {1_Count}, unhappiness {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = "Occupied cities {1_Count}, unhappiness {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = "Citizens {1_Count}, unhappiness {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = "Occupied citizens {1_Count}, unhappiness {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Public opinion, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Per city breakdown"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Available"
