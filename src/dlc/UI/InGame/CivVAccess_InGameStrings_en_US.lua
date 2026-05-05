@@ -1902,6 +1902,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"] = "you have {1_Num}"
 -- comma form; the colon reads as a brief pause before the list of items.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_WE_GIVE"] = "we give: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE"] = "they give: {1_List}"
+-- Past-tense variants for the Historical Deals group, where the deal has
+-- already concluded.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_WE_GAVE"] = "we gave: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_THEY_GAVE"] = "they gave: {1_List}"
+-- DiploCurrentDeals tab title and the Historical Deals group label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_DEALS_TAB"] = "Deals"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_HISTORICAL_DEALS"] = "Historical Deals"
 -- Diplomatic Overview (Relations / Global tabs). Per-civ composed lines,
 -- trade / third-party fragment prefixes, section group headers.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV"] = "{1_Leader} of {2_Civ}"

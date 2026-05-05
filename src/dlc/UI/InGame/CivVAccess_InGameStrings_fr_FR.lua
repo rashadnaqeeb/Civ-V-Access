@@ -1730,6 +1730,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"] = "vous avez {1_Num}"
 -- comma form; the colon reads as a brief pause before the list of items.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_WE_GIVE"] = "nous donnons : {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE"] = "ils donnent : {1_List}"
+-- Variantes au passé composé pour le groupe Accords passés.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_WE_GAVE"] = "nous avons donné : {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEAL_THEY_GAVE"] = "ils ont donné : {1_List}"
+-- Titre de l'onglet et libellé du groupe Accords passés.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_DEALS_TAB"] = "Accords"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_HISTORICAL_DEALS"] = "Accords passés"
 -- Diplomatic Overview (Relations / Global tabs). Per-civ composed lines,
 -- trade / third-party fragment prefixes, section group headers.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LEADER_OF_CIV"] = "{1_Leader} de {2_Civ}"

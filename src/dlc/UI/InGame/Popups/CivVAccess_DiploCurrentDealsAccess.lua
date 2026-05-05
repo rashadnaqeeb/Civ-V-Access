@@ -1,5 +1,5 @@
--- DiploCurrentDeals accessibility. The Current Deals tab of DiploOverview;
--- lists active and historic deals the player is party to. Each deal
+-- DiploCurrentDeals accessibility. The Deals tab of DiploOverview; lists
+-- active and historical deals the player is party to. Each deal
 -- renders as a single Text leaf whose label inlines the full contents
 -- (other civ, what we give, what they give) with per-item duration where
 -- the item carries one. There's no drill past the deal, no Your / Their
@@ -137,7 +137,7 @@ end
 -- side; if both sides are empty (every item dropped as unrecognized) falls
 -- back to just the civ name. pediaName routes Ctrl+I to the other-civ
 -- leader article (nil when the deal's other party is unresolvable).
-local function buildDealLabel(iPlayer, pScratch)
+local function buildDealLabel(iPlayer, pScratch, isHistoric)
     local iOther = pScratch:GetOtherPlayer(iPlayer)
     local pOther = Players[iOther]
     local otherName = (pOther and pOther:GetName()) or "?"
@@ -167,12 +167,14 @@ local function buildDealLabel(iPlayer, pScratch)
         itemType, duration, _, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
     end
 
+    local weKey = isHistoric and "TXT_KEY_CIVVACCESS_DEAL_WE_GAVE" or "TXT_KEY_CIVVACCESS_DEAL_WE_GIVE"
+    local theyKey = isHistoric and "TXT_KEY_CIVVACCESS_DEAL_THEY_GAVE" or "TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE"
     local parts = { otherName }
     if #weGive > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DEAL_WE_GIVE", table.concat(weGive, "; "))
+        parts[#parts + 1] = Text.format(weKey, table.concat(weGive, "; "))
     end
     if #theyGive > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DEAL_THEY_GIVE", table.concat(theyGive, "; "))
+        parts[#parts + 1] = Text.format(theyKey, table.concat(theyGive, "; "))
     end
     return table.concat(parts, ". "), pediaName
 end
@@ -185,7 +187,7 @@ local function buildDealItems(iPlayer, isCurrent, count)
         else
             UI.LoadHistoricDeal(iPlayer, i)
         end
-        local label, pediaName = buildDealLabel(iPlayer, UI.GetScratchDeal())
+        local label, pediaName = buildDealLabel(iPlayer, UI.GetScratchDeal(), not isCurrent)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = label,
             pediaName = pediaName,
@@ -209,7 +211,7 @@ local function buildItems()
     local nHistoric = UI.GetNumHistoricDeals(iPlayer) or 0
     if nHistoric > 0 then
         items[#items + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_DO_COMPLETE_DEALS"),
+            labelText = Text.key("TXT_KEY_CIVVACCESS_DIPLO_HISTORICAL_DEALS"),
             items = buildDealItems(iPlayer, false, nHistoric),
         })
     end
@@ -230,7 +232,7 @@ end
 
 BaseMenu.install(ContextPtr, DiploCommon.applyTabBindings({
     name = "DiploCurrentDeals",
-    displayName = Text.key("TXT_KEY_DO_CURRENT_DEALS"),
+    displayName = Text.key("TXT_KEY_CIVVACCESS_DIPLO_DEALS_TAB"),
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     shouldActivate = DiploCommon.shouldActivate,
