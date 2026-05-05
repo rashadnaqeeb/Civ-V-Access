@@ -1091,53 +1091,49 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "No combat this turn
 -- Great People (the umbrella term), GG = Great General (military land
 -- specialist), GA = Great Admiral (military naval specialist).
 --
--- Level 0 reads GP progress + supply line as Text widgets; drill-ins hold
--- the unit rows. The GP line combines the engine's own label
--- (TXT_KEY_CITYVIEW_GG_PROGRGRESS / TXT_KEY_MO_GA_PROGRESS) with the
--- numerator/denominator the sighted tooltip shows first. Supply
--- collapses the sighted screen's six-to-seven-row stack (base, cities,
--- population, cap, use, remaining OR deficit+penalty) into a single
--- line; current state leads ("in use", "remaining" or "over"), then the
--- three-component breakdown the sighted player gets above the divider.
--- The SUPPLY_NORMAL placeholders {4_Base} {5_Cities} {6_Pop} are each a
--- numeric contribution (base supply allowance, cities-built bonus,
--- population bonus); SUPPLY_DEFICIT shifts them by one because it inserts
--- {3_Deficit} {4_Penalty} ahead of the breakdown.
--- Sort selector verbalizes current mode; menu label is independent so the
--- user hears "sort by: name" at the selector and just "sort by" as the
--- title of the picker that opens. Row strength/ranged use bare nouns (not
--- "melee" / range-distance forms that UnitSpeech uses) because the F3 row
--- echoes the sighted column whose header is just an icon.
+-- Two-tab TabbedShell. The supply line lives on the shell preamble so
+-- it's spoken between the screen title and the active tab name on every
+-- open and on F1; values track per-turn state via a function preamble.
+-- Tab 1 (Units) is a BaseTable; the column-header strings are the
+-- SORT_MODE_* values plus a mod-authored DISTANCE column. Tab 2 (Great
+-- People) is a BaseMenu mirroring GPList's per-city / per-specialist
+-- breakdown, with flat GG and GA rows underneath. Supply is a bare
+-- use/cap fraction: the same fraction conveys both healthy and over-cap
+-- states (25/20 reads as obviously over). The sighted screen's
+-- production-penalty percent and per-source breakdown (base / cities /
+-- population) are dropped here in favour of brevity.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} of {3_Max} xp"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL"] =
-    "Supply: {1_Use} of {2_Cap} in use, {3_Remaining} remaining. Base {4_Base}, cities {5_Cities}, population {6_Pop}."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT"] =
-    "Supply: {1_Use} of {2_Cap} in use, {3_Deficit} over, {4_Penalty} production penalty. Base {5_Base}, cities {6_Cities}, population {7_Pop}."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_LABEL"] = "Sort by: {1_Mode}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MENU"] = "Sort by"
--- Sort-mode nouns. Engine's TXT_KEY_MO_SORT_* strings are the column-header
--- tooltips ("Sort By Strength") and would produce "Sort by: Sort By Strength"
--- if reused. Name / Status modes reuse the plain-noun TXT_KEY_NAME /
--- TXT_KEY_STATUS; the numeric columns are icon-only in the sighted UI, so
--- these four are mod-authored.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Supply: {1_Use} of {2_Cap}"
+-- Idle status fallback. The engine hides the status column when a unit
+-- has no fortify / sleep / sentry / heal / build / automation state.
+-- In speech an empty cell would leave the user wondering whether the
+-- screen reader cut off, so we name the idle case explicitly.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "idle"
+-- Tab labels. Two tabs: Units (BaseTable) and Great People (BaseMenu).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Great People"
+-- Units tab column headers. Name / Status reuse engine plain-noun keys.
+-- Movement / Max moves / Strength / Ranged are mod-authored because the
+-- engine's TXT_KEY_MO_SORT_* strings ("Sort By Strength") read awkwardly
+-- as a column name and the engine's visible columns are icon-only.
+-- Distance is mod-authored: leftmost column, sortKey is cube-distance
+-- (nearest first on ascending), cell uses HexGeom.directionString --
+-- the same compact "<count><dir>" format the scanner speaks ("3e",
+-- "2nw, 1ne"). On the cursor's own hex the cell speaks SCANNER_HERE.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_DISTANCE"] = "Distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT"] = "Moves left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Max moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Ranged"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_MILITARY"] = "Military units"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GROUP_CIVILIAN"] = "Civilian units"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_STRENGTH"] = "strength {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_ROW_RANGED"] = "ranged {1_Num}"
--- Great People drillable group at the bottom of the panel. Mirrors GPList:
--- one subgroup per specialist type populated with per-city progress rows
--- sorted by turns ascending, plus flat GG / GA rows reusing
--- TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row leads with the city name (the
--- distinguishing word as the user navigates a turns-sorted list), then turns,
--- then progress / threshold, then the per-turn rate. NO_PROGRESS variant
--- handles the rate-zero case (city has stranded GPP but no specialists or
--- buildings producing more); skip the turns and rate fields since both are
--- zero. TURNS_NEXT covers the imminent case where threshold-progress <= rate.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_GROUP"] = "Great People progress"
+-- Great People tab. Mirrors GPList: one subgroup per specialist type
+-- populated with per-city progress rows sorted by turns ascending, plus
+-- flat GG / GA rows reusing TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row
+-- leads with the city name (the distinguishing word as the user
+-- navigates a turns-sorted list), then turns, then progress / threshold,
+-- then the per-turn rate. NO_PROGRESS variant handles the rate-zero
+-- case (city has stranded GPP but no specialists or buildings producing
+-- more); skip the turns and rate fields since both are zero. TURNS_NEXT
+-- covers the imminent case where threshold-progress <= rate.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW"] =
     "{1_City}: {2_Turns}, {3_Progress} of {4_Threshold}, plus {5_Rate} per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_NO_PROGRESS"] = "{1_City}: {2_Progress} of {3_Threshold}, no progress"

@@ -35,6 +35,10 @@
 -- Spec for TabbedShell.create:
 --   name              (string, required) HandlerStack identity.
 --   displayName       (string, required) screen header spoken on first open.
+--   preamble          (string | fn() -> string, optional) spoken between
+--                     displayName and tabName on first open and on F1
+--                     re-read. Function form is re-evaluated each call so
+--                     dynamic values (per-turn state) stay live.
 --   tabs              (array, required) tab objects implementing the contract
 --                     above. Must have at least one entry.
 --   initialTabIndex   (number, optional, 1-based, default 1) first-open
@@ -144,6 +148,26 @@ local function resolveTabName(tab)
     return Text.key(tab.tabName)
 end
 
+-- Resolve the optional shell preamble. String preambles return as-is;
+-- function preambles are pcalled fresh each call so per-turn state is
+-- live (mirrors BaseMenu.preamble). Errors log through the mod log
+-- wrapper and degrade to nil rather than blocking the open path.
+local function resolvePreamble(self)
+    local p = self.preamble
+    if p == nil then
+        return nil
+    end
+    if type(p) == "function" then
+        local ok, result = pcall(p)
+        if not ok then
+            Log.error("TabbedShell '" .. tostring(self.name) .. "' preamble fn failed: " .. tostring(result))
+            return nil
+        end
+        return result
+    end
+    return p
+end
+
 local function deactivateTab(tab)
     if type(tab.onTabDeactivated) == "function" then
         Log.tryCall("TabbedShell deactivate '" .. tostring(tab.tabName) .. "'", tab.onTabDeactivated, tab)
@@ -178,14 +202,19 @@ local function cycleTab(self, direction)
     activateTab(self._tabs[self._activeIdx], true)
 end
 
--- F1 re-reads displayName then the active tab's name. The tab itself
--- doesn't expose a re-read hook, so we don't dive deeper -- if the tab
--- has its own header (BaseMenu's preamble, BaseTable's column header),
--- F1 inside the tab could chain through onTabActivated(true), but we
--- start with the simpler "screen-name + tab-name" since that's the
--- minimum users need to re-orient.
+-- F1 re-reads displayName then the shell preamble (if any) then the
+-- active tab's name. The tab itself doesn't expose a re-read hook, so we
+-- don't dive deeper -- if the tab has its own header (BaseMenu's preamble,
+-- BaseTable's column header), F1 inside the tab could chain through
+-- onTabActivated(true), but we start with the simpler
+-- "screen-name + preamble + tab-name" since that's the minimum users
+-- need to re-orient.
 local function readShellHeader(self)
     SpeechPipeline.speakInterrupt(self.displayName)
+    local preambleText = resolvePreamble(self)
+    if preambleText ~= nil and preambleText ~= "" then
+        SpeechPipeline.speakQueued(preambleText)
+    end
     local tab = self._tabs[self._activeIdx]
     if tab ~= nil then
         SpeechPipeline.speakQueued(resolveTabName(tab))
@@ -249,10 +278,17 @@ function TabbedShell.create(spec)
         "spec.initialTabIndex must be a positive number within tabs range if provided"
     )
     Log.check(spec.onEscape == nil or type(spec.onEscape) == "function", "spec.onEscape must be a function if provided")
+    Log.check(
+        spec.preamble == nil
+            or (type(spec.preamble) == "string" and spec.preamble ~= "")
+            or type(spec.preamble) == "function",
+        "spec.preamble must be a non-empty string or a function if provided"
+    )
 
     local self = {
         name = spec.name,
         displayName = spec.displayName,
+        preamble = spec.preamble,
         capturesAllInput = spec.capturesAllInput ~= false,
         _tabs = spec.tabs,
         _activeIdx = spec.initialTabIndex or 1,
@@ -268,6 +304,13 @@ function TabbedShell.create(spec)
         if not self._initialized then
             self._initialized = true
             SpeechPipeline.speakInterrupt(self.displayName)
+            -- Optional preamble between displayName and tabName. Resolved
+            -- fresh each open so a function preamble reads live state
+            -- (per-turn supply, gold, etc.).
+            local preambleText = resolvePreamble(self)
+            if preambleText ~= nil and preambleText ~= "" then
+                SpeechPipeline.speakQueued(preambleText)
+            end
             -- Queue the active tab's name after the screen header so the
             -- user knows where they landed. Tab content then speakQueueds
             -- after; announce=false suppresses an interrupt on the tab's

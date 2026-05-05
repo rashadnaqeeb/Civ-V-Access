@@ -1,68 +1,95 @@
--- MilitaryOverview accessibility (F3). The popup lays out one screen:
---   * Great General and Great Admiral progress meters (top right)
---   * Supply block (left column: base supply, cities, population, cap, use,
---     remaining OR deficit+penalty when over-cap), collapsed to one line
---   * Unit list split into military (combat type != -1 or nukes) and civilian
---     stacks (right column, scrollable)
+-- MilitaryOverview accessibility (F3). Wraps the engine popup as a
+-- two-tab TabbedShell with the supply readout served as the shell's
+-- preamble (spoken between the screen title and the active tab name on
+-- every open and on F1):
 --
--- Level 0 exposes the supply widget, then a sort selector, then a drill-in
--- per non-empty unit stack, then a Great People progress group at the bottom.
--- Unit rows activate to UI.SelectUnit (or LookAtSelectionPlot if already
--- selected, matching the engine click handler), then OnClose +
--- CameraTracker.followAndJumpCursor so the hex cursor ends up on the selected
--- unit's plot. Sort is global across both unit sub-lists to mirror the engine;
--- ascending/descending toggle is deferred (one direction, matching the default
--- each header click lands on).
+--   Units         BaseTable. One row per owned unit. Columns: Distance,
+--                 Status, Moves left, Max moves, Strength, Ranged. The
+--                 unit name lives on the row label rather than in a
+--                 column so the user hears it once on row change instead
+--                 of repeating it in a Name cell.
 --
--- Great People group mirrors the engine's GPList: one drillable subgroup per
--- specialist type (Artist / Writer / Musician / Scientist / Engineer /
--- Merchant), each populated with per-city rows sorted by turns ascending.
--- Subgroups are skipped entirely when no city has any progress for that type
--- (matches GPList's section-hiding). Great General and Great Admiral are flat
--- rows in the same group (player-scoped, no per-city breakdown). Great Prophet
--- is intentionally omitted because GPList doesn't list it -- prophet progress
--- is faith-gated, not GPP-gated, and lives on the Religion Overview screen.
+--                 Distance is the leftmost column and uses the same
+--                 HexGeom formatter as the scanner ("3e", "2nw, 1ne");
+--                 sortKey is the cube-distance so ascending sort puts
+--                 nearest first. On the cursor's own hex the cell speaks
+--                 SCANNER_HERE.
+--
+--                 Default row order mirrors the engine's stack layout:
+--                 military first, civilian second, alphabetical within
+--                 each group. Selecting a row activates the unit (engine
+--                 click semantics: re-center if already selected, else
+--                 select), closes the popup, and -- only when the
+--                 cursor-follows-selection setting is OFF -- jumps the
+--                 hex cursor onto the unit's plot. With the setting ON,
+--                 UnitControlSelection's own Cursor.jumpTo (fired off
+--                 SerialEventUnitSelectionChanged) handles the move so
+--                 a second jump here would warp twice.
+--
+--   Great People  BaseMenu. Order: Great General first, Great Admiral
+--                 second (flat rows, player-scoped), then specialist
+--                 subgroups in decision-priority order (Scientist,
+--                 Engineer, Merchant), then the cultural specialists
+--                 (Writer / Artist / Musician) in DB order. Each
+--                 specialist subgroup holds per-city progress rows
+--                 sorted by turns ascending; subgroups are skipped when
+--                 no city has any progress for that type, mirroring
+--                 GPList's section-hiding. Great Prophet is omitted --
+--                 prophet progress is faith-gated, not GPP-gated, and
+--                 lives on the Religion Overview screen.
+--
+-- Promotion availability rides on the row label so the user hears it
+-- first when entering a row, regardless of which column they navigate
+-- to.
+--
+-- Cross-Context concerns: the Popups Context is sandboxed separately
+-- from the InGame Context Boot owns. HexGeom is included in this
+-- wrapper directly (no PopupBoot inclusion); Cursor lives in the
+-- WorldView Context only and is reached through
+-- civvaccess_shared.modules.Cursor for both position queries and the
+-- explicit cursor jump on row activation.
 
 include("CivVAccess_PopupBoot")
-include("CivVAccess_CameraTracker")
+include("CivVAccess_TabbedShell")
+include("CivVAccess_BaseTableCore")
+include("CivVAccess_HexGeom")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
--- Sort modes. Match the engine's eName / eStatus / eMovement / eMoves /
--- eStrength / eRanged ordering.
-local SORT_NAME = 1
-local SORT_STATUS = 2
-local SORT_MOVEMENT = 3
-local SORT_MOVES = 4
-local SORT_STRENGTH = 5
-local SORT_RANGED = 6
+-- Forward-declared so the activate closure can call it before OnClose
+-- (which we reach via the global the engine file defines) is evaluated
+-- in the closure scope.
+local activateUnit
 
-local SORT_ORDER = { SORT_NAME, SORT_STATUS, SORT_MOVEMENT, SORT_MOVES, SORT_STRENGTH, SORT_RANGED }
+-- ===== Cell formatters ================================================
 
-local SORT_LABEL_KEYS = {
-    [SORT_NAME] = "TXT_KEY_NAME",
-    [SORT_STATUS] = "TXT_KEY_STATUS",
-    [SORT_MOVEMENT] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT",
-    [SORT_MOVES] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES",
-    [SORT_STRENGTH] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH",
-    [SORT_RANGED] = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED",
-}
+-- MovesLeft / MaxMoves are 60ths; flooring would lose road / railroad
+-- remainders ("1.5" for a 90/60 unit). Round to two decimal places to
+-- absorb floating-point noise, then build the string from integer parts
+-- so the decimal separator stays "." regardless of LC_NUMERIC. Mirrors
+-- UnitSpeech.formatMoves; kept local to avoid a Context-wide include
+-- just for one helper.
+local function formatMoves(sixtieths)
+    local hundredths = math.floor(sixtieths * 100 / GameDefines["MOVE_DENOMINATOR"] + 0.5)
+    local whole = math.floor(hundredths / 100)
+    local frac = hundredths - whole * 100
+    if frac == 0 then
+        return tostring(whole)
+    end
+    if frac % 10 == 0 then
+        return tostring(whole) .. "." .. tostring(frac / 10)
+    end
+    return tostring(whole) .. "." .. tostring(frac)
+end
 
-local m_sortMode = SORT_NAME
--- Parent-list position of the sort selector, refreshed each buildTopItems
--- run so "pick a sort mode, commit, pop back" can return the cursor to the
--- selector it just left. Varies with the supply-deficit branch (one vs two
--- supply widgets), which is why it's a live value rather than a constant.
-local m_sortIndex = 1
--- Forward decl: sortSelector's inner activate calls buildTopItems to rebuild
--- the parent on sort commit, and buildTopItems calls sortSelector to install
--- it into the item list -- one side of the cycle has to be declared ahead.
-local buildTopItems
-
--- Localized status text for a unit. Mirrors the engine's priority cascade in
--- BuildUnitList. Returns nil when the engine would have hidden the status
--- column (idle non-fortified, non-sleeping unit).
+-- Localized status text for a unit. Mirrors the engine's priority
+-- cascade in BuildUnitList. Falls through to MO_STATUS_IDLE
+-- ("awaiting orders") when the engine would have hidden the status
+-- column -- a unit with no fortify / sleep / sentry / heal / build /
+-- automation state. The engine simply omits the cell visually; in
+-- speech an empty string would leave the user wondering whether the
+-- screen reader cut off, so we say the idle case explicitly.
 local function unitStatusText(unit)
     if unit:IsEmbarked() then
         return Text.key("TXT_KEY_UNIT_STATUS_EMBARKED")
@@ -99,87 +126,27 @@ local function unitStatusText(unit)
         end
         return str
     end
-    return nil
+    return Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_IDLE")
 end
 
--- MovesLeft / MaxMoves are 60ths; flooring would lose road / railroad
--- remainders ("1 of 2" for a 90/60 unit). Round to two decimal places
--- to absorb floating-point noise, then build the string from integer
--- parts so the decimal separator stays "." regardless of LC_NUMERIC
--- (a comma-decimal locale would otherwise feed "1,5" to Tolk, spoken
--- as "one comma five"). Mirrors UnitSpeech.formatMoves; kept local
--- to avoid a Context-wide include just for one helper.
-local function formatMoves(sixtieths)
-    local hundredths = math.floor(sixtieths * 100 / GameDefines["MOVE_DENOMINATOR"] + 0.5)
-    local whole = math.floor(hundredths / 100)
-    local frac = hundredths - whole * 100
-    if frac == 0 then
-        return tostring(whole)
-    end
-    if frac % 10 == 0 then
-        return tostring(whole) .. "." .. tostring(frac / 10)
-    end
-    return tostring(whole) .. "." .. tostring(frac)
-end
-
--- Pre-compute row fields once per build so the sort compare can read scalars
--- and the announce closure can format on demand without re-querying the unit.
--- Numeric movesLeft / maxMoves drive the SORT_MOVEMENT / SORT_MOVES compare;
--- the *Text variants are the speech-ready strings rowLabel inserts.
---
--- displayName uses the no-civ form -- the list is the active player's own
--- military, so a "Roman" prefix on every row would just be noise. Named
--- units (rename via Alt+N, plus great-general name-pool entries) wrap the
--- type in parens after the personal name to match UnitSpeech.unitName's
--- shape elsewhere in the mod.
-local function buildRowEntry(unit)
-    local denom = GameDefines["MOVE_DENOMINATOR"]
+-- displayName uses the no-civ form -- the list is the active player's
+-- own units, so a "Roman" prefix on every row would just be noise.
+-- Named units (rename via Alt+N, plus great-general name-pool entries)
+-- wrap the type in parens after the personal name to match
+-- UnitSpeech.unitName's shape elsewhere in the mod.
+local function unitDisplayName(unit)
     local typeName = Text.key(unit:GetNameKey())
-    local displayName
     if unit:HasName() then
         local personal = Text.key(unit:GetNameNoDesc())
         if typeName == "" then
-            displayName = personal
-        else
-            displayName = personal .. " (" .. typeName .. ")"
+            return personal
         end
-    else
-        displayName = typeName
+        return personal .. " (" .. typeName .. ")"
     end
-    return {
-        unit = unit,
-        unitID = unit:GetID(),
-        displayName = displayName,
-        status = unitStatusText(unit),
-        movesLeft = unit:MovesLeft() / denom,
-        maxMoves = unit:MaxMoves() / denom,
-        movesLeftText = formatMoves(unit:MovesLeft()),
-        maxMovesText = formatMoves(unit:MaxMoves()),
-        strength = unit:GetBaseCombatStrength(),
-        ranged = unit:GetBaseRangedCombatStrength(),
-        hasPromotion = unit:CanPromote(),
-    }
+    return typeName
 end
 
-local function rowLabel(entry)
-    local parts = { entry.displayName }
-    if entry.status ~= nil then
-        parts[#parts + 1] = entry.status
-    end
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVES_FRACTION", entry.movesLeftText, entry.maxMovesText)
-    if entry.strength > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_MO_ROW_STRENGTH", entry.strength)
-    end
-    if entry.ranged > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_MO_ROW_RANGED", entry.ranged)
-    end
-    if entry.hasPromotion then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE")
-    end
-    return table.concat(parts, ", ")
-end
-
-local function pediaNameFor(unit)
+local function unitPediaName(unit)
     local info = GameInfo.Units[unit:GetUnitType()]
     if info == nil then
         return nil
@@ -187,10 +154,103 @@ local function pediaNameFor(unit)
     return Text.key(info.Description)
 end
 
--- Click semantics mirror the engine's UnitClicked: same unit already selected
--- re-centers the camera; otherwise select. Then close the popup and drop the
--- hex cursor on the engine's post-pan plot.
-local function activateUnit(unit)
+local function isMilitary(unit)
+    return unit:GetUnitCombatType() ~= -1 or unit:CanNuke()
+end
+
+-- Cursor module accessor. Cursor lives in the WorldView Context only;
+-- the Popups Context reaches it through the cross-Context module
+-- registry that Boot publishes (CLAUDE.md: civvaccess_shared.modules
+-- holds the published refs). Returns nil during the brief pre-Boot
+-- window where the registry isn't populated yet (the popup can't open
+-- before in-game boot, so this is purely defensive).
+local function cursorModule()
+    return civvaccess_shared.modules and civvaccess_shared.modules.Cursor
+end
+
+-- Live cursor query with a (0, 0) fallback. The popup only opens
+-- in-game so the registry should always be populated; the fallback
+-- matches ScannerNav's pattern and keeps the distance column readable
+-- if something goes wrong upstream.
+local function cursorXY()
+    local Cursor = cursorModule()
+    if Cursor == nil then
+        Log.warn("MilitaryOverview: Cursor module not published; using (0, 0) as distance origin")
+        return 0, 0
+    end
+    local cx, cy = Cursor.position()
+    if cx == nil then
+        Log.warn("MilitaryOverview: cursor not initialised; using (0, 0) as distance origin")
+        return 0, 0
+    end
+    return cx, cy
+end
+
+-- Strength / ranged cells render the integer or "0" -- the engine uses
+-- "-" in the visual UI but a screen reader announces that as "dash"
+-- which reads as a deletion glyph rather than "no combat strength".
+local function combatNumberCell(n)
+    return tostring(n)
+end
+
+-- ===== Row label ======================================================
+
+-- The row label is what BaseTable speaks when the cursor enters a new
+-- row. Promotion availability rides here so the user hears it once per
+-- row regardless of which column they navigate to, matching the engine
+-- panel's row-anchored promotion indicator.
+local function unitRowLabel(unit)
+    local name = unitDisplayName(unit)
+    if unit:CanPromote() then
+        return name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE")
+    end
+    return name
+end
+
+-- ===== Default row order ==============================================
+
+-- Military first, civilian second, alphabetical within each group.
+-- Mirrors the engine's two-stack layout (MilitaryStack above,
+-- CivilianSeparator, CivilianStack below) under the default eName sort.
+-- BaseTable preserves rebuildRows order when no sort column is active;
+-- once the user picks a sort column the table sorts globally and the
+-- two groups merge, which is the standard mod-wide BaseTable behavior
+-- and consistent with EO Resources' strategic-then-luxury default.
+local function rebuildUnitRows()
+    local p = Players[Game.GetActivePlayer()]
+    if p == nil then
+        return {}
+    end
+    local rows = {}
+    for unit in p:Units() do
+        rows[#rows + 1] = unit
+    end
+    table.sort(rows, function(a, b)
+        local aMil = isMilitary(a)
+        local bMil = isMilitary(b)
+        if aMil ~= bMil then
+            return aMil
+        end
+        return Locale.Compare(unitDisplayName(a), unitDisplayName(b)) == -1
+    end)
+    return rows
+end
+
+-- ===== Activation =====================================================
+
+-- Click semantics mirror the engine's UnitClicked: same unit already
+-- selected re-centers the camera; otherwise select. Then close the
+-- popup. The cursor jump only fires when the cursor-follows-selection
+-- setting is OFF; with it ON, UnitControlSelection's
+-- SerialEventUnitSelectionChanged listener already runs Cursor.jumpTo
+-- on the selection event, so a second jump here would warp twice.
+-- Direct Cursor.jumpTo (rather than CameraTracker.followAndJumpCursor)
+-- because UI.SelectUnit doesn't reliably pan the camera, leaving the
+-- camera-follow path with nothing to settle on; we know the
+-- destination plot, so jump explicitly. Discard the glance return so
+-- we don't double-speak: UnitControlSelection's listener already spoke
+-- the unit selection text by the time we're back here.
+function activateUnit(unit)
     local head = UI:GetHeadSelectedUnit()
     if head ~= nil and head:GetID() == unit:GetID() then
         UI.LookAtSelectionPlot(0)
@@ -198,149 +258,110 @@ local function activateUnit(unit)
         UI.SelectUnit(unit)
     end
     OnClose()
-    CameraTracker.followAndJumpCursor()
+    if not civvaccess_shared.cursorFollowsSelection then
+        local Cursor = cursorModule()
+        if Cursor ~= nil then
+            Cursor.jumpTo(unit:GetX(), unit:GetY())
+        end
+    end
 end
 
--- table.sort calls this many times per build but m_sortMode can't change
--- during a sort (table.sort is synchronous; nothing we do inside the compare
--- mutates it), so reading the upvalue each call is safe.
-local function sortComparator(a, b)
-    local va, vb
-    if m_sortMode == SORT_NAME then
-        va, vb = a.displayName, b.displayName
-        if va ~= vb then
-            return Locale.Compare(va, vb) == -1
-        end
-    elseif m_sortMode == SORT_STATUS then
-        va, vb = a.status or "", b.status or ""
-        if va ~= vb then
-            return Locale.Compare(va, vb) == -1
-        end
-    elseif m_sortMode == SORT_MOVEMENT then
-        va, vb = a.movesLeft, b.movesLeft
-    elseif m_sortMode == SORT_MOVES then
-        va, vb = a.maxMoves, b.maxMoves
-    elseif m_sortMode == SORT_STRENGTH then
-        va, vb = a.strength, b.strength
-    elseif m_sortMode == SORT_RANGED then
-        va, vb = a.ranged, b.ranged
-    end
-    if va == vb then
-        return a.unitID < b.unitID
-    end
-    return va < vb
-end
+-- ===== Units tab ======================================================
 
-local function buildGroupItems(entries)
-    table.sort(entries, sortComparator)
-    local items = {}
-    for i, entry in ipairs(entries) do
-        items[i] = BaseMenuItems.Choice({
-            labelText = rowLabel(entry),
-            pediaName = pediaNameFor(entry.unit),
-            activate = function()
-                activateUnit(entry.unit)
+local function buildUnitColumns()
+    local function distanceCell(unit)
+        local cx, cy = cursorXY()
+        local ux, uy = unit:GetX(), unit:GetY()
+        if cx == ux and cy == uy then
+            return Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+        end
+        return HexGeom.directionString(cx, cy, ux, uy)
+    end
+    local function distanceSort(unit)
+        local cx, cy = cursorXY()
+        return HexGeom.cubeDistance(cx, cy, unit:GetX(), unit:GetY())
+    end
+    return {
+        {
+            name = "TXT_KEY_CIVVACCESS_MO_COL_DISTANCE",
+            getCell = distanceCell,
+            sortKey = distanceSort,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            name = "TXT_KEY_STATUS",
+            getCell = unitStatusText,
+            sortKey = unitStatusText,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT",
+            getCell = function(unit)
+                return formatMoves(unit:MovesLeft())
             end,
-        })
-    end
-    return items
+            sortKey = function(unit)
+                return unit:MovesLeft()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES",
+            getCell = function(unit)
+                return formatMoves(unit:MaxMoves())
+            end,
+            sortKey = function(unit)
+                return unit:MaxMoves()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH",
+            getCell = function(unit)
+                return combatNumberCell(unit:GetBaseCombatStrength())
+            end,
+            sortKey = function(unit)
+                return unit:GetBaseCombatStrength()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED",
+            getCell = function(unit)
+                return combatNumberCell(unit:GetBaseRangedCombatStrength())
+            end,
+            sortKey = function(unit)
+                return unit:GetBaseRangedCombatStrength()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+    }
 end
 
-local function collectUnits()
-    local pPlayer = Players[Game.GetActivePlayer()]
-    local military, civilian = {}, {}
-    for unit in pPlayer:Units() do
-        local entry = buildRowEntry(unit)
-        if unit:GetUnitCombatType() ~= -1 or unit:CanNuke() then
-            military[#military + 1] = entry
-        else
-            civilian[#civilian + 1] = entry
-        end
-    end
-    return military, civilian
-end
-
--- GP meter readout: numerator / denominator phrased as "X of Y xp". Tooltip
--- (TXT_KEY_MO_GENERAL_TT / _ADMIRAL_TT) supplies the progress fraction as part
--- of its body, but the numerator and denominator are the specific information
--- carriers; reading the full tooltip as speech would pad with the same
--- explanatory prose every time.
-local function gpProgressWidget(labelKey, currentFn, thresholdFn)
-    return BaseMenuItems.Text({
-        labelFn = function()
-            local p = Players[Game.GetActivePlayer()]
-            return Text.format("TXT_KEY_CIVVACCESS_MO_GP_PROGRESS", Text.key(labelKey), currentFn(p), thresholdFn(p))
-        end,
+local function buildUnitsTab()
+    return BaseTable.create({
+        tabName = "TXT_KEY_CIVVACCESS_MO_TAB_UNITS",
+        columns = buildUnitColumns(),
+        rebuildRows = rebuildUnitRows,
+        rowLabel = unitRowLabel,
     })
 end
 
-local function supplyWidget()
-    return BaseMenuItems.Text({
-        labelFn = function()
-            local p = Players[Game.GetActivePlayer()]
-            local base = p:GetNumUnitsSuppliedByHandicap()
-            local cities = p:GetNumUnitsSuppliedByCities()
-            local pop = p:GetNumUnitsSuppliedByPopulation()
-            local cap = p:GetNumUnitsSupplied()
-            local use = p:GetNumUnits()
-            local deficit = p:GetNumUnitsOutOfSupply()
-            if deficit ~= 0 then
-                local penalty = p:GetUnitProductionMaintenanceMod() .. "%"
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_MO_SUPPLY_DEFICIT",
-                    use,
-                    cap,
-                    deficit,
-                    penalty,
-                    base,
-                    cities,
-                    pop
-                )
-            end
-            return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_NORMAL", use, cap, cap - use, base, cities, pop)
-        end,
-    })
-end
-
-local function sortSelector(handler)
-    return BaseMenuItems.Choice({
-        labelFn = function()
-            return Text.format("TXT_KEY_CIVVACCESS_MO_SORT_LABEL", Text.key(SORT_LABEL_KEYS[m_sortMode]))
-        end,
-        activate = function()
-            local children = {}
-            for i, mode in ipairs(SORT_ORDER) do
-                local captured = mode
-                children[i] = BaseMenuItems.Choice({
-                    labelText = Text.key(SORT_LABEL_KEYS[captured]),
-                    selectedFn = function()
-                        return m_sortMode == captured
-                    end,
-                    activate = function()
-                        m_sortMode = captured
-                        handler.setItems(buildTopItems(handler))
-                        handler.setIndex(m_sortIndex)
-                        HandlerStack.pop()
-                    end,
-                })
-            end
-            HandlerStack.push(BaseMenu.create({
-                name = "MilitaryOverview/Sort",
-                displayName = Text.key("TXT_KEY_CIVVACCESS_MO_SORT_MENU"),
-                items = children,
-                escapePops = true,
-            }))
-        end,
-    })
-end
+-- ===== Great People tab ===============================================
 
 -- Per-turn GPP gain for a (city, specialist) pair. Verbatim port of
 -- GPList.lua's getRateOfChange (Assets/DLC/Expansion2/UI/InGame/GPList.lua,
--- lines 254-305): base specialist count + per-type buildings, multiplied by
--- player / city / golden-age / per-type modifiers. The per-type modifier
--- branch reaches into player methods that only exist in BNW
--- (GetGreatWriterRateModifier, GetGoldenAgeGreatArtistRateModifier, etc.);
--- BNW is a hard requirement of this mod, so they're guaranteed present.
+-- lines 254-305): base specialist count + per-type buildings, multiplied
+-- by player / city / golden-age / per-type modifiers. The per-type
+-- modifier branch reaches into player methods that only exist in BNW
+-- (GetGreatWriterRateModifier, GetGoldenAgeGreatArtistRateModifier,
+-- etc.); BNW is a hard requirement of this mod, so they're guaranteed
+-- present.
 local function gpRateOfChange(city, specialistInfo, player)
     local iCount = city:GetSpecialistCount(specialistInfo.ID)
     local iGPPChange = specialistInfo.GreatPeopleRateChange * iCount * 100
@@ -388,10 +409,8 @@ local function gpRateOfChange(city, specialistInfo, player)
 end
 
 -- Per-(city, specialist) row for a specialist subgroup. Sorted by turns
--- ascending: imminent (rate >= remaining) sorts first, finite turns next,
--- rate-zero last (treated as +infinity). Snapshots progress / threshold /
--- rate at build time matching the unit-row pattern; the menu rebuilds on
--- each onShow so values stay fresh between opens.
+-- ascending: imminent (rate >= remaining) sorts first, finite turns
+-- next, rate-zero last (treated as +infinity).
 local function buildSpecialistCityRow(specialistInfo, unitClass, city, player)
     local iProgress = city:GetSpecialistGreatPersonProgress(specialistInfo.ID)
     local iThreshold = city:GetSpecialistUpgradeThreshold(unitClass.ID)
@@ -426,9 +445,9 @@ local function buildSpecialistCityRow(specialistInfo, unitClass, city, player)
     }
 end
 
--- Subgroup for one specialist type. Returns nil when no city in the player's
--- empire has nonzero progress for this specialist -- mirrors GPList's
--- section-hiding so the user never lands on an empty subgroup.
+-- Subgroup for one specialist type. Returns nil when no city in the
+-- player's empire has nonzero progress for this specialist -- mirrors
+-- GPList's section-hiding so the user never lands on an empty subgroup.
 local function buildSpecialistGroup(specialistInfo)
     local unitClassName = specialistInfo.GreatPeopleUnitClass
     if unitClassName == nil then
@@ -464,16 +483,40 @@ local function buildSpecialistGroup(specialistInfo)
     })
 end
 
-local function buildGreatPeopleGroup()
+-- GP meter readout: numerator / denominator phrased as "X of Y xp".
+-- Tooltip (TXT_KEY_MO_GENERAL_TT / _ADMIRAL_TT) supplies the progress
+-- fraction as part of its body, but the numerator and denominator are
+-- the specific information carriers; reading the full tooltip would
+-- pad with the same explanatory prose every time.
+local function gpProgressWidget(labelKey, currentFn, thresholdFn)
+    return BaseMenuItems.Text({
+        labelFn = function()
+            local p = Players[Game.GetActivePlayer()]
+            return Text.format("TXT_KEY_CIVVACCESS_MO_GP_PROGRESS", Text.key(labelKey), currentFn(p), thresholdFn(p))
+        end,
+    })
+end
+
+-- Specialist subgroup rank. Lower comes first. Anything not listed gets
+-- the trailing rank (cultural specialists -- Writer / Artist / Musician
+-- -- fall here). DB ID breaks ties so cultural-pair ordering stays
+-- deterministic across runs.
+local SPECIALIST_RANK = {
+    UNITCLASS_SCIENTIST = 1,
+    UNITCLASS_ENGINEER = 2,
+    UNITCLASS_MERCHANT = 3,
+}
+local SPECIALIST_RANK_DEFAULT = 99
+
+local function specialistRank(specialistInfo)
+    return SPECIALIST_RANK[specialistInfo.GreatPeopleUnitClass] or SPECIALIST_RANK_DEFAULT
+end
+
+local function buildGreatPeopleItems()
     local items = {}
-    for specialistInfo in GameInfo.Specialists() do
-        if specialistInfo.GreatPeopleUnitClass ~= nil then
-            local group = buildSpecialistGroup(specialistInfo)
-            if group ~= nil then
-                items[#items + 1] = group
-            end
-        end
-    end
+    -- GG / GA at the top. Land-vs-naval war progress is the most
+    -- decision-critical of the great-people streams (combat XP either
+    -- accumulates from active fighting or doesn't), so it leads.
     items[#items + 1] = gpProgressWidget("TXT_KEY_CITYVIEW_GG_PROGRGRESS", function(p)
         return p:GetCombatExperience()
     end, function(p)
@@ -484,44 +527,86 @@ local function buildGreatPeopleGroup()
     end, function(p)
         return p:GreatAdmiralThreshold()
     end)
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_MO_GP_GROUP"),
-        items = items,
-    })
-end
-
-function buildTopItems(handler)
-    local military, civilian = collectUnits()
-    local items = {
-        supplyWidget(),
-    }
-    m_sortIndex = #items + 1
-    items[#items + 1] = sortSelector(handler)
-    if #military > 0 then
-        items[#items + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_MO_GROUP_MILITARY"),
-            items = buildGroupItems(military),
-        })
+    -- Specialist subgroups in priority order. Collect first then sort
+    -- so the iteration order of GameInfo.Specialists doesn't leak
+    -- through.
+    local specialists = {}
+    for s in GameInfo.Specialists() do
+        if s.GreatPeopleUnitClass ~= nil then
+            specialists[#specialists + 1] = s
+        end
     end
-    if #civilian > 0 then
-        items[#items + 1] = BaseMenuItems.Group({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_MO_GROUP_CIVILIAN"),
-            items = buildGroupItems(civilian),
-        })
+    table.sort(specialists, function(a, b)
+        local ra = specialistRank(a)
+        local rb = specialistRank(b)
+        if ra ~= rb then
+            return ra < rb
+        end
+        return a.ID < b.ID
+    end)
+    for _, s in ipairs(specialists) do
+        local group = buildSpecialistGroup(s)
+        if group ~= nil then
+            items[#items + 1] = group
+        end
     end
-    items[#items + 1] = buildGreatPeopleGroup()
     return items
 end
 
-local function onShow(handler)
-    handler.setItems(buildTopItems(handler))
+-- Hoisted so install's onShow refreshes the items each open. Subgroup
+-- visibility depends on per-city progress, which can change between
+-- opens (a city accrued enough Writer GPP to appear, or the previous
+-- specialist resolved into a great person and the subgroup empties).
+-- Without the refresh the items would freeze at first-build state.
+local m_greatPeopleTab
+
+local function buildGreatPeopleTab()
+    m_greatPeopleTab = TabbedShell.menuTab({
+        tabName = "TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE",
+        menuSpec = {
+            displayName = Text.key("TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"),
+            items = buildGreatPeopleItems(),
+        },
+    })
+    return m_greatPeopleTab
 end
 
-BaseMenu.install(ContextPtr, {
+-- ===== Supply preamble ================================================
+
+-- Sole shell preamble: a one-line use/cap fraction. Same format whether
+-- the player is over cap (use > cap) or under -- the fraction conveys
+-- both the absolute count and the deficit-or-headroom on its own; over
+-- cap shows e.g. "Supply: 25/20" which reads as obviously over. The
+-- production-penalty percent and the per-source breakdown (base /
+-- cities / population) the sighted screen shows are dropped in favour
+-- of brevity here.
+local function supplyPreamble()
+    local p = Players[Game.GetActivePlayer()]
+    if p == nil then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF", p:GetNumUnits(), p:GetNumUnitsSupplied())
+end
+
+-- ===== Install ========================================================
+
+TabbedShell.install(ContextPtr, {
     name = "MilitaryOverview",
     displayName = Text.key("TXT_KEY_MILITARY_OVERVIEW"),
+    preamble = supplyPreamble,
+    tabs = {
+        buildUnitsTab(),
+        buildGreatPeopleTab(),
+    },
+    initialTabIndex = 1,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow = onShow,
-    items = { BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_MILITARY_OVERVIEW") }) },
+    -- Refresh GP items each open so subgroups reflect current per-city
+    -- progress (sub-list visibility hinges on >0 progress; a great-
+    -- person resolution between opens can empty out a subgroup).
+    onShow = function()
+        if m_greatPeopleTab ~= nil then
+            m_greatPeopleTab.menu().setItems(buildGreatPeopleItems())
+        end
+    end,
 })
