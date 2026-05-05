@@ -348,11 +348,12 @@ end
 
 -- ===== Gold tab =======================================================
 
-local function goldTextItem(labelKey, valueFn)
+local function goldTextItem(labelKey, valueFn, pediaName)
     return BaseMenuItems.Text({
         labelFn = function()
             return Text.format(labelKey, valueFn())
         end,
+        pediaName = pediaName,
     })
 end
 
@@ -476,6 +477,7 @@ local function buildIncomeBreakdownItems()
                 )
             end,
             cached = false,
+            pediaName = "TXT_KEY_GOLD_HEADING1_TITLE",
             itemsFn = function()
                 return perCityGoldEntries(function(_, c)
                     return c:GetYieldRateTimes100(YieldTypes.YIELD_GOLD) / 100
@@ -488,6 +490,7 @@ local function buildIncomeBreakdownItems()
                 if v < 0 then v = 0 end
                 return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_DIPLO", formatNumber(v))
             end,
+            pediaName = "TXT_KEY_GOLD_DIPLOMACY_HEADING3_TITLE",
         }),
         BaseMenuItems.Text({
             labelFn = function()
@@ -495,6 +498,7 @@ local function buildIncomeBreakdownItems()
                 if v < 0 then v = 0 end
                 return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_RELIGION", formatNumber(v))
             end,
+            pediaName = "TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION",
         }),
         BaseMenuItems.Group({
             labelFn = function()
@@ -505,6 +509,7 @@ local function buildIncomeBreakdownItems()
             end,
             cached = false,
             tooltipFn = tradeRoutesIncomeTooltip,
+            pediaName = "TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_TITLE",
             itemsFn = function()
                 return perCityGoldEntries(
                     function(p, c)
@@ -533,6 +538,7 @@ local function buildExpensesBreakdownItems()
                 )
             end,
             tooltipFn = unitsExpenseTooltip,
+            pediaName = "TXT_KEY_GOLD_MAINTENANCE_HEADING3_TITLE",
         }),
         BaseMenuItems.Group({
             labelFn = function()
@@ -543,6 +549,7 @@ local function buildExpensesBreakdownItems()
             end,
             cached = false,
             tooltipFn = buildingsExpenseTooltip,
+            pediaName = "TXT_KEY_GOLD_MAINTENANCE_HEADING3_TITLE",
             itemsFn = function()
                 return perCityGoldEntries(function(_, c)
                     return c:GetTotalBaseBuildingMaintenance()
@@ -557,6 +564,7 @@ local function buildExpensesBreakdownItems()
                 )
             end,
             tooltipFn = improvementsExpenseTooltip,
+            pediaName = "TXT_KEY_GOLD_ROAD_HEADING3_TITLE",
         }),
         BaseMenuItems.Text({
             labelFn = function()
@@ -564,6 +572,7 @@ local function buildExpensesBreakdownItems()
                 if v > 0 then v = 0 else v = -v end
                 return Text.format("TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO", formatNumber(v))
             end,
+            pediaName = "TXT_KEY_GOLD_DIPLOMACY_HEADING3_TITLE",
         }),
     }
 end
@@ -579,7 +588,7 @@ local function buildGoldItems()
     local items = {
         goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_TOTAL", function()
             return formatNumber(activePlayer():GetGold())
-        end),
+        end, "TXT_KEY_GOLD_HEADING1_TITLE"),
         BaseMenuItems.Group({
             labelFn = function()
                 return Text.format(
@@ -588,6 +597,7 @@ local function buildGoldItems()
                 )
             end,
             cached = false,
+            pediaName = "TXT_KEY_GOLD_HEADING1_TITLE",
             itemsFn = buildIncomeBreakdownItems,
         }),
         BaseMenuItems.Group({
@@ -598,11 +608,12 @@ local function buildGoldItems()
                 )
             end,
             cached = false,
+            pediaName = "TXT_KEY_GOLD_MAINTENANCE_HEADING3_TITLE",
             itemsFn = buildExpensesBreakdownItems,
         }),
         goldTextItem("TXT_KEY_CIVVACCESS_EO_GOLD_NET", function()
             return formatGoldT100(activePlayer():CalculateGoldRateTimes100())
-        end),
+        end, "TXT_KEY_GOLD_HEADING1_TITLE"),
     }
     local p = activePlayer()
     if p ~= nil and p:CalculateGoldRateTimes100() < 0 then
@@ -621,6 +632,7 @@ local function buildGoldItems()
                     formatGoldT100(-activePlayer():GetScienceFromBudgetDeficitTimes100())
                 )
             end,
+            pediaName = "TXT_KEY_GOLD_RUNNINGOUT_HEADING2_TITLE",
         })
     end
     return items
@@ -940,10 +952,12 @@ local function buildHappinessItems()
                     activePlayer():GetHappiness()
                 )
             end,
+            pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         }),
         BaseMenuItems.Group({
             labelText = Text.key("TXT_KEY_CIVVACCESS_EO_GROUP_HAPPY_SOURCES"),
             cached = false,
+            pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
             itemsFn = function()
                 local p = activePlayer()
                 -- Pre-compute visibility predicates only. Row values are
@@ -966,6 +980,7 @@ local function buildHappinessItems()
                         )
                     end,
                     cached = false,
+                    pediaName = "TXT_KEY_RESOURCES_LUXURY_HEADING2_TITLE",
                     itemsFn = perLuxuryHappinessEntries,
                 })
                 -- City happiness wrapper drillable. Three engine row types
@@ -984,6 +999,7 @@ local function buildHappinessItems()
                         return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES", sum)
                     end,
                     cached = false,
+                    pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
                     itemsFn = function()
                         local pl = activePlayer()
                         local cityHappy = pl:GetHappinessFromCities()
@@ -1098,6 +1114,7 @@ local function buildHappinessItems()
                         )
                     end,
                     cached = false,
+                    pediaName = "TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_TITLE",
                     itemsFn = function()
                         return perCityHappinessEntries(
                             function(player)
@@ -1116,6 +1133,7 @@ local function buildHappinessItems()
                             activePlayer():GetHappinessFromMinorCivs()
                         )
                     end,
+                    pediaName = "TXT_KEY_CITYSTATE_HEADING1_TITLE",
                 })
                 items[#items + 1] = BaseMenuItems.Text({
                     labelFn = function()
@@ -1124,6 +1142,7 @@ local function buildHappinessItems()
                             activePlayer():GetHappinessFromPolicies()
                         )
                     end,
+                    pediaName = "TXT_KEY_SOCIALPOLICY_HEADING1_TITLE",
                 })
                 if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
                     items[#items + 1] = BaseMenuItems.Text({
@@ -1133,6 +1152,7 @@ local function buildHappinessItems()
                                 activePlayer():GetHappinessFromReligion()
                             )
                         end,
+                        pediaName = "TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION",
                     })
                 end
                 if naturalWonders > 0 then
@@ -1173,10 +1193,12 @@ local function buildHappinessItems()
                     activePlayer():GetUnhappiness()
                 )
             end,
+            pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         }),
         BaseMenuItems.Group({
             labelText = Text.key("TXT_KEY_CIVVACCESS_EO_GROUP_UNHAPPY_SOURCES"),
             cached = false,
+            pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
             itemsFn = function()
                 local p = activePlayer()
                 -- Counts upfront for visibility gating; row labelFns
@@ -1257,6 +1279,7 @@ local function buildHappinessItems()
                                 activePlayer():GetUnhappinessFromPublicOpinion()
                             )
                         end,
+                        pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
                     })
                 end
                 items[#items + 1] = BaseMenuItems.Group({
