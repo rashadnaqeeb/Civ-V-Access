@@ -377,7 +377,10 @@ function SocialPolicyLogic.buildPublicOpinionSpeech(player)
     if key == nil then
         key = "TXT_KEY_CO_PUBLIC_OPINION_CONTENT"
     end
-    local parts = { Text.key(key) }
+    -- Prefix with the engine's own section header ("PUBLIC OPINION") so the
+    -- bare opinion word ("Content", "Dissidents", ...) has a frame; sighted
+    -- players see this header right above the value on the same screen.
+    local parts = { Text.key("TXT_KEY_CO_VICTORY_PUBLIC_OPINION_HEADER"), Text.key(key) }
     local unhappiness = player:GetPublicOpinionUnhappiness()
     if unhappiness > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_OPINION_UNHAPPINESS", unhappiness)
