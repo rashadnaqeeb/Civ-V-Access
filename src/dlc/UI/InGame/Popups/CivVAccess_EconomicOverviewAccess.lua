@@ -1352,11 +1352,17 @@ local function rebuildResourceRows()
             rows[#rows + 1] = resource
         end
     end
-    -- Default order: alphabetical by localized name. BaseTable's sort cycle
-    -- only operates on column sortKeys, so without a stable default the
-    -- user lands in raw GameInfo iteration order (XML sequence) which has
-    -- no semantic meaning at the table level.
+    -- Default order: strategics first, then luxuries, alphabetical within
+    -- each group. Strategics are the more decision-critical type (running
+    -- out of iron mid-war is a problem; running out of wine isn't), so
+    -- they lead. Engine ResourceList.lua uses the same Strategic-then-
+    -- Luxury grouping in its info-corner panel.
     table.sort(rows, function(a, b)
+        local aStrategic = isStrategic(a.ID)
+        local bStrategic = isStrategic(b.ID)
+        if aStrategic ~= bStrategic then
+            return aStrategic
+        end
         return Text.key(a.Description) < Text.key(b.Description)
     end)
     return rows

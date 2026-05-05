@@ -1174,17 +1174,22 @@ function M.test_rebuildResourceRows_includes_strategic_visible_via_export_only()
     T.eq(#rows, 1)
 end
 
-function M.test_rebuildResourceRows_sorts_alphabetically_by_default()
+function M.test_rebuildResourceRows_default_order_strategics_first_then_alpha_within_group()
     setup()
+    -- Strategics lead because they're decision-critical (running out of
+    -- iron mid-war is a problem); within each group the rows are
+    -- alphabetical so the user can predictably scan to a known resource.
     installResourceTabFixture({
         { id = 1, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, ["local"] = 1 },
         { id = 2, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, ["local"] = 1 },
         { id = 3, description = "Citrus", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, ["local"] = 1 },
+        { id = 4, description = "Coal", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, ["local"] = 1 },
     })
     local rows = EconomicOverviewAccess.rebuildResourceRows()
-    T.eq(rowDescriptions(rows)[1], "Citrus")
+    T.eq(rowDescriptions(rows)[1], "Coal", "strategics first, alpha within")
     T.eq(rowDescriptions(rows)[2], "Iron")
-    T.eq(rowDescriptions(rows)[3], "Wine")
+    T.eq(rowDescriptions(rows)[3], "Citrus", "luxuries follow strategics, alpha within")
+    T.eq(rowDescriptions(rows)[4], "Wine")
 end
 
 -- resourceRowLabel ------------------------------------------------------
