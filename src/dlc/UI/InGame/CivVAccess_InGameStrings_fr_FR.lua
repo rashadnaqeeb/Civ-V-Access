@@ -644,7 +644,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PUPPET"] = "vassale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "sous blocus"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} population"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} défense"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} of {2_Max} hp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} sur {2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "en garnison {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = {
     one = "production de {1_Name} {2_Turns} tour",
@@ -662,7 +662,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS"] = "production de
 -- is exactly zero and population holds, plus the FOOD_PROGRESS /
 -- FOOD_PER_TURN / FOOD_LOSING readouts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING"] = "aucune production"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS"] = "{1_Cur} of {2_Needed} production"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PROGRESS"] = "{1_Cur} sur {2_Needed} production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCTION_PER_TURN"] = "{1_Num} par tour"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GROWS_IN"] = {
     one = "croissance dans {1_Turns} tour",
@@ -670,7 +670,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GROWS_IN"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STARVING"] = "en famine"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING"] = "croissance arrêtée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS"] = "{1_Cur} of {2_Threshold} nourriture"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS"] = "{1_Cur} sur {2_Threshold} nourriture"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PER_TURN"] = "{1_Num} par tour"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_LOSING"] = "perte de {1_Num} par tour"
 -- Spoken when development info is being read on a foreign city the active
@@ -1188,12 +1188,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_BUY_UNAFFORDABLE"] = "acheta
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_CANNOT_AFFORD"] = "pas les moyens"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_MOVE"] = "Q A Z E D C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_MOVE"] = "Déplacer le curseur sur les cases de la ville"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_ENTER"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_ENTER"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_ENTER"] = "Travailler ou acheter la case"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_LIST"] = "L"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_LIST"] = "Lister les cases travaillées depuis le curseur"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_LIST_NONE"] = "aucune case travaillée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK"] = "Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK"] = "Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK"] = "Retour au centre-ville"
 -- Ranged strike sub-handler (§3.5). Hub item closes the city screen, enters
 -- INTERFACEMODE_CITY_RANGE_ATTACK, and pushes a target picker. Cursor moves
@@ -1212,11 +1212,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_FIRED"] = "tir effectué"
 -- GetCombatPrediction) and no retaliation (city ranged is one-way).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW"] =
     "{1_Name}, {2_MyStr} contre {3_TheirStr}, {4_Dmg} dégâts sur eux"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_PREVIEW"] = "Espace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_PREVIEW"] = "Lire les informations de la cible"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_COMMIT"] = "Tirer sur la cible actuelle"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_CANCEL"] = "Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_CANCEL"] = "Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_CANCEL"] = "Annuler sans tirer"
 -- Gift-unit / gift-improvement target picker (audit §7.7). Pushed from
 -- the city-state diplo popup when the user chooses Gift > Unit or Gift >
@@ -1228,11 +1228,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_CANCEL"] = "Annuler
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_UNIT_MODE"] = "don d'unité"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_IMPROVEMENT_MODE"] = "don d'amélioration"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_IMPROVEMENT_GIVEN"] = "amélioration donnée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_PREVIEW"] = "Espace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_PREVIEW"] = "Lire les informations de la cible"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_COMMIT"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_COMMIT"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_COMMIT"] = "Confirmer le don sur la cible actuelle"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_CANCEL"] = "Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_CANCEL"] = "Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_CANCEL"] = "Annuler sans faire de don"
 -- Rename / Raze hub items (§3.13, §3.14). Rename fires BUTTONPOPUP_RENAME_CITY,
 -- whose accessibility is handled by SetCityNameAccess. Raze fires the Yes/No
@@ -1609,7 +1609,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_QUEUED_COMMIT"] = "{1_Name} mis 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_REJECT_RESEARCHED"] = "déjà recherché"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_REJECT_FREE_INELIGIBLE"] = "non disponible comme technologie gratuite"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_REJECT_STEAL_INELIGIBLE"] = "impossible de voler ceci"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV"] = "Up/Down/Left/Right"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_NAV"] = "Haut/Bas/Gauche/Droite"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"] =
     "Haut/Bas dans la colonne d'ère, Gauche/Droite à travers la rangée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_TREE"] =
@@ -1619,7 +1619,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TOGGLE_MODE"] =
     "Basculer entre navigation par grille et par arbre"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_MODE_GRID"] = "grille"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_MODE_TREE"] = "arbre"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER"] = "Rechercher la technologie ciblée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER"] = "Maj plus Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER"] =
@@ -1630,7 +1630,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH"] = "Lettre / ch
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH"] = "Saisir pour rechercher par nom ou découvertes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6"] = "F6"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"] = "Fermer l'arbre des technologies"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE"] = "Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE"] = "Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"] = "Fermer l'arbre des technologies"
 
 -- Social Policies popup
@@ -1701,7 +1701,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCHED"] = "changement d'i
 -- Esc bindings with their own help strings because the digit surface isn't
 -- covered by the menu's standard A-Z search entry.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_DIGITS"] = "Chiffres"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_BACKSPACE"] = "Backspace"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_BACKSPACE"] = "Retour arrière"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NUMENTRY_DIGIT"] = "Ajouter un chiffre"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NUMENTRY_BACKSPACE"] = "Supprimer le dernier chiffre"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NUMENTRY_COMMIT"] = "Confirmer le montant"
@@ -2381,7 +2381,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
 -- via base's SendChat. Single-player no-ops with a spoken marker. Chat
 -- target types (all / team / whisper) format the inline announce and the
 -- MessageBuffer "chat" entries so the user can tell whom a message went to.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY"] = "Backslash"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY"] = "Antislash"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_DESC"] =
     "Ouvrir le panneau de discussion multijoueur, sans effet en solo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"] = "La discussion est réservée au multijoueur"
@@ -2397,5 +2397,5 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG"] = "{1_Name} : {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} à l'équipe : {2_Text}"
 -- {2_To} recipient name (or "you" when the local player is the target).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} à {2_To} : {3_Text}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Backslash or Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Antislash ou Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Fermer le panneau de discussion"
