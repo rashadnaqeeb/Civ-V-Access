@@ -757,7 +757,7 @@ function M.test_luxuryBaseSumAndCount_skips_unowned_luxuries()
         [3] = "TXT_KEY_RESOURCE_GOLD",
     })
     local p = stubPlayer({
-        luxuries = { [1] = 4, [2] = 4 },  -- not [3]: unowned
+        luxuries = { [1] = 4, [2] = 4 }, -- not [3]: unowned
     })
     local sum, count = EconomicOverviewAccess.luxuryBaseSumAndCount(p)
     T.eq(sum, 8)
@@ -792,7 +792,7 @@ function M.test_luxuryBaseSumAndCount_strips_lua_binding_per_luxury_bonus()
         perLuxRate = 1,
     })
     local sum, count = EconomicOverviewAccess.luxuryBaseSumAndCount(p)
-    T.eq(sum, 8)  -- 4 + 4 (true base), NOT 5 + 5 = 10
+    T.eq(sum, 8) -- 4 + 4 (true base), NOT 5 + 5 = 10
     T.eq(count, 2)
 end
 
@@ -838,7 +838,7 @@ function M.test_difficultyHappiness_subtracts_every_listed_source()
         fromNaturalWonders = 1,
         fromMinorCivs = 0,
         extraPerCity = 1,
-        numCities = 4,  -- contributes 4 to free-per-city
+        numCities = 4, -- contributes 4 to free-per-city
         fromLeagues = 0,
     })
     -- 30 - 2 - 8 - 4 - 1 - 1 - 0 - 1 - 0 - (1*4) - 0 = 9
@@ -850,7 +850,7 @@ end
 function M.test_citiesUnhappinessTooltip_default_difficulty_returns_base_only()
     setup()
     Players[0] = stubPlayer({})
-    installHandicapFixtures({})  -- all 100% / 0
+    installHandicapFixtures({}) -- all 100% / 0
     local tip = EconomicOverviewAccess.citiesUnhappinessTooltip()
     -- No modifiers active; base text key only (TXT_KEY_NUMBER_OF_CITIES_TT
     -- resolves to its own name in the harness via missing-key fallback).
@@ -860,7 +860,7 @@ end
 function M.test_citiesUnhappinessTooltip_appends_handicap_when_modifier_active()
     setup()
     Players[0] = stubPlayer({})
-    installHandicapFixtures({ numCitiesMod = 60 })  -- 40% reduction
+    installHandicapFixtures({ numCitiesMod = 60 }) -- 40% reduction
     local tip = EconomicOverviewAccess.citiesUnhappinessTooltip()
     -- TT_NORMALLY swap (engine pattern unique to Cities row)
     T.truthy(tip:find("TXT_KEY_NUMBER_OF_CITIES_TT_NORMALLY"))
@@ -871,8 +871,8 @@ end
 function M.test_citiesUnhappinessTooltip_chains_multiple_modifiers()
     setup()
     Players[0] = stubPlayer({
-        cityCountMod = -25,  -- player mod
-        traitCityMod = -50,  -- trait mod
+        cityCountMod = -25, -- player mod
+        traitCityMod = -50, -- trait mod
     })
     installHandicapFixtures({ numCitiesMod = 60, worldMod = 80 })
     local tip = EconomicOverviewAccess.citiesUnhappinessTooltip()
@@ -910,8 +910,8 @@ function M.test_occupiedCitizensUnhappinessTooltip_uses_occupied_pop_mod_not_gen
     -- Police State: -10% Unhappiness from occupied population only. The
     -- general unhappiness mod and trait mod must not leak into this row.
     Players[0] = stubPlayer({
-        unhappinessMod = -3,  -- general (must NOT appear)
-        traitPopMod = -2,     -- trait (must NOT appear)
+        unhappinessMod = -3, -- general (must NOT appear)
+        traitPopMod = -2, -- trait (must NOT appear)
         occupiedPopMod = -10, -- occupied (must appear)
     })
     installHandicapFixtures({})

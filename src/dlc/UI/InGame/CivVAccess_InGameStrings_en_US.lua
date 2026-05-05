@@ -2242,18 +2242,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES"] = "City happiness
 -- buildings (Colosseum, Theatre, Stadium, Circus Maximus, Hotel) feed
 -- this row.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY"] = "Buildings, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY_TT"] =
-    "Happiness from buildings, garrisons, religion, and policy synergies in each city. "
-        .. "Capped at city population."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY_TT"] = "Happiness from buildings, garrisons, religion, and policy synergies in each city. "
+    .. "Capped at city population."
 -- Engine "City Buildings" -- niche bucket for empire-wide BuildingClass
 -- synergies, the rare UnmoddedHappiness attribute, and the
 -- happiness-per-X-policies wonder bonus. Most of these are wonder effects;
 -- normal happiness buildings DON'T feed this row.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES"] = "Wonder bonuses, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT"] =
-    "Happiness from wonders with specialty effects: building-class synergies, "
-        .. "unmodded happiness, or per-policy bonuses. Most happiness buildings "
-        .. "feed Buildings (per city) above, not this row."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT"] = "Happiness from wonders with specialty effects: building-class synergies, "
+    .. "unmodded happiness, or per-policy bonuses. Most happiness buildings "
+    .. "feed Buildings (per city) above, not this row."
 -- Residual row inside the Wonder bonuses drilldown. Empire-wide
 -- BuildingClass synergies and the happiness-per-X-policies wonder bonus
 -- don't decompose per city, so the per-city children sum to less than
@@ -2269,9 +2267,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS"] = "Natural won
 -- HappinessPerCity attribute. Already multiplied by city count (engine
 -- shows the multiplied total too).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES"] = "Per-city bonuses, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES_TT"] =
-    "Happiness from buildings or policies that grant a flat amount per city you own. "
-        .. "Multiplied by your city count."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES_TT"] = "Happiness from buildings or policies that grant a flat amount per city you own. "
+    .. "Multiplied by your city count."
 -- Engine TXT_KEY_HAPPINESS_FROM_LEAGUES is "World Congress"; ignore the
 -- internal "Leagues" naming and surface the BNW concept name to players.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WORLD_CONGRESS"] = "World Congress, {1_Value}"
