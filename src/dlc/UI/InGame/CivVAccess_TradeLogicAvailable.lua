@@ -32,6 +32,23 @@ local function disabledPocketLeaf(label, controlName)
     })
 end
 
+-- ", you have N" / ", they have N" suffix attached to every Available-tab
+-- leaf that has a stock count: gold, gold per turn, strategic resources,
+-- luxuries. Phrasing the bare number as "you have N" / "they have N"
+-- keeps it from being misread as the trade quantity (per CLAUDE.md's
+-- "Phrase stock counts as 'you have N'" rule), and the side-aware subject
+-- avoids saying "you have 2" when it's actually the AI's stock that the
+-- user is browsing on the Their Offer drawer. Returns "" when n is nil so
+-- callers can append unconditionally.
+local function stockSuffix(side, n)
+    if n == nil then
+        return ""
+    end
+    local key = TradeLogicAccess.sideIsUs(side) and "TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"
+        or "TXT_KEY_CIVVACCESS_TRADE_THEY_HAVE"
+    return ", " .. Text.format(key, n)
+end
+
 -- BNW gates lump-sum gold trades on a Declaration of Friendship between
 -- the two civs (peace deals exempt); the base UI sets
 -- TXT_KEY_DIPLO_NEED_DOF_TT_ONE_LINE on the pocket-gold control's tooltip
@@ -40,11 +57,14 @@ local function availableGoldLeaf(side)
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local other = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local pocketControlName = TradeLogicAccess.prefix(side) .. "PocketGold"
+    local pPlayer = Players[iPlayer]
+    local stock = pPlayer and pPlayer:GetGold() or 0
+    local label = Text.key("TXT_KEY_DIPLO_GOLD") .. stockSuffix(side, stock)
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD, 1) then
-        return disabledPocketLeaf(Text.key("TXT_KEY_DIPLO_GOLD"), pocketControlName)
+        return disabledPocketLeaf(label, pocketControlName)
     end
     return BaseMenuItems.Text({
-        labelText = Text.key("TXT_KEY_DIPLO_GOLD"),
+        labelText = label,
         tooltipFn = TradeLogicAccess.pocketTooltipFn(pocketControlName),
         onActivate = function()
             local maxGold = g_Deal:GetGoldAvailable(iPlayer, -1) or 0
@@ -72,7 +92,13 @@ local function availableGoldPerTurnLeaf(side)
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local other = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local dealDur = TradeLogicAccess.dealDuration()
-    local label = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN") .. TradeLogicAccess.turnsSuffix(dealDur)
+    local pPlayer = Players[iPlayer]
+    -- "PER TURN" lives in the label so "you have 50" reads as 50 gold per
+    -- turn, parallel to the offered amount in the Offering tab.
+    local rate = pPlayer and pPlayer:CalculateGoldRate() or 0
+    local label = Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN")
+        .. TradeLogicAccess.turnsSuffix(dealDur)
+        .. stockSuffix(side, rate)
     local pocketControlName = TradeLogicAccess.prefix(side) .. "PocketGoldPerTurn"
     if not g_Deal:IsPossibleToTradeItem(iPlayer, other, TradeableItems.TRADE_ITEM_GOLD_PER_TURN, 1, dealDur) then
         return disabledPocketLeaf(label, pocketControlName)
@@ -111,14 +137,11 @@ local function availableResourceLeaf(side, resType, resInfo)
     if not isStrategic then
         -- Append the tradeable copy count so the player knows up-front
         -- whether giving this away costs the only copy (1) or just an
-        -- extra. Phrased "you have N" rather than a bare number so it
-        -- can't be misread as a trade quantity -- luxuries are always
-        -- 1-quantity. Mirrors the engine's "(N)" pocket suffix.
+        -- extra. Phrased "you have N" / "they have N" rather than a bare
+        -- number so it can't be misread as a trade quantity -- luxuries
+        -- are always 1-quantity. Mirrors the engine's "(N)" pocket suffix.
         local qty = g_Deal:GetNumResource(iPlayer, resType) or 0
-        local luxuryLabel = resName
-            .. TradeLogicAccess.turnsSuffix(dealDur)
-            .. ", "
-            .. Text.format("TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE", qty)
+        local luxuryLabel = resName .. TradeLogicAccess.turnsSuffix(dealDur) .. stockSuffix(side, qty)
         return BaseMenuItems.Text({
             labelText = luxuryLabel,
             pediaName = pediaName,
@@ -131,8 +154,10 @@ local function availableResourceLeaf(side, resType, resInfo)
         })
     end
     -- Strategic: prompt for amount, capped at g_Deal:GetNumResource.
+    local strategicQty = g_Deal:GetNumResource(iPlayer, resType) or 0
+    local strategicLabel = label .. stockSuffix(side, strategicQty)
     return BaseMenuItems.Text({
-        labelText = label,
+        labelText = strategicLabel,
         pediaName = pediaName,
         onActivate = function()
             local maxQty = g_Deal:GetNumResource(iPlayer, resType) or 0

@@ -1723,6 +1723,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OTHER_PLAYERS"] = "Autres joueurs"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"] = "aucun disponible"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_OFFERING_EMPTY"] = "rien sur la table"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"] = "vous avez {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_THEY_HAVE"] = "ils ont {1_Num}"
 -- DiploCurrentDeals review labels. Each deal renders as one Text leaf
 -- whose label inlines the full contents; these are the side prefixes the
 -- builder concatenates around the per-item descriptions. Colon-then-list
