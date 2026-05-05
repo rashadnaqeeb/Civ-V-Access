@@ -401,6 +401,44 @@ function M.test_science_column_enterAction_dismisses_eo_then_opens_tech_tree()
     T.eq(order[2], ButtonPopupTypes.BUTTONPOPUP_TECH_TREE)
 end
 
+function M.test_focus_city_speaks_glance_returned_by_jumpCursorTo()
+    setup()
+    -- jumpCursorTo returns the cursor's announce composer text (or
+    -- SCANNER_HERE on a no-move). focusCity must speakInterrupt that text
+    -- so the user hears the new location after EO dismisses.
+    civvaccess_shared.modules.ScannerNav.jumpCursorTo = function()
+        return "grass plot, your borders, capital nearby"
+    end
+    local spoken
+    SpeechPipeline._speakAction = function(text, interrupt)
+        spoken = { text = text, interrupt = interrupt }
+    end
+    local city = stubCity({ id = 1 })
+    function city:Plot()
+        return { GetX = function() return 0 end, GetY = function() return 0 end }
+    end
+    local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
+    pop.enterAction(city)
+    T.eq(spoken.text, "grass plot, your borders, capital nearby")
+    T.eq(spoken.interrupt, true, "glance must speakInterrupt to clear popup-close speech")
+end
+
+function M.test_focus_city_silent_on_empty_glance()
+    setup()
+    -- Empty glance is the Map.GetPlot-failure signal Cursor.jumpTo emits
+    -- after logging; speaking it would surface a blank string to Tolk.
+    civvaccess_shared.modules.ScannerNav.jumpCursorTo = function() return "" end
+    local spoken = false
+    SpeechPipeline._speakAction = function() spoken = true end
+    local city = stubCity({ id = 1 })
+    function city:Plot()
+        return { GetX = function() return 0 end, GetY = function() return 0 end }
+    end
+    local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
+    pop.enterAction(city)
+    T.eq(spoken, false, "empty glance must not reach the speech pipeline")
+end
+
 function M.test_focus_city_columns_dismiss_eo_then_jump_cursor_via_scanner()
     setup()
     -- Capture the dismiss + cursor-jump call order; assert each focus column
