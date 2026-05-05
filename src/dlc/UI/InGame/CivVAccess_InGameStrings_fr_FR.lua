@@ -2033,24 +2033,47 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL"] = "Bonheur total, {1_Val
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_HAPPY_SOURCES"] = "Sources de bonheur"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURIES"] = "Luxes, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_VARIETY"] = "Variété de luxes, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_BONUS"] = "Bonus de luxe, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_BONUS"] = "Bonus des luxes, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_MISC"] = "Autres bonus de luxe, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS"] = "Bâtiments, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES"] = "Bonheur des villes, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY"] = "Bâtiments, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY_TT"] =
+    "Bonheur des bâtiments, garnisons, religion et synergies politiques dans chaque ville. "
+        .. "Plafonné à la population de la ville."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES"] = "Bonus de merveille, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT"] =
+    "Bonheur des merveilles à effets spéciaux : synergies de classes de bâtiment, "
+        .. "bonheur non modifié, ou bonus par politique. La plupart des bâtiments à bonheur "
+        .. "alimentent Bâtiments (par ville) ci-dessus, pas cette ligne."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TRADE_ROUTES"] = "Routes commerciales, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LOCAL_CITIES"] = "Villes locales, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES"] = "Cités-États, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_POLICIES"] = "Politiques, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_RELIGION"] = "Religion, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS"] = "Merveilles naturelles, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_FREE_PER_CITY"] = "Gratuit par ville, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LEAGUES"] = "Ligues, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES"] = "Bonus par ville, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES_TT"] =
+    "Bonheur des bâtiments ou politiques qui accordent un montant fixe par ville possédée. "
+        .. "Multiplié par votre nombre de villes."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WORLD_CONGRESS"] = "Congrès mondial, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_DIFFICULTY"] = "Niveau de difficulté, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL"] = "Mécontentement total, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_UNHAPPY_SOURCES"] = "Sources de mécontentement"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = "Villes {1_Count}, mécontentement {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = "Villes occupées {1_Count}, mécontentement {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = "Citoyens {1_Count}, mécontentement {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = "Citoyens occupés {1_Count}, mécontentement {2_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = {
+    one = "{1_Count} ville, mécontentement {2_Value}",
+    other = "{1_Count} villes, mécontentement {2_Value}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = {
+    one = "{1_Count} ville occupée, mécontentement {2_Value}",
+    other = "{1_Count} villes occupées, mécontentement {2_Value}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = {
+    one = "{1_Count} citoyen, mécontentement {2_Value}",
+    other = "{1_Count} citoyens, mécontentement {2_Value}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
+    one = "{1_Count} citoyen occupé, mécontentement {2_Value}",
+    other = "{1_Count} citoyens occupés, mécontentement {2_Value}",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Opinion publique, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Détail par ville"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Disponible"

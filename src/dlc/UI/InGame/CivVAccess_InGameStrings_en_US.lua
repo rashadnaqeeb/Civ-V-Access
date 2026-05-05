@@ -2216,36 +2216,83 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_IMPROVEMENTS"] = "Improvements
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO"] = "Diplomacy, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL"] = "Total happiness, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_HAPPY_SOURCES"] = "Happiness sources"
+-- Luxuries header value is the full GetHappinessFromResources() total.
+-- The drilldown contains the per-resource rows plus three bottom rows
+-- (variety, multiplied bonus, misc) so the children sum to the header.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURIES"] = "Luxuries, {1_Value}"
--- Three sub-rows nested under Luxuries that the per-resource list doesn't
--- capture: diversity bonus, flat per-luxury bonuses (Aesthetics/Protectionism
--- etc.) shown as the multiplied total contribution, and a residual bucket
--- for anything else GetHappinessFromResources covers.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_VARIETY"] = "Luxury variety, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_BONUS"] = "Luxury bonus, {1_Value}"
+-- Multiplied total of (per-luxury bonus rate * number of luxuries).
+-- Lives as a bottom row in the Luxuries drilldown alongside the
+-- per-resource entries, so the value's role as an additive contribution
+-- (not a per-luxury rate) is clear from context.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_BONUS"] = "Bonus from luxuries, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURY_MISC"] = "Other luxury bonuses, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS"] = "Buildings, {1_Value}"
+-- City happiness wrapper drillable. Header value is the empire-wide sum
+-- of three engine accessors (GetHappinessFromCities + GetHappinessFromBuildings
+-- + GetExtraHappinessPerCity * GetNumCities) so the user gets the
+-- aggregate up front and drills in for the breakdown.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES"] = "City happiness, {1_Value}"
+-- Engine "Local City Happiness". Per-city local happiness from buildings,
+-- garrison, religion, and policy synergies; capped at city population.
+-- Renamed because most happiness buildings (Colosseum, Theatre, Stadium,
+-- etc.) feed THIS row, not the engine "Buildings" row -- the engine label
+-- gets it backwards. Tooltip explains the engine source for cross-reference.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY"] = "Buildings, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_BUILDINGS_PERCITY_TT"] =
+    "Happiness from buildings, garrisons, religion, and policy synergies in each city. "
+        .. "Capped at city population."
+-- Engine "City Buildings" -- niche bucket for empire-wide BuildingClass
+-- synergies, the rare UnmoddedHappiness attribute, and the
+-- happiness-per-X-policies wonder bonus. Most of these are wonder effects;
+-- normal happiness buildings DON'T feed this row.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES"] = "Wonder bonuses, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_TT"] =
+    "Happiness from wonders with specialty effects: building-class synergies, "
+        .. "unmodded happiness, or per-policy bonuses. Most happiness buildings "
+        .. "feed Buildings (per city) above, not this row."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_TRADE_ROUTES"] = "Trade routes, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LOCAL_CITIES"] = "Local cities, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES"] = "City-states, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_POLICIES"] = "Policies, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_RELIGION"] = "Religion, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS"] = "Natural wonders, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_FREE_PER_CITY"] = "Free per city, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_LEAGUES"] = "Leagues, {1_Value}"
+-- Engine "Free Happiness Per City" -- buildings/policies with the
+-- HappinessPerCity attribute. Already multiplied by city count (engine
+-- shows the multiplied total too).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES"] = "Per-city bonuses, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES_TT"] =
+    "Happiness from buildings or policies that grant a flat amount per city you own. "
+        .. "Multiplied by your city count."
+-- Engine TXT_KEY_HAPPINESS_FROM_LEAGUES is "World Congress"; ignore the
+-- internal "Leagues" naming and surface the BNW concept name to players.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WORLD_CONGRESS"] = "World Congress, {1_Value}"
 -- Difficulty handicap residual: total happiness minus all other listed
--- sources. The engine has no accessor; both engine and we back-compute it.
+-- sources. Engine has no accessor; both engine and we back-compute it.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_DIFFICULTY"] = "Difficulty level, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL"] = "Total unhappiness, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_UNHAPPY_SOURCES"] = "Unhappiness sources"
--- Each row pairs a source count (cities or citizens contributing) with its
--- unhappiness amount. The label-only formulation "Number of cities, 8.5"
--- reads ambiguously to a screen reader: 8.5 could be cities or unhappiness.
--- Surfacing both numbers, the second explicitly labeled, removes the trap.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = "Cities {1_Count}, unhappiness {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = "Occupied cities {1_Count}, unhappiness {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = "Citizens {1_Count}, unhappiness {2_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = "Occupied citizens {1_Count}, unhappiness {2_Value}"
+-- Count leads with its noun ("8 cities") so the listener can't mistake
+-- the count for the unhappiness amount; the second number is explicitly
+-- nouned ("unhappiness 8.5"). Plural-aware so "1 city" / "N cities" both
+-- read naturally. Engine row labels "# of Cities (N)" / "# of Occupied
+-- Cities (N)" / "Citizens (N)" / "Occupied Citizens (N)" with the value
+-- column carrying the unhappiness amount; we collapse both into one row
+-- since speech has no left/right column distinction.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = {
+    one = "{1_Count} city, {2_Value} unhappiness",
+    other = "{1_Count} cities, {2_Value} unhappiness",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES"] = {
+    one = "{1_Count} occupied city, {2_Value} unhappiness",
+    other = "{1_Count} occupied cities, {2_Value} unhappiness",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION"] = {
+    one = "{1_Count} citizen, {2_Value} unhappiness",
+    other = "{1_Count} citizens, {2_Value} unhappiness",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
+    one = "{1_Count} occupied citizen, {2_Value} unhappiness",
+    other = "{1_Count} occupied citizens, {2_Value} unhappiness",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Public opinion, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Per city breakdown"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Available"

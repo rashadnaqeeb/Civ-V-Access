@@ -620,4 +620,308 @@ function M.test_productionColumnCell_with_no_production_says_none()
     T.truthy(out:find("no production"))
 end
 
+-- Player + handicap fixtures ------------------------------------------
+
+-- Stub player exposing the engine methods the happiness/unhappiness
+-- helpers reach for. Defaults are zero so each test only sets the
+-- specific accessors it cares about.
+local function stubPlayer(opts)
+    opts = opts or {}
+    local p = {}
+    -- Per-luxury contributions keyed by resource id; nil → 0. Mirrors the
+    -- Expansion2 Lua binding (CvLuaPlayer::lGetHappinessFromLuxury), which
+    -- silently adds GetExtraHappinessPerLuxury to the C++ return when
+    -- positive. Helpers and display code must strip this back out per row,
+    -- otherwise the per-luxury bonus gets double-counted against
+    -- GetHappinessFromResources.
+    local lux = opts.luxuries or {}
+    function p:GetHappinessFromLuxury(id)
+        local h = lux[id] or 0
+        if h > 0 then
+            h = h + (opts.perLuxRate or 0)
+        end
+        return h
+    end
+    function p:GetHappinessFromResources()
+        return opts.resourcesTotal or 0
+    end
+    function p:GetHappinessFromResourceVariety()
+        return opts.variety or 0
+    end
+    function p:GetExtraHappinessPerLuxury()
+        return opts.perLuxRate or 0
+    end
+    function p:GetHappiness()
+        return opts.happiness or 0
+    end
+    function p:GetHappinessFromPolicies()
+        return opts.fromPolicies or 0
+    end
+    function p:GetHappinessFromBuildings()
+        return opts.fromBuildings or 0
+    end
+    function p:GetHappinessFromCities()
+        return opts.fromCities or 0
+    end
+    function p:GetHappinessFromTradeRoutes()
+        return opts.fromTradeRoutes or 0
+    end
+    function p:GetHappinessFromReligion()
+        return opts.fromReligion or 0
+    end
+    function p:GetHappinessFromNaturalWonders()
+        return opts.fromNaturalWonders or 0
+    end
+    function p:GetHappinessFromMinorCivs()
+        return opts.fromMinorCivs or 0
+    end
+    function p:GetExtraHappinessPerCity()
+        return opts.extraPerCity or 0
+    end
+    function p:GetNumCities()
+        return opts.numCities or 0
+    end
+    function p:GetHappinessFromLeagues()
+        return opts.fromLeagues or 0
+    end
+    -- Unhappiness modifier accessors used by the tooltip composers.
+    function p:GetCityCountUnhappinessMod()
+        return opts.cityCountMod or 0
+    end
+    function p:GetTraitCityUnhappinessMod()
+        return opts.traitCityMod or 0
+    end
+    function p:GetUnhappinessMod()
+        return opts.unhappinessMod or 0
+    end
+    function p:GetTraitPopUnhappinessMod()
+        return opts.traitPopMod or 0
+    end
+    function p:GetCapitalUnhappinessMod()
+        return opts.capitalMod or 0
+    end
+    function p:GetOccupiedPopulationUnhappinessMod()
+        return opts.occupiedPopMod or 0
+    end
+    function p:IsHalfSpecialistUnhappiness()
+        return opts.halfSpecialistUnhappiness or false
+    end
+    return p
+end
+
+-- Override GameInfo.Resources to iterate over a fixed set of stub
+-- resource rows for the luxury tests. Pass `idsWithDescription` -- a
+-- table mapping ID -> Description -- and the iterator yields one row
+-- per entry. The Description value is whatever the test wants to look
+-- for in row labels (formatted via Locale.ConvertTextKey, which the
+-- harness leaves as identity).
+local function installResourceFixtures(idsWithDescription)
+    GameInfo = GameInfo or {}
+    GameInfo.Resources = function()
+        local rows = {}
+        for id, desc in pairs(idsWithDescription) do
+            rows[#rows + 1] = { ID = id, Description = desc }
+        end
+        local i = 0
+        return function()
+            i = i + 1
+            return rows[i]
+        end
+    end
+end
+
+local function installHandicapFixtures(opts)
+    opts = opts or {}
+    GameInfo = GameInfo or {}
+    GameInfo.HandicapInfos = {
+        [0] = {
+            NumCitiesUnhappinessMod = opts.numCitiesMod or 100,
+            PopulationUnhappinessMod = opts.populationMod or 100,
+        },
+    }
+    Game.GetHandicapType = function()
+        return 0
+    end
+    Game.GetWorldNumCitiesUnhappinessPercent = function()
+        return opts.worldMod or 100
+    end
+end
+
+-- luxuryBaseSumAndCount --------------------------------------------------
+
+function M.test_luxuryBaseSumAndCount_skips_unowned_luxuries()
+    setup()
+    installResourceFixtures({
+        [1] = "TXT_KEY_RESOURCE_WINE",
+        [2] = "TXT_KEY_RESOURCE_SILK",
+        [3] = "TXT_KEY_RESOURCE_GOLD",
+    })
+    local p = stubPlayer({
+        luxuries = { [1] = 4, [2] = 4 },  -- not [3]: unowned
+    })
+    local sum, count = EconomicOverviewAccess.luxuryBaseSumAndCount(p)
+    T.eq(sum, 8)
+    T.eq(count, 2)
+end
+
+function M.test_luxuryBaseSumAndCount_zero_count_when_no_luxuries()
+    setup()
+    installResourceFixtures({
+        [1] = "TXT_KEY_RESOURCE_WINE",
+    })
+    local p = stubPlayer({ luxuries = {} })
+    local sum, count = EconomicOverviewAccess.luxuryBaseSumAndCount(p)
+    T.eq(sum, 0)
+    T.eq(count, 0)
+end
+
+function M.test_luxuryBaseSumAndCount_strips_lua_binding_per_luxury_bonus()
+    setup()
+    installResourceFixtures({
+        [1] = "TXT_KEY_RESOURCE_WINE",
+        [2] = "TXT_KEY_RESOURCE_SILK",
+    })
+    -- Per the Expansion2 Lua binding, the stubbed GetHappinessFromLuxury
+    -- returns base (4) plus the per-luxury bonus rate (1) = 5. The helper
+    -- must strip the per-luxury rate back out so the returned base sum
+    -- reflects pkResourceInfo->getHappiness() alone, not the binding-
+    -- inflated value. Otherwise the misc-residual formula double-subtracts
+    -- the bonus and the drilldown shows phantom contributions.
+    local p = stubPlayer({
+        luxuries = { [1] = 4, [2] = 4 },
+        perLuxRate = 1,
+    })
+    local sum, count = EconomicOverviewAccess.luxuryBaseSumAndCount(p)
+    T.eq(sum, 8)  -- 4 + 4 (true base), NOT 5 + 5 = 10
+    T.eq(count, 2)
+end
+
+-- luxuryMiscResidual -----------------------------------------------------
+
+function M.test_luxuryMiscResidual_zero_when_total_matches_components()
+    setup()
+    -- 8 luxuries * 4 base = 32, +1 per-luxury rate * 8 = 8; total 40.
+    -- Variety 0, misc 0 (the user's reported scenario).
+    local p = stubPlayer({
+        resourcesTotal = 40,
+        variety = 0,
+        perLuxRate = 1,
+    })
+    T.eq(EconomicOverviewAccess.luxuryMiscResidual(p, 32, 8), 0)
+end
+
+function M.test_luxuryMiscResidual_picks_up_unattributed_remainder()
+    setup()
+    -- e.g. Mt. Kailash adds happiness via GetHappinessFromResources but
+    -- not via the per-luxury list; the residual catches it.
+    local p = stubPlayer({
+        resourcesTotal = 50,
+        variety = 4,
+        perLuxRate = 1,
+    })
+    -- 50 - 32 (base) - 4 (variety) - (1 * 8) = 6
+    T.eq(EconomicOverviewAccess.luxuryMiscResidual(p, 32, 8), 6)
+end
+
+-- difficultyHappiness ----------------------------------------------------
+
+function M.test_difficultyHappiness_subtracts_every_listed_source()
+    setup()
+    local p = stubPlayer({
+        happiness = 30,
+        fromPolicies = 2,
+        resourcesTotal = 8,
+        fromBuildings = 4,
+        fromCities = 1,
+        fromTradeRoutes = 1,
+        fromReligion = 0,
+        fromNaturalWonders = 1,
+        fromMinorCivs = 0,
+        extraPerCity = 1,
+        numCities = 4,  -- contributes 4 to free-per-city
+        fromLeagues = 0,
+    })
+    -- 30 - 2 - 8 - 4 - 1 - 1 - 0 - 1 - 0 - (1*4) - 0 = 9
+    T.eq(EconomicOverviewAccess.difficultyHappiness(p), 9)
+end
+
+-- citiesUnhappinessTooltip -----------------------------------------------
+
+function M.test_citiesUnhappinessTooltip_default_difficulty_returns_base_only()
+    setup()
+    Players[0] = stubPlayer({})
+    installHandicapFixtures({})  -- all 100% / 0
+    local tip = EconomicOverviewAccess.citiesUnhappinessTooltip()
+    -- No modifiers active; base text key only (TXT_KEY_NUMBER_OF_CITIES_TT
+    -- resolves to its own name in the harness via missing-key fallback).
+    T.eq(tip, "TXT_KEY_NUMBER_OF_CITIES_TT")
+end
+
+function M.test_citiesUnhappinessTooltip_appends_handicap_when_modifier_active()
+    setup()
+    Players[0] = stubPlayer({})
+    installHandicapFixtures({ numCitiesMod = 60 })  -- 40% reduction
+    local tip = EconomicOverviewAccess.citiesUnhappinessTooltip()
+    -- TT_NORMALLY swap (engine pattern unique to Cities row)
+    T.truthy(tip:find("TXT_KEY_NUMBER_OF_CITIES_TT_NORMALLY"))
+    -- Handicap modifier appendix attached
+    T.truthy(tip:find("TXT_KEY_NUMBER_OF_CITIES_HANDICAP_TT"))
+end
+
+function M.test_citiesUnhappinessTooltip_chains_multiple_modifiers()
+    setup()
+    Players[0] = stubPlayer({
+        cityCountMod = -25,  -- player mod
+        traitCityMod = -50,  -- trait mod
+    })
+    installHandicapFixtures({ numCitiesMod = 60, worldMod = 80 })
+    local tip = EconomicOverviewAccess.citiesUnhappinessTooltip()
+    T.truthy(tip:find("TXT_KEY_UNHAPPINESS_MOD_PLAYER"))
+    T.truthy(tip:find("TXT_KEY_UNHAPPINESS_MOD_TRAIT"))
+    T.truthy(tip:find("TXT_KEY_UNHAPPINESS_MOD_MAP"))
+    T.truthy(tip:find("TXT_KEY_NUMBER_OF_CITIES_HANDICAP_TT"))
+end
+
+-- citizensUnhappinessTooltip --------------------------------------------
+
+function M.test_citizensUnhappinessTooltip_includes_specialist_when_flag_set()
+    setup()
+    Players[0] = stubPlayer({ halfSpecialistUnhappiness = true })
+    installHandicapFixtures({})
+    local tip = EconomicOverviewAccess.citizensUnhappinessTooltip()
+    T.truthy(tip:find("TXT_KEY_UNHAPPINESS_MOD_SPECIALIST"))
+    -- Inline "(Normally)" pattern (different from Cities' TT_NORMALLY swap)
+    T.truthy(tip:find("TXT_KEY_NORMALLY"))
+end
+
+function M.test_citizensUnhappinessTooltip_includes_capital_modifier()
+    setup()
+    -- Tradition opener: -5% Unhappiness from population in capital.
+    Players[0] = stubPlayer({ capitalMod = -5 })
+    installHandicapFixtures({})
+    local tip = EconomicOverviewAccess.citizensUnhappinessTooltip()
+    T.truthy(tip:find("TXT_KEY_UNHAPPINESS_MOD_CAPITAL"))
+end
+
+-- occupiedCitizensUnhappinessTooltip ------------------------------------
+
+function M.test_occupiedCitizensUnhappinessTooltip_uses_occupied_pop_mod_not_general()
+    setup()
+    -- Police State: -10% Unhappiness from occupied population only. The
+    -- general unhappiness mod and trait mod must not leak into this row.
+    Players[0] = stubPlayer({
+        unhappinessMod = -3,  -- general (must NOT appear)
+        traitPopMod = -2,     -- trait (must NOT appear)
+        occupiedPopMod = -10, -- occupied (must appear)
+    })
+    installHandicapFixtures({})
+    local tip = EconomicOverviewAccess.occupiedCitizensUnhappinessTooltip()
+    -- Occupied-population mod surfaces as TXT_KEY_UNHAPPINESS_MOD_PLAYER
+    -- (engine reuses the player-mod text for occupied-pop attribution).
+    T.truthy(tip:find("TXT_KEY_UNHAPPINESS_MOD_PLAYER"))
+    -- Must not include the general-population trait/capital paths.
+    T.falsy(tip:find("TXT_KEY_UNHAPPINESS_MOD_TRAIT"))
+    T.falsy(tip:find("TXT_KEY_UNHAPPINESS_MOD_CAPITAL"))
+end
+
 return M
