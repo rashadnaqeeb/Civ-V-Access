@@ -94,6 +94,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Amélioration uni
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Chargement de la partie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "remplace {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_ON"] = "activé"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHECK_OFF"] = "désactivé"

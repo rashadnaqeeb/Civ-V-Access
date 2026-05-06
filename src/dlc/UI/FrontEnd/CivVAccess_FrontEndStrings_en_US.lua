@@ -240,6 +240,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "replaces {1_Name}"
 -- BaseMenuItems. Mirrors the InGame copy because BaseMenuItems is
 -- shared between Contexts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
+-- Generic "<label> <value>" template for label-and-bare-number lines
+-- (POP_SCORE / DEMOGRAPHICS_RANK on Hall of Fame and Leaderboard rows,
+-- both loaded as front-end child Contexts of OtherMenu). Mirrors the
+-- InGame copy.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
 -- Generic "<label> <list>" template used by the mods-in-use preamble
 -- (and by ReligionOverview in-game). Same key in both Contexts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
