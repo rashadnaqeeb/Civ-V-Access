@@ -4,21 +4,27 @@
 -- Quote holds the flavor quote and is hidden when the work has no quote.
 -- Single Close button dismisses via OnClose.
 --
--- Speech model: silentFirstOpen is conditional on the great work's class.
--- Writings (GREAT_WORK_LITERATURE) come with a Quote and the engine plays a
--- narrated voice clip of that quote when the popup is shown — Tolk stays
--- silent on first open so the two don't compete. Art and music popups have
--- no narrated quote, so first-open speaks the preamble normally. The work's
--- name (LowerCaption) is rolled into displayName via onShow so the silent-
--- first-open path still tells the user which work was completed; F1 reads
--- artist + quote on demand.
+-- Speech model: silentFirstOpen is conditional on whether the engine will
+-- narrate the popup. Writings come with a Quote and the engine plays a
+-- recorded voice clip of that quote when the popup is shown — Tolk stays
+-- silent on first open so the two don't compete. Art and music popups carry
+-- no Quote (only literature rows have one in CIV5GreatWorks_Expansion2.xml),
+-- so first-open speaks the preamble normally. The work's name (LowerCaption)
+-- is rolled into displayName via onShow so the silent-first-open path still
+-- tells the user which work was completed; F1 reads artist + quote on
+-- demand.
 --
--- The class lookup uses popup info captured from
--- SerialEventGameMessagePopupShown, which fires from inside the engine's
--- ShowHideHandler before priorShowHide returns. By the time onShow runs and
--- silentFirstOpen evaluates inside HandlerStack.push, the captured type is
--- current. Capturing in SerialEventGameMessagePopup (queue time) would race
--- when multiple great works finish on the same turn.
+-- The narration check reads Controls.Quote:IsHidden() live. Base
+-- ShowHideHandler calls Controls.Quote:SetHide(...) before returning, so by
+-- the time silentFirstOpen evaluates inside HandlerStack.push (after our
+-- wrapper's priorShowHide call), the visibility reflects the popup actually
+-- being shown. An earlier version captured GreatWorkType from a listener on
+-- Events.SerialEventGameMessagePopupShown; that event is fire-only (zero
+-- shipped subscribers, base fires with the async bare-call form rather than
+-- .CallImmediate), so the listener never reached the gate in time and the
+-- preamble always spoke even with Read Subtitles off. Reading live UI state
+-- is synchronous and also sidesteps the multi-great-works-same-turn race
+-- since each ShowHide rewrites Controls.Quote for that specific popup.
 
 include("CivVAccess_PopupBoot")
 
@@ -39,26 +45,9 @@ local function labelOf(name)
     return tostring(text)
 end
 
-local capturedGWType = nil
-
-Events.SerialEventGameMessagePopupShown.Add(function(popupInfo)
-    if popupInfo == nil or popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER then
-        return
-    end
-    local iGWIndex = popupInfo.Data1
-    if iGWIndex ~= -1 then
-        capturedGWType = Game.GetGreatWorkType(iGWIndex)
-    else
-        capturedGWType = popupInfo.Data2
-    end
-end)
-
-local function isLiterature()
-    if capturedGWType == nil then
-        return false
-    end
-    local row = GameInfo.GreatWorks[capturedGWType]
-    return row ~= nil and row.GreatWorkClassType == "GREAT_WORK_LITERATURE"
+local function hasNarratedQuote()
+    local c = Controls.Quote
+    return c ~= nil and not c:IsHidden()
 end
 
 -- LowerCaption (work name) is in displayName, so omit it here to avoid F1
@@ -71,7 +60,7 @@ BaseMenu.install(ContextPtr, {
     name = "GreatWorkPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GREAT_WORK_POPUP"),
     preamble = preamble,
-    silentFirstOpen = isLiterature,
+    silentFirstOpen = hasNarratedQuote,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     items = {
