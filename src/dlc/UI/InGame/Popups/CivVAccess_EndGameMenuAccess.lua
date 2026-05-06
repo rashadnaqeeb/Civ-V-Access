@@ -19,14 +19,16 @@
 --   row. The matched row replaces the threshold with the player's actual
 --   score, and tab.onActivate lands the cursor on it so the first speech
 --   on tab open is the answer.
---   "Replay" — the per-turn replay log. Items are one row per
---   Game.GetReplayMessages() entry, formatted as "Turn N, <text>". No
---   panel-mode pulldown here: the engine's ReplayInfoPulldown lives in the
---   EndGameReplay child Context which we can't reach from the EndGameMenu
---   env, and Graphs / Map don't have summarizers yet. When they do, this
---   tab grows a synthetic mode toggle. End-game pulls messages directly
---   from Game.GetReplayMessages() rather than the child Context's
---   g_ReplayInfo to avoid a cross-Context env reach.
+--   "Replay" — the per-turn replay log. Top-level items are per-turn
+--   Group drillables ("Turn 50", "Turn 51", ...), each containing the
+--   non-empty Text entries Game.GetReplayMessages() emitted on that turn.
+--   Children drop the turn prefix since the group label provides it. No
+--   panel-mode pulldown here: the engine's ReplayInfoPulldown lives in
+--   the EndGameReplay child Context which we can't reach from the
+--   EndGameMenu env, and Graphs / Map don't have summarizers yet. When
+--   they do, this tab grows a synthetic mode toggle. End-game pulls
+--   messages directly from Game.GetReplayMessages() rather than the
+--   child Context's g_ReplayInfo to avoid a cross-Context env reach.
 --
 -- EndGameText carries the victory flavor line set by OnDisplay. The engine
 -- narrates this line as a voice clip, so silentFirstOpen suppresses the
@@ -161,19 +163,46 @@ local rankingTab = {
 -- Turn and Text fields; we only render rows whose text is non-empty (some
 -- type-only records have empty text and serve only the visual map's plot
 -- color updates).
+--
+-- Messages are grouped into a per-turn drillable so the user navigates
+-- "Turn 50 / Turn 51 / Turn 52 ..." at the top level and drills into a
+-- given turn to hear what happened that turn. The group's label carries
+-- the turn number so each child can drop the prefix and just speak the
+-- event text. Engine emission order is chronological (vanilla's
+-- commented-out sort in ReplayViewer.lua:1279 confirms it), so a single
+-- forward pass with a flush-on-turn-change pattern produces the groups.
 local function buildReplayItems()
     local items = {}
     local messages = Game.GetReplayMessages()
     if messages == nil then
         return items
     end
+    local currentTurn = nil
+    local currentTexts = nil
+    local function flush()
+        if currentTexts == nil or #currentTexts == 0 then
+            return
+        end
+        local subItems = {}
+        for _, t in ipairs(currentTexts) do
+            subItems[#subItems + 1] = BaseMenuItems.Text({ labelText = t })
+        end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = Text.format("TXT_KEY_CIVVACCESS_REPLAY_TURN_GROUP", currentTurn),
+            items = subItems,
+        })
+    end
     for _, m in ipairs(messages) do
         if m.Text ~= nil and m.Text ~= "" then
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format("TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW", m.Turn, m.Text),
-            })
+            if m.Turn ~= currentTurn then
+                flush()
+                currentTurn = m.Turn
+                currentTexts = {}
+            end
+            currentTexts[#currentTexts + 1] = m.Text
         end
     end
+    flush()
     return items
 end
 

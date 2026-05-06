@@ -11,12 +11,16 @@
 -- Game.GetReplayMessages() rather than g_ReplayInfo).
 --
 -- Layout: a panel pulldown wrapping vanilla's ReplayInfoPulldown
--- (Messages / Graphs / Map), the messages list when the pulldown is on
--- Messages, then the Back button. Graphs and Map render blank for now;
--- the visual graph and animated culture map don't reduce to readable
--- text in any obvious way and are deferred. The pulldown itself stays
--- so the user sees the same panel-selection affordance sighted players
--- have, and so the structure is in place when Graphs gets a summarizer.
+-- (Messages / Graphs / Map), per-turn drillable groups of messages when
+-- the pulldown is on Messages, then the Back button. Each group's label
+-- is "Turn N" and its children are the non-empty Text entries that
+-- emitted on that turn, with the turn prefix dropped since the group
+-- label provides it. Mirrors EndGameMenu's Replay tab. Graphs and Map
+-- render blank for now; the visual graph and animated culture map don't
+-- reduce to readable text in any obvious way and are deferred. The
+-- pulldown itself stays so the user sees the same panel-selection
+-- affordance sighted players have, and so the structure is in place
+-- when Graphs gets a summarizer.
 --
 -- Items rebuild from g_ReplayInfo.Messages, populated by vanilla's
 -- LuaEvents.ReplayViewer_LoadReplay listener. We register an additional
@@ -57,15 +61,36 @@ local function buildItems()
     }
     -- CurrentPanelIndex: 1 = Messages, 2 = Graphs, 3 = Map (the order
     -- vanilla iterates Panels[]). Only Messages gets a populated body;
-    -- Graphs and Map are intentionally blank.
+    -- Graphs and Map are intentionally blank. Messages are grouped by
+    -- turn into drillables; engine emission order is chronological so a
+    -- single forward pass with flush-on-turn-change builds the groups.
     if CurrentPanelIndex == 1 and g_ReplayInfo ~= nil and g_ReplayInfo.Messages ~= nil then
+        local currentTurn = nil
+        local currentTexts = nil
+        local function flush()
+            if currentTexts == nil or #currentTexts == 0 then
+                return
+            end
+            local subItems = {}
+            for _, t in ipairs(currentTexts) do
+                subItems[#subItems + 1] = BaseMenuItems.Text({ labelText = t })
+            end
+            items[#items + 1] = BaseMenuItems.Group({
+                labelText = Text.format("TXT_KEY_CIVVACCESS_REPLAY_TURN_GROUP", currentTurn),
+                items = subItems,
+            })
+        end
         for _, m in ipairs(g_ReplayInfo.Messages) do
             if m.Text ~= nil and m.Text ~= "" then
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format("TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW", m.Turn, m.Text),
-                })
+                if m.Turn ~= currentTurn then
+                    flush()
+                    currentTurn = m.Turn
+                    currentTexts = {}
+                end
+                currentTexts[#currentTexts + 1] = m.Text
             end
         end
+        flush()
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "BackButton",

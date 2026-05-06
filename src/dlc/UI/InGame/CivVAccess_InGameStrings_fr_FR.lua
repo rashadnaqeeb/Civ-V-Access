@@ -814,9 +814,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_END_GAME"] = "Fin de partie"
 -- player's actual score and tacks on the leader's quote.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RANKING_ROW"] = "{1_Rank} {2_Leader}, score {3_Score}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RANKING_MATCHED_ROW"] = "{1_Rank} {2_Leader}, votre score {3_Score}, {4_Quote}"
--- Replay Messages-panel row format. Source is Game.GetReplayMessages() at
--- end-game and g_ReplayInfo.Messages at front-end; same {Turn, Text} shape.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW"] = "Tour {1_Turn}, {2_Text}"
+-- Drillable label for a per-turn group of replay messages. Source is
+-- Game.GetReplayMessages() at end-game; children are the non-empty Text
+-- entries on that turn, with the turn prefix dropped since the group
+-- label provides it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_TURN_GROUP"] = "Tour {1_Turn}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DECLARE_WAR"] = "Déclarer la guerre"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"] = "Accueil de la cité-État"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_DIPLO"] = "Cité-État"

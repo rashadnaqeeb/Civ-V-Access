@@ -406,7 +406,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"] =
 -- of the engine's ReplayInfoPulldown (Messages / Graphs / Map selector).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_REPLAY_VIEWER"] = "Replay"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_PANEL_LABEL"] = "panel"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW"] = "Turn {1_Turn}, {2_Text}"
+-- Drillable label for a per-turn group of replay messages. Children inside
+-- the group drop the turn prefix since the group label provides it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_TURN_GROUP"] = "Turn {1_Turn}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"] = "No content for this entry."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"] =
     "No save selected. Switch to the saves tab to pick one."

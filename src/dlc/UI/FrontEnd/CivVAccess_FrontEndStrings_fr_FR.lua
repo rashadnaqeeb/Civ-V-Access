@@ -206,7 +206,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_NO_SELECTION"] =
     "Aucune reprise sélectionnée. Passez à l'onglet Reprises pour en choisir une."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_REPLAY_VIEWER"] = "Reprise"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_PANEL_LABEL"] = "panneau"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_MESSAGE_ROW"] = "Tour {1_Turn}, {2_Text}"
+-- Drillable label for a per-turn group of replay messages. Children inside
+-- the group drop the turn prefix since the group label provides it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLAY_TURN_GROUP"] = "Tour {1_Turn}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_EMPTY"] = "Aucun contenu pour cet élément."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"] =
     "Aucune sauvegarde sélectionnée. Passez à l'onglet Sauvegardes pour en choisir une."
