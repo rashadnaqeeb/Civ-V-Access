@@ -107,7 +107,6 @@ local function availableGoldPerTurnLeaf(side)
         labelText = label,
         tooltipFn = TradeLogicAccess.pocketTooltipFn(pocketControlName),
         onActivate = function()
-            local pPlayer = Players[iPlayer]
             local maxGPT = pPlayer and pPlayer:CalculateGoldRate() or 0
             if maxGPT <= 0 then
                 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"))
