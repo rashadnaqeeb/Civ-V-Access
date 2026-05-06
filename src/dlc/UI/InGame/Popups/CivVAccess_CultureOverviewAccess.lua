@@ -40,13 +40,26 @@
 --                       Excess Happiness. Public Opinion Unhappiness
 --                       appends the engine's breakdown tooltip; the
 --                       other cells are bare values.
---   Player Influence -- perspective picker (defaults to active player) +
---                       tourism-per-turn header + one Group per civ the
---                       perspective player has any influence level on.
---                       Drill-in surfaces influence percent, level tooltip
---                       (with bonuses-at-level callout), modifier breakdown,
---                       trend tooltip, and the bar tooltips (your influence
---                       vs their lifetime culture).
+--   Player Influence -- BaseTable, one row per met major civ alive
+--                       (excluding the current perspective). The
+--                       perspective picker and the perspective's overall
+--                       tourism header collapse into column 1 ("Change
+--                       perspective"): each cell carries that civ's
+--                       overall tourism rate plus a "press enter to
+--                       switch" hint, and Enter mutates g_iSelectedPlayerID
+--                       and speaks "now viewing from <civ>". Other columns:
+--                       Influence Level (with bonuses-at-level tooltip),
+--                       Influence Percent (with the absolute your-tourism
+--                       vs their-lifetime-culture decomposition on
+--                       tooltip), Tourism Modifier (with the engine
+--                       breakdown on tooltip), Tourism Rate on Them
+--                       (the per-target influence-per-turn), and Trend
+--                       (with estimated turns to Influential on tooltip
+--                       when applicable). The default perspective on
+--                       first open is the active player; the engine
+--                       does not reset g_iSelectedPlayerID on popup
+--                       close, so a sighted player's perspective pick
+--                       persists across reopen and we mirror that.
 --
 -- Initial tab is Your Culture (matches the engine's landing tab).
 --
@@ -98,11 +111,9 @@ local m_swapTab
 local m_victoryTab
 local m_influenceTab
 
--- Forward declarations. Tab 4's perspective Pulldown onSelected rebuilds
--- the row list (which is what defines the Pulldown in the first place);
--- Tab 2's pulldown onSelected and foreign-offering activate both rebuild
--- the tab to refresh the trade item's state-aware label.
-local buildInfluenceItems
+-- Forward declaration. Tab 2's pulldown onSelected and foreign-offering
+-- activate both rebuild the tab to refresh the trade item's state-aware
+-- label.
 local buildSwapItems
 
 -- ===== Helpers =========================================================
@@ -1105,8 +1116,10 @@ local function influenceLevelText(level)
 end
 
 -- Bonuses-at-level callout. Engine concatenates this onto the level
--- tooltip; we surface it as a separate drill-in line so the user can read
--- the level-tier description without scrolling the tooltip mid-paragraph.
+-- tooltip and uses the same off-by-one indirection: at level Popular the
+-- callout describes Familiar's bonuses (what you've already unlocked).
+-- We surface it as the level cell's tooltip so the engine's "press
+-- tooltip-key to read what this tier gave you" pattern still works.
 local function levelBonusKey(level)
     if level == InfluenceLevelTypes.INFLUENCE_LEVEL_POPULAR then
         return "TXT_KEY_CO_INFLUENCE_BONUSES_FAMILIAR"
@@ -1120,157 +1133,248 @@ local function levelBonusKey(level)
     return nil
 end
 
-local function buildInfluenceRowGroup(targetID)
-    return BaseMenuItems.Group({
-        labelFn = function()
-            local pSel = Players[g_iSelectedPlayerID]
-            local pTgt = Players[targetID]
-            local civ = civDisplayName(pTgt)
-            local levelText = influenceLevelText(pSel:GetInfluenceLevel(targetID))
-            local influence = pSel:GetInfluenceOn(targetID)
-            local culture = pTgt:GetJONSCultureEverGenerated()
-            local pct = 0
-            if culture > 0 then
-                pct = math.floor((influence / culture) * 100 + 0.5)
-            end
-            local perTurn = math.floor(pSel:GetInfluencePerTurn(targetID))
-            -- Modifier and trend live on drill-in items rather than the row:
-            -- modifier becomes "Tourism modifier N percent" with the engine's
-            -- itemized breakdown on tooltip (so the bare number isn't
-            -- contextless); trend is implied by the per-turn sign and the
-            -- estimated-turns-to-influential line below.
-            return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_ROW", civ, levelText, pct, formatSigned(perTurn))
-        end,
-        cached = false,
-        itemsFn = function()
-            local pSel = Players[g_iSelectedPlayerID]
-            local pTgt = Players[targetID]
-            local items = {}
-            -- Bonuses-at-level callout.
-            local level = pSel:GetInfluenceLevel(targetID)
-            local bonusKey = levelBonusKey(level)
-            if bonusKey ~= nil then
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.key(bonusKey),
-                })
-            end
-            -- Modifier breakdown. The label carries the live modifier value
-            -- (e.g. "Tourism modifier +50 percent") so a bare drill-in line
-            -- isn't contextless; the tooltip is the engine's itemized list
-            -- of which boosts and penalties contributed. Show only when
-            -- the engine has a non-empty breakdown to drill into.
-            local modTooltipNow = pSel:GetTourismModifierWithTooltip(targetID)
-            if modTooltipNow ~= nil and modTooltipNow ~= "" then
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelFn = function()
-                        return Text.format(
-                            "TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIERS_LABEL",
-                            formatSigned(Players[g_iSelectedPlayerID]:GetTourismModifierWith(targetID))
-                        )
-                    end,
-                    tooltipFn = function()
-                        return Players[g_iSelectedPlayerID]:GetTourismModifierWithTooltip(targetID)
-                    end,
-                })
-            end
-            -- Estimated turns-to-Influential, surfaced when the engine
-            -- would have shown the trend tooltip (Rising and below
-            -- Influential).
-            local trend = pSel:GetInfluenceTrend(targetID)
-            local turnsTo = pSel:GetTurnsToInfluential(targetID)
-            if
-                trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING
-                and turnsTo ~= 999
-                and level < InfluenceLevelTypes.INFLUENCE_LEVEL_INFLUENTIAL
-            then
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.formatPlural("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO", turnsTo, turnsTo),
-                })
-            end
-            -- Bar tooltips: your tourism on them vs their lifetime
-            -- culture. Sighted players read these as comparative bar
-            -- lengths; we speak the absolute numbers.
-            local influence = pSel:GetInfluenceOn(targetID)
-            local culture = pTgt:GetJONSCultureEverGenerated()
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_YOURS", formatNumber(influence)),
-            })
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_BAR_THEIRS", formatNumber(culture)),
-            })
-            return items
-        end,
-    })
-end
+-- Trend enum -> mod-authored TXT_KEY. The "rising slowly" branch is
+-- engine-derived (rising trend with turns-to-influential = 999, the
+-- engine's "unreachable" sentinel) and computed in trendCellText below;
+-- it's not a separate enum value.
+local TREND_TEXT_KEYS = {
+    [InfluenceLevelTrend.INFLUENCE_TREND_FALLING] = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_FALLING",
+    [InfluenceLevelTrend.INFLUENCE_TREND_STATIC] = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_STATIC",
+    [InfluenceLevelTrend.INFLUENCE_TREND_RISING] = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING",
+}
 
--- Perspective picker. Wraps the engine's PlayerPD pulldown via
--- BaseMenuItems.Pulldown so the engine's RegisterSelectionCallback
--- (sets g_iSelectedPlayerID, rebuilds the visual influence stack) does
--- the per-perspective state mutation; our onSelected hook then rebuilds
--- the per-civ row list against the new perspective. The Pulldown's label
--- and current value both come from civDisplayName so the announce form
--- matches the rest of the wrapper (engine's pulldown uses the short
--- "Roman Empire" form; we want "Augustus of Roman Empire" for parity
--- with row labels). entryAnnounceFn replaces each sub-menu entry's
--- engine-text default with the same rich form so browsing the picker
--- reads the leader/civ pair, not just the civ short description.
-local function buildPerspectivePulldown()
-    local function perspectiveText()
-        return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE", civDisplayName(Players[g_iSelectedPlayerID]))
-    end
-    return BaseMenuItems.Pulldown({
-        controlName = "PlayerPD",
-        labelFn = perspectiveText,
-        valueFn = perspectiveText,
-        entryAnnounceFn = function(inst)
-            local pid = inst.Button:GetVoid1()
-            return civDisplayName(Players[pid])
-        end,
-        onSelected = function()
-            m_influenceTab.menu().setItems(buildInfluenceItems())
-        end,
-    })
-end
-
-buildInfluenceItems = function()
-    local items = {}
-    items[#items + 1] = buildPerspectivePulldown()
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM", Players[g_iSelectedPlayerID]:GetTourism())
-        end,
-    })
-    -- Every alive non-minor civ that isn't the selected player and that
-    -- the selected player has any influence level on. Mirrors engine's
-    -- iteration filter exactly so the row set matches.
-    local pSel = Players[g_iSelectedPlayerID]
+local function rebuildInfluenceRows()
+    local rows = {}
     for i = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
         local p = Players[i]
-        if p ~= nil and p:IsAlive() and not p:IsMinorCiv() and i ~= g_iSelectedPlayerID then
-            local level = pSel:GetInfluenceLevel(i)
-            if level ~= InfluenceLevelTypes.NO_INFLUENCE_LEVEL then
-                items[#items + 1] = buildInfluenceRowGroup(i)
-            end
+        -- All met (or universally-known in MP) major civs other than the
+        -- current perspective. Engine's row set additionally filters on
+        -- "perspective has non-zero influence on them"; we drop that
+        -- filter so column 1 doubles as the perspective switcher --
+        -- every met civ is reachable as a perspective target, even if
+        -- the current perspective hasn't generated tourism on them yet.
+        if
+            p ~= nil
+            and p:IsAlive()
+            and not p:IsMinorCiv()
+            and i ~= g_iSelectedPlayerID
+            and (activeTeam():IsHasMet(p:GetTeam()) or isMP())
+        then
+            rows[#rows + 1] = i
         end
     end
-    if #items <= 2 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_NO_TARGETS"),
-        })
+    return rows
+end
+
+local function influenceRowLabel(targetID)
+    return civDisplayName(Players[targetID])
+end
+
+-- Column 1 cell: the row civ's overall tourism generation rate (their
+-- GetTourism, the same number the engine surfaces in the perspective
+-- header) plus the "press enter to switch" discoverability hint. The
+-- combined string is one TXT_KEY for translatability.
+local function perspectiveCellText(targetID)
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE_CELL",
+        Players[targetID]:GetTourism()
+    )
+end
+
+-- Enter on column 1 mutates g_iSelectedPlayerID directly (engine pattern;
+-- the engine's pulldown callback at CultureOverview.lua:2103 does the
+-- same). No engine RefreshContent call needed: BaseTable rebuilds rows
+-- on the next nav and our cell accessors all read g_iSelectedPlayerID
+-- live. Speak "now viewing from <civ>" once on switch as the user's
+-- confirmation; cursor preservation is intentional, the user can press
+-- Home to re-orient if they want a fresh start in the new row order.
+local function switchPerspectiveTo(targetID)
+    g_iSelectedPlayerID = targetID
+    SpeechPipeline.speakInterrupt(
+        Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_NOW_VIEWING", civDisplayName(Players[targetID]))
+    )
+end
+
+local function influenceLevelCell(targetID)
+    return influenceLevelText(Players[g_iSelectedPlayerID]:GetInfluenceLevel(targetID))
+end
+
+local function influenceLevelTooltip(targetID)
+    local level = Players[g_iSelectedPlayerID]:GetInfluenceLevel(targetID)
+    local key = levelBonusKey(level)
+    if key == nil then
+        return nil
     end
-    return items
+    return Text.key(key)
+end
+
+local function influencePercent(targetID)
+    local pSel = Players[g_iSelectedPlayerID]
+    local pTgt = Players[targetID]
+    local culture = pTgt:GetJONSCultureEverGenerated()
+    if culture == 0 then
+        return 0
+    end
+    return pSel:GetInfluenceOn(targetID) / culture
+end
+
+local function influencePercentCell(targetID)
+    local pct = math.floor(influencePercent(targetID) * 100 + 0.5)
+    return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_CELL", pct)
+end
+
+local function influencePercentTooltip(targetID)
+    local pSel = Players[g_iSelectedPlayerID]
+    local pTgt = Players[targetID]
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP",
+        formatNumber(pSel:GetInfluenceOn(targetID)),
+        formatNumber(pTgt:GetJONSCultureEverGenerated())
+    )
+end
+
+local function modifierCell(targetID)
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIER_CELL",
+        formatSigned(Players[g_iSelectedPlayerID]:GetTourismModifierWith(targetID))
+    )
+end
+
+local function modifierTooltip(targetID)
+    local tt = Players[g_iSelectedPlayerID]:GetTourismModifierWithTooltip(targetID)
+    if tt == nil or tt == "" then
+        return nil
+    end
+    return tt
+end
+
+local function tourismRateCell(targetID)
+    return formatSigned(math.floor(Players[g_iSelectedPlayerID]:GetInfluencePerTurn(targetID)))
+end
+
+local function tourismRateSortKey(targetID)
+    return math.floor(Players[g_iSelectedPlayerID]:GetInfluencePerTurn(targetID))
+end
+
+-- Trend cell. The engine special-cases rising-but-unreachable (turns to
+-- influential == 999) as "rising slowly"; we mirror that wording.
+local function trendCell(targetID)
+    local pSel = Players[g_iSelectedPlayerID]
+    local trend = pSel:GetInfluenceTrend(targetID)
+    if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING and pSel:GetTurnsToInfluential(targetID) == 999 then
+        return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY")
+    end
+    local key = TREND_TEXT_KEYS[trend]
+    if key == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_STATIC")
+    end
+    return Text.key(key)
+end
+
+-- Sort rank: falling -1, static 0, rising-slowly 1, rising 2. Matches the
+-- engine's TrendRate convention from CultureOverview.lua:2040+.
+local function trendSortKey(targetID)
+    local pSel = Players[g_iSelectedPlayerID]
+    local trend = pSel:GetInfluenceTrend(targetID)
+    if trend == InfluenceLevelTrend.INFLUENCE_TREND_FALLING then
+        return -1
+    end
+    if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING then
+        if pSel:GetTurnsToInfluential(targetID) == 999 then
+            return 1
+        end
+        return 2
+    end
+    return 0
+end
+
+-- Trend tooltip: estimated turns to Influential, gated on the same
+-- conditions the engine uses (rising trend, sub-Influential, reachable).
+local function trendTooltip(targetID)
+    local pSel = Players[g_iSelectedPlayerID]
+    local trend = pSel:GetInfluenceTrend(targetID)
+    local turns = pSel:GetTurnsToInfluential(targetID)
+    if
+        trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING
+        and turns ~= 999
+        and pSel:GetInfluenceLevel(targetID) < InfluenceLevelTypes.INFLUENCE_LEVEL_INFLUENTIAL
+    then
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO", turns, turns)
+    end
+    return nil
+end
+
+local function buildInfluenceColumns()
+    return {
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_PERSPECTIVE",
+            getCell = perspectiveCellText,
+            -- Sort by the row civ's overall tourism so the perspective
+            -- column is also a tourism-output ranking.
+            sortKey = function(targetID)
+                return Players[targetID]:GetTourism()
+            end,
+            enterAction = switchPerspectiveTo,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_LEVEL",
+            getCell = influenceLevelCell,
+            sortKey = function(targetID)
+                return Players[g_iSelectedPlayerID]:GetInfluenceLevel(targetID)
+            end,
+            getTooltip = influenceLevelTooltip,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_PERCENT",
+            getCell = influencePercentCell,
+            sortKey = influencePercent,
+            getTooltip = influencePercentTooltip,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_MODIFIER",
+            getCell = modifierCell,
+            sortKey = function(targetID)
+                return Players[g_iSelectedPlayerID]:GetTourismModifierWith(targetID)
+            end,
+            getTooltip = modifierTooltip,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_RATE",
+            getCell = tourismRateCell,
+            sortKey = tourismRateSortKey,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_TREND",
+            getCell = trendCell,
+            sortKey = trendSortKey,
+            getTooltip = trendTooltip,
+        },
+    }
+end
+
+local function buildInfluenceTab()
+    return BaseTable.create({
+        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE",
+        columns = buildInfluenceColumns(),
+        rebuildRows = rebuildInfluenceRows,
+        rowLabel = influenceRowLabel,
+    })
 end
 
 -- ===== Install =========================================================
 
 if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "function" then
     -- Patch the engine PullDown metatable so RegisterSelectionCallback /
-    -- BuildEntry / ClearEntries are captured before the engine's
-    -- SortAndDisplayPlayerInfluence first runs (popup-show flow). Without
-    -- the probe in place, BaseMenuItems.Pulldown over PlayerPD has no
-    -- engine callback to invoke from keyboard activation. Idempotent
-    -- across the lua_State; a no-op if FrontEnd ProbeBoot already ran.
-    PullDownProbe.installFromControls({ "PlayerPD" }, {}, {}, {})
+    -- BuildEntry / ClearEntries are captured for Tab 2's per-type swap
+    -- pulldowns. Idempotent across the lua_State; a no-op if FrontEnd
+    -- ProbeBoot already ran. Sample picker uses the swap pulldowns
+    -- (Tab 4 no longer wraps PlayerPD -- the perspective picker has
+    -- collapsed into Tab 4's Change Perspective column).
+    PullDownProbe.installFromControls({
+        "YourWritingPullDown",
+        "YourArtPullDown",
+        "YourArtifactPullDown",
+    }, {}, {}, {})
     local function makeTab(tabName)
         return TabbedShell.menuTab({
             tabName = tabName,
@@ -1283,7 +1387,7 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     m_yourCultureTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE")
     m_swapTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS")
     m_victoryTab = buildVictoryTab()
-    m_influenceTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE")
+    m_influenceTab = buildInfluenceTab()
     TabbedShell.install(ContextPtr, {
         name = "CultureOverview",
         displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
@@ -1301,37 +1405,17 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
             m_gwMoveSource = nil
             m_swapTheirItem = -1
             m_swapTradingPartner = -1
-            -- Force the engine's PlayerInfluence refresh whenever it isn't
-            -- the visually current tab. priorShowHide above ran the engine's
-            -- TabSelect(g_CurrentTab), which only rebuilds one panel — and
-            -- only that panel's pulldowns get BuildEntry / RegisterSelection-
-            -- Callback called. Our Tab 4 perspective wraps Controls.PlayerPD
-            -- via PullDownProbe, so without this refresh the pulldown opens
-            -- empty (no captured entries, no captured callback) and Enter
-            -- on it just re-speaks the current value. RefreshContent is
-            -- the engine's own combined refresh hook; cheap and idempotent
-            -- (panel stays hidden, just rebuilds the data and entries).
-            if
-                g_CurrentTab ~= "PlayerInfluence"
-                and type(g_Tabs) == "table"
-                and g_Tabs["PlayerInfluence"] ~= nil
-                and type(g_Tabs["PlayerInfluence"].RefreshContent) == "function"
-            then
-                local ok, err = pcall(g_Tabs["PlayerInfluence"].RefreshContent)
-                if not ok then
-                    Log.error("CultureOverview: PlayerInfluence prefetch failed: " .. tostring(err))
-                end
-            end
-            -- Same problem on Tab 2: the engine's per-type pulldowns
-            -- (YourWriting/Art/Artifact) only get populated when its
-            -- panel's RefreshContent runs, which doesn't happen if we
-            -- landed on a different tab. RefreshSwappingItems is the
-            -- function inside DisplaySwapGreatWorks that calls
-            -- PopulatePullDown for each, capturing entries via
-            -- PullDownProbe; cheap and idempotent. Skipping the rest of
-            -- DisplaySwapGreatWorks (CheckSwappedItems / DisplayOthersWorks)
-            -- because we use our own swap state and our own foreign
-            -- offerings list.
+            -- Force the engine's per-type swap pulldowns
+            -- (YourWriting/Art/Artifact) to populate even when the user
+            -- doesn't visually land on the SwapGreatWorks panel. priorShowHide
+            -- above ran the engine's TabSelect(g_CurrentTab), which only
+            -- rebuilds one panel and only that panel's pulldowns get
+            -- BuildEntry / RegisterSelectionCallback called. RefreshSwapping-
+            -- Items is the function inside DisplaySwapGreatWorks that calls
+            -- PopulatePullDown for each, capturing entries via PullDownProbe;
+            -- cheap and idempotent. Skipping the rest of DisplaySwapGreat-
+            -- Works (CheckSwappedItems / DisplayOthersWorks) because we use
+            -- our own swap state and our own foreign offerings list.
             if type(RefreshSwappingItems) == "function" then
                 local ok, err = pcall(RefreshSwappingItems)
                 if not ok then
@@ -1340,10 +1424,9 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
             end
             m_yourCultureTab.menu().setItems(buildYourCultureItems())
             m_swapTab.menu().setItems(buildSwapItems())
-            -- m_victoryTab is a BaseTable; rebuildRows reruns on every nav,
+            -- Tabs 3 and 4 are BaseTables; rebuildRows reruns on every nav,
             -- so onShow doesn't need to push rows. resetForNextOpen on hide
             -- is wired by TabbedShell so the next open lands at the header.
-            m_influenceTab.menu().setItems(buildInfluenceItems())
         end,
     })
 
