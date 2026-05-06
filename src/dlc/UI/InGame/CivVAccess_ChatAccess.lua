@@ -20,6 +20,17 @@
 -- Esc / `\` close the panel via the BaseMenu's escapePops Esc binding plus
 -- an explicit `\` binding pasted onto chatHandler.bindings (same pattern
 -- StagingRoomAccess uses to make F2 self-toggle).
+--
+-- Open-to-type and send-and-dismiss: `\` opens the panel straight into
+-- BaseMenuEditMode on the Compose Textfield (one tick after the panel is
+-- pushed, so the panel's first-open speech is already scheduled when our
+-- "Editing message" interrupt fires), and Enter sends the line and closes
+-- the panel. The close is deferred one tick so the edit-mode commit
+-- announce -- which speaks the just-sent line -- plays out before the
+-- panel pops, and uses reactivate=false so the underlying handler's
+-- onActivate doesn't cut off that confirmation. Esc and `\` still close
+-- without sending. The MP staging-room panel (StagingRoomAccess) keeps
+-- its history-browser shape: separate file, separate handler, untouched.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -52,6 +63,10 @@ local VK_OEM_5 = 220 -- backslash
 -- prior game is gone (its handler closure had a dead env, removed
 -- naturally by the new game's HandlerStack reset in onInGameBoot).
 civvaccess_shared.chatPanelActive = false
+
+-- Forward decl: chatComposeItems' priorCallback closes the panel after
+-- send (send-and-dismiss), and is defined before closeChatPanel below.
+local closeChatPanel
 
 local function chatMessagesItems()
     local log = civvaccess_shared._inGameChatLog or {}
@@ -96,6 +111,21 @@ local function chatComposeItems()
                     -- compose.
                     if civvaccess_shared.chatPanelActive then
                         control:SetText(text)
+                        -- Send-and-dismiss: `\` opens the panel straight
+                        -- into edit mode, Enter is the single gesture for
+                        -- "send this line and close." Defer one tick so
+                        -- BaseMenuEditMode.exit can finish (sub pop +
+                        -- commit announce of the just-sent line) before
+                        -- we pop the panel. reactivate=false so the
+                        -- underlying handler stays quiet and the commit
+                        -- announce plays to completion. Sighted users
+                        -- typing into Controls.ChatEntry directly hit
+                        -- this callback too, but with chatPanelActive
+                        -- false they skip both the SetText echo and the
+                        -- close.
+                        TickPump.runOnce(function()
+                            closeChatPanel(false)
+                        end)
                     end
                 end
             end,
@@ -103,7 +133,7 @@ local function chatComposeItems()
     }
 end
 
-local function closeChatPanel(reactivate)
+closeChatPanel = function(reactivate)
     if HandlerStack.drainAndRemove(CHAT_HANDLER, reactivate) then
         civvaccess_shared.chatPanelActive = false
         return true
@@ -119,6 +149,8 @@ local function toggleChatPanel()
     if closeChatPanel() then
         return
     end
+    local composeItems = chatComposeItems()
+    local textfieldItem = composeItems[1]
     local chatHandler = BaseMenu.create({
         name = CHAT_HANDLER,
         displayName = Text.key("TXT_KEY_CIVVACCESS_INGAME_CHAT_PANEL"),
@@ -140,7 +172,7 @@ local function toggleChatPanel()
             },
             {
                 name = "TXT_KEY_CIVVACCESS_INGAME_CHAT_COMPOSE_TAB",
-                items = chatComposeItems(),
+                items = composeItems,
             },
         },
     })
@@ -157,6 +189,19 @@ local function toggleChatPanel()
     })
     civvaccess_shared.chatPanelActive = true
     HandlerStack.push(chatHandler)
+    -- Auto-enter edit mode on the Compose Textfield so the user can start
+    -- typing the moment `\` lands. Defer one tick: BaseMenuEditMode reads
+    -- textfieldItem._control synchronously (already populated by Textfield
+    -- at build time) but its TakeFocus has to run after the engine's
+    -- KEYDOWN/KEYUP for `\` settles, otherwise the matching KEYUP revokes
+    -- the just-taken focus. The HandlerStack.active() guard catches a
+    -- racing close (Esc tapped before the tick fires).
+    TickPump.runOnce(function()
+        if HandlerStack.active() ~= chatHandler then
+            return
+        end
+        BaseMenuEditMode.push(chatHandler, textfieldItem)
+    end)
 end
 
 if
