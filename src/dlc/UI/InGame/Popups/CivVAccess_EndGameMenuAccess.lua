@@ -2,12 +2,17 @@
 -- switcher (GameOver / Demographics / Ranking / Replay) and a bottom-row
 -- action stack (MainMenu exit, Back for extended play, Beyond Earth store).
 --
--- Three tabs map onto the top-row visual switcher's GameOver, Ranking, and
--- Replay panels:
---   "Info" — the GameOver panel. Items are the action stack plus the
---   Demographics panel-switcher button (kept so the user can flip the
---   visual to Demographics; its per-screen wrapper owns announcement on
---   the resulting child Context).
+-- Four tabs map onto the top-row visual switcher in left-to-right order:
+--   "Info" — the GameOver panel. Items are the action stack
+--   (MainMenuButton, BackButton, BeyondButton).
+--   "Demographics" — the embedded Demographics child Context (XML id
+--   "EndGameDemographics"). Items are the per-metric rows shared with the
+--   F9 standalone path via CivVAccess_DemographicsRows; tab.onActivate
+--   refreshes them on every visit so the figures track the live game.
+--   showPanel calls OnDemographics() to flip the engine's visual to the
+--   demographics container. The standalone DemographicsAccess install is
+--   gated off for the EndGameDemographics ContextPtr so its handler does
+--   not push on top of ours and trap the user on this panel.
 --   "Ranking" — the historical-leader scoreboard. Items are one row per
 --   GameInfo.HistoricRankings entry mirroring the engine's PopulateResults
 --   layout: rank, leader, score, plus the leader's quote on the matched
@@ -23,11 +28,6 @@
 --   from Game.GetReplayMessages() rather than the child Context's
 --   g_ReplayInfo to avoid a cross-Context env reach.
 --
--- Demographics doesn't get its own tab in this wrapper. The Demographics
--- LuaContext is wrapped separately for its in-game F9 path and the same
--- wrapper loads at end-game; Tab 1's DemographicsButton remains so the
--- visual flip is still reachable from the keyboard.
---
 -- EndGameText carries the victory flavor line set by OnDisplay. The engine
 -- narrates this line as a voice clip, so silentFirstOpen suppresses the
 -- preamble + first-item speech on fresh show to avoid talking over it; the
@@ -38,6 +38,7 @@
 -- finished game.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_DemographicsRows")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -106,14 +107,21 @@ local infoTab = {
                 ShowBeyondEarthStorePage()
             end,
         }),
-        BaseMenuItems.Button({
-            controlName = "DemographicsButton",
-            textKey = "TXT_KEY_DEMOGRAPHICS_TITLE",
-            activate = function()
-                OnDemographics()
-            end,
-        }),
     },
+}
+
+local demographicsTab = {
+    name = "TXT_KEY_DEMOGRAPHICS_TITLE",
+    showPanel = function()
+        OnDemographics()
+    end,
+    -- Placeholder; the real items are computed in onActivate every time the
+    -- tab is opened so values track the current turn. End-of-game numbers
+    -- are static once the game ends, but extended-play continues normally.
+    items = { BaseMenuItems.Text({ labelText = "" }) },
+    onActivate = function()
+        m_handler.setItems(DemographicsRows.buildItems(), 2)
+    end,
 }
 
 local rankingTab = {
@@ -127,7 +135,7 @@ local rankingTab = {
     items = { BaseMenuItems.Text({ labelText = "" }) },
     onActivate = function(self)
         local items, matchedIdx = buildRankingItems()
-        m_handler.setItems(items, 2)
+        m_handler.setItems(items, 3)
         if matchedIdx ~= nil then
             self._indices[self._level] = matchedIdx
         end
@@ -162,7 +170,7 @@ local replayTab = {
     end,
     items = { BaseMenuItems.Text({ labelText = "" }) },
     onActivate = function(self)
-        m_handler.setItems(buildReplayItems(), 3)
+        m_handler.setItems(buildReplayItems(), 4)
     end,
 }
 
@@ -175,5 +183,5 @@ m_handler = BaseMenu.install(ContextPtr, {
     silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
-    tabs = { infoTab, rankingTab, replayTab },
+    tabs = { infoTab, demographicsTab, rankingTab, replayTab },
 })
