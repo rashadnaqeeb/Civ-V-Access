@@ -72,6 +72,23 @@
 --   tu/usted, etc.) have already had that choice made by Firaxis in the
 --   base game's TXT keys; use the same register here. Stay consistent
 --   across this file's strings.
+-- - Keys whose name ends in "_ALT" or "_ALT_<SUFFIX>" (search the file
+--   for ICON_*_ALT) are NOT user-facing speech. They are TextFilter
+--   dedup targets: when the engine emits "[ICON_*] <some text>" and the
+--   icon's primary spoken form would otherwise echo a word in <some
+--   text>, an alias matching the start of <some text> drops the icon's
+--   speech so the screen reader doesn't read the concept twice (e.g.
+--   "combat strength Strength: 50" -> "Strength: 50"). The match is a
+--   case-insensitive prefix check against the adjacent text. Therefore
+--   the right value per locale is the literal phrase the ENGINE prints
+--   in that locale, NOT a translation of the en_US value. Each _ALT key
+--   below carries a comment naming the engine TXT_KEY that drives it;
+--   grep that TXT_KEY in
+--   Assets/Gameplay/XML/NewText/<LOCALE>/CIV5GameTextInfos*.xml (and
+--   ..._Objects.xml for specialist titles) and use whatever the engine
+--   prints. If the engine's emission already starts with the icon's
+--   primary spoken form word-for-word, the alias is dormant in that
+--   locale -- "" is fine, the matcher skips empty aliases.
 -- - Different keys with identical English values are intentional, not
 --   redundant. The unit of identity is "the spot in the UI this string is
 --   spoken from", not "the English word that fills it". The same word
@@ -453,21 +470,39 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "faith"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourism"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "great people"
--- Dedup-only alias for the singular pairing in base text ("Great Person Focus").
+-- Dedup-only alias. Engine source: the singular pairings in base text such
+-- as TXT_KEY_RELIGION_GREAT_PERSON_FOCUS ("Great Person Focus") and "a
+-- Great Person of your choice" boilerplate. See the "_ALT keys" note in
+-- the orientation block for translator guidance.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "great person"
--- Per-specialist title aliases. See the InGame strings file for context.
+-- Per-specialist title aliases. Engine source: TXT_KEY_SPECIALIST_<X>_TITLE
+-- in CIV5GameTextInfos_Objects.xml. en_US prints "Great <X> Points:";
+-- locales whose phrasings share no common prefix (e.g. fr_FR "Points
+-- d'artistes illustres :", "Points de savants illustres :") need one
+-- entry per specialist. Match the literal engine phrase in the target
+-- locale; do NOT translate the en_US value.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "great artist points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "great engineer points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "great merchant points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "great scientist points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "combat strength"
+-- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH (en_US
+-- "[ICON_STRENGTH] Strength: N", fr_FR "[ICON_STRENGTH] Puissance : N").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "ranged combat strength"
+-- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_RANGED_STRENGTH.
+-- Some locales' emissions already match the icon's primary spoken form
+-- word-for-word (fr_FR "Puissance de combat à distance"); the alias is
+-- dormant there and "" is fine.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "ranged strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "happiness"
+-- Dedup-only alias. Base text pairs the positive-happy glyph with "Happy"
+-- as well as "Happiness"; match the shorter form in the target locale.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "happy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = "unhappiness"
+-- Dedup-only alias. Base text pairs the unhappy glyph with "unhappy"
+-- alongside "unhappiness"; match the shorter form.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT"] = "unhappy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_LEFT"] = "left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_RIGHT"] = "right"
