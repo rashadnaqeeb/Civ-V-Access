@@ -166,8 +166,32 @@ local function pushRenameSub(activePlayer, leagueId)
     HandlerStack.push(sub)
 end
 
-local function memberDetailsTooltip(pLeague, member, activePlayer)
-    return LeagueOverviewRow.filterTooltip(pLeague:GetMemberDetails(member.playerID, activePlayer))
+-- Drill children for one member. Each Lua binding wraps the matching engine
+-- accessor (delegation = total + per-source breakdown; knowledge = ideology /
+-- diplomat / understanding-of-goals; vote opinion = top-choices for current
+-- proposals plus any vote commitments). Empty sections are skipped so the
+-- drill only carries the lines the engine actually produced (knowledge and
+-- vote-opinion are empty for the active player's own row, knowledge stays
+-- non-empty for other members but vote-opinion is empty between sessions).
+local function buildMemberDrillItems(pLeague, member, activePlayer)
+    local items = {}
+    local delegation = LeagueOverviewRow.formatDelegationBreakdown(
+        pLeague:GetMemberDelegationDetails(member.playerID, activePlayer)
+    )
+    if delegation ~= "" then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = delegation })
+    end
+    local laterSections = {
+        pLeague:GetMemberKnowledgeDetails(member.playerID, activePlayer),
+        pLeague:GetMemberVoteOpinionDetails(member.playerID, activePlayer),
+    }
+    for _, raw in ipairs(laterSections) do
+        local filtered = LeagueOverviewRow.filterTooltip(raw)
+        if filtered ~= "" then
+            items[#items + 1] = BaseMenuItems.Text({ labelText = filtered })
+        end
+    end
+    return items
 end
 
 local function buildStatusTabItems(pLeague, activePlayer, leagueId)
@@ -190,11 +214,9 @@ local function buildStatusTabItems(pLeague, activePlayer, leagueId)
         labelText = LeagueOverviewRow.formatStatusPill(pLeague),
     })
     for _, member in ipairs(LeagueOverviewRow.orderedMembers(pLeague)) do
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = LeagueOverviewRow.appendTooltip(
-                LeagueOverviewRow.formatMember(pLeague, member, activePlayer),
-                memberDetailsTooltip(pLeague, member, activePlayer)
-            ),
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = LeagueOverviewRow.formatMember(pLeague, member, activePlayer),
+            items = buildMemberDrillItems(pLeague, member, activePlayer),
         })
     end
     return items

@@ -63,6 +63,15 @@ local function fakeLeague(opts)
     function league:CalculateStartingVotesForMember(pid)
         return (self._members[pid] or {}).votes or 0
     end
+    -- formatMember reads these when IsInSession() is true; default to 0 so
+    -- in-session tests that don't care about live tallies don't crash. Tests
+    -- that exercise the in-session vote display patch them per-instance.
+    function league:GetRemainingVotesForMember(_pid)
+        return 0
+    end
+    function league:GetSpentVotesForMember(_pid)
+        return 0
+    end
     function league:CanPropose(pid)
         return (self._members[pid] or {}).canPropose or false
     end
@@ -342,22 +351,27 @@ function M.test_member_row_can_propose_marker()
     teardown()
 end
 
-function M.test_member_row_diplomat_marker_only_on_other_civs()
-    setup({ activeDiplomatsAt = { [1] = true, [0] = true } })
+-- During a session the engine's first delegation sub-line shows
+-- remaining + spent rather than the precomputed starting total. The parent
+-- row should track that so the two read consistent numbers when a vote pool
+-- shifts mid-session.
+function M.test_member_row_uses_remaining_plus_spent_when_in_session()
+    setup()
     local league = fakeLeague({
         hostId = 0,
-        members = {
-            [0] = { votes = 5 },
-            [1] = { votes = 5 },
-        },
+        inSession = true,
+        members = { [1] = { votes = 99 } }, -- starting count; should be ignored in session
     })
-    local ordered = LeagueOverviewRow.orderedMembers(league)
-    -- self row: even with the bogus self-visiting flag, marker should not appear
-    local selfRow = LeagueOverviewRow.formatMember(league, ordered[1], 0)
-    T.falsy(selfRow:find("Diplomat in their capital", 1, true), "no diplomat marker on self: " .. selfRow)
-    -- other row: marker should appear
-    local otherRow = LeagueOverviewRow.formatMember(league, ordered[2], 0)
-    T.truthy(otherRow:find("Diplomat in their capital", 1, true), "diplomat marker on other: " .. otherRow)
+    function league:GetRemainingVotesForMember(_pid)
+        return 4
+    end
+    function league:GetSpentVotesForMember(_pid)
+        return 3
+    end
+    local member = LeagueOverviewRow.orderedMembers(league)[1]
+    local row = LeagueOverviewRow.formatMember(league, member, 0)
+    T.truthy(row:find("7 delegates", 1, true), "in-session row should sum remaining+spent: " .. row)
+    T.falsy(row:find("99", 1, true), "starting count should not appear: " .. row)
     teardown()
 end
 
@@ -576,6 +590,57 @@ end
 function M.test_filter_tooltip_handles_nil_input()
     setup({})
     T.eq(LeagueOverviewRow.filterTooltip(nil), "")
+    teardown()
+end
+
+-- formatDelegationBreakdown: drops the engine header (parent row already
+-- speaks the leader/civ/total), keeps only the bulleted per-source list, and
+-- injects "Delegates" on the first bullet to give context to the bare counts
+-- that follow.
+
+function M.test_delegation_breakdown_drops_header_and_injects_delegates_on_first_bullet()
+    setup({})
+    local raw = "Shaka of The Zulus commands a total of 8 Delegates.  Once in session, the amount is fixed until the session ends."
+        .. "[NEWLINE][ICON_BULLET]4 from membership"
+        .. "[NEWLINE][ICON_BULLET]2 from previous World Leader attempts"
+        .. "[NEWLINE][ICON_BULLET]2 from City-States (2 per ally)"
+    local out = LeagueOverviewRow.formatDelegationBreakdown(raw)
+    T.falsy(out:find("commands a total", 1, true), "header should be dropped: " .. out)
+    T.falsy(out:find("session ends", 1, true), "fixed-in-session disclaimer should be dropped: " .. out)
+    T.truthy(out:find("4 Delegates from membership", 1, true), "first bullet should inject Delegates: " .. out)
+    T.truthy(out:find("2 from previous World Leader attempts", 1, true), "later bullets stay bare: " .. out)
+    T.truthy(out:find("2 from City%-States %(2 per ally%)"), "CS bullet preserved: " .. out)
+    -- only the first bullet gets "Delegates"; the others must not.
+    local _, count = out:gsub("Delegates", "")
+    T.eq(count, 1, "only one Delegates injection: " .. out)
+    teardown()
+end
+
+function M.test_delegation_breakdown_handles_host_for_clause()
+    setup({})
+    -- HOST_VOTES uses "for" instead of "from". Injection should still apply
+    -- to the first bullet's count regardless of preposition.
+    local raw = "header text[NEWLINE][ICON_BULLET]2 for being the current host"
+        .. "[NEWLINE][ICON_BULLET]4 from membership"
+    local out = LeagueOverviewRow.formatDelegationBreakdown(raw)
+    T.truthy(out:find("2 Delegates for being the current host", 1, true), "host-bullet first: " .. out)
+    T.truthy(out:find("4 from membership", 1, true), "second bullet stays bare: " .. out)
+    teardown()
+end
+
+function M.test_delegation_breakdown_returns_empty_when_no_bullets()
+    setup({})
+    -- Member with zero delegates from any source: engine emits the header but
+    -- no bullets. Drill should skip this section entirely so the parent row's
+    -- "0 delegates" stands on its own.
+    local raw = "Someone of Somewhere commands a total of 0 Delegates.  Once in session..."
+    T.eq(LeagueOverviewRow.formatDelegationBreakdown(raw), "")
+    teardown()
+end
+
+function M.test_delegation_breakdown_handles_nil_input()
+    setup({})
+    T.eq(LeagueOverviewRow.formatDelegationBreakdown(nil), "")
     teardown()
 end
 

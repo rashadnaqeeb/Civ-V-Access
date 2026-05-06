@@ -96,8 +96,14 @@ end
 LeagueOverviewRow._delegatesPhrase = delegatesPhrase
 
 -- Per-member row label. Tags read in the order the plan documents:
--- (you), host, delegate count, can-propose marker, diplomat-visiting marker.
--- Trailing period is appended here so the row is a complete spoken sentence.
+-- (you), host, delegate count, can-propose marker. Diplomat-visiting and
+-- ideology / knowledge clauses live inside the drill via
+-- GetMemberKnowledgeDetails, not on the parent row. Trailing period is
+-- appended here so the row is a complete spoken sentence.
+--
+-- Delegate count mirrors GetMemberDelegationDetails: starting votes outside
+-- a session, remaining + spent during one. Lets the parent and the drill's
+-- delegation line agree mid-session if a vote pool shifts.
 function LeagueOverviewRow.formatMember(pLeague, member, activePlayer)
     local parts = { leaderOfCiv(member.playerID) }
     local tags = {}
@@ -107,15 +113,15 @@ function LeagueOverviewRow.formatMember(pLeague, member, activePlayer)
     if member.isHost then
         tags[#tags + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST")
     end
-    tags[#tags + 1] = delegatesPhrase(member.votes)
+    local votes
+    if pLeague:IsInSession() then
+        votes = pLeague:GetRemainingVotesForMember(member.playerID) + pLeague:GetSpentVotesForMember(member.playerID)
+    else
+        votes = pLeague:CalculateStartingVotesForMember(member.playerID)
+    end
+    tags[#tags + 1] = delegatesPhrase(votes)
     if pLeague:CanPropose(member.playerID) then
         tags[#tags + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_CAN_PROPOSE")
-    end
-    if member.playerID ~= activePlayer then
-        local pActive = Players[activePlayer]
-        if pActive ~= nil and pActive:IsMyDiplomatVisitingThem(member.playerID) then
-            tags[#tags + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DIPLOMAT_VISITING")
-        end
     end
     parts[#parts + 1] = table.concat(tags, ", ")
     return table.concat(parts, ", ") .. "."
@@ -222,6 +228,36 @@ function LeagueOverviewRow.filterTooltip(text)
     local s = tostring(text)
     s = s:gsub("([^%s%.%!%?%:%;%,])(%s*%[NEWLINE%]%s*)([%S])", "%1.%2%3")
     return TextFilter.filter(s)
+end
+
+-- Reshape GetMemberDelegationDetails for the drilled delegation sub-line.
+-- The engine output is the TXT_KEY_LEAGUE_OVERVIEW_MEMBER_DETAILS header
+-- ("X of Y commands a total of N Delegates. Once in session ...") followed
+-- by sVoteSources, a series of [NEWLINE][ICON_BULLET]<count> <source> lines
+-- (TXT_KEY_LEAGUE_OVERVIEW_MEMBER_DETAILS_*_VOTES). The header duplicates
+-- what the parent row already speaks, and bare counts ("4 from membership")
+-- on their own read as anonymous numbers, so:
+--   1. Drop everything before the first [NEWLINE][ICON_BULLET] (the header).
+--   2. Inject "Delegates" between the first bullet's count and the source
+--      phrase so the line reads "4 Delegates from membership"; later
+--      bullets stay bare ("2 from previous ...") with context established.
+-- The bullet marker pattern is locale-stable across the engine's source
+-- strings; the "Delegates" injection is English-only and the translation
+-- pipeline reshapes locale-specific phrasing. Empty-bullets case (member
+-- with zero delegates) returns "" so buildMemberDrillItems skips this
+-- section -- the parent row already states "0 delegates".
+function LeagueOverviewRow.formatDelegationBreakdown(rawText)
+    if rawText == nil then
+        return ""
+    end
+    local s = tostring(rawText)
+    local cutStart = s:find("[NEWLINE][ICON_BULLET]", 1, true)
+    if cutStart == nil then
+        return ""
+    end
+    s = s:sub(cutStart)
+    s = s:gsub("^(%[NEWLINE%]%[ICON_BULLET%])(%d+) ", "%1%2 Delegates ", 1)
+    return LeagueOverviewRow.filterTooltip(s)
 end
 
 -- Concatenate a row's lead label and an appended tooltip into one spoken
