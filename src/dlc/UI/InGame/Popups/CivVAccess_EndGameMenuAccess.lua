@@ -28,11 +28,14 @@
 -- wrapper loads at end-game; Tab 1's DemographicsButton remains so the
 -- visual flip is still reachable from the keyboard.
 --
--- EndGameText carries the victory flavor line set by OnDisplay; surfaced
--- as a function preamble so it speaks on first show and is re-read by F1
--- on any tab. MainMenuButton's text flips to "Continue" in hotseat
--- alt-player mode; we label it with the common "Exit to Main Menu" since
--- that's the path that matters on a finished game.
+-- EndGameText carries the victory flavor line set by OnDisplay. The engine
+-- narrates this line as a voice clip, so silentFirstOpen suppresses the
+-- preamble + first-item speech on fresh show to avoid talking over it; the
+-- ReadSubtitles toggle bypasses the suppression for users who want both.
+-- F1 re-reads the preamble on demand on any tab. MainMenuButton's text
+-- flips to "Continue" in hotseat alt-player mode; we label it with the
+-- common "Exit to Main Menu" since that's the path that matters on a
+-- finished game.
 
 include("CivVAccess_PopupBoot")
 
@@ -169,6 +172,7 @@ m_handler = BaseMenu.install(ContextPtr, {
     preamble = function()
         return Controls.EndGameText:GetText()
     end,
+    silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     tabs = { infoTab, rankingTab, replayTab },
