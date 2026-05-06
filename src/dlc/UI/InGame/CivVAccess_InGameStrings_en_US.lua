@@ -2072,39 +2072,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TRAIT_PERSONALITY_CELL"] = "{1_Trai
 -- it from the Yields-group root or the individual yield's drill-in
 -- header.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_YIELDS"] = "Yields"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_GROWTH"] = "Growth"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_CULTURE"] = "Culture progress"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_HAPPINESS"] = "Happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION"] = "Religion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE"] = "Trade routes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES"] = "Resources"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEFENSE"] = "Defense"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_DEMAND"] = "Resource demand"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_NO_BREAKDOWN"] = "no breakdown available"
--- Per-yield drill-in header keys re-use the same 7 CITYVIEW_YIELD strings
--- the preamble used to read; the table below is symmetrical so a future
--- locale only writes the spoken label once.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_FOOD"] = "food {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_PRODUCTION"] = "production {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_GOLD"] = "gold {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_SCIENCE"] = "science {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_FAITH"] = "faith {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_TOURISM"] = "tourism {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_CULTURE"] = "culture {1_Num}"
--- Culture progress group: stored / threshold pair, per-turn rate, and the
--- next-tile countdown that the engine hides when culture per turn is zero.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PROGRESS"] = "{1_Stored} of {2_Needed} culture"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_PER_TURN"] = "{1_Num} per turn"
+-- Storage / threshold tail appended to the food and culture yield rows.
+-- Bare numerator-of-denominator since the row's headline already names
+-- the resource ("food 5, 12 of 22, grows in 4 turns").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_STORAGE_FRACTION"] = "{1_Cur} of {2_Threshold}"
+-- Culture's next-tile countdown. Borrowed by both the culture yield's
+-- extras tail (CityStats) and the hex-cursor culture readout
+-- (CitySpeech.borderGrowthToken); shared so the wording stays
+-- consistent.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_IN"] = {
     one = "next tile in {1_Num} turn",
     other = "next tile in {1_Num} turns",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED"] = "tile expansion stalled"
--- Happiness group: local-only contribution from buildings here, plus the
--- per-city slice of the empire's unhappiness pool (population / occupied /
--- specialists already folded in by the engine).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LOCAL"] = "local happiness {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_UNHAPPINESS"] = "unhappiness {1_Num}"
+-- Happiness one-liner: local-only contribution from buildings here, plus
+-- the per-city slice of the empire's unhappiness pool (population /
+-- occupied / specialists already folded in by the engine).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LINE"] =
+    "local happiness {1_Local}, unhappiness {2_Unhappiness}"
 -- Religion group: one row per religion present, holy-city flag inlined
 -- when applicable so the user hears it together with that religion's
 -- numbers rather than as a separate line.
@@ -2116,13 +2105,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE"] = {
     one = "{1_Religion}, holy city, {2_Followers} follower, {3_Pressure} pressure",
     other = "{1_Religion}, holy city, {2_Followers} followers, {3_Pressure} pressure",
 }
--- Trade group: direction first so the partner city name lands second
--- (matches the way GetTradeRoutes presents from / to).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_OUTGOING"] = "to"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_INCOMING"] = "from"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_DOMAIN_LAND"] = "land"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_DOMAIN_SEA"] = "sea"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_TRADE_ROUTE"] = "{1_Direction} {2_City}, {3_Domain}"
+-- Resource group: name leads (matches the rest of the section's
+-- distinguishing-info-first ordering), count second.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RESOURCE_LINE"] = "{1_Name} {2_Num}"
 -- ChooseInternationalTradeRoutePopup row format: destination identifier
 -- (city, plus civ for major-civ rows), hex distance, then yields split
 -- into "you get" / "they get" sides matching the engine's myBonuses /
@@ -2173,10 +2158,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_SCIENCE"] = "science received"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_FOOD"] = "food received"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRODUCTION"] = "production received"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE"] = "religious pressure to destination"
--- Defense group of the City Stats drillable. Each defensive building
--- announces with the same {Building} format string so adding a new
--- defensive building only adds a row, not a new label.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_DEFENSE_BUILDING_LINE"] = "{1_Building}"
 -- Leader descriptions. Spoken on F2 over LeaderHeadRoot /
 -- DiscussionDialog / DiploTrade, keyed by Leaders.Type (Players[i]:GetLeaderType()
 -- -> GameInfo.Leaders[lt].Type). Sourced from docs/leader-descriptions.md.

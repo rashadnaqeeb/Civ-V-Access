@@ -1,26 +1,50 @@
--- CityStats data-shaping tests. Covers each pure-data row builder:
--- yieldRows, growthRows, cultureRows, happinessRows, religionRows,
--- tradeRows, resourceRows, defenseRows, demandRow. The wrapper builders
--- that wrap rows into BaseMenuItems.Group entries aren't exercised here
--- (their logic is just BaseMenuItems composition, covered by the menu
--- suite); the speech-shaping behavior lives in the row functions.
+-- CityStats data-shaping tests. Covers each pure-data row builder and
+-- the headline / one-line label functions: yieldRows (with food /
+-- culture extras), happinessLine, religionRows, tradeRouteLabels,
+-- resourceLines, defenseHeadline, defenseRows, demandRow. The wrapper
+-- builders that wrap rows into BaseMenuItems.Group entries aren't
+-- exercised here (their logic is just BaseMenuItems composition,
+-- covered by the menu suite); the speech-shaping behavior lives in the
+-- row functions.
 
 local T = require("support")
 local M = {}
 
+-- ===== Plot stub =====
+-- Implements only the methods CityStats reads from a plot during the
+-- resource-line walk. Each plot carries a resource id (-1 = none), a
+-- count, and the owning city handle (for the "is this plot mine?"
+-- check).
+local function mkPlot(opts)
+    opts = opts or {}
+    local p = {
+        _resourceType = (opts.resourceType == nil) and -1 or opts.resourceType,
+        _numResource = opts.numResource or 0,
+        _plotCity = opts.plotCity,
+    }
+    function p:GetResourceType()
+        return self._resourceType
+    end
+    function p:GetNumResource()
+        return self._numResource
+    end
+    function p:GetPlotCity()
+        return self._plotCity
+    end
+    return p
+end
+
 -- ===== City stub =====
 -- Implements only the methods CityStats reads. opts overrides let each
 -- test express the diffs it cares about; defaults model an own-team
--- city with full HP, no demand, no religion present, no trade routes.
+-- city with full HP, no demand, no religion present, no trade routes,
+-- no plots of interest.
 local function mkCity(opts)
     opts = opts or {}
     local c = {
         _id = opts.id or 7,
         _owner = opts.owner or 0,
         _team = opts.team or 0,
-        _x = opts.x or 5,
-        _y = opts.y or 5,
-        _population = opts.population or 8,
         _strength = opts.strength or 2200,
         _damage = opts.damage or 0,
         _foodDifference = opts.foodDifference or 3,
@@ -30,6 +54,8 @@ local function mkCity(opts)
         _food = opts.food or 12,
         _growthThreshold = opts.growthThreshold or 22,
         _yieldRate = opts.yieldRate or {},
+        _productionDifferenceTimes100 = (opts.productionDifferenceTimes100 == nil) and 0
+            or opts.productionDifferenceTimes100,
         _baseTourism = opts.baseTourism or 0,
         _cultureStored = opts.cultureStored or 4,
         _cultureThreshold = opts.cultureThreshold or 30,
@@ -46,6 +72,7 @@ local function mkCity(opts)
         _resourceDemandedTrue = (opts.resourceDemandedTrue == nil) and -1 or opts.resourceDemandedTrue,
         _resourceDemanded = (opts.resourceDemanded == nil) and -1 or opts.resourceDemanded,
         _wltkdCounter = opts.wltkdCounter or 0,
+        _plots = opts.plots or {},
     }
     function c:GetID()
         return self._id
@@ -55,15 +82,6 @@ local function mkCity(opts)
     end
     function c:GetTeam()
         return self._team
-    end
-    function c:GetX()
-        return self._x
-    end
-    function c:GetY()
-        return self._y
-    end
-    function c:GetPopulation()
-        return self._population
     end
     function c:GetStrengthValue()
         return self._strength
@@ -91,6 +109,9 @@ local function mkCity(opts)
     end
     function c:GetYieldRate(yid)
         return self._yieldRate[yid] or 0
+    end
+    function c:GetCurrentProductionDifferenceTimes100(_includeOverflow, _includeBonusFromCarryover)
+        return self._productionDifferenceTimes100
     end
     function c:GetBaseTourism()
         return self._baseTourism
@@ -122,7 +143,7 @@ local function mkCity(opts)
     function c:IsHolyCityForReligion(rid)
         return self._holyCity[rid] or false
     end
-    function c:IsHasResourceLocal(rid)
+    function c:IsHasResourceLocal(rid, _bTestVisible)
         return self._resourceLocal[rid] or false
     end
     function c:IsHasBuilding(bid)
@@ -139,6 +160,13 @@ local function mkCity(opts)
     end
     function c:GetWeLoveTheKingDayCounter()
         return self._wltkdCounter
+    end
+    function c:GetNumCityPlots()
+        return #self._plots
+    end
+    function c:GetCityIndexPlot(i)
+        -- Production code passes 0..GetNumCityPlots()-1; remap to 1-based.
+        return self._plots[i + 1]
     end
     return c
 end
@@ -175,10 +203,13 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_CitySpeech.lua")
+    -- TradeRouteRow is included by CityStats in-game; the test runner's
+    -- include() is a no-op, so dofile it here to populate the global.
+    dofile("src/dlc/UI/InGame/Popups/CivVAccess_TradeRouteRow.lua")
     dofile("src/dlc/UI/InGame/CityView/CivVAccess_CityStats.lua")
 
     -- Locale.Compare is nil under the runner's polyfill (it only stubs
-    -- ConvertTextKey / Lookup). resourceRows sorts strategics and luxes
+    -- ConvertTextKey / Lookup). resourceLines sorts strategics and luxes
     -- alphabetically, so a Compare stub is required.
     Locale.Compare = function(a, b)
         if a == b then
@@ -267,29 +298,98 @@ function M.test_yields_speak_per_turn_for_seven_yields()
     setup()
     local city = mkCity({
         foodDifference = 5,
+        foodDifferenceTimes100 = 500,
+        food = 12,
+        growthThreshold = 22,
+        foodTurnsLeft = 2,
+        -- Production reads GetCurrentProductionDifferenceTimes100 (post
+        -- modifiers, matches CityView's banner). 1250 -> 12.
+        productionDifferenceTimes100 = 1250,
         yieldRate = {
-            [YieldTypes.YIELD_PRODUCTION] = 12,
             [YieldTypes.YIELD_GOLD] = 8,
             [YieldTypes.YIELD_SCIENCE] = 14,
         },
         baseTourism = 250,
         faithPerTurn = 3,
+        cultureStored = 5,
+        cultureThreshold = 25,
         culturePerTurn = 6,
     })
-    -- No tooltip helpers wired so breakdown is empty; we're only testing
-    -- the per-yield headers. Pass an explicit fn that returns nil.
     local rows = CityStats.yieldRows(city, function()
         return nil
     end)
     T.eq(#rows, 7)
+    -- Food row's headline includes the per-turn rate, then storage tail,
+    -- then the grows-in countdown.
     T.truthy(rows[1].label:find("food 5", 1, true), "food per-turn label")
-    T.truthy(rows[2].label:find("production 12", 1, true), "production per-turn label")
+    T.truthy(rows[1].label:find("12 of 22", 1, true), "food storage tail")
+    T.truthy(rows[1].label:find("2 turn", 1, true), "food turns-to-grow tail")
+    T.truthy(rows[2].label:find("production 12", 1, true), "production per-turn label (post-modifiers)")
     T.truthy(rows[3].label:find("gold 8", 1, true), "gold per-turn label")
     T.truthy(rows[4].label:find("science 14", 1, true), "science per-turn label")
     T.truthy(rows[5].label:find("faith 3", 1, true), "faith per-turn label")
     -- Tourism reads /100 to match the banner's integer display.
     T.truthy(rows[6].label:find("tourism 2", 1, true), "tourism scaled per-turn label")
+    -- Culture row's headline includes the per-turn rate, then storage,
+    -- then the next-tile countdown ((25-5)/6 = ~4 turns ceiled).
     T.truthy(rows[7].label:find("culture 6", 1, true), "culture per-turn label")
+    T.truthy(rows[7].label:find("5 of 25", 1, true), "culture storage tail")
+    T.truthy(rows[7].label:find("next tile", 1, true), "culture next-tile tail")
+end
+
+function M.test_yields_food_label_starving_when_negative_diff()
+    setup()
+    local city = mkCity({
+        foodDifference = -2,
+        foodDifferenceTimes100 = -200,
+        food = 12,
+        growthThreshold = 22,
+    })
+    local rows = CityStats.yieldRows(city, function()
+        return nil
+    end)
+    T.truthy(rows[1].label:find("food -2", 1, true), "negative food rate spoken on headline")
+    T.truthy(rows[1].label:find("starving", 1, true), "starving marker in tail")
+end
+
+function M.test_yields_food_label_stopped_when_zero_diff()
+    setup()
+    local city = mkCity({
+        foodDifference = 0,
+        foodDifferenceTimes100 = 0,
+        food = 12,
+        growthThreshold = 22,
+    })
+    local rows = CityStats.yieldRows(city, function()
+        return nil
+    end)
+    T.truthy(rows[1].label:find("food 0", 1, true), "zero food rate spoken on headline")
+    T.truthy(rows[1].label:find("stopped growing", 1, true), "stopped-growing marker in tail")
+end
+
+function M.test_yields_food_label_stopped_when_food_production()
+    setup()
+    -- Wonder using food-as-production: positive raw food, but engine
+    -- routes it into production so growth halts.
+    local city = mkCity({
+        foodDifference = 5,
+        foodDifferenceTimes100 = 500,
+        isFoodProduction = true,
+    })
+    local rows = CityStats.yieldRows(city, function()
+        return nil
+    end)
+    T.truthy(rows[1].label:find("stopped growing", 1, true), "food-into-production halts growth")
+end
+
+function M.test_yields_culture_label_stalled_when_no_culture()
+    setup()
+    local city = mkCity({ culturePerTurn = 0, cultureStored = 5, cultureThreshold = 25 })
+    local rows = CityStats.yieldRows(city, function()
+        return nil
+    end)
+    T.truthy(rows[7].label:find("culture 0", 1, true), "zero culture rate spoken on headline")
+    T.truthy(rows[7].label:find("stalled", 1, true), "stalled marker in culture tail")
 end
 
 function M.test_yields_drillin_splits_tooltip_on_newline_and_filters_markup()
@@ -308,83 +408,58 @@ function M.test_yields_drillin_splits_tooltip_on_newline_and_filters_markup()
     T.truthy(rows[1].breakdown[2]:find("from buildings", 1, true))
 end
 
+function M.test_yields_faith_drillin_drops_religion_tooltip_suffix()
+    setup()
+    local city = mkCity()
+    -- Mirror what GetFaithTooltip emits in the BNW source: per-source
+    -- bullets joined with [NEWLINE], then a "----------------" separator,
+    -- then the appended GetReligionTooltip. The strip pass should keep
+    -- only the bullets and discard everything from the separator on.
+    local fakeFaith = "[ICON_BULLET]2 from buildings[NEWLINE][ICON_BULLET]1 from terrain"
+        .. "[NEWLINE]----------------[NEWLINE]Christianity, 5 followers, 8 pressure"
+    local rows = CityStats.yieldRows(city, function(yieldKey)
+        if yieldKey == "FAITH" then
+            return function()
+                return fakeFaith
+            end
+        end
+        return nil
+    end)
+    -- Faith is row 5. Expect terrain + buildings only; no separator,
+    -- no religion-tooltip lines.
+    local faith = rows[5]
+    T.eq(#faith.breakdown, 2)
+    T.truthy(faith.breakdown[1]:find("from buildings", 1, true), "first faith source kept")
+    T.truthy(faith.breakdown[2]:find("from terrain", 1, true), "second faith source kept")
+    for _, line in ipairs(faith.breakdown) do
+        T.falsy(line:find("Christianity", 1, true), "religion tooltip suffix must not leak in")
+        T.falsy(line:find("----", 1, true), "separator line must not leak in")
+    end
+end
+
 function M.test_yields_drillin_handles_helper_returning_nil()
     setup()
     local city = mkCity()
     local rows = CityStats.yieldRows(city, function()
         return nil
     end)
-    -- All seven yields stay in the list with empty breakdown so the
-    -- per-yield header still announces (the wrapper substitutes a
-    -- "no breakdown" leaf at draw time).
     T.eq(#rows, 7)
     for _, row in ipairs(rows) do
         T.eq(#row.breakdown, 0)
     end
 end
 
--- ===== Growth =====
-
-function M.test_growth_speaks_progress_perturn_and_turns_to_grow()
-    setup()
-    local city = mkCity({ food = 12, growthThreshold = 22, foodDifference = 3, foodTurnsLeft = 4 })
-    local rows = CityStats.growthRows(city)
-    T.truthy(rows[1]:find("12", 1, true), "food progress numerator")
-    T.truthy(rows[1]:find("22", 1, true), "food progress denominator")
-    T.truthy(rows[2]:find("3", 1, true), "food per-turn")
-    T.truthy(rows[3]:find("4", 1, true), "turns-to-grow")
-end
-
-function M.test_growth_speaks_starving_when_food_negative()
-    setup()
-    local city = mkCity({ foodDifference = -2, foodDifferenceTimes100 = -200 })
-    local rows = CityStats.growthRows(city)
-    -- The growth-headline row substitutes "starving" for the turn count.
-    local last = rows[#rows]
-    T.truthy(last:find("starving", 1, true), "starving headline expected")
-end
-
-function M.test_growth_speaks_stopped_growing_when_zero_diff()
-    setup()
-    local city = mkCity({ foodDifference = 0, foodDifferenceTimes100 = 0 })
-    local rows = CityStats.growthRows(city)
-    local last = rows[#rows]
-    T.truthy(last:find("stopped growing", 1, true), "stopped-growing headline expected")
-end
-
--- ===== Culture =====
-
-function M.test_culture_speaks_progress_perturn_and_turns_to_tile()
-    setup()
-    local city = mkCity({ cultureStored = 5, cultureThreshold = 25, culturePerTurn = 4 })
-    local rows = CityStats.cultureRows(city)
-    T.truthy(rows[1]:find("5", 1, true), "culture stored")
-    T.truthy(rows[1]:find("25", 1, true), "culture threshold")
-    T.truthy(rows[2]:find("4", 1, true), "culture per-turn")
-    -- (25 - 5) / 4 = 5 turns
-    T.truthy(rows[3]:find("5", 1, true), "turns-to-next-tile")
-end
-
-function M.test_culture_speaks_stalled_when_no_culture_per_turn()
-    setup()
-    local city = mkCity({ culturePerTurn = 0 })
-    local rows = CityStats.cultureRows(city)
-    -- Last row swaps to the stalled marker rather than reading "next tile in 0".
-    T.truthy(rows[#rows]:find("stalled", 1, true), "stalled marker expected")
-end
-
 -- ===== Happiness =====
 
-function M.test_happiness_speaks_local_and_unhappiness()
+function M.test_happiness_line_speaks_local_and_unhappiness()
     setup()
     local city = mkCity({ localHappiness = 6 })
     -- GetUnhappinessFromCityForUI returns *100 to match the engine's
     -- division pattern. 350 -> 3 unhappiness.
     local player = mkPlayer({ unhappinessFromCity = 350 })
-    local rows = CityStats.happinessRows(city, player)
-    T.eq(#rows, 2)
-    T.truthy(rows[1]:find("local happiness 6", 1, true), "local happiness")
-    T.truthy(rows[2]:find("unhappiness 3", 1, true), "unhappiness scaled to integer")
+    local line = CityStats.happinessLine(city, player)
+    T.truthy(line:find("local happiness 6", 1, true), "local happiness")
+    T.truthy(line:find("unhappiness 3", 1, true), "unhappiness scaled to integer")
 end
 
 -- ===== Religion =====
@@ -393,8 +468,7 @@ function M.test_religion_skips_when_no_religions_present()
     setup()
     GameInfo.Religions = makeIterableTable({})
     local city = mkCity()
-    local rows = CityStats.religionRows(city)
-    T.eq(#rows, 0)
+    T.eq(#CityStats.religionRows(city), 0)
 end
 
 function M.test_religion_speaks_majority_first_then_others_with_followers()
@@ -410,8 +484,6 @@ function M.test_religion_speaks_majority_first_then_others_with_followers()
         pressure = { [1] = 50, [2] = 120, [3] = 0 },
     })
     local rows = CityStats.religionRows(city)
-    -- Buddhism (majority) leads, then Christianity (4 followers). Islam
-    -- has 0 followers and no holy-city flag, so it's omitted.
     T.eq(#rows, 2)
     T.truthy(rows[1]:find("Buddhism", 1, true), "majority leads")
     T.truthy(rows[1]:find("9 followers", 1, true), "majority follower count")
@@ -440,8 +512,23 @@ end
 
 -- ===== Trade =====
 
-function M.test_trade_filters_routes_by_city_id_and_speaks_direction()
+-- Trade tests target the FILTERING done by tradeRouteLabels. The label
+-- string is built by the shared TradeRouteRow.rowLabel which carries
+-- its own broader formatting (city-state vs major civ, yield split
+-- per side, religion-pressure naming) and would require a sprawl of
+-- Game / Players / engine TXT_KEY fixtures to assert end-to-end. To
+-- isolate the filtering, swap rowLabel for a deterministic stand-in
+-- per test that returns a recognizable token; the production fn is
+-- restored on the next setup().
+local function swapRowLabel(stand_in)
+    TradeRouteRow.rowLabel = stand_in
+end
+
+function M.test_trade_filters_by_origin_or_destination_city_id()
     setup()
+    swapRowLabel(function(route)
+        return "route:" .. route.FromCityName .. "->" .. route.ToCityName
+    end)
     local city = mkCity({ id = 42 })
     local rome = {
         GetID = function()
@@ -462,31 +549,51 @@ function M.test_trade_filters_routes_by_city_id_and_speaks_direction()
         tradeRoutes = {
             -- Outgoing from this city to Berlin
             { FromCity = rome, ToCity = berlin, FromCityName = "Rome", ToCityName = "Berlin", Domain = 0 },
-            -- Incoming from Madrid into this city (active player's own internal
-            -- route landing here, not a foreign route)
+            -- Incoming to this city from Madrid (one of our internal routes)
             { FromCity = madrid, ToCity = rome, FromCityName = "Madrid", ToCityName = "Rome", Domain = 1 },
             -- Unrelated route between two other cities
             { FromCity = madrid, ToCity = berlin, FromCityName = "Madrid", ToCityName = "Berlin", Domain = 0 },
         },
     })
-    local rows = CityStats.tradeRows(city, player)
-    T.eq(#rows, 2)
-    T.truthy(rows[1]:find("to Berlin", 1, true), "outgoing speaks 'to'")
-    T.truthy(rows[1]:find("land", 1, true), "land domain")
-    T.truthy(rows[2]:find("from Madrid", 1, true), "incoming speaks 'from'")
-    T.truthy(rows[2]:find("sea", 1, true), "sea domain")
+    local labels = CityStats.tradeRouteLabels(city, player)
+    T.eq(#labels, 2)
+    T.eq(labels[1], "route:Rome->Berlin")
+    T.eq(labels[2], "route:Madrid->Rome")
 end
 
 function M.test_trade_returns_empty_when_no_routes()
     setup()
+    swapRowLabel(function()
+        return "should-not-be-called"
+    end)
     local city = mkCity({ id = 1 })
     local player = mkPlayer({ tradeRoutes = {} })
-    T.eq(#CityStats.tradeRows(city, player), 0)
+    T.eq(#CityStats.tradeRouteLabels(city, player), 0)
+end
+
+function M.test_trade_returns_empty_when_routes_accessor_returns_nil()
+    setup()
+    swapRowLabel(function()
+        return "should-not-be-called"
+    end)
+    local city = mkCity({ id = 1 })
+    -- Player whose GetTradeRoutes returns nil (engine sometimes returns
+    -- nil before any trade unit has been built). tradeRouteLabels must
+    -- short-circuit rather than crash on nil iteration.
+    local player = mkPlayer()
+    function player:GetTradeRoutes()
+        return nil
+    end
+    T.eq(#CityStats.tradeRouteLabels(city, player), 0)
 end
 
 -- ===== Resources =====
 
-function M.test_resources_skips_bonus_and_lists_strategics_then_luxes()
+-- Plots stubs let resourceLines walk the city's working radius. The
+-- production code requires plot owner == this city AND
+-- city:IsHasResourceLocal(rid) == true; tests model both gates.
+
+function M.test_resources_walks_plots_and_includes_counts()
     setup()
     GameInfo.Resources = makeIterableTable({
         { ID = 1, Description = "Iron", ResourceUsage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC },
@@ -494,36 +601,96 @@ function M.test_resources_skips_bonus_and_lists_strategics_then_luxes()
         { ID = 3, Description = "Silk", ResourceUsage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY },
         { ID = 4, Description = "Horses", ResourceUsage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC },
     })
-    local city = mkCity({ resourceLocal = { [1] = true, [2] = true, [3] = true, [4] = true } })
-    local rows = CityStats.resourceRows(city)
-    -- Bonus dropped; strategics first (Horses, Iron alphabetical), then luxes.
+    local city
+    city = mkCity({
+        id = 7,
+        resourceLocal = { [1] = true, [3] = true, [4] = true },
+    })
+    -- Plots owned by city 7 with assorted resources. Plot owner is set
+    -- after the city is created so the back-reference resolves.
+    city._plots = {
+        mkPlot({ resourceType = 1, numResource = 2, plotCity = city }),
+        mkPlot({ resourceType = 2, numResource = 1, plotCity = city }), -- Wheat (BONUS, dropped)
+        mkPlot({ resourceType = 3, numResource = 1, plotCity = city }),
+        mkPlot({ resourceType = 4, numResource = 4, plotCity = city }),
+        mkPlot({ resourceType = -1, numResource = 0, plotCity = city }), -- empty plot
+    }
+    local rows = CityStats.resourceLines(city)
+    -- Bonus dropped; strategics first (alphabetical: Horses, Iron), then luxes.
     T.eq(#rows, 3)
-    T.truthy(rows[1]:find("Horses", 1, true), "first strategic alphabetical")
-    T.truthy(rows[2]:find("Iron", 1, true), "second strategic")
-    T.truthy(rows[3]:find("Silk", 1, true), "lux comes after strategics")
+    T.truthy(rows[1]:find("Horses 4", 1, true), "first strategic with count")
+    T.truthy(rows[2]:find("Iron 2", 1, true), "second strategic with count")
+    T.truthy(rows[3]:find("Silk 1", 1, true), "lux with count of 1")
 end
 
-function M.test_resources_returns_empty_when_no_local_resources()
+function M.test_resources_skips_plot_when_local_is_false()
     setup()
     GameInfo.Resources = makeIterableTable({
         { ID = 1, Description = "Iron", ResourceUsage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC },
     })
-    local city = mkCity({ resourceLocal = {} })
-    T.eq(#CityStats.resourceRows(city), 0)
+    local city
+    city = mkCity({
+        id = 7,
+        resourceLocal = {}, -- iron present on a plot, but linked to a sibling city
+    })
+    city._plots = {
+        mkPlot({ resourceType = 1, numResource = 3, plotCity = city }),
+    }
+    T.eq(#CityStats.resourceLines(city), 0)
+end
+
+function M.test_resources_skips_plot_when_owner_differs()
+    setup()
+    GameInfo.Resources = makeIterableTable({
+        { ID = 1, Description = "Iron", ResourceUsage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC },
+    })
+    local city = mkCity({ id = 7, resourceLocal = { [1] = true } })
+    -- Plot's plot-city is some OTHER city (id 99). resourceLines must
+    -- skip plots whose owner isn't this city, even when the resource
+    -- type is locally available via a different plot.
+    local otherCity = { GetID = function()
+        return 99
+    end }
+    city._plots = {
+        mkPlot({ resourceType = 1, numResource = 4, plotCity = otherCity }),
+    }
+    T.eq(#CityStats.resourceLines(city), 0)
+end
+
+function M.test_resources_returns_empty_when_no_plots()
+    setup()
+    GameInfo.Resources = makeIterableTable({})
+    local city = mkCity()
+    T.eq(#CityStats.resourceLines(city), 0)
 end
 
 -- ===== Defense =====
 
-function M.test_defense_speaks_strength_hp_and_chain_buildings_in_order()
+function M.test_defense_headline_speaks_strength_and_hp()
     setup()
-    GameInfo.Buildings = makeIterableTable({
-        { ID = 11, Type = "BUILDING_WALLS", Description = "Walls" },
-        { ID = 12, Type = "BUILDING_CASTLE", Description = "Castle" },
-        { ID = 13, Type = "BUILDING_ARSENAL", Description = "Arsenal" },
-        { ID = 14, Type = "BUILDING_MILITARY_BASE", Description = "Military Base" },
+    GameInfo.Buildings = makeIterableTable({})
+    setmetatable(GameInfo.Buildings, {
+        __call = function(self)
+            local i = 0
+            return function()
+                i = i + 1
+                return self[i]
+            end
+        end,
+        __index = function()
+            return nil
+        end,
     })
-    -- Override __index for type-keyed lookup so GameInfo.Buildings[type-string]
-    -- returns the row (production code uses Type, not ID).
+    local city = mkCity({ strength = 3500, damage = 50 })
+    local headline = CityStats.defenseHeadline(city)
+    -- Strength /100 = 35; HP fraction 150 of 200.
+    T.truthy(headline:find("35 defense", 1, true), "strength scaled /100")
+    T.truthy(headline:find("150 of 200", 1, true), "HP fraction")
+end
+
+function M.test_defense_drillin_lists_chain_buildings_and_garrison()
+    setup()
+    GameInfo.Buildings = makeIterableTable({})
     setmetatable(GameInfo.Buildings, {
         __call = function(self)
             local i = 0
@@ -546,23 +713,25 @@ function M.test_defense_speaks_strength_hp_and_chain_buildings_in_order()
             return nil
         end,
     })
+    GameInfo.Units[100] = { Description = "Pikeman" }
+    local garrison = {
+        GetUnitType = function()
+            return 100
+        end,
+    }
     local city = mkCity({
-        strength = 3500,
-        damage = 50,
         hasBuilding = { [11] = true, [13] = true },
+        garrisonedUnit = garrison,
     })
     local rows = CityStats.defenseRows(city)
-    -- Strength /100 = 35, HP fraction 150 of 200, then Walls, then Arsenal
-    -- (Castle skipped because not built; Military Base skipped because not
-    -- built). Order is the chain order, not alphabetical.
-    T.truthy(rows[1]:find("35", 1, true), "strength scaled /100")
-    T.truthy(rows[2]:find("150", 1, true), "HP numerator")
-    T.truthy(rows[2]:find("200", 1, true), "HP denominator")
-    T.truthy(rows[3]:find("Walls", 1, true), "Walls before Arsenal")
-    T.truthy(rows[4]:find("Arsenal", 1, true), "Arsenal after Walls")
+    -- Walls, Arsenal (chain order, not alphabetical), then garrison line.
+    T.eq(#rows, 3)
+    T.truthy(rows[1]:find("Walls", 1, true), "Walls first in chain")
+    T.truthy(rows[2]:find("Arsenal", 1, true), "Arsenal after Walls (Castle skipped)")
+    T.truthy(rows[3]:find("Pikeman", 1, true), "garrison unit name last")
 end
 
-function M.test_defense_omits_garrison_when_unmanned()
+function M.test_defense_drillin_omits_garrison_when_unmanned()
     setup()
     GameInfo.Buildings = makeIterableTable({})
     setmetatable(GameInfo.Buildings, {
@@ -582,33 +751,6 @@ function M.test_defense_omits_garrison_when_unmanned()
     for _, row in ipairs(rows) do
         T.falsy(row:find("garrisoned", 1, true), "garrison must not appear when unmanned")
     end
-end
-
-function M.test_defense_speaks_garrison_name_when_manned()
-    setup()
-    GameInfo.Buildings = makeIterableTable({})
-    setmetatable(GameInfo.Buildings, {
-        __call = function(self)
-            local i = 0
-            return function()
-                i = i + 1
-                return self[i]
-            end
-        end,
-        __index = function()
-            return nil
-        end,
-    })
-    GameInfo.Units[100] = { Description = "Pikeman" }
-    local garrison = {
-        GetUnitType = function()
-            return 100
-        end,
-    }
-    local city = mkCity({ garrisonedUnit = garrison })
-    local rows = CityStats.defenseRows(city)
-    local last = rows[#rows]
-    T.truthy(last:find("Pikeman", 1, true), "garrison unit name")
 end
 
 -- ===== Demand =====
