@@ -330,16 +330,42 @@ function ChooseProductionLogic.buildOtherEntries(city, isProduce)
     return entries
 end
 
+-- True when the entry corresponds to the city's currently-building head
+-- slot (the city has accumulated production against it). Used to switch
+-- the contributions block from "Cost: full" to "Production remaining: N"
+-- so a half-built item reads honestly. Purchase entries (entry.isProduce
+-- false) and processes never own the production accumulator, so they
+-- always use full cost.
+local function isCurrentSlotOne(city, entry)
+    if not entry.isProduce then
+        return false
+    end
+    if entry.orderType == OrderTypes.ORDER_MAINTAIN then
+        return false
+    end
+    if city:GetOrderQueueLength() <= 0 then
+        return false
+    end
+    local headOrderType, headData1 = city:GetOrderFromQueue(0)
+    return headOrderType == entry.orderType and headData1 == entry.id
+end
+
 -- Live contributions text for an entry: stats only, prose Help stripped.
 -- The chooser surfaces prose separately via proseText (the entry's
 -- Strategy preferred over Help, since Help is usually a one-liner echo
 -- of the richer Strategy paragraph) and places it AFTER the stats so the
 -- numerical info leads.
 --
--- includeCost=true: the helper's full header (cost line) is kept; the
--- chooser's own costClause shows turns / gold / faith which is a
--- different dimension from the helper's production-points cost, so both
--- co-exist without duplication.
+-- Cost-line behavior depends on whether the entry is the city's current
+-- slot-1 build:
+-- * Slot-1 entry: the city has accumulated production against it. The
+--   helper's "Cost: full" line is replaced with "Production remaining:
+--   needed - stored" so a half-built item reads honestly.
+-- * Other entries (queue 2+, entries not in queue, purchase entries):
+--   the helper's full production cost is kept as-is. The chooser's own
+--   costClause shows turns / gold / faith -- a different dimension from
+--   the helper's production-points cost -- so both co-exist without
+--   duplication.
 --
 -- Processes (ORDER_MAINTAIN) have no engine-exposed stats and no useful
 -- contributions block -- their effect is a runtime conversion. Return ""
@@ -356,15 +382,26 @@ function ChooseProductionLogic.contributionsText(entry, city)
     if ProductionHelpText == nil or ProductionHelpText.forOrder == nil then
         return ""
     end
-    local body = ProductionHelpText.forOrder(city, entry.orderType, entry.id, true) or ""
-    if body == "" then
-        return ""
-    end
+    local slotOne = isCurrentSlotOne(city, entry)
+    local body = ProductionHelpText.forOrder(city, entry.orderType, entry.id, not slotOne) or ""
     -- Drop the helper's trailing prose-Help section. The engine helpers
     -- separate stats from prose with "[NEWLINE]----------------[NEWLINE]";
     -- everything from that separator onward is the prose, and the chooser
     -- speaks prose via proseText after the stats instead of inline.
-    return (body:gsub("%[NEWLINE%]%-%-%-%-+%[NEWLINE%].*$", ""))
+    body = body:gsub("%[NEWLINE%]%-%-%-%-+%[NEWLINE%].*$", "")
+    if not slotOne then
+        return body
+    end
+    -- Slot-1 entry: prepend the per-city remaining-production line that
+    -- substitutes for the dropped cost line.
+    local remaining = ProductionHelpText.remainingLine(city, entry.orderType, entry.id, true)
+    if remaining == nil or remaining == "" then
+        return body
+    end
+    if body == "" then
+        return remaining
+    end
+    return remaining .. "[NEWLINE]" .. body
 end
 
 -- Prose summary for the chooser: prefer Strategy (the richer

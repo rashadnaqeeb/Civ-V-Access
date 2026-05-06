@@ -125,6 +125,51 @@ function ProductionHelpText.processHelp(process)
     return Text.keyOrNil(process.Help) or ""
 end
 
+-- "Production remaining: N" line for a queued or in-progress item.
+-- Substitutes for the helper's "Cost: X" line on surfaces that surface
+-- progress against the build (the in-city queue's slot-1 entry, the
+-- chooser's view of the currently-building item).
+--
+-- When includeStored is true the city's accumulated production
+-- (GetProductionTimes100) is subtracted from the item's full needed --
+-- correct for any item that owns the city's production accumulator,
+-- meaning the current slot-1 entry. When includeStored is false the
+-- full needed is reported -- correct for queued slot 2+ entries that
+-- haven't received any progress yet.
+--
+-- Returns nil for ORDER_MAINTAIN (processes don't accumulate progress)
+-- or when needed resolves to zero (free items via FreeBuilding /
+-- FreeUnit prereqs); callers can skip the trailer cleanly.
+function ProductionHelpText.remainingLine(city, orderType, data1, includeStored)
+    if orderType == OrderTypes.ORDER_MAINTAIN then
+        return nil
+    end
+    local player = Players[city:GetOwner()]
+    if player == nil then
+        return nil
+    end
+    local needed
+    if orderType == OrderTypes.ORDER_TRAIN then
+        needed = player:GetUnitProductionNeeded(data1)
+    elseif orderType == OrderTypes.ORDER_CONSTRUCT then
+        needed = player:GetBuildingProductionNeeded(data1)
+    elseif orderType == OrderTypes.ORDER_CREATE then
+        needed = player:GetProjectProductionNeeded(data1)
+    end
+    if needed == nil or needed <= 0 then
+        return nil
+    end
+    local stored = 0
+    if includeStored then
+        stored = math.floor((city:GetProductionTimes100() or 0) / 100)
+    end
+    local remaining = needed - stored
+    if remaining < 0 then
+        remaining = 0
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING", remaining)
+end
+
 -- Dispatch helper for callers that already know the orderType.
 function ProductionHelpText.forOrder(city, orderType, data1, includeCost)
     if orderType == OrderTypes.ORDER_TRAIN then

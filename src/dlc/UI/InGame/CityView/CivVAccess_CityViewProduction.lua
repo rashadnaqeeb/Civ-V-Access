@@ -84,45 +84,12 @@ end
 -- item's full base cost. Processes (ORDER_MAINTAIN) skip the
 -- remaining-line because they don't accumulate progress.
 
-local function productionNeeded(city, orderType, data1)
-    if orderType == OrderTypes.ORDER_TRAIN then
-        local player = Players[city:GetOwner()]
-        return player and player:GetUnitProductionNeeded(data1) or 0
-    elseif orderType == OrderTypes.ORDER_CONSTRUCT then
-        local player = Players[city:GetOwner()]
-        return player and player:GetBuildingProductionNeeded(data1) or 0
-    elseif orderType == OrderTypes.ORDER_CREATE then
-        local player = Players[city:GetOwner()]
-        return player and player:GetProjectProductionNeeded(data1) or 0
-    end
-    return 0
-end
-
-local function productionRemainingLine(city, orderType, data1, zeroIdx)
-    if orderType == OrderTypes.ORDER_MAINTAIN then
-        return nil
-    end
-    local needed = productionNeeded(city, orderType, data1)
-    if needed <= 0 then
-        return nil
-    end
+local function slotHelpText(orderType, data1, city, zeroIdx)
+    local body = ProductionHelpText.forOrder(city, orderType, data1, false) or ""
     -- Only the head slot has accumulated production against it; queued
     -- slots show full needed because the engine doesn't pre-allocate
     -- progress to slot 2+.
-    local stored = 0
-    if zeroIdx == 0 then
-        stored = math.floor((city:GetProductionTimes100() or 0) / 100)
-    end
-    local remaining = needed - stored
-    if remaining < 0 then
-        remaining = 0
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING", remaining)
-end
-
-local function slotHelpText(orderType, data1, city, zeroIdx)
-    local body = ProductionHelpText.forOrder(city, orderType, data1, false) or ""
-    local remaining = productionRemainingLine(city, orderType, data1, zeroIdx)
+    local remaining = ProductionHelpText.remainingLine(city, orderType, data1, zeroIdx == 0)
     if remaining == nil then
         return body
     end

@@ -198,6 +198,65 @@ function M.test_processHelp_returns_empty_when_help_unresolved()
 end
 
 -- ---------------------------------------------------------------------
+-- remainingLine
+-- ---------------------------------------------------------------------
+
+local function setupForRemaining(opts)
+    setup()
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING"] = "Production remaining: {1_Num}"
+    Players = setmetatable({}, {
+        __index = function(_, _owner)
+            return {
+                GetUnitProductionNeeded = function(_, _id) return opts.unitNeeded or 0 end,
+                GetBuildingProductionNeeded = function(_, _id) return opts.buildingNeeded or 0 end,
+                GetProjectProductionNeeded = function(_, _id) return opts.projectNeeded or 0 end,
+            }
+        end,
+    })
+    return {
+        GetOwner = function() return 0 end,
+        GetProductionTimes100 = function() return (opts.stored or 0) * 100 end,
+    }
+end
+
+function M.test_remainingLine_subtracts_stored_when_includeStored_true()
+    local city = setupForRemaining({ unitNeeded = 100, stored = 30 })
+    T.eq(
+        ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true),
+        "Production remaining: 70"
+    )
+end
+
+function M.test_remainingLine_uses_full_needed_when_includeStored_false()
+    -- Queue slots 2+ haven't accumulated progress; passing
+    -- includeStored=false reports the full needed.
+    local city = setupForRemaining({ unitNeeded = 100, stored = 30 })
+    T.eq(
+        ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, false),
+        "Production remaining: 100"
+    )
+end
+
+function M.test_remainingLine_clamps_at_zero_when_overbuilt()
+    local city = setupForRemaining({ unitNeeded = 40, stored = 60 })
+    T.eq(
+        ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true),
+        "Production remaining: 0"
+    )
+end
+
+function M.test_remainingLine_returns_nil_for_process()
+    local city = setupForRemaining({})
+    T.eq(ProductionHelpText.remainingLine(city, OrderTypes.ORDER_MAINTAIN, 1, true), nil)
+end
+
+function M.test_remainingLine_returns_nil_when_needed_zero()
+    -- Free items (FreeBuilding etc.) report zero needed; skip the trailer.
+    local city = setupForRemaining({ unitNeeded = 0 })
+    T.eq(ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true), nil)
+end
+
+-- ---------------------------------------------------------------------
 -- forOrder dispatch
 -- ---------------------------------------------------------------------
 

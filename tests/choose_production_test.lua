@@ -75,6 +75,29 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT"] = "added, slot {1_Slot} in queue"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"] = "queue full"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_EMPTY"] = "queue is empty"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING"] = "Production remaining: {1_Num}"
+
+    -- Players table for ProductionHelpText.remainingLine. Each setup()
+    -- resets the per-test maps so values don't leak; tests populate
+    -- M._unitNeeded / _buildingNeeded / _projectNeeded.
+    M._unitNeeded = {}
+    M._buildingNeeded = {}
+    M._projectNeeded = {}
+    Players = setmetatable({}, {
+        __index = function(_, owner)
+            return {
+                GetUnitProductionNeeded = function(_, id)
+                    return M._unitNeeded[id] or 0
+                end,
+                GetBuildingProductionNeeded = function(_, id)
+                    return M._buildingNeeded[id] or 0
+                end,
+                GetProjectProductionNeeded = function(_, id)
+                    return M._projectNeeded[id] or 0
+                end,
+            }
+        end,
+    })
 
     -- Advisor full-sentence keys: unique per advisor so concatenation is
     -- observable in tests.
@@ -198,6 +221,8 @@ local function mkCityStub(opts)
         _canTrainTooltip = opts.canTrainTooltip or {},
         _canConstructTooltip = opts.canConstructTooltip or {},
         _queue = opts.queue or {},
+        _owner = opts.owner or 0,
+        _productionTimes100 = opts.productionTimes100 or 0,
     }
     -- Build lookup keys for IsCanPurchase: tuple (unitID, buildingID, projectID, yield).
     -- Tests pass per-entry maps keyed by the non-(-1) id.
@@ -276,6 +301,12 @@ local function mkCityStub(opts)
     end
     function c:GetOrderFromQueue(i)
         return self._queue[i + 1][1], self._queue[i + 1][2]
+    end
+    function c:GetOwner()
+        return self._owner
+    end
+    function c:GetProductionTimes100()
+        return self._productionTimes100
     end
     return c
 end
@@ -610,6 +641,119 @@ function M.test_contributions_strips_prose_help_tail()
     local contributions = ChooseProductionLogic.contributionsText(entry, city)
     T.truthy(contributions:find("Strength: 50"), "contributions has stats")
     T.falsy(contributions:find("Specialized", 1, true), "contributions strips the prose-Help tail")
+end
+
+function M.test_contributions_slot_one_entry_shows_remaining_not_cost()
+    -- The currently-building head item owns the city's production
+    -- accumulator, so its full base cost is misleading. Switch to
+    -- "Production remaining" computed against the city's stored
+    -- production (GetProductionTimes100 / 100).
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", Cost = 40, Strength = 8 },
+    })
+    M._unitNeeded[1] = 40
+    local city = mkCityStub({
+        canTrain = { [1] = true },
+        unitTurnsLeft = { [1] = 2 },
+        queue = { { OrderTypes.ORDER_TRAIN, 1 } },
+        owner = 0,
+        productionTimes100 = 2500, -- 25 stored
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 1,
+        info = GameInfo.Units[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    T.truthy(contributions:find("Production remaining: 15", 1, true), "shows 40 - 25 = 15 remaining")
+    T.falsy(contributions:find("Cost: 40", 1, true), "full cost line is replaced")
+    T.truthy(contributions:find("Strength: 8"), "stats still present")
+end
+
+function M.test_contributions_non_slot_one_entry_keeps_full_cost()
+    -- Items not currently in slot 1 don't have accumulated production
+    -- against them; the contributions show the engine's full cost line.
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", Cost = 40, Strength = 8 },
+        { ID = 2, Description = "Spearman", Domain = "DOMAIN_LAND", Cost = 56, Strength = 11 },
+    })
+    M._unitNeeded[1] = 40
+    M._unitNeeded[2] = 56
+    -- Warrior is slot 1 (half-built); Spearman is the entry under inspection.
+    local city = mkCityStub({
+        canTrain = { [1] = true, [2] = true },
+        unitTurnsLeft = { [2] = 4 },
+        queue = { { OrderTypes.ORDER_TRAIN, 1 } },
+        productionTimes100 = 2000,
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 2,
+        info = GameInfo.Units[2],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    T.truthy(contributions:find("Cost: 56"), "non-head entry shows full cost")
+    T.falsy(contributions:find("Production remaining", 1, true), "no remaining line on non-head entry")
+end
+
+function M.test_contributions_remaining_clamps_at_zero_when_overbuilt()
+    -- Engine allows production to exceed the item's needed (overflow
+    -- carries to next slot). For a half-built item that's overbuilt,
+    -- "remaining" should clamp at zero rather than going negative.
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", Cost = 40, Strength = 8 },
+    })
+    M._unitNeeded[1] = 40
+    local city = mkCityStub({
+        canTrain = { [1] = true },
+        unitTurnsLeft = { [1] = 1 },
+        queue = { { OrderTypes.ORDER_TRAIN, 1 } },
+        productionTimes100 = 6000, -- 60 stored, more than 40 needed
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 1,
+        info = GameInfo.Units[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    T.truthy(contributions:find("Production remaining: 0", 1, true), "clamps at 0")
+end
+
+function M.test_contributions_purchase_entry_keeps_full_cost_even_at_slot_one()
+    -- Purchase entries don't own the production accumulator (the player
+    -- pays gold / faith, not production). Even when an entry's id matches
+    -- the queue head, a purchase variant of that entry shows full cost.
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", Cost = 40, Strength = 8 },
+    })
+    M._unitNeeded[1] = 40
+    local city = mkCityStub({
+        canTrain = { [1] = true },
+        canPurchaseGold = { [1] = true },
+        unitCost = { [1] = 200 },
+        queue = { { OrderTypes.ORDER_TRAIN, 1 } },
+        productionTimes100 = 2500,
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 1,
+        info = GameInfo.Units[1],
+        yieldType = YieldTypes.YIELD_GOLD,
+        isProduce = false,
+    }
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    T.truthy(contributions:find("Cost: 40"), "purchase entry keeps full cost")
+    T.falsy(contributions:find("Production remaining", 1, true), "no remaining line on purchase entry")
 end
 
 function M.test_contributions_empty_for_process()
