@@ -33,9 +33,15 @@
     Skip copying dist/engine/CvGameCore_Expansion2.dll. Useful for fast
     Lua-only iterations.
 
+.PARAMETER SkipCinematics
+    Skip copying audio-described BNW opening cinematics. Files are large
+    (~80 MB English, ~5 MB per non-English locale) and rarely change, so
+    this is useful for fast Lua-only iterations.
+
 .PARAMETER Uninstall
     Remove the proxy stack, restore the original lua51, remove the DLC,
-    and (if a backup exists) restore the vanilla engine DLL.
+    and (if a backup exists) restore the vanilla engine DLL and stock
+    BNW cinematics.
 #>
 [CmdletBinding()]
 param(
@@ -43,21 +49,38 @@ param(
     [switch]$SkipProxy,
     [switch]$SkipDlc,
     [switch]$SkipEngine,
+    [switch]$SkipCinematics,
     [switch]$Uninstall
 )
 
 $ErrorActionPreference = 'Stop'
 
-$repoRoot       = Split-Path -Parent $MyInvocation.MyCommand.Path
-$proxyDistDir   = Join-Path $repoRoot 'dist\proxy'
-$engineDistDir  = Join-Path $repoRoot 'dist\engine'
-$tolkDistDir    = Join-Path $repoRoot 'third_party\tolk\dist\x86'
-$engineBackup   = Join-Path $repoRoot 'build\CvGameCore_Expansion2.vanilla.dll.bak'
-$dlcSrcDir      = Join-Path $repoRoot 'src\dlc'
-$soundsSrcDir   = Join-Path $repoRoot 'sounds'
-$dlcName        = 'DLC_CivVAccess'
-$legacyDlcDirs  = @('CivVAccess')
-$legacyModDir   = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
+$repoRoot         = Split-Path -Parent $MyInvocation.MyCommand.Path
+$proxyDistDir     = Join-Path $repoRoot 'dist\proxy'
+$engineDistDir    = Join-Path $repoRoot 'dist\engine'
+$tolkDistDir      = Join-Path $repoRoot 'third_party\tolk\dist\x86'
+$engineBackup     = Join-Path $repoRoot 'build\CvGameCore_Expansion2.vanilla.dll.bak'
+$cinematicSrcDir  = Join-Path $repoRoot 'audio described intros'
+$cinematicBackup  = Join-Path $repoRoot 'build\cinematics-vanilla'
+$dlcSrcDir        = Join-Path $repoRoot 'src\dlc'
+$soundsSrcDir     = Join-Path $repoRoot 'sounds'
+$dlcName          = 'DLC_CivVAccess'
+$legacyDlcDirs    = @('CivVAccess')
+$legacyModDir     = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
+
+# BNW opening cinematic filenames the engine expects under
+# Assets/DLC/Expansion2/. Only en_US is a full .wmv video; non-English locales
+# are .wma audio dubs the engine layers over the en_US.wmv visual track. Source
+# files in $cinematicSrcDir are pre-named to match these exactly.
+$cinematicFiles = @(
+    'Civ5XP2_Opening_Movie_en_US.wmv',
+    'Civ5XP2_Opening_Movie_de_DE.wma',
+    'Civ5XP2_Opening_Movie_es_ES.wma',
+    'Civ5XP2_Opening_Movie_fr_FR.wma',
+    'Civ5XP2_Opening_Movie_it_IT.wma',
+    'Civ5XP2_Opening_Movie_pl_PL.wma',
+    'Civ5XP2_Opening_Movie_ru_RU.wma'
+)
 
 # Files to copy into the game directory alongside the proxy. lua51_Win32.dll
 # is our build (dist/proxy/); the rest are third-party screen-reader bridges
@@ -271,6 +294,48 @@ function Deploy-EngineDll {
     Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
 }
 
+function Deploy-Cinematics {
+    param([string]$Game)
+
+    if (-not (Test-Path $cinematicSrcDir)) {
+        throw "Cinematics source directory missing: $cinematicSrcDir"
+    }
+
+    $expansion2Dir = Join-Path $Game 'Assets\DLC\Expansion2'
+    if (-not (Test-Path $expansion2Dir)) {
+        throw "BNW (Expansion2) directory not found at $expansion2Dir. The mod requires BNW; verify the game install."
+    }
+
+    foreach ($f in $cinematicFiles) {
+        $src = Join-Path $cinematicSrcDir $f
+        if (-not (Test-Path $src)) { throw "Missing cinematic source file: $src" }
+    }
+
+    # First-run backup. Copy each stock cinematic into the backup directory
+    # only if no backup file already exists for it - never overwrite a backup
+    # with a modded file.
+    if (-not (Test-Path $cinematicBackup)) {
+        New-Item -ItemType Directory -Path $cinematicBackup -Force | Out-Null
+    }
+    foreach ($f in $cinematicFiles) {
+        $installed = Join-Path $expansion2Dir $f
+        $backup    = Join-Path $cinematicBackup $f
+        if ((Test-Path $installed) -and -not (Test-Path $backup)) {
+            Write-Host "Backing up vanilla cinematic:"
+            Write-Host "  $installed -> $backup"
+            Copy-Item -LiteralPath $installed -Destination $backup -Force
+        }
+    }
+
+    Write-Host "Deploying audio-described BNW cinematics:"
+    foreach ($f in $cinematicFiles) {
+        $src = Join-Path $cinematicSrcDir $f
+        $dst = Join-Path $expansion2Dir $f
+        Write-Host "  $src -> $dst"
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+    }
+}
+
 function Invoke-Uninstall {
     param([string]$Game)
 
@@ -330,6 +395,23 @@ function Invoke-Uninstall {
     } else {
         Write-Host "  No engine DLL backup present; skipping engine restore."
     }
+
+    # Restore stock BNW cinematics from backup. Same logic as engine DLL: backup
+    # is the source of truth, missing backup means we never deployed cinematics.
+    if (Test-Path $cinematicBackup) {
+        $expansion2Dir = Join-Path $Game 'Assets\DLC\Expansion2'
+        foreach ($f in $cinematicFiles) {
+            $backup    = Join-Path $cinematicBackup $f
+            $installed = Join-Path $expansion2Dir $f
+            if (Test-Path $backup) {
+                Write-Host "  Restoring vanilla cinematic:"
+                Write-Host "    $backup -> $installed"
+                Copy-Item -LiteralPath $backup -Destination $installed -Force
+            }
+        }
+    } else {
+        Write-Host "  No cinematics backup present; skipping cinematics restore."
+    }
 }
 
 # ---- Driver ----
@@ -360,6 +442,12 @@ if (-not $SkipEngine) {
     Deploy-EngineDll -Game $gameDir
 } else {
     Write-Host "Skipping engine DLL (-SkipEngine)."
+}
+
+if (-not $SkipCinematics) {
+    Deploy-Cinematics -Game $gameDir
+} else {
+    Write-Host "Skipping cinematics (-SkipCinematics)."
 }
 
 Write-Host ""
