@@ -22,6 +22,12 @@ local ENGINE_STRINGS = {
     TXT_KEY_LEAGUE_OVERVIEW_IN_SPECIAL_SESSION = "[COLOR_POSITIVE_TEXT]SPECIAL SESSION[ENDCOLOR]",
     TXT_KEY_LEAGUE_OVERVIEW_WORLD_LEADER_INFO_SESSION = "Turns until next World Leader proposal: {1_Num}",
     TXT_KEY_LEAGUE_OVERVIEW_WORLD_LEADER_INFO_VOTES = "Delegates to win World Leader proposal: {1_Num}",
+    -- Opinion section markers used by formatResolutionDetails. Plain-text
+    -- substrings of GetResolutionDetails output; the formatter looks them
+    -- up via Text.key and finds them as plain substrings.
+    TXT_KEY_LEAGUE_OVERVIEW_VOTE_OPINIONS = "[NEWLINE][NEWLINE]Based on our knowledge of other Civilizations' desires, our count for this proposal stands at:",
+    TXT_KEY_LEAGUE_OVERVIEW_PROPOSAL_OPINIONS_POSITIVE = "[NEWLINE][NEWLINE]Civilizations that would be grateful if we proposed this:",
+    TXT_KEY_LEAGUE_OVERVIEW_PROPOSAL_OPINIONS_NEGATIVE = "[NEWLINE][NEWLINE]Civilizations that would be angry if we proposed this:",
 }
 
 -- Fake league handle. Behaviors are stubbed per-test via the opts table:
@@ -642,6 +648,105 @@ function M.test_delegation_breakdown_handles_nil_input()
     setup({})
     T.eq(LeagueOverviewRow.formatDelegationBreakdown(nil), "")
     teardown()
+end
+
+-- formatResolutionDetails: reorders the engine's GetResolutionDetails so
+-- the opinion section reads before the description, replaces the verbose
+-- engine prefaces with terser mod ones, drops the redundant OURS bullet
+-- on the vote-counts flow, and comma-joins civ-name bullets on the
+-- propose flow.
+
+local function buildVoteCountsRaw(description)
+    return description
+        .. "[NEWLINE][NEWLINE]Based on our knowledge of other Civilizations' desires, our count for this proposal stands at:"
+        .. "[NEWLINE][ICON_BULLET]Nay: 46 Delegates (5 Civs)"
+        .. "[NEWLINE][ICON_BULLET]Our Civilization controls 13 Delegates"
+end
+
+function M.test_resolution_details_reorders_vote_counts_before_description()
+    setup({})
+    local raw = buildVoteCountsRaw("Description text here.")
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    local prefacePos = out:find("Our estimated count", 1, true)
+    local descPos = out:find("Description text here", 1, true)
+    T.truthy(prefacePos, "should contain mod preface: " .. out)
+    T.truthy(descPos, "should contain description: " .. out)
+    T.truthy(prefacePos < descPos, "preface should precede description: " .. out)
+end
+
+function M.test_resolution_details_drops_ours_bullet()
+    setup({})
+    local raw = buildVoteCountsRaw("Desc.")
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    T.falsy(out:find("Our Civilization controls", 1, true), "OURS bullet should be dropped: " .. out)
+    T.falsy(out:find("13 Delegates", 1, true), "OURS bullet count should be dropped: " .. out)
+    T.truthy(out:find("Nay: 46 Delegates %(5 Civs%)"), "leaning bullet preserved: " .. out)
+end
+
+function M.test_resolution_details_drops_engine_preface()
+    setup({})
+    local raw = buildVoteCountsRaw("Desc.")
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    T.falsy(out:find("Based on our knowledge", 1, true), "engine preface dropped: " .. out)
+end
+
+function M.test_resolution_details_no_opinion_returns_filtered_description()
+    setup({})
+    -- Resolution catalog entry with no opinion section: just the help text.
+    local raw = "Help line one.[NEWLINE]Help line two."
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    T.eq(out, "Help line one. Help line two.")
+end
+
+function M.test_resolution_details_returns_empty_when_only_ours_bullet()
+    setup({})
+    -- Single bullet (only OURS); after dropping it the opinion section
+    -- collapses to nothing, leaving just the description.
+    local raw = "Desc."
+        .. "[NEWLINE][NEWLINE]Based on our knowledge of other Civilizations' desires, our count for this proposal stands at:"
+        .. "[NEWLINE][ICON_BULLET]Our Civilization controls 13 Delegates"
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    T.eq(out, "Desc.", "opinion section should drop entirely when only OURS: " .. out)
+end
+
+function M.test_resolution_details_propose_grateful_only()
+    setup({})
+    local raw = "Description"
+        .. "[NEWLINE][NEWLINE]Civilizations that would be grateful if we proposed this:"
+        .. "[NEWLINE][ICON_BULLET]Germany"
+        .. "[NEWLINE][ICON_BULLET]France"
+        .. "[NEWLINE][ICON_BULLET]Egypt"
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    T.truthy(out:find("Civs that would approve: Germany, France, Egypt", 1, true),
+        "civ list should be comma-joined under mod preface: " .. out)
+    -- preface before description
+    local prefacePos = out:find("Civs that would approve", 1, true)
+    local descPos = out:find("Description", 1, true)
+    T.truthy(prefacePos < descPos, "preface should precede description: " .. out)
+end
+
+function M.test_resolution_details_propose_grateful_and_angry()
+    setup({})
+    local raw = "Description"
+        .. "[NEWLINE][NEWLINE]Civilizations that would be grateful if we proposed this:"
+        .. "[NEWLINE][ICON_BULLET]Germany"
+        .. "[NEWLINE][NEWLINE]Civilizations that would be angry if we proposed this:"
+        .. "[NEWLINE][ICON_BULLET]Russia"
+        .. "[NEWLINE][ICON_BULLET]Japan"
+    local out = LeagueOverviewRow.formatResolutionDetails(raw)
+    T.truthy(out:find("Civs that would approve: Germany", 1, true), "approve list: " .. out)
+    T.truthy(out:find("Civs that would oppose: Russia, Japan", 1, true), "oppose list: " .. out)
+    T.falsy(out:find("if we proposed this", 1, true), "engine preface filler should be gone: " .. out)
+end
+
+function M.test_resolution_details_handles_nil_input()
+    setup({})
+    T.eq(LeagueOverviewRow.formatResolutionDetails(nil), "")
+end
+
+function M.test_resolution_details_handles_empty_string()
+    setup({})
+    T.eq(LeagueOverviewRow.formatResolutionDetails(""), "")
 end
 
 -- appendTooltip: flattening helper for rows that would otherwise be a Group

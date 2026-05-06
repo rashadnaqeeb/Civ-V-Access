@@ -208,13 +208,15 @@ local function pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
     HandlerStack.push(sub)
 end
 
--- Build one candidate row inside a section. Actionable candidates (the
--- player can propose / repeal them right now) become a Group: the user
--- drills in to read the details and then activates a commit Choice.
--- Non-actionable candidates (Disabled, or in the "Other resolutions"
--- section where allowCommit=false) have no commit step, so they collapse
--- to a single Text whose label is "{name}. {details}" -- no drill needed
--- to read the catalog entry.
+-- Build one candidate row inside a section. Each row is a single line --
+-- "{name}. {details}" -- with the engine's GetResolutionDetails reshaped
+-- so the opinion stuff (civs that would approve / oppose) reads before
+-- the description. Actionable candidates (the player can propose / repeal
+-- right now) are a Choice: activating fills the slot directly, or pushes
+-- a sub-decision picker if the resolution needs a civ / religion / luxury
+-- pick. Non-actionable candidates are a plain Text; they're catalog
+-- entries the user can read but not act on. No drill-in either way -- the
+-- full text is on the row label.
 local function buildCandidateItem(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
     local label = LeagueOverviewRow.formatResolutionName(
         pLeague,
@@ -225,27 +227,19 @@ local function buildCandidateItem(controller, slotIdx, candidate, pLeague, activ
     )
     local detailsText =
         pLeague:GetResolutionDetails(candidate.Type, activePlayer, candidate.ResolutionId, candidate.ProposerDecision)
-    local details = LeagueOverviewRow.filterTooltip(detailsText)
+    local fullLabel = LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.formatResolutionDetails(detailsText))
     if not (allowCommit and not candidate.Disabled) then
-        return BaseMenuItems.Text({ labelText = LeagueOverviewRow.appendTooltip(label, details) })
+        return BaseMenuItems.Text({ labelText = fullLabel })
     end
-    local commitKey = candidate.Direction == "Retract" and "TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"
-        or "TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_THIS"
-    return BaseMenuItems.Group({
-        labelText = label,
-        items = {
-            BaseMenuItems.Text({ labelText = details }),
-            BaseMenuItems.Choice({
-                textKey = commitKey,
-                activate = function()
-                    if candidate.ProposerChoices ~= nil and #candidate.ProposerChoices > 0 then
-                        pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
-                    else
-                        fillSlotAndPopAll(controller, slotIdx, candidate, candidate.ProposerDecision)
-                    end
-                end,
-            }),
-        },
+    return BaseMenuItems.Choice({
+        labelText = fullLabel,
+        activate = function()
+            if candidate.ProposerChoices ~= nil and #candidate.ProposerChoices > 0 then
+                pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
+            else
+                fillSlotAndPopAll(controller, slotIdx, candidate, candidate.ProposerDecision)
+            end
+        end,
     })
 end
 
@@ -337,7 +331,7 @@ function LeagueOverviewProposal.slotItem(controller, slotIdx, pLeague, activePla
                 slot.Direction
             )
             local label = Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED", slotIdx, body)
-            local details = LeagueOverviewRow.filterTooltip(
+            local details = LeagueOverviewRow.formatResolutionDetails(
                 pLeague:GetResolutionDetails(slot.Type, activePlayer, slot.ResolutionId, slot.ChoiceId)
             )
             return LeagueOverviewRow.appendTooltip(label, details)

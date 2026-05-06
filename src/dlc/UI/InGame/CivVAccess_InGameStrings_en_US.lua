@@ -2639,8 +2639,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_PICKER"] = "Proposal slot {1_
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_ACTIVE"] = "Active resolutions to repeal"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_INACTIVE"] = "Resolutions to propose"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_OTHER"] = "Other resolutions"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_THIS"] = "Propose this resolution"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_THIS"] = "Repeal this resolution"
+-- Mod prefaces for the GetResolutionDetails opinion sections. The engine
+-- emits a verbose preface ("Based on our knowledge of other Civilizations'
+-- desires, our count for this proposal stands at:") followed by bulleted
+-- counts; we replace the preface with these terser strings and reorder so
+-- the opinion lands before the resolution description (otherwise the user
+-- has to wade through several sentences of help text to reach the live
+-- counts that drive their vote decision). The propose-flow lists are flat
+-- civ names, joined with commas mod-side rather than the engine's per-civ
+-- bullets.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_COUNTS_PREFACE"] = "Our estimated count for this proposal stands at:"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_GRATEFUL_LIST"] = "Civs that would approve: {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_ANGRY_LIST"] = "Civs that would oppose: {1_Civs}"
 -- View All sections reuse the engine's TXT_KEY_LEAGUE_OVERVIEW_*_RESOLUTIONS
 -- keys directly (Enacted Resolutions / Possible Resolutions / Other Resolutions).
 -- Religion Overview. TabbedShell over the engine's BUTTONPOPUP_RELIGION_OVERVIEW:

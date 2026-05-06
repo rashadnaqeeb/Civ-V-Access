@@ -238,7 +238,7 @@ local function buildViewAllResolutionRow(pLeague, candidate, activePlayer)
     return BaseMenuItems.Text({
         labelText = LeagueOverviewRow.appendTooltip(
             tostring(name or ""),
-            LeagueOverviewRow.filterTooltip(detailsText)
+            LeagueOverviewRow.formatResolutionDetails(detailsText)
         ),
     })
 end

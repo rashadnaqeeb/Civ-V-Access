@@ -194,7 +194,7 @@ function LeagueOverviewRow.formatProposalWithDetails(pLeague, proposal, activePl
         proposal.ID,
         proposal.ProposerDecision or kChoiceNone
     )
-    return LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.filterTooltip(detailsText))
+    return LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.formatResolutionDetails(detailsText))
 end
 
 -- Vote-state suffix for a yes/no resolution. Sign of `votes` carries the
@@ -228,6 +228,175 @@ function LeagueOverviewRow.filterTooltip(text)
     local s = tostring(text)
     s = s:gsub("([^%s%.%!%?%:%;%,])(%s*%[NEWLINE%]%s*)([%S])", "%1.%2%3")
     return TextFilter.filter(s)
+end
+
+-- Reshape the engine's GetResolutionDetails into screen-reader form:
+-- engine emits "<description><opinion-section>" but the opinion (live
+-- vote counts or pre-vote civ-leanings) is the actionable part of the
+-- tooltip, while the description is reference text. Reorder to opinion-
+-- first so the user hears their decision-driving counts before the help
+-- prose, replace the engine's verbose opinion prefaces with terser mod
+-- ones, and on the vote-counts flow drop the redundant "Our Civilization
+-- controls X Delegates" tail (the user already knows their own count
+-- from the Status tab).
+--
+-- Locale strategy: the three opinion sections always begin with one of
+-- TXT_KEY_LEAGUE_OVERVIEW_VOTE_OPINIONS / PROPOSAL_OPINIONS_POSITIVE /
+-- PROPOSAL_OPINIONS_NEGATIVE. We look up each in the active locale and
+-- find them as plain substrings in the engine output. Description
+-- bodies (resolution help text) can contain "[NEWLINE][NEWLINE]" so we
+-- cannot just split on that token; matching the localized full preface
+-- is precise.
+--
+-- Bullet processing: the vote-opinions section keeps the engine's per-
+-- bullet text (each bullet has rich content like "Nay: 46 Delegates
+-- (5 Civs)") and just drops the OURS bullet, which the engine always
+-- appends last. The propose-opinion sections collapse the per-civ bullets
+-- (each bullet is just a civ name) into a comma-joined list since
+-- "Germany. France. Egypt" reads as three sentences while the same names
+-- in a comma list read as a list.
+function LeagueOverviewRow.formatResolutionDetails(rawText)
+    if rawText == nil then
+        return ""
+    end
+    local s = tostring(rawText)
+    if s == "" then
+        return ""
+    end
+
+    local voteMarker = Text.key("TXT_KEY_LEAGUE_OVERVIEW_VOTE_OPINIONS")
+    local posMarker = Text.key("TXT_KEY_LEAGUE_OVERVIEW_PROPOSAL_OPINIONS_POSITIVE")
+    local negMarker = Text.key("TXT_KEY_LEAGUE_OVERVIEW_PROPOSAL_OPINIONS_NEGATIVE")
+
+    local function findPlain(haystack, needle)
+        if needle == nil or needle == "" then
+            return nil
+        end
+        return haystack:find(needle, 1, true)
+    end
+
+    local votePos = findPlain(s, voteMarker)
+    local posPos = findPlain(s, posMarker)
+    local negPos = findPlain(s, negMarker)
+
+    -- Pick earliest non-nil position. Cannot use ipairs on a sparse table
+    -- (it stops at the first nil), so check each candidate explicitly.
+    local earliest
+    local function tightest(p)
+        if p ~= nil and (earliest == nil or p < earliest) then
+            earliest = p
+        end
+    end
+    tightest(votePos)
+    tightest(posPos)
+    tightest(negPos)
+
+    if earliest == nil then
+        return LeagueOverviewRow.filterTooltip(s)
+    end
+
+    local description = s:sub(1, earliest - 1)
+
+    -- Extract bulleted civ names from a section, stopping at the next
+    -- section marker (positive can be followed by negative).
+    local function sliceSection(startPos, markerLen, endPos)
+        if endPos ~= nil then
+            return s:sub(startPos + markerLen, endPos - 1)
+        end
+        return s:sub(startPos + markerLen)
+    end
+
+    -- Pluck raw bullet bodies from a section. Each bullet starts with
+    -- "[NEWLINE][ICON_BULLET]" and runs until the next "[NEWLINE]" or
+    -- end-of-string; bullet bodies can contain other markup tags ([COLOR_*],
+    -- icons) so we can't terminate on a bare "[".
+    local function bulletsOf(section)
+        local out = {}
+        local pos = 1
+        while true do
+            local _, headEnd = section:find("%[NEWLINE%]%[ICON_BULLET%]", pos)
+            if headEnd == nil then
+                break
+            end
+            local nextStart = section:find("%[NEWLINE%]", headEnd + 1)
+            local body
+            if nextStart == nil then
+                body = section:sub(headEnd + 1)
+            else
+                body = section:sub(headEnd + 1, nextStart - 1)
+            end
+            out[#out + 1] = body
+            pos = headEnd + 1
+        end
+        return out
+    end
+
+    local opinionParts = {}
+
+    if votePos ~= nil then
+        local section = sliceSection(votePos, #voteMarker, nil)
+        local bullets = bulletsOf(section)
+        if #bullets > 0 then
+            -- Drop the OURS bullet (always last in vote-opinions; engine
+            -- ordering at CvVotingClasses.cpp:4360-4367 is fixed and the
+            -- mod doesn't take upstream engine updates).
+            bullets[#bullets] = nil
+        end
+        if #bullets > 0 then
+            local cleaned = {}
+            for _, b in ipairs(bullets) do
+                local f = TextFilter.filter(b)
+                if f ~= "" then
+                    cleaned[#cleaned + 1] = f
+                end
+            end
+            if #cleaned > 0 then
+                opinionParts[#opinionParts + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_COUNTS_PREFACE")
+                    .. " "
+                    .. table.concat(cleaned, ". ")
+            end
+        end
+    end
+
+    local function formatCivList(startPos, markerLen, endPos, prefaceKey)
+        local section = sliceSection(startPos, markerLen, endPos)
+        local civs = {}
+        for _, b in ipairs(bulletsOf(section)) do
+            local f = TextFilter.filter(b)
+            if f ~= "" then
+                civs[#civs + 1] = f
+            end
+        end
+        if #civs == 0 then
+            return nil
+        end
+        return Text.format(prefaceKey, table.concat(civs, ", "))
+    end
+
+    if posPos ~= nil then
+        local part = formatCivList(posPos, #posMarker, negPos, "TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_GRATEFUL_LIST")
+        if part ~= nil then
+            opinionParts[#opinionParts + 1] = part
+        end
+    end
+    if negPos ~= nil then
+        local part = formatCivList(negPos, #negMarker, nil, "TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_ANGRY_LIST")
+        if part ~= nil then
+            opinionParts[#opinionParts + 1] = part
+        end
+    end
+
+    local out = {}
+    for _, p in ipairs(opinionParts) do
+        if p ~= "" then
+            out[#out + 1] = p
+        end
+    end
+    local descFiltered = LeagueOverviewRow.filterTooltip(description)
+    if descFiltered ~= "" then
+        out[#out + 1] = descFiltered
+    end
+    return table.concat(out, ". ")
 end
 
 -- Reshape GetMemberDelegationDetails for the drilled delegation sub-line.
