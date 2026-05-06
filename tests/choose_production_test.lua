@@ -728,6 +728,39 @@ function M.test_contributions_remaining_clamps_at_zero_when_overbuilt()
     T.truthy(contributions:find("Production remaining: 0", 1, true), "clamps at 0")
 end
 
+function M.test_contributions_slot_one_project_does_not_double_speak_help()
+    -- Projects have only "Cost: X" + prose Help in their helper output.
+    -- Dropping the cost line for the slot-1 entry leaves the prose
+    -- separator at position 1; without a leading-separator strip, the
+    -- prose Help would survive in contributions AND be spoken again via
+    -- proseText for a doubled read.
+    setup()
+    installGameInfoProjects({
+        { ID = 1, Description = "Manhattan", Cost = 1500, Help = "Enables nuclear weapons." },
+    })
+    M._projectNeeded[1] = 1500
+    local city = mkCityStub({
+        canCreate = { [1] = true },
+        projectTurnsLeft = { [1] = 5 },
+        queue = { { OrderTypes.ORDER_CREATE, 1 } },
+        productionTimes100 = 30000, -- 300 stored
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_CREATE,
+        id = 1,
+        info = GameInfo.Projects[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    T.truthy(contributions:find("Production remaining: 1200", 1, true), "shows remaining")
+    T.falsy(contributions:find("Enables nuclear", 1, true), "prose Help not in contributions")
+    -- And the full label includes the Help once (via proseText), not twice.
+    local label = ChooseProductionLogic.buildLabel(entry, city)
+    local _, count = label:gsub("Enables nuclear weapons%.", "")
+    T.eq(count, 1, "Help text appears exactly once across the full label")
+end
+
 function M.test_contributions_purchase_entry_keeps_full_cost_even_at_slot_one()
     -- Purchase entries don't own the production accumulator (the player
     -- pays gold / faith, not production). Even when an entry's id matches

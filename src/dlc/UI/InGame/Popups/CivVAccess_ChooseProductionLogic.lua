@@ -389,6 +389,12 @@ function ChooseProductionLogic.contributionsText(entry, city)
     -- everything from that separator onward is the prose, and the chooser
     -- speaks prose via proseText after the stats instead of inline.
     body = body:gsub("%[NEWLINE%]%-%-%-%-+%[NEWLINE%].*$", "")
+    -- Same strip when the separator sits at the very start of the body --
+    -- happens for slot-1 projects (cost line dropped, leaving the prose
+    -- separator at position 1) and for buildings whose only post-header
+    -- content is the prose Help block. Without this second strip the
+    -- prose would survive in the body AND get spoken again via proseText.
+    body = body:gsub("^%-%-%-%-+%[NEWLINE%].*$", "")
     if not slotOne then
         return body
     end
