@@ -1,7 +1,8 @@
 -- Culture Overview accessibility (Ctrl+C). Wraps the engine popup as a four-tab
--- TabbedShell, every tab a flat BaseMenu list. The screen is small (few cities,
--- few met civs) and the per-row data is rich enough that drill-in is the
--- natural shape; no tab earns a BaseTable. Same reasoning Demographics uses.
+-- TabbedShell. Tabs 1 and 2 are flat BaseMenu lists where the per-row data is
+-- rich enough that drill-in is the natural shape; tabs 3 and 4 are BaseTables
+-- because the engine renders both as multi-column sortable tables and parity
+-- is best preserved by mirroring that shape.
 --
 --   Your Culture     -- per-city Group: name, culture/turn, tourism/turn, GW
 --                       filled/total, damage. Drills into the city's GW-
@@ -1257,12 +1258,20 @@ local function tourismRateSortKey(targetID)
 end
 
 -- Trend cell. The engine special-cases rising-but-unreachable (turns to
--- influential == 999) as "rising slowly"; we mirror that wording.
+-- influential == 999) as "rising slowly", and treats rising-at-Dominant
+-- as static (a Dominant civ can't gain a level, so the rising trend is
+-- not actionable). We mirror both gates from CultureOverview.lua:2046-2049.
 local function trendCell(targetID)
     local pSel = Players[g_iSelectedPlayerID]
     local trend = pSel:GetInfluenceTrend(targetID)
-    if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING and pSel:GetTurnsToInfluential(targetID) == 999 then
-        return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY")
+    if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING then
+        if pSel:GetTurnsToInfluential(targetID) == 999 then
+            return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY")
+        end
+        if pSel:GetInfluenceLevel(targetID) >= InfluenceLevelTypes.INFLUENCE_LEVEL_DOMINANT then
+            return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_STATIC")
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING")
     end
     local key = TREND_TEXT_KEYS[trend]
     if key == nil then
@@ -1272,7 +1281,9 @@ local function trendCell(targetID)
 end
 
 -- Sort rank: falling -1, static 0, rising-slowly 1, rising 2. Matches the
--- engine's TrendRate convention from CultureOverview.lua:2040+.
+-- engine's TrendRate convention from CultureOverview.lua:2040+. Rising
+-- at Dominant collapses to 0 (the engine treats it as no movement; see
+-- the level cap in the engine's sort-rank assignment at line 2049).
 local function trendSortKey(targetID)
     local pSel = Players[g_iSelectedPlayerID]
     local trend = pSel:GetInfluenceTrend(targetID)
@@ -1282,6 +1293,9 @@ local function trendSortKey(targetID)
     if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING then
         if pSel:GetTurnsToInfluential(targetID) == 999 then
             return 1
+        end
+        if pSel:GetInfluenceLevel(targetID) >= InfluenceLevelTypes.INFLUENCE_LEVEL_DOMINANT then
+            return 0
         end
         return 2
     end
