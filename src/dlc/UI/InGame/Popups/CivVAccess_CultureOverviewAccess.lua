@@ -9,7 +9,8 @@
 --                       city owns), each of which drills into its slots.
 --                       Slot Enter runs the move state machine; great-work
 --                       details are surfaced via the slot's tooltip.
---                       Antiquity site counts precede the city list.
+--                       The global antiquity-site count (visible + hidden)
+--                       follows the city list as a one-line footer.
 --   Swap Great Works -- three top-level rows. (1) Your offerings: drills
 --                       into three Pulldowns wrapping the engine's per-type
 --                       designation widgets; tooltip on each carries the
@@ -579,9 +580,6 @@ local function buildCityGroup(city)
                 total
             )
         end,
-        tooltipFn = function()
-            return city:GetTourismTooltip()
-        end,
         cached = false,
         itemsFn = function()
             local items = {}
@@ -602,18 +600,6 @@ end
 
 local function buildYourCultureItems()
     local items = {}
-    if Game.GetNumArchaeologySites() ~= -1 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelFn = function()
-                return Text.format("TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES", Game.GetNumArchaeologySites())
-            end,
-        })
-        items[#items + 1] = BaseMenuItems.Text({
-            labelFn = function()
-                return Text.format("TXT_KEY_CIVVACCESS_CO_HIDDEN_SITES", Game.GetNumHiddenArchaeologySites())
-            end,
-        })
-    end
     local p = activePlayer()
     local hadCity = false
     for c in p:Cities() do
@@ -623,6 +609,20 @@ local function buildYourCultureItems()
     if not hadCity then
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CO_NO_CITIES"),
+        })
+    end
+    -- Global archaeology pool footer. -1 means no civ has unlocked
+    -- Archaeology yet, so the count would be meaningless; suppress the
+    -- whole row in that state.
+    if Game.GetNumArchaeologySites() ~= -1 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES",
+                    Game.GetNumArchaeologySites(),
+                    Game.GetNumHiddenArchaeologySites()
+                )
+            end,
         })
     end
     return items

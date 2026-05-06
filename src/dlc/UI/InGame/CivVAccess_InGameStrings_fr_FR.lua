@@ -2179,9 +2179,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS"] = "Échanger des chef
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_VICTORY"] = "Victoire culturelle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE"] = "Influence du joueur"
 -- Tab 1 (Your Culture).
--- Tab 1 (Your Culture).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Sites d'antiquité : {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HIDDEN_SITES"] = "Sites d'antiquité cachés : {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Sites d'antiquité : {1_Visible} visibles, {2_Hidden} cachés"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL"] = {
     one = "{1_Name}, culture {2_Cul}, tourisme {3_Tou}, chef-d'oeuvre {4_Filled} sur {5_Total}",
     other = "{1_Name}, culture {2_Cul}, tourisme {3_Tou}, chefs-d'oeuvre {4_Filled} sur {5_Total}",

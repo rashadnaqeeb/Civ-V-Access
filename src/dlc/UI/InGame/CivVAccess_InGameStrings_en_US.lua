@@ -2445,8 +2445,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS"] = "Swap Great Works"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_VICTORY"] = "Culture Victory"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE"] = "Player Influence"
 -- Tab 1 (Your Culture).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Antiquity sites: {1_Num}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HIDDEN_SITES"] = "Hidden antiquity sites: {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Antiquity sites: {1_Visible} visible, {2_Hidden} hidden"
 -- Per-city label. {1_Name} already includes the capital/puppet/occupied
 -- prefix when applicable (mirrors engine's CityDisplayName composition).
 -- Plural is driven by {5_Total}: when the city has 1 great-work slot
