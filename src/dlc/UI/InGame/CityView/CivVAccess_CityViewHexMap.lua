@@ -374,18 +374,34 @@ local function pushHexMap()
     local function popSelf()
         HandlerStack.removeByName("CityView.HexMap", true)
     end
+    -- Arrow keys would otherwise fall through to the hub's BaseMenu and
+    -- shift its item cursor invisibly while the user is navigating tiles.
+    -- Bind them to no-ops so the hex sub consumes them at the dispatch
+    -- layer; capturesAllInput stays false so `.` / `,` (next/prev city)
+    -- and F1 (read screen header) keep bubbling to the hub. Home / End
+    -- are deliberately NOT no-op'd -- the scanner binds them (jump cursor
+    -- to entry / distance from cursor to entry) and the appended scanner
+    -- bindings would be shadowed by an earlier no-op for the same key.
+    -- Type-ahead is already isolated -- InputRouter dispatches it via the
+    -- active handler's handleSearchInput hook, which the hex sub does not
+    -- expose, so printable keys never reach the hub's search either.
+    local function noop() end
 
     -- The hub's capturesAllInput=true swallows every key not bound on a
     -- handler above it, so Scanner / Surveyor bindings from Baseline would
     -- be dead while CityView is up. Pull them in at push time. Scanner's
     -- gatherEntries already respects civvaccess_shared.mapScope, so its
     -- snapshot is auto-scoped to this city. Surveyor deliberately sweeps
-    -- its radius ignoring the scope predicate (plan §3.4): its radius cap
-    -- is the real bound, and scoping it would hide info a sighted player
+    -- its radius ignoring the scope predicate: its radius cap is the
+    -- real bound, and scoping it would hide info a sighted player
     -- glances at. Pull helpEntries too so F1 lists every key.
     local bindings = {
         { key = Keys.VK_ESCAPE, mods = MOD_NONE, description = "Back", fn = popSelf },
         { key = Keys.VK_RETURN, mods = MOD_NONE, description = "Activate tile", fn = activateHexTile },
+        { key = Keys.VK_UP, mods = MOD_NONE, description = "Consume arrow", fn = noop },
+        { key = Keys.VK_DOWN, mods = MOD_NONE, description = "Consume arrow", fn = noop },
+        { key = Keys.VK_LEFT, mods = MOD_NONE, description = "Consume arrow", fn = noop },
+        { key = Keys.VK_RIGHT, mods = MOD_NONE, description = "Consume arrow", fn = noop },
         { key = Keys.L, mods = MOD_NONE, description = "List worked tiles", fn = listWorkedTilesFromCursor },
         { key = Keys.Q, mods = MOD_NONE, description = "Move NW", fn = moveDir(DirectionTypes.DIRECTION_NORTHWEST) },
         { key = Keys.E, mods = MOD_NONE, description = "Move NE", fn = moveDir(DirectionTypes.DIRECTION_NORTHEAST) },
@@ -477,9 +493,12 @@ local function pushHexMap()
     local pushed = HandlerStack.push({
         name = "CityView.HexMap",
         displayName = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"),
-        -- False so `.` / `,` on the hub still bubble for next/prev city.
-        -- Scanner / Surveyor / movement bindings live on this handler; the
-        -- hub's own up/down menu keys pass through harmlessly.
+        -- False so `.` / `,` (next/prev city) and F1 (read screen header)
+        -- still bubble to the hub. Bare arrow keys are bound above as
+        -- no-ops because they would otherwise reach the hub's BaseMenu and
+        -- shift its item cursor invisibly while the user is navigating
+        -- tiles -- the user can't see the menu cursor and the next pop
+        -- back would land on a surprising item.
         capturesAllInput = false,
         bindings = bindings,
         helpEntries = helpEntries,
