@@ -1893,10 +1893,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_AVAILABLE"] = "Routes commerciale
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TAB_WITH_YOU"] = "Routes commerciales avec vous"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND"] = "caravane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_DOMAIN_SEA"] = "navire marchand"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] =
-    "{1_Domain}, {2_From} vers {3_To}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_CITY_STATE_OF"] =
-    "la cité-État de {1_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER"] = "{1_Domain}, {2_From} vers {3_To}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_CITY_STATE_OF"] = "la cité-État de {1_City}"
 -- Plural driven by {1_Num} (turns until the route arrives at its
 -- destination and resolves).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT"] = {

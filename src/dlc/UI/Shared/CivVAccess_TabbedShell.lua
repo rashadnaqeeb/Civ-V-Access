@@ -199,11 +199,8 @@ local function cycleTab(self, direction)
     local newIdx = self._activeIdx + direction
     local wraps = newIdx < 1 or newIdx > n
     if wraps and type(self._onCycleEdge) == "function" then
-        local ok, consumed = Log.tryCall(
-            "TabbedShell '" .. tostring(self.name) .. "' onCycleEdge",
-            self._onCycleEdge,
-            direction
-        )
+        local ok, consumed =
+            Log.tryCall("TabbedShell '" .. tostring(self.name) .. "' onCycleEdge", self._onCycleEdge, direction)
         if ok and consumed then
             return
         end
@@ -567,10 +564,8 @@ function TabbedShell.install(ContextPtr, spec)
         end
         local reactivate = bIsHide
         if bIsHide and suppressReactivateOnHide ~= nil then
-            local ok, suppress = Log.tryCall(
-                "TabbedShell '" .. handler.name .. "' suppressReactivateOnHide",
-                suppressReactivateOnHide
-            )
+            local ok, suppress =
+                Log.tryCall("TabbedShell '" .. handler.name .. "' suppressReactivateOnHide", suppressReactivateOnHide)
             if ok and suppress then
                 reactivate = false
             end
