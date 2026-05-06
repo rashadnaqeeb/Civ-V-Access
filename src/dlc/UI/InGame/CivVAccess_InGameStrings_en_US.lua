@@ -1676,11 +1676,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourism"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "great people"
 -- Dedup-only alias for the singular pairing in base text ("Great Person Focus").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "great person"
--- Dedup-only alias for the "Great X" prefix shared by every great-people
--- specialist title ("Great Scientist Points", "Great Engineer Points", ...).
--- Lets the icon collapse before the title so we don't read "great people Great
--- Scientist Points" with the "great" doubled.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2"] = "great"
+-- Per-specialist title aliases. Match the engine's "Great X Points:" line
+-- emitted by GetHelpTextForBuilding so the icon collapses before each
+-- title and the screen reader doesn't read "great people Great Scientist
+-- Points" with the noun phrase doubled. One per specialist because the
+-- French equivalents (in fr_FR) share no common prefix.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "great artist points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "great engineer points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "great merchant points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "great scientist points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "combat strength"
 -- Engine's "Strength: N" line uses the bare word; alias lets the icon's
 -- "combat strength" speech collapse against the adjacent "Strength" so

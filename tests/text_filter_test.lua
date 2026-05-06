@@ -268,16 +268,60 @@ function M.test_icon_dedup_does_not_eat_longer_word_with_s_prefix()
 end
 
 -- ICON_GREAT_PEOPLE precedes both the full phrase ("great people"), the
--- singular ("Great Person of your choice"), and the "Great X" title
--- pattern shared by every great-people specialist (Great Scientist Points,
--- Great Engineer Points, ...). Each form is registered as a separate alias
--- so the icon collapses against any of them.
-function M.test_icon_dedup_collapses_all_great_aliases()
+-- singular ("Great Person of your choice"), and per-specialist title
+-- lines the engine emits in GetHelpTextForBuilding ("Great Scientist
+-- Points:" in en_US, "Points d'artistes illustres :" in fr_FR, etc.).
+-- Each phrase is registered as its own alias so the icon collapses
+-- against the specific phrase rather than a broad "great" / "grand"
+-- prefix that would over-collapse on unrelated adjacent text.
+function M.test_icon_dedup_collapses_specific_great_titles()
     setup()
-    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", { "great person", "great" })
+    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", {
+        "great person",
+        "great artist points",
+        "great engineer points",
+        "great merchant points",
+        "great scientist points",
+    })
     T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great Scientist Points 1"), "Great Scientist Points 1")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great Engineer Points 2"), "Great Engineer Points 2")
     T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great Person of your choice"), "Great Person of your choice")
     T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] great people standalone"), "great people standalone")
+end
+
+function M.test_specific_great_aliases_do_not_overmatch_unrelated_great()
+    setup()
+    -- The specific aliases ("great scientist points") only fire when the
+    -- adjacent text starts with that exact phrase. Unrelated "Great X"
+    -- noun phrases ("Great Wall", "Great Library") leave the icon in
+    -- place because no specific alias matches their prefix.
+    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", {
+        "great scientist points",
+        "great engineer points",
+    })
+    T.eq(
+        TextFilter.filter("[ICON_GREAT_PEOPLE] Great Wall of China stands"),
+        "great people Great Wall of China stands"
+    )
+end
+
+function M.test_french_great_aliases_collapse_locale_specific_titles()
+    setup()
+    -- The French engine emits "Points d'X illustres :" instead of "Great
+    -- X Points:". Per-locale aliases handle this; verify the dedup
+    -- matches the French phrasing too.
+    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "grands personnages", {
+        "points d'artistes illustres",
+        "points de savants illustres",
+    })
+    T.eq(
+        TextFilter.filter("[ICON_GREAT_PEOPLE] Points d'artistes illustres : 1"),
+        "Points d'artistes illustres : 1"
+    )
+    T.eq(
+        TextFilter.filter("[ICON_GREAT_PEOPLE] Points de savants illustres : 1"),
+        "Points de savants illustres : 1"
+    )
 end
 
 -- TXT_KEY_PRODUCTION_STRENGTH formats as "[ICON_STRENGTH] Strength: N"
@@ -298,13 +342,22 @@ function M.test_ranged_strength_icon_collapses_against_two_word_phrase()
     T.eq(TextFilter.filter("[ICON_RANGE_STRENGTH] Ranged Strength: 25"), "Ranged Strength: 25")
 end
 
-function M.test_great_alias_does_not_overmatch()
+function M.test_alias_word_boundary_check()
     setup()
-    -- "great" alias should fail the word-boundary check on "greater",
-    -- "greatness", "grateful", etc., so the icon still speaks normally.
-    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", { "great" })
-    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] greatness in numbers"), "great people greatness in numbers")
-    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] greater odds"), "great people greater odds")
+    -- The `s?` boundary check in the matcher ensures aliases don't fire
+    -- against longer words that happen to start with the alias text. The
+    -- specific specialist-title aliases match only the exact phrase; a
+    -- "great scientist" alias must not collapse against "great scientists"
+    -- alone (no "points" suffix), against "greater scientist", etc.
+    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", { "great scientist points" })
+    T.eq(
+        TextFilter.filter("[ICON_GREAT_PEOPLE] great scientists assemble"),
+        "great people great scientists assemble"
+    )
+    T.eq(
+        TextFilter.filter("[ICON_GREAT_PEOPLE] greatness in numbers"),
+        "great people greatness in numbers"
+    )
 end
 
 -- Control characters -----------------------------------------------------

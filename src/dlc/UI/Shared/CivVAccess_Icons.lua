@@ -80,15 +80,22 @@ local ICON_KEYS = {
 local ALIAS_KEYS = {
     ["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT" },
     ["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT" },
-    -- Singular form for "Great Person Focus" / "a Great Person of your choice".
-    -- "great" matches the "Great X" prefix shared by every great-people
-    -- specialist title (Great Scientist Points, Great Engineer Points, ...)
-    -- and several Civ V noun phrases (Great Person of your choice). Without
-    -- it, GetHelpTextForBuilding's specialist line reads "great people
-    -- Great Scientist Points: 1" — the "great" repeats and breaks the flow.
+    -- ALT covers the singular pairing in base text ("a Great Person of
+    -- your choice"). The four ALT_<SPECIALIST> entries collapse the icon
+    -- against the "Great X Points:" / "Points d'X illustres :" line the
+    -- engine emits at GetHelpTextForBuilding.lua:265 -- one alias per
+    -- specialist title because the English and French phrasings differ
+    -- per specialist (English uses "Great X Points:"; French uses
+    -- "Points d'artistes/d'ingénieurs/de savants illustres :" or
+    -- "Points marchands illustres :", with no shared prefix). A broader
+    -- alias like "great" / "grand" would over-collapse on unrelated
+    -- adjacent text ("Great Wall", "Grande Muraille", etc.).
     ["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = {
         "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT",
-        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2",
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST",
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER",
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT",
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST",
     },
     -- The engine's TXT_KEY_PRODUCTION_STRENGTH formats unit strength as
     -- "[ICON_STRENGTH] Strength: N" — adjacent to the icon's spoken form

@@ -1518,10 +1518,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourisme"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "grands personnages"
 -- Dedup-only alias for the singular pairing in base text ("Great Person Focus").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "grand personnage"
--- Alias dédié au préfixe "Grand X" partagé par les titres des grands
--- personnages ("Grand Scientifique", "Grand Ingénieur", etc.). Permet à
--- l'icône d'être absorbée avant le titre pour éviter le redoublement.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2"] = "grand"
+-- Alias par spécialiste : le moteur français rend "Great X Points :"
+-- comme "Points d'artistes / d'ingénieurs / marchands / de savants
+-- illustres :", sans préfixe partagé. Il faut donc un alias pour chaque
+-- titre afin d'absorber l'icône avant la phrase et éviter le doublement.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "points d'artistes illustres"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "points d'ingénieurs illustres"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "points marchands illustres"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "points de savants illustres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "puissance de combat"
 -- Le format moteur "Puissance : N" emploie la forme courte ; l'alias
 -- permet à l'icône "puissance de combat" de s'effacer devant.
