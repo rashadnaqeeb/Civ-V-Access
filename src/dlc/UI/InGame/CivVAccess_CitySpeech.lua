@@ -1,15 +1,20 @@
--- Pure formatters that turn a city handle into speech for the three
--- cursor number keys (1 identity + combat, 2 development, 3 politics).
--- No event registration, no listeners, no state -- every call re-reads
--- the city so stale speech can't leak through a cached format.
+-- Pure formatters that turn a city handle into speech for the four
+-- cursor number keys (1 identity + combat, 2 development or city-state
+-- influence, 3 religion breakdown, 4 diplomatic notes). No event
+-- registration, no listeners, no state -- every call re-reads the city
+-- so stale speech can't leak through a cached format.
 --
 -- Output shape deliberately mirrors what a sighted player sees on the
--- BNW CityBannerManager for the relevant ownership tier: met cities
--- expose identity and combat fields unconditionally, team banners add
--- production / growth / garrison, warmonger and liberation previews
--- piggy-back on the engine's own preview strings (spoken in full so
--- the player can audit consequences before attacking). Unmet cities
--- stop at the one-word "unmet" token, matching the banner tooltip.
+-- BNW CityBannerManager for the relevant ownership tier. Key 2 splits
+-- on owner: city-states get the per-turn influence trajectory the
+-- banner's StatusMeter shows; team-major cities get the production /
+-- growth meters; foreign-major cities get a hint pointing at the
+-- Espionage Overview, which is where sighted players actually see what
+-- another civ is producing. Key 3 walks every religion present (matching
+-- GetReligionTooltip's iteration). Key 4 carries the rest of what the
+-- banner exposes that isn't combat-state: original-CS-owner indicator,
+-- spy / diplomat presence, warmonger / liberation previews. Unmet cities
+-- stop at the one-word "unmet" token across all four keys.
 
 CitySpeech = {}
 
@@ -268,18 +273,71 @@ function CitySpeech.identity(city)
     return table.concat(parts, ", ")
 end
 
--- ===== Key 2: development (production + growth, team only) =====
--- Food per-turn can be net positive or negative. FoodDifference rather
--- than FoodDifferenceTimes100 because we speak integers and the /100
--- precision is only for the banner's growth meter. Production per-turn
--- copies CityBannerManager's own IsFoodProduction branch (Settler-era
--- food conversion adds food-minus-consumption to production).
+-- ===== Key 2: development or city-state influence trajectory =====
+-- Branches on owner: city-states get the influence cell (current value +
+-- per-turn rate + anchor + threshold gap + bullyable flag); team-major
+-- cities get production / growth; foreign-major cities get a hint
+-- pointing at the Espionage Overview because the banner doesn't reveal
+-- their numbers and a spy in the city alone doesn't change that.
+--
+-- The CS branch reuses the diplo-screen format keys (DIPLO_INFLUENCE
+-- family) so the influence cell on F4 and on key 2 read identically;
+-- one source-of-truth, no drift. Format mirrors DiploRelationships's
+-- influenceCell verbatim (signed value, optional per-turn / anchor,
+-- threshold gap to friends or allies, bullyable suffix).
+--
+-- For the major-team production branch: food per-turn uses
+-- FoodDifference rather than FoodDifferenceTimes100 because we speak
+-- integers and the /100 precision is only for the banner's growth meter.
+-- Production per-turn copies CityBannerManager's own IsFoodProduction
+-- branch (Settler-era food conversion adds food-minus-consumption to
+-- production).
+
+local function influenceLine(city)
+    local iUs = activePlayerId()
+    local pOther = Players[city:GetOwner()]
+    local parts = {}
+
+    local inf = pOther:GetMinorCivFriendshipWithMajor(iUs)
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE", string.format("%+d", inf))
+
+    local perTurn = math.floor(pOther:GetFriendshipChangePerTurnTimes100(iUs) / 100)
+    if perTurn ~= 0 then
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_PER_TURN", string.format("%+d", perTurn))
+    end
+
+    local anchor = pOther:GetMinorCivFriendshipAnchorWithMajor(iUs)
+    if anchor ~= inf then
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_ANCHOR", string.format("%+d", anchor))
+    end
+
+    local friends = GameDefines.FRIENDSHIP_THRESHOLD_FRIENDS
+    local allies = GameDefines.FRIENDSHIP_THRESHOLD_ALLIES
+    if inf < friends then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_TO_FRIENDS", tostring(friends - inf))
+    elseif inf < allies then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_TO_ALLIES", tostring(allies - inf))
+    end
+
+    if pOther:CanMajorBullyGold(iUs) then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DIPLO_BULLYABLE")
+    end
+
+    return table.concat(parts, ", ")
+end
+
 function CitySpeech.development(city)
     if not isMet(city) then
         return Text.key("TXT_KEY_CIVVACCESS_CITY_UNMET")
     end
+    local owner = Players[city:GetOwner()]
+    if owner:IsMinorCiv() then
+        return influenceLine(city)
+    end
     if not isTeam(city) then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_NOT_VISIBLE")
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_HIDDEN_FOREIGN")
     end
     local parts = {}
 
@@ -336,48 +394,131 @@ function CitySpeech.development(city)
     return table.concat(parts, ", ")
 end
 
--- ===== Key 3: politics =====
+-- ===== Key 3: religion =====
+-- Full breakdown of every religion present, sorted by follower count
+-- descending so the dominant faith always leads regardless of GameInfo
+-- iteration order or which religion the engine flagged as the majority.
+-- Tiebreak by religion ID for a stable order when two faiths have the
+-- same count. Each row carries name, holy-city marker (when this city
+-- is the holy city for that religion), follower count, pressure-per-turn
+-- (engine value divided by RELIGION_MISSIONARY_PRESSURE_MULTIPLIER so it
+-- reads as the small integer the tooltip shows), and a trade-route count
+-- when GetPressurePerTurn's second return is non-zero. Disabled token
+-- speaks when GAMEOPTION_NO_RELIGION is set; "no religion present" when
+-- the religion option is on but no follower has reached this city yet.
+local function religionRow(city, religionId)
+    local religionInfo = GameInfo.Religions[religionId]
+    if religionInfo == nil then
+        Log.warn("CitySpeech: unknown religion id " .. tostring(religionId))
+        return nil
+    end
+    local religionName = Text.key(religionInfo.Description)
+    local followers = city:GetNumFollowers(religionId)
+    local pressureRaw, numTradeRoutes = city:GetPressurePerTurn(religionId)
+    local divisor = GameDefines["RELIGION_MISSIONARY_PRESSURE_MULTIPLIER"] or 1
+    local pressure = math.floor(pressureRaw / divisor)
+    local label
+    if city:IsHolyCityForReligion(religionId) then
+        label = Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_HOLY_LINE",
+            followers,
+            religionName,
+            followers,
+            pressure
+        )
+    else
+        label = Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE",
+            followers,
+            religionName,
+            followers,
+            pressure
+        )
+    end
+    if numTradeRoutes ~= nil and numTradeRoutes > 0 then
+        label = label
+            .. ", "
+            .. Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_TRADE_PRESSURE",
+                numTradeRoutes,
+                numTradeRoutes
+            )
+    end
+    return label
+end
+
+function CitySpeech.religion(city)
+    if not isMet(city) then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_UNMET")
+    end
+    if Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
+        return Text.key("TXT_KEY_CIVVACCESS_STATUS_FAITH_OFF")
+    end
+    local present = {}
+    for religionInfo in GameInfo.Religions() do
+        local rid = religionInfo.ID
+        if rid >= 0 then
+            local followers = city:GetNumFollowers(rid)
+            if followers > 0 then
+                present[#present + 1] = { rid = rid, followers = followers }
+            end
+        end
+    end
+    if #present == 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_NO_RELIGION_PRESENT")
+    end
+    table.sort(present, function(a, b)
+        if a.followers ~= b.followers then
+            return a.followers > b.followers
+        end
+        return a.rid < b.rid
+    end)
+    local rows = {}
+    for _, entry in ipairs(present) do
+        local row = religionRow(city, entry.rid)
+        if row ~= nil then
+            rows[#rows + 1] = row
+        end
+    end
+    return table.concat(rows, ". ")
+end
+
+-- ===== Key 4: diplomatic notes =====
+-- Bundle of facts the banner exposes that aren't covered by combat (key
+-- 1), trajectory (key 2), or religion (key 3): originally founded by a
+-- city-state (the banner's MinorIndicator, persistently visible whenever
+-- the original owner is a minor whether or not the city has changed
+-- hands), spy / diplomat presence with name and rank, and the at-war
+-- warmonger / liberation previews. Empty-state token fires when none of
+-- the above produced a part, so the user can hammer key 4 on any city
+-- and never wonder if it registered.
+--
 -- Warmonger / liberation previews come back as pre-formatted engine
 -- text with newlines and icon markup; the SpeechPipeline's TextFilter
 -- stage strips those before Tolk, so the raw string is safe to return.
--- Religion and spy lookups are best-effort -- missing religion rows or
--- spy entries without a CityX/Y match just skip that token.
-function CitySpeech.politics(city)
+function CitySpeech.diplomatic(city)
     if not isMet(city) then
         return Text.key("TXT_KEY_CIVVACCESS_CITY_UNMET")
     end
     local parts = {}
-    local activeTeam = Teams[activeTeamId()]
     local ownerId = city:GetOwner()
     local cityPlayer = Players[ownerId]
+    local activeTeam = Teams[activeTeamId()]
 
-    -- Warmonger / liberation previews are invoked on the city's own
-    -- player with the owner id as the argument. That's what
-    -- CityBannerManager.lua:215 does; the DLL method reads active-
-    -- player standings internally regardless of the receiver.
-    if activeTeam:IsAtWar(city:GetTeam()) then
-        local warmonger = cityPlayer:GetWarmongerPreviewString(ownerId)
-        if warmonger ~= nil and warmonger ~= "" then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_WARMONGER_PREVIEW", warmonger)
-        end
-        if city:GetOriginalOwner() ~= ownerId then
-            local liberation = cityPlayer:GetLiberationPreviewString(city:GetOriginalOwner())
-            if liberation ~= nil and liberation ~= "" then
-                parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_LIBERATION_PREVIEW", liberation)
-            end
+    -- Originally founded by a city-state: persistent banner ornament,
+    -- not war-gated. Suppressed when the original owner is the current
+    -- owner (the city is still in its founding CS's hands -- the flag
+    -- is the CS's own banner, not a separate indicator).
+    local origOwnerId = city:GetOriginalOwner()
+    if origOwnerId ~= ownerId then
+        local origOwner = Players[origOwnerId]
+        if origOwner ~= nil and origOwner:IsMinorCiv() then
+            local origName = Text.key(origOwner:GetCivilizationShortDescriptionKey())
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_ORIGINALLY_CS", origName)
         end
     end
 
-    local religion = city:GetReligiousMajority()
-    if religion ~= nil and religion >= 0 then
-        local row = GameInfo.Religions[religion]
-        if row ~= nil then
-            parts[#parts + 1] = Text.key(row.Description)
-        else
-            Log.warn("CitySpeech: unknown religion id " .. tostring(religion))
-        end
-    end
-
+    -- Spy / diplomat: same lookup as the banner's IconsStack icons.
     local spies = Players[activePlayerId()]:GetEspionageSpies()
     if spies ~= nil then
         local cityX, cityY = city:GetX(), city:GetY()
@@ -394,8 +535,25 @@ function CitySpeech.politics(city)
         end
     end
 
+    -- Warmonger / liberation previews. Invoked on the city's own player
+    -- with the owner id as the argument; CityBannerManager.lua:215 does
+    -- the same, the DLL method reads active-player standings internally
+    -- regardless of the receiver. War-gated to mirror the banner.
+    if activeTeam:IsAtWar(city:GetTeam()) then
+        local warmonger = cityPlayer:GetWarmongerPreviewString(ownerId)
+        if warmonger ~= nil and warmonger ~= "" then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_WARMONGER_PREVIEW", warmonger)
+        end
+        if origOwnerId ~= ownerId then
+            local liberation = cityPlayer:GetLiberationPreviewString(origOwnerId)
+            if liberation ~= nil and liberation ~= "" then
+                parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_LIBERATION_PREVIEW", liberation)
+            end
+        end
+    end
+
     if #parts == 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_CITY_NO_POLITICS")
+        return Text.key("TXT_KEY_CIVVACCESS_CITY_NO_DIPLO_NOTES")
     end
     return table.concat(parts, ", ")
 end

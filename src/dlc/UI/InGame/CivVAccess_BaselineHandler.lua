@@ -90,8 +90,12 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_DEV",
     },
     {
-        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_POL",
-        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL",
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_REL",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_REL",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DIPLO",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_DIPLO",
     },
     {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE",
@@ -221,8 +225,11 @@ function BaselineHandler.create()
             speak(Cursor.cityDevelopment())
         end, "City production and growth"),
         bind(Keys["3"], MOD_NONE, function()
-            speak(Cursor.cityPolitics())
-        end, "City diplomacy"),
+            speak(Cursor.cityReligion())
+        end, "City religion"),
+        bind(Keys["4"], MOD_NONE, function()
+            speak(Cursor.cityDiplomatic())
+        end, "City diplomatic notes"),
         bind(Keys.VK_RETURN, MOD_NONE, function()
             Cursor.activate()
         end, "Activate tile"),

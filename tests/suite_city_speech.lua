@@ -1,6 +1,7 @@
--- CitySpeech formatter tests. Covers the three cursor number keys
--- (identity + combat, development, politics) across ownership tiers
--- (own / team / visible enemy / unmet) and across the status flags
+-- CitySpeech formatter tests. Covers the four cursor number keys
+-- (identity + combat, development or city-state influence, religion,
+-- diplomatic notes) across ownership tiers (own / team / visible enemy
+-- / city-state / unmet) and across the status flags, religion presence,
 -- and city-state trait / friendship combinations the banner exposes.
 
 local T = require("support")
@@ -28,6 +29,10 @@ local function mkCity(opts)
         _strength = opts.strength or 2000,
         _damage = opts.damage or 0,
         _religion = (opts.religion == nil) and -1 or opts.religion,
+        _followers = opts.followers or {},
+        _pressure = opts.pressure or {},
+        _tradeRoutes = opts.tradeRoutes or {},
+        _holyCityFor = opts.holyCityFor or {},
         _garrisonedUnit = opts.garrisonedUnit,
         _canRangeStrikeNow = opts.canRangeStrikeNow or false,
         _productionKey = opts.productionKey,
@@ -93,6 +98,15 @@ local function mkCity(opts)
     end
     function c:GetReligiousMajority()
         return self._religion
+    end
+    function c:GetNumFollowers(rid)
+        return self._followers[rid] or 0
+    end
+    function c:GetPressurePerTurn(rid)
+        return self._pressure[rid] or 0, self._tradeRoutes[rid] or 0
+    end
+    function c:IsHolyCityForReligion(rid)
+        return self._holyCityFor[rid] or false
     end
     function c:GetGarrisonedUnit()
         return self._garrisonedUnit
@@ -170,6 +184,15 @@ local function setup()
     Game.GetActiveTeam = function()
         return 0
     end
+    -- Religion option default off; tests that exercise the disabled
+    -- branch overwrite. Reset the table on every setup so flags from a
+    -- prior test don't leak into the next.
+    Game._options = {}
+    Game.IsOption = function(opt)
+        return Game._options[opt] or false
+    end
+    GameOptionTypes = GameOptionTypes or {}
+    GameOptionTypes.GAMEOPTION_NO_RELIGION = "GAMEOPTION_NO_RELIGION"
 
     Players = {}
     Teams = {}
@@ -225,6 +248,41 @@ local function setup()
     }
     GameDefines = GameDefines or {}
     GameDefines.MAX_CITY_HIT_POINTS = 200
+    -- Religion pressure scaling and CS friendship thresholds. Numbers
+    -- match the engine's published values so tests exercise realistic
+    -- arithmetic; if the engine changes them we want the tests to keep
+    -- using the engine's actual values via the GameDefines table at
+    -- runtime, so suite_city_speech tests use these constants only as
+    -- fixtures.
+    GameDefines.RELIGION_MISSIONARY_PRESSURE_MULTIPLIER = 100
+    GameDefines.FRIENDSHIP_THRESHOLD_FRIENDS = 30
+    GameDefines.FRIENDSHIP_THRESHOLD_ALLIES = 60
+end
+
+-- GameInfo.Religions doubles as an id-keyed lookup ("GameInfo.Religions
+-- [id]") and as a callable iterator ("for r in GameInfo.Religions()").
+-- Religion-breakdown tests that exercise the iterator path replace the
+-- plain table set up by setup() with this metatabled variant.
+local function makeIterableTable(rows)
+    local t = {}
+    local idIndex = {}
+    for _, row in ipairs(rows) do
+        t[#t + 1] = row
+        idIndex[row.ID] = row
+    end
+    setmetatable(t, {
+        __call = function(self)
+            local i = 0
+            return function()
+                i = i + 1
+                return self[i]
+            end
+        end,
+        __index = function(_, key)
+            return idIndex[key]
+        end,
+    })
+    return t
 end
 
 -- Builds an enemy team the active player has met but is at peace with.
@@ -240,6 +298,9 @@ local function installForeignMajor(teamId, ownerId, opts)
         end,
         GetLiberationPreviewString = function()
             return opts.liberation or ""
+        end,
+        GetCivilizationShortDescriptionKey = function()
+            return opts.shortDescKey or "TXT_KEY_CIV_FOREIGN_SHORT"
         end,
     }
     Teams[teamId] = {
@@ -269,6 +330,11 @@ local function installMinorCiv(teamId, ownerId, traitType, opts)
         _isAllies = opts.allies or false,
         _isFriends = opts.friends or false,
         _minorType = traitType.minorType or 42,
+        _influence = opts.influence or 0,
+        _influencePerTurnTimes100 = opts.influencePerTurnTimes100 or 0,
+        _influenceAnchor = (opts.influenceAnchor == nil) and (opts.influence or 0) or opts.influenceAnchor,
+        _canBully = opts.canBully or false,
+        _shortDescKey = opts.shortDescKey or "TXT_KEY_CIV_MINOR_SHORT",
         IsMinorCiv = function(self)
             return self._isMinor
         end,
@@ -280,6 +346,21 @@ local function installMinorCiv(teamId, ownerId, traitType, opts)
         end,
         GetMinorCivType = function(self)
             return self._minorType
+        end,
+        GetMinorCivFriendshipWithMajor = function(self, _p)
+            return self._influence
+        end,
+        GetFriendshipChangePerTurnTimes100 = function(self, _p)
+            return self._influencePerTurnTimes100
+        end,
+        GetMinorCivFriendshipAnchorWithMajor = function(self, _p)
+            return self._influenceAnchor
+        end,
+        CanMajorBullyGold = function(self, _p)
+            return self._canBully
+        end,
+        GetCivilizationShortDescriptionKey = function(self)
+            return self._shortDescKey
         end,
     }
     Teams[teamId] = {
@@ -345,7 +426,7 @@ function M.test_development_speaks_unmet_for_unmet_city()
     T.eq(CitySpeech.development(city), "unmet")
 end
 
-function M.test_politics_speaks_unmet_for_unmet_city()
+function M.test_religion_speaks_unmet_for_unmet_city()
     setup()
     Teams[5] = {
         IsHasMet = function()
@@ -364,7 +445,29 @@ function M.test_politics_speaks_unmet_for_unmet_city()
         end,
     }
     local city = mkCity({ owner = 5, team = 5 })
-    T.eq(CitySpeech.politics(city), "unmet")
+    T.eq(CitySpeech.religion(city), "unmet")
+end
+
+function M.test_diplomatic_speaks_unmet_for_unmet_city()
+    setup()
+    Teams[5] = {
+        IsHasMet = function()
+            return false
+        end,
+        IsAtWar = function()
+            return false
+        end,
+        IsPermanentWarPeace = function()
+            return false
+        end,
+    }
+    Players[5] = {
+        IsMinorCiv = function()
+            return false
+        end,
+    }
+    local city = mkCity({ owner = 5, team = 5 })
+    T.eq(CitySpeech.diplomatic(city), "unmet")
 end
 
 -- ===== Identity: capital marker =====
@@ -600,11 +703,17 @@ end
 
 -- ===== Development =====
 
-function M.test_development_returns_not_visible_on_enemy_city()
+function M.test_development_points_at_espionage_on_foreign_major_city()
+    -- Foreign-major branch on key 2: the banner doesn't reveal production
+    -- and a spy in the city alone doesn't change that. The hint string
+    -- points at the Espionage Overview, where sighted players actually
+    -- see what each foreign civ is producing.
     setup()
     installForeignMajor(5, 5)
     local city = mkCity({ owner = 5, team = 5 })
-    T.eq(CitySpeech.development(city), "not visible")
+    local out = CitySpeech.development(city)
+    T.truthy(out:find("hidden", 1, true), "hidden marker expected: " .. out)
+    T.truthy(out:find("Espionage Overview", 1, true), "espionage hint expected: " .. out)
 end
 
 function M.test_development_producing_item_with_turns()
@@ -682,54 +791,317 @@ function M.test_development_includes_production_per_turn()
     T.truthy(CitySpeech.development(city):find("12 per turn", 1, true), "production per-turn expected")
 end
 
--- ===== Politics =====
+-- ===== Development: city-state branch (key 2 on a CS) =====
 
-function M.test_politics_speaks_no_info_when_peace_no_religion_no_spy()
+function M.test_development_on_city_state_speaks_influence_value()
     setup()
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 25, influencePerTurnTimes100 = 0, influenceAnchor = 25 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    local out = CitySpeech.development(city)
+    T.truthy(out:find("+25 influence", 1, true), "influence value expected (signed): " .. out)
+end
+
+function M.test_development_on_city_state_speaks_per_turn_when_nonzero()
+    setup()
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 25, influencePerTurnTimes100 = 200, influenceAnchor = 25 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    local out = CitySpeech.development(city)
+    T.truthy(out:find("+2 per turn", 1, true), "per-turn rate expected: " .. out)
+end
+
+function M.test_development_on_city_state_omits_per_turn_when_zero()
+    setup()
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 25, influencePerTurnTimes100 = 0, influenceAnchor = 25 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    T.falsy(CitySpeech.development(city):find("per turn", 1, true), "no per-turn token at zero rate")
+end
+
+function M.test_development_on_city_state_speaks_anchor_when_diverged()
+    setup()
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 35, influencePerTurnTimes100 = -100, influenceAnchor = 0 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    T.truthy(CitySpeech.development(city):find("anchored to %+0"), "anchor expected when distinct from current")
+end
+
+function M.test_development_on_city_state_omits_anchor_when_equal()
+    setup()
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 0, influencePerTurnTimes100 = 0, influenceAnchor = 0 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    T.falsy(CitySpeech.development(city):find("anchored", 1, true), "no anchor token when equal to current")
+end
+
+function M.test_development_on_city_state_speaks_friend_threshold_when_below()
+    setup()
+    -- Influence 10, friends threshold 30 -> 20 needed.
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 10, influencePerTurnTimes100 = 0, influenceAnchor = 10 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    T.truthy(CitySpeech.development(city):find("20 needed to become friends", 1, true), "friends gap expected")
+end
+
+function M.test_development_on_city_state_speaks_allies_threshold_when_between()
+    setup()
+    -- Influence 40, allies threshold 60 -> 20 needed.
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 40, influencePerTurnTimes100 = 0, influenceAnchor = 40 }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    T.truthy(CitySpeech.development(city):find("20 needed to become allies", 1, true), "allies gap expected")
+end
+
+function M.test_development_on_city_state_speaks_bullyable_when_set()
+    setup()
+    installMinorCiv(
+        1,
+        1,
+        { type = "MINOR_CIV_TRAIT_MILITARISTIC" },
+        { influence = 0, influencePerTurnTimes100 = 0, influenceAnchor = 0, canBully = true }
+    )
+    local city = mkCity({ owner = 1, team = 1 })
+    T.truthy(CitySpeech.development(city):find("bullyable", 1, true), "bullyable token expected")
+end
+
+-- ===== Religion =====
+
+function M.test_religion_speaks_no_religion_present_when_no_followers()
+    setup()
+    GameInfo.Religions = makeIterableTable({})
     local city = mkCity({ religion = -1 })
-    T.eq(CitySpeech.politics(city), "no political information")
+    T.eq(CitySpeech.religion(city), "no religion present")
 end
 
-function M.test_politics_speaks_religion_when_majority_exists()
+function M.test_religion_speaks_disabled_when_game_option_off()
     setup()
-    GameInfo.Religions[2] = { Description = "TXT_KEY_RELIGION_ISLAM" }
-    local city = mkCity({ religion = 2 })
-    T.truthy(CitySpeech.politics(city):find("TXT_KEY_RELIGION_ISLAM", 1, true), "religion descriptor expected")
+    Game._options.GAMEOPTION_NO_RELIGION = true
+    local city = mkCity({ religion = -1 })
+    T.truthy(CitySpeech.religion(city):find("Religion off", 1, true), "religion-off token expected")
 end
 
-function M.test_politics_speaks_warmonger_preview_when_at_war()
+function M.test_religion_speaks_majority_with_followers_and_pressure()
+    setup()
+    GameInfo.Religions = makeIterableTable({
+        { ID = 2, Description = "TXT_KEY_RELIGION_ISLAM" },
+    })
+    local city = mkCity({
+        religion = 2,
+        followers = { [2] = 8 },
+        pressure = { [2] = 600 },
+    })
+    local out = CitySpeech.religion(city)
+    T.truthy(out:find("TXT_KEY_RELIGION_ISLAM", 1, true), "religion name expected: " .. out)
+    T.truthy(out:find("8 followers", 1, true), "follower count expected: " .. out)
+    T.truthy(out:find("6 pressure", 1, true), "pressure (raw / divisor) expected: " .. out)
+end
+
+function M.test_religion_marks_holy_city_when_set()
+    setup()
+    GameInfo.Religions = makeIterableTable({
+        { ID = 1, Description = "TXT_KEY_RELIGION_BUDDHISM" },
+    })
+    local city = mkCity({
+        religion = 1,
+        followers = { [1] = 5 },
+        pressure = { [1] = 0 },
+        holyCityFor = { [1] = true },
+    })
+    T.truthy(CitySpeech.religion(city):find("holy city", 1, true), "holy-city marker expected")
+end
+
+function M.test_religion_includes_minority_religions_with_followers()
+    setup()
+    GameInfo.Religions = makeIterableTable({
+        { ID = 1, Description = "TXT_KEY_RELIGION_BUDDHISM" },
+        { ID = 2, Description = "TXT_KEY_RELIGION_ISLAM" },
+    })
+    -- Majority Islam (8); minority Buddhism (3) also present.
+    local city = mkCity({
+        religion = 2,
+        followers = { [1] = 3, [2] = 8 },
+        pressure = { [1] = 0, [2] = 200 },
+    })
+    local out = CitySpeech.religion(city)
+    local iIslam = out:find("TXT_KEY_RELIGION_ISLAM", 1, true)
+    local iBud = out:find("TXT_KEY_RELIGION_BUDDHISM", 1, true)
+    T.truthy(iIslam and iBud, "both religions expected: " .. out)
+    T.truthy(iIslam < iBud, "majority must lead, minority follows: " .. out)
+end
+
+function M.test_religion_sorts_by_follower_count_descending()
+    -- Iteration order in GameInfo (Islam, Buddhism, Christianity) must
+    -- not drive output order: the most-followed religion leads. Followers:
+    -- Christianity 7, Islam 4, Buddhism 2.
+    setup()
+    GameInfo.Religions = makeIterableTable({
+        { ID = 1, Description = "TXT_KEY_RELIGION_ISLAM" },
+        { ID = 2, Description = "TXT_KEY_RELIGION_BUDDHISM" },
+        { ID = 3, Description = "TXT_KEY_RELIGION_CHRISTIANITY" },
+    })
+    local city = mkCity({
+        religion = 1,
+        followers = { [1] = 4, [2] = 2, [3] = 7 },
+        pressure = { [1] = 0, [2] = 0, [3] = 0 },
+    })
+    local out = CitySpeech.religion(city)
+    local iChrist = out:find("TXT_KEY_RELIGION_CHRISTIANITY", 1, true)
+    local iIslam = out:find("TXT_KEY_RELIGION_ISLAM", 1, true)
+    local iBud = out:find("TXT_KEY_RELIGION_BUDDHISM", 1, true)
+    T.truthy(iChrist and iIslam and iBud, "all three religions expected: " .. out)
+    T.truthy(iChrist < iIslam, "highest count must lead: " .. out)
+    T.truthy(iIslam < iBud, "second-highest before lowest: " .. out)
+end
+
+function M.test_religion_appends_trade_route_count_when_nonzero()
+    setup()
+    GameInfo.Religions = makeIterableTable({
+        { ID = 2, Description = "TXT_KEY_RELIGION_ISLAM" },
+    })
+    local city = mkCity({
+        religion = 2,
+        followers = { [2] = 5 },
+        pressure = { [2] = 300 },
+        tradeRoutes = { [2] = 2 },
+    })
+    T.truthy(CitySpeech.religion(city):find("via 2 trade routes", 1, true), "trade-route fragment expected")
+end
+
+function M.test_religion_omits_trade_route_count_when_zero()
+    setup()
+    GameInfo.Religions = makeIterableTable({
+        { ID = 2, Description = "TXT_KEY_RELIGION_ISLAM" },
+    })
+    local city = mkCity({
+        religion = 2,
+        followers = { [2] = 5 },
+        pressure = { [2] = 300 },
+        tradeRoutes = { [2] = 0 },
+    })
+    T.falsy(CitySpeech.religion(city):find("trade route", 1, true), "no trade-route fragment when zero")
+end
+
+-- ===== Diplomatic notes =====
+
+function M.test_diplomatic_speaks_no_notes_when_nothing_to_surface()
+    setup()
+    local city = mkCity({})
+    T.eq(CitySpeech.diplomatic(city), "no diplomatic notes")
+end
+
+function M.test_diplomatic_speaks_originally_cs_when_minor_was_founder()
+    -- City currently owned by major team 5 but originally founded by
+    -- city-state team 2. Persistent fact regardless of war state.
+    setup()
+    installForeignMajor(5, 5)
+    Players[2] = {
+        IsMinorCiv = function()
+            return true
+        end,
+        GetCivilizationShortDescriptionKey = function()
+            return "TXT_KEY_CIV_ATHENS_SHORT"
+        end,
+    }
+    local city = mkCity({ owner = 5, team = 5, originalOwner = 2 })
+    local out = CitySpeech.diplomatic(city)
+    T.truthy(out:find("originally", 1, true), "originally label expected: " .. out)
+    T.truthy(out:find("TXT_KEY_CIV_ATHENS_SHORT", 1, true), "founder name expected: " .. out)
+end
+
+function M.test_diplomatic_omits_originally_cs_when_owner_is_founder()
+    -- City held by its original CS owner: no flip indicator.
+    setup()
+    installMinorCiv(2, 2, { type = "MINOR_CIV_TRAIT_CULTURED" })
+    local city = mkCity({ owner = 2, team = 2, originalOwner = 2 })
+    T.falsy(CitySpeech.diplomatic(city):find("originally", 1, true), "no originally token when held by founder")
+end
+
+function M.test_diplomatic_omits_originally_when_original_was_major()
+    -- Different-major recapture is not surfaced -- the banner only paints
+    -- the MinorIndicator for minor original founders.
+    setup()
+    installForeignMajor(5, 5)
+    installForeignMajor(7, 7)
+    local city = mkCity({ owner = 5, team = 5, originalOwner = 7 })
+    T.falsy(CitySpeech.diplomatic(city):find("originally", 1, true), "no originally token for major recapture")
+end
+
+function M.test_diplomatic_speaks_warmonger_preview_when_at_war()
     setup()
     installForeignMajor(5, 5, { atWar = true, warmonger = "Severe warmonger penalty." })
     local city = mkCity({ owner = 5, team = 5, originalOwner = 5 })
-    local out = CitySpeech.politics(city)
+    local out = CitySpeech.diplomatic(city)
     T.truthy(out:find("warmonger preview", 1, true), "label expected: " .. out)
     T.truthy(out:find("Severe warmonger penalty", 1, true), "engine preview string expected: " .. out)
 end
 
-function M.test_politics_omits_liberation_when_original_owner_same()
+function M.test_diplomatic_omits_warmonger_when_at_peace()
+    setup()
+    installForeignMajor(5, 5, { atWar = false, warmonger = "Severe." })
+    local city = mkCity({ owner = 5, team = 5, originalOwner = 5 })
+    T.falsy(
+        CitySpeech.diplomatic(city):find("warmonger", 1, true),
+        "warmonger preview must not fire at peace"
+    )
+end
+
+function M.test_diplomatic_omits_liberation_when_original_owner_same()
     setup()
     installForeignMajor(5, 5, { atWar = true, warmonger = "W", liberation = "L" })
     local city = mkCity({ owner = 5, team = 5, originalOwner = 5 })
-    T.falsy(CitySpeech.politics(city):find("liberation", 1, true), "no liberation when original owner unchanged")
+    T.falsy(
+        CitySpeech.diplomatic(city):find("liberation", 1, true),
+        "no liberation when original owner unchanged"
+    )
 end
 
-function M.test_politics_speaks_liberation_when_original_differs()
-    -- Captured city: currently owned by team 5 but originally founded
-    -- by team 2 (a city-state). Liberation preview should fire.
+function M.test_diplomatic_speaks_liberation_when_original_differs()
     setup()
     installForeignMajor(5, 5, { atWar = true, warmonger = "W", liberation = "Liberate to restore Athens." })
     Players[2] = {
         IsMinorCiv = function()
             return true
         end,
+        GetCivilizationShortDescriptionKey = function()
+            return "TXT_KEY_CIV_ATHENS_SHORT"
+        end,
     }
     local city = mkCity({ owner = 5, team = 5, originalOwner = 2 })
-    local out = CitySpeech.politics(city)
+    local out = CitySpeech.diplomatic(city)
     T.truthy(out:find("liberation preview", 1, true), "liberation label expected: " .. out)
     T.truthy(out:find("Liberate to restore Athens", 1, true), "engine liberation string expected: " .. out)
 end
 
-function M.test_politics_speaks_spy_with_name_and_rank()
+function M.test_diplomatic_speaks_spy_with_name_and_rank()
     setup()
     Players[0].GetEspionageSpies = function()
         return {
@@ -737,11 +1109,11 @@ function M.test_politics_speaks_spy_with_name_and_rank()
         }
     end
     local city = mkCity({ x = 5, y = 5 })
-    local out = CitySpeech.politics(city)
+    local out = CitySpeech.diplomatic(city)
     T.truthy(out:find("spy Carmen, Agent", 1, true), "spy entry expected: " .. out)
 end
 
-function M.test_politics_distinguishes_diplomat_from_spy()
+function M.test_diplomatic_distinguishes_diplomat_from_spy()
     setup()
     Players[0].GetEspionageSpies = function()
         return {
@@ -749,12 +1121,12 @@ function M.test_politics_distinguishes_diplomat_from_spy()
         }
     end
     local city = mkCity({ x = 5, y = 5 })
-    local out = CitySpeech.politics(city)
+    local out = CitySpeech.diplomatic(city)
     T.truthy(out:find("diplomat Smith, Ambassador", 1, true), "diplomat entry expected: " .. out)
     T.falsy(out:find("spy", 1, true), "spy label must not fire for a diplomat: " .. out)
 end
 
-function M.test_politics_skips_spy_on_wrong_tile()
+function M.test_diplomatic_skips_spy_on_wrong_tile()
     setup()
     Players[0].GetEspionageSpies = function()
         return {
@@ -762,7 +1134,7 @@ function M.test_politics_skips_spy_on_wrong_tile()
         }
     end
     local city = mkCity({ x = 5, y = 5 })
-    T.eq(CitySpeech.politics(city), "no political information")
+    T.eq(CitySpeech.diplomatic(city), "no diplomatic notes")
 end
 
 return M

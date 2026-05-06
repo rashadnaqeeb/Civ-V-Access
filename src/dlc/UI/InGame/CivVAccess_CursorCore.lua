@@ -385,7 +385,7 @@ function Cursor.unitAtTile()
     return UnitSpeech.info(unit)
 end
 
--- ===== City info keys (1, 2, 3) =====
+-- ===== City info keys (1, 2, 3, 4) =====
 local function delegateCity(speechFn)
     if _x == nil then
         Log.warn("Cursor city key before init")
@@ -404,8 +404,11 @@ end
 function Cursor.cityDevelopment()
     return delegateCity(CitySpeech.development)
 end
-function Cursor.cityPolitics()
-    return delegateCity(CitySpeech.politics)
+function Cursor.cityReligion()
+    return delegateCity(CitySpeech.religion)
+end
+function Cursor.cityDiplomatic()
+    return delegateCity(CitySpeech.diplomatic)
 end
 
 -- ===== Activation (Enter) =====

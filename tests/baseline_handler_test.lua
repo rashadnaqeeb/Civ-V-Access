@@ -43,8 +43,12 @@ local function setup()
             table.insert(Cursor._calls, "cityDevelopment")
             return ""
         end,
-        cityPolitics = function()
-            table.insert(Cursor._calls, "cityPolitics")
+        cityReligion = function()
+            table.insert(Cursor._calls, "cityReligion")
+            return ""
+        end,
+        cityDiplomatic = function()
+            table.insert(Cursor._calls, "cityDiplomatic")
             return ""
         end,
         activate = function()
@@ -236,9 +240,11 @@ function M.test_number_keys_dispatch_to_city_info()
     findBinding(h, Keys["1"], 0).fn()
     findBinding(h, Keys["2"], 0).fn()
     findBinding(h, Keys["3"], 0).fn()
+    findBinding(h, Keys["4"], 0).fn()
     T.eq(Cursor._calls[1], "cityIdentity")
     T.eq(Cursor._calls[2], "cityDevelopment")
-    T.eq(Cursor._calls[3], "cityPolitics")
+    T.eq(Cursor._calls[3], "cityReligion")
+    T.eq(Cursor._calls[4], "cityDiplomatic")
 end
 
 function M.test_enter_dispatches_to_cursor_activate()

@@ -745,8 +745,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "City identity and combat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_DEV"] = "City production and growth"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_POL"] = "3"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_POL"] = "City diplomacy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_REL"] = "3"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_REL"] = "City religion"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DIPLO"] = "4"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_DIPLO"] = "City diplomatic notes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ACTIVATE"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ACTIVATE"] =
     "Select a unit, or open the city screen (annex popup for puppets, diplomacy with a met major civ), on the tile"
@@ -754,13 +756,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Control plus I
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Open Civilopedia for everything at the cursor's tile (units, world wonders, improvement, resource, feature, river, lake, terrain, hills, mountain, route)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articles at tile"
--- City-info speech tokens. Three keys (1 identity + combat, 2 development,
--- 3 politics); shape mirrors the BNW CityBannerManager per-ownership tier.
--- Unmet cities stop at one word. Identity leads with actionable signals
--- (can-attack, capital or city-state trait+friendship), then status flags,
--- then pop/defense/HP, then garrison on team banners. Enemy HP reuses the
--- unit color-band keys so "hp full / green / yellow / red" stays one
--- vocabulary across unit and city queries.
+-- City-info speech tokens. Four keys (1 identity + combat, 2 development
+-- or city-state influence, 3 religion breakdown, 4 diplomatic notes);
+-- shape mirrors the BNW CityBannerManager per-ownership tier. Unmet
+-- cities stop at one word across all four keys. Identity leads with
+-- actionable signals (can-attack, capital or city-state trait+friendship),
+-- then status flags, then pop/defense/HP, then garrison on team banners.
+-- Enemy HP reuses the unit color-band keys so "hp full / green / yellow
+-- / red" stays one vocabulary across unit and city queries.
 -- Spoken alone (no further fields) for cities whose owner the active
 -- player has not yet met; everything else in the city info line is
 -- suppressed because the engine does not reveal those fields.
@@ -819,23 +822,38 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING"] = "stopped growing
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS"] = "{1_Cur} of {2_Threshold} food"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PER_TURN"] = "{1_Num} per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_LOSING"] = "losing {1_Num} per turn"
--- Spoken when development info is being read on a foreign city the active
--- player has not met or cannot see; the engine hides production / growth
--- numbers in this state and we mirror that.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_NOT_VISIBLE"] = "not visible"
--- City politics tokens (the "3" key, third tier). Warmonger / liberation
--- previews are spoken when hovering a city you could capture: the engine
--- computes the diplomatic consequence and we read it as a sentence rather
--- than the colored numeric badge sighted players see. SPY / DIPLOMAT
--- announce the active foreign agent in the city; rank is the engine's tier
--- name (Recruit, Agent, Special Agent, etc.).
+-- Spoken when key 2 fires on a met foreign-major city: production and
+-- growth aren't on the banner (and a spy in the city alone doesn't
+-- expose them either), so we point at the Espionage Overview where
+-- sighted players see what each foreign civ is producing.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_HIDDEN_FOREIGN"] =
+    "production hidden, see Espionage Overview"
+-- City religion tokens (the "3" key). Full breakdown matching the
+-- banner's GetReligionTooltip iteration: every religion present, with
+-- holy-city marker, follower count, pressure-per-turn, and trade-route
+-- count when nonzero. NO_RELIGION_PRESENT speaks when religion is on but
+-- this city has zero followers; STATUS_FAITH_OFF (defined elsewhere) is
+-- reused for the GAMEOPTION_NO_RELIGION case.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_TRADE_PRESSURE"] = {
+    one = "via {1_N} trade route",
+    other = "via {1_N} trade routes",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NO_RELIGION_PRESENT"] = "no religion present"
+-- City diplomatic notes (the "4" key, miscellany the banner exposes that
+-- isn't combat or trajectory). ORIGINALLY_CS fires whenever the city's
+-- original founder was a city-state and the city has since changed
+-- hands -- mirrors the banner's MinorIndicator ornament (persistent,
+-- not war-gated). WARMONGER / LIBERATION previews fire only when at war,
+-- matching the banner's tooltip gate. SPY / DIPLOMAT announce the active
+-- foreign agent in the city; rank is the engine's tier name (Recruit,
+-- Agent, Special Agent, etc.). NO_DIPLO_NOTES is the empty-state token
+-- so the user knows key 4 fired but had no payload.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_ORIGINALLY_CS"] = "originally {1_Civ}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_WARMONGER_PREVIEW"] = "warmonger preview: {1_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_LIBERATION_PREVIEW"] = "liberation preview: {1_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SPY"] = "spy {1_Name}, {2_Rank}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DIPLOMAT"] = "diplomat {1_Name}, {2_Rank}"
--- Spoken when the politics readout has nothing to surface (no agents, no
--- preview applicable) so the user knows the key fired but had no payload.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NO_POLITICS"] = "no political information"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_NO_DIPLO_NOTES"] = "no diplomatic notes"
 -- Spoken when Scanner becomes the top handler: on boot, after a popup
 -- closes, after a sub-handler (ScannerInput, UnitActionMenu) pops. Gives
 -- the user a consistent audible landmark that the hex-viewer cursor is

@@ -1246,7 +1246,7 @@ function M.test_cursor_unit_at_tile_skips_invisible_cargo_and_air()
     T.eq(Cursor.unitAtTile(), "info:visible_civ", "filter should skip invisible/cargo/air")
 end
 
--- ===== City info keys (1 / 2 / 3) =====
+-- ===== City info keys (1 / 2 / 3 / 4) =====
 -- Verify the "no city here" fallback and the delegation to CitySpeech;
 -- the CitySpeech module's own logic is covered in suite_city_speech.
 local function setupCityGlue(plot)
@@ -1258,8 +1258,11 @@ local function setupCityGlue(plot)
         development = function()
             return "CITY_DEV"
         end,
-        politics = function()
-            return "CITY_POL"
+        religion = function()
+            return "CITY_REL"
+        end,
+        diplomatic = function()
+            return "CITY_DIPLO"
         end,
     }
     Map.GetPlot = function(x, y)
@@ -1279,7 +1282,8 @@ function M.test_cursor_city_identity_speaks_no_city_on_non_city_tile()
     setupCityGlue(T.fakePlot({ x = 0, y = 0, isCity = false }))
     T.eq(Cursor.cityIdentity(), "no city here")
     T.eq(Cursor.cityDevelopment(), "no city here")
-    T.eq(Cursor.cityPolitics(), "no city here")
+    T.eq(Cursor.cityReligion(), "no city here")
+    T.eq(Cursor.cityDiplomatic(), "no city here")
 end
 
 function M.test_cursor_city_info_keys_delegate_to_city_speech()
@@ -1287,7 +1291,8 @@ function M.test_cursor_city_info_keys_delegate_to_city_speech()
     setupCityGlue(T.fakePlot({ x = 0, y = 0, isCity = true, city = city }))
     T.eq(Cursor.cityIdentity(), "CITY_IDENTITY")
     T.eq(Cursor.cityDevelopment(), "CITY_DEV")
-    T.eq(Cursor.cityPolitics(), "CITY_POL")
+    T.eq(Cursor.cityReligion(), "CITY_REL")
+    T.eq(Cursor.cityDiplomatic(), "CITY_DIPLO")
 end
 
 -- ===== AudioCueMode gating of announceForMove =====
