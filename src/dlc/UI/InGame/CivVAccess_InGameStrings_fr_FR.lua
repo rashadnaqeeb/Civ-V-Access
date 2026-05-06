@@ -2336,6 +2336,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_PICKER"] = "Emplacement de pr
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_ACTIVE"] = "Résolutions actives a abroger"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_INACTIVE"] = "Résolutions a proposer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_OTHER"] = "Autres résolutions"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_COUNTS_PREFACE"] = "Notre estimation pour cette proposition :"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_GRATEFUL_LIST"] = "Civilisations qui approuveraient : {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_ANGRY_LIST"] = "Civilisations qui s'opposeraient : {1_Civs}"
 -- Religion Overview. TabbedShell over the engine's BUTTONPOPUP_RELIGION_OVERVIEW:
 -- tab 1 Your Religion (status / beliefs / faith / great people / auto-purchase),
 -- tab 2 World Religions (one row per founded religion plus OVERALL STATUS footer),
