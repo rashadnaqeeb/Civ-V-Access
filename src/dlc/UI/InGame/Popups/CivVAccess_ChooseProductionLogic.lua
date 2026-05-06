@@ -330,9 +330,73 @@ function ChooseProductionLogic.buildOtherEntries(city, isProduce)
     return entries
 end
 
--- Focus announcement order: name, cost, disabled clause (with reason if any),
--- strategy, help, advisor suffix. Disabled clause precedes strategy so the
--- "can I even click this?" information arrives before the flavor blurbs.
+-- Live contributions text for an entry: stats only, prose Help stripped.
+-- The chooser surfaces prose separately via proseText (the entry's
+-- Strategy preferred over Help, since Help is usually a one-liner echo
+-- of the richer Strategy paragraph) and places it AFTER the stats so the
+-- numerical info leads.
+--
+-- includeCost=true: the helper's full header (cost line) is kept; the
+-- chooser's own costClause shows turns / gold / faith which is a
+-- different dimension from the helper's production-points cost, so both
+-- co-exist without duplication.
+--
+-- Processes (ORDER_MAINTAIN) have no engine-exposed stats and no useful
+-- contributions block -- their effect is a runtime conversion. Return ""
+-- so proseText becomes the only source of prose for a process entry.
+--
+-- Guarded so the offline test runner (no engine helpers in env) can call
+-- buildLabel without exploding -- ProductionHelpText.forOrder already
+-- returns "" when GetHelpTextFor* are absent, but mocks may want to
+-- inject a stand-in.
+function ChooseProductionLogic.contributionsText(entry, city)
+    if entry.orderType == OrderTypes.ORDER_MAINTAIN then
+        return ""
+    end
+    if ProductionHelpText == nil or ProductionHelpText.forOrder == nil then
+        return ""
+    end
+    local body = ProductionHelpText.forOrder(city, entry.orderType, entry.id, true) or ""
+    if body == "" then
+        return ""
+    end
+    -- Drop the helper's trailing prose-Help section. The engine helpers
+    -- separate stats from prose with "[NEWLINE]----------------[NEWLINE]";
+    -- everything from that separator onward is the prose, and the chooser
+    -- speaks prose via proseText after the stats instead of inline.
+    return (body:gsub("%[NEWLINE%]%-%-%-%-+%[NEWLINE%].*$", ""))
+end
+
+-- Prose summary for the chooser: prefer Strategy (the richer
+-- "what is this and why use it" paragraph) over Help (typically a
+-- one-line gameplay summary that rephrases Strategy). Falls back to
+-- Help only when Strategy is missing or unresolved -- some Process
+-- entries (PROCESS_RESEARCH, PROCESS_WEALTH) ship a Strategy key the
+-- engine never registered, which Text.keyOrNil drops cleanly.
+--
+-- Returns "" when neither resolves so callers can skip an empty trailer.
+function ChooseProductionLogic.proseText(entry)
+    if entry.info.Strategy and entry.info.Strategy ~= "" then
+        local strategy = Text.keyOrNil(entry.info.Strategy)
+        if strategy then
+            return strategy
+        end
+    end
+    if entry.info.Help and entry.info.Help ~= "" then
+        local help = Text.keyOrNil(entry.info.Help)
+        if help then
+            return help
+        end
+    end
+    return ""
+end
+
+-- Focus announcement order: name, cost-clause (turns / gold / faith),
+-- disabled clause (with reason if any), contributions (stats), prose
+-- (Strategy preferred over Help), advisor suffix. Disabled clause stays
+-- early so a blocker arrives before the flavor; stats lead the prose so
+-- the player hears the concrete numbers (Strength, Cost, Moves, ...)
+-- before the prose paragraph that explains them.
 function ChooseProductionLogic.buildLabel(entry, city)
     local parts = { Text.key(entry.info.Description) }
     local cost = ChooseProductionLogic.costClause(city, entry)
@@ -346,24 +410,13 @@ function ChooseProductionLogic.buildLabel(entry, city)
             parts[#parts + 1] = reason
         end
     end
-    -- keyOrNil rather than key: a couple of base-game records reference
-    -- TXT_KEY_* strings that were never defined (PROCESS_RESEARCH and
-    -- PROCESS_WEALTH have stub Strategy fields that the visual UI happens
-    -- not to read). Tolk would spell out the raw key letter by letter.
-    if entry.info.Strategy and entry.info.Strategy ~= "" then
-        local strategy = Text.keyOrNil(entry.info.Strategy)
-        if strategy then
-            parts[#parts + 1] = strategy
-        end
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    if contributions ~= "" then
+        parts[#parts + 1] = contributions
     end
-    -- Some buildings (Monument, etc.) point Help and Strategy at the same
-    -- TXT_KEY; the game's Civilopedia skips Help in that case to avoid a
-    -- duplicate read (CivilopediaScreen.lua:3270).
-    if entry.info.Help and entry.info.Help ~= "" and entry.info.Help ~= entry.info.Strategy then
-        local help = Text.keyOrNil(entry.info.Help)
-        if help then
-            parts[#parts + 1] = help
-        end
+    local prose = ChooseProductionLogic.proseText(entry)
+    if prose ~= "" then
+        parts[#parts + 1] = prose
     end
     local suffix = ChooseProductionLogic.advisorSuffix(entry)
     if suffix ~= "" then

@@ -2,7 +2,11 @@
 --
 -- - The slot-label composers (slotOneLabel for the currently-producing
 --   item with its production meter percentage, slotNLabel for queued
---   slots without the meter).
+--   slots without the meter). Both delegate to slotHelpText for the
+--   per-item live contributions read (yields, abilities, strength,
+--   specialist slots) sourced from InfoTooltipInclude's helpers, so
+--   each slot announces what it will deliver -- not just the prose
+--   description -- alongside its turns / percent line.
 -- - The slot drill-in (Move up / Move down / Remove / Back) with engine
 --   net-message dispatch (GAMEMESSAGE_SWAP_ORDER / POP_ORDER) and the
 --   pop-and-re-push rebuild that follows a successful mutation.
@@ -57,18 +61,75 @@ local ORDER_INFO_TABLE = {
     end,
 }
 
-local function orderNameAndHelp(orderType, data1)
+local function orderName(orderType, data1)
     local tableFn = ORDER_INFO_TABLE[orderType]
     if tableFn == nil then
-        return "", ""
+        return ""
     end
     local info = tableFn()[data1]
     if info == nil then
-        return "", ""
+        return ""
     end
-    local name = Text.key(info.Description)
-    local help = info.Help and Text.key(info.Help) or ""
-    return name, help
+    return Text.key(info.Description)
+end
+
+-- Live contributions + prose help for a queue slot, with cost replaced
+-- by the slot's production-remaining figure. ProductionHelpText.forOrder
+-- (includeCost=false) returns the helper's yield / strength / ability
+-- breakdown plus the synthesized maintenance line and the prose Help,
+-- without the helper's "Cost: X" line; we prepend a "Production
+-- remaining" line computed against the slot's accumulated production
+-- (zero on slot 2+, the engine's stored amount on slot 1) so the
+-- player hears what's still owed against the item rather than the
+-- item's full base cost. Processes (ORDER_MAINTAIN) skip the
+-- remaining-line because they don't accumulate progress.
+
+local function productionNeeded(city, orderType, data1)
+    if orderType == OrderTypes.ORDER_TRAIN then
+        local player = Players[city:GetOwner()]
+        return player and player:GetUnitProductionNeeded(data1) or 0
+    elseif orderType == OrderTypes.ORDER_CONSTRUCT then
+        local player = Players[city:GetOwner()]
+        return player and player:GetBuildingProductionNeeded(data1) or 0
+    elseif orderType == OrderTypes.ORDER_CREATE then
+        local player = Players[city:GetOwner()]
+        return player and player:GetProjectProductionNeeded(data1) or 0
+    end
+    return 0
+end
+
+local function productionRemainingLine(city, orderType, data1, zeroIdx)
+    if orderType == OrderTypes.ORDER_MAINTAIN then
+        return nil
+    end
+    local needed = productionNeeded(city, orderType, data1)
+    if needed <= 0 then
+        return nil
+    end
+    -- Only the head slot has accumulated production against it; queued
+    -- slots show full needed because the engine doesn't pre-allocate
+    -- progress to slot 2+.
+    local stored = 0
+    if zeroIdx == 0 then
+        stored = math.floor((city:GetProductionTimes100() or 0) / 100)
+    end
+    local remaining = needed - stored
+    if remaining < 0 then
+        remaining = 0
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING", remaining)
+end
+
+local function slotHelpText(orderType, data1, city, zeroIdx)
+    local body = ProductionHelpText.forOrder(city, orderType, data1, false) or ""
+    local remaining = productionRemainingLine(city, orderType, data1, zeroIdx)
+    if remaining == nil then
+        return body
+    end
+    if body == "" then
+        return remaining
+    end
+    return remaining .. "[NEWLINE]" .. body
 end
 
 local function slotTurnsLeft(city, orderType, data1, zeroIdx)
@@ -87,7 +148,8 @@ local function isGeneratingProduction(city)
 end
 
 local function slotOneLabel(city, orderType, data1)
-    local name, help = orderNameAndHelp(orderType, data1)
+    local name = orderName(orderType, data1)
+    local help = slotHelpText(orderType, data1, city, 0)
     if orderType == OrderTypes.ORDER_MAINTAIN then
         return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS", name, help)
     end
@@ -102,15 +164,16 @@ local function slotOneLabel(city, orderType, data1)
 end
 
 local function slotNLabel(city, displaySlot, zeroIdx, orderType, data1)
-    local name = select(1, orderNameAndHelp(orderType, data1))
+    local name = orderName(orderType, data1)
     if orderType == OrderTypes.ORDER_MAINTAIN then
         return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_PROCESS", displaySlot, name)
     end
+    local help = slotHelpText(orderType, data1, city, zeroIdx)
     if isGeneratingProduction(city) then
         local turns = slotTurnsLeft(city, orderType, data1, zeroIdx)
-        return Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN", turns, displaySlot, name, turns)
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN", turns, displaySlot, name, turns, help)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE", displaySlot, name)
+    return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE", displaySlot, name, help)
 end
 
 local pushProductionQueue -- forward; the drill-in re-enters the queue list after a mutation.
@@ -246,7 +309,7 @@ local function buildProductionQueueItems()
                     if orderType ~= OrderTypes.ORDER_TRAIN and orderType ~= OrderTypes.ORDER_CONSTRUCT then
                         return nil
                     end
-                    return select(1, orderNameAndHelp(orderType, data1))
+                    return orderName(orderType, data1)
                 end,
                 onActivate = function()
                     local c = UI.GetHeadSelectedCity()
@@ -257,7 +320,7 @@ local function buildProductionQueueItems()
                     if orderType == nil or orderType == -1 then
                         return
                     end
-                    local slotName = select(1, orderNameAndHelp(orderType, data1))
+                    local slotName = orderName(orderType, data1)
                     pushQueueSlotActions(zeroIdx, slotName)
                 end,
             })

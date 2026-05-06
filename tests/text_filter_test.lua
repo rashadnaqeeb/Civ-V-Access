@@ -92,6 +92,23 @@ function M.test_league_vote_tally_reads_as_list()
     T.eq(TextFilter.filter(input), "Host chosen. 20 for Babylon from Babylon, 5 for Indonesia from Indonesia")
 end
 
+function M.test_dash_separator_stripped_between_newlines()
+    setup()
+    -- GetHelpTextForBuilding wraps the prose Help section with
+    -- "[NEWLINE]----------------[NEWLINE]" as a visual separator. Without
+    -- the strip the screen reader would say "dash" sixteen times mid-tooltip.
+    T.eq(TextFilter.filter("contribs[NEWLINE]----------------[NEWLINE]help"), "contribs, help")
+end
+
+function M.test_short_dash_runs_preserved()
+    setup()
+    -- Negative numbers and hyphenated tokens use 1-3 dashes; the strip
+    -- only fires on 4+ so these survive.
+    T.eq(TextFilter.filter("-3 food"), "-3 food")
+    T.eq(TextFilter.filter("a -- b"), "a -- b")
+    T.eq(TextFilter.filter("a --- b"), "a --- b")
+end
+
 function M.test_color_tokens_stripped()
     setup()
     T.eq(TextFilter.filter("[COLOR_POSITIVE_TEXT]+3[ENDCOLOR] food"), "+3 food")
@@ -248,6 +265,46 @@ function M.test_icon_dedup_does_not_eat_longer_word_with_s_prefix()
     setup()
     TextFilter.registerIcon("ICON_CITIZEN", "citizen")
     T.eq(TextFilter.filter("[ICON_CITIZEN] Citizenship granted"), "citizen Citizenship granted")
+end
+
+-- ICON_GREAT_PEOPLE precedes both the full phrase ("great people"), the
+-- singular ("Great Person of your choice"), and the "Great X" title
+-- pattern shared by every great-people specialist (Great Scientist Points,
+-- Great Engineer Points, ...). Each form is registered as a separate alias
+-- so the icon collapses against any of them.
+function M.test_icon_dedup_collapses_all_great_aliases()
+    setup()
+    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", { "great person", "great" })
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great Scientist Points 1"), "Great Scientist Points 1")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great Person of your choice"), "Great Person of your choice")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] great people standalone"), "great people standalone")
+end
+
+-- TXT_KEY_PRODUCTION_STRENGTH formats as "[ICON_STRENGTH] Strength: N"
+-- and TXT_KEY_PRODUCTION_RANGED_STRENGTH as "[ICON_RANGE_STRENGTH] Ranged
+-- Strength: N". The icons' spoken forms ("combat strength" / "ranged
+-- combat strength") share their tail with the bare phrase that follows;
+-- aliases on "strength" / "ranged strength" let the icon collapse so the
+-- screen reader doesn't read "combat strength Strength: 50".
+function M.test_strength_icon_collapses_against_bare_word()
+    setup()
+    TextFilter.registerIcon("ICON_STRENGTH", "combat strength", { "strength" })
+    T.eq(TextFilter.filter("[ICON_STRENGTH] Strength: 50"), "Strength: 50")
+end
+
+function M.test_ranged_strength_icon_collapses_against_two_word_phrase()
+    setup()
+    TextFilter.registerIcon("ICON_RANGE_STRENGTH", "ranged combat strength", { "ranged strength" })
+    T.eq(TextFilter.filter("[ICON_RANGE_STRENGTH] Ranged Strength: 25"), "Ranged Strength: 25")
+end
+
+function M.test_great_alias_does_not_overmatch()
+    setup()
+    -- "great" alias should fail the word-boundary check on "greater",
+    -- "greatness", "grateful", etc., so the icon still speaks normally.
+    TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", { "great" })
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] greatness in numbers"), "great people greatness in numbers")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] greater odds"), "great people greater odds")
 end
 
 -- Control characters -----------------------------------------------------

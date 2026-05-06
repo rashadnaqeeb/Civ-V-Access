@@ -1144,11 +1144,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN_INFINITE"] =
     "Emplacement 1, {1_Name}, {2_Percent} pourcent. {3_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS"] = "Emplacement 1, {1_Name}. {2_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN"] = {
-    one = "Emplacement {1_N}, {2_Name}, {3_Turns} tour",
-    other = "Emplacement {1_N}, {2_Name}, {3_Turns} tours",
+    one = "Emplacement {1_N}, {2_Name}, {3_Turns} tour. {4_Help}",
+    other = "Emplacement {1_N}, {2_Name}, {3_Turns} tours. {4_Help}",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE"] = "Emplacement {1_N}, {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE"] = "Emplacement {1_N}, {2_Name}. {3_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_PROCESS"] = "Emplacement {1_N}, {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING"] = "[ICON_PRODUCTION] Production restante : {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS"] = "Actions pour {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP"] = "Monter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN"] = "Descendre"
@@ -1517,8 +1518,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourisme"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "grands personnages"
 -- Dedup-only alias for the singular pairing in base text ("Great Person Focus").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "grand personnage"
+-- Alias dédié au préfixe "Grand X" partagé par les titres des grands
+-- personnages ("Grand Scientifique", "Grand Ingénieur", etc.). Permet à
+-- l'icône d'être absorbée avant le titre pour éviter le redoublement.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2"] = "grand"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "puissance de combat"
+-- Le format moteur "Puissance : N" emploie la forme courte ; l'alias
+-- permet à l'icône "puissance de combat" de s'effacer devant.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "puissance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "puissance de combat à distance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "puissance à distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "déplacements"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "bonheur"
 -- Dedup-only alias. Base text pairs the positive-happy glyph with "Happy"

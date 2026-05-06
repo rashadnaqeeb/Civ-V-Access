@@ -30,6 +30,7 @@
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_CitySpeech")
+include("CivVAccess_ProductionHelpText")
 include("CivVAccess_ChooseProductionLogic")
 
 local priorInput = InputHandler

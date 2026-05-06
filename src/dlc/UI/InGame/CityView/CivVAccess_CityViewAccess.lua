@@ -47,6 +47,7 @@ include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_CityStats")
+include("CivVAccess_ProductionHelpText")
 -- The Production and HexMap sub-handlers live in their own files so
 -- this file stays focused on the hub scaffold, the inline drillable
 -- Group builders (Wonders, Buildings, Specialists, Great Works, Great
@@ -270,9 +271,17 @@ end
 -- mirrors CityView.lua:1386 (world wonders via MaxGlobalInstances, national
 -- wonders via MaxPlayerInstances==1 with no specialists, team wonders via
 -- MaxTeamInstances). Enter is a no-op (wonders are permanent and
--- indestructible); tooltip carries the effect summary. The Group
--- self-hides when the city has no wonders (Group.isNavigable returns
--- false on a child-less group, so the cursor skips it during nav).
+-- indestructible). The Group self-hides when the city has no wonders
+-- (Group.isNavigable returns false on a child-less group).
+--
+-- Label is composed at speech time by GetHelpTextForBuilding (the engine
+-- helper InfoTooltipInclude.lua loads into the CityView Context's env via
+-- vanilla CityView.lua's include): name + per-city contributions
+-- (happiness, yields, defense, specialist slots, great-people points,
+-- tourism) + the prose Help text, separated by an ASCII-dash run that
+-- TextFilter strips. labelFn re-evaluates on each navigate so a religion
+-- adoption / policy take that flips a yield surfaces on the next read
+-- without rebuilding the list.
 
 local function isWonderBuilding(building)
     local bclass = GameInfo.BuildingClasses[building.BuildingClass]
@@ -291,22 +300,43 @@ local function isWonderBuilding(building)
     return false
 end
 
+-- Compose name + the engine's per-city building contributions. The
+-- building is already built here, so production cost is moot --
+-- ProductionHelpText.buildingHelp(includeCost=false) skips the helper's
+-- cost line and re-synthesizes the maintenance line so the recurring
+-- gold drain is still audible. The helper returns yields, defense,
+-- specialist slots, great-people points, great-work slots, tourism, and
+-- the prose Help text in one string.
+local function buildingContributionsLabel(city, building)
+    local name = Text.key(building.Description)
+    local help = ProductionHelpText.buildingHelp(city, building, false)
+    if help == nil or help == "" then
+        return name
+    end
+    return name .. ". " .. help
+end
+
 local function buildWondersGroup(city)
     local wonders = {}
     for building in GameInfo.Buildings() do
         if isWonderBuilding(building) and city:IsHasBuilding(building.ID) then
-            local name = Text.key(building.Description)
-            local help = building.Help and Text.key(building.Help) or ""
-            wonders[#wonders + 1] = { name = name, help = help }
+            wonders[#wonders + 1] = { id = building.ID, name = Text.key(building.Description) }
         end
     end
     sortByLocalizedName(wonders)
     local items = {}
     for _, w in ipairs(wonders) do
+        local capturedID = w.id
+        local pediaName = w.name
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = w.name,
-            tooltipText = (w.help ~= "") and w.help or nil,
-            pediaName = w.name,
+            labelFn = function()
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return ""
+                end
+                return buildingContributionsLabel(c, GameInfo.Buildings[capturedID])
+            end,
+            pediaName = pediaName,
         })
     end
     return BaseMenuItems.Group({
@@ -587,9 +617,7 @@ local function buildBuildingsGroup(city)
     local buildings = {}
     for building in GameInfo.Buildings() do
         if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
-            local name = Text.key(building.Description)
-            local help = building.Help and Text.key(building.Help) or ""
-            buildings[#buildings + 1] = { id = building.ID, name = name, help = help }
+            buildings[#buildings + 1] = { id = building.ID, name = Text.key(building.Description) }
         end
     end
     sortByLocalizedName(buildings)
@@ -597,10 +625,16 @@ local function buildBuildingsGroup(city)
     local items = {}
     for _, b in ipairs(buildings) do
         local capturedID = b.id
+        local pediaName = b.name
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = b.name,
-            tooltipText = (b.help ~= "") and b.help or nil,
-            pediaName = b.name,
+            labelFn = function()
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return ""
+                end
+                return buildingContributionsLabel(c, GameInfo.Buildings[capturedID])
+            end,
+            pediaName = pediaName,
             onActivate = function()
                 local liveCity = UI.GetHeadSelectedCity()
                 if liveCity == nil then

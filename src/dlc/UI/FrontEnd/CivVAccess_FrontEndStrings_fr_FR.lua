@@ -250,8 +250,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "foi"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourisme"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "grands personnages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "grand personnage"
+-- Alias dédié au préfixe "Grand X" partagé par les titres des grands
+-- personnages ("Grand Scientifique", "Grand Ingénieur", etc.).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2"] = "grand"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "puissance de combat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "puissance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "puissance de combat à distance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "puissance à distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "déplacements"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "bonheur"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "heureux"

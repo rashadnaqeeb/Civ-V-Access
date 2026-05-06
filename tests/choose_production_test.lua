@@ -81,6 +81,96 @@ local function setup()
     CivVAccess_Strings = CivVAccess_Strings or {}
     -- These aren't TXT_KEY_CIVVACCESS_*, so Text.key routes through Locale
     -- (overridden below to return a distinct string per advisor key).
+
+    -- InfoTooltipInclude lookalikes. Mirror the engine's exact output
+    -- shape -- always prepend "<NAME>[NEWLINE]----------------[NEWLINE]"
+    -- (Unit / Project), always emit a "[NEWLINE]----------------[NEWLINE]"
+    -- separator before the prose Help section -- so ProductionHelpText's
+    -- stripNamePrefix and the chooser's prose-tail strip both exercise the
+    -- same patterns they do in the live engine. Locale.ConvertTextKey is
+    -- applied to Description / Help as the engine does, so per-test mocks
+    -- that override Locale see the same call path.
+    GetHelpTextForUnit = function(id, _bIncludeRequirements)
+        local info = GameInfo.Units and GameInfo.Units[id]
+        if info == nil then
+            return ""
+        end
+        local out = Locale.ConvertTextKey(info.Description) .. "[NEWLINE]----------------[NEWLINE]"
+        local statsLines = {}
+        if (info.Cost or 0) > 0 then
+            statsLines[#statsLines + 1] = "Cost: " .. info.Cost
+        end
+        if info.Strength then
+            statsLines[#statsLines + 1] = "Strength: " .. info.Strength
+        end
+        -- Engine pattern: cost has no leading [NEWLINE], subsequent stats do.
+        if (info.Cost or 0) > 0 then
+            out = out .. statsLines[1]
+            for i = 2, #statsLines do
+                out = out .. "[NEWLINE]" .. statsLines[i]
+            end
+        elseif #statsLines > 0 then
+            out = out .. "[NEWLINE]" .. table.concat(statsLines, "[NEWLINE]")
+        end
+        if info.Help then
+            local helpText = Locale.ConvertTextKey(info.Help)
+            if helpText and helpText ~= "" then
+                out = out .. "[NEWLINE]----------------[NEWLINE]" .. helpText
+            end
+        end
+        return out
+    end
+    GetHelpTextForBuilding = function(id, bExcludeName, bExcludeHeader, _bNoMaint, _city)
+        local info = GameInfo.Buildings and GameInfo.Buildings[id]
+        if info == nil then
+            return ""
+        end
+        local out = ""
+        if not bExcludeName then
+            out = Locale.ConvertTextKey(info.Description) .. "[NEWLINE]----------------[NEWLINE]"
+        end
+        if not bExcludeHeader then
+            local headerLines = {}
+            if (info.Cost or 0) > 0 then
+                headerLines[#headerLines + 1] = "Cost: " .. info.Cost
+            end
+            if (info.GoldMaintenance or 0) ~= 0 then
+                headerLines[#headerLines + 1] = "Maintenance: " .. info.GoldMaintenance
+            end
+            out = out .. table.concat(headerLines, "[NEWLINE]")
+        end
+        if info.Help then
+            local helpText = Locale.ConvertTextKey(info.Help)
+            if helpText and helpText ~= "" then
+                -- Engine always prepends separator before Help, even when
+                -- the stats block is empty.
+                out = out .. "[NEWLINE]----------------[NEWLINE]" .. helpText
+            end
+        end
+        return out
+    end
+    GetHelpTextForProject = function(id, _bIncludeRequirements)
+        local info = GameInfo.Projects and GameInfo.Projects[id]
+        if info == nil then
+            return ""
+        end
+        local out = Locale.ConvertTextKey(info.Description) .. "[NEWLINE]----------------[NEWLINE]"
+        out = out .. "Cost: " .. (info.Cost or 0)
+        if info.Help then
+            local helpText = Locale.ConvertTextKey(info.Help)
+            if helpText and helpText ~= "" then
+                out = out .. "[NEWLINE]----------------[NEWLINE]" .. helpText
+            end
+        end
+        return out
+    end
+    if Locale.ConvertTextKey == nil then
+        Locale.ConvertTextKey = function(k)
+            return k
+        end
+    end
+
+    dofile("src/dlc/UI/Shared/CivVAccess_ProductionHelpText.lua")
     dofile("src/dlc/UI/InGame/Popups/CivVAccess_ChooseProductionLogic.lua")
 end
 
@@ -436,17 +526,108 @@ function M.test_disabled_entry_label_includes_reason()
         isProduce = true,
     }
     local label = ChooseProductionLogic.buildLabel(entry, city)
-    -- Order: name, cost, disabled, reason, strategy, help (no advisor)
+    -- Order: name, cost, disabled, reason, contributions, prose, advisor.
     T.truthy(label:find("Warrior"), "label contains name")
     T.truthy(label:find("5 turns"), "label contains cost clause")
     T.truthy(label:find("disabled"), "label contains disabled word")
     T.truthy(label:find("Need more production", 1, true), "label contains disabled reason")
     T.truthy(label:find("Strat"), "label contains strategy")
-    T.truthy(label:find("Helpful"), "label contains help")
+    -- Help is dropped when Strategy is present (Help typically rephrases
+    -- Strategy as a one-liner; proseText prefers Strategy and never falls
+    -- back to Help here).
+    T.falsy(label:find("Helpful"), "Help dropped when Strategy is present")
     -- Disabled clause should appear before strategy so the blocker arrives early.
     local dPos = label:find("disabled")
     local sPos = label:find("Strat")
     T.truthy(dPos < sPos, "disabled before strategy")
+end
+
+function M.test_label_orders_stats_before_prose()
+    -- The chooser orders the announcement: name, cost, [disabled], stats,
+    -- prose, advisor. Strategy / Help should sit AFTER the helper-derived
+    -- stats so the player hears concrete numbers (Strength, Cost) before
+    -- the flavor paragraph that explains them.
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Strategy = "Pair with tanks." },
+    })
+    local city = mkCityStub({
+        canTrain = { [1] = true },
+        unitTurnsLeft = { [1] = 5 },
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 1,
+        info = GameInfo.Units[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local label = ChooseProductionLogic.buildLabel(entry, city)
+    local statsPos = label:find("Strength: 50")
+    local prosePos = label:find("Pair with tanks", 1, true)
+    T.truthy(statsPos, "label contains Strength stat")
+    T.truthy(prosePos, "label contains Strategy prose")
+    T.truthy(statsPos < prosePos, "stats appear before prose")
+end
+
+function M.test_label_falls_back_to_help_when_no_strategy()
+    -- Without a Strategy field the helper's prose Help is the only flavor
+    -- text; proseText must surface it (else the chooser entry would have
+    -- no descriptive paragraph at all).
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "Worker", Domain = "DOMAIN_LAND", Cost = 70, Help = "Builds improvements." },
+    })
+    local city = mkCityStub({ canTrain = { [1] = true }, unitTurnsLeft = { [1] = 3 } })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 1,
+        info = GameInfo.Units[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local label = ChooseProductionLogic.buildLabel(entry, city)
+    T.truthy(label:find("Builds improvements", 1, true), "Help is the prose when Strategy is absent")
+end
+
+function M.test_contributions_strips_prose_help_tail()
+    -- contributionsText is just the stats; the prose-Help block (every-
+    -- thing after the engine's "[NEWLINE]----------------[NEWLINE]"
+    -- separator) belongs to proseText. Verify the strip fires so the
+    -- prose isn't read twice.
+    setup()
+    installGameInfoUnits({
+        { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Help = "Specialized in fighting tanks." },
+    })
+    local city = mkCityStub({ canTrain = { [1] = true } })
+    local entry = {
+        orderType = OrderTypes.ORDER_TRAIN,
+        id = 1,
+        info = GameInfo.Units[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local contributions = ChooseProductionLogic.contributionsText(entry, city)
+    T.truthy(contributions:find("Strength: 50"), "contributions has stats")
+    T.falsy(contributions:find("Specialized", 1, true), "contributions strips the prose-Help tail")
+end
+
+function M.test_contributions_empty_for_process()
+    -- Processes have no engine-exposed stats; contributionsText returns ""
+    -- so proseText becomes the only source of prose for a process entry.
+    setup()
+    installGameInfoProcesses({
+        { ID = 1, Description = "Wealth", Help = "Converts production into gold." },
+    })
+    local city = mkCityStub({ canMaintain = { [1] = true } })
+    local entry = {
+        orderType = OrderTypes.ORDER_MAINTAIN,
+        id = 1,
+        info = GameInfo.Processes[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    T.eq(ChooseProductionLogic.contributionsText(entry, city), "")
 end
 
 function M.test_label_drops_help_when_identical_to_strategy()

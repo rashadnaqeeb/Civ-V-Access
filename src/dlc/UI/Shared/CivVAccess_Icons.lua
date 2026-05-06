@@ -81,7 +81,25 @@ local ALIAS_KEYS = {
     ["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT" },
     ["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = { "TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT" },
     -- Singular form for "Great Person Focus" / "a Great Person of your choice".
-    ["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = { "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT" },
+    -- "great" matches the "Great X" prefix shared by every great-people
+    -- specialist title (Great Scientist Points, Great Engineer Points, ...)
+    -- and several Civ V noun phrases (Great Person of your choice). Without
+    -- it, GetHelpTextForBuilding's specialist line reads "great people
+    -- Great Scientist Points: 1" — the "great" repeats and breaks the flow.
+    ["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = {
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT",
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2",
+    },
+    -- The engine's TXT_KEY_PRODUCTION_STRENGTH formats unit strength as
+    -- "[ICON_STRENGTH] Strength: N" — adjacent to the icon's spoken form
+    -- "combat strength", that reads "combat strength Strength: 50". The
+    -- _ALT alias collapses on the bare "Strength" word so the doubled
+    -- "strength" goes away.
+    ["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = { "TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT" },
+    -- Same pattern for ranged units: TXT_KEY_PRODUCTION_RANGED_STRENGTH
+    -- emits "[ICON_RANGE_STRENGTH] Ranged Strength: N", adjacent to the
+    -- icon's "ranged combat strength". Alias collapses on "Ranged Strength".
+    ["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = { "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT" },
 }
 
 for name, key in pairs(ICON_KEYS) do

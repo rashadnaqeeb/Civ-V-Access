@@ -1289,11 +1289,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN_INFINITE"] =
     "Slot 1, {1_Name}, {2_Percent} percent. {3_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS"] = "Slot 1, {1_Name}. {2_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN"] = {
-    one = "Slot {1_N}, {2_Name}, {3_Turns} turn",
-    other = "Slot {1_N}, {2_Name}, {3_Turns} turns",
+    one = "Slot {1_N}, {2_Name}, {3_Turns} turn. {4_Help}",
+    other = "Slot {1_N}, {2_Name}, {3_Turns} turns. {4_Help}",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE"] = "Slot {1_N}, {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_TRAIN_INFINITE"] = "Slot {1_N}, {2_Name}. {3_Help}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_PROCESS"] = "Slot {1_N}, {2_Name}"
+-- Slot-specific remaining figure: substitutes for the helper's
+-- "[ICON_PRODUCTION] Cost: X" line. Slot 2+ shows full needed; the head
+-- slot subtracts whatever the engine has accumulated. The
+-- [ICON_PRODUCTION] adjacent to "Production" collapses through the
+-- TextFilter dedup so the screen reader hears "Production remaining: N".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING"] = "[ICON_PRODUCTION] Production remaining: {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_ACTIONS"] = "{1_Name} actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP"] = "Move up"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN"] = "Move down"
@@ -1670,8 +1676,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourism"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "great people"
 -- Dedup-only alias for the singular pairing in base text ("Great Person Focus").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "great person"
+-- Dedup-only alias for the "Great X" prefix shared by every great-people
+-- specialist title ("Great Scientist Points", "Great Engineer Points", ...).
+-- Lets the icon collapse before the title so we don't read "great people Great
+-- Scientist Points" with the "great" doubled.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT2"] = "great"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "combat strength"
+-- Engine's "Strength: N" line uses the bare word; alias lets the icon's
+-- "combat strength" speech collapse against the adjacent "Strength" so
+-- the doubled "strength" goes away.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "ranged combat strength"
+-- "Ranged Strength: N" uses the two-word phrase; alias lets the icon's
+-- "ranged combat strength" speech collapse on the same adjacent run.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "ranged strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "happiness"
 -- Dedup-only alias. Base text pairs the positive-happy glyph with "Happy"
