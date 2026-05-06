@@ -1,10 +1,16 @@
 -- CityView accessibility. Hub handler for the city management screen.
 --
 -- Opens when the engine shows the CityView Context (banner click on own
--- city, Enter on a friendly hex, etc.). Every section of the screen is
--- reached through a sub-handler pushed on top of this hub. The hub owns
--- the preamble announcement, F1 re-read, Esc close, next / previous city
--- hotkeys, and auto-re-announce on city-change.
+-- city, Enter on a friendly hex, etc.). Most sections (Wonders, Buildings,
+-- Specialists, Great Works, Great People, Worker Focus, Stats) live as
+-- drillable Groups inside this single handler -- arrow onto the group,
+-- Right / Enter to drill, Left to step back. Production and Manage
+-- Territory keep their own handlers because they own custom key dispatch
+-- (production slot drill-in actions; hex movement / tile activation).
+-- Hub-level actions (Ranged Strike, Unemployed, Rename, Raze) stay as
+-- terminal items. The hub owns the preamble announcement, F1 re-read,
+-- Esc close, next / previous city hotkeys, and auto-re-announce on
+-- city-change.
 --
 -- SerialEventCityScreenDirty fires on city switches AND on turn ticks
 -- while the screen is up. A city-ID compare filters out the turn-tick
@@ -39,12 +45,12 @@ include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_CityStats")
--- The Production and HexMap sub-handlers live in their own files so this
--- orchestrator stays focused on the hub scaffold and the small section
--- pushers (Wonders, Buildings, Specialists, Great Works, Great People,
--- Worker Focus, Stats, Ranged Strike, Rename, Raze). Each sub-module
--- declares a global with a single .push() entry point referenced from
--- buildHubItems below.
+-- The Production and HexMap sub-handlers live in their own files so
+-- this file stays focused on the hub scaffold, the inline drillable
+-- Group builders (Wonders, Buildings, Specialists, Great Works, Great
+-- People, Worker Focus, Stats), and the terminal hub actions (Ranged
+-- Strike, Unemployed, Rename, Raze). Each sub-module declares a global
+-- with a single .push() entry point referenced from buildHubItems below.
 include("CivVAccess_CityViewProduction")
 include("CivVAccess_CityViewHexMap")
 
@@ -81,11 +87,10 @@ end
 -- Trimmed to identifying-and-urgent: name, status tokens (razing /
 -- resistance / occupied / puppet / blockaded), growth headline, current
 -- production line, population. Yields, connected indicator, defense
--- breakdown, and unemployed count have moved into the Stats hub item
--- below -- the preamble re-reads on every sub-handler pop and arrowing
--- past dozens of numbers each time was the friction that motivated the
--- redesign. Re-resolved on every F1 / city-change so stale data can't
--- leak.
+-- breakdown, and unemployed count live under the Stats drillable so the
+-- preamble (which re-reads on every sub-handler pop) doesn't burn
+-- through dozens of numbers before the user reaches an actionable item.
+-- Re-resolved on every F1 / city-change so stale data can't leak.
 local function preamble()
     local city = UI.GetHeadSelectedCity()
     if city == nil then
@@ -256,13 +261,15 @@ local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
 
--- ===== Wonders sub-handler (§3.8) =====
+-- ===== Wonders drillable =====
 --
 -- Flat read-only list of wonders built in this city. Wonder detection
 -- mirrors CityView.lua:1386 (world wonders via MaxGlobalInstances, national
 -- wonders via MaxPlayerInstances==1 with no specialists, team wonders via
--- MaxTeamInstances). Enter is a no-op (plan §3.8: wonders are permanent
--- and indestructible); tooltip carries the effect summary.
+-- MaxTeamInstances). Enter is a no-op (wonders are permanent and
+-- indestructible); tooltip carries the effect summary. The Group
+-- self-hides when the city has no wonders (Group.isNavigable returns
+-- false on a child-less group, so the cursor skips it during nav).
 
 local function isWonderBuilding(building)
     local bclass = GameInfo.BuildingClasses[building.BuildingClass]
@@ -281,20 +288,7 @@ local function isWonderBuilding(building)
     return false
 end
 
-local function cityHasAnyWonder(city)
-    for building in GameInfo.Buildings() do
-        if isWonderBuilding(building) and city:IsHasBuilding(building.ID) then
-            return true
-        end
-    end
-    return false
-end
-
-local function pushWonders()
-    local city = UI.GetHeadSelectedCity()
-    if city == nil then
-        return
-    end
+local function buildWondersGroup(city)
     local wonders = {}
     for building in GameInfo.Buildings() do
         if isWonderBuilding(building) and city:IsHasBuilding(building.ID) then
@@ -305,63 +299,66 @@ local function pushWonders()
     end
     sortByLocalizedName(wonders)
     local items = {}
-    if #wonders == 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_WONDERS_EMPTY") })
-    else
-        for _, w in ipairs(wonders) do
-            items[#items + 1] = BaseMenuItems.Text({
-                labelText = w.name,
-                tooltipText = (w.help ~= "") and w.help or nil,
-                pediaName = w.name,
-            })
-        end
+    for _, w in ipairs(wonders) do
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = w.name,
+            tooltipText = (w.help ~= "") and w.help or nil,
+            pediaName = w.name,
+        })
     end
-    pushCitySub("Wonders", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"), items)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS"),
+        items = items,
+    })
 end
 
--- ===== Great people progress sub-handler (§3.9) =====
+-- ===== Great people progress drillable =====
 --
 -- One item per specialist type that has non-zero progress (matching the
 -- base screen's own "iProgress > 0" filter). Output is "<class name>,
 -- <progress> of <threshold>" -- threshold via GetSpecialistUpgradeThreshold
 -- on the UnitClass's default unit, same source the base GPMeter uses.
+-- Empty -> Group auto-hides.
+--
+-- The progress / threshold reads happen inside labelFn so a turn tick
+-- while the user is drilled into the Group surfaces fresh numbers on
+-- the next nav step. The membership filter (iProgress > 0) is still
+-- evaluated at build time, so a specialist type that gains its first
+-- progress mid-drill won't appear until the next hub re-activation.
+-- Acceptable: the dominant case is watching an already-progressing
+-- specialist accumulate, and the user can Esc + re-open to refresh.
 
-local function cityHasAnyGreatPersonProgress(city)
-    for specialistInfo in GameInfo.Specialists() do
-        if city:GetSpecialistGreatPersonProgress(specialistInfo.ID) > 0 then
-            return true
-        end
-    end
-    return false
-end
-
-local function pushGreatPeople()
-    local city = UI.GetHeadSelectedCity()
-    if city == nil then
-        return
-    end
+local function buildGreatPeopleGroup(city)
     local items = {}
     for specialistInfo in GameInfo.Specialists() do
-        local iProgress = city:GetSpecialistGreatPersonProgress(specialistInfo.ID)
-        if iProgress > 0 then
+        if city:GetSpecialistGreatPersonProgress(specialistInfo.ID) > 0 then
             local unitClass = GameInfo.UnitClasses[specialistInfo.GreatPeopleUnitClass]
             if unitClass ~= nil then
-                local threshold = city:GetSpecialistUpgradeThreshold(unitClass.ID)
+                local capturedSpecID = specialistInfo.ID
+                local capturedUnitClassID = unitClass.ID
                 local name = Text.key(unitClass.Description)
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, iProgress, threshold),
+                    labelFn = function()
+                        local c = UI.GetHeadSelectedCity()
+                        if c == nil then
+                            return ""
+                        end
+                        local prog = c:GetSpecialistGreatPersonProgress(capturedSpecID)
+                        local thr = c:GetSpecialistUpgradeThreshold(capturedUnitClassID)
+                        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, prog, thr)
+                    end,
                     pediaName = name,
                 })
             end
         end
     end
-    if #items == 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GP_EMPTY") })
-    end
-    pushCitySub("GreatPeople", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"), items)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"),
+        items = items,
+    })
 end
 
--- ===== Worker focus sub-handler (§3.11) =====
+-- ===== Worker focus drillable =====
 --
 -- Eight radio entries + Avoid Growth checkbox + Reset button. Each
 -- radio uses labelFn so the ", selected" marker tracks the live focus
@@ -385,7 +382,7 @@ local FOCUS_TYPES = {
     { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FAITH, key = "TXT_KEY_CITYVIEW_FOCUS_FAITH_TEXT" },
 }
 
-local function pushWorkerFocus()
+local function buildWorkerFocusGroup()
     local items = {}
     for _, f in ipairs(FOCUS_TYPES) do
         local labelKey, focusType = f.key, f.focus
@@ -469,10 +466,13 @@ local function pushWorkerFocus()
     })
     items[#items + 1] = resetItem
 
-    pushCitySub("WorkerFocus", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"), items)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"),
+        items = items,
+    })
 end
 
--- ===== Unemployed citizens (§3.10) =====
+-- ===== Unemployed citizens =====
 --
 -- Hub-level action, not a sub-handler. Label carries the live count so
 -- the user hears it on arrowing past without drilling in. Enter fires
@@ -507,15 +507,16 @@ local function activateUnemployed()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"))
 end
 
--- ===== Buildings sub-handler (§3.7) =====
+-- ===== Buildings drillable =====
 --
 -- Flat list of non-wonder buildings constructed in this city. Enter on a
 -- sellable, non-puppet building pushes a flat-list Yes/No confirm whose
 -- displayName carries the engine's TXT_KEY_SELL_BUILDING_INFO so blind and
 -- sighted users land on the same confirmation wording. Yes fires
--- Network.SendSellBuilding and pops back to the hub so the list rebuilds;
--- No / Esc cancels via escapePops. Enter on a non-sellable building is a
--- no-op.
+-- Network.SendSellBuilding and pops the confirm; the hub's onActivate
+-- wrapper then rebuilds items so the sold building drops out of the
+-- list. No / Esc cancels via escapePops. Enter on a non-sellable building
+-- is a no-op. Empty -> Group auto-hides.
 --
 -- The engine's inline SellBuildingConfirm overlay is NOT driven here --
 -- we bypass it and go straight to the network message. A sighted observer
@@ -551,10 +552,14 @@ local function pushSellConfirmSub(buildingID)
                     if city ~= nil and isActiveOwn(city) and isTurnActive() then
                         Network.SendSellBuilding(city:GetID(), buildingID)
                     end
-                    HandlerStack.removeByName(subName, false)
-                    if hubHandler ~= nil then
-                        HandlerStack.popAbove(hubHandler)
-                    end
+                    -- reactivate=true fires the hub's onActivate wrapper,
+                    -- which calls rebuildHubItems so the Buildings group's
+                    -- children are re-iterated against the post-sell
+                    -- state. setItems clamps the cursor to level 1 first
+                    -- item (same drop-to-root UX as the prior popAbove
+                    -- path); the user re-drills into Buildings if they
+                    -- want to sell another.
+                    HandlerStack.removeByName(subName, true)
                 end,
             }),
         },
@@ -563,11 +568,7 @@ local function pushSellConfirmSub(buildingID)
     HandlerStack.push(sub)
 end
 
-local function pushBuildings()
-    local city = UI.GetHeadSelectedCity()
-    if city == nil then
-        return
-    end
+local function buildBuildingsGroup(city)
     local buildings = {}
     for building in GameInfo.Buildings() do
         if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
@@ -579,60 +580,52 @@ local function pushBuildings()
     sortByLocalizedName(buildings)
 
     local items = {}
-    if #buildings == 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_BUILDINGS_EMPTY") })
-    else
-        for _, b in ipairs(buildings) do
-            local capturedID = b.id
-            local item = BaseMenuItems.Text({
-                labelText = b.name,
-                tooltipText = (b.help ~= "") and b.help or nil,
-                pediaName = b.name,
-                onActivate = function()
-                    local liveCity = UI.GetHeadSelectedCity()
-                    if liveCity == nil then
-                        return
-                    end
-                    if not isActiveOwn(liveCity) then
-                        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL")
-                        return
-                    end
-                    if not liveCity:IsBuildingSellable(capturedID) or liveCity:IsPuppet() then
-                        return
-                    end
-                    if not isTurnActive() then
-                        return
-                    end
-                    pushSellConfirmSub(capturedID)
-                end,
-            })
-            items[#items + 1] = item
-        end
+    for _, b in ipairs(buildings) do
+        local capturedID = b.id
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = b.name,
+            tooltipText = (b.help ~= "") and b.help or nil,
+            pediaName = b.name,
+            onActivate = function()
+                local liveCity = UI.GetHeadSelectedCity()
+                if liveCity == nil then
+                    return
+                end
+                if not isActiveOwn(liveCity) then
+                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL")
+                    return
+                end
+                if not liveCity:IsBuildingSellable(capturedID) or liveCity:IsPuppet() then
+                    return
+                end
+                if not isTurnActive() then
+                    return
+                end
+                pushSellConfirmSub(capturedID)
+            end,
+        })
     end
 
-    pushCitySub("Buildings", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"), items)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"),
+        items = items,
+    })
 end
 
-local function cityHasAnyNonWonderBuilding(city)
-    for building in GameInfo.Buildings() do
-        if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
-            return true
-        end
-    end
-    return false
-end
-
--- ===== Specialists sub-handler (§3.6) =====
+-- ===== Specialists drillable =====
 --
 -- One item per specialist slot across every specialist-capable building
--- in the city, grouped by building in the label (plan-mandated shape).
+-- in the city, grouped by building in the label.
 -- labelFn flips "empty" / "filled" on the next read, so the state stays
 -- current across Enter-driven add / remove without rebuilding the list.
 -- tooltipFn mirrors the base CityView tooltip's per-yield breakdown so
 -- the user hears what the specialist actually does (e.g. "+6 science,
 -- +3 great people points") rather than just its name.
 -- A Manual Specialist Control toggle lands at the bottom; its checkbox
--- state mirrors pCity:IsNoAutoAssignSpecialists().
+-- state mirrors pCity:IsNoAutoAssignSpecialists(). The Group is gated by
+-- cityHasAnySpecialistSlots in buildHubItems -- without that gate, a
+-- city with no specialist-bearing buildings would still show the Group
+-- because the always-present manual-toggle child keeps it navigable.
 --
 -- Add / remove mirror CityView's AddSpecialist / RemoveSpecialist helpers
 -- (CityView.lua:2341-2385): auto-flip TASK_NO_AUTO_ASSIGN_SPECIALISTS on
@@ -680,12 +673,7 @@ local function buildSpecialistTooltip(city, specID, specInfo)
     return table.concat(parts, ", ")
 end
 
-local function pushSpecialists()
-    local city = UI.GetHeadSelectedCity()
-    if city == nil then
-        return
-    end
-
+local function buildSpecialistsGroup(city)
     local specBuildings = {}
     for building in GameInfo.Buildings() do
         if city:IsHasBuilding(building.ID) then
@@ -806,12 +794,6 @@ local function pushSpecialists()
         end
     end
 
-    if #items == 0 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_EMPTY"),
-        })
-    end
-
     local manualItem = BaseMenuItems.Text({
         labelFn = function()
             local c = UI.GetHeadSelectedCity()
@@ -848,10 +830,13 @@ local function pushSpecialists()
     })
     items[#items + 1] = manualItem
 
-    pushCitySub("Specialists", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"), items)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"),
+        items = items,
+    })
 end
 
--- ===== Great works sub-handler (§3.12) =====
+-- ===== Great works drillable =====
 --
 -- Flat list with one item per great-work slot across every great-work-
 -- capable building in the city. labelFn re-reads slot occupancy on every
@@ -876,21 +861,7 @@ local function isGreatWorkBuilding(building)
     return (building.GreatWorkCount or 0) > 0 and building.GreatWorkSlotType ~= nil
 end
 
-local function cityHasAnyGreatWorkSlots(city)
-    for building in GameInfo.Buildings() do
-        if isGreatWorkBuilding(building) and city:IsHasBuilding(building.ID) then
-            return true
-        end
-    end
-    return false
-end
-
-local function pushGreatWorks()
-    local city = UI.GetHeadSelectedCity()
-    if city == nil then
-        return
-    end
-
+local function buildGreatWorksGroup(city)
     local gwBuildings = {}
     for building in GameInfo.Buildings() do
         if isGreatWorkBuilding(building) and city:IsHasBuilding(building.ID) then
@@ -940,8 +911,8 @@ local function pushGreatWorks()
                     )
                 end,
                 -- Pedia opens the housing building's entry (Louvre, British
-                -- Museum, etc.), per plan §4.1 -- the great work itself has
-                -- no Civilopedia page, only its container does.
+                -- Museum, etc.) -- the great work itself has no Civilopedia
+                -- page, only its container does.
                 pediaName = buildingName,
                 onActivate = function()
                     local c = UI.GetHeadSelectedCity()
@@ -979,14 +950,13 @@ local function pushGreatWorks()
         end
     end
 
-    if #items == 0 then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST") })
-    end
-
-    pushCitySub("GreatWorks", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"), items)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"),
+        items = items,
+    })
 end
 
--- ===== Ranged strike (§3.5) =====
+-- ===== Ranged strike =====
 --
 -- Gated at the hub on pCity:CanRangeStrikeNow() (same predicate vanilla
 -- uses in CityBannerManager.lua:37). Activation closes the city screen,
@@ -1071,7 +1041,7 @@ local function pushRangedStrike()
     end)
 end
 
--- ===== Rename (§3.13) =====
+-- ===== Rename =====
 --
 -- Hub-level item. Fires vanilla's BUTTONPOPUP_RENAME_CITY, which opens the
 -- SetCityName popup Context -- already accessible via SetCityNameAccess.
@@ -1093,7 +1063,7 @@ local function activateRename()
     })
 end
 
--- ===== Raze / Stop Razing (§3.14) =====
+-- ===== Raze / Stop Razing =====
 --
 -- Mutually-exclusive pair gated by city state. Raze mirrors vanilla's
 -- OnRazeButton (CityView.lua:2465): fires BUTTONPOPUP_CONFIRM_CITY_TASK with
@@ -1153,46 +1123,51 @@ local function activateUnraze()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"))
 end
 
--- ===== Stats sub-handler =====
+-- ===== Stats drillable =====
 --
--- Pushes the per-category drilldown that absorbed yields, growth, culture
--- progress, happiness, religion, trade, resources, defense, and the WLTKD
--- / resource-demanded line (which used to be a terminal hub item). The
--- groups themselves are built fresh on every push from CityStats.buildItems
--- so a buy / specialist / focus change in another sub-handler that pops
--- back through Stats produces fresh numbers.
-local function pushStats()
-    local city = UI.GetHeadSelectedCity()
-    if city == nil then
-        return
-    end
+-- Outer Group whose children are the per-category groups (yields, growth,
+-- culture progress, happiness, religion, trade, resources, defense, and
+-- the WLTKD / resource-demanded line) returned by CityStats.buildItems.
+-- That builder already returns BaseMenuItems.Group instances, so this
+-- function is a thin wrapper that adds the outer "Stats" labelled group.
+-- The inner groups are rebuilt fresh on every hub rebuildHubItems pass
+-- (called from hub.onActivate), so a buy / specialist / focus change
+-- elsewhere produces fresh numbers on the next hub re-activation.
+local function buildStatsGroup(city)
     -- Use the active player (not city:GetOwner()) so a spy-screen Stats
     -- view doesn't pump the foreign player's data through trade /
     -- happiness rows. CityStats.buildItems also drops the Trade and
     -- Resources groups for foreign cities, since those are mod-authored
     -- aggregations vanilla doesn't put on the espionage view.
     local player = Players[Game.GetActivePlayer()]
-    pushCitySub("Stats", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS"), CityStats.buildItems(city, player))
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS"),
+        items = CityStats.buildItems(city, player),
+    })
 end
 
 -- ===== Hub item list =====
 --
--- Rebuilt on every hub activation (initial push + sub-handler pop). Order:
--- Ranged Strike / Stats / Production / Hex / Buildings / Wonders / Worker
--- focus / Specialists / Great works / Great people / Unemployed / Rename /
--- Raze. Ranged Strike leads when available so the user can fire without
--- arrowing past the city's reporting items first; combat is the time-
--- critical action and the rest of the hub is read-mostly. Stats follows
--- because it absorbed the seven-yield run that used to pad the preamble;
--- the user reaches yields and the rest of the city's numbers in one
--- place near the top of the list. Conditional items drop out when their
+-- Rebuilt on every hub activation (initial push + sub-handler pop from
+-- Production / Hex / SellConfirm). Order: Ranged Strike / Stats /
+-- Production / Hex / Buildings / Wonders / Worker focus / Specialists /
+-- Great works / Great people / Unemployed / Rename / Raze. Ranged
+-- Strike leads when available so the user can fire without arrowing
+-- past the city's reporting items first; combat is the time-critical
+-- action and the rest of the hub is read-mostly. Stats follows because
+-- it absorbed the seven-yield run that used to pad the preamble; the
+-- user reaches yields and the rest of the city's numbers in one place
+-- near the top of the list. Conditional items drop out when their
 -- gating predicate is false without reshuffling the survivors.
-
--- Hub items are gated per plan §3: an item is present only when its sub-
--- handler would land the user on at least one real entry, so arrowing
--- never hits a dead-end "No X." read. Worker focus and Unemployed stay
--- unconditional (focus always applies, unemployed is a hub-level action
--- whose label carries its own zero-state).
+--
+-- Production and Hex are terminal items that push their own handlers
+-- (custom key dispatch). Wonders / Buildings / Specialists / Great
+-- works / Great people / Worker focus / Stats are inline drillable
+-- Groups -- an empty Group is auto-skipped by Group.isNavigable, so
+-- Wonders / Buildings / Great works / Great people don't need explicit
+-- gates. Specialists keeps an explicit gate because its always-present
+-- manual-toggle child would otherwise keep the Group navigable on a
+-- city with no specialist-bearing buildings.
 local function buildHubItems(city)
     local items = {}
     -- isActiveOwn matches vanilla CityBannerManager.lua:33 which hides the
@@ -1205,36 +1180,21 @@ local function buildHubItems(city)
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)
     end
-    items[#items + 1] = makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_STATS") }, pushStats)
+    items[#items + 1] = buildStatsGroup(city)
     items[#items + 1] =
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, CityViewProduction.push)
     items[#items + 1] =
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, CityViewHexMap.push)
-    if cityHasAnyNonWonderBuilding(city) then
-        items[#items + 1] =
-            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS") }, pushBuildings)
-    end
-    if cityHasAnyWonder(city) then
-        items[#items + 1] =
-            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WONDERS") }, pushWonders)
-    end
-    items[#items + 1] =
-        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") }, pushWorkerFocus)
+    items[#items + 1] = buildBuildingsGroup(city)
+    items[#items + 1] = buildWondersGroup(city)
+    items[#items + 1] = buildWorkerFocusGroup()
     if cityHasAnySpecialistSlots(city) then
-        items[#items + 1] =
-            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS") }, pushSpecialists)
+        items[#items + 1] = buildSpecialistsGroup(city)
     end
-    if cityHasAnyGreatWorkSlots(city) then
-        items[#items + 1] =
-            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS") }, pushGreatWorks)
-    end
-    if cityHasAnyGreatPersonProgress(city) then
-        items[#items + 1] =
-            makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE") }, pushGreatPeople)
-    end
-    -- Unemployed hub item's Civilopedia entry is the Citizen specialist, per
-    -- plan §4.1 -- matches vanilla's right-click on the slacker portrait
-    -- (CityView.lua:1293).
+    items[#items + 1] = buildGreatWorksGroup(city)
+    items[#items + 1] = buildGreatPeopleGroup(city)
+    -- Unemployed hub item's Civilopedia entry is the Citizen specialist --
+    -- matches vanilla's right-click on the slacker portrait (CityView.lua:1293).
     local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
     local slackerPedia = slackerInfo and Text.key(slackerInfo.Description) or nil
     items[#items + 1] = makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
