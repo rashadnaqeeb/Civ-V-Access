@@ -51,12 +51,19 @@ local m_handler = nil
 -- not playerAdded` guard) so the row we mark as matched is the same one
 -- the visual highlights and titles. Score is computed via Player:GetScore
 -- with the same (true, bWinner) args vanilla passes.
+--
+-- Vanilla also displays a headline above the list -- Ranking.lua sets
+-- Controls.Title to TXT_KEY_RANKING_STATEMENT formatted with the matched
+-- leader's name ("You have achieved the level of {leader}"). Prepended as
+-- a leading Text item when there's a match; matchedIdx is bumped so the
+-- onActivate cursor still lands on the player's row, not the headline.
 local function buildRankingItems()
     local pPlayer = Players[Game.GetActivePlayer()]
     local bWinner = (pPlayer:GetTeam() == Game:GetWinner())
     local pPlayerScore = pPlayer:GetScore(true, bWinner)
     local items = {}
     local matchedIdx = nil
+    local matchedLeader = nil
     local count = 0
     for row in GameInfo.HistoricRankings() do
         count = count + 1
@@ -65,6 +72,7 @@ local function buildRankingItems()
         local label
         if matchedIdx == nil and pPlayerScore >= row.LeaderScore then
             matchedIdx = count
+            matchedLeader = leaderName
             label = Text.format(
                 "TXT_KEY_CIVVACCESS_RANKING_MATCHED_ROW",
                 rankNum,
@@ -76,6 +84,12 @@ local function buildRankingItems()
             label = Text.format("TXT_KEY_CIVVACCESS_RANKING_ROW", rankNum, leaderName, row.LeaderScore)
         end
         items[count] = BaseMenuItems.Text({ labelText = label })
+    end
+    if matchedLeader ~= nil then
+        table.insert(items, 1, BaseMenuItems.Text({
+            labelText = Text.format("TXT_KEY_RANKING_STATEMENT", matchedLeader),
+        }))
+        matchedIdx = matchedIdx + 1
     end
     return items, matchedIdx
 end
