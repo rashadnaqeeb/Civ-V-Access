@@ -38,6 +38,15 @@
 -- flips to "Continue" in hotseat alt-player mode; we label it with the
 -- common "Exit to Main Menu" since that's the path that matters on a
 -- finished game.
+--
+-- Esc is consumed (onEscape returns true) so it doesn't fall through to
+-- the engine's InputHandler -> OnBack, which on extended-play-eligible
+-- wins would dequeue the popup and silently drop the user on the map.
+-- The two intended exits ("Exit to Main Menu" and "Continue Playing")
+-- are explicit buttons in the Info tab; both are major decisions that
+-- shouldn't be reachable by a shortcut whose announced behavior differs
+-- from what the user expects. Left still walks out of drilled Replay
+-- turn groups, so consuming Esc doesn't trap the user one level deep.
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_DemographicsRows")
@@ -226,5 +235,6 @@ m_handler = BaseMenu.install(ContextPtr, {
     silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
+    onEscape = function() return true end,
     tabs = { infoTab, demographicsTab, rankingTab, replayTab },
 })
