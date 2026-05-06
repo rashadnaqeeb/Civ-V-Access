@@ -194,8 +194,12 @@ local function agentRowLabel(agent)
 end
 
 -- Forward decls so action items can call back into the move flow which in
--- turn references the tab-rebuild path.
+-- turn references the tab-rebuild path. pushYesNoConfirm is forward-declared
+-- because the Stage Coup action's onActivate (built inside agentActions
+-- below) references it before its definition further down the file; without
+-- the forward decl the call site resolves to a nil global.
 local pushMoveSub
+local pushYesNoConfirm
 local rebuildAllTabs = function() end
 
 -- Returns a list of action specs for an agent. Each spec is a
@@ -738,7 +742,7 @@ end
 -- doesn't speak the pre-commit row label and the dirty re-announce that
 -- follows is the only thing the user hears. Esc and No (when no onNo is
 -- supplied) speak "canceled" first.
-local function pushYesNoConfirm(opts)
+pushYesNoConfirm = function(opts)
     local subName = opts.name
     local popReactivateOnYes = opts.popReactivateOnYes
     if popReactivateOnYes == nil then
