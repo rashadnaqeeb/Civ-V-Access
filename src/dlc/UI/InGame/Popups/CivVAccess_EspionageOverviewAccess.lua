@@ -720,11 +720,13 @@ local function buildIntrigueTabItems()
         return { BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_EO_NO_INTRIGUE_AVAILABLE") }) }
     end
     local items = {}
-    -- Most-recent first matches the engine's default Turn-desc sort
-    -- (g_IntrigueSortOptions[1].DefaultDirection = "desc"). Iterate the
-    -- engine list in reverse to avoid a separate table.sort here.
-    for i = #messages, 1, -1 do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = intrigueRowLabel(messages[i]) })
+    -- GetIntrigueMessages already returns newest-first: the SDK's
+    -- lGetIntrigueMessages walks m_aIntrigueNotificationMessages from
+    -- size() down to 1 while writing Lua indices upward, and AddIntrigueMessage
+    -- push_backs new entries, so Lua index 1 is the most recent. Iterate forward
+    -- to match the engine UI's Turn-desc default.
+    for _, msg in ipairs(messages) do
+        items[#items + 1] = BaseMenuItems.Text({ labelText = intrigueRowLabel(msg) })
     end
     return items
 end
