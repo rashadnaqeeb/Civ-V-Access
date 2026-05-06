@@ -2,11 +2,13 @@
 --
 -- Opens when the engine shows the CityView Context (banner click on own
 -- city, Enter on a friendly hex, etc.). Most sections (Wonders, Buildings,
--- Specialists, Great Works, Great People, Worker Focus, Stats) live as
--- drillable Groups inside this single handler -- arrow onto the group,
--- Right / Enter to drill, Left to step back. Production and Manage
--- Territory keep their own handlers because they own custom key dispatch
--- (production slot drill-in actions; hex movement / tile activation).
+-- Specialists, Great Works, Great People, Stats) live as drillable
+-- Groups inside this single handler -- arrow onto the group, Right /
+-- Enter to drill, Left to step back. Production, Manage Territory, and
+-- Worker Focus keep their own pushed handlers: Production and Hex own
+-- custom key dispatch (slot drill-in actions; hex movement / tile
+-- activation), and Worker Focus reads as a radio-style selection
+-- surface that benefits from a single-purpose sub-screen frame.
 -- Hub-level actions (Ranged Strike, Unemployed, Rename, Raze) stay as
 -- terminal items. The hub owns the preamble announcement, F1 re-read,
 -- Esc close, next / previous city hotkeys, and auto-re-announce on
@@ -48,9 +50,10 @@ include("CivVAccess_CityStats")
 -- The Production and HexMap sub-handlers live in their own files so
 -- this file stays focused on the hub scaffold, the inline drillable
 -- Group builders (Wonders, Buildings, Specialists, Great Works, Great
--- People, Worker Focus, Stats), and the terminal hub actions (Ranged
--- Strike, Unemployed, Rename, Raze). Each sub-module declares a global
--- with a single .push() entry point referenced from buildHubItems below.
+-- People, Stats), the Worker Focus sub-handler push, and the terminal
+-- hub actions (Ranged Strike, Unemployed, Rename, Raze). Each sub-module
+-- declares a global with a single .push() entry point referenced from
+-- buildHubItems below.
 include("CivVAccess_CityViewProduction")
 include("CivVAccess_CityViewHexMap")
 
@@ -358,7 +361,13 @@ local function buildGreatPeopleGroup(city)
     })
 end
 
--- ===== Worker focus drillable =====
+-- ===== Worker focus sub-handler =====
+--
+-- Pushed as its own handler rather than inlined as a drillable Group:
+-- focus selection has the shape of a radio control (eight mutually
+-- exclusive options where switching is the primary interaction), and
+-- the sub-handler frame gives the user a clean single-purpose surface
+-- for that interaction model.
 --
 -- Eight radio entries + Avoid Growth checkbox + Reset button. Each
 -- radio uses labelFn so the ", selected" marker tracks the live focus
@@ -382,7 +391,7 @@ local FOCUS_TYPES = {
     { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FAITH, key = "TXT_KEY_CITYVIEW_FOCUS_FAITH_TEXT" },
 }
 
-local function buildWorkerFocusGroup()
+local function pushWorkerFocus()
     local items = {}
     for _, f in ipairs(FOCUS_TYPES) do
         local labelKey, focusType = f.key, f.focus
@@ -466,20 +475,20 @@ local function buildWorkerFocusGroup()
     })
     items[#items + 1] = resetItem
 
-    return BaseMenuItems.Group({
-        labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"),
-        items = items,
-    })
+    pushCitySub("WorkerFocus", Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"), items)
 end
 
 -- ===== Unemployed citizens =====
 --
 -- Hub-level action, not a sub-handler. Label carries the live count so
--- the user hears it on arrowing past without drilling in. Enter fires
--- TASK_REMOVE_SLACKER (misnamed in the engine; it assigns one citizen to
--- the best tile or specialist slot). The engine does not expose where
--- the citizen went and the vanilla UI doesn't show it either; we speak
--- "assigned" rather than inventing a destination.
+-- the user hears it when navigated to. Enter fires TASK_REMOVE_SLACKER
+-- (misnamed in the engine; it assigns one citizen to the best tile or
+-- specialist slot). The engine does not expose where the citizen went
+-- and the vanilla UI doesn't show it either; we speak "assigned"
+-- rather than inventing a destination. The item is filtered out of nav
+-- when the count is zero -- buildHubItems overrides the Text item's
+-- isNavigable to read the count live, so assigning the last slacker
+-- naturally hides the entry on the next Up / Down step.
 
 local function unemployedLabel()
     local city = UI.GetHeadSelectedCity()
@@ -499,6 +508,12 @@ local function activateUnemployed()
     if not isTurnActive() then
         return
     end
+    -- Defensive: the hub item's isNavigable hides Unemployed at count
+    -- zero, but the cursor doesn't auto-unfocus when an item it's sitting
+    -- on becomes non-navigable. So a user who assigns the last slacker
+    -- and then presses Enter again before nav-stepping away can land
+    -- here with count == 0 -- catch it before firing a no-op task and
+    -- speaking a misleading "assigned".
     if city:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST) <= 0 then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_NO_UNEMPLOYED"))
         return
@@ -1149,25 +1164,31 @@ end
 -- ===== Hub item list =====
 --
 -- Rebuilt on every hub activation (initial push + sub-handler pop from
--- Production / Hex / SellConfirm). Order: Ranged Strike / Stats /
--- Production / Hex / Buildings / Wonders / Worker focus / Specialists /
--- Great works / Great people / Unemployed / Rename / Raze. Ranged
--- Strike leads when available so the user can fire without arrowing
--- past the city's reporting items first; combat is the time-critical
--- action and the rest of the hub is read-mostly. Stats follows because
--- it absorbed the seven-yield run that used to pad the preamble; the
--- user reaches yields and the rest of the city's numbers in one place
--- near the top of the list. Conditional items drop out when their
--- gating predicate is false without reshuffling the survivors.
+-- Production / Hex / Worker Focus / SellConfirm). Order: Ranged Strike
+-- / Stats / Production / Hex / Worker Focus / Specialists / Unemployed
+-- / Buildings / Wonders / Great works / Great people / Rename / Raze.
+-- Ranged Strike leads when available so the user can fire without
+-- arrowing past the city's reporting items first; combat is the
+-- time-critical action and the rest of the hub is read-mostly. Stats
+-- follows because it absorbed the seven-yield run that used to pad
+-- the preamble; the user reaches yields and the rest of the city's
+-- numbers in one place near the top of the list. Worker Focus,
+-- Specialists, and Unemployed cluster together under Manage Territory
+-- because all four shape what the city's citizens are doing --
+-- assigning by tile (territory), by building slot (specialists), as
+-- one-shot pulls from the unemployed pool, or by yield preset (focus).
+-- Conditional items drop out when their gating predicate is false
+-- without reshuffling the survivors.
 --
--- Production and Hex are terminal items that push their own handlers
--- (custom key dispatch). Wonders / Buildings / Specialists / Great
--- works / Great people / Worker focus / Stats are inline drillable
--- Groups -- an empty Group is auto-skipped by Group.isNavigable, so
--- Wonders / Buildings / Great works / Great people don't need explicit
--- gates. Specialists keeps an explicit gate because its always-present
--- manual-toggle child would otherwise keep the Group navigable on a
--- city with no specialist-bearing buildings.
+-- Production, Hex, and Worker Focus are terminal items that push their
+-- own handlers (custom key dispatch for Production / Hex; radio-style
+-- selection surface for Worker Focus). Wonders / Buildings /
+-- Specialists / Great works / Great people / Stats are inline
+-- drillable Groups -- an empty Group is auto-skipped by
+-- Group.isNavigable, so Wonders / Buildings / Great works / Great
+-- people don't need explicit gates. Specialists keeps an explicit gate
+-- because its always-present manual-toggle child would otherwise keep
+-- the Group navigable on a city with no specialist-bearing buildings.
 local function buildHubItems(city)
     local items = {}
     -- isActiveOwn matches vanilla CityBannerManager.lua:33 which hides the
@@ -1185,19 +1206,32 @@ local function buildHubItems(city)
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION") }, CityViewProduction.push)
     items[#items + 1] =
         makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX") }, CityViewHexMap.push)
-    items[#items + 1] = buildBuildingsGroup(city)
-    items[#items + 1] = buildWondersGroup(city)
-    items[#items + 1] = buildWorkerFocusGroup()
+    items[#items + 1] =
+        makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS") }, pushWorkerFocus)
     if cityHasAnySpecialistSlots(city) then
         items[#items + 1] = buildSpecialistsGroup(city)
     end
-    items[#items + 1] = buildGreatWorksGroup(city)
-    items[#items + 1] = buildGreatPeopleGroup(city)
     -- Unemployed hub item's Civilopedia entry is the Citizen specialist --
     -- matches vanilla's right-click on the slacker portrait (CityView.lua:1293).
+    -- isNavigable overridden to hide the entry when the city has no
+    -- unemployed citizens; the cursor walks past on Up / Down without
+    -- ever landing on a "0 unemployed" read.
     local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
     local slackerPedia = slackerInfo and Text.key(slackerInfo.Description) or nil
-    items[#items + 1] = makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
+    local unemployedItem =
+        makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
+    function unemployedItem:isNavigable()
+        local c = UI.GetHeadSelectedCity()
+        if c == nil then
+            return false
+        end
+        return c:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST) > 0
+    end
+    items[#items + 1] = unemployedItem
+    items[#items + 1] = buildBuildingsGroup(city)
+    items[#items + 1] = buildWondersGroup(city)
+    items[#items + 1] = buildGreatWorksGroup(city)
+    items[#items + 1] = buildGreatPeopleGroup(city)
     -- Rename is hidden on foreign cities to match vanilla (EditButton:SetHide(true)
     -- when the city's owner is not the active player or viewing mode is on).
     if isActiveOwn(city) then
