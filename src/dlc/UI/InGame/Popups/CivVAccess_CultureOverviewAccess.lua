@@ -33,10 +33,13 @@
 --                       origin/era/yields detail. Pulldown entries fold
 --                       both into one announcement because pulldown
 --                       entries have no separate tooltip-on-demand path.
---   Culture Victory  -- one Group per met major civ alive, sorted by tourism
---                       descending. Label combines influences/tourism/
---                       ideology/public opinion/excess happiness; drill-in
---                       surfaces the public-opinion and unhappiness tooltips.
+--   Culture Victory  -- BaseTable, one row per met major civ alive. Civ
+--                       short name is the row label; columns are
+--                       Influencing count, Tourism per turn, Ideology,
+--                       Public Opinion, Public Opinion Unhappiness, and
+--                       Excess Happiness. Public Opinion Unhappiness
+--                       appends the engine's breakdown tooltip; the
+--                       other cells are bare values.
 --   Player Influence -- perspective picker (defaults to active player) +
 --                       tourism-per-turn header + one Group per civ the
 --                       perspective player has any influence level on.
@@ -61,6 +64,7 @@
 include("CivVAccess_PopupBoot")
 include("CivVAccess_OverviewCivLabels")
 include("CivVAccess_TabbedShell")
+include("CivVAccess_BaseTableCore")
 include("CivVAccess_PullDownProbe")
 
 local priorInput = InputHandler
@@ -935,91 +939,150 @@ local function publicOpinionText(opinionType)
     return Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA")
 end
 
-local function buildVictoryRowGroup(pPlayer)
-    local id = pPlayer:GetID()
-    return BaseMenuItems.Group({
-        labelFn = function()
-            local p = Players[id]
-            local civ = civDisplayName(p)
-            local infCount = p:GetNumCivsInfluentialOn()
-            local infTotal = p:GetNumCivsToBeInfluentialOn()
-            local infText = Text.format("TXT_KEY_CIVVACCESS_CO_VICTORY_INFLUENCED_OF", infCount, infTotal)
-            local tourism = p:GetTourism()
-            local ideologyText
-            local opinionText
-            local unhappyText
-            local happyText
-            local ideoBranch = p:GetLateGamePolicyTree()
-            if ideoBranch ~= PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
-                ideologyText = Text.key(GameInfo.PolicyBranchTypes[ideoBranch].Description)
-                opinionText = publicOpinionText(p:GetPublicOpinionType())
-                local unhappiness = -1 * p:GetPublicOpinionUnhappiness()
-                unhappyText = Text.format("TXT_KEY_CO_PUBLIC_OPINION_UNHAPPINESS", unhappiness)
-            else
-                ideologyText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY")
-                opinionText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA")
-                unhappyText = tostring(0)
-            end
-            -- Excess happiness is the player's overall happiness buffer; it
-            -- exists regardless of ideology (city happiness summed minus
-            -- unhappiness from all sources). Public-opinion unhappiness only
-            -- meaningfully kicks in once an ideology is chosen, but the
-            -- buffer itself is always live, so query GetExcessHappiness in
-            -- both branches.
-            happyText = formatSigned(p:GetExcessHappiness())
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_CO_VICTORY_ROW",
-                civ,
-                infText,
-                tourism,
-                ideologyText,
-                opinionText,
-                unhappyText,
-                happyText
-            )
-        end,
-        cached = false,
-        itemsFn = function()
-            local p = Players[id]
-            local items = {}
-            local ideoBranch = p:GetLateGamePolicyTree()
-            if ideoBranch ~= PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_DETAIL"),
-                    tooltipText = p:GetPublicOpinionTooltip(),
-                })
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_UNHAPPY_DETAIL"),
-                    tooltipText = p:GetPublicOpinionUnhappinessTooltip(),
-                })
-            else
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY_DETAIL"),
-                })
-            end
-            return items
-        end,
-    })
+local function rebuildVictoryRows()
+    local rows = {}
+    for _, p in eachMetMajorAlive() do
+        rows[#rows + 1] = p
+    end
+    return rows
 end
 
-local function buildVictoryItems()
-    local items = {}
-    local players = {}
-    for _, p in eachMetMajorAlive() do
-        players[#players + 1] = p
+local function victoryRowLabel(pPlayer)
+    return civDisplayName(pPlayer)
+end
+
+local function influencingCellText(pPlayer)
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_CO_VICTORY_INFLUENCED_OF",
+        pPlayer:GetNumCivsInfluentialOn(),
+        pPlayer:GetNumCivsToBeInfluentialOn()
+    )
+end
+
+-- Sort by the count/total ratio so a 1-of-1 civ outranks 5-of-7 the way
+-- the engine's InfluencePct does. Zero-total civs (everyone else dead)
+-- sort to the bottom in desc; substituting -1 instead of 0 keeps them
+-- below content civs at 0%.
+local function influencingSortKey(pPlayer)
+    local total = pPlayer:GetNumCivsToBeInfluentialOn()
+    if total == 0 then
+        return -1
     end
-    table.sort(players, function(a, b)
-        return a:GetTourism() > b:GetTourism()
-    end)
-    for _, p in ipairs(players) do
-        items[#items + 1] = buildVictoryRowGroup(p)
+    return pPlayer:GetNumCivsInfluentialOn() / total
+end
+
+local function ideologyCellText(pPlayer)
+    local branch = pPlayer:GetLateGamePolicyTree()
+    if branch == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+        return Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY")
     end
-    if #items == 0 then
-        items[1] = BaseMenuItems.Text({
-            labelText = Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_NO_CIVS"),
-        })
+    return Text.key(GameInfo.PolicyBranchTypes[branch].Description)
+end
+
+local function opinionCellText(pPlayer)
+    local branch = pPlayer:GetLateGamePolicyTree()
+    if branch == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+        return Text.key("TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA")
     end
-    return items
+    return publicOpinionText(pPlayer:GetPublicOpinionType())
+end
+
+-- Public-opinion unhappiness is signed-negative on this screen (the engine
+-- multiplies by -1 before rendering: a content civ reads "0", a civ pushed
+-- by ideology pressure reads "-3"). Match that sign convention. Civs with
+-- no ideology have no public-opinion unhappiness at all -> "0".
+local function unhappyCellText(pPlayer)
+    if pPlayer:GetLateGamePolicyTree() == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+        return "0"
+    end
+    return formatSigned(-1 * pPlayer:GetPublicOpinionUnhappiness())
+end
+
+local function unhappySortKey(pPlayer)
+    if pPlayer:GetLateGamePolicyTree() == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+        return 0
+    end
+    return -1 * pPlayer:GetPublicOpinionUnhappiness()
+end
+
+local function unhappyTooltip(pPlayer)
+    if pPlayer:GetLateGamePolicyTree() == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+        return nil
+    end
+    if pPlayer:GetPublicOpinionUnhappiness() == 0 then
+        return nil
+    end
+    return pPlayer:GetPublicOpinionUnhappinessTooltip()
+end
+
+-- Excess happiness is a player-wide buffer that's live regardless of
+-- ideology (city happiness summed minus unhappiness from all sources).
+-- Show in both branches, signed.
+local function happyCellText(pPlayer)
+    return formatSigned(pPlayer:GetExcessHappiness())
+end
+
+local function buildVictoryColumns()
+    return {
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_INFLUENCING",
+            getCell = influencingCellText,
+            sortKey = influencingSortKey,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_TOURISM",
+            getCell = function(p)
+                return tostring(p:GetTourism())
+            end,
+            sortKey = function(p)
+                return p:GetTourism()
+            end,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_IDEOLOGY",
+            getCell = ideologyCellText,
+            -- Numeric branch ID groups civs by ideology; NO_POLICY_BRANCH_TYPE
+            -- (-1) is the same sentinel pattern Opinion uses, so no-ideology
+            -- civs land at the bottom in descending sort -- consistent across
+            -- all three ideology-gated columns.
+            sortKey = function(p)
+                return p:GetLateGamePolicyTree()
+            end,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_OPINION",
+            getCell = opinionCellText,
+            -- No-ideology civs sort below all opinion enums (-1 < CONTENT).
+            sortKey = function(p)
+                if p:GetLateGamePolicyTree() == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+                    return -1
+                end
+                return p:GetPublicOpinionType()
+            end,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_UNHAPPY",
+            getCell = unhappyCellText,
+            sortKey = unhappySortKey,
+            getTooltip = unhappyTooltip,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY",
+            getCell = happyCellText,
+            sortKey = function(p)
+                return p:GetExcessHappiness()
+            end,
+        },
+    }
+end
+
+local function buildVictoryTab()
+    return BaseTable.create({
+        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_VICTORY",
+        columns = buildVictoryColumns(),
+        rebuildRows = rebuildVictoryRows,
+        rowLabel = victoryRowLabel,
+    })
 end
 
 -- ===== Tab 4 (Player Influence) ========================================
@@ -1219,7 +1282,7 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     end
     m_yourCultureTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE")
     m_swapTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS")
-    m_victoryTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_VICTORY")
+    m_victoryTab = buildVictoryTab()
     m_influenceTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE")
     TabbedShell.install(ContextPtr, {
         name = "CultureOverview",
@@ -1277,7 +1340,9 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
             end
             m_yourCultureTab.menu().setItems(buildYourCultureItems())
             m_swapTab.menu().setItems(buildSwapItems())
-            m_victoryTab.menu().setItems(buildVictoryItems())
+            -- m_victoryTab is a BaseTable; rebuildRows reruns on every nav,
+            -- so onShow doesn't need to push rows. resetForNextOpen on hide
+            -- is wired by TabbedShell so the next open lands at the header.
             m_influenceTab.menu().setItems(buildInfluenceItems())
         end,
     })

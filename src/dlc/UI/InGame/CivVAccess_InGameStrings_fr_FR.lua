@@ -2179,7 +2179,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS"] = "Échanger des chef
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_VICTORY"] = "Victoire culturelle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE"] = "Influence du joueur"
 -- Tab 1 (Your Culture).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] = "Sites d'antiquité : {1_Visible} visibles, {2_Hidden} cachés"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_ANTIQUITY_SITES"] =
+    "Sites d'antiquité : {1_Visible} visibles, {2_Hidden} cachés"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_CITY_LABEL"] = {
     one = "{1_Name}, culture {2_Cul}, tourisme {3_Tou}, chef-d'oeuvre {4_Filled} sur {5_Total}",
     other = "{1_Name}, culture {2_Cul}, tourisme {3_Tou}, chefs-d'oeuvre {4_Filled} sur {5_Total}",
@@ -2241,26 +2242,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_NEED_DESIGNATE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_TRADE_READY"] =
     "Échanger votre {1_YourName} contre {2_TheirName} de {3_TheirCiv}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_SWAP_SENT"] = "échange envoyé"
--- Tab 3 (Culture Victory). Per-civ row + drill-in detail.
--- VICTORY_ROW placeholders: {1_Civ} civ short name; {2_Influenced} a count
--- like "3 of 7" of cities you've reached the influential level on (uses
--- VICTORY_INFLUENCED_OF below); {3_Tou} tourism per turn integer;
--- {4_Ideology} the ideology name (Freedom / Order / Autocracy) or NO_IDEOLOGY;
--- {5_Opinion} the public-opinion enum word from engine TXT_KEY_CO_OPINION_*
--- (Content / Dissent / Revolt) or OPINION_NA; {6_Unhappy} integer unhappiness
--- their civ's ideology pressure imposes on you; {7_Happy} integer excess
--- happiness your civ holds (the cushion against {6_Unhappy}).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_ROW"] =
-    "{1_Civ}, {2_Influenced} influencé, tourisme {3_Tou}, {4_Ideology}, {5_Opinion}, {6_Unhappy} mécontentement, {7_Happy} bonheur excédentaire"
+-- Tab 3 (Culture Victory). BaseTable: row label is the civ short name,
+-- columns expose the engine's seven-column victory data. Public Opinion and
+-- Public Opinion Unhappiness cells append the engine's breakdown tooltip.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_INFLUENCED_OF"] = "{1_N} sur {2_Total}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY"] = "pas d'idéologie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_NA"] = "pas d'opinion publique"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_OPINION_DETAIL"] = "Détail de l'opinion publique"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_UNHAPPY_DETAIL"] =
-    "Détail du mécontentement lié à l'opinion publique"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_IDEOLOGY_DETAIL"] =
-    "Pas encore d'idéologie, pas d'opinion publique"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_NO_CIVS"] = "Aucune grande civilisation rencontrée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_INFLUENCING"] = "Influence en cours"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_TOURISM"] = "Tourisme"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_IDEOLOGY"] = "Idéologie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_OPINION"] = "Opinion publique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_UNHAPPY"] = "Mécontentement de l'opinion publique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY"] = "Bonheur excédentaire"
 -- Tab 4 (Player Influence).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE"] = "Perspective : {1_Civ}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOURISM"] = "Tourisme par tour : {1_Num}"

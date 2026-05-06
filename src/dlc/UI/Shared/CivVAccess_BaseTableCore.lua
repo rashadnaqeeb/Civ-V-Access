@@ -42,6 +42,10 @@
 --                  on a data cell in this column.
 --     pediaName    fn(row) -> string | nil. Optional. Ctrl+I looks up
 --                  pedia entry for this if defined.
+--     getTooltip   fn(row) -> string | nil. Optional. Appended to the
+--                  cell announcement on data rows via BaseMenuItems
+--                  appendTooltip dedupe (the same routine BaseMenu uses
+--                  for tooltipFn). Header row is unaffected.
 --   rebuildRows    fn() -> array of opaque row objects (required). Called
 --                  fresh on every nav event.
 --   rowLabel       fn(row) -> string (required). Row's primary identifier.
@@ -141,7 +145,21 @@ local function buildCellSpeech(self, rows, force)
     if #parts == 0 then
         return nil
     end
-    return table.concat(parts, ", ")
+    local result = table.concat(parts, ", ")
+    if
+        col ~= nil
+        and type(col.getTooltip) == "function"
+        and BaseMenuItems ~= nil
+        and type(BaseMenuItems.appendTooltip) == "function"
+    then
+        local ok, tt = pcall(col.getTooltip, row)
+        if not ok then
+            Log.error("BaseTable getTooltip '" .. tostring(col.name) .. "': " .. tostring(tt))
+        elseif tt ~= nil and tt ~= "" then
+            result = BaseMenuItems.appendTooltip(result, tt)
+        end
+    end
+    return result
 end
 
 local function speakCell(self, force)
@@ -429,6 +447,10 @@ function BaseTable.create(spec)
         Log.check(
             c.pediaName == nil or type(c.pediaName) == "function",
             "columns[" .. i .. "].pediaName must be a function if provided"
+        )
+        Log.check(
+            c.getTooltip == nil or type(c.getTooltip) == "function",
+            "columns[" .. i .. "].getTooltip must be a function if provided"
         )
     end
     Log.check(type(spec.rebuildRows) == "function", "spec.rebuildRows required")

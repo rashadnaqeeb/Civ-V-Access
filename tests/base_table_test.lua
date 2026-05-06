@@ -50,6 +50,21 @@ local function setup()
             wrapPlays = wrapPlays + 1
         end,
     }
+    -- BaseTable's per-cell tooltip path delegates to BaseMenuItems.appendTooltip
+    -- to share BaseMenu's dedupe / NEWLINE handling. Tests stub the API surface
+    -- with a deterministic concatenator so getTooltip wiring can be exercised
+    -- without dofile'ing BaseMenuItems (which would pull a larger chain).
+    BaseMenuItems = {
+        appendTooltip = function(base, tt)
+            if tt == nil or tt == "" then
+                return base
+            end
+            if base == nil or base == "" then
+                return tt
+            end
+            return base .. ". " .. tt
+        end,
+    }
     dofile("src/dlc/UI/Shared/CivVAccess_BaseTableCore.lua")
 
     pediaCalls = {}
@@ -586,6 +601,70 @@ function M.test_rebuildRows_called_fresh_on_each_navigation()
     findBinding(h, Keys.VK_DOWN)()
     findBinding(h, Keys.VK_RIGHT)()
     T.truthy(callCount > before, "rebuildRows fires on each navigation")
+end
+
+-- Per-cell tooltip ----------------------------------------------------
+
+function M.test_getTooltip_appends_to_data_cell_speech()
+    setup()
+    local spec = makeBasicSpec()
+    spec.columns[2].getTooltip = function(r)
+        return "growth in " .. tostring(r.pop) .. " turns"
+    end
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    speaks = {}
+    SpeechPipeline._reset()
+    -- Right to col 2 (Pop): speech is "Pop, 5. growth in 5 turns" (row label
+    -- elided, col name + cell + tooltip via the appendTooltip stub).
+    findBinding(h, Keys.VK_RIGHT)()
+    T.truthy(speaks[#speaks].text:find("growth in 5 turns"), "tooltip appended to cell speech")
+end
+
+function M.test_getTooltip_returning_nil_omits_tooltip()
+    setup()
+    local spec = makeBasicSpec()
+    spec.columns[2].getTooltip = function(_)
+        return nil
+    end
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    speaks = {}
+    SpeechPipeline._reset()
+    findBinding(h, Keys.VK_RIGHT)()
+    -- No tooltip text in speech beyond cell value "5".
+    T.falsy(speaks[#speaks].text:find("nil"), "nil tooltip not stringified into speech")
+end
+
+function M.test_getTooltip_not_called_on_header_row()
+    setup()
+    local called = 0
+    local spec = makeBasicSpec()
+    spec.columns[1].getTooltip = function(_)
+        called = called + 1
+        return "tt"
+    end
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    -- Activation lands on row 1 (data) and runs getTooltip once. Reset and
+    -- step Up to header: the header path skips the tooltip entirely.
+    called = 0
+    findBinding(h, Keys.VK_UP)()
+    T.eq(called, 0, "getTooltip skipped on header row")
+end
+
+function M.test_getTooltip_throwing_logs_and_skips()
+    setup()
+    local spec = makeBasicSpec()
+    spec.columns[1].getTooltip = function(_)
+        error("boom")
+    end
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    -- Speech still produced (no crash); error logged.
+    T.truthy(#speaks >= 1)
+    T.truthy(#errors >= 1)
+    T.truthy(errors[1]:find("boom"))
 end
 
 -- Empty data ----------------------------------------------------------

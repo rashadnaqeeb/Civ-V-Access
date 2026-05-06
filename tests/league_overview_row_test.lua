@@ -717,8 +717,10 @@ function M.test_resolution_details_propose_grateful_only()
         .. "[NEWLINE][ICON_BULLET]France"
         .. "[NEWLINE][ICON_BULLET]Egypt"
     local out = LeagueOverviewRow.formatResolutionDetails(raw)
-    T.truthy(out:find("Civs that would approve: Germany, France, Egypt", 1, true),
-        "civ list should be comma-joined under mod preface: " .. out)
+    T.truthy(
+        out:find("Civs that would approve: Germany, France, Egypt", 1, true),
+        "civ list should be comma-joined under mod preface: " .. out
+    )
     -- preface before description
     local prefacePos = out:find("Civs that would approve", 1, true)
     local descPos = out:find("Description", 1, true)
