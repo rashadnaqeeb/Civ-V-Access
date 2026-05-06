@@ -34,6 +34,7 @@ local function mkCity(opts)
         _cultureStored = opts.cultureStored or 4,
         _cultureThreshold = opts.cultureThreshold or 30,
         _culturePerTurn = opts.culturePerTurn or 0,
+        _faithPerTurn = opts.faithPerTurn or 0,
         _localHappiness = opts.localHappiness or 0,
         _religiousMajority = (opts.religiousMajority == nil) and -1 or opts.religiousMajority,
         _followers = opts.followers or {},
@@ -102,6 +103,9 @@ local function mkCity(opts)
     end
     function c:GetJONSCulturePerTurn()
         return self._culturePerTurn
+    end
+    function c:GetFaithPerTurn()
+        return self._faithPerTurn
     end
     function c:GetLocalHappiness()
         return self._localHappiness
@@ -267,10 +271,10 @@ function M.test_yields_speak_per_turn_for_seven_yields()
             [YieldTypes.YIELD_PRODUCTION] = 12,
             [YieldTypes.YIELD_GOLD] = 8,
             [YieldTypes.YIELD_SCIENCE] = 14,
-            [YieldTypes.YIELD_FAITH] = 3,
-            [YieldTypes.YIELD_CULTURE] = 6,
         },
         baseTourism = 250,
+        faithPerTurn = 3,
+        culturePerTurn = 6,
     })
     -- No tooltip helpers wired so breakdown is empty; we're only testing
     -- the per-yield headers. Pass an explicit fn that returns nil.

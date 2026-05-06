@@ -88,8 +88,8 @@ local function preambleFn()
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION", city:GetYieldRate(YieldTypes.YIELD_PRODUCTION))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE", city:GetYieldRate(YieldTypes.YIELD_SCIENCE))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLD", city:GetYieldRate(YieldTypes.YIELD_GOLD))
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", city:GetYieldRate(YieldTypes.YIELD_CULTURE))
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetYieldRate(YieldTypes.YIELD_FAITH))
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", city:GetJONSCulturePerTurn())
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetFaithPerTurn())
     for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
     end

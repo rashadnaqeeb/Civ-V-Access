@@ -143,7 +143,7 @@ local YIELD_DEFS = {
         groupKey = "TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_FAITH",
         helperKey = "FAITH",
         rate = function(c)
-            return c:GetYieldRate(YieldTypes.YIELD_FAITH)
+            return c:GetFaithPerTurn()
         end,
     },
     {
@@ -159,7 +159,7 @@ local YIELD_DEFS = {
         groupKey = "TXT_KEY_CIVVACCESS_CITYSTATS_YIELD_CULTURE",
         helperKey = "CULTURE",
         rate = function(c)
-            return c:GetYieldRate(YieldTypes.YIELD_CULTURE)
+            return c:GetJONSCulturePerTurn()
         end,
     },
 }
