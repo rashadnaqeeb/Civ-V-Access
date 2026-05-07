@@ -70,20 +70,45 @@ local hubHandler -- forward; assigned after BaseMenu.install returns.
 
 -- ===== Foreign / spy-screen detection =====
 --
--- The engine reaches CityView for a city the active player does not own
--- when a spy is stationed there ("View City" on the espionage screen).
--- Vanilla disables every write surface in this case via
--- pCity:GetOwner() ~= Game.GetActivePlayer() and / or
--- UI.IsCityScreenViewingMode(); we mirror both gates so neither flow
--- slips through. Treating either signal as foreign keeps us strict on
--- the rare engine paths that flip viewing-mode without an owner mismatch
--- (annexed-vassal lookback, etc.).
+-- Two distinct predicates because the announcement layer and the
+-- write-gate layer answer different questions.
+--
+-- isForeign asks "is this somebody else's city?" -- the only condition
+-- under which we should announce "spying" or refuse city cycling. It
+-- looks at owner only.
+--
+-- isActiveOwn asks "is this our city AND can we write to it?" -- used
+-- to gate every action that the engine refuses in viewing mode (change
+-- production, work tile, buy plot, ranged strike). Viewing mode is set
+-- true on plenty of own-city paths -- the PuppetCityPopup and
+-- AnnexCityPopup "View City" peeks (own city, just captured), engine
+-- between-turn flips, etc. Treating those as foreign would falsely
+-- announce "spying" on the user's own city, which is exactly what we
+-- avoid by keeping the predicates separate.
+local function isForeign(city)
+    return city ~= nil and city:GetOwner() ~= Game.GetActivePlayer()
+end
+
 local function isActiveOwn(city)
     return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
 end
 
 local function refuseForeign(textKey)
     SpeechPipeline.speakInterrupt(Text.key(textKey))
+end
+
+-- Standard guard for write-actions. Speaks the foreign-refusal message only
+-- when the city actually belongs to another player; on viewing-mode-on-own
+-- (PuppetCityPopup peek, AnnexCityPopup peek, engine between-turn flips)
+-- silently blocks because vanilla disables the equivalent button there and
+-- "you do not own this city" would be a lie. Returns true when the action
+-- should be skipped.
+local function refuseIfNotActiveOwn(city, foreignKey)
+    if isForeign(city) then
+        refuseForeign(foreignKey)
+        return true
+    end
+    return UI.IsCityScreenViewingMode()
 end
 
 -- ===== Preamble composition =====
@@ -101,7 +126,7 @@ local function preamble()
         return ""
     end
     local parts = {}
-    if not isActiveOwn(city) then
+    if isForeign(city) then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX")
     end
     parts[#parts + 1] = city:GetName()
@@ -131,7 +156,7 @@ local function hasOtherCities()
 end
 
 local function nextCity()
-    if not isActiveOwn(UI.GetHeadSelectedCity()) then
+    if isForeign(UI.GetHeadSelectedCity()) then
         refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING")
         return
     end
@@ -143,7 +168,7 @@ local function nextCity()
 end
 
 local function previousCity()
-    if not isActiveOwn(UI.GetHeadSelectedCity()) then
+    if isForeign(UI.GetHeadSelectedCity()) then
         refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING")
         return
     end
@@ -438,8 +463,7 @@ local function pushWorkerFocus()
                 if city == nil then
                     return
                 end
-                if not isActiveOwn(city) then
-                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS")
+                if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS") then
                     return
                 end
                 if not isTurnActive() then
@@ -466,8 +490,7 @@ local function pushWorkerFocus()
             if city == nil then
                 return
             end
-            if not isActiveOwn(city) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS")
+            if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS") then
                 return
             end
             if not isTurnActive() then
@@ -492,8 +515,7 @@ local function pushWorkerFocus()
             if city == nil then
                 return
             end
-            if not isActiveOwn(city) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS")
+            if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_FOCUS") then
                 return
             end
             if not isTurnActive() then
@@ -531,8 +553,7 @@ local function activateUnemployed()
     if city == nil then
         return
     end
-    if not isActiveOwn(city) then
-        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER")
+    if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SLACKER") then
         return
     end
     if not isTurnActive() then
@@ -640,8 +661,7 @@ local function buildBuildingsGroup(city)
                 if liveCity == nil then
                     return
                 end
-                if not isActiveOwn(liveCity) then
-                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL")
+                if refuseIfNotActiveOwn(liveCity, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SELL") then
                     return
                 end
                 if not liveCity:IsBuildingSellable(capturedID) or liveCity:IsPuppet() then
@@ -779,8 +799,7 @@ local function buildSpecialistsGroup(city)
                         if c == nil then
                             return
                         end
-                        if not isActiveOwn(c) then
-                            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST")
+                        if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST") then
                             return
                         end
                         if not isTurnActive() then
@@ -855,8 +874,7 @@ local function buildSpecialistsGroup(city)
             if c == nil then
                 return
             end
-            if not isActiveOwn(c) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST")
+            if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST") then
                 return
             end
             if not isTurnActive() then
@@ -968,8 +986,7 @@ local function buildGreatWorksGroup(city)
                     if c == nil then
                         return
                     end
-                    if not isActiveOwn(c) then
-                        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN")
+                    if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_GREAT_WORK_OPEN") then
                         return
                     end
                     local gwIndex = c:GetBuildingGreatWork(bClassID, slotZero)
@@ -1033,8 +1050,7 @@ local function pushRangedStrike()
     if city == nil then
         return
     end
-    if not isActiveOwn(city) then
-        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED")
+    if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED") then
         return
     end
     if not city:CanRangeStrikeNow() then

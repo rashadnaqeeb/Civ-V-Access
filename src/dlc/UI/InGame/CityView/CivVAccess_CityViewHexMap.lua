@@ -41,15 +41,26 @@ local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
 
--- Foreign / spy-screen predicate. Duplicated from the orchestrator;
--- trivial enough that a shared module table would be more ceremony than
--- it saves.
-local function isActiveOwn(city)
-    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+-- Write-action and intel guards. Duplicated from the orchestrator (same
+-- rationale -- shared module table would be more ceremony than it saves).
+-- isForeign handles ownership; refuseIfNotActiveOwn speaks the foreign
+-- refusal only when the city is actually somebody else's, and silently
+-- blocks on viewing-mode-on-own (PuppetCityPopup peek, etc.) where saying
+-- "you do not own this city" would be a lie.
+local function isForeign(city)
+    return city ~= nil and city:GetOwner() ~= Game.GetActivePlayer()
 end
 
 local function refuseForeign(textKey)
     SpeechPipeline.speakInterrupt(Text.key(textKey))
+end
+
+local function refuseIfNotActiveOwn(city, foreignKey)
+    if isForeign(city) then
+        refuseForeign(foreignKey)
+        return true
+    end
+    return UI.IsCityScreenViewingMode()
 end
 
 -- ===== Hex-map predicates =====
@@ -144,7 +155,7 @@ local function hexTileAnnouncement(plot)
             -- tile would be available to its owner. Affordability is also
             -- skipped because the gold being asked is the foreign player's,
             -- not ours.
-            if not isActiveOwn(city) then
+            if isForeign(city) then
                 parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_PURCHASABLE_FOREIGN")
             else
                 local cost = city:GetBuyPlotCost(px, py)
@@ -223,8 +234,7 @@ local function activateHexTile()
     -- false (blocked, out of radius) -- the task wouldn't apply and speech
     -- already explained why.
     if isInWorkingArea(city, plot) then
-        if not isActiveOwn(city) then
-            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE")
+        if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE") then
             return
         end
         if not city:CanWork(plot) then
@@ -262,8 +272,7 @@ local function activateHexTile()
         -- disables BuyPlotButton in viewing mode; we surface the same
         -- "purchasable" token in the announcer but block the action so the
         -- engine's silent reject doesn't read as success.
-        if not isActiveOwn(city) then
-            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT")
+        if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT") then
             return
         end
         if not city:CanBuyPlotAt(cx, cy, false) then
@@ -294,8 +303,10 @@ local function listWorkedTilesFromCursor()
     -- espionage panel; speaking the foreign city's worked tile set with
     -- terrain / improvement context would be pure mod-surface intel.
     -- Refuse on foreign with the same wording as the per-tile work refusal
-    -- so the user understands the L chord is owner-scoped.
-    if not isActiveOwn(city) then
+    -- so the user understands the L chord is owner-scoped. This is a read
+    -- action, so viewing-mode-on-own is fine -- listing the user's own
+    -- worked tiles during a peek leaks no intel.
+    if isForeign(city) then
         refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_WORK_TILE")
         return
     end

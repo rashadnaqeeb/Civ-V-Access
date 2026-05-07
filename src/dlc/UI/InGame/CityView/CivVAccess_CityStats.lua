@@ -573,9 +573,11 @@ end
 -- ForUI(city), which only makes sense when player is the city's owner;
 -- on a spy screen we drop it rather than swap to the foreign player's
 -- handle (which would expose the foreign empire's per-city unhappiness
--- contribution -- intel beyond espionage).
-local function isActiveOwn(city)
-    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+-- contribution -- intel beyond espionage). Pure ownership predicate --
+-- viewing-mode-on-own (PuppetCityPopup peek, between-turn flips) is
+-- still the user's own city, no intel concern.
+local function isOwn(city)
+    return city ~= nil and city:GetOwner() == Game.GetActivePlayer()
 end
 
 function CityStats.buildItems(city, player)
@@ -585,7 +587,7 @@ function CityStats.buildItems(city, player)
             items[#items + 1] = group
         end
     end
-    local own = isActiveOwn(city)
+    local own = isOwn(city)
     if own then
         items[#items + 1] = BaseMenuItems.Text({ labelText = CityStats.happinessLine(city, player) })
     end

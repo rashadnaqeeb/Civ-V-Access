@@ -31,17 +31,27 @@ local function isTurnActive()
     return Players[Game.GetActivePlayer()]:IsTurnActive()
 end
 
--- Foreign / spy-screen predicate. Duplicated from the orchestrator;
--- trivial enough that a shared module table would be more ceremony than
--- it saves. See CivVAccess_CityViewAccess.lua's isActiveOwn for the
--- rationale -- we treat both owner-mismatch and viewing-mode as foreign
--- so neither engine path slips a write through.
-local function isActiveOwn(city)
-    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+-- Write-action guards. Duplicated from the orchestrator (same rationale --
+-- shared module table would be more ceremony than it saves). isForeign
+-- handles ownership; refuseIfNotActiveOwn speaks the foreign-refusal
+-- message only when the city is actually somebody else's, and silently
+-- blocks on viewing-mode-on-own (PuppetCityPopup peek, etc.) where saying
+-- "you do not own this city" would be a lie. See the orchestrator file
+-- for the full predicate-split rationale.
+local function isForeign(city)
+    return city ~= nil and city:GetOwner() ~= Game.GetActivePlayer()
 end
 
 local function refuseForeign(textKey)
     SpeechPipeline.speakInterrupt(Text.key(textKey))
+end
+
+local function refuseIfNotActiveOwn(city, foreignKey)
+    if isForeign(city) then
+        refuseForeign(foreignKey)
+        return true
+    end
+    return UI.IsCityScreenViewingMode()
 end
 
 -- ===== Order metadata =====
@@ -167,8 +177,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP"),
             onActivate = function()
-                if not isActiveOwn(UI.GetHeadSelectedCity()) then
-                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                if refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
                     return
                 end
                 if not isTurnActive() then
@@ -185,8 +194,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN"),
             onActivate = function()
-                if not isActiveOwn(UI.GetHeadSelectedCity()) then
-                    refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                if refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
                     return
                 end
                 if not isTurnActive() then
@@ -202,8 +210,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVE"),
         onActivate = function()
-            if not isActiveOwn(UI.GetHeadSelectedCity()) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+            if refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
                 return
             end
             if not isTurnActive() then
@@ -308,9 +315,9 @@ local function buildProductionQueueItems()
             -- Controls.HideQueueButton is a global UI flag, not per-city.
             -- Toggling from a spy-screen visit would mutate the user's own
             -- queue-mode setting permanently -- vanilla has no analogue
-            -- (this toggle is mod-authored). Refuse on foreign.
-            if not isActiveOwn(UI.GetHeadSelectedCity()) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+            -- (this toggle is mod-authored). Refuse on foreign; also block
+            -- silently in viewing-mode-on-own peeks for the same reason.
+            if refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
                 return
             end
             if Controls.HideQueueButton == nil then
@@ -334,8 +341,7 @@ local function buildProductionQueueItems()
             if c == nil then
                 return
             end
-            if not isActiveOwn(c) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+            if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
                 return
             end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
@@ -359,8 +365,7 @@ local function buildProductionQueueItems()
             if c == nil then
                 return
             end
-            if not isActiveOwn(c) then
-                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+            if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
                 return
             end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
