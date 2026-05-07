@@ -44,20 +44,27 @@
 
 HandlerStack = {}
 
--- Set by Beacons at module load to react to every stack mutation. Fires
--- after push / pop / replace / popAbove / removeByName / drainAndRemove /
--- insertAt / deactivateAll / clear, as a single point the audibility
--- policy can read off the new top. Single-listener field rather than a
--- registry; if a second subscriber ever materializes, change the field
--- to a table and append-only.
-HandlerStack.onMutated = nil
-
 civvaccess_shared = civvaccess_shared or {}
 civvaccess_shared.stack = civvaccess_shared.stack or {}
 local _shared = civvaccess_shared
 
+-- Mutation listener for stack-driven side effects (currently Beacons.
+-- refresh, which evaluates the audibility policy). Stored on the shared
+-- table -- not on HandlerStack itself -- because every Context that
+-- includes CivVAccess_HandlerStack gets its own HandlerStack global, so
+-- a per-Context field would only fire for mutations from the Context
+-- that registered the listener. civvaccess_shared is the proxy-injected
+-- cross-Context bridge; storing here lets a push from CityView /
+-- ChooseProductionPopup / etc. also reach the listener registered by
+-- Beacons in WorldView. Single-listener slot rather than a registry; if
+-- a second subscriber ever materializes, change to a table and append-
+-- only.
+function HandlerStack.setOnMutated(fn)
+    _shared.onMutated = fn
+end
+
 local function notifyMutated()
-    local fn = HandlerStack.onMutated
+    local fn = _shared.onMutated
     if type(fn) == "function" then
         Log.tryCall("HandlerStack.onMutated", fn)
     end

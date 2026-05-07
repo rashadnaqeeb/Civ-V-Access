@@ -332,4 +332,10 @@ end
 -- onSuspend hooks (which were brittle: targeting-mode pops via
 -- removeByName(reactivate=false) skip onActivate, leaving beacons
 -- silenced after a Tab unit-action commit or an Esc out of target mode).
-HandlerStack.onMutated = Beacons.refresh
+-- Routes through setOnMutated so the listener lives on civvaccess_shared
+-- and fires for mutations from any Context, not just WorldView (every
+-- Context that includes CivVAccess_HandlerStack gets its own HandlerStack
+-- global, so a per-Context onMutated would miss pushes from CityView /
+-- popup Contexts -- which is precisely where most non-Baseline tops come
+-- from).
+HandlerStack.setOnMutated(Beacons.refresh)

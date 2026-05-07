@@ -37,6 +37,11 @@ local function setup()
         at = function(i)
             return HandlerStack._stack[i]
         end,
+        -- Beacons.lua subscribes its refresh fn through this on module
+        -- load. Tests drive refresh directly, so the subscription is a
+        -- no-op for assertion purposes; the stub just needs to exist so
+        -- the dofile doesn't index a nil function.
+        setOnMutated = function() end,
     }
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function() end
