@@ -32,14 +32,36 @@
 --   onDeactivate       (fn(self), optional) fired on removal from the stack.
 --   tick               (fn(self), optional) called every frame by TickPump on
 --                      the active handler only.
+--   beaconsTransparent (bool, default false) handler is treated as pass-
+--                      through by Beacons.refresh's top-down stack walk.
+--                      For cursor-still-on-map flows like the Tab unit-
+--                      action menu and the target / strike / gift pickers
+--                      where the user is still on the world map and the
+--                      audio bookmarks should keep playing despite a non-
+--                      Baseline handler being on top.
 --
 -- Push when a screen opens; removeByName when it closes.
 
 HandlerStack = {}
 
+-- Set by Beacons at module load to react to every stack mutation. Fires
+-- after push / pop / replace / popAbove / removeByName / drainAndRemove /
+-- insertAt / deactivateAll / clear, as a single point the audibility
+-- policy can read off the new top. Single-listener field rather than a
+-- registry; if a second subscriber ever materializes, change the field
+-- to a table and append-only.
+HandlerStack.onMutated = nil
+
 civvaccess_shared = civvaccess_shared or {}
 civvaccess_shared.stack = civvaccess_shared.stack or {}
 local _shared = civvaccess_shared
+
+local function notifyMutated()
+    local fn = HandlerStack.onMutated
+    if type(fn) == "function" then
+        Log.tryCall("HandlerStack.onMutated", fn)
+    end
+end
 
 local function invoke(handler, methodName)
     local fn = handler[methodName]
@@ -225,6 +247,7 @@ function HandlerStack.push(handler)
     end
     _shared.stack[#_shared.stack + 1] = handler
     Log.debug("HandlerStack.push '" .. tostring(handler.name) .. "' (depth=" .. #_shared.stack .. ")")
+    notifyMutated()
     return true
 end
 
@@ -268,6 +291,7 @@ function HandlerStack.insertAt(handler, idx)
     Log.debug(
         "HandlerStack.insertAt '" .. tostring(handler.name) .. "' (idx=" .. idx .. ", depth=" .. #_shared.stack .. ")"
     )
+    notifyMutated()
     return true
 end
 
@@ -285,6 +309,7 @@ function HandlerStack.pop()
     if newTop ~= nil then
         invoke(newTop, "onActivate")
     end
+    notifyMutated()
     return top
 end
 
@@ -313,6 +338,7 @@ function HandlerStack.popAbove(target)
             end
             -- Target is now the top and is (re)exposed.
             invoke(_shared.stack[i], "onActivate")
+            notifyMutated()
             break
         end
     end
@@ -340,6 +366,7 @@ function HandlerStack.removeByName(name, reactivate)
                     invoke(newTop, "onActivate")
                 end
             end
+            notifyMutated()
             return true
         end
     end
@@ -401,10 +428,12 @@ function HandlerStack.deactivateAll()
         _shared.stack[i] = nil
         invoke(h, "onDeactivate")
     end
+    notifyMutated()
 end
 
 function HandlerStack.clear()
     _shared.stack = {}
+    notifyMutated()
 end
 
 -- Always-on help entries appended at the bottom of every collected list.

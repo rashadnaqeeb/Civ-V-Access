@@ -3,9 +3,11 @@
 -- don't: toggle on/off, the empty-slot speak, onCursorMove computes and
 -- pushes the right parameters, the volume floor at the configured max
 -- distance, the degenerate-vector path at distance zero, the cheap-path
--- early return when no beacons are active, the desync recovery (active
--- flag set but bookmark missing) in onCursorMove and resume, suspend
--- preserves activation while stopping voices, loadAll is idempotent,
+-- early return when no beacons are active, the audibility policy
+-- (cursor-on-map handler -> play, anything else -> stop, beaconsTransparent
+-- handlers pass through the top-down walk), refresh idempotency (no
+-- redundant audio.play to avoid clicks), the desync recovery in refresh
+-- (active flag set but bookmark missing), loadAll is idempotent,
 -- resetForNewGame wipes activation. The actual stereo-bus mixing (pan,
 -- pitch as playback-rate) is owned by miniaudio in the proxy and is not
 -- exercised here -- the offline harness asserts that the right values
@@ -20,11 +22,22 @@ local M = {}
 local function setup()
     -- Module-scope locals in Beacons.lua reference HandlerStack.bind and
     -- SpeechPipeline.speakInterrupt at load time, so both must exist as
-    -- globals before the dofile.
-    HandlerStack = HandlerStack or {}
-    function HandlerStack.bind(key, mods, fn, description)
-        return { key = key, mods = mods, fn = fn, description = description }
-    end
+    -- globals before the dofile. HandlerStack.count / .at are how
+    -- Beacons.refresh reads the current stack to evaluate the audibility
+    -- policy; we drive a small fake stack in _stack and let the helpers
+    -- below populate it for each scenario.
+    HandlerStack = {
+        _stack = {},
+        bind = function(key, mods, fn, description)
+            return { key = key, mods = mods, fn = fn, description = description }
+        end,
+        count = function()
+            return #HandlerStack._stack
+        end,
+        at = function(i)
+            return HandlerStack._stack[i]
+        end,
+    }
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function() end
 
@@ -37,10 +50,13 @@ local function setup()
     -- Reset shared state. resetForNewGame stops voices and inits the
     -- activeBeacons table; tests that want to skip the stop call (i.e.
     -- those checking loadAll behavior in isolation) reset by hand.
+    -- beaconPlaying is the per-slot "currently audible" flag refresh
+    -- tracks to keep audio.play idempotent.
     civvaccess_shared = civvaccess_shared or {}
     civvaccess_shared.bookmarks = {}
     civvaccess_shared.beaconHandles = nil
     civvaccess_shared.activeBeacons = nil
+    civvaccess_shared.beaconPlaying = nil
 
     -- Cursor stub. Tests that exercise onCursorMove / resume override
     -- this on a per-test basis.
@@ -77,6 +93,32 @@ local function findCall(op, slot)
         end
     end
     return nil
+end
+
+-- Stack-population helpers. Beacons.refresh walks HandlerStack._stack
+-- from the top to find the first non-beaconsTransparent handler, and
+-- only plays beacons when that handler's name is "Baseline" or "Scanner".
+local function setBaselineScannerStack()
+    HandlerStack._stack = {
+        { name = "Baseline" },
+        { name = "Scanner" },
+    }
+end
+
+local function setBlockingTopStack()
+    HandlerStack._stack = {
+        { name = "Baseline" },
+        { name = "Scanner" },
+        { name = "SomePopup" },
+    }
+end
+
+local function setTransparentTargetingStack()
+    HandlerStack._stack = {
+        { name = "Baseline" },
+        { name = "Scanner" },
+        { name = "UnitTargetMode", beaconsTransparent = true },
+    }
 end
 
 -- ===== loadAll =====
@@ -121,21 +163,24 @@ function M.test_toggle_activates_populates_flag_and_plays_voice()
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    setBaselineScannerStack()
     civvaccess_shared.bookmarks["3"] = { x = 5, y = 7 }
     Cursor._x, Cursor._y = 0, 0
+    audio._reset()
 
     local spoken = Beacons.toggle("3")
 
     T.truthy(spoken:find("3"), "activated message must include the slot number")
     T.eq(civvaccess_shared.activeBeacons["3"], true)
     local h = civvaccess_shared.beaconHandles["3"]
-    T.truthy(findCall("play", h), "audio.play must fire on activation")
+    T.truthy(findCall("play", h), "audio.play must fire on activation under an audible top")
 end
 
 function M.test_toggle_deactivates_clears_flag_and_stops_voice()
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    setBaselineScannerStack()
     civvaccess_shared.bookmarks["5"] = { x = 1, y = 1 }
     Cursor._x, Cursor._y = 0, 0
 
@@ -154,6 +199,7 @@ function M.test_toggle_empty_slot_speaks_no_bookmark_and_no_audio()
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    setBaselineScannerStack()
     -- No bookmark set for slot "8".
     audio._reset()
 
@@ -162,6 +208,32 @@ function M.test_toggle_empty_slot_speaks_no_bookmark_and_no_audio()
     T.truthy(spoken ~= "" and spoken ~= nil, "empty slot must return a non-empty prompt")
     T.eq(civvaccess_shared.activeBeacons["8"], nil)
     T.eq(#audio._calls, 0, "no audio calls when the slot has no bookmark")
+end
+
+function M.test_toggle_under_blocking_top_arms_without_playing()
+    -- A non-cursor-on-map handler on top of Baseline / Scanner silences
+    -- the policy. Toggling a beacon in this state arms the slot but does
+    -- not play audio; the next refresh that lands on an audible top
+    -- starts the voice.
+    setup()
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
+    setBlockingTopStack()
+    civvaccess_shared.bookmarks["4"] = { x = 1, y = 0 }
+    Cursor._x, Cursor._y = 0, 0
+    audio._reset()
+
+    Beacons.toggle("4")
+
+    T.eq(civvaccess_shared.activeBeacons["4"], true, "active flag still set under blocking top")
+    local h = civvaccess_shared.beaconHandles["4"]
+    T.eq(findCall("play", h), nil, "no audio.play fires while a blocking handler is on top")
+
+    -- Blocking handler pops; next refresh fires audio.play.
+    setBaselineScannerStack()
+    audio._reset()
+    Beacons.refresh()
+    T.truthy(findCall("play", h), "refresh starts the armed beacon once the top clears")
 end
 
 -- ===== onCursorMove =====
@@ -252,11 +324,11 @@ function M.test_onCursorMove_no_active_beacons_makes_no_audio_calls()
     T.eq(#audio._calls, 0, "no audio traffic when no beacons are active")
 end
 
-function M.test_onCursorMove_desync_stops_voice_clears_flag_and_warns()
-    -- The "active flag set but bookmark gone" state is unreachable by
-    -- design (resetForNewGame keeps them in lockstep). Reaching it means
-    -- a bug elsewhere; the recovery path stops the voice, clears the
-    -- flag so the warn doesn't refire on every move, and logs.
+function M.test_onCursorMove_desync_silently_skips()
+    -- onCursorMove trusts the active set: the desync recovery (active flag
+    -- set but bookmark missing) lives in refresh, where it pairs naturally
+    -- with the per-slot beaconPlaying cleanup. onCursorMove just skips the
+    -- bad slot so a single dropped frame doesn't double-fire stop calls.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
@@ -264,25 +336,23 @@ function M.test_onCursorMove_desync_stops_voice_clears_flag_and_warns()
     -- Bookmark "6" intentionally absent.
     Cursor._x, Cursor._y = 0, 0
     audio._reset()
-    local warned
-    Log.warn = function(msg)
-        warned = msg
-    end
 
     Beacons.onCursorMove()
 
-    local h = civvaccess_shared.beaconHandles["6"]
-    T.truthy(findCall("stop", h), "stale-active beacon must be stopped")
-    T.eq(civvaccess_shared.activeBeacons["6"], false, "stale-active flag must be cleared")
-    T.truthy(warned and warned:find("6"), "warn must fire and identify the slot")
+    T.eq(#audio._calls, 0, "onCursorMove must not touch audio for a desync slot")
 end
 
--- ===== resume / suspend =====
+-- ===== refresh =====
 
-function M.test_resume_replays_each_active_beacon()
+function M.test_refresh_starts_active_beacons_when_audible()
+    -- Replaces the old resume() test: under an audible top, refresh
+    -- starts every active slot whose bookmark exists. Drives the
+    -- "popup pops, beacons should resume" path the BaselineHandler /
+    -- ScannerHandler used to wire through onActivate hooks.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    setBaselineScannerStack()
     civvaccess_shared.bookmarks["1"] = { x = 1, y = 0 }
     civvaccess_shared.bookmarks["7"] = { x = 0, y = 1 }
     civvaccess_shared.activeBeacons["1"] = true
@@ -290,7 +360,7 @@ function M.test_resume_replays_each_active_beacon()
     Cursor._x, Cursor._y = 0, 0
     audio._reset()
 
-    Beacons.resume()
+    Beacons.refresh()
 
     local h1 = civvaccess_shared.beaconHandles["1"]
     local h7 = civvaccess_shared.beaconHandles["7"]
@@ -298,15 +368,85 @@ function M.test_resume_replays_each_active_beacon()
     T.truthy(findCall("play", h7))
 end
 
-function M.test_resume_desync_clears_flag_and_warns()
-    -- Resume's nil-bookmark recovery: the voice is already stopped (it
-    -- was suspended), so we just clear the flag to keep the warn from
-    -- firing every time the user pops back to Baseline.
+function M.test_refresh_stops_voices_when_top_blocks_audibility()
+    -- Replaces the old suspend() test. Drive an audible refresh first to
+    -- mark the slots playing, then push a non-transparent handler and
+    -- refresh again -- only previously-playing slots get stop calls,
+    -- and the active flags stay set so the next audible refresh restarts
+    -- them.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    setBaselineScannerStack()
+    civvaccess_shared.bookmarks["2"] = { x = 0, y = 1 }
+    civvaccess_shared.activeBeacons["2"] = true
+    Cursor._x, Cursor._y = 0, 0
+    Beacons.refresh()
+
+    setBlockingTopStack()
+    audio._reset()
+    Beacons.refresh()
+
+    local h = civvaccess_shared.beaconHandles["2"]
+    T.truthy(findCall("stop", h), "blocking top must stop the previously-playing slot")
+    T.eq(civvaccess_shared.activeBeacons["2"], true, "active flag must stay set across stop")
+end
+
+function M.test_refresh_treats_beaconsTransparent_as_passthrough()
+    -- The Tab unit-action menu and the target / strike / gift pickers all
+    -- mark themselves beaconsTransparent so the policy walk skips past
+    -- them and the cursor-on-map layer below stays the effective top.
+    -- Beacons must keep playing in those flows.
+    setup()
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
+    setTransparentTargetingStack()
+    civvaccess_shared.bookmarks["1"] = { x = 1, y = 0 }
+    civvaccess_shared.activeBeacons["1"] = true
+    Cursor._x, Cursor._y = 0, 0
+    audio._reset()
+
+    Beacons.refresh()
+
+    local h = civvaccess_shared.beaconHandles["1"]
+    T.truthy(findCall("play", h), "beaconsTransparent handler must not silence the policy")
+end
+
+function M.test_refresh_idempotent_under_steady_state()
+    -- audio.play in the proxy re-arms the source (stop + seek-to-0 +
+    -- start), so a redundant refresh that re-plays a still-playing slot
+    -- would click on every push / pop. The per-slot beaconPlaying flag
+    -- guards against that: a refresh whose desired state matches the
+    -- current state must produce zero audio calls for that slot.
+    setup()
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
+    setBaselineScannerStack()
+    civvaccess_shared.bookmarks["3"] = { x = 1, y = 0 }
+    civvaccess_shared.activeBeacons["3"] = true
+    Cursor._x, Cursor._y = 0, 0
+    Beacons.refresh()
+
+    audio._reset()
+    Beacons.refresh()
+
+    local h = civvaccess_shared.beaconHandles["3"]
+    T.eq(findCall("play", h), nil, "no replay on a redundant refresh")
+    T.eq(findCall("stop", h), nil, "no stop on a redundant refresh")
+end
+
+function M.test_refresh_desync_clears_flag_and_warns()
+    -- Active flag set but bookmark gone. resetForNewGame is supposed to
+    -- keep them in lockstep; reaching this state means a bug elsewhere.
+    -- refresh stops the voice (which may have been looping with stale
+    -- params), drops the per-slot playing flag, clears the active flag,
+    -- and logs once so the warning doesn't refire on every refresh.
+    setup()
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
+    setBaselineScannerStack()
     civvaccess_shared.activeBeacons["9"] = true
-    -- Bookmark "9" absent.
+    -- Bookmark "9" intentionally absent.
     Cursor._x, Cursor._y = 0, 0
     audio._reset()
     local warned
@@ -314,61 +454,44 @@ function M.test_resume_desync_clears_flag_and_warns()
         warned = msg
     end
 
-    Beacons.resume()
+    Beacons.refresh()
 
-    T.eq(civvaccess_shared.activeBeacons["9"], false)
-    T.truthy(warned and warned:find("9"))
-    -- No play call -- there's no bookmark to play at.
+    T.eq(civvaccess_shared.activeBeacons["9"], false, "stale-active flag must be cleared")
+    T.truthy(warned and warned:find("9"), "warn must fire and identify the slot")
     local h = civvaccess_shared.beaconHandles["9"]
-    T.eq(findCall("play", h), nil)
-end
-
-function M.test_suspend_stops_every_voice_without_clearing_active()
-    setup()
-    Beacons.loadAll()
-    Beacons.resetForNewGame()
-    civvaccess_shared.bookmarks["2"] = { x = 0, y = 1 }
-    civvaccess_shared.activeBeacons["2"] = true
-    audio._reset()
-
-    Beacons.suspend()
-
-    -- Stops fire for every allocated handle (cheap blanket stop), and the
-    -- active flag stays set so resume can replay the same set later.
-    local stops = 0
-    for _, c in ipairs(audio._calls) do
-        if c.op == "stop" then
-            stops = stops + 1
-        end
-    end
-    T.eq(stops, 10, "suspend must stop every voice")
-    T.eq(civvaccess_shared.activeBeacons["2"], true, "suspend must not clear activation flags")
+    T.eq(findCall("play", h), nil, "no play on a desync slot")
 end
 
 -- ===== resetForNewGame =====
 
-function M.test_resetForNewGame_stops_voices_and_clears_active_table()
+function M.test_resetForNewGame_stops_playing_voices_and_clears_active_table()
+    -- resetForNewGame clears the active table and routes through refresh,
+    -- which stops only the slots that were actually playing. The previous
+    -- "blanket stop every handle" was conservative against a save/load
+    -- transition leaking running voices; refresh's per-slot tracking is
+    -- precise instead -- the slots not playing don't need stop calls
+    -- because they're not playing.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    setBaselineScannerStack()
+    civvaccess_shared.bookmarks["1"] = { x = 1, y = 0 }
+    civvaccess_shared.bookmarks["2"] = { x = 0, y = 1 }
     civvaccess_shared.activeBeacons["1"] = true
     civvaccess_shared.activeBeacons["2"] = true
+    Cursor._x, Cursor._y = 0, 0
+    -- Drive an audible refresh so both slots are marked playing.
+    Beacons.refresh()
     audio._reset()
 
     Beacons.resetForNewGame()
 
-    -- activeBeacons replaced with a fresh empty table.
     T.eq(civvaccess_shared.activeBeacons["1"], nil)
     T.eq(civvaccess_shared.activeBeacons["2"], nil)
-    -- And every handle was stopped, since the prior game's voices may have
-    -- been left running through a save / load transition.
-    local stops = 0
-    for _, c in ipairs(audio._calls) do
-        if c.op == "stop" then
-            stops = stops + 1
-        end
-    end
-    T.eq(stops, 10)
+    local h1 = civvaccess_shared.beaconHandles["1"]
+    local h2 = civvaccess_shared.beaconHandles["2"]
+    T.truthy(findCall("stop", h1), "previously-playing slot 1 must be stopped")
+    T.truthy(findCall("stop", h2), "previously-playing slot 2 must be stopped")
 end
 
 return M

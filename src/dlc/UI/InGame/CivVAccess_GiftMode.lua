@@ -205,6 +205,11 @@ function GiftMode.enter(toPlayerID, kind)
     local self = {
         name = "GiftMode",
         capturesAllInput = false,
+        -- Cursor stays live on the world map while gift mode is active
+        -- (Q/A/Z/E/D/C falls through to Baseline). Pass through to the
+        -- cursor-on-map layer below so beacons keep playing during the
+        -- pick.
+        beaconsTransparent = true,
     }
 
     local function popHandler()

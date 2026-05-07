@@ -19,11 +19,24 @@
 -- VOL_MAX_DIST the beacon goes silent without a floor; the user can hear
 -- it again by walking the cursor closer.
 --
--- Lifecycle: beacons play only while BaselineHandler (the in-game map
--- cursor handler) is on top of the HandlerStack. Push something above it
--- (popup, sub-screen) and the looping voices stop; the activation state
--- persists, so closing the sub returns to the same active beacons. New
--- game / hot-seat player change clears activation state.
+-- Audibility policy: beacons play only when one of the cursor-on-map
+-- handlers (Baseline, Scanner) is the effective top of the HandlerStack.
+-- Handlers that mark themselves beaconsTransparent (the Tab unit-action
+-- menu, the target / strike / gift pickers) are skipped during the top-
+-- down walk, so the cursor-on-map layer underneath stays the effective
+-- top and beacons keep playing -- the user is still on the world map, the
+-- cursor is still live, and the targeting flow benefits from continuing
+-- to hear the bookmark sources. Anything else on top -- popups, city view,
+-- BaseMenu wrappers -- silences beacons until it pops.
+--
+-- The policy is evaluated by Beacons.refresh, which is wired into
+-- HandlerStack.onMutated below so every push / pop / removeByName fires
+-- one re-evaluation. Toggle and resetForNewGame route through the same
+-- function, so a single code path drives the audio start / stop. The
+-- per-slot beaconPlaying flag keeps refresh idempotent: repeated calls
+-- with no policy change produce no audio traffic, which matters because
+-- audio.play re-arms the source and would click on every refresh
+-- otherwise.
 --
 -- Voices are allocated once per session via audio.load_voice (one
 -- ma_sound per slot, ten slots, sharing one beacon.wav file). The proxy's
@@ -102,67 +115,99 @@ end
 
 -- Wipe activation state for a new game / new hot-seat player. The voice
 -- handles themselves stay allocated (they're per-session, not per-game)
--- so re-activation is a stop-then-play, not a reload.
+-- so re-activation is a stop-then-play, not a reload. Routes the audio
+-- stop through refresh so beaconPlaying stays in sync with the silenced
+-- voices.
 function Beacons.resetForNewGame()
-    -- Stop any looping voices left running from the prior game / player so
-    -- the new session starts in a clean audio state. The activeBeacons
-    -- table is per-game; the handles are per-session.
-    local handles = civvaccess_shared.beaconHandles
-    if handles ~= nil and audio ~= nil then
-        for _, h in pairs(handles) do
-            audio.stop(h)
+    civvaccess_shared.activeBeacons = {}
+    Beacons.refresh()
+end
+
+-- Walk the stack top-to-bottom, skipping handlers that mark themselves
+-- beaconsTransparent. The first non-transparent handler is the policy's
+-- view of the top. Returns nil on an empty (or all-transparent) stack.
+local function effectiveTop()
+    if HandlerStack == nil then
+        return nil
+    end
+    for i = HandlerStack.count(), 1, -1 do
+        local h = HandlerStack.at(i)
+        if h ~= nil and not h.beaconsTransparent then
+            return h
         end
     end
-    civvaccess_shared.activeBeacons = {}
+    return nil
 end
 
--- Stop every looping voice without touching activeBeacons, so resume can
--- reactivate the same set later. Called from Scanner / Baseline onSuspend
--- when a sub-handler pushes above us.
-function Beacons.suspend()
+-- The two cursor-on-map handlers. Listed by name (rather than identity)
+-- so a re-created handler post-load-from-game still satisfies the gate.
+local function isCursorOnMap(handler)
+    if handler == nil then
+        return false
+    end
+    return handler.name == "Baseline" or handler.name == "Scanner"
+end
+
+-- Drive each slot's audio state from (active AND audible) and the per-
+-- slot beaconPlaying flag. Idempotent: a refresh that doesn't change
+-- the desired state for a slot produces no audio call, which matters
+-- because audio.play in the proxy re-arms the source (stop + seek-to-0
+-- + start) and would click on every redundant call. Called from
+-- HandlerStack.onMutated on every push / pop / etc., from Beacons.toggle
+-- after the active set changes, and from resetForNewGame.
+function Beacons.refresh()
     local handles = civvaccess_shared.beaconHandles
     if handles == nil or audio == nil then
         return
     end
-    for _, h in pairs(handles) do
-        audio.stop(h)
+    local active = civvaccess_shared.activeBeacons or {}
+    local playing = civvaccess_shared.beaconPlaying
+    if playing == nil then
+        playing = {}
+        civvaccess_shared.beaconPlaying = playing
     end
-end
-
--- Restart every active beacon at fresh parameters. Called from
--- BaselineHandler.onActivate when we return to the top of the stack.
--- Pulls a live cursor and live bookmark each time -- both can have moved
--- while we were suspended (the cursor most often, but a relocate-bookmark
--- flow could shift the source too).
-function Beacons.resume()
-    local active = civvaccess_shared.activeBeacons
-    if active == nil then
-        return
+    local audible = isCursorOnMap(effectiveTop())
+    local cx, cy
+    if audible then
+        cx, cy = Cursor.position()
+        if cx == nil then
+            -- Cursor not initialized yet. Treat as non-audible so the
+            -- active-but-no-cursor window never starts a voice with stale
+            -- pan/pitch/volume params. The next refresh after Cursor.init
+            -- runs reaches the audible branch with valid coords.
+            audible = false
+        end
     end
-    local handles = civvaccess_shared.beaconHandles
-    if handles == nil or audio == nil then
-        return
-    end
-    local cx, cy = Cursor.position()
-    if cx == nil then
-        return
-    end
-    for slot, isActive in pairs(active) do
+    for slot, h in pairs(handles) do
+        local isActive = active[slot] == true
         if isActive then
             local b = civvaccess_shared.bookmarks[slot]
-            local h = handles[slot]
-            if b == nil or h == nil then
-                -- Active flag set but the underlying bookmark or voice
-                -- is missing. resetForNewGame is supposed to clear active
-                -- in lockstep with the bookmark store; reaching here means
-                -- some path desynced them. Clear the flag so the next
-                -- resume / onCursorMove doesn't re-fire the warning.
-                Log.warn("Beacons.resume: slot " .. tostring(slot) .. " active but bookmark or handle missing; clearing")
+            if b == nil then
+                -- Active flag set but the bookmark cell is gone.
+                -- resetForNewGame is supposed to clear them in lockstep;
+                -- reaching here means some path desynced them. Stop the
+                -- voice (it may be looping with stale params) and clear
+                -- the flag so the warning fires once, not on every refresh.
+                Log.warn(
+                    "Beacons.refresh: slot " .. tostring(slot) .. " active but bookmark missing; clearing"
+                )
                 active[slot] = false
-            else
-                updateBeaconParams(h, cx, cy, b.x, b.y)
-                audio.play(h)
+                if playing[slot] then
+                    audio.stop(h)
+                    playing[slot] = nil
+                end
+                isActive = false
             end
+        end
+        local shouldPlay = isActive and audible
+        if shouldPlay and not playing[slot] then
+            local b = civvaccess_shared.bookmarks[slot]
+            updateBeaconParams(h, cx, cy, b.x, b.y)
+            audio.play(h)
+            playing[slot] = true
+        elseif (not shouldPlay) and playing[slot] then
+            audio.stop(h)
+            playing[slot] = nil
         end
     end
 end
@@ -170,7 +215,10 @@ end
 -- Cursor-move hook. Cheap when no beacons are active (one table read,
 -- early return). Called from CursorCore.setCursor on every cursor mutation
 -- (move, jump, scope-edge no-op already short-circuits before setCursor
--- runs).
+-- runs). Updates pan / pitch / volume for every active beacon -- including
+-- silenced ones, so when refresh later flips them audible the params are
+-- already current. The desync recovery (active flag set but bookmark or
+-- handle missing) lives in refresh; onCursorMove trusts the active set.
 function Beacons.onCursorMove()
     local active = civvaccess_shared.activeBeacons
     if active == nil then
@@ -188,19 +236,7 @@ function Beacons.onCursorMove()
         if isActive then
             local b = civvaccess_shared.bookmarks[slot]
             local h = handles[slot]
-            if b == nil or h == nil then
-                -- Active flag set but the underlying bookmark or voice is
-                -- missing. Stop the voice (it would otherwise loop with
-                -- whatever stale params it last received) and clear the
-                -- flag so the warning fires once, not on every cursor
-                -- move. resetForNewGame is the only intended path to
-                -- desync these; reaching here means a real bug elsewhere.
-                Log.warn("Beacons.onCursorMove: slot " .. tostring(slot) .. " active but bookmark or handle missing; stopping")
-                if h ~= nil then
-                    audio.stop(h)
-                end
-                active[slot] = false
-            else
+            if b ~= nil and h ~= nil then
                 updateBeaconParams(h, cx, cy, b.x, b.y)
             end
         end
@@ -209,7 +245,12 @@ end
 
 -- Returns the spoken feedback for the toggle keystroke. Empty bookmark
 -- slot speaks the no-bookmark prompt rather than going silent so the user
--- can tell a stray Ctrl+Shift+N from a real activation.
+-- can tell a stray Ctrl+Shift+N from a real activation. Audio start /
+-- stop is handled by refresh (which respects the audibility policy), so
+-- toggling a beacon during a non-audible top -- e.g. via a binding that
+-- happens to fall through from a beaconsTransparent handler -- arms the
+-- slot without playing, and refresh starts it the moment the policy
+-- flips audible.
 function Beacons.toggle(slot)
     local b = civvaccess_shared.bookmarks[slot]
     if b == nil then
@@ -229,15 +270,11 @@ function Beacons.toggle(slot)
     local slotNum = tonumber(slot)
     if active[slot] then
         active[slot] = false
-        audio.stop(h)
+        Beacons.refresh()
         return Text.format("TXT_KEY_CIVVACCESS_BEACON_DEACTIVATED", slotNum)
     end
     active[slot] = true
-    local cx, cy = Cursor.position()
-    if cx ~= nil then
-        updateBeaconParams(h, cx, cy, b.x, b.y)
-    end
-    audio.play(h)
+    Beacons.refresh()
     return Text.format("TXT_KEY_CIVVACCESS_BEACON_ACTIVATED", slotNum)
 end
 
@@ -289,3 +326,10 @@ function Beacons.getBindings()
     }
     return { bindings = bindings, helpEntries = helpEntries }
 end
+
+-- Subscribe Beacons.refresh to every HandlerStack mutation so the audio
+-- state tracks the stack without needing per-handler onActivate /
+-- onSuspend hooks (which were brittle: targeting-mode pops via
+-- removeByName(reactivate=false) skip onActivate, leaving beacons
+-- silenced after a Tab unit-action commit or an Esc out of target mode).
+HandlerStack.onMutated = Beacons.refresh

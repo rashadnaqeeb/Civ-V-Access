@@ -432,20 +432,5 @@ function BaselineHandler.create()
         passthroughKeys = passthroughKeys,
         bindings = bindings,
         helpEntries = helpEntries,
-        -- Beacons play only while the in-game map handlers (Baseline /
-        -- Scanner) are on top of the stack. onSuspend fires when something
-        -- pushes above the current top; onActivate fires when this handler
-        -- is exposed again. Both hooks live on Scanner too, since Scanner
-        -- normally sits on top of Baseline -- the duplicate wiring covers
-        -- the edge case where Scanner is removed (Baseline becomes the
-        -- direct top). onDeactivate (handler removed) is not used: Baseline
-        -- is seated for the entire game session and only leaves the stack
-        -- on game exit, by which time the audio engine is already gone.
-        onActivate = function()
-            Beacons.resume()
-        end,
-        onSuspend = function()
-            Beacons.suspend()
-        end,
     }
 end

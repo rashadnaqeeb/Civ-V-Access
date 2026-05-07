@@ -93,17 +93,13 @@ function ScannerHandler.create()
         -- own farewell announcement finishes first; at boot, the
         -- BOOT_INGAME speakInterrupt clears the queue before it plays.
         --
-        -- Beacons.resume / Beacons.suspend tie the looping voices to the
-        -- map being the input target. onSuspend fires when a popup pushes
-        -- above Scanner; onActivate fires when that popup pops back.
-        -- Baseline carries the same hooks for the edge case where Scanner
-        -- is removed and Baseline becomes the direct top.
+        -- Beacons audio start / stop is driven from HandlerStack.onMutated
+        -- (Beacons.refresh) rather than this hook, so a removeByName with
+        -- reactivate=false -- which several targeting-mode exits use to
+        -- suppress this "map mode" speech -- still re-evaluates the
+        -- audibility policy and resumes beacons.
         onActivate = function()
             SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_MODE"))
-            Beacons.resume()
-        end,
-        onSuspend = function()
-            Beacons.suspend()
         end,
         bindings = {
             -- Category axis (triggers rebuild). Outermost hierarchy level,

@@ -944,6 +944,11 @@ function UnitTargetMode.enter(actor, iAction, mode)
     local self = {
         name = "UnitTargetMode",
         capturesAllInput = false,
+        -- Cursor stays live on the world map while target mode is active
+        -- (Q/A/Z/E/D/C falls through to Baseline). Pass through to the
+        -- cursor-on-map layer below so beacons keep playing during the
+        -- pick.
+        beaconsTransparent = true,
         _actor = actor,
         _iAction = iAction,
         _mode = mode,

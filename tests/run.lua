@@ -181,8 +181,7 @@ end
 -- run.lua time -- HandlerStack is loaded inside individual test setups.
 Beacons = {
     onCursorMove = function() end,
-    resume = function() end,
-    suspend = function() end,
+    refresh = function() end,
     loadAll = function() end,
     resetForNewGame = function() end,
     installListeners = function() end,

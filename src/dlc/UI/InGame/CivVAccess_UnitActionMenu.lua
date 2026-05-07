@@ -303,6 +303,10 @@ local function openAirliftSubMenu(unit, action, iAction, displayName)
         escapePops = true,
         escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
     })
+    -- Sub-menu of UnitActionMenu; same pass-through rule (the user is
+    -- still in the unit-action picker flow, the cursor is still live
+    -- under the menu, beacons should keep playing).
+    menu.beaconsTransparent = true
     HandlerStack.push(menu)
 end
 
@@ -795,5 +799,10 @@ function UnitActionMenu.open(unit)
         escapePops = true,
         escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
     })
+    -- Tab unit-action menu is layered over a live world-map cursor; the
+    -- user is committing an action against the unit-on-tile they are
+    -- already navigating around. Beacons should keep playing under the
+    -- menu rather than cutting off and re-starting on every Tab.
+    handler.beaconsTransparent = true
     HandlerStack.push(handler)
 end
