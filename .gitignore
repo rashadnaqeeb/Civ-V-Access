@@ -45,6 +45,9 @@ local.*.ini
 # Locally-installed developer tools (luacheck, etc.)
 tools/bin/
 
+# RemuxToAsf is a built-from-source C# helper; the .exe is regenerated on demand
+tools/RemuxToAsf.exe
+
 # luacheck cache
 .luacheckcache
 
