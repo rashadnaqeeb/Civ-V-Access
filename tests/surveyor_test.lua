@@ -399,6 +399,30 @@ function M.test_cities_empty_fallback()
     T.truthy(out:find("no cities in range", 1, true), "empty fallback expected: " .. out)
 end
 
+function M.test_cities_includes_barbarian_camps()
+    setup()
+    -- Camps share the cities scope (the hostile-settlement mental slot).
+    -- Place a real city E at ring 1 and a camp W at ring 1; both must
+    -- appear, ordered by the shared distance-then-direction comparator.
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = 99
+    local rome = T.fakeCity({ name = "Rome", owner = 0, id = 1 })
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._isCity = true
+            p._city = rome
+        elseif col == -1 and row == 0 then
+            p._improvement = 99
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.cities()
+    local r = out:find("Rome", 1, true)
+    local c = out:find("BARBARIAN_CAMP", 1, true)
+    T.truthy(r and c, "city and camp must both appear: " .. out)
+    T.truthy(r < c, "Rome (E, rank 1) must precede camp (W, rank 4): " .. out)
+end
+
 -- ===== Unexplored suffix =====
 
 function M.test_unexplored_suffix_appended_when_fogged_plots_in_range()

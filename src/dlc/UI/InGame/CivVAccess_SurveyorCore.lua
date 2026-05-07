@@ -351,27 +351,39 @@ end
 -- direction rank (shared with units via distanceDirectionCompare). No
 -- diplomacy grouping: a blind player scanning for cities wants to know
 -- which is nearest first, and grouping by hostility buries that signal
--- behind a category header.
+-- behind a category header. Barbarian camps share this scope alongside
+-- cities, mirroring ScannerBackendCities -- they're improvements rather
+-- than cities, but live in the hostile-settlement mental slot.
 function SurveyorCore.cities()
     local cx, cy = cursorPos()
     if cx == nil then
         return ""
     end
     local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activeTeam = Game.GetActiveTeam()
+    local isDebug = Game.IsDebugMode()
+    local campType = GameInfoTypes ~= nil and GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP or nil
+    local campLabel = campType ~= nil and Text.key("TXT_KEY_ADVISOR_BARBARIAN_CAMP_DISPLAY") or nil
     local instances = {}
     for _, plot in ipairs(range.plots) do
+        local label
         if plot:IsCity() then
             local city = plot:GetPlotCity()
             if city ~= nil then
-                local px, py = plot:GetX(), plot:GetY()
-                instances[#instances + 1] = {
-                    x = px,
-                    y = py,
-                    dist = HexGeom.cubeDistance(cx, cy, px, py),
-                    rank = HexGeom.directionRank(cx, cy, px, py),
-                    label = city:GetName(),
-                }
+                label = city:GetName()
             end
+        elseif campType ~= nil and plot:GetRevealedImprovementType(activeTeam, isDebug) == campType then
+            label = campLabel
+        end
+        if label ~= nil then
+            local px, py = plot:GetX(), plot:GetY()
+            instances[#instances + 1] = {
+                x = px,
+                y = py,
+                dist = HexGeom.cubeDistance(cx, cy, px, py),
+                rank = HexGeom.directionRank(cx, cy, px, py),
+                label = label,
+            }
         end
     end
     local body
