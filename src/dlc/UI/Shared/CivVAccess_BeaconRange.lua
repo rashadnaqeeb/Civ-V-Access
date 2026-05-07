@@ -27,11 +27,13 @@ local DEFAULT = 30
 -- smaller and the beacon is just a here / not-here ping). MAX at 100
 -- comfortably covers Civ V's standard map sizes (huge is 128x80, but hex
 -- PlotDistance across that diagonal is well under 100 in practice). STEP
--- 5 gives 19 small ticks across the range, matching the master-volume
--- slider's ergonomics.
+-- 1 quantizes to whole hexes; the user wanted single-hex precision on
+-- arrow-key nudges. BIG_STEP is 20 so PgUp/PgDn (or whatever the big-
+-- nudge binding is) still spans the range in five presses.
 local MIN = 5
 local MAX = 100
-local STEP = 5
+local STEP = 1
+local BIG_STEP = 20
 
 local function clamp(v)
     if type(v) ~= "number" then
@@ -88,8 +90,8 @@ function BeaconRange.fromUnit(t)
     return stepped
 end
 
--- Slider step sizes in [0,1] terms so a small nudge maps to one STEP
--- (5 hexes) and a big nudge to four (20 hexes). Exposed so the Settings
--- caller doesn't need to know the bounds.
+-- Slider step sizes in [0,1] terms so a small nudge maps to one hex
+-- and a big nudge to BIG_STEP hexes. Exposed so the Settings caller
+-- doesn't need to know the bounds.
 BeaconRange.STEP_UNIT = STEP / (MAX - MIN)
-BeaconRange.BIG_STEP_UNIT = (STEP * 4) / (MAX - MIN)
+BeaconRange.BIG_STEP_UNIT = BIG_STEP / (MAX - MIN)
