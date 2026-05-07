@@ -384,6 +384,75 @@ static int       g_audioBankInUse[AUDIO_BANK_SIZE];
 static char      g_audioBankName[AUDIO_BANK_SIZE][AUDIO_BANK_NAME_MAX];
 static char      g_soundsDir[MAX_PATH];
 
+/* === Focus-gated master volume ===
+   miniaudio runs on its own audio thread, so the engine keeps mixing
+   while the game window is alt-tabbed -- the game's own audio pauses
+   in that state, so without explicit gating the mod's beacons / cues
+   are the only sound left and stay audible until the user comes back.
+   Match the game's behaviour by zeroing the engine volume on focus
+   loss and restoring the user-set value on regain.
+
+   Tolk speech is intentionally NOT gated: it goes through the screen
+   reader (separate from miniaudio), and the screen reader's contract
+   is to keep speaking regardless of which window has focus. A blind
+   user who alt-tabs out and back wants speech to keep working in both
+   states.
+
+   Implementation: SetWinEventHook(EVENT_SYSTEM_FOREGROUND) delivers a
+   callback whenever the foreground window changes. WINEVENT_OUTOFCONTEXT
+   queues the events on our process's main message pump (Civ V's main
+   thread runs the pump), so the callback runs on the game's main thread
+   -- safe to call into miniaudio without further synchronization. */
+static float            g_userVolume = 0.1f;
+static int              g_isFocused  = 1;
+static HWINEVENTHOOK    g_focusHook  = NULL;
+
+static int our_window_foreground(void) {
+    HWND fg = GetForegroundWindow();
+    DWORD fgPid = 0;
+    if (fg == NULL) return 0;
+    GetWindowThreadProcessId(fg, &fgPid);
+    return (fgPid == GetCurrentProcessId()) ? 1 : 0;
+}
+
+static void apply_focus_volume(void) {
+    if (!g_audioInit) return;
+    ma_engine_set_volume(&g_audioEngine,
+                         g_isFocused ? g_userVolume : 0.0f);
+}
+
+static void CALLBACK focus_event_proc(HWINEVENTHOOK hook, DWORD event,
+                                      HWND hwnd, LONG idObject,
+                                      LONG idChild, DWORD threadId,
+                                      DWORD eventTime) {
+    int newFocused;
+    (void)hook; (void)hwnd; (void)idObject;
+    (void)idChild; (void)threadId; (void)eventTime;
+    if (event != EVENT_SYSTEM_FOREGROUND) return;
+    newFocused = our_window_foreground();
+    if (newFocused == g_isFocused) return;
+    g_isFocused = newFocused;
+    apply_focus_volume();
+    proxy_log("focus_event_proc: focused=%d\n", g_isFocused);
+}
+
+static void install_focus_hook(void) {
+    if (g_focusHook != NULL) return;
+    /* dwProcessId/dwThreadId = 0 listens to all processes' foreground
+       transitions, which is what we need: an event about a different
+       process becoming foreground is how we learn we lost focus. */
+    g_focusHook = SetWinEventHook(
+        EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+        NULL, focus_event_proc, 0, 0,
+        WINEVENT_OUTOFCONTEXT);
+    /* Snapshot current foreground at install time so the engine starts
+       muted if the game launched into the background (rare but
+       possible -- e.g. a launcher overlay grabs focus during boot). */
+    g_isFocused = our_window_foreground();
+    proxy_log("install_focus_hook: hook=%p focused=%d\n",
+              (void*)g_focusHook, g_isFocused);
+}
+
 static int ensure_audio(void) {
     ma_engine_config engineConfig;
     ma_result r;
@@ -408,13 +477,19 @@ static int ensure_audio(void) {
         proxy_log("ensure_audio: ma_engine_init FAILED r=%d\n", (int)r);
         return 0;
     }
-    /* Master volume default. The engine slider from the game UI does not
-       reach us -- our mixer runs outside the engine's audio pipeline -- so
-       this is the user-perceived master until a mod-side volume control
-       lands in the future config menu. */
-    ma_engine_set_volume(&g_audioEngine, 0.1f);
     g_audioInit = 1;
-    proxy_log("ensure_audio: engine initialized stereo, master=0.1, soundsDir=%s\n", g_soundsDir);
+    /* Install the focus hook now that we have something to gate. The
+       hook needs a window message pump to dispatch the OUTOFCONTEXT
+       callback; ensure_audio runs from a Lua call (game main thread
+       inside the message-pump-driven loop), which is a fine moment. */
+    install_focus_hook();
+    /* Apply user default through the focus gate so an unfocused launch
+       starts silent rather than at 0.1 master. g_userVolume default
+       mirrors the prior hard-coded 0.1; VolumeControl.restore() pushes
+       the persisted value over this once Lua boot reaches it. */
+    apply_focus_volume();
+    proxy_log("ensure_audio: engine initialized stereo, user=%.3f focused=%d soundsDir=%s\n",
+              g_userVolume, g_isFocused, g_soundsDir);
     return 1;
 }
 
@@ -651,8 +726,12 @@ static int la_set_master_volume(lua_State *L) {
     if (!g_audioInit) return 0;
     if (v < 0.0) v = 0.0;
     if (v > 1.0) v = 1.0;
-    ma_engine_set_volume(&g_audioEngine, (float)v);
-    proxy_log("la_set_master_volume: %.3f\n", v);
+    /* Stash as the user-set value and route through the focus gate.
+       While unfocused the engine stays at 0; the new user volume gets
+       applied the moment focus returns. */
+    g_userVolume = (float)v;
+    apply_focus_volume();
+    proxy_log("la_set_master_volume: user=%.3f focused=%d\n", v, g_isFocused);
     return 0;
 }
 
@@ -857,6 +936,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID reserved) {
         proxy_log("=== Proxy init complete ===\n");
     }
     else if (reason == DLL_PROCESS_DETACH) {
+        /* g_focusHook is deliberately NOT unhooked here. UnhookWinEvent
+           acquires a USER32 lock and, with WINEVENT_OUTOFCONTEXT, can
+           synchronize with the callback dispatcher; calling it under the
+           loader lock risks a circular acquisition. The OS reclaims the
+           hook on process exit anyway, so there is no resource to free.
+           Same rationale as the audio engine ("deliberately NOT uninited
+           on DLL detach" -- see ensure_audio's block comment). */
         if (g_tolkInit && pTolk_Unload) pTolk_Unload();
         if (hTolk) FreeLibrary(hTolk);
         if (hOriginal) FreeLibrary(hOriginal);
