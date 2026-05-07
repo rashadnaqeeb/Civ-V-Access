@@ -52,22 +52,21 @@ local SLOT_KEYS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 -- if the north / south spread reads as too dramatic or too subtle.
 local SEMI_RANGE = 12
 
--- Volume reaches 0 at this hex distance. Beyond is silence; there is no
--- floor (the user wanted complete fadeout, not a residual hum).
-local VOL_MAX_DIST = 30
-
 local MOD_CTRL_SHIFT = 3
 
 -- Recompute and push pan / pitch / volume for one active beacon. Reads
 -- the bookmark cell live each call so a relocated bookmark picks up on
 -- the next cursor step without any explicit notification path. Distance
--- past VOL_MAX_DIST clamps to 0; pan / pitch in that case are still set
--- (they're free) so a quiet beacon's bearing still reads correctly the
--- moment volume comes back.
+-- past the user's configured audible range clamps to 0; pan / pitch in
+-- that case are still set (they're free) so a quiet beacon's bearing
+-- still reads correctly the moment volume comes back.
 local function updateBeaconParams(h, cx, cy, bx, by)
     local pan, pitch = HexGeom.unitVector(cx, cy, bx, by)
     local dist = Map.PlotDistance(cx, cy, bx, by)
-    local vol = 1 - dist / VOL_MAX_DIST
+    -- Live read so a Settings-screen tweak takes effect on the next
+    -- cursor move without a refresh-everything pass.
+    local maxDist = BeaconRange.get()
+    local vol = 1 - dist / maxDist
     if vol < 0 then
         vol = 0
     end

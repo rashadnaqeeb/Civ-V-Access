@@ -46,6 +46,19 @@ local function setup()
     SpeechPipeline = SpeechPipeline or {}
     SpeechPipeline.speakInterrupt = function() end
 
+    -- BeaconRange is the user-facing audible-distance setting; in
+    -- production it reads from Prefs and gets routed through the
+    -- VirtualSlider in Settings. The volume math in updateBeaconParams
+    -- multiplies against this, so the suite's volume-floor / linear-
+    -- falloff assertions assume the historical 30-hex default. Stub
+    -- returns that value; tests that exercise different ranges can
+    -- override BeaconRange.get directly.
+    BeaconRange = {
+        get = function()
+            return 30
+        end,
+    }
+
     -- Text.format / Text.key. The real lookup goes through CivVAccess_Strings
     -- which run.lua already loaded; falling back to the key string is fine
     -- since the suite checks for the substituted-arg shape rather than the

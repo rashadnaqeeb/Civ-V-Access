@@ -181,6 +181,28 @@ local function buildItems()
             step = 0.05,
             bigStep = 0.20,
         }),
+        -- Beacon audible-range slider. Adjusts the linear-falloff distance
+        -- where a bookmark beacon goes silent; default 30 hexes, range
+        -- 5..100 stepped at 5. The slider operates in [0,1]; BeaconRange.
+        -- toUnit / fromUnit map between the normalized handle and the
+        -- integer hex value so each tick lands on a STEP-multiple.
+        -- Beacons.updateBeaconParams reads BeaconRange.get() live, so a
+        -- tweak takes effect on the next cursor move with no explicit
+        -- notification.
+        BaseMenuItems.VirtualSlider({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE",
+            getValue = function()
+                return BeaconRange.toUnit(BeaconRange.get())
+            end,
+            setValue = function(t)
+                BeaconRange.set(BeaconRange.fromUnit(t))
+            end,
+            labelFn = function(t)
+                return Text.format("TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE_VALUE", BeaconRange.fromUnit(t))
+            end,
+            step = BeaconRange.STEP_UNIT,
+            bigStep = BeaconRange.BIG_STEP_UNIT,
+        }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
             getValue = getScannerAutoMove,
