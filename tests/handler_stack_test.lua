@@ -27,7 +27,7 @@ end
 
 local function makeHandler(name, opts)
     opts = opts or {}
-    local h = { name = name, activate = 0, deactivate = 0 }
+    local h = { name = name, activate = 0, deactivate = 0, suspend = 0 }
     h.capturesAllInput = opts.capturesAllInput or false
     h.bindings = opts.bindings
     h.helpEntries = opts.helpEntries
@@ -36,6 +36,9 @@ local function makeHandler(name, opts)
     end
     h.onDeactivate = function(self)
         self.deactivate = self.deactivate + 1
+    end
+    h.onSuspend = function(self)
+        self.suspend = self.suspend + 1
     end
     if opts.activateError then
         h.onActivate = function()
@@ -66,6 +69,57 @@ function M.test_pop_removes_and_deactivates_top()
     T.eq(HandlerStack.count(), 1)
     T.eq(b.deactivate, 1)
     T.eq(a.activate, 2, "newly exposed top reactivates")
+end
+
+function M.test_push_suspends_previous_top()
+    -- New onSuspend hook fires when a handler stops being top because
+    -- something is pushed above it. Distinct from onDeactivate (handler
+    -- is removed from the stack); the suspended handler is still on the
+    -- stack and will receive onActivate again when re-exposed.
+    setup()
+    local a = makeHandler("a")
+    local b = makeHandler("b")
+    HandlerStack.push(a)
+    T.eq(a.suspend, 0, "no suspend on first push -- nothing to bury")
+    HandlerStack.push(b)
+    T.eq(a.suspend, 1, "previous top suspends when something pushes above it")
+    T.eq(a.deactivate, 0, "suspend is not deactivate -- handler stays on the stack")
+    T.eq(b.activate, 1)
+end
+
+function M.test_pop_reactivates_without_resuspending()
+    -- Re-exposure on pop fires onActivate; it does not fire onSuspend
+    -- again. Suspend is push-driven; pop is the inverse path.
+    setup()
+    local a = makeHandler("a")
+    local b = makeHandler("b")
+    HandlerStack.push(a)
+    HandlerStack.push(b)
+    HandlerStack.pop()
+    T.eq(a.activate, 2, "re-exposed handler reactivates")
+    T.eq(a.suspend, 1, "suspend fires only on the bury, not the re-expose")
+end
+
+function M.test_insertAt_at_top_suspends_previous_top()
+    -- insertAt at idx == count+1 is the equivalent of push, including
+    -- the bury notification on the previous top.
+    setup()
+    local a = makeHandler("a")
+    HandlerStack.push(a)
+    local b = makeHandler("b")
+    HandlerStack.insertAt(b, 2)
+    T.eq(a.suspend, 1, "insertAt-at-top must suspend previous top")
+end
+
+function M.test_insertAt_below_top_does_not_suspend_top()
+    -- Inserting below the top does not change who is responsible for
+    -- input, so no suspend on the still-top handler.
+    setup()
+    local existing = makeHandler("existing")
+    HandlerStack.push(existing)
+    local floor = makeHandler("floor")
+    HandlerStack.insertAt(floor, 1)
+    T.eq(existing.suspend, 0, "below-top insert must not suspend the top")
 end
 
 function M.test_pop_empty_warns_does_not_error()

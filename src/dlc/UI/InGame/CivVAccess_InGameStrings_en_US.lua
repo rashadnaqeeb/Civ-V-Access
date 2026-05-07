@@ -2802,6 +2802,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "Distance and direction from cursor to the bookmark in that slot"
 
+-- Beacons: spatial-audio markers anchored at bookmarked cells. Ctrl+Shift
+-- + 1-0 toggles the beacon for that slot. While a beacon is active, a
+-- looping point source plays from the bookmark's position with the
+-- cursor as listener: pan and pitch encode bearing, volume encodes
+-- distance (silent past 30 hexes). The slot number is the same digit
+-- the player pressed; phrasing leads with activated / deactivated so
+-- the action verb is the distinguishing word per keystroke.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_ACTIVATED"] = "activated beacon {1_Slot}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_DEACTIVATED"] = "deactivated beacon {1_Slot}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_NO_BOOKMARK"] = "set a bookmark in this slot first"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_KEY"] = "Control plus Shift plus a number key"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_DESC"] =
+    "Toggle a spatial audio beacon at the bookmark in that slot"
+
 -- Message buffer: scrollable history of speech-worthy events
 -- (notifications, reveals, foreign-unit-watch lines, combat resolutions).
 -- [ / ] step within the active filter; Ctrl+ jumps to ends; Shift+ cycles

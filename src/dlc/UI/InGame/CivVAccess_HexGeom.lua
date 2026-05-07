@@ -256,6 +256,32 @@ function HexGeom.coordinateString(x, y)
     return Text.format("TXT_KEY_CIVVACCESS_COORDINATE", dx, dy)
 end
 
+-- Pointy-top odd-r unit vector from (fromX, fromY) to (toX, toY) in
+-- pixel-space, normalized. Returns (pan, pitch). Pan is the cosine of the
+-- screen-space bearing (-1 west, +1 east); pitch is the sine (+1 north,
+-- -1 south, since plot Y increases northward in Civ V's grid). Endpoints
+-- collapse to (0, 0). Handles map wrap before normalizing so a target one
+-- west of the cursor on a wrapped map reads (-1, 0) rather than (W-1, 0).
+--
+-- The screen-space scale matters: pointy-top hex columns are sqrt(3)
+-- units wide and rows are 1.5 units tall, so a +1 row step is shorter
+-- than a +1 column step. Without the scaling, due-NE and due-N collapse
+-- onto the same (pan, pitch) and the pitch axis sounds compressed.
+-- The half-row 0.5 offset is the same row-parity correction the
+-- coordinate readout already applies.
+function HexGeom.unitVector(fromX, fromY, toX, toY)
+    toX, toY = nearestWrappedTo(fromX, fromY, toX, toY)
+    local cx = (toX + 0.5 * (toY % 2)) - (fromX + 0.5 * (fromY % 2))
+    local cy = toY - fromY
+    local px = cx * math.sqrt(3)
+    local py = cy * 1.5
+    local mag = math.sqrt(px * px + py * py)
+    if mag == 0 then
+        return 0, 0
+    end
+    return px / mag, py / mag
+end
+
 -- Cube distance between two offset coords. Exposed so callers that already
 -- hold plots and need a sort key don't reconstruct the cube math.
 function HexGeom.cubeDistance(x1, y1, x2, y2)

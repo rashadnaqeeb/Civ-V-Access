@@ -172,6 +172,23 @@ local function setup()
             return { bindings = {}, helpEntries = {} }
         end,
     }
+    -- Beacons exposes Ctrl+Shift + 1-0 toggle bindings plus the
+    -- onActivate / onSuspend hooks Baseline wires for resume / suspend.
+    -- Its own behavior is covered by beacons_test; the stub here just
+    -- needs the binding/help shape and the lifecycle methods.
+    Beacons = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+        resume = function() end,
+        suspend = function() end,
+        -- onCursorMove is wired from CursorCore.setCursor; baseline_handler
+        -- doesn't exercise it directly but downstream suites (cursor,
+        -- surveyor) inherit this global since run.lua doesn't isolate
+        -- per-suite state. Provide the no-op so the inherited stub doesn't
+        -- crash setCursor in those suites.
+        onCursorMove = function() end,
+    }
     dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 

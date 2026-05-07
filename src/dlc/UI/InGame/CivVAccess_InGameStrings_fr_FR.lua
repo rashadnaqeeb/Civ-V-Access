@@ -2453,6 +2453,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "Distance et direction du curseur vers le signet de cet emplacement"
 
+-- Balises audio spatiales ancrées sur les cellules de signets. Ctrl+Maj
+-- + 1-0 active ou désactive la balise de l'emplacement. Quand une balise
+-- est active, une source ponctuelle en boucle joue depuis la position du
+-- signet, le curseur servant d'auditeur : la stéréo et la hauteur
+-- encodent la direction, le volume encode la distance (silence au-delà
+-- de 30 hexagones).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_ACTIVATED"] = "balise {1_Slot} activée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_DEACTIVATED"] = "balise {1_Slot} désactivée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_NO_BOOKMARK"] = "enregistrez d'abord un signet dans cet emplacement"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_KEY"] = "Contrôle plus Maj plus une touche numérique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_DESC"] =
+    "Activer ou désactiver une balise audio spatiale au signet de cet emplacement"
+
 -- Message buffer: scrollable history of speech-worthy events
 -- (notifications, reveals, foreign-unit-watch lines, combat resolutions).
 -- [ / ] step within the active filter; Ctrl+ jumps to ends; Shift+ cycles

@@ -146,10 +146,51 @@ end
 function audio.set_volume(id, v)
     audio._calls[#audio._calls + 1] = { op = "set_volume", id = id, v = v }
 end
+-- Beacon-side proxy API additions: load_voice (no-dedup variant of load),
+-- per-slot stop, pan / pitch / loop. Same call-recording shape so beacon
+-- suites can assert ordering and parameter values.
+function audio.load_voice(name)
+    audio._loadCounter = audio._loadCounter + 1
+    audio._calls[#audio._calls + 1] = { op = "load_voice", name = name, id = audio._loadCounter }
+    return audio._loadCounter
+end
+function audio.stop(id)
+    audio._calls[#audio._calls + 1] = { op = "stop", id = id }
+end
+function audio.set_pan(id, v)
+    audio._calls[#audio._calls + 1] = { op = "set_pan", id = id, v = v }
+end
+function audio.set_pitch(id, v)
+    audio._calls[#audio._calls + 1] = { op = "set_pitch", id = id, v = v }
+end
+function audio.set_loop(id, v)
+    audio._calls[#audio._calls + 1] = { op = "set_loop", id = id, v = v }
+end
 function audio._reset()
     audio._calls = {}
     audio._loadCounter = 0
 end
+
+-- Default Beacons stub so cursor / surveyor / other suites that run after
+-- baseline_handler_test inherit a working onCursorMove rather than the
+-- bindings-only stub baseline_handler_test installs locally. CursorCore's
+-- setCursor calls Beacons.onCursorMove on every cursor mutation; without
+-- a default, suites that don't explicitly null Beacons crash on it.
+-- Real Beacons.lua isn't loaded here because its module-scope
+-- `local bind = HandlerStack.bind` would index a nil HandlerStack at
+-- run.lua time -- HandlerStack is loaded inside individual test setups.
+Beacons = {
+    onCursorMove = function() end,
+    resume = function() end,
+    suspend = function() end,
+    loadAll = function() end,
+    resetForNewGame = function() end,
+    installListeners = function() end,
+    toggle = function() return "" end,
+    getBindings = function()
+        return { bindings = {}, helpEntries = {} }
+    end,
+}
 
 T.register("text_filter", require("text_filter_test"))
 T.register("speech_pipeline", require("speech_pipeline_test"))
@@ -182,6 +223,7 @@ T.register("cursor", require("cursor_test"))
 T.register("cursor_activate", require("cursor_activate_test"))
 T.register("cursor_pedia", require("cursor_pedia_test"))
 T.register("plot_audio", require("plot_audio_test"))
+T.register("beacons", require("beacons_test"))
 T.register("plot_composers_legality", require("plot_composers_legality_test"))
 T.register("volume_control", require("volume_control_test"))
 T.register("hexgeom", require("hexgeom_test"))

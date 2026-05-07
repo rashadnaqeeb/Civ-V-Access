@@ -385,13 +385,25 @@ static char      g_audioBankName[AUDIO_BANK_SIZE][AUDIO_BANK_NAME_MAX];
 static char      g_soundsDir[MAX_PATH];
 
 static int ensure_audio(void) {
+    ma_engine_config engineConfig;
     ma_result r;
     if (g_audioInit) return 1;
     if (g_soundsDir[0] == 0) {
         proxy_log("ensure_audio: g_soundsDir empty, cannot init\n");
         return 0;
     }
-    r = ma_engine_init(NULL, &g_audioEngine);
+    /* Force stereo output. With NULL config the engine inherits the device's
+       channel count, which is normally 2 but isn't guaranteed -- and the
+       per-sound panner silently no-ops when its channel count is 1
+       (miniaudio source line 51227, ma_panner_process_pcm_frames falls
+       through to ma_copy_pcm_frames on the channels==1 branch with a comment
+       that "panning has no effect on mono streams"). The panner's channel
+       count is taken from the engine_node's output channels, which is taken
+       from ma_engine_get_channels(pEngine). Pinning channels=2 here makes
+       ma_sound_set_pan reliable across audio device configurations. */
+    engineConfig = ma_engine_config_init();
+    engineConfig.channels = 2;
+    r = ma_engine_init(&engineConfig, &g_audioEngine);
     if (r != MA_SUCCESS) {
         proxy_log("ensure_audio: ma_engine_init FAILED r=%d\n", (int)r);
         return 0;
@@ -402,22 +414,72 @@ static int ensure_audio(void) {
        lands in the future config menu. */
     ma_engine_set_volume(&g_audioEngine, 0.1f);
     g_audioInit = 1;
-    proxy_log("ensure_audio: engine initialized, master=0.1, soundsDir=%s\n", g_soundsDir);
+    proxy_log("ensure_audio: engine initialized stereo, master=0.1, soundsDir=%s\n", g_soundsDir);
     return 1;
+}
+
+/* Allocate a fresh bank slot and decode <name>.wav into it. Returns the
+   slot index on success or -1 on failure (bank full, path overflow, decode
+   failure). Caller is responsible for any name-dedup it wants; this helper
+   always allocates a new slot, so beacon voices that share one WAV file
+   can each have their own ma_sound and therefore independent pan / pitch /
+   volume. */
+static int audio_alloc_slot(const char *name) {
+    int i, slot = -1, n;
+    char path[MAX_PATH];
+    ma_result r;
+
+    for (i = 0; i < AUDIO_BANK_SIZE; i++) {
+        if (!g_audioBankInUse[i]) { slot = i; break; }
+    }
+    if (slot < 0) {
+        proxy_log("audio_alloc_slot: bank full, name=%s\n", name);
+        return -1;
+    }
+
+    n = _snprintf(path, MAX_PATH - 1, "%s\\%s.wav", g_soundsDir, name);
+    if (n < 0 || n >= MAX_PATH) {
+        proxy_log("audio_alloc_slot: path overflow name=%s\n", name);
+        return -1;
+    }
+    path[MAX_PATH - 1] = '\0';
+
+    /* MA_SOUND_FLAG_NO_SPATIALIZATION is required for ma_sound_set_pan
+       to take effect: miniaudio's 3D spatializer is on by default, and
+       since both source and listener default to the origin, the
+       spatializer washes ma_sound_set_pan's value to zero (the sound
+       and listener are co-located). PlotAudio sounds run with pan=0
+       (no API caller writes to them), so the only behavioural change
+       there is that the same default routing now flows through the
+       panner stage instead of the spatializer -- both centered, both
+       2D. Beacons need this flag for the pan API to work at all. */
+    r = ma_sound_init_from_file(&g_audioEngine, path,
+                                MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION,
+                                NULL, NULL,
+                                &g_audioBank[slot]);
+    if (r != MA_SUCCESS) {
+        proxy_log("audio_alloc_slot: ma_sound_init_from_file FAILED name=%s path=%s r=%d\n",
+                  name, path, (int)r);
+        return -1;
+    }
+    g_audioBankInUse[slot] = 1;
+    strncpy(g_audioBankName[slot], name, AUDIO_BANK_NAME_MAX - 1);
+    g_audioBankName[slot][AUDIO_BANK_NAME_MAX - 1] = '\0';
+    proxy_log("audio_alloc_slot: name=%s slot=%d path=%s\n", name, slot, path);
+    return slot;
 }
 
 static int la_load(lua_State *L) {
     const char *name = ORIG_luaL_checklstring(L, 1, NULL);
-    int i, slot = -1, n;
-    char path[MAX_PATH];
-    ma_result r;
+    int i, slot;
 
     if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
 
     /* Dedup: repeated loads of the same name return the existing slot so
        callers can freely call audio.load at different points in boot
        (spike + PlotAudio.loadAll + future config menu) without burning
-       bank slots or creating multiple decoded copies of the same WAV. */
+       bank slots or creating multiple decoded copies of the same WAV.
+       Beacons want independent voices for one WAV and use load_voice. */
     for (i = 0; i < AUDIO_BANK_SIZE; i++) {
         if (g_audioBankInUse[i] && strcmp(g_audioBankName[i], name) == 0) {
             ORIG_lua_pushinteger(L, i);
@@ -425,37 +487,29 @@ static int la_load(lua_State *L) {
         }
     }
 
-    for (i = 0; i < AUDIO_BANK_SIZE; i++) {
-        if (!g_audioBankInUse[i]) { slot = i; break; }
-    }
+    slot = audio_alloc_slot(name);
     if (slot < 0) {
-        proxy_log("la_load: bank full, cannot load name=%s\n", name);
         ORIG_lua_pushnil(L);
         return 1;
     }
+    ORIG_lua_pushinteger(L, slot);
+    return 1;
+}
 
-    n = _snprintf(path, MAX_PATH - 1, "%s\\%s.wav", g_soundsDir, name);
-    if (n < 0 || n >= MAX_PATH) {
-        proxy_log("la_load: path overflow name=%s\n", name);
+/* Same as load but never dedups: every call decodes a fresh ma_sound into
+   its own slot, even when the WAV file has already been loaded under
+   another slot. The point is independent runtime parameters (pan, pitch,
+   volume) per voice, which a shared ma_sound cannot give us. Beacons
+   allocate one voice per bookmark slot at boot. */
+static int la_load_voice(lua_State *L) {
+    const char *name = ORIG_luaL_checklstring(L, 1, NULL);
+    int slot;
+    if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
+    slot = audio_alloc_slot(name);
+    if (slot < 0) {
         ORIG_lua_pushnil(L);
         return 1;
     }
-    path[MAX_PATH - 1] = '\0';
-
-    r = ma_sound_init_from_file(&g_audioEngine, path,
-                                MA_SOUND_FLAG_DECODE, NULL, NULL,
-                                &g_audioBank[slot]);
-    if (r != MA_SUCCESS) {
-        proxy_log("la_load: ma_sound_init_from_file FAILED name=%s path=%s r=%d\n",
-                  name, path, (int)r);
-        ORIG_lua_pushnil(L);
-        return 1;
-    }
-    g_audioBankInUse[slot] = 1;
-    strncpy(g_audioBankName[slot], name, AUDIO_BANK_NAME_MAX - 1);
-    g_audioBankName[slot][AUDIO_BANK_NAME_MAX - 1] = '\0';
-    proxy_log("la_load: name=%s slot=%d path=%s\n", name, slot, path);
-
     ORIG_lua_pushinteger(L, slot);
     return 1;
 }
@@ -513,13 +567,82 @@ static int la_play_delayed(lua_State *L) {
     return 0;
 }
 
+/* Cancels every in-flight transient sound but leaves looping voices
+   alone. Looping is the marker for "long-running voice, leave me alone"
+   (beacons set it at boot); transient cues like the per-hex terrain
+   palette never set it and are stopped here. PlotAudio.emit calls
+   cancel_all on every cursor move, so without the looping skip beacon
+   voices would be silenced once per cursor step. */
 static int la_cancel_all(lua_State *L) {
     int i;
     (void)L;
     if (!g_audioInit) return 0;
     for (i = 0; i < AUDIO_BANK_SIZE; i++) {
-        if (g_audioBankInUse[i]) ma_sound_stop(&g_audioBank[i]);
+        if (g_audioBankInUse[i] && !ma_sound_is_looping(&g_audioBank[i])) {
+            ma_sound_stop(&g_audioBank[i]);
+        }
     }
+    return 0;
+}
+
+static int la_stop(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_stop: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    ma_sound_stop(&g_audioBank[slot]);
+    return 0;
+}
+
+static int la_set_loop(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    int loop = ORIG_lua_toboolean(L, 2);
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_set_loop: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    ma_sound_set_looping(&g_audioBank[slot], loop ? MA_TRUE : MA_FALSE);
+    return 0;
+}
+
+/* Stereo pan in [-1, +1]. -1 is full left, 0 centered, +1 full right.
+   miniaudio's default pan mode is MA_PAN_MODE_BALANCE which attenuates
+   the opposite channel rather than crossfading equal-power; that matches
+   the bearing semantics here (a beacon due east is silent in the left
+   channel) better than equal-power crossfade would. */
+static int la_set_pan(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    double v = ORIG_lua_tonumber(L, 2);
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_set_pan: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    if (v < -1.0) v = -1.0;
+    if (v > 1.0) v = 1.0;
+    ma_sound_set_pan(&g_audioBank[slot], (float)v);
+    return 0;
+}
+
+/* Pitch is the playback-rate multiplier (1.0 = source rate). Lua side
+   computes 2^(semitones/12), so a value of 2 plays one octave above the
+   source and 0.5 plays one octave below. Upper bound matches load's 4.0
+   ceiling on volume -- generous and bounded. Lower bound nonzero
+   (0.0625 = -4 octaves) so the rate never collapses to silence. */
+static int la_set_pitch(lua_State *L) {
+    lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    double v = ORIG_lua_tonumber(L, 2);
+    if (!g_audioInit) return 0;
+    if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
+        proxy_log("la_set_pitch: invalid slot=%d\n", (int)slot);
+        return 0;
+    }
+    if (v < 0.0625) v = 0.0625;
+    if (v > 16.0) v = 16.0;
+    ma_sound_set_pitch(&g_audioBank[slot], (float)v);
     return 0;
 }
 
@@ -554,11 +677,16 @@ static int la_set_volume(lua_State *L) {
 
 static const luaL_Reg audio_funcs[] = {
     {"load",              la_load},
+    {"load_voice",        la_load_voice},
     {"play",              la_play},
     {"play_delayed",      la_play_delayed},
+    {"stop",              la_stop},
     {"cancel_all",        la_cancel_all},
     {"set_master_volume", la_set_master_volume},
     {"set_volume",        la_set_volume},
+    {"set_pan",           la_set_pan},
+    {"set_pitch",         la_set_pitch},
+    {"set_loop",          la_set_loop},
     {NULL, NULL}
 };
 

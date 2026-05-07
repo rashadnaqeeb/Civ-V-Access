@@ -33,6 +33,15 @@ local function setCursor(plot)
     -- Flag 2 appears in one spot (InGame.lua's city-screen exit) and
     -- empirically does not produce a pan from this Context.
     UI.LookAt(plot, 0)
+    -- Beacons recompute pan / pitch / volume from the cursor as listener.
+    -- Cheap (early-returns when no beacons are active) and unconditional
+    -- on cue-mode -- spatial audio is its own feature, not a cue-mode
+    -- output. Guarded against the pre-Beacons-include window because
+    -- setCursor is defined here but called only after LoadScreenClose,
+    -- by which point the Beacons global is populated.
+    if Beacons ~= nil then
+        Beacons.onCursorMove()
+    end
 end
 
 -- Capital of the active player. Returns nil during the brief window before

@@ -30,6 +30,11 @@ include("CivVAccess_PlotSectionRiver")
 include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
 include("CivVAccess_PlotAudio")
+-- Beacons before CursorCore so setCursor's onCursorMove dispatch can
+-- resolve the global at call time (Lua closures capture the env, not
+-- a snapshot, so the global only needs to exist by the time setCursor
+-- runs -- which is post-LoadScreenClose, well after every include here).
+include("CivVAccess_Beacons")
 include("CivVAccess_CursorCore")
 -- Surveyor strings before the core so Text.key lookups during module load
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
@@ -206,6 +211,12 @@ local function onInGameBoot()
     civvaccess_shared.mapScope = nil
     civvaccess_shared.mapAnnouncer = nil
     PlotAudio.loadAll()
+    -- Beacons share the proxy's audio bank; load_voice allocations are
+    -- session-scoped (kept across games) but activation state must reset
+    -- per game / per hot-seat player so a stale active flag doesn't point
+    -- a beacon at a previous bookmark cell.
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
     -- Apply persisted master volume now that the proxy's audio engine is
     -- initialized. Setting before loadAll would be a silent no-op.
     VolumeControl.restore()
@@ -244,6 +255,7 @@ local function onInGameBoot()
     Turn.installListeners()
     HotseatCursor.installListeners()
     Bookmarks.installListeners()
+    Beacons.installListeners()
     MessageBuffer.installListeners()
     HotseatMessageBuffer.installListeners()
     NotificationAnnounce.install()

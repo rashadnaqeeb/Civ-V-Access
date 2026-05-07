@@ -19,8 +19,17 @@
 --                      is a TXT_KEY. See CivVAccess_Help.lua and
 --                      BaseMenuHelp's MenuHelpEntries / ListNavHelpEntries
 --                      templates.
---   onActivate         (fn(self), optional) fired on push / re-exposure.
---   onDeactivate       (fn(self), optional) fired on removal.
+--   onActivate         (fn(self), optional) fired on push / re-exposure
+--                      (becomes top of stack).
+--   onSuspend          (fn(self), optional) fired when this handler stops being
+--                      the top because something is pushed above it. Distinct
+--                      from onDeactivate: the handler is still on the stack and
+--                      will receive onActivate again when re-exposed. Use for
+--                      pausing background work that only makes sense while the
+--                      handler is the input target (looping audio, periodic
+--                      polling). onDeactivate is for cleanup that runs when
+--                      the handler is being removed.
+--   onDeactivate       (fn(self), optional) fired on removal from the stack.
 --   tick               (fn(self), optional) called every frame by TickPump on
 --                      the active handler only.
 --
@@ -206,6 +215,14 @@ function HandlerStack.push(handler)
     if not fireOnActivate(handler, "push", "pushed") then
         return false
     end
+    -- Suspend the previously-top handler before the new one shadows it.
+    -- onSuspend fires after the new handler's onActivate has succeeded so
+    -- a refused push (onActivate threw) doesn't strand the previous top
+    -- in a half-suspended state.
+    local prevTop = _shared.stack[#_shared.stack]
+    if prevTop ~= nil then
+        invoke(prevTop, "onSuspend")
+    end
     _shared.stack[#_shared.stack + 1] = handler
     Log.debug("HandlerStack.push '" .. tostring(handler.name) .. "' (depth=" .. #_shared.stack .. ")")
     return true
@@ -240,6 +257,12 @@ function HandlerStack.insertAt(handler, idx)
     end
     if idx == n + 1 and not fireOnActivate(handler, "insertAt", "inserted") then
         return false
+    end
+    -- Same suspend rule as push: when the inserted handler becomes the
+    -- new top, the previous top gets onSuspend. Insertions below the top
+    -- don't change who is responsible for input, so no suspend fires.
+    if idx == n + 1 and n > 0 then
+        invoke(_shared.stack[n], "onSuspend")
     end
     table.insert(_shared.stack, idx, handler)
     Log.debug(
