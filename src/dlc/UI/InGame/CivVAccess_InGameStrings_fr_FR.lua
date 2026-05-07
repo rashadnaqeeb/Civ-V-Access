@@ -1207,9 +1207,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_MOVE"] = "Q A Z E D
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_MOVE"] = "Déplacer le curseur sur les cases de la ville"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_ENTER"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_ENTER"] = "Travailler ou acheter la case"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_LIST"] = "L"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_LIST"] = "Lister les cases travaillées depuis le curseur"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_LIST_NONE"] = "aucune case travaillée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK"] = "Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK"] = "Retour au centre-ville"
 -- Ranged strike sub-handler (§3.5). Hub item closes the city screen, enters

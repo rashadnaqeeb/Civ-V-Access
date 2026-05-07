@@ -121,6 +121,23 @@ ScannerCore.CATEGORIES = {
         },
     },
     {
+        -- Plots the head-selected city is currently working, sourced from
+        -- city:IsWorkingPlot. Only populates while the CityView "Manage
+        -- territory" sub is active (the backend gates on
+        -- civvaccess_shared.mapScope being set, which that sub installs);
+        -- the rest of the time the category produces no entries and is
+        -- skipped by Nav's "categoryHasItems" filter. itemName is the
+        -- comma-joined non-zero yield string ("3 food, 2 production"), so
+        -- tiles with the same yield mix collapse into one item with
+        -- multiple instances and the user can step through equivalents
+        -- with Alt+PageUp/Down. Foreign cities (espionage / spy peek)
+        -- emit nothing -- vanilla CityView has no list-worked-tiles
+        -- surface there and we don't synthesize one.
+        key = "worked_tiles",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_WORKED_TILES",
+        subcategories = {},
+    },
+    {
         key = "special",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_SPECIAL",
         subcategories = {

@@ -37,6 +37,7 @@ function M.test_category_order_fixed()
         "units_enemy",
         "resources",
         "improvements",
+        "worked_tiles",
         "special",
         "terrain",
         "recommendations",

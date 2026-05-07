@@ -1040,4 +1040,189 @@ function M.test_recs_validate_keeps_live_entry()
     )
 end
 
+-- ===== Worked tiles backend =====
+
+local function loadWorkedTilesBackend()
+    loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendWorkedTiles.lua")
+end
+
+-- The backend needs civvaccess_shared (mapScope gate), UI.GetHeadSelectedCity,
+-- YieldTypes, and a city/plot fixture richer than support.lua's fakeCity (we
+-- need GetCityIndexPlot / GetNumCityPlots / IsWorkingPlot / GetX / GetY).
+local function setupWorkedTiles()
+    setup()
+    -- YieldTypes must be defined before the backend is loaded -- the
+    -- backend captures YIELD_KEYS = { { id = YieldTypes.YIELD_FOOD, ... }, ... }
+    -- at file scope, so a later override doesn't reach the captured ids.
+    YieldTypes = {
+        YIELD_FOOD = 1,
+        YIELD_PRODUCTION = 2,
+        YIELD_GOLD = 3,
+        YIELD_SCIENCE = 4,
+        YIELD_CULTURE = 5,
+        YIELD_FAITH = 6,
+    }
+    loadWorkedTilesBackend()
+    civvaccess_shared = civvaccess_shared or {}
+    -- Gate set by default; tests that probe the gate clear it before calling.
+    civvaccess_shared.mapScope = function() return true end
+    UI = UI or {}
+end
+
+-- yields is a YIELD_* -> int map; workingPlots is a list of plot refs the
+-- city considers worked (city center is implicitly always worked unless
+-- the test passes centerWorked = false).
+local function workedTilesCity(opts)
+    opts = opts or {}
+    local plots = opts.plots or {}
+    local working = {}
+    for _, p in ipairs(opts.workingPlots or {}) do
+        working[p] = true
+    end
+    local cityX = opts.cityX or 0
+    local cityY = opts.cityY or 0
+    local c = T.fakeCity({ owner = opts.owner or 0, id = opts.id or 1 })
+    function c:GetX() return cityX end
+    function c:GetY() return cityY end
+    function c:GetNumCityPlots() return #plots end
+    function c:GetCityIndexPlot(i) return plots[i + 1] end
+    function c:IsWorkingPlot(p)
+        if p:GetX() == cityX and p:GetY() == cityY then
+            return opts.centerWorked ~= false
+        end
+        return working[p] or false
+    end
+    return c
+end
+
+local function plotWithYields(opts)
+    return T.fakePlot({
+        x = opts.x or 0,
+        y = opts.y or 0,
+        plotIndex = opts.plotIndex or 0,
+        yields = opts.yields or {},
+    })
+end
+
+function M.test_worked_tiles_empty_without_mapscope()
+    -- The category only exists while CityView's Manage Territory sub is
+    -- active, signalled by civvaccess_shared.mapScope being non-nil.
+    setupWorkedTiles()
+    civvaccess_shared.mapScope = nil
+    UI.GetHeadSelectedCity = function()
+        return workedTilesCity({
+            plots = { plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } }) },
+            workingPlots = {},
+        })
+    end
+    T.eq(#ScannerBackendWorkedTiles.Scan(0, 0), 0)
+end
+
+function M.test_worked_tiles_empty_for_foreign_city()
+    -- Vanilla CityView has no list-worked-tiles surface for foreign cities;
+    -- mod must not synthesize one when the head-selected city is somebody
+    -- else's (espionage / spy peek).
+    setupWorkedTiles()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    UI.GetHeadSelectedCity = function()
+        return workedTilesCity({ owner = 5, plots = { plot }, workingPlots = { plot } })
+    end
+    T.eq(#ScannerBackendWorkedTiles.Scan(0, 0), 0)
+end
+
+function M.test_worked_tiles_skips_city_center()
+    -- IsWorkingPlot returns true for the city center (auto-worked) but the
+    -- player never picks it; the backend must filter by coord match so the
+    -- center never lands in the list.
+    setupWorkedTiles()
+    local center = plotWithYields({ x = 0, y = 0, plotIndex = 0, yields = { [1] = 5 } })
+    local ring = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    UI.GetHeadSelectedCity = function()
+        return workedTilesCity({ plots = { center, ring }, workingPlots = { center, ring } })
+    end
+    local out = ScannerBackendWorkedTiles.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].plotIndex, 1)
+end
+
+function M.test_worked_tiles_label_drops_zero_yields()
+    -- Item collapse depends on identical itemNames -- a tile that produces
+    -- 2 food and 0 of everything else must label "2 food", not "2 food, 0
+    -- production, 0 gold, ..." (which would also break collapse against
+    -- another 2-food tile that happens to also produce something else).
+    setupWorkedTiles()
+    GameInfo = GameInfo or {}
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2, [2] = 0, [3] = 1 } })
+    UI.GetHeadSelectedCity = function()
+        return workedTilesCity({ plots = { plot }, workingPlots = { plot } })
+    end
+    local out = ScannerBackendWorkedTiles.Scan(0, 0)
+    T.eq(#out, 1)
+    -- The mod's CivVAccess_Strings table (pre-loaded into the test env from
+    -- earlier suites in the run) supplies TXT_KEY_CIVVACCESS_YIELD_COUNT =
+    -- "{1_Count} {2_Yield}", so the resolved label is "<n> <icon>" per
+    -- non-zero yield, joined by ", ". A zero-yield slot must produce no
+    -- segment at all.
+    T.eq(out[1].itemName, "2 food, 1 gold")
+end
+
+function M.test_worked_tiles_validate_drops_unworked_plot()
+    -- Reassignment scenario: a plot that was emitted as worked stops being
+    -- worked. ValidateEntry must return false so ScannerSnap.pruneInstance
+    -- can drop the entry on next visit. New entries don't appear here --
+    -- that path needs a full rebuild, which the per-cycle rebuildAndLocate
+    -- in ScannerNav already gives us.
+    setupWorkedTiles()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    Map.GetPlotByIndex = function(i)
+        if i == 1 then
+            return plot
+        end
+        return nil
+    end
+    Players[0] = Players[0] or {}
+    Players[0].GetCityByID = function(_self, _id)
+        return workedTilesCity({ plots = { plot }, workingPlots = {} })
+    end
+    local entry = {
+        plotIndex = 1,
+        data = { cityOwner = 0, cityID = 1 },
+    }
+    T.falsy(ScannerBackendWorkedTiles.ValidateEntry(entry, nil))
+end
+
+function M.test_worked_tiles_validate_resolves_by_stored_city_not_head_selected()
+    -- A snapshot built against city A must keep validating against city A
+    -- even if the user has since switched the head-selected city to city B.
+    -- ValidateEntry resolves through entry.data.cityOwner / cityID for
+    -- exactly this reason; a regression that read UI.GetHeadSelectedCity()
+    -- here would silently re-bucket city-A entries against city B's
+    -- IsWorkingPlot table.
+    setupWorkedTiles()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    Map.GetPlotByIndex = function(i)
+        if i == 1 then
+            return plot
+        end
+        return nil
+    end
+    -- City A is what the snapshot was built against and still works the plot.
+    local cityA = workedTilesCity({ id = 1, plots = { plot }, workingPlots = { plot } })
+    -- City B (now head-selected) does NOT work it. If validate looked at
+    -- the head-selected city, it would (wrongly) return false and prune.
+    local cityB = workedTilesCity({ id = 2, plots = { plot }, workingPlots = {} })
+    UI.GetHeadSelectedCity = function() return cityB end
+    Players[0] = Players[0] or {}
+    Players[0].GetCityByID = function(_self, id)
+        if id == 1 then return cityA end
+        if id == 2 then return cityB end
+        return nil
+    end
+    local entry = {
+        plotIndex = 1,
+        data = { cityOwner = 0, cityID = 1 },
+    }
+    T.truthy(ScannerBackendWorkedTiles.ValidateEntry(entry, nil), "must validate against stored city, not head-selected")
+end
+
 return M
