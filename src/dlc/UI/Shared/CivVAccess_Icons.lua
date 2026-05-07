@@ -45,6 +45,16 @@ local ICON_KEYS = {
     -- Pedia and tooltip prose pair it with "Great People" / "Great Person",
     -- handled by the dedup adjacency check + the alias below.
     ICON_GREAT_PEOPLE = "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE",
+    -- City-capture popup TXT_KEY_POPUP_GOLD_AND_CULTURE_CITY_CAPTURE renders
+    -- "{3_Num} [ICON_GREAT_WORK] from the capture of {@4_CityName}!!!" --
+    -- the icon is the only label for that count, so it has to speak.
+    -- Pedia / tooltip prose pairs it with "Great Work(s)"; the s? in the
+    -- adjacency check collapses both forms in en_US. Non-English locales
+    -- whose plural inflects the stem (fr_FR "chefs-d'oeuvre") still leak
+    -- a doubled "great work / chefs-d'oeuvre" in tooltip prose -- adding a
+    -- per-locale alias when a translator hits that case is the same path
+    -- as ICON_GREAT_PEOPLE's _ALT.
+    ICON_GREAT_WORK = "TXT_KEY_CIVVACCESS_ICON_GREAT_WORK",
 
     -- Combat / movement --------------------------------------------------
     ICON_STRENGTH = "TXT_KEY_CIVVACCESS_ICON_STRENGTH",

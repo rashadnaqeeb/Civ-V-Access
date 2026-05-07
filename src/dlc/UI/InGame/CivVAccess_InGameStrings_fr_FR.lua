@@ -1544,6 +1544,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "points 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "points d'ingénieurs illustres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "points marchands illustres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "points de savants illustres"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "chef-d'oeuvre"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "puissance de combat"
 -- Le format moteur "Puissance : N" emploie la forme courte ; l'alias
 -- permet à l'icône "puissance de combat" de s'effacer devant.

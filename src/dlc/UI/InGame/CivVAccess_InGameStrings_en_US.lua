@@ -1725,6 +1725,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "great a
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "great engineer points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "great merchant points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "great scientist points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "great work"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "combat strength"
 -- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH (en_US
 -- "[ICON_STRENGTH] Strength: N", fr_FR "[ICON_STRENGTH] Puissance : N").

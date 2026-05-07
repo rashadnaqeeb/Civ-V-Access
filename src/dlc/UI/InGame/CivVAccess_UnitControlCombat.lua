@@ -426,23 +426,37 @@ end
 -- Empty city captures don't fire any combat resolution -- the unit just walks in.
 -- SerialEventCityCaptured fires once per capture with (hexPos, oldOwner,
 -- cityId, newOwner). Speak only when the active player is involved (we
--- captured one or one of ours fell). The engine's hex position is a
--- HexPos table; pulling x/y is enough to look up the city plot.
-local function onCityCaptured(_hexPos, oldOwner, cityId, newOwner)
+-- captured one or one of ours fell).
+--
+-- Resolve the captured city via the plot, not the cityId arg. The engine
+-- passes the pre-capture (old-owner) city ID -- gDLL->GameplayCityCaptured
+-- in CvPlayer.cpp::DoLiberatePlayer takes pOldCity, and pOldCity->GetID()
+-- is its ID under the *old* owner. Cities are numbered per-owner, so
+-- Players[newOwner]:GetCityByID(<old-owner ID>) silently returns whichever
+-- city the new owner happens to have at that index (e.g. capturing Tokyo
+-- spoke "captured Nottingham" because England's Nottingham shared Tokyo's
+-- per-owner ID under Japan). The post-capture city sits on the same plot
+-- and retains its name on capture, so GetPlotCity reads back the right one.
+local function onCityCaptured(hexPos, oldOwner, _cityId, newOwner)
     local activePlayer = Game.GetActivePlayer()
     if newOwner ~= activePlayer and oldOwner ~= activePlayer then
         return
     end
-    local cityName
-    local newPlayer = Players[newOwner]
-    if newPlayer ~= nil then
-        local city = newPlayer:GetCityByID(cityId)
-        if city ~= nil then
-            cityName = city:GetName()
-        end
-    end
-    if cityName == nil then
-        cityName = ""
+    local plot = Map.GetPlot(ToGridFromHex(hexPos.x, hexPos.y))
+    local capturedCity = plot and plot:GetPlotCity()
+    local cityName = capturedCity and capturedCity:GetName() or ""
+    if cityName == "" then
+        Log.warn(
+            "onCityCaptured: empty city name at hex="
+                .. tostring(hexPos.x)
+                .. ","
+                .. tostring(hexPos.y)
+                .. " oldOwner="
+                .. tostring(oldOwner)
+                .. " newOwner="
+                .. tostring(newOwner)
+        )
+        return
     end
     local text
     if newOwner == activePlayer then
