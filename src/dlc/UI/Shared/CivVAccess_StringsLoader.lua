@@ -44,7 +44,7 @@ StringsLoader = {}
 -- zh_Hant_HK. The keys here are commented out until a corresponding
 -- translation file ships.
 local supportedLocales = {
-    -- de_DE = true,
+    de_DE = true,
     es_ES = true,
     fr_FR = true,
     -- it_IT = true,
