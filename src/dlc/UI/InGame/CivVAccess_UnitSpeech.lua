@@ -1169,7 +1169,16 @@ function UnitSpeech.combatResult(args)
     if args.interceptorName ~= nil and args.interceptorName ~= "" then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_INTERCEPTED_BY", args.interceptorName)
     end
-    if args.attackerFinalDamage >= args.attackerMaxHP then
+    -- attackerKilled / defenderKilled override the finalDamage>=maxHP check
+    -- when the caller has already determined the kill attribution (e.g. the
+    -- batched-hook reorder in onCombatResolved suppresses the kill clause on
+    -- all but the chronologically last hook in a same-defender batch). Nil
+    -- defaults to the engine-payload check.
+    local attackerKilled = args.attackerKilled
+    if attackerKilled == nil then
+        attackerKilled = (args.attackerFinalDamage >= args.attackerMaxHP)
+    end
+    if attackerKilled then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_COMBAT_KILLED", atkName)
     end
     -- Captured cities take the captured line instead of killed: the
@@ -1177,7 +1186,11 @@ function UnitSpeech.combatResult(args)
     -- still speaks "We captured Babylon" / "We lost Babylon" with the
     -- ownership perspective; this clause pins the outcome to the combat
     -- itself so the readout is self-contained.
-    if args.defenderFinalDamage >= args.defenderMaxHP then
+    local defenderKilled = args.defenderKilled
+    if defenderKilled == nil then
+        defenderKilled = (args.defenderFinalDamage >= args.defenderMaxHP)
+    end
+    if defenderKilled then
         local outcomeKey = args.defenderCaptured and "TXT_KEY_CIVVACCESS_COMBAT_CAPTURED"
             or "TXT_KEY_CIVVACCESS_COMBAT_KILLED"
         parts[#parts + 1] = Text.format(outcomeKey, defName)

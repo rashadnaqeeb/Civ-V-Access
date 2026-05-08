@@ -153,6 +153,110 @@ end
 -- substitutes "unknown" in the readout, matching the sighted view of
 -- "an unseen hit landing on a visible target". Both sides invisible
 -- on a visible plot stays silent (no actor to name).
+--
+-- Buffer-and-flush. Hooks are not spoken inline; they are appended to
+-- _pendingHooks and flushed on the next TickPump tick. The engine fires
+-- multi-attacker hooks targeting one defender at the same instant with
+-- inconsistent payloads -- in a 2-Brutes-on-1-Scout repro, the first
+-- hook to fire reported pre=81 (post the second combat's damage) while
+-- the second hook reported pre=49 (the original pre-everything state),
+-- and both reported final=100. Speaking inline produced "Scout -19,
+-- killed" then "Scout -51, killed", which read as the same scout taking
+-- damage after death. The flush groups buffered hooks by defender, sorts
+-- each group by pre ascending (= damage application order, since the
+-- combat that entered earlier had a lower pre snapshot), and recomputes
+-- per-combat deltas as consecutive-pre differences (final - pre for the
+-- last entry). The kill clause is attributed only to the last entry in
+-- each sorted group -- the chronologically last spoken combat for that
+-- defender -- so the user never hears "X killed" followed by speech
+-- about more damage to X. Single-hook groups (the common case) flush
+-- exactly as before with a one-tick (~33ms) deferral that's below
+-- perception even for player-initiated combat.
+local _pendingHooks = {}
+local _flushScheduled = false
+
+local function flushPendingHooks()
+    _flushScheduled = false
+    if #_pendingHooks == 0 then
+        return
+    end
+    local hooks = _pendingHooks
+    _pendingHooks = {}
+
+    -- Group by defender key; preserve first-appearance order across groups
+    -- so unrelated combats stay in tick-time order.
+    local groups = {}
+    local groupOrder = {}
+    for _, h in ipairs(hooks) do
+        local g = groups[h.defenderKey]
+        if g == nil then
+            g = {}
+            groups[h.defenderKey] = g
+            groupOrder[#groupOrder + 1] = h.defenderKey
+        end
+        g[#g + 1] = h
+    end
+
+    for _, key in ipairs(groupOrder) do
+        local group = groups[key]
+        -- Stable sort by pre ascending. Sort is in-place; ties preserve
+        -- insertion order (= hook firing order) which is the natural
+        -- fallback when nested combats produce equal pre snapshots.
+        table.sort(group, function(a, b)
+            return a.defenderPre < b.defenderPre
+        end)
+        for i, h in ipairs(group) do
+            -- True per-combat delta: damage from this entry's pre to the
+            -- next entry's pre (i.e. the state when the next combat
+            -- entered ResolveCombat). The last entry uses the final
+            -- damage as its post-state since no later combat snapshot
+            -- exists. Clamped >= 0 in case sort ordering and engine
+            -- payload disagree (defensive).
+            local nextEntry = group[i + 1]
+            local correctedDelta
+            if nextEntry ~= nil then
+                correctedDelta = nextEntry.defenderPre - h.defenderPre
+            else
+                correctedDelta = h.defenderFinalDamage - h.defenderPre
+            end
+            if correctedDelta < 0 then
+                correctedDelta = 0
+            end
+            -- Kill clause goes only on the last entry in this defender's
+            -- group: that's the combat whose damage application crossed
+            -- the threshold AND the user's last chance to hear "killed"
+            -- before silence on this defender.
+            local defenderKilled = (i == #group) and (h.defenderFinalDamage >= h.defenderMaxHP)
+            local text = UnitSpeech.combatResult({
+                attackerName = h.attackerName,
+                defenderName = h.defenderName,
+                attackerDamage = h.attackerDamage,
+                attackerFinalDamage = h.attackerFinalDamage,
+                attackerMaxHP = h.attackerMaxHP,
+                defenderDamage = correctedDelta,
+                defenderFinalDamage = h.defenderFinalDamage,
+                defenderMaxHP = h.defenderMaxHP,
+                defenderKilled = defenderKilled,
+                interceptorName = h.interceptorName,
+                combatKind = h.combatKind,
+                defenderCaptured = h.defenderCaptured,
+            })
+            if h.attackerIsActivePlayer or civvaccess_shared.aiCombatAnnounce then
+                speakQueued(text)
+            end
+            CombatLog.recordCombat(text)
+            MessageBuffer.append(text, "combat")
+        end
+    end
+end
+
+local function scheduleFlush()
+    if _flushScheduled then
+        return
+    end
+    _flushScheduled = true
+    TickPump.runOnce(flushPendingHooks)
+end
 local function onCombatResolved(
     attackerPlayer,
     attackerUnit,
@@ -177,6 +281,15 @@ local function onCombatResolved(
     plotX,
     plotY
 )
+    Log.debug(string.format(
+        "CombatResolved: atkP=%d atkU=%d atkC=%d atkD=%d/%d/%d defP=%d defU=%d defC=%d defD=%d/%d/%d kind=%d vis=%d atkK=%d defK=%d cap=%d",
+        attackerPlayer, attackerUnit, attackerCity,
+        attackerDamage, attackerFinalDamage, attackerMaxHP,
+        defenderPlayer, defenderUnit, defenderCity,
+        defenderDamage, defenderFinalDamage, defenderMaxHP,
+        combatKind, plotVisibleToActiveTeam, attackerKnown, defenderKnown,
+        defenderCityCaptured
+    ))
     local activePlayer = Game.GetActivePlayer()
     local activeInvolved = (attackerPlayer == activePlayer or defenderPlayer == activePlayer)
     if not activeInvolved then
@@ -206,7 +319,6 @@ local function onCombatResolved(
         )
         return
     end
-    local attackerName = resolvedAttackerName
     local defenderName
     if not activeInvolved and defenderKnown ~= 1 then
         defenderName = Text.key("TXT_KEY_CIVVACCESS_COMBAT_UNKNOWN_COMBATANT")
@@ -243,30 +355,29 @@ local function onCombatResolved(
             interceptorName = nil
         end
     end
-    local text = UnitSpeech.combatResult({
-        attackerName = attackerName,
+    -- Names resolved synchronously (a deferred-killed unit's handle may be
+    -- gone by flush time, so the snapshot lives in the pending record).
+    -- defenderPre is recovered from the engine's payload via final - delta:
+    -- the flush sorts by this to recover damage application order. The
+    -- attackerIsActivePlayer flag is captured here because Game.GetActive
+    -- Player at flush time would still be correct, but the speech-gate
+    -- decision is per-hook and belongs in the snapshot.
+    _pendingHooks[#_pendingHooks + 1] = {
+        defenderKey = defenderPlayer .. ":" .. defenderUnit .. ":" .. defenderCity,
+        defenderPre = defenderFinalDamage - defenderDamage,
+        attackerName = resolvedAttackerName,
         defenderName = defenderName,
         attackerDamage = attackerDamage,
         attackerFinalDamage = attackerFinalDamage,
         attackerMaxHP = attackerMaxHP,
-        defenderDamage = defenderDamage,
         defenderFinalDamage = defenderFinalDamage,
         defenderMaxHP = defenderMaxHP,
         interceptorName = interceptorName,
         combatKind = combatKind,
-        defenderCaptured = defenderCityCaptured == 1,
-    })
-    -- Player-initiated combat always speaks: it's direct feedback for the
-    -- key the user just pressed. Combat the active player didn't initiate
-    -- (AI attacking the player, or AI vs AI on a visible plot) is gated
-    -- behind the aiCombatAnnounce setting; when off it still records to
-    -- the F7 Combat Log so the user can review what happened during the
-    -- AI turn.
-    if attackerPlayer == activePlayer or civvaccess_shared.aiCombatAnnounce then
-        speakQueued(text)
-    end
-    CombatLog.recordCombat(text)
-    MessageBuffer.append(text, "combat")
+        defenderCaptured = (defenderCityCaptured == 1),
+        attackerIsActivePlayer = (attackerPlayer == activePlayer),
+    }
+    scheduleFlush()
 end
 
 -- GameEvents.CivVAccessAirSweepNoTarget listener. Engine fork fires this
@@ -469,8 +580,12 @@ local function onCityCaptured(hexPos, oldOwner, _cityId, newOwner)
 end
 
 -- Registers fresh listeners on every call (per CLAUDE.md's no-install-
--- once-guards rule for load-game-from-game survival).
+-- once-guards rule for load-game-from-game survival). Buffer + flush flag
+-- reset so any pending records from the prior game (whose closures are
+-- now dead) don't leak into the new session.
 function UnitControlCombat.installListeners()
+    _pendingHooks = {}
+    _flushScheduled = false
     Log.installEvent(Events, "SerialEventCityCaptured", onCityCaptured, "UnitControlCombat")
     -- Engine-fork hook fired from CvUnitCombat::ResolveCombat. Sole
     -- combat-speech path; the engine's Events.EndCombatSim and
