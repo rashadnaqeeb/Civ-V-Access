@@ -50,7 +50,7 @@ local supportedLocales = {
     it_IT = true,
     -- ja_JP = true,
     -- ko_KR = true,
-    -- pl_PL = true,
+    pl_PL = true,
     ru_RU = true,
     zh_Hant_HK = true,
 }
