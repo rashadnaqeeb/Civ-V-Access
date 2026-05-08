@@ -45,7 +45,7 @@ StringsLoader = {}
 -- translation file ships.
 local supportedLocales = {
     -- de_DE = true,
-    -- es_ES = true,
+    es_ES = true,
     fr_FR = true,
     -- it_IT = true,
     -- ja_JP = true,
