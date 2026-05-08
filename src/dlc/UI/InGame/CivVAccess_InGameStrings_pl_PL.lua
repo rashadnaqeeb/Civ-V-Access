@@ -312,8 +312,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_UPGRADE"] = "ulepszono"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_CANCEL"] = "anulowano"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_BUILD_START"] = "rozpoczęto {1_Build}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_CONFIRM_PROMOTION"] = "awansowano na {1_Name}"
--- Generic "this control is currently un-clickable" suffix.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "wyłączone"
 
 -- ===== ingame_batch_03.lua =====
 -- Batch 03 (lines 638-855): directions, screen labels, city
@@ -628,10 +626,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"] = "Dyplomacja"
 -- ally with against us.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_DENOUNCE"] = "Potępienie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_COOP_WAR"] = "Cel wspólnej wojny"
--- Great-work splash (archaeology / wonder / cultural-victory completion).
--- Title is either the great work's artist or the "written artifact" label;
--- description and quote come from GameInfo.GreatWorks.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GREAT_WORK_POPUP"] = "Wielkie dzieło"
 
 -- ===== ingame_batch_05.lua =====
 -- Batch 05 (lines 1024-1246): cityview start, popups
@@ -1165,7 +1159,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"] =
     "Nie wybrano wpisu. Przejdź do karty kategorii, aby wybrać jeden."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_INTRO"] = "Wstęp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"] = "Początek historii."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "Koniec historii."
 
 -- ===== ingame_batch_08.lua =====
 -- Batch 08 (lines 1671-1853): pedia help, techtree
@@ -1927,80 +1920,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC"] = "Otwórz prze
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_STATUS"] = "Status"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_PROPOSALS"] = "Propozycje"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_EFFECTS"] = "Efekty"
--- Tab 1 rows.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_RENAME"] = "Zmień nazwę"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_YOU"] = "(ty)"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST"] = "gospodarz"
--- Plural driven by {1_N} (delegate count this member holds in the league).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DELEGATES"] = {
-    one  = "{1_N} delegat",
-    few  = "{1_N} delegaci",
-    many = "{1_N} delegatów",
-}
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_CAN_PROPOSE"] = "może zaproponować"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_DIPLOMAT_VISITING"] = "Dyplomata w ich stolicy"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_LEAGUE"] = "Brak Kongresu Światowego"
--- Tab 2 actions line.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_ACTIONS"] = "Brak dostępnych działań w tej sesji."
--- Plural driven by {1_N} (proposals the player can submit this session).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSALS_AVAILABLE"] = {
-    one  = "{1_N} propozycja dostępna.",
-    few  = "{1_N} propozycje dostępne.",
-    many = "{1_N} propozycji dostępnych.",
-}
--- Plural driven by {1_N} (delegates the player has not yet allocated
--- to a vote in the current session).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING"] = {
-    one  = "{1_N} delegat pozostały.",
-    few  = "{1_N} delegaci pozostali.",
-    many = "{1_N} delegatów pozostałych.",
-}
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_NO_PROPOSALS_THIS_SESSION"] = "Brak propozycji w tej sesji."
--- Proposal row composition.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_ENACT_PREFIX"] = "Przyjmij: {1_Name}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_REPEAL_PREFIX"] = "Uchyl: {1_Name}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSED_BY_CIV"] = "Zaproponowane przez {1_Civ}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSED_BY_YOU"] = "Zaproponowane przez ciebie"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_ON_HOLD"] = "Zawieszone"
--- Vote-state suffix appended to proposal row in Vote mode.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_STATE_LABEL"] = "twój głos: {1_State}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_ABSTAIN"] = "wstrzymaj się"
--- Yea / Nay are invariant in English ("1 Yea" / "5 Yea"); bundle stays
--- degenerate but lets a future translator pluralize for languages that
--- inflect the vote-label noun.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_YEA"] = {
-    one  = "{1_N} za",
-    few  = "{1_N} za",
-    many = "{1_N} za",
-}
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_NAY"] = {
-    one  = "{1_N} przeciw",
-    few  = "{1_N} przeciw",
-    many = "{1_N} przeciw",
-}
--- Cast-vote row used in Diplomatic Victory voting where each delegate slot
--- can name a specific civ. {1_N} is the count of votes cast (1 per
--- delegate); {2_Civ} is the civ they were cast for.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_FOR_CIV"] = "{1_N} za {2_Civ}"
--- Slot picker (Propose mode).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_EMPTY"] = "Pusty slot propozycji {1_N}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED"] = "Slot {1_N}: {2_Body}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_SLOT_PICKER"] = "Slot propozycji {1_N}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_ACTIVE"] = "Aktywne rezolucje do uchylenia"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_INACTIVE"] = "Rezolucje do przyjęcia"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_SECTION_OTHER"] = "Inne rezolucje"
--- Mod prefaces for the GetResolutionDetails opinion sections. The engine
--- emits a verbose preface ("Based on our knowledge of other Civilizations'
--- desires, our count for this proposal stands at:") followed by bulleted
--- counts; we replace the preface with these terser strings and reorder so
--- the opinion lands before the resolution description (otherwise the user
--- has to wade through several sentences of help text to reach the live
--- counts that drive their vote decision). The propose-flow lists are flat
--- civ names, joined with commas mod-side rather than the engine's per-civ
--- bullets.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_VOTE_COUNTS_PREFACE"] = "Nasza szacunkowa liczba głosów za tą propozycją:"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_GRATEFUL_LIST"] = "Cywilizacje, które poprzą: {1_Civs}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_ANGRY_LIST"] = "Cywilizacje, które się sprzeciwią: {1_Civs}"
 
 -- ===== ingame_batch_13.lua =====
 -- Batch 13 (lines 2639-2872): league members, religion, in-game chat

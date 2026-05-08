@@ -846,7 +846,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_PEOPLE"] = "Fortschrit
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_WORKER_FOCUS"] = "Arbeiterschwerpunkt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNEMPLOYED_ACTION"] = "Arbeitslos: {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_WONDERS_EMPTY"] = "Keine Weltwunder errichtet."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GP_EMPTY"] = "Keine Große-Persönlichkeit-Erzeugung."
 
 
 -- ===== Great person generation (CityView) =====
@@ -1210,7 +1209,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PICKER_READER_NO_SELECTION"] =
     "Kein Eintrag ausgewählt. Wechselt zum Tab Kategorien, um einen auszuwählen."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_INTRO"] = "Einleitung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"] = "Beginn der Historie."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "Ende der Historie."
 
 
 -- Civilopedia (end of history/advisor boundaries)
@@ -1346,7 +1344,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SEARCH"] = "Buchstabe /
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SEARCH"] = "Tippen zum Suchen nach Name oder Entdeckungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_F6"] = "F6"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"] = "Technologiebaum schließen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE"] = "Escape"
 
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE"] = "Escape"
@@ -1503,7 +1500,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PROPOSAL_INCOMING"] = "eingehender 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PROPOSAL_OUTGOING"] = "Antwort abgewartet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TEAM"] = "Team {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RESEARCHING"] = "erforscht {1_Tech}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE"] = "{1_N} Einfluss"
 
 
 -- Diplomacy / influence / CS bonuses
@@ -1828,7 +1824,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_SCORE"] = "Punktzahl"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "Siege"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "Gesamt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, Hauptstadt verloren"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "Herrschaft"
 
 
 -- Victory Progress screen
@@ -1972,9 +1967,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC"] = "Weltkongress
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_STATUS"] = "Status"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_PROPOSALS"] = "Vorschläge"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_TAB_EFFECTS"] = "Effekte"
-
--- Tab 1 rows.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_RENAME"] = "Umbenennen"
 
 
 -- Tab 1 rows.
