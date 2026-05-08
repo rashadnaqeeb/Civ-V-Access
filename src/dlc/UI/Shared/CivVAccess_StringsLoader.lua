@@ -52,7 +52,7 @@ local supportedLocales = {
     -- ko_KR = true,
     -- pl_PL = true,
     -- ru_RU = true,
-    -- zh_Hant_HK = true,
+    zh_Hant_HK = true,
 }
 
 local function activeLocale()
