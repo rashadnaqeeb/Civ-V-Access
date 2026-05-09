@@ -144,7 +144,11 @@ function Write-VersionLua {
 civvaccess_shared = civvaccess_shared or {}
 civvaccess_shared.version = "$modVersion"
 "@
-    Set-Content -LiteralPath $dst -Value $body -Encoding UTF8
+    # WriteAllText with UTF8Encoding(false) writes no BOM; PowerShell's
+    # Set-Content -Encoding UTF8 does, and Civ V's Lua 5.1 loader treats
+    # the BOM as a syntax error on line 1 (silently kills the file's
+    # globals -- the boot speech then says "v unknown").
+    [System.IO.File]::WriteAllText($dst, $body, [System.Text.UTF8Encoding]::new($false))
 }
 
 function Compress-Component {
