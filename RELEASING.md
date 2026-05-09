@@ -65,7 +65,7 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
 
 2. **Prepend a CHANGELOG entry.** Open `CHANGELOG.md`, replace `## [Unreleased]` with the new version header `## [X.Y.Z] - YYYY-MM-DD`, then add a fresh `## [Unreleased]` section above it. List user-visible changes; the installer shows this exact text to the player on update. The version-header format must stay byte-stable because the installer parses it.
 
-3. **Build any changed components.** Run `./build-proxy.ps1` if `src/proxy/` changed since the last release, `./build-engine.ps1` if `src/engine/` changed, and `./build-installer.ps1` if `installer/` changed. All three write into `dist/` and the outputs are committed (proxy + engine; installer is gitignored and rebuilt fresh into `dist/installer/` per release), so unchanged components don't need a rebuild.
+3. **Build any changed components.** Run `./build-proxy.ps1` if `src/proxy/` changed since the last release, `./build-engine.ps1` if `src/engine/` changed, and `./build-installer.ps1` if `installer/` changed. All three write into `dist/` and the outputs are committed - including `dist/installer/CivVAccessInstaller.exe`, which gives players a stable raw URL (see `README.md`) that always serves the current installer. Commit the rebuilt exe in the same commit as the version + CHANGELOG bump.
 
 4. **Package.** Run `./package-release.ps1`. Produces `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing. Each zip is named with its component's own version pulled from `versions.json`, so unchanged components ship under their previous version number.
 

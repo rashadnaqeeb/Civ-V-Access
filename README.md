@@ -8,7 +8,11 @@ The mod requires the Brave New World expansion, and will not work without it. Ho
 
 ## Installing and updating the mod
 
-The installer is an executable
+Download the installer:
+
+https://github.com/rashadnaqeeb/Civ-V-Access/raw/main/dist/installer/CivVAccessInstaller.exe
+
+This link always points at the current installer. Run it once to install the mod; run it again any time to check for updates, reinstall, or uninstall.
 
 ## Getting help
 

@@ -59,7 +59,9 @@ tools/RemuxToAsf.exe
 # source of truth for shipped binaries; the local zips are byproducts.
 dist/release/
 
-# Installer single-file publish output. Rebuilt on demand from installer/
-# via build-installer.ps1; the canonical distribution is the GitHub Release
-# asset. Committing the ~60 MB exe on every rebuild would bloat history.
-dist/installer/
+# dist/installer/CivVAccessInstaller.exe IS committed - the file at that path
+# gives players a stable raw link
+# (https://github.com/rashadnaqeeb/Civ-V-Access/raw/main/dist/installer/CivVAccessInstaller.exe)
+# that survives across releases. Rebuild via build-installer.ps1 only when
+# installer/ source changed since the last release; commit the new exe in the
+# same commit as the corresponding versions.json + CHANGELOG bump.
