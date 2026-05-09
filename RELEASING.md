@@ -6,12 +6,15 @@ Maintainer doc. The external installer drives off GitHub Releases; this doc desc
 
 A GitHub Release tagged `vX.Y.Z` with these assets attached:
 
-- `core-blind-X.Y.Z.zip` - mod payload that extracts into `Assets/DLC/DLC_CivVAccess/` for blind players.
-- `core-sighted-X.Y.Z.zip` - minimal manifest + empty UI dir scaffolding for the sighted-MP partner path.
-- `engine-X.Y.Z.zip` - the forked `CvGameCore_Expansion2.dll`. Required on both paths because multiplayer compatibility hinges on a matching engine GUID between host and partner.
-- `runtime-X.Y.Z.zip` - `lua51_Win32.dll` proxy plus the Tolk screen-reader bridges. Blind path only.
-- `cinematics-X.Y.Z.zip` - audio-described BNW opening movies. Blind path only. Largest asset (~110 MB).
+- `core-blind-X.Y.Z.zip` - mod payload that extracts into `Assets/DLC/DLC_CivVAccess/` for blind players. Versioned by `components.core`.
+- `core-sighted-X.Y.Z.zip` - minimal manifest + empty UI dir scaffolding for the sighted-MP partner path. Also versioned by `components.core`.
+- `engine-X.Y.Z.zip` - the forked `CvGameCore_Expansion2.dll`. Required on both paths because multiplayer compatibility hinges on a matching engine GUID between host and partner. Versioned by `components.engine`.
+- `runtime-X.Y.Z.zip` - `lua51_Win32.dll` proxy plus the Tolk screen-reader bridges. Blind path only. Versioned by `components.runtime`.
+- `cinematics-X.Y.Z.zip` - audio-described BNW opening movies. Blind path only. Largest asset (~110 MB). Versioned by `components.cinematics`.
 - `SHA256SUMS` - one line per asset, format `<hex>  <filename>`. Informational; GitHub computes its own per-asset digest, exposed through the API as `sha256:<hex>`.
+- `CivVAccessInstaller.exe` - the single-file player-facing installer. Same exe attached to every release so a fixed link to "latest" always pulls a working installer; rebuild it (via `./build-installer.ps1`) when `installer/` source has changed since the last release. Players download this once; it self-resolves all subsequent updates from the GitHub Release API.
+
+Component asset versions can lag the mod's. If `components.engine` is `1.0.0` in mod `1.5.0`, the release attaches `engine-1.0.0.zip` (not `engine-1.5.0.zip`). The installer's digest skip means players don't redownload that asset. Asset filename format is enforced by the installer's `AssetMap.Parse` regex - don't deviate.
 
 The release body should point at `CHANGELOG.md` rather than duplicate the entry. The installer parses `CHANGELOG.md` for the slice between the player's old and new versions, so the per-release body is just a courtesy for humans browsing the Releases page.
 
@@ -62,17 +65,40 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
 
 2. **Prepend a CHANGELOG entry.** Open `CHANGELOG.md`, replace `## [Unreleased]` with the new version header `## [X.Y.Z] - YYYY-MM-DD`, then add a fresh `## [Unreleased]` section above it. List user-visible changes; the installer shows this exact text to the player on update. The version-header format must stay byte-stable because the installer parses it.
 
-3. **Build any changed components.** Run `./build-proxy.ps1` if `src/proxy/` changed since the last release, or `./build-engine.ps1` if `src/engine/` changed. Both write into `dist/` and the outputs are committed, so unchanged components don't need a rebuild.
+3. **Build any changed components.** Run `./build-proxy.ps1` if `src/proxy/` changed since the last release, `./build-engine.ps1` if `src/engine/` changed, and `./build-installer.ps1` if `installer/` changed. All three write into `dist/` and the outputs are committed (proxy + engine; installer is gitignored and rebuilt fresh into `dist/installer/` per release), so unchanged components don't need a rebuild.
 
-4. **Package.** Run `./package-release.ps1`. Produces `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing.
+4. **Package.** Run `./package-release.ps1`. Produces `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing. Each zip is named with its component's own version pulled from `versions.json`, so unchanged components ship under their previous version number.
 
 5. **Smoke test.** Wipe the local install (`./deploy.ps1 -Uninstall`), then reinstall (`./deploy.ps1`). Confirm the install manifest at `Assets/DLC/DLC_CivVAccess/CivVAccess.install.json` shows the new mod version and the right per-component versions, and confirm the game boots and speech works. The package script's zips are produced from the same `dist/` and `src/` content the deploy script reads, so a clean local deploy gives high confidence in what the installer will deliver.
 
-6. **Commit and tag.** Commit the `versions.json` + CHANGELOG bump. Tag the commit `vX.Y.Z` (matching the `mod` field). Push both.
+6. **Commit and tag.** Commit the `versions.json` + CHANGELOG bump. Tag the commit `vX.Y.Z` (matching the `mod` field). Push main and the tag.
 
-7. **Create the GitHub Release.** From the new tag. Upload all five `.zip` files plus `SHA256SUMS`. Set the body to a short pointer like `See [CHANGELOG.md](https://github.com/<owner>/<repo>/blob/main/CHANGELOG.md) for details.` Publish.
+   ```
+   git add versions.json CHANGELOG.md
+   git commit -m "Release vX.Y.Z"
+   git tag vX.Y.Z
+   git push origin main
+   git push origin vX.Y.Z
+   ```
 
-   The installer hits `GET /repos/<owner>/<repo>/releases/latest` to discover the newest release, parses each asset's filename to map it to a component, and downloads only the components whose `sha256:` digest differs from what's recorded in the local install manifest.
+7. **Create the GitHub Release.** Drive it from the gh CLI, attaching all five component zips plus `SHA256SUMS` plus the installer exe. The body points at the changelog rather than duplicating it.
+
+   ```
+   gh release create vX.Y.Z \
+     dist/release/core-blind-*.zip \
+     dist/release/core-sighted-*.zip \
+     dist/release/engine-*.zip \
+     dist/release/runtime-*.zip \
+     dist/release/cinematics-*.zip \
+     dist/release/SHA256SUMS \
+     dist/installer/CivVAccessInstaller.exe \
+     --title "vX.Y.Z" \
+     --notes "See [CHANGELOG.md](https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/CHANGELOG.md) for details."
+   ```
+
+   The installer hits `GET /repos/rashadnaqeeb/Civ-V-Access/releases/latest` to discover the newest release, parses each asset's filename to map it to a component, and downloads only the components whose `sha256:` digest differs from what's recorded in the local install manifest.
+
+8. **Verify the installer round-trip.** On a clean machine (or after `./deploy.ps1 -Uninstall` locally), download `CivVAccessInstaller.exe` from the new release page and run it. Confirm: it detects the game install, asks the profile question on first run, downloads each component, verifies digests, and lands a working install. For an upgrade test, point an existing install at the new release; confirm the digest skip excludes unchanged components and the changelog slice shows what changed.
 
 ## What not to do
 
