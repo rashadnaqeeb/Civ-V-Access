@@ -302,6 +302,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "적 통제 지역 �
 -- Cursor help-overlay key labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, D, Z, X, C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] = "커서 이동 (Q: 북서, E: 북동, A: 서, D: 동, Z: 남서, C: 남동)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_NUMPAD"] = "숫자 키패드 7, 8, 9, 4, 5, 6, 1, 2, 3"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_NUMPAD"] = "동일한 보조 키와 함께 Q, W, E, A, S, D, Z, X, C를 반영 (숫자 키패드 5는 S에 해당, NumLock 켜짐)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "현재 타일의 유닛 읽기"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift+S"

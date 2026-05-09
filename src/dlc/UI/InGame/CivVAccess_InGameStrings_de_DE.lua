@@ -455,6 +455,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in feindlichem Einfl
 -- ===== Cursor help overlay =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, D, Z, X, C Gruppe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] = "Cursor um ein Geländefeld bewegen (Q nw, E no, A w, D o, Z sw, C so)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_NUMPAD"] = "Ziffernblock 7, 8, 9, 4, 5, 6, 1, 2, 3"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_NUMPAD"] = "Spiegelt Q, W, E, A, S, D, Z, X, C mit denselben Modifikatortasten wider (im Ziffernblock entspricht 5 dem S, bei aktivem Num-Lock)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Einheit auf dem aktuellen Geländefeld vorlesen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Umschalt plus S"

@@ -69,6 +69,15 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE",
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE",
     },
+    -- Numpad mirror for the entire QWE/ASD/ZXC cluster (S=5 anchors the
+    -- center). Documented as one entry next to the cluster description so
+    -- the user hears the alias once rather than seeing every cursor /
+    -- surveyor / unit-action chord doubled in the help list. Implemented at
+    -- the InputRouter, not via per-handler bindings.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_NUMPAD",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_NUMPAD",
+    },
     {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO",
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO",

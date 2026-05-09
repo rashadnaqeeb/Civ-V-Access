@@ -523,4 +523,170 @@ function M.test_dispatch_is_short_circuited_while_muted()
     T.eq(fired, 0, "no binding fires while muted")
 end
 
+-- Numpad mirror -------------------------------------------------------------
+-- VK_NUMPAD7..3 mirror the QWE/ASD/ZXC cluster (S=5 anchors the center).
+-- Implemented as a second-pass binding walk in dispatch -- so a numpad
+-- press fires whatever the equivalent letter binding does, with whatever
+-- modifier the user is holding. Direct VK_NUMPAD bindings (NumberEntry)
+-- still win because they fire on the first pass.
+
+local function pushLetterBinding(name, key, mods, fired)
+    HandlerStack.push({
+        name = name,
+        bindings = {
+            {
+                key = key,
+                mods = mods,
+                fn = function()
+                    fired.count = fired.count + 1
+                end,
+            },
+        },
+    })
+end
+
+function M.test_numpad7_mirrors_Q_when_no_VK_NUMPAD7_binding()
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 81, 0, fired) -- Keys.Q
+    T.truthy(InputRouter.dispatch(103, 0, WM_KEYDOWN), "VK_NUMPAD7 fires Q binding")
+    T.eq(fired.count, 1)
+end
+
+function M.test_numpad5_mirrors_S()
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 83, 0, fired) -- Keys.S
+    T.truthy(InputRouter.dispatch(101, 0, WM_KEYDOWN), "VK_NUMPAD5 fires S binding")
+    T.eq(fired.count, 1)
+end
+
+function M.test_numpad_mirror_carries_shift_modifier()
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Surveyor", 81, 1, fired) -- Shift+Q
+    T.truthy(InputRouter.dispatch(103, 1, WM_KEYDOWN), "Shift+VK_NUMPAD7 fires Shift+Q")
+    T.eq(fired.count, 1)
+end
+
+function M.test_numpad_mirror_carries_alt_modifier()
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("UnitControl", 81, 4, fired) -- Alt+Q
+    T.truthy(InputRouter.dispatch(103, 4, WM_SYSKEYDOWN), "Alt+VK_NUMPAD7 fires Alt+Q on WM_SYSKEYDOWN")
+    T.eq(fired.count, 1)
+end
+
+function M.test_numpad_mirror_carries_ctrl_modifier()
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Bookmarks", 83, 2, fired) -- Ctrl+S
+    T.truthy(InputRouter.dispatch(101, 2, WM_KEYDOWN), "Ctrl+VK_NUMPAD5 fires Ctrl+S")
+    T.eq(fired.count, 1)
+end
+
+function M.test_direct_numpad_binding_wins_over_letter_mirror()
+    -- NumberEntry binds VK_NUMPAD0..9 directly. The first-pass binding walk
+    -- must fire that binding, NOT remap to the letter equivalent.
+    setup()
+    local numpadFired = { count = 0 }
+    local letterFired = { count = 0 }
+    HandlerStack.push({
+        name = "Baseline",
+        capturesAllInput = true,
+        bindings = {
+            {
+                key = 83, -- Keys.S
+                mods = 0,
+                fn = function()
+                    letterFired.count = letterFired.count + 1
+                end,
+            },
+        },
+    })
+    HandlerStack.push({
+        name = "NumberEntry",
+        capturesAllInput = true,
+        bindings = {
+            {
+                key = 101, -- VK_NUMPAD5
+                mods = 0,
+                fn = function()
+                    numpadFired.count = numpadFired.count + 1
+                end,
+            },
+        },
+    })
+    T.truthy(InputRouter.dispatch(101, 0, WM_KEYDOWN))
+    T.eq(numpadFired.count, 1, "direct numpad binding fires")
+    T.eq(letterFired.count, 0, "letter mirror does not fire underneath")
+end
+
+function M.test_numpad_mirror_only_when_first_pass_misses_with_modifier()
+    -- A direct numpad binding for plain Numpad5 must NOT short-circuit a
+    -- Ctrl+Numpad5 press: first pass with mods=2 misses the plain-mods=0
+    -- binding, then the mirror runs against Ctrl+S.
+    setup()
+    local plainNumpadFired = { count = 0 }
+    local ctrlLetterFired = { count = 0 }
+    HandlerStack.push({
+        name = "Baseline",
+        bindings = {
+            {
+                key = 101, -- VK_NUMPAD5 plain
+                mods = 0,
+                fn = function()
+                    plainNumpadFired.count = plainNumpadFired.count + 1
+                end,
+            },
+            {
+                key = 83, -- Keys.S, Ctrl
+                mods = 2,
+                fn = function()
+                    ctrlLetterFired.count = ctrlLetterFired.count + 1
+                end,
+            },
+        },
+    })
+    T.truthy(InputRouter.dispatch(101, 2, WM_KEYDOWN))
+    T.eq(plainNumpadFired.count, 0, "plain-Numpad binding does not fire under Ctrl")
+    T.eq(ctrlLetterFired.count, 1, "Ctrl+Numpad5 routes to Ctrl+S")
+end
+
+function M.test_unmapped_numpad_with_no_binding_returns_consumed_through_barrier()
+    -- VK_NUMPAD0 is not in the mirror table (only 1-9 mirror the cluster).
+    -- A bare Numpad0 with no binding should still be swallowed by the
+    -- barrier so it doesn't leak to the engine.
+    setup()
+    HandlerStack.push({
+        name = "Baseline",
+        capturesAllInput = true,
+        bindings = {},
+    })
+    T.truthy(InputRouter.dispatch(96, 0, WM_KEYDOWN), "Numpad0 swallowed by barrier")
+end
+
+function M.test_numpad_mirror_falls_through_when_letter_also_unbound()
+    -- No handler binds either VK_NUMPAD7 or Keys.Q. Without a barrier the
+    -- press should fall through (return false) so the engine can see it.
+    setup()
+    HandlerStack.push({
+        name = "Empty",
+        bindings = {},
+    })
+    T.falsy(InputRouter.dispatch(103, 0, WM_KEYDOWN), "unbound Numpad7 falls through")
+end
+
+function M.test_numpad_mirror_respects_capturesAllInput_when_letter_also_unbound()
+    -- Numpad7 with no Q binding behind a capturesAllInput handler still
+    -- swallows. The mirror retry doesn't change the consumed return.
+    setup()
+    HandlerStack.push({
+        name = "Baseline",
+        capturesAllInput = true,
+        bindings = {},
+    })
+    T.truthy(InputRouter.dispatch(103, 0, WM_KEYDOWN), "barrier swallow survives mirror retry")
+end
+
 return M

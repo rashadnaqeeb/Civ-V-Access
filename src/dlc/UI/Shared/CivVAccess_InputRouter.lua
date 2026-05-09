@@ -47,6 +47,26 @@ local MOD_ALT = 4
 local VK_OEM_2 = 191
 local VK_F12 = 123
 
+-- Numpad-to-letter mirror for the Q/W/E/A/S/D/Z/X/C cluster. With NumLock
+-- on, every cluster key has a numpad twin in the same physical 3x3 layout
+-- (S=5 anchors the center, the rest fall out around it). Dispatch retries
+-- the binding walk with the mapped letter when a numpad keycode produced
+-- no match, so every existing letter binding -- plain, Shift, Ctrl, Alt
+-- -- gets the numpad alias for free without each handler having to enumerate
+-- both keys. NumberEntry binds VK_NUMPAD0..9 directly and wins on the first
+-- pass, so the mirror never shadows digit entry.
+local NUMPAD_MIRROR = {
+    [Keys.VK_NUMPAD7] = Keys.Q,
+    [Keys.VK_NUMPAD8] = Keys.W,
+    [Keys.VK_NUMPAD9] = Keys.E,
+    [Keys.VK_NUMPAD4] = Keys.A,
+    [Keys.VK_NUMPAD5] = Keys.S,
+    [Keys.VK_NUMPAD6] = Keys.D,
+    [Keys.VK_NUMPAD1] = Keys.Z,
+    [Keys.VK_NUMPAD2] = Keys.X,
+    [Keys.VK_NUMPAD3] = Keys.C,
+}
+
 function InputRouter.currentModifierMask()
     local mask = 0
     if UI.ShiftKeyDown() then
@@ -61,11 +81,53 @@ function InputRouter.currentModifierMask()
     return mask
 end
 
--- Invariant: a binding's fn may push or pop handlers, but this loop bails
--- (`return true`) the moment any binding fires, so the walk never sees a
--- mutated stack under its own feet. Bindings that intend to keep the walk
--- going after mutating the stack are not supported; add a new primitive
--- before trying.
+-- Walk the HandlerStack top-to-bottom looking for a binding that matches
+-- (keyCode, modMask). Returns (fired, consumed):
+--   fired=true,  consumed=true   a binding ran.
+--   fired=false, consumed=true   a capturesAllInput barrier ate the key
+--                                without a binding match (no passthrough).
+--   fired=false, consumed=false  the key passed through (barrier passthrough,
+--                                or no barrier on the stack).
+-- Factored so dispatch can run a second pass with a numpad-mirrored keycode
+-- without duplicating the loop. passthroughKeys is checked against the
+-- ORIGINAL keycode at the call site -- a numpad mirror should not change
+-- whether the engine sees the press.
+local function walkBindings(keyCode, modMask)
+    for i = HandlerStack.count(), 1, -1 do
+        local h = HandlerStack.at(i)
+        local bindings = h.bindings
+        if type(bindings) == "table" then
+            for _, b in ipairs(bindings) do
+                if b.key == keyCode and (b.mods or 0) == modMask then
+                    local ok, err = pcall(b.fn)
+                    if not ok then
+                        Log.error(
+                            "InputRouter binding '"
+                                .. tostring(b.description)
+                                .. "' in '"
+                                .. tostring(h.name)
+                                .. "' failed: "
+                                .. tostring(err)
+                        )
+                    end
+                    return true, true
+                end
+            end
+        end
+        if h.capturesAllInput then
+            if h.passthroughKeys ~= nil and h.passthroughKeys[keyCode] then
+                return false, false
+            end
+            return false, true
+        end
+    end
+    return false, false
+end
+
+-- Invariant: a binding's fn may push or pop handlers, but walkBindings bails
+-- the moment any binding fires, so the walk never sees a mutated stack
+-- under its own feet. Bindings that intend to keep the walk going after
+-- mutating the stack are not supported; add a new primitive before trying.
 function InputRouter.dispatch(keyCode, modMask, msg)
     if msg ~= WM_KEYDOWN and msg ~= WM_SYSKEYDOWN then
         return false
@@ -158,39 +220,29 @@ function InputRouter.dispatch(keyCode, modMask, msg)
         end
     end
 
-    for i = HandlerStack.count(), 1, -1 do
-        local h = HandlerStack.at(i)
-        local bindings = h.bindings
-        if type(bindings) == "table" then
-            for _, b in ipairs(bindings) do
-                if b.key == keyCode and (b.mods or 0) == modMask then
-                    local ok, err = pcall(b.fn)
-                    if not ok then
-                        Log.error(
-                            "InputRouter binding '"
-                                .. tostring(b.description)
-                                .. "' in '"
-                                .. tostring(h.name)
-                                .. "' failed: "
-                                .. tostring(err)
-                        )
-                    end
-                    return true
-                end
-            end
-        end
-        if h.capturesAllInput then
-            -- Barrier handlers may name specific keys that should fall
-            -- through to the engine despite the swallow (e.g. Baseline
-            -- passes F-row and Escape so advisor screens and the pause
-            -- menu remain reachable on the map). Matches on keycode only;
-            -- modifier chords (Ctrl+F10, Ctrl+F11) pass through alongside
-            -- plain F10 / F11.
-            if h.passthroughKeys ~= nil and h.passthroughKeys[keyCode] then
-                return false
-            end
+    -- First pass: original keycode. Barrier passthroughKeys are checked
+    -- here against the literal keycode the user pressed. Comment on
+    -- passthrough behavior: matches on keycode only -- modifier chords
+    -- (Ctrl+F10, Ctrl+F11) pass through alongside plain F10 / F11 without
+    -- a per-chord entry.
+    local fired, consumed = walkBindings(keyCode, modMask)
+    if fired then
+        return true
+    end
+
+    -- Second pass: numpad-mirrored letter. Only when the first pass found
+    -- nothing -- so a handler that explicitly binds VK_NUMPAD0..9 (NumberEntry)
+    -- still wins. Dispatches with the mapped keycode so every modifier-
+    -- specific binding (plain, Shift, Ctrl, Alt) on Q/W/E/A/S/D/Z/X/C
+    -- picks up its numpad twin without each handler having to enumerate
+    -- the pair.
+    local mapped = NUMPAD_MIRROR[keyCode]
+    if mapped ~= nil then
+        local fired2 = walkBindings(mapped, modMask)
+        if fired2 then
             return true
         end
     end
-    return false
+
+    return consumed
 end
