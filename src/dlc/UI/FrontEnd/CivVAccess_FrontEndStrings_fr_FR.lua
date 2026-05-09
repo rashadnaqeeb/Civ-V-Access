@@ -1,6 +1,7 @@
 -- Mod-authored strings, fr_FR overlay. Baseline in CivVAccess_FrontEndStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Mod d'accessibilité v{1_Version} prêt."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE"] = "Votre mod est obsolète. Veuillez exécuter l'installateur."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod en pause"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod repris"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Page précédente"

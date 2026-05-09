@@ -2,6 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Mod dostępności v{1_Version} gotowy."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE"] = "Twój mod jest nieaktualny. Uruchom instalator."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod wstrzymany"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod wznowiony"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Poprzednia strona"

@@ -2,6 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "접근성 모드 v{1_Version} 준비되었습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE"] = "모드가 오래되었습니다. 설치 프로그램을 실행하십시오."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "모드 일시 정지"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "모드 재개"
 

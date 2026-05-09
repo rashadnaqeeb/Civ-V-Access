@@ -2,6 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Barrierefreiheit-Mod v{1_Version} bereit."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE"] = "Euer Mod ist veraltet. Bitte führt den Installer aus."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "Mod pausiert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "Mod fortgesetzt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Vorherige Seite"

@@ -2,6 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Mod de accesibilidad v{1_Version} listo."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE"] = "Tu mod está desactualizado. Ejecuta el instalador."
 
 -- Hotseat-mute toggle
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod pausado"

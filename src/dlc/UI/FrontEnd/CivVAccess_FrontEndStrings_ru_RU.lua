@@ -2,6 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Мод специальных возможностей v{1_Version} готов."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE"] = "Ваш мод устарел. Запустите установщик."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "мод на паузе"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "мод возобновлён"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "Предыдущая страница"
