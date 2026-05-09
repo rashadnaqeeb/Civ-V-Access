@@ -7,6 +7,12 @@ if ContextPtr ~= nil then
 end
 
 civvaccess_shared = civvaccess_shared or {}
+-- In production, deploy.ps1 / package-release.ps1 generate
+-- CivVAccess_Version.lua from versions.json and Boot includes it before any
+-- code reads the field. Tests skip that file (the include below is a no-op),
+-- so seed a sentinel here -- "test" both stands out in any speech the
+-- harness might emit and prevents the boot announcement from formatting nil.
+civvaccess_shared.version = civvaccess_shared.version or "test"
 
 -- include() is the engine's stem-based VFS loader; tests have no VFS, so the
 -- stub is a no-op. Suites that want real load behavior (strings_loader_test)

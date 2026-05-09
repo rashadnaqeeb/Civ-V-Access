@@ -1,4 +1,9 @@
 include("CivVAccess_Polyfill")
+-- CivVAccess_Version.lua is generated at deploy / package time from
+-- versions.json and dropped into the deployed UI/InGame/. Sets
+-- civvaccess_shared.version, which the boot announcement reads. The file
+-- is absent from src/dlc/, so tests rely on the polyfill sentinel above.
+include("CivVAccess_Version")
 include("CivVAccess_Log")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
@@ -272,7 +277,7 @@ local function onInGameBoot()
     CombatLog.installListeners()
     CameraTracker.install()
     ChatBuffer.installListeners()
-    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
+    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_BOOT_INGAME", civvaccess_shared.version or "unknown"))
 end
 
 -- Register a fresh LoadScreenClose listener on every Boot include. WHY

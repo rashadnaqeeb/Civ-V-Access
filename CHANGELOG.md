@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+- The boot announcement now speaks the mod version (e.g. "Civilization V accessibility v1.0.0 loaded in-game") so players know which version they're running.
+- Updates only redownload components that actually changed. Previously, every update redownloaded all five components, including the ~110 MB cinematics, even when only the Lua payload differed.
+
 ## [1.0.0] - 2026-05-09
 
 Initial public release.
