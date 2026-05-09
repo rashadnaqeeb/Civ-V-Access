@@ -43,13 +43,13 @@ If you've played audiogames like Tactical Battle or Castaways, you've used squar
 
 Hexagons have six directions, and six doesn't fit the arrow key layout. So this mod uses six different keys: Q, A, Z on the left side, to move northwest, west, and southwest, and E, D, C on the right side, to move northeast, east, and southeast. The S key is the center. It represents where you currently are. Press one of the other six keys to move in that direction.
 
+The numpad mirrors this cluster, with 5 in the center as S.
+
 Two things will feel strange at first.
 
 1. Hexes don't have a "straight north" or "straight south" direction. You cannot move directly up or down in a single step. To travel directly north, you have to travel northeast, then northwest, bringing you two tiles north of where you started.
 
 2. If instead you move northeast, then southeast, you've actually traveled only one tile east, and one press of A will bring you back to where you started.
-
-The numpad mirrors this cluster, with 5 in the center as S.
 
 This is all you need to know to play, but if you're interested in understanding why this is the case, you can read the next section.
 
@@ -71,7 +71,7 @@ This mod tries to make it easier to visualize by breaking the x (horizontal) coo
 
 ### The cursor
 
-The cursor is your position on the map, independent of any selected unit. Movement keys (Q, A, Z, E, D, C) step it one hex at a time, and each move announces what's on the new hex: terrain, ownership, units, improvements, and so on.
+The cursor is your position on the map, independent of any selected unit. Movement keys (Q, A, Z, E, D, C, or the numpad equivalents) step it one hex at a time, and each move announces what's on the new hex: terrain, ownership, units, improvements, and so on.
 
 - **S** — read the units on the current tile
 - **W** — read the tile's yield
@@ -145,10 +145,10 @@ Units are everything you move and command: workers, settlers, scouts, warriors, 
 
 Alt-letter shortcuts skip the menu for common actions:
 
-- **Alt+S** — fortify a military unit, or sleep a civilian
+- **Alt+S** (or **Alt+Numpad 5**) — fortify a military unit, or sleep a civilian
 - **Alt+F** — sentry (sleep until an enemy comes into sight)
-- **Alt+W** — wake a sleeping unit, or cancel a queued move or automation
-- **Alt+X** — skip the unit's turn
+- **Alt+W** (or **Alt+Numpad 8**) — wake a sleeping unit, or cancel a queued move or automation
+- **Alt+X** (or **Alt+Numpad 2**) — skip the unit's turn
 - **Alt+H** — heal until full
 - **Alt+P** — pillage the current tile
 - **Alt+U** — upgrade
@@ -158,7 +158,7 @@ Alt-letter shortcuts skip the menu for common actions:
 
 ### Movement
 
-**Alt** plus a movement key (Q, A, Z, E, D, C) moves the selected unit one hex in that direction. The mod tells you where you ended up and how many moves remain, or why the move was refused.
+**Alt** plus a movement key (Q, A, Z, E, D, C, or the numpad equivalents) moves the selected unit one hex in that direction. The mod tells you where you ended up and how many moves remain, or why the move was refused.
 
 If the target hex has an enemy, the first press speaks a combat preview. The second press commits the attack.
 
@@ -166,7 +166,7 @@ If the target hex has an enemy, the first press speaks a combat preview. The sec
 
 If instead of using the quick movement keys you choose move to from the action menu, you will be placed in targeting mode.
 
-- **Space** — preview the move from the unit to the cursor (path, cost, turns to arrive)
+- **Space** — preview the move from the unit to the cursor (path, cost, turns to arrive); on an enemy, previews the combat result instead
 - **Enter** — commit
 - **Shift+Enter** — queue the move so the unit keeps walking across turns
 
@@ -190,7 +190,7 @@ All of these keys can be combined with Shift to receive a per-source breakdown, 
 
 The game has a notification panel, accessible with F7. You should check it regularly. Additionally, if you hit Tab on that screen, you will find a turn log, kept by the mod, summarising what happened on the last turn, specifically any combat that took place and any units that have entered or exited tiles you can see on the map.
 
-All these messages are further collected into a buffer, accessible with left and right brackets, for quick review.
+All these messages are further collected into a buffer, accessible with left and right brackets, for quick review. Multiplayer chat messages are also logged here.
 
 - **[** / **]** — previous / next message in the buffer
 - **Ctrl+[** / **Ctrl+]** — oldest / newest message
@@ -201,11 +201,11 @@ The buffer resets when you load a game.
 ## Ending your turn
 
 - **Ctrl+Space** — end the current turn. If something still wants attention, the mod announces what and opens the matching screen.
-- **Ctrl+Shift+Space** — force-end the turn, ending it even with pending blockers.
+- **Ctrl+Shift+Space** — end the turn even if you have unmoved units.
 
 ## Tables
 
-Several screens present data as a table of rows and columns, like the city list on F2 or the unit list on F3. Arrow keys move between cells. The row above row 1 is a header row, and pressing Enter on a column header cycles its sort, which is how you resort the table by a different column. Type-ahead matches against whole rows, not individual cells.
+Several screens present data as a table of rows and columns, like the city list on F2 or the unit list on F3. Arrow keys move between cells. The row above row 1 is a header row, and pressing Enter on a column header cycles its sort, which is how you resort the table by a different column. For example, on the F2 city table you can sort by the production column to see your cities ordered from highest output to lowest, or by the food column to find the city that's losing food fastest. Type-ahead matches against whole rows, not individual cells.
 
 ## Game screens
 
@@ -216,8 +216,8 @@ These keys open the in-game screens. The screens themselves are regular menus or
 - **F3** — Military Overview. 2 tabs: a table of all your units, and a list of progress toward each great person type.
 - **F4** — Diplomacy. 3 tabs: major civs, city-states, and current deals (active and historical).
 - **F5** — Social Policies. 2 tabs: social policies, and, later in the game, ideologies.
-- **F6** — Tech Tree. Science happens here. Space switches between grid view (default) and a tree view that walks the prerequisite graph.
-- **F7** — Notifications. 3 tabs: active notifications, a turn log summarising the previous turn, and dismissed notifications.
+- **F6** — Tech Tree. Science happens here. Space switches between grid view (default) and a tree view that walks the prerequisite graph. Tab switches to the research queue.
+- **F7** — Notifications. 2 tabs: active notifications, and a turn log summarising the previous turn.
 - **F8** — Victory Progress. 2 tabs: a score table, and a breakdown of progress toward each victory condition.
 - **F9** — Demographics. A mostly flavour screen for getting a sense of how well you're doing.
 - **F10** — Advisors. One tab per advisor, 4 in total. They're not very good.
