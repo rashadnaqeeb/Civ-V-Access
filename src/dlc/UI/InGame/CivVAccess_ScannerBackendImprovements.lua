@@ -1,7 +1,7 @@
--- Scanner backend: improvements (My / Neutral / Enemy by owner team
--- stance). Reads plot:GetRevealedImprovementType(activeTeam) so the
--- scanner matches the engine's own rendering under fog. Skips the
--- barb-camp and goody-hut improvements (handled by the Cities and
+-- Scanner backend: improvements (My / My Pillaged / Neutral / Enemy by
+-- owner team stance). Reads plot:GetRevealedImprovementType(activeTeam)
+-- so the scanner matches the engine's own rendering under fog. Skips
+-- the barb-camp and goody-hut improvements (handled by the Cities and
 -- Special backends respectively) and the road / railroad improvements
 -- if they exist (base game treats them as routes, not improvements;
 -- the skip is belt-and-braces in case a mod promotes them).
@@ -11,6 +11,22 @@
 -- improvement owner in every base-game case (forts in no-man's-land
 -- end up with RevealedOwner == -1, which buckets to Neutral per the
 -- design's explicit "unowned improvements fall under Neutral" rule).
+--
+-- The pillaged carve-out is exclusive AND player-only: a pillaged
+-- improvement on a tile the active player owns moves out of `my` into
+-- `my_pillaged`, so `my` reads as productive improvements and
+-- `my_pillaged` reads as a repair list. Teammate-owned tiles stay in
+-- `my` regardless of pillage state because workers can only repair on
+-- tiles you own outright. Enemy / neutral pillaged improvements stay in
+-- their owner sub.
+--
+-- Pillage state is gated on current visibility (plot:IsVisible). The
+-- engine-side IsImprovementPillaged() is a raw m_bImprovementPillaged
+-- read with no fog filter, so an unguarded call would leak pillage
+-- updates on tiles that have gone under fog since the player last saw
+-- them. The engine itself only renders the pillaged appearance when
+-- FOGOFWARMODE_OFF; we mirror that. When the tile is fogged, the entry
+-- routes by last-seen state -- a healthy improvement stays in `my`.
 
 ScannerBackendImprovements = {
     name = "improvements",
@@ -23,12 +39,12 @@ local SKIP_TYPES = {
     "IMPROVEMENT_RAILROAD",
 }
 
-local function ownerSubcategory(ownerId, activePlayerId, activeTeam)
+local function ownerSubcategory(ownerId, activePlayerId, activeTeam, isPillaged)
     if ownerId < 0 then
         return "neutral"
     end
     if ownerId == activePlayerId then
-        return "my"
+        return isPillaged and "my_pillaged" or "my"
     end
     local owner = Players[ownerId]
     if owner == nil then
@@ -36,6 +52,10 @@ local function ownerSubcategory(ownerId, activePlayerId, activeTeam)
     end
     local ownerTeamId = owner:GetTeam()
     if ownerTeamId == activeTeam then
+        -- Teammate-owned: stays in `my` even when pillaged. Workers
+        -- cannot repair improvements on a teammate's tile, so the
+        -- repair-list bucket would surface entries the player can't
+        -- act on.
         return "my"
     end
     if Teams[activeTeam]:IsAtWar(ownerTeamId) then
@@ -64,7 +84,11 @@ function ScannerBackendImprovements.Scan(activePlayer, activeTeam)
                 local row = GameInfo.Improvements[impId]
                 if row ~= nil and row.Description ~= nil then
                     local ownerId = plot:GetRevealedOwner(activeTeam, isDebug)
-                    local sub = ownerSubcategory(ownerId, activePlayer, activeTeam)
+                    -- IsImprovementPillaged reads server truth; gate on
+                    -- IsVisible so a fogged tile that was last seen
+                    -- healthy doesn't leak its current pillage state.
+                    local isPillaged = plot:IsVisible(activeTeam, isDebug) and plot:IsImprovementPillaged()
+                    local sub = ownerSubcategory(ownerId, activePlayer, activeTeam, isPillaged)
                     out[#out + 1] = {
                         plotIndex = i,
                         backend = ScannerBackendImprovements,
@@ -95,10 +119,11 @@ function ScannerBackendImprovements.ValidateEntry(entry, _cursorPlotIndex)
     if plot:GetRevealedImprovementType(activeTeam, isDebug) ~= entry.data.improvementId then
         return false
     end
-    -- Owner classification drift (conquest, eviction) flips the entry
-    -- between subs; the snapshot rebuild on turn start or Ctrl+PageUp
-    -- re-emits it under the new sub. Between rebuilds we keep it where
-    -- it is -- a re-bucket mid-snapshot would reorder unexpectedly.
+    -- Owner classification drift (conquest, eviction) and pillage /
+    -- repair flips the entry between subs; the snapshot rebuild on
+    -- turn start or Ctrl+PageUp re-emits it under the new sub. Between
+    -- rebuilds we keep it where it is -- a re-bucket mid-snapshot would
+    -- reorder unexpectedly.
     return true
 end
 

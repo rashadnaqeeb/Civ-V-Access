@@ -110,8 +110,9 @@ function M.test_improvements_subs_owner_order()
     setup()
     local subs = subKeys("improvements")
     T.eq(subs[1], "my")
-    T.eq(subs[2], "neutral")
-    T.eq(subs[3], "enemy")
+    T.eq(subs[2], "my_pillaged")
+    T.eq(subs[3], "neutral")
+    T.eq(subs[4], "enemy")
 end
 
 function M.test_special_subs()

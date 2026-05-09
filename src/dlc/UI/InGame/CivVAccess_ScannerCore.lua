@@ -112,10 +112,17 @@ ScannerCore.CATEGORIES = {
         },
     },
     {
+        -- `my_pillaged` is exclusive: an improvement of yours that is
+        -- pillaged emits there and NOT under `my`, so `my` reads as
+        -- "productive improvements I own" and `my_pillaged` reads as a
+        -- repair list. Enemy / neutral pillaged improvements stay in
+        -- their owner sub (no parallel pillaged bucket for them -- the
+        -- repair-list use case is player-scoped).
         key = "improvements",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS",
         subcategories = {
             { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
+            { key = "my_pillaged", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY_PILLAGED" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
             { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
         },

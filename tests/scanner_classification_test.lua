@@ -560,8 +560,12 @@ local function loadImprovementsBackend()
     loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendImprovements.lua")
 end
 
-local function impPlot(x, y, idx, impId, owner)
-    local p = makePlotAt(x, y, idx, { improvement = impId, owner = owner })
+local function impPlot(x, y, idx, impId, owner, pillaged, visible)
+    local opts = { improvement = impId, owner = owner, improvementPillaged = pillaged }
+    if visible == false then
+        opts.visible = false
+    end
+    local p = makePlotAt(x, y, idx, opts)
     -- The backend calls plot:GetRevealedOwner(activeTeam, isDebug); fakePlot
     -- only stores _owner, so reuse that for both getters.
     function p:GetRevealedOwner()
@@ -614,6 +618,140 @@ function M.test_improvement_unowned_routes_neutral()
         [9] = { Description = "TXT_KEY_IMPROVEMENT_FORT" },
     }
     local fort = impPlot(0, 0, 0, 9, -1)
+    mapFromPlots({ fort })
+    local out = ScannerBackendImprovements.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "neutral")
+end
+
+function M.test_improvement_pillaged_mine_routes_to_my_pillaged()
+    -- Repair-list carve-out: a pillaged improvement owned by the active
+    -- player must move out of `my` into `my_pillaged` so `my` reads as
+    -- productive improvements only.
+    setup()
+    loadImprovementsBackend()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = -1
+    GameInfo.Improvements = {
+        [5] = { Description = "TXT_KEY_IMPROVEMENT_FARM" },
+    }
+    local function mkTeamPlayer(teamId)
+        local p = { _team = teamId }
+        function p:GetTeam()
+            return self._team
+        end
+        return p
+    end
+    Players[0] = mkTeamPlayer(0)
+    local pillagedMine = impPlot(0, 0, 0, 5, 0, true)
+    local healthyMine = impPlot(1, 0, 1, 5, 0, false)
+    mapFromPlots({ pillagedMine, healthyMine })
+    local out = ScannerBackendImprovements.Scan(0, 0)
+    local subByPlot = {}
+    for _, e in ipairs(out) do
+        subByPlot[e.plotIndex] = e.subcategory
+    end
+    T.eq(subByPlot[0], "my_pillaged", "pillaged improvement of mine must land in my_pillaged")
+    T.eq(subByPlot[1], "my", "healthy improvement of mine must stay in my")
+end
+
+function M.test_improvement_pillaged_enemy_stays_in_enemy()
+    -- Repair list is player-scoped; enemy/neutral pillaged improvements
+    -- stay in their owner sub so we don't carve a parallel pillaged
+    -- bucket the user can't act on.
+    setup()
+    loadImprovementsBackend()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = -1
+    GameInfo.Improvements = {
+        [5] = { Description = "TXT_KEY_IMPROVEMENT_FARM" },
+    }
+    Teams[0] = T.fakeTeam({ atWar = { [2] = true } })
+    local function mkTeamPlayer(teamId)
+        local p = { _team = teamId }
+        function p:GetTeam()
+            return self._team
+        end
+        return p
+    end
+    Players[0] = mkTeamPlayer(0)
+    Players[2] = mkTeamPlayer(2)
+    local pillagedEnemy = impPlot(0, 0, 0, 5, 2, true)
+    mapFromPlots({ pillagedEnemy })
+    local out = ScannerBackendImprovements.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "enemy", "pillaged enemy improvement must stay in enemy, not move to my_pillaged")
+end
+
+function M.test_improvement_pillaged_teammate_stays_in_my()
+    -- Workers can only repair improvements on tiles you own outright,
+    -- not on a teammate's tile. The repair-list bucket would surface
+    -- entries the player can't act on, so teammate pillaged improvements
+    -- stay in `my` (consistent with the existing teammate-as-`my`
+    -- pattern for healthy improvements).
+    setup()
+    loadImprovementsBackend()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = -1
+    GameInfo.Improvements = {
+        [5] = { Description = "TXT_KEY_IMPROVEMENT_FARM" },
+    }
+    local function mkTeamPlayer(teamId)
+        local p = { _team = teamId }
+        function p:GetTeam()
+            return self._team
+        end
+        return p
+    end
+    Players[0] = mkTeamPlayer(0)
+    -- Player 1 is on the active team (team 0) but not the active player.
+    Players[1] = mkTeamPlayer(0)
+    local pillagedTeammate = impPlot(0, 0, 0, 5, 1, true)
+    mapFromPlots({ pillagedTeammate })
+    local out = ScannerBackendImprovements.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "my", "teammate pillaged improvement must stay in my, not move to my_pillaged")
+end
+
+function M.test_improvement_pillaged_mine_on_fogged_plot_stays_in_my()
+    -- IsImprovementPillaged reads server truth and would leak the
+    -- pillage state of a tile that has gone under fog since the player
+    -- last saw it. The visibility gate routes such tiles by last-seen
+    -- state -- a healthy farm stays in `my` until the player sees the
+    -- pillage themselves.
+    setup()
+    loadImprovementsBackend()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = -1
+    GameInfo.Improvements = {
+        [5] = { Description = "TXT_KEY_IMPROVEMENT_FARM" },
+    }
+    local function mkTeamPlayer(teamId)
+        local p = { _team = teamId }
+        function p:GetTeam()
+            return self._team
+        end
+        return p
+    end
+    Players[0] = mkTeamPlayer(0)
+    local fogged = impPlot(0, 0, 0, 5, 0, true, false)
+    mapFromPlots({ fogged })
+    local out = ScannerBackendImprovements.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "my", "pillaged-but-fogged improvement must not leak via my_pillaged")
+end
+
+function M.test_improvement_pillaged_unowned_stays_in_neutral()
+    -- A no-man's-land fort that has been pillaged must stay in neutral
+    -- (RevealedOwner == -1 short-circuits before the pillaged check).
+    setup()
+    loadImprovementsBackend()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = -1
+    GameInfo.Improvements = {
+        [9] = { Description = "TXT_KEY_IMPROVEMENT_FORT" },
+    }
+    local fort = impPlot(0, 0, 0, 9, -1, true)
     mapFromPlots({ fort })
     local out = ScannerBackendImprovements.Scan(0, 0)
     T.eq(#out, 1)
