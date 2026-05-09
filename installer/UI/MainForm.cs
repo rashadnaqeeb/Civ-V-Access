@@ -52,8 +52,21 @@ internal sealed class MainForm : Form
         Controls.Add(_content);
 
         Strings.LocaleChanged += OnLocaleChanged;
+    }
 
-        SwapPage(new WelcomePage(this));
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        // The first SwapPage has to wait until the form's handle is created;
+        // SwapPage's BeginInvoke for initial focus and WelcomePage's awaited
+        // detection task both need a realized form and a live
+        // WindowsFormsSynchronizationContext. OnLoad fires after handle
+        // creation but before the form becomes visible, so the user sees
+        // WelcomePage from frame zero.
+        if (_content.Controls.Count == 0)
+        {
+            SwapPage(new WelcomePage(this));
+        }
     }
 
     public void SetStatus(string text)
