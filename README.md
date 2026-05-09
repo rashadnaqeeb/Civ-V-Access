@@ -1,42 +1,39 @@
 # Civ V Access
 
-Civ V Access is an accessibility layer for Sid Meier's Civilization V that makes the game fully playable through a screen reader. You get the same game a sighted player gets: every screen, every option, every event on the map, all reachable through speech.
+Civ V Access is an accessibility layer for Sid Meier's Civilization V that makes the game fully playable through a screen reader.
 
-Civilization V is a turn-based strategy game in which you take a civilization from the dawn of humanity into the space age. You wage war, conduct diplomacy, research technologies, build wonders, and compete against rival civilizations led by figures from history like Gandhi, Napoleon, and Catherine the Great. Combat plays out on a hex grid, city-states sit between the major civilizations as a third diplomatic axis, and there is no time pressure within a turn. A full game runs fifteen to forty hours.
+Civilization V is a turn-based strategy game in which you take a civilization from the dawn of humanity into the space age. You wage war, conduct diplomacy, research technologies, build wonders, and compete against rival civilizations led by figures from history like Gandhi, Napoleon, and Catherine the Great. The game is completely turn based, so you can play at whatever pace suits you. The average standard game lasts 5-6 hours.
 
-The mod requires the Brave New World expansion.
+The mod requires the Brave New World expansion, and will not work without it. However, in practice it is cheaper to buy the complete bundle than it is to buy the base game plus Brave New World expansion, so I suggest you do that instead.
 
 ## Installing and updating the mod
 
-TBD. The installer is not yet written; this section will cover where to download the mod, how to run the installer, and how to update to a new version once that flow exists.
+The installer is an executable
 
 ## Getting help
 
-**Shift+/** (question mark) opens a list of every key active in the current context. The list itself is a regular menu: type-ahead search, Up/Down to navigate, Esc to close.
+**Shift+/** (question mark) opens a list of every key active in the current context. If ever you're unsure of what keys will work on any given screen, start here.
 
-**Ctrl+I** opens the Civilopedia entry for whatever is currently focused, when one exists.
+**Ctrl+I** opens the Civilopedia (in-game help) entry for whatever is currently focused, when one exists. Use this if you want to look up, for example, what the current unit under the cursor does.
 
 ## Menus
 
-Every menu in the game uses the same interface. When a menu opens, you hear a description of it, then the first item on the list.
+Every menu in the game uses the same interface. It's quite straightforward.
 
-- **Up / Down** -- previous / next item; wraps with a click sound at the top and bottom
-- **Home / End** -- first / last item
-- **Enter / Space** -- activate the focused item, or drill into a submenu
-- **Right** -- drill into a submenu, or adjust a slider
-- **Left** -- step out one level, or adjust a slider
-- **Shift+Left / Shift+Right** -- adjust a slider in larger steps
-- **Ctrl+Up / Ctrl+Down** -- jump between groups of items
-- **Tab / Shift+Tab** -- next / previous tab on tabbed screens
-- **F1** -- re-read the menu's description; also reads spoken dialogue through your screen reader
-- **A-Z, 0-9** -- type-ahead search within the current list
-- **Esc** -- close the menu (closes every level at once if you've drilled in)
+- **Up / Down** — previous / next item; wraps with a click sound at the top and bottom
+- **Home / End** — first / last item
+- **Enter** — activate the focused item
+- Sliders: Left/Right to adjust by single increments, Shift+Left/Right to adjust by larger increments
+- Submenus: indicated by a blip sound. Use Right arrow to drill in, and Left arrow to drill out
+- **Tab / Shift+Tab** — next / previous tab on tabbed screens
+- **F1** — re-read the menu's description; also used to read back spoken dialogue
+- Type ahead: every menu in the mod supports searching using type ahead. Simply start typing and you will be matched as you type. You can use Up/Down arrow to scroll through results
 
-A short blip plays when the focused item has a submenu, so you know Right will drill into it.
+## In-game controls
 
-## Why can't I use arrow keys on this map?
+Let's address the elephant in the room first.
 
-After starting a new game, you find yourself on the world map. This is where you'll spend most of your time, moving units, exploring, founding cities, and fighting battles. The first thing you'll notice is that arrow keys don't move anything on it.
+### Why can't I use arrow keys on this map?
 
 Civilization V uses hexagon tiles instead of square tiles. A hexagon is a six-sided shape, so each tile has six neighbors that you can choose to move to.
 
@@ -52,7 +49,7 @@ Two things will feel strange at first.
 
 This is all you need to know to play, but if you're interested in understanding why this is the case, you can read the next section.
 
-## The math
+#### The math
 
 A square tile only has four neighbors, the ones sharing an edge with it. If everything only ever happened in straight lines, this would be fine. But the second you start introducing diagonals into the mix, things start to fall apart.
 
@@ -68,173 +65,162 @@ Now, here's the confusing part. Imagine starting at the center of the clock face
 
 This mod tries to make it easier to visualize by breaking the x (horizontal) coordinate into half steps. Let's imagine we're at 0, 0. Moving northeast brings us to 0.5, 1. Southeast would then bring us to 1, 0. West from here would bring us back to 0, 0. Now let's do the northwest/northeast case. Northwest brings us to -0.5, 1. Then northeast brings us to 0, 2.
 
-## The cursor
+### The cursor
 
 The cursor is your position on the map, independent of any selected unit. Movement keys (Q, A, Z, E, D, C) step it one hex at a time, and each move announces what's on the new hex: terrain, ownership, units, improvements, and so on.
 
-- **S** -- read the units on the current tile
-- **W** -- read economic info (yields, what's being worked)
-- **X** -- read combat info
-- **1** -- on a city tile, read its identity and combat stats
-- **2** -- on a city tile, read its production and growth
-- **3** -- on a city tile, read its religion
-- **4** -- on a city tile, read its diplomatic notes
-- **Enter** -- activate the tile (open a city you own, open diplomacy with a foreign capital, attack with a selected unit, or pick from multiple units on the tile)
-- **Shift+S** -- coordinates relative to your capital
-- **Ctrl+S** -- jump the cursor to your capital
-- **Ctrl+I** -- open the Civilopedia entry for whatever's on the tile
+- **S** — read the units on the current tile
+- **W** — read the tile's yield
+- **X** — read the tile's movement and combat modifiers
+- **1** — on a city tile, read its identity and combat stats
+- **2** — on a city tile, read its production and growth
+- **3** — on a city tile, read its religion
+- **4** — on a city tile, read its diplomatic notes
+- **Enter** — activate the tile (open a city you own, open diplomacy with a foreign capital, attack with a selected unit, or pick from multiple units on the tile)
+- **Shift+S** — coordinates relative to your capital
+- **Ctrl+S** — jump the cursor to your capital
 
-## The surveyor
+### The surveyor
 
-The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city, to check threats around an exposed unit, or to monitor your borders.
+The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit.
 
-- **Shift+W / Shift+X** -- grow or shrink the radius (1-5)
-- **Shift+Q** -- sum yields in range
-- **Shift+A** -- count resources in range
-- **Shift+Z** -- count terrain and features in range
-- **Shift+E** -- list your own units in range
-- **Shift+D** -- list enemy units in range
-- **Shift+C** -- list cities in range, closest first
+- **Shift+W / Shift+X** — grow or shrink the scanned radius (1-5)
+- **Shift+Q** — sum yields of all tiles in range
+- **Shift+A** — count resources in range
+- **Shift+Z** — count terrain and features in range
+- **Shift+E** — list your own units in range
+- **Shift+D** — list enemy units in range
+- **Shift+C** — list cities in range, closest first
 
-## The scanner
+### The scanner
 
-The scanner finds a specific thing on the map: the city of Madrid, an iron deposit, the enemy frigate someone said was near your coast.
+Where the surveyor is for figuring out what's around you, the scanner is for finding a specific thing. You'd use it to figure out where to find Iron on your map, for example.
 
-Entries are organized into a hierarchy of categories (cities, units, resources, terrain, and so on), subcategories (your cities versus enemy, strategic versus luxury resources), items, and instances (multiple iron deposits all called "iron").
+Entries are organized into a hierarchy of categories (cities, units, resources, terrain, and so on), subcategories (your cities versus enemy, strategic versus luxury resources), items, and instances (multiple iron deposits all called "iron"). If you've used the Rimworld scanner, it's laid out exactly the same.
 
-- **PageUp / PageDown** -- cycle items within a subcategory
-- **Shift+PageUp / Shift+PageDown** -- cycle subcategories
-- **Ctrl+PageUp / Ctrl+PageDown** -- cycle categories
-- **Alt+PageUp / Alt+PageDown** -- cycle instances of the same item
-- **Home** -- jump the cursor to the current entry
-- **Backspace** -- return the cursor to its position before the jump
-- **End** -- repeat distance and direction from the cursor
-- **Shift+End** -- toggle auto-jump (cursor follows every entry as you cycle)
-- **Ctrl+F** -- search all scanner entries by name
+- **Ctrl+PageUp / Ctrl+PageDown** — cycle categories
+- **Shift+PageUp / Shift+PageDown** — cycle subcategories
+- **PageUp / PageDown** — cycle items within a subcategory
+- **Alt+PageUp / Alt+PageDown** — cycle instances of the same item
+- **Home** — jump the cursor to the current entry
+- **Backspace** — return the cursor to its position before the jump
+- **End** — repeat distance and direction from the cursor
+- **Ctrl+F** — search all scanner entries by name
 
-Each entry is announced with its distance and direction from the cursor.
+Each entry is announced with its exact hex distance and direction from the cursor.
 
-## Bookmarks
+### Bookmarks
 
 Bookmarks are ten saved cursor positions, one per number key. They survive saves and reloads.
 
-- **Ctrl+1-0** -- save the cursor's current position to that slot
-- **Shift+1-0** -- jump the cursor to the saved location (Backspace returns)
-- **Alt+1-0** -- speak distance and direction from the cursor to the saved location
+- **Ctrl+1-0** — save the cursor's current position to that slot
+- **Shift+1-0** — jump the cursor to the saved location (Backspace returns)
+- **Alt+1-0** — speak distance and direction from the cursor to the saved location
 
-## Beacons
+#### Beacons
 
-Beacons turn a bookmark into a spatial-audio marker. While active, a looping sound plays from the bookmark's location with the cursor as listener: pan tells you east versus west, pitch tells you north versus south, volume tells you how close (silent past about 30 hexes). Multiple beacons can be active at once.
+Beacons turn a bookmark into a spatial-audio marker. While active, a looping sound plays from the bookmark's location with the cursor as listener: pan tells you east versus west, pitch tells you north versus south, volume tells you how close (silent past about 30 hexes).
 
-- **Ctrl+Shift+1-0** -- toggle the beacon for that bookmark slot
+- **Ctrl+Shift+1-0** — toggle the beacon for that bookmark slot
 
 ## Units
 
-Units are everything you move and command: workers, settlers, scouts, warriors, and so on. You start with two and build more from your cities.
+Units are everything you move and command: workers, settlers, scouts, warriors, and so on. Every game starts you with a Warrior and a Settler.
 
 ### Selecting a unit
 
-- **Period (.) / Comma (,)** -- cycle to the next or previous unit that still needs orders
-- **Ctrl+Period / Ctrl+Comma** -- cycle through every unit you own, including those done for the turn
-- **Enter** on a tile -- select a unit there (picker opens if multiple)
-- **Ctrl+Slash** -- recenter the cursor on the selected unit
-- **Slash** -- read the selected unit's info: type, hit points, moves left, promotions, special abilities
+- **Period (.) / Comma (,)** — cycle to the next or previous unit that still needs orders
+- **Ctrl+Period / Ctrl+Comma** — cycle through every unit you own, including those done for the turn
+- **Enter** on a tile — select a unit there (picker opens if multiple)
+- **Ctrl+Slash** — recenter the cursor on the selected unit
+- **Slash** — read the selected unit's info: type, hit points, moves left, promotions, special abilities
 
 ### Action menu
 
-**Tab** opens the action menu, a list of every action the selected unit can do right now. Only available actions appear. Use the standard menu keys to navigate; Enter commits.
+**Tab** opens the action menu, a list of every action the selected unit can do right now. Only available actions appear.
 
 Alt-letter shortcuts skip the menu for common actions:
 
-- **Alt+S** -- fortify a military unit, or sleep a civilian
-- **Alt+F** -- sentry (sleep until an enemy comes into sight)
-- **Alt+W** -- wake a sleeping unit, or cancel a queued move or automation
-- **Alt+X** -- skip the unit's turn
-- **Alt+H** -- heal until full
-- **Alt+P** -- pillage the current tile
-- **Alt+U** -- upgrade
-- **Alt+N** -- rename
-- **Alt+M** -- move to a target (target mode, below)
-- **Alt+R** -- ranged attack (target mode, below)
+- **Alt+S** — fortify a military unit, or sleep a civilian
+- **Alt+F** — sentry (sleep until an enemy comes into sight)
+- **Alt+W** — wake a sleeping unit, or cancel a queued move or automation
+- **Alt+X** — skip the unit's turn
+- **Alt+H** — heal until full
+- **Alt+P** — pillage the current tile
+- **Alt+U** — upgrade
+- **Alt+N** — rename
+- **Alt+M** — move to a target
+- **Alt+R** — ranged attack
 
 ### Movement
 
 **Alt** plus a movement key (Q, A, Z, E, D, C) moves the selected unit one hex in that direction. The mod tells you where you ended up and how many moves remain, or why the move was refused.
 
-If the target hex has an enemy, the first press speaks a combat preview. The second press commits the attack. Two presses prevent accidental attacks.
+If the target hex has an enemy, the first press speaks a combat preview. The second press commits the attack.
 
 ### Target mode
 
-**Alt+M** (or "Move to" from the action menu) opens target mode. The cursor acts as your aim; cursor, surveyor, and scanner queries still work normally.
+If instead of using the quick movement keys you choose move to from the action menu, you will be placed in targeting mode.
 
-- **Space** -- preview the move from the unit to the cursor (path, cost, turns to arrive)
-- **Enter** -- commit
-- **Shift+Enter** -- queue the move so the unit keeps walking across turns
-- **Esc** -- cancel
-- **Tab** -- reopen the action menu to pick a different action
+- **Space** — preview the move from the unit to the cursor (path, cost, turns to arrive)
+- **Enter** — commit
+- **Shift+Enter** — queue the move so the unit keeps walking across turns
 
-The pathfinder routes around obstacles. Unrevealed terrain costs full turns to cross since the unit can't see ahead.
+Target mode is also used by Alt+R ranged attacks and any action menu item that needs a target (airstrikes, nuking things, and so on). In that case Space provides relevant previews for the selected mode.
 
-Target mode is also used by Alt+R ranged attacks and any action menu item that needs a target (airlift, paradrop, gift unit, and so on).
+## Empire status keys
 
-## Empire status
+These keys are used to get quick status updates about your empire. All this information is available in menu form on various screens, if you prefer.
 
-These keys read one slice of your empire in a single press. Shift+letter (where present) gives a per-source breakdown.
+- **T** — turn and date
+- **R** — current research status
+- **G** — gold per turn, treasury total, trade routes in use
+- **H** — happiness and golden-age state, luxury inventory
+- **F** — faith per turn and total
+- **P** — culture per turn and turns to next policy
+- **I** — tourism per turn and influential-civ count
 
-- **T** -- turn and date; appends unit-supply over-cap and strategic-resource shortages when applicable
-- **R** -- current research, turns to completion, science per turn
-- **Shift+R** -- per-source science breakdown
-- **G** -- gold per turn, treasury total, trade routes in use
-- **Shift+G** -- per-source gold income and expenses
-- **H** -- happiness and golden-age state, luxury inventory
-- **Shift+H** -- happiness and golden-age breakdown
-- **F** -- faith per turn and total
-- **Shift+F** -- faith breakdown
-- **P** -- culture per turn and turns to next policy
-- **Shift+P** -- culture breakdown
-- **I** -- tourism per turn and influential-civ count
-- **Shift+I** -- tourism breakdown
-- **Shift+T** -- read active scenario tasks (silent if none)
+All of these keys can be combined with Shift to receive a per-source breakdown, though it may be easier to parse from within various menus, rather than as a single block.
 
 ## Notifications and the message buffer
 
-Engine notifications (research done, city captured, foreign actions, and so on) are announced as they arrive. The mod also keeps a scrollable history of those announcements, navigable with the bracket keys.
+The game has a notification panel, accessible with F7. You should check it regularly. Additionally, if you hit Tab on that screen, you will find a turn log, kept by the mod, summarising what happened on the last turn, specifically any combat that took place and any units that have entered or exited tiles you can see on the map.
 
-- **[** / **]** -- previous / next message in the buffer
-- **Ctrl+[** / **Ctrl+]** -- oldest / newest message
-- **Shift+[** / **Shift+]** -- cycle the filter (all, notifications, reveals, combat, chat)
+All these messages are further collected into a buffer, accessible with left and right brackets, for quick review.
+
+- **[** / **]** — previous / next message in the buffer
+- **Ctrl+[** / **Ctrl+]** — oldest / newest message
+- **Shift+[** / **Shift+]** — apply a filter
 
 The buffer resets when you load a game.
 
 ## Ending your turn
 
-- **Ctrl+Space** -- end the current turn. If something still wants attention, the mod announces what and opens the matching screen.
-- **Ctrl+Shift+Space** -- force-end the turn, ending it even with pending blockers.
-
-In multiplayer, Ctrl+Space submits to the turn wave; "Waiting for players" plays until everyone is done. Pressing Ctrl+Space again before the wave completes un-readies you.
+- **Ctrl+Space** — end the current turn. If something still wants attention, the mod announces what and opens the matching screen.
+- **Ctrl+Shift+Space** — force-end the turn, ending it even with pending blockers.
 
 ## Opening screens and menus
 
 These keys open the in-game screens. The screens themselves are regular menus.
 
-- **F1** -- Civilopedia
-- **F2** -- Economic Advisor
-- **F3** -- Military Advisor
-- **F4** -- Diplomacy Advisor
-- **F5** -- Social Policies
-- **F6** -- Tech Tree
-- **F7** -- Turn and event log
-- **F8** -- Victory Progress
-- **F9** -- Demographics
-- **F10** -- Advisor Counsel
-- **F12** -- Mod settings
-- **Ctrl+C** -- Culture Overview
-- **Ctrl+T** -- Trade Route Overview
-- **Ctrl+R** -- Religion Overview
-- **Ctrl+L** -- World Congress
-- **Ctrl+E** -- Espionage Overview
-- **Backslash** -- Multiplayer chat panel
-- **Esc** -- Game menu (save, load, options, quit)
+- **F1** — Civilopedia: in-game wiki with lots of strategy and general game advice.
+- **F2** — Economic information. A 4-tab screen containing an overview of all your cities, a breakdown of your treasury, a happiness breakdown, and a list of all accessible resources.
+- **F3** — Military overview: a two-tab screen, containing a table of all your units, as well as a list of your progress to generating various great people.
+- **F4** — Diplomacy screen: a three-tab screen, containing a table of major civilisations, a table of city states, and a list of active and historical trade deals.
+- **F5** — Social Policies: a two-tab screen containing both social policies and, later in the game, ideologies.
+- **F6** — Tech Tree: science happens here. Can be viewed either as a grid (default), or as a DAG tree, switched to with Space.
+- **F7** — Turn and event log
+- **F8** — Victory Progress: a two-tab screen. Tab 1 contains a score table. Tab 2 contains a breakdown of your progress to the various victory conditions.
+- **F9** — Demographics. A mostly flavour screen that can be used to give you a sense of how well you're doing.
+- **F10** — Advisors: you have 4 of them. Each of them gets a tab. They're not very good.
+- **F12** — Mod settings
+- **Ctrl+C** — Culture Overview. 4 tabs. One for great work placement, a second for trading with other civs, a third table for viewing your progress to a diplomatic victory, and a fourth for viewing the progress of other civs (use the left column to change perspectives).
+- **Ctrl+T** — Trade Route Overview. A two-tab screen, one containing possible trade routes and the second containing current trade routes.
+- **Ctrl+R** — Religion Overview. 3 tabs. The first for viewing your own religion, the second for viewing the spread of all religions, and the third for seeing the tenets of global religions.
+- **Ctrl+L** — World Congress. The first tab is a summary of leaders, the second allows you to make and vote on proposals, and the third shows all active effects.
+- **Ctrl+E** — Espionage Overview. The first tab allows you to manage your spies, the second shows you the status of various cities and their spying potential, and a third shows you all intrigue you've learned over the course of the game.
+- **Backslash** — Multiplayer chat panel
+- **Esc** — Game menu (save, load, options, quit)
 
 ## Troubleshooting
 
@@ -242,4 +228,8 @@ If you hit a bug or a crash, please zip the log folder at `%USERPROFILE%\Documen
 
 ## Credits
 
-TBD.
+- **aaronr7734** — His work on Rimworld Access, and my shameless copying of it, is a big part of why this mod is at all fun to play. Who knows, maybe next time I'll name a setting after him too.
+- **Lord Lundin** — Originally started the mod and gracefully allowed me to take over his work.
+- **Austin Hicks (ahicks)** — My mods continue to be inspired by the example of Factorio Access. His new project, Seentell, helped provide the descriptions for the opening cinematic.
+- **Brad Renshaw (chaosbringer216)** — For suffering through my endless complaining about mod-related problems and somehow parsing them into good ideas. And also for telling me to make everything a table. He was right!
+- **Keltosh_** — Kind enough to teach me about audio and sound design while tolerating my horrible French.
