@@ -19,6 +19,13 @@
       - cinematics-{ver}.zip      Audio-described BNW intros. Extracts to
                                   Assets/DLC/Expansion2/. Blind install only.
 
+    Components whose version field in versions.json is unchanged since the
+    previous release are not repackaged - their .zip is downloaded byte-for-
+    byte from the previous GitHub release and copied into dist/release/. The
+    point is that GitHub's API digest stays identical, so the installer's
+    per-component skip can fire reliably. Repackaging an "unchanged" component
+    from source is a determinism gamble; fetching the prior bytes is not.
+
     GitHub computes its own digest on each uploaded asset (algorithm-prefixed
     sha256:... in the API), so the SHA256SUMS file is informational - useful
     for the maintainer to verify upload integrity locally.
@@ -62,6 +69,42 @@ $componentVersions = @{
     'cinematics'   = $versions.components.cinematics
 }
 
+# Previous release tag + that release's versions.json. Used to decide which
+# component zips to re-fetch (component version unchanged) vs. rebuild from
+# source. If git describe finds nothing, this is the first release and every
+# component is treated as new.
+function Get-PreviousReleaseTag {
+    $tag = & git describe --tags --abbrev=0 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tag)) {
+        return $null
+    }
+    return $tag.Trim()
+}
+
+function Get-PreviousVersionsJson {
+    param([string]$Tag)
+    if (-not $Tag) { return $null }
+    $json = & git show "${Tag}:versions.json" 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) {
+        return $null
+    }
+    return ($json | ConvertFrom-Json)
+}
+
+$prevTag = Get-PreviousReleaseTag
+$prevVersions = Get-PreviousVersionsJson -Tag $prevTag
+$prevComponentVersions = if ($prevVersions) {
+    @{
+        'core-blind'   = $prevVersions.components.core
+        'core-sighted' = $prevVersions.components.core
+        'engine'       = $prevVersions.components.engine
+        'runtime'      = $prevVersions.components.runtime
+        'cinematics'   = $prevVersions.components.cinematics
+    }
+} else {
+    @{}
+}
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 # Same Tolk runtime files deploy.ps1 ships.
@@ -98,40 +141,6 @@ function New-CleanDir {
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
 }
 
-# Make every produced zip byte-identical across runs when the source content
-# is unchanged. We rewrite each entry's LastWriteTime to a fixed timestamp
-# in a post-creation Update-mode pass. This matters because the installer's
-# per-asset digest skip compares the released zip's SHA against what the
-# player has installed; without normalization, recreating a directory tree
-# stamps "now" on dirs (Copy-Item -Recurse and New-Item both do this), and
-# CreateFromDirectory's empty-dir entries default to "now" regardless of
-# filesystem mtime -- so re-packaging an unchanged component (e.g. cinematics
-# while only core changed) yields a fresh SHA and the player redownloads.
-# Directory enumeration order on Windows NTFS is alphabetic and stable, so
-# entry order doesn't need explicit sorting.
-$DeterministicEpoch = [DateTime]::SpecifyKind(
-    [DateTime]::Parse('2000-01-01T00:00:00'),
-    [DateTimeKind]::Utc)
-
-function Set-ZipEntryMtimesDeterministic {
-    param([string]$ZipPath)
-    # ZipFile.CreateFromDirectory creates empty-dir entries via
-    # ZipArchive.CreateEntry, which defaults LastWriteTime to "now" --
-    # filesystem stamping doesn't help for those. File entries do read
-    # from disk, but rewriting them all here is the same code so we
-    # normalize uniformly. Open in Update mode and overwrite.
-    $zip = [System.IO.Compression.ZipFile]::Open(
-        $ZipPath,
-        [System.IO.Compression.ZipArchiveMode]::Update)
-    try {
-        foreach ($entry in $zip.Entries) {
-            $entry.LastWriteTime = [DateTimeOffset]::new($DeterministicEpoch)
-        }
-    } finally {
-        $zip.Dispose()
-    }
-}
-
 # See deploy.ps1 Write-VersionLua for the why; this writes the same file
 # into the staged core-blind tree before zipping so the released zip carries
 # CivVAccess_Version.lua and Boot can resolve civvaccess_shared.version.
@@ -162,15 +171,62 @@ function Compress-Component {
     $zipPath = Join-Path $releaseDir $zipName
     if (Test-Path $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
     [System.IO.Compression.ZipFile]::CreateFromDirectory($StageDir, $zipPath)
-    Set-ZipEntryMtimesDeterministic -ZipPath $zipPath
 
     $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLower()
     $size = (Get-Item -LiteralPath $zipPath).Length
 
-    Write-Host ("  {0,-32} {1,12:N0} bytes" -f $zipName, $size)
+    Write-Host ("  {0,-32} {1,12:N0} bytes (built)" -f $zipName, $size)
     Write-Host "    sha256: $hash"
 
     [pscustomobject]@{ Name = $zipName; Sha256 = $hash; Size = $size }
+}
+
+# Pull the previous release's same-named asset so the new release ships
+# identical bytes (and therefore an identical API digest) for components
+# whose version field hasn't moved. Authoritative pre-check for "is this
+# component unchanged" lives in versions.json; the maintainer is responsible
+# for not bumping a component whose source didn't change (see RELEASING.md).
+function Copy-PreviousComponent {
+    param(
+        [string]$Name,
+        [string]$Tag
+    )
+    $version = $componentVersions[$Name]
+    $zipName = "$Name-$version.zip"
+    $zipPath = Join-Path $releaseDir $zipName
+    if (Test-Path $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+
+    & gh release download $Tag --pattern $zipName --dir $releaseDir --clobber
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $zipPath)) {
+        throw "Could not fetch $zipName from release $Tag. Either the release is missing the asset (component version was bumped without a prior release shipping it), or gh is not authenticated. Bump the component's version in versions.json or run 'gh auth login'."
+    }
+
+    $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLower()
+    $size = (Get-Item -LiteralPath $zipPath).Length
+
+    Write-Host ("  {0,-32} {1,12:N0} bytes (reused from {2})" -f $zipName, $size, $Tag)
+    Write-Host "    sha256: $hash"
+
+    [pscustomobject]@{ Name = $zipName; Sha256 = $hash; Size = $size }
+}
+
+# Decide per component: rebuild from source when the version field moved,
+# else fetch the previous release's bytes verbatim. Returns the artifact
+# record either way.
+function Resolve-Component {
+    param(
+        [string]$Name,
+        [scriptblock]$Stager
+    )
+    $version = $componentVersions[$Name]
+    $prevVersion = $prevComponentVersions[$Name]
+    $unchanged = $prevTag -and $prevVersion -and ($prevVersion -eq $version)
+
+    if ($unchanged) {
+        return Copy-PreviousComponent -Name $Name -Tag $prevTag
+    }
+    $stage = & $Stager
+    return Compress-Component -Name $Name -StageDir $stage
 }
 
 function Stage-CoreBlind {
@@ -256,12 +312,19 @@ Write-Host ""
 New-CleanDir $releaseDir
 New-CleanDir $stagingRoot
 
+if ($prevTag) {
+    Write-Host "Previous release: $prevTag"
+} else {
+    Write-Host "No previous release tag; building every component from source."
+}
+Write-Host ""
+
 $artifacts = @()
-$artifacts += Compress-Component -Name 'core-blind'   -StageDir (Stage-CoreBlind)
-$artifacts += Compress-Component -Name 'core-sighted' -StageDir (Stage-CoreSighted)
-$artifacts += Compress-Component -Name 'engine'       -StageDir (Stage-Engine)
-$artifacts += Compress-Component -Name 'runtime'      -StageDir (Stage-Runtime)
-$artifacts += Compress-Component -Name 'cinematics'   -StageDir (Stage-Cinematics)
+$artifacts += Resolve-Component -Name 'core-blind'   -Stager { Stage-CoreBlind }
+$artifacts += Resolve-Component -Name 'core-sighted' -Stager { Stage-CoreSighted }
+$artifacts += Resolve-Component -Name 'engine'       -Stager { Stage-Engine }
+$artifacts += Resolve-Component -Name 'runtime'      -Stager { Stage-Runtime }
+$artifacts += Resolve-Component -Name 'cinematics'   -Stager { Stage-Cinematics }
 
 $sumsPath  = Join-Path $releaseDir 'SHA256SUMS'
 $sumsLines = $artifacts | ForEach-Object { "$($_.Sha256)  $($_.Name)" }

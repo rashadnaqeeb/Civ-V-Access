@@ -14,7 +14,7 @@ A GitHub Release tagged `vX.Y.Z` with these assets attached:
 - `SHA256SUMS` - one line per asset, format `<hex>  <filename>`. Informational; GitHub computes its own per-asset digest, exposed through the API as `sha256:<hex>`.
 - `CivVAccessInstaller.exe` - the single-file player-facing installer. Same exe attached to every release so a fixed link to "latest" always pulls a working installer; rebuild it (via `./build-installer.ps1`) when `installer/` source has changed since the last release. Players download this once; it self-resolves all subsequent updates from the GitHub Release API.
 
-Component asset versions can lag the mod's. If `components.engine` is `1.0.0` in mod `1.5.0`, the release attaches `engine-1.0.0.zip` (not `engine-1.5.0.zip`). The installer's digest skip means players don't redownload that asset. Asset filename format is enforced by the installer's `AssetMap.Parse` regex - don't deviate.
+Component asset versions can lag the mod's. If `components.engine` is `1.0.0` in mod `1.5.0`, the release attaches `engine-1.0.0.zip` (not `engine-1.5.0.zip`). For the digest skip to actually fire, the new release's `engine-1.0.0.zip` must be byte-identical to the one shipped in the previous release - GitHub computes a fresh sha256 per asset on upload, and even an mtime change inside the zip yields a different digest. `package-release.ps1` guarantees this by downloading the previous release's same-named asset and re-uploading it verbatim, instead of re-zipping from local source. Authoritative input is `versions.json`: if a component's version field hasn't moved since the previous tag, the script fetches the previous release's bytes; if it has moved, the script rebuilds from source. Asset filename format is enforced by the installer's `AssetMap.Parse` regex - don't deviate.
 
 The release body should point at `CHANGELOG.md` rather than duplicate the entry. The installer parses `CHANGELOG.md` for the slice between the player's old and new versions, so the per-release body is just a courtesy for humans browsing the Releases page.
 
@@ -36,7 +36,7 @@ Versions live in `versions.json` at repo root. Five fields, all semver:
 
 `mod` is the release tag and the changelog key. It bumps on every release.
 
-Each component version is independent and bumps only when that component's source tree changed since the last tag. The point: if engine didn't change between mod 1.4.0 and mod 1.5.0, the 1.5.0 release ships `engine-1.0.0.zip` (or whatever the engine's last-changed version is). Same bytes, same digest - the installer's per-asset digest skip means players don't redownload it. core covers both `core-blind` and `core-sighted` since both are zipped from `src/dlc/`; the digest skip handles the case where only the blind payload changed.
+Each component version is independent and bumps only when that component's source tree changed since the last tag. The point: if engine didn't change between mod 1.4.0 and mod 1.5.0, the 1.5.0 release ships `engine-1.0.0.zip` (or whatever the engine's last-changed version is). The packager fetches the bytes of that asset from the previous GitHub release and re-uploads them verbatim, so the API digest stays identical and the installer's per-asset digest skip fires. core covers both `core-blind` and `core-sighted` since both are zipped from `src/dlc/`; the digest skip handles the case where only the blind payload changed.
 
 Bump rules apply to every version field individually:
 
@@ -61,13 +61,13 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
    - `runtime`: `git diff vX.Y.Z -- src/proxy dist/proxy third_party/tolk`
    - `cinematics`: `git diff vX.Y.Z -- "audio described intros"`
 
-   If a component didn't change since the last tag, leave its version alone. The packager will name its zip with the unchanged version (e.g. `engine-1.0.0.zip` even when mod is at 1.5.0), and the installer's per-asset digest skip means players don't redownload it.
+   If a component didn't change since the last tag, leave its version alone. The packager will see the unchanged version field and pull that component's zip byte-for-byte from the previous GitHub release rather than rebuild it - the API digest then stays stable and the installer's per-asset digest skip fires for that component.
 
 2. **Prepend a CHANGELOG entry.** Open `CHANGELOG.md`, replace `## [Unreleased]` with the new version header `## [X.Y.Z] - YYYY-MM-DD`, then add a fresh `## [Unreleased]` section above it. List user-visible changes; the installer shows this exact text to the player on update. The version-header format must stay byte-stable because the installer parses it.
 
 3. **Build any changed components.** Run `./build-proxy.ps1` if `src/proxy/` changed since the last release, `./build-engine.ps1` if `src/engine/` changed, and `./build-installer.ps1` if `installer/` changed. All three write into `dist/` and the outputs are committed - including `dist/installer/CivVAccessInstaller.exe`, which gives players a stable raw URL (see `README.md`) that always serves the current installer. Commit the rebuilt exe in the same commit as the version + CHANGELOG bump.
 
-4. **Package.** Run `./package-release.ps1`. Produces `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing. Each zip is named with its component's own version pulled from `versions.json`, so unchanged components ship under their previous version number.
+4. **Package.** Run `./package-release.ps1`. Produces `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing. Each zip is named with its component's own version pulled from `versions.json`. Components whose version field is unchanged since the previous tag are downloaded from that previous GitHub release rather than rebuilt - the script reports `(reused from vX.Y.Z)` for those and `(built)` for the rest. Reuse requires `gh` to be authenticated; if it isn't, the fetch fails with a message pointing at `gh auth login`.
 
 5. **Smoke test.** Wipe the local install (`./deploy.ps1 -Uninstall`), then reinstall (`./deploy.ps1`). Confirm the install manifest at `Assets/DLC/DLC_CivVAccess/CivVAccess.install.json` shows the new mod version and the right per-component versions, and confirm the game boots and speech works. The package script's zips are produced from the same `dist/` and `src/` content the deploy script reads, so a clean local deploy gives high confidence in what the installer will deliver.
 
@@ -106,4 +106,4 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
 - Don't delete a published release. Same reason.
 - Don't ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands the installer.
 - Don't ship a release that breaks the install-manifest schema without a `mod` major bump. The installer keys its parsing off the schema.
-- Don't bump a component's version without a corresponding source change. The point of the digest skip is that unchanged bytes never redownload; bumping a version on a component whose digest is identical to last release just makes the changelog noisier without saving anything.
+- Don't bump a component's version without a corresponding source change. The packager treats a bumped version as "rebuild from source," which produces a fresh digest and forces every player to redownload that component on update - even though the source bytes are identical.
