@@ -182,23 +182,23 @@ local function treatyFragments(iOther)
     local pOtherTeam = Teams[pOther:GetTeam()]
     local out = {}
 
-    local embassyOurs = pUsTeam:HasEmbassyAtTeam(pOther:GetTeam())
-    local embassyTheirs = pOtherTeam:HasEmbassyAtTeam(pUs:GetTeam())
-    if embassyOurs and embassyTheirs then
+    local embassyInTheirCapital = pUsTeam:HasEmbassyAtTeam(pOther:GetTeam())
+    local embassyInOurCapital = pOtherTeam:HasEmbassyAtTeam(pUs:GetTeam())
+    if embassyInOurCapital and embassyInTheirCapital then
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RELATION_EMBASSY_SHARED")
-    elseif embassyOurs then
+    elseif embassyInOurCapital then
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RELATION_EMBASSY_YOUR")
-    elseif embassyTheirs then
+    elseif embassyInTheirCapital then
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RELATION_EMBASSY_THEIR")
     end
 
-    local obOurs = pOtherTeam:IsAllowsOpenBordersToTeam(pUs:GetTeam())
-    local obTheirs = pUsTeam:IsAllowsOpenBordersToTeam(pOther:GetTeam())
-    if obOurs and obTheirs then
+    local theirBordersOpenToUs = pOtherTeam:IsAllowsOpenBordersToTeam(pUs:GetTeam())
+    local ourBordersOpenToThem = pUsTeam:IsAllowsOpenBordersToTeam(pOther:GetTeam())
+    if theirBordersOpenToUs and ourBordersOpenToThem then
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RELATION_OPEN_BORDERS_SHARED")
-    elseif obOurs then
+    elseif ourBordersOpenToThem then
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RELATION_OPEN_BORDERS_YOUR")
-    elseif obTheirs then
+    elseif theirBordersOpenToUs then
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RELATION_OPEN_BORDERS_THEIR")
     end
 
