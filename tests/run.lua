@@ -15,6 +15,14 @@ dofile("src/dlc/UI/Shared/CivVAccess_PluralRules.lua")
 -- module self-degrades to returning defaults when Modding is absent
 -- (as it is here), so no test stub is needed.
 dofile("src/dlc/UI/Shared/CivVAccess_UserPrefs.lua")
+-- Verbosity drives the screen-reader-style metadata that BaseMenu and
+-- BaseTable announcements append. Loaded here once for every suite.
+-- civvaccess_shared.verbosity is forced false so existing speech
+-- assertions (which predate the setting) stay valid; suites that test
+-- verbose behavior set it true explicitly.
+dofile("src/dlc/UI/Shared/CivVAccess_Verbosity.lua")
+civvaccess_shared = civvaccess_shared or {}
+civvaccess_shared.verbosity = false
 -- HexGeom is a pure-math helper used by Cursor.orient (and, later, the
 -- scanner's End key). Loading it here ensures the cursor suite's setup()
 -- dofile chain can call HexGeom.directionString without each test having

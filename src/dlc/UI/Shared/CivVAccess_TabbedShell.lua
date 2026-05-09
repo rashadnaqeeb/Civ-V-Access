@@ -149,9 +149,11 @@ end
 
 -- Resolve the spoken tab name. tabName is a TXT_KEY; the shell unconditionally
 -- runs it through Text.key so call sites can treat it like any other authored
--- string. Returns the localized text.
+-- string. Tabs may set tabNameVerboseSuffixKey (a TXT_KEY) to have a kind
+-- word like "table" appended under the Verbosity setting -- BaseTable uses
+-- this so cycle and first-open both speak "<tabName>, table" when verbose.
 local function resolveTabName(tab)
-    return Text.key(tab.tabName)
+    return Verbosity.appendSuffix(Text.key(tab.tabName), tab.tabNameVerboseSuffixKey)
 end
 
 -- Resolve the optional shell preamble. String preambles return as-is;
@@ -447,7 +449,7 @@ function TabbedShell.menuTab(args)
 
     function tab.onTabActivated(self, announce)
         if announce then
-            SpeechPipeline.speakInterrupt(Text.key(self.tabName))
+            SpeechPipeline.speakInterrupt(resolveTabName(self))
         end
         -- _chainSpeech makes BaseMenu's re-activation use speakQueued. First-
         -- open already uses speakQueued for content (silentDisplayName masks

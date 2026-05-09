@@ -24,6 +24,25 @@ BaseMenuItems = {}
 local STEP_SMALL = 0.01
 local STEP_BIG = 0.10
 
+-- Verbosity-gated kind tag map. Items whose `kind` is in this table get the
+-- localized tag spoken at the END of every announcement when the Verbosity
+-- setting is on. The pulldown spoken tag is "combo box", following
+-- screen-reader convention rather than the internal kind name. Choice and
+-- text are absent on purpose: a flat list entry has no clean screen-reader
+-- name, and informational rows are silent. Textfield is also absent here
+-- because its announce already speaks TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT
+-- inline (predates this setting); leaving textfield to its inline tag
+-- avoids a behavior change for users with verbosity off and keeps the
+-- existing "label, edit, value" ordering on the one item kind that has
+-- always been verbose.
+local KIND_TAG_KEY = {
+    button = "TXT_KEY_CIVVACCESS_KIND_BUTTON",
+    checkbox = "TXT_KEY_CIVVACCESS_KIND_CHECKBOX",
+    slider = "TXT_KEY_CIVVACCESS_KIND_SLIDER",
+    pulldown = "TXT_KEY_CIVVACCESS_KIND_PULLDOWN",
+    group = "TXT_KEY_CIVVACCESS_KIND_GROUP",
+}
+
 -- Label / tooltip resolution ----------------------------------------------
 
 local function resolveLabel(item)
@@ -157,6 +176,15 @@ local function isActivatable(self)
 end
 
 local function composeSpeech(item, parts)
+    -- Verbosity-gated kind tag: appended before disabled/tooltip so the
+    -- spoken order is "label, [value,] kind, [disabled,] [tooltip]". Off
+    -- by setting -> identical to pre-verbosity speech.
+    if Verbosity.isOn() then
+        local kindKey = KIND_TAG_KEY[item.kind]
+        if kindKey ~= nil then
+            parts[#parts + 1] = Text.key(kindKey)
+        end
+    end
     -- Dispatch through the method so item kinds without a _control (Choice,
     -- future drill-in kinds) use their own isActivatable rather than the
     -- shared control-based one which would always return false for them.
@@ -1104,7 +1132,7 @@ function BaseMenuItems.VirtualSlider(spec)
             Log.error("BaseMenuItems VirtualSlider labelFn failed: " .. tostring(label))
             return resolveLabel(self)
         end
-        return appendTooltip(label, resolveTooltip(self))
+        return composeSpeech(self, { label })
     end
     function item:activate(menu)
         SpeechPipeline.speakInterrupt(self:announce(menu))
@@ -1165,7 +1193,7 @@ function BaseMenuItems.VirtualToggle(spec)
         end
         local stateKey = value and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF"
         local base = Text.format("TXT_KEY_CIVVACCESS_LABEL_STATE", resolveLabel(self), Text.key(stateKey))
-        return appendTooltip(base, resolveTooltip(self))
+        return composeSpeech(self, { base })
     end
     function item:activate(menu)
         local ok, cur = pcall(self._getValue)

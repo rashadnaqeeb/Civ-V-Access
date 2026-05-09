@@ -30,6 +30,9 @@ local function setup()
     Events.AudioPlay2DSound = function() end
 
     civvaccess_shared = {}
+    -- Match run.lua's verbosity-off default so BaseMenu speech tests don't
+    -- pick up the production-default ON via Verbosity's lazy Prefs read.
+    civvaccess_shared.verbosity = false
     audio._reset()
 
     -- Capturing Prefs pair: every roundtrip lives in a table so reads see
@@ -108,47 +111,54 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_thirteen_items()
+function M.test_open_builds_fourteen_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(
         #h._items,
-        13,
-        "audio cue group + volume slider + beacon-range slider + scanner-auto-move toggle + "
+        14,
+        "verbose-ui toggle + audio cue group + volume slider + beacon-range slider + scanner-auto-move toggle + "
             .. "cursor-follows-selection toggle + cursor-coord-mode group + border-always-announce toggle + "
             .. "scanner-coords toggle + read-subtitles toggle + reveal-announce toggle + "
             .. "ai-combat-announce toggle + foreign-unit-watch-announce toggle + foreign-clear-announce toggle"
     )
 end
 
-function M.test_first_item_is_audio_cue_mode_group()
+function M.test_first_item_is_verbose_ui_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[1].kind, "group")
-    T.eq(#h._items[1]:children(), 3, "three modes: speech / both / cue only")
+    T.eq(h._items[1].kind, "checkbox")
 end
 
-function M.test_second_item_is_volume_slider()
+function M.test_second_item_is_audio_cue_mode_group()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[2].kind, "slider")
+    T.eq(h._items[2].kind, "group")
+    T.eq(#h._items[2]:children(), 3, "three modes: speech / both / cue only")
 end
 
-function M.test_third_item_is_beacon_range_slider()
+function M.test_third_item_is_volume_slider()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(h._items[3].kind, "slider")
 end
 
-function M.test_fourth_item_is_scanner_toggle()
+function M.test_fourth_item_is_beacon_range_slider()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[4].kind, "checkbox")
+    T.eq(h._items[4].kind, "slider")
+end
+
+function M.test_fifth_item_is_scanner_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[5].kind, "checkbox")
 end
 
 -- F12 hook --------------------------------------------------------------
@@ -188,7 +198,7 @@ function M.test_audio_cue_mode_choices_call_setMode()
     setup()
     AudioCueMode.setMode(AudioCueMode.MODE_SPEECH)
     Settings.open()
-    local group = HandlerStack.active()._items[1]
+    local group = HandlerStack.active()._items[2]
     -- Activate the third choice (cue only).
     group:children()[3]:activate(HandlerStack.active())
     T.eq(AudioCueMode.getMode(), AudioCueMode.MODE_CUE_ONLY)
@@ -198,7 +208,7 @@ function M.test_audio_cue_mode_marks_current_as_selected()
     setup()
     AudioCueMode.setMode(AudioCueMode.MODE_SPEECH_PLUS_CUE)
     Settings.open()
-    local group = HandlerStack.active()._items[1]
+    local group = HandlerStack.active()._items[2]
     local children = group:children()
     -- selectedFn is invoked through the Choice item's announce path. Easier
     -- check: each Choice carries a _selectedFn closure that returns true
@@ -214,9 +224,11 @@ function M.test_volume_slider_adjust_drives_VolumeControl_set()
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Cursor lands on the first item (audio cue group). Move down twice to
-    -- the volume slider; arrow-key dispatch through InputRouter mutates
-    -- _indices and fires the slider's adjust on Right.
+    -- Cursor lands on the first item (verbose-ui toggle). Move down twice
+    -- past the audio cue group to the volume slider; arrow-key dispatch
+    -- through InputRouter mutates _indices and fires the slider's adjust
+    -- on Right.
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     T.eq(handler._items[handler._indices[1]].kind, "slider")
     audio._reset()
@@ -235,9 +247,10 @@ function M.test_scanner_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.scannerAutoMove = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 3 times: from item 1 (group) past master volume slider, beacon
-    -- range slider, into scanner-auto-move toggle (item 4).
-    for _ = 1, 3 do
+    -- Down 4 times: from item 1 (verbose-ui toggle) past audio cue group,
+    -- master volume slider, beacon range slider, into scanner-auto-move
+    -- toggle (item 5).
+    for _ = 1, 4 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -248,11 +261,11 @@ end
 
 -- Cursor-follows-selection toggle ---------------------------------------
 
-function M.test_fifth_item_is_cursor_follows_selection_toggle()
+function M.test_sixth_item_is_cursor_follows_selection_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[5].kind, "checkbox")
+    T.eq(h._items[6].kind, "checkbox")
 end
 
 function M.test_cursor_follows_selection_toggle_flip_writes_shared_and_prefs()
@@ -263,8 +276,8 @@ function M.test_cursor_follows_selection_toggle_flip_writes_shared_and_prefs()
     Settings.open()
     T.eq(civvaccess_shared.cursorFollowsSelection, true, "lazy-init defaults to on")
     local handler = HandlerStack.active()
-    -- Down 4 times to reach cursor-follows-selection (item 5).
-    for _ = 1, 4 do
+    -- Down 5 times to reach cursor-follows-selection (item 6).
+    for _ = 1, 5 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -275,18 +288,18 @@ end
 
 -- Cursor coord mode group -----------------------------------------------
 
-function M.test_sixth_item_is_cursor_coord_mode_group()
+function M.test_seventh_item_is_cursor_coord_mode_group()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[6].kind, "group")
-    T.eq(#h._items[6]:children(), 3, "three modes: off / prepend / append")
+    T.eq(h._items[7].kind, "group")
+    T.eq(#h._items[7]:children(), 3, "three modes: off / prepend / append")
 end
 
 function M.test_cursor_coord_mode_off_is_default()
     setup()
     Settings.open()
-    local children = HandlerStack.active()._items[6]:children()
+    local children = HandlerStack.active()._items[7]:children()
     T.truthy(children[1]._selectedFn(), "off is the lazy-init default")
     T.falsy(children[2]._selectedFn())
     T.falsy(children[3]._selectedFn())
@@ -296,18 +309,18 @@ function M.test_cursor_coord_mode_choice_writes_shared_and_prefs()
     setup()
     Settings.open()
     -- Activate "append" (third choice).
-    HandlerStack.active()._items[6]:children()[3]:activate(HandlerStack.active())
+    HandlerStack.active()._items[7]:children()[3]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.cursorCoordMode, "append")
     T.eq(prefsStore["CursorCoordMode"], 2)
 end
 
 -- Border always-announce toggle ----------------------------------------
 
-function M.test_seventh_item_is_border_always_announce_toggle()
+function M.test_eighth_item_is_border_always_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[7].kind, "checkbox")
+    T.eq(h._items[8].kind, "checkbox")
 end
 
 function M.test_border_always_announce_default_off()
@@ -321,10 +334,11 @@ function M.test_border_always_announce_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.borderAlwaysAnnounce = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 6 times: from item 1 (group) past master volume slider, beacon
-    -- range slider, scanner toggle, cursor-follows toggle, cursor-coord
-    -- group, into border-always toggle (item 7).
-    for _ = 1, 6 do
+    -- Down 7 times: from item 1 (verbose-ui toggle) past audio cue group,
+    -- master volume slider, beacon range slider, scanner toggle, cursor-
+    -- follows toggle, cursor-coord group, into border-always toggle (item
+    -- 8).
+    for _ = 1, 7 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -335,11 +349,11 @@ end
 
 -- Scanner coords toggle -------------------------------------------------
 
-function M.test_eighth_item_is_scanner_coords_toggle()
+function M.test_ninth_item_is_scanner_coords_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[8].kind, "checkbox")
+    T.eq(h._items[9].kind, "checkbox")
 end
 
 function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
@@ -347,8 +361,8 @@ function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.scannerCoords = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 7 times to reach the scanner-coords toggle (item 8).
-    for _ = 1, 7 do
+    -- Down 8 times to reach the scanner-coords toggle (item 9).
+    for _ = 1, 8 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -359,11 +373,11 @@ end
 
 -- Read-subtitles toggle -------------------------------------------------
 
-function M.test_ninth_item_is_read_subtitles_toggle()
+function M.test_tenth_item_is_read_subtitles_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[9].kind, "checkbox")
+    T.eq(h._items[10].kind, "checkbox")
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
@@ -371,8 +385,8 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.readSubtitles = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 8 times to reach the read-subtitles toggle (item 9).
-    for _ = 1, 8 do
+    -- Down 9 times to reach the read-subtitles toggle (item 10).
+    for _ = 1, 9 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -383,11 +397,11 @@ end
 
 -- AI combat announce toggle ---------------------------------------------
 
-function M.test_eleventh_item_is_ai_combat_announce_toggle()
+function M.test_twelfth_item_is_ai_combat_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[11].kind, "checkbox")
+    T.eq(h._items[12].kind, "checkbox")
 end
 
 function M.test_ai_combat_announce_default_on()
@@ -400,8 +414,8 @@ function M.test_ai_combat_announce_toggle_flip_writes_shared_and_prefs()
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 10 times to reach the AI combat toggle (item 11).
-    for _ = 1, 10 do
+    -- Down 11 times to reach the AI combat toggle (item 12).
+    for _ = 1, 11 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -412,11 +426,11 @@ end
 
 -- Foreign-unit-watch announce toggle ------------------------------------
 
-function M.test_twelfth_item_is_foreign_unit_watch_announce_toggle()
+function M.test_thirteenth_item_is_foreign_unit_watch_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[12].kind, "checkbox")
+    T.eq(h._items[13].kind, "checkbox")
 end
 
 function M.test_foreign_unit_watch_announce_default_on()
@@ -429,8 +443,8 @@ function M.test_foreign_unit_watch_announce_toggle_flip_writes_shared_and_prefs(
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 11 times to reach the foreign-unit-watch toggle (item 12).
-    for _ = 1, 11 do
+    -- Down 12 times to reach the foreign-unit-watch toggle (item 13).
+    for _ = 1, 12 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")

@@ -112,7 +112,21 @@ local function buildCellSpeech(self, rows, force)
         if col == nil then
             return nil
         end
-        return Text.key(col.name)
+        local result = Text.key(col.name)
+        if Verbosity.isOn() then
+            -- Sort affordance: tells the user the header cell is a button
+            -- that cycles sort on Enter. Only sortable columns get the
+            -- suffix; columns without a sortKey skip the cycle and the
+            -- suffix would mislead. Then the column-of position suffix.
+            -- Both gated behind Verbosity per the no-type-suffixes rule.
+            if type(col.sortKey) == "function" then
+                result = result .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BASETABLE_SORT_BUTTON")
+            end
+            result = result
+                .. ", "
+                .. Text.format("TXT_KEY_CIVVACCESS_VERBOSE_COLUMN_OF", self._col, #self.columns)
+        end
+        return result
     end
     local row = rows[self._row]
     if row == nil then
@@ -158,6 +172,16 @@ local function buildCellSpeech(self, rows, force)
         elseif tt ~= nil and tt ~= "" then
             result = BaseMenuItems.appendTooltip(result, tt)
         end
+    end
+    -- Verbose row/column suffix on data rows. Bypasses the row-only /
+    -- column-only dedupe above (full counts re-speak on every move) --
+    -- verbose users have opted into the longer announce.
+    if Verbosity.isOn() then
+        result = result
+            .. ", "
+            .. Text.format("TXT_KEY_CIVVACCESS_VERBOSE_ROW_OF", self._row, #rows)
+            .. ", "
+            .. Text.format("TXT_KEY_CIVVACCESS_VERBOSE_COLUMN_OF", self._col, #self.columns)
     end
     return result
 end
@@ -458,6 +482,12 @@ function BaseTable.create(spec)
 
     local self = {
         tabName = spec.tabName,
+        -- Verbosity-gated suffix appended to the spoken tab name on every
+        -- activation. TabbedShell.resolveTabName consults this for first-
+        -- open speech, and our own onTabActivated does the same for cycle
+        -- and standalone push, so all three paths agree on "<tabName>,
+        -- table" when the setting is on.
+        tabNameVerboseSuffixKey = "TXT_KEY_CIVVACCESS_KIND_TABLE",
         columns = spec.columns,
         rebuildRows = spec.rebuildRows,
         rowLabel = spec.rowLabel,
@@ -581,7 +611,7 @@ function BaseTable.create(spec)
             end
         end
         if announce then
-            SpeechPipeline.speakInterrupt(Text.key(self.tabName))
+            SpeechPipeline.speakInterrupt(Verbosity.appendSuffix(Text.key(self.tabName), self.tabNameVerboseSuffixKey))
         end
         self._chainSpeech = true
         speakCell(self, true)

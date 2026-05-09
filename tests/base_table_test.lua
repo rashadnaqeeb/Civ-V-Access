@@ -255,7 +255,9 @@ function M.test_up_from_first_data_row_moves_to_header()
     speaks = {}
     SpeechPipeline._reset()
     findBinding(h, Keys.VK_UP)()
-    -- _row is now 0 (header). Speech is just the column name.
+    -- _row is now 0 (header). Speech is just the column name (verbosity
+    -- off in tests; the sort-button affordance and column-of position
+    -- only fire when Verbosity.isOn()).
     T.eq(speaks[#speaks].text, "Name")
     findBinding(h, Keys.VK_UP)() -- already at header; no-op
 end

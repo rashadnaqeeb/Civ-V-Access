@@ -912,6 +912,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] = "Pause or resum
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_DESC"] = "{1_Col}, descending"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_ASC"] = "{1_Col}, ascending"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_CLEARED"] = "{1_Col}, sort cleared"
+-- Verbosity-gated header-row affordance. Appended to the spoken column
+-- name when the cursor sits on the header row of a sortable column and
+-- Verbosity is on, so the user knows Enter cycles the sort direction.
+-- Non-sortable columns get no suffix (no sortKey means Enter on the
+-- header is a no-op).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_BUTTON"] = "sort button"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_ROWS"] = "Move between rows"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_COLS"] = "Move between columns"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_HOME_END"] = "First or last row"
@@ -922,6 +928,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Settings"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Audio cue mode"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Speech only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Speech and audio cues"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Verbose UI"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Audio cues only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Master volume"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Master volume, {1_Num} percent"
@@ -981,6 +988,31 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
+-- Verbosity-gated control-type tags. Spoken at the END of an item's
+-- announcement when the Verbosity setting is on, so the leading
+-- distinguishing word is unaffected. Kind names follow screen-reader
+-- convention rather than the BaseMenuItems internal `kind` field
+-- (pulldown announces as "combo box"; group announces as "drillable").
+-- Choice and Text items intentionally have no tag (a flat list entry has
+-- no clean screen-reader name; informational rows are silent). Textfield
+-- predates this setting and speaks TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT
+-- inline in its announce, so it has no entry here.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_BUTTON"] = "button"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "checkbox"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_SLIDER"] = "slider"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_PULLDOWN"] = "combo box"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "drillable"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_TABLE"] = "table"
+-- Verbosity-gated position template. Appended after a BaseMenu item's
+-- full announcement (label, value, kind tag, disabled, tooltip) so the
+-- user hears where the cursor sits in the current level after the
+-- meaningful content. {1_Num} is the cursor's 1-based rank among
+-- navigable siblings; {2_Num} is the count of navigable siblings.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_POSITION"] = "{1_Num} of {2_Num}"
+-- Verbosity-gated row/column templates appended to BaseTable cell
+-- announcements. Header rows speak only the column form.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_ROW_OF"] = "row {1_Num} of {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_COLUMN_OF"] = "column {1_Num} of {2_Num}"
 -- GameMenu (Esc pause menu) strings. Details tab reuses the base game's
 -- TXT_KEY_POPUP_GAME_DETAILS, so no mod-authored tab label here.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GAME_MENU"] = "Pause Menu"

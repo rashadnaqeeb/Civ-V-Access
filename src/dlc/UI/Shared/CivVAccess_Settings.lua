@@ -159,6 +159,16 @@ end
 local function buildItems()
     local masterVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"
     return {
+        -- Verbose UI: appends screen-reader-style metadata (control type
+        -- tags, position-within-list, table row/column counts, "table"
+        -- suffix on tab names) to BaseMenu and BaseTable announcements.
+        -- First item so it's the easiest setting to find for users who
+        -- want to swap the announcement style.
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI",
+            getValue = Verbosity.isOn,
+            setValue = Verbosity.setOn,
+        }),
         BaseMenuItems.Group({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE",
             items = {

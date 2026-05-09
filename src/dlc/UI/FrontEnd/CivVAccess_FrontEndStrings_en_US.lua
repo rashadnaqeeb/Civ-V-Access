@@ -280,6 +280,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "blank"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDITING"] = "editing {1_Label}"
 -- Spoken on Escape when a mid-edit value is reverted to its prior value.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restored"
+-- Verbosity-gated control-type tags. Spoken at the END of an item's
+-- announcement when the Verbosity setting is on, so the leading
+-- distinguishing word is unaffected. Kind names follow screen-reader
+-- convention rather than the BaseMenuItems internal `kind` field
+-- (pulldown announces as "combo box"; group announces as "drillable").
+-- Choice and Text items intentionally have no tag. Textfield speaks
+-- TEXTFIELD_EDIT inline in its announce and has no entry here. Mirrored
+-- from the InGame copy because BaseMenuItems is shared between Contexts.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_BUTTON"] = "button"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "checkbox"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_SLIDER"] = "slider"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_PULLDOWN"] = "combo box"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "drillable"
+-- Verbosity-gated position template appended after a BaseMenu item's
+-- full announcement. {1_Num} is the cursor's 1-based rank among
+-- navigable siblings; {2_Num} is the count of navigable siblings.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_POSITION"] = "{1_Num} of {2_Num}"
 -- Disambiguating labels: the game's UI reuses a single label for two visually-
 -- separated controls (grid header or fullscreen/windowed toggle distinguishes
 -- sighted users). Without that visual context the two items announce
@@ -383,6 +400,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Settings"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Audio cue mode"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Speech only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Speech and audio cues"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Verbose UI"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Audio cues only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Master volume"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Master volume, {1_Num} percent"

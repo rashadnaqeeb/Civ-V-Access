@@ -101,6 +101,14 @@ local MOD_SHIFT = 1
 local MOD_CTRL = 2
 local MOD_ALT = 4
 
+-- Forward declarations: landingSpeak (under "Sound cues" below) needs to
+-- compute the verbose position-within-list, which requires currentItems
+-- defined further down. The level walker is the cleanest source of truth
+-- for the cursor's items/index, so we hoist the names here and assign
+-- their bodies later.
+local currentItems
+local currentIndex
+
 -- Sound cues --------------------------------------------------------------
 --
 -- Two short navigation sounds: "menu_wrap" fires when the cursor wraps
@@ -167,6 +175,31 @@ end
 BaseMenu._playWrap = playWrap
 BaseMenu._playDrillableIfGroup = playDrillableIfGroup
 
+-- Walk the cursor's level once, counting navigable siblings and the
+-- cursor's 1-based rank among them. Recomputed on every nav move because
+-- visibility can change between moves (e.g. a hidden group becomes
+-- navigable when its visibility control flips). Returns nil when the
+-- cursor isn't on a navigable item, which suppresses the position tag
+-- rather than emitting a misleading "0 of N".
+local function navPosition(menu)
+    local items = currentItems(menu)
+    local cursor = currentIndex(menu)
+    local total = 0
+    local pos = nil
+    for i, it in ipairs(items) do
+        if it:isNavigable() then
+            total = total + 1
+            if i == cursor then
+                pos = total
+            end
+        end
+    end
+    if pos == nil then
+        return nil
+    end
+    return pos, total
+end
+
 -- Speak the announce text for an item the cursor just landed on, and play
 -- the drillable cue when the landing target is a Group. Centralizes the
 -- "moved cursor onto an item" path so every nav site (Up/Down, Home/End,
@@ -174,7 +207,19 @@ BaseMenu._playDrillableIfGroup = playDrillableIfGroup
 -- caller remembering it.
 local function landingSpeak(menu, item, queued)
     local fn = queued and SpeechPipeline.speakQueued or SpeechPipeline.speakInterrupt
-    fn(item:announce(menu))
+    local text = item:announce(menu)
+    if Verbosity.isOn() then
+        local pos, total = navPosition(menu)
+        if pos ~= nil then
+            local positionText = Text.format("TXT_KEY_CIVVACCESS_VERBOSE_POSITION", pos, total)
+            if text == nil or text == "" then
+                text = positionText
+            else
+                text = text .. ", " .. positionText
+            end
+        end
+    end
+    fn(text)
     playDrillableIfGroup(item)
 end
 
@@ -296,11 +341,11 @@ local function itemsAtLevel(self, level)
     return items
 end
 
-local function currentItems(self)
+function currentItems(self)
     return itemsAtLevel(self, self._level)
 end
 
-local function currentIndex(self)
+function currentIndex(self)
     return self._indices[self._level] or 1
 end
 
