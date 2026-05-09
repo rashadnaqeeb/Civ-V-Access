@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Threading;
 using System.Windows.Forms;
 using CivVAccess.Installer.Core;
 using CivVAccess.Installer.Localization;
@@ -16,19 +15,19 @@ internal static class Program
         Logger.Init();
         Logger.Info($"Civ V Access Installer {AppVersion.Display} starting.");
 
-        // Match the system UI culture to one of our 10 supported locales, falling
-        // back to en_US. The user can change this later via the Language menu.
+        // Match the system UI culture to one of our 10 supported locales,
+        // falling back to en_US. The user can change this from the welcome
+        // dialog's "Change language" hyperlink.
         var initial = LocaleCatalog.PickForCulture(CultureInfo.CurrentUICulture);
         Strings.SetLocale(initial);
 
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
         try
         {
-            using var form = new MainForm();
-            Application.Run(form);
+            using var flow = new Flow();
+            flow.Run();
             return 0;
         }
         catch (Exception ex)
@@ -40,6 +39,10 @@ internal static class Program
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
             return 1;
+        }
+        finally
+        {
+            Logger.Close();
         }
     }
 }
