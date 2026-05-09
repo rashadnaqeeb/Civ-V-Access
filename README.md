@@ -29,6 +29,8 @@ Every menu in the game uses the same interface. It's quite straightforward.
 - **F1** — re-read the menu's description; also used to read back spoken dialogue
 - Type ahead: every menu in the mod supports searching using type ahead. Simply start typing and you will be matched as you type. You can use Up/Down arrow to scroll through results
 
+**F12** opens mod settings, where you can turn off increased menu verbosity if you prefer.
+
 ## In-game controls
 
 Let's address the elephant in the room first.
@@ -221,6 +223,16 @@ These keys open the in-game screens. The screens themselves are regular menus.
 - **Ctrl+E** — Espionage Overview. The first tab allows you to manage your spies, the second shows you the status of various cities and their spying potential, and a third shows you all intrigue you've learned over the course of the game.
 - **Backslash** — Multiplayer chat panel
 - **Esc** — Game menu (save, load, options, quit)
+
+## Multiplayer
+
+Civ V supports both hotseat (passing one computer back and forth) and networked multiplayer.
+
+**Hotseat.** Press **Ctrl+Shift+F12** to pause the mod when the sighted player takes their turn, and again to resume for yours.
+
+**Networked play.** Hosting on your local network just works. On Steam's public matchmaking, regional filters can hide games hosted by friends in other regions; the workaround is to host the game yourself and invite friends through your Steam friends list, which bypasses the filter.
+
+If you want to play online with sighted friends, they must run the mod installer on their machine and choose "As a sighted player who plays multiplayer against a blind user". This installs the minimum needed for their game to match yours; no speech code runs on their side.
 
 ## Troubleshooting
 
