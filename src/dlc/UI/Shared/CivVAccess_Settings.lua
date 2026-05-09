@@ -188,8 +188,8 @@ local function buildItems()
                 local percent = math.floor(value * 100 + 0.5)
                 return Text.format(masterVolumeFormat, percent)
             end,
-            step = 0.05,
-            bigStep = 0.20,
+            step = 0.01,
+            bigStep = 0.10,
         }),
         -- Beacon audible-range slider. Adjusts the linear-falloff distance
         -- where a bookmark beacon goes silent; default 30 hexes, range
