@@ -23,6 +23,18 @@ include("CivVAccess_TradeRouteRow")
 
 CityStats = {}
 
+-- Format a signed per-turn rate as "+N" / "0" / "-N". The food and culture
+-- yield headlines sit next to a storage fraction ("food 5, 12 of 22, ..."),
+-- so leading the rate with "+" disambiguates the per-turn number from the
+-- storage one for the screen reader. Negative reads naturally with the
+-- minus, zero stays bare.
+local function formatSigned(n)
+    if n > 0 then
+        return "+" .. tostring(n)
+    end
+    return tostring(n)
+end
+
 -- Engine yield-tooltip helpers. Looked up via the running env at call
 -- time so the test harness can substitute its own (the in-game seat
 -- gets them via InfoTooltipInclude in the CityView Context's include
@@ -153,6 +165,7 @@ local YIELD_DEFS = {
         rate = function(c)
             return c:FoodDifference()
         end,
+        signed = true,
         extrasFn = foodExtras,
     },
     {
@@ -202,6 +215,7 @@ local YIELD_DEFS = {
         rate = function(c)
             return c:GetJONSCulturePerTurn()
         end,
+        signed = true,
         extrasFn = cultureExtras,
     },
 }
@@ -211,7 +225,8 @@ function CityStats.yieldRows(city, helperFn)
     local groups = {}
     for _, def in ipairs(YIELD_DEFS) do
         local rate = def.rate(city)
-        local label = Text.format(def.labelKey, rate)
+        local rateArg = def.signed and formatSigned(rate) or rate
+        local label = Text.format(def.labelKey, rateArg)
         if def.extrasFn ~= nil then
             label = label .. ", " .. def.extrasFn(city)
         end

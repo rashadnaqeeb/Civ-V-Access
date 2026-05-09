@@ -321,7 +321,7 @@ function M.test_yields_speak_per_turn_for_seven_yields()
     T.eq(#rows, 7)
     -- Food row's headline includes the per-turn rate, then storage tail,
     -- then the grows-in countdown.
-    T.truthy(rows[1].label:find("food 5", 1, true), "food per-turn label")
+    T.truthy(rows[1].label:find("food +5", 1, true), "food per-turn label, signed for growth")
     T.truthy(rows[1].label:find("12 of 22", 1, true), "food storage tail")
     T.truthy(rows[1].label:find("2 turn", 1, true), "food turns-to-grow tail")
     T.truthy(rows[2].label:find("production 12", 1, true), "production per-turn label (post-modifiers)")
@@ -332,7 +332,7 @@ function M.test_yields_speak_per_turn_for_seven_yields()
     T.truthy(rows[6].label:find("tourism 2", 1, true), "tourism scaled per-turn label")
     -- Culture row's headline includes the per-turn rate, then storage,
     -- then the next-tile countdown ((25-5)/6 = ~4 turns ceiled).
-    T.truthy(rows[7].label:find("culture 6", 1, true), "culture per-turn label")
+    T.truthy(rows[7].label:find("culture +6", 1, true), "culture per-turn label, signed for growth")
     T.truthy(rows[7].label:find("5 of 25", 1, true), "culture storage tail")
     T.truthy(rows[7].label:find("next tile", 1, true), "culture next-tile tail")
 end
