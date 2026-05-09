@@ -1,7 +1,7 @@
 -- Mod-authored strings, it_IT overlay. Baseline in CivVAccess_InGameStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Accessibility Civilization V caricata in partita."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Accessibility Civilization V v{1_Version} caricata in partita."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod in pausa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod ripresa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RECOMMENDATION_PREFIX"] = "suggerimento: {1_Name}"

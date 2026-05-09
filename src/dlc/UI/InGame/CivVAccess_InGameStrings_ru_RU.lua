@@ -2,7 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 -- ===== Boot =====
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V: специальные возможности загружены."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V: специальные возможности v{1_Version} загружены."
 
 -- ===== Mute / hotseat toggle =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "мод на паузе"

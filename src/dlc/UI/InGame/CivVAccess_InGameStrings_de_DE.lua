@@ -1,7 +1,7 @@
 -- Mod-authored strings, de_DE overlay. Baseline in CivVAccess_InGameStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 -- the user knows the mod attached.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V Barrierefreiheit im Spiel geladen."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V Barrierefreiheit v{1_Version} im Spiel geladen."
 -- Hotseat-mute toggle (Ctrl+Shift+F12).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "Mod pausiert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "Mod fortgesetzt"

@@ -4,7 +4,7 @@ CivVAccess_Strings = CivVAccess_Strings or {}
 -- Batch 01: 101 keys
 
 -- Boot and mute state.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization Vアクセシビリティがゲーム内で読み込まれた."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization Vアクセシビリティ v{1_Version}がゲーム内で読み込まれた."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod一時停止"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "mod再開"
 
