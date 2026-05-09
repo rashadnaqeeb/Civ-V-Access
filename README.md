@@ -49,6 +49,8 @@ Two things will feel strange at first.
 
 2. If instead you move northeast, then southeast, you've actually traveled only one tile east, and one press of A will bring you back to where you started.
 
+The numpad mirrors this cluster, with 5 in the center as S.
+
 This is all you need to know to play, but if you're interested in understanding why this is the case, you can read the next section.
 
 #### The math
@@ -84,7 +86,7 @@ The cursor is your position on the map, independent of any selected unit. Moveme
 
 ### The surveyor
 
-The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit.
+The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit. All keys use Shift plus a cluster key, and the numpad works as a substitute here too.
 
 - **Shift+W / Shift+X** — grow or shrink the scanned radius (1-5)
 - **Shift+Q** — sum yields of all tiles in range
@@ -201,28 +203,44 @@ The buffer resets when you load a game.
 - **Ctrl+Space** — end the current turn. If something still wants attention, the mod announces what and opens the matching screen.
 - **Ctrl+Shift+Space** — force-end the turn, ending it even with pending blockers.
 
-## Opening screens and menus
+## Tables
 
-These keys open the in-game screens. The screens themselves are regular menus.
+Several screens present data as a table of rows and columns, like the city list on F2 or the unit list on F3. Arrow keys move between cells. The row above row 1 is a header row, and pressing Enter on a column header cycles its sort, which is how you resort the table by a different column. Type-ahead matches against whole rows, not individual cells.
 
-- **F1** — Civilopedia: in-game wiki with lots of strategy and general game advice.
-- **F2** — Economic information. A 4-tab screen containing an overview of all your cities, a breakdown of your treasury, a happiness breakdown, and a list of all accessible resources.
-- **F3** — Military overview: a two-tab screen, containing a table of all your units, as well as a list of your progress to generating various great people.
-- **F4** — Diplomacy screen: a three-tab screen, containing a table of major civilisations, a table of city states, and a list of active and historical trade deals.
-- **F5** — Social Policies: a two-tab screen containing both social policies and, later in the game, ideologies.
-- **F6** — Tech Tree: science happens here. Can be viewed either as a grid (default), or as a DAG tree, switched to with Space.
-- **F7** — Turn and event log
-- **F8** — Victory Progress: a two-tab screen. Tab 1 contains a score table. Tab 2 contains a breakdown of your progress to the various victory conditions.
-- **F9** — Demographics. A mostly flavour screen that can be used to give you a sense of how well you're doing.
-- **F10** — Advisors: you have 4 of them. Each of them gets a tab. They're not very good.
-- **F12** — Mod settings
-- **Ctrl+C** — Culture Overview. 4 tabs. One for great work placement, a second for trading with other civs, a third table for viewing your progress to a diplomatic victory, and a fourth for viewing the progress of other civs (use the left column to change perspectives).
-- **Ctrl+T** — Trade Route Overview. A two-tab screen, one containing possible trade routes and the second containing current trade routes.
-- **Ctrl+R** — Religion Overview. 3 tabs. The first for viewing your own religion, the second for viewing the spread of all religions, and the third for seeing the tenets of global religions.
-- **Ctrl+L** — World Congress. The first tab is a summary of leaders, the second allows you to make and vote on proposals, and the third shows all active effects.
-- **Ctrl+E** — Espionage Overview. The first tab allows you to manage your spies, the second shows you the status of various cities and their spying potential, and a third shows you all intrigue you've learned over the course of the game.
-- **Backslash** — Multiplayer chat panel
-- **Esc** — Game menu (save, load, options, quit)
+## Game screens
+
+These keys open the in-game screens. The screens themselves are regular menus or tables.
+
+- **F1** — Civilopedia: the in-game wiki, with strategy tips and a reference for everything in the game.
+- **F2** — Economic Overview. 4 tabs: a table of all your cities, a treasury breakdown, a happiness breakdown, and a list of accessible resources.
+- **F3** — Military Overview. 2 tabs: a table of all your units, and a list of progress toward each great person type.
+- **F4** — Diplomacy. 3 tabs: major civs, city-states, and current deals (active and historical).
+- **F5** — Social Policies. 2 tabs: social policies, and, later in the game, ideologies.
+- **F6** — Tech Tree. Science happens here. Space switches between grid view (default) and a tree view that walks the prerequisite graph.
+- **F7** — Notifications. 3 tabs: active notifications, a turn log summarising the previous turn, and dismissed notifications.
+- **F8** — Victory Progress. 2 tabs: a score table, and a breakdown of progress toward each victory condition.
+- **F9** — Demographics. A mostly flavour screen for getting a sense of how well you're doing.
+- **F10** — Advisors. One tab per advisor, 4 in total. They're not very good.
+- **F12** — Mod settings.
+- **Ctrl+C** — Culture Overview. 4 tabs: placing great works in your own buildings, swapping great works with other civs, progress toward a cultural victory, and tourism influence between civs (use the left column to change perspectives).
+- **Ctrl+T** — Trade Route Overview. 3 tabs: your active routes, routes you can establish, and routes other civs have running with you.
+- **Ctrl+R** — Religion Overview. 3 tabs: your own religion, the spread of all religions, and the beliefs each religion has taken.
+- **Ctrl+L** — World Congress. 3 tabs: league status (host, members, delegates), proposals to make and vote on, and active effects.
+- **Ctrl+E** — Espionage Overview. 3 tabs: managing your spies, city status and spying potential, and a log of intrigue learned over the course of the game.
+- **Backslash** — Multiplayer chat panel.
+- **Esc** — Game menu (save, load, options, quit).
+
+## Trade and negotiation
+
+When you initiate a trade or other negotiation with another civilisation, or one of them initiates with you, you land on a screen with two buttons: **your offer** and **their offer**. Your offer is what you're giving away. Their offer is what they're giving you.
+
+Pressing either button opens a two-tab screen. The first tab lists what's currently on the table for that side. The second tab, **available**, lists everything that side could put on the table; much of it is gated by technology, and the tooltip on each entry explains the gating.
+
+Below the two offer buttons sits a balance button that asks the AI to make the deal fair. Its label changes with context, things like "what would you give me for this", "what would make this deal work", or "what do you want for this", but they're all the same button. Pressing it locks the deal as read-only and applies the AI's proposed adjustment.
+
+When the AI initiates the deal, the available tab is locked from the start. You can still open both offer buttons to read what's on each side, but you can only accept or decline; you can't change the terms.
+
+At any point while you're talking to a leader, **F2** speaks their full description.
 
 ## Multiplayer
 
