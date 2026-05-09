@@ -3,7 +3,7 @@ CivVAccess_Strings = CivVAccess_Strings or {}
 
 -- ===== ingame_batch_01.lua =====
 -- Batch 01 (lines 120-421): boot, mute, unit speech, paths
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V: funkcje dostępności v{1_Version} załadowane."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Civilization V: funkcje dostępności załadowane."
 
 -- ===== Mute / hotseat toggle =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod wstrzymano"

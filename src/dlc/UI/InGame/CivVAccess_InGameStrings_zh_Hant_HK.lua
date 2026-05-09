@@ -2,7 +2,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 -- Batch 01 (lines 123-420): 100 keys
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "文明5無障礙模組 v{1_Version} 已在遊戲中載入."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "文明5無障礙模組已在遊戲中載入."
 -- Hotseat-mute toggle.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "模組已暫停"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "模組已恢復"

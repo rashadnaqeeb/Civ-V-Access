@@ -102,7 +102,7 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 -- Spoken once, after the front-end Boot Lua finishes installing handlers, so
 -- the user knows the mod attached.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Accessibility mod ready."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Accessibility mod v{1_Version} ready."
 -- Hotseat-mute toggle (Ctrl+Shift+F12). Mirrored from the in-game strings
 -- file because the toggle lives in InputRouter, which routes both
 -- front-end and in-game dispatch. The pause text speaks before the flag

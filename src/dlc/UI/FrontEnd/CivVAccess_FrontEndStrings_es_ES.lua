@@ -1,7 +1,7 @@
 -- Mod-authored strings, es_ES overlay. Baseline in CivVAccess_FrontEndStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Mod de accesibilidad listo."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "Mod de accesibilidad v{1_Version} listo."
 
 -- Hotseat-mute toggle
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "mod pausado"

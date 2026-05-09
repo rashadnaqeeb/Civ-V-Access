@@ -1,7 +1,7 @@
 -- Mod-authored strings, zh_Hant_HK overlay. Baseline in CivVAccess_FrontEndStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "輔助功能模組就緒."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "輔助功能模組 v{1_Version} 就緒."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "模組已暫停"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "模組已恢復"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADERBOARD_PREV_PAGE"] = "上一頁"

@@ -8,5 +8,5 @@ Log.info("FrontendBoot: Context '" .. tostring(ContextPtr:GetID()) .. "' initial
 
 if not civvaccess_shared.frontendAnnounced then
     civvaccess_shared.frontendAnnounced = true
-    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_FRONTEND"))
+    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_BOOT_FRONTEND", civvaccess_shared.version or "unknown"))
 end

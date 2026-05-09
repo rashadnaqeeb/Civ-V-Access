@@ -8,6 +8,13 @@
 -- each sandbox.
 
 include("CivVAccess_Log")
+-- CivVAccess_Version.lua is generated at deploy / package time from
+-- versions.json into UI/InGame/, which the front-end <Skin> directive in
+-- CivVAccess_2.Civ5Pkg also includes -- so the stem resolves from front-end
+-- Contexts too. Sets civvaccess_shared.version, read by FrontendBoot's
+-- TXT_KEY_CIVVACCESS_BOOT_FRONTEND format call. Tests rely on the polyfill's
+-- sentinel "test" instead since neither real Context runs in the harness.
+include("CivVAccess_Version")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
 include("CivVAccess_Verbosity")

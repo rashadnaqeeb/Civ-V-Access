@@ -1,7 +1,7 @@
 -- Mod-authored strings, ko_KR overlay. Baseline in CivVAccess_FrontEndStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "접근성 모드가 준비되었습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_FRONTEND"] = "접근성 모드 v{1_Version} 준비되었습니다."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "모드 일시 정지"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "모드 재개"
 

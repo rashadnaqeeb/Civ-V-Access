@@ -5,7 +5,7 @@ CivVAccess_Strings = CivVAccess_Strings or {}
 
 -- Spoken once, after the in-game Boot Lua finishes installing handlers, so
 -- the user knows the mod attached.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Accesibilidad de Civilization V v{1_Version} cargada en partida."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "Accesibilidad de Civilization V cargada en partida."
 -- Hotseat-mute toggle (Ctrl+Shift+F12). The pause announcement speaks
 -- before the flag flips so the screen reader hears it; the resume speaks
 -- after the flag clears so SpeechPipeline's gate doesn't swallow it.

@@ -1,7 +1,7 @@
 -- Mod-authored strings, ko_KR overlay. Baseline in CivVAccess_InGameStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "문명 V 접근성이 v{1_Version} 게임 내에서 로드되었습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOT_INGAME"] = "문명 V 접근성이 게임 내에서 로드되었습니다."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_PAUSED"] = "모드 일시 정지"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MUTE_RESUMED"] = "모드 재개"
 -- Unit speech.
