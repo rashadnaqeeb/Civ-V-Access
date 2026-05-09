@@ -1,7 +1,7 @@
 {
-  "mod": "1.0.1",
+  "mod": "1.0.2",
   "components": {
-    "core":       "1.0.1",
+    "core":       "1.0.2",
     "engine":     "1.0.0",
     "runtime":    "1.0.1",
     "cinematics": "1.0.0"
