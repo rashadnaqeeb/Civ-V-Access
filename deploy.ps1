@@ -8,16 +8,22 @@
       - Proxy stack: dist/proxy/lua51_Win32.dll + the Tolk runtime DLLs from
         third_party/tolk/dist/x86/.
       - DLC: src/dlc/ (the fake-DLC payload) into Assets/DLC/DLC_CivVAccess/.
+        Also writes CivVAccess.install.json into the deployed DLC dir, the
+        single source of truth on installed version + profile that the
+        external installer reads on subsequent runs.
       - Engine DLL: dist/engine/CvGameCore_Expansion2.dll into
-        Assets/DLC/Expansion2/, with the original vanilla DLL backed up to
-        build/CvGameCore_Expansion2.vanilla.dll.bak on first install.
+        Assets/DLC/Expansion2/, with the vanilla DLL and the stock BNW
+        cinematics backed up under Assets/DLC/DLC_CivVAccess.backup/ (a
+        sibling of the DLC dir, so it survives the redeploy nuke-and-recreate
+        of the DLC dir itself).
 
     The engine DLL is deployed by default; pass -SkipEngine for Lua-only
     iterations where the (~4 MB) DLL copy isn't worth it.
 
     -Uninstall reverses everything: restores the vanilla engine DLL from the
     backup, restores the original lua51_Win32.dll, removes the DLC and the
-    proxy runtime DLLs.
+    proxy runtime DLLs, and clears the engine's DLC cache so the next launch
+    forgets DLC_CivVAccess immediately.
 
 .PARAMETER GameDir
     Override the auto-detected Civ V install path.
@@ -59,14 +65,25 @@ $repoRoot         = Split-Path -Parent $MyInvocation.MyCommand.Path
 $proxyDistDir     = Join-Path $repoRoot 'dist\proxy'
 $engineDistDir    = Join-Path $repoRoot 'dist\engine'
 $tolkDistDir      = Join-Path $repoRoot 'third_party\tolk\dist\x86'
-$engineBackup     = Join-Path $repoRoot 'build\CvGameCore_Expansion2.vanilla.dll.bak'
 $cinematicSrcDir  = Join-Path $repoRoot 'audio described intros'
-$cinematicBackup  = Join-Path $repoRoot 'build\cinematics-vanilla'
 $dlcSrcDir        = Join-Path $repoRoot 'src\dlc'
 $soundsSrcDir     = Join-Path $repoRoot 'sounds'
 $dlcName          = 'DLC_CivVAccess'
+$dlcBackupDirName = "$dlcName.backup"  # sibling to DLC dir; holds vanilla file backups so they survive the dir nuke on redeploy
+$installManifestName = 'CivVAccess.install.json'
 $legacyDlcDirs    = @('CivVAccess')
 $legacyModDir     = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
+
+# Mod version, single source of truth at repo root. Written into the install
+# manifest so the external installer can determine what's deployed.
+$versionFile = Join-Path $repoRoot 'VERSION'
+if (-not (Test-Path $versionFile)) { throw "VERSION file missing at $versionFile" }
+$modVersion = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+
+# Set in the driver after Resolve-CivVInstallDir, before any function uses them.
+$dlcBackupDir    = $null
+$engineBackup    = $null
+$cinematicBackup = $null
 
 # BNW opening cinematic filenames the engine expects under
 # Assets/DLC/Expansion2/. Only en_US is a full .wmv video; non-English locales
@@ -336,6 +353,53 @@ function Deploy-Cinematics {
     }
 }
 
+function Write-InstallManifest {
+    param(
+        [string]$Game,
+        [ValidateSet('blind','sighted')]
+        [string]$Profile
+    )
+
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    $manifestPath = Join-Path $dlcDir $installManifestName
+
+    $backupDirRel = "Assets/DLC/$dlcBackupDirName"
+
+    if ($Profile -eq 'blind') {
+        $components = [ordered]@{
+            core       = [ordered]@{ version = $modVersion }
+            engine     = [ordered]@{ version = $modVersion }
+            runtime    = [ordered]@{ version = $modVersion }
+            cinematics = [ordered]@{ version = $modVersion }
+        }
+        $backups = [ordered]@{
+            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
+            cinematics = "$backupDirRel/cinematics"
+            lua51      = 'lua51_original.dll'
+        }
+    } else {
+        $components = [ordered]@{
+            engine = [ordered]@{ version = $modVersion }
+        }
+        $backups = [ordered]@{
+            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
+        }
+    }
+
+    $manifest = [ordered]@{
+        mod_version  = $modVersion
+        profile      = $Profile
+        installed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        components   = $components
+        backups      = $backups
+    }
+
+    $json = $manifest | ConvertTo-Json -Depth 5
+    Set-Content -LiteralPath $manifestPath -Value $json -Encoding UTF8
+    Write-Host "Wrote install manifest:"
+    Write-Host "  $manifestPath"
+}
+
 function Invoke-Uninstall {
     param([string]$Game)
 
@@ -412,12 +476,34 @@ function Invoke-Uninstall {
     } else {
         Write-Host "  No cinematics backup present; skipping cinematics restore."
     }
+
+    # Backup dir is now empty of useful state; remove it so the game install
+    # is back to vanilla layout.
+    if (Test-Path $dlcBackupDir) {
+        Write-Host "  Removing backup dir: $dlcBackupDir"
+        Remove-Item -LiteralPath $dlcBackupDir -Recurse -Force
+    }
+
+    # Engine re-enumerates DLC at startup from this cache. Without clearing
+    # it, the engine may keep DLC_CivVAccess as a known-but-missing entry
+    # until the next forced refresh.
+    $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
+    if (Test-Path $cacheDir) {
+        Write-Host "Clearing DLC cache:"
+        Write-Host "  $cacheDir"
+        Get-ChildItem -LiteralPath $cacheDir -File | Remove-Item -Force
+    }
 }
 
 # ---- Driver ----
 Write-Host "Locating Civilization V install..."
 $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
 Write-Host "  Game dir: $gameDir"
+
+# Backup paths derived from gameDir. Functions read these from script scope.
+$dlcBackupDir    = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
+$engineBackup    = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
+$cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
 
 if ($Uninstall) {
     Invoke-Uninstall -Game $gameDir
@@ -450,9 +536,18 @@ if (-not $SkipCinematics) {
     Write-Host "Skipping cinematics (-SkipCinematics)."
 }
 
+# Manifest is written last so it always reflects a complete deploy. Skipping
+# components for fast iteration is a maintainer workflow; the manifest still
+# claims the full mod_version for every component since the rest of the
+# install is up to date with what's in src/.
+if (-not $SkipDlc) {
+    Write-InstallManifest -Game $gameDir -Profile 'blind'
+}
+
 Write-Host ""
 Write-Host "Deploy complete."
 Write-Host "  Game dir: $gameDir"
+Write-Host "  Version : $modVersion"
 Write-Host ""
 Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
 Write-Host "  $env:USERPROFILE\Documents\My Games\Sid Meier's Civilization 5\config.ini"

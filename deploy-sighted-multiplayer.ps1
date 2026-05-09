@@ -21,12 +21,15 @@
 
     What this script copies:
       - dist/engine/CvGameCore_Expansion2.dll into Assets/DLC/Expansion2/,
-        backing up the vanilla DLL to build/CvGameCore_Expansion2.vanilla.dll.bak
-        on first install.
+        backing up the vanilla DLL under Assets/DLC/DLC_CivVAccess.backup/
+        (sibling of the deployed DLC dir) on first install.
       - src/dlc/CivVAccess_2.Civ5Pkg into Assets/DLC/DLC_CivVAccess/. The
         manifest's UISkin directives reference UI/FrontEnd, UI/Shared,
         UI/InGame, UI/TechTree; the script creates those as empty directories
         so the engine resolves the manifest without dragging in any mod code.
+      - CivVAccess.install.json into the deployed DLC dir, recording profile
+        as "sighted" so the external installer treats this machine as a
+        sighted-MP install on subsequent updates.
 
     -Uninstall reverses both: removes DLC_CivVAccess and restores the vanilla
     engine DLL from the backup.
@@ -57,11 +60,22 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot       = Split-Path -Parent $MyInvocation.MyCommand.Path
 $engineDistDir  = Join-Path $repoRoot 'dist\engine'
-$engineBackup   = Join-Path $repoRoot 'build\CvGameCore_Expansion2.vanilla.dll.bak'
 $dlcSrcDir      = Join-Path $repoRoot 'src\dlc'
 $dlcName        = 'DLC_CivVAccess'
+$dlcBackupDirName    = "$dlcName.backup"  # sibling to DLC dir; survives DLC dir nuke
+$installManifestName = 'CivVAccess.install.json'
 $manifestFile   = 'CivVAccess_2.Civ5Pkg'
 $engineDllName  = 'CvGameCore_Expansion2.dll'
+
+# Mod version, single source of truth at repo root. Written into the install
+# manifest so the external installer can determine what's deployed.
+$versionFile = Join-Path $repoRoot 'VERSION'
+if (-not (Test-Path $versionFile)) { throw "VERSION file missing at $versionFile" }
+$modVersion = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+
+# Set in the driver after Resolve-CivVInstallDir, before any function uses them.
+$dlcBackupDir = $null
+$engineBackup = $null
 
 # Empty directories created under the deployed DLC so the manifest's
 # <UISkin>/<Skin>/<GameplaySkin> directives resolve. The host's full deploy
@@ -207,6 +221,32 @@ function Deploy-EngineDll {
     Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
 }
 
+function Write-InstallManifest {
+    param([string]$Game)
+
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    $manifestPath = Join-Path $dlcDir $installManifestName
+
+    $backupDirRel = "Assets/DLC/$dlcBackupDirName"
+
+    $manifest = [ordered]@{
+        mod_version  = $modVersion
+        profile      = 'sighted'
+        installed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        components   = [ordered]@{
+            engine = [ordered]@{ version = $modVersion }
+        }
+        backups      = [ordered]@{
+            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
+        }
+    }
+
+    $json = $manifest | ConvertTo-Json -Depth 5
+    Set-Content -LiteralPath $manifestPath -Value $json -Encoding UTF8
+    Write-Host "Wrote install manifest:"
+    Write-Host "  $manifestPath"
+}
+
 function Invoke-Uninstall {
     param([string]$Game)
 
@@ -225,6 +265,11 @@ function Invoke-Uninstall {
         Write-Host "  No engine DLL backup present; skipping engine restore."
     }
 
+    if (Test-Path $dlcBackupDir) {
+        Write-Host "  Removing backup dir: $dlcBackupDir"
+        Remove-Item -LiteralPath $dlcBackupDir -Recurse -Force
+    }
+
     $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
     if (Test-Path $cacheDir) {
         Write-Host "Clearing DLC cache:"
@@ -237,6 +282,10 @@ function Invoke-Uninstall {
 Write-Host "Locating Civilization V install..."
 $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
 Write-Host "  Game dir: $gameDir"
+
+# Backup paths derived from gameDir. Functions read these from script scope.
+$dlcBackupDir = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
+$engineBackup = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
 
 if ($Uninstall) {
     Invoke-Uninstall -Game $gameDir
@@ -257,9 +306,14 @@ if (-not $SkipEngine) {
     Write-Host "Skipping engine DLL (-SkipEngine)."
 }
 
+if (-not $SkipDlc) {
+    Write-InstallManifest -Game $gameDir
+}
+
 Write-Host ""
 Write-Host "Sighted multiplayer deploy complete."
 Write-Host "  Game dir: $gameDir"
+Write-Host "  Version : $modVersion"
 Write-Host ""
 Write-Host "This machine has the engine DLL fork and the DLC_CivVAccess manifest"
 Write-Host "(empty UI/ subdirs). No proxy, no Tolk runtime, no mod UI code is"

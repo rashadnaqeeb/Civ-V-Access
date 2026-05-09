@@ -53,3 +53,7 @@ tools/RemuxToAsf.exe
 
 # Extracted leader scene images (Firaxis assets — not redistributable)
 /leader images/
+
+# Release artifacts produced by package-release.ps1. The GitHub Release is the
+# source of truth for shipped binaries; the local zips are byproducts.
+dist/release/
