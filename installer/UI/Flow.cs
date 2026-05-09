@@ -108,8 +108,9 @@ internal sealed class Flow : IDisposable
         }
 
         // Step 6: fetch latest release.
-        var release = FetchLatestRelease();
-        if (release == null) return;
+        var info = FetchLatestRelease();
+        if (info == null) return;
+        var release = info.Release;
 
         if (release.SemVer.Major > AppVersion.SupportedMaxModMajor)
         {
@@ -121,7 +122,9 @@ internal sealed class Flow : IDisposable
         }
 
         var plan = _installer.BuildPlan(gameDir, profile.Value, release, null, forceAll: false);
-        RunInstall(plan);
+        // Fresh installs don't get a slice -- there's no "previous version"
+        // to slice from. Show the standard MessageBox success.
+        RunInstall(plan, changelogSlice: null);
     }
 
     private string? LocateGameDirectory(string? autoDetected)
@@ -195,8 +198,9 @@ internal sealed class Flow : IDisposable
     {
         GameConfigIni.TryEnableLogging();
 
-        var release = FetchLatestRelease();
-        if (release == null) return;
+        var info = FetchLatestRelease();
+        if (info == null) return;
+        var release = info.Release;
 
         if (release.SemVer.Major > AppVersion.SupportedMaxModMajor)
         {
@@ -229,14 +233,22 @@ internal sealed class Flow : IDisposable
             action = actionForm.Result;
         }
 
+        // Compute the slice once, here, where we know both the installed and
+        // the latest version. Empty string when there's nothing to show
+        // (changelog fetch failed, ModVersion didn't parse, or no entries
+        // matched between installed and latest).
+        var slice = ComputeChangelogSlice(info.Changelog, manifest.ModVersion, release.SemVer);
+
         switch (action)
         {
             case ActionForm.Action.Update:
-                RunInstall(plan);
+                RunInstall(plan, slice);
                 break;
             case ActionForm.Action.Reinstall:
                 var forced = _installer.BuildPlan(gameDir, manifest.Profile, release, manifest, forceAll: true);
-                RunInstall(forced);
+                // Reinstall keeps the same version, so there's no slice to
+                // show -- the player isn't moving versions.
+                RunInstall(forced, changelogSlice: null);
                 break;
             case ActionForm.Action.Uninstall:
                 if (ConfirmUninstall())
@@ -248,6 +260,14 @@ internal sealed class Flow : IDisposable
             case ActionForm.Action.None:
                 return;
         }
+    }
+
+    private static string? ComputeChangelogSlice(string? changelog, string installedVersionStr, System.Version latest)
+    {
+        if (string.IsNullOrWhiteSpace(changelog)) return null;
+        System.Version? installed = System.Version.TryParse(installedVersionStr, out var v) ? v : null;
+        var slice = ChangelogParser.Slice(changelog, installed, latest);
+        return string.IsNullOrWhiteSpace(slice) ? null : slice;
     }
 
     private bool ConfirmUninstall()
@@ -265,18 +285,33 @@ internal sealed class Flow : IDisposable
     // GitHub release fetch (with marquee dialog).
     // ------------------------------------------------------------------
 
-    private GitHubReleases.Release? FetchLatestRelease()
+    private record ReleaseInfo(GitHubReleases.Release Release, string? Changelog);
+
+    private ReleaseInfo? FetchLatestRelease()
     {
-        var (release, cancelled, error) = ProgressForm.RunMarquee(
+        var (info, cancelled, error) = ProgressForm.RunMarquee(
             Strings.Get("check.heading"),
             Strings.Get("check.contactingGitHub"),
             async (_, ct) =>
             {
                 try
                 {
-                    return await _installer.GetLatestReleaseAsync(ct).ConfigureAwait(false);
+                    var release = await _installer.GetLatestReleaseAsync(ct).ConfigureAwait(false);
+                    // Best-effort changelog fetch on the same warm connection.
+                    // A failure here is non-fatal; the success dialog falls
+                    // back to the no-slice MessageBox.
+                    string? changelog = null;
+                    try
+                    {
+                        changelog = await _installer.GetChangelogAsync(ct).ConfigureAwait(false);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Logger.Warn($"Changelog fetch failed: {ex.Message}");
+                    }
+                    return (ReleaseInfo?)new ReleaseInfo(release, changelog);
                 }
-                catch (HttpRequestException) { return (GitHubReleases.Release?)null; }
+                catch (HttpRequestException) { return (ReleaseInfo?)null; }
             });
 
         if (cancelled) return null;
@@ -286,19 +321,19 @@ internal sealed class Flow : IDisposable
             ShowError(Strings.Get("check.networkError"));
             return null;
         }
-        if (release == null)
+        if (info == null)
         {
             ShowError(Strings.Get("check.networkError"));
             return null;
         }
-        return release;
+        return info;
     }
 
     // ------------------------------------------------------------------
     // Install / uninstall execution (with percentage progress dialog).
     // ------------------------------------------------------------------
 
-    private void RunInstall(InstallPlan plan)
+    private void RunInstall(InstallPlan plan, string? changelogSlice)
     {
         if (GameProcess.IsRunning())
         {
@@ -332,13 +367,25 @@ internal sealed class Flow : IDisposable
         }
 
         var version = plan.Release.SemVer.ToString(3);
-        ShowSuccess(
-            plan.IsFreshInstall
-                ? Strings.Get("result.installSuccess.heading")
-                : Strings.Get("result.updateSuccess.heading"),
-            Strings.Format(
-                plan.IsFreshInstall ? "result.installSuccess.body" : "result.updateSuccess.body",
-                version));
+        var heading = plan.IsFreshInstall
+            ? Strings.Get("result.installSuccess.heading")
+            : Strings.Get("result.updateSuccess.heading");
+        var body = Strings.Format(
+            plan.IsFreshInstall ? "result.installSuccess.body" : "result.updateSuccess.body",
+            version);
+
+        // Updates with a non-empty changelog slice get the dedicated form
+        // with a read-only text field. Fresh installs and reinstalls (no
+        // slice) get the original MessageBox.
+        if (!plan.IsFreshInstall && !string.IsNullOrWhiteSpace(changelogSlice))
+        {
+            using var form = new UpdateSuccessForm(heading, body, changelogSlice);
+            form.ShowDialog();
+        }
+        else
+        {
+            ShowSuccess(heading, body);
+        }
     }
 
     private void RunUninstall(string gameDir)
