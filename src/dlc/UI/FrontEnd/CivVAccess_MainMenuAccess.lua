@@ -15,9 +15,34 @@ local priorShowHide = ShowHideHandler
 -- (DequeuePopup EULA, QueuePopup ModsBrowser), briefly firing MainMenu's
 -- ShowHide(false) then (true) within one frame. Deferral lets the hide
 -- cancel the push before the name + first item speaks.
+-- One-shot out-of-date preamble. The proxy's WinHTTP thread parks the
+-- latest GitHub release tag in civvaccess_shared via get_latest_version();
+-- on the first MainMenu activation where the parsed tag disagrees with the
+-- deployed civvaccess_shared.version, fold the warning into the menu's
+-- preamble so it speaks right after the "Main menu" line. Same-Context
+-- dispatch -- the function is created and called inside MainMenu's env --
+-- so no cross-Context closure / TickPump / fenv-rebinding hazards. Anchor
+-- here rather than at the boot announcement because the legal screen's
+-- own preamble (EULA + ESRB) interrupts boot-time speech and players skip
+-- it before the warning could land.
+local function outOfDatePreamble()
+    if civvaccess_shared.outOfDateAnnounced then
+        return ""
+    end
+    local getter = civvaccess_shared.get_latest_version
+    local latest = getter and getter() or nil
+    local local_version = civvaccess_shared.version
+    if latest and local_version and latest ~= local_version then
+        civvaccess_shared.outOfDateAnnounced = true
+        return Text.key("TXT_KEY_CIVVACCESS_UPDATE_AVAILABLE")
+    end
+    return ""
+end
+
 BaseMenu.install(ContextPtr, {
     name = "MainMenu",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAIN_MENU"),
+    preamble = outOfDatePreamble,
     deferActivate = true,
     priorShowHide = priorShowHide,
     items = {
