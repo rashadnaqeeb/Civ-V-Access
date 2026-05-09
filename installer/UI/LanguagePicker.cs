@@ -6,10 +6,9 @@ using CivVAccess.Installer.Localization;
 namespace CivVAccess.Installer.UI;
 
 /// <summary>
-/// Tiny modal Form with a single ComboBox listing the 10 supported locales.
-/// Used from the welcome TaskDialog's "Change language" hyperlink.
-/// ComboBox (DropDownList style) is a native Win32 control - screen
-/// readers announce it as a combo box without any AccessibleName plumbing.
+/// First dialog the user sees on a fresh install. A welcome message plus a
+/// native Win32 ComboBox (DropDownList style) listing the 10 supported
+/// locales. Pre-selects the system culture's match. OK / Cancel.
 /// </summary>
 internal sealed class LanguagePicker : Form
 {
@@ -19,27 +18,35 @@ internal sealed class LanguagePicker : Form
 
     public LanguagePicker()
     {
-        Text = Strings.Get("language.dialogTitle");
+        Text = Strings.Get("app.title");
         FormBorderStyle = FormBorderStyle.FixedDialog;
-        StartPosition = FormStartPosition.CenterParent;
+        StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         MinimizeBox = false;
-        ShowInTaskbar = false;
-        ClientSize = new Size(380, 140);
+        ShowInTaskbar = true;
+        ClientSize = new Size(440, 170);
         Font = SystemFonts.MessageBoxFont!;
 
-        var label = new Label
+        var welcome = new Label
         {
-            Text = Strings.Get("language.dialogTitle"),
-            AutoSize = true,
+            Text = Strings.Get("welcome.welcomeBody"),
+            AutoSize = false,
             Location = new Point(12, 12),
+            Size = new Size(416, 50),
+        };
+
+        var languageLabel = new Label
+        {
+            Text = Strings.Get("language.dialogTitle") + ":",
+            AutoSize = true,
+            Location = new Point(12, 70),
         };
 
         _combo = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 356,
-            Location = new Point(12, 40),
+            Width = 416,
+            Location = new Point(12, 92),
             FlatStyle = FlatStyle.System,
             TabIndex = 0,
         };
@@ -56,7 +63,7 @@ internal sealed class LanguagePicker : Form
         {
             Text = Strings.Get("common.ok"),
             DialogResult = DialogResult.OK,
-            Location = new Point(208, 90),
+            Location = new Point(268, 132),
             Width = 80,
             TabIndex = 1,
             UseVisualStyleBackColor = true,
@@ -73,13 +80,14 @@ internal sealed class LanguagePicker : Form
         {
             Text = Strings.Get("common.cancel"),
             DialogResult = DialogResult.Cancel,
-            Location = new Point(296, 90),
+            Location = new Point(354, 132),
             Width = 80,
             TabIndex = 2,
             UseVisualStyleBackColor = true,
         };
 
-        Controls.Add(label);
+        Controls.Add(welcome);
+        Controls.Add(languageLabel);
         Controls.Add(_combo);
         Controls.Add(ok);
         Controls.Add(cancel);

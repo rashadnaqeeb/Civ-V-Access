@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,43 +12,47 @@ using CivVAccess.Installer.Localization;
 namespace CivVAccess.Installer.UI;
 
 /// <summary>
-/// The whole installer UI, rendered as a sequence of native Windows
-/// TaskDialogs. Each step is one dialog; the user's button choice drives
-/// the transition to the next step. TaskDialog announces title + heading
-/// + body + button labels through the screen reader without us having to
-/// wire AccessibleName on individual controls.
+/// The whole installer UI, rendered as a sequence of plain WinForms modal
+/// dialogs. Each step opens with ShowDialog() and returns synchronously
+/// with a result; the flow class drives them in order.
+///
+/// Two top-level paths: a fresh-install flow that walks the user through
+/// language choice, game-dir detection, profile selection, and (for the
+/// sighted profile) a restore-after-MP advisory; and a returning-user
+/// flow that lands on a single action dialog with the actions appropriate
+/// for the current install state. Both end at a download/install or
+/// uninstall progress dialog and a final success/failure message.
 /// </summary>
 internal sealed class Flow : IDisposable
 {
     private readonly Core.Installer _installer = new();
 
-    private string? _gameDir;
-    private InstallProfile? _profile;
-    private InstallManifest? _existingManifest;
-
     public void Run()
     {
         try
         {
-            ResolveGameDirectory();
-            if (_gameDir == null) return;
-
-            _existingManifest = InstallManifest.TryRead(_gameDir);
-            if (_existingManifest != null)
+            // Try a silent up-front detection so we know which top-level
+            // flow to enter. If we already have a deployed install, the
+            // user is a returning user and we skip the language picker
+            // and the welcome / profile dialogs.
+            string? autoDetected = GameDetector.AutoDetect();
+            if (autoDetected != null && !GameDetector.HasBraveNewWorld(autoDetected))
             {
-                _profile = _existingManifest.Profile;
+                autoDetected = null;
+            }
+
+            InstallManifest? manifest = autoDetected == null
+                ? null
+                : InstallManifest.TryRead(autoDetected);
+
+            if (manifest != null)
+            {
+                RunReturning(autoDetected!, manifest);
             }
             else
             {
-                _profile = AskProfile();
-                if (_profile == null) return;
+                RunFirstInstall(autoDetected);
             }
-
-            // Best-effort: turn on Lua logging once we have authority over a
-            // confirmed install. No-op if config.ini doesn't exist yet.
-            GameConfigIni.TryEnableLogging();
-
-            CheckAndAct();
         }
         catch (Exception ex)
         {
@@ -61,137 +64,52 @@ internal sealed class Flow : IDisposable
     public void Dispose() => _installer.Dispose();
 
     // ------------------------------------------------------------------
-    // Step 1: locate the game install (auto-detect, then Browse fallback).
+    // First-install flow.
     // ------------------------------------------------------------------
 
-    private void ResolveGameDirectory()
+    private void RunFirstInstall(string? autoDetected)
     {
-        var detected = GameDetector.AutoDetect();
-        if (detected != null && GameDetector.HasBraveNewWorld(detected))
+        // Step 1: language picker (welcome + combobox).
+        using (var picker = new LanguagePicker())
         {
-            _gameDir = detected;
-            return;
+            if (picker.ShowDialog() != DialogResult.OK) return;
+            Strings.SetLocale(picker.SelectedCode);
         }
 
-        // Auto-detect failed (or BNW missing) - prompt the user. Pass the
-        // key, not the resolved string, so a mid-flow language change can
-        // re-translate.
-        var initialKey = detected == null ? "welcome.notFound" : "welcome.bnwMissing";
-        _gameDir = PromptForGameDirectory(initialKey);
-    }
+        // Step 2: locate the game directory. If auto-detect already found a
+        // valid BNW install, the "looking" dialog still shows briefly so
+        // the user has a moment of feedback - then we move on. Otherwise
+        // the dialog runs the detection and on failure we drop into the
+        // browse dialog.
+        string? gameDir = LocateGameDirectory(autoDetected);
+        if (gameDir == null) return;
 
-    private string? PromptForGameDirectory(string bodyKey)
-    {
-        while (true)
+        // Step 3: now that we have a confirmed install, turn on Lua logging
+        // best-effort (idempotent; no-op if config.ini doesn't exist yet).
+        GameConfigIni.TryEnableLogging();
+
+        // Step 4: profile question.
+        InstallProfile? profile;
+        using (var profileForm = new ProfileForm())
         {
-            bool browseClicked = false;
-            var browse = new TaskDialogCommandLinkButton(Strings.Get("welcome.browse").Replace("&", ""));
-            browse.Click += (_, _) => browseClicked = true;
-
-            var page = new TaskDialogPage
-            {
-                Caption = Strings.Get("app.title"),
-                Heading = Strings.Get("welcome.heading"),
-                Text = Strings.Get(bodyKey),
-                Icon = TaskDialogIcon.Information,
-                AllowCancel = true,
-                Buttons = { browse, TaskDialogButton.Cancel },
-                DefaultButton = browse,
-                Footnote = new TaskDialogFootnote
-                {
-                    Text = $"<a href=\"language\">{Strings.Get("language.dialogTitle")}</a>",
-                },
-            };
-            page.LinkClicked += (_, e) =>
-            {
-                if (e.LinkHref != "language") return;
-                using var picker = new LanguagePicker();
-                if (picker.ShowDialog() != DialogResult.OK) return;
-                Strings.SetLocale(picker.SelectedCode);
-
-                // Live-update the visible dialog so the user sees the new
-                // locale immediately. Caption (window title) can't change
-                // while the dialog is open, but the heading, body, button,
-                // and footnote can.
-                page.Heading = Strings.Get("welcome.heading");
-                page.Text = Strings.Get(bodyKey);
-                browse.Text = Strings.Get("welcome.browse").Replace("&", "");
-                page.Footnote.Text = $"<a href=\"language\">{Strings.Get("language.dialogTitle")}</a>";
-            };
-
-            TaskDialog.ShowDialog(page);
-            if (!browseClicked) return null;
-
-            string? picked = ShowFolderPicker();
-            if (picked == null) continue;
-
-            if (!GameDetector.LooksLikeCivVInstall(picked))
-            {
-                bodyKey = "welcome.invalidFolder";
-                continue;
-            }
-            if (!GameDetector.HasBraveNewWorld(picked))
-            {
-                bodyKey = "welcome.bnwMissing";
-                continue;
-            }
-            return picked;
+            if (profileForm.ShowDialog() != DialogResult.OK) return;
+            profile = profileForm.Selected;
         }
-    }
+        if (profile == null) return;
 
-    private static string? ShowFolderPicker()
-    {
-        using var dlg = new FolderBrowserDialog
+        // Step 5: sighted profile gets a multiplayer-restore advisory.
+        if (profile == InstallProfile.Sighted)
         {
-            Description = Strings.Get("welcome.notFound"),
-            UseDescriptionForTitle = true,
-            ShowNewFolderButton = false,
-        };
-        return dlg.ShowDialog() == DialogResult.OK ? dlg.SelectedPath : null;
-    }
-
-    // ------------------------------------------------------------------
-    // Step 2: profile question (first install only).
-    // ------------------------------------------------------------------
-
-    private InstallProfile? AskProfile()
-    {
-        var blind = new TaskDialogCommandLinkButton(
-            Strings.Get("profile.optionBlind").Replace("&", ""),
-            Strings.Get("profile.optionBlindDesc"));
-        var sighted = new TaskDialogCommandLinkButton(
-            Strings.Get("profile.optionSighted").Replace("&", ""),
-            Strings.Get("profile.optionSightedDesc"));
-
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = Strings.Get("profile.heading"),
-            Text = Strings.Get("profile.body"),
-            Icon = TaskDialogIcon.Information,
-            AllowCancel = true,
-            Buttons = { blind, sighted, TaskDialogButton.Cancel },
-            DefaultButton = blind,
-        };
-
-        var clicked = TaskDialog.ShowDialog(page);
-        if (clicked == blind) return InstallProfile.Blind;
-        if (clicked == sighted) return InstallProfile.Sighted;
-        return null;
-    }
-
-    // ------------------------------------------------------------------
-    // Step 3: contact GitHub, build a plan, present action choices, run them.
-    // ------------------------------------------------------------------
-
-    private void CheckAndAct()
-    {
-        var (release, networkError) = FetchLatestRelease();
-        if (release == null)
-        {
-            if (networkError) ShowError(Strings.Get("check.networkError"));
-            return;
+            MessageBox.Show(
+                Strings.Get("sighted.advisoryBody"),
+                Strings.Get("sighted.advisoryHeading"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
+
+        // Step 6: fetch latest release.
+        var release = FetchLatestRelease();
+        if (release == null) return;
 
         if (release.SemVer.Major > AppVersion.SupportedMaxModMajor)
         {
@@ -202,263 +120,211 @@ internal sealed class Flow : IDisposable
             return;
         }
 
-        var plan = _installer.BuildPlan(_gameDir!, _profile!.Value, release, _existingManifest, forceAll: false);
-        var changelog = FetchChangelogSlice(release);
+        var plan = _installer.BuildPlan(gameDir, profile.Value, release, null, forceAll: false);
+        RunInstall(plan);
+    }
 
-        var action = AskUserAction(plan, release, changelog);
+    private string? LocateGameDirectory(string? autoDetected)
+    {
+        // Re-run the detection even when we already have a result, so the
+        // "looking" dialog has something genuine to do. Adds maybe 50ms;
+        // the user gets visible confirmation that the installer is doing
+        // its job.
+        var (resolved, cancelled, _) = ProgressForm.RunMarquee(
+            Strings.Get("welcome.heading"),
+            Strings.Get("welcome.locating"),
+            (_, ct) => Task.Run<string?>(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                if (autoDetected != null && GameDetector.HasBraveNewWorld(autoDetected))
+                {
+                    return autoDetected;
+                }
+                var found = GameDetector.AutoDetect();
+                return (found != null && GameDetector.HasBraveNewWorld(found)) ? found : null;
+            }, ct));
+
+        if (cancelled) return null;
+        if (resolved != null) return resolved;
+
+        // Detection failed. Drop into the browse dialog loop.
+        return BrowseForGameDirectory(Strings.Get("welcome.notFound"));
+    }
+
+    private static string? BrowseForGameDirectory(string initialMessage)
+    {
+        string message = initialMessage;
+        while (true)
+        {
+            var pick = MessageBox.Show(
+                message,
+                Strings.Get("welcome.heading"),
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button1);
+            if (pick != DialogResult.OK) return null;
+
+            using var dlg = new FolderBrowserDialog
+            {
+                Description = Strings.Get("welcome.notFound"),
+                UseDescriptionForTitle = true,
+                ShowNewFolderButton = false,
+            };
+            if (dlg.ShowDialog() != DialogResult.OK) return null;
+
+            var picked = dlg.SelectedPath;
+            if (!GameDetector.LooksLikeCivVInstall(picked))
+            {
+                message = Strings.Get("welcome.invalidFolder");
+                continue;
+            }
+            if (!GameDetector.HasBraveNewWorld(picked))
+            {
+                message = Strings.Get("welcome.bnwMissing");
+                continue;
+            }
+            return picked;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Returning-user flow.
+    // ------------------------------------------------------------------
+
+    private void RunReturning(string gameDir, InstallManifest manifest)
+    {
+        GameConfigIni.TryEnableLogging();
+
+        var release = FetchLatestRelease();
+        if (release == null) return;
+
+        if (release.SemVer.Major > AppVersion.SupportedMaxModMajor)
+        {
+            ShowError(
+                Strings.Get("check.unsupportedMajor.heading") + "\n\n" +
+                Strings.Format("check.unsupportedMajor.body",
+                    AppVersion.SupportedMaxModMajor, release.SemVer.Major));
+            return;
+        }
+
+        var plan = _installer.BuildPlan(gameDir, manifest.Profile, release, manifest, forceAll: false);
+
+        string heading;
+        string body;
+        if (plan.IsUpToDate)
+        {
+            heading = Strings.Get("check.upToDate.heading");
+            body = Strings.Format("check.upToDate.body", manifest.ModVersion);
+        }
+        else
+        {
+            heading = Strings.Get("check.updateAvailable.heading");
+            body = Strings.Format("check.updateAvailable.body", manifest.ModVersion, release.SemVer.ToString(3));
+        }
+
+        ActionForm.Action action;
+        using (var actionForm = new ActionForm(heading, body, updateAvailable: !plan.IsUpToDate))
+        {
+            actionForm.ShowDialog();
+            action = actionForm.Result;
+        }
+
         switch (action)
         {
-            case UserAction.Install:
-            case UserAction.Update:
+            case ActionForm.Action.Update:
                 RunInstall(plan);
                 break;
-            case UserAction.Reinstall:
-                var forced = _installer.BuildPlan(_gameDir!, _profile!.Value, release, _existingManifest, forceAll: true);
+            case ActionForm.Action.Reinstall:
+                var forced = _installer.BuildPlan(gameDir, manifest.Profile, release, manifest, forceAll: true);
                 RunInstall(forced);
                 break;
-            case UserAction.Uninstall:
-                RunUninstall();
+            case ActionForm.Action.Uninstall:
+                if (ConfirmUninstall())
+                {
+                    RunUninstall(gameDir);
+                }
                 break;
-            case UserAction.Close:
+            case ActionForm.Action.Close:
+            case ActionForm.Action.None:
                 return;
         }
     }
 
-    /// <summary>
-    /// Pop a marquee-progress dialog while we hit /releases/latest. The
-    /// dialog gives the screen reader something concrete to announce
-    /// during the network call and lets the user cancel a hung request.
-    /// </summary>
-    private (GitHubReleases.Release? Release, bool NetworkError) FetchLatestRelease()
-    {
-        GitHubReleases.Release? release = null;
-        bool networkError = false;
-        var cts = new CancellationTokenSource();
-
-        var cancelBtn = new TaskDialogButton(Strings.Get("confirm.cancel").Replace("&", ""));
-        cancelBtn.Click += (_, _) => cts.Cancel();
-
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = Strings.Get("check.heading"),
-            Text = Strings.Get("check.contactingGitHub"),
-            ProgressBar = new TaskDialogProgressBar(TaskDialogProgressBarState.Marquee),
-            AllowCancel = true,
-            Buttons = { cancelBtn },
-        };
-        page.Created += async (_, _) =>
-        {
-            try
-            {
-                release = await _installer.GetLatestReleaseAsync(cts.Token).ConfigureAwait(true);
-            }
-            catch (OperationCanceledException) { /* user cancelled */ }
-            catch (HttpRequestException ex)
-            {
-                Logger.Warn($"GitHub fetch failed: {ex.Message}");
-                networkError = true;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("GitHub fetch failed", ex);
-                networkError = true;
-            }
-            finally
-            {
-                CloseTaskDialog(page, cancelBtn);
-            }
-        };
-
-        TaskDialog.ShowDialog(page);
-        if (cts.IsCancellationRequested) return (null, false);
-        return (release, networkError);
-    }
-
-    private string FetchChangelogSlice(GitHubReleases.Release release)
-    {
-        // Quick best-effort fetch with a short timeout - if it fails the
-        // action page still renders, just without a "what's new" section.
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var raw = _installer.GetChangelogAsync(cts.Token).GetAwaiter().GetResult();
-            Version? installed = null;
-            if (_existingManifest != null && Version.TryParse(_existingManifest.ModVersion, out var v))
-            {
-                installed = v;
-            }
-            return ChangelogParser.Slice(raw, installed, release.SemVer);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"Changelog fetch failed: {ex.Message}");
-            return string.Empty;
-        }
-    }
-
-    private enum UserAction { Install, Update, Reinstall, Uninstall, Close }
-
-    private UserAction AskUserAction(InstallPlan plan, GitHubReleases.Release release, string changelog)
-    {
-        if (plan.IsUpToDate)
-        {
-            var reinstall = new TaskDialogCommandLinkButton(
-                Strings.Get("confirm.reinstall").Replace("&", ""));
-            var uninstall = new TaskDialogCommandLinkButton(
-                Strings.Get("confirm.uninstall").Replace("&", ""));
-            var close = new TaskDialogButton(Strings.Get("confirm.close").Replace("&", ""));
-
-            var page = new TaskDialogPage
-            {
-                Caption = Strings.Get("app.title"),
-                Heading = Strings.Get("check.upToDate.heading"),
-                Text = Strings.Format("check.upToDate.body", release.SemVer.ToString(3)),
-                Icon = TaskDialogIcon.Information,
-                AllowCancel = true,
-                Buttons = { reinstall, uninstall, close },
-                DefaultButton = close,
-            };
-
-            var clicked = TaskDialog.ShowDialog(page);
-            if (clicked == reinstall) return UserAction.Reinstall;
-            if (clicked == uninstall && ConfirmUninstall()) return UserAction.Uninstall;
-            return UserAction.Close;
-        }
-
-        var componentsList = string.Join(Environment.NewLine,
-            plan.ComponentsToFetch.Select(a => "  " + FormatComponentLine(a)));
-
-        // Build the body. Heading + version diff above; expandable section
-        // below holds the changelog so the dialog stays compact for users
-        // who don't want to read it.
-        string heading;
-        string text;
-        TaskDialogCommandLinkButton primary;
-        TaskDialogCommandLinkButton? uninstallBtn = null;
-
-        if (plan.IsFreshInstall)
-        {
-            heading = Strings.Get("check.installFresh.heading");
-            text = Strings.Format("check.installFresh.body", release.SemVer.ToString(3));
-            primary = new TaskDialogCommandLinkButton(Strings.Get("confirm.install").Replace("&", ""));
-        }
-        else
-        {
-            var installedVer = _existingManifest?.ModVersion ?? "?";
-            heading = Strings.Get("check.updateAvailable.heading");
-            text = Strings.Format("check.updateAvailable.body", installedVer, release.SemVer.ToString(3));
-            primary = new TaskDialogCommandLinkButton(Strings.Get("confirm.update").Replace("&", ""));
-            uninstallBtn = new TaskDialogCommandLinkButton(Strings.Get("confirm.uninstall").Replace("&", ""));
-        }
-
-        var cancel = new TaskDialogButton(Strings.Get("confirm.cancel").Replace("&", ""));
-
-        text += "\n\n" + Strings.Get("check.componentsHeading") + "\n" + componentsList;
-
-        var actionPage = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = heading,
-            Text = text,
-            Icon = TaskDialogIcon.Information,
-            AllowCancel = true,
-            Buttons = { primary },
-            DefaultButton = primary,
-        };
-        if (uninstallBtn != null) actionPage.Buttons.Add(uninstallBtn);
-        actionPage.Buttons.Add(cancel);
-
-        if (!string.IsNullOrEmpty(changelog))
-        {
-            actionPage.Expander = new TaskDialogExpander
-            {
-                Text = changelog,
-                ExpandedButtonText = Strings.Get("check.changelogHeading"),
-                CollapsedButtonText = Strings.Get("check.changelogHeading"),
-                Position = TaskDialogExpanderPosition.AfterText,
-            };
-        }
-
-        var result = TaskDialog.ShowDialog(actionPage);
-        if (result == primary) return plan.IsFreshInstall ? UserAction.Install : UserAction.Update;
-        if (uninstallBtn != null && result == uninstallBtn && ConfirmUninstall()) return UserAction.Uninstall;
-        return UserAction.Close;
-    }
-
     private bool ConfirmUninstall()
     {
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = Strings.Get("confirm.uninstall").Replace("&", ""),
-            Text = Strings.Get("confirm.uninstall").Replace("&", "") + "?",
-            Icon = TaskDialogIcon.Warning,
-            AllowCancel = true,
-            Buttons = { TaskDialogButton.OK, TaskDialogButton.Cancel },
-            DefaultButton = TaskDialogButton.Cancel,
-        };
-        return TaskDialog.ShowDialog(page) == TaskDialogButton.OK;
+        var pick = MessageBox.Show(
+            Strings.Get("confirm.uninstall").Replace("&", "") + "?",
+            Strings.Get("app.title"),
+            MessageBoxButtons.OKCancel,
+            MessageBoxIcon.Warning,
+            MessageBoxDefaultButton.Button2);
+        return pick == DialogResult.OK;
     }
 
     // ------------------------------------------------------------------
-    // Step 4: run the install / uninstall against a progress dialog.
+    // GitHub release fetch (with marquee dialog).
+    // ------------------------------------------------------------------
+
+    private GitHubReleases.Release? FetchLatestRelease()
+    {
+        var (release, cancelled, error) = ProgressForm.RunMarquee(
+            Strings.Get("check.heading"),
+            Strings.Get("check.contactingGitHub"),
+            async (_, ct) =>
+            {
+                try
+                {
+                    return await _installer.GetLatestReleaseAsync(ct).ConfigureAwait(false);
+                }
+                catch (HttpRequestException) { return (GitHubReleases.Release?)null; }
+            });
+
+        if (cancelled) return null;
+        if (error != null)
+        {
+            Logger.Error("GitHub fetch failed", error);
+            ShowError(Strings.Get("check.networkError"));
+            return null;
+        }
+        if (release == null)
+        {
+            ShowError(Strings.Get("check.networkError"));
+            return null;
+        }
+        return release;
+    }
+
+    // ------------------------------------------------------------------
+    // Install / uninstall execution (with percentage progress dialog).
     // ------------------------------------------------------------------
 
     private void RunInstall(InstallPlan plan)
     {
         if (GameProcess.IsRunning())
         {
-            ShowError(Strings.Get("confirm.gameRunning"));
+            MessageBox.Show(
+                Strings.Get("confirm.gameRunning"),
+                Strings.Get("app.title"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
             return;
         }
 
-        Exception? error = null;
-        var cts = new CancellationTokenSource();
-        var progressBar = new TaskDialogProgressBar(TaskDialogProgressBarState.Normal)
-        {
-            Minimum = 0,
-            Maximum = 1000,
-        };
-        var cancelBtn = new TaskDialogButton(Strings.Get("confirm.cancel").Replace("&", ""));
-        cancelBtn.Click += (_, _) => cts.Cancel();
-
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = Strings.Get("progress.heading"),
-            Text = Strings.Get("progress.preparing"),
-            ProgressBar = progressBar,
-            AllowCancel = true,
-            Buttons = { cancelBtn },
-        };
-
-        page.Created += async (_, _) =>
-        {
-            try
+        var (_, cancelled, error) = ProgressForm.RunPercentage<bool>(
+            Strings.Get("progress.heading"),
+            Strings.Get("progress.preparing"),
+            async (statusProgress, valueProgress, ct) =>
             {
-                var progress = new Progress<InstallProgress>(p =>
+                var installerProgress = new Progress<InstallProgress>(p =>
                 {
-                    page.Text = ProgressMessage(p, isUninstall: false);
-                    progressBar.Value = ComputeProgressValue(p);
+                    statusProgress.Report(ProgressMessage(p, isUninstall: false));
+                    valueProgress.Report(ComputeProgressValue(p));
                 });
-                await _installer.ExecuteAsync(plan, progress, cts.Token).ConfigureAwait(true);
-            }
-            catch (OperationCanceledException) { error = new OperationCanceledException(); }
-            catch (Exception ex)
-            {
-                Logger.Error("Install failed", ex);
-                error = ex;
-            }
-            finally
-            {
-                CloseTaskDialog(page, cancelBtn);
-            }
-        };
+                await _installer.ExecuteAsync(plan, installerProgress, ct).ConfigureAwait(false);
+                return true;
+            });
 
-        TaskDialog.ShowDialog(page);
-
-        if (cts.IsCancellationRequested || error is OperationCanceledException) return;
+        if (cancelled) return;
         if (error != null)
         {
             ShowError(Strings.Format("result.failed.body", error.Message, Logger.LogPath));
@@ -475,49 +341,22 @@ internal sealed class Flow : IDisposable
                 version));
     }
 
-    private void RunUninstall()
+    private void RunUninstall(string gameDir)
     {
-        Exception? error = null;
-        var cts = new CancellationTokenSource();
-        var progressBar = new TaskDialogProgressBar(TaskDialogProgressBarState.Marquee);
-        var cancelBtn = new TaskDialogButton(Strings.Get("confirm.cancel").Replace("&", ""));
-        cancelBtn.Click += (_, _) => cts.Cancel();
-
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = Strings.Get("uninstall.heading"),
-            Text = Strings.Get("progress.preparing"),
-            ProgressBar = progressBar,
-            AllowCancel = false,
-            Buttons = { cancelBtn },
-        };
-
-        page.Created += async (_, _) =>
-        {
-            try
+        var (_, cancelled, error) = ProgressForm.RunMarquee<bool>(
+            Strings.Get("uninstall.heading"),
+            Strings.Get("progress.preparing"),
+            async (statusProgress, ct) =>
             {
-                var progress = new Progress<InstallProgress>(p =>
+                var installerProgress = new Progress<InstallProgress>(p =>
                 {
-                    page.Text = ProgressMessage(p, isUninstall: true);
+                    statusProgress.Report(ProgressMessage(p, isUninstall: true));
                 });
-                await UninstallRunner.RunAsync(_gameDir!, progress, cts.Token).ConfigureAwait(true);
-            }
-            catch (OperationCanceledException) { error = new OperationCanceledException(); }
-            catch (Exception ex)
-            {
-                Logger.Error("Uninstall failed", ex);
-                error = ex;
-            }
-            finally
-            {
-                CloseTaskDialog(page, cancelBtn);
-            }
-        };
+                await UninstallRunner.RunAsync(gameDir, installerProgress, ct).ConfigureAwait(false);
+                return true;
+            });
 
-        TaskDialog.ShowDialog(page);
-
-        if (cts.IsCancellationRequested || error is OperationCanceledException) return;
+        if (cancelled) return;
         if (error != null)
         {
             ShowError(Strings.Format("result.failed.body", error.Message, Logger.LogPath));
@@ -533,40 +372,24 @@ internal sealed class Flow : IDisposable
     // Result dialogs (success / error) and shared helpers.
     // ------------------------------------------------------------------
 
-    private void ShowSuccess(string heading, string body)
+    private static void ShowSuccess(string heading, string body)
     {
-        var openLog = new TaskDialogButton(Strings.Get("result.openLog").Replace("&", ""));
-        var exit = new TaskDialogButton(Strings.Get("result.exit").Replace("&", ""));
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = heading,
-            Text = body,
-            Icon = TaskDialogIcon.ShieldSuccessGreenBar,
-            AllowCancel = true,
-            Buttons = { exit, openLog },
-            DefaultButton = exit,
-        };
-        var clicked = TaskDialog.ShowDialog(page);
-        if (clicked == openLog) OpenLog();
+        MessageBox.Show(
+            body,
+            heading,
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
     }
 
-    private void ShowError(string body)
+    private static void ShowError(string body)
     {
-        var openLog = new TaskDialogButton(Strings.Get("result.openLog").Replace("&", ""));
-        var exit = new TaskDialogButton(Strings.Get("result.exit").Replace("&", ""));
-        var page = new TaskDialogPage
-        {
-            Caption = Strings.Get("app.title"),
-            Heading = Strings.Get("result.failed.heading"),
-            Text = body,
-            Icon = TaskDialogIcon.Error,
-            AllowCancel = true,
-            Buttons = { exit, openLog },
-            DefaultButton = exit,
-        };
-        var clicked = TaskDialog.ShowDialog(page);
-        if (clicked == openLog) OpenLog();
+        var pick = MessageBox.Show(
+            body + "\n\n" + Strings.Format("result.openLogPrompt.body", Logger.LogPath),
+            Strings.Get("result.failed.heading"),
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Error,
+            MessageBoxDefaultButton.Button2);
+        if (pick == DialogResult.Yes) OpenLog();
     }
 
     private static void OpenLog()
@@ -576,24 +399,6 @@ internal sealed class Flow : IDisposable
             Process.Start(new ProcessStartInfo { FileName = Logger.LogPath, UseShellExecute = true });
         }
         catch (Exception ex) { Logger.Warn($"Open log failed: {ex.Message}"); }
-    }
-
-    private static string FormatComponentLine(GitHubReleases.Asset asset)
-    {
-        // Mirrors the wizard-version logic: show old -> new when the
-        // existing manifest reports a different version, otherwise just
-        // the fresh "name version (size)" form.
-        var name = asset.Kind!.Value.DisplayName();
-        var newVersion = asset.Version ?? "?";
-        var size = FormatBytes(asset.Size);
-        return Strings.Format("check.components.fresh", name, newVersion, size);
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        if (bytes < 1024) return Strings.Format("size.bytes", bytes);
-        if (bytes < 1024 * 1024) return Strings.Format("size.kb", bytes / 1024);
-        return Strings.Format("size.mb", bytes / (1024 * 1024));
     }
 
     private static string ProgressMessage(InstallProgress p, bool isUninstall)
@@ -623,6 +428,13 @@ internal sealed class Flow : IDisposable
         };
     }
 
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return Strings.Format("size.bytes", bytes);
+        if (bytes < 1024 * 1024) return Strings.Format("size.kb", bytes / 1024);
+        return Strings.Format("size.mb", bytes / (1024 * 1024));
+    }
+
     private static int ComputeProgressValue(InstallProgress p)
     {
         if (p.StepCount <= 0) return 0;
@@ -631,19 +443,4 @@ internal sealed class Flow : IDisposable
         double total = stepFraction + withinStep / Math.Max(p.StepCount, 1);
         return (int)(Math.Clamp(total, 0, 1) * 1000);
     }
-
-    /// <summary>
-    /// Close a TaskDialog from outside its button-click path. The
-    /// async-work-finished case calls this from the Created event's finally
-    /// block, PerformClicking a button on the dialog. The button is
-    /// passed in so the caller can supply whatever button is acting as the
-    /// dialog's Cancel/done bail-out (TaskDialogButton instances are not
-    /// safe to share across pages).
-    /// </summary>
-    private static void CloseTaskDialog(TaskDialogPage page, TaskDialogButton button)
-    {
-        if (page.BoundDialog == null) return;
-        button.PerformClick();
-    }
-
 }
