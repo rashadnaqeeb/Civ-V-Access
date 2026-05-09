@@ -74,11 +74,20 @@ $installManifestName = 'CivVAccess.install.json'
 $legacyDlcDirs    = @('CivVAccess')
 $legacyModDir     = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
 
-# Mod version, single source of truth at repo root. Written into the install
-# manifest so the external installer can determine what's deployed.
-$versionFile = Join-Path $repoRoot 'VERSION'
-if (-not (Test-Path $versionFile)) { throw "VERSION file missing at $versionFile" }
-$modVersion = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+# Versions live in versions.json at repo root. The mod's own version is the
+# release tag (and the changelog key); each component (core, engine, runtime,
+# cinematics) carries its own version that bumps only when its source tree
+# changed. The install manifest stamps each separately so the external
+# installer can render per-component diffs and the digest skip can short-
+# circuit unchanged components on update.
+$versionsFile = Join-Path $repoRoot 'versions.json'
+if (-not (Test-Path $versionsFile)) { throw "versions.json missing at $versionsFile" }
+$versions    = Get-Content -LiteralPath $versionsFile -Raw | ConvertFrom-Json
+$modVersion  = $versions.mod
+$coreVersion       = $versions.components.core
+$engineVersion     = $versions.components.engine
+$runtimeVersion    = $versions.components.runtime
+$cinematicsVersion = $versions.components.cinematics
 
 # Set in the driver after Resolve-CivVInstallDir, before any function uses them.
 $dlcBackupDir    = $null
@@ -367,10 +376,10 @@ function Write-InstallManifest {
 
     if ($Profile -eq 'blind') {
         $components = [ordered]@{
-            core       = [ordered]@{ version = $modVersion }
-            engine     = [ordered]@{ version = $modVersion }
-            runtime    = [ordered]@{ version = $modVersion }
-            cinematics = [ordered]@{ version = $modVersion }
+            core       = [ordered]@{ version = $coreVersion }
+            engine     = [ordered]@{ version = $engineVersion }
+            runtime    = [ordered]@{ version = $runtimeVersion }
+            cinematics = [ordered]@{ version = $cinematicsVersion }
         }
         $backups = [ordered]@{
             engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
@@ -379,7 +388,7 @@ function Write-InstallManifest {
         }
     } else {
         $components = [ordered]@{
-            engine = [ordered]@{ version = $modVersion }
+            engine = [ordered]@{ version = $engineVersion }
         }
         $backups = [ordered]@{
             engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
@@ -387,11 +396,12 @@ function Write-InstallManifest {
     }
 
     $manifest = [ordered]@{
-        mod_version  = $modVersion
-        profile      = $Profile
-        installed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        components   = $components
-        backups      = $backups
+        schema_version = 1
+        mod_version    = $modVersion
+        profile        = $Profile
+        installed_at   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        components     = $components
+        backups        = $backups
     }
 
     $json = $manifest | ConvertTo-Json -Depth 5

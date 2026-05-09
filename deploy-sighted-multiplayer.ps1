@@ -67,11 +67,15 @@ $installManifestName = 'CivVAccess.install.json'
 $manifestFile   = 'CivVAccess_2.Civ5Pkg'
 $engineDllName  = 'CvGameCore_Expansion2.dll'
 
-# Mod version, single source of truth at repo root. Written into the install
-# manifest so the external installer can determine what's deployed.
-$versionFile = Join-Path $repoRoot 'VERSION'
-if (-not (Test-Path $versionFile)) { throw "VERSION file missing at $versionFile" }
-$modVersion = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+# Versions live in versions.json at repo root. Sighted-MP only needs the
+# engine binding, so we read just the engine + mod fields here. The full
+# component list is documented in deploy.ps1.
+$versionsFile = Join-Path $repoRoot 'versions.json'
+if (-not (Test-Path $versionsFile)) { throw "versions.json missing at $versionsFile" }
+$versions      = Get-Content -LiteralPath $versionsFile -Raw | ConvertFrom-Json
+$modVersion    = $versions.mod
+$engineVersion = $versions.components.engine
+$coreVersion   = $versions.components.core
 
 # Set in the driver after Resolve-CivVInstallDir, before any function uses them.
 $dlcBackupDir = $null
@@ -230,13 +234,15 @@ function Write-InstallManifest {
     $backupDirRel = "Assets/DLC/$dlcBackupDirName"
 
     $manifest = [ordered]@{
-        mod_version  = $modVersion
-        profile      = 'sighted'
-        installed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        components   = [ordered]@{
-            engine = [ordered]@{ version = $modVersion }
+        schema_version = 1
+        mod_version    = $modVersion
+        profile        = 'sighted'
+        installed_at   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        components     = [ordered]@{
+            engine       = [ordered]@{ version = $engineVersion }
+            core_sighted = [ordered]@{ version = $coreVersion }
         }
-        backups      = [ordered]@{
+        backups        = [ordered]@{
             engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
         }
     }

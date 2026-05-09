@@ -43,9 +43,24 @@ $cinematicSrc  = Join-Path $repoRoot 'audio described intros'
 $releaseDir  = Join-Path $repoRoot 'dist\release'
 $stagingRoot = Join-Path $repoRoot 'build\release-staging'
 
-$versionFile = Join-Path $repoRoot 'VERSION'
-if (-not (Test-Path $versionFile)) { throw "VERSION file missing at $versionFile" }
-$modVersion = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+$versionsFile = Join-Path $repoRoot 'versions.json'
+if (-not (Test-Path $versionsFile)) { throw "versions.json missing at $versionsFile" }
+$versions = Get-Content -LiteralPath $versionsFile -Raw | ConvertFrom-Json
+$modVersion = $versions.mod
+
+# Each component's zip is named with its own version, not the mod's. A
+# release where engine didn't change since 1.0.0 ships engine-1.0.0.zip even
+# when mod is 1.5.0 - identical bytes, identical digest, the installer's
+# digest skip means the player doesn't redownload it. Maintainer is
+# responsible for bumping the right component versions in versions.json
+# before running this script (RELEASING.md has the bump rules).
+$componentVersions = @{
+    'core-blind'   = $versions.components.core
+    'core-sighted' = $versions.components.core
+    'engine'       = $versions.components.engine
+    'runtime'      = $versions.components.runtime
+    'cinematics'   = $versions.components.cinematics
+}
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -88,7 +103,9 @@ function Compress-Component {
         [string]$Name,
         [string]$StageDir
     )
-    $zipName = "$Name-$modVersion.zip"
+    $version = $componentVersions[$Name]
+    if (-not $version) { throw "No component version registered for '$Name' in versions.json." }
+    $zipName = "$Name-$version.zip"
     $zipPath = Join-Path $releaseDir $zipName
     if (Test-Path $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
     [System.IO.Compression.ZipFile]::CreateFromDirectory($StageDir, $zipPath)

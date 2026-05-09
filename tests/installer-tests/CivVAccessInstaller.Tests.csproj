@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CivVAccessInstaller.Tests</RootNamespace>
+    <AssemblyName>CivVAccessInstaller.Tests</AssemblyName>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <!--
+    Compile installer source files directly. ProjectReference doesn't work
+    because the installer project is self-contained (NETSDK1151). Including
+    the .cs files here gives us access to the parsers and core types
+    without spinning up a second binary distribution.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\installer\Core\**\*.cs" />
+    <Compile Include="..\..\installer\Localization\**\*.cs" />
+    <EmbeddedResource Include="..\..\installer\Localization\Resources\*.json"
+                      LogicalName="CivVAccess.Installer.Localization.Resources.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

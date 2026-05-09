@@ -1,0 +1,9 @@
+{
+  "mod": "1.0.0",
+  "components": {
+    "core":       "1.0.0",
+    "engine":     "1.0.0",
+    "runtime":    "1.0.0",
+    "cinematics": "1.0.0"
+  }
+}

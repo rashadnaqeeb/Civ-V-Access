@@ -17,17 +17,48 @@ The release body should point at `CHANGELOG.md` rather than duplicate the entry.
 
 ## Versioning
 
-Semver. Bump rules:
+Versions live in `versions.json` at repo root. Five fields, all semver:
 
-- **Patch** (`1.0.0` to `1.0.1`): Lua / payload fixes that don't change the install manifest schema, the engine DLL, or the proxy. The most common kind of release.
-- **Minor** (`1.0.0` to `1.1.0`): new features, new engine bindings, new mod-authored strings or sounds. Anything user-visible that isn't a fix.
-- **Major** (`1.0.0` to `2.0.0`): install manifest schema break, GitHub asset naming convention break, or other change the installer can't transparently upgrade through. Reserve this; the installer cannot self-update, so a major bump is a "tell players to redownload the installer" event.
+```
+{
+  "mod":        "X.Y.Z",
+  "components": {
+    "core":       "X.Y.Z",
+    "engine":     "X.Y.Z",
+    "runtime":    "X.Y.Z",
+    "cinematics": "X.Y.Z"
+  }
+}
+```
 
-The engine DLL GUID never changes across releases. It's the multiplayer compatibility key; rotating it splits MP across mod versions. See the project rules in `CLAUDE.md`.
+`mod` is the release tag and the changelog key. It bumps on every release.
+
+Each component version is independent and bumps only when that component's source tree changed since the last tag. The point: if engine didn't change between mod 1.4.0 and mod 1.5.0, the 1.5.0 release ships `engine-1.0.0.zip` (or whatever the engine's last-changed version is). Same bytes, same digest - the installer's per-asset digest skip means players don't redownload it. core covers both `core-blind` and `core-sighted` since both are zipped from `src/dlc/`; the digest skip handles the case where only the blind payload changed.
+
+Bump rules apply to every version field individually:
+
+- **Patch** (`1.0.0` to `1.0.1`): fixes that don't change the install-manifest schema, asset naming, or any cross-component contract. The common case.
+- **Minor** (`1.0.0` to `1.1.0`): new features, new engine bindings, new strings or sounds. Anything user-visible that isn't a fix.
+- **Major** (`1.0.0` to `2.0.0`): install-manifest schema break or asset-naming break - things the installer can't transparently upgrade through. Reserve major bumps; the installer cannot self-update, so a major mod bump is a "tell players to redownload the installer" event. Component-level major bumps don't have the same stakes - they're informational since the digest skip is what determines fetch-vs-skip.
+
+What touches each component:
+
+- `core`: `src/dlc/`, `sounds/`. Bumps most often.
+- `engine`: `src/engine/`, the rebuilt `dist/engine/CvGameCore_Expansion2.dll`. Rare. The engine DLL GUID never changes across releases - it's the multiplayer compatibility key; rotating it splits MP across mod versions. See `CLAUDE.md`.
+- `runtime`: `src/proxy/`, `dist/proxy/lua51_Win32.dll`, `third_party/tolk/dist/x86/`. Almost never.
+- `cinematics`: `audio described intros/`. Almost never; ~110 MB so getting this right matters most.
+
+Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/` (and the same for each component's source tree) tells you whether that component's version needs to bump. If the diff is empty, leave that component's version alone.
 
 ## Steps
 
-1. **Bump VERSION.** Edit the `VERSION` file at repo root to the new `X.Y.Z`.
+1. **Bump versions.** Edit `versions.json` at repo root. Always bump `mod`. For each component, run `git diff <last-tag> -- <component-source-tree>` and bump only if the diff is non-empty:
+   - `core`: `git diff vX.Y.Z -- src/dlc sounds`
+   - `engine`: `git diff vX.Y.Z -- src/engine dist/engine`
+   - `runtime`: `git diff vX.Y.Z -- src/proxy dist/proxy third_party/tolk`
+   - `cinematics`: `git diff vX.Y.Z -- "audio described intros"`
+
+   If a component didn't change since the last tag, leave its version alone. The packager will name its zip with the unchanged version (e.g. `engine-1.0.0.zip` even when mod is at 1.5.0), and the installer's per-asset digest skip means players don't redownload it.
 
 2. **Prepend a CHANGELOG entry.** Open `CHANGELOG.md`, replace `## [Unreleased]` with the new version header `## [X.Y.Z] - YYYY-MM-DD`, then add a fresh `## [Unreleased]` section above it. List user-visible changes; the installer shows this exact text to the player on update. The version-header format must stay byte-stable because the installer parses it.
 
@@ -35,9 +66,9 @@ The engine DLL GUID never changes across releases. It's the multiplayer compatib
 
 4. **Package.** Run `./package-release.ps1`. Produces `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing.
 
-5. **Smoke test.** Wipe the local install (`./deploy.ps1 -Uninstall`), then reinstall (`./deploy.ps1`). Confirm the install manifest at `Assets/DLC/DLC_CivVAccess/CivVAccess.install.json` shows the new version, and confirm the game boots and speech works. The package script's zips are produced from the same `dist/` and `src/` content the deploy script reads, so a clean local deploy gives high confidence in what the installer will deliver.
+5. **Smoke test.** Wipe the local install (`./deploy.ps1 -Uninstall`), then reinstall (`./deploy.ps1`). Confirm the install manifest at `Assets/DLC/DLC_CivVAccess/CivVAccess.install.json` shows the new mod version and the right per-component versions, and confirm the game boots and speech works. The package script's zips are produced from the same `dist/` and `src/` content the deploy script reads, so a clean local deploy gives high confidence in what the installer will deliver.
 
-6. **Commit and tag.** Commit the VERSION + CHANGELOG bump. Tag the commit `vX.Y.Z`. Push both.
+6. **Commit and tag.** Commit the `versions.json` + CHANGELOG bump. Tag the commit `vX.Y.Z` (matching the `mod` field). Push both.
 
 7. **Create the GitHub Release.** From the new tag. Upload all five `.zip` files plus `SHA256SUMS`. Set the body to a short pointer like `See [CHANGELOG.md](https://github.com/<owner>/<repo>/blob/main/CHANGELOG.md) for details.` Publish.
 
@@ -47,5 +78,6 @@ The engine DLL GUID never changes across releases. It's the multiplayer compatib
 
 - Don't rename existing release assets. Players who installed an older version may re-resolve their digests against historical releases as part of a re-verify path.
 - Don't delete a published release. Same reason.
-- Don't ship a release with a higher VERSION than the source on the tagged commit. The installer trusts VERSION as ground truth for what's currently deployed and what the local deploy script writes into the install manifest.
-- Don't ship a release that breaks the install-manifest schema without a major version bump. The installer keys its parsing off the schema.
+- Don't ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands the installer.
+- Don't ship a release that breaks the install-manifest schema without a `mod` major bump. The installer keys its parsing off the schema.
+- Don't bump a component's version without a corresponding source change. The point of the digest skip is that unchanged bytes never redownload; bumping a version on a component whose digest is identical to last release just makes the changelog noisier without saving anything.
