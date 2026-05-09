@@ -2,6 +2,10 @@
 
 Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes the game playable for blind users. It reaches into the game through three components: a `lua51_Win32.dll` proxy that binds Tolk as a global `tolk` table inside every Lua context; a fake DLC (deployed to `Assets/DLC/DLC_CivVAccess/` in the game install) that installs UI handlers via `ContextPtr`, `Events.X`, and `LuaEvents.X`; and a forked `CvGameCore_Expansion2.dll` (BNW engine) that exposes additional Lua bindings for engine APIs the stock DLL keeps internal. Packaging as a DLC (rather than a mod under `Documents/My Games/.../MODS/`) is what layers our UI files into the engine's Contexts via `<UISkin>` and keeps the session off the mod-hash list for multiplayer. Speech output is the sole interface — there is no visual fallback. Every decision should be weighed against the fact that if something fails silently or speaks stale data, the player has no way to know.
 
+## Changelog
+
+When committing a new feature or bug fix, add an entry to `CHANGELOG.md`. Keep entries short — one line per change, written from the player's perspective (what changed for them, not implementation details).
+
 ## Build
 
 The pipeline is three standalone scripts at the repo root. Each one is run only when its own piece of the codebase has changed; the build outputs are committed, so deploys don't require a prior build.
