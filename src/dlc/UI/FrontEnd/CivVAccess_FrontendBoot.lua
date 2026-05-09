@@ -21,9 +21,15 @@ end
 -- queue empties as soon as the main menu Context is alive.
 if not civvaccess_shared.updateCheckScheduled then
     civvaccess_shared.updateCheckScheduled = true
-    local startTime = os.clock()
+    -- Bind os.clock as an upvalue so the poll closure doesn't depend on
+    -- `os` being in the caller's env. TickPump drains queued callbacks from
+    -- whatever Context is ticking, and front-end Contexts (LegalScreen seen
+    -- in practice) sandbox-strip `os` so a global lookup inside the closure
+    -- errors with "attempt to index global 'os' (a nil value)".
+    local clock = os.clock
+    local startTime = clock()
     local function poll()
-        if os.clock() - startTime < 1.0 then
+        if clock() - startTime < 1.0 then
             TickPump.runOnce(poll)
             return
         end
