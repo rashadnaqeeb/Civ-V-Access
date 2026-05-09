@@ -10,8 +10,10 @@
  */
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Ole32.lib")
+#pragma comment(lib, "Winhttp.lib")
 
 #include <windows.h>
+#include <winhttp.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -214,6 +216,7 @@ typedef ptrdiff_t lua_Integer;
 typedef void (__cdecl *pfn_lua_pushinteger)(lua_State *, lua_Integer);
 typedef lua_Integer (__cdecl *pfn_lua_tointeger)(lua_State *, int);
 typedef double (__cdecl *pfn_lua_tonumber)(lua_State *, int);
+typedef void (__cdecl *pfn_lua_pushcclosure)(lua_State *, lua_CFunction, int);
 
 #define ORIG_luaL_register  ((pfn_luaL_register)orig[I_luaL_register])
 #define ORIG_luaL_checklstring ((pfn_luaL_checklstring)orig[I_luaL_checklstring])
@@ -230,6 +233,7 @@ typedef double (__cdecl *pfn_lua_tonumber)(lua_State *, int);
 #define ORIG_lua_pushinteger ((pfn_lua_pushinteger)orig[I_lua_pushinteger])
 #define ORIG_lua_tointeger   ((pfn_lua_tointeger)orig[I_lua_tointeger])
 #define ORIG_lua_tonumber    ((pfn_lua_tonumber)orig[I_lua_tonumber])
+#define ORIG_lua_pushcclosure ((pfn_lua_pushcclosure)orig[I_lua_pushcclosure])
 
 /* === Tolk === */
 static HMODULE hTolk = NULL;
@@ -352,6 +356,182 @@ static void register_tolk(lua_State *L) {
     proxy_log("register_tolk: done\n");
 }
 
+/* === GitHub release version check ===
+   Background thread fetches the latest release tag from
+   github.com/<owner>/<repo>/releases/latest with redirects disabled and
+   reads the Location header (302 -> /releases/tag/vX.Y.Z) to recover the
+   tag without parsing JSON. Result lives in g_latestVersion / g_versionState
+   and is exposed to Lua via civvaccess_shared.get_latest_version(); the
+   front-end boot path compares it against the deployed version and speaks
+   an out-of-date warning if they differ. The check fails silently on
+   network errors -- a player offline or behind a firewall hears nothing,
+   which is the intended behaviour. */
+
+#define UPDATE_HOST   L"github.com"
+#define UPDATE_PATH   L"/rashadnaqeeb/Civ-V-Access/releases/latest"
+#define UPDATE_AGENT  L"CivVAccess-VersionCheck"
+
+static volatile LONG g_versionState = 0; /* 0=pending, 1=ok, 2=failed */
+static char g_latestVersion[64] = {0};
+
+/* Pulls the version off the end of a /releases/tag/<tag> URL. Strips a
+   leading 'v' / 'V' so "v1.2.3" matches the bare "1.2.3" we deploy via
+   versions.json. Truncates at '?' or '#' for query/fragment safety even
+   though GitHub's redirect target carries neither today. */
+static int parse_tag_from_location(const wchar_t *loc, char *out, size_t outlen) {
+    const wchar_t *tag, *p, *end;
+    int n;
+    tag = wcsstr(loc, L"/tag/");
+    if (!tag) return 0;
+    p = tag + 5;
+    if (*p == L'v' || *p == L'V') p++;
+    end = p;
+    while (*end && *end != L'?' && *end != L'#') end++;
+    if (end == p) return 0;
+    n = WideCharToMultiByte(CP_UTF8, 0, p, (int)(end - p),
+                            out, (int)outlen - 1, NULL, NULL);
+    if (n <= 0) return 0;
+    out[n] = '\0';
+    return 1;
+}
+
+static DWORD WINAPI version_check_thread(LPVOID arg) {
+    HINTERNET hSession = NULL, hConnect = NULL, hRequest = NULL;
+    DWORD disableRedirects = WINHTTP_DISABLE_REDIRECTS;
+    DWORD statusCode = 0;
+    DWORD statusSize = sizeof(statusCode);
+    wchar_t location[512];
+    DWORD locSize = sizeof(location);
+    char parsed[64];
+    BOOL ok;
+
+    (void)arg;
+
+    hSession = WinHttpOpen(UPDATE_AGENT,
+                           WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                           WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!hSession) {
+        proxy_log("version_check: WinHttpOpen FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+
+    /* Tighter than the 30s/60s/30s/30s defaults. A version check that hangs
+       for a minute is a worse user outcome than one that gives up early --
+       the mod still runs, the warning just gets skipped this session. */
+    WinHttpSetTimeouts(hSession, 5000, 5000, 5000, 10000);
+
+    hConnect = WinHttpConnect(hSession, UPDATE_HOST,
+                              INTERNET_DEFAULT_HTTPS_PORT, 0);
+    if (!hConnect) {
+        proxy_log("version_check: WinHttpConnect FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+
+    hRequest = WinHttpOpenRequest(hConnect, L"GET", UPDATE_PATH,
+                                  NULL, WINHTTP_NO_REFERER,
+                                  WINHTTP_DEFAULT_ACCEPT_TYPES,
+                                  WINHTTP_FLAG_SECURE);
+    if (!hRequest) {
+        proxy_log("version_check: WinHttpOpenRequest FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+
+    /* Disable auto-follow so the Location header survives in the response;
+       otherwise WinHTTP swallows it and we'd have to parse the HTML body. */
+    ok = WinHttpSetOption(hRequest, WINHTTP_OPTION_DISABLE_FEATURE,
+                          &disableRedirects, sizeof(disableRedirects));
+    if (!ok) {
+        proxy_log("version_check: WinHttpSetOption disable redirects FAILED err=%lu\n",
+                  GetLastError());
+        goto fail;
+    }
+
+    ok = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                            WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+    if (!ok) {
+        proxy_log("version_check: WinHttpSendRequest FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+
+    ok = WinHttpReceiveResponse(hRequest, NULL);
+    if (!ok) {
+        proxy_log("version_check: WinHttpReceiveResponse FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+
+    ok = WinHttpQueryHeaders(hRequest,
+                             WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                             WINHTTP_HEADER_NAME_BY_INDEX,
+                             &statusCode, &statusSize, WINHTTP_NO_HEADER_INDEX);
+    if (!ok) {
+        proxy_log("version_check: query status FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+    if (statusCode != 302 && statusCode != 301) {
+        proxy_log("version_check: unexpected status=%lu\n", statusCode);
+        goto fail;
+    }
+
+    ok = WinHttpQueryHeaders(hRequest,
+                             WINHTTP_QUERY_LOCATION,
+                             WINHTTP_HEADER_NAME_BY_INDEX,
+                             location, &locSize, WINHTTP_NO_HEADER_INDEX);
+    if (!ok) {
+        proxy_log("version_check: query Location FAILED err=%lu\n", GetLastError());
+        goto fail;
+    }
+
+    if (!parse_tag_from_location(location, parsed, sizeof(parsed))) {
+        proxy_log("version_check: parse_tag FAILED loc=%S\n", location);
+        goto fail;
+    }
+
+    strncpy(g_latestVersion, parsed, sizeof(g_latestVersion) - 1);
+    g_latestVersion[sizeof(g_latestVersion) - 1] = '\0';
+    /* MemoryBarrier pairs with the read-side barrier in lp_get_latest_version
+       so the Lua reader sees a fully-written string before the state flag. */
+    MemoryBarrier();
+    InterlockedExchange(&g_versionState, 1);
+    proxy_log("version_check: latest=%s\n", g_latestVersion);
+
+    if (hRequest) WinHttpCloseHandle(hRequest);
+    if (hConnect) WinHttpCloseHandle(hConnect);
+    if (hSession) WinHttpCloseHandle(hSession);
+    return 0;
+
+fail:
+    if (hRequest) WinHttpCloseHandle(hRequest);
+    if (hConnect) WinHttpCloseHandle(hConnect);
+    if (hSession) WinHttpCloseHandle(hSession);
+    InterlockedExchange(&g_versionState, 2);
+    return 1;
+}
+
+static void start_version_check(void) {
+    HANDLE h = CreateThread(NULL, 0, version_check_thread, NULL, 0, NULL);
+    if (h) {
+        CloseHandle(h);
+        proxy_log("start_version_check: thread spawned\n");
+    } else {
+        proxy_log("start_version_check: CreateThread FAILED err=%lu\n", GetLastError());
+    }
+}
+
+/* Lua-callable: returns the parsed tag string on success, nil while the
+   check is still pending or has failed. The Lua boot sequence polls this
+   ~1s after the front-end announce and compares against the deployed
+   civvaccess_shared.version. */
+static int lp_get_latest_version(lua_State *L) {
+    LONG state = g_versionState;
+    MemoryBarrier();
+    if (state == 1) {
+        ORIG_lua_pushstring(L, g_latestVersion);
+    } else {
+        ORIG_lua_pushnil(L);
+    }
+    return 1;
+}
+
 static void register_civvaccess_shared(lua_State *L) {
     int top = ORIG_lua_gettop(L);
     ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
@@ -361,6 +541,8 @@ static void register_civvaccess_shared(lua_State *L) {
     }
     ORIG_lua_settop(L, -2); /* pop nil */
     ORIG_lua_createtable(L, 0, 4);
+    ORIG_lua_pushcclosure(L, lp_get_latest_version, 0);
+    ORIG_lua_setfield(L, -2, "get_latest_version");
     ORIG_lua_setfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
     ORIG_lua_settop(L, top);
     proxy_log("register_civvaccess_shared: L=%p done\n", (void*)L);
@@ -932,6 +1114,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID reserved) {
         } else {
             proxy_log("ERROR: could not load Tolk.dll from %s\n", path);
         }
+
+        /* Kick off the GitHub release check on a background thread. CreateThread
+           queues the thread; the actual WinHTTP work runs after DllMain returns
+           and the loader lock has been released. */
+        start_version_check();
 
         proxy_log("=== Proxy init complete ===\n");
     }
