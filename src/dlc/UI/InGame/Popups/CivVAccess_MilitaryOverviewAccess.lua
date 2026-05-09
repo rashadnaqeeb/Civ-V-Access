@@ -50,6 +50,11 @@
 -- explicit cursor jump on row activation.
 
 include("CivVAccess_PopupBoot")
+-- Scanner-baseline strings for the Distance column's "here" cell.
+-- PopupBoot only loads CivVAccess_InGameStrings_en_US; SCANNER_HERE
+-- lives in CivVAccess_ScannerStrings_en_US and would otherwise be
+-- spelled out as the bare key.
+include("CivVAccess_ScannerStrings_en_US")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_BaseTableCore")
 include("CivVAccess_HexGeom")
