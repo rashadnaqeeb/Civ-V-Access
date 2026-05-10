@@ -133,6 +133,16 @@ function InputRouter.dispatch(keyCode, modMask, msg)
         return false
     end
 
+    -- TEMP diagnosis for Alt+Numpad. Remove after triage.
+    Log.info(
+        "InputRouter.dispatch keyCode="
+            .. tostring(keyCode)
+            .. " modMask="
+            .. tostring(modMask)
+            .. " msg="
+            .. tostring(msg)
+    )
+
     -- Drop any handlers whose owning Context env got wiped (front-end
     -- skin unload during pre-game-to-in-game, in-game env wipe on load-
     -- game-from-game). Boot.onInGameBoot purges these at LoadScreenClose
