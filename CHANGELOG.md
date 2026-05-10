@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.0.4] - 2026-05-10
 New Features and improvements:
 - Scanner category order: Improvements and Recommendations now sit directly after Cities (was further down the list).
 Bug fixes:
