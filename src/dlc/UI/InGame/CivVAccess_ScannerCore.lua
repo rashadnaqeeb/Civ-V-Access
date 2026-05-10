@@ -54,6 +54,7 @@ ScannerCore.CATEGORIES = {
         label = "TXT_KEY_CITIES_HEADING1_TITLE",
         subcategories = {
             { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_MY" },
+            { key = "city_states", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_CITY_STATES" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_NEUTRAL" },
             { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_ENEMY" },
             { key = "barb", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_BARB_CAMPS" },

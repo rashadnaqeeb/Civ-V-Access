@@ -12,8 +12,12 @@ ScannerBackendCities = {
 local MAX_PLAYERS = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 64
 
 -- Which Cities subcategory a non-barbarian city falls into, from the
--- active team's perspective. Returns nil if the owner team is the barb
--- slot (cities shouldn't exist there, but be defensive at the boundary).
+-- active team's perspective. War check leads so an at-war city-state
+-- bucks into enemy alongside hostile major civs (the relationship the
+-- user is acting on is "they're shooting at me"); city-states at peace
+-- get their own bucket so they don't crowd the major-civ neutral list.
+-- Returns nil if the owner team is the barb slot (cities shouldn't
+-- exist there, but be defensive at the boundary).
 local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
     if cityOwnerId == activePlayerId then
         return "my"
@@ -28,6 +32,9 @@ local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
     end
     if Teams[activeTeam]:IsAtWar(ownerTeamId) then
         return "enemy"
+    end
+    if owner:IsMinorCiv() then
+        return "city_states"
     end
     return "neutral"
 end

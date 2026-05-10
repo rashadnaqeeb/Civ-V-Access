@@ -497,6 +497,105 @@ function M.test_unit_validate_entry_keeps_own_trade_unit_on_fogged_plot()
     )
 end
 
+-- ===== Cities backend =====
+
+local function loadCitiesBackend()
+    loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendCities.lua")
+end
+
+-- Build a city fixture rich enough for ScannerBackendCities.Scan, which
+-- reads city:Plot, city:GetID, city:GetNameKey via Text.key. fakeCity
+-- doesn't supply GetNameKey, so wrap it.
+local function makeCity(opts)
+    local plot = opts.plot
+    local c = T.fakeCity({ owner = opts.owner, id = opts.id })
+    c._plot = plot
+    function c:Plot()
+        return self._plot
+    end
+    function c:GetNameKey()
+        return opts.nameKey or "TXT_KEY_CITY_NAME"
+    end
+    return c
+end
+
+-- Install a player owning one city. `minor` flips IsMinorCiv. team
+-- defaults to playerId so each player sits on its own team unless the
+-- caller pins them together.
+local function installCityOwner(playerId, opts)
+    opts = opts or {}
+    Players[playerId] = T.fakePlayer({
+        team = opts.team or playerId,
+        cities = { opts.city },
+        isMinor = opts.minor or false,
+    })
+end
+
+function M.test_city_minor_civ_routes_to_city_states_at_peace()
+    -- The headline change: a city-state we've met but aren't at war with
+    -- must land in the new city_states sub, not in neutral with the major
+    -- peers.
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam({ hasMet = { [22] = true } })
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 22, id = 1, plot = plot })
+    plot._city = city
+    installCityOwner(22, { city = city, team = 22, minor = true })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "city_states", "minor-civ city must bucket under city_states")
+end
+
+function M.test_city_minor_civ_at_war_routes_to_enemy()
+    -- At-war city-states are something the user is acting against, so
+    -- they bucket with hostile major civs in `enemy` rather than the
+    -- city_states list (which is reserved for peaceful minor civs).
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam({ hasMet = { [22] = true }, atWar = { [22] = true } })
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 22, id = 1, plot = plot })
+    plot._city = city
+    installCityOwner(22, { city = city, team = 22, minor = true })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "enemy", "city-state at war must move to enemy alongside hostile major civs")
+end
+
+function M.test_city_major_peer_at_peace_stays_in_neutral()
+    -- Regression guard for the negative direction: a major peer at peace
+    -- must not get swept into city_states. The minor-civ check is the
+    -- only thing routing into city_states.
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true } })
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 1, id = 1, plot = plot })
+    plot._city = city
+    installCityOwner(1, { city = city, team = 1, minor = false })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "neutral")
+end
+
+function M.test_city_major_peer_at_war_stays_in_enemy()
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true }, atWar = { [1] = true } })
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 1, id = 1, plot = plot })
+    plot._city = city
+    installCityOwner(1, { city = city, team = 1, minor = false })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "enemy")
+end
+
 -- ===== Resources backend =====
 
 local function loadResourcesBackend()

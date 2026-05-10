@@ -90,7 +90,7 @@ end
 function M.test_cities_subs()
     setup()
     local subs = subKeys("cities")
-    local expected = { "my", "neutral", "enemy", "barb" }
+    local expected = { "my", "city_states", "neutral", "enemy", "barb" }
     for i, k in ipairs(expected) do
         T.eq(subs[i], k, "cities position " .. i)
     end
