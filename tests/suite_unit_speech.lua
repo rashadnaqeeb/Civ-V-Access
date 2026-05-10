@@ -445,6 +445,27 @@ function M.test_selection_status_automate_build()
     T.truthy(out:find("TXT_KEY_ACTION_AUTOMATE_BUILD", 1, true), "automate-build expected: " .. out)
 end
 
+-- Automated workers spend most of their time on a build mission. UnitList's
+-- cascade returns just "automated" (the build column hides because the
+-- icon is shown elsewhere); a blind player needs to hear what the worker
+-- is actually doing or there's no way to know an automated worker is
+-- progressing vs idle.
+function M.test_selection_status_automate_build_with_active_build()
+    setup()
+    GameInfo.Builds[7] = { Description = "Build Farm" }
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    plot._buildTurns[7] = 4
+    local u = mkUnit({ automated = true, work = true, buildType = 7, plot = plot })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("Build Farm 5 turns", 1, true), "build with turns expected: " .. out)
+    T.truthy(out:find("TXT_KEY_ACTION_AUTOMATE_BUILD", 1, true), "automate token expected too: " .. out)
+    -- Build is the distinguishing rung (every automated worker shares the
+    -- "automated" token; only the build differs), so it leads.
+    local buildPos = out:find("Build Farm", 1, true)
+    local autoPos = out:find("TXT_KEY_ACTION_AUTOMATE_BUILD", 1, true)
+    T.truthy(buildPos < autoPos, "build should precede automate token: " .. out)
+end
+
 function M.test_selection_status_automate_trade()
     setup()
     local u = mkUnit({ automated = true, trade = true })

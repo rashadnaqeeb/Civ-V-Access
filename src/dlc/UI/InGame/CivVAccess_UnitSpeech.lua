@@ -198,12 +198,40 @@ local function isOutOfAttacks(unit)
     return unit:IsCombatUnit() and unit:MovesLeft() > 0 and unit:IsOutOfAttacks()
 end
 
+-- "<Build> <N> turns" for a unit mid-execution on a build mission, or ""
+-- when the unit isn't building. Engine adds +1 to turns-left (see
+-- UnitPanel.lua:392) so a build finishing at end-of-turn reads as 1
+-- rather than 0.
+local function buildToken(unit)
+    local buildType = unit:GetBuildType()
+    if buildType == -1 then
+        return ""
+    end
+    local buildRow = GameInfo.Builds[buildType]
+    if buildRow == nil then
+        Log.warn("UnitSpeech: GetBuildType returned unknown id " .. tostring(buildType))
+        return ""
+    end
+    local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
+    return Text.formatPlural(
+        "TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING",
+        turns,
+        Text.key(buildRow.Description),
+        turns
+    )
+end
+
 -- Returns the first matching status token (localized string), or "".
--- Friendly units run the full cascade from base UnitList.lua so e.g. a
+-- Friendly units run the cascade from base UnitList.lua so e.g. a
 -- garrisoned unit sitting on fortify turns speaks "garrison" -- the more
--- specific rung wins. Enemies surface fortified only, mirroring
--- UnitFlagManager's flag-texture cascade: the shield-shaped fortify flag
--- is the one status rung sighted players can read off a foreign unit;
+-- specific rung wins. One deviation: an automated worker mid-build
+-- speaks "<Build> N turns, automated [Workers]" instead of the bare
+-- "automated [Workers]" UnitList shows. Sighted players still see the
+-- build animation and progress meter on the tile; without this the
+-- blind player has no way to know what their automated worker is doing.
+-- Enemies surface fortified only, mirroring UnitFlagManager's
+-- flag-texture cascade: the shield-shaped fortify flag is the one
+-- status rung sighted players can read off a foreign unit;
 -- sleep / alert / heal / automate / build only render in the owning
 -- player's UnitList panel.
 local function statusToken(unit)
@@ -218,7 +246,12 @@ local function statusToken(unit)
     end
     if unit:IsAutomated() then
         if unit:IsWork() then
-            return Text.key("TXT_KEY_ACTION_AUTOMATE_BUILD")
+            local automate = Text.key("TXT_KEY_ACTION_AUTOMATE_BUILD")
+            local build = buildToken(unit)
+            if build ~= "" then
+                return build .. ", " .. automate
+            end
+            return automate
         end
         if unit:IsTrade() then
             return Text.key("TXT_KEY_ACTION_AUTOMATE_TRADE")
@@ -238,22 +271,9 @@ local function statusToken(unit)
     if activity == ActivityTypes.ACTIVITY_SLEEP then
         return Text.key("TXT_KEY_MISSION_SLEEP")
     end
-    local buildType = unit:GetBuildType()
-    if buildType ~= -1 then
-        local buildRow = GameInfo.Builds[buildType]
-        if buildRow == nil then
-            Log.warn("UnitSpeech: GetBuildType returned unknown id " .. tostring(buildType))
-            return ""
-        end
-        -- Engine adds +1 to turns-left (see UnitPanel.lua:392) so a
-        -- build finishing at end-of-turn reads as 1 rather than 0.
-        local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
-        return Text.formatPlural(
-            "TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING",
-            turns,
-            Text.key(buildRow.Description),
-            turns
-        )
+    local build = buildToken(unit)
+    if build ~= "" then
+        return build
     end
     if activity == ActivityTypes.ACTIVITY_MISSION then
         -- Waypoints.finalAndTurns reads the cached queue waypoints for
