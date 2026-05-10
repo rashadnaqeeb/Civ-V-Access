@@ -278,21 +278,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "偉人"
 -- Dedup-only alias. Engine source: TXT_KEY_RELIGION_GREAT_PERSON_FOCUS.
 -- ja_JP: engine emits 偉人 (same as icon primary spoken form). Dormant.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = ""
--- Per-specialist title aliases. Engine source: TXT_KEY_SPECIALIST_<X>_TITLE.
--- ja_JP: no JA_JP override exists; engine emits EN_US text.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "great artist points"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "great engineer points"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "great merchant points"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "great scientist points"
+-- Per-specialist title aliases. Engine source: TXT_KEY_SPECIALIST_<X>_TITLE
+-- in CIV5GameTextInfos_Objects.xml (JA_JP). Engine prints "大芸術家ポイント:"
+-- etc. — no shared prefix with the primary "偉人", so each specialist
+-- gets its own alias. Trailing colon omitted; the matcher's word-boundary
+-- check picks it up as the natural delimiter.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "大芸術家ポイント"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "大技術者ポイント"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "大商人ポイント"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "大科学者ポイント"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "傑作"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "戦闘力"
--- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH.
--- ja_JP: no JA_JP override exists; engine emits EN_US "[ICON_STRENGTH] Strength: {1_Num}".
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "strength"
+-- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH (JA_JP
+-- "[ICON_STRENGTH]戦闘力: {1_Num}"). Engine's emission already matches
+-- the icon's primary spoken form word-for-word, so the alias is dormant
+-- and "" is fine; the matcher skips empty aliases.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "遠隔戦闘力"
--- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_RANGED_STRENGTH.
--- ja_JP: no JA_JP override exists; engine emits EN_US "[ICON_RANGE_STRENGTH] Ranged Strength: {1_Num}".
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "ranged strength"
+-- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_RANGED_STRENGTH
+-- (JA_JP "[ICON_RANGE_STRENGTH]遠隔攻撃力: {1_Num}"). The emission uses
+-- 攻撃力 (attack power) where the icon's primary uses 戦闘力 (combat
+-- power), so the alias has to spell out the engine's variant.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "遠隔攻撃力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "行動力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "幸福度"
 -- Dedup-only alias. Base text pairs ICON_HAPPINESS_1 with shorter 幸福 form.

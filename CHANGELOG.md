@@ -18,6 +18,8 @@ Bug fixes:
 - Italian (it_IT): the in-game boot announcement said "Accessibility" instead of "Accessibilità".
 - Polish (pl_PL): in-game help-overlay key labels for arrow / Home / End chords were left in English (e.g. "Up lub down"). They now read in Polish, matching the front-end overlay.
 - Russian (ru_RU): same in-game help-overlay key labels were left in English (e.g. "Up или down"). They now read in Russian, matching the front-end overlay.
+- More help-overlay key labels left in English across it_IT, ja_JP, ko_KR, pl_PL and ru_RU (punctuation key names like "Slash" / "Period" / "Comma", chord descriptions like "Control plus space" / "Shift plus a number key", and message-log bracket navigation in ko_KR). All now read in the player's language.
+- Icon-dedup aliases for ja_JP and pl_PL had been left as English placeholders, so the screen reader announced the icon's spoken form twice when the engine printed something like "[ICON_STRENGTH] Siła: 5" or "[ICON_GREAT_PEOPLE] Punkty wielkich artystów: 3". Aliases now match the actual engine emissions in each locale, and the duplicate readout is suppressed.
 
 ## [1.0.3] - 2026-05-10
 New Features and improvements:

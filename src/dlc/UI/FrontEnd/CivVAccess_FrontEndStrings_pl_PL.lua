@@ -271,22 +271,33 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "nauka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "wiara"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "turystyka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "wielcy ludzie"
--- _ALT: TXT_KEY_CITYVIEW_FOCUS_GREAT_PERSON_TEXT. No PL_PL override; engine falls back to EN_US "Great Person".
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "great person"
--- _ALT keys: TXT_KEY_SPECIALIST_*_TITLE. No PL_PL override; engine falls back to EN_US:
--- Artist "Great Artist Points:", Engineer "Great Engineer Points:",
--- Merchant "Great Merchant Points:", Scientist "Great Scientist Points:"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "great artist points"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "great engineer points"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "great merchant points"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "great scientist points"
+-- Dedup-only alias. PL_PL base text uses the singular "wielki człowiek"
+-- next to the icon (e.g. CIV5GameTextInfos_Jon.xml "Wybrany wielki
+-- człowiek pojawi się..."), where the primary plural "wielcy ludzie"
+-- wouldn't match. The alias collapses on the singular form.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT"] = "wielki człowiek"
+-- Per-specialist title aliases. Engine source: TXT_KEY_SPECIALIST_<X>_TITLE
+-- in CIV5GameTextInfos_Objects.xml (PL_PL). Engine prints "Punkty wielkich
+-- artystów:" etc. — no shared prefix with the primary "wielcy ludzie",
+-- so each specialist gets its own alias. Trailing colon omitted; the
+-- matcher's word-boundary check picks it up as the natural delimiter.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "Punkty wielkich artystów"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "Punkty wielkich inżynierów"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "Punkty wielkich kupców"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "Punkty wielkich naukowców"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "wielkie dzieło"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "siła bojowa"
--- _ALT: TXT_KEY_PRODUCTION_STRENGTH. No PL_PL override; engine falls back to EN_US "Strength: N".
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "strength"
+-- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH (PL_PL
+-- "[ICON_STRENGTH] Siła: {1_Num}"). The emission uses the bare "Siła"
+-- where the primary uses the longer "siła bojowa", so the alias has to
+-- match the bare engine word.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH_ALT"] = "Siła"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "siła dystansowa"
--- _ALT: TXT_KEY_PRODUCTION_RANGED_STRENGTH. No PL_PL override; engine falls back to EN_US "Ranged Strength: N".
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "ranged strength"
+-- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_RANGED_STRENGTH
+-- (PL_PL "[ICON_RANGE_STRENGTH] Siła ostrzału: {1_Num}"). The emission
+-- uses "Siła ostrzału" where the primary uses "siła dystansowa", so
+-- the alias has to spell out the engine's variant.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "Siła ostrzału"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "ruchy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "zadowolenie"
 -- _ALT: Dormant in pl_PL (both positive-happy forms share the prefix "zadowolon").
