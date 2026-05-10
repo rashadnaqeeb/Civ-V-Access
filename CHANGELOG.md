@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+- Localized mod strings now follow your text language (e.g. Traditional Chinese) instead of your audio language. Players who set the game's text language to a translated locale but kept English voice acting were previously hearing English mod text.
+
 ## [1.0.2] - 2026-05-09
 
 - Scanner improvements category now has a "My pillaged" subcategory holding only your own pillaged improvements, so you can find what needs repairing without scanning your full improvement list. Pillaged improvements of yours move out of "My" into this sub; enemy and neutral pillaged improvements stay in their owner subs.

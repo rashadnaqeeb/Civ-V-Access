@@ -93,8 +93,8 @@ local function currentRule()
         return cachedRule
     end
     local code
-    if Locale and Locale.GetCurrentSpokenLanguage then
-        local lang = Locale.GetCurrentSpokenLanguage()
+    if Locale and Locale.GetCurrentLanguage then
+        local lang = Locale.GetCurrentLanguage()
         if lang and lang.Type then
             code = lang.Type
         end

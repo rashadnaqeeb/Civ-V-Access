@@ -7,13 +7,13 @@ local T = require("support")
 local M = {}
 
 local warnings
-local origWarn, origConvert, origGetSpokenLang
+local origWarn, origConvert, origGetLang
 
 local function setup()
     warnings = {}
     origWarn = Log.warn
     origConvert = Locale.ConvertTextKey
-    origGetSpokenLang = Locale.GetCurrentSpokenLanguage
+    origGetLang = Locale.GetCurrentLanguage
     Log.warn = function(msg)
         warnings[#warnings + 1] = msg
     end
@@ -23,7 +23,7 @@ end
 local function teardown()
     Log.warn = origWarn
     Locale.ConvertTextKey = origConvert
-    Locale.GetCurrentSpokenLanguage = origGetSpokenLang
+    Locale.GetCurrentLanguage = origGetLang
 end
 
 function M.test_key_returns_engine_value()
@@ -91,7 +91,7 @@ end
 
 function M.test_unit_with_civ_french_orders_noun_first()
     setup()
-    Locale.GetCurrentSpokenLanguage = function()
+    Locale.GetCurrentLanguage = function()
         return { Type = "fr_FR" }
     end
     Locale.ConvertTextKey = function(key)
@@ -109,7 +109,7 @@ end
 
 function M.test_unit_with_civ_dedup_when_name_already_contains_adj()
     setup()
-    Locale.GetCurrentSpokenLanguage = function()
+    Locale.GetCurrentLanguage = function()
         return { Type = "fr_FR" }
     end
     Locale.ConvertTextKey = function(key)
@@ -167,7 +167,7 @@ end
 
 function M.test_unit_with_civ_religion_french_orders_noun_first_then_religion_then_adj()
     setup()
-    Locale.GetCurrentSpokenLanguage = function()
+    Locale.GetCurrentLanguage = function()
         return { Type = "fr_FR" }
     end
     Locale.ConvertTextKey = function(key)

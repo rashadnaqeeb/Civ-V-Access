@@ -37,6 +37,9 @@ Locale = Locale
         Lookup = function(key)
             return key
         end,
+        GetCurrentLanguage = function()
+            return { Type = "en_US", DisplayName = "English (US)" }
+        end,
         GetCurrentSpokenLanguage = function()
             return { Type = "en_US", DisplayName = "English (US)" }
         end,
@@ -44,6 +47,11 @@ Locale = Locale
 if Locale.Lookup == nil then
     Locale.Lookup = function(key)
         return key
+    end
+end
+if Locale.GetCurrentLanguage == nil then
+    Locale.GetCurrentLanguage = function()
+        return { Type = "en_US", DisplayName = "English (US)" }
     end
 end
 if Locale.GetCurrentSpokenLanguage == nil then

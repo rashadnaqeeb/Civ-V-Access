@@ -6,13 +6,13 @@
 local T = require("support")
 local M = {}
 
-local origGetCurrentSpokenLanguage
+local origGetCurrentLanguage
 local origInclude
 local includeCalls
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_StringsLoader.lua")
-    origGetCurrentSpokenLanguage = Locale.GetCurrentSpokenLanguage
+    origGetCurrentLanguage = Locale.GetCurrentLanguage
     origInclude = include
     includeCalls = {}
     include = function(stem)
@@ -21,13 +21,13 @@ local function setup()
 end
 
 local function teardown()
-    Locale.GetCurrentSpokenLanguage = origGetCurrentSpokenLanguage
+    Locale.GetCurrentLanguage = origGetCurrentLanguage
     include = origInclude
     StringsLoader._setSupportedLocales({})
 end
 
 local function setLocale(code)
-    Locale.GetCurrentSpokenLanguage = function()
+    Locale.GetCurrentLanguage = function()
         return { Type = code }
     end
 end
@@ -71,12 +71,12 @@ function M.test_stem_concatenation_uses_locale_suffix()
     teardown()
 end
 
-function M.test_missing_GetCurrentSpokenLanguage_falls_back_to_en_US()
+function M.test_missing_GetCurrentLanguage_falls_back_to_en_US()
     -- Engine misbehavior path: if the API ever returns nil or is absent,
     -- the loader treats the locale as en_US and does nothing rather than
     -- crashing on a nil index.
     setup()
-    Locale.GetCurrentSpokenLanguage = function()
+    Locale.GetCurrentLanguage = function()
         return nil
     end
     StringsLoader._setSupportedLocales({ fr_FR = true })
@@ -85,9 +85,9 @@ function M.test_missing_GetCurrentSpokenLanguage_falls_back_to_en_US()
     teardown()
 end
 
-function M.test_GetCurrentSpokenLanguage_table_without_Type_falls_back()
+function M.test_GetCurrentLanguage_table_without_Type_falls_back()
     setup()
-    Locale.GetCurrentSpokenLanguage = function()
+    Locale.GetCurrentLanguage = function()
         return {}
     end
     StringsLoader._setSupportedLocales({ fr_FR = true })

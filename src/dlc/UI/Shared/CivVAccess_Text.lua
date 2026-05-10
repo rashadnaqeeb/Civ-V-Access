@@ -150,8 +150,8 @@ local NOUN_ADJ_LOCALES = {
 }
 
 local function activeLocale()
-    if Locale and Locale.GetCurrentSpokenLanguage then
-        local lang = Locale.GetCurrentSpokenLanguage()
+    if Locale and Locale.GetCurrentLanguage then
+        local lang = Locale.GetCurrentLanguage()
         if lang and lang.Type then
             return lang.Type
         end

@@ -29,7 +29,7 @@
 StringsLoader = {}
 
 -- Locales that ship a translated strings file alongside en_US. Codes
--- match Civ V's spoken-language Type identifiers (Locale.GetCurrentSpokenLanguage().Type),
+-- match Civ V's text-language Type identifiers (Locale.GetCurrentLanguage().Type),
 -- not generic ISO codes. en_US is omitted because it is the baseline and
 -- is always loaded by Boot before this module runs an overlay.
 --
@@ -39,10 +39,9 @@ StringsLoader = {}
 -- absent from this set silently falls through to en_US -- no warning, no
 -- error -- so users running an unsupported locale hear English.
 --
--- Distinct values seen in Civ V's Locale.GetSupportedSpokenLanguages
--- output: en_US, de_DE, es_ES, fr_FR, it_IT, ja_JP, ko_KR, pl_PL, ru_RU,
--- zh_Hant_HK. The keys here are commented out until a corresponding
--- translation file ships.
+-- Distinct values seen in Civ V's Languages table: en_US, de_DE, es_ES,
+-- fr_FR, it_IT, ja_JP, ko_KR, pl_PL, ru_RU, zh_Hant_HK. The keys here are
+-- commented out until a corresponding translation file ships.
 local supportedLocales = {
     de_DE = true,
     es_ES = true,
@@ -55,9 +54,14 @@ local supportedLocales = {
     zh_Hant_HK = true,
 }
 
+-- Read the active text-language code (config.ini's Language= field, exposed
+-- through Locale.GetCurrentLanguage). The audio/spoken-language preference
+-- is independent in Civ V and governs voice acting only -- using it here
+-- would skip the overlay for any player who reads in one locale but keeps
+-- English voice acting (the common Asian-locale config).
 local function activeLocale()
-    if Locale ~= nil and Locale.GetCurrentSpokenLanguage ~= nil then
-        local lang = Locale.GetCurrentSpokenLanguage()
+    if Locale ~= nil and Locale.GetCurrentLanguage ~= nil then
+        local lang = Locale.GetCurrentLanguage()
         if lang ~= nil and lang.Type ~= nil then
             return lang.Type
         end
