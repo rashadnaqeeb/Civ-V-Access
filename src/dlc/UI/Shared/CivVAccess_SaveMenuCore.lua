@@ -123,14 +123,38 @@ local function pushOverwriteCloudConfirm(mainHandler, slotIndex)
     end)
 end
 
+-- Manual sub instead of pushConfirmSub: the overwrite confirms close the
+-- screen via OnBack, where pushConfirmSub's pop-then-act order avoids a
+-- transient re-activation of the about-to-hide menu. Delete keeps the menu
+-- open, so the order has to flip to act-then-pop and the post-action
+-- focus transition (back to the picker, not stranded on a one-line reader)
+-- runs through SavedGameShared.commitDeleteAndPopSub.
 local function pushDeleteConfirm(mainHandler, entry)
     local label = Text.format("TXT_KEY_CIVVACCESS_SAVE_DELETE_CONFIRM", entry.DisplayName)
-    pushConfirmSub(mainHandler, "DeleteConfirm", label, function()
-        performDelete(entry.FileName)
-        mainHandler.setItems({
-            BaseMenuItems.Text({ textKey = "TXT_KEY_CIVVACCESS_SAVE_DELETED" }),
-        }, READER_TAB_IDX)
-    end)
+    local subName = mainHandler.name .. "/DeleteConfirm"
+    HandlerStack.push(BaseMenu.create({
+        name = subName,
+        displayName = label,
+        items = {
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_NO_BUTTON",
+                activate = function()
+                    HandlerStack.removeByName(subName, true)
+                end,
+            }),
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_YES_BUTTON",
+                activate = function()
+                    performDelete(entry.FileName)
+                    SavedGameShared.commitDeleteAndPopSub(mainHandler, subName, {
+                        deletedTextKey = "TXT_KEY_CIVVACCESS_SAVE_DELETED",
+                        readerTabIdx = READER_TAB_IDX,
+                    })
+                end,
+            }),
+        },
+        escapePops = true,
+    }))
 end
 
 -- Top-level Save action on the picker tab. Reads the current NameBox text,

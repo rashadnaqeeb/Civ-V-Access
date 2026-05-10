@@ -226,10 +226,46 @@ function SavedGameShared.pushRequirementsSub(mainHandler, kind, dlcList, modsLis
     }))
 end
 
+-- Post-delete focus transition. Speaks the deletion message, replaces the
+-- reader-tab items with a stub Text leaf (so a later Tab back has something
+-- readable), switches the active tab to the picker, and pops the delete-
+-- confirm sub. The picker tab's first item is announced via speakQueued
+-- after the deletion message, so the user hears "Save deleted." then the
+-- next save's name in one chained utterance.
+--
+-- Picker-rebuild is the caller's responsibility (LoadMenu's monkey-patched
+-- SetupFileButtonList; SaveMenu's performDelete -> SetupFileButtonList).
+-- This function only handles the focus transition.
+--
+-- Reaches into _tabIndex / _level / _indices / _chainSpeech directly
+-- because there's no public API for "switch tabs silently and have the
+-- imminent sub-pop's re-activation queue its announce after a custom
+-- message." _chainSpeech is the same internal flag TabbedShell uses for
+-- chained tab-name + first-item speech.
+--
+-- opts:
+--   deletedTextKey  TXT_KEY for the deletion announcement + reader placeholder
+--   pickerTabIdx    picker tab index (default 1, matching PickerReader)
+--   readerTabIdx    reader tab index (default 2, matching PickerReader)
+function SavedGameShared.commitDeleteAndPopSub(mainHandler, subName, opts)
+    local pickerTabIdx = opts.pickerTabIdx or 1
+    local readerTabIdx = opts.readerTabIdx or 2
+    mainHandler.setItems({
+        BaseMenuItems.Text({ textKey = opts.deletedTextKey }),
+    }, readerTabIdx)
+    mainHandler._tabIndex = pickerTabIdx
+    mainHandler._level = 1
+    mainHandler._indices = { 1 }
+    SpeechPipeline.speakInterrupt(Text.key(opts.deletedTextKey))
+    mainHandler._chainSpeech = true
+    HandlerStack.removeByName(subName, true)
+    mainHandler._chainSpeech = nil
+end
+
 -- Push a Yes/No delete-confirm sub. Bypasses the visual DeleteConfirm popup
 -- (no speech affordance). On Yes calls deleteFn(filename) + SetupFileButtonList,
--- and replaces the reader tab with a one-item placeholder so stale details
--- can't be read back. Esc on the sub pops without committing (escapePops).
+-- then hands off to commitDeleteAndPopSub for the focus transition back to
+-- the picker. Esc on the sub pops without committing (escapePops).
 --
 -- "No" is first so arrow-down to Yes is an explicit affirmative step;
 -- accidental Enter on the default cancels rather than deletes.
@@ -237,8 +273,10 @@ end
 -- opts:
 --   deleteFn         function(filename) - the engine delete call
 --                    (UI.DeleteSavedGame / UI.DeleteReplayFile)
---   deletedTextKey   TXT_KEY for the post-delete reader placeholder
---   readerTabIdx     reader tab index (default 2, matching PickerReader)
+--   deletedTextKey   TXT_KEY for the post-delete announcement and reader
+--                    placeholder
+--   pickerTabIdx     forwarded to commitDeleteAndPopSub
+--   readerTabIdx     forwarded to commitDeleteAndPopSub
 function SavedGameShared.pushDeleteConfirmSub(mainHandler, filename, opts)
     if filename == nil or filename == "" then
         return
@@ -246,7 +284,6 @@ function SavedGameShared.pushDeleteConfirmSub(mainHandler, filename, opts)
     local displayName = SavedGameShared.stripPath(filename)
     local confirmLabel = Text.format("TXT_KEY_CIVVACCESS_LOAD_DELETE_CONFIRM", displayName)
     local subName = mainHandler.name .. "/DeleteConfirm"
-    local readerTabIdx = opts.readerTabIdx or 2
     HandlerStack.push(BaseMenu.create({
         name = subName,
         displayName = confirmLabel,
@@ -262,10 +299,7 @@ function SavedGameShared.pushDeleteConfirmSub(mainHandler, filename, opts)
                 activate = function()
                     opts.deleteFn(filename)
                     SetupFileButtonList()
-                    mainHandler.setItems({
-                        BaseMenuItems.Text({ textKey = opts.deletedTextKey }),
-                    }, readerTabIdx)
-                    HandlerStack.removeByName(subName, true)
+                    SavedGameShared.commitDeleteAndPopSub(mainHandler, subName, opts)
                 end,
             }),
         },
