@@ -473,6 +473,35 @@ function M.test_search_buffer_survives_search_driven_jump()
     T.truthy(h._search:isSearchActive(), "search stays active for cycling")
 end
 
+function M.test_clearSearchIfActive_clears_live_buffer()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, false)
+    h.handleSearchInput(h, 0x41, 0) -- 'a' -> Athens
+    speaks = {}
+    local consumed = h.clearSearchIfActive()
+    T.eq(consumed, true)
+    T.falsy(h._search:hasBuffer(), "buffer cleared")
+    T.falsy(h._search:isSearchActive(), "search-active dropped")
+    local sawCleared = false
+    for _, s in ipairs(speaks) do
+        if s.text == "search cleared" and s.interrupt then
+            sawCleared = true
+        end
+    end
+    T.truthy(sawCleared, "spoke 'search cleared'")
+end
+
+function M.test_clearSearchIfActive_returns_false_when_empty()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, false)
+    speaks = {}
+    local consumed = h.clearSearchIfActive()
+    T.eq(consumed, false)
+    T.eq(#speaks, 0, "no speech on empty-buffer clear")
+end
+
 -- Multi-match navigation: spec with three rows whose names share a 'M'
 -- prefix so search-result cycling has something to cycle through. (The
 -- basic spec's only M-row is Memphis; that's a single match and would

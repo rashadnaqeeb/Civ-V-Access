@@ -11,6 +11,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+- Tabbed overview screens (F-key advisors, F6 tech tree, etc.): pressing Escape with an active typeahead search now clears the buffer instead of closing the screen, matching every other menu.
 - "Choose one" popups (Shoshone Pathfinder ruin reward, Liberty free Great Person, faith-purchased Great Person, Maya baktun bonus) are now flat lists: pick a row to commit, no separate confirm step. The ruin-reward rows additionally lead with a short label before the vanilla flavor sentence.
 - Automated workers now announce what they're currently building (e.g. "Build Farm 5 turns, automated Workers") instead of just "automated Workers", so you can tell whether an automated worker is making progress or sitting idle.
 - Comma immediately before a period (",." or ", .") now reads as just the period, ending the annoying NVDA dot reading.

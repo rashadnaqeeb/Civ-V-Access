@@ -626,6 +626,15 @@ function BaseTable.create(spec)
         return handleSearchInput(self, vk, mods)
     end
 
+    function self.clearSearchIfActive()
+        if self._search:isSearchActive() or self._search:hasBuffer() then
+            self._search:clear()
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+            return true
+        end
+        return false
+    end
+
     function self.resetForNextOpen()
         self._initialized = false
     end

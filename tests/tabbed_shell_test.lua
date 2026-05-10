@@ -755,4 +755,41 @@ function M.test_menuTab_handleSearchInput_routes_through_basemenu()
     T.truthy(sawBanana, "type-ahead routed through BaseMenu")
 end
 
+function M.test_menuTab_clearSearchIfActive_clears_live_buffer()
+    setup()
+    local tab = TabbedShell.menuTab({
+        tabName = "TXT_KEY_CIVVACCESS_TS_TAB_A",
+        menuSpec = {
+            displayName = "A",
+            items = {
+                BaseMenuItems.Text({ labelText = "Apple" }),
+                BaseMenuItems.Text({ labelText = "Banana" }),
+            },
+        },
+    })
+    local h = TabbedShell.create({
+        name = "X",
+        displayName = "X",
+        tabs = { tab },
+    })
+    HandlerStack.push(h)
+    -- Type 'B' to fill the buffer, then ask the tab to clear.
+    h.handleSearchInput(h, 0x42, 0)
+    speaks = {}
+    local consumed = tab.clearSearchIfActive()
+    T.eq(consumed, true, "returns true when buffer was live")
+    local sawCleared = false
+    for _, s in ipairs(speaks) do
+        if s.text == "search cleared" and s.interrupt then
+            sawCleared = true
+        end
+    end
+    T.truthy(sawCleared, "spoke 'search cleared' on interrupt")
+    -- Idempotent: a second call has nothing to clear.
+    speaks = {}
+    local consumed2 = tab.clearSearchIfActive()
+    T.eq(consumed2, false, "returns false when buffer was already empty")
+    T.eq(#speaks, 0, "no speech on empty-buffer clear")
+end
+
 return M

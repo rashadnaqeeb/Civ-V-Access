@@ -26,6 +26,13 @@
 --   handleSearchInput(self, vk, mods)
 --                  optional; the shell's handleSearchInput delegates to the
 --                  active tab so type-ahead routes to whatever is focused.
+--   clearSearchIfActive(self) -> bool
+--                  optional; consulted by install's Esc handler before
+--                  onEscape / priorInput. Return true after clearing a live
+--                  type-ahead buffer so Esc clears the buffer in place rather
+--                  than closing the screen. menuTab and BaseTable both
+--                  implement this; tabs without a search buffer (TechTree
+--                  DAG) can omit it.
 --
 -- BaseMenu compatibility: TabbedShell.menuTab wraps BaseMenu.create with
 -- silentDisplayName=true (shell speaks tabName instead) and toggles the
@@ -476,6 +483,22 @@ function TabbedShell.menuTab(args)
         return false
     end
 
+    -- Esc-to-clear hook the shell consults before falling through to onEscape /
+    -- priorInput. Returns true when there was an active type-ahead buffer to
+    -- clear (and announces "search cleared"); false lets the shell continue.
+    function tab.clearSearchIfActive()
+        local search = menu._search
+        if search == nil then
+            return false
+        end
+        if search:isSearchActive() or search:hasBuffer() then
+            search:clear()
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+            return true
+        end
+        return false
+    end
+
     -- Reset the inner BaseMenu's first-open state. Called by the shell's
     -- install hide handler so the next open is a fresh first-open across
     -- all tabs. _initialized is the BaseMenu flag that gates first-open
@@ -602,6 +625,22 @@ function TabbedShell.install(ContextPtr, spec)
         local top = HandlerStack.active()
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
             if top == handler then
+                -- Esc on the shell itself: if the active tab has a live type-
+                -- ahead buffer, clear it and stay put. Mirrors BaseMenu.install
+                -- semantics; the buffer state lives on whichever tab owns it
+                -- (BaseMenu-backed via _menu._search, BaseTable directly), so
+                -- delegate via tab.clearSearchIfActive.
+                local activeTab = handler._tabs[handler._activeIdx]
+                if activeTab ~= nil and type(activeTab.clearSearchIfActive) == "function" then
+                    local ok, consumed = Log.tryCall(
+                        "TabbedShell '" .. handler.name .. "' clearSearchIfActive in '" .. tostring(activeTab.tabName) .. "'",
+                        activeTab.clearSearchIfActive,
+                        activeTab
+                    )
+                    if ok and consumed then
+                        return true
+                    end
+                end
                 if onEscape ~= nil then
                     local ok, consumed = Log.tryCall("TabbedShell '" .. handler.name .. "' onEscape", onEscape, handler)
                     if ok and consumed then
