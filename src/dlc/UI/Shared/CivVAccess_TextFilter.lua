@@ -100,8 +100,12 @@ function TextFilter.filter(text)
     end
     local s = tostring(text)
 
-    -- Fast path: no brackets, no emdash, no control chars.
+    -- Fast path: no brackets, no emdash, no control chars. The
+    -- punctuation-adjacency cleanup still has to run for plain inputs
+    -- that carry "., " or ",." without going through any markup token.
     if not s:find("[%[\194-\244%z\1-\8\11\12\14-\31]") and not s:find("\226\128\148") then
+        s = s:gsub("([%.!?:])%s*,%s*", "%1 ")
+        s = s:gsub(",%s*(%.)%s*", "%1 ")
         return (s:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", ""))
     end
 
@@ -159,8 +163,12 @@ function TextFilter.filter(text)
     s = s:gsub(":%.", ".")
     -- A preceding sentence-ender or list-introducing colon already gives
     -- the reader a pause; the [NEWLINE]-derived comma would read as
-    -- "period comma" or "colon comma". Drop it.
+    -- "period comma" or "colon comma". Drop the comma.
     s = s:gsub("([%.!?:])%s*,%s*", "%1 ")
+    -- Same call but with the comma leading: a comma immediately followed
+    -- by a period reads as "comma period". Drop the comma; the period
+    -- carries the pause.
+    s = s:gsub(",%s*(%.)%s*", "%1 ")
     -- Whitespace collapse + trim. Leading / trailing comma strip handles
     -- the case where text begins or ends with a [NEWLINE].
     s = s:gsub("%s+", " "):gsub("^[%s,]+", ""):gsub("[%s,]+$", "")

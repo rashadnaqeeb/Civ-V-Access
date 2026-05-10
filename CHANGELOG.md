@@ -11,6 +11,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+- Comma immediately before a period (",." or ", .") now reads as just the period, mirroring the existing ".," collapse so adjacent comma/period pairs always pick the sentence-ender's pause.
 - Verbose-mode control-type tags renamed: checkboxes now announce as "toggle" (was "checkbox") and grouped items as "submenu" (was "drillable").
 - Localized mod strings now follow your text language (e.g. Traditional Chinese) instead of your audio language. Players who set the game's text language to a translated locale but kept English voice acting were previously hearing English mod text.
 

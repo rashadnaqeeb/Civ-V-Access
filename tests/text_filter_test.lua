@@ -396,6 +396,43 @@ function M.test_colon_period_artifact_collapses()
     T.eq(TextFilter.filter("Yield:[ICON_UNKNOWN]."), "Yield.")
 end
 
+-- Period / comma adjacency ----------------------------------------------
+
+-- Period wins in either order: ".," and ",." both reduce to ". ". The
+-- sentence-ender's pause is right for both cases.
+
+function M.test_comma_after_period_dropped_in_fast_path()
+    setup()
+    -- Plain text (no markup) takes the fast path; the punctuation rule
+    -- still has to fire there.
+    T.eq(TextFilter.filter("foo., bar"), "foo. bar")
+end
+
+function M.test_comma_before_period_dropped_in_fast_path()
+    setup()
+    T.eq(TextFilter.filter("foo,. bar"), "foo. bar")
+end
+
+function M.test_comma_before_period_handles_whitespace()
+    setup()
+    -- Comma + space + period collapses to just the period's pause.
+    T.eq(TextFilter.filter("foo, .bar"), "foo. bar")
+end
+
+function M.test_decimal_number_with_comma_unaffected()
+    setup()
+    -- "1.5,3" — the period is mid-token (decimal point), not adjacent to
+    -- the comma, so the rule must leave both characters in place.
+    T.eq(TextFilter.filter("1.5,3"), "1.5,3")
+end
+
+function M.test_comma_period_adjacency_in_markup_path()
+    setup()
+    -- Same rule needs to apply after markup substitution. ICON drops out,
+    -- leaving ",." adjacency that the slow-path rule must resolve.
+    T.eq(TextFilter.filter("foo,[ICON_X]. bar"), "foo. bar")
+end
+
 -- Composed ---------------------------------------------------------------
 
 function M.test_composed_color_newline_icon_whitespace()
