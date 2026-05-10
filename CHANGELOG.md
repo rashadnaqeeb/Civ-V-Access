@@ -15,6 +15,9 @@ New Features and improvements:
 Bug fixes:
 - World Congress Yea/Nay votes now register on the side you cast them. Votes were being submitted to the engine without a Yea/Nay tag, so the resolution outcome was decided by the AI alone and your choice had no effect.
 - Traditional Chinese (zh_Hant_HK): the city-view hub items Buildings, Specialists, Great Works, Production Queue, Manage Territory and Ranged Strike, plus the six compass-direction abbreviations spoken in cursor and scanner readouts, were left in English. They now display in Chinese.
+- Italian (it_IT): the in-game boot announcement said "Accessibility" instead of "Accessibilità".
+- Polish (pl_PL): in-game help-overlay key labels for arrow / Home / End chords were left in English (e.g. "Up lub down"). They now read in Polish, matching the front-end overlay.
+- Russian (ru_RU): same in-game help-overlay key labels were left in English (e.g. "Up или down"). They now read in Russian, matching the front-end overlay.
 
 ## [1.0.3] - 2026-05-10
 New Features and improvements:
