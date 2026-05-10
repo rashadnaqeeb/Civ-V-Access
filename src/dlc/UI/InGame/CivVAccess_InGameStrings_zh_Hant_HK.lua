@@ -279,12 +279,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "已停用"
 -- Batch 03 (lines 643-856): 100 keys
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_DISABLED"] = "{1_Label}, 已停用"
 -- Cursor / hex-grid handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "e"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "ne"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "東"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "東北"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "東南"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "西南"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "西"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "西北"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "地圖邊緣"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE"] = "射程邊緣"
@@ -719,11 +719,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_UNEMPLOYED"] = "無閒置市�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"] = "已指派"
 
 -- Buildings sub-handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"] = "Buildings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"] = "建築"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDINGS_EMPTY"] = "無建築物."
 
 -- Specialists sub-handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"] = "Specialists"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"] = "專家"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS"] = {
     other = "+{1_N} 偉人點數",
 }
@@ -739,7 +739,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_CANNOT_ADD"] = "無�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_MANUAL_SPECIALIST"] = "手動專家管理, {1_State}"
 
 -- Great works sub-handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"] = "Great works"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_GREAT_WORKS"] = "巨作"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_ART"] = "藝術"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_WRITING"] = "文學"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GW_SLOT_MUSIC"] = "音樂"
@@ -750,7 +750,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GW_THEMING_BONUS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GW_EMPTY_LIST"] = "無巨作席位."
 
 -- Production queue sub-handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"] = "Production queue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_PRODUCTION"] = "生產序列"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_EMPTY"] = "生產序列為空."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_TRAIN"] = {
     other = "序列 1, {1_Name}, {2_Turns} 回合, {3_Percent} 百分比. {4_Help}",
@@ -777,7 +777,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"] = "選擇生產項
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "以金幣或信仰值購買"
 
 -- Hex map sub-handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"] = "Manage territory"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_HEX"] = "領土管理"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_MODE"] = "領土管理"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_WORKED"] = "已耕作"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_TILE_PINNED"] = "已固定"
@@ -794,7 +794,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_KEY_BACK"] = "Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HEX_HELP_DESC_BACK"] = "返回城市中樞"
 
 -- Ranged strike sub-handler
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE"] = "Ranged strike"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE"] = "遠程攻擊"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_MODE"] = "遠程攻擊"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE"] = "無法攻擊"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_FIRED"] = "已開火"

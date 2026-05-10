@@ -14,6 +14,7 @@ New Features and improvements:
 - Scanner category order: Improvements and Recommendations now sit directly after Cities (was further down the list).
 Bug fixes:
 - World Congress Yea/Nay votes now register on the side you cast them. Votes were being submitted to the engine without a Yea/Nay tag, so the resolution outcome was decided by the AI alone and your choice had no effect.
+- Traditional Chinese (zh_Hant_HK): the city-view hub items Buildings, Specialists, Great Works, Production Queue, Manage Territory and Ranged Strike, plus the six compass-direction abbreviations spoken in cursor and scanner readouts, were left in English. They now display in Chinese.
 
 ## [1.0.3] - 2026-05-10
 New Features and improvements:
