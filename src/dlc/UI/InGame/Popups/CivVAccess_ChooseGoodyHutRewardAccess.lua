@@ -2,20 +2,24 @@
 -- Events.SerialEventGameMessagePopup with BUTTONPOPUP_CHOOSE_GOODY_HUT_REWARD.
 -- Base's PopulateItems["GoodyHutBonuses"] walks GameInfo.GoodyHuts in index
 -- order, filters each by pPlayer:CanGetGoody(pPlot, iGoodyType, pUnit), and
--- spawns one Button per eligible bonus inside Controls.ItemStack. Selection
--- is tracked in a global SelectedItems = {{iGoodyType, controlTable}};
--- ConfirmButton stays disabled until g_NumberOfFreeItems == #SelectedItems
--- (always 1 today -- the base errors hard on > 1), and fires
--- CommitItems["GoodyHutBonuses"] which sends Network.SendGoodyChoice.
+-- spawns one Button per eligible bonus. Vanilla flow is click-row-then-
+-- click-Confirm; we collapse it to a flat list where Enter on a row commits
+-- and hides immediately. Bonus labels come from mod-authored
+-- TXT_KEY_CIVVACCESS_GOODY_LABEL_<TYPE> -- vanilla's ChooseDescription
+-- ("Convince the lost tribe to become a Worker for your civilization") is
+-- sighted flavor text and reads poorly through speech.
 --
--- Our listener fires after base's on the same popup event. We rebuild a
--- parallel BaseMenu item list: one Choice per eligible GoodyHut plus a
--- trailing Confirm Button targeting the real ConfirmButton control. Enter
--- on a Choice replaces SelectedItems with {{iGoodyType, stub}} and enables
--- Confirm (matching base's single-select branch without touching the
--- sighted SelectionAnim, which the blind player cannot observe anyway).
--- Enter on Confirm runs the base's CommitItems closure (which reads
--- pUnit / pPlot from base's file locals) and hides the popup.
+-- Each row's activate calls CommitItems["GoodyHutBonuses"] (which reads
+-- pUnit / pPlot from base's file locals captured by base's OnPopup, fired
+-- on the same SerialEventGameMessagePopup before our listener) and hides
+-- the popup. SelectedItems is passed as a fresh single-entry array per
+-- click; the second slot carries a SelectionAnim stub so a stray mouse
+-- click on a row while our sub-handler is active doesn't throw.
+--
+-- Row text is "<short label>, <vanilla flavor description>": the
+-- distinguishing word leads (so screen reader users can disambiguate
+-- without listening through a full sentence), the flavor sentence
+-- follows for context.
 --
 -- deferActivate=true on install means the push fires next tick via
 -- TickPump, so onActivate reads items that our listener populates after
@@ -27,6 +31,15 @@ include("CivVAccess_ChoosePopupCommon")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 local selectionStub = ChoosePopupCommon.selectionStub
+
+local function labelFor(info)
+    local description = Text.key(info.ChooseDescription)
+    local key = "TXT_KEY_CIVVACCESS_GOODY_LABEL_" .. info.Type:gsub("^GOODY_", "")
+    if CivVAccess_Strings[key] == nil then
+        return description
+    end
+    return Text.key(key) .. ", " .. description
+end
 
 local function buildItems(popupInfo)
     local playerID = popupInfo.Data1
@@ -49,29 +62,15 @@ local function buildItems(popupInfo)
         local iGoodyType = iIndex
         if pPlayer:CanGetGoody(pPlot, iGoodyType, pUnit) then
             items[#items + 1] = BaseMenuItems.Choice({
-                labelText = Text.key(info.ChooseDescription),
-                selectedFn = function()
-                    return #SelectedItems > 0 and SelectedItems[1][1] == iGoodyType
-                end,
+                labelText = labelFor(info),
                 activate = function()
-                    SelectedItems = { { iGoodyType, selectionStub() } }
-                    if Controls.ConfirmButton ~= nil then
-                        Controls.ConfirmButton:SetDisabled(false)
-                    end
+                    CommitItems["GoodyHutBonuses"]({ { iGoodyType, selectionStub() } }, playerID)
+                    ContextPtr:SetHide(true)
                 end,
             })
         end
         iIndex = iIndex + 1
     end
-
-    items[#items + 1] = BaseMenuItems.Button({
-        controlName = "ConfirmButton",
-        textKey = "TXT_KEY_OK_BUTTON",
-        activate = function()
-            CommitItems["GoodyHutBonuses"](SelectedItems, playerID)
-            ContextPtr:SetHide(true)
-        end,
-    })
 
     return items
 end
