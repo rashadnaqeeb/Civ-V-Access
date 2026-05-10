@@ -1,16 +1,20 @@
 -- ChooseFreeItem accessibility (Liberty-tree free Great Person). Own-Context
 -- popup opened via Events.SerialEventGameMessagePopup with
 -- BUTTONPOPUP_CHOOSE_FREE_GREAT_PERSON. Shares the PopulateItems /
--- CommitItems / SelectedItems scaffold with ChooseGoodyHutReward; see the
--- header of CivVAccess_ChooseGoodyHutRewardAccess.lua for the selection
--- mirror rationale.
+-- CommitItems / SelectedItems scaffold with ChooseGoodyHutReward.
 --
 -- Row eligibility matches base's PopulateItems["GreatPeople"]:
 -- player:CanTrain(info.ID, true, true, true, false) and (pantheon or not
 -- FoundReligion) -- Liberty's prophet reward is gated behind having a
--- pantheon, same as the sighted screen. Close uses UIManager:DequeuePopup
--- via OnClose (this popup was opened via UIManager:QueuePopup in
--- DisplayPopup, unlike GoodyHut which uses ContextPtr:SetHide).
+-- pantheon, same as the sighted screen. Vanilla flow is click-row-then-
+-- click-Confirm; we collapse it to a flat list where Enter on a row
+-- commits via CommitItems["GreatPeople"] (sends Network.SendGreatPersonChoice)
+-- and closes the popup via OnClose. The selectionStub second-slot is a
+-- guard against a stray mouse click on a row while our sub-handler is
+-- active throwing on base's SelectionAnim:SetHide. Close uses
+-- UIManager:DequeuePopup via OnClose (this popup was opened via
+-- UIManager:QueuePopup in DisplayPopup, unlike GoodyHut which uses
+-- ContextPtr:SetHide).
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_ChoosePopupCommon")
@@ -37,27 +41,13 @@ local function buildItems(popupInfo)
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = Text.key(info.Description),
                 tooltipText = strategy and Text.key(strategy) or nil,
-                selectedFn = function()
-                    return #SelectedItems > 0 and SelectedItems[1][1] == unitType
-                end,
                 activate = function()
-                    SelectedItems = { { unitType, selectionStub() } }
-                    if Controls.ConfirmButton ~= nil then
-                        Controls.ConfirmButton:SetDisabled(false)
-                    end
+                    CommitItems["GreatPeople"]({ { unitType, selectionStub() } }, playerID)
+                    OnClose()
                 end,
             })
         end
     end
-
-    items[#items + 1] = BaseMenuItems.Button({
-        controlName = "ConfirmButton",
-        textKey = "TXT_KEY_OK_BUTTON",
-        activate = function()
-            CommitItems["GreatPeople"](SelectedItems, playerID)
-            OnClose()
-        end,
-    })
 
     return items
 end
