@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 - The pick-a-ruin-reward popup (when a Shoshone Pathfinder discovers a ruin) is now a flat list: pick a row to commit, and each row leads with a short label before the flavor sentence.
 - The Liberty free Great Person popup is now a flat list: pick a row to commit, no separate confirm step.
+- The faith-purchased Great Person and Maya baktun bonus popups are now flat lists: pick a row to commit, no separate confirm step.
 - Automated workers now announce what they're currently building (e.g. "Build Farm 5 turns, automated Workers") instead of just "automated Workers", so you can tell whether an automated worker is making progress or sitting idle.
 - Comma immediately before a period (",." or ", .") now reads as just the period, ending the annoying NVDA dot reading.
 - Verbose-mode control-type tags renamed: checkboxes now announce as "toggle" (was "checkbox") and grouped items as "submenu" (was "drillable"). Better matching the windows UI.

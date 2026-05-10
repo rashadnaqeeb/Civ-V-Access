@@ -2,14 +2,18 @@
 -- Events.SerialEventGameMessagePopup with BUTTONPOPUP_CHOOSE_MAYA_BONUS.
 -- Fires at the end of each Maya long-count baktun. Shares the
 -- PopulateItems / CommitItems / SelectedItems scaffold with
--- ChooseGoodyHutReward; see that file's header for the selection mirror
--- rationale.
+-- ChooseGoodyHutReward.
 --
 -- Row eligibility: player:CanTrain(info.ID, ...) AND (either this is a
 -- free Maya great-person choice OR the unit hasn't already been taken in
 -- an earlier baktun). player:GetUnitBaktun(info.ID) > 0 signals a
 -- prior pick; player:IsFreeMayaGreatPersonChoice() waives that gate (the
 -- one-off "free choice" every civ gets on their first baktun roll).
+--
+-- Vanilla flow is click-row-then-click-Confirm; we collapse to a flat list
+-- where Enter on a row commits via CommitItems["GreatPeople"] and hides
+-- the popup. The selectionStub second-slot guards against a stray mouse
+-- click on a row throwing on base's SelectionAnim:SetHide.
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_ChoosePopupCommon")
@@ -44,27 +48,13 @@ local function buildItems(popupInfo)
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = Text.key(info.Description),
                 tooltipText = strategy and Text.key(strategy) or nil,
-                selectedFn = function()
-                    return #SelectedItems > 0 and SelectedItems[1][1] == unitType
-                end,
                 activate = function()
-                    SelectedItems = { { unitType, selectionStub() } }
-                    if Controls.ConfirmButton ~= nil then
-                        Controls.ConfirmButton:SetDisabled(false)
-                    end
+                    CommitItems["GreatPeople"]({ { unitType, selectionStub() } }, playerID)
+                    ContextPtr:SetHide(true)
                 end,
             })
         end
     end
-
-    items[#items + 1] = BaseMenuItems.Button({
-        controlName = "ConfirmButton",
-        textKey = "TXT_KEY_OK_BUTTON",
-        activate = function()
-            CommitItems["GreatPeople"](SelectedItems, playerID)
-            ContextPtr:SetHide(true)
-        end,
-    })
 
     return items
 end
