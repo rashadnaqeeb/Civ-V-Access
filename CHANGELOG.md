@@ -11,6 +11,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+- Verbose-mode control-type tags renamed: checkboxes now announce as "toggle" (was "checkbox") and grouped items as "submenu" (was "drillable").
 - Localized mod strings now follow your text language (e.g. Traditional Chinese) instead of your audio language. Players who set the game's text language to a translated locale but kept English voice acting were previously hearing English mod text.
 
 ## [1.0.2] - 2026-05-09

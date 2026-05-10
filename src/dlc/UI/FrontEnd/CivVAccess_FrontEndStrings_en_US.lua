@@ -288,15 +288,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restore
 -- announcement when the Verbosity setting is on, so the leading
 -- distinguishing word is unaffected. Kind names follow screen-reader
 -- convention rather than the BaseMenuItems internal `kind` field
--- (pulldown announces as "combo box"; group announces as "drillable").
+-- (pulldown announces as "combo box"; group announces as "submenu";
+-- checkbox announces as "toggle").
 -- Choice and Text items intentionally have no tag. Textfield speaks
 -- TEXTFIELD_EDIT inline in its announce and has no entry here. Mirrored
 -- from the InGame copy because BaseMenuItems is shared between Contexts.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_BUTTON"] = "button"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "checkbox"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "toggle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_SLIDER"] = "slider"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_PULLDOWN"] = "combo box"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "drillable"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "submenu"
 -- Verbosity-gated position template appended after a BaseMenu item's
 -- full announcement. {1_Num} is the cursor's 1-based rank among
 -- navigable siblings; {2_Num} is the count of navigable siblings.

@@ -995,16 +995,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restore
 -- announcement when the Verbosity setting is on, so the leading
 -- distinguishing word is unaffected. Kind names follow screen-reader
 -- convention rather than the BaseMenuItems internal `kind` field
--- (pulldown announces as "combo box"; group announces as "drillable").
+-- (pulldown announces as "combo box"; group announces as "submenu";
+-- checkbox announces as "toggle").
 -- Choice and Text items intentionally have no tag (a flat list entry has
 -- no clean screen-reader name; informational rows are silent). Textfield
 -- predates this setting and speaks TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT
 -- inline in its announce, so it has no entry here.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_BUTTON"] = "button"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "checkbox"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "toggle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_SLIDER"] = "slider"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_PULLDOWN"] = "combo box"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "drillable"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "submenu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_TABLE"] = "table"
 -- Verbosity-gated position template. Appended after a BaseMenu item's
 -- full announcement (label, value, kind tag, disabled, tooltip) so the
