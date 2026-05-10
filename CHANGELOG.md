@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.0.3] - 2026-05-10
 New Features and improvements:
 - Scanner cities category now has a "City states" subcategory holding peaceful city-states, so they no longer crowd the neutral major-civ list. City-states you're at war with bucket into "Enemy cities" alongside hostile major civs.
 Bug fixes:
