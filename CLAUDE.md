@@ -4,7 +4,7 @@ Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes
 
 ## Changelog
 
-When committing a new feature or bug fix, add an entry to `CHANGELOG.md`. Keep entries short — one line per change, written from the player's perspective (what changed for them, not implementation details).
+When committing a new feature or bug fix, add an entry to `CHANGELOG.md` under `## [Unreleased]`, beneath one of two section headers: `New Features and improvements:` or `Bug fixes:`. Add the header if it isn't there yet. Keep entries short — one line per change, written from the player's perspective (what changed for them, not implementation details).
 
 ## Build
 

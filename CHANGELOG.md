@@ -10,8 +10,9 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
-
+New Features and improvements:
 - Scanner cities category now has a "City states" subcategory holding peaceful city-states, so they no longer crowd the neutral major-civ list. City-states you're at war with bucket into "Enemy cities" alongside hostile major civs.
+Bug fixes:
 - Type-ahead search no longer fires on screens with only one option to pick: the lone item used to get re-announced on every keystroke. Same screen with multiple options behaves as before.
 - AI-initiated diplomacy popups (a leader greeting you, proposing a trade, or telling you something) now ignore type-ahead keystrokes for the first 0.2 seconds. Stops in-flight cursor letters (Q/W/E/A/S/D/Z/X/C) from leaking into the popup's search the moment it appears.
 - Tabbed overview screens (F-key advisors, F6 tech tree, etc.): pressing Escape with an active typeahead search now clears the buffer instead of closing the screen, matching every other menu.
