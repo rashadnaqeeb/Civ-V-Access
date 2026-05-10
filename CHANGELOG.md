@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+New Features and improvements:
+- Scanner category order: Improvements and Recommendations now sit directly after Cities (was further down the list).
 Bug fixes:
 - World Congress Yea/Nay votes now register on the side you cast them. Votes were being submitted to the engine without a Yea/Nay tag, so the resolution outcome was decided by the AI alone and your choice had no effect.
 

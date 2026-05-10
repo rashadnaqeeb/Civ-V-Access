@@ -32,15 +32,15 @@ function M.test_category_order_fixed()
     setup()
     local expected = {
         "cities",
+        "improvements",
+        "recommendations",
         "units_my",
         "units_neutral",
         "units_enemy",
         "resources",
-        "improvements",
         "worked_tiles",
         "special",
         "terrain",
-        "recommendations",
         "waypoints",
     }
     local actual = catKeys()

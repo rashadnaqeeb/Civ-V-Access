@@ -61,6 +61,33 @@ ScannerCore.CATEGORIES = {
         },
     },
     {
+        -- `my_pillaged` is exclusive: an improvement of yours that is
+        -- pillaged emits there and NOT under `my`, so `my` reads as
+        -- "productive improvements I own" and `my_pillaged` reads as a
+        -- repair list. Enemy / neutral pillaged improvements stay in
+        -- their owner sub (no parallel pillaged bucket for them -- the
+        -- repair-list use case is player-scoped).
+        key = "improvements",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS",
+        subcategories = {
+            { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
+            { key = "my_pillaged", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY_PILLAGED" },
+            { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
+            { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
+        },
+    },
+    {
+        -- Settler and worker tile recommendations sourced from
+        -- Player:GetRecommendedFoundCityPlots and GetRecommendedWorkerPlots.
+        -- No named subs: settler and worker recs never coexist in one
+        -- selection frame (the engine gates each kind on its matching
+        -- UI.CanSelectionList* check), so a split would add a navigation
+        -- step with no disambiguation payoff.
+        key = "recommendations",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_RECOMMENDATIONS",
+        subcategories = {},
+    },
+    {
         key = "units_my",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_MY",
         subcategories = {
@@ -113,22 +140,6 @@ ScannerCore.CATEGORIES = {
         },
     },
     {
-        -- `my_pillaged` is exclusive: an improvement of yours that is
-        -- pillaged emits there and NOT under `my`, so `my` reads as
-        -- "productive improvements I own" and `my_pillaged` reads as a
-        -- repair list. Enemy / neutral pillaged improvements stay in
-        -- their owner sub (no parallel pillaged bucket for them -- the
-        -- repair-list use case is player-scoped).
-        key = "improvements",
-        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS",
-        subcategories = {
-            { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
-            { key = "my_pillaged", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY_PILLAGED" },
-            { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
-            { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
-        },
-    },
-    {
         -- Plots the head-selected city is currently working, sourced from
         -- city:IsWorkingPlot. Only populates while the CityView "Manage
         -- territory" sub is active (the backend gates on
@@ -161,17 +172,6 @@ ScannerCore.CATEGORIES = {
             { key = "features", label = "TXT_KEY_TERRAIN_FEATURES_HEADING2_TITLE" },
             { key = "elevation", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION" },
         },
-    },
-    {
-        -- Settler and worker tile recommendations sourced from
-        -- Player:GetRecommendedFoundCityPlots and GetRecommendedWorkerPlots.
-        -- No named subs: settler and worker recs never coexist in one
-        -- selection frame (the engine gates each kind on its matching
-        -- UI.CanSelectionList* check), so a split would add a navigation
-        -- step with no disambiguation payoff.
-        key = "recommendations",
-        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_RECOMMENDATIONS",
-        subcategories = {},
     },
     {
         -- Per-step plots the active selected unit will traverse on its
