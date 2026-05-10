@@ -19,6 +19,8 @@
 LeagueOverviewVote = {}
 
 local kChoiceNone = -1
+local kChoiceNo = 0
+local kChoiceYes = 1
 local STEP = 1
 local BIG_STEP = 5
 local PICKER_NAME = "LeagueOverviewMajorCivPicker"
@@ -231,7 +233,20 @@ end
 function Controller:commit(closeFn)
     for _, entry in ipairs(self.entries) do
         if entry.votes ~= 0 then
-            local choice = entry.choice or kChoiceNone
+            local choice
+            if isMajorCivProposal(entry.proposal) then
+                choice = entry.choice or kChoiceNone
+            else
+                -- Yes/no proposal: engine expects iChoice = kChoiceYes (1) for
+                -- a Yea vote and kChoiceNo (0) for a Nay vote, distinct from
+                -- iNumVotes (the magnitude). Derive from the sign of the
+                -- internal signed-int vote count, matching engine
+                -- VoteYesNoController:UpdateVoteState (LeagueOverview.lua
+                -- 1255-1259) which sets entry.Choice the same way before
+                -- commit. Sending kChoiceNone here lands the vote in a
+                -- phantom bucket that influences neither side.
+                choice = (entry.votes > 0) and kChoiceYes or kChoiceNo
+            end
             local votes = math.abs(entry.votes)
             if entry.proposal.Direction == "Enact" then
                 Network.SendLeagueVoteEnact(self.leagueId, entry.proposal.ID, self.activePlayer, votes, choice)
