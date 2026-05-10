@@ -1097,8 +1097,10 @@ end
 
 function M.test_search_backspace_to_empty_clears()
     setup()
+    -- ≥2 items so the single-option silent no-op doesn't kick in.
     local ctx, h = installForSearch({
         { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
     })
     keydown(ctx, vkLetter("a"))
     T.truthy(h._search:isSearchActive())
@@ -1137,18 +1139,25 @@ end
 
 function M.test_search_clears_on_drill()
     setup()
-    setCtrls({ "CHILD" })
+    setCtrls({ "CHILD", "OTHER" })
     local ctx = makeContextPtr()
     local handler = BaseMenu.install(ctx, {
         name = "T",
         displayName = "Screen",
         items = {
+            -- Two top-level entries so the single-option silent no-op
+            -- doesn't suppress the typed letter.
             groupItem("PARENT", {
                 BaseMenuItems.Button({
                     controlName = "CHILD",
                     labelText = "Apple",
                     activate = function() end,
                 }),
+            }),
+            BaseMenuItems.Button({
+                controlName = "OTHER",
+                labelText = "Other",
+                activate = function() end,
             }),
         },
     })
@@ -1176,8 +1185,12 @@ end
 
 function M.test_search_ignored_when_ctrl_held()
     setup()
+    -- ≥2 items so the search would start on a plain letter; we want to
+    -- isolate the Ctrl-rejection path, not coincidentally pass via the
+    -- single-option silent no-op.
     local ctx, h = installForSearch({
         { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
     })
     UI.CtrlKeyDown = function()
         return true
@@ -1186,6 +1199,130 @@ function M.test_search_ignored_when_ctrl_held()
     -- The modal capturesAllInput barrier still absorbs Ctrl+A, but the
     -- critical guarantee is that it did not feed the search buffer.
     T.falsy(h._search:isSearchActive(), "Ctrl+A must not start a type-ahead search")
+end
+
+-- Single-option silent no-op -------------------------------------------
+--
+-- A BaseMenu screen whose current level has at most one navigable item
+-- has nothing to search. Letter / digit keys consume silently (no buffer,
+-- no "no match" speech) -- particularly the AI-popped DiscussionDialog
+-- where the BLANK_DISCUSSION state hides 8 of 9 buttons and leaves only
+-- BackButton navigable.
+
+function M.test_search_silent_noop_when_only_one_navigable_item()
+    setup()
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+    })
+    clearArr(speaks)
+    T.truthy(keydown(ctx, vkLetter("a")), "key consumed even on single-option screens")
+    T.falsy(h._search:isSearchActive(), "no search started")
+    T.eq(h._search:buffer(), "", "no buffer mutation")
+    T.eq(#speaks, 0, "no speech produced")
+end
+
+-- typeAheadOpenDelay grace window --------------------------------------
+--
+-- AI-popped diplomacy screens (DiploTrade, DiscussionDialog) can pop
+-- mid-cursor-motion. In-flight letter / digit keys from the hex cursor
+-- (Q/W/E/A/S/D/Z/X/C and digit row) would otherwise feed type-ahead the
+-- moment the popup grabs input. The grace window silently consumes
+-- printable keys for the configured period after first onActivate.
+
+local function installWithDelay(items, delay)
+    local ctx = makeContextPtr()
+    local names = {}
+    for _, it in ipairs(items) do
+        names[#names + 1] = it.name
+    end
+    setCtrls(names)
+    local specItems = {}
+    for _, it in ipairs(items) do
+        specItems[#specItems + 1] = BaseMenuItems.Button({
+            controlName = it.name,
+            labelText = it.label,
+            activate = function() end,
+        })
+    end
+    local handler = BaseMenu.install(ctx, {
+        name = "T",
+        displayName = "Screen",
+        items = specItems,
+        typeAheadOpenDelay = delay,
+    })
+    return ctx, handler
+end
+
+function M.test_typeAheadOpenDelay_drops_letters_within_window()
+    setup()
+    local now = 100.0
+    BaseMenu._timeSource = function()
+        return now
+    end
+    local ctx, h = installWithDelay({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    }, 0.2)
+    -- Open the screen: first onActivate records _typeAheadOpenedAt.
+    ctx._sh(false, false)
+    clearArr(speaks)
+    -- 100ms after open: still inside the 200ms grace window.
+    now = 100.1
+    T.truthy(keydown(ctx, vkLetter("a")), "key consumed during grace")
+    T.falsy(h._search:isSearchActive(), "search did not start during grace")
+    T.eq(h._search:buffer(), "", "no buffer mutation during grace")
+end
+
+function M.test_typeAheadOpenDelay_allows_letters_after_window()
+    setup()
+    local now = 200.0
+    BaseMenu._timeSource = function()
+        return now
+    end
+    local ctx, h = installWithDelay({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    }, 0.2)
+    ctx._sh(false, false)
+    clearArr(speaks)
+    -- 300ms after open: past the 200ms grace.
+    now = 200.3
+    T.truthy(keydown(ctx, vkLetter("a")), "key consumed by search after grace")
+    T.truthy(h._search:isSearchActive(), "search runs normally after grace")
+    T.eq(h._search:buffer(), "a", "buffer recorded the letter")
+end
+
+function M.test_typeAheadOpenDelay_unset_does_not_gate()
+    setup()
+    -- No typeAheadOpenDelay; immediate keypress feeds search as normal.
+    local ctx, h = installForSearch({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    })
+    T.truthy(keydown(ctx, vkLetter("a")))
+    T.truthy(h._search:isSearchActive(), "no grace window when delay unset")
+end
+
+function M.test_typeAheadOpenDelay_does_not_gate_arrows_or_enter()
+    -- Grace window only suppresses keys that feed type-ahead (letters,
+    -- digits, Backspace, Space). Arrows / Enter / Esc still flow through
+    -- normal binding dispatch so a deliberate user action during the
+    -- window still works.
+    setup()
+    local now = 50.0
+    BaseMenu._timeSource = function()
+        return now
+    end
+    local ctx, h = installWithDelay({
+        { name = "A", label = "Apple" },
+        { name = "B", label = "Banana" },
+    }, 0.2)
+    ctx._sh(false, false)
+    -- 100ms after open: still inside the grace window.
+    now = 50.1
+    T.eq(h._indices[1], 1, "cursor starts on first item")
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 2, "Down still navigates during grace")
 end
 
 -- Choice.selectedFn: browse-then-commit screens (ScenariosMenu, CustomMod,

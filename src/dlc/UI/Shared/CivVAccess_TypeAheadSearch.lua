@@ -437,9 +437,30 @@ function Instance:_announceCurrentResult()
 end
 
 -- Character input. Returns true when consumed.
+--
+-- Single-option screens (≤1 navigable items): silent no-op. With nothing
+-- to search, running the search would either say "no match" (0 items) or
+-- announce the same row the cursor already sits on (1 item) on every
+-- keystroke. Consume the key so it doesn't fall through to the screen's
+-- prior input handler. "Navigable" is defined by the searchable's getLabel
+-- returning non-nil; consumers (BaseMenu, BaseTable) already null-out
+-- hidden / non-navigable rows there, so this matches what would actually
+-- be visited by the search.
 function Instance:handleChar(c, searchable)
-    if not self._isSearchActive and searchable.itemCount() == 0 then
-        return false
+    if not self._isSearchActive then
+        local count = searchable.itemCount()
+        local navigable = 0
+        for i = 1, count do
+            if searchable.getLabel(i) ~= nil then
+                navigable = navigable + 1
+                if navigable >= 2 then
+                    break
+                end
+            end
+        end
+        if navigable < 2 then
+            return true
+        end
     end
     self:addChar(c)
     self:search(searchable.itemCount(), searchable.getLabel, searchable.moveTo, searchable.groupOf)

@@ -494,6 +494,7 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
         preamble = descriptor.preambleFn,
         silentFirstOpen = descriptor.silentFirstOpen,
         deferActivate = descriptor.deferActivate,
+        typeAheadOpenDelay = descriptor.typeAheadOpenDelay,
         priorInput = priorInput,
         priorShowHide = priorShowHide,
         onTab = descriptor.onTab,

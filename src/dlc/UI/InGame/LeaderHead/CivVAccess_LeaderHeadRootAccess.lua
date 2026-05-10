@@ -95,6 +95,10 @@ local handler = BaseMenu.install(ContextPtr, {
     preamble = composePreamble,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
+    -- AI-initiated; can pop mid-turn while the player is moving the hex
+    -- cursor. Drop in-flight letter / digit keys for a short grace window
+    -- so they don't feed type-ahead.
+    typeAheadOpenDelay = 0.2,
     onShow = function(handler)
         local title = Controls.TitleText:GetText()
         if title ~= nil and title ~= "" then

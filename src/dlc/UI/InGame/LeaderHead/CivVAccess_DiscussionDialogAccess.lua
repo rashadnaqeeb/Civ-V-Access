@@ -322,6 +322,10 @@ local handler = BaseMenu.install(ContextPtr, {
     -- finished setting the fresh leader speech. The AILeaderMessage
     -- listener below catches subsequent updates while the screen is open.
     deferActivate = true,
+    -- AI-initiated; can pop mid-turn while the player is moving the hex
+    -- cursor. Drop in-flight letter / digit keys for a short grace window
+    -- so they don't feed type-ahead.
+    typeAheadOpenDelay = 0.2,
     onShow = function(handler)
         local title = Controls.TitleText:GetText()
         if title ~= nil and title ~= "" then

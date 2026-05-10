@@ -97,6 +97,10 @@
 
 BaseMenu = {}
 
+-- Test seam for the type-ahead open-delay clock. Production reads os.clock;
+-- tests swap this to a controllable source.
+BaseMenu._timeSource = os.clock
+
 local MOD_SHIFT = 1
 local MOD_CTRL = 2
 local MOD_ALT = 4
@@ -794,6 +798,28 @@ function BaseMenu._handleSearchInput(handler, vk, mods)
         return false
     end
 
+    -- Type-ahead open-delay: AI-popped screens (DiploTrade, DiscussionDialog)
+    -- can pop while the player is mid-cursor-motion on the map. The cursor
+    -- cluster (Q/W/E/A/S/D/Z/X/C, plus their numpad mirrors) and digit row
+    -- emit letter / digit keys that would otherwise feed type-ahead the
+    -- moment the popup grabs input. Consume printable / digit / Backspace /
+    -- Space silently for the configured grace window after first onActivate.
+    -- Enter / arrows / Esc are NOT gated here -- those are handled by the
+    -- standard binding walk and reflect intent by the time the user hears
+    -- the popup announce, which has already started before the grace
+    -- window is up.
+    local delay = handler._typeAheadOpenDelay
+    if delay and handler._typeAheadOpenedAt then
+        local elapsed = BaseMenu._timeSource() - handler._typeAheadOpenedAt
+        if elapsed < delay then
+            local isLetter = vk >= 0x41 and vk <= 0x5A
+            local isDigit = vk >= 0x30 and vk <= 0x39
+            if isLetter or isDigit or vk == Keys.VK_BACK or vk == Keys.VK_SPACE then
+                return true
+            end
+        end
+    end
+
     local searchable = buildSearchable(handler)
     local search = handler._search
 
@@ -846,6 +872,11 @@ function BaseMenu.create(spec)
     Log.check(
         spec.onAltRight == nil or type(spec.onAltRight) == "function",
         "spec.onAltRight must be a function if provided"
+    )
+    Log.check(
+        spec.typeAheadOpenDelay == nil
+            or (type(spec.typeAheadOpenDelay) == "number" and spec.typeAheadOpenDelay >= 0),
+        "spec.typeAheadOpenDelay must be a non-negative number if provided"
     )
 
     local self = {
@@ -908,6 +939,13 @@ function BaseMenu.create(spec)
         -- route Tab to sibling-panel switching via civvaccess_shared).
         _onTab = spec.onTab,
         _onShiftTab = spec.onShiftTab,
+        -- Type-ahead grace window in seconds after first onActivate. Used
+        -- by AI-popped screens (DiploTrade, DiscussionDialog) where stray
+        -- in-flight letter / digit keys from the hex cursor would otherwise
+        -- feed type-ahead the moment the popup grabs input. _handleSearchInput
+        -- silently consumes printable / digit / Backspace / Space for this
+        -- many seconds after the open. nil = no grace.
+        _typeAheadOpenDelay = spec.typeAheadOpenDelay,
         -- _initialized gates the first-open setup (reset cursor, speak
         -- displayName + preamble + tab + item). Re-activations from a sub
         -- pop preserve cursor and just re-announce the current item.
@@ -1170,6 +1208,9 @@ function BaseMenu.create(spec)
                 self._indices[1] = startIndex
             end
             self._initialized = true
+            if self._typeAheadOpenDelay then
+                self._typeAheadOpenedAt = BaseMenu._timeSource()
+            end
             if not self._silentDisplayName then
                 SpeechPipeline.speakInterrupt(self.displayName)
             end

@@ -89,6 +89,10 @@ local handler = TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, 
     -- AILeaderMessage updates on the already-open screen reach speech via
     -- TradeLogicAccess.rebuild -> handler.refresh().
     deferActivate = true,
+    -- AI-initiated; can pop mid-turn while the player is moving the hex
+    -- cursor. Drop in-flight letter / digit keys for a short grace window
+    -- so they don't feed type-ahead.
+    typeAheadOpenDelay = 0.2,
 })
 
 -- F2 reads the AI leader's portrait description. TradeLogic exposes the

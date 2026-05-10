@@ -4,6 +4,7 @@
 local T = require("support")
 local M = {}
 
+local spoken
 local function setup()
     Log.warn = function() end
     Log.error = function() end
@@ -12,7 +13,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
     SpeechPipeline._reset()
-    T.captureSpeech()
+    spoken = T.captureSpeech()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TypeAheadSearch.lua")
 
@@ -447,6 +448,88 @@ function M.test_handle_key_inactive_without_buffer_ignored()
     local s = TypeAheadSearch.new()
     T.falsy(s:handleKey(40, false, false, sb), "Down ignored when inactive")
     T.falsy(s:handleKey(8, false, false, sb), "Backspace ignored when inactive without buffer")
+end
+
+-- Single-option no-op ---------------------------------------------------
+--
+-- Screens with at most one navigable item have nothing to search. The
+-- letter / digit key must consume silently (no buffer mutation, no
+-- "no match" speech) so the keystroke can't fall through to the screen's
+-- prior input handler. Counts navigable items via getLabel returning
+-- non-nil, matching what the search would actually visit.
+
+function M.test_handle_char_silent_noop_on_empty_list()
+    setup()
+    local sb = {
+        itemCount = function()
+            return 0
+        end,
+        getLabel = function()
+            return nil
+        end,
+        moveTo = function() end,
+    }
+    local s = TypeAheadSearch.new()
+    T.truthy(s:handleChar("a", sb), "0 items: consume the key")
+    T.eq(s:buffer(), "", "0 items: no buffer mutation")
+    T.falsy(s:isSearchActive(), "0 items: search not activated")
+    T.eq(#spoken, 0, "0 items: no speech")
+end
+
+function M.test_handle_char_silent_noop_on_single_navigable_item()
+    setup()
+    local sb = {
+        itemCount = function()
+            return 1
+        end,
+        getLabel = function(i)
+            return (i == 1) and "Athens" or nil
+        end,
+        moveTo = function() end,
+    }
+    local s = TypeAheadSearch.new()
+    T.truthy(s:handleChar("a", sb), "1 navigable item: consume the key")
+    T.eq(s:buffer(), "", "1 navigable item: no buffer mutation")
+    T.falsy(s:isSearchActive(), "1 navigable item: search not activated")
+    T.eq(#spoken, 0, "1 navigable item: no 'no match' speech")
+end
+
+function M.test_handle_char_silent_noop_counts_navigable_only()
+    setup()
+    -- 9 items total, only 1 navigable (BackButton-only DiscussionDialog
+    -- state). The DiploTrade / DiscussionDialog use case: a screen whose
+    -- itemCount is large but whose visible options collapse to 1 in the
+    -- current state.
+    local sb = {
+        itemCount = function()
+            return 9
+        end,
+        getLabel = function(i)
+            return (i == 5) and "Back" or nil
+        end,
+        moveTo = function() end,
+    }
+    local s = TypeAheadSearch.new()
+    T.truthy(s:handleChar("a", sb))
+    T.eq(s:buffer(), "")
+    T.falsy(s:isSearchActive())
+end
+
+function M.test_handle_char_runs_search_on_two_or_more_navigable_items()
+    setup()
+    local sb = {
+        itemCount = function()
+            return 2
+        end,
+        getLabel = function(i)
+            return ({ "Apple", "Banana" })[i]
+        end,
+        moveTo = function() end,
+    }
+    local s = TypeAheadSearch.new()
+    T.truthy(s:handleChar("a", sb))
+    T.truthy(s:isSearchActive(), "≥2 navigable items: search runs normally")
+    T.eq(s:buffer(), "a", "buffer mutated")
 end
 
 -- groupOf optional hook ---------------------------------------------------

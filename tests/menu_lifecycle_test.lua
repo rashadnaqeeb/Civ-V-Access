@@ -863,7 +863,9 @@ function M.test_tab_buildSearchable_override_replaces_default_corpus()
     -- override is honored, typing "xyzzy" routes through overrideMoveTo
     -- rather than matching any tab item.
     local overrideCalls = 0
-    local overrideLabels = { "xyzzy-match" }
+    -- ≥2 labels so the single-option silent no-op doesn't suppress the
+    -- typed letters before the override's moveTo can fire.
+    local overrideLabels = { "xyzzy-match", "xyzzy-other" }
     local h = BaseMenu.create({
         name = "T",
         displayName = "Screen",
