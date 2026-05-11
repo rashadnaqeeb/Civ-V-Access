@@ -8,12 +8,12 @@
 -- (S/W/X/1/2/3 and the Shift-letter surveyor cluster), and scanner cycling
 -- fall through to Baseline / Scanner unchanged. Only keys whose target-
 -- mode behavior must differ from Baseline are bound here. Alt+QAZEDC and
--- the Alt-letter quick actions (F/S/W/H/P/R/U/M, Alt+Space) are bound as
--- no-ops: Baseline's direct-move and quick-action handlers would commit
--- against the actor while the engine is in an attack / move interface
--- mode, so we swallow them. M is in the list because Alt+M re-enters
--- target mode -- without the block, pressing it here would stack a
--- second copy of this handler on top.
+-- the Alt-letter quick actions (F/S/W/H/P/R/U/M/X) are bound as no-ops:
+-- Baseline's direct-move and quick-action handlers would commit against
+-- the actor while the engine is in an attack / move interface mode, so
+-- we swallow them. M is in the list because Alt+M re-enters target mode
+-- -- without the block, pressing it here would stack a second copy of
+-- this handler on top.
 --
 -- Unit cycling (. / ,) is not bound here either -- `,` falls through to
 -- Baseline's UnitControl.cycleAll and `.` falls through to the engine's

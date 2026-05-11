@@ -105,12 +105,12 @@ local function noop() end
 -- opts:
 --   directMove   bool. Block Q,E,A,D,Z,C (the 6 hex-direction keys).
 --                Default true for all three callers.
---   quickActions bool. Block F,S,W,H,P,R,U,M,VK_SPACE (sleep / sentry / wake /
---                heal / pillage / ranged / upgrade / move-to / skip turn). Set
---                by UnitTargetMode and GiftMode; CityRangeStrikeMode leaves
---                these unblocked. M is in the list because Alt+M's quickAction
---                re-enters target mode -- without the block, pressing Alt+M
---                while target mode is already on top stacks a second copy.
+--   quickActions bool. Block F,S,W,H,P,R,U,M,X (sleep / sentry / wake / heal /
+--                pillage / ranged / upgrade / move-to / skip turn). Set by
+--                UnitTargetMode and GiftMode; CityRangeStrikeMode leaves these
+--                unblocked. M is in the list because Alt+M's quickAction re-
+--                enters target mode -- without the block, pressing Alt+M while
+--                target mode is already on top stacks a second copy.
 function HandlerStack.appendAltBlocks(bindings, opts)
     opts = opts or {}
     if opts.directMove ~= false then
@@ -130,7 +130,7 @@ function HandlerStack.appendAltBlocks(bindings, opts)
         bindings[#bindings + 1] = HandlerStack.bind(Keys.R, MOD_ALT, noop, "Block ranged attack")
         bindings[#bindings + 1] = HandlerStack.bind(Keys.U, MOD_ALT, noop, "Block upgrade")
         bindings[#bindings + 1] = HandlerStack.bind(Keys.M, MOD_ALT, noop, "Block move-to")
-        bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_SPACE, MOD_ALT, noop, "Block skip turn")
+        bindings[#bindings + 1] = HandlerStack.bind(Keys.X, MOD_ALT, noop, "Block skip turn")
     end
 end
 
