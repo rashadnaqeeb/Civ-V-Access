@@ -1,7 +1,7 @@
--- Scanner backend: units. Partitioned into My / Neutral / Enemy by the
--- scanning player's team stance, plus the Barbarians subcategory under
--- Enemy. Role subcategory is derived from Domain + UnitCombat per the
--- table in docs/scanner-design.md section 2.
+-- Scanner backend: units. Partitioned into My / Teammate / Neutral / Enemy
+-- by the scanning player's team stance, plus the Barbarians subcategory
+-- under Enemy. Role subcategory is derived from Domain + UnitCombat per
+-- the table in docs/scanner-design.md section 2.
 
 ScannerBackendUnits = {
     name = "units",
@@ -80,6 +80,8 @@ end
 -- From the active team's perspective, which top-level Units category
 -- does this unit's owner belong to? Barbarians route into units_enemy
 -- via the separate `barbarians` subcategory; caller checks that first.
+-- Same-team-but-different-player owners route into units_teammate so
+-- the player's own-unit cycle isn't padded with units they can't order.
 local function ownerCategory(ownerId, activePlayerId, activeTeam)
     if ownerId == activePlayerId then
         return "units_my"
@@ -93,7 +95,7 @@ local function ownerCategory(ownerId, activePlayerId, activeTeam)
     end
     local ownerTeamId = owner:GetTeam()
     if ownerTeamId == activeTeam then
-        return "units_my"
+        return "units_teammate"
     end
     if Teams[activeTeam]:IsAtWar(ownerTeamId) then
         return "units_enemy"
@@ -184,13 +186,16 @@ local function unitItemName(unit, category)
     return typeForm
 end
 
--- Own-team trade units sit on plots the engine considers fogged because
+-- Own trade units sit on plots the engine considers fogged because
 -- CvUnit::canChangeVisibility returns false on non-default map layers, so
 -- setXY skips changeAdjacentSight when the unit moves. Sighted players
 -- still see the caravan / cargo ship via the trade visuals system, so the
--- scanner mirrors that by accepting an own-team trade unit even when its
--- plot fails IsVisible. Enemy / neutral trade units stay gated by fog --
--- the engine deliberately withholds those from the active team.
+-- scanner mirrors that by accepting an own trade unit even when its plot
+-- fails IsVisible. Teammate / enemy / neutral trade units stay gated by
+-- fog -- the trade-visuals layer is keyed on m_eOriginOwner (the route's
+-- player slot, not their team) in CvGameTrade::CreateVis, so a teammate's
+-- caravan on a plot fogged to the active team isn't rendered to the
+-- active player either.
 local function unitVisibleToScanner(plot, unit, category, activeTeam, isDebug)
     if plot:IsVisible(activeTeam, isDebug) then
         return not unit:IsInvisible(activeTeam, isDebug)

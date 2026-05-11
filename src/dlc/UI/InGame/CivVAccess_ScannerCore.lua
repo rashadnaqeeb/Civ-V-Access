@@ -54,6 +54,7 @@ ScannerCore.CATEGORIES = {
         label = "TXT_KEY_CITIES_HEADING1_TITLE",
         subcategories = {
             { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_MY" },
+            { key = "teammate", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_TEAMMATE" },
             { key = "city_states", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_CITY_STATES" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_NEUTRAL" },
             { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_CITIES_ENEMY" },
@@ -72,6 +73,7 @@ ScannerCore.CATEGORIES = {
         subcategories = {
             { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
             { key = "my_pillaged", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY_PILLAGED" },
+            { key = "teammate", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_TEAMMATE" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
             { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
         },
@@ -90,6 +92,25 @@ ScannerCore.CATEGORIES = {
     {
         key = "units_my",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_MY",
+        subcategories = {
+            { key = "melee", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
+            { key = "ranged", label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },
+            { key = "siege", label = "TXT_KEY_ADVISOR_SIEGE_UNIT_DISPLAY" },
+            { key = "mounted", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED" },
+            { key = "naval", label = "TXT_KEY_ADVISOR_COMBAT_NAVAL_UNIT_DISPLAY" },
+            { key = "air", label = "TXT_KEY_UNITS_AIR_HEADING3_TITLE" },
+            { key = "civilian", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN" },
+            { key = "great_people", label = "TXT_KEY_ADVISOR_GREAT_PERSON_DISPLAY" },
+        },
+    },
+    {
+        -- Teammate units in same-team multiplayer. Distinct from units_my
+        -- because the player can't order a teammate's units; keeping them
+        -- out of units_my makes the cycle through your own forces clean.
+        -- Empty in single-player and free-for-all MP; Nav's categoryHasItems
+        -- filter then skips the category entirely.
+        key = "units_teammate",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_TEAMMATE",
         subcategories = {
             { key = "melee", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MELEE" },
             { key = "ranged", label = "TXT_KEY_ADVISOR_RANGED_UNIT_DISPLAY" },

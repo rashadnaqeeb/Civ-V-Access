@@ -243,8 +243,9 @@ function M.test_unit_role_great_people_beats_civilian()
 end
 
 function M.test_unit_owner_category_routes_by_team_stance()
-    -- Three players: active (own), peace, war. Each owns one combat unit.
-    -- All three categories should appear with the correct sub.
+    -- Four players: active (own), teammate (same team, different player),
+    -- peace, war. Each owns one combat unit. All four categories should
+    -- appear with the correct sub.
     setup()
     loadUnitsBackend()
     GameInfo.UnitCombatInfos = { [1] = { Type = "UNITCOMBAT_MELEE" } }
@@ -253,18 +254,52 @@ function M.test_unit_owner_category_routes_by_team_stance()
     local p1 = makePlotAt(0, 0, 0)
     local p2 = makePlotAt(1, 0, 1)
     local p3 = makePlotAt(2, 0, 2)
+    local p4 = makePlotAt(3, 0, 3)
     installPlayer(0, { makeUnit({ id = 10, owner = 0, combatId = 1, plot = p1 }) }, { team = 0 })
     installPlayer(1, { makeUnit({ id = 11, owner = 1, combatId = 1, plot = p2 }) }, { team = 1 })
     installPlayer(2, { makeUnit({ id = 12, owner = 2, combatId = 1, plot = p3 }) }, { team = 2 })
-    mapFromPlots({ p1, p2, p3 })
+    installPlayer(3, { makeUnit({ id = 13, owner = 3, combatId = 1, plot = p4 }) }, { team = 0 })
+    mapFromPlots({ p1, p2, p3, p4 })
     local out = runUnitsScan()
     local byCat = {}
     for _, e in ipairs(out) do
         byCat[e.category] = true
     end
     T.truthy(byCat["units_my"], "own unit must go to units_my")
+    T.truthy(byCat["units_teammate"], "same-team different-player unit must go to units_teammate")
     T.truthy(byCat["units_neutral"], "peace unit must go to units_neutral")
     T.truthy(byCat["units_enemy"], "war unit must go to units_enemy")
+end
+
+function M.test_unit_teammate_carries_civ_adjective()
+    -- Teammate units belong to a distinct civ from the active player's
+    -- (same-team play pairs different civs). The civ adjective must lead
+    -- the type word like for any non-own unit, so the user can tell
+    -- whose forces they're cycling through within the teammate bucket.
+    setup()
+    loadUnitsBackend()
+    GameInfo.UnitCombatInfos = { [1] = { Type = "UNITCOMBAT_MELEE" } }
+    GameInfo.Units = { [42] = { Description = "Warrior" } }
+    local plot = makePlotAt(0, 0, 0)
+    installPlayer(0, {}, { team = 0 })
+    installPlayer(
+        1,
+        { makeUnit({ id = 11, owner = 1, combatId = 1, plot = plot }) },
+        { team = 0, adjKey = "TXT_KEY_CIV_ROME_ADJECTIVE" }
+    )
+    mapFromPlots({ plot })
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_ROME_ADJECTIVE" then
+            return "Roman"
+        end
+        return origConvert and origConvert(key) or key
+    end
+    local out = runUnitsScan()
+    Locale.ConvertTextKey = origConvert
+    T.eq(#out, 1)
+    T.eq(out[1].category, "units_teammate")
+    T.eq(out[1].itemName, "Roman Warrior", "teammate unit must carry the civ adjective like any non-own unit")
 end
 
 function M.test_unit_barbarian_routes_to_enemy_with_barbarians_sub()
@@ -450,6 +485,30 @@ function M.test_unit_own_trade_unit_surfaces_on_fogged_plot()
     T.eq(out[1].subcategory, "civilian", "trade units bucket as civilian (no combat strength)")
 end
 
+function M.test_unit_teammate_trade_unit_stays_hidden_on_fogged_plot()
+    -- The trade-visuals layer is keyed on m_eOriginOwner (the route's
+    -- player slot, not their team) in CvGameTrade::CreateVis, so a
+    -- teammate's caravan on a plot fogged to the active team isn't
+    -- rendered to the active player either. The fogged-plot carve-out
+    -- is own-only, not active-team.
+    setup()
+    loadUnitsBackend()
+    GameInfo.Units = { [42] = { Description = "TXT_KEY_UNIT_CARAVAN" } }
+    local fogged = makePlotAt(0, 0, 0, { revealed = true, visible = false })
+    local teammateCaravan = makeUnit({
+        id = 1,
+        owner = 1,
+        team = 0,
+        combat = false,
+        trade = true,
+        plot = fogged,
+    })
+    installPlayer(0, {}, { team = 0 })
+    installPlayer(1, { teammateCaravan }, { team = 0 })
+    mapFromPlots({ fogged })
+    T.eq(#runUnitsScan(), 0, "teammate trade unit must stay hidden on fogged plot")
+end
+
 function M.test_unit_enemy_trade_unit_stays_hidden_on_fogged_plot()
     -- Carve-out is own-team only. An enemy caravan on a fogged plot would
     -- leak their trade route to a player who can't see it; the engine
@@ -546,6 +605,25 @@ function M.test_city_minor_civ_routes_to_city_states_at_peace()
     local out = ScannerBackendCities.Scan(0, 0)
     T.eq(#out, 1)
     T.eq(out[1].subcategory, "city_states", "minor-civ city must bucket under city_states")
+end
+
+function M.test_city_teammate_routes_to_teammate()
+    -- Same-team-but-different-player owners route into `teammate` so
+    -- cycling through My Cities isn't padded with cities you can't manage.
+    -- The activePlayer == ownerId branch must NOT fire (that's the user
+    -- themselves), and the activeTeam == ownerTeamId branch is what
+    -- catches teammates.
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam({ hasMet = { [1] = true } })
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 1, id = 1, plot = plot })
+    plot._city = city
+    installCityOwner(1, { city = city, team = 0, minor = false })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "teammate", "same-team different-player city must bucket under teammate, not my")
 end
 
 function M.test_city_minor_civ_at_war_routes_to_enemy()
@@ -782,12 +860,36 @@ function M.test_improvement_pillaged_enemy_stays_in_enemy()
     T.eq(out[1].subcategory, "enemy", "pillaged enemy improvement must stay in enemy, not move to my_pillaged")
 end
 
-function M.test_improvement_pillaged_teammate_stays_in_my()
+function M.test_improvement_teammate_routes_to_teammate()
+    -- Same-team-but-different-player owners route into `teammate` so
+    -- the `my` bucket reads as tiles you actually own and can act on.
+    setup()
+    loadImprovementsBackend()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = -1
+    GameInfo.Improvements = {
+        [5] = { Description = "TXT_KEY_IMPROVEMENT_FARM" },
+    }
+    local function mkTeamPlayer(teamId)
+        local p = { _team = teamId }
+        function p:GetTeam()
+            return self._team
+        end
+        return p
+    end
+    Players[0] = mkTeamPlayer(0)
+    Players[1] = mkTeamPlayer(0)
+    local healthyTeammate = impPlot(0, 0, 0, 5, 1, false)
+    mapFromPlots({ healthyTeammate })
+    local out = ScannerBackendImprovements.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "teammate", "healthy teammate-owned improvement must bucket under teammate")
+end
+
+function M.test_improvement_pillaged_teammate_stays_in_teammate()
     -- Workers can only repair improvements on tiles you own outright,
-    -- not on a teammate's tile. The repair-list bucket would surface
-    -- entries the player can't act on, so teammate pillaged improvements
-    -- stay in `my` (consistent with the existing teammate-as-`my`
-    -- pattern for healthy improvements).
+    -- not on a teammate's tile. There's no parallel `teammate_pillaged`
+    -- repair-list bucket -- pillaged teammate tiles stay in `teammate`.
     setup()
     loadImprovementsBackend()
     GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
@@ -809,7 +911,7 @@ function M.test_improvement_pillaged_teammate_stays_in_my()
     mapFromPlots({ pillagedTeammate })
     local out = ScannerBackendImprovements.Scan(0, 0)
     T.eq(#out, 1)
-    T.eq(out[1].subcategory, "my", "teammate pillaged improvement must stay in my, not move to my_pillaged")
+    T.eq(out[1].subcategory, "teammate", "teammate pillaged improvement must stay in teammate, not move to my_pillaged")
 end
 
 function M.test_improvement_pillaged_mine_on_fogged_plot_stays_in_my()

@@ -35,6 +35,7 @@ function M.test_category_order_fixed()
         "improvements",
         "recommendations",
         "units_my",
+        "units_teammate",
         "units_neutral",
         "units_enemy",
         "resources",
@@ -76,11 +77,14 @@ end
 function M.test_unit_categories_share_role_subs()
     setup()
     local my = subKeys("units_my")
+    local teammate = subKeys("units_teammate")
     local neutral = subKeys("units_neutral")
     local enemy = subKeys("units_enemy")
-    -- my + neutral must be identical; enemy adds `barbarians`.
+    -- my + teammate + neutral must be identical; enemy adds `barbarians`.
+    T.eq(#my, #teammate, "my vs teammate count")
     T.eq(#my, #neutral, "my vs neutral count")
     for i, k in ipairs(my) do
+        T.eq(teammate[i], k, "my/teammate position " .. i)
         T.eq(neutral[i], k, "my/neutral position " .. i)
     end
     T.eq(#enemy, #my + 1, "enemy adds one sub")
@@ -90,7 +94,7 @@ end
 function M.test_cities_subs()
     setup()
     local subs = subKeys("cities")
-    local expected = { "my", "city_states", "neutral", "enemy", "barb" }
+    local expected = { "my", "teammate", "city_states", "neutral", "enemy", "barb" }
     for i, k in ipairs(expected) do
         T.eq(subs[i], k, "cities position " .. i)
     end
@@ -111,8 +115,9 @@ function M.test_improvements_subs_owner_order()
     local subs = subKeys("improvements")
     T.eq(subs[1], "my")
     T.eq(subs[2], "my_pillaged")
-    T.eq(subs[3], "neutral")
-    T.eq(subs[4], "enemy")
+    T.eq(subs[3], "teammate")
+    T.eq(subs[4], "neutral")
+    T.eq(subs[5], "enemy")
 end
 
 function M.test_special_subs()

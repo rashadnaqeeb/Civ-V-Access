@@ -1,9 +1,10 @@
--- Scanner backend: cities (My / Neutral / Enemy) and barbarian camps.
--- Iterates Players[p]:Cities() across every major + minor slot, gating each
--- player by Teams[activeTeam]:IsHasMet; partitions ownership against the
--- active team's war state. Barb camps come from a separate plot sweep for
--- IMPROVEMENT_BARBARIAN_CAMP -- they're improvements, not cities, but live
--- under Cities because that's the hostile-settlement mental slot.
+-- Scanner backend: cities (My / Teammate / City States / Neutral / Enemy)
+-- and barbarian camps. Iterates Players[p]:Cities() across every major +
+-- minor slot, gating each player by Teams[activeTeam]:IsHasMet; partitions
+-- ownership against the active team's war state. Barb camps come from a
+-- separate plot sweep for IMPROVEMENT_BARBARIAN_CAMP -- they're
+-- improvements, not cities, but live under Cities because that's the
+-- hostile-settlement mental slot.
 
 ScannerBackendCities = {
     name = "cities",
@@ -16,8 +17,10 @@ local MAX_PLAYERS = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 64
 -- bucks into enemy alongside hostile major civs (the relationship the
 -- user is acting on is "they're shooting at me"); city-states at peace
 -- get their own bucket so they don't crowd the major-civ neutral list.
--- Returns nil if the owner team is the barb slot (cities shouldn't
--- exist there, but be defensive at the boundary).
+-- Same-team-but-different-player owners route into `teammate` rather
+-- than `my` so cycling through your own cities isn't padded with cities
+-- you can't manage. Returns nil if the owner team is the barb slot
+-- (cities shouldn't exist there, but be defensive at the boundary).
 local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
     if cityOwnerId == activePlayerId then
         return "my"
@@ -28,7 +31,7 @@ local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
     end
     local ownerTeamId = owner:GetTeam()
     if ownerTeamId == activeTeam then
-        return "my"
+        return "teammate"
     end
     if Teams[activeTeam]:IsAtWar(ownerTeamId) then
         return "enemy"
@@ -44,9 +47,13 @@ local function scanCities(activePlayer, activeTeam, out)
         local player = Players[playerId]
         if player ~= nil and player:IsAlive() and not player:IsBarbarian() then
             local teamId = player:GetTeam()
-            -- Active player is trivially "met" by themselves; IsHasMet may
-            -- return false for own team in some edge cases, so short-circuit.
-            local met = (playerId == activePlayer) or Teams[activeTeam]:IsHasMet(teamId)
+            -- Active team is trivially "met" by itself. CvGame::initDiplomacy
+            -- calls kTeamA.meet(eTeamA) for every team at game start
+            -- (CvGame.cpp:1281), so IsHasMet(own_team) does return true in
+            -- normal gameplay. Short-circuit on team identity anyway so the
+            -- backend doesn't depend on that init step having run, which
+            -- also covers the offline test harness.
+            local met = (teamId == activeTeam) or Teams[activeTeam]:IsHasMet(teamId)
             if met then
                 local sub = citySubcategory(playerId, activePlayer, activeTeam)
                 if sub ~= nil then

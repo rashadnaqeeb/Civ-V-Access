@@ -1,10 +1,10 @@
--- Scanner backend: improvements (My / My Pillaged / Neutral / Enemy by
--- owner team stance). Reads plot:GetRevealedImprovementType(activeTeam)
--- so the scanner matches the engine's own rendering under fog. Skips
--- the barb-camp and goody-hut improvements (handled by the Cities and
--- Special backends respectively) and the road / railroad improvements
--- if they exist (base game treats them as routes, not improvements;
--- the skip is belt-and-braces in case a mod promotes them).
+-- Scanner backend: improvements (My / My Pillaged / Teammate / Neutral
+-- / Enemy by owner team stance). Reads plot:GetRevealedImprovementType
+-- (activeTeam) so the scanner matches the engine's own rendering under
+-- fog. Skips the barb-camp and goody-hut improvements (handled by the
+-- Cities and Special backends respectively) and the road / railroad
+-- improvements if they exist (base game treats them as routes, not
+-- improvements; the skip is belt-and-braces in case a mod promotes them).
 --
 -- Ownership buckets via plot:GetRevealedOwner because Civ V does not
 -- expose a GetRevealedImprovementOwner; the tile owner IS the
@@ -15,10 +15,11 @@
 -- The pillaged carve-out is exclusive AND player-only: a pillaged
 -- improvement on a tile the active player owns moves out of `my` into
 -- `my_pillaged`, so `my` reads as productive improvements and
--- `my_pillaged` reads as a repair list. Teammate-owned tiles stay in
--- `my` regardless of pillage state because workers can only repair on
--- tiles you own outright. Enemy / neutral pillaged improvements stay in
--- their owner sub.
+-- `my_pillaged` reads as a repair list. Teammate-owned tiles bucket
+-- into `teammate` regardless of pillage state because workers can only
+-- repair on tiles you own outright, so a teammate's pillaged tile
+-- isn't repair-list material -- there's no parallel `teammate_pillaged`
+-- bucket. Enemy / neutral pillaged improvements stay in their owner sub.
 --
 -- Pillage state is gated on current visibility (plot:IsVisible). The
 -- engine-side IsImprovementPillaged() is a raw m_bImprovementPillaged
@@ -52,11 +53,11 @@ local function ownerSubcategory(ownerId, activePlayerId, activeTeam, isPillaged)
     end
     local ownerTeamId = owner:GetTeam()
     if ownerTeamId == activeTeam then
-        -- Teammate-owned: stays in `my` even when pillaged. Workers
-        -- cannot repair improvements on a teammate's tile, so the
-        -- repair-list bucket would surface entries the player can't
-        -- act on.
-        return "my"
+        -- Teammate-owned: routes to `teammate` regardless of pillage
+        -- state. Workers cannot repair improvements on a teammate's
+        -- tile, so a `teammate_pillaged` bucket would surface entries
+        -- the player can't act on.
+        return "teammate"
     end
     if Teams[activeTeam]:IsAtWar(ownerTeamId) then
         return "enemy"
