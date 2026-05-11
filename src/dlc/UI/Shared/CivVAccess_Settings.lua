@@ -1,7 +1,8 @@
 -- Settings overlay. Opens via the F12 pre-walk hook in InputRouter and
 -- gives the user a single place to flip mod-wide preferences. Built as a
--- BaseMenu handler with three items today (audio cue mode, master volume,
--- scanner auto-move); new settings drop in by appending to the items list.
+-- BaseMenu handler with five top-level drillable groups: UI, Cursor,
+-- Beacon, Scanner, Notifications. New settings drop into the group whose
+-- feature they belong to.
 --
 -- The handler is reachable from every Context that routes through
 -- InputRouter (front-end and in-game both), so its items must not assume
@@ -171,141 +172,165 @@ end
 local function buildItems()
     local masterVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"
     local beaconVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"
-    return {
-        -- Verbose UI: appends screen-reader-style metadata (control type
-        -- tags, position-within-list, table row/column counts, "table"
-        -- suffix on tab names) to BaseMenu and BaseTable announcements.
-        -- First item so it's the easiest setting to find for users who
-        -- want to swap the announcement style.
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI",
-            getValue = Verbosity.isOn,
-            setValue = Verbosity.setOn,
-        }),
-        BaseMenuItems.Group({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE",
-            items = {
-                audioCueModeChoice(AudioCueMode.MODE_SPEECH, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"),
-                audioCueModeChoice(
-                    AudioCueMode.MODE_SPEECH_PLUS_CUE,
-                    "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"
-                ),
-                audioCueModeChoice(AudioCueMode.MODE_CUE_ONLY, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"),
-            },
-        }),
-        BaseMenuItems.VirtualSlider({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME",
-            getValue = VolumeControl.get,
-            setValue = VolumeControl.set,
-            labelFn = function(value)
-                local percent = math.floor(value * 100 + 0.5)
-                return Text.format(masterVolumeFormat, percent)
-            end,
-            step = 0.01,
-            bigStep = 0.10,
-        }),
-        -- Beacon at-source volume. Multiplies into the linear-falloff in
-        -- Beacons.updateBeaconParams. Slider position t in [0, 1] maps to
-        -- multiplier t * BeaconVolume.MAX, so slider 50% is the historical
-        -- full-volume-at-source (1.0) and slider 100% is double that.
-        -- Sits right above the audible-distance slider since both shape
-        -- the falloff curve.
-        BaseMenuItems.VirtualSlider({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME",
-            getValue = function()
-                return BeaconVolume.get() / BeaconVolume.MAX
-            end,
-            setValue = function(t)
-                BeaconVolume.set(t * BeaconVolume.MAX)
-            end,
-            labelFn = function(t)
-                local percent = math.floor(t * 100 + 0.5)
-                return Text.format(beaconVolumeFormat, percent)
-            end,
-            step = 0.01,
-            bigStep = 0.10,
-        }),
-        -- Beacon audible-range slider. Adjusts the linear-falloff distance
-        -- where a bookmark beacon goes silent; default 30 hexes, range
-        -- 5..100 stepped at 5. The slider operates in [0,1]; BeaconRange.
-        -- toUnit / fromUnit map between the normalized handle and the
-        -- integer hex value so each tick lands on a STEP-multiple.
-        -- Beacons.updateBeaconParams reads BeaconRange.get() live, so a
-        -- tweak takes effect on the next cursor move with no explicit
-        -- notification.
-        BaseMenuItems.VirtualSlider({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE",
-            getValue = function()
-                return BeaconRange.toUnit(BeaconRange.get())
-            end,
-            setValue = function(t)
-                BeaconRange.set(BeaconRange.fromUnit(t))
-            end,
-            labelFn = function(t)
-                return Text.format("TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE_VALUE", BeaconRange.fromUnit(t))
-            end,
-            step = BeaconRange.STEP_UNIT,
-            bigStep = BeaconRange.BIG_STEP_UNIT,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
-            getValue = getScannerAutoMove,
-            setValue = setScannerAutoMove,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_FOLLOWS_SELECTION",
-            getValue = getCursorFollowsSelection,
-            setValue = setCursorFollowsSelection,
-        }),
-        BaseMenuItems.Group({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE",
-            items = {
-                cursorCoordModeChoice("off", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_OFF"),
-                cursorCoordModeChoice("prepend", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"),
-                cursorCoordModeChoice("append", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"),
-            },
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE",
-            getValue = getBorderAlwaysAnnounce,
-            setValue = setBorderAlwaysAnnounce,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",
-            getValue = getScannerCoords,
-            setValue = setScannerCoords,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
-            getValue = getScannerCompassDirection,
-            setValue = setScannerCompassDirection,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",
-            getValue = getReadSubtitles,
-            setValue = setReadSubtitles,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE",
-            getValue = getRevealAnnounce,
-            setValue = setRevealAnnounce,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE",
-            getValue = getAiCombatAnnounce,
-            setValue = setAiCombatAnnounce,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE",
-            getValue = getForeignUnitWatchAnnounce,
-            setValue = setForeignUnitWatchAnnounce,
-        }),
-        BaseMenuItems.VirtualToggle({
-            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE",
-            getValue = getForeignClearWatchAnnounce,
-            setValue = setForeignClearWatchAnnounce,
-        }),
-    }
+    local uiGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI",
+        items = {
+            -- Verbose UI: appends screen-reader-style metadata (control type
+            -- tags, position-within-list, table row/column counts, "table"
+            -- suffix on tab names) to BaseMenu and BaseTable announcements.
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI",
+                getValue = Verbosity.isOn,
+                setValue = Verbosity.setOn,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",
+                getValue = getReadSubtitles,
+                setValue = setReadSubtitles,
+            }),
+        },
+    })
+    local cursorGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_CURSOR",
+        items = {
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_FOLLOWS_SELECTION",
+                getValue = getCursorFollowsSelection,
+                setValue = setCursorFollowsSelection,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE",
+                getValue = getBorderAlwaysAnnounce,
+                setValue = setBorderAlwaysAnnounce,
+            }),
+            BaseMenuItems.Group({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE",
+                items = {
+                    cursorCoordModeChoice("off", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_OFF"),
+                    cursorCoordModeChoice("prepend", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"),
+                    cursorCoordModeChoice("append", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"),
+                },
+            }),
+            BaseMenuItems.Group({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE",
+                items = {
+                    audioCueModeChoice(AudioCueMode.MODE_SPEECH, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"),
+                    audioCueModeChoice(
+                        AudioCueMode.MODE_SPEECH_PLUS_CUE,
+                        "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"
+                    ),
+                    audioCueModeChoice(AudioCueMode.MODE_CUE_ONLY, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"),
+                },
+            }),
+            BaseMenuItems.VirtualSlider({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME",
+                getValue = VolumeControl.get,
+                setValue = VolumeControl.set,
+                labelFn = function(value)
+                    local percent = math.floor(value * 100 + 0.5)
+                    return Text.format(masterVolumeFormat, percent)
+                end,
+                step = 0.01,
+                bigStep = 0.10,
+            }),
+        },
+    })
+    -- Beacon volume / range live in their own drillable. Beacons are a
+    -- cursor-positioning feature, but they're a distinct mechanic from
+    -- per-hex earcons and the two sliders pair naturally on the same
+    -- screen.
+    local beaconGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON",
+        items = {
+            -- Beacon at-source volume. Multiplies into the linear-falloff in
+            -- Beacons.updateBeaconParams. Slider position t in [0, 1] maps to
+            -- multiplier t * BeaconVolume.MAX, so slider 50% is the historical
+            -- full-volume-at-source (1.0) and slider 100% is double that.
+            BaseMenuItems.VirtualSlider({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME",
+                getValue = function()
+                    return BeaconVolume.get() / BeaconVolume.MAX
+                end,
+                setValue = function(t)
+                    BeaconVolume.set(t * BeaconVolume.MAX)
+                end,
+                labelFn = function(t)
+                    local percent = math.floor(t * 100 + 0.5)
+                    return Text.format(beaconVolumeFormat, percent)
+                end,
+                step = 0.01,
+                bigStep = 0.10,
+            }),
+            -- Beacon audible-range slider. Adjusts the linear-falloff distance
+            -- where a bookmark beacon goes silent; default 30 hexes, range
+            -- 5..100 stepped at 5. The slider operates in [0,1]; BeaconRange.
+            -- toUnit / fromUnit map between the normalized handle and the
+            -- integer hex value so each tick lands on a STEP-multiple.
+            -- Beacons.updateBeaconParams reads BeaconRange.get() live, so a
+            -- tweak takes effect on the next cursor move with no explicit
+            -- notification.
+            BaseMenuItems.VirtualSlider({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE",
+                getValue = function()
+                    return BeaconRange.toUnit(BeaconRange.get())
+                end,
+                setValue = function(t)
+                    BeaconRange.set(BeaconRange.fromUnit(t))
+                end,
+                labelFn = function(t)
+                    return Text.format("TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE_VALUE", BeaconRange.fromUnit(t))
+                end,
+                step = BeaconRange.STEP_UNIT,
+                bigStep = BeaconRange.BIG_STEP_UNIT,
+            }),
+        },
+    })
+    local scannerGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER",
+        items = {
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
+                getValue = getScannerAutoMove,
+                setValue = setScannerAutoMove,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",
+                getValue = getScannerCoords,
+                setValue = setScannerCoords,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
+                getValue = getScannerCompassDirection,
+                setValue = setScannerCompassDirection,
+            }),
+        },
+    })
+    local notificationsGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS",
+        items = {
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE",
+                getValue = getRevealAnnounce,
+                setValue = setRevealAnnounce,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE",
+                getValue = getAiCombatAnnounce,
+                setValue = setAiCombatAnnounce,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE",
+                getValue = getForeignUnitWatchAnnounce,
+                setValue = setForeignUnitWatchAnnounce,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE",
+                getValue = getForeignClearWatchAnnounce,
+                setValue = setForeignClearWatchAnnounce,
+            }),
+        },
+    })
+    return { uiGroup, cursorGroup, beaconGroup, scannerGroup, notificationsGroup }
 end
 
 -- F12 binding spec. Help-list entry uses the curated label so the help

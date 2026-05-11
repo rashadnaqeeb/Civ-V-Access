@@ -1,6 +1,6 @@
 -- Settings overlay tests. Exercises Settings.open end-to-end, the F12
--- pre-walk hook in InputRouter, and the three items' wiring through to
--- their respective setters (AudioCueMode, VolumeControl, scanner pref).
+-- pre-walk hook in InputRouter, and the per-setting wiring through to
+-- AudioCueMode, VolumeControl, and the bool-pref cache/Prefs pair.
 
 local T = require("support")
 local M = {}
@@ -97,6 +97,23 @@ local function setup()
     TickPump._reset()
 end
 
+-- Top-level group indices in the order buildItems returns them.
+local UI_GROUP = 1
+local CURSOR_GROUP = 2
+local BEACON_GROUP = 3
+local SCANNER_GROUP = 4
+local NOTIFICATIONS_GROUP = 5
+
+-- Helpers ---------------------------------------------------------------
+
+local function topItems()
+    return HandlerStack.active()._items
+end
+
+local function groupChildren(idx)
+    return topItems()[idx]:children()
+end
+
 -- Wiring ----------------------------------------------------------------
 
 function M.test_open_pushes_handler_named_Settings()
@@ -112,62 +129,14 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_sixteen_items()
+function M.test_top_level_has_five_drillable_groups()
     setup()
     Settings.open()
-    local h = HandlerStack.active()
-    T.eq(
-        #h._items,
-        16,
-        "verbose-ui toggle + audio cue group + master-volume slider + beacon-volume slider + beacon-range slider + "
-            .. "scanner-auto-move toggle + cursor-follows-selection toggle + cursor-coord-mode group + "
-            .. "border-always-announce toggle + scanner-coords toggle + scanner-compass-direction toggle + "
-            .. "read-subtitles toggle + reveal-announce toggle + ai-combat-announce toggle + "
-            .. "foreign-unit-watch-announce toggle + foreign-clear-announce toggle"
-    )
-end
-
-function M.test_first_item_is_verbose_ui_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[1].kind, "checkbox")
-end
-
-function M.test_second_item_is_audio_cue_mode_group()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[2].kind, "group")
-    T.eq(#h._items[2]:children(), 3, "three modes: speech / both / cue only")
-end
-
-function M.test_third_item_is_volume_slider()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[3].kind, "slider")
-end
-
-function M.test_fourth_item_is_beacon_volume_slider()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[4].kind, "slider")
-end
-
-function M.test_fifth_item_is_beacon_range_slider()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[5].kind, "slider")
-end
-
-function M.test_sixth_item_is_scanner_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[6].kind, "checkbox")
+    local items = topItems()
+    T.eq(#items, 5, "five top-level groups: UI / cursor / beacon / scanner / notifications")
+    for i = 1, 5 do
+        T.eq(items[i].kind, "group", "top-level item " .. i .. " is a drillable group")
+    end
 end
 
 -- F12 hook --------------------------------------------------------------
@@ -201,292 +170,198 @@ function M.test_escape_pops_settings()
     T.eq(HandlerStack.active().name, "base")
 end
 
--- Audio cue mode --------------------------------------------------------
+-- UI group --------------------------------------------------------------
 
-function M.test_audio_cue_mode_choices_call_setMode()
-    setup()
-    AudioCueMode.setMode(AudioCueMode.MODE_SPEECH)
-    Settings.open()
-    local group = HandlerStack.active()._items[2]
-    -- Activate the third choice (cue only).
-    group:children()[3]:activate(HandlerStack.active())
-    T.eq(AudioCueMode.getMode(), AudioCueMode.MODE_CUE_ONLY)
-end
-
-function M.test_audio_cue_mode_marks_current_as_selected()
-    setup()
-    AudioCueMode.setMode(AudioCueMode.MODE_SPEECH_PLUS_CUE)
-    Settings.open()
-    local group = HandlerStack.active()._items[2]
-    local children = group:children()
-    -- selectedFn is invoked through the Choice item's announce path. Easier
-    -- check: each Choice carries a _selectedFn closure that returns true
-    -- only for the active mode.
-    T.falsy(children[1]._selectedFn(), "speech only is not selected")
-    T.truthy(children[2]._selectedFn(), "speech plus cue is the active mode")
-    T.falsy(children[3]._selectedFn(), "cue only is not selected")
-end
-
--- Volume slider ---------------------------------------------------------
-
-function M.test_volume_slider_adjust_drives_VolumeControl_set()
+function M.test_ui_group_has_verbose_ui_then_read_subtitles()
     setup()
     Settings.open()
-    local handler = HandlerStack.active()
-    -- Cursor lands on the first item (verbose-ui toggle). Move down twice
-    -- past the audio cue group to the volume slider; arrow-key dispatch
-    -- through InputRouter mutates _indices and fires the slider's adjust
-    -- on Right.
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    T.eq(handler._items[handler._indices[1]].kind, "slider")
-    audio._reset()
-    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
-    -- VolumeControl.set pushes through audio.set_master_volume and
-    -- persists to Prefs.setFloat. Both should fire.
-    local last = audio._calls[#audio._calls]
-    T.eq(last.op, "set_master_volume")
-    T.eq(prefsStore["MasterVolume"], VolumeControl.get())
-end
-
--- Scanner auto-move toggle ----------------------------------------------
-
-function M.test_scanner_toggle_flip_writes_shared_and_prefs()
-    setup()
-    civvaccess_shared.scannerAutoMove = false
-    Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 5 times: from item 1 (verbose-ui toggle) past audio cue group,
-    -- master volume slider, beacon volume slider, beacon range slider,
-    -- into scanner-auto-move toggle (item 6).
-    for _ = 1, 5 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(civvaccess_shared.scannerAutoMove, true)
-    T.eq(prefsStore["ScannerAutoMove"], true)
-end
-
--- Cursor-follows-selection toggle ---------------------------------------
-
-function M.test_seventh_item_is_cursor_follows_selection_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[7].kind, "checkbox")
-end
-
-function M.test_cursor_follows_selection_toggle_flip_writes_shared_and_prefs()
-    setup()
-    -- Defaults true: lazy-init in Settings.lua reads Prefs.getBool with
-    -- default true, and prefsStore is empty after setup(). Flip turns it
-    -- off, which is the realistic user-initiated transition.
-    Settings.open()
-    T.eq(civvaccess_shared.cursorFollowsSelection, true, "lazy-init defaults to on")
-    local handler = HandlerStack.active()
-    -- Down 6 times to reach cursor-follows-selection (item 7).
-    for _ = 1, 6 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(civvaccess_shared.cursorFollowsSelection, false)
-    T.eq(prefsStore["CursorFollowsSelection"], false)
-end
-
--- Cursor coord mode group -----------------------------------------------
-
-function M.test_eighth_item_is_cursor_coord_mode_group()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[8].kind, "group")
-    T.eq(#h._items[8]:children(), 3, "three modes: off / prepend / append")
-end
-
-function M.test_cursor_coord_mode_off_is_default()
-    setup()
-    Settings.open()
-    local children = HandlerStack.active()._items[8]:children()
-    T.truthy(children[1]._selectedFn(), "off is the lazy-init default")
-    T.falsy(children[2]._selectedFn())
-    T.falsy(children[3]._selectedFn())
-end
-
-function M.test_cursor_coord_mode_choice_writes_shared_and_prefs()
-    setup()
-    Settings.open()
-    -- Activate "append" (third choice).
-    HandlerStack.active()._items[8]:children()[3]:activate(HandlerStack.active())
-    T.eq(civvaccess_shared.cursorCoordMode, "append")
-    T.eq(prefsStore["CursorCoordMode"], 2)
-end
-
--- Border always-announce toggle ----------------------------------------
-
-function M.test_ninth_item_is_border_always_announce_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[9].kind, "checkbox")
-end
-
-function M.test_border_always_announce_default_off()
-    setup()
-    Settings.open()
-    T.eq(civvaccess_shared.borderAlwaysAnnounce, false, "lazy-init defaults to off")
-end
-
-function M.test_border_always_announce_toggle_flip_writes_shared_and_prefs()
-    setup()
-    civvaccess_shared.borderAlwaysAnnounce = false
-    Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 8 times: past audio cue group, master volume slider, beacon
-    -- volume slider, beacon range slider, scanner toggle, cursor-follows
-    -- toggle, cursor-coord group, into border-always toggle (item 9).
-    for _ = 1, 8 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(civvaccess_shared.borderAlwaysAnnounce, true)
-    T.eq(prefsStore["BorderAlwaysAnnounce"], true)
-end
-
--- Scanner coords toggle -------------------------------------------------
-
-function M.test_tenth_item_is_scanner_coords_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[10].kind, "checkbox")
-end
-
-function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
-    setup()
-    civvaccess_shared.scannerCoords = false
-    Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 9 times to reach the scanner-coords toggle (item 10).
-    for _ = 1, 9 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(civvaccess_shared.scannerCoords, true)
-    T.eq(prefsStore["ScannerCoords"], true)
-end
-
--- Scanner compass-direction toggle --------------------------------------
-
-function M.test_eleventh_item_is_scanner_compass_direction_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[11].kind, "checkbox")
-end
-
-function M.test_scanner_compass_direction_default_off()
-    setup()
-    Settings.open()
-    T.eq(civvaccess_shared.scannerCompassDirection, false, "opt-in: defaults off")
-end
-
-function M.test_scanner_compass_direction_toggle_flip_writes_shared_and_prefs()
-    setup()
-    civvaccess_shared.scannerCompassDirection = false
-    Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 10 times to reach the compass-direction toggle (item 11).
-    for _ = 1, 10 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    T.eq(civvaccess_shared.scannerCompassDirection, true)
-    T.eq(prefsStore["ScannerCompassDirection"], true)
-end
-
--- Read-subtitles toggle -------------------------------------------------
-
-function M.test_twelfth_item_is_read_subtitles_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[12].kind, "checkbox")
+    local children = groupChildren(UI_GROUP)
+    T.eq(#children, 2, "verbose UI + read subtitles")
+    T.eq(children[1].kind, "checkbox")
+    T.eq(children[2].kind, "checkbox")
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     setup()
     civvaccess_shared.readSubtitles = false
     Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 11 times to reach the read-subtitles toggle (item 12).
-    for _ = 1, 11 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    -- Second child of the UI group is the read-subtitles toggle.
+    groupChildren(UI_GROUP)[2]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.readSubtitles, true)
     T.eq(prefsStore["ReadSubtitles"], true)
 end
 
--- AI combat announce toggle ---------------------------------------------
+-- Cursor group ----------------------------------------------------------
+--
+-- Layout: follows-selection, border-always, coord-mode (group),
+-- audio-cue-mode (group), master-volume (slider).
 
-function M.test_fourteenth_item_is_ai_combat_announce_toggle()
+function M.test_cursor_group_layout()
     setup()
     Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[14].kind, "checkbox")
+    local children = groupChildren(CURSOR_GROUP)
+    T.eq(#children, 5, "five cursor-area settings")
+    T.eq(children[1].kind, "checkbox", "cursor follows selection")
+    T.eq(children[2].kind, "checkbox", "border always announce")
+    T.eq(children[3].kind, "group", "cursor coord mode group")
+    T.eq(children[4].kind, "group", "audio cue mode group")
+    T.eq(children[5].kind, "slider", "master volume slider")
 end
 
-function M.test_ai_combat_announce_default_on()
+function M.test_cursor_follows_selection_default_on_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.cursorFollowsSelection, true, "lazy-init defaults to on")
+    local handler = HandlerStack.active()
+    groupChildren(CURSOR_GROUP)[1]:activate(handler)
+    T.eq(civvaccess_shared.cursorFollowsSelection, false)
+    T.eq(prefsStore["CursorFollowsSelection"], false)
+end
+
+function M.test_border_always_announce_default_off_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.borderAlwaysAnnounce, false, "lazy-init defaults to off")
+    groupChildren(CURSOR_GROUP)[2]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.borderAlwaysAnnounce, true)
+    T.eq(prefsStore["BorderAlwaysAnnounce"], true)
+end
+
+function M.test_cursor_coord_mode_default_off_and_append_choice_writes()
+    setup()
+    Settings.open()
+    local coordGroup = groupChildren(CURSOR_GROUP)[3]
+    local coordChildren = coordGroup:children()
+    T.eq(#coordChildren, 3, "off / prepend / append")
+    T.truthy(coordChildren[1]._selectedFn(), "off is the lazy-init default")
+    T.falsy(coordChildren[2]._selectedFn())
+    T.falsy(coordChildren[3]._selectedFn())
+    coordChildren[3]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.cursorCoordMode, "append")
+    T.eq(prefsStore["CursorCoordMode"], 2)
+end
+
+function M.test_audio_cue_mode_choices_call_setMode_and_mark_current()
+    setup()
+    AudioCueMode.setMode(AudioCueMode.MODE_SPEECH_PLUS_CUE)
+    Settings.open()
+    local cueGroup = groupChildren(CURSOR_GROUP)[4]
+    local cueChildren = cueGroup:children()
+    T.eq(#cueChildren, 3, "speech / both / cue only")
+    T.falsy(cueChildren[1]._selectedFn(), "speech only is not selected")
+    T.truthy(cueChildren[2]._selectedFn(), "speech plus cue is the active mode")
+    T.falsy(cueChildren[3]._selectedFn(), "cue only is not selected")
+    cueChildren[3]:activate(HandlerStack.active())
+    T.eq(AudioCueMode.getMode(), AudioCueMode.MODE_CUE_ONLY)
+end
+
+function M.test_master_volume_slider_adjust_drives_VolumeControl_set()
+    setup()
+    Settings.open()
+    local volumeSlider = groupChildren(CURSOR_GROUP)[5]
+    T.eq(volumeSlider.kind, "slider")
+    audio._reset()
+    volumeSlider:adjust(HandlerStack.active(), 1, false)
+    local last = audio._calls[#audio._calls]
+    T.eq(last.op, "set_master_volume")
+    T.eq(prefsStore["MasterVolume"], VolumeControl.get())
+end
+
+-- Beacon group ----------------------------------------------------------
+
+function M.test_beacon_group_has_volume_then_range()
+    setup()
+    Settings.open()
+    local children = groupChildren(BEACON_GROUP)
+    T.eq(#children, 2, "beacon volume + beacon range")
+    T.eq(children[1].kind, "slider", "beacon volume")
+    T.eq(children[2].kind, "slider", "beacon range")
+end
+
+function M.test_beacon_volume_adjust_drives_BeaconVolume_set()
+    setup()
+    Settings.open()
+    local before = BeaconVolume.get()
+    groupChildren(BEACON_GROUP)[1]:adjust(HandlerStack.active(), 1, false)
+    local after = BeaconVolume.get()
+    T.truthy(after > before, "beacon volume increased on Right")
+end
+
+function M.test_beacon_range_adjust_drives_BeaconRange_set()
+    setup()
+    Settings.open()
+    local before = BeaconRange.get()
+    groupChildren(BEACON_GROUP)[2]:adjust(HandlerStack.active(), 1, false)
+    local after = BeaconRange.get()
+    T.truthy(after > before, "beacon range increased on Right")
+end
+
+-- Scanner group ---------------------------------------------------------
+
+function M.test_scanner_group_layout()
+    setup()
+    Settings.open()
+    local children = groupChildren(SCANNER_GROUP)
+    T.eq(#children, 3, "auto-move + coords + compass direction")
+    T.eq(children[1].kind, "checkbox", "auto-move")
+    T.eq(children[2].kind, "checkbox", "coords")
+    T.eq(children[3].kind, "checkbox", "compass direction")
+end
+
+function M.test_scanner_auto_move_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.scannerAutoMove = false
+    Settings.open()
+    groupChildren(SCANNER_GROUP)[1]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.scannerAutoMove, true)
+    T.eq(prefsStore["ScannerAutoMove"], true)
+end
+
+function M.test_scanner_coords_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.scannerCoords = false
+    Settings.open()
+    groupChildren(SCANNER_GROUP)[2]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.scannerCoords, true)
+    T.eq(prefsStore["ScannerCoords"], true)
+end
+
+function M.test_scanner_compass_direction_default_off_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.scannerCompassDirection, false, "opt-in: defaults off")
+    groupChildren(SCANNER_GROUP)[3]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.scannerCompassDirection, true)
+    T.eq(prefsStore["ScannerCompassDirection"], true)
+end
+
+-- Notifications group ---------------------------------------------------
+
+function M.test_notifications_group_layout()
+    setup()
+    Settings.open()
+    local children = groupChildren(NOTIFICATIONS_GROUP)
+    T.eq(#children, 4, "reveal + ai-combat + foreign-unit + foreign-clear")
+    for i = 1, 4 do
+        T.eq(children[i].kind, "checkbox", "notification toggle " .. i)
+    end
+end
+
+function M.test_ai_combat_announce_default_on_and_flip()
     setup()
     Settings.open()
     T.eq(civvaccess_shared.aiCombatAnnounce, true, "lazy-init defaults to on")
-end
-
-function M.test_ai_combat_announce_toggle_flip_writes_shared_and_prefs()
-    setup()
-    Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 13 times to reach the AI combat toggle (item 14).
-    for _ = 1, 13 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    -- Second notification (after reveal-announce).
+    groupChildren(NOTIFICATIONS_GROUP)[2]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.aiCombatAnnounce, false)
     T.eq(prefsStore["AiCombatAnnounce"], false)
 end
 
--- Foreign-unit-watch announce toggle ------------------------------------
-
-function M.test_fifteenth_item_is_foreign_unit_watch_announce_toggle()
-    setup()
-    Settings.open()
-    local h = HandlerStack.active()
-    T.eq(h._items[15].kind, "checkbox")
-end
-
-function M.test_foreign_unit_watch_announce_default_on()
+function M.test_foreign_unit_watch_default_on_and_flip()
     setup()
     Settings.open()
     T.eq(civvaccess_shared.foreignUnitWatchAnnounce, true, "lazy-init defaults to on")
-end
-
-function M.test_foreign_unit_watch_announce_toggle_flip_writes_shared_and_prefs()
-    setup()
-    Settings.open()
-    local handler = HandlerStack.active()
-    -- Down 14 times to reach the foreign-unit-watch toggle (item 15).
-    for _ = 1, 14 do
-        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
-    end
-    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    groupChildren(NOTIFICATIONS_GROUP)[3]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.foreignUnitWatchAnnounce, false)
     T.eq(prefsStore["ForeignUnitWatchAnnounce"], false)
 end
