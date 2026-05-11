@@ -198,6 +198,113 @@ function M.test_processHelp_returns_empty_when_help_unresolved()
 end
 
 -- ---------------------------------------------------------------------
+-- Strategy fallback (applied uniformly across building / unit / project /
+-- process when Help is missing on the row).
+-- ---------------------------------------------------------------------
+
+function M.test_strategy_fallback_appends_when_building_help_missing()
+    -- Buildings with no Help row get their Strategy appended after the
+    -- engine helper's stats block, so the chooser / queue / built-
+    -- buildings surfaces don't read those entries as stats-only.
+    setup()
+    Locale.ConvertTextKey = function(k)
+        if k == "TXT_KEY_BUILDING_TEMPLE_STRATEGY" then
+            return "Temples are useful in the early religion game."
+        end
+        return k
+    end
+    GetHelpTextForBuilding = function(_, _, _, _, _)
+        return "Cost: 80[NEWLINE]Maintenance: 2[NEWLINE]Faith: +2"
+    end
+    local building = {
+        ID = 1,
+        Description = "Temple",
+        Strategy = "TXT_KEY_BUILDING_TEMPLE_STRATEGY",
+    }
+    local out = ProductionHelpText.buildingHelp({}, building, true)
+    T.eq(out, "Cost: 80[NEWLINE]Maintenance: 2[NEWLINE]Faith: +2[NEWLINE]----------------[NEWLINE]Temples are useful in the early religion game.")
+end
+
+function M.test_strategy_fallback_skips_when_building_help_present()
+    -- Help wins over Strategy; Granary's per-resource food bonus comes
+    -- from Help and the engine helper already includes it in the body.
+    -- Strategy must not be appended on top.
+    setup()
+    Locale.ConvertTextKey = function(k)
+        if k == "TXT_KEY_BUILDING_GRANARY_STRATEGY" then
+            return "Granaries are essential early-game food."
+        end
+        return k
+    end
+    GetHelpTextForBuilding = function(_, _, _, _, _)
+        return "Cost: 60[NEWLINE]----------------[NEWLINE]+1 Food from worked Wheat, Bananas, and Deer."
+    end
+    local building = {
+        ID = 1,
+        Description = "Granary",
+        Help = "TXT_KEY_BUILDING_GRANARY_HELP",
+        Strategy = "TXT_KEY_BUILDING_GRANARY_STRATEGY",
+    }
+    local out = ProductionHelpText.buildingHelp({}, building, true)
+    T.falsy(out:find("essential early-game", 1, true), "Strategy is not appended when Help is set")
+end
+
+function M.test_strategy_fallback_appends_when_unit_help_missing()
+    -- Galley is the canonical unit case: Help row absent, Strategy set.
+    setup()
+    Locale.ConvertTextKey = function(k)
+        if k == "TXT_KEY_UNIT_GALLEY_STRATEGY" then
+            return "Galleys are early naval scouts."
+        end
+        return k
+    end
+    GetHelpTextForUnit = function(_, _)
+        return "GALLEY[NEWLINE]----------------[NEWLINE]Cost: 45[NEWLINE]Strength: 8"
+    end
+    local unit = {
+        ID = 1,
+        Description = "Galley",
+        Strategy = "TXT_KEY_UNIT_GALLEY_STRATEGY",
+    }
+    local out = ProductionHelpText.unitHelp({}, unit, true)
+    T.eq(out, "Cost: 45[NEWLINE]Strength: 8[NEWLINE]----------------[NEWLINE]Galleys are early naval scouts.")
+end
+
+function M.test_strategy_fallback_used_for_process_when_help_missing()
+    -- Processes with no Help still get Strategy. Body starts empty
+    -- (no stats block for processes), so the fallback returns Strategy
+    -- directly without a separator.
+    setup()
+    Locale.ConvertTextKey = function(k)
+        if k == "TXT_KEY_PROCESS_FOO_STRATEGY" then
+            return "Burns production for an obscure benefit."
+        end
+        return k
+    end
+    local process = { ID = 1, Strategy = "TXT_KEY_PROCESS_FOO_STRATEGY" }
+    T.eq(ProductionHelpText.processHelp(process), "Burns production for an obscure benefit.")
+end
+
+function M.test_strategy_fallback_drops_unresolved_strategy_key()
+    -- Unregistered TXT_KEY in Strategy must be dropped; never let Tolk
+    -- spell out the raw key letter by letter.
+    setup()
+    Locale.ConvertTextKey = function(k)
+        return k
+    end
+    GetHelpTextForUnit = function(_, _)
+        return "GHOST[NEWLINE]----------------[NEWLINE]Cost: 30[NEWLINE]Strength: 5"
+    end
+    local unit = {
+        ID = 1,
+        Description = "Ghost",
+        Strategy = "TXT_KEY_UNIT_GHOST_STRATEGY",
+    }
+    local out = ProductionHelpText.unitHelp({}, unit, true)
+    T.eq(out, "Cost: 30[NEWLINE]Strength: 5", "no garbage appended when Strategy is unresolved")
+end
+
+-- ---------------------------------------------------------------------
 -- remainingLine
 -- ---------------------------------------------------------------------
 

@@ -332,7 +332,9 @@ end
 -- cost line and re-synthesizes the maintenance line so the recurring
 -- gold drain is still audible. The helper returns yields, defense,
 -- specialist slots, great-people points, great-work slots, tourism, and
--- the prose Help text in one string.
+-- the prose Help text in one string -- with the Strategy paragraph
+-- appended as a fallback when the row has no Help, so Help-less
+-- buildings still get a descriptive paragraph.
 local function buildingContributionsLabel(city, building)
     local name = Text.key(building.Description)
     local help = ProductionHelpText.buildingHelp(city, building, false)

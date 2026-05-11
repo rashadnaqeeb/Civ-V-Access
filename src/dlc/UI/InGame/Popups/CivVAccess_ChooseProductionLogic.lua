@@ -356,9 +356,13 @@ end
 -- e.g. the Granary's "+1 Food from worked Wheat, Bananas, and Deer"
 -- lives in Building_ResourceYieldChanges (not in Lua's view of
 -- Building_YieldChanges) and only surfaces via the building's Help
--- string. Strategy is not surfaced here: it's flavor / "why use it"
--- advice with no rule content the player can't infer from stats + Help,
--- and the Civilopedia screen still presents it in its own frame.
+-- string. Entries that ship with no Help row get their Strategy
+-- paragraph appended as a fallback inside ProductionHelpText, so the
+-- chooser / queue / built-buildings surfaces all hear something
+-- descriptive uniformly. When both fields exist the helper speaks only
+-- Help, since Strategy is flavor / "why use it" advice with no rule
+-- content beyond what stats + Help already cover, and the Civilopedia
+-- screen still presents Strategy in its own frame.
 --
 -- Cost-line behavior depends on whether the entry is the city's current
 -- slot-1 build:

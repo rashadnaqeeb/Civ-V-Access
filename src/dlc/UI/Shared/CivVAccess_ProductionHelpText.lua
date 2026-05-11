@@ -31,6 +31,34 @@
 
 ProductionHelpText = {}
 
+-- Some BNW rows ship with a Strategy paragraph but no Help field, so the
+-- engine helper output has no prose tail. Append the entry's Strategy as
+-- a fallback so the chooser / queue / built-buildings surface still has
+-- a descriptive paragraph for those entries. Skipped when Help is set
+-- (Help carries gameplay rules and wins for the entries that have it).
+-- Skipped when Strategy resolves to empty / its key is unregistered, so
+-- an unresolved key never reaches Tolk and gets spelled out.
+local function applyStrategyFallback(body, info)
+    if info.Help ~= nil and info.Help ~= "" then
+        return body
+    end
+    local stratKey = info.Strategy
+    if stratKey == nil or stratKey == "" then
+        return body
+    end
+    local strategy = Text.keyOrNil(stratKey)
+    if strategy == nil or strategy == "" then
+        return body
+    end
+    if body == "" then
+        return strategy
+    end
+    -- Match the engine helper's stats / prose separator so the speech
+    -- pipeline treats the appended paragraph the same way it treats a
+    -- native Help section.
+    return body .. "[NEWLINE]----------------[NEWLINE]" .. strategy
+end
+
 local function stripNamePrefix(s)
     -- "<NAME>[NEWLINE]----------------[NEWLINE]<rest>" -> "<rest>".
     -- The dash run is the engine's section separator (16 dashes),
@@ -77,18 +105,17 @@ function ProductionHelpText.buildingHelp(city, building, includeCost)
     if GetHelpTextForBuilding == nil or building == nil then
         return ""
     end
+    local body
     if includeCost then
-        return GetHelpTextForBuilding(building.ID, true, false, false, city) or ""
+        body = GetHelpTextForBuilding(building.ID, true, false, false, city) or ""
+    else
+        body = GetHelpTextForBuilding(building.ID, true, true, false, city) or ""
+        local mLine = maintenanceLine(building)
+        if mLine ~= nil then
+            body = (body == "") and mLine or (mLine .. "[NEWLINE]" .. body)
+        end
     end
-    local body = GetHelpTextForBuilding(building.ID, true, true, false, city) or ""
-    local mLine = maintenanceLine(building)
-    if mLine == nil then
-        return body
-    end
-    if body == "" then
-        return mLine
-    end
-    return mLine .. "[NEWLINE]" .. body
+    return applyStrategyFallback(body, building)
 end
 
 function ProductionHelpText.unitHelp(_city, unit, includeCost)
@@ -96,10 +123,10 @@ function ProductionHelpText.unitHelp(_city, unit, includeCost)
         return ""
     end
     local body = stripNamePrefix(GetHelpTextForUnit(unit.ID, false) or "")
-    if includeCost then
-        return body
+    if not includeCost then
+        body = dropFirstChunk(body)
     end
-    return dropFirstChunk(body)
+    return applyStrategyFallback(body, unit)
 end
 
 function ProductionHelpText.projectHelp(_city, project, includeCost)
@@ -107,22 +134,24 @@ function ProductionHelpText.projectHelp(_city, project, includeCost)
         return ""
     end
     local body = stripNamePrefix(GetHelpTextForProject(project.ID, false) or "")
-    if includeCost then
-        return body
+    if not includeCost then
+        body = dropFirstChunk(body)
     end
-    return dropFirstChunk(body)
+    return applyStrategyFallback(body, project)
 end
 
 -- Processes have no engine-exposed contribution data (their effect is a
--- runtime conversion, not a stored set of yields), so we fall back to
--- the static prose Help. Text.keyOrNil drops unresolved keys (e.g.
--- PROCESS_RESEARCH_HELP variants that some installs ship without rows)
--- so an unresolved key never reaches Tolk and gets spelled out.
+-- runtime conversion, not a stored set of yields), so we surface the
+-- static prose Help / Strategy directly. Text.keyOrNil drops unresolved
+-- keys (e.g. PROCESS_RESEARCH_HELP variants that some installs ship
+-- without rows) so an unresolved key never reaches Tolk and gets
+-- spelled out.
 function ProductionHelpText.processHelp(process)
-    if process == nil or process.Help == nil or process.Help == "" then
+    if process == nil then
         return ""
     end
-    return Text.keyOrNil(process.Help) or ""
+    local help = (process.Help ~= nil and process.Help ~= "") and (Text.keyOrNil(process.Help) or "") or ""
+    return applyStrategyFallback(help, process)
 end
 
 -- "Production remaining: N" line for a queued or in-progress item.
