@@ -318,10 +318,13 @@ end
 -- build turns across plots that still need a route built.
 
 -- Per-plot build turns under the worker's contribution rate. Cities and
--- plots already at-or-above the target route tier are zero-cost. The
--- start plot zeroes the extra-rate when the worker is mid-build of this
--- same route there, matching the base-game tooltip's no-double-count.
-local function plotBuildTurns(plot, buildId, routeValue, extraRate, isStartPlot)
+-- plots already at-or-above the target route tier are zero-cost. On the
+-- worker's current plot the extra-rate goes to zero when the worker is
+-- already mid-build of this same build: CvPlot::getBuildTurnsLeft walks
+-- the plot's unit list and auto-adds the work rate of every unit whose
+-- getBuildType() matches, so feeding it again through iNowExtra/iThenExtra
+-- would double-count.
+local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, isStartPlot)
     if buildId == nil or plot:IsCity() then
         return 0
     end
@@ -333,7 +336,7 @@ local function plotBuildTurns(plot, buildId, routeValue, extraRate, isStartPlot)
         end
     end
     local extra = extraRate
-    if isStartPlot and plot:GetBuildType() == buildId then
+    if isStartPlot and actorAlreadyOnBuild then
         extra = 0
     end
     return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), extra, extra)
@@ -365,11 +368,12 @@ local function routePathPreview(actor, targetPlot)
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
     local extraRate = actor:WorkRate(true, buildId)
+    local actorAlreadyOnBuild = actor:GetBuildType() == buildId
     local buildTurns = 0
     for i, node in ipairs(path) do
         local plot = Map.GetPlot(node.x, node.y)
         if plot ~= nil then
-            buildTurns = buildTurns + plotBuildTurns(plot, buildId, routeValue, extraRate, i == 1)
+            buildTurns = buildTurns + plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, i == 1)
         end
     end
     local tileCount = #path - 1
