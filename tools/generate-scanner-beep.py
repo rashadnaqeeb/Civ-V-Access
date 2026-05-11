@@ -6,12 +6,23 @@ CivVAccess_Beacons.updateBeaconParams). One beep per cycle, non-looping; pitch
 is modulated +/-1 octave by the consumer at playback time, so the source
 frequency lives in the middle of that range.
 
-Tuning mirrors ONI Access's ScannerDirectionEarcon defaults, with two
+Tuning mirrors ONI Access's ScannerDirectionEarcon defaults, with three
 deviations after in-game playtesting:
   * fundamental 457 Hz -- ONI's middle (horizontal) tone, picked here as the
     pitch-center so the +/-1 octave modulation lands on musically sensible
     edges (228 Hz at -12 semitones, 914 Hz at +12).
-  * pure sine (DefaultHarmonics = { 1.0 }).
+  * fundamental + 2nd + 3rd harmonics (914 Hz at 0.22, 1371 Hz at 0.08; ONI
+    ships a pure sine). The 2nd-harmonic ratio matches beacon.wav so the
+    mod's spatial-audio family has a consistent timbre; the small 3rd
+    harmonic adds a touch of edge that distinguishes the beep from the
+    beacon loop without crossing into buzz, and stays below the 3 kHz
+    piercing zone even at the top pitch rail (1371 * 2 = 2742 Hz at the
+    +12 semitone rail). The harmonic series also spreads spectral energy
+    across three bands rather than one, which is the bet against consumer
+    audio DACs / firmware that handle pure short tones differently than
+    multi-band content (the leading remaining hypothesis for the
+    "sometimes soft / off" perceptual variance after pan / pitch / vol
+    inputs were proven byte-identical per press).
   * 75 ms total duration (ONI's 55 ms felt too brief in a cycle-keystroke
     context; an extra 20 ms makes the tone register without dragging on the
     next cycle), 5 ms linear fade-in and 5 ms fade-out. The fade kills the
@@ -38,7 +49,12 @@ from pathlib import Path
 
 SAMPLE_RATE = 44100
 
-FREQ_HZ = 457.0
+FUND_HZ = 457.0
+HARM2_HZ = FUND_HZ * 2
+HARM3_HZ = FUND_HZ * 3
+HARM2_RATIO = 0.22
+HARM3_RATIO = 0.08
+
 DURATION_SEC = 0.075
 FADE_SEC = 0.005
 
@@ -51,10 +67,18 @@ OUTPUT_PATH = Path(__file__).resolve().parent.parent / "sounds" / "scanner_beep.
 
 
 def main() -> None:
+    # Normalize by the theoretical worst-case sum so the actual peak after
+    # PEAK scaling lands at PEAK rather than overshooting on the instant
+    # where all partials align in phase. Matches beacon.wav's normalization.
+    norm = 1.0 + HARM2_RATIO + HARM3_RATIO
     samples = []
     for i in range(NUM_SAMPLES):
         t = i / SAMPLE_RATE
-        v = math.sin(2 * math.pi * FREQ_HZ * t)
+        v = (
+            math.sin(2 * math.pi * FUND_HZ * t)
+            + HARM2_RATIO * math.sin(2 * math.pi * HARM2_HZ * t)
+            + HARM3_RATIO * math.sin(2 * math.pi * HARM3_HZ * t)
+        ) / norm
         if i < FADE_SAMPLES:
             env = i / FADE_SAMPLES
         elif i > NUM_SAMPLES - FADE_SAMPLES:
