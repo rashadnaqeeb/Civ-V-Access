@@ -170,6 +170,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "en file d'attente
 -- on the same turn the queue head reaches it, but we have no
 -- pre-snapshot for the eventual combat -- so we reject.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "impossible de mettre l'attaque en file d'attente"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW"] = "Espace"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW"] = "Prévisualiser l'action sur la case cible"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT"] = "Entrée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT"] = "Exécuter l'action sur la case cible"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_QUEUE"] = "Maj plus entrée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_QUEUE"] = "Mettre l'action en file d'attente de l'unité"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_CANCEL"] = "Échap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_CANCEL"] = "Annuler le mode ciblage"
 -- Generic "the action was abandoned" feedback. Spoken when a target-picker
 -- or popup is dismissed with Escape; consumed by code paths that need to
 -- speak any single word but for which "canceled" is the audible default.
@@ -503,6 +511,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "n"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
 -- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
 -- Tight glue (no separator) is the EN form; positional template lets
@@ -777,6 +787,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER"] = "Activer la
 -- Settings overlay strings. Reachable from every Context that routes
 -- through InputRouter, so duplicated in the FrontEnd copy as well.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Paramètres"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI"] = "Paramètres d'interface"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_CURSOR"] = "Paramètres du curseur"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON"] = "Paramètres des balises"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER"] = "Paramètres du scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS"] = "Notifications"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Icones auditives de terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Voix uniquement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Voix et indices sonores"
@@ -784,6 +799,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Annonces détail
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Indices sonores uniquement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volume des icones auditives de terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Volume des icones auditives de terrain, {1_Num} pourcent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME"] = "Volume des balises"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"] = "Volume des balises, {1_Num} pourcent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE"] = "Distance audible des balises"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE_VALUE"] = "Distance audible des balises, {1_Num} hexagones"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE"] = "Déplacement automatique du curseur du scanner"
@@ -794,6 +811,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"] = "Annonc
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"] = "Annoncer après le déplacement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE"] = "Toujours annoncer le territoire de la case"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Le scanner affiche les coordonnées"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "Le scanner utilise la direction cardinale"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Le scanner joue un bip directionnel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Lire les sous-titres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] =
     "Annoncer les changements de visibilité pendant le déplacement"
@@ -826,6 +845,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_SLIDER"] = "curseur"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_PULLDOWN"] = "liste déroulante"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "sous-menu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_TABLE"] = "tableau"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_LINK"] = "lien"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_POSITION"] = "{1_Num} sur {2_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_ROW_OF"] = "ligne {1_Num} sur {2_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VERBOSE_COLUMN_OF"] = "colonne {1_Num} sur {2_Num}"
@@ -1260,12 +1280,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_FIRED"] = "tir effectué"
 -- GetCombatPrediction) and no retaliation (city ranged is one-way).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW"] =
     "{1_Name}, {2_MyStr} contre {3_TheirStr}, {4_Dmg} dégâts sur eux"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_PREVIEW"] = "Espace"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_PREVIEW"] = "Lire les informations de la cible"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT"] = "Entrée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_COMMIT"] = "Tirer sur la cible actuelle"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_CANCEL"] = "Échap"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_CANCEL"] = "Annuler sans tirer"
 -- Gift-unit / gift-improvement target picker (audit §7.7). Pushed from
 -- the city-state diplo popup when the user chooses Gift > Unit or Gift >
 -- Improvement; the engine's INTERFACEMODE_GIFT_UNIT and INTERFACEMODE_
@@ -1276,12 +1290,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_CANCEL"] = "Annuler
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_UNIT_MODE"] = "don d'unité"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_IMPROVEMENT_MODE"] = "don d'amélioration"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_IMPROVEMENT_GIVEN"] = "amélioration donnée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_PREVIEW"] = "Espace"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_PREVIEW"] = "Lire les informations de la cible"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_COMMIT"] = "Entrée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_COMMIT"] = "Confirmer le don sur la cible actuelle"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_CANCEL"] = "Échap"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_CANCEL"] = "Annuler sans faire de don"
 -- Rename / Raze hub items (§3.13, §3.14). Rename fires BUTTONPOPUP_RENAME_CITY,
 -- whose accessibility is handled by SetCityNameAccess. Raze fires the Yes/No
 -- confirmation popup (BUTTONPOPUP_CONFIRM_CITY_TASK with TASK_RAZE), handled
