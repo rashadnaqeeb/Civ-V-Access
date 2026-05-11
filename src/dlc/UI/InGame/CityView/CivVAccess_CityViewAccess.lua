@@ -96,8 +96,18 @@ local function isForeign(city)
     return city ~= nil and city:GetOwner() ~= Game.GetActivePlayer()
 end
 
+-- Ownership only. Used by ranged strike, which the engine permits in
+-- viewing mode (CvCity::canRangeStrike never queries the UI flag) and
+-- which is the only path to strike a puppet through our UI -- the
+-- AnnexCityPopup's "View City" button opens the city screen in viewing
+-- mode, so a strict isActiveOwn would hide the hub item exactly when
+-- the user needs it.
+local function isOwn(city)
+    return city ~= nil and city:GetOwner() == Game.GetActivePlayer()
+end
+
 local function isActiveOwn(city)
-    return city ~= nil and city:GetOwner() == Game.GetActivePlayer() and not UI.IsCityScreenViewingMode()
+    return isOwn(city) and not UI.IsCityScreenViewingMode()
 end
 
 local function refuseForeign(textKey)
@@ -1059,10 +1069,20 @@ local function pushRangedStrike()
     if city == nil then
         return
     end
-    if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED") then
+    -- Foreign-only refuse (not refuseIfNotActiveOwn): the strike must run
+    -- from the AnnexCityPopup "View City" peek, which is viewing mode on
+    -- an own city. SerialEventExitCityScreen below clears viewing mode
+    -- before the TASK_RANGED_ATTACK message is sent.
+    if isForeign(city) then
+        refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED")
         return
     end
+    -- Visibility-time CanRangeStrikeNow check (buildHubItems) can flip
+    -- false before the user presses Enter -- the city already fired via
+    -- another path, the engine ticked, or a MP net update arrived. Speak
+    -- a refusal rather than dropping the activation silently.
     if not city:CanRangeStrikeNow() then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITY_RANGED_CANNOT_STRIKE"))
         return
     end
     local ownerID = city:GetOwner()
@@ -1250,13 +1270,16 @@ end
 -- the Group navigable on a city with no specialist-bearing buildings.
 local function buildHubItems(city)
     local items = {}
-    -- isActiveOwn matches vanilla CityBannerManager.lua:33 which hides the
-    -- range-strike button on foreign cities. CanRangeStrikeNow is purely
-    -- engine-side (attack points, valid targets) and does not check
-    -- ownership; without the AND the item would appear in spy-screen hubs
-    -- whenever a foreign city has ammo and a target, which is intel a
-    -- sighted player never sees on the espionage view.
-    if isActiveOwn(city) and city:CanRangeStrikeNow() then
+    -- isOwn keeps the foreign-city ban (vanilla CityBannerManager.lua:33
+    -- hides the banner button on foreign cities; CanRangeStrikeNow is
+    -- engine-side and doesn't check ownership, so without the AND the
+    -- item would appear in spy-screen hubs whenever a foreign city has
+    -- ammo and a target). Viewing mode is intentionally NOT excluded:
+    -- AnnexCityPopup's "View City" peek opens an own puppet in viewing
+    -- mode, and that's the only route to range-strike a puppet through
+    -- our UI -- vanilla exposes a floating banner button on the world
+    -- map for the same purpose, which we don't.
+    if isOwn(city) and city:CanRangeStrikeNow() then
         items[#items + 1] =
             makeHubItem({ labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RANGED_STRIKE") }, pushRangedStrike)
     end
