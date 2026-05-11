@@ -597,7 +597,14 @@ function TabbedShell.install(ContextPtr, spec)
         end
         HandlerStack.removeByName(handler.name, reactivate)
         if bIsHide then
-            resetTabsForNextOpen()
+            -- See CivVAccess_BaseMenuInstall.lua for the pediaTransitArmed
+            -- rationale: in-flight Ctrl+I -> pedia means we are about to be
+            -- displaced rather than closed. Skip resetTabsForNextOpen so
+            -- _activeIdx and each tab's cursor survive the round-trip; the
+            -- next show takes onActivate's re-activation branch.
+            if not civvaccess_shared.pediaTransitArmed then
+                resetTabsForNextOpen()
+            end
             pendingPush = false
             return
         end

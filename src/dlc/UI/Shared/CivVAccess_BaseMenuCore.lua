@@ -1140,6 +1140,12 @@ function BaseMenu.create(spec)
                 if name == nil or name == "" then
                     return
                 end
+                -- Arm the pedia-transit flag so the underlying screen's
+                -- hide handler (fired synchronously by QueuePopup before
+                -- the pedia's own show) preserves cursor state instead
+                -- of resetting it. CivilopediaAccess clears the flag in
+                -- its onShow once the pedia is up.
+                civvaccess_shared.pediaTransitArmed = true
                 Events.SearchForPediaEntry(name)
             end,
         }

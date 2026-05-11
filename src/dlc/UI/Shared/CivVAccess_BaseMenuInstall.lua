@@ -94,7 +94,17 @@ function BaseMenu.install(ContextPtr, spec)
         end
         HandlerStack.removeByName(handler.name, reactivate)
         if bIsHide then
-            handler._initialized = false
+            -- pediaTransitArmed marks an in-flight Ctrl+I -> pedia queue:
+            -- the engine fires our hide synchronously before the pedia's
+            -- show in the same frame, so a sibling popup is about to take
+            -- our slot rather than the user really closing us. Preserve
+            -- _initialized so the next show (when pedia closes and we get
+            -- re-exposed) routes through onActivate's re-activation branch
+            -- and lands the user back on their prior cursor instead of
+            -- resetting to first-open.
+            if not civvaccess_shared.pediaTransitArmed then
+                handler._initialized = false
+            end
             pendingPush = false
             return
         end

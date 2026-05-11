@@ -376,7 +376,25 @@ function PickerReader.create()
                 -- Esc on reader tab -> back to picker (landing on the
                 -- selected entry). Esc on picker tab -> fall through, the
                 -- screen closes.
+                --
+                -- Optional readerEscapeQuickClose hook: when defined and
+                -- it returns true, Esc on the reader tab skips the bounce
+                -- and falls through to priorInput so the screen closes
+                -- outright. Civilopedia uses this to one-press-close when
+                -- the user opened the pedia to a specific article (via
+                -- Ctrl+I, cursor pedia, hyperlink, etc.) and has not yet
+                -- switched tabs or navigated to a different article.
                 if handler._tabIndex == state.readerTabIdx then
+                    if type(config.readerEscapeQuickClose) == "function" then
+                        local ok, quickClose = Log.tryCall(
+                            "PickerReader '" .. handler.name .. "' readerEscapeQuickClose",
+                            config.readerEscapeQuickClose,
+                            handler
+                        )
+                        if ok and quickClose then
+                            return false
+                        end
+                    end
                     handler.switchToTab(state.pickerTabIdx)
                     return true
                 end

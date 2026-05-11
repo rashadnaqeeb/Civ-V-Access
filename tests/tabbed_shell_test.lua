@@ -46,9 +46,11 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuHelp.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuTabs.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuCore.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_TabbedShell.lua")
     HandlerStack._reset()
     TickPump._reset()
+    civvaccess_shared.pediaTransitArmed = nil
 
     CivVAccess_Strings = CivVAccess_Strings or {}
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_TS_SCREEN"] = "TestScreen"
@@ -790,6 +792,78 @@ function M.test_menuTab_clearSearchIfActive_clears_live_buffer()
     local consumed2 = tab.clearSearchIfActive()
     T.eq(consumed2, false, "returns false when buffer was already empty")
     T.eq(#speaks, 0, "no speech on empty-buffer clear")
+end
+
+-- TabbedShell.install hide/show -----------------------------------------
+--
+-- Civilopedia round-trip: when an underlying TabbedShell screen's
+-- BaseMenu/BaseTable Ctrl+I queues the pedia, the engine fires our hide
+-- synchronously before the pedia's own show in the same frame. The
+-- Ctrl+I binding arms civvaccess_shared.pediaTransitArmed before firing
+-- Events.SearchForPediaEntry; install's hide handler checks the flag
+-- and skips resetTabsForNextOpen so _activeIdx and each tab's state
+-- survive the round-trip. On the next show, onActivate's re-activation
+-- branch runs, landing the user back on the same tab they were on.
+
+local function makeInstallCtx()
+    return {
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
+    }
+end
+
+function M.test_install_hide_resets_active_tab_when_pedia_flag_clear()
+    setup()
+    local ctx = makeInstallCtx()
+    local handler = TabbedShell.install(ctx, {
+        name = "X",
+        displayName = "TestScreen",
+        tabs = {
+            stubTab({ tabName = "TXT_KEY_CIVVACCESS_TS_TAB_A" }),
+            stubTab({ tabName = "TXT_KEY_CIVVACCESS_TS_TAB_B" }),
+            stubTab({ tabName = "TXT_KEY_CIVVACCESS_TS_TAB_C" }),
+        },
+    })
+    ctx._sh(false, false)
+    handler.switchToTab(3)
+    T.eq(handler.activeTabIndex(), 3)
+    ctx._sh(true, false)
+    ctx._sh(false, false)
+    T.eq(handler.activeTabIndex(), 1, "active tab reset to default on real close + reopen")
+end
+
+function M.test_install_pedia_transit_preserves_active_tab_across_hide_then_reopen()
+    setup()
+    local ctx = makeInstallCtx()
+    local handler = TabbedShell.install(ctx, {
+        name = "X",
+        displayName = "TestScreen",
+        tabs = {
+            stubTab({ tabName = "TXT_KEY_CIVVACCESS_TS_TAB_A" }),
+            stubTab({ tabName = "TXT_KEY_CIVVACCESS_TS_TAB_B" }),
+            stubTab({ tabName = "TXT_KEY_CIVVACCESS_TS_TAB_C" }),
+        },
+    })
+    ctx._sh(false, false)
+    handler.switchToTab(3)
+    T.eq(handler.activeTabIndex(), 3)
+    civvaccess_shared.pediaTransitArmed = true
+    ctx._sh(true, false)
+    civvaccess_shared.pediaTransitArmed = nil
+    ctx._sh(false, false)
+    T.eq(handler.activeTabIndex(), 3, "active tab preserved across pedia round-trip")
+    T.truthy(handler._initialized, "_initialized preserved so re-show takes re-activation branch")
 end
 
 return M

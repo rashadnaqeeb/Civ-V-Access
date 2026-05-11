@@ -469,4 +469,93 @@ function M.test_install_reader_alt_hooks_do_not_fire_on_picker_tab()
     T.eq(rightCalls, 0, "readerOnAltRight does not fire from picker tab")
 end
 
+-- readerEscapeQuickClose: when set and the hook returns true, Esc on
+-- the reader tab falls through (priorInput closes the screen) instead
+-- of bouncing back to the picker. When false / absent, the default
+-- bounce-back behavior holds. Civilopedia uses this to make Ctrl+I
+-- entry + one Esc close the pedia cleanly.
+
+local function installFixtureWithQuickClose(quickCloseFn)
+    local session = PickerReader.create()
+    local builder = function(handler, id)
+        return {
+            items = { BaseMenuItems.Text({ labelText = "leaf " .. id }) },
+            autoDrillToLevel = 1,
+        }
+    end
+    local pickerItems = {
+        session.Entry({ id = "A", labelText = "Alpha", buildReader = builder }),
+    }
+    local ctx = makeContextPtr()
+    local priorEscCalls = 0
+    local handler = session.install(ctx, {
+        name = "QC",
+        displayName = "QC",
+        pickerTabName = "TXT_KEY_INSTALL_PICKER_TAB",
+        readerTabName = "TXT_KEY_INSTALL_READER_TAB",
+        pickerItems = pickerItems,
+        priorInput = function(msg, wp, lp)
+            if wp == Keys.VK_ESCAPE then
+                priorEscCalls = priorEscCalls + 1
+            end
+        end,
+        readerEscapeQuickClose = quickCloseFn,
+    })
+    ctx._sh(false, false)
+    -- Activate Alpha to land on the reader tab.
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    return handler, ctx, function() return priorEscCalls end
+end
+
+function M.test_install_reader_esc_bounces_when_quick_close_absent()
+    setup()
+    local handler, ctx, priorEscCalls = installFixtureWithQuickClose(nil)
+    T.eq(handler._tabIndex, 2, "on reader tab after activate")
+    ctx._in(WM_KEYDOWN, Keys.VK_ESCAPE, 0)
+    T.eq(handler._tabIndex, 1, "Esc bounced to picker tab")
+    T.eq(priorEscCalls(), 0, "priorInput not called - bounce consumed Esc")
+end
+
+function M.test_install_reader_esc_bounces_when_quick_close_returns_false()
+    setup()
+    local handler, ctx, priorEscCalls = installFixtureWithQuickClose(function()
+        return false
+    end)
+    T.eq(handler._tabIndex, 2, "on reader tab after activate")
+    ctx._in(WM_KEYDOWN, Keys.VK_ESCAPE, 0)
+    T.eq(handler._tabIndex, 1, "Esc bounced to picker tab")
+    T.eq(priorEscCalls(), 0, "priorInput not called - bounce consumed Esc")
+end
+
+function M.test_install_reader_esc_falls_through_when_quick_close_returns_true()
+    setup()
+    local handler, ctx, priorEscCalls = installFixtureWithQuickClose(function()
+        return true
+    end)
+    T.eq(handler._tabIndex, 2, "on reader tab after activate")
+    ctx._in(WM_KEYDOWN, Keys.VK_ESCAPE, 0)
+    T.eq(handler._tabIndex, 2, "no bounce: still on reader tab")
+    T.eq(priorEscCalls(), 1, "priorInput called - Esc fell through to close")
+end
+
+function M.test_install_picker_esc_falls_through_regardless_of_quick_close()
+    -- quick-close only governs reader-tab Esc. Picker-tab Esc always
+    -- falls through (since there is no further tab to bounce to).
+    setup()
+    local handler, ctx, priorEscCalls = installFixtureWithQuickClose(function()
+        return true
+    end)
+    -- Drop back to picker via bounce (then we'll Esc again on picker).
+    -- Easier: don't activate Alpha; the install lands on picker.
+    HandlerStack._reset()
+    handler, ctx, priorEscCalls = installFixtureWithQuickClose(function()
+        return true
+    end)
+    -- Cancel the activate from the helper and stay on picker.
+    handler.switchToTab(1)
+    T.eq(handler._tabIndex, 1, "on picker tab")
+    ctx._in(WM_KEYDOWN, Keys.VK_ESCAPE, 0)
+    T.eq(priorEscCalls(), 1, "priorInput called from picker Esc")
+end
+
 return M

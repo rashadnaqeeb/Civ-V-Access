@@ -55,6 +55,17 @@ Log.info("CivilopediaAccess: built " .. tostring(#pickerItems) .. " top-level ca
 -- land before openInitial reads them.
 local pendingTarget = nil
 
+-- True when the pedia was opened directly to a specific article (via
+-- Ctrl+I, cursor pedia, hyperlink, etc.) and the user has not yet done
+-- anything that suggests further exploration -- in which case Esc on
+-- the reader tab closes the screen outright instead of bouncing back
+-- to the category picker. Disarmed by any handler.switchToTab call,
+-- which covers Tab/Shift+Tab cycling, follow-link, history nav,
+-- adjacent-article nav, and picker-tab Entry activation -- every path
+-- that takes the user somewhere other than the article they were
+-- shown on entry.
+local quickCloseArmed = false
+
 local handler = session.install(ContextPtr, {
     name = "CivilopediaScreen",
     displayName = Text.key("TXT_KEY_CIVILOPEDIA"),
@@ -67,6 +78,19 @@ local handler = session.install(ContextPtr, {
     readerOnAltLeft = Civilopedia.goBack,
     readerOnAltRight = Civilopedia.goForward,
     onShow = function(h)
+        -- Clear the pedia-transit flag set by an underlying screen's
+        -- BaseMenu / BaseTable Ctrl+I binding. The flag stays armed only
+        -- through the engine's queue-popup cascade (other-screen-hide
+        -- then pedia-show), and onShow is the natural lower bound on
+        -- "pedia is up now."
+        civvaccess_shared.pediaTransitArmed = nil
+        -- Default to disarmed. Article-target opens normally arrive
+        -- through the SearchForPediaEntry listener's openArticle branch
+        -- (because the base pedia's listener queues QueuePopup
+        -- synchronously, leaving us already-visible by the time our
+        -- listener runs). The pendingTarget path here covers an
+        -- asynchronous-show fallback. Either path arms quickCloseArmed.
+        quickCloseArmed = false
         if pendingTarget == nil then
             return
         end
@@ -74,9 +98,16 @@ local handler = session.install(ContextPtr, {
         pendingTarget = nil
         if target.kind == "article" then
             Civilopedia.stageArticleForShow(h, target.cat, target.entryID)
+            quickCloseArmed = true
         elseif target.kind == "category" then
             Civilopedia.stageCategoryForShow(h, target.cat)
         end
+    end,
+    -- Reader-tab Esc closes the screen outright when quickCloseArmed
+    -- is true (user opened to a specific article and has not moved
+    -- since). Otherwise PickerReader bounces back to the picker.
+    readerEscapeQuickClose = function()
+        return quickCloseArmed
     end,
     -- Alt+Left/Right is reader-tab-scoped (see PickerReader install) but
     -- the help list is handler-level, so the entry surfaces in help from
@@ -89,6 +120,19 @@ local handler = session.install(ContextPtr, {
         },
     },
 })
+
+-- Wrap switchToTab so any tab change disarms quick-close. Covers Tab /
+-- Shift+Tab cycling, Entry activation from the picker, follow-link from
+-- the reader, history back/forward (Alt+Left/Right), and adjacent
+-- article nav (Ctrl+Up/Down) -- every "the user moved" path funnels
+-- through switchToTab. Bounce-back from onEscape also calls switchToTab
+-- but only fires when quickCloseArmed is already false, so the disarm
+-- is a no-op there.
+local origSwitchToTab = handler.switchToTab
+handler.switchToTab = function(idx)
+    quickCloseArmed = false
+    origSwitchToTab(idx)
+end
 
 -- External "open pedia on article X" requests. Fires from CityView
 -- (Ctrl+I on a building tile), AdvisorInfoPopup's Civilopedia button,
@@ -118,6 +162,15 @@ Log.installEvent(Events, "SearchForPediaEntry", function(searchString)
         pendingTarget = { kind = "article", cat = article.entryCategory, entryID = article.entryID }
     else
         Civilopedia.openArticle(handler, article.entryCategory, article.entryID)
+        -- Arm after openArticle: it calls switchToTab, which our wrapper
+        -- uses to disarm, so the arm has to land after that call.
+        -- This branch fires when the pedia is already visible at dispatch
+        -- time -- either because the base pedia's listener ran QueuePopup
+        -- synchronously before us (the popup-Ctrl+I path), or because the
+        -- user followed a hyperlink while the pedia was already open.
+        -- Both are "open me to a specific article" gestures and warrant
+        -- quick-close.
+        quickCloseArmed = true
     end
 end, "CivilopediaAccess")
 

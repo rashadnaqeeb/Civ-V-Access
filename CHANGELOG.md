@@ -14,6 +14,8 @@ New Features and improvements:
 - Read subtitles is now on by default, because many players were confused that the advisor intros weren't being read out automatically. Only applies to fresh installs; if you already have the mod, your existing setting is preserved.
 Bug fixes:
 - Deleting a save in the Load Game and Save Game menus no longer leaves you stranded on a blank "Save deleted." panel. Focus now jumps back to the save list, and the Save Menu also fixes a stale "Delete" announcement that fired after confirmation.
+- Ctrl+I from a popup screen (F1 Empire Status, F2 Economic Overview, F3 Military Overview, F4 Diplomacy, F8 Victory Progress, etc.) now returns you to the same tab and cursor position when you close the Civilopedia. Previously you landed back at the first tab, first item.
+- Civilopedia opened directly to an article (via Ctrl+I, the cursor pedia hotkey, or a tooltip hyperlink) now closes on a single Esc press instead of bouncing through the category picker first. The bounce-back behaviour returns as soon as you tab to the picker, follow a link, step through article history, or navigate to a different article.
 
 ## [1.0.4] - 2026-05-10
 New Features and improvements:

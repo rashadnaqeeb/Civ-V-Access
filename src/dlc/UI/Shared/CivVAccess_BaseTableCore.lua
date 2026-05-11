@@ -349,6 +349,10 @@ local function onPedia(self)
         return
     end
     if Events ~= nil and Events.SearchForPediaEntry ~= nil then
+        -- Arm pedia-transit flag so the underlying screen's hide handler
+        -- preserves cursor state (see CivVAccess_BaseMenuCore.lua's Ctrl+I
+        -- binding for the matching rationale).
+        civvaccess_shared.pediaTransitArmed = true
         Events.SearchForPediaEntry(name)
     end
 end

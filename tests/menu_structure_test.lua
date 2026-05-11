@@ -1004,6 +1004,46 @@ function M.test_level_reset_on_hide_then_reopen()
     T.eq(handler._level, 1, "level reset to 1 on reopen")
 end
 
+-- Pedia round-trip: when an underlying screen's Ctrl+I queues the pedia
+-- the engine fires our hide before the pedia's own show, so a synchronous
+-- IsHidden check on the pedia at hide-time always reads "still hidden."
+-- The Ctrl+I binding arms civvaccess_shared.pediaTransitArmed before
+-- firing Events.SearchForPediaEntry; the hide handler reads that flag
+-- and skips the _initialized reset so the next show takes onActivate's
+-- re-activation branch and lands the user back on the prior cursor.
+function M.test_pedia_transit_preserves_level_across_hide_then_reopen()
+    setup()
+    setCtrls({ "CHILD" })
+    local ctx = {
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
+    }
+    local handler = BaseMenu.install(
+        ctx,
+        { name = "T", displayName = "Screen", items = { groupItem("P", { buttonItem("CHILD", "C") }) } }
+    )
+    ctx._sh(false, false)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(handler._level, 2)
+    civvaccess_shared.pediaTransitArmed = true
+    ctx._sh(true, false)
+    civvaccess_shared.pediaTransitArmed = nil
+    ctx._sh(false, false)
+    T.eq(handler._level, 2, "level preserved across pedia round-trip")
+    T.truthy(handler._initialized, "_initialized preserved so re-show takes re-activation branch")
+end
+
 -- Type-ahead search ------------------------------------------------------
 
 local function installForSearch(labelledItems)

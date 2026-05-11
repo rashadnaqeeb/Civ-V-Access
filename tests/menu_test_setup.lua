@@ -213,6 +213,7 @@ function Setup.fresh()
     civvaccess_shared.checkBoxCallbacks = {}
     civvaccess_shared.buttonProbeInstalled = false
     civvaccess_shared.buttonCallbacks = {}
+    civvaccess_shared.pediaTransitArmed = nil
 
     CivVAccess_Strings = CivVAccess_Strings or {}
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "disabled"
