@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.1.0] - 2026-05-11
 New Features and improvements:
 - F12 Settings menu is now organized into  categories instead of a flat list, as it was getting quite unwieldy.
 - Audio beacons now distinguish nearby beacons from far ones much more clearly. Pan and pitch scale per-hex with the displacement -- each hex east or west moves the beacon one step right or left in the stereo field, each hex north or south shifts it one semitone up or down -- so two beacons in similar directions from the cursor but at different distances sound visibly different instead of pegging to the same stereo position.
