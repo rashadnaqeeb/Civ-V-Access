@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+New Features and improvements:
+- Read subtitles is now on by default, because many players were confused that the advisor intros weren't being read out automatically. Only applies to fresh installs; if you already have the mod, your existing setting is preserved.
 Bug fixes:
 - Deleting a save in the Load Game and Save Game menus no longer leaves you stranded on a blank "Save deleted." panel. Focus now jumps back to the save list, and the Save Menu also fixes a stale "Delete" announcement that fired after confirmation.
 

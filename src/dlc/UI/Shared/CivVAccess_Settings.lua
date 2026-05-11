@@ -40,12 +40,13 @@ end
 -- otherwise.
 local getScannerAutoMove, setScannerAutoMove = defineBoolPref("scannerAutoMove", "ScannerAutoMove", false)
 
--- Read-subtitles toggle. Off by default: several screens (LoadScreen
+-- Read-subtitles toggle. On by default: several screens (LoadScreen
 -- DawnOfMan, leader dialogue, tech-award quote, advisor intros) declare
 -- silentFirstOpen so their preamble doesn't talk over the engine's own
--- narration audio. Flipping this on bypasses that suppression so the user
--- hears the screen reader's preamble layered on top.
-local getReadSubtitles, setReadSubtitles = defineBoolPref("readSubtitles", "ReadSubtitles", false)
+-- narration audio. With this flag on, the suppression is bypassed and the
+-- screen reader speaks the preamble over the engine narration; flipping
+-- it off restores the deferred-preamble behavior.
+local getReadSubtitles, setReadSubtitles = defineBoolPref("readSubtitles", "ReadSubtitles", true)
 
 -- Cursor-follows-selected-unit toggle. On by default: the hex cursor
 -- jumps to the unit's tile both when the unit becomes selected and when
