@@ -318,16 +318,23 @@ end
 --                      making spatial feedback track the cursor.
 -- The live-cursor distance is also available on demand via End regardless
 -- of toggle state.
-local function formatInstance(instance, instIdx, instCount)
-    local cx, cy
+--
+-- Factored so the directional-beep hook reads from the same origin the
+-- speech announces from; otherwise the spoken bearing and the audio
+-- bearing could drift apart on auto-move boundary cases.
+local function readoutOrigin()
     if civvaccess_shared.scannerAutoMove then
-        cx, cy = _snapshot.cursorX, _snapshot.cursorY
-    else
-        cx, cy = Cursor.position()
-        if cx == nil then
-            cx, cy = _snapshot.cursorX, _snapshot.cursorY
-        end
+        return _snapshot.cursorX, _snapshot.cursorY
     end
+    local cx, cy = Cursor.position()
+    if cx == nil then
+        return _snapshot.cursorX, _snapshot.cursorY
+    end
+    return cx, cy
+end
+
+local function formatInstance(instance, instIdx, instCount)
+    local cx, cy = readoutOrigin()
     local dir
     if cx == instance.plotX and cy == instance.plotY then
         dir = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
@@ -353,6 +360,20 @@ local function formatInstance(instance, instIdx, instCount)
     return name .. ". " .. dir .. ". " .. count
 end
 
+-- Fire the scanner directional beep at the same origin formatInstance
+-- announces from, so the audio and spoken bearings stay aligned. Internal
+-- gating (toggle, audio handle availability) lives in ScannerBeep; this
+-- helper is a no-op when the feature is off. ScannerBeep is loaded after
+-- ScannerNav in Boot, so it is a non-nil global by the time any cycle
+-- entry point fires.
+local function fireDirectionBeep(targetX, targetY)
+    if ScannerBeep == nil then
+        return
+    end
+    local cx, cy = readoutOrigin()
+    ScannerBeep.play(cx, cy, targetX, targetY)
+end
+
 local function announceCurrent()
     local item = currentItem()
     if item == nil then
@@ -362,6 +383,7 @@ local function announceCurrent()
     if inst == nil then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
+    fireDirectionBeep(inst.plotX, inst.plotY)
     return formatInstance(inst, _instIdx, #item.instances)
 end
 
@@ -583,6 +605,14 @@ function ScannerNav.distanceFromCursor()
     end
     if cx == inst.plotX and cy == inst.plotY then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+    end
+    -- End is an on-demand directional probe; fire the beep alongside the
+    -- spoken bearing regardless of the auto-move-driven readout origin
+    -- (this entry point always reads from the live cursor, never the
+    -- snapshot anchor, because it's the user explicitly asking "from
+    -- where I am now").
+    if ScannerBeep ~= nil then
+        ScannerBeep.play(cx, cy, inst.plotX, inst.plotY)
     end
     return HexGeom.directionString(cx, cy, inst.plotX, inst.plotY)
 end

@@ -193,7 +193,9 @@ Beacons = {
     loadAll = function() end,
     resetForNewGame = function() end,
     installListeners = function() end,
-    toggle = function() return "" end,
+    toggle = function()
+        return ""
+    end,
     getBindings = function()
         return { bindings = {}, helpEntries = {} }
     end,
@@ -231,6 +233,7 @@ T.register("cursor_activate", require("cursor_activate_test"))
 T.register("cursor_pedia", require("cursor_pedia_test"))
 T.register("plot_audio", require("plot_audio_test"))
 T.register("beacons", require("beacons_test"))
+T.register("scanner_beep", require("scanner_beep_test"))
 T.register("plot_composers_legality", require("plot_composers_legality_test"))
 T.register("volume_control", require("volume_control_test"))
 T.register("hexgeom", require("hexgeom_test"))

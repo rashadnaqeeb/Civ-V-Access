@@ -132,7 +132,11 @@ globals = {
     "PlotAudio",
     "EmpireStatus",
     "ScannerCore", "ScannerHandler", "ScannerInput", "ScannerNav",
-    "ScannerSearch", "ScannerSnap",
+    "ScannerSearch", "ScannerSnap", "ScannerBeep",
+    -- Beacon and beacon-derived modules. Beacons owns the looping bookmark
+    -- voices; ScannerBeep shares its pan/pitch/volume math and reads the
+    -- two slider modules' values live to stay in sync with user tuning.
+    "Beacons", "BeaconRange", "BeaconVolume",
     "ScannerBackendCities", "ScannerBackendImprovements",
     "ScannerBackendRecommendations",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",

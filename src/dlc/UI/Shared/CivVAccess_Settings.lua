@@ -114,6 +114,20 @@ local getScannerCoords, setScannerCoords = defineBoolPref("scannerCoords", "Scan
 local getScannerCompassDirection, setScannerCompassDirection =
     defineBoolPref("scannerCompassDirection", "ScannerCompassDirection", false)
 
+-- Scanner directional-beep toggle. Off by default. When on, every scanner
+-- cycle (item, instance, subcategory, category, search land, End-key
+-- distance probe) fires a short beep whose pan / pitch / volume encode
+-- the displacement from the readout origin to the cycled-to entry's
+-- plot, using the same per-axis math as the audio beacons. ScannerBeep
+-- reads the cache live in its play function, and the beep shares the
+-- BeaconVolume / BeaconRange sliders -- the F12 Beacon group is the
+-- single point of volume / range control for this entire family of
+-- spatial audio cues. Initialization mirrors scannerAutoMove: ScannerBeep
+-- seeds the cache from Prefs at module load; calling defineBoolPref here
+-- is a no-op when the cache is already populated.
+local getScannerDirectionBeep, setScannerDirectionBeep =
+    defineBoolPref("scannerDirectionBeep", "ScannerDirectionBeep", false)
+
 -- Reveal-announcement toggle. On by default: tells the user what just
 -- appeared on the map after a unit move (or any reveal source). Reads
 -- live from the cache inside the listeners in RevealAnnounce, so
@@ -302,6 +316,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
                 getValue = getScannerCompassDirection,
                 setValue = setScannerCompassDirection,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP",
+                getValue = getScannerDirectionBeep,
+                setValue = setScannerDirectionBeep,
             }),
         },
     })

@@ -107,6 +107,10 @@ include("CivVAccess_ScannerSearch")
 include("CivVAccess_ScannerInput")
 include("CivVAccess_ScannerNav")
 include("CivVAccess_ScannerHandler")
+-- Scanner directional beep: shares the proxy audio bank with Beacons /
+-- PlotAudio. Loaded after ScannerNav because ScannerNav.formatInstance is
+-- where the per-cycle beep call sits.
+include("CivVAccess_ScannerBeep")
 -- Bookmarks loads after the scanner: jumpTo calls ScannerNav.markPreJump
 -- so backspace returns work. BaselineHandler.create pulls the bindings
 -- at LoadScreenClose, which fires after every include here completes.
@@ -223,6 +227,7 @@ local function onInGameBoot()
     -- a beacon at a previous bookmark cell.
     Beacons.loadAll()
     Beacons.resetForNewGame()
+    ScannerBeep.loadAll()
     -- Apply persisted master volume now that the proxy's audio engine is
     -- initialized. Setting before loadAll would be a silent no-op.
     VolumeControl.restore()
