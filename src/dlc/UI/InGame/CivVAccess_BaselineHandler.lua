@@ -407,7 +407,11 @@ function BaselineHandler.create()
     local helpEntries = {}
     appendAll(helpEntries, MOVEMENT_AND_INFO_HELP_ENTRIES)
     appendAll(helpEntries, empireStatus.helpEntries)
-    appendAll(helpEntries, taskList.helpEntries)
+    -- Shift+T (task list readout) only fires inside scenarios, and we don't
+    -- ship a scenario-capable build yet, so advertising it in help only
+    -- confuses players who try the key and hear nothing. Binding stays
+    -- wired so the help entry can come back when scenarios land.
+    -- appendAll(helpEntries, taskList.helpEntries)
     appendAll(helpEntries, unitControl.helpEntries)
     appendAll(helpEntries, turn.helpEntries)
     appendAll(helpEntries, surveyor.helpEntries)
