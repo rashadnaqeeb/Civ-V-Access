@@ -1030,7 +1030,32 @@ function UnitTargetMode.enter(actor, iAction, mode)
     -- mode; without the blocks a stray Alt+key commits against the actor and
     -- fights the picker the user is in.
     HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
-    self.helpEntries = {}
+    -- Target-mode helpEntries land at the top of the Help overlay's list
+    -- because collectHelpEntries walks the stack top-to-bottom and this
+    -- handler sits above Baseline; that's the point of authoring them
+    -- here rather than leaning on Baseline's cursor-mode Enter entry,
+    -- which means something different (activate / select / open city).
+    -- Shared TARGET_HELP_* keys with the other target-picker handlers
+    -- (GiftMode, CityRangeStrikeMode); only UnitTargetMode adds the
+    -- QUEUE entry because Shift+Enter is only meaningful here.
+    self.helpEntries = {
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_QUEUE",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_QUEUE",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_CANCEL",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_CANCEL",
+        },
+    }
     -- onDeactivate always restores the selection mode. Belt-and-
     -- suspenders: every binding that pops also calls restoreSelection,
     -- but an external popAbove / popByName could still unwind us.

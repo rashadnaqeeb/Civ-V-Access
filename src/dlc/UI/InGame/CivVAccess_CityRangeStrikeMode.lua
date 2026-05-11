@@ -227,16 +227,16 @@ function CityRangeStrikeMode.enter(city)
     -- duplicate it here. Listing only the strike-specific keys.
     self.helpEntries = {
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_PREVIEW",
-            description = "TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_PREVIEW",
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW",
         },
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_COMMIT",
-            description = "TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_COMMIT",
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT",
         },
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_KEY_CANCEL",
-            description = "TXT_KEY_CIVVACCESS_CITY_RANGED_HELP_DESC_CANCEL",
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_CANCEL",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_CANCEL",
         },
     }
 

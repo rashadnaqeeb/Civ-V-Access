@@ -297,16 +297,16 @@ function GiftMode.enter(toPlayerID, kind)
     HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
     self.helpEntries = {
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_PREVIEW",
-            description = "TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_PREVIEW",
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW",
         },
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_COMMIT",
-            description = "TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_COMMIT",
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT",
         },
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_GIFT_HELP_KEY_CANCEL",
-            description = "TXT_KEY_CIVVACCESS_GIFT_HELP_DESC_CANCEL",
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_CANCEL",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_CANCEL",
         },
     }
     self.onActivate = function()
