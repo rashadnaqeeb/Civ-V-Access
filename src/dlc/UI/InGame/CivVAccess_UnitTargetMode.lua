@@ -8,10 +8,12 @@
 -- (S/W/X/1/2/3 and the Shift-letter surveyor cluster), and scanner cycling
 -- fall through to Baseline / Scanner unchanged. Only keys whose target-
 -- mode behavior must differ from Baseline are bound here. Alt+QAZEDC and
--- the Alt-letter quick actions (F/S/W/H/P/R/U, Alt+Space) are bound as
+-- the Alt-letter quick actions (F/S/W/H/P/R/U/M, Alt+Space) are bound as
 -- no-ops: Baseline's direct-move and quick-action handlers would commit
 -- against the actor while the engine is in an attack / move interface
--- mode, so we swallow them.
+-- mode, so we swallow them. M is in the list because Alt+M re-enters
+-- target mode -- without the block, pressing it here would stack a
+-- second copy of this handler on top.
 --
 -- Unit cycling (. / ,) is not bound here either -- `,` falls through to
 -- Baseline's UnitControl.cycleAll and `.` falls through to the engine's
@@ -379,11 +381,26 @@ local function routePathPreview(actor, targetPlot)
     return Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE", tilesClause, turnsClause)
 end
 
+-- Whether the plot is currently visible to the actor's team. Used to gate
+-- enemy-revealing preview output; the pathfinder routes optimistically
+-- through fog (engine convention), so a Space preview on a fogged plot
+-- can otherwise speak HP / type / combat strength of units the sighted
+-- player can't see. The engine's range-strike gate already requires
+-- visibility for normal units, but indirect-fire / air / move modes don't,
+-- so we check here.
+local function targetVisible(actor, plot)
+    return plot:IsVisible(actor:GetTeam(), Game.IsDebugMode())
+end
+
 -- Range / melee preview that prefers a unit garrison over the city
 -- itself. EnemyUnitPanel does the same: a defended city's combat goes
 -- through the garrison's stats, undefended cities use city stats. Returns
 -- nil if the plot has no enemy combat target (caller speaks EMPTY).
 local function combatPreviewAt(actor, plot, tx, ty, ranged)
+    -- Don't reveal what's on a fogged tile. Caller treats nil as "empty".
+    if not targetVisible(actor, plot) then
+        return nil
+    end
     local defenderUnit = defenderAt(plot, ranged, actor)
     if defenderUnit ~= nil then
         if ranged then
@@ -458,7 +475,14 @@ local function moveModePreview(actor, plot)
     if fromPlot:GetPlotIndex() == plot:GetPlotIndex() then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"), nil
     end
-    local hasEnemy = defenderAt(plot, false, actor) ~= nil or UnitControl.enemyCityAt(plot) ~= nil
+    -- Fogged tiles read as no-enemy so the latch doesn't arm and the combat
+    -- preview path stays quiet. The path/MP/turn readout still speaks
+    -- normally; if an enemy turns out to be there, the engine resolves it
+    -- as MoveOrAttack on commit and CivVAccessCombatResolved announces the
+    -- outcome after the fact (matching what sighted players learn from the
+    -- combat-end UI).
+    local hasEnemy = targetVisible(actor, plot)
+        and (defenderAt(plot, false, actor) ~= nil or UnitControl.enemyCityAt(plot) ~= nil)
     local dist = Map.PlotDistance(actor:GetX(), actor:GetY(), plot:GetX(), plot:GetY())
     if hasEnemy and dist == 1 then
         local targetReason = UnitControl.preflightAttackTarget(actor, plot)
