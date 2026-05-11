@@ -59,8 +59,6 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT"] = "{1_Index} of {2_Total}"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HERE"] = "here"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_EMPTY"] = "empty"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_AUTO_MOVE_ON"] = "auto move on"
-    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_AUTO_MOVE_OFF"] = "auto move off"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"] = "no jump to return from"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "e"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "ne"
@@ -223,17 +221,6 @@ function M.test_distance_from_cursor_separately_produces_bare_direction()
     T.truthy(out:find("4e", 1, true), "distanceFromCursor must produce HexGeom direction string: " .. out)
     T.truthy(not out:find("Rome", 1, true), "distanceFromCursor must not include the item name: " .. out)
     T.truthy(not out:find(" of ", 1, false), "distanceFromCursor must not include the N of M tail: " .. out)
-end
-
-function M.test_auto_move_toggle_announces_on_off()
-    setup()
-    civvaccess_shared.scannerAutoMove = true
-    local out1 = ScannerNav.toggleAutoMove()
-    T.truthy(out1:find("off", 1, true), "first toggle from on must say 'off': " .. out1)
-    T.eq(civvaccess_shared.scannerAutoMove, false)
-    local out2 = ScannerNav.toggleAutoMove()
-    T.truthy(out2:find("on", 1, true), "second toggle must say 'on': " .. out2)
-    T.eq(civvaccess_shared.scannerAutoMove, true)
 end
 
 function M.test_return_to_pre_jump_speaks_when_no_prior_jump()

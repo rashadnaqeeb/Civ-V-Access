@@ -69,10 +69,6 @@ ScannerHandler.HELP_ENTRIES = {
         description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DISTANCE",
     },
     {
-        keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_AUTO_MOVE",
-        description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_AUTO_MOVE",
-    },
-    {
         keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_SEARCH",
         description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_SEARCH",
     },
@@ -119,7 +115,6 @@ function ScannerHandler.create()
             -- Single-purpose keys.
             bind(Keys.VK_HOME, MOD_NONE, call(ScannerNav.jumpToEntry), "Jump cursor to entry"),
             bind(Keys.VK_END, MOD_NONE, call(ScannerNav.distanceFromCursor), "Distance from cursor to entry"),
-            bind(Keys.VK_END, MOD_SHIFT, call(ScannerNav.toggleAutoMove), "Toggle auto-move cursor"),
             bind(Keys.F, MOD_CTRL, call(ScannerNav.openSearch), "Search scanner entries"),
             bind(Keys.VK_BACK, MOD_NONE, call(ScannerNav.returnToPreJump), "Return to pre-jump cell"),
         },

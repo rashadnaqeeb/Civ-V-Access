@@ -41,8 +41,8 @@ local _preSearchCatIdx = nil
 -- Hydrate the auto-move toggle on the shared table the first time we
 -- boot into a session. Default is off: auto-move yanks the cursor away
 -- from the user's working cell on every scan step, which is disruptive
--- enough to warrant opt-in. Users who want it flip it with Shift+End and
--- the new value persists across sessions via Prefs.
+-- enough to warrant opt-in. Users who want it flip it from the F12
+-- Settings overlay; the new value persists across sessions via Prefs.
 if civvaccess_shared.scannerAutoMove == nil then
     civvaccess_shared.scannerAutoMove = Prefs.getBool("ScannerAutoMove", false)
 end
@@ -558,32 +558,6 @@ function ScannerNav.distanceFromCursor()
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
     end
     return HexGeom.directionString(cx, cy, inst.plotX, inst.plotY)
-end
-
--- Shared write path: the shared table holds the live value so every cycle
--- reads it cheaply; Prefs.setBool persists the flip so the choice survives
--- a restart.
-function ScannerNav.getAutoMove()
-    return civvaccess_shared.scannerAutoMove == true
-end
-
-function ScannerNav.setAutoMove(v)
-    local b = v and true or false
-    civvaccess_shared.scannerAutoMove = b
-    Prefs.setBool("ScannerAutoMove", b)
-end
-
--- Shift+End: flip the auto-move preference. Returns the announce string
--- the binding speaks. Settings menu uses setAutoMove directly so the
--- announce here doesn't double up with the menu's own checkbox readout.
-function ScannerNav.toggleAutoMove()
-    local now = not ScannerNav.getAutoMove()
-    ScannerNav.setAutoMove(now)
-    if now then
-        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_AUTO_MOVE_ON")
-    else
-        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_AUTO_MOVE_OFF")
-    end
 end
 
 -- Public seam for cross-module pre-jump tracking. Used by

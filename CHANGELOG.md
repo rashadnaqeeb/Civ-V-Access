@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - Civilopedia: cross-reference entries inside an article (related techs, units, buildings, resources, etc.) now announce "link" at the end when verbose mode is on, so you can tell at a glance which entries jump to another article and which are read-only.
 - Read subtitles is now on by default, because many players were confused that the advisor intros weren't being read out automatically. Only applies to fresh installs; if you already have the mod, your existing setting is preserved.
+- Scanner auto-move cursor is no longer bound to Shift+End. The setting remains in the F12 Settings overlay, and the saved on/off state is preserved.
 Bug fixes:
 - Help screen during unit move / attack / paradrop / range strike / gift target picks now lists the Space (preview), Enter (commit) and Shift+Enter (queue, move/route only) chords at the top, where you would expect them when the picker is on top of the stack. Previously the help screen during a unit target pick showed only the baseline map keys; the gift and city ranged-strike pickers were already listing their own keys but with mode-specific wording.
 - Shift+T (read active tasks) is no longer listed in the help screen. The key only does anything inside scenarios, which the mod does not yet support, so trying it from a normal game and hearing silence was confusing. The binding stays in place and will return to help once scenarios are wired up.

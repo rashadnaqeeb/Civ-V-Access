@@ -10,10 +10,10 @@ dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
 dofile("src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua")
 dofile("src/dlc/UI/Shared/CivVAccess_PluralRules.lua")
 -- UserPrefs must load before any ScannerNav-touching suite so the
--- Prefs.getBool / setBool calls ScannerNav makes at dofile time and
--- inside toggleAutoMove resolve to the real production module. The
--- module self-degrades to returning defaults when Modding is absent
--- (as it is here), so no test stub is needed.
+-- Prefs.getBool call ScannerNav makes at dofile time to hydrate the
+-- auto-move toggle resolves to the real production module. The module
+-- self-degrades to returning defaults when Modding is absent (as it is
+-- here), so no test stub is needed.
 dofile("src/dlc/UI/Shared/CivVAccess_UserPrefs.lua")
 -- Verbosity drives the screen-reader-style metadata that BaseMenu and
 -- BaseTable announcements append. Loaded here once for every suite.
