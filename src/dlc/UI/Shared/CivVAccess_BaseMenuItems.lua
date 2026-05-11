@@ -35,6 +35,11 @@ local STEP_BIG = 0.10
 -- avoids a behavior change for users with verbosity off and keeps the
 -- existing "label, edit, value" ordering on the one item kind that has
 -- always been verbose.
+--
+-- Per-item override: any spec may set `verboseKindKey` to a TXT_KEY string,
+-- which wins over the kind-based lookup in composeSpeech. Lets individual
+-- Choice instances opt in to a tag (Civilopedia's relationship links use
+-- TXT_KEY_CIVVACCESS_KIND_LINK) without globally tagging every Choice.
 local KIND_TAG_KEY = {
     button = "TXT_KEY_CIVVACCESS_KIND_BUTTON",
     checkbox = "TXT_KEY_CIVVACCESS_KIND_CHECKBOX",
@@ -178,9 +183,12 @@ end
 local function composeSpeech(item, parts)
     -- Verbosity-gated kind tag: appended before disabled/tooltip so the
     -- spoken order is "label, [value,] kind, [disabled,] [tooltip]". Off
-    -- by setting -> identical to pre-verbosity speech.
+    -- by setting -> identical to pre-verbosity speech. A spec-supplied
+    -- verboseKindKey wins over the kind-based default so a single item
+    -- can advertise a different role (Civilopedia link Choices speak
+    -- "link" without affecting other Choice instances).
     if Verbosity.isOn() then
-        local kindKey = KIND_TAG_KEY[item.kind]
+        local kindKey = item.verboseKindKey or KIND_TAG_KEY[item.kind]
         if kindKey ~= nil then
             parts[#parts + 1] = Text.key(kindKey)
         end
@@ -231,6 +239,8 @@ local function copyCommonFields(spec, item)
     item.tooltipKey = spec.tooltipKey
     item.tooltipText = spec.tooltipText
     item.tooltipFn = spec.tooltipFn
+    -- Per-item verbosity-tag override; see composeSpeech.
+    item.verboseKindKey = spec.verboseKindKey
     -- Civilopedia search string for the Ctrl+I shortcut in BaseMenu.create.
     -- Items that map to a pediable entity (building, wonder, specialist,
     -- unit, etc.) set pediaName to the entity's already-localized display

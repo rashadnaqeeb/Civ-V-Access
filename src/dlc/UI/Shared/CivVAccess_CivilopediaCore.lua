@@ -796,6 +796,13 @@ local function harvestRelationships(leaves, handler, currentCat)
                                     local capturedCat, capturedID = targetCat, voidID
                                     leaves[#leaves + 1] = BaseMenuItems.Choice({
                                         labelText = text,
+                                        -- Verbosity-gated "link" tag at the
+                                        -- end of the announcement: only the
+                                        -- followable relationship entries
+                                        -- carry it; display-only Text rows
+                                        -- (Traits / GreatWorks / unresolved
+                                        -- Replaces) stay tag-less.
+                                        verboseKindKey = "TXT_KEY_CIVVACCESS_KIND_LINK",
                                         activate = function()
                                             followLink(handler, capturedCat, capturedID)
                                         end,

@@ -997,16 +997,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_RESTORED"] = "{1_Label} restore
 -- convention rather than the BaseMenuItems internal `kind` field
 -- (pulldown announces as "combo box"; group announces as "submenu";
 -- checkbox announces as "toggle").
--- Choice and Text items intentionally have no tag (a flat list entry has
--- no clean screen-reader name; informational rows are silent). Textfield
--- predates this setting and speaks TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT
--- inline in its announce, so it has no entry here.
+-- Choice and Text items have no tag by default (a flat list entry has no
+-- clean screen-reader name; informational rows are silent). Individual
+-- Choice instances can opt in via spec.verboseKindKey -- the Civilopedia's
+-- relationship links do that with TXT_KEY_CIVVACCESS_KIND_LINK below so
+-- followable links speak "link" while the article body's plain entries
+-- stay tag-less. Textfield predates this setting and speaks
+-- TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT inline in its announce, so it has no
+-- entry here.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_BUTTON"] = "button"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_CHECKBOX"] = "toggle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_SLIDER"] = "slider"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_PULLDOWN"] = "combo box"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_GROUP"] = "submenu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_TABLE"] = "table"
+-- "link" here is the hyperlink sense (a clickable cross-reference to another
+-- Civilopedia article), not a chain link or a connection. Translate with the
+-- same word a web browser or screen reader would use for a hyperlink in your
+-- locale.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_KIND_LINK"] = "link"
 -- Verbosity-gated position template. Appended after a BaseMenu item's
 -- full announcement (label, value, kind tag, disabled, tooltip) so the
 -- user hears where the cursor sits in the current level after the

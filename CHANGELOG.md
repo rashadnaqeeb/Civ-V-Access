@@ -11,6 +11,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 New Features and improvements:
+- Civilopedia: cross-reference entries inside an article (related techs, units, buildings, resources, etc.) now announce "link" at the end when verbose mode is on, so you can tell at a glance which entries jump to another article and which are read-only.
 - Read subtitles is now on by default, because many players were confused that the advisor intros weren't being read out automatically. Only applies to fresh installs; if you already have the mod, your existing setting is preserved.
 Bug fixes:
 - Production chooser now reads each building / unit / project's full effect description, matching what sighted players see in the tooltip. The chooser previously spoke a "strategy" blurb that omitted gameplay rules; for example, the Granary's +1 food from worked Wheat, Bananas, and Deer was missing.
