@@ -76,6 +76,7 @@ include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_VolumeControl")
 include("CivVAccess_BeaconRange")
+include("CivVAccess_BeaconVolume")
 include("CivVAccess_Settings")
 
 local priorInput = InputHandler

@@ -31,10 +31,11 @@ include("CivVAccess_PlotSectionRiver")
 include("CivVAccess_PlotComposers")
 include("CivVAccess_HexGeom")
 include("CivVAccess_PlotAudio")
--- BeaconRange before Beacons so updateBeaconParams's BeaconRange.get()
--- call resolves; Pref-backed user setting for the audible-hex falloff
--- distance (the slider lives next to master volume in Settings).
+-- BeaconRange / BeaconVolume before Beacons so updateBeaconParams's
+-- live BeaconRange.get() and BeaconVolume.get() calls resolve. Both
+-- back F12 Settings sliders shaping the beacon falloff curve.
 include("CivVAccess_BeaconRange")
+include("CivVAccess_BeaconVolume")
 -- Beacons before CursorCore so setCursor's onCursorMove dispatch can
 -- resolve the global at call time (Lua closures capture the env, not
 -- a snapshot, so the global only needs to exist by the time setCursor

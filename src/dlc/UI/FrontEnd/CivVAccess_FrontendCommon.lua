@@ -49,10 +49,11 @@ include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
 include("CivVAccess_VolumeControl")
--- BeaconRange is in-game-only at the consumer level (Beacons), but the
--- Settings overlay is reachable from front-end via F12, so the module
--- needs to load here for the slider's get/set/labelFn closures to
--- resolve. Pre-game tweaks persist via Prefs and apply on the first
--- in-game beacon volume update.
+-- BeaconRange / BeaconVolume are in-game-only at the consumer level
+-- (Beacons), but the Settings overlay is reachable from front-end via
+-- F12, so both modules need to load here for the sliders' get/set/
+-- labelFn closures to resolve. Pre-game tweaks persist via Prefs and
+-- apply on the first in-game beacon parameter update.
 include("CivVAccess_BeaconRange")
+include("CivVAccess_BeaconVolume")
 include("CivVAccess_Settings")

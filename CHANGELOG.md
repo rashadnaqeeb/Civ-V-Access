@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 New Features and improvements:
+- Audio beacons now distinguish nearby beacons from far ones much more clearly. Pan and pitch scale per-hex with the displacement -- each hex east or west moves the beacon one step right or left in the stereo field, each hex north or south shifts it one semitone up or down -- so two beacons in similar directions from the cursor but at different distances sound visibly different instead of pegging to the same stereo position.
+- New F12 setting "Beacon volume" lets you balance the bookmark beacon layer against the per-hex terrain cues independently of master volume. Defaults to 50 percent, with room above and below: 50 percent matches the historical full-volume-at-source the mod has always used, 0 percent silences beacons, and 100 percent is double the historical level.
 - Civilopedia: cross-reference entries inside an article (related techs, units, buildings, resources, etc.) now announce "link" at the end when verbose mode is on, so you can tell at a glance which entries jump to another article and which are read-only.
 - Read subtitles is now on by default, because many players were confused that the advisor intros weren't being read out automatically. Only applies to fresh installs; if you already have the mod, your existing setting is preserved.
 - Scanner auto-move cursor is no longer bound to Shift+End. The setting remains in the F12 Settings overlay, and the saved on/off state is preserved.

@@ -1,23 +1,33 @@
 -- Spatial-audio bookmark beacons. Toggle Ctrl+Shift+digit on a bookmarked
--- slot and a looping point-source sounds from the bookmark's position; the
--- cursor is the listener. Pan and pitch encode bearing only; volume encodes
--- distance only. All three parameters recompute on every cursor move so a
--- player can hunt the cursor toward (or away from) the source by ear.
+-- slot and a looping point-source sounds from the bookmark's position;
+-- the cursor is the listener. Pan, pitch, and volume each encode a
+-- distinct axis of the displacement so two beacons at similar bearings
+-- but different distances sound clearly different. All three parameters
+-- recompute on every cursor move so a player can hunt the cursor toward
+-- (or away from) the source by ear.
 --
--- Pan: cosine of the screen-space bearing (-1 west, +1 east). Pitch: sine
--- (-1 south, +1 north). Both are pulled from HexGeom.unitVector, which
--- handles the pointy-top odd-r row-vs-column scaling so due-NE doesn't
--- collapse onto due-N. The unit-vector invariant means every point on a
--- circle around the beacon shares the same bearing audio; only volume
--- distinguishes which circle. Pitch is applied as a multiplicative
--- playback rate (2^(pitch_input * SEMI_RANGE / 12)) around the source's
--- baked centre, so beacon.wav itself sits at the "due east / due west"
--- pitch.
+-- Pan: scales linearly with the row-corrected column delta. Each hex
+-- east is +1/PAN_SAT_HEXES of pan; each hex NE / NW is +/-0.5/PAN_SAT_HEXES
+-- (the half-row parity offset HexGeom.displacement applies); each hex
+-- due N / S is 0. Saturates at +/-1 once the beacon is PAN_SAT_HEXES
+-- columns away. Encoding raw column displacement (rather than the
+-- cosine of the bearing) means two beacons mostly-north of the cursor
+-- with different east-west components have visibly different pan
+-- positions instead of both pegging to "almost centered."
 --
--- Volume: linear fade from 1.0 at distance 0 to 0 at VOL_MAX_DIST hexes
--- (uses Map.PlotDistance for true integer hex distance). Past
--- VOL_MAX_DIST the beacon goes silent without a floor; the user can hear
--- it again by walking the cursor closer.
+-- Pitch: one semitone per row. Each hex north shifts the source one
+-- semitone up; each hex south, one semitone down. Saturates at
+-- +/-PITCH_MAX_SEMITONES (one octave). Applied as a playback-rate
+-- multiplier (2^(semitones / 12)) around the source's baked center, so
+-- beacon.wav sits at the "due-east / due-west" pitch.
+--
+-- Volume: linear fade from BeaconVolume.get() at distance 0 to 0 at
+-- BeaconRange.get() hexes (uses Map.PlotDistance for true integer hex
+-- distance). Past the audible range the beacon goes silent without a
+-- floor; the user can hear it again by walking the cursor closer.
+-- BeaconVolume scales the at-source ceiling for the beacon layer
+-- independently of master volume so the user can balance beacons
+-- against the per-hex terrain cues.
 --
 -- Audibility policy: beacons play only when one of the cursor-on-map
 -- handlers (Baseline, Scanner) is the effective top of the HandlerStack.
@@ -47,30 +57,50 @@ Beacons = {}
 
 local SLOT_KEYS = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 
--- Pitch spread: pitch_input of +1 (due north) plays one octave above the
--- source, -1 (due south) plays one octave below. Tuned by ear; revisit
--- if the north / south spread reads as too dramatic or too subtle.
-local SEMI_RANGE = 12
+-- Column displacement at which pan reaches the +/-1 rail. 12 hexes
+-- east / west is full pan; each intermediate hex moves pan by 1/12.
+local PAN_SAT_HEXES = 12
+
+-- Row displacement at which pitch reaches the +/-1 octave rail. One
+-- semitone per row, capped at 12 rows N / S. Beyond the cap, distance
+-- attenuation does the rest of the work of distinguishing far beacons.
+local PITCH_MAX_SEMITONES = 12
 
 local MOD_CTRL_SHIFT = 3
 
+local function clamp(v, lo, hi)
+    if v < lo then
+        return lo
+    end
+    if v > hi then
+        return hi
+    end
+    return v
+end
+
 -- Recompute and push pan / pitch / volume for one active beacon. Reads
 -- the bookmark cell live each call so a relocated bookmark picks up on
--- the next cursor step without any explicit notification path. Distance
--- past the user's configured audible range clamps to 0; pan / pitch in
--- that case are still set (they're free) so a quiet beacon's bearing
--- still reads correctly the moment volume comes back.
+-- the next cursor step without any explicit notification path. Pan and
+-- pitch scale per-hex with the displacement (rather than per-bearing-
+-- angle), so two beacons at similar bearings but different distances
+-- have visibly different stereo positions until each axis saturates.
+-- Distance past the user's configured audible range clamps volume to
+-- 0; pan / pitch are still set in that case (they're free) so the
+-- bearing reads correctly the moment volume comes back.
 local function updateBeaconParams(h, cx, cy, bx, by)
-    local pan, pitch = HexGeom.unitVector(cx, cy, bx, by)
+    local dcol, drow = HexGeom.displacement(cx, cy, bx, by)
+    local pan = clamp(dcol / PAN_SAT_HEXES, -1, 1)
+    local semitones = clamp(drow, -PITCH_MAX_SEMITONES, PITCH_MAX_SEMITONES)
+    local pitchRate = 2 ^ (semitones / 12)
     local dist = Map.PlotDistance(cx, cy, bx, by)
-    -- Live read so a Settings-screen tweak takes effect on the next
-    -- cursor move without a refresh-everything pass.
+    -- Live reads so Settings-screen tweaks (range, max volume) take
+    -- effect on the next cursor move without a refresh-everything pass.
     local maxDist = BeaconRange.get()
-    local vol = 1 - dist / maxDist
+    local maxVol = BeaconVolume.get()
+    local vol = maxVol * (1 - dist / maxDist)
     if vol < 0 then
         vol = 0
     end
-    local pitchRate = 2 ^ ((pitch * SEMI_RANGE) / 12)
     audio.set_pan(h, pan)
     audio.set_pitch(h, pitchRate)
     audio.set_volume(h, vol)

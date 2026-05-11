@@ -159,6 +159,7 @@ end
 
 local function buildItems()
     local masterVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"
+    local beaconVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"
     return {
         -- Verbose UI: appends screen-reader-style metadata (control type
         -- tags, position-within-list, table row/column counts, "table"
@@ -188,6 +189,27 @@ local function buildItems()
             labelFn = function(value)
                 local percent = math.floor(value * 100 + 0.5)
                 return Text.format(masterVolumeFormat, percent)
+            end,
+            step = 0.01,
+            bigStep = 0.10,
+        }),
+        -- Beacon at-source volume. Multiplies into the linear-falloff in
+        -- Beacons.updateBeaconParams. Slider position t in [0, 1] maps to
+        -- multiplier t * BeaconVolume.MAX, so slider 50% is the historical
+        -- full-volume-at-source (1.0) and slider 100% is double that.
+        -- Sits right above the audible-distance slider since both shape
+        -- the falloff curve.
+        BaseMenuItems.VirtualSlider({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME",
+            getValue = function()
+                return BeaconVolume.get() / BeaconVolume.MAX
+            end,
+            setValue = function(t)
+                BeaconVolume.set(t * BeaconVolume.MAX)
+            end,
+            labelFn = function(t)
+                local percent = math.floor(t * 100 + 0.5)
+                return Text.format(beaconVolumeFormat, percent)
             end,
             step = 0.01,
             bigStep = 0.10,

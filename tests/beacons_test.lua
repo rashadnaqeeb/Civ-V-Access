@@ -1,17 +1,20 @@
 -- Beacons: ten looping voices keyed off Bookmarks slots, with pan/pitch/
 -- volume pushed every cursor move. Each test exercises a path the others
--- don't: toggle on/off, the empty-slot speak, onCursorMove computes and
--- pushes the right parameters, the volume floor at the configured max
--- distance, the degenerate-vector path at distance zero, the cheap-path
--- early return when no beacons are active, the audibility policy
--- (cursor-on-map handler -> play, anything else -> stop, beaconsTransparent
--- handlers pass through the top-down walk), refresh idempotency (no
--- redundant audio.play to avoid clicks), the desync recovery in refresh
--- (active flag set but bookmark missing), loadAll is idempotent,
--- resetForNewGame wipes activation. The actual stereo-bus mixing (pan,
--- pitch as playback-rate) is owned by miniaudio in the proxy and is not
--- exercised here -- the offline harness asserts that the right values
--- reach the audio bridge, not what the bridge does with them.
+-- don't: toggle on/off, the empty-slot speak, onCursorMove computes the
+-- per-hex pan / pitch / volume proportional to displacement, the rail
+-- clamps when displacement exceeds the saturation thresholds, the
+-- BeaconVolume multiplier scales the at-source ceiling, the volume floor
+-- past the configured audible distance, the on-source neutralization at
+-- distance zero, the cheap-path early return when no beacons are active,
+-- the audibility policy (cursor-on-map handler -> play, anything else
+-- -> stop, beaconsTransparent handlers pass through the top-down walk),
+-- refresh idempotency (no redundant audio.play to avoid clicks), the
+-- desync recovery in refresh (active flag set but bookmark missing),
+-- loadAll is idempotent, resetForNewGame wipes activation. The actual
+-- stereo-bus mixing (pan, pitch as playback-rate) is owned by miniaudio
+-- in the proxy and is not exercised here -- the offline harness asserts
+-- that the right values reach the audio bridge, not what the bridge does
+-- with them.
 
 local T = require("support")
 local M = {}
@@ -56,6 +59,17 @@ local function setup()
     BeaconRange = {
         get = function()
             return 30
+        end,
+    }
+
+    -- BeaconVolume is the at-source-volume multiplier slider. Default
+    -- 1.0 matches the pre-slider behavior so volume assertions keyed
+    -- off (1 - dist / maxDist) hold without an explicit override; the
+    -- scaling test overrides this directly to verify the multiplier
+    -- reaches updateBeaconParams.
+    BeaconVolume = {
+        get = function()
+            return 1.0
         end,
     }
 
@@ -256,17 +270,21 @@ end
 
 -- ===== onCursorMove =====
 
-function M.test_onCursorMove_pushes_pan_pitch_and_volume_for_active_beacon()
+function M.test_onCursorMove_per_hex_pan_pitch_proportional_to_displacement()
+    -- Pan scales linearly with the row-corrected column delta; pitch
+    -- scales linearly with the row delta. Beacon 6 hexes east of the
+    -- cursor lands halfway to the +1 pan rail (PAN_SAT_HEXES = 12) and
+    -- shifts no semitones (row delta zero). Encoding raw displacement
+    -- per axis is the property that keeps two beacons at similar
+    -- bearings but different distances distinguishable.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
-    civvaccess_shared.bookmarks["1"] = { x = 10, y = 0 }
+    civvaccess_shared.bookmarks["1"] = { x = 6, y = 0 }
     civvaccess_shared.activeBeacons["1"] = true
     Cursor._x, Cursor._y = 0, 0
-    -- Beacon is due east of the cursor at hex distance 10. PlotDistance
-    -- returns the integer hex distance the proxy uses for volume.
     Map.PlotDistance = function()
-        return 10
+        return 6
     end
     audio._reset()
 
@@ -280,11 +298,64 @@ function M.test_onCursorMove_pushes_pan_pitch_and_volume_for_active_beacon()
     T.truthy(pan, "set_pan must fire on cursor move")
     T.truthy(pitch, "set_pitch must fire on cursor move")
     T.truthy(vol, "set_volume must fire on cursor move")
-    -- Due east: pan ~ +1, pitch ~ 1.0 (rate unchanged at zero north/south).
-    T.truthy(pan.v > 0.99, "due-east beacon should pan full right; got " .. tostring(pan.v))
-    T.truthy(math.abs(pitch.v - 1.0) < 0.001, "due-east pitch rate is 1.0; got " .. tostring(pitch.v))
-    -- Volume = 1 - 10/30 = 0.6667.
-    T.truthy(math.abs(vol.v - (1 - 10 / 30)) < 0.001, "volume linear in distance; got " .. tostring(vol.v))
+    T.truthy(math.abs(pan.v - 6 / 12) < 0.001, "pan = dcol / 12; got " .. tostring(pan.v))
+    T.truthy(math.abs(pitch.v - 1.0) < 0.001, "pure-east pitch rate is 1.0; got " .. tostring(pitch.v))
+    T.truthy(math.abs(vol.v - (1 - 6 / 30)) < 0.001, "volume linear in distance; got " .. tostring(vol.v))
+end
+
+function M.test_onCursorMove_saturates_pan_and_pitch_at_far_distances()
+    -- Past PAN_SAT_HEXES columns or PITCH_MAX_SEMITONES rows the axis
+    -- clamps to the rail and distance attenuation does the rest. A
+    -- beacon far NE saturates both rails: pan clamps to +1, pitch
+    -- rate clamps to 2.0 (one octave up). The clamp is what lets the
+    -- per-hex scaling stay tight near the cursor without the axes
+    -- blowing out for far beacons.
+    setup()
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
+    civvaccess_shared.bookmarks["1"] = { x = 50, y = 50 }
+    civvaccess_shared.activeBeacons["1"] = true
+    Cursor._x, Cursor._y = 0, 0
+    Map.PlotDistance = function()
+        return 10
+    end
+    audio._reset()
+
+    Beacons.onCursorMove()
+
+    local h = civvaccess_shared.beaconHandles["1"]
+    T.eq(findCall("set_pan", h).v, 1, "pan clamps to +1 past 12 columns east")
+    T.truthy(
+        math.abs(findCall("set_pitch", h).v - 2.0) < 0.001,
+        "pitch rate clamps to 2.0 past 12 rows north; got " .. tostring(findCall("set_pitch", h).v)
+    )
+end
+
+function M.test_onCursorMove_BeaconVolume_scales_at_source_ceiling()
+    -- BeaconVolume.get() multiplies into the falloff ceiling so the
+    -- user can balance beacons against the per-hex terrain cues
+    -- independently of master volume. A 0.5 setting halves the
+    -- at-source level; the falloff curve shape is unchanged.
+    setup()
+    Beacons.loadAll()
+    Beacons.resetForNewGame()
+    BeaconVolume.get = function()
+        return 0.5
+    end
+    civvaccess_shared.bookmarks["1"] = { x = 3, y = 0 }
+    civvaccess_shared.activeBeacons["1"] = true
+    Cursor._x, Cursor._y = 0, 0
+    Map.PlotDistance = function()
+        return 3
+    end
+    audio._reset()
+
+    Beacons.onCursorMove()
+
+    local h = civvaccess_shared.beaconHandles["1"]
+    local vol = findCall("set_volume", h)
+    -- 0.5 * (1 - 3/30) = 0.45
+    T.truthy(math.abs(vol.v - 0.45) < 0.001, "volume = BeaconVolume * (1 - d/maxDist); got " .. tostring(vol.v))
 end
 
 function M.test_onCursorMove_volume_floor_silences_beyond_max_distance()
@@ -307,9 +378,10 @@ function M.test_onCursorMove_volume_floor_silences_beyond_max_distance()
 end
 
 function M.test_onCursorMove_at_distance_zero_neutralizes_pan_and_pitch()
-    -- The unitVector early-return on mag==0 is the difference between
-    -- "centered audio" and "NaN reaches the audio engine". Asserting the
-    -- exact (0,0) return defends the contract for the on-source case.
+    -- On-source case: cursor coincides with the beacon, so both
+    -- displacement axes are zero, pan and semitones collapse to 0,
+    -- pitch rate to 1.0, and the falloff lands at the at-source ceiling.
+    -- Asserts the pan/pitch math stays well-behaved at the zero point.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
@@ -325,7 +397,7 @@ function M.test_onCursorMove_at_distance_zero_neutralizes_pan_and_pitch()
 
     local h = civvaccess_shared.beaconHandles["4"]
     T.eq(findCall("set_pan", h).v, 0)
-    -- 2^0 = 1.0 (no pitch shift) when the unit vector collapses.
+    -- Zero row delta -> 0 semitones -> 2^0 = 1.0 playback rate.
     T.eq(findCall("set_pitch", h).v, 1)
     T.eq(findCall("set_volume", h).v, 1)
 end
