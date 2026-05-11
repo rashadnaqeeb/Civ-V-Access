@@ -51,6 +51,8 @@
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
+include("CivVAccess_UserPrefs")
+include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")
 include("CivVAccess_InGameStrings_en_US")
 include("CivVAccess_PluralRules")
@@ -72,6 +74,9 @@ include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
 include("CivVAccess_Help")
+include("CivVAccess_VolumeControl")
+include("CivVAccess_BeaconRange")
+include("CivVAccess_Settings")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler

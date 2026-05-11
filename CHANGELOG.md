@@ -24,6 +24,7 @@ Bug fixes:
 - Ctrl+I from a popup screen (F1 Empire Status, F2 Economic Overview, F3 Military Overview, F4 Diplomacy, F8 Victory Progress, etc.) now returns you to the same tab and cursor position when you close the Civilopedia. Previously you landed back at the first tab, first item.
 - Civilopedia opened directly to an article (via Ctrl+I, the cursor pedia hotkey, or a tooltip hyperlink) now closes on a single Esc press instead of bouncing through the category picker first. The bounce-back behaviour returns as soon as you tab to the picker, follow a link, step through article history, or navigate to a different article.
 - Route-to target mode: pressing Space on a target plot now speaks the path length and build-turn count as intended. The preview was crashing silently in the input dispatcher, so the press did nothing audible.
+- F12 now opens the settings overlay from in-game menus and popups (city screen, tech tree, social policies, civilopedia, demographics, diplomacy, save / load, the pause menu, and the various reward / choice popups). It already worked from the front end and the map; the in-game screens were swallowing F12 silently.
 
 ## [1.0.4] - 2026-05-10
 New Features and improvements:
