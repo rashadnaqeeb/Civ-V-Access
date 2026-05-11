@@ -557,30 +557,29 @@ function M.test_disabled_entry_label_includes_reason()
         isProduce = true,
     }
     local label = ChooseProductionLogic.buildLabel(entry, city)
-    -- Order: name, cost, disabled, reason, contributions, prose, advisor.
+    -- Order: name, cost, disabled, reason, contributions (stats + prose Help), advisor.
     T.truthy(label:find("Warrior"), "label contains name")
     T.truthy(label:find("5 turns"), "label contains cost clause")
     T.truthy(label:find("disabled"), "label contains disabled word")
     T.truthy(label:find("Need more production", 1, true), "label contains disabled reason")
-    T.truthy(label:find("Strat"), "label contains strategy")
-    -- Help is dropped when Strategy is present (Help typically rephrases
-    -- Strategy as a one-liner; proseText prefers Strategy and never falls
-    -- back to Help here).
-    T.falsy(label:find("Helpful"), "Help dropped when Strategy is present")
-    -- Disabled clause should appear before strategy so the blocker arrives early.
+    T.truthy(label:find("Helpful"), "label contains Help prose")
+    -- Strategy is flavor / "why use it" advice with no rule content beyond
+    -- the stats + Help that aren't already audible; the chooser surfaces
+    -- only Help, leaving Strategy for the Civilopedia screen.
+    T.falsy(label:find("Strat"), "Strategy not surfaced in the chooser")
+    -- Disabled clause should appear before the prose so the blocker arrives early.
     local dPos = label:find("disabled")
-    local sPos = label:find("Strat")
-    T.truthy(dPos < sPos, "disabled before strategy")
+    local hPos = label:find("Helpful")
+    T.truthy(dPos < hPos, "disabled before prose")
 end
 
 function M.test_label_orders_stats_before_prose()
-    -- The chooser orders the announcement: name, cost, [disabled], stats,
-    -- prose, advisor. Strategy / Help should sit AFTER the helper-derived
-    -- stats so the player hears concrete numbers (Strength, Cost) before
-    -- the flavor paragraph that explains them.
+    -- The engine helper appends prose Help after the stats block, so the
+    -- player hears concrete numbers (Strength, Cost) before the prose
+    -- paragraph that explains them.
     setup()
     installGameInfoUnits({
-        { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Strategy = "Pair with tanks." },
+        { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Help = "Specialized in fighting tanks." },
     })
     local city = mkCityStub({
         canTrain = { [1] = true },
@@ -595,16 +594,16 @@ function M.test_label_orders_stats_before_prose()
     }
     local label = ChooseProductionLogic.buildLabel(entry, city)
     local statsPos = label:find("Strength: 50")
-    local prosePos = label:find("Pair with tanks", 1, true)
+    local prosePos = label:find("Specialized in fighting tanks", 1, true)
     T.truthy(statsPos, "label contains Strength stat")
-    T.truthy(prosePos, "label contains Strategy prose")
+    T.truthy(prosePos, "label contains Help prose")
     T.truthy(statsPos < prosePos, "stats appear before prose")
 end
 
-function M.test_label_falls_back_to_help_when_no_strategy()
-    -- Without a Strategy field the helper's prose Help is the only flavor
-    -- text; proseText must surface it (else the chooser entry would have
-    -- no descriptive paragraph at all).
+function M.test_label_surfaces_help_prose()
+    -- The engine helper appends the building/unit/project's prose Help
+    -- text after the stats block, mirroring what the sighted player's
+    -- production tooltip shows. The chooser passes it through unchanged.
     setup()
     installGameInfoUnits({
         { ID = 1, Description = "Worker", Domain = "DOMAIN_LAND", Cost = 70, Help = "Builds improvements." },
@@ -618,14 +617,15 @@ function M.test_label_falls_back_to_help_when_no_strategy()
         isProduce = true,
     }
     local label = ChooseProductionLogic.buildLabel(entry, city)
-    T.truthy(label:find("Builds improvements", 1, true), "Help is the prose when Strategy is absent")
+    T.truthy(label:find("Builds improvements", 1, true), "label includes the prose Help")
 end
 
-function M.test_contributions_strips_prose_help_tail()
-    -- contributionsText is just the stats; the prose-Help block (every-
-    -- thing after the engine's "[NEWLINE]----------------[NEWLINE]"
-    -- separator) belongs to proseText. Verify the strip fires so the
-    -- prose isn't read twice.
+function M.test_contributions_includes_prose_help()
+    -- The engine helper appends prose Help after the stats block, separated
+    -- by "[NEWLINE]----------------[NEWLINE]". The chooser surfaces the
+    -- whole body so the player hears gameplay rules that live only in the
+    -- Help string (e.g. the Granary's per-resource food bonus, which is
+    -- not exposed via Game.GetBuildingYieldChange).
     setup()
     installGameInfoUnits({
         { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Help = "Specialized in fighting tanks." },
@@ -640,7 +640,7 @@ function M.test_contributions_strips_prose_help_tail()
     }
     local contributions = ChooseProductionLogic.contributionsText(entry, city)
     T.truthy(contributions:find("Strength: 50"), "contributions has stats")
-    T.falsy(contributions:find("Specialized", 1, true), "contributions strips the prose-Help tail")
+    T.truthy(contributions:find("Specialized", 1, true), "contributions includes the prose Help")
 end
 
 function M.test_contributions_slot_one_entry_shows_remaining_not_cost()
@@ -728,12 +728,11 @@ function M.test_contributions_remaining_clamps_at_zero_when_overbuilt()
     T.truthy(contributions:find("Production remaining: 0", 1, true), "clamps at 0")
 end
 
-function M.test_contributions_slot_one_project_does_not_double_speak_help()
+function M.test_contributions_slot_one_project_includes_help_once()
     -- Projects have only "Cost: X" + prose Help in their helper output.
-    -- Dropping the cost line for the slot-1 entry leaves the prose
-    -- separator at position 1; without a leading-separator strip, the
-    -- prose Help would survive in contributions AND be spoken again via
-    -- proseText for a doubled read.
+    -- For a slot-1 project the cost line is replaced with "Production
+    -- remaining: N"; the prose Help is preserved and the label speaks
+    -- it exactly once.
     setup()
     installGameInfoProjects({
         { ID = 1, Description = "Manhattan", Cost = 1500, Help = "Enables nuclear weapons." },
@@ -754,8 +753,7 @@ function M.test_contributions_slot_one_project_does_not_double_speak_help()
     }
     local contributions = ChooseProductionLogic.contributionsText(entry, city)
     T.truthy(contributions:find("Production remaining: 1200", 1, true), "shows remaining")
-    T.falsy(contributions:find("Enables nuclear", 1, true), "prose Help not in contributions")
-    -- And the full label includes the Help once (via proseText), not twice.
+    T.truthy(contributions:find("Enables nuclear", 1, true), "prose Help in contributions")
     local label = ChooseProductionLogic.buildLabel(entry, city)
     local _, count = label:gsub("Enables nuclear weapons%.", "")
     T.eq(count, 1, "Help text appears exactly once across the full label")
@@ -789,9 +787,10 @@ function M.test_contributions_purchase_entry_keeps_full_cost_even_at_slot_one()
     T.falsy(contributions:find("Production remaining", 1, true), "no remaining line on purchase entry")
 end
 
-function M.test_contributions_empty_for_process()
-    -- Processes have no engine-exposed stats; contributionsText returns ""
-    -- so proseText becomes the only source of prose for a process entry.
+function M.test_contributions_for_process_returns_help()
+    -- Processes have no engine-exposed stats; ProductionHelpText.processHelp
+    -- returns the prose Help directly so contributionsText surfaces that
+    -- as the entry's body.
     setup()
     installGameInfoProcesses({
         { ID = 1, Description = "Wealth", Help = "Converts production into gold." },
@@ -804,13 +803,14 @@ function M.test_contributions_empty_for_process()
         yieldType = YieldTypes.NO_YIELD,
         isProduce = true,
     }
-    T.eq(ChooseProductionLogic.contributionsText(entry, city), "")
+    T.eq(ChooseProductionLogic.contributionsText(entry, city), "Converts production into gold.")
 end
 
-function M.test_label_drops_help_when_identical_to_strategy()
+function M.test_label_speaks_help_once_when_strategy_aliases_it()
     -- Monument-style entries point Help and Strategy at the same TXT_KEY so
-    -- both resolve to the same localized string. The label must not read it
-    -- twice.
+    -- both resolve to the same localized string. The chooser only surfaces
+    -- Help (via the engine helper); Strategy is never read, so the prose
+    -- appears exactly once regardless of the alias.
     setup()
     local origConvert = Locale.ConvertTextKey
     Locale.ConvertTextKey = function(k, ...)
@@ -841,14 +841,14 @@ function M.test_label_drops_help_when_identical_to_strategy()
     }
     local label = ChooseProductionLogic.buildLabel(entry, city)
     local _, count = label:gsub("Cultural anchor%.", "")
-    T.eq(count, 1, "strategy/help text appears exactly once")
+    T.eq(count, 1, "prose text appears exactly once")
 end
 
-function M.test_label_drops_unresolved_strategy_key()
+function M.test_label_does_not_emit_unresolved_strategy_key()
     -- A handful of base-game records (PROCESS_RESEARCH, PROCESS_WEALTH)
-    -- reference TXT_KEY_*_STRATEGY strings that were never registered. The
-    -- label must drop the unresolved key rather than letting Tolk spell out
-    -- "TXT KEY PROCESS RESEARCH STRATEGY" letter by letter.
+    -- reference TXT_KEY_*_STRATEGY strings that were never registered.
+    -- The chooser doesn't read Strategy at all, so the unresolved key
+    -- can never reach Tolk and get spelled out letter by letter.
     setup()
     local origConvert = Locale.ConvertTextKey
     Locale.ConvertTextKey = function(k, ...)
