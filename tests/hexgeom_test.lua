@@ -393,6 +393,70 @@ function M.test_directionRank_wrapX_returns_e_rank_across_seam()
     T.eq(HexGeom.directionRank(78, 0, 2, 0), 1)
 end
 
+-- ===== compassDirectionString =====
+-- 8-point compass bearing + cube distance. Endpoint geometry is shared
+-- with directionString, so wrap and unit-vector behaviour is exercised by
+-- the suites above; these cases pin the bearing-binning and the N/S
+-- collapse that the hex decomposition can't express.
+
+function M.test_compassDirectionString_zero_delta_returns_empty()
+    setupSteps()
+    T.eq(HexGeom.compassDirectionString(5, 5, 5, 5), "")
+end
+
+function M.test_compassDirectionString_pure_east()
+    setupSteps()
+    -- Three hexes east. atan2(0, +x) = 0, bins to E.
+    T.eq(HexGeom.compassDirectionString(0, 0, 3, 0), "3e")
+end
+
+function M.test_compassDirectionString_pure_west()
+    setupSteps()
+    -- atan2(0, -x) = pi, bins to W.
+    T.eq(HexGeom.compassDirectionString(0, 0, -3, 0), "3w")
+end
+
+function M.test_compassDirectionString_zigzag_lands_due_north()
+    setupSteps()
+    -- (0,0) -> (0,2) is reachable via 1 NE + 1 NW (the existing
+    -- decomposition reports "1ne, 1nw"). Pixel-space vector is (0, 3),
+    -- atan2 = pi/2, bins to N. This is the value-add case that the hex
+    -- decomposition can't express.
+    T.eq(HexGeom.compassDirectionString(0, 0, 0, 2), "2n")
+end
+
+function M.test_compassDirectionString_zigzag_lands_due_south()
+    setupSteps()
+    -- Mirror of the north case: (0,0) -> (0,-2) is 1 SE + 1 SW. atan2 = -pi/2
+    -- normalizes to 3pi/2, bins to S.
+    T.eq(HexGeom.compassDirectionString(0, 0, 0, -2), "2s")
+end
+
+function M.test_compassDirectionString_single_ne_step_stays_ne()
+    setupSteps()
+    -- (0,0) -> (0,1) is one NE hex step. Hex-NE sits at 60 degrees on the
+    -- unit circle, which is inside compass NE's 22.5 - 67.5 bin (barely:
+    -- 7.5 degrees from the N boundary).
+    T.eq(HexGeom.compassDirectionString(0, 0, 0, 1), "1ne")
+end
+
+function M.test_compassDirectionString_tilted_east_dominant()
+    setupSteps()
+    -- (0,0) -> (1,1) decomposes to "1e, 1ne" under the hex scheme. Pixel-
+    -- space vector is (1.5*sqrt(3), 1.5), atan2 ~ 30 degrees, bins to NE.
+    -- Cube distance is 2.
+    T.eq(HexGeom.compassDirectionString(0, 0, 1, 1), "2ne")
+end
+
+function M.test_compassDirectionString_wrapX_folds_seam_short_east()
+    -- Width-80 wrap. cursor=(78,10), target=(2,10). Naive delta is 76
+    -- west; folded delta is 4 east. Mirrors test_directionString_wrapX_
+    -- folds_seam_short_east_across_seam to confirm the helper inherits
+    -- displacement / cubeDistance's wrap behaviour.
+    wrapSetup(80, 40, true, false)
+    T.eq(HexGeom.compassDirectionString(78, 10, 2, 10), "4e")
+end
+
 function M.test_directionString_wrapY_folds_seam()
     -- Toroidal-Y fold. H=40 wrap-Y. cursor=(0,38), target=(0,2). Naive
     -- delta is 36 rows north; folded delta is 4 rows south. Don't pin the

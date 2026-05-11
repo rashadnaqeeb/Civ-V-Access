@@ -102,6 +102,17 @@ local getBorderAlwaysAnnounce, setBorderAlwaysAnnounce =
 -- cache live in formatInstance.
 local getScannerCoords, setScannerCoords = defineBoolPref("scannerCoords", "ScannerCoords", false)
 
+-- Scanner compass-direction toggle. Off by default. When on, the scanner's
+-- direction segment switches from the two-axis hex decomposition ("1ne, 2e")
+-- to a single 8-point compass bearing paired with cube distance ("3e", or
+-- "2n" for a target whose hex decomposition would have been the symmetric
+-- "1ne, 1nw"). ScannerNav reads the cache live in formatInstance and
+-- distanceFromCursor. Scoped to the scanner -- the cursor selection
+-- readout, surveyor, bookmarks, military overview, path diagnostic, and
+-- unit-finished-move announcements stay on the hex decomposition.
+local getScannerCompassDirection, setScannerCompassDirection =
+    defineBoolPref("scannerCompassDirection", "ScannerCompassDirection", false)
+
 -- Reveal-announcement toggle. On by default: tells the user what just
 -- appeared on the map after a unit move (or any reveal source). Reads
 -- live from the cache inside the listeners in RevealAnnounce, so
@@ -263,6 +274,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",
             getValue = getScannerCoords,
             setValue = setScannerCoords,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
+            getValue = getScannerCompassDirection,
+            setValue = setScannerCompassDirection,
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",

@@ -665,6 +665,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+-- Compass-only tokens (no direct hex step lands due north or south, but
+-- HexGeom.compassDirectionString reports those bearings when the endpoint
+-- delta resolves there on the unit circle).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "n"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
 -- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
 -- Tight glue (no separator) is the EN form; positional template lets
@@ -962,6 +967,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_PREPEND"] = "Speak 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"] = "Speak after move announcement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE"] = "Always announce territory in tile readout"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner shows coordinates"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "Scanner uses compass direction"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Read subtitles"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Announce visibility changes while moving"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "Announce AI combat resolution"

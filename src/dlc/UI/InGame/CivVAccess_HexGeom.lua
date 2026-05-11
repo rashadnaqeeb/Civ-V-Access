@@ -135,6 +135,55 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
     return table.concat(parts, ", ")
 end
 
+-- 8-point compass bin -> spoken short-token TXT_KEY. Ordered CCW from
+-- east so atan2(py, px) (which also returns CCW from east) bins by
+-- floor(angle / SLOT + 0.5). N and S are compass-only -- a hex grid has
+-- no direct N/S step, but the resultant of an endpoint delta whose NE/SE
+-- (or NW/SW) components cancel lands exactly on those axes.
+local COMPASS_KEYS = {
+    [0] = "TXT_KEY_CIVVACCESS_DIR_E",
+    [1] = "TXT_KEY_CIVVACCESS_DIR_NE",
+    [2] = "TXT_KEY_CIVVACCESS_DIR_N",
+    [3] = "TXT_KEY_CIVVACCESS_DIR_NW",
+    [4] = "TXT_KEY_CIVVACCESS_DIR_W",
+    [5] = "TXT_KEY_CIVVACCESS_DIR_SW",
+    [6] = "TXT_KEY_CIVVACCESS_DIR_S",
+    [7] = "TXT_KEY_CIVVACCESS_DIR_SE",
+}
+
+-- "<cube-distance><nearest-compass-token>" summary for the endpoint
+-- delta from (fromX, fromY) to (toX, toY). Distinct from directionString,
+-- which decomposes the delta into two adjacent hex axes ("1ne, 1nw" for
+-- two-hex due-north). compassDirectionString collapses to the single
+-- pixel-space bearing on the 8-point compass, so the same delta reads
+-- "2n" -- the player hears where the target sits spatially rather than
+-- how a hex path would unroll into it. Distance is still cube distance
+-- (the hex-step count the player spends on movement). Empty string at
+-- zero delta. Map wrap is handled the same way as directionString via
+-- the shared displacement / cubeDistance helpers.
+function HexGeom.compassDirectionString(fromX, fromY, toX, toY)
+    if fromX == toX and fromY == toY then
+        return ""
+    end
+    -- Pointy-top column-step is sqrt(3) units wide, row-step is 1.5 units
+    -- tall. Scaling the raw (dcol, drow) by these factors puts each hex
+    -- neighbour direction on its true unit-circle angle (NE at 60 degrees,
+    -- not 45). atan2 then yields the screen-space bearing the player
+    -- perceives spatially, which is what gets binned to the 8-point
+    -- compass.
+    local dcol, drow = HexGeom.displacement(fromX, fromY, toX, toY)
+    local px = dcol * math.sqrt(3)
+    local py = drow * 1.5
+    local angle = math.atan2(py, px) -- (-pi, pi]
+    if angle < 0 then
+        angle = angle + 2 * math.pi
+    end
+    local SLOT = math.pi / 4
+    local index = math.floor(angle / SLOT + 0.5) % 8
+    local dist = HexGeom.cubeDistance(fromX, fromY, toX, toY)
+    return Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", dist, Text.key(COMPASS_KEYS[index]))
+end
+
 -- Run-length encoded list of step directions: [E, E, SE, NW, NW, NW]
 -- becomes "2e, 1se, 3nw". Distinct from directionString -- this caller
 -- (move-path preview) follows the engine pathfinder's actual node chain,

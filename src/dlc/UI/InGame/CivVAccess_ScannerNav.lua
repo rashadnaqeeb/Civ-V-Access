@@ -47,6 +47,30 @@ if civvaccess_shared.scannerAutoMove == nil then
     civvaccess_shared.scannerAutoMove = Prefs.getBool("ScannerAutoMove", false)
 end
 
+-- Hydrate the compass-direction toggle on the same shared table. Off by
+-- default: the hex-decomposition readout is what the mod has shipped from
+-- the start, so the spatial-bearing variant stays opt-in. Settings.lua's
+-- defineBoolPref is a no-op once this line runs; the same field is read
+-- in formatInstance / distanceFromCursor.
+if civvaccess_shared.scannerCompassDirection == nil then
+    civvaccess_shared.scannerCompassDirection = Prefs.getBool("ScannerCompassDirection", false)
+end
+
+-- Returns the spoken direction segment from (cx, cy) to the entry plot.
+-- Picks the 8-point compass bearing + cube-distance summary
+-- (HexGeom.compassDirectionString) when the player has opted in via the
+-- F12 setting; otherwise the two-axis hex decomposition
+-- (HexGeom.directionString). Scoped to the scanner -- every other
+-- HexGeom.directionString caller (cursor selection readout, surveyor,
+-- bookmarks, military overview, path diagnostic, unit-finished-move)
+-- stays on the hex decomposition regardless.
+local function directionForScanner(cx, cy, tx, ty)
+    if civvaccess_shared.scannerCompassDirection then
+        return HexGeom.compassDirectionString(cx, cy, tx, ty)
+    end
+    return HexGeom.directionString(cx, cy, tx, ty)
+end
+
 -- ===== Snapshot plumbing =====
 
 local function currentCategory()
@@ -308,7 +332,7 @@ local function formatInstance(instance, instIdx, instCount)
     if cx == instance.plotX and cy == instance.plotY then
         dir = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
     else
-        dir = HexGeom.directionString(cx, cy, instance.plotX, instance.plotY)
+        dir = directionForScanner(cx, cy, instance.plotX, instance.plotY)
     end
     local count = Text.format("TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT", instIdx, instCount)
     local entry = instance.entry
@@ -542,7 +566,10 @@ end
 -- End: speak the distance/direction from the hex cursor to the
 -- current entry. Byte-identical format to the S key (capital -> cursor)
 -- via HexGeom.directionString; the only divergence is the zero-distance
--- short-circuit key (SCANNER_HERE here, AT_CAPITAL there).
+-- short-circuit key (SCANNER_HERE here, AT_CAPITAL there). Always uses
+-- the hex decomposition regardless of the compass-direction toggle --
+-- End is the user's on-demand "give me the precise hex breakdown" probe,
+-- distinct from the per-cycle readout which the toggle reshapes.
 function ScannerNav.distanceFromCursor()
     rebuildAndLocate()
     ensureCurrentInstanceValid()

@@ -112,18 +112,18 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_open_builds_fifteen_items()
+function M.test_open_builds_sixteen_items()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(
         #h._items,
-        15,
+        16,
         "verbose-ui toggle + audio cue group + master-volume slider + beacon-volume slider + beacon-range slider + "
             .. "scanner-auto-move toggle + cursor-follows-selection toggle + cursor-coord-mode group + "
-            .. "border-always-announce toggle + scanner-coords toggle + read-subtitles toggle + "
-            .. "reveal-announce toggle + ai-combat-announce toggle + foreign-unit-watch-announce toggle + "
-            .. "foreign-clear-announce toggle"
+            .. "border-always-announce toggle + scanner-coords toggle + scanner-compass-direction toggle + "
+            .. "read-subtitles toggle + reveal-announce toggle + ai-combat-announce toggle + "
+            .. "foreign-unit-watch-announce toggle + foreign-clear-announce toggle"
     )
 end
 
@@ -379,13 +379,43 @@ function M.test_scanner_coords_toggle_flip_writes_shared_and_prefs()
     T.eq(prefsStore["ScannerCoords"], true)
 end
 
--- Read-subtitles toggle -------------------------------------------------
+-- Scanner compass-direction toggle --------------------------------------
 
-function M.test_eleventh_item_is_read_subtitles_toggle()
+function M.test_eleventh_item_is_scanner_compass_direction_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
     T.eq(h._items[11].kind, "checkbox")
+end
+
+function M.test_scanner_compass_direction_default_off()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.scannerCompassDirection, false, "opt-in: defaults off")
+end
+
+function M.test_scanner_compass_direction_toggle_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.scannerCompassDirection = false
+    Settings.open()
+    local handler = HandlerStack.active()
+    -- Down 10 times to reach the compass-direction toggle (item 11).
+    for _ = 1, 10 do
+        InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    end
+    T.eq(handler._items[handler._indices[1]].kind, "checkbox")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(civvaccess_shared.scannerCompassDirection, true)
+    T.eq(prefsStore["ScannerCompassDirection"], true)
+end
+
+-- Read-subtitles toggle -------------------------------------------------
+
+function M.test_twelfth_item_is_read_subtitles_toggle()
+    setup()
+    Settings.open()
+    local h = HandlerStack.active()
+    T.eq(h._items[12].kind, "checkbox")
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
@@ -393,8 +423,8 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     civvaccess_shared.readSubtitles = false
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 10 times to reach the read-subtitles toggle (item 11).
-    for _ = 1, 10 do
+    -- Down 11 times to reach the read-subtitles toggle (item 12).
+    for _ = 1, 11 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -405,11 +435,11 @@ end
 
 -- AI combat announce toggle ---------------------------------------------
 
-function M.test_thirteenth_item_is_ai_combat_announce_toggle()
+function M.test_fourteenth_item_is_ai_combat_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[13].kind, "checkbox")
+    T.eq(h._items[14].kind, "checkbox")
 end
 
 function M.test_ai_combat_announce_default_on()
@@ -422,8 +452,8 @@ function M.test_ai_combat_announce_toggle_flip_writes_shared_and_prefs()
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 12 times to reach the AI combat toggle (item 13).
-    for _ = 1, 12 do
+    -- Down 13 times to reach the AI combat toggle (item 14).
+    for _ = 1, 13 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
@@ -434,11 +464,11 @@ end
 
 -- Foreign-unit-watch announce toggle ------------------------------------
 
-function M.test_fourteenth_item_is_foreign_unit_watch_announce_toggle()
+function M.test_fifteenth_item_is_foreign_unit_watch_announce_toggle()
     setup()
     Settings.open()
     local h = HandlerStack.active()
-    T.eq(h._items[14].kind, "checkbox")
+    T.eq(h._items[15].kind, "checkbox")
 end
 
 function M.test_foreign_unit_watch_announce_default_on()
@@ -451,8 +481,8 @@ function M.test_foreign_unit_watch_announce_toggle_flip_writes_shared_and_prefs(
     setup()
     Settings.open()
     local handler = HandlerStack.active()
-    -- Down 13 times to reach the foreign-unit-watch toggle (item 14).
-    for _ = 1, 13 do
+    -- Down 14 times to reach the foreign-unit-watch toggle (item 15).
+    for _ = 1, 14 do
         InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
     end
     T.eq(handler._items[handler._indices[1]].kind, "checkbox")
