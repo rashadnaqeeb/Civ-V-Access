@@ -689,4 +689,140 @@ function M.test_numpad_mirror_respects_capturesAllInput_when_letter_also_unbound
     T.truthy(InputRouter.dispatch(103, 0, WM_KEYDOWN), "barrier swallow survives mirror retry")
 end
 
+-- Nav-VK to numpad rewrite -------------------------------------------------
+-- Windows substitutes a numpad key's VK with the corresponding nav VK
+-- (VK_END for Numpad1, VK_CLEAR for Numpad5, ...) when Shift is held with
+-- NumLock on, or when NumLock is off. lParam's extended-key bit (24)
+-- discriminates: dedicated nav cluster sets it; numpad-origin clears it.
+-- dispatch rewrites only when bit 24 is clear, so dedicated nav presses
+-- pass through unchanged.
+
+local LP_NUMPAD = 0 -- bit 24 clear -- numpad origin
+local LP_DEDICATED = 0x01000000 -- bit 24 set -- dedicated nav cluster
+
+function M.test_nav_rewrite_shift_end_fires_shift_Z_when_numpad_origin()
+    -- Shift+VK_END (35) with bit 24 clear == Shift+Numpad1 on a NumLock-on
+    -- layout. Rewrite -> Shift+Numpad1, mirror -> Shift+Z.
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 90, 1, fired) -- Shift+Z
+    T.truthy(InputRouter.dispatch(35, 1, WM_KEYDOWN, LP_NUMPAD), "Shift+VK_END with numpad-origin lp fires Shift+Z")
+    T.eq(fired.count, 1)
+end
+
+function M.test_nav_rewrite_shift_clear_fires_shift_S_when_numpad_origin()
+    -- Shift+Numpad5 (most commonly useful: it's the only Shift+cluster
+    -- letter currently bound, to Cursor.coordinates). Engine sees
+    -- Shift+VK_CLEAR (12) with bit 24 clear.
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 83, 1, fired) -- Shift+S
+    T.truthy(InputRouter.dispatch(12, 1, WM_KEYDOWN, LP_NUMPAD), "Shift+VK_CLEAR with numpad-origin lp fires Shift+S")
+    T.eq(fired.count, 1)
+end
+
+function M.test_nav_rewrite_skipped_when_dedicated_cluster()
+    -- Same Shift+VK_END but bit 24 set: dedicated End key. No rewrite,
+    -- no Shift+End binding, so nothing fires.
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 90, 1, fired) -- Shift+Z (which the rewrite would have hit)
+    InputRouter.dispatch(35, 1, WM_KEYDOWN, LP_DEDICATED)
+    T.eq(fired.count, 0, "dedicated End with Shift does not get rewritten to Numpad1->Z")
+end
+
+function M.test_nav_rewrite_skipped_when_lp_nil()
+    -- nil lp -> isNumpadOrigin returns false -> no rewrite. Preserves
+    -- existing test-suite call sites that don't pass lp.
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 90, 1, fired) -- Shift+Z
+    InputRouter.dispatch(35, 1, WM_KEYDOWN)
+    T.eq(fired.count, 0, "nil lp is treated as unknown -- no rewrite")
+end
+
+function M.test_dedicated_nav_binding_still_fires_for_dedicated_press()
+    -- Scanner binds Shift+VK_PRIOR (cycleSubcategory). Dedicated Shift+PgUp
+    -- (bit 24 set) must continue to fire it, regardless of the rewrite.
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Scanner", 33, 1, fired) -- Shift+VK_PRIOR
+    T.truthy(InputRouter.dispatch(33, 1, WM_KEYDOWN, LP_DEDICATED), "dedicated Shift+PgUp fires Shift+VK_PRIOR binding")
+    T.eq(fired.count, 1)
+end
+
+function M.test_numpad_nav_press_routes_to_letter_when_both_bound()
+    -- A handler binds both Shift+VK_PRIOR (cycleSubcategory) and Shift+E
+    -- (hypothetical). Shift+Numpad9 (bit 24 clear) rewrites to Numpad9,
+    -- mirror -> Shift+E. Dedicated Shift+PgUp (bit 24 set) hits Shift+VK_PRIOR.
+    setup()
+    local subcat = { count = 0 }
+    local shiftE = { count = 0 }
+    HandlerStack.push({
+        name = "Scanner",
+        bindings = {
+            {
+                key = 33, -- VK_PRIOR
+                mods = 1, -- Shift
+                fn = function()
+                    subcat.count = subcat.count + 1
+                end,
+            },
+            {
+                key = 69, -- E
+                mods = 1, -- Shift
+                fn = function()
+                    shiftE.count = shiftE.count + 1
+                end,
+            },
+        },
+    })
+    InputRouter.dispatch(33, 1, WM_KEYDOWN, LP_NUMPAD)
+    T.eq(subcat.count, 0, "numpad-origin Shift+PgUp does NOT fire Shift+VK_PRIOR binding")
+    T.eq(shiftE.count, 1, "numpad-origin Shift+PgUp routes through to Shift+E via mirror")
+    InputRouter.dispatch(33, 1, WM_KEYDOWN, LP_DEDICATED)
+    T.eq(subcat.count, 1, "dedicated Shift+PgUp fires Shift+VK_PRIOR")
+    T.eq(shiftE.count, 1, "dedicated Shift+PgUp does NOT fall through to Shift+E")
+end
+
+function M.test_unmodified_nav_rewrites_for_numlock_off_case()
+    -- NumLock OFF + unmodified Numpad7 -> engine sees VK_HOME with bit 24
+    -- clear. Rewrite to Numpad7, mirror to Q.
+    setup()
+    local fired = { count = 0 }
+    pushLetterBinding("Baseline", 81, 0, fired) -- Keys.Q
+    T.truthy(InputRouter.dispatch(36, 0, WM_KEYDOWN, LP_NUMPAD), "unmodified VK_HOME with numpad-origin lp fires Q")
+    T.eq(fired.count, 1)
+end
+
+function M.test_dedicated_home_unmodified_passes_through_to_VK_HOME_binding()
+    -- Same VK_HOME but bit 24 set: dedicated Home. Should fire Scanner's
+    -- jumpToEntry (VK_HOME unmodified), not the mirrored Q binding.
+    setup()
+    local home = { count = 0 }
+    local q = { count = 0 }
+    HandlerStack.push({
+        name = "Scanner",
+        bindings = {
+            {
+                key = 36, -- VK_HOME
+                mods = 0,
+                fn = function()
+                    home.count = home.count + 1
+                end,
+            },
+            {
+                key = 81, -- Keys.Q
+                mods = 0,
+                fn = function()
+                    q.count = q.count + 1
+                end,
+            },
+        },
+    })
+    T.truthy(InputRouter.dispatch(36, 0, WM_KEYDOWN, LP_DEDICATED))
+    T.eq(home.count, 1, "dedicated Home fires VK_HOME binding")
+    T.eq(q.count, 0, "dedicated Home does not fall through to Q")
+end
+
 return M

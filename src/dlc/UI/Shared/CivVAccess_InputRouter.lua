@@ -67,6 +67,49 @@ local NUMPAD_MIRROR = {
     [Keys.VK_NUMPAD3] = Keys.C,
 }
 
+-- Windows substitutes a numpad keypress with its navigation VK when Shift
+-- is held with NumLock on, OR when NumLock is off and no modifier toggles
+-- it back. Either way, the engine sees the nav VK (VK_END for Numpad1,
+-- VK_CLEAR for Numpad5, etc.) and NUMPAD_MIRROR never gets a chance --
+-- the user's Shift+Numpad press lands on a key the binding walk doesn't
+-- recognize. Rewrite the nav VK back to its numpad twin so NUMPAD_MIRROR
+-- can carry it, gated by the extended-key bit (see isNumpadOrigin below)
+-- so dedicated Home / End / PgUp / PgDn / arrows / Insert / Delete on
+-- the nav cluster are untouched.
+--
+-- Hardcoded numeric VKs because Civ V's Keys table doesn't reliably expose
+-- VK_CLEAR (12) or VK_INSERT (45) -- base UI never references them, so a
+-- table literal keyed on Keys.VK_CLEAR would NaN at load time on engines
+-- where the field is absent. Numeric form sidesteps that and matches the
+-- form used elsewhere when a Keys.* alias would be brittle.
+local NAV_TO_NUMPAD = {
+    [45] = Keys.VK_NUMPAD0, -- VK_INSERT  -> Numpad0
+    [35] = Keys.VK_NUMPAD1, -- VK_END     -> Numpad1
+    [40] = Keys.VK_NUMPAD2, -- VK_DOWN    -> Numpad2
+    [34] = Keys.VK_NUMPAD3, -- VK_NEXT    -> Numpad3 (PgDn)
+    [37] = Keys.VK_NUMPAD4, -- VK_LEFT    -> Numpad4
+    [12] = Keys.VK_NUMPAD5, -- VK_CLEAR   -> Numpad5
+    [39] = Keys.VK_NUMPAD6, -- VK_RIGHT   -> Numpad6
+    [36] = Keys.VK_NUMPAD7, -- VK_HOME    -> Numpad7
+    [38] = Keys.VK_NUMPAD8, -- VK_UP      -> Numpad8
+    [33] = Keys.VK_NUMPAD9, -- VK_PRIOR   -> Numpad9 (PgUp)
+}
+
+-- bit 24 of WM_KEYDOWN's lParam is the extended-key flag. Win32 sets it
+-- for the dedicated nav cluster (Home / End / PgUp / PgDn / arrows /
+-- Insert / Delete on the cluster between the main block and numpad) and
+-- clears it for the numpad-origin substitutions. Modulo math handles
+-- signed-32-bit lp arriving with bit 31 set (negative in Lua) by
+-- normalizing to the unsigned representation before the comparison.
+local LPARAM_EXTENDED_KEY_BIT = 0x01000000
+
+local function isNumpadOrigin(lp)
+    if lp == nil then
+        return false
+    end
+    return (lp % 0x02000000) < LPARAM_EXTENDED_KEY_BIT
+end
+
 function InputRouter.currentModifierMask()
     local mask = 0
     if UI.ShiftKeyDown() then
@@ -128,19 +171,44 @@ end
 -- the moment any binding fires, so the walk never sees a mutated stack
 -- under its own feet. Bindings that intend to keep the walk going after
 -- mutating the stack are not supported; add a new primitive before trying.
-function InputRouter.dispatch(keyCode, modMask, msg)
+function InputRouter.dispatch(keyCode, modMask, msg, lp)
     if msg ~= WM_KEYDOWN and msg ~= WM_SYSKEYDOWN then
         return false
     end
 
-    -- TEMP diagnosis for Alt+Numpad. Remove after triage.
+    -- Rewrite Windows-substituted nav VKs back to their numpad twin so
+    -- NUMPAD_MIRROR carries the press. See NAV_TO_NUMPAD / isNumpadOrigin
+    -- for the discriminator that keeps dedicated nav-cluster presses
+    -- untouched. Done before the early hotkey checks below because none
+    -- of them (Ctrl+Shift+F12, Shift+?, F12, type-ahead) bind a key in
+    -- NAV_TO_NUMPAD, so the rewrite can't shadow them.
+    local origKeyCode = keyCode
+    local navMapped = NAV_TO_NUMPAD[keyCode]
+    local navRewrote = false
+    if navMapped ~= nil and isNumpadOrigin(lp) then
+        keyCode = navMapped
+        navRewrote = true
+    end
+
+    -- TEMP diagnosis for Shift+Numpad (Windows substitutes the nav VK
+    -- when Shift is held with NumLock on, and we rewrite it above).
+    -- Logs the raw keycode, the post-rewrite keycode, modifier mask,
+    -- the raw lParam, and whether the nav-to-numpad rewrite fired so
+    -- the player log shows the dispatch chain end-to-end. Remove after
+    -- a tester confirms the fix.
     Log.info(
-        "InputRouter.dispatch keyCode="
+        "InputRouter.dispatch origKc="
+            .. tostring(origKeyCode)
+            .. " kc="
             .. tostring(keyCode)
             .. " modMask="
             .. tostring(modMask)
             .. " msg="
             .. tostring(msg)
+            .. " lp="
+            .. tostring(lp)
+            .. " navRewrote="
+            .. tostring(navRewrote)
     )
 
     -- Drop any handlers whose owning Context env got wiped (front-end

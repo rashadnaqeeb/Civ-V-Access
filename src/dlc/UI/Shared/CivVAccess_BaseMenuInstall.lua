@@ -170,7 +170,7 @@ function BaseMenu.install(ContextPtr, spec)
                 return false
             end
             local mods = InputRouter.currentModifierMask()
-            if InputRouter.dispatch(wp, mods, msg) then
+            if InputRouter.dispatch(wp, mods, msg, lp) then
                 return true
             end
             if priorInput then
@@ -179,7 +179,7 @@ function BaseMenu.install(ContextPtr, spec)
             return false
         end
         local mods = InputRouter.currentModifierMask()
-        if InputRouter.dispatch(wp, mods, msg) then
+        if InputRouter.dispatch(wp, mods, msg, lp) then
             return true
         end
         if priorInput then

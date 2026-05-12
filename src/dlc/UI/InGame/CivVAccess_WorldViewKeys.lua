@@ -38,7 +38,7 @@ local basePriorInput = InputHandler
 ContextPtr:SetInputHandler(function(msg, wp, lp)
     if msg == WM_KEYDOWN or msg == WM_SYSKEYDOWN then
         local mods = InputRouter.currentModifierMask()
-        if InputRouter.dispatch(wp, mods, msg) then
+        if InputRouter.dispatch(wp, mods, msg, lp) then
             return true
         end
     end

@@ -11,6 +11,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 Bug fixes:
+- Numpad cluster keys now work with Shift held and with NumLock off.
 - Reading the unit on a fogged tile with S no longer leaks the unit hiding there.
 - Happiness icon no longer doubles its label when the engine prefixes a qualifier (e.g. "Very Unhappy").
 - City specialist slot tooltips now name the great-person kind generated (e.g. "+3 Great Scientist Points").
