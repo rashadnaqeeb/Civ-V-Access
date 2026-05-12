@@ -544,9 +544,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_DISABLED"] = "{1_Label}, desactivad
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "e"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "ne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "so"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "o"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "no"
 -- Compass-only tokens (no direct hex step lands due north or south, but
 -- HexGeom.compassDirectionString reports those bearings when the endpoint
 -- delta resolves there on the unit circle).

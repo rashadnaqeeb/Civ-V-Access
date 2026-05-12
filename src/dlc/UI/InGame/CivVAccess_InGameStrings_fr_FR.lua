@@ -508,9 +508,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_DISABLED"] = "{1_Label}, d√©sactiv√
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "e"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "ne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "so"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "o"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "no"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "n"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /

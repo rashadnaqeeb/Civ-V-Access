@@ -414,14 +414,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUTTON_DISABLED"] = "недоступен
 -- pre-composed label (an engine control's GetText / a built-up offer
 -- string) plus the disabled marker.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_DISABLED"] = "{1_Label}, недоступен"
--- Cursor / hex-grid handler. Direction tokens are short forms (e, ne, ...)
+-- Cursor / hex-grid handler. Direction tokens are short forms (в, св, ...)
 -- because experienced screen-reader users prefer shorter speech.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "e"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "ne"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "se"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "sw"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "w"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E"] = "в"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE"] = "св"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE"] = "юв"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW"] = "юз"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "з"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "сз"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "с"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "ю"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
@@ -475,14 +475,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} проценто
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "в зоне контроля врага"
 -- Cursor help-overlay key labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Группа клавиш Q, W, E, A, S, D, Z, X, C"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] = "Переместить курсор по гексу (Q nw, E ne, A w, D e, Z sw, C se)"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] = "Переместить курсор по гексу (Q сз, E св, A з, D в, Z юз, C юв)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_NUMPAD"] = "Цифровая клавиатура 7, 8, 9, 4, 5, 6, 1, 2, 3"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_NUMPAD"] = "Дублирует Q, W, E, A, S, D, Z, X, C с теми же модификаторами (на цифровой клавиатуре 5 соответствует S, при включённом Num Lock)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Прочитать юнит на текущей клетке"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift плюс S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "Координаты курсора относительно первоначальной столицы в модифицированной смещённой нотации (каждый шаг на восток прибавляет 1 к x, каждый шаг на NE прибавляет 0.5 к x и 1 к y, каждый шаг на SE прибавляет 0.5 к x и вычитает 1 из y)"
+    "Координаты курсора относительно первоначальной столицы в модифицированной смещённой нотации (каждый шаг на восток прибавляет 1 к x, каждый шаг на северо-восток прибавляет 0.5 к x и 1 к y, каждый шаг на юго-восток прибавляет 0.5 к x и вычитает 1 из y)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control плюс S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "Переместить курсор к Вашей столице"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
