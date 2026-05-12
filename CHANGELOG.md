@@ -11,9 +11,10 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 Bug fixes:
-- Happiness icon no longer doubles its label when the engine prefixes a qualifier. Lines such as "+1 Local Happiness from every Water Mill" or "Very Unhappy" no longer read as "happiness Local Happiness" / "unhappiness Very Unhappy".
-- City specialist slot tooltips now identify which kind of great-person points the slot generates ("+3 Great Scientist Points" instead of a generic "+3 great people points").
-- Cursor and scanner direction abbreviations are no longer left in English in Russian, Spanish, French, Italian, and Korean. They now read in the locale's native form -- Cyrillic for Russian, o / no / so for the Romance languages' "ouest / oeste / ovest", and Hangul for Korean.
+- Reading the unit on a fogged tile with S no longer leaks the unit hiding there.
+- Happiness icon no longer doubles its label when the engine prefixes a qualifier (e.g. "Very Unhappy").
+- City specialist slot tooltips now name the great-person kind generated (e.g. "+3 Great Scientist Points").
+- Cursor and scanner direction abbreviations now localize in Russian, Spanish, French, Italian, and Korean.
 
 ## [1.1.1] - 2026-05-12
 New Features and improvements:

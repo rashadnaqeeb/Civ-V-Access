@@ -4,7 +4,22 @@ Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes
 
 ## Changelog
 
-When committing a new feature or bug fix, add an entry to `CHANGELOG.md` under `## [Unreleased]`, beneath one of two section headers: `New Features and improvements:` or `Bug fixes:`. Add the header if it isn't there yet. Keep entries short — one line per change, written from the player's perspective (what changed for them, not implementation details).
+When committing a new feature or bug fix, add an entry to `CHANGELOG.md` under `## [Unreleased]`, beneath one of two section headers: `New Features and improvements:` or `Bug fixes:`. Add the header if it isn't there yet.
+
+Keep entries terse. One sentence per change, from the player's perspective, ideally under ~120 characters. State the change directly and stop.
+
+Player-facing means player language. Spell language names out ("Russian", "Spanish"), not locale codes ("ru", "es"). Use the same names for features, screens, and keys that the user would. The reader is a player reading release notes, not a developer reading a diff.
+
+Do include the hotkey when it's how the player invokes the feature being fixed -- "Reading the unit on a fogged tile" is ambiguous without "with S", because the player has no way to know which action the entry is about. The hotkey is the player-facing surface; omit it only when the change applies regardless of input (passive announcements, layout, behavior on existing screens).
+
+Do not include:
+
+- Pre-fix behavior beyond what the fix itself implies. "Reading the unit on a fogged tile with S no longer leaks the unit hiding there" is the entry; "It used to speak HP and combat strength, but now says no units" is bloat.
+- Multiple quoted strings illustrating the same point. At most one short parenthetical example, and only if the entry is ambiguous without it.
+- Meta-commentary about parity with sighted players, rationale, or how a sighted player would experience the fix. The reader knows the audience.
+- Implementation detail, file paths, internal symbol names.
+
+Earlier release sections in `CHANGELOG.md` contain verbose, padded entries from before this rule. Do not model new entries on them.
 
 ## Commit messages
 

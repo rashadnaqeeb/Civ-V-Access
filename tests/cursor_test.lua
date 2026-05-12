@@ -1246,6 +1246,20 @@ function M.test_cursor_unit_at_tile_skips_invisible_cargo_and_air()
     T.eq(Cursor.unitAtTile(), "info:visible_civ", "filter should skip invisible/cargo/air")
 end
 
+function M.test_cursor_unit_at_tile_does_not_leak_units_in_fog()
+    local mil = T.fakeUnit({ combat = true })
+    mil._tag = "mil"
+    local plot = setupUnitAtTile({ mil })
+    plot._isVisible = false
+    T.eq(Cursor.unitAtTile(), "no units", "fogged tile must not leak unit info")
+end
+
+function M.test_cursor_unit_at_tile_speaks_no_units_on_empty_fogged_tile()
+    local plot = setupUnitAtTile({})
+    plot._isVisible = false
+    T.eq(Cursor.unitAtTile(), "no units")
+end
+
 -- ===== City info keys (1 / 2 / 3 / 4) =====
 -- Verify the "no city here" fallback and the delegation to CitySpeech;
 -- the CitySpeech module's own logic is covered in suite_city_speech.

@@ -387,7 +387,17 @@ function Cursor.unitAtTile()
         Log.warn("Cursor.unitAtTile before init")
         return ""
     end
-    local unit = topUnitAt(plotHere())
+    local plot = plotHere()
+    -- The engine tracks every unit on every plot regardless of player
+    -- visibility, so without this fog gate a fogged tile would leak the
+    -- presence and identity of units the player can't actually see.
+    -- Collapses to the same "no units" speech as an empty visible tile:
+    -- from the player's information set the answer to "what's here" is
+    -- the same either way.
+    if not plot:IsVisible(Game.GetActiveTeam(), Game.IsDebugMode()) then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS")
+    end
+    local unit = topUnitAt(plot)
     if unit == nil then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS")
     end
