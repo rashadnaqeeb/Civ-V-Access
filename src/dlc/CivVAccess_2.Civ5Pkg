@@ -24,11 +24,13 @@
     <UISkin name="Expansion2Primary" set="Expansion2" platform="Common">
         <Skin>
             <Directory>UI/FrontEnd</Directory>
+            <Directory>UI/Options</Directory>
             <Directory>UI/Shared</Directory>
             <Directory>UI/InGame</Directory>
         </Skin>
         <GameplaySkin>
             <Directory>UI/InGame</Directory>
+            <Directory>UI/Options</Directory>
             <Directory>UI/Shared</Directory>
             <Directory>UI/TechTree</Directory>
         </GameplaySkin>

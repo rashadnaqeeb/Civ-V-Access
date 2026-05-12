@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+Bug fixes:
+- Added a possible fix to the rare bug where the options menu would not appear.
 
 ## [1.1.0] - 2026-05-11
 New Features and improvements:

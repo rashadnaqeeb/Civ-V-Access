@@ -364,7 +364,7 @@ exclude_files = {
     "src/dlc/UI/FrontEnd/SinglePlayer.lua",
     "src/dlc/UI/FrontEnd/MultiplayerSelect.lua",
     "src/dlc/UI/FrontEnd/ScenariosMenu.lua",
-    "src/dlc/UI/FrontEnd/OptionsMenu.lua",
+    "src/dlc/UI/Options/OptionsMenu.lua",
     "src/dlc/UI/FrontEnd/PremiumContentMenu.lua",
     "src/dlc/UI/FrontEnd/LoadMenu.lua",
     "src/dlc/UI/FrontEnd/LoadReplayMenu.lua",
