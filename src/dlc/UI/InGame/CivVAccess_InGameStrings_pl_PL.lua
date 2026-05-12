@@ -1746,6 +1746,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Dostępne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Używane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Lokalne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Importowane"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_FROM_CITY_STATES"] = "Od państw-miast"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Eksportowane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/d"
 -- Victory Progress (F8 / Who is winning): two-tab layout. Tab 1 is the

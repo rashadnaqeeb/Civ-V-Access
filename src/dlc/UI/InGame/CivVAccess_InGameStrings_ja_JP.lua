@@ -1435,6 +1435,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "利用可能"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "使用中"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "地域"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "輸入"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_FROM_CITY_STATES"] = "都市国家から"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "輸出"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/a"
 

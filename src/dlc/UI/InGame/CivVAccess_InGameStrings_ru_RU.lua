@@ -1800,6 +1800,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Доступно"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Использовано"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Местные"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_IMPORTED"] = "Импортировано"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_FROM_CITY_STATES"] = "От городов-государств"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_EXPORTED"] = "Экспортировано"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "н/д"
 
