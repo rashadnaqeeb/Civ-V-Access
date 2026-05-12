@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.1.1] - 2026-05-12
 New Features and improvements:
 - Economic Overview resource tab now shows a "From city-states" column, so allied-minor imports are clearly identified.
 Bug fixes:
