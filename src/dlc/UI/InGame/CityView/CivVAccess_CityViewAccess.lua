@@ -753,7 +753,15 @@ local function buildSpecialistTooltip(city, specID, specInfo)
     end
     if (specInfo.GreatPeopleRateChange or 0) > 0 then
         local gpRate = specInfo.GreatPeopleRateChange
-        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS", gpRate, gpRate)
+        -- Engine TXT_KEY_SPECIALIST_<X>_TITLE renders as "Great Scientist
+        -- Points:", "Great Artist Points:", etc. (and the localized
+        -- equivalents). Using it instead of a generic "great people points"
+        -- string identifies the specialist class without us recomposing
+        -- per-language. Strip the trailing colon (and any whitespace around
+        -- it, as French inserts a space before) so the +N prefix composes
+        -- as one phrase rather than reading as a label.
+        local title = (Text.key(specInfo.GreatPeopleTitle) or ""):gsub("%s*:%s*$", "")
+        parts[#parts + 1] = "+" .. gpRate .. " " .. title
     end
     if #parts == 0 then
         return nil

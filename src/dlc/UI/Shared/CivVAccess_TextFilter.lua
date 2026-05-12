@@ -37,12 +37,36 @@ end
 -- phrase must sit on word boundaries (no false hit on "gold"/"golden").
 -- The `s?` before the boundary lets a singular spoken form collapse
 -- against an adjacent English plural.
+--
+-- _matchesAfter also peeks past up to two short alphabetic qualifier
+-- words sitting between the icon and the labelled noun, covering engine
+-- patterns like "[ICON_HAPPINESS_1] Local Happiness",
+-- "[ICON_HAPPINESS_4] Very Unhappy", and "[ICON_HAPPINESS_1] Public
+-- Opinion Happiness" without doubling the noun. Any non-alphabetic byte
+-- (digit, punctuation, bracket) aborts the look-ahead so the matcher
+-- never reaches past a clause boundary.
 local function _matchesAfter(after, phrase)
     if phrase == "" then
         return false
     end
     local aligned = after:lower() .. "\0"
-    return aligned:find("^%s*" .. escapePattern(phrase:lower()) .. "s?[^%w]") ~= nil
+    local trailerPat = "^%s*" .. escapePattern(phrase:lower()) .. "s?[^%w]"
+    if aligned:find(trailerPat) then
+        return true
+    end
+    local remaining = aligned
+    for _ = 1, 2 do
+        remaining = remaining:match("^%s*(.*)$") or ""
+        local rest = remaining:match("^%a+(.*)")
+        if rest == nil then
+            return false
+        end
+        remaining = rest
+        if remaining:find(trailerPat) then
+            return true
+        end
+    end
+    return false
 end
 
 local function _matchesBefore(before, phrase)

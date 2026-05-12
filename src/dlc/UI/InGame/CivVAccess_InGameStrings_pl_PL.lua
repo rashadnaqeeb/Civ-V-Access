@@ -839,16 +839,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_BUILDINGS_EMPTY"] = "Brak budynk
 -- capable buildings. Labels use labelFn so Enter-driven add/remove flips
 -- the "empty" / "filled" suffix on the next navigate without rebuilding.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"] = "Specjaliści"
--- Specialist slot's per-yield breakdown shows the GP-rate as standalone
--- "+N[ICON_GREAT_PEOPLE]". The icon's spoken form is "great people" for
--- paired-text contexts (where it dedups against the adjacent label), but
--- here the number is a per-turn point count and "great people" alone reads
--- as a count of GP units, not a rate. Render this line as literal text.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_GP_POINTS"] = {
-    one = "+{1_N} punkt wielkiego człowieka",
-    few = "+{1_N} punkty wielkiego człowieka",
-    many = "+{1_N} punktów wielkiego człowieka",
-}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_EMPTY"] = "Brak slotów dla specjalistów."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_SLOT"] = "{1_Building} {2_Specialist} slot {3_N}, {4_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"] = "puste"

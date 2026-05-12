@@ -10,6 +10,9 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+Bug fixes:
+- Happiness icon no longer doubles its label when the engine prefixes a qualifier. Lines such as "+1 Local Happiness from every Water Mill" or "Very Unhappy" no longer read as "happiness Local Happiness" / "unhappiness Very Unhappy".
+- City specialist slot tooltips now identify which kind of great-person points the slot generates ("+3 Great Scientist Points" instead of a generic "+3 great people points").
 
 ## [1.1.1] - 2026-05-12
 New Features and improvements:

@@ -137,6 +137,54 @@ function M.test_happiness_4_collapses_against_unhappy()
     T.eq(TextFilter.filter("[ICON_HAPPINESS_4] Unhappiness doubled"), "Unhappiness doubled")
 end
 
+-- Engine text routinely inserts a qualifier ("Local", "Global", "Very",
+-- "Public Opinion", ...) between the icon and the labelled noun -- e.g.
+-- Expansion2 ideology tenets that emit "+1 [ICON_HAPPINESS_1] Local
+-- Happiness from every Water Mill". The dedup matcher peeks past one or
+-- two short alphabetic words so the user hears "Local Happiness" once,
+-- not "happiness Local Happiness".
+function M.test_happiness_collapses_past_local_qualifier()
+    setup()
+    T.eq(
+        TextFilter.filter("+1 [ICON_HAPPINESS_1] Local Happiness from every Water Mill"),
+        "+1 Local Happiness from every Water Mill"
+    )
+end
+
+function M.test_unhappy_collapses_past_very_qualifier()
+    setup()
+    T.eq(TextFilter.filter("[ICON_HAPPINESS_4] Very Unhappy"), "Very Unhappy")
+end
+
+function M.test_happiness_collapses_past_two_qualifier_words()
+    setup()
+    T.eq(
+        TextFilter.filter("[ICON_HAPPINESS_1] Public Opinion Happiness shifts"),
+        "Public Opinion Happiness shifts"
+    )
+end
+
+-- Three intervening words is past a clause boundary -- the icon stays
+-- spoken so its meaning isn't lost when the matching word is far away.
+function M.test_happiness_does_not_collapse_past_three_words()
+    setup()
+    T.eq(
+        TextFilter.filter("[ICON_HAPPINESS_1] for the empire happiness boost"),
+        "happiness for the empire happiness boost"
+    )
+end
+
+-- Digits / punctuation between the icon and a later label abort the
+-- look-ahead -- "10 turns" in the way means the trailing "happiness" is
+-- in a different clause, not the icon's label.
+function M.test_qualifier_skip_aborts_on_digit()
+    setup()
+    T.eq(
+        TextFilter.filter("[ICON_HAPPINESS_1] 10 happiness boost"),
+        "happiness 10 happiness boost"
+    )
+end
+
 -- Typo-variant icons inherit aliases from their canonical TXT_KEY. A base
 -- text with the misspelled ICON_HAPPINES_4 next to "unhappy" should collapse
 -- just like ICON_HAPPINESS_4 does.
