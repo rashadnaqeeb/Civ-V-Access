@@ -1452,6 +1452,22 @@ local function buildResourceColumns()
             end,
             pediaName = resourcePedia,
         },
+        -- GetResourceFromMinors reads m_paiResourceFromMinors, a separate
+        -- engine bucket the F2 panel folds silently into Available. Surfacing
+        -- it as its own column squares the math: Available + Used + Exported
+        -- = Local + Imported + FromCityStates (+ Siphoned, which has no Lua
+        -- binding and is the rare Carthage UA / Stealing-From-the-Motherland
+        -- spy-mission residual).
+        {
+            name = "TXT_KEY_CIVVACCESS_EO_RES_FROM_CITY_STATES",
+            getCell = function(r)
+                return tostring(activePlayer():GetResourceFromMinors(r.ID))
+            end,
+            sortKey = function(r)
+                return activePlayer():GetResourceFromMinors(r.ID)
+            end,
+            pediaName = resourcePedia,
+        },
         {
             name = "TXT_KEY_CIVVACCESS_EO_RES_EXPORTED",
             getCell = function(r)

@@ -972,7 +972,7 @@ local function installResourceTabFixture(resources)
         local r = byID[id] or {}
         local total = (r["local"] or 0) - (r.export or 0)
         if includeImport then
-            total = total + (r.import or 0)
+            total = total + (r.import or 0) + (r.from_minors or 0)
         end
         return total
     end
@@ -981,6 +981,9 @@ local function installResourceTabFixture(resources)
     end
     function p:GetResourceExport(id)
         return (byID[id] or {}).export or 0
+    end
+    function p:GetResourceFromMinors(id)
+        return (byID[id] or {}).from_minors or 0
     end
     Players[0] = p
     return p
@@ -997,19 +1000,22 @@ end
 
 -- buildResourceColumns shape -------------------------------------------
 
-function M.test_buildResourceColumns_order_available_used_local_imported_exported()
+function M.test_buildResourceColumns_order_available_used_local_imported_fromcs_exported()
     setup()
     local cols = EconomicOverviewAccess.buildResourceColumns()
     -- Screen-reader users hear the column name in every cell announcement
     -- (BaseTable speaks "row, column, value"). Available is the first
     -- thing the user wants to know on entering a row, so it must come
-    -- first; reordering this is a UX regression.
+    -- first; reordering this is a UX regression. Inbound buckets (Local,
+    -- Imported, From city-states) are grouped together; Exported is the
+    -- only outbound and lives last.
     T.eq(cols[1].name, "TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE")
     T.eq(cols[2].name, "TXT_KEY_CIVVACCESS_EO_RES_USED")
     T.eq(cols[3].name, "TXT_KEY_CIVVACCESS_EO_RES_LOCAL")
     T.eq(cols[4].name, "TXT_KEY_CIVVACCESS_EO_RES_IMPORTED")
-    T.eq(cols[5].name, "TXT_KEY_CIVVACCESS_EO_RES_EXPORTED")
-    T.eq(#cols, 5, "exactly five columns")
+    T.eq(cols[5].name, "TXT_KEY_CIVVACCESS_EO_RES_FROM_CITY_STATES")
+    T.eq(cols[6].name, "TXT_KEY_CIVVACCESS_EO_RES_EXPORTED")
+    T.eq(#cols, 6, "exactly six columns")
 end
 
 function M.test_buildResourceColumns_all_have_getCell_sortKey_pediaName()
@@ -1109,6 +1115,33 @@ function M.test_imported_and_exported_columns_pass_through_player_methods()
     local exp = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_EXPORTED")
     T.eq(imp.getCell({ ID = 20 }), "3")
     T.eq(exp.getCell({ ID = 20 }), "1")
+end
+
+function M.test_from_city_states_column_reads_GetResourceFromMinors()
+    setup()
+    -- Engine separates city-state allied imports (m_paiResourceFromMinors)
+    -- from trade-deal imports (m_paiResourceImport). Verify the column
+    -- pulls the former, not the latter.
+    installResourceTabFixture({
+        { id = 20, description = "Wine", usage = ResourceUsageTypes.RESOURCEUSAGE_LUXURY, from_minors = 2, import = 5 },
+    })
+    local col = findResourceColumn("TXT_KEY_CIVVACCESS_EO_RES_FROM_CITY_STATES")
+    T.eq(col.getCell({ ID = 20 }), "2")
+    T.eq(col.sortKey({ ID = 20 }), 2)
+end
+
+function M.test_rebuildResourceRows_includes_resource_visible_only_via_city_states()
+    setup()
+    -- An allied minor's iron with zero on-map production and zero trade
+    -- imports still passes the inclusion filter because GetNumResourceTotal
+    -- (true) includes FromMinors -- the row must show or the player loses
+    -- visibility into a real strategic stockpile.
+    installResourceTabFixture({
+        { id = 10, description = "Iron", usage = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC, from_minors = 3 },
+    })
+    local rows = EconomicOverviewAccess.rebuildResourceRows()
+    T.eq(#rows, 1)
+    T.eq(rows[1].Description, "Iron")
 end
 
 -- rebuildResourceRows filtering ----------------------------------------
