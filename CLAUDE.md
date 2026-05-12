@@ -6,6 +6,10 @@ Civ-V-Access is an accessibility layer for Sid Meier's Civilization V that makes
 
 When committing a new feature or bug fix, add an entry to `CHANGELOG.md` under `## [Unreleased]`, beneath one of two section headers: `New Features and improvements:` or `Bug fixes:`. Add the header if it isn't there yet. Keep entries short — one line per change, written from the player's perspective (what changed for them, not implementation details).
 
+## Commit messages
+
+Use the standard subject + body format: a short imperative subject line under ~72 characters, one blank line, then a body wrapped at ~72 characters with paragraphs or bullet lists. Do not merge the subject and body into a single run-on paragraph. Parts of the existing log do this; treat them as antipattern, not template.
+
 ## Build
 
 The pipeline is three standalone scripts at the repo root. Each one is run only when its own piece of the codebase has changed; the build outputs are committed, so deploys don't require a prior build.
