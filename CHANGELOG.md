@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.1.2] - 2026-05-12
 Bug fixes:
 - Numpad cluster keys now work with Shift held and with NumLock off.
 - Reading the unit on a fogged tile with S no longer leaks the unit hiding there.
