@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - Scanner terrain category now includes a Fresh Water subcategory listing every revealed tile with river or lake access.
 - Audio beacons sound warmer and less harsh while still giving clear stereo direction.
+- Scanner direction beep now pans audibly left and right instead of sitting nearly centered.
 - Tab on a worker now also lists improvements you can't build yet, after the buildable ones, with the reason.
 
 Bug fixes:
