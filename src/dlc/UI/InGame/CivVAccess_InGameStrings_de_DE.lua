@@ -83,6 +83,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_NAME"] = "Einheitenaktionen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_ACTIVATE_MENU_NAME"] = "Geländefeld aktivieren"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Beförderungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Modernisierungen bauen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "nicht verfügbar, {1_BuildName}, {2_Reason}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "nicht verfügbar, {1_BuildName}"
 -- Spoken on entering a target-picker mode.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "Zielmodus"
 -- Confirms when shift+enter appends a leg to the unit's mission queue.
