@@ -12,7 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 New Features and improvements:
 - Scanner terrain category now includes a Fresh Water subcategory listing every revealed tile with river or lake access.
-- Audio beacons sound clearer and gentler: easier to tell direction, less abrasive pulse.
+- Audio beacons sound warmer and less harsh while still giving clear stereo direction.
 - Beacon volume slider now has more headroom so beacons can play louder than the per-hex audio cues.
 
 Bug fixes:

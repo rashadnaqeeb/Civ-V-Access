@@ -1,43 +1,38 @@
-"""Generate sounds/beacon.wav as a looping tone with a slow AM tremolo.
+"""Generate sounds/beacon.wav from sounds/ambient_zone.wav.
 
-The beacon's stereo position, pitch, and volume are mutated in real time on
-every cursor move (see CivVAccess_Beacons.updateBeaconParams). Two cue
-families contribute to localization, and the source carries both: spectral
-content above ~800 Hz (where human ILD panning reads cleanly), and periodic
-onset transients from AM modulation (the precedence-effect cue that lets
-the auditory system pick out the leading edge of each pulse). The partial
-stack delivers the first; the tremolo envelope delivers the second.
+The source asset is a warm ambient pad (1.5 s, dual-mono, 44.1 kHz / 16-bit)
+with most of its energy below 500 Hz -- strong 110 Hz fundamental plus
+harmonics at 165, 220, 330, 440 Hz. That character is exactly what we
+want for a pleasant beacon (no drone-y sustained tone, fades in and out
+each loop), but human stereo localization runs mostly on ILD above
+~500 Hz, so the source alone does not pan decisively.
 
-Partial structure (harmonic series of 160 Hz, magnitudes pre-normalization):
-  * 160 Hz (1st)  at 1.00  -- fundamental, identity anchor
-  *  320 Hz (2nd)  at 0.35  -- warmth
-  *  480 Hz (3rd)  at 0.20  -- fills the lower mid
-  *  800 Hz (5th)  at 0.40  -- start of the ILD-strong localization band
-  * 1280 Hz (8th)  at 0.35  -- the workhorse for stereo pan
-  * 1760 Hz (11th) at 0.15  -- top-end brilliance, kept low so the
-                               sustained tone does not turn strident
+This script downmixes the source to mono, normalizes its peak to the
+historic beacon level (so the BeaconVolume slider stays calibrated), and
+overlays a low-amplitude sheen layer of three sine partials in the ILD-
+strong band. The sheen frequencies are integer multiples of the source's
+110 Hz fundamental, so they blend with the existing harmonic series
+rather than reading as a separate tone.
 
-AM envelope: 2 Hz tremolo at 0.3 modulation depth, so the instantaneous
-amplitude swings between 0.7 and 1.0 of the partial-sum peak. Reads as a
-slow breathing rather than a pulse -- enough periodic onset for the
-auditory system's leading-edge localization cue, without the throbbing
-quality that a faster / deeper tremolo produces on long holds.
+Sheen partials (frequency Hz, magnitude pre-normalization):
+  *  880 Hz (8th  harmonic of 110) at 1.00
+  * 1320 Hz (12th harmonic of 110) at 0.65
+  * 1760 Hz (16th harmonic of 110) at 0.40
 
-The tremolo is safe under cursor moves because the beacon voice runs
-continuously after toggle-on -- only set_pan / set_pitch / set_volume fire
-on cursor moves, no replay -- so the envelope evolves without resets.
-ma_sound_set_pitch is a resampler rate change applied to the whole signal,
-so the tremolo rate co-varies with row displacement (1 Hz at -12 semitones,
-4 Hz at +12) as a passive side cue.
+The sheen sits at ~25% of the source's normalized peak, low enough that
+the source's body dominates the perceived timbre while the auditory
+system still gets clear ILD content in the localizable band.
 
-Loop seam: duration is 2 seconds. The 2 Hz tremolo closes at exactly 4
-cycles, and every partial is an integer Hz multiple (so phase returns to
-zero at t = 2 s for both the carrier sum and the envelope). The decoded
-WAV lives in memory after ma_sound_init_from_file, so the slightly larger
-loop (176 KB instead of 88 KB) is a non-issue.
+Loop seam: source loops cleanly (sample 0 and sample N are both zero;
+the source has its own fade-in / fade-out built in). The sheen frequencies
+are chosen so f * 1.5 is integer (1320, 1980, 2640 cycles per loop), so
+the sheen layer is also phase-continuous at the seam. The generator
+asserts this rather than trusting it silently.
 
-Output amplitude: partial-sum peak ~7200/32767 (about -13 dBFS) at the
-envelope's max (1.0). BeaconVolume slider calibration carries over.
+Pitch interaction: ma_sound_set_pitch resamples the whole signal, so the
+fade-in / fade-out cadence co-varies with cursor row, same as the prior
+beacon iterations. The 1.5 s loop becomes 0.75 s at +12 semitones and 3 s
+at -12, a passive side cue.
 
 Run from the repo root:
     py tools/generate-beacon.py
@@ -48,46 +43,87 @@ import struct
 import wave
 from pathlib import Path
 
-SAMPLE_RATE = 44100
-DURATION_SEC = 2.0
-NUM_SAMPLES = int(SAMPLE_RATE * DURATION_SEC)
+SOURCE_PATH = Path(__file__).resolve().parent.parent / "sounds" / "ambient_zone.wav"
+OUTPUT_PATH = Path(__file__).resolve().parent.parent / "sounds" / "beacon.wav"
 
-PARTIALS = [
-    (160, 1.00),
-    (320, 0.35),
-    (480, 0.20),
-    (800, 0.40),
-    (1280, 0.35),
-    (1760, 0.15),
+# Historic beacon peak: ~7200/32767 ≈ -13 dBFS. Keep this so the existing
+# BeaconVolume slider settings produce the same loudness as before.
+SOURCE_TARGET_PEAK = 7200
+
+# Sheen peak as a fraction of SOURCE_TARGET_PEAK. 0.25 sits the sheen at
+# -12 dB relative to the source body, audible enough to localize but
+# quiet enough not to dominate the timbre.
+SHEEN_PEAK_FRACTION = 0.25
+
+SHEEN_PARTIALS = [
+    (880, 1.00),
+    (1320, 0.65),
+    (1760, 0.40),
 ]
 
-TREMOLO_HZ = 2.0
-TREMOLO_DEPTH = 0.3
 
-PEAK = 7200
-
-OUTPUT_PATH = Path(__file__).resolve().parent.parent / "sounds" / "beacon.wav"
+def read_source(path):
+    w = wave.open(str(path), "rb")
+    nchannels = w.getnchannels()
+    sample_width = w.getsampwidth()
+    framerate = w.getframerate()
+    nframes = w.getnframes()
+    frames = w.readframes(nframes)
+    w.close()
+    if sample_width != 2:
+        raise ValueError(f"expected 16-bit PCM, got sample width {sample_width}")
+    samples = struct.unpack("<" + "h" * (len(frames) // 2), frames)
+    if nchannels == 1:
+        mono = list(samples)
+    elif nchannels == 2:
+        mono = [(samples[2 * i] + samples[2 * i + 1]) // 2 for i in range(nframes)]
+    else:
+        raise ValueError(f"unsupported channel count {nchannels}")
+    return mono, framerate
 
 
 def main() -> None:
-    norm = sum(mag for _, mag in PARTIALS)
-    samples = []
-    for i in range(NUM_SAMPLES):
-        t = i / SAMPLE_RATE
-        carrier = sum(mag * math.sin(2 * math.pi * freq * t) for freq, mag in PARTIALS)
-        carrier = carrier / norm
-        envelope = 1.0 - TREMOLO_DEPTH * 0.5 * (1.0 - math.cos(2 * math.pi * TREMOLO_HZ * t))
-        v = carrier * envelope
-        samples.append(int(round(v * PEAK)))
+    source, framerate = read_source(SOURCE_PATH)
+    n = len(source)
+    duration = n / framerate
 
-    data = struct.pack("<" + "h" * NUM_SAMPLES, *samples)
+    for freq, _ in SHEEN_PARTIALS:
+        cycles = freq * duration
+        if abs(cycles - round(cycles)) > 1e-6:
+            raise ValueError(
+                f"sheen partial {freq} Hz does not close the loop seam: "
+                f"{cycles} cycles in {duration} s, must be integer"
+            )
+
+    source_peak = max(abs(s) for s in source)
+    if source_peak == 0:
+        raise ValueError("source is silent")
+    source_scale = SOURCE_TARGET_PEAK / source_peak
+
+    sheen_norm = sum(amp for _, amp in SHEEN_PARTIALS)
+    sheen_peak_target = SOURCE_TARGET_PEAK * SHEEN_PEAK_FRACTION
+
+    out = []
+    for i in range(n):
+        t = i / framerate
+        sheen_v = sum(amp * math.sin(2 * math.pi * f * t) for f, amp in SHEEN_PARTIALS)
+        sheen_v = (sheen_v / sheen_norm) * sheen_peak_target
+        combined = source[i] * source_scale + sheen_v
+        c = int(round(combined))
+        if c > 32767:
+            c = 32767
+        elif c < -32768:
+            c = -32768
+        out.append(c)
+
+    data = struct.pack("<" + "h" * n, *out)
     with wave.open(str(OUTPUT_PATH), "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
-        w.setframerate(SAMPLE_RATE)
+        w.setframerate(framerate)
         w.writeframes(data)
 
-    print(f"Wrote {OUTPUT_PATH} ({NUM_SAMPLES} samples, {DURATION_SEC} s, peak {PEAK})")
+    print(f"Wrote {OUTPUT_PATH} ({n} samples, {duration:.3f} s)")
 
 
 if __name__ == "__main__":
