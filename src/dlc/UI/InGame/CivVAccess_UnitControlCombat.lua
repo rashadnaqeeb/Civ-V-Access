@@ -281,15 +281,28 @@ local function onCombatResolved(
     plotX,
     plotY
 )
-    Log.debug(string.format(
-        "CombatResolved: atkP=%d atkU=%d atkC=%d atkD=%d/%d/%d defP=%d defU=%d defC=%d defD=%d/%d/%d kind=%d vis=%d atkK=%d defK=%d cap=%d",
-        attackerPlayer, attackerUnit, attackerCity,
-        attackerDamage, attackerFinalDamage, attackerMaxHP,
-        defenderPlayer, defenderUnit, defenderCity,
-        defenderDamage, defenderFinalDamage, defenderMaxHP,
-        combatKind, plotVisibleToActiveTeam, attackerKnown, defenderKnown,
-        defenderCityCaptured
-    ))
+    Log.debug(
+        string.format(
+            "CombatResolved: atkP=%d atkU=%d atkC=%d atkD=%d/%d/%d defP=%d defU=%d defC=%d defD=%d/%d/%d kind=%d vis=%d atkK=%d defK=%d cap=%d",
+            attackerPlayer,
+            attackerUnit,
+            attackerCity,
+            attackerDamage,
+            attackerFinalDamage,
+            attackerMaxHP,
+            defenderPlayer,
+            defenderUnit,
+            defenderCity,
+            defenderDamage,
+            defenderFinalDamage,
+            defenderMaxHP,
+            combatKind,
+            plotVisibleToActiveTeam,
+            attackerKnown,
+            defenderKnown,
+            defenderCityCaptured
+        )
+    )
     local activePlayer = Game.GetActivePlayer()
     local activeInvolved = (attackerPlayer == activePlayer or defenderPlayer == activePlayer)
     if not activeInvolved then

@@ -1308,8 +1308,7 @@ local function buildHubItems(city)
     -- ever landing on a "0 unemployed" read.
     local slackerInfo = GameInfo.Specialists[GameDefines.DEFAULT_SPECIALIST]
     local slackerPedia = slackerInfo and Text.key(slackerInfo.Description) or nil
-    local unemployedItem =
-        makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
+    local unemployedItem = makeHubItem({ labelFn = unemployedLabel, pediaName = slackerPedia }, activateUnemployed)
     function unemployedItem:isNavigable()
         local c = UI.GetHeadSelectedCity()
         if c == nil then

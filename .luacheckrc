@@ -72,6 +72,10 @@ read_globals = {
     -- stub (see the tests-section globals entry for the write permission).
     "audio",
 
+    -- Proxy-injected modifier-key probe (GetAsyncKeyState-backed). Read-only
+    -- from mod code; tests monkey-patch it (see the tests-section entry).
+    "civvaccess_keys",
+
     -- Engine hex-geometry helpers injected by WorldView / camera code.
     -- CameraTracker uses them to convert grid coords to world coords;
     -- ToGridFromHex inverts ToHexFromGrid and is used by RevealAnnounce
@@ -122,7 +126,7 @@ globals = {
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory",
-    "AudioCueMode", "VolumeControl", "Settings",
+    "AudioCueMode", "VolumeControl", "Settings", "Verbosity",
     "CameraTracker", "NavigableGraph",
 
     -- InGame modules
@@ -140,19 +144,19 @@ globals = {
     "ScannerBackendCities", "ScannerBackendImprovements",
     "ScannerBackendRecommendations",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",
-    "ScannerBackendUnits", "ScannerBackendWaypoints",
+    "ScannerBackendUnits", "ScannerBackendWaypoints", "ScannerBackendWorkedTiles",
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",
     "CityViewHexMap", "CityViewProduction", "CityViewHub",
     "GiftMode",
-    "ChooseProductionLogic", "ChooseTechLogic",
+    "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText",
     "NotificationAnnounce",
     "Recommendations",
     "SocialPolicyLogic",
     "TechTreeLogic",
     "DiploCommon",
-    "TradeLogicAccess", "TradeLogicAvailable", "TradeLogicOffering",
+    "TradeLogicAccess", "TradeLogicAvailable", "TradeLogicOffering", "TradeRouteRow",
     "LeagueOverviewRow", "LeagueOverviewVote", "LeagueOverviewProposal",
     "TaskList",
     "Turn",
@@ -169,6 +173,11 @@ globals = {
     -- reads it; tests monkey-patch it, so it lives here rather than in
     -- read_globals.
     "GetHelpTextForTech",
+
+    -- Base-game production help-text helpers from CityView's
+    -- InfoTooltipInclude.lua. ProductionHelpText reaches into them at
+    -- speech time; the production_help_text suite monkey-patches them.
+    "GetHelpTextForBuilding", "GetHelpTextForUnit", "GetHelpTextForProject",
 
     -- User-preference module (Shared/)
     "Prefs",
@@ -268,6 +277,9 @@ files["tests/"] = {
         -- stub before each suite; declaring it writable here lets the
         -- stub assignment and monkey-patches pass without warnings.
         "audio",
+        -- Proxy-injected modifier-key probe. input_router_test installs
+        -- a stub table to drive Shift/Ctrl/Alt branches deterministically.
+        "civvaccess_keys",
         -- Mod modules the test suites exercise directly.
         "UnitSpeech", "Pathfinder", "RoutePathfinder",
         "ScannerBackendTerrain", "EmpireStatus",

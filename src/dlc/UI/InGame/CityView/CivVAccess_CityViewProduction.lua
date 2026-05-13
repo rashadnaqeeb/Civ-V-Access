@@ -177,7 +177,9 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_UP"),
             onActivate = function()
-                if refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
+                if
+                    refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                then
                     return
                 end
                 if not isTurnActive() then
@@ -194,7 +196,9 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         items[#items + 1] = BaseMenuItems.Text({
             labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_DOWN"),
             onActivate = function()
-                if refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
+                if
+                    refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                then
                     return
                 end
                 if not isTurnActive() then

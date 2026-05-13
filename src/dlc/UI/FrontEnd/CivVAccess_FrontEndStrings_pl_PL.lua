@@ -127,7 +127,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPSCREEN_RESOLUTION_W"] = "Rozdzielczoś�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_MAX_TURNS"] = "Liczba tur"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER"] = "Czas tury w sekundach"
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_INTRO"] = "{1_Message}. Powrót do poprzednich ustawień za 20 sekund."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_INTRO"] =
+    "{1_Message}. Powrót do poprzednich ustawień za 20 sekund."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_OPTIONS_COUNTDOWN_EXPIRED"] = "Czas minął, zmiany cofnięto."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_RECONNECTING"] = "Ponowne łączenie"
 
@@ -201,7 +202,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Mowa
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Szczegółowe komunikaty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Tylko sygnały dźwiękowe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Głośność ikon dźwiękowych terenu"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Głośność ikon dźwiękowych terenu, {1_Num} procent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
+    "Głośność ikon dźwiękowych terenu, {1_Num} procent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME"] = "Głośność sygnału"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"] = "Głośność sygnału, {1_Num} procent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE"] = "Zasięg słyszalności znacznika"

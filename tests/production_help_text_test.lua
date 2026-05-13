@@ -59,10 +59,7 @@ function M.test_buildingHelp_passthrough_with_cost()
         return "Cost: 75[NEWLINE]Maintenance: 1[NEWLINE]Science: +25%"
     end
     local building = { ID = 1, Description = "Library", GoldMaintenance = 1 }
-    T.eq(
-        ProductionHelpText.buildingHelp({}, building, true),
-        "Cost: 75[NEWLINE]Maintenance: 1[NEWLINE]Science: +25%"
-    )
+    T.eq(ProductionHelpText.buildingHelp({}, building, true), "Cost: 75[NEWLINE]Maintenance: 1[NEWLINE]Science: +25%")
 end
 
 function M.test_buildingHelp_skips_cost_synthesizes_maintenance()
@@ -118,10 +115,7 @@ function M.test_unitHelp_drops_cost_when_excluded()
     end
     local unit = { ID = 1, Description = "Warrior" }
     -- includeCost=false: drops the first chunk after the prefix-strip.
-    T.eq(
-        ProductionHelpText.unitHelp({}, unit, false),
-        "Strength: 8[NEWLINE]----------------[NEWLINE]Strong unit."
-    )
+    T.eq(ProductionHelpText.unitHelp({}, unit, false), "Strength: 8[NEWLINE]----------------[NEWLINE]Strong unit.")
 end
 
 function M.test_unitHelp_zero_cost_drop_is_a_noop_when_no_cost_line()
@@ -158,10 +152,7 @@ function M.test_projectHelp_drops_cost_when_excluded()
         return "MANHATTAN[NEWLINE]----------------[NEWLINE]Cost: 1500[NEWLINE]----------------[NEWLINE]Enables nukes."
     end
     local project = { ID = 1, Description = "Manhattan" }
-    T.eq(
-        ProductionHelpText.projectHelp({}, project, false),
-        "----------------[NEWLINE]Enables nukes."
-    )
+    T.eq(ProductionHelpText.projectHelp({}, project, false), "----------------[NEWLINE]Enables nukes.")
 end
 
 -- ---------------------------------------------------------------------
@@ -222,7 +213,10 @@ function M.test_strategy_fallback_appends_when_building_help_missing()
         Strategy = "TXT_KEY_BUILDING_TEMPLE_STRATEGY",
     }
     local out = ProductionHelpText.buildingHelp({}, building, true)
-    T.eq(out, "Cost: 80[NEWLINE]Maintenance: 2[NEWLINE]Faith: +2[NEWLINE]----------------[NEWLINE]Temples are useful in the early religion game.")
+    T.eq(
+        out,
+        "Cost: 80[NEWLINE]Maintenance: 2[NEWLINE]Faith: +2[NEWLINE]----------------[NEWLINE]Temples are useful in the early religion game."
+    )
 end
 
 function M.test_strategy_fallback_skips_when_building_help_present()
@@ -314,42 +308,43 @@ local function setupForRemaining(opts)
     Players = setmetatable({}, {
         __index = function(_, _owner)
             return {
-                GetUnitProductionNeeded = function(_, _id) return opts.unitNeeded or 0 end,
-                GetBuildingProductionNeeded = function(_, _id) return opts.buildingNeeded or 0 end,
-                GetProjectProductionNeeded = function(_, _id) return opts.projectNeeded or 0 end,
+                GetUnitProductionNeeded = function(_, _id)
+                    return opts.unitNeeded or 0
+                end,
+                GetBuildingProductionNeeded = function(_, _id)
+                    return opts.buildingNeeded or 0
+                end,
+                GetProjectProductionNeeded = function(_, _id)
+                    return opts.projectNeeded or 0
+                end,
             }
         end,
     })
     return {
-        GetOwner = function() return 0 end,
-        GetProductionTimes100 = function() return (opts.stored or 0) * 100 end,
+        GetOwner = function()
+            return 0
+        end,
+        GetProductionTimes100 = function()
+            return (opts.stored or 0) * 100
+        end,
     }
 end
 
 function M.test_remainingLine_subtracts_stored_when_includeStored_true()
     local city = setupForRemaining({ unitNeeded = 100, stored = 30 })
-    T.eq(
-        ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true),
-        "Production remaining: 70"
-    )
+    T.eq(ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true), "Production remaining: 70")
 end
 
 function M.test_remainingLine_uses_full_needed_when_includeStored_false()
     -- Queue slots 2+ haven't accumulated progress; passing
     -- includeStored=false reports the full needed.
     local city = setupForRemaining({ unitNeeded = 100, stored = 30 })
-    T.eq(
-        ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, false),
-        "Production remaining: 100"
-    )
+    T.eq(ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, false), "Production remaining: 100")
 end
 
 function M.test_remainingLine_clamps_at_zero_when_overbuilt()
     local city = setupForRemaining({ unitNeeded = 40, stored = 60 })
-    T.eq(
-        ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true),
-        "Production remaining: 0"
-    )
+    T.eq(ProductionHelpText.remainingLine(city, OrderTypes.ORDER_TRAIN, 1, true), "Production remaining: 0")
 end
 
 function M.test_remainingLine_returns_nil_for_process()

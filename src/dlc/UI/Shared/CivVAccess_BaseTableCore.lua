@@ -122,9 +122,7 @@ local function buildCellSpeech(self, rows, force)
             if type(col.sortKey) == "function" then
                 result = result .. ", " .. Text.key("TXT_KEY_CIVVACCESS_BASETABLE_SORT_BUTTON")
             end
-            result = result
-                .. ", "
-                .. Text.format("TXT_KEY_CIVVACCESS_VERBOSE_COLUMN_OF", self._col, #self.columns)
+            result = result .. ", " .. Text.format("TXT_KEY_CIVVACCESS_VERBOSE_COLUMN_OF", self._col, #self.columns)
         end
         return result
     end

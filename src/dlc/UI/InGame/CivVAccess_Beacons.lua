@@ -217,9 +217,7 @@ function Beacons.refresh()
                 -- reaching here means some path desynced them. Stop the
                 -- voice (it may be looping with stale params) and clear
                 -- the flag so the warning fires once, not on every refresh.
-                Log.warn(
-                    "Beacons.refresh: slot " .. tostring(slot) .. " active but bookmark missing; clearing"
-                )
+                Log.warn("Beacons.refresh: slot " .. tostring(slot) .. " active but bookmark missing; clearing")
                 active[slot] = false
                 if playing[slot] then
                     audio.stop(h)

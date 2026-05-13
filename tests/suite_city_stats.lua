@@ -648,9 +648,11 @@ function M.test_resources_skips_plot_when_owner_differs()
     -- Plot's plot-city is some OTHER city (id 99). resourceLines must
     -- skip plots whose owner isn't this city, even when the resource
     -- type is locally available via a different plot.
-    local otherCity = { GetID = function()
-        return 99
-    end }
+    local otherCity = {
+        GetID = function()
+            return 99
+        end,
+    }
     city._plots = {
         mkPlot({ resourceType = 1, numResource = 4, plotCity = otherCity }),
     }

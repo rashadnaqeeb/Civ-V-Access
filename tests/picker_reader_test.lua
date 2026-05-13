@@ -504,7 +504,9 @@ local function installFixtureWithQuickClose(quickCloseFn)
     ctx._sh(false, false)
     -- Activate Alpha to land on the reader tab.
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
-    return handler, ctx, function() return priorEscCalls end
+    return handler, ctx, function()
+        return priorEscCalls
+    end
 end
 
 function M.test_install_reader_esc_bounces_when_quick_close_absent()
@@ -542,16 +544,11 @@ function M.test_install_picker_esc_falls_through_regardless_of_quick_close()
     -- quick-close only governs reader-tab Esc. Picker-tab Esc always
     -- falls through (since there is no further tab to bounce to).
     setup()
+    -- The helper activates Alpha, landing on the reader tab; switch back to
+    -- picker so the Esc below exercises picker-tab fall-through.
     local handler, ctx, priorEscCalls = installFixtureWithQuickClose(function()
         return true
     end)
-    -- Drop back to picker via bounce (then we'll Esc again on picker).
-    -- Easier: don't activate Alpha; the install lands on picker.
-    HandlerStack._reset()
-    handler, ctx, priorEscCalls = installFixtureWithQuickClose(function()
-        return true
-    end)
-    -- Cancel the activate from the helper and stay on picker.
     handler.switchToTab(1)
     T.eq(handler._tabIndex, 1, "on picker tab")
     ctx._in(WM_KEYDOWN, Keys.VK_ESCAPE, 0)

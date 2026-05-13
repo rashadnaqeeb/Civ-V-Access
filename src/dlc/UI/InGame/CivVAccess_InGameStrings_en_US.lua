@@ -849,8 +849,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_LOSING"] = "losing {1_Num} per 
 -- growth aren't on the banner (and a spy in the city alone doesn't
 -- expose them either), so we point at the Espionage Overview where
 -- sighted players see what each foreign civ is producing.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_HIDDEN_FOREIGN"] =
-    "production hidden, see Espionage Overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEVELOPMENT_HIDDEN_FOREIGN"] = "production hidden, see Espionage Overview"
 -- City religion tokens (the "3" key). Full breakdown matching the
 -- banner's GetReligionTooltip iteration: every religion present, with
 -- holy-city marker, follower count, pressure-per-turn, and trade-route
@@ -2892,8 +2891,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_ACTIVATED"] = "activated beacon {1
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_DEACTIVATED"] = "deactivated beacon {1_Slot}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_NO_BOOKMARK"] = "set a bookmark in this slot first"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_KEY"] = "Control plus Shift plus a number key"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_DESC"] =
-    "Toggle a spatial audio beacon at the bookmark in that slot"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_HELP_DESC"] = "Toggle a spatial audio beacon at the bookmark in that slot"
 
 -- Message buffer: scrollable history of speech-worthy events
 -- (notifications, reveals, foreign-unit-watch lines, combat resolutions).

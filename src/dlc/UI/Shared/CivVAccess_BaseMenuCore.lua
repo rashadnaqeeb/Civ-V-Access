@@ -886,8 +886,7 @@ function BaseMenu.create(spec)
         "spec.onAltRight must be a function if provided"
     )
     Log.check(
-        spec.typeAheadOpenDelay == nil
-            or (type(spec.typeAheadOpenDelay) == "number" and spec.typeAheadOpenDelay >= 0),
+        spec.typeAheadOpenDelay == nil or (type(spec.typeAheadOpenDelay) == "number" and spec.typeAheadOpenDelay >= 0),
         "spec.typeAheadOpenDelay must be a non-negative number if provided"
     )
 

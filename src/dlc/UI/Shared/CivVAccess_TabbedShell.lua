@@ -640,7 +640,11 @@ function TabbedShell.install(ContextPtr, spec)
                 local activeTab = handler._tabs[handler._activeIdx]
                 if activeTab ~= nil and type(activeTab.clearSearchIfActive) == "function" then
                     local ok, consumed = Log.tryCall(
-                        "TabbedShell '" .. handler.name .. "' clearSearchIfActive in '" .. tostring(activeTab.tabName) .. "'",
+                        "TabbedShell '"
+                            .. handler.name
+                            .. "' clearSearchIfActive in '"
+                            .. tostring(activeTab.tabName)
+                            .. "'",
                         activeTab.clearSearchIfActive,
                         activeTab
                     )

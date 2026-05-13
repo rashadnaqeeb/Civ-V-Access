@@ -1068,20 +1068,14 @@ function M.test_diplomatic_omits_warmonger_when_at_peace()
     setup()
     installForeignMajor(5, 5, { atWar = false, warmonger = "Severe." })
     local city = mkCity({ owner = 5, team = 5, originalOwner = 5 })
-    T.falsy(
-        CitySpeech.diplomatic(city):find("warmonger", 1, true),
-        "warmonger preview must not fire at peace"
-    )
+    T.falsy(CitySpeech.diplomatic(city):find("warmonger", 1, true), "warmonger preview must not fire at peace")
 end
 
 function M.test_diplomatic_omits_liberation_when_original_owner_same()
     setup()
     installForeignMajor(5, 5, { atWar = true, warmonger = "W", liberation = "L" })
     local city = mkCity({ owner = 5, team = 5, originalOwner = 5 })
-    T.falsy(
-        CitySpeech.diplomatic(city):find("liberation", 1, true),
-        "no liberation when original owner unchanged"
-    )
+    T.falsy(CitySpeech.diplomatic(city):find("liberation", 1, true), "no liberation when original owner unchanged")
 end
 
 function M.test_diplomatic_speaks_liberation_when_original_differs()

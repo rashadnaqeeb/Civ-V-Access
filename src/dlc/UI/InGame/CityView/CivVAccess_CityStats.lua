@@ -119,11 +119,8 @@ end
 -- turns-to-grow countdown.
 local function foodExtras(city)
     local parts = {}
-    parts[#parts + 1] = Text.format(
-        "TXT_KEY_CIVVACCESS_CITYSTATS_STORAGE_FRACTION",
-        city:GetFood(),
-        city:GrowthThreshold()
-    )
+    parts[#parts + 1] =
+        Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_STORAGE_FRACTION", city:GetFood(), city:GrowthThreshold())
     local foodDiff100 = city:FoodDifferenceTimes100()
     if city:IsFoodProduction() or foodDiff100 == 0 then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING")
@@ -444,11 +441,7 @@ function CityStats.resourceLines(city)
             return compareLocale(names[a], names[b])
         end)
         for _, rid in ipairs(ids) do
-            out[#out + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_CITYSTATS_RESOURCE_LINE",
-                names[rid],
-                counts[rid]
-            )
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_RESOURCE_LINE", names[rid], counts[rid])
         end
     end
     local rows = {}
@@ -608,16 +601,10 @@ function CityStats.buildItems(city, player)
     end
     append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION", CityStats.religionRows(city), true))
     if own then
-        append(buildSimpleGroup(
-            "TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE",
-            CityStats.tradeRouteLabels(city, player),
-            true
-        ))
-        append(buildSimpleGroup(
-            "TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES",
-            CityStats.resourceLines(city),
-            true
-        ))
+        append(
+            buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_TRADE", CityStats.tradeRouteLabels(city, player), true)
+        )
+        append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RESOURCES", CityStats.resourceLines(city), true))
     end
     items[#items + 1] = buildDefenseGroup(city)
     local demand = CityStats.demandRow(city)

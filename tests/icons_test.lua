@@ -158,10 +158,7 @@ end
 
 function M.test_happiness_collapses_past_two_qualifier_words()
     setup()
-    T.eq(
-        TextFilter.filter("[ICON_HAPPINESS_1] Public Opinion Happiness shifts"),
-        "Public Opinion Happiness shifts"
-    )
+    T.eq(TextFilter.filter("[ICON_HAPPINESS_1] Public Opinion Happiness shifts"), "Public Opinion Happiness shifts")
 end
 
 -- Three intervening words is past a clause boundary -- the icon stays
@@ -179,10 +176,7 @@ end
 -- in a different clause, not the icon's label.
 function M.test_qualifier_skip_aborts_on_digit()
     setup()
-    T.eq(
-        TextFilter.filter("[ICON_HAPPINESS_1] 10 happiness boost"),
-        "happiness 10 happiness boost"
-    )
+    T.eq(TextFilter.filter("[ICON_HAPPINESS_1] 10 happiness boost"), "happiness 10 happiness boost")
 end
 
 -- Typo-variant icons inherit aliases from their canonical TXT_KEY. A base

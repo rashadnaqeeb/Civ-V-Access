@@ -1404,7 +1404,9 @@ local function setupWorkedTiles()
     loadWorkedTilesBackend()
     civvaccess_shared = civvaccess_shared or {}
     -- Gate set by default; tests that probe the gate clear it before calling.
-    civvaccess_shared.mapScope = function() return true end
+    civvaccess_shared.mapScope = function()
+        return true
+    end
     UI = UI or {}
 end
 
@@ -1421,10 +1423,18 @@ local function workedTilesCity(opts)
     local cityX = opts.cityX or 0
     local cityY = opts.cityY or 0
     local c = T.fakeCity({ owner = opts.owner or 0, id = opts.id or 1 })
-    function c:GetX() return cityX end
-    function c:GetY() return cityY end
-    function c:GetNumCityPlots() return #plots end
-    function c:GetCityIndexPlot(i) return plots[i + 1] end
+    function c:GetX()
+        return cityX
+    end
+    function c:GetY()
+        return cityY
+    end
+    function c:GetNumCityPlots()
+        return #plots
+    end
+    function c:GetCityIndexPlot(i)
+        return plots[i + 1]
+    end
     function c:IsWorkingPlot(p)
         if p:GetX() == cityX and p:GetY() == cityY then
             return opts.centerWorked ~= false
@@ -1550,18 +1560,27 @@ function M.test_worked_tiles_validate_resolves_by_stored_city_not_head_selected(
     -- City B (now head-selected) does NOT work it. If validate looked at
     -- the head-selected city, it would (wrongly) return false and prune.
     local cityB = workedTilesCity({ id = 2, plots = { plot }, workingPlots = {} })
-    UI.GetHeadSelectedCity = function() return cityB end
+    UI.GetHeadSelectedCity = function()
+        return cityB
+    end
     Players[0] = Players[0] or {}
     Players[0].GetCityByID = function(_self, id)
-        if id == 1 then return cityA end
-        if id == 2 then return cityB end
+        if id == 1 then
+            return cityA
+        end
+        if id == 2 then
+            return cityB
+        end
         return nil
     end
     local entry = {
         plotIndex = 1,
         data = { cityOwner = 0, cityID = 1 },
     }
-    T.truthy(ScannerBackendWorkedTiles.ValidateEntry(entry, nil), "must validate against stored city, not head-selected")
+    T.truthy(
+        ScannerBackendWorkedTiles.ValidateEntry(entry, nil),
+        "must validate against stored city, not head-selected"
+    )
 end
 
 return M

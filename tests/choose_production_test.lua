@@ -579,7 +579,14 @@ function M.test_label_orders_stats_before_prose()
     -- paragraph that explains them.
     setup()
     installGameInfoUnits({
-        { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Help = "Specialized in fighting tanks." },
+        {
+            ID = 1,
+            Description = "AntiTank",
+            Domain = "DOMAIN_LAND",
+            Cost = 300,
+            Strength = 50,
+            Help = "Specialized in fighting tanks.",
+        },
     })
     local city = mkCityStub({
         canTrain = { [1] = true },
@@ -628,7 +635,14 @@ function M.test_contributions_includes_prose_help()
     -- not exposed via Game.GetBuildingYieldChange).
     setup()
     installGameInfoUnits({
-        { ID = 1, Description = "AntiTank", Domain = "DOMAIN_LAND", Cost = 300, Strength = 50, Help = "Specialized in fighting tanks." },
+        {
+            ID = 1,
+            Description = "AntiTank",
+            Domain = "DOMAIN_LAND",
+            Cost = 300,
+            Strength = 50,
+            Help = "Specialized in fighting tanks.",
+        },
     })
     local city = mkCityStub({ canTrain = { [1] = true } })
     local entry = {

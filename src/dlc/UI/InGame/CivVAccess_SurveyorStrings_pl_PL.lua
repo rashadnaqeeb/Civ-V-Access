@@ -16,8 +16,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "brak miast w z
 
 -- ===== Unexplored suffix =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX"] = {
-    one  = "{1_N} pole niezbadane",
-    few  = "{1_N} pola niezbadane",
+    one = "{1_N} pole niezbadane",
+    few = "{1_N} pola niezbadane",
     many = "{1_N} pól niezbadanych",
 }
 

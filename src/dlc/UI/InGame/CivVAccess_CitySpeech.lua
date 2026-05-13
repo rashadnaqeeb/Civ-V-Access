@@ -303,14 +303,12 @@ local function influenceLine(city)
 
     local perTurn = math.floor(pOther:GetFriendshipChangePerTurnTimes100(iUs) / 100)
     if perTurn ~= 0 then
-        parts[#parts + 1] =
-            Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_PER_TURN", string.format("%+d", perTurn))
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_PER_TURN", string.format("%+d", perTurn))
     end
 
     local anchor = pOther:GetMinorCivFriendshipAnchorWithMajor(iUs)
     if anchor ~= inf then
-        parts[#parts + 1] =
-            Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_ANCHOR", string.format("%+d", anchor))
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_INFLUENCE_ANCHOR", string.format("%+d", anchor))
     end
 
     local friends = GameDefines.FRIENDSHIP_THRESHOLD_FRIENDS
@@ -438,11 +436,7 @@ local function religionRow(city, religionId)
     if numTradeRoutes ~= nil and numTradeRoutes > 0 then
         label = label
             .. ", "
-            .. Text.formatPlural(
-                "TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_TRADE_PRESSURE",
-                numTradeRoutes,
-                numTradeRoutes
-            )
+            .. Text.formatPlural("TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_TRADE_PRESSURE", numTradeRoutes, numTradeRoutes)
     end
     return label
 end

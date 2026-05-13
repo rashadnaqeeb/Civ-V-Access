@@ -299,10 +299,7 @@ function M.test_specific_great_aliases_do_not_overmatch_unrelated_great()
         "great scientist points",
         "great engineer points",
     })
-    T.eq(
-        TextFilter.filter("[ICON_GREAT_PEOPLE] Great Wall of China stands"),
-        "great people Great Wall of China stands"
-    )
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Great Wall of China stands"), "great people Great Wall of China stands")
 end
 
 function M.test_french_great_aliases_collapse_locale_specific_titles()
@@ -314,14 +311,8 @@ function M.test_french_great_aliases_collapse_locale_specific_titles()
         "points d'artistes illustres",
         "points de savants illustres",
     })
-    T.eq(
-        TextFilter.filter("[ICON_GREAT_PEOPLE] Points d'artistes illustres : 1"),
-        "Points d'artistes illustres : 1"
-    )
-    T.eq(
-        TextFilter.filter("[ICON_GREAT_PEOPLE] Points de savants illustres : 1"),
-        "Points de savants illustres : 1"
-    )
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Points d'artistes illustres : 1"), "Points d'artistes illustres : 1")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] Points de savants illustres : 1"), "Points de savants illustres : 1")
 end
 
 -- TXT_KEY_PRODUCTION_STRENGTH formats as "[ICON_STRENGTH] Strength: N"
@@ -350,14 +341,8 @@ function M.test_alias_word_boundary_check()
     -- "great scientist" alias must not collapse against "great scientists"
     -- alone (no "points" suffix), against "greater scientist", etc.
     TextFilter.registerIcon("ICON_GREAT_PEOPLE", "great people", { "great scientist points" })
-    T.eq(
-        TextFilter.filter("[ICON_GREAT_PEOPLE] great scientists assemble"),
-        "great people great scientists assemble"
-    )
-    T.eq(
-        TextFilter.filter("[ICON_GREAT_PEOPLE] greatness in numbers"),
-        "great people greatness in numbers"
-    )
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] great scientists assemble"), "great people great scientists assemble")
+    T.eq(TextFilter.filter("[ICON_GREAT_PEOPLE] greatness in numbers"), "great people greatness in numbers")
 end
 
 -- Control characters -----------------------------------------------------

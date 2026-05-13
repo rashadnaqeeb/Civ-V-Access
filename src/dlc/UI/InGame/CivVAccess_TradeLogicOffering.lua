@@ -74,11 +74,8 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             -- to a plain Text item showing label + amount. When read-only
             -- on the player's side, append the live treasury so the user
             -- can judge fairness (sighted parity: gold is on top panel).
-            local label = Text.format(
-                "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
-                Text.key("TXT_KEY_DIPLO_GOLD"),
-                data1 or 0
-            )
+            local label =
+                Text.format("TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT", Text.key("TXT_KEY_DIPLO_GOLD"), data1 or 0)
             if readOnly and TradeLogicAccess.sideIsUs(side) then
                 local pPlayer = Players[iPlayer]
                 local stock = pPlayer and pPlayer:GetGold() or 0

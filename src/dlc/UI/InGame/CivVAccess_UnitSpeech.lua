@@ -213,12 +213,7 @@ local function buildToken(unit)
         return ""
     end
     local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
-    return Text.formatPlural(
-        "TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING",
-        turns,
-        Text.key(buildRow.Description),
-        turns
-    )
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", turns, Text.key(buildRow.Description), turns)
 end
 
 -- Returns the first matching status token (localized string), or "".

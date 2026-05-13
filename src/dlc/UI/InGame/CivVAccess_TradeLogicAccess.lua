@@ -90,8 +90,7 @@ local function stockSuffix(side, n)
     if n == nil then
         return ""
     end
-    local key = side == "us" and "TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"
-        or "TXT_KEY_CIVVACCESS_TRADE_THEY_HAVE"
+    local key = side == "us" and "TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE" or "TXT_KEY_CIVVACCESS_TRADE_THEY_HAVE"
     return ", " .. Text.format(key, n)
 end
 
