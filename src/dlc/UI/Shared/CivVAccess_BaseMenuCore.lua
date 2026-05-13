@@ -179,6 +179,18 @@ end
 BaseMenu._playWrap = playWrap
 BaseMenu._playDrillableIfGroup = playDrillableIfGroup
 
+-- Force allocation of both menu-cue bank slots up-front. Without this,
+-- menuSoundHandle lazy-loads on first wrap / first Group landing, which can
+-- happen after PlotAudio.loadAll / Beacons.loadAll / ScannerBeep.loadAll
+-- have saturated the proxy's 48-slot bank -- in that case audio.load
+-- returns nil and the cue stays silent for the rest of the session.
+-- Boot calls this before the per-hex audio loaders so the menu cues are
+-- guaranteed seats.
+function BaseMenu.preloadCues()
+    menuSoundHandle("menu_wrap")
+    menuSoundHandle("drillable")
+end
+
 -- Walk the cursor's level once, counting navigable siblings and the
 -- cursor's 1-based rank among them. Recomputed on every nav move because
 -- visibility can change between moves (e.g. a hidden group becomes

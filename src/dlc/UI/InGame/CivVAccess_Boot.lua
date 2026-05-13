@@ -220,6 +220,14 @@ local function onInGameBoot()
     -- every Cursor.move with "edge of range" until this Context reloads.
     civvaccess_shared.mapScope = nil
     civvaccess_shared.mapAnnouncer = nil
+    -- Menu cue bank seats first: PlotAudio / Beacons / ScannerBeep below
+    -- collectively claim ~31 of the proxy's 48 slots, and BaseMenu's cues
+    -- (menu_wrap, drillable) otherwise lazy-load on first wrap / first
+    -- Group landing. A user who navigates the front-end menus before this
+    -- point seats menu_wrap then; drillable typically isn't touched until
+    -- in-game, and on a saturated bank audio.load returns nil and the cue
+    -- is silent for the session.
+    BaseMenu.preloadCues()
     PlotAudio.loadAll()
     -- Beacons share the proxy's audio bank; load_voice allocations are
     -- session-scoped (kept across games) but activation state must reset

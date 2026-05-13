@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+Bug fixes:
+- Submenu landing cue no longer goes silent in-game.
 
 ## [1.1.3] - 2026-05-13
 New Features and improvements:

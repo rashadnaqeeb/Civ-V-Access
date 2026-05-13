@@ -608,7 +608,13 @@ static void register_civvaccess_keys(lua_State *L) {
    work, and is deliberately NOT uninited on DLL detach -- miniaudio's audio
    thread must not be joined under the loader lock. */
 
-#define AUDIO_BANK_SIZE      32
+/* Bank capacity. Current consumers: PlotAudio ~20 terrain/feature/crossing
+   beds + stingers, Beacons 10 bookmark voices, ScannerBeep 1, BaseMenu's
+   menu_wrap + drillable cues. That's ~33 -- 48 leaves room for one or two
+   added cues before the bank needs another bump. Cost is static: each slot
+   is one ma_sound (a few hundred bytes) plus the AUDIO_BANK_NAME_MAX name
+   buffer. */
+#define AUDIO_BANK_SIZE      48
 #define AUDIO_BANK_NAME_MAX  64
 
 static int       g_audioInit = 0;
