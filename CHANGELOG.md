@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.1.5] - 2026-05-13
 New Features and improvements:
 - Scanner terrain category now includes a Fresh Water subcategory listing every revealed tile with river or lake access.
 - Audio beacons sound warmer and less harsh while still giving clear stereo direction.
