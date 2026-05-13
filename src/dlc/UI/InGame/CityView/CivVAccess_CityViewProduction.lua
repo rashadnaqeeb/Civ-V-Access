@@ -365,7 +365,17 @@ local function buildProductionQueueItems()
             if c == nil then
                 return
             end
-            if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
+            -- Foreign-only refuse: Venice (MayNotAnnex) can purchase in
+            -- their own puppets even when UI.IsCityScreenViewingMode() is
+            -- true, matching vanilla's g_bTheVeniceException at
+            -- ProductionPopup.lua:91-92. Using refuseIfNotActiveOwn here
+            -- would silently swallow Venice's purchase whenever the flag
+            -- happened to be left on by a prior peek path. The popup's own
+            -- gate (CivVAccess_ChooseProductionPopupAccess) enforces the
+            -- Venice + Option2=true contract; non-Venice puppet attempts
+            -- hit "puppet" and close from there.
+            if isForeign(c) then
+                refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
                 return
             end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
