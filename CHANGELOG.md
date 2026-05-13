@@ -14,6 +14,7 @@ New Features and improvements:
 - AI trade offers now include your stock for items on your side (gold, gold per turn, resources), so you can judge whether you can afford the deal.
 Bug fixes:
 - Trade Agreement no longer appears in the diplomacy trade list; it was a leftover Firaxis disabled before shipping and could never be offered.
+- Possibly fixed the numpad this time.
 
 ## [1.1.2] - 2026-05-12
 Bug fixes:

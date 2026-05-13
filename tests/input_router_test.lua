@@ -243,6 +243,54 @@ function M.test_currentModifierMask_combines_bits()
     T.eq(InputRouter.currentModifierMask(), 1 + 4)
 end
 
+function M.test_currentModifierMask_prefers_civvaccess_keys_over_UI()
+    -- civvaccess_keys (proxy-exposed GetAsyncKeyState) wins over UI.*KeyDown
+    -- so Windows' synthesized Shift-release around Shift+Numpad with NumLock
+    -- on can't strip the Shift bit. UI.* says Shift = false, civvaccess_keys
+    -- says Shift = true; the dispatch must see Shift held.
+    setup()
+    UI.ShiftKeyDown = function()
+        return false
+    end
+    UI.CtrlKeyDown = function()
+        return false
+    end
+    UI.AltKeyDown = function()
+        return false
+    end
+    civvaccess_keys = {
+        isShiftDown = function()
+            return true
+        end,
+        isCtrlDown = function()
+            return false
+        end,
+        isAltDown = function()
+            return false
+        end,
+    }
+    T.eq(InputRouter.currentModifierMask(), 1)
+    civvaccess_keys = nil
+end
+
+function M.test_currentModifierMask_falls_back_to_UI_when_civvaccess_keys_missing()
+    -- Old-proxy / new-Lua compatibility: with civvaccess_keys absent the
+    -- modifier mask still tracks UI.*KeyDown so the mod limps rather than
+    -- crashing on a partial deploy.
+    setup()
+    civvaccess_keys = nil
+    UI.ShiftKeyDown = function()
+        return true
+    end
+    UI.CtrlKeyDown = function()
+        return false
+    end
+    UI.AltKeyDown = function()
+        return false
+    end
+    T.eq(InputRouter.currentModifierMask(), 1)
+end
+
 function M.test_dispatch_no_handlers_returns_false()
     setup()
     T.falsy(InputRouter.dispatch(65, 0, WM_KEYDOWN))

@@ -110,8 +110,28 @@ local function isNumpadOrigin(lp)
     return (lp % 0x02000000) < LPARAM_EXTENDED_KEY_BIT
 end
 
+-- Modifier state for the current dispatch. Reads through civvaccess_keys
+-- (proxy-exposed GetAsyncKeyState wrappers) when present so the Shift bit
+-- survives Windows' synthesized Shift-release around Shift+Numpad presses
+-- with NumLock on -- UI.ShiftKeyDown wraps the engine's WM-stream tracker,
+-- which sees the synthesized release and reports Shift = false during the
+-- numpad keydown even though the player is still holding it. Falls back to
+-- UI.*KeyDown so a Lua-only update against an old proxy still limps.
 function InputRouter.currentModifierMask()
     local mask = 0
+    local keys = civvaccess_keys
+    if keys ~= nil then
+        if keys.isShiftDown() then
+            mask = mask + MOD_SHIFT
+        end
+        if keys.isCtrlDown() then
+            mask = mask + MOD_CTRL
+        end
+        if keys.isAltDown() then
+            mask = mask + MOD_ALT
+        end
+        return mask
+    end
     if UI.ShiftKeyDown() then
         mask = mask + MOD_SHIFT
     end

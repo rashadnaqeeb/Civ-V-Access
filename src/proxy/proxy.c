@@ -3,10 +3,11 @@
  *
  * Replaces lua51_Win32.dll. Forwards all calls to lua51_original.dll,
  * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua
- * state, and hooks lua_setfenv to propagate the tolk and civvaccess_shared
- * tables into every sandboxed environment. The accessibility payload itself
- * ships as a DLC at Assets/DLC/DLC_CivVAccess/ and is ingested natively by
- * the engine at boot; the proxy does not activate any mod.
+ * state, and hooks lua_setfenv to propagate the tolk, civvaccess_shared,
+ * civvaccess_keys, and audio tables into every sandboxed environment. The
+ * accessibility payload itself ships as a DLC at Assets/DLC/DLC_CivVAccess/
+ * and is ingested natively by the engine at boot; the proxy does not
+ * activate any mod.
  */
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Ole32.lib")
@@ -548,6 +549,57 @@ static void register_civvaccess_shared(lua_State *L) {
     proxy_log("register_civvaccess_shared: L=%p done\n", (void*)L);
 }
 
+/* === Hardware key state ===
+   UI.ShiftKeyDown / UI.CtrlKeyDown / UI.AltKeyDown wrap Civ V's FKBInputDevice
+   key tracker, which reads from the WM message stream. That stream sees the
+   synthesized Shift-release Windows injects around Shift+Numpad presses when
+   NumLock is on, so the engine-side wrapper reports Shift = false during the
+   numpad keydown even though the player is still physically holding it. We
+   route InputRouter.currentModifierMask() through GetAsyncKeyState instead,
+   which reads the hardware state and is immune to the synthesized release;
+   only the high bit (0x8000) is checked because the low bit is per-process
+   "pressed since last call" state shared across all callers and unreliable.
+   GetKeyState is the right call for the toggle keys (NumLock / CapsLock /
+   ScrollLock) because their toggle state lives in bit 0 of GetKeyState and
+   isn't synthesized away. Exposed as civvaccess_keys.* with a Lua-side
+   fallback to UI.*KeyDown so an old proxy paired with newer Lua still
+   limps along. */
+
+static int lk_isShiftDown(lua_State *L) {
+    ORIG_lua_pushboolean(L, (GetAsyncKeyState(VK_SHIFT) & 0x8000) ? 1 : 0);
+    return 1;
+}
+
+static int lk_isCtrlDown(lua_State *L) {
+    ORIG_lua_pushboolean(L, (GetAsyncKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
+    return 1;
+}
+
+static int lk_isAltDown(lua_State *L) {
+    ORIG_lua_pushboolean(L, (GetAsyncKeyState(VK_MENU) & 0x8000) ? 1 : 0);
+    return 1;
+}
+
+static int lk_isNumLockOn(lua_State *L) {
+    ORIG_lua_pushboolean(L, (GetKeyState(VK_NUMLOCK) & 1) ? 1 : 0);
+    return 1;
+}
+
+static const luaL_Reg keys_funcs[] = {
+    {"isShiftDown", lk_isShiftDown},
+    {"isCtrlDown",  lk_isCtrlDown},
+    {"isAltDown",   lk_isAltDown},
+    {"isNumLockOn", lk_isNumLockOn},
+    {NULL, NULL}
+};
+
+static void register_civvaccess_keys(lua_State *L) {
+    int top = ORIG_lua_gettop(L);
+    ORIG_luaL_register(L, "civvaccess_keys", keys_funcs);
+    ORIG_lua_settop(L, top);
+    proxy_log("register_civvaccess_keys: L=%p done\n", (void*)L);
+}
+
 /* === Audio (miniaudio) ===
    Per-hex terrain cues. Spike surface: audio.load(name) preloads a WAV from
    <gameDir>/Assets/DLC/DLC_CivVAccess/Sounds/<name>.wav and returns an integer
@@ -982,8 +1034,9 @@ __declspec(dllexport) void __cdecl luaL_openlibs(lua_State *L) {
     ((fn)orig[I_luaL_openlibs])(L);
     register_tolk(L);
     register_civvaccess_shared(L);
+    register_civvaccess_keys(L);
     register_audio(L);
-    proxy_log("luaL_openlibs: tolk + civvaccess_shared + audio registered in globals\n");
+    proxy_log("luaL_openlibs: tolk + civvaccess_shared + civvaccess_keys + audio registered in globals\n");
 }
 
 __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
@@ -1014,6 +1067,19 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
     }
     if (ORIG_lua_type(L, -1) != LUA_TNIL) {
         ORIG_lua_setfield(L, -2, "civvaccess_shared");
+    } else {
+        ORIG_lua_settop(L, -2);
+    }
+
+    /* === civvaccess_keys injection (mirrors tolk) === */
+    ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "civvaccess_keys");
+    if (ORIG_lua_type(L, -1) == LUA_TNIL) {
+        ORIG_lua_settop(L, -2);
+        register_civvaccess_keys(L);
+        ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "civvaccess_keys");
+    }
+    if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+        ORIG_lua_setfield(L, -2, "civvaccess_keys");
     } else {
         ORIG_lua_settop(L, -2);
     }
