@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.1.4] - 2026-05-13
 Bug fixes:
 - Submenu landing cue no longer goes silent in-game.
 - Purchase in a Venice puppet city no longer silently fails.
