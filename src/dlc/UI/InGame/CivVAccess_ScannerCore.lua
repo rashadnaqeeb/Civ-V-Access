@@ -191,6 +191,7 @@ ScannerCore.CATEGORIES = {
         subcategories = {
             { key = "base", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_TERRAIN_BASE" },
             { key = "features", label = "TXT_KEY_TERRAIN_FEATURES_HEADING2_TITLE" },
+            { key = "freshwater", label = "TXT_KEY_CIVVACCESS_FRESH_WATER" },
             { key = "elevation", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION" },
         },
     },

@@ -132,7 +132,8 @@ function M.test_terrain_subs()
     local subs = subKeys("terrain")
     T.eq(subs[1], "base")
     T.eq(subs[2], "features")
-    T.eq(subs[3], "elevation")
+    T.eq(subs[3], "freshwater")
+    T.eq(subs[4], "elevation")
 end
 
 function M.test_recommendations_has_no_named_subs()

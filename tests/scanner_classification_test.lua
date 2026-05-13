@@ -1113,6 +1113,30 @@ function M.test_terrain_forested_hill_triple_emits()
     T.eq(#bySub.elevation, 1)
 end
 
+function M.test_terrain_freshwater_plot_emits_under_freshwater()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = {}
+    local plot = makePlotAt(0, 0, 0, { terrain = 1, freshWater = true })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.truthy(bySub.base, "base entry still fires alongside freshwater")
+    T.truthy(bySub.freshwater, "freshwater entry must fire on a freshwater plot")
+    T.eq(bySub.freshwater[1].data.kind, "freshwater")
+end
+
+function M.test_terrain_non_freshwater_plot_emits_no_freshwater()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = {}
+    local plot = makePlotAt(0, 0, 0, { terrain = 1 })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.falsy(bySub.freshwater, "dry plot must not emit a freshwater entry")
+end
+
 function M.test_terrain_validate_feature_goes_stale_when_chopped()
     -- A forest entry from an earlier snapshot must invalidate once a
     -- worker chops the forest. GetFeatureType returns -1 on a plot
@@ -1162,6 +1186,27 @@ function M.test_terrain_validate_returns_true_when_state_unchanged()
     T.truthy(ScannerBackendTerrain.ValidateEntry(entry("base", { terrainId = 1 })))
     T.truthy(ScannerBackendTerrain.ValidateEntry(entry("feature", { featureId = 3 })))
     T.truthy(ScannerBackendTerrain.ValidateEntry(entry("hills")))
+end
+
+function M.test_terrain_validate_freshwater_goes_stale_when_river_lost()
+    -- IsFreshWater can flip false mid-game: a worker chops an adjacent
+    -- oasis or a tile that was riverside via an upstream lake gets the
+    -- lake terraformed (mods only, but the backend handles the case
+    -- the same way feature removal is handled).
+    setup()
+    loadTerrainBackend()
+    local dry = makePlotAt(0, 0, 0, { freshWater = false })
+    mapFromPlots({ dry })
+    local staleEntry = {
+        plotIndex = 0,
+        backend = ScannerBackendTerrain,
+        data = { kind = "freshwater" },
+        category = "terrain",
+        subcategory = "freshwater",
+        itemName = "x",
+        sortKey = 0,
+    }
+    T.falsy(ScannerBackendTerrain.ValidateEntry(staleEntry, nil), "freshwater entry must invalidate once IsFreshWater goes false")
 end
 
 function M.test_terrain_unrevealed_plot_skipped()

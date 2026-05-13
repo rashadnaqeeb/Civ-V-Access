@@ -1,17 +1,24 @@
--- Scanner backend: terrain. Emits up to three entries per revealed plot,
+-- Scanner backend: terrain. Emits up to four entries per revealed plot,
 -- one per applicable subcategory:
---   base       the plot's terrain row description (grassland, plains,
---              desert, coast, ocean, mountain, ...).
---   features   the plot's feature row description (forest, jungle, oasis,
---              floodplains, natural wonders, ...) when one is present.
---   elevation  hills or mountain, when IsHills() / IsMountain() is true.
+--   base        the plot's terrain row description (grassland, plains,
+--               desert, coast, ocean, mountain, ...).
+--   features    the plot's feature row description (forest, jungle, oasis,
+--               floodplains, natural wonders, ...) when one is present.
+--   elevation   hills or mountain, when IsHills() / IsMountain() is true.
+--   freshwater  the engine's Plot:IsFreshWater() predicate -- the same
+--               flag that gates farm yields, riverside city placement,
+--               and Hanging Gardens. Includes tiles on a river, tiles
+--               adjacent to a lake, and tiles adjacent to an oasis or
+--               other AddsFreshWater feature.
 --
 -- Double-listing is intentional per the scanner design: a forested hill
--- on grassland produces Grassland under base, Forest under features, and
--- Hills under elevation, and a natural-wonder tile also surfaces under
+-- on grassland next to a river produces Grassland under base, Forest
+-- under features, Hills under elevation, and "fresh water" under
+-- freshwater. A natural-wonder tile also surfaces under
 -- special.natural_wonders via ScannerBackendSpecial. Each sub answers a
--- different "where is ..." question (base material / overlay / relief)
--- and collapsing them would force the user to mentally re-query.
+-- different "where is ..." question (base material / overlay / relief /
+-- freshwater access) and collapsing them would force the user to
+-- mentally re-query.
 --
 -- Visibility: plot:IsRevealed gate only. Terrain and features have no
 -- GetRevealedTerrainType / GetRevealedFeatureType -- unlike improvements
@@ -26,6 +33,7 @@ ScannerBackendTerrain = {
 
 local HILLS_KEY = "TXT_KEY_TERRAIN_HILLS_HEADING3_TITLE"
 local MOUNTAIN_KEY = "TXT_KEY_TERRAIN_MOUNTAIN_HEADING3_TITLE"
+local FRESH_WATER_KEY = "TXT_KEY_CIVVACCESS_FRESH_WATER"
 
 function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
     local out = {}
@@ -93,6 +101,19 @@ function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
                     sortKey = 0,
                 }
             end
+
+            if plot:IsFreshWater() then
+                out[#out + 1] = {
+                    plotIndex = i,
+                    backend = ScannerBackendTerrain,
+                    data = { kind = "freshwater" },
+                    category = "terrain",
+                    subcategory = "freshwater",
+                    itemName = Text.key(FRESH_WATER_KEY),
+                    key = "terrain:freshwater:" .. i,
+                    sortKey = 0,
+                }
+            end
         end
     end
     return out
@@ -117,6 +138,8 @@ function ScannerBackendTerrain.ValidateEntry(entry, _cursorPlotIndex)
         return plot:IsMountain()
     elseif kind == "hills" then
         return plot:IsHills()
+    elseif kind == "freshwater" then
+        return plot:IsFreshWater()
     end
     return false
 end
