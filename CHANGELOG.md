@@ -12,6 +12,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 New Features and improvements:
 - Scanner terrain category now includes a Fresh Water subcategory listing every revealed tile with river or lake access.
+- Audio beacons sound clearer and gentler: easier to tell direction, less abrasive pulse.
+- Beacon volume slider now has more headroom so beacons can play louder than the per-hex audio cues.
 
 Bug fixes:
 - City religion breakdown now uses the player's chosen religion name instead of the default ("Buddhism" when you renamed it "Sun Worship").

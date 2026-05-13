@@ -12,10 +12,10 @@
 --
 -- Slider mapping. The Settings UI slider operates in [0, 1] but drives
 -- the multiplier in [0, MAX], so a slider position of 1.0 corresponds
--- to MAX gain. MAX = 2 * DEFAULT so the historical default (1.0 -- full
--- volume at source) sits at the midpoint of the slider, giving the user
--- equal headroom to go louder or quieter. Settings.lua does the slider
--- <-> multiplier conversion via BeaconVolume.MAX.
+-- to MAX gain. The slider stores the resulting multiplier (not the
+-- normalized position), so changing MAX widens or narrows the slider's
+-- range without altering the volume any saved value produces. Settings.lua
+-- does the slider <-> multiplier conversion via BeaconVolume.MAX.
 
 BeaconVolume = BeaconVolume or {}
 
@@ -24,10 +24,16 @@ local PREF_KEY = "BeaconMaxVolume"
 -- users who never open Settings hear the same beacons they had before.
 local DEFAULT = 1.0
 
--- Multiplier ceiling. Twice the default so the slider centers on the
--- historical value. The beacon WAV peaks at ~0.22 of full scale so the
--- 2x ceiling never clips at the proxy mixer.
-BeaconVolume.MAX = 2 * DEFAULT
+-- Multiplier ceiling. PlotAudio's per-hex cues play through the same
+-- miniaudio engine and are gated by the same master VolumeControl, so
+-- without an above-1.0 ceiling here the beacons cap out at the per-hex
+-- baseline. 5x gives the user a meaningful "beacons dominate per-hex
+-- cues" zone (most of the slider sits above the historical default).
+-- The beacon WAV peaks at ~0.22 of full scale, so at the default master
+-- (0.1) the slider top stays well below clipping; users running master
+-- near 1.0 with the beacon slider near max will clip and need to balance
+-- the two themselves.
+BeaconVolume.MAX = 5 * DEFAULT
 
 local function clamp(v)
     if type(v) ~= "number" then
