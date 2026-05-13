@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+Bug fixes:
+- Trade Agreement no longer appears in the diplomacy trade list; it was a leftover Firaxis disabled before shipping and could never be offered.
 
 ## [1.1.2] - 2026-05-12
 Bug fixes:

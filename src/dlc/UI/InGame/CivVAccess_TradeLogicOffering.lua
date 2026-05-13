@@ -309,15 +309,15 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
     end
 
     -- Boolean diplomacy items: AllowEmbassy, OpenBorders, DefensivePact,
-    -- ResearchAgreement, TradeAgreement, DeclarationOfFriendship. Each has
-    -- the same remove shape: RemoveByType(type, player). DoF and DP remove
-    -- from BOTH sides (engine invariant); our remove fires the matching
-    -- side too. pocketSuffix names the engine pocket control whose tooltip
-    -- we read live for the placed-item announcement -- when an item is in
-    -- the deal the table-row control has no tooltip (engine never sets one
-    -- for booleans), but the pocket control's tooltip (set on the most
-    -- recent RefreshPocketX pass) carries the descriptive copy plus the
-    -- engine's "already in deal" reason.
+    -- ResearchAgreement, DeclarationOfFriendship. Each has the same remove
+    -- shape: RemoveByType(type, player). DoF and DP remove from BOTH sides
+    -- (engine invariant); our remove fires the matching side too.
+    -- pocketSuffix names the engine pocket control whose tooltip we read
+    -- live for the placed-item announcement -- when an item is in the deal
+    -- the table-row control has no tooltip (engine never sets one for
+    -- booleans), but the pocket control's tooltip (set on the most recent
+    -- RefreshPocketX pass) carries the descriptive copy plus the engine's
+    -- "already in deal" reason.
     local booleanSpecs = {
         [TradeableItems.TRADE_ITEM_ALLOW_EMBASSY] = {
             key = "TXT_KEY_DIPLO_ALLOW_EMBASSY",
@@ -338,11 +338,6 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             key = "TXT_KEY_DIPLO_RESCH_AGREEMENT",
             bothSides = true,
             pocketSuffix = "PocketResearchAgreement",
-        },
-        [TradeableItems.TRADE_ITEM_TRADE_AGREEMENT] = {
-            key = "TXT_KEY_DIPLO_TRADE_AGREEMENT",
-            bothSides = false,
-            pocketSuffix = "PocketTradeAgreement",
         },
         [TradeableItems.TRADE_ITEM_DECLARATION_OF_FRIENDSHIP] = {
             key = "TXT_KEY_DIPLO_DECLARATION_OF_FRIENDSHIP",

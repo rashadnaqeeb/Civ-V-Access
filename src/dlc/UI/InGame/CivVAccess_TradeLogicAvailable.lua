@@ -501,15 +501,6 @@ function TradeLogicAvailable.buildAvailableItems(side)
         end,
         true
     )
-    addBoolean(
-        "TXT_KEY_DIPLO_TRADE_AGREEMENT",
-        TradeableItems.TRADE_ITEM_TRADE_AGREEMENT,
-        "PocketTradeAgreement",
-        function(p)
-            g_Deal:AddTradeAgreement(p, TradeLogicAccess.dealDuration())
-        end,
-        false
-    )
 
     -- Cities.
     local cities = availableCitiesGroup(side)

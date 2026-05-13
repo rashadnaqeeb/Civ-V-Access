@@ -209,11 +209,6 @@ local function treatyFragments(iOther)
         out[#out + 1] = Text.key("TXT_KEY_DIPLO_RESCH_AGREEMENT")
     end
 
-    local g_Deal = UI.GetScratchDeal()
-    if g_Deal:IsPossibleToTradeItem(iOther, iUs, TradeableItems.TRADE_ITEM_TRADE_AGREEMENT, Game.GetDealDuration()) then
-        out[#out + 1] = Text.key("TXT_KEY_DIPLO_TRADE_AGREEMENT")
-    end
-
     return out
 end
 
