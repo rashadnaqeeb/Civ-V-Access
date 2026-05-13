@@ -66,8 +66,11 @@ function M.test_set_pushes_to_audio_proxy_beacon_master_volume()
     setup()
     BeaconVolume.set(0.55)
     local last = audio._calls[#audio._calls]
-    T.eq(last.op, "set_beacon_master_volume",
-        "set must reach the proxy via the beacon-master entry point, not set_master_volume")
+    T.eq(
+        last.op,
+        "set_beacon_master_volume",
+        "set must reach the proxy via the beacon-master entry point, not set_master_volume"
+    )
     T.eq(last.v, 0.55)
 end
 

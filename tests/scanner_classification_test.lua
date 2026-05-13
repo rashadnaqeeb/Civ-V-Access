@@ -1206,7 +1206,10 @@ function M.test_terrain_validate_freshwater_goes_stale_when_river_lost()
         itemName = "x",
         sortKey = 0,
     }
-    T.falsy(ScannerBackendTerrain.ValidateEntry(staleEntry, nil), "freshwater entry must invalidate once IsFreshWater goes false")
+    T.falsy(
+        ScannerBackendTerrain.ValidateEntry(staleEntry, nil),
+        "freshwater entry must invalidate once IsFreshWater goes false"
+    )
 end
 
 function M.test_terrain_unrevealed_plot_skipped()

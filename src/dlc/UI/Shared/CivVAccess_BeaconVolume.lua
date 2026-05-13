@@ -75,10 +75,14 @@ local function migrateFromOldPref()
     local oldMaster = Prefs.getFloat("MasterVolume", 0.1)
     local migrated = clamp(oldMultiplier * oldMaster)
     Prefs.setFloat(PREF_KEY, migrated)
-    Log.info("BeaconVolume: migrated old multiplier "
-        .. tostring(oldMultiplier) .. " * master "
-        .. tostring(oldMaster) .. " -> group volume "
-        .. tostring(migrated))
+    Log.info(
+        "BeaconVolume: migrated old multiplier "
+            .. tostring(oldMultiplier)
+            .. " * master "
+            .. tostring(oldMaster)
+            .. " -> group volume "
+            .. tostring(migrated)
+    )
     return migrated
 end
 

@@ -589,11 +589,8 @@ local function buildDisabledReason(unit, action)
             -- unlocks clearing it; same lookup vanilla uses to fill the
             -- tooltip's {1_TechName}.
             local filter = "BuildType = '" .. pBuild.Type .. "' and FeatureType = '" .. pFeature.Type .. "'"
-            local pFeatureTech
-            for row in GameInfo.BuildFeatures(filter) do
-                pFeatureTech = GameInfo.Technologies[row.PrereqTech]
-                break
-            end
+            local row = GameInfo.BuildFeatures(filter)()
+            local pFeatureTech = row and GameInfo.Technologies[row.PrereqTech]
             if pFeatureTech ~= nil then
                 parts[#parts + 1] =
                     Text.format("TXT_KEY_BUILD_BLOCKED_BY_FEATURE", pFeatureTech.Description, pFeature.Description)

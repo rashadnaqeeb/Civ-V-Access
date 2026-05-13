@@ -168,8 +168,7 @@ function audio.load_voice(name)
 end
 function audio.load_voice_in_beacon_group(name)
     audio._loadCounter = audio._loadCounter + 1
-    audio._calls[#audio._calls + 1] =
-        { op = "load_voice_in_beacon_group", name = name, id = audio._loadCounter }
+    audio._calls[#audio._calls + 1] = { op = "load_voice_in_beacon_group", name = name, id = audio._loadCounter }
     return audio._loadCounter
 end
 function audio.stop(id)
