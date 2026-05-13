@@ -284,6 +284,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_NAME"] = "Unit actions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_ACTIVATE_MENU_NAME"] = "Activate tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Promotions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Build improvements"
+-- Label format for a visible-but-disabled build entry under Build
+-- improvements. Status word leads so the user knows immediately the entry
+-- is unselectable without hearing the build name first; the build name and
+-- engine reason follow. WITH_REASON is used when the disabled-reason logic
+-- (mirrors UnitPanel.lua disabled-tooltip cases) finds a specific message;
+-- the bare form covers builds the engine rejects for reasons outside that
+-- named set.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "unavailable, {1_BuildName}, {2_Reason}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "unavailable, {1_BuildName}"
 -- Spoken on entering a target-picker mode (ranged attack, paradrop, etc.)
 -- as the audible confirmation that the cursor's keys are now picking a
 -- target rather than navigating freely.

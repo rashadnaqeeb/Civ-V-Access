@@ -13,9 +13,16 @@
 -- Availability pattern mirrors base UnitPanel.lua:230-302:
 --   Game.CanHandleAction(iAction, 0, 1) -> "could, if active unit"
 --   Game.CanHandleAction(iAction)       -> "can, right now"
--- We show the action only when both return true. Partially-available
--- actions (visible-but-disabled in the engine UI) are omitted from
--- speech because activating one would silently no-op.
+-- Non-build, non-promotion actions show only when both return true;
+-- activating a visible-but-disabled one would silently no-op so they
+-- stay hidden. Build actions are the exception: the engine shows
+-- visible-but-disabled builds (Farm without Pottery, Fishing Boats
+-- outside territory) as grayed-out buttons with an explanatory
+-- tooltip, and we mirror that so the player can read the same
+-- "what's blocking this" information sighted players get. Disabled
+-- builds sort after available ones inside the Build improvements
+-- group; activating one speaks the "not available" rejection rather
+-- than committing.
 
 UnitActionMenu = {}
 
@@ -465,6 +472,141 @@ local function buildActionTooltip(unit, action)
     return table.concat(parts, ". ")
 end
 
+-- Reason a visible build is currently disabled, mirroring the named cases
+-- UnitPanel.lua's TipHandler reports (lines 1327-1498) so blind players
+-- read the same blocked-reason set sighted players see in the grayed-out
+-- button's tooltip. Multiple reasons can stack (missing tech AND outside
+-- territory) and are joined with ", "; TextFilter collapses the resulting
+-- period-comma transitions at speech time. Returns nil when the engine
+-- rejects the build for a reason outside this named set, in which case
+-- the caller falls back to the bare "unavailable, {build}" label.
+local function buildDisabledReason(unit, action)
+    local iBuildID = action.MissionData
+    local pBuild = GameInfo.Builds[iBuildID]
+    if pBuild == nil then
+        return nil
+    end
+    local plot = unit:GetPlot()
+    local iActivePlayer = Game.GetActivePlayer()
+    local pActivePlayer = Players[iActivePlayer]
+    local iUnitTeam = unit:GetTeam()
+    local pActiveTeam = Teams[iUnitTeam]
+
+    local pImprovement
+    if pBuild.ImprovementType ~= nil and pBuild.ImprovementType ~= "NONE" then
+        pImprovement = GameInfo.Improvements[pBuild.ImprovementType]
+    end
+    local pRoute
+    if pBuild.RouteType ~= nil and pBuild.RouteType ~= "NONE" then
+        pRoute = GameInfo.Routes[pBuild.RouteType]
+    end
+    local strImpRouteKey
+    if pImprovement ~= nil then
+        strImpRouteKey = pImprovement.Description
+    elseif pRoute ~= nil then
+        strImpRouteKey = pRoute.Description
+    end
+
+    local parts = {}
+
+    if pBuild.PrereqTech ~= nil and (pImprovement ~= nil or pRoute ~= nil) then
+        local pPrereqTech = GameInfo.Technologies[pBuild.PrereqTech]
+        if pPrereqTech ~= nil and not pActiveTeam:GetTeamTechs():HasTech(pPrereqTech.ID) then
+            parts[#parts + 1] =
+                Text.format("TXT_KEY_BUILD_BLOCKED_PREREQ_TECH", pPrereqTech.Description, strImpRouteKey)
+        end
+    end
+
+    -- Territory checks are an elseif chain in vanilla; an improvement
+    -- has at most one of these three flags so only one fires.
+    if pImprovement ~= nil and pImprovement.InAdjacentFriendly then
+        if plot:GetTeam() ~= iUnitTeam and not plot:IsAdjacentTeam(iUnitTeam, true) then
+            parts[#parts + 1] = Text.format("TXT_KEY_BUILD_BLOCKED_NOT_IN_ADJACENT_TERRITORY", strImpRouteKey)
+        end
+    elseif pImprovement ~= nil and pImprovement.OnlyCityStateTerritory then
+        local bCityStateTerritory = false
+        if plot:IsOwned() then
+            local pPlotOwner = Players[plot:GetOwner()]
+            if pPlotOwner ~= nil and pPlotOwner:IsMinorCiv() then
+                bCityStateTerritory = true
+            end
+        end
+        if not bCityStateTerritory then
+            parts[#parts + 1] = Text.format("TXT_KEY_BUILD_BLOCKED_NOT_IN_CITY_STATE_TERRITORY", strImpRouteKey)
+        end
+    elseif pImprovement ~= nil and not pImprovement.OutsideBorders then
+        if plot:GetTeam() ~= iUnitTeam then
+            parts[#parts + 1] = Text.format("TXT_KEY_BUILD_BLOCKED_OUTSIDE_TERRITORY", strImpRouteKey)
+        end
+    end
+
+    if pImprovement ~= nil and pImprovement.AdjacentLuxury then
+        local hasAdjacentLuxury = false
+        for dir = 0, DirectionTypes.NUM_DIRECTION_TYPES - 1 do
+            local adj = Map.PlotDirection(plot:GetX(), plot:GetY(), dir)
+            if adj ~= nil then
+                local iResource = adj:GetResourceType()
+                if
+                    iResource ~= -1
+                    and Game.GetResourceUsageType(iResource) == ResourceUsageTypes.RESOURCEUSAGE_LUXURY
+                then
+                    hasAdjacentLuxury = true
+                    break
+                end
+            end
+        end
+        if not hasAdjacentLuxury then
+            parts[#parts + 1] = Text.format("TXT_KEY_BUILD_BLOCKED_NO_ADJACENT_LUXURY", strImpRouteKey)
+        end
+    end
+
+    if pImprovement ~= nil and pImprovement.NoTwoAdjacent then
+        local hasTwoAdjacent = false
+        for dir = 0, DirectionTypes.NUM_DIRECTION_TYPES - 1 do
+            local adj = Map.PlotDirection(plot:GetX(), plot:GetY(), dir)
+            if adj ~= nil then
+                local iAdjImp = adj:GetImprovementType()
+                if iAdjImp ~= -1 and iAdjImp == pImprovement.ID then
+                    hasTwoAdjacent = true
+                    break
+                end
+                if adj:GetBuildProgress(iBuildID) > 0 then
+                    hasTwoAdjacent = true
+                    break
+                end
+            end
+        end
+        if hasTwoAdjacent then
+            parts[#parts + 1] = Text.format("TXT_KEY_BUILD_BLOCKED_CANNOT_BE_ADJACENT", strImpRouteKey)
+        end
+    end
+
+    local iFeature = plot:GetFeatureType()
+    if iFeature ~= -1 and pActivePlayer:IsBuildBlockedByFeature(iBuildID, iFeature) then
+        local pFeature = GameInfo.Features[iFeature]
+        if pFeature ~= nil then
+            -- BuildFeatures rows pair a build + feature with the tech that
+            -- unlocks clearing it; same lookup vanilla uses to fill the
+            -- tooltip's {1_TechName}.
+            local filter = "BuildType = '" .. pBuild.Type .. "' and FeatureType = '" .. pFeature.Type .. "'"
+            local pFeatureTech
+            for row in GameInfo.BuildFeatures(filter) do
+                pFeatureTech = GameInfo.Technologies[row.PrereqTech]
+                break
+            end
+            if pFeatureTech ~= nil then
+                parts[#parts + 1] =
+                    Text.format("TXT_KEY_BUILD_BLOCKED_BY_FEATURE", pFeatureTech.Description, pFeature.Description)
+            end
+        end
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+    return table.concat(parts, ", ")
+end
+
 -- Collapses both CanHandleAction gates into a single yes / no read,
 -- then applies the base-UI's out-of-moves filter.
 --
@@ -545,6 +687,28 @@ local function isAvailable(unit, iAction, action)
     return true
 end
 
+-- Build-only "would the engine show this as a grayed-out button" gate.
+-- Drops the final CanHandleAction(iAction) clickable check so the caller
+-- can route visible-but-disabled builds into the unavailable bucket. The
+-- 0-MP filter is kept: at 0 moves the engine hides every build button
+-- entirely (vanilla UnitPanel.lua:223) and there's no useful tooltip
+-- reason to surface, so matching that policy keeps the menu short.
+local function isVisibleForBuild(unit, iAction, action)
+    if HIDDEN_ACTION_TYPES[action.Type] then
+        return false
+    end
+    if not action.Visible then
+        return false
+    end
+    if not Game.CanHandleAction(iAction, 0, 1) then
+        return false
+    end
+    if unit:MovesLeft() == 0 then
+        return false
+    end
+    return true
+end
+
 local function commitSelfPlot(action, payload)
     Game.HandleAction(payload.iAction)
     local token = SELF_PLOT_TOKENS_BY_TYPE[action.Type]
@@ -592,9 +756,9 @@ local function buildPromotionItems(unit, rows)
     return items
 end
 
-local function buildBuildItems(unit, rows)
+local function buildBuildItems(unit, availableRows, disabledRows)
     local items = {}
-    for _, row in ipairs(rows) do
+    for _, row in ipairs(availableRows) do
         local iAction = row.iAction
         local action = row.action
         local label = actionLabel(action)
@@ -608,6 +772,33 @@ local function buildBuildItems(unit, rows)
             activate = function()
                 commitSelfPlot(action, { iAction = iAction, buildName = buildName })
                 HandlerStack.removeByName("UnitActionMenu", false)
+            end,
+        })
+    end
+    -- Disabled builds appear after available ones (user can ignore the
+    -- whole tail without navigating through it). Each label leads with
+    -- the status word so the user knows immediately the entry can't be
+    -- committed; the build name and engine reason follow. Activate
+    -- speaks the rejection rather than committing because the underlying
+    -- Game.HandleAction would silently no-op.
+    for _, row in ipairs(disabledRows) do
+        local action = row.action
+        local buildName = actionLabel(action)
+        local reason = buildDisabledReason(unit, action)
+        local labelText
+        if reason ~= nil then
+            labelText = Text.format("TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON", buildName, reason)
+        else
+            labelText = Text.format("TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE", buildName)
+        end
+        items[#items + 1] = BaseMenuItems.Choice({
+            labelText = labelText,
+            pediaName = buildPediaName(action),
+            tooltipFn = function()
+                return buildActionTooltip(unit, action)
+            end,
+            activate = function()
+                SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE", buildName))
             end,
         })
     end
@@ -690,30 +881,36 @@ local function buildTopLevelItems(unit, buckets)
             items = buildPromotionItems(unit, buckets.promotions),
         })
     end
-    if #buckets.builds > 0 then
+    if #buckets.builds > 0 or #buckets.disabledBuilds > 0 then
         items[#items + 1] = BaseMenuItems.Group({
             labelText = Text.key("TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"),
-            items = buildBuildItems(unit, buckets.builds),
+            items = buildBuildItems(unit, buckets.builds, buckets.disabledBuilds),
         })
     end
     return items
 end
 
 local function collectActions(unit)
-    local buckets = { plain = {}, promotions = {}, builds = {} }
+    local buckets = { plain = {}, promotions = {}, builds = {}, disabledBuilds = {} }
     if GameInfoActions == nil then
         Log.error("UnitActionMenu: GameInfoActions missing; no actions to list")
         return buckets
     end
     for iAction = 0, #GameInfoActions do
         local action = GameInfoActions[iAction]
-        if action ~= nil and isAvailable(unit, iAction, action) then
-            if isPromotionAction(action) then
-                buckets.promotions[#buckets.promotions + 1] = { iAction = iAction, action = action }
-            elseif isBuildAction(action) then
-                buckets.builds[#buckets.builds + 1] = { iAction = iAction, action = action }
-            else
-                buckets.plain[#buckets.plain + 1] = { iAction = iAction, action = action }
+        if action ~= nil then
+            if isBuildAction(action) then
+                if isAvailable(unit, iAction, action) then
+                    buckets.builds[#buckets.builds + 1] = { iAction = iAction, action = action }
+                elseif isVisibleForBuild(unit, iAction, action) then
+                    buckets.disabledBuilds[#buckets.disabledBuilds + 1] = { iAction = iAction, action = action }
+                end
+            elseif isAvailable(unit, iAction, action) then
+                if isPromotionAction(action) then
+                    buckets.promotions[#buckets.promotions + 1] = { iAction = iAction, action = action }
+                else
+                    buckets.plain[#buckets.plain + 1] = { iAction = iAction, action = action }
+                end
             end
         end
     end

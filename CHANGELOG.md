@@ -14,6 +14,7 @@ New Features and improvements:
 - Scanner terrain category now includes a Fresh Water subcategory listing every revealed tile with river or lake access.
 - Audio beacons sound warmer and less harsh while still giving clear stereo direction.
 - Beacon volume slider now has more headroom so beacons can play louder than the per-hex audio cues.
+- Tab on a worker now also lists improvements you can't build yet, after the buildable ones, with the reason (missing technology, outside your territory, no adjacent luxury, blocked by feature).
 
 Bug fixes:
 - City religion breakdown now uses the player's chosen religion name instead of the default ("Buddhism" when you renamed it "Sun Worship").
