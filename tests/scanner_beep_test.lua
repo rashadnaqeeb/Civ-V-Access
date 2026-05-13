@@ -227,12 +227,18 @@ end
 
 -- ===== volume linkage with beacon sliders =====
 
-function M.test_play_volume_at_source_uses_beacon_volume()
+function M.test_play_volume_at_source_is_pure_falloff_envelope()
+    -- The user-set beacon master rides the proxy's beacon group (which
+    -- ScannerBeep parents into via load_voice_in_beacon_group), not the
+    -- per-sound envelope. With distance 0 the envelope is 1.0
+    -- regardless of any BeaconVolume.get() stub; a regression that
+    -- re-multiplied here would silently double-attenuate the beep
+    -- against beacons sharing the group.
     setup()
     ScannerBeep.loadAll()
     enableBeep()
     BeaconVolume.get = function()
-        return 1.5
+        return 0.25
     end
     Map.PlotDistance = function()
         return 0
@@ -241,7 +247,27 @@ function M.test_play_volume_at_source_uses_beacon_volume()
     ScannerBeep.play(0, 0, 1, 0)
     local vol = findCall("set_volume", civvaccess_shared.scannerBeepHandle)
     T.truthy(vol)
-    T.eq(vol.v, 1.5, "at-source volume must come straight from BeaconVolume")
+    T.eq(vol.v, 1.0, "at-source envelope must be 1.0 regardless of BeaconVolume; got " .. tostring(vol.v))
+end
+
+function M.test_loadAll_routes_voice_to_beacon_group()
+    -- Scanner beep is part of the beacon-style spatial-cue family; it
+    -- must route through load_voice_in_beacon_group so the proxy parents
+    -- it under the beacon mixer group, sharing the Beacon volume slider
+    -- with bookmark beacons.
+    setup()
+    audio._reset()
+    ScannerBeep.loadAll()
+    local sawGroup, sawPlain = false, false
+    for _, c in ipairs(audio._calls) do
+        if c.op == "load_voice_in_beacon_group" then
+            sawGroup = true
+        elseif c.op == "load_voice" then
+            sawPlain = true
+        end
+    end
+    T.truthy(sawGroup, "scanner beep must allocate through the beacon-group entry point")
+    T.eq(sawPlain, false, "no plain load_voice; would couple the beep to the per-hex master")
 end
 
 function M.test_play_volume_falls_linearly_with_distance()

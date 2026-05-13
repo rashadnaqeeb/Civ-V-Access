@@ -25,10 +25,12 @@
 -- sounds/; the WAV ships through deploy.ps1's Sounds/ copy alongside the
 -- beacon and per-hex terrain cues.
 --
--- Voice allocation. One independent voice via audio.load_voice (not
--- audio.load) so the per-voice pan / pitch / volume state cannot
--- collide with a beacon, a per-hex terrain cue, or another consumer of
--- the audio bank. set_loop(false) so each audio.play plays once and
+-- Voice allocation. One independent voice via
+-- audio.load_voice_in_beacon_group so the per-voice pan / pitch /
+-- volume state cannot collide with a beacon, a per-hex terrain cue, or
+-- another consumer of the audio bank, AND the voice rides the beacon
+-- master fader rather than the per-hex master.
+-- set_loop(false) so each audio.play plays once and
 -- stops at the end of the WAV; the proxy's audio.play rearms the slot
 -- (stop + seek to 0 + start) so back-to-back cycle keystrokes restart
 -- the beep cleanly rather than queueing or overlapping. Initial volume
@@ -50,11 +52,13 @@
 --     rather than 0.
 --   * Pitch = 2^(drow / 12), capped at +/-PITCH_MAX_SEMITONES (= 12, one
 --     octave). One semitone per row north / south.
---   * Volume = BeaconVolume.get() * (1 - dist / BeaconRange.get()).
---     Clamped at 0 (silent past the range). Shares the Beacon sliders
---     so a player who tuned beacons louder hears the beep proportionally
---     louder; the F12 Beacon group is the single point of control for
---     this entire family of spatial audio cues.
+--   * Volume = 1 - dist / BeaconRange.get(). Clamped at 0 (silent past
+--     the range). The user-set beacon master attenuates this voice the
+--     same way it attenuates bookmark beacons: see ScannerBeep.loadAll's
+--     load_voice_in_beacon_group call below, which parents the voice
+--     under the proxy's beacon mixer group. The F12 Beacon group is the
+--     single point of control for this entire family of spatial audio
+--     cues.
 --
 -- The beep does not fire from ScannerNav.jumpToEntry (Home): the cursor
 -- jumps onto the entry, so displacement is 0 and the beep would carry no
@@ -100,9 +104,9 @@ function ScannerBeep.loadAll()
         Log.warn("ScannerBeep.loadAll: audio binding missing")
         return
     end
-    local h = audio.load_voice("scanner_beep")
+    local h = audio.load_voice_in_beacon_group("scanner_beep")
     if h == nil then
-        Log.error("ScannerBeep.loadAll: load_voice returned nil")
+        Log.error("ScannerBeep.loadAll: load_voice_in_beacon_group returned nil")
         return
     end
     -- Non-looping: each audio.play plays the WAV through once and stops.
@@ -149,8 +153,7 @@ function ScannerBeep.play(originX, originY, targetX, targetY)
     local pitchRate = 2 ^ (semitones / 12)
     local dist = Map.PlotDistance(originX, originY, targetX, targetY)
     local maxDist = BeaconRange.get()
-    local maxVol = BeaconVolume.get()
-    local vol = maxVol * (1 - dist / maxDist)
+    local vol = 1 - dist / maxDist
     if vol < 0 then
         vol = 0
     end

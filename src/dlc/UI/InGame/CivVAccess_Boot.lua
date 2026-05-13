@@ -236,9 +236,12 @@ local function onInGameBoot()
     Beacons.loadAll()
     Beacons.resetForNewGame()
     ScannerBeep.loadAll()
-    -- Apply persisted master volume now that the proxy's audio engine is
-    -- initialized. Setting before loadAll would be a silent no-op.
+    -- Apply persisted master volume and beacon master volume now that
+    -- the proxy's audio engine is initialized. Setting before loadAll
+    -- would be a silent no-op. The two faders drive independent mixer
+    -- groups in the proxy, so they restore in either order.
     VolumeControl.restore()
+    BeaconVolume.restore()
     TaskList.resetForNewGame()
     -- Bookmarks persist via Modding.OpenUserData scoped by map seed and
     -- active player. Hydrate before any binding can fire so Shift+digit

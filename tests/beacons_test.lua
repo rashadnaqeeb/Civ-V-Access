@@ -62,11 +62,12 @@ local function setup()
         end,
     }
 
-    -- BeaconVolume is the at-source-volume multiplier slider. Default
-    -- 1.0 matches the pre-slider behavior so volume assertions keyed
-    -- off (1 - dist / maxDist) hold without an explicit override; the
-    -- scaling test overrides this directly to verify the multiplier
-    -- reaches updateBeaconParams.
+    -- BeaconVolume drives the proxy's beacon mixer group (see
+    -- src/proxy/proxy.c g_beaconGroup); it no longer multiplies into
+    -- the per-sound volume the updateBeaconParams call writes. Kept on
+    -- the suite scope so any future test that wants to assert "the
+    -- per-sound falloff is independent of BeaconVolume.get()" has a
+    -- knob to monkey-patch.
     BeaconVolume = {
         get = function()
             return 1.0
@@ -331,11 +332,14 @@ function M.test_onCursorMove_saturates_pan_and_pitch_at_far_distances()
     )
 end
 
-function M.test_onCursorMove_BeaconVolume_scales_at_source_ceiling()
-    -- BeaconVolume.get() multiplies into the falloff ceiling so the
-    -- user can balance beacons against the per-hex terrain cues
-    -- independently of master volume. A 0.5 setting halves the
-    -- at-source level; the falloff curve shape is unchanged.
+function M.test_onCursorMove_per_sound_volume_independent_of_BeaconVolume()
+    -- The user-set beacon master rides the proxy's beacon sound group,
+    -- not the per-sound envelope. So updateBeaconParams writes the pure
+    -- falloff curve and any change to BeaconVolume.get() must NOT show
+    -- up in set_volume's value. Regression guard for the "make the
+    -- slider independent" refactor: a multiplier accidentally re-added
+    -- here would silently re-couple beacons to per-sound volume and
+    -- defeat the group volume the user is actually trying to adjust.
     setup()
     Beacons.loadAll()
     Beacons.resetForNewGame()
@@ -354,8 +358,27 @@ function M.test_onCursorMove_BeaconVolume_scales_at_source_ceiling()
 
     local h = civvaccess_shared.beaconHandles["1"]
     local vol = findCall("set_volume", h)
-    -- 0.5 * (1 - 3/30) = 0.45
-    T.truthy(math.abs(vol.v - 0.45) < 0.001, "volume = BeaconVolume * (1 - d/maxDist); got " .. tostring(vol.v))
+    -- (1 - 3/30) = 0.9 regardless of BeaconVolume.get().
+    T.truthy(math.abs(vol.v - 0.9) < 0.001, "volume = (1 - d/maxDist); got " .. tostring(vol.v))
+end
+
+function M.test_loadAll_routes_voices_to_beacon_group()
+    -- Beacons must allocate via load_voice_in_beacon_group, not
+    -- load_voice, so the proxy parents them under the beacon mixer
+    -- group and the Beacon volume slider attenuates them independently
+    -- of the per-hex master.
+    setup()
+    Beacons.loadAll()
+    local groupCalls, plainCalls = 0, 0
+    for _, c in ipairs(audio._calls) do
+        if c.op == "load_voice_in_beacon_group" then
+            groupCalls = groupCalls + 1
+        elseif c.op == "load_voice" then
+            plainCalls = plainCalls + 1
+        end
+    end
+    T.eq(groupCalls, 10, "ten beacons must allocate through the beacon-group entry point")
+    T.eq(plainCalls, 0, "no plain load_voice calls; would couple beacons to the per-hex master")
 end
 
 function M.test_onCursorMove_volume_floor_silences_beyond_max_distance()

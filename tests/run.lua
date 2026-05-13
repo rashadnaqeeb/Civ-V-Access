@@ -151,15 +151,25 @@ end
 function audio.set_master_volume(v)
     audio._calls[#audio._calls + 1] = { op = "set_master_volume", v = v }
 end
+function audio.set_beacon_master_volume(v)
+    audio._calls[#audio._calls + 1] = { op = "set_beacon_master_volume", v = v }
+end
 function audio.set_volume(id, v)
     audio._calls[#audio._calls + 1] = { op = "set_volume", id = id, v = v }
 end
--- Beacon-side proxy API additions: load_voice (no-dedup variant of load),
--- per-slot stop, pan / pitch / loop. Same call-recording shape so beacon
--- suites can assert ordering and parameter values.
+-- Beacon-side proxy API additions: load_voice and load_voice_in_beacon_
+-- group (no-dedup variants of load), per-slot stop, pan / pitch / loop.
+-- Same call-recording shape so beacon suites can assert ordering and
+-- parameter values.
 function audio.load_voice(name)
     audio._loadCounter = audio._loadCounter + 1
     audio._calls[#audio._calls + 1] = { op = "load_voice", name = name, id = audio._loadCounter }
+    return audio._loadCounter
+end
+function audio.load_voice_in_beacon_group(name)
+    audio._loadCounter = audio._loadCounter + 1
+    audio._calls[#audio._calls + 1] =
+        { op = "load_voice_in_beacon_group", name = name, id = audio._loadCounter }
     return audio._loadCounter
 end
 function audio.stop(id)
@@ -236,6 +246,7 @@ T.register("beacons", require("beacons_test"))
 T.register("scanner_beep", require("scanner_beep_test"))
 T.register("plot_composers_legality", require("plot_composers_legality_test"))
 T.register("volume_control", require("volume_control_test"))
+T.register("beacon_volume", require("beacon_volume_test"))
 T.register("hexgeom", require("hexgeom_test"))
 T.register("surveyor", require("surveyor_test"))
 T.register("unit_speech", require("suite_unit_speech"))

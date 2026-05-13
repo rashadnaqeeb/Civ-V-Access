@@ -21,13 +21,13 @@
 -- multiplier (2^(semitones / 12)) around the source's baked center, so
 -- beacon.wav sits at the "due-east / due-west" pitch.
 --
--- Volume: linear fade from BeaconVolume.get() at distance 0 to 0 at
--- BeaconRange.get() hexes (uses Map.PlotDistance for true integer hex
--- distance). Past the audible range the beacon goes silent without a
--- floor; the user can hear it again by walking the cursor closer.
--- BeaconVolume scales the at-source ceiling for the beacon layer
--- independently of master volume so the user can balance beacons
--- against the per-hex terrain cues.
+-- Volume: linear fade from 1 at distance 0 to 0 at BeaconRange.get()
+-- hexes (uses Map.PlotDistance for true integer hex distance). Past the
+-- audible range the beacon goes silent without a floor; the user can
+-- hear it again by walking the cursor closer. This is purely the per-
+-- voice falloff envelope; the user-set beacon master rides on a
+-- dedicated mixer group in the proxy (see CivVAccess_BeaconVolume),
+-- fully independent of the per-hex master.
 --
 -- Audibility policy: beacons play only when one of the cursor-on-map
 -- handlers (Baseline, Scanner) is the effective top of the HandlerStack.
@@ -48,10 +48,12 @@
 -- audio.play re-arms the source and would click on every refresh
 -- otherwise.
 --
--- Voices are allocated once per session via audio.load_voice (one
--- ma_sound per slot, ten slots, sharing one beacon.wav file). The proxy's
--- audio.cancel_all skips looping sounds, so PlotAudio's per-cursor-move
--- cancel does not silence active beacons.
+-- Voices are allocated once per session via audio.load_voice_in_beacon_
+-- group (one ma_sound per slot, ten slots, sharing one beacon.wav file).
+-- Parented under the proxy's beacon mixer group so the user-set beacon
+-- master attenuates them independently of the per-hex master. The
+-- proxy's audio.cancel_all skips looping sounds, so PlotAudio's per-
+-- cursor-move cancel does not silence active beacons.
 
 Beacons = {}
 
@@ -93,11 +95,13 @@ local function updateBeaconParams(h, cx, cy, bx, by)
     local semitones = clamp(drow, -PITCH_MAX_SEMITONES, PITCH_MAX_SEMITONES)
     local pitchRate = 2 ^ (semitones / 12)
     local dist = Map.PlotDistance(cx, cy, bx, by)
-    -- Live reads so Settings-screen tweaks (range, max volume) take
-    -- effect on the next cursor move without a refresh-everything pass.
+    -- Live read so a Settings-screen range tweak takes effect on the
+    -- next cursor move without a refresh-everything pass. The user-set
+    -- beacon master is not multiplied in here: it lives on the proxy's
+    -- beacon sound group, applied once at BeaconVolume.set time and
+    -- carried across every voice routed to that group.
     local maxDist = BeaconRange.get()
-    local maxVol = BeaconVolume.get()
-    local vol = maxVol * (1 - dist / maxDist)
+    local vol = 1 - dist / maxDist
     if vol < 0 then
         vol = 0
     end
@@ -109,9 +113,12 @@ end
 -- Allocate one looping ma_sound per bookmark slot at first in-game boot.
 -- Re-entered Contexts (load-from-game) skip the work because the audio
 -- bank slots survive at the proxy level; civvaccess_shared.beaconHandles
--- is the install-once guard. load_voice (not plain load) so each slot
--- gets its own ma_sound -- pan / pitch / volume are per-sound state, so
--- a shared handle could not give us independent beacons.
+-- is the install-once guard. load_voice_in_beacon_group (not plain load)
+-- so each slot gets its own ma_sound -- pan / pitch / volume are per-
+-- sound state, so a shared handle could not give us independent beacons
+-- -- and the _in_beacon_group variant parents each voice under the
+-- proxy's beacon mixer group so the user-set beacon master attenuates
+-- them independently from the per-hex layer.
 function Beacons.loadAll()
     if civvaccess_shared.beaconHandles ~= nil then
         return
@@ -123,9 +130,9 @@ function Beacons.loadAll()
     local handles = {}
     local loaded, missed = 0, 0
     for _, slot in ipairs(SLOT_KEYS) do
-        local h = audio.load_voice("beacon")
+        local h = audio.load_voice_in_beacon_group("beacon")
         if h == nil then
-            Log.error("Beacons.loadAll: load_voice returned nil for slot " .. slot)
+            Log.error("Beacons.loadAll: load_voice_in_beacon_group returned nil for slot " .. slot)
             missed = missed + 1
         else
             handles[slot] = h

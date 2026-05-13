@@ -617,20 +617,36 @@ static void register_civvaccess_keys(lua_State *L) {
 #define AUDIO_BANK_SIZE      48
 #define AUDIO_BANK_NAME_MAX  64
 
-static int       g_audioInit = 0;
-static ma_engine g_audioEngine;
-static ma_sound  g_audioBank[AUDIO_BANK_SIZE];
-static int       g_audioBankInUse[AUDIO_BANK_SIZE];
-static char      g_audioBankName[AUDIO_BANK_SIZE][AUDIO_BANK_NAME_MAX];
-static char      g_soundsDir[MAX_PATH];
+static int             g_audioInit = 0;
+static ma_engine       g_audioEngine;
+static ma_sound        g_audioBank[AUDIO_BANK_SIZE];
+static int             g_audioBankInUse[AUDIO_BANK_SIZE];
+static char            g_audioBankName[AUDIO_BANK_SIZE][AUDIO_BANK_NAME_MAX];
+static char            g_soundsDir[MAX_PATH];
 
-/* === Focus-gated master volume ===
+/* Two-group mixer split.
+   g_mainGroup holds non-beacon sounds (PlotAudio's per-hex cues, menu cues,
+   ScannerBeep). g_beaconGroup holds the beacon voices. Each group has its
+   own volume, driven by audio.set_master_volume and audio.set_beacon_master_
+   volume respectively, so the Settings "Beacon volume" slider is a true
+   independent fader from the per-hex master rather than a multiplier
+   stacked on top of it. The engine master itself is held at 1.0 in normal
+   operation and only dropped to 0 on focus loss as a global mute (see
+   apply_focus_volume); the user-set volumes live on the groups so a
+   focus-gain restores them without an extra round-trip. Both groups are
+   initialized lazily inside ensure_audio after the engine is up. */
+static ma_sound_group  g_mainGroup;
+static ma_sound_group  g_beaconGroup;
+
+/* === Focus-gated global mute ===
    miniaudio runs on its own audio thread, so the engine keeps mixing
    while the game window is alt-tabbed -- the game's own audio pauses
    in that state, so without explicit gating the mod's beacons / cues
    are the only sound left and stay audible until the user comes back.
    Match the game's behaviour by zeroing the engine volume on focus
-   loss and restoring the user-set value on regain.
+   loss; restore to 1.0 on regain. User-set fader values live on the
+   two sound groups (g_mainGroup, g_beaconGroup) and survive the gate
+   untouched.
 
    Tolk speech is intentionally NOT gated: it goes through the screen
    reader (separate from miniaudio), and the screen reader's contract
@@ -643,9 +659,17 @@ static char      g_soundsDir[MAX_PATH];
    queues the events on our process's main message pump (Civ V's main
    thread runs the pump), so the callback runs on the game's main thread
    -- safe to call into miniaudio without further synchronization. */
-static float            g_userVolume = 0.1f;
-static int              g_isFocused  = 1;
-static HWINEVENTHOOK    g_focusHook  = NULL;
+/* User-set volumes for each mixer group. Stored on the proxy so the
+   group volume can be re-pushed after ensure_audio finally creates the
+   groups (la_set_*_volume calls before ensure_audio are no-ops; the
+   default below carries until VolumeControl.restore / BeaconVolume.
+   restore push the persisted values from Lua at in-game boot). 0.1
+   mirrors the historic default master so a fresh install with neither
+   pref persisted plays at the same level as the old build. */
+static float            g_userMainVolume   = 0.1f;
+static float            g_userBeaconVolume = 0.1f;
+static int              g_isFocused        = 1;
+static HWINEVENTHOOK    g_focusHook        = NULL;
 
 static int our_window_foreground(void) {
     HWND fg = GetForegroundWindow();
@@ -657,8 +681,11 @@ static int our_window_foreground(void) {
 
 static void apply_focus_volume(void) {
     if (!g_audioInit) return;
-    ma_engine_set_volume(&g_audioEngine,
-                         g_isFocused ? g_userVolume : 0.0f);
+    /* Engine master is 0/1 only -- it's the global mute. The user-set
+       per-hex master lives on g_mainGroup; the user-set beacon master
+       lives on g_beaconGroup. Both groups keep their volumes across the
+       gate so a focus regain restores instantly without recomputing. */
+    ma_engine_set_volume(&g_audioEngine, g_isFocused ? 1.0f : 0.0f);
 }
 
 static void CALLBACK focus_event_proc(HWINEVENTHOOK hook, DWORD event,
@@ -717,29 +744,58 @@ static int ensure_audio(void) {
         proxy_log("ensure_audio: ma_engine_init FAILED r=%d\n", (int)r);
         return 0;
     }
+    /* Two sibling groups under the engine root. The split is what makes
+       the per-hex master and the beacon master fully independent: each
+       group's volume scales only the sounds parented to that group. New
+       sounds default into g_mainGroup; load_voice_in_beacon_group routes
+       beacons into g_beaconGroup instead. If group init ever failed in
+       the wild we'd be left with sounds parented to NULL groups; treat
+       that as fatal for audio init rather than degrade silently. */
+    r = ma_sound_group_init(&g_audioEngine, 0, NULL, &g_mainGroup);
+    if (r != MA_SUCCESS) {
+        proxy_log("ensure_audio: ma_sound_group_init main FAILED r=%d\n", (int)r);
+        ma_engine_uninit(&g_audioEngine);
+        return 0;
+    }
+    r = ma_sound_group_init(&g_audioEngine, 0, NULL, &g_beaconGroup);
+    if (r != MA_SUCCESS) {
+        proxy_log("ensure_audio: ma_sound_group_init beacon FAILED r=%d\n", (int)r);
+        ma_sound_group_uninit(&g_mainGroup);
+        ma_engine_uninit(&g_audioEngine);
+        return 0;
+    }
+    /* Seed each group with its current user-set value. la_set_*_volume
+       calls between DLL attach and ensure_audio are no-ops, so without
+       this push the groups would sit at miniaudio's 1.0 default until
+       the first VolumeControl.restore / BeaconVolume.restore reaches us
+       from Lua. Pushing now means a focus regain at this moment plays
+       at the right level. */
+    ma_sound_group_set_volume(&g_mainGroup,   g_userMainVolume);
+    ma_sound_group_set_volume(&g_beaconGroup, g_userBeaconVolume);
     g_audioInit = 1;
     /* Install the focus hook now that we have something to gate. The
        hook needs a window message pump to dispatch the OUTOFCONTEXT
        callback; ensure_audio runs from a Lua call (game main thread
        inside the message-pump-driven loop), which is a fine moment. */
     install_focus_hook();
-    /* Apply user default through the focus gate so an unfocused launch
-       starts silent rather than at 0.1 master. g_userVolume default
-       mirrors the prior hard-coded 0.1; VolumeControl.restore() pushes
-       the persisted value over this once Lua boot reaches it. */
+    /* Apply the focus gate so an unfocused launch starts silent. The
+       engine master is the 0/1 gate; group volumes already carry the
+       user values. */
     apply_focus_volume();
-    proxy_log("ensure_audio: engine initialized stereo, user=%.3f focused=%d soundsDir=%s\n",
-              g_userVolume, g_isFocused, g_soundsDir);
+    proxy_log("ensure_audio: engine stereo, main=%.3f beacon=%.3f focused=%d soundsDir=%s\n",
+              g_userMainVolume, g_userBeaconVolume, g_isFocused, g_soundsDir);
     return 1;
 }
 
-/* Allocate a fresh bank slot and decode <name>.wav into it. Returns the
-   slot index on success or -1 on failure (bank full, path overflow, decode
-   failure). Caller is responsible for any name-dedup it wants; this helper
-   always allocates a new slot, so beacon voices that share one WAV file
-   can each have their own ma_sound and therefore independent pan / pitch /
-   volume. */
-static int audio_alloc_slot(const char *name) {
+/* Allocate a fresh bank slot and decode <name>.wav into it, parenting
+   the ma_sound under pGroup. Returns the slot index on success or -1 on
+   failure (bank full, path overflow, decode failure). Caller is
+   responsible for any name-dedup it wants; this helper always allocates
+   a new slot, so beacon voices that share one WAV file can each have
+   their own ma_sound and therefore independent pan / pitch / volume.
+   pGroup picks the mixer fader the sound feeds into: g_mainGroup for the
+   per-hex / menu / scanner cues, g_beaconGroup for the beacon voices. */
+static int audio_alloc_slot(const char *name, ma_sound_group *pGroup) {
     int i, slot = -1, n;
     char path[MAX_PATH];
     ma_result r;
@@ -770,7 +826,7 @@ static int audio_alloc_slot(const char *name) {
        2D. Beacons need this flag for the pan API to work at all. */
     r = ma_sound_init_from_file(&g_audioEngine, path,
                                 MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION,
-                                NULL, NULL,
+                                pGroup, NULL,
                                 &g_audioBank[slot]);
     if (r != MA_SUCCESS) {
         proxy_log("audio_alloc_slot: ma_sound_init_from_file FAILED name=%s path=%s r=%d\n",
@@ -780,7 +836,8 @@ static int audio_alloc_slot(const char *name) {
     g_audioBankInUse[slot] = 1;
     strncpy(g_audioBankName[slot], name, AUDIO_BANK_NAME_MAX - 1);
     g_audioBankName[slot][AUDIO_BANK_NAME_MAX - 1] = '\0';
-    proxy_log("audio_alloc_slot: name=%s slot=%d path=%s\n", name, slot, path);
+    proxy_log("audio_alloc_slot: name=%s slot=%d group=%s path=%s\n",
+              name, slot, (pGroup == &g_beaconGroup) ? "beacon" : "main", path);
     return slot;
 }
 
@@ -802,7 +859,7 @@ static int la_load(lua_State *L) {
         }
     }
 
-    slot = audio_alloc_slot(name);
+    slot = audio_alloc_slot(name, &g_mainGroup);
     if (slot < 0) {
         ORIG_lua_pushnil(L);
         return 1;
@@ -814,13 +871,34 @@ static int la_load(lua_State *L) {
 /* Same as load but never dedups: every call decodes a fresh ma_sound into
    its own slot, even when the WAV file has already been loaded under
    another slot. The point is independent runtime parameters (pan, pitch,
-   volume) per voice, which a shared ma_sound cannot give us. Beacons
-   allocate one voice per bookmark slot at boot. */
+   volume) per voice, which a shared ma_sound cannot give us. Parented
+   under g_mainGroup like la_load -- currently no Lua caller uses this
+   form (Beacons and ScannerBeep both want the beacon group), kept as a
+   clean parallel API for future per-hex voices that want per-instance
+   pan / pitch / volume off the dedup table. */
 static int la_load_voice(lua_State *L) {
     const char *name = ORIG_luaL_checklstring(L, 1, NULL);
     int slot;
     if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
-    slot = audio_alloc_slot(name);
+    slot = audio_alloc_slot(name, &g_mainGroup);
+    if (slot < 0) {
+        ORIG_lua_pushnil(L);
+        return 1;
+    }
+    ORIG_lua_pushinteger(L, slot);
+    return 1;
+}
+
+/* Beacon-group variant of load_voice. The voice is parented under
+   g_beaconGroup so its final amplitude rides the beacon master fader
+   instead of the per-hex master. Beacons.loadAll calls this once per
+   bookmark slot at in-game boot; ten voices, all reading the same
+   beacon.wav. */
+static int la_load_voice_in_beacon_group(lua_State *L) {
+    const char *name = ORIG_luaL_checklstring(L, 1, NULL);
+    int slot;
+    if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
+    slot = audio_alloc_slot(name, &g_beaconGroup);
     if (slot < 0) {
         ORIG_lua_pushnil(L);
         return 1;
@@ -963,15 +1041,32 @@ static int la_set_pitch(lua_State *L) {
 
 static int la_set_master_volume(lua_State *L) {
     double v = ORIG_lua_tonumber(L, 1);
-    if (!g_audioInit) return 0;
     if (v < 0.0) v = 0.0;
     if (v > 1.0) v = 1.0;
-    /* Stash as the user-set value and route through the focus gate.
-       While unfocused the engine stays at 0; the new user volume gets
-       applied the moment focus returns. */
-    g_userVolume = (float)v;
-    apply_focus_volume();
-    proxy_log("la_set_master_volume: user=%.3f focused=%d\n", v, g_isFocused);
+    /* Per-hex master rides g_mainGroup, completely separate from the
+       beacon group. The engine master itself is the focus-mute and is
+       not touched here. While unfocused the engine stays at 0; the new
+       group value is applied immediately and takes effect at the next
+       focus regain (or now, if already focused). */
+    g_userMainVolume = (float)v;
+    if (g_audioInit) {
+        ma_sound_group_set_volume(&g_mainGroup, g_userMainVolume);
+    }
+    proxy_log("la_set_master_volume: user=%.3f focused=%d audioInit=%d\n",
+              v, g_isFocused, g_audioInit);
+    return 0;
+}
+
+static int la_set_beacon_master_volume(lua_State *L) {
+    double v = ORIG_lua_tonumber(L, 1);
+    if (v < 0.0) v = 0.0;
+    if (v > 1.0) v = 1.0;
+    g_userBeaconVolume = (float)v;
+    if (g_audioInit) {
+        ma_sound_group_set_volume(&g_beaconGroup, g_userBeaconVolume);
+    }
+    proxy_log("la_set_beacon_master_volume: user=%.3f focused=%d audioInit=%d\n",
+              v, g_isFocused, g_audioInit);
     return 0;
 }
 
@@ -995,17 +1090,19 @@ static int la_set_volume(lua_State *L) {
 }
 
 static const luaL_Reg audio_funcs[] = {
-    {"load",              la_load},
-    {"load_voice",        la_load_voice},
-    {"play",              la_play},
-    {"play_delayed",      la_play_delayed},
-    {"stop",              la_stop},
-    {"cancel_all",        la_cancel_all},
-    {"set_master_volume", la_set_master_volume},
-    {"set_volume",        la_set_volume},
-    {"set_pan",           la_set_pan},
-    {"set_pitch",         la_set_pitch},
-    {"set_loop",          la_set_loop},
+    {"load",                       la_load},
+    {"load_voice",                 la_load_voice},
+    {"load_voice_in_beacon_group", la_load_voice_in_beacon_group},
+    {"play",                       la_play},
+    {"play_delayed",               la_play_delayed},
+    {"stop",                       la_stop},
+    {"cancel_all",                 la_cancel_all},
+    {"set_master_volume",          la_set_master_volume},
+    {"set_beacon_master_volume",   la_set_beacon_master_volume},
+    {"set_volume",                 la_set_volume},
+    {"set_pan",                    la_set_pan},
+    {"set_pitch",                  la_set_pitch},
+    {"set_loop",                   la_set_loop},
     {NULL, NULL}
 };
 

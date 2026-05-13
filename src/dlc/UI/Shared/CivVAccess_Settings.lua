@@ -256,10 +256,13 @@ local function buildItems()
     local beaconGroup = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON",
         items = {
-            -- Beacon at-source volume. Multiplies into the linear-falloff in
-            -- Beacons.updateBeaconParams. Slider position t in [0, 1] maps to
-            -- multiplier t * BeaconVolume.MAX, so slider 50% is the historical
-            -- full-volume-at-source (1.0) and slider 100% is double that.
+            -- Beacon master volume. Drives the proxy's dedicated beacon
+            -- sound group in parallel with the main "Master volume"
+            -- slider above; the two faders are independent (raising one
+            -- does not attenuate the other). Slider position t in [0, 1]
+            -- maps to group volume t * BeaconVolume.MAX (= t, since MAX
+            -- is 1.0); kept as a multiplication so a future rebound can
+            -- change MAX without touching the slider plumbing.
             BaseMenuItems.VirtualSlider({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME",
                 getValue = function()
