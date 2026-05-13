@@ -71,13 +71,21 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         local goldTooltipFn = TradeLogicAccess.pocketTooltipFn(p .. "TableGold")
         if control == nil or readOnly then
             -- Read-only drawer or missing EditBox (unlikely): fall through
-            -- to a plain Text item showing label + amount.
+            -- to a plain Text item showing label + amount. When read-only
+            -- on the player's side, append the live treasury so the user
+            -- can judge fairness (sighted parity: gold is on top panel).
+            local label = Text.format(
+                "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
+                Text.key("TXT_KEY_DIPLO_GOLD"),
+                data1 or 0
+            )
+            if readOnly and TradeLogicAccess.sideIsUs(side) then
+                local pPlayer = Players[iPlayer]
+                local stock = pPlayer and pPlayer:GetGold() or 0
+                label = label .. TradeLogicAccess.stockSuffix(side, stock)
+            end
             return BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
-                    Text.key("TXT_KEY_DIPLO_GOLD"),
-                    data1 or 0
-                ),
+                labelText = label,
                 tooltipFn = goldTooltipFn,
             })
         end
@@ -108,13 +116,19 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         local control = Controls[editName]
         local gptTooltipFn = TradeLogicAccess.pocketTooltipFn(p .. "TableGoldPerTurn")
         if control == nil or readOnly then
+            local label = Text.format(
+                "TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE",
+                Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
+                data1 or 0,
+                Text.format("TXT_KEY_DIPLO_TURNS", duration or 0)
+            )
+            if readOnly and TradeLogicAccess.sideIsUs(side) then
+                local pPlayer = Players[iPlayer]
+                local rate = pPlayer and pPlayer:CalculateGoldRate() or 0
+                label = label .. TradeLogicAccess.stockSuffix(side, rate)
+            end
             return BaseMenuItems.Text({
-                labelText = Text.format(
-                    "TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE",
-                    Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
-                    data1 or 0,
-                    Text.format("TXT_KEY_DIPLO_TURNS", duration or 0)
-                ),
+                labelText = label,
                 tooltipFn = gptTooltipFn,
             })
         end
@@ -178,6 +192,16 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         end
         label = label .. TradeLogicAccess.turnsSuffix(duration)
         if readOnly then
+            -- Player-side stock so the user can judge fairness against the
+            -- deal quantity. Matches what the top panel surfaces for
+            -- strategics (GetNumResourceAvailable with imports included);
+            -- luxuries aren't on the top panel but the same number reads
+            -- naturally as "you have N copies."
+            if TradeLogicAccess.sideIsUs(side) then
+                local pPlayer = Players[iPlayer]
+                local stock = pPlayer and pPlayer:GetNumResourceAvailable(data1, true) or 0
+                label = label .. TradeLogicAccess.stockSuffix(side, stock)
+            end
             return BaseMenuItems.Text({ labelText = label, pediaName = pediaName })
         end
         local rType = data1

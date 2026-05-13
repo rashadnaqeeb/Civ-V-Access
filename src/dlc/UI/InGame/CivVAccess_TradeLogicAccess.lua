@@ -80,6 +80,21 @@ local function turnsSuffix(duration)
     return ", " .. Text.format("TXT_KEY_DIPLO_TURNS", duration)
 end
 
+-- ", you have N" / ", they have N" suffix for items that carry a stock
+-- number (gold, GPT, resources). Phrasing the bare number as "you have N"
+-- keeps it from being misread as the trade quantity, and the side-aware
+-- subject avoids saying "you have 2" when it's actually the AI's stock
+-- on the Their Offer drawer. Returns "" when n is nil so callers can
+-- append unconditionally.
+local function stockSuffix(side, n)
+    if n == nil then
+        return ""
+    end
+    local key = side == "us" and "TXT_KEY_CIVVACCESS_TRADE_YOU_HAVE"
+        or "TXT_KEY_CIVVACCESS_TRADE_THEY_HAVE"
+    return ", " .. Text.format(key, n)
+end
+
 -- State classification ----------------------------------------------------
 
 -- Read-only: the user can browse but not place / remove. AI is demanding
@@ -221,6 +236,7 @@ end
 TradeLogicAccess.dealDuration = dealDuration
 TradeLogicAccess.peaceDuration = peaceDuration
 TradeLogicAccess.turnsSuffix = turnsSuffix
+TradeLogicAccess.stockSuffix = stockSuffix
 TradeLogicAccess.isReadOnly = isReadOnly
 TradeLogicAccess.isHumanDemand = isHumanDemand
 TradeLogicAccess.sidePlayer = sidePlayer
