@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+
+## [1.1.3] - 2026-05-13
 New Features and improvements:
 - AI trade offers now include your stock for items on your side (gold, gold per turn, resources), so you can judge whether you can afford the deal.
 Bug fixes:
