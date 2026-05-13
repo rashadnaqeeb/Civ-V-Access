@@ -310,7 +310,7 @@ function CityStats.religionRows(city)
             Log.warn("CityStats: unknown religion id " .. tostring(religionId))
             return
         end
-        local religionName = Text.key(religionInfo.Description)
+        local religionName = Text.key(Game.GetReligionName(religionId))
         local followers = city:GetNumFollowers(religionId)
         local pressureRaw = city:GetPressurePerTurn(religionId)
         local pressure = pressureToken(pressureRaw)

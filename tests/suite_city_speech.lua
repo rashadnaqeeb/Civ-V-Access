@@ -262,7 +262,12 @@ end
 -- GameInfo.Religions doubles as an id-keyed lookup ("GameInfo.Religions
 -- [id]") and as a callable iterator ("for r in GameInfo.Religions()").
 -- Religion-breakdown tests that exercise the iterator path replace the
--- plain table set up by setup() with this metatabled variant.
+-- plain table set up by setup() with this metatabled variant. Also wires
+-- Game.GetReligionName(id) to return the row's Description so the engine
+-- call CitySpeech makes for the player-facing name resolves to the same
+-- TXT_KEY_ token the fixture supplied -- production reads the player's
+-- custom religion name through this engine call rather than the default
+-- Description, so the test stub mirrors that lookup.
 local function makeIterableTable(rows)
     local t = {}
     local idIndex = {}
@@ -282,6 +287,10 @@ local function makeIterableTable(rows)
             return idIndex[key]
         end,
     })
+    Game.GetReligionName = function(rid)
+        local row = idIndex[rid]
+        return row and row.Description or ""
+    end
     return t
 end
 

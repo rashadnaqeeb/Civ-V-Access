@@ -246,7 +246,11 @@ local function setup()
     -- iterator. The test stub mirrors that: the table doubles as an
     -- iteration source via metatable __call (production uses
     -- "for r in GameInfo.Religions()") and as an id-keyed lookup
-    -- ("GameInfo.Religions[id]").
+    -- ("GameInfo.Religions[id]"). Also wires Game.GetReligionName(id) to
+    -- return the row's Description so the engine call CityStats makes for
+    -- the player-facing name resolves to the same fixture string --
+    -- production reads the player's custom religion name through that
+    -- engine call rather than the default Description.
     local function makeIterableTable(rows)
         local t = {}
         local idIndex = {}
@@ -266,6 +270,10 @@ local function setup()
                 return idIndex[key]
             end,
         })
+        Game.GetReligionName = function(rid)
+            local row = idIndex[rid]
+            return row and row.Description or ""
+        end
         return t
     end
     _G.makeIterableTable = makeIterableTable

@@ -10,6 +10,8 @@ they had installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
+Bug fixes:
+- City religion breakdown now uses the player's chosen religion name instead of the default ("Buddhism" when you renamed it "Sun Worship").
 
 ## [1.1.4] - 2026-05-13
 Bug fixes:

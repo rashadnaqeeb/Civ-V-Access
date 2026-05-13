@@ -410,7 +410,7 @@ local function religionRow(city, religionId)
         Log.warn("CitySpeech: unknown religion id " .. tostring(religionId))
         return nil
     end
-    local religionName = Text.key(religionInfo.Description)
+    local religionName = Text.key(Game.GetReligionName(religionId))
     local followers = city:GetNumFollowers(religionId)
     local pressureRaw, numTradeRoutes = city:GetPressurePerTurn(religionId)
     local divisor = GameDefines["RELIGION_MISSIONARY_PRESSURE_MULTIPLIER"] or 1
