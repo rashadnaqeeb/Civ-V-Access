@@ -144,7 +144,12 @@ local function appendTooltip(base, tooltip)
     if #novel == 0 then
         return base
     end
-    return base .. ". " .. table.concat(novel, ". ")
+    -- When base already ends in terminal punctuation (the label can be a
+    -- localized sentence, e.g. a build's blocked-reason text ending in a
+    -- period), join with a single space; the ". " separator would
+    -- otherwise double the period ("...Fort." -> "...Fort.. ").
+    local sep = base:match("[%.%!%?%:%;%,]%s*$") and " " or ". "
+    return base .. sep .. table.concat(novel, ". ")
 end
 
 BaseMenuItems.appendTooltip = appendTooltip

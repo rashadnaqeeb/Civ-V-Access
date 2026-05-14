@@ -357,6 +357,33 @@ function M.test_tooltip_decimal_in_value_is_preserved()
     T.eq(speaks[#speaks].text, "LABEL_A. Gold base: 1.06. Total: 5 Gold")
 end
 
+function M.test_tooltip_join_does_not_double_period_after_label()
+    setup()
+    setCtrls({ "A" })
+    -- A label that is itself a localized sentence ending in a period (a
+    -- build's blocked-reason text in the unit action menu) must not gain a
+    -- second period from the tooltip join.
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Button({
+                controlName = "A",
+                labelText = "unavailable, Construct a Fort, Engineering is required.",
+                tooltipFn = function()
+                    return "+50% Defensive Strength. 5 Turns"
+                end,
+                activate = function() end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(
+        speaks[#speaks].text,
+        "unavailable, Construct a Fort, Engineering is required. +50% Defensive Strength. 5 Turns"
+    )
+end
+
 function M.test_tooltipFn_nil_result_does_not_add_comma()
     setup()
     setCtrls({ "A" })

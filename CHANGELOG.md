@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Unavailable improvements in the unit action menu no longer read a doubled period between the reason and the improvement's effect.
+
 ## [1.1.5] - 2026-05-13
 New Features and improvements:
 - Scanner terrain category now includes a Fresh Water subcategory listing every revealed tile with river or lake access.
