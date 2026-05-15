@@ -163,6 +163,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "blockiert d
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] =
     "blockiert durch eine Einheit, nächsterreichbar {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "blockiert durch eine Einheit"
+-- Fog-of-war variants. When the blocker unit's plot isn't visible to the
+-- active team, naming the unit would leak intelligence the sighted UI
+-- doesn't expose either. The message says only that the path is blocked.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] = "blockiert, nächsterreichbar {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR"] = "blockiert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "kein Pfad, nächsterreichbar {1_Dir}"
 -- Unreachable-branch sub-causes.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH"] =
@@ -226,6 +231,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} Geländefelder, kein Baubedarf",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "keine Route verfügbar"
+-- Route-to water blocker. The only route-failure cause without a move-to
+-- analog -- move-to handles water via embark/astronomy unlocks, whereas
+-- BuildRouteValid rejects every water step outright. Mountain and
+-- borders reuse PATH_BLOCKED_MOUNTAIN / PATH_BLOCKED_BORDERS_CIV; same
+-- cause, same wording, no need for route-flavored duplicates.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] = "blockiert durch Wasser, nächsterreichbar {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR"] = "blockiert durch Wasser"
 -- Per-mode "cannot X here" strings for the special interface modes whose
 -- legality is the only sighted feedback (highlight tint). Spoken when the
 -- engine's per-target Can*At check returns false; legal targets fall

@@ -136,6 +136,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "bloccato da
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] =
     "bloccato da un'unità, il più vicino raggiungibile {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "bloccato da un'unità"
+-- Fog-of-war variants. When the blocker unit's plot isn't visible to the
+-- active team, naming the unit would leak intelligence the sighted UI
+-- doesn't expose either. The message says only that the path is blocked.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] = "bloccato, il più vicino raggiungibile {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR"] = "bloccato"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] =
     "nessun percorso, il più vicino raggiungibile {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH"] =
@@ -180,6 +185,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} caselle, nessun lavoro necessario",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "nessuna strada disponibile"
+-- Route-to water blocker. The only route-failure cause without a move-to
+-- analog -- move-to handles water via embark/astronomy unlocks, whereas
+-- BuildRouteValid rejects every water step outright. Mountain and
+-- borders reuse PATH_BLOCKED_MOUNTAIN / PATH_BLOCKED_BORDERS_CIV; same
+-- cause, same wording, no need for route-flavored duplicates.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] =
+    "bloccato dall'acqua, il più vicino raggiungibile {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR"] = "bloccato dall'acqua"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL"] = "non puoi effettuare un lancio qui"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_AIRLIFT_ILLEGAL"] = "non puoi effettuare un trasporto aereo qui"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_REBASE_ILLEGAL"] = "non puoi spostare la base qui"

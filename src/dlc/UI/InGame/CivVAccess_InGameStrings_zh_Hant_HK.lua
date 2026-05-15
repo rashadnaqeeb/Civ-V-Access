@@ -127,6 +127,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT"] = "受 {1_Unit} 阻�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "受 {1_Unit} 阻擋"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] = "受單位阻擋, 最近可到達 {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "受單位阻擋"
+-- Fog-of-war variants. When the blocker unit's plot isn't visible to the
+-- active team, naming the unit would leak intelligence the sighted UI
+-- doesn't expose either. The message says only that the path is blocked.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] = "受阻擋, 最近可到達 {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR"] = "受阻擋"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "無路徑, 最近可到達 {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH"] = "缺乏海運科技, 最近可到達 {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH_NO_DIR"] = "缺乏海運科技"
@@ -166,6 +171,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} 格, 無需施工",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "無可用路線"
+-- Route-to water blocker. The only route-failure cause without a move-to
+-- analog -- move-to handles water via embark/astronomy unlocks, whereas
+-- BuildRouteValid rejects every water step outright. Mountain and
+-- borders reuse PATH_BLOCKED_MOUNTAIN / PATH_BLOCKED_BORDERS_CIV; same
+-- cause, same wording, no need for route-flavored duplicates.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] = "受水域阻擋, 最近可到達 {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR"] = "受水域阻擋"
 
 -- ===== Special mode previews =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL"] = "無法在此空降"

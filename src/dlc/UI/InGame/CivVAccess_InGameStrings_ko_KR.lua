@@ -128,6 +128,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "{1_Unit}에
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] =
     "유닛에 막힘, 가장 가까운 도달 가능 위치 {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "유닛에 막힘"
+-- Fog-of-war variants. When the blocker unit's plot isn't visible to the
+-- active team, naming the unit would leak intelligence the sighted UI
+-- doesn't expose either. The message says only that the path is blocked.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] = "막힘, 가장 가까운 도달 가능 위치 {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR"] = "막힘"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] =
     "경로 없음, 가장 가까운 도달 가능 위치 {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_NO_EMBARK_TECH"] =
@@ -171,6 +176,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} 타일, 작업 필요 없음",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "사용 가능한 경로 없음"
+-- Route-to water blocker. The only route-failure cause without a move-to
+-- analog -- move-to handles water via embark/astronomy unlocks, whereas
+-- BuildRouteValid rejects every water step outright. Mountain and
+-- borders reuse PATH_BLOCKED_MOUNTAIN / PATH_BLOCKED_BORDERS_CIV; same
+-- cause, same wording, no need for route-flavored duplicates.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] =
+    "물에 막힘, 가장 가까운 도달 가능 위치 {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR"] = "물에 막힘"
 
 -- Special interface mode illegal previews
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_PARADROP_ILLEGAL"] = "이 위치에 강습할 수 없습니다."

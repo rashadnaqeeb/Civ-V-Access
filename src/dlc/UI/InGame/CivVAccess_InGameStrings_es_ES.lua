@@ -292,6 +292,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_NO_DIR"] = "bloqueado p
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK"] =
     "bloqueado por una unidad, más cercano alcanzable {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "bloqueado por una unidad"
+-- Fog-of-war variants. When the blocker unit's plot isn't visible to the
+-- active team, naming the unit would leak intelligence the sighted UI
+-- doesn't expose either. The message says only that the path is blocked.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] = "bloqueado, más cercano alcanzable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR"] = "bloqueado"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] = "sin ruta, más cercano alcanzable {1_Dir}"
 -- Unreachable-branch sub-causes. PathDiagnostic identifies these by
 -- inspecting the unit's tech state (no embark / no astronomy), the
@@ -369,6 +374,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} casillas, no hay trabajo pendiente",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "ruta no disponible"
+-- Route-to water blocker. The only route-failure cause without a move-to
+-- analog -- move-to handles water via embark/astronomy unlocks, whereas
+-- BuildRouteValid rejects every water step outright. Mountain and
+-- borders reuse PATH_BLOCKED_MOUNTAIN / PATH_BLOCKED_BORDERS_CIV; same
+-- cause, same wording, no need for route-flavored duplicates.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] =
+    "bloqueado por agua, más cercano alcanzable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR"] = "bloqueado por agua"
 -- Per-mode "cannot X here" strings for the special interface modes whose
 -- legality is the only sighted feedback (highlight tint). Spoken when the
 -- engine's per-target Can*At check returns false; legal targets fall
