@@ -10,9 +10,11 @@ The mod requires the Brave New World expansion, and will not work without it. Ho
 
 The installer handles installing the mod, updating it, and uninstalling it. [Click here to download the installer](https://github.com/rashadnaqeeb/Civ-V-Access/raw/main/dist/installer/CivVAccessInstaller.exe).
 
+You may wish to disable the Steam overlay, from Steam settings/in game/enable Steam overlay. This is an overlay that is inaccessible and intercepts the Shift+Tab key, and makes accessibility mods in general very difficult to use. You may also wish to disable the F12 Steam screenshot key, from the same menu, which regularly interferes with mod keys across games.
+
 ## Getting help
 
-**Shift+/** (question mark) opens a list of every key active in the current context. If ever you're unsure of what keys will work on any given screen, start here.
+**Shift+/** (question mark) opens a list of every key active in the current context. If ever you're unsure of what keys will work on any given screen, start here. It's a searchable list, so you can also type the name of the action you're looking for and you'll usually find it.
 
 **Ctrl+I** opens the Civilopedia (in-game help) entry for whatever is currently focused, when one exists. Use this if you want to look up, for example, what the current unit under the cursor does.
 
@@ -86,19 +88,19 @@ The cursor is your position on the map, independent of any selected unit. Moveme
 
 ### The surveyor
 
-The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit. All keys use Shift plus a cluster key, and the numpad works as a substitute here too.
+The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit. All keys use Shift plus a cluster key, and the numpad works as a substitute here too, though it's worth noting that NVDA may interfere with Shift+Numpad keys.
 
-- **Shift+W / Shift+X** — grow or shrink the scanned radius (1-5)
-- **Shift+Q** — sum yields of all tiles in range
-- **Shift+A** — count resources in range
-- **Shift+Z** — count terrain and features in range
-- **Shift+E** — list your own units in range
-- **Shift+D** — list enemy units in range
-- **Shift+C** — list cities in range, closest first
+- **Shift+W / Shift+X** (or **Shift+Numpad 8 / Shift+Numpad 2**) — grow or shrink the scanned radius (1-5)
+- **Shift+Q** (or **Shift+Numpad 7**) — sum yields of all tiles in range
+- **Shift+A** (or **Shift+Numpad 4**) — count resources in range
+- **Shift+Z** (or **Shift+Numpad 1**) — count terrain and features in range
+- **Shift+E** (or **Shift+Numpad 9**) — list your own units in range
+- **Shift+D** (or **Shift+Numpad 6**) — list enemy units in range
+- **Shift+C** (or **Shift+Numpad 3**) — list cities in range, closest first
 
 ### The scanner
 
-Where the surveyor is for figuring out what's around you, the scanner is for finding a specific thing. You'd use it to figure out where to find Iron on your map, for example.
+Where the surveyor is for figuring out what's around you, the scanner is for finding a specific thing. You'd use it to figure out where to find Iron on your map, for example, or where the city of London is.
 
 Entries are organized into a hierarchy of categories (cities, units, resources, terrain, and so on), subcategories (your cities versus enemy, strategic versus luxury resources), items, and instances (multiple iron deposits all called "iron"). If you've used the Rimworld scanner, it's laid out exactly the same.
 
@@ -164,7 +166,7 @@ If the target hex has an enemy, the first press speaks a combat preview. The sec
 
 ### Target mode
 
-If instead of using the quick movement keys you choose move to from the action menu, you will be placed in targeting mode.
+If instead of using the quick movement keys you choose move to from the action menu, or press Alt+M, you will be placed in targeting mode.
 
 - **Space** — preview the move from the unit to the cursor (path, cost, turns to arrive); on an enemy, previews the combat result instead
 - **Enter** — commit
@@ -211,7 +213,7 @@ Several screens present data as a table of rows and columns, like the city list 
 
 These keys open the in-game screens. The screens themselves are regular menus or tables.
 
-- **F1** — Civilopedia: the in-game wiki, with strategy tips and a reference for everything in the game.
+- **F1** — Civilopedia: the in-game wiki, with strategy tips and a reference for everything in the game. If you have a game mechanics question, the answer is probably in here somewhere.
 - **F2** — Economic Overview. 4 tabs: a table of all your cities, a treasury breakdown, a happiness breakdown, and a list of accessible resources.
 - **F3** — Military Overview. 2 tabs: a table of all your units, and a list of progress toward each great person type.
 - **F4** — Diplomacy. 3 tabs: major civs, city-states, and current deals (active and historical).
@@ -240,7 +242,7 @@ Below the two offer buttons sits a balance button that asks the AI to make the d
 
 When the AI initiates the deal, the available tab is locked from the start. You can still open both offer buttons to read what's on each side, but you can only accept or decline; you can't change the terms.
 
-At any point while you're talking to a leader, **F2** speaks their full description.
+At any point while you're talking to a leader, **F2** speaks their full description. Note that these descriptions were generated by AI using still images of the animated leader scenes, so are not perfect.
 
 ## Multiplayer
 
