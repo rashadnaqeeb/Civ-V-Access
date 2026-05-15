@@ -74,6 +74,7 @@ local rules = {
     de_DE = onePlural,
     es_ES = onePlural,
     it_IT = onePlural,
+    pt_BR = onePlural,
     fr_FR = frenchPlural,
     pl_PL = polishPlural,
     ru_RU = russianPlural,

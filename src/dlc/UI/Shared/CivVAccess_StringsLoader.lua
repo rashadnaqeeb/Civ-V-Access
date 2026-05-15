@@ -40,8 +40,9 @@ StringsLoader = {}
 -- error -- so users running an unsupported locale hear English.
 --
 -- Distinct values seen in Civ V's Languages table: en_US, de_DE, es_ES,
--- fr_FR, it_IT, ja_JP, ko_KR, pl_PL, ru_RU, zh_Hant_HK. The keys here are
--- commented out until a corresponding translation file ships.
+-- fr_FR, it_IT, ja_JP, ko_KR, pl_PL, ru_RU, zh_Hant_HK. pt_BR is registered
+-- by the Civ5-PTBR community language pack rather than Firaxis. The keys
+-- here are commented out until a corresponding translation file ships.
 local supportedLocales = {
     de_DE = true,
     es_ES = true,
@@ -50,6 +51,7 @@ local supportedLocales = {
     ja_JP = true,
     ko_KR = true,
     pl_PL = true,
+    pt_BR = true,
     ru_RU = true,
     zh_Hant_HK = true,
 }

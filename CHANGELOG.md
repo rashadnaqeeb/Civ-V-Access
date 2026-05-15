@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - Written language can now be changed from inside the game: Options, Interface Options tab, Written language pulldown. The list includes any third-party language packs you've installed.
+- The mod now speaks Brazilian Portuguese when paired with the Civ5-PTBR community language pack.
 
 Bug fixes:
 - Pressing Enter to commit a move that can't make any progress (an embarked unit pointing across deep ocean without Astronomy, with no reachable tile beyond the one it's on) now reads the actual obstacle instead of "action failed".

@@ -46,6 +46,14 @@ local.*.ini
 # Locally-installed developer tools (luacheck, etc.)
 tools/bin/
 
+# Translation pipeline scratch and locale-onboarding tooling. The shipped
+# strings files live in src/dlc/UI/.../*_<locale>.lua and are tracked there;
+# the per-batch source slices, agent prompt templates, and slicer/concat
+# scripts under tools/translation/ are maintainer-local working tools that
+# stay out of git history.
+tools/translation/
+build/translation/
+
 # RemuxToAsf is a built-from-source C# helper; the .exe is regenerated on demand
 tools/RemuxToAsf.exe
 
