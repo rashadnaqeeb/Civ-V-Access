@@ -24,6 +24,16 @@ include("CivVAccess_FrontendCommon")
 local priorShowHide = ShowHideHandler
 local priorInput = InputHandler
 
+-- Firaxis ships LanguagePull with Hidden="1" in OptionsMenu.xml and nothing
+-- in vanilla unhides it, so the in-game written-language selector is invisible
+-- to sighted and blind players alike. Unhide it so it's reachable; the engine
+-- already populates entries from Locale.GetSupportedLanguages() (covering any
+-- third-party language pack the user has installed) and fires
+-- ShowLanguageCountdown on selection, which our wrapper already handles.
+if Controls.LanguagePull then
+    Controls.LanguagePull:SetHide(false)
+end
+
 -- Appended to every tab's item list so the three bottom buttons stay
 -- reachable from any tab (matches their always-visible placement in XML).
 local function commonButtons()
