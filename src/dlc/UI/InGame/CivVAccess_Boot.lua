@@ -236,10 +236,14 @@ local function onInGameBoot()
     Beacons.loadAll()
     Beacons.resetForNewGame()
     ScannerBeep.loadAll()
-    -- Apply persisted master volume and beacon master volume now that
-    -- the proxy's audio engine is initialized. Setting before loadAll
-    -- would be a silent no-op. The two faders drive independent mixer
-    -- groups in the proxy, so they restore in either order.
+    -- Re-apply persisted master volume and beacon master volume. The
+    -- front-end boot pushes these once per session so menu sounds play
+    -- at the user-configured level from the main menu onward; this
+    -- second push covers load-from-game (in-game Contexts re-init with
+    -- fresh envs and a fresh civvaccess_shared was not affected, but
+    -- pushing again is cheap and makes this Context's contract local).
+    -- The two faders drive independent mixer groups in the proxy, so
+    -- they restore in either order.
     VolumeControl.restore()
     BeaconVolume.restore()
     TaskList.resetForNewGame()

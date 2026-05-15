@@ -8,9 +8,11 @@
 -- trip through user data). VolumeControl.set(v) clamps to [0, 1], updates
 -- the cache, persists via Prefs.setFloat, and pushes the new value into
 -- the proxy via audio.set_master_volume. VolumeControl.restore() applies
--- the persisted value to the proxy at boot; it must run after audio is
--- initialized (i.e. after PlotAudio.loadAll), since the proxy's setter is
--- a no-op until ma_engine_init has run.
+-- the persisted value to the proxy at boot. The proxy stores the user
+-- value in a static that ensure_audio reads when it seeds the mixer
+-- group, so restore is effective before the audio engine has been
+-- initialized -- this is what lets FrontendBoot push the user value
+-- before the first menu sound is played.
 
 VolumeControl = VolumeControl or {}
 
@@ -50,9 +52,9 @@ function VolumeControl.set(v)
     end
 end
 
--- Push the persisted value to the proxy. Call after PlotAudio.loadAll so
--- the audio engine is initialized; before that, audio.set_master_volume is
--- a no-op and our intent would be silently dropped.
+-- Push the persisted value to the proxy. Safe to call before the audio
+-- engine has been initialized: the proxy stores the value in a static
+-- that ensure_audio later reads when seeding the mixer group.
 function VolumeControl.restore()
     local v = VolumeControl.get()
     if audio ~= nil then

@@ -14,9 +14,11 @@
 -- Set is pushed straight to the proxy via audio.set_beacon_master_volume.
 -- Get is cached on civvaccess_shared so repeat reads in the Settings
 -- screen don't round-trip through user data. BeaconVolume.restore() at
--- in-game boot mirrors VolumeControl.restore -- the proxy's group
--- volume defaults to the static initializer until Lua pushes the
--- persisted value over it.
+-- boot mirrors VolumeControl.restore -- the proxy's group volume
+-- defaults to the static initializer until Lua pushes the persisted
+-- value over it. FrontendBoot pushes once per session before any
+-- front-end audio.load, and the in-game boot pushes again after
+-- LoadScreenClose so a load-from-game also lands at the right level.
 --
 -- Migration. Prior to this build the slider stored a [0, 5] multiplier
 -- on the engine master under "BeaconMaxVolume". To preserve users'
@@ -107,10 +109,9 @@ function BeaconVolume.set(v)
     end
 end
 
--- Push the persisted value to the proxy. Call after PlotAudio.loadAll
--- so the audio engine is initialized; before that, audio.set_beacon_
--- master_volume is a no-op against the (uninitialized) group and our
--- intent would silently miss the first ensure_audio's seed call.
+-- Push the persisted value to the proxy. Safe to call before the audio
+-- engine has been initialized: the proxy stores the value in a static
+-- that ensure_audio later reads when seeding the beacon mixer group.
 function BeaconVolume.restore()
     local v = BeaconVolume.get()
     if audio ~= nil then
