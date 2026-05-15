@@ -362,7 +362,6 @@ local function routePathPreview(actor, targetPlot)
     end
     local routeRow = GameInfo.Routes[routeId]
     local routeValue = (routeRow ~= nil and routeRow.Value) or 0
-    local owner = actor:GetOwner()
     local diag = PathDiagnostic.discriminativeRoutePath(actor, targetPlot)
     if diag.ok ~= "strict" then
         return PathDiagnostic.formatRouteFailure(diag, targetPlot:GetX(), targetPlot:GetY())
