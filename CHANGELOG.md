@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Previewing a build-route with Space now names the obstacle (water, mountain, a civ's borders) instead of just saying "no path".
+
 Bug fixes:
 - Unavailable improvements in the unit action menu no longer read a doubled period between the reason and the improvement's effect.
 - Volume settings now apply on the main menu instead of staying at the default until you enter a game.

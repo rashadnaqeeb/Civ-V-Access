@@ -363,10 +363,11 @@ local function routePathPreview(actor, targetPlot)
     local routeRow = GameInfo.Routes[routeId]
     local routeValue = (routeRow ~= nil and routeRow.Value) or 0
     local owner = actor:GetOwner()
-    local path = Game.GetBuildRoutePath(fromPlot:GetX(), fromPlot:GetY(), targetPlot:GetX(), targetPlot:GetY(), owner)
-    if #path == 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+    local diag = PathDiagnostic.discriminativeRoutePath(actor, targetPlot)
+    if diag.ok ~= "strict" then
+        return PathDiagnostic.formatRouteFailure(diag, targetPlot:GetX(), targetPlot:GetY())
     end
+    local path = diag.path
     local extraRate = actor:WorkRate(true, buildId)
     local actorAlreadyOnBuild = actor:GetBuildType() == buildId
     local buildTurns = 0

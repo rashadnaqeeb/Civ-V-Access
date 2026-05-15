@@ -542,3 +542,184 @@ function PathDiagnostic.formatFailure(diag, fromX, fromY)
     end
     return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
 end
+
+-- Route-to (MISSION_ROUTE_TO) path diagnostics. The engine's BuildRouteFinder
+-- (CvAStar.cpp BuildRouteValid:2539) rejects a node when the plot is water,
+-- mountain, impassable, unrevealed (and we're a major civ), or owned by a
+-- foreign player without friendly access (open borders / our own / minor
+-- with active route quest). No unit checks of any kind -- routes are
+-- planned tile-by-tile and the worker just waits if a unit's standing
+-- where it wants to build, so there's no parallel to the move-to unit
+-- blocker / fog leak.
+--
+-- BuildRouteFinder takes only (player, routeType) flags -- no relaxation
+-- surface analogous to MOVE_DECLARE_WAR / MOVE_IGNORE_STACKING. So instead
+-- of running retries we get a candidate land path from the unit pathfinder
+-- and binary-search BuildRoutePath along it for the boundary tile. The
+-- boundary tile's properties name the cause (water, mountain, borders).
+--
+-- Move-to's "different domain" / "no embark tech" / etc. failure causes
+-- still apply to workers (they're units), so when the unit pathfinder
+-- can't reach target either we delegate to discriminativePath /
+-- formatFailure; those messages are correct for route context too
+-- (a worker that can't walk there can't route there).
+
+-- Classify a boundary plot against the four BuildRouteValid criteria.
+-- Returns a subCause string or nil if the plot doesn't violate any of
+-- them (shouldn't happen if the route finder rejected it, but defensive).
+-- Unrevealed-ahead collapses to nil so the caller speaks the generic
+-- UNREACHABLE_CLOSEST rather than leaking what's on the fogged plot.
+local function classifyRouteBoundary(plot, owner, team, isDebug)
+    if not plot:IsRevealed(team, isDebug) then
+        return nil
+    end
+    if plot:IsWater() then
+        return "water"
+    end
+    if plot:IsMountain() or plot:IsImpassable() then
+        return "mountain"
+    end
+    if plot:GetOwner() ~= -1 and not plot:IsFriendlyTerritory(owner) then
+        return "borders"
+    end
+    return nil
+end
+
+-- Binary-search BuildRoutePath along a candidate move path for the
+-- farthest reachable node. Invariant: route succeeds at path[lo] (path[1]
+-- is the start, trivially routeable to itself), route fails at path[hi]
+-- (path[#path] is the target, where strict route already failed at the
+-- top of discriminativeRoutePath). Returns (closestNode, blockerNode).
+local function findRouteBoundary(actor, owner, movePath)
+    local n = #movePath
+    if n < 2 then
+        return nil, nil
+    end
+    local fx, fy = movePath[1].x, movePath[1].y
+    local lo, hi = 1, n
+    while lo + 1 < hi do
+        local mid = math.floor((lo + hi) / 2)
+        local node = movePath[mid]
+        local p = Game.GetBuildRoutePath(fx, fy, node.x, node.y, owner)
+        if #p > 0 then
+            lo = mid
+        else
+            hi = mid
+        end
+    end
+    return movePath[lo], movePath[hi]
+end
+
+-- Returns one of:
+--   { ok = "strict", path = {...} }       -- strict route succeeded; path is start-to-target
+--   { ok = "blocked", subCause = X, [blockingTeam], [closest] }
+--   ... a move-to diag (delegated discriminativePath result) when the
+--   worker can't even walk to target; caller passes that to formatFailure.
+function PathDiagnostic.discriminativeRoutePath(actor, target)
+    local owner = actor:GetOwner()
+    local fromPlot = actor:GetPlot()
+    local fx, fy = fromPlot:GetX(), fromPlot:GetY()
+    local tx, ty = target:GetX(), target:GetY()
+
+    local path = Game.GetBuildRoutePath(fx, fy, tx, ty, owner)
+    if #path > 0 then
+        return { ok = "strict", path = path }
+    end
+
+    -- Target plot is itself an invalid build tile, or on a different
+    -- landmass (routes can't span water at all -- BuildRouteValid
+    -- rejects every water step, so even with embark tech the route is
+    -- impossible). These collapse to the same subCause as the
+    -- along-path cases since the player-facing answer is identical.
+    -- Detected early so we skip the unit pathfinder when the answer is
+    -- already clear, and so different-landmass doesn't fall through to
+    -- move-to's "no embark tech" attribution that wouldn't actually
+    -- unlock the route.
+    if target:IsWater() then
+        return { ok = "blocked", subCause = "water" }
+    end
+    if target:IsMountain() or target:IsImpassable() then
+        return { ok = "blocked", subCause = "mountain" }
+    end
+    if target:GetArea() ~= fromPlot:GetArea() then
+        return { ok = "blocked", subCause = "water" }
+    end
+
+    -- Need a candidate land path to walk. Use the unit pathfinder; if it
+    -- can't reach target either, the worker has a fundamental movement
+    -- problem (own-unit stacking, mountain pass, etc.) and move-to's
+    -- diagnostic names it correctly.
+    if not actor:GeneratePath(target) then
+        return PathDiagnostic.discriminativePath(actor, target)
+    end
+
+    local movePath = snapshotPath(actor)
+    local closest, blocker = findRouteBoundary(actor, owner, movePath)
+
+    if blocker == nil then
+        return { ok = "blocked", subCause = "unknown", closest = closest }
+    end
+
+    local team = actor:GetTeam()
+    local isDebug = Game.IsDebugMode()
+    local bp = Map.GetPlot(blocker.x, blocker.y)
+    local subCause = classifyRouteBoundary(bp, owner, team, isDebug)
+
+    local result = { ok = "blocked", subCause = subCause or "unknown", closest = closest }
+    if subCause == "borders" then
+        result.blockingTeam = bp:GetTeam()
+    end
+    return result
+end
+
+function PathDiagnostic.formatRouteFailure(diag, fromX, fromY)
+    -- Delegated move-to diag (worker couldn't even walk to target) -- the
+    -- existing formatter renders the right message for those causes.
+    if diag.ok ~= "blocked" and diag.ok ~= "strict" then
+        return PathDiagnostic.formatFailure(diag, fromX, fromY)
+    end
+
+    local closestDir = ""
+    if diag.closest ~= nil then
+        closestDir = HexGeom.directionString(fromX, fromY, diag.closest.x, diag.closest.y)
+    end
+
+    if diag.subCause == "water" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR")
+    end
+    if diag.subCause == "mountain" then
+        if closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_MOUNTAIN_NO_DIR")
+    end
+    if diag.subCause == "borders" then
+        local civ = nil
+        if diag.blockingTeam ~= nil and diag.blockingTeam ~= -1 then
+            local team = Teams[diag.blockingTeam]
+            if team ~= nil then
+                local leader = Players[team:GetLeaderID()]
+                if leader ~= nil then
+                    civ = leader:GetCivilizationShortDescription()
+                end
+            end
+        end
+        if civ ~= nil and closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_CIV", civ, closestDir)
+        elseif civ ~= nil then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_CIV_NO_DIR", civ)
+        elseif closestDir ~= "" then
+            return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS", closestDir)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_BORDERS_NO_DIR")
+    end
+
+    -- Unattributed.
+    if closestDir ~= "" then
+        return Text.format("TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST", closestDir)
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+end
