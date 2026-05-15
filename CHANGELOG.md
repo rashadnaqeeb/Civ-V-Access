@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-05-15
+
 New Features and improvements:
 - Written language can now be changed from inside the game: Options, Interface Options tab, Written language pulldown. The list includes any third-party language packs you've installed.
 - The mod now speaks Brazilian Portuguese when paired with the Civ5-PTBR community language pack.
