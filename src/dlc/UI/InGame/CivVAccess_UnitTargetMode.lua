@@ -452,11 +452,19 @@ local function formatAttackAfterMove(path)
     return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_AFTER_MOVE_MULTI_TURN", turns, turns, steps)
 end
 
--- Combined move-mode preview + latch driver. Returns (text, commitPlot).
+-- Combined move-mode preview + latch driver. Returns (text, commitPlot, canCommit).
 -- text: speech to read aloud.
 -- commitPlot: when non-nil, signals that this commit needs a follow-up
 --   confirmation; the caller arms self._pendingFallback with this plot
 --   so the next Enter on the same cursor commits MOVE_TO commitPlot.
+-- canCommit: when commitPlot is nil, distinguishes "push MISSION_MOVE_TO
+--   to the cursor plot" (true: declareWar success where the engine pops
+--   a war popup, or strict reachable move) from "speak text and abort"
+--   (false: cursor on actor's own plot, combat preflight refused, or
+--   path failed with no advancement possible). Without this distinction
+--   the caller would push doomed MOVE_TO missions whose only feedback is
+--   the dispatch listener's generic "action failed", swallowing the
+--   actionable diagnostic we already computed here.
 --
 -- Two latch-arming cases collapsed into one return:
 --   - Path failure (stacking / enemy / unreachable): commitPlot is the
@@ -466,9 +474,9 @@ end
 --     commitPlot is the cursor plot itself; second-Enter commits MOVE_TO
 --     target which the engine resolves as MoveOrAttack.
 --
--- declareWar success returns commitPlot=nil. The engine pops a war-
--- confirm popup at commit time and that popup is the safety net, so a
--- second-press confirmation on top would be redundant.
+-- declareWar success returns commitPlot=nil, canCommit=true. The engine
+-- pops a war-confirm popup at commit time and that popup is the safety
+-- net, so a second-press confirmation on top would be redundant.
 --
 -- preflightAttackTarget short-circuits the adjacent-but-can't-attack
 -- cases (naval vs land, city-attack-only) before discriminativePath
@@ -477,7 +485,7 @@ end
 local function moveModePreview(actor, plot)
     local fromPlot = actor:GetPlot()
     if fromPlot:GetPlotIndex() == plot:GetPlotIndex() then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"), nil
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY"), nil, false
     end
     -- Fogged tiles read as no-enemy so the latch doesn't arm and the combat
     -- preview path stays quiet. The path/MP/turn readout still speaks
@@ -491,26 +499,34 @@ local function moveModePreview(actor, plot)
     if hasEnemy and dist == 1 then
         local targetReason = UnitControl.preflightAttackTarget(actor, plot)
         if targetReason ~= nil then
-            return targetReason, nil
+            return targetReason, nil, false
         end
     end
 
     local diag = PathDiagnostic.discriminativePath(actor, plot)
 
     if diag.ok ~= "strict" and diag.ok ~= "declareWar" then
-        local text = PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY())
         local commitPlot = nil
         if diag.closest ~= nil then
             local cp = Map.GetPlot(diag.closest.x, diag.closest.y)
             if cp ~= nil and cp:GetPlotIndex() ~= fromPlot:GetPlotIndex() then
                 commitPlot = cp
+            else
+                -- Closest reachable IS the unit's own plot: no advancement
+                -- possible. The diag's closest direction (computed cursor ->
+                -- closest in formatFailure) would read cursor -> unit, which
+                -- describes where the unit sits, not an advancement the
+                -- player can take. Drop it so the readout collapses to the
+                -- cause alone via the _NO_DIR formatter variants.
+                diag.closest = nil
             end
         end
-        return text, commitPlot
+        local text = PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY())
+        return text, commitPlot, false
     end
 
     if diag.ok == "declareWar" then
-        return PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY()), nil
+        return PathDiagnostic.formatFailure(diag, plot:GetX(), plot:GetY()), nil, true
     end
 
     if hasEnemy then
@@ -523,13 +539,13 @@ local function moveModePreview(actor, plot)
         if suffix ~= "" then
             text = text .. ", " .. suffix
         end
-        return text, plot
+        return text, plot, false
     end
 
     -- Reachable, no enemy. Delegate to movePathPreview for full path
     -- formatting (MP, fog, embark hints). It re-runs discriminativePath
     -- internally; one redundant GeneratePath call, no correctness issue.
-    return movePathPreview(actor, plot), nil
+    return movePathPreview(actor, plot), nil, true
 end
 
 local function buildPreview(self)
@@ -893,12 +909,15 @@ local function commitAtCursor(self, queued)
 
     -- Move mode runs through the combined preview-and-latch driver. A
     -- non-nil commitPlot means we speak the diagnostic / preview and
-    -- stay in target mode with the latch armed; a nil commitPlot means
+    -- stay in target mode with the latch armed. With commitPlot nil,
+    -- canCommit splits the two remaining cases: canCommit=true means
     -- the commit is benign (regular reachable move, or declareWar where
     -- the engine's war-confirm popup is the safety net) and proceeds to
-    -- mission dispatch.
+    -- mission dispatch; canCommit=false means a doomed commit (no
+    -- advancement possible, combat preflight refused, or cursor on the
+    -- actor's own plot) and we speak the diagnostic and abort.
     if isMoveMode(mode) then
-        local text, commitPlot = moveModePreview(self._actor, plot)
+        local text, commitPlot, canCommit = moveModePreview(self._actor, plot)
         if commitPlot ~= nil then
             SpeechPipeline.speakInterrupt(text)
             self._pendingFallback = {
@@ -912,6 +931,20 @@ local function commitAtCursor(self, queued)
         -- it so a subsequent Enter doesn't fire an outdated fallback.
         if self._pendingFallback ~= nil and self._pendingFallback.targetPlotIndex == plotIndex then
             self._pendingFallback = nil
+        end
+        if not canCommit then
+            -- Path failed with no advancement possible (embarked land unit
+            -- pointing across deep ocean without astronomy, with no
+            -- reachable tile other than where the unit already sits), or
+            -- combat preflight refused (naval melee at land, ranged at
+            -- distance 1), or cursor on the actor's own plot. Pushing
+            -- MISSION_MOVE_TO would be doomed: the engine refuses it and
+            -- the dispatch listener speaks "action failed", swallowing the
+            -- actionable diagnostic moveModePreview already computed.
+            SpeechPipeline.speakInterrupt(text)
+            HandlerStack.removeByName("UnitTargetMode", false)
+            restoreSelection()
+            return
         end
         if queued then
             -- First Shift+Enter behaves like plain Enter due to an

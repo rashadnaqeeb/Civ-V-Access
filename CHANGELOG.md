@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Pressing Enter to commit a move that can't make any progress (an embarked unit pointing across deep ocean without Astronomy, with no reachable tile beyond the one it's on) now reads the actual obstacle instead of "action failed".
+
 ## [1.1.6] - 2026-05-15
 
 Bug fixes:
