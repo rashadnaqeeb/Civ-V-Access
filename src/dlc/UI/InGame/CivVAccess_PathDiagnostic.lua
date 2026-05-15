@@ -42,6 +42,29 @@ local MOVE_UNITS_THROUGH_ENEMY = 0x00000010
 -- melee, deep ocean without Astronomy).
 local MOVE_CIVVACCESS_FORCE_DEST_VALID = 0x20000000
 
+-- Fog-of-war gate for blocker disclosure. The pathfinder runs against
+-- engine-side ground truth and can identify a unit on a tile that's
+-- fogged from the active team's POV (plot revealed but not currently
+-- visible). Naming that unit would leak intelligence the sighted UI
+-- doesn't surface either. When the blocker's plot isn't visible we
+-- drop the unit reference and flag blockerInFog so formatFailure
+-- renders a generic "blocked" without confirming the blocker is a unit.
+local function isUnitVisibleToActiveTeam(unit)
+    local plot = unit:GetPlot()
+    if plot == nil then
+        return false
+    end
+    return plot:IsVisible(Game.GetActiveTeam(), Game.IsDebugMode())
+end
+
+local function applyFogFilter(result)
+    if result.blockingUnit ~= nil and not isUnitVisibleToActiveTeam(result.blockingUnit) then
+        result.blockingUnit = nil
+        result.blockerInFog = true
+    end
+    return result
+end
+
 -- Snapshot the current path's coords into a stable Lua array. Each
 -- subsequent GeneratePath call wipes the unit's m_kLastPath, so the
 -- binary search below needs a stable copy rather than re-fetching.
@@ -307,7 +330,7 @@ function PathDiagnostic.discriminativePath(unit, target)
         if blocker ~= nil then
             blockingTeam = Map.GetPlot(blocker.x, blocker.y):GetTeam()
         end
-        return { ok = "declareWar", blockingTeam = blockingTeam, closest = closest }
+        return applyFogFilter({ ok = "declareWar", blockingTeam = blockingTeam, closest = closest })
     end
 
     if unit:GeneratePath(target, MOVE_IGNORE_STACKING) then
@@ -328,7 +351,7 @@ function PathDiagnostic.discriminativePath(unit, target)
                 end
             end
         end
-        return { ok = "stacking", blockingUnit = blockingUnit, closest = closest }
+        return applyFogFilter({ ok = "stacking", blockingUnit = blockingUnit, closest = closest })
     end
 
     if unit:GeneratePath(target, MOVE_UNITS_THROUGH_ENEMY) then
@@ -346,7 +369,7 @@ function PathDiagnostic.discriminativePath(unit, target)
                 end
             end
         end
-        return { ok = "enemy", blockingUnit = blockingUnit, closest = closest }
+        return applyFogFilter({ ok = "enemy", blockingUnit = blockingUnit, closest = closest })
     end
 
     -- No relaxation recovered the path. Run a force-valid exploration
@@ -373,7 +396,7 @@ function PathDiagnostic.discriminativePath(unit, target)
             result[k] = v
         end
     end
-    return result
+    return applyFogFilter(result)
 end
 
 -- Render a unit as "[civ adjective] [unit name]" -- e.g. "Roman Warrior"
@@ -431,6 +454,16 @@ function PathDiagnostic.formatFailure(diag, fromX, fromY)
     -- boundary lands on a tile whose blocker isn't a unit.
     local isUnitCause = diag.ok == "stacking" or diag.ok == "enemy" or diag.subCause == "foreignUnit"
     if isUnitCause then
+        -- Fogged blocker: applyFogFilter dropped the unit reference because
+        -- the blocker's plot isn't visible to the active team. Speak only
+        -- "blocked" so the unit's identity (civ adjective, type name) and
+        -- existence stay out of the readout.
+        if diag.blockerInFog then
+            if closestDir ~= "" then
+                return Text.format("TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED", closestDir)
+            end
+            return Text.key("TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR")
+        end
         if diag.blockingUnit ~= nil then
             local descriptor = describeUnit(diag.blockingUnit)
             if closestDir ~= "" then
