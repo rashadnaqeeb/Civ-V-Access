@@ -915,8 +915,29 @@ local function commitAtCursor(self, queued)
             self._pendingFallback = nil
         end
         if queued then
+            -- First Shift+Enter behaves like plain Enter due to an
+            -- engine quirk: pushMission sends bShift=false when the
+            -- mission queue is empty (otherwise the engine queues the
+            -- mission without activating the head and the unit sits),
+            -- so on an empty queue the move runs immediately. The
+            -- queued path also skips registerPending, so the move-
+            -- pending resolver won't fire either way -- if we don't
+            -- speak now, the player hears nothing about the action.
+            -- Speak the preview text (path/MP from movePathPreview, or
+            -- the declareWar warning from formatFailure) so the
+            -- first-leg shift+enter carries the same info Space gives.
+            -- Subsequent shift+enters are true queue appends; the next
+            -- mission's actual start position depends on where the
+            -- worker ends up after prior queue items finish, not
+            -- actor:GetPlot(), so a precomputed preview would speak
+            -- misleading numbers -- fall back to plain "queued."
+            local queueWasEmpty = #self._actor:GetMissionQueue() == 0
             pushMission(self, mission, plot, mode, true)
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+            if queueWasEmpty then
+                SpeechPipeline.speakInterrupt(text)
+            else
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+            end
             return
         end
         pushMission(self, mission, plot, mode, false)
@@ -951,8 +972,23 @@ local function commitAtCursor(self, queued)
 
     self._pendingFallback = nil
     if queued then
+        -- Route-to mirrors the route-summary speech the plain-Enter
+        -- path now speaks. On an empty queue the worker will route
+        -- from its current position, so routePathPreview's read is
+        -- accurate; subsequent shift+enters chain off prior queue
+        -- items, where the next route's start is the end of the
+        -- prior queue rather than actor:GetPlot(), so the summary
+        -- would speak misleading numbers and we fall back to "queued."
+        local routeSummary = nil
+        if isRouteMode(mode) and #self._actor:GetMissionQueue() == 0 then
+            routeSummary = routePathPreview(self._actor, plot)
+        end
         pushMission(self, mission, plot, mode, true)
-        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+        if routeSummary ~= nil then
+            SpeechPipeline.speakInterrupt(routeSummary)
+        else
+            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"))
+        end
         return
     end
     if isMeleeAttackMode(mode) then

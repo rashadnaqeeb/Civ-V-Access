@@ -16,6 +16,7 @@ Bug fixes:
 - Volume settings now apply on the main menu instead of staying at the default until you enter a game.
 - Pressing Space to preview a path no longer names a unit blocking on a fogged tile; it just says "blocked".
 - Space and Enter in build-route mode now give clearer, less confusing information.
+- Shift+Enter on the first leg of a move or route reads the path summary instead of just "queued"; later legs in the chain still read "queued" because the path depends on prior queued legs finishing first.
 
 ## [1.1.5] - 2026-05-13
 New Features and improvements:
