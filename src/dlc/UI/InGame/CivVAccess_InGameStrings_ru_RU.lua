@@ -186,7 +186,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_UNIT_FALLBACK_NO_DIR"] = "з
 -- Fog-of-war variants. When the blocker unit's plot isn't visible to the
 -- active team, naming the unit would leak intelligence the sighted UI
 -- doesn't expose either. The message says only that the path is blocked.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] = "заблокирован, ближайшая достижимая клетка {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED"] =
+    "заблокирован, ближайшая достижимая клетка {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_BLOCKED_FOGGED_NO_DIR"] = "заблокирован"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_UNREACHABLE_CLOSEST"] =
     "нет пути, ближайшая достижимая клетка {1_Dir}"

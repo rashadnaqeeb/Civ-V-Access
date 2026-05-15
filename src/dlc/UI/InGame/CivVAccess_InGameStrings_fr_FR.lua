@@ -360,8 +360,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "aucune r
 -- BuildRouteValid rejects every water step outright. Mountain and
 -- borders reuse PATH_BLOCKED_MOUNTAIN / PATH_BLOCKED_BORDERS_CIV; same
 -- cause, same wording, no need for route-flavored duplicates.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] =
-    "bloqué par l'eau, plus proche atteignable {1_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER"] = "bloqué par l'eau, plus proche atteignable {1_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PATH_ROUTE_BLOCKED_WATER_NO_DIR"] = "bloqué par l'eau"
 -- Per-mode "cannot X here" strings for the special interface modes whose
 -- legality is the only sighted feedback (highlight tint). Spoken when the
