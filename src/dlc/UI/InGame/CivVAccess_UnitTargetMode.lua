@@ -803,7 +803,16 @@ local function pushMission(self, mission, plot, mode, queued)
         -- second-and-later shift+enters as true appends.
         bShift = #self._actor:GetMissionQueue() > 0
     else
-        if not willCauseCombat(self._actor, plot, mode) then
+        -- Route mode skips the move-pending resolver. The resolver assumes
+        -- MOVE_TO semantics (announce "moved to X" when the unit reaches
+        -- the target, or "queued / stopped short" when it doesn't), but
+        -- MISSION_ROUTE_TO never moves the worker to the route's endpoint
+        -- -- the worker stays on each tile and builds the road segment by
+        -- segment, so the resolver would always speak the "didn't move"
+        -- branch ("queued for next turn") or, if the worker stepped onto
+        -- the first build tile, "stopped short." Both misread the action.
+        -- commitAtCursor speaks a route-specific summary instead.
+        if not willCauseCombat(self._actor, plot, mode) and not isRouteMode(mode) then
             UnitControl.registerPending(self._actor, tx, ty)
         end
     end
@@ -951,6 +960,13 @@ local function commitAtCursor(self, queued)
         -- is the engine-blessed melee-attack commit path against units
         -- AND cities.
         Game.SelectionListMove(plot, false, false, false)
+    elseif isRouteMode(mode) then
+        -- Compute the summary before pushing so the worker's plot reads
+        -- as the start of the route; once the engine dispatches the
+        -- mission the per-tile build state may shift.
+        local summary = routePathPreview(self._actor, plot)
+        pushMission(self, mission, plot, mode, false)
+        SpeechPipeline.speakInterrupt(summary)
     else
         pushMission(self, mission, plot, mode, false)
     end
