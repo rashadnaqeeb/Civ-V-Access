@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-05-15
+
 Bug fixes:
 - Unavailable improvements in the unit action menu no longer read a doubled period between the reason and the improvement's effect.
 - Volume settings now apply on the main menu instead of staying at the default until you enter a game.
