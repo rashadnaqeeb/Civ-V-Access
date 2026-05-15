@@ -162,6 +162,17 @@ public:
 		m_pData = pData;
 	}
 
+	// CIVVACCESS: Read accessor for the data pointer (set via SetData).
+	// CvTwoLayerPathFinder::GenerateUnitPath sets this to the unit pointer
+	// before running the search; lGetClosestSearchedPlot reads it back to
+	// re-validate closed-list candidates through CvUnit::canMoveOrAttackInto,
+	// dropping nodes admitted by PathValid's first-step trivial pass
+	// (CvAStar.cpp:1445) that the unit can't actually stand on.
+	inline const void* GetData() const
+	{
+		return m_pData;
+	}
+
 	inline bool IsMPCacheSafe() const
 	{
 		return m_bIsMPCacheSafe;

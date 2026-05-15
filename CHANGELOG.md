@@ -17,6 +17,7 @@ Bug fixes:
 - Pressing Space to preview a path no longer names a unit blocking on a fogged tile; it just says "blocked".
 - Space and Enter in build-route mode now give clearer, less confusing information.
 - Shift+Enter on the first leg of a move or route reads the path summary instead of just "queued"; later legs in the chain still read "queued" because the path depends on prior queued legs finishing first.
+- Closest reachable tile on a failed move preview no longer names a tile your unit can't actually enter (such as one in another civ's closed borders).
 
 ## [1.1.5] - 2026-05-13
 New Features and improvements:

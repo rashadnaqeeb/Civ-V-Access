@@ -542,21 +542,55 @@ int CvLuaGame::lGetClosestSearchedPlot(lua_State* L)
 	const int iTargetY = luaL_checkint(L, 2);
 
 	CvAStar& kFinder = GC.getPathFinder();
+	CvUnit* pUnit = (CvUnit*)kFinder.GetData();
+	CvMap& kMap = GC.getMap();
+
+	// Per-candidate noise filter. PathValid's first-step trivial pass at
+	// CvAStar.cpp:1445 ("if (pUnitPlot == pFromPlot) return TRUE") admits
+	// every child of the unit's start node without running the canMoveThrough
+	// territory / terrain gate, so closed-border tiles, mountains for non-
+	// mountain units, and deep ocean without astronomy all end up in
+	// m_pClosed when adjacent to the actor. The earlier hard rejections in
+	// PathValid (land->water without embark; non-combat unit + foreign unit
+	// on plot) still fire, but anything the engine checks via canMoveInto
+	// on the destination plot does not. We re-run PathDestValid's per-tile
+	// gate below to drop those nodes, mirroring its flag handling at
+	// CvAStar.cpp:963-984 so DECLARE_WAR / IGNORE_STACKING searches accept
+	// the same tiles the search itself accepts as destinations.
+	byte bFilterFlags = CvUnit::MOVEFLAG_DESTINATION | CvUnit::MOVEFLAG_PRETEND_CORRECT_EMBARK_STATE;
+	const int iFinderInfo = kFinder.GetInfo();
+	if(iFinderInfo & MOVE_DECLARE_WAR)
+	{
+		bFilterFlags |= CvUnit::MOVEFLAG_ATTACK | CvUnit::MOVEFLAG_DECLARE_WAR;
+	}
+	if(iFinderInfo & MOVE_IGNORE_STACKING)
+	{
+		bFilterFlags |= CvUnit::MOVEFLAG_IGNORE_STACKING;
+	}
+
 	const CvAStarNode* pBest = NULL;
 	int iBestDist = INT_MAX;
 	int iBestCost = INT_MAX;
 	for(const CvAStarNode* p = kFinder.GetClosedListHead(); p != NULL; p = p->m_pNext)
 	{
-		// Skip the target tile itself. PathValid's first-step trivial pass
-		// (line ~1400, "if pUnitPlot == pFromPlot return TRUE") admits any
-		// tile adjacent to the unit's start as a child without re-validating,
-		// so a water target adjacent to a land unit ends up in the closed
-		// list even though the unit can't actually be there. Returning the
-		// target as "closest reachable" is meaningless -- it's exactly where
-		// the user is pointing.
+		// Skip the target tile itself. Returning the target as "closest
+		// reachable" is meaningless -- it's exactly where the user is
+		// pointing. (The noise filter below would also catch the common
+		// "destination the unit can't enter" case, but DECLARE_WAR /
+		// IGNORE_STACKING searches relax that gate and could otherwise
+		// pass the target through.)
 		if(p->m_iX == iTargetX && p->m_iY == iTargetY)
 		{
 			continue;
+		}
+		// Drop the trivial-pass noise.
+		if(pUnit != NULL)
+		{
+			CvPlot* pPlot = kMap.plot(p->m_iX, p->m_iY);
+			if(pPlot == NULL || !pUnit->canMoveOrAttackInto(*pPlot, bFilterFlags))
+			{
+				continue;
+			}
 		}
 		const int iDist = plotDistance(p->m_iX, p->m_iY, iTargetX, iTargetY);
 		const int iCost = p->m_iKnownCost;
