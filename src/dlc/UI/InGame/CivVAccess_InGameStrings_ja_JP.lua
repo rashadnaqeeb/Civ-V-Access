@@ -602,7 +602,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "ターン開始時の視界変化を通知"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "視界内で他文明が制圧した野営地と遺跡を通知"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "シングルプレイでターン開始時に音を再生"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
+    "シングルプレイでターン開始時に音を再生"
 
 -- Generic widget vocabulary
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "選択済み"
@@ -902,7 +903,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "都市を焼却"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "焼却を中止"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "焼却中止済み"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] = "名前は3文字以上必要です. キャンセル."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] = "名前に無効な文字が含まれています. キャンセル."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] =
+    "名前に無効な文字が含まれています. キャンセル."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "スパイ中"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_CYCLE_SPYING"] = "スパイ中は都市サイクル利用不可"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_RANGED"] =

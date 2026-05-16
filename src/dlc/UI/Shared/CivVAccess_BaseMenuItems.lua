@@ -1059,9 +1059,7 @@ local function tryValueFn(item)
     end
     local ok, v = pcall(item.valueFn, item)
     if not ok then
-        Log.error(
-            "BaseMenuItems Textfield '" .. tostring(item.controlName) .. "' valueFn failed: " .. tostring(v)
-        )
+        Log.error("BaseMenuItems Textfield '" .. tostring(item.controlName) .. "' valueFn failed: " .. tostring(v))
         return nil
     end
     if v == nil or v == "" then

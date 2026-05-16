@@ -1111,8 +1111,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Переимен
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Разрушить город"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Остановить разрушение"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "разрушение остановлено"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] = "Имя должно содержать не менее 3 символов. Отменено."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] = "Имя содержит недопустимые символы. Отменено."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] =
+    "Имя должно содержать не менее 3 символов. Отменено."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] =
+    "Имя содержит недопустимые символы. Отменено."
 
 -- Foreign / spy-screen refusals
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "шпионаж"

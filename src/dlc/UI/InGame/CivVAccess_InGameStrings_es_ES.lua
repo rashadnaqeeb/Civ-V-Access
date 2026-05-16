@@ -914,7 +914,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "Anunciar cambios de visibilidad al inicio del turno"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Anunciar campamentos y ruinas reclamados por otros en el campo de visión"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Reproducir sonido al inicio del turno en un jugador"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
+    "Reproducir sonido al inicio del turno en un jugador"
 
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because

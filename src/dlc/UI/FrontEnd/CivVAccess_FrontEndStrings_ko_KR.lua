@@ -237,7 +237,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "AI 전�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] = "턴 시작 시 가시성 변경 안내"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "시야 내 다른 세력이 야영지 또는 유적 점령 시 알림"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "싱글 플레이에서 턴 시작 시 소리 재생"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
+    "싱글 플레이에서 턴 시작 시 소리 재생"
 
 -- =====  Load menu  =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SORT_BY"] = "정렬 기준"

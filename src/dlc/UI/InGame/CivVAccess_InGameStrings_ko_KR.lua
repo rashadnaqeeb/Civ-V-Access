@@ -539,7 +539,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "AI 전�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] = "턴 시작 시 가시성 변화 알림"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "시야 내 다른 세력이 야영지 또는 유적 점령 시 알림"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "싱글 플레이에서 턴 시작 시 소리 재생"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
+    "싱글 플레이에서 턴 시작 시 소리 재생"
 
 -- Widget-generic: Choice / Checkbox / Textfield
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "선택됨"
@@ -868,7 +869,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "도시 파괴"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "파괴 중지"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "파괴 중지됨"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] = "이름은 3자 이상이어야 합니다. 취소됨."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] = "이름에 유효하지 않은 문자가 포함되어 있습니다. 취소됨."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] =
+    "이름에 유효하지 않은 문자가 포함되어 있습니다. 취소됨."
 
 -- Foreign / spying refusals
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "스파이 활동 중"
