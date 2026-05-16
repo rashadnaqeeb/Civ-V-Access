@@ -13,7 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - Rename city, rename unit, and rename world congress dialogs now open ready to type, no need to activate the name field first.
-- Optional "It's your turn" sound cue at single-player turn start (Settings, Notifications).
+- Added a setting in the notifications section to play a tone when your turn starts in single player, mirroring the multiplayer behaviour. Useful in late game when turns can take quite a while to resolve.
 
 Bug fixes:
 - Editing a leader, civilization, short name, or adjective in the custom civ name screen no longer reads the field as blank after Escape or after navigating away and back.
