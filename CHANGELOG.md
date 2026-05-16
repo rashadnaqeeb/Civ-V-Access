@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-05-16
+
 New Features and improvements:
 - Rename city, rename unit, and rename world congress dialogs now open ready to type, no need to activate the name field first.
 - Added a setting in the notifications section to play a tone when your turn starts in single player, mirroring the multiplayer behaviour. Useful in late game when turns can take quite a while to resolve.
