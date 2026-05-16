@@ -159,6 +159,15 @@ local getForeignUnitWatchAnnounce, setForeignUnitWatchAnnounce =
 local getForeignClearWatchAnnounce, setForeignClearWatchAnnounce =
     defineBoolPref("foreignClearWatchAnnounce", "ForeignClearWatchAnnounce", true)
 
+-- Single-player turn-start cue. Off by default. When on, plays the
+-- engine's "It's your turn" sound (AS2D_EVENT_ACTIVE_PLAYER_TURN_START)
+-- at every ActivePlayerTurnStart in single player; useful when the
+-- player alt-tabs during the AI turn. MP / hotseat are unaffected:
+-- base MPTurnPanel.lua already plays the same cue unconditionally
+-- there, and Turn.lua's listener gates itself off in MP so we don't
+-- double-play.
+local getTurnStartSound, setTurnStartSound = defineBoolPref("turnStartSound", "TurnStartSound", false)
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -349,6 +358,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE",
                 getValue = getForeignClearWatchAnnounce,
                 setValue = setForeignClearWatchAnnounce,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND",
+                getValue = getTurnStartSound,
+                setValue = setTurnStartSound,
             }),
         },
     })

@@ -204,6 +204,62 @@ function M.test_turn_end_announces_turn_ended()
     T.eq(spoken[1].interrupt, true)
 end
 
+-- Turn-start sound listener -------------------------------------------
+
+local function captureSoundCalls()
+    local calls = {}
+    Events.AudioPlay2DSound = function(id)
+        calls[#calls + 1] = id
+    end
+    return calls
+end
+
+local function fireAllStartListeners()
+    for _, fn in ipairs(startListeners) do
+        fn()
+    end
+end
+
+function M.test_turn_start_plays_sound_when_pref_on_in_single_player()
+    -- Pref on + SP: the optional cue fires. Mirrors the "It's your turn"
+    -- sound base MPTurnPanel.lua plays unconditionally in MP, giving SP
+    -- the same alt-tab-friendly audio cue.
+    setup()
+    local soundCalls = captureSoundCalls()
+    civvaccess_shared.turnStartSound = true
+    Turn.installListeners()
+    fireAllStartListeners()
+    T.eq(#soundCalls, 1)
+    T.eq(soundCalls[1], "AS2D_EVENT_ACTIVE_PLAYER_TURN_START")
+end
+
+function M.test_turn_start_skips_sound_when_pref_off()
+    -- Pref off (or unseeded): no cue. Default state for users who
+    -- haven't visited F12 Settings.
+    setup()
+    local soundCalls = captureSoundCalls()
+    civvaccess_shared.turnStartSound = false
+    Turn.installListeners()
+    fireAllStartListeners()
+    T.eq(#soundCalls, 0)
+end
+
+function M.test_turn_start_skips_sound_in_multiplayer_to_avoid_double_play()
+    -- Pref on but in MP: base MPTurnPanel.lua already plays the same cue
+    -- unconditionally, so our listener bails to keep the cue single.
+    -- PreGame.IsMultiplayerGame is true for hotseat too, so this gate
+    -- covers hotseat as well.
+    setup()
+    local soundCalls = captureSoundCalls()
+    civvaccess_shared.turnStartSound = true
+    PreGame.IsMultiplayerGame = function()
+        return true
+    end
+    Turn.installListeners()
+    fireAllStartListeners()
+    T.eq(#soundCalls, 0)
+end
+
 -- endTurnDispatch -------------------------------------------------------
 
 function M.test_dispatch_no_blocker_calls_do_control_end_turn()

@@ -236,6 +236,20 @@ local function onActivePlayerTurnEnd()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TURN_ENDED"))
 end
 
+-- Optional single-player turn-start cue. Mirrors the "It's your turn"
+-- sound base MPTurnPanel.lua plays unconditionally in MP. Gated off in
+-- MP / hotseat so we don't double-play with that base call. Toggled
+-- through F12 Settings (Notifications group).
+local function onActivePlayerTurnStartSound()
+    if civvaccess_shared.turnStartSound ~= true then
+        return
+    end
+    if PreGame.IsMultiplayerGame() then
+        return
+    end
+    Events.AudioPlay2DSound("AS2D_EVENT_ACTIVE_PLAYER_TURN_START")
+end
+
 local bind = HandlerStack.bind
 
 function Turn.getBindings()
@@ -263,6 +277,7 @@ end
 -- globals.
 function Turn.installListeners()
     Log.installEvent(Events, "ActivePlayerTurnStart", onActivePlayerTurnStart, "Turn")
+    Log.installEvent(Events, "ActivePlayerTurnStart", onActivePlayerTurnStartSound, "Turn")
     Log.installEvent(Events, "ActivePlayerTurnEnd", onActivePlayerTurnEnd, "Turn")
 end
 

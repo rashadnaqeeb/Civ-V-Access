@@ -351,8 +351,8 @@ function M.test_notifications_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(NOTIFICATIONS_GROUP)
-    T.eq(#children, 4, "reveal + ai-combat + foreign-unit + foreign-clear")
-    for i = 1, 4 do
+    T.eq(#children, 5, "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound")
+    for i = 1, 5 do
         T.eq(children[i].kind, "checkbox", "notification toggle " .. i)
     end
 end
@@ -374,6 +374,17 @@ function M.test_foreign_unit_watch_default_on_and_flip()
     groupChildren(NOTIFICATIONS_GROUP)[3]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.foreignUnitWatchAnnounce, false)
     T.eq(prefsStore["ForeignUnitWatchAnnounce"], false)
+end
+
+function M.test_turn_start_sound_default_off_and_flip()
+    -- Opt-in (default off): no audio cue at SP turn start until enabled.
+    -- The Turn listener reads civvaccess_shared.turnStartSound live.
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.turnStartSound, false, "opt-in: defaults off")
+    groupChildren(NOTIFICATIONS_GROUP)[5]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.turnStartSound, true)
+    T.eq(prefsStore["TurnStartSound"], true)
 end
 
 return M
