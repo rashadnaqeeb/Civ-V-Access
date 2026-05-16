@@ -225,6 +225,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "Ogłaszaj zmiany widoczności na początku tury"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Ogłaszaj obozy i ruiny przejęte przez innych w polu widzenia"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Odtwarzaj dźwięk na początku tury w grze jednoosobowej"
 
 -- LoadMenu.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SORT_BY"] = "Sortuj według"

@@ -755,6 +755,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "Объявлять изменения видимости в начале хода"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Объявлять лагеря и руины, захваченные другими в поле зрения"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
+    "Воспроизводить звук в начале хода в одиночной игре"
 -- ===== Widget-generic strings =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "выбран"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED_NAMED"] = "выбран, {1_Label}"

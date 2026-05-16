@@ -216,6 +216,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
     "Annoncer les changements de visibilité en début de tour"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Annoncer les campements et ruines réclamés par d'autres en vue"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Jouer le son de début de tour en solo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SORT_BY"] = "Trier par"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SAVES_TAB"] = "Sauvegardes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_DETAILS_TAB"] = "Détails de la sauvegarde"
