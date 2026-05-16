@@ -13,7 +13,6 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - Rename city, rename unit, and rename world congress dialogs now open ready to type, no need to activate the name field first.
-- Pressing Enter on the rename city or unit dialog with a name the game rejects (too short, or contains invalid characters) now reads why and cancels.
 
 Bug fixes:
 - Editing a leader, civilization, short name, or adjective in the custom civ name screen no longer reads the field as blank after Escape or after navigating away and back.
