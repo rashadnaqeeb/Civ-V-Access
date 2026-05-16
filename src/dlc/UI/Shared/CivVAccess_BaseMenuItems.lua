@@ -1047,15 +1047,58 @@ end
 
 -- Textfield ---------------------------------------------------------------
 
+-- Try the screen-supplied valueFn for a canonical reading of the field's
+-- current value. Used for screens where Civ V's EditBox GetText is
+-- unreliable (the focused EditBox keeps a separate typing buffer that's
+-- cleared by TakeFocus and by arrow-key navigation, so GetText returns ""
+-- even when SetText put text into the displayed area). Returns nil if the
+-- field doesn't carry a valueFn or the call errors / yields no value.
+local function tryValueFn(item)
+    if type(item.valueFn) ~= "function" then
+        return nil
+    end
+    local ok, v = pcall(item.valueFn, item)
+    if not ok then
+        Log.error(
+            "BaseMenuItems Textfield '" .. tostring(item.controlName) .. "' valueFn failed: " .. tostring(v)
+        )
+        return nil
+    end
+    if v == nil or v == "" then
+        return nil
+    end
+    return tostring(v)
+end
+
 local function textfieldCurrentValue(item)
     local ok, text = pcall(function()
         return item._control:GetText()
     end)
-    if not ok or text == nil or text == "" then
-        return Text.key("TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK")
+    if ok and text ~= nil and text ~= "" then
+        return tostring(text)
     end
-    return tostring(text)
+    local fallback = tryValueFn(item)
+    if fallback ~= nil then
+        return fallback
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK")
 end
+
+-- Shared with BaseMenuEditMode for commit-value announcement (returns the
+-- blank sentinel when no value is readable) and for capturing originalText
+-- at edit-mode push (returns nil so the caller can default to "").
+BaseMenuItems._textfieldCurrentValue = textfieldCurrentValue
+
+local function textfieldCanonicalForRestore(item)
+    local ok, text = pcall(function()
+        return item._control:GetText()
+    end)
+    if ok and text ~= nil and text ~= "" then
+        return tostring(text)
+    end
+    return tryValueFn(item)
+end
+BaseMenuItems._textfieldCanonicalForRestore = textfieldCanonicalForRestore
 
 -- Shared with BaseMenuEditMode for commit-value announcement.
 BaseMenuItems._textfieldCurrentValue = textfieldCurrentValue
@@ -1067,10 +1110,15 @@ function BaseMenuItems.Textfield(spec)
         spec.priorCallback == nil or type(spec.priorCallback) == "function",
         "Textfield '" .. tostring(spec.controlName) .. "' priorCallback must be a function"
     )
+    Log.check(
+        spec.valueFn == nil or type(spec.valueFn) == "function",
+        "Textfield '" .. tostring(spec.controlName) .. "' valueFn must be a function"
+    )
     local item = {
         kind = "textfield",
         _control = resolveControl(spec, "Textfield"),
         priorCallback = spec.priorCallback,
+        valueFn = spec.valueFn,
     }
     copyCommonFields(spec, item)
     if spec.visibilityControlName ~= nil then

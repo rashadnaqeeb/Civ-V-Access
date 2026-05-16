@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Editing a leader, civilization, short name, or adjective in the custom civ name screen no longer reads the field as blank after Escape or after navigating away and back.
+
 ## [1.1.7] - 2026-05-15
 
 New Features and improvements:

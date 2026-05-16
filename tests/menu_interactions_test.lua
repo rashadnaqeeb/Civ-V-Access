@@ -472,6 +472,7 @@ function M.test_escape_during_edit_restores_and_pops()
     InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
     T.eq(HandlerStack.active(), h, "edit sub popped; menu is top")
     T.eq(HandlerStack.count(), 1)
+    TickPump.tick()
     T.eq(eb:GetText(), "Athens", "original text restored")
     local foundRestored = false
     for _, s in ipairs(speaks) do
@@ -597,6 +598,7 @@ function M.test_restore_does_not_fire_priorCallback()
     fired = 0
     InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
     T.eq(fired, 0, "restore path must NOT fire priorCallback; never committed this text")
+    TickPump.tick()
     T.eq(eb:GetText(), "original")
 end
 

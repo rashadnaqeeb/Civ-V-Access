@@ -34,10 +34,13 @@ function BaseMenuEditMode.push(menu, textfieldItem)
         return ok, result
     end
 
-    local okGet, text = safe("GetText", function()
-        return editBox:GetText()
-    end)
-    local originalText = (okGet and text) or ""
+    -- Civ V's focused EditBox keeps a typing buffer separate from the
+    -- displayed text; TakeFocus and arrow-key activity clear the buffer
+    -- to empty, so a GetText on a focused field can return "" even when
+    -- the field visually shows the LoadDefaults-set value. Prefer the
+    -- screen-supplied valueFn (e.g. SetCivNames reads PreGame) so the
+    -- restore on Esc puts the real pre-edit value back rather than "".
+    local originalText = BaseMenuItems._textfieldCanonicalForRestore(textfieldItem) or ""
 
     safe("clear SetText", function()
         editBox:SetText("")
@@ -67,8 +70,25 @@ function BaseMenuEditMode.push(menu, textfieldItem)
 
     local function exit(restore)
         if restore then
-            safe("restore SetText", function()
-                editBox:SetText(originalText)
+            -- Restore via ClearString + SetText, deferred one tick. The
+            -- EditBox still has focus from edit-mode's TakeFocus, and a
+            -- synchronous SetText(originalText) doesn't survive: the Esc
+            -- input chain (WM_CHAR 0x1B, WM_KEYUP) processes after our
+            -- handler returns and wipes the EditBox's text. Deferring
+            -- lets that finish before we write. ClearString is the
+            -- canonical Civ V "wipe" (vanilla code uses it instead of
+            -- SetText("")) and is included before the restoring SetText
+            -- as belt-and-suspenders for resetting the typing buffer.
+            -- Note: textfieldCurrentValue's announce on subsequent reads
+            -- falls back to the screen's valueFn when GetText returns
+            -- empty, so this restore is primarily for the visible display.
+            TickPump.runOnce(function()
+                safe("ClearString before restore", function()
+                    editBox:ClearString()
+                end)
+                safe("restore SetText", function()
+                    editBox:SetText(originalText)
+                end)
             end)
         elseif priorCallback ~= nil then
             -- Non-CallOnChar EditBoxes only fire priorCallback on Enter, and
