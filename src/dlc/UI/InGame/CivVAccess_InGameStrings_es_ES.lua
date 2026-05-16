@@ -1426,6 +1426,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Renombrar ciudad
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Arrasar ciudad"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Detener arrasamiento"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "arrasamiento detenido"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] = "El nombre debe tener al menos 3 caracteres. Cancelado."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] = "El nombre contiene caracteres no válidos. Cancelado."
 -- Foreign / spy-screen refusals. Spying on a foreign city opens CityView
 -- in viewing mode (UI.IsCityScreenViewingMode true and / or owner not the
 -- active player). Vanilla disables every write surface; we surface the same

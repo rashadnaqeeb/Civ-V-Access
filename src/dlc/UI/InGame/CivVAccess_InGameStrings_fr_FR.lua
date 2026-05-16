@@ -1305,6 +1305,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Renommer la vill
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Incendier la ville"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Arrêter l'incendie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "incendie arrêté"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] = "Le nom doit comporter au moins 3 caractères. Annulé."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] = "Le nom contient des caractères invalides. Annulé."
 -- Refus pour l'écran d'espionnage / ville étrangère. Voix calquée sur les
 -- autres refus du mod ("impossible de X"), concise pour le lecteur d'écran.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPYING_PREFIX"] = "espionnage"
