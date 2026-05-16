@@ -110,7 +110,8 @@ end
 -- Rename: trigger engine RenameLeague to surface the ChangeNamePopup overlay
 -- (which prefills Controls.NewName with the current name and gives us a
 -- focusable EditBox), then push a sub-handler containing one Textfield
--- bound to that EditBox. Enter commits via Network.SendLeagueEditName and
+-- bound to that EditBox. The sub opens straight into edit mode so the user
+-- can type immediately; Enter commits via Network.SendLeagueEditName and
 -- pops; Esc cancels via escapePops; either path hides the engine overlay
 -- in onDeactivate so the underlying screen reads clean again.
 local function pushRenameSub(activePlayer, leagueId)
@@ -127,31 +128,30 @@ local function pushRenameSub(activePlayer, leagueId)
         Log.error("LeagueOverview rename: engine RenameLeague failed: " .. tostring(err))
         return
     end
+    local textfieldItem = BaseMenuItems.Textfield({
+        controlName = "NewName",
+        textKey = "TXT_KEY_CIVVACCESS_LEAGUE_RENAME",
+        priorCallback = function(_, _, isEnter)
+            if not isEnter then
+                return
+            end
+            local nameCtrl = Controls.NewName
+            if nameCtrl == nil then
+                return
+            end
+            local okName, name = pcall(function()
+                return nameCtrl:GetText()
+            end)
+            if okName and name ~= nil and name ~= "" then
+                Network.SendLeagueEditName(leagueId, activePlayer, name)
+            end
+            HandlerStack.removeByName("LeagueOverviewRename", true)
+        end,
+    })
     local sub = BaseMenu.create({
         name = "LeagueOverviewRename",
         displayName = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_RENAME"),
-        items = {
-            BaseMenuItems.Textfield({
-                controlName = "NewName",
-                textKey = "TXT_KEY_CIVVACCESS_LEAGUE_RENAME",
-                priorCallback = function(_, isEnter)
-                    if not isEnter then
-                        return
-                    end
-                    local nameCtrl = Controls.NewName
-                    if nameCtrl == nil then
-                        return
-                    end
-                    local okName, name = pcall(function()
-                        return nameCtrl:GetText()
-                    end)
-                    if okName and name ~= nil and name ~= "" then
-                        Network.SendLeagueEditName(leagueId, activePlayer, name)
-                    end
-                    HandlerStack.removeByName("LeagueOverviewRename", true)
-                end,
-            }),
-        },
+        items = { textfieldItem },
         capturesAllInput = true,
         escapePops = true,
         escapeAnnounce = Text.key("TXT_KEY_CIVVACCESS_CANCELED"),
@@ -164,6 +164,15 @@ local function pushRenameSub(activePlayer, leagueId)
         end
     end
     HandlerStack.push(sub)
+    -- Auto-enter edit mode on the Textfield, one tick after push (mirrors
+    -- ChatAccess). Deferring lets the KEYDOWN/KEYUP for the activator settle
+    -- before TakeFocus, otherwise the matching KEYUP revokes focus.
+    TickPump.runOnce(function()
+        if HandlerStack.active() ~= sub then
+            return
+        end
+        BaseMenuEditMode.push(sub, textfieldItem)
+    end)
 end
 
 -- Drill children for one member. Each Lua binding wraps the matching engine

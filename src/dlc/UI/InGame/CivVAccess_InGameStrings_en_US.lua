@@ -1521,6 +1521,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RENAME"] = "Rename city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_RAZE"] = "Raze city"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNRAZE"] = "Stop razing"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNRAZE_DONE"] = "razing stopped"
+-- Rename popup validation announcements. Engine Validate disables the
+-- Accept button on invalid names; when the user hits Enter anyway, our
+-- wrapper cancels for them and speaks the reason so they don't land on
+-- the popup with a silently-disabled Accept and no explanation. Two
+-- failure modes: fewer than 3 non-whitespace characters, or any of the
+-- engine's reserved characters (% " < > | / \ * ? [ ] tab/newline/null).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_TOO_SHORT"] = "Name must be at least 3 characters. Canceled."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RENAME_INVALID_CHARS"] = "Name contains invalid characters. Canceled."
 -- Foreign / spy-screen refusals. Spying on a foreign city opens CityView
 -- in viewing mode (UI.IsCityScreenViewingMode true and / or owner not the
 -- active player). Vanilla disables every write surface; we surface the same
