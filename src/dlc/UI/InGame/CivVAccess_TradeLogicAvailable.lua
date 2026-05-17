@@ -167,7 +167,7 @@ end
 -- contextual tooltip in TradeLogic.lua, e.g. "no tech" / "they already
 -- have one"). controlSuffix is the base-control name without the Us /
 -- Them prefix (e.g. "PocketAllowEmbassy").
-local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix, addFn, bothSides)
+local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix, addFn, bothSides, turnTimed)
     if itemConstant == nil then
         return nil
     end
@@ -177,7 +177,11 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix,
     -- IsPossibleToTradeItem(from, to, type, duration) (matching TradeLogic's
     -- RefreshPocketEmbassy / OpenBorders / DP / RA / TA / DoF handlers).
     local dealDur = TradeLogicAccess.dealDuration()
-    local label = Text.key(labelKey) .. TradeLogicAccess.turnsSuffix(dealDur)
+    -- Embassy is permanent and DoF's duration is engine-defined (not deal-
+    -- duration), so those callers pass turnTimed=false to suppress the
+    -- suffix. OB/DP/RA expire with the deal duration and keep it.
+    local labelDur = turnTimed and dealDur or nil
+    local label = Text.key(labelKey) .. TradeLogicAccess.turnsSuffix(labelDur)
     local pocketControlName = TradeLogicAccess.prefix(side) .. controlSuffix
     if not g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, itemConstant, dealDur) then
         return disabledPocketLeaf(label, pocketControlName)
@@ -460,21 +464,21 @@ function TradeLogicAvailable.buildAvailableItems(side)
     -- engine pocket-control name without Us / Them prefix; when the leaf
     -- is disabled we read that control's tooltip live so the user hears
     -- the engine's stated reason.
-    local function addBoolean(key, constant, controlSuffix, addFn, bothSides)
-        local it = availableBooleanLeaf(side, key, constant, controlSuffix, addFn, bothSides)
+    local function addBoolean(key, constant, controlSuffix, addFn, bothSides, turnTimed)
+        local it = availableBooleanLeaf(side, key, constant, controlSuffix, addFn, bothSides, turnTimed)
         if it ~= nil then
             items[#items + 1] = it
         end
     end
     addBoolean("TXT_KEY_DIPLO_ALLOW_EMBASSY", TradeableItems.TRADE_ITEM_ALLOW_EMBASSY, "PocketAllowEmbassy", function(p)
         g_Deal:AddAllowEmbassy(p)
-    end, false)
+    end, false, false)
     addBoolean("TXT_KEY_DIPLO_OPEN_BORDERS", TradeableItems.TRADE_ITEM_OPEN_BORDERS, "PocketOpenBorders", function(p)
         g_Deal:AddOpenBorders(p, TradeLogicAccess.dealDuration())
-    end, false)
+    end, false, true)
     addBoolean("TXT_KEY_DIPLO_DEF_PACT", TradeableItems.TRADE_ITEM_DEFENSIVE_PACT, "PocketDefensivePact", function(p)
         g_Deal:AddDefensivePact(p, TradeLogicAccess.dealDuration())
-    end, true)
+    end, true, true)
     addBoolean(
         "TXT_KEY_DIPLO_RESCH_AGREEMENT",
         TradeableItems.TRADE_ITEM_RESEARCH_AGREEMENT,
@@ -482,8 +486,24 @@ function TradeLogicAvailable.buildAvailableItems(side)
         function(p)
             g_Deal:AddResearchAgreement(p, TradeLogicAccess.dealDuration())
         end,
+        true,
         true
     )
+    -- Engine TradeLogic.lua only un-hides UsPocketDoF when g_bPVPTrade is
+    -- true (AI has its own dedicated DoF interface). IsPossibleToTradeItem
+    -- doesn't filter on PvP-ness for us, so gate on both-sides-human.
+    if Players[g_iUs]:IsHuman() and Players[g_iThem]:IsHuman() then
+        addBoolean(
+            "TXT_KEY_DIPLO_DECLARATION_OF_FRIENDSHIP",
+            TradeableItems.TRADE_ITEM_DECLARATION_OF_FRIENDSHIP,
+            "PocketDoF",
+            function(p)
+                g_Deal:AddDeclarationOfFriendship(p)
+            end,
+            true,
+            false
+        )
+    end
 
     -- Cities.
     local cities = availableCitiesGroup(side)

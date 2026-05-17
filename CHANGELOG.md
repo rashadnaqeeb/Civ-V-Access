@@ -11,6 +11,10 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Adding a Declaration of Friendship to a multiplayer trade deal now works.
+- The trade screen no longer reads a turn count on items that aren't turn-timed (Allow Embassy, Declaration of Friendship).
+
 ## [1.1.9] - 2026-05-17
 
 New Features and improvements:
