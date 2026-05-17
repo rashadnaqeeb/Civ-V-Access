@@ -113,6 +113,49 @@ local function shortageClause(player)
     return table.concat(names, ", ")
 end
 
+-- Networked-MP "still playing" trailing clause: the comma-joined names of
+-- humans whose turn is active and not yet ended this cycle, with the local
+-- player surfaced as "you" so a user who pressed T before remembering to
+-- end their own turn sees themselves in the list. Mirrors the inverse of
+-- MPList's row-dimming condition (alive, human, IsTurnActive, not yet
+-- HasReceivedNetTurnComplete). Humans only: AI turn-ends aren't a thing
+-- the user can wait on, same reasoning the per-turn-end announcer in
+-- CivVAccess_MultiplayerTurnEnd uses to skip them. Silent (nil) in
+-- single-player, hot seat, and once everyone -- self included -- is done.
+local function stillPlayingClause()
+    if not Game:IsNetworkMultiPlayer() then
+        return nil
+    end
+    local activeID = Game.GetActivePlayer()
+    local names = {}
+    for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+        local p = Players[i]
+        -- For remotes, Network.IsPlayerConnected weeds out human slots
+        -- whose original player dropped and are now being driven by the
+        -- AI; we don't want to claim they're "still playing" when in
+        -- fact the AI is happily taking their turns. For self the check
+        -- is redundant and unsafe (the local player must be in the list
+        -- whenever they themselves owe an end-turn click; that's the
+        -- whole point of the clause), so skip it on i == activeID.
+        if p:IsHuman()
+            and p:IsAlive()
+            and not p:IsObserver()
+            and (i == activeID or Network.IsPlayerConnected(i))
+            and p:IsTurnActive()
+            and not p:HasReceivedNetTurnComplete() then
+            if i == activeID then
+                names[#names + 1] = Text.key("TXT_KEY_YOU")
+            else
+                names[#names + 1] = p:GetNickName()
+            end
+        end
+    end
+    if #names == 0 then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING", table.concat(names, ", "))
+end
+
 -- Turn and date. Reuses the Turn-module path (TXT_KEY_TP_TURN_COUNTER plus
 -- TXT_KEY_TIME_BC / TXT_KEY_TIME_AD) so the spoken format matches what
 -- Turn.lua emits at ActivePlayerTurnStart - one consistent calendar shape
@@ -134,9 +177,9 @@ local function turnLine()
     -- spoken-out long form of the date.
     if player:IsUsingMayaCalendar() then
         local maya = player:GetMayaCalendarString()
-        return joinClauses(turn, date, maya, supplyClause(player), shortageClause(player))
+        return joinClauses(turn, date, maya, supplyClause(player), shortageClause(player), stillPlayingClause())
     end
-    return joinClauses(turn, date, supplyClause(player), shortageClause(player))
+    return joinClauses(turn, date, supplyClause(player), shortageClause(player), stillPlayingClause())
 end
 
 -- Research: TechPanel's "what am I researching" merged with TopPanel's

@@ -17,6 +17,10 @@ local GAME_TEXT = {
     ["TXT_KEY_TP_TURN_COUNTER"] = "Turn: {1_Nim}",
     ["TXT_KEY_TIME_AD"] = "{1_Date} AD",
     ["TXT_KEY_TIME_BC"] = "{1_Date} BC",
+    -- "You" label injected into the still-playing list for the local
+    -- player. The base engine string is just "You"; we go through Text.key
+    -- in production so the test needs the engine string registered.
+    ["TXT_KEY_YOU"] = "You",
     -- Tech / resource Description fields are TXT_KEY_TECH_MINING etc; the
     -- test scripts feed the descriptions directly as the keys, so a passthrough
     -- in Locale.ConvertTextKey is sufficient.
@@ -80,6 +84,12 @@ local function setup()
     Game.GetResourceUsageType = function(id)
         return resourceUsage[id] or 0
     end
+    -- Single-player by default. MP turn-line tests override this and supply
+    -- the per-player IsHuman / IsTurnActive / HasReceivedNetTurnComplete /
+    -- GetNickName / IsObserver stubs plus Network.IsPlayerConnected.
+    Game.IsNetworkMultiPlayer = function()
+        return false
+    end
 
     GameOptionTypes = {
         GAMEOPTION_NO_SCIENCE = 1,
@@ -103,6 +113,7 @@ local function setup()
     }
     GameDefines = GameDefines or {}
     GameDefines.MAX_CIV_PLAYERS = 8
+    GameDefines.MAX_MAJOR_CIVS = 8
 
     -- Resource catalog driver: GameInfo.Resources() iterates whatever the
     -- test sets up via the resources table. Each entry is a row with the
@@ -230,6 +241,28 @@ local function setup()
         GetInfluenceLevel = function(_, otherID)
             return influenceLevels[otherID] or InfluenceLevelTypes.NO_INFLUENCE_LEVEL
         end,
+        -- MP "still playing" scan reaches slot 0 too so the local player
+        -- can be surfaced as "you". Defaults make self qualify only if
+        -- IsNetworkMultiPlayer is also true (which the SP default rules
+        -- out); MP tests override turnActive / ended via installMPSlots.
+        IsHuman = function()
+            return true
+        end,
+        IsAlive = function()
+            return true
+        end,
+        IsObserver = function()
+            return false
+        end,
+        IsTurnActive = function()
+            return false
+        end,
+        HasReceivedNetTurnComplete = function()
+            return false
+        end,
+        GetNickName = function()
+            return ""
+        end,
     }
     -- Production code reads Players[id] without a method receiver; assign
     -- the script as a plain table.
@@ -310,6 +343,181 @@ function M.test_turn_appends_strategic_shortages()
     resourceUsage[3] = ResourceUsageTypes.RESOURCEUSAGE_BONUS
     resourceUsage[4] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
     T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, no iron, no horses")
+end
+
+-- Multiplayer "still playing" clause -------------------------------------
+--
+-- Each scenario installs MP player slot stubs with shape:
+--   { human, alive, observer, connected, turnActive, ended, nick }
+-- The default for an unlisted slot is "empty observer" (not human, not
+-- alive) so any slot not explicitly populated is filtered out. Slot 0
+-- (local player) is populated too: the scan reaches it so the user can
+-- be named as "you" when they themselves are still on the hook.
+
+local function installMPSlots(slots)
+    Game.IsNetworkMultiPlayer = function()
+        return true
+    end
+    Network = Network or {}
+    Network.IsPlayerConnected = function(id)
+        if id == 0 then
+            local s = slots[0]
+            return s == nil or s.connected ~= false
+        end
+        local s = slots[id]
+        return s ~= nil and s.connected ~= false
+    end
+    -- Layer the slot 0 overrides on top of activePlayer so the readout
+    -- methods (GetGold etc.) the other lines need stay intact; only the
+    -- MP-side IsTurnActive / HasReceivedNetTurnComplete change per test.
+    local self0 = slots[0] or { turnActive = true, ended = false }
+    activePlayer.IsTurnActive = function()
+        return self0.turnActive == true
+    end
+    activePlayer.HasReceivedNetTurnComplete = function()
+        return self0.ended == true
+    end
+    Players[0] = activePlayer
+    for i = 1, GameDefines.MAX_MAJOR_CIVS - 1 do
+        local s = slots[i] or {}
+        Players[i] = {
+            IsHuman = function()
+                return s.human == true
+            end,
+            IsAlive = function()
+                return s.alive == true
+            end,
+            IsObserver = function()
+                return s.observer == true
+            end,
+            IsTurnActive = function()
+                return s.turnActive == true
+            end,
+            HasReceivedNetTurnComplete = function()
+                return s.ended == true
+            end,
+            GetNickName = function()
+                return s.nick or ""
+            end,
+        }
+    end
+end
+
+function M.test_turn_no_still_playing_clause_in_single_player()
+    -- Default setup is SP (IsNetworkMultiPlayer false). Even if remote
+    -- slots existed they'd be ignored - the gate fires first.
+    setup()
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD")
+end
+
+function M.test_turn_still_playing_names_self_as_you()
+    -- Local player is active and hasn't ended: "you" leads the list so
+    -- the user notices they forgot to end their own turn.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = false },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Alice" },
+        [2] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Bob" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: You, Alice, Bob")
+end
+
+function M.test_turn_still_playing_drops_self_once_local_has_ended()
+    -- Self has clicked end turn; remote humans haven't. Self drops out
+    -- and the clause names just the remotes still going.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = true },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Alice" },
+        [2] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Bob" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: Alice, Bob")
+end
+
+function M.test_turn_still_playing_omits_humans_who_have_ended()
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = true },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = true, nick = "Alice" },
+        [2] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Bob" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: Bob")
+end
+
+function M.test_turn_still_playing_omits_inactive_turn()
+    -- Sequential MP shape: only the player whose turn is current has
+    -- IsTurnActive true. Others in the queue are alive and unended but
+    -- not yet active, so they shouldn't be named. Here Alice is current,
+    -- self and Bob are queued (turnActive false) so neither appears.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = false, ended = false },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Alice" },
+        [2] = { human = true, alive = true, connected = true, turnActive = false, ended = false, nick = "Bob" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: Alice")
+end
+
+function M.test_turn_still_playing_skips_ai_dead_observer_disconnected()
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = true },
+        [1] = { human = false, alive = true, connected = false, turnActive = true, ended = false, nick = "AI Civ" },
+        [2] = { human = true, alive = false, connected = true, turnActive = true, ended = false, nick = "DeadHuman" },
+        [3] = { human = true, alive = true, observer = true, connected = true, turnActive = true, ended = false, nick = "Watcher" },
+        [4] = { human = true, alive = true, connected = false, turnActive = true, ended = false, nick = "Dropped" },
+        [5] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Carol" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: Carol")
+end
+
+function M.test_turn_still_playing_omitted_when_no_one_left()
+    -- All humans, self included, have ended their turn: clause drops
+    -- entirely rather than becoming an empty "still playing: " label.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = true },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = true, nick = "Alice" },
+        [2] = { human = true, alive = true, connected = true, turnActive = true, ended = true, nick = "Bob" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD")
+end
+
+function M.test_turn_still_playing_only_self()
+    -- Solo remaining: just the local player hasn't ended yet.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = false },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = true, nick = "Alice" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: You")
+end
+
+function M.test_turn_still_playing_includes_self_even_when_network_says_disconnected()
+    -- Defensive: the self slot bypasses Network.IsPlayerConnected so a
+    -- spurious false there can't drop the user from the list. The "did
+    -- I forget to end" use case is the whole point of the clause and
+    -- must not be silently silenced by a network-state edge case.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = false, connected = false },
+        [1] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Alice" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: You, Alice")
+end
+
+function M.test_turn_still_playing_drops_remote_when_network_says_disconnected()
+    -- Inverse of the above: for remote slots the network check is
+    -- load-bearing (it rules out human slots whose original player
+    -- dropped and are now AI-driven). A disconnected remote must not
+    -- appear in the list even when their human flag is still set.
+    setup()
+    installMPSlots({
+        [0] = { turnActive = true, ended = true },
+        [1] = { human = true, alive = true, connected = false, turnActive = true, ended = false, nick = "Dropped" },
+        [2] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Alice" },
+    })
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, still playing: Alice")
 end
 
 -- Research line ----------------------------------------------------------

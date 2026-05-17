@@ -1659,6 +1659,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
     other = "minus {1_Rate} gold, {2_Total} total, {3_Used} of {4_Avail} trade routes",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "no {1_Resource}"
+-- Trailing clause on the bare T turn line in networked multiplayer. Names
+-- the remote humans we are still waiting on this cycle (active turn, not
+-- yet ended). Quiet in single-player, hot seat, and once everyone is done.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "still playing: {1_Names}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 -- Section labels for Shift+letter detail readouts. Inserted as
 -- "{Label}: " between sections by newDetail.compose() at transitions

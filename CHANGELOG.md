@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - The Diplomatic Overview's Relations tab now has a Declare War column in multiplayer, with one row per major civ.
+- Pressing T now also tells you who must still end their turn in multiplayer.
 
 Bug fixes:
 - Adding a Declaration of Friendship to a multiplayer trade deal now works.
