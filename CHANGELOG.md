@@ -12,10 +12,12 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Added a setting in the cursor section to warn when the cursor lands next to an enemy unit.
 - Added a brief Tips and tricks section to the README: https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/README.md#tips-and-tricks
 
 Bug fixes:
 - The scanner now lists cities of civilizations you have not yet met, so a city revealed by an ancient ruins map can be found in the cities list.
+- Pressing X on a fogged tile now reports enemy zone of control when a visible enemy combat unit stands on a visible neighbor.
 
 ## [1.1.8] - 2026-05-16
 

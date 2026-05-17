@@ -159,15 +159,57 @@ local NEIGHBOR_DIRS = {
     DirectionTypes.DIRECTION_NORTHWEST,
 }
 
-local function inEnemyZoC(plot, activeTeam, isDebug)
+-- Per-neighbor IsVisible gate matters because CvUnit::isInvisible is about
+-- stealth flags (submarines, embarked-at-distance), not fog of war -- a
+-- combat unit on a fogged tile still returns false from isInvisible, so
+-- without this gate we'd leak the presence of an enemy on a tile the
+-- player can't see. The cursor tile's own visibility is irrelevant: a
+-- visible enemy combat unit on a visible neighbor really does project ZoC
+-- onto the cursor tile whether the cursor itself sits in fog or not.
+function PlotComposers.inEnemyZoC(plot, activeTeam, isDebug)
     local pTeam = Teams[activeTeam]
     for _, dir in ipairs(NEIGHBOR_DIRS) do
         local n = Map.PlotDirection(plot:GetX(), plot:GetY(), dir)
-        if n ~= nil then
+        if n ~= nil and n:IsVisible(activeTeam, isDebug) then
             local count = n:GetNumUnits()
             for i = 0, count - 1 do
                 local u = n:GetUnit(i)
                 if u ~= nil and not u:IsInvisible(activeTeam, isDebug) and u:IsCombatUnit() then
+                    local unitTeam = u:GetTeam()
+                    if unitTeam ~= activeTeam and pTeam:IsAtWar(unitTeam) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Broader "is there a visible enemy on any neighbor" check, distinct from
+-- inEnemyZoC above which is combat-only because ZoC is a combat-unit
+-- mechanic. This one drops the IsCombatUnit filter so naval-domain attackers
+-- adjacent to a land tile, enemy workers / settlers, and other non-combat
+-- enemy units all count -- the cursor adjacent-enemy warning is about
+-- presence ("an enemy is one hex away"), not about whether the unit could
+-- project zone of control onto our tile.
+--
+-- Per-neighbor IsVisible gate matters because CvUnit::isInvisible is
+-- about stealth flags (submarines, embarked-at-distance), not fog of war
+-- -- a unit on a fogged tile still returns false from isInvisible, so
+-- without this gate we'd leak the presence of enemies on tiles the
+-- player can't see. The cursor tile's own visibility is irrelevant: an
+-- enemy you can already see on a visible neighbor is still adjacent to
+-- your cursor whether the cursor itself sits in fog or not.
+function PlotComposers.hasAdjacentEnemy(plot, activeTeam, isDebug)
+    local pTeam = Teams[activeTeam]
+    for _, dir in ipairs(NEIGHBOR_DIRS) do
+        local n = Map.PlotDirection(plot:GetX(), plot:GetY(), dir)
+        if n ~= nil and n:IsVisible(activeTeam, isDebug) then
+            local count = n:GetNumUnits()
+            for i = 0, count - 1 do
+                local u = n:GetUnit(i)
+                if u ~= nil and not u:IsInvisible(activeTeam, isDebug) then
                     local unitTeam = u:GetTeam()
                     if unitTeam ~= activeTeam and pTeam:IsAtWar(unitTeam) then
                         return true
@@ -221,10 +263,11 @@ function PlotComposers.combat(plot)
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
     local out = {}
-    -- ZoC needs live sight of neighbors -- invisible adjacent units
-    -- can't project ZoC the player knows about -- so this genuinely
-    -- requires IsVisible, not a fog-leak policy choice.
-    if plot:IsVisible(team, debug) and inEnemyZoC(plot, team, debug) then
+    -- inEnemyZoC gates per-neighbor on IsVisible internally, so a fogged
+    -- cursor tile still reports ZoC from an enemy combat unit standing on
+    -- a visible neighbor -- the projection is real even when the cursor
+    -- itself sits in fog. Units on fogged neighbors stay hidden.
+    if PlotComposers.inEnemyZoC(plot, team, debug) then
         out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL")
     end
     -- DefenseModifier(eAttackerTeam, bIgnoreBuilding, bHelp) returns the

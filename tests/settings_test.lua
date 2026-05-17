@@ -193,19 +193,20 @@ end
 
 -- Cursor group ----------------------------------------------------------
 --
--- Layout: follows-selection, border-always, coord-mode (group),
--- audio-cue-mode (group), master-volume (slider).
+-- Layout: follows-selection, border-always, enemy-adjacent-warn,
+-- coord-mode (group), audio-cue-mode (group), master-volume (slider).
 
 function M.test_cursor_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(CURSOR_GROUP)
-    T.eq(#children, 5, "five cursor-area settings")
+    T.eq(#children, 6, "six cursor-area settings")
     T.eq(children[1].kind, "checkbox", "cursor follows selection")
     T.eq(children[2].kind, "checkbox", "border always announce")
-    T.eq(children[3].kind, "group", "cursor coord mode group")
-    T.eq(children[4].kind, "group", "audio cue mode group")
-    T.eq(children[5].kind, "slider", "master volume slider")
+    T.eq(children[3].kind, "checkbox", "enemy adjacent warn")
+    T.eq(children[4].kind, "group", "cursor coord mode group")
+    T.eq(children[5].kind, "group", "audio cue mode group")
+    T.eq(children[6].kind, "slider", "master volume slider")
 end
 
 function M.test_cursor_follows_selection_default_on_and_flip()
@@ -227,10 +228,19 @@ function M.test_border_always_announce_default_off_and_flip()
     T.eq(prefsStore["BorderAlwaysAnnounce"], true)
 end
 
+function M.test_enemy_adjacent_warn_default_off_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.enemyAdjacentWarn, false, "lazy-init defaults to off")
+    groupChildren(CURSOR_GROUP)[3]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.enemyAdjacentWarn, true)
+    T.eq(prefsStore["EnemyAdjacentWarn"], true)
+end
+
 function M.test_cursor_coord_mode_default_off_and_append_choice_writes()
     setup()
     Settings.open()
-    local coordGroup = groupChildren(CURSOR_GROUP)[3]
+    local coordGroup = groupChildren(CURSOR_GROUP)[4]
     local coordChildren = coordGroup:children()
     T.eq(#coordChildren, 3, "off / prepend / append")
     T.truthy(coordChildren[1]._selectedFn(), "off is the lazy-init default")
@@ -245,7 +255,7 @@ function M.test_audio_cue_mode_choices_call_setMode_and_mark_current()
     setup()
     AudioCueMode.setMode(AudioCueMode.MODE_SPEECH_PLUS_CUE)
     Settings.open()
-    local cueGroup = groupChildren(CURSOR_GROUP)[4]
+    local cueGroup = groupChildren(CURSOR_GROUP)[5]
     local cueChildren = cueGroup:children()
     T.eq(#cueChildren, 3, "speech / both / cue only")
     T.falsy(cueChildren[1]._selectedFn(), "speech only is not selected")
@@ -258,7 +268,7 @@ end
 function M.test_master_volume_slider_adjust_drives_VolumeControl_set()
     setup()
     Settings.open()
-    local volumeSlider = groupChildren(CURSOR_GROUP)[5]
+    local volumeSlider = groupChildren(CURSOR_GROUP)[6]
     T.eq(volumeSlider.kind, "slider")
     audio._reset()
     volumeSlider:adjust(HandlerStack.active(), 1, false)

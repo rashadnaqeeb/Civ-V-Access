@@ -86,6 +86,17 @@ local function setCursorCoordMode(name)
     Prefs.setInt("CursorCoordMode", CURSOR_COORD_BY_NAME[name])
 end
 
+-- Adjacent-enemy warning toggle. Off by default: prepends a short "enemy
+-- near" tag to every cursor-move announcement on any revealed tile with
+-- at least one visible enemy unit (combat or not) on a visible neighbor.
+-- Cursor-tile visibility doesn't gate -- a fogged cursor with a visible
+-- enemy on a visible neighbor still warns; only the neighbor's visibility
+-- gates the read. Distinct from the X-key ZoC line, which is combat-only
+-- because ZoC is a combat mechanic; CursorCore reads this cache live on
+-- every move.
+local getEnemyAdjacentWarn, setEnemyAdjacentWarn =
+    defineBoolPref("enemyAdjacentWarn", "EnemyAdjacentWarn", false)
+
 -- Always-announce-territory toggle. Off by default: the cursor's owner
 -- prefix only fires on civ-border crossings (the diff in CursorCore against
 -- _lastOwnerIdentity). When on, every cursor move into a civ-owned tile
@@ -225,6 +236,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE",
                 getValue = getBorderAlwaysAnnounce,
                 setValue = setBorderAlwaysAnnounce,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_ENEMY_ADJACENT_WARN",
+                getValue = getEnemyAdjacentWarn,
+                setValue = setEnemyAdjacentWarn,
             }),
             BaseMenuItems.Group({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE",

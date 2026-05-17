@@ -202,23 +202,42 @@ local function announceForMove(plot, prevPlot)
     -- stands, not just on changes). Composed before the owner-identity
     -- prefix so the fastest-changing fact ("can I strike here") leads.
     local targetPrefix = targetabilityPrefix(plot)
+    -- Adjacent-enemy warning. Leads the line so the threat fact reaches the
+    -- player before anything else on the tile. Uses hasAdjacentEnemy rather
+    -- than inEnemyZoC because this warning is about presence, not ZoC: a
+    -- naval combat unit on water next to the cursor's land tile counts, as
+    -- does an enemy worker or settler. No gate on the cursor tile's own
+    -- visibility -- the predicate gates per-neighbor instead, so an enemy
+    -- on a visible neighbor still warns even when the cursor itself sits
+    -- in fog. The neighbor gate is what prevents leaking units from tiles
+    -- the player can't see.
+    local enemyPrefix = ""
+    if civvaccess_shared.enemyAdjacentWarn and PlotComposers.hasAdjacentEnemy(plot, team, debug) then
+        enemyPrefix = Text.key("TXT_KEY_CIVVACCESS_ENEMY_ADJACENT") .. ". "
+    end
     if glance == "" then
         if ownerPrefix ~= "" then
             -- ownerPrefix ends in ". " for concatenation with glance; with
             -- no glance to lead into, strip the trailing space so the
             -- sentence terminates cleanly.
-            return targetPrefix .. ownerPrefix:sub(1, -2)
+            return enemyPrefix .. targetPrefix .. ownerPrefix:sub(1, -2)
         end
         if targetPrefix ~= "" then
             -- Featureless plot (open ocean, mostly) inside a ranged mode:
             -- the targetability tag is the only thing the player would
             -- otherwise hear. Strip the trailing ", " since there's
             -- nothing for it to lead into.
-            return targetPrefix:sub(1, -3) .. "."
+            return enemyPrefix .. targetPrefix:sub(1, -3) .. "."
+        end
+        if enemyPrefix ~= "" then
+            -- Lone enemy warning on an otherwise featureless tile: strip the
+            -- trailing space from "enemy near. " so the sentence terminates
+            -- cleanly.
+            return enemyPrefix:sub(1, -2)
         end
         return ""
     end
-    return targetPrefix .. ownerPrefix .. glance .. "."
+    return enemyPrefix .. targetPrefix .. ownerPrefix .. glance .. "."
 end
 
 -- Wrap a move/jump glance with the user's cursor-coord setting. Read
