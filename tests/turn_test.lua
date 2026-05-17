@@ -194,14 +194,16 @@ function M.test_turn_start_announces_bc_year_with_absolute_value()
     T.eq(spoken[1].text, "Turn: 0, 4000 BC")
 end
 
-function M.test_turn_end_announces_turn_ended()
-    -- Interrupt is correct here: end-turn is user-initiated (or engine
-    -- auto-end), no pending notification speech to protect.
+function M.test_turn_end_announces_turn_ended_queued()
+    -- Queued, not interrupting: ActivePlayerTurnEnd fires mid-wave alongside
+    -- the same inter-turn announcements turn-start dodges (combat resolution,
+    -- notifications, foreign-unit deltas). Interrupting would clip whichever
+    -- of them happens to be speaking.
     setup()
     Turn.installListeners()
     endListeners[1]()
     T.eq(spoken[1].text, "Turn ended")
-    T.eq(spoken[1].interrupt, true)
+    T.eq(spoken[1].interrupt, false)
 end
 
 -- Turn-start sound listener -------------------------------------------

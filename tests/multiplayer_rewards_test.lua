@@ -147,6 +147,15 @@ local function setup()
         end
     end
 
+    -- Production calls ToGridFromHex on the NaturalWonderRevealed args
+    -- before Map.GetPlot (the engine dispatches hex coords through
+    -- gDLL->GameplayNaturalWonderRevealed). The passthrough stub matches
+    -- the reveal_announce_test convention: fixture coords are already
+    -- the value Map.GetPlot's stub keys on, so the conversion is a no-op.
+    ToGridFromHex = function(hx, hy)
+        return hx, hy
+    end
+
     Map = Map or {}
     Map.GetPlot = function(x, _y)
         if x == 5 then
@@ -328,18 +337,13 @@ function M.test_natural_wonder_in_sp_is_silent()
     fireWonder(5, 0)
     T.eq(#spoken, 0)
 end
-
-function M.test_natural_wonder_skips_non_wonder_feature()
-    setup()
-    fireWonder(7, 0) -- FEATURE_FOREST: NaturalWonder=false
-    T.eq(#spoken, 0, "non-wonder features must not emit a discovery line")
-end
-
-function M.test_natural_wonder_skips_nil_plot()
-    setup()
-    fireWonder(99, 99) -- Map.GetPlot returns nil
-    T.eq(#spoken, 0)
-end
+-- No coverage for non-wonder features or nil plots: the engine fires
+-- NaturalWonderRevealed only inside the IsNaturalWonder() branch of
+-- CvPlot::setRevealed and always packs the originating plot, so both
+-- scenarios are impossible. The handler intentionally has no defensive
+-- branches for them -- a future engine drift would surface as a Lua.log
+-- crash, which is preferable to a silent skip per the no-silent-failures
+-- rule.
 
 -- installListeners resilience -------------------------------------------
 
