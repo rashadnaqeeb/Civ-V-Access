@@ -2152,6 +2152,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ERA"] = "era"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES"] = "policies"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS"] = "wonders"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE"] = "score"
+-- Declare-war column. MP-only: surfaces a uniform path to declare war on
+-- any major in a multiplayer game, since the engine's per-human war button
+-- lives on a screen we don't wrap. Same text doubles as the activatable
+-- cell value -- header reads "declare war column", cell reads "declare war"
+-- when eligible (none otherwise).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR"] = "declare war"
 -- Minor civ columns. _RELATIONSHIP carries the bonuses currently flowing
 -- from a Friends / Allies CS (culture, food, science, faith, happiness,
 -- spawn estimate). _TRAIT_PERSONALITY carries trait then personality as a

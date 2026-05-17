@@ -510,6 +510,40 @@ local function activateMajor(iOther)
     DiploCommon.openTradeWith(iOther)
 end
 
+-- MP-only declare-war column. War against an AI flows through the leader
+-- head's WarButton, which LeaderHeadRootAccess already surfaces; but in MP
+-- the leader head never opens for human civs, and the engine's per-human
+-- WarButton lives inside DiploList (unwrapped). Adding the column here gives
+-- a single uniform path against any major in an MP session. Activation fires
+-- BUTTONPOPUP_DECLAREWARMOVE (same popup the LeaderHead path uses), already
+-- covered by CivVAccess_DeclareWarPopupAccess.
+local function canDeclareWarOn(iOther)
+    local pUsTeam = Teams[Players[Game.GetActivePlayer()]:GetTeam()]
+    local iOtherTeam = Players[iOther]:GetTeam()
+    return not pUsTeam:IsAtWar(iOtherTeam) and pUsTeam:CanDeclareWar(iOtherTeam)
+end
+
+local function declareWarCell(iOther)
+    if not canDeclareWarOn(iOther) then
+        return noneCell()
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR")
+end
+
+local function declareWarActivate(iOther)
+    if not Players[Game.GetActivePlayer()]:IsTurnActive() or Game.IsProcessingMessages() then
+        return
+    end
+    if not canDeclareWarOn(iOther) then
+        return
+    end
+    UI.AddPopup({
+        Type = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE,
+        Data1 = Players[iOther]:GetTeam(),
+        Option1 = true,
+    })
+end
+
 -- ===== Minor civ helpers ==============================================
 
 -- Personality word: friendly / neutral / hostile / irrational.
@@ -928,6 +962,14 @@ local function buildMajorColumns()
             pediaName = leaderPedia,
         },
     }
+    if Game.IsGameMultiPlayer() then
+        cols[#cols + 1] = {
+            name = "TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR",
+            getCell = declareWarCell,
+            enterAction = declareWarActivate,
+            pediaName = leaderPedia,
+        }
+    end
     return cols
 end
 

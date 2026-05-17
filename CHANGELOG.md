@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- The Diplomatic Overview's Relations tab now has a Declare War column in multiplayer, with one row per major civ.
+
 Bug fixes:
 - Adding a Declaration of Friendship to a multiplayer trade deal now works.
 - The trade screen no longer reads a turn count on items that aren't turn-timed (Allow Embassy, Declaration of Friendship).
