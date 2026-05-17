@@ -254,6 +254,19 @@ Civ V supports both hotseat (passing one computer back and forth) and networked 
 
 If you want to play online with sighted friends, they must run the mod installer on their machine and choose "As a sighted player who plays multiplayer against a blind user". This installs the minimum needed for their game to match yours; no speech code runs on their side.
 
+## Tips and tricks
+
+A few habits and settings that aren't obvious but make the game noticeably smoother.
+
+- **Search the tech tree by what it unlocks.** On the **F6** tech tree, type-ahead matches both tech names and the things each tech makes available, so you can often just type the name of the unit, building, or wonder you're after and land on the tech that unlocks it. It's not perfect, but it usually works. And if you press Enter on a tech you don't have the prereqs for yet, the game queues all the missing prerequisites ahead of it for you automatically.
+- **Turn off subtitle reading if you prefer.** A few screens (the opening cinematic, leader dialogue, advisor intros) have the screen reader speak their text over the engine's own narration audio. If you'd rather hear the narration alone, turn off **Read subtitles** in **F12** settings, under the UI settings group. **F1** reads any spoken text back regardless of the setting, so you can still have text read back on demand. This is especially useful for advisor dialogues where the advisors often only speak a part of what's on screen.
+- **Name your units.** **Alt+N** opens a rename prompt for the selected unit. The new name reads back whenever you cycle to that unit, and the unit becomes findable by name in the scanner with **Ctrl+F**. Useful for tracking units over time, especially if you've sent them off on long moves and forgotten about them.
+- **Unit selection behavior.** Two related annoyances have separate settings. If you don't want the cursor jumping to a unit when you select it or after it finishes a move, turn off **Cursor follows selected unit** in **F12** settings, under the Cursor group. Separately, the game itself auto-cycles to the next unit after you issue an order; that's a vanilla setting called **Auto Unit Cycle**, found in the game's Options, on the Interface tab.
+- **Sort any table.** Arrow up to the header row above row 1 and press **Enter** on the column you want to sort by. Repeated presses cycle descending, ascending, and back to default. On the **F4** Diplomacy table, for instance, you can sort by the Score column to see leaders ranked from highest score to lowest.
+- **Press Enter on table rows as a shortcut.** On the **F2** city table, Enter on most cells sends the cursor to that city, and Enter on the Production cell opens that city's production picker directly — by far the fastest way to change what a city is building. The **F3** unit table works similarly: Enter on any row jumps the cursor to that unit and selects it for you.
+- **Try Ctrl+I almost anywhere.** Most everything in this game has a Civilopedia entry, including individual cells in tables. **Ctrl+I** on a column header, a resource cell, a leader row, or whatever else is focused usually opens the article for it, even in places you wouldn't expect the binding to work.
+- **Switch cultural perspectives.** On a cultural-victory run, the fourth tab of the **Ctrl+C** Culture Overview lets you change perspective using the left column. Each entry repivots the table to show that civ's tourism influence on every other civ, which is how you find out who else is close to a cultural win.
+
 ## Troubleshooting
 
 If you hit a bug or a crash, please zip the log folder at `%USERPROFILE%\Documents\My Games\Sid Meier's Civilization 5\Logs\` and send it to me with a brief description of what happened.
