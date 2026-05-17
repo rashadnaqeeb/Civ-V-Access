@@ -1132,6 +1132,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
     many = "minus {1_Rate} złota, {2_Total} łącznie, {3_Used} z {4_Avail} szlaków handlowych",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "brak {1_Resource}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "jeszcze grają: {1_Names}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 
 -- Section labels for Shift+letter detail readouts

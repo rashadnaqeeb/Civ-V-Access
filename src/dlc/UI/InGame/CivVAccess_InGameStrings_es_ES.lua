@@ -1563,6 +1563,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
     other = "menos {1_Rate} de oro, {2_Total} total, {3_Used} de {4_Avail} rutas comerciales",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "sin {1_Resource}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "aún jugando: {1_Names}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 -- Section labels for Shift+letter detail readouts. Inserted as
 -- "{Label}: " between sections by newDetail.compose() at transitions

@@ -962,6 +962,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
     other = "금 -{1_Rate}, 총 {2_Total}, 교역로 {4_Avail}개 중 {3_Used}개 사용 중",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "{1_Resource} 부족"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "플레이 중: {1_Names}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 
 -- Section labels for Shift+letter detail readouts
