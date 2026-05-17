@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-05-17
+
 New Features and improvements:
 - Added a setting in the cursor section to warn when the cursor lands next to an enemy unit.
 - Added a brief Tips and tricks section to the README: https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/README.md#tips-and-tricks
