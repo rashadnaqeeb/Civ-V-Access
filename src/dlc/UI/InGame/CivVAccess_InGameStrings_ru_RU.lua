@@ -1666,6 +1666,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ERA"] = "эра"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES"] = "институты"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS"] = "чудеса"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE"] = "очки"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR"] = "объявить войну"
 
 -- Minor civ columns.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_RELATIONSHIP"] = "отношения"

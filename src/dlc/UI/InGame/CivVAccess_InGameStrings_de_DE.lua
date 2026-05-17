@@ -1602,6 +1602,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ERA"] = "Zeitalter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES"] = "Politiken"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS"] = "Weltwunder"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE"] = "Punktzahl"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR"] = "Krieg erklären"
 
 -- F4 Diplomatic Overview column headers (minor civs / city-states)
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_RELATIONSHIP"] = "Beziehung"

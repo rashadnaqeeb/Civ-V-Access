@@ -1541,6 +1541,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ERA"] = "era"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES"] = "doktryny"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS"] = "cuda świata"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE"] = "punkty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR"] = "wypowiedz wojnę"
 -- Minor civ columns. _RELATIONSHIP carries the bonuses currently flowing
 -- from a Friends / Allies CS (culture, food, science, faith, happiness,
 -- spawn estimate). _TRAIT_PERSONALITY carries trait then personality as a
