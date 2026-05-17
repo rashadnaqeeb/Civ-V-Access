@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- The scanner now lists cities of civilizations you have not yet met, so a city revealed by an ancient ruins map can be found in the cities list.
+
 ## [1.1.8] - 2026-05-16
 
 New Features and improvements:

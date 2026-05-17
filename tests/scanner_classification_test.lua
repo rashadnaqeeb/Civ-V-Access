@@ -674,6 +674,26 @@ function M.test_city_major_peer_at_war_stays_in_enemy()
     T.eq(out[1].subcategory, "enemy")
 end
 
+function M.test_city_unmet_civ_with_revealed_plot_still_surfaces()
+    -- Goody-hut map reveal exposes plots via setRevealed without ever
+    -- calling kTeam.meet on the plot owner's team. A foreign city sitting
+    -- inside that reveal must still appear in the scanner -- the cursor
+    -- already announces its civ name from plot:GetRevealedOwner and a
+    -- sighted player sees the owner's border colour and city banner, so
+    -- gating on IsHasMet would hide a city both other channels surface.
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam({ hasMet = {} })
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 1, id = 1, plot = plot })
+    plot._city = city
+    installCityOwner(1, { city = city, team = 1, minor = false })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1, "unmet civ's revealed city must still surface in the scanner")
+    T.eq(out[1].subcategory, "neutral")
+end
+
 -- ===== Resources backend =====
 
 local function loadResourcesBackend()

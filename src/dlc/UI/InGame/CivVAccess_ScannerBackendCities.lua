@@ -42,40 +42,39 @@ local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
     return "neutral"
 end
 
+-- No IsHasMet gate: a revealed city plot is already public information.
+-- The cursor announces the civ name from plot:GetRevealedOwner the moment
+-- you step onto a revealed foreign tile, and a sighted player sees the
+-- owner's border color and city banner immediately on reveal. Gating the
+-- scanner on diplomatic meeting would hide cities the player can already
+-- locate by walking the cursor over them (e.g. goody-hut map reveal that
+-- surfaces a foreign city before any unit-adjacency meeting has happened
+-- -- setRevealed alone does not call kTeam.meet, see CvPlayer.cpp goody
+-- map branch). Per-plot IsRevealed is the only visibility gate needed.
 local function scanCities(activePlayer, activeTeam, out)
     for playerId = 0, MAX_PLAYERS - 1 do
         local player = Players[playerId]
         if player ~= nil and player:IsAlive() and not player:IsBarbarian() then
-            local teamId = player:GetTeam()
-            -- Active team is trivially "met" by itself. CvGame::initDiplomacy
-            -- calls kTeamA.meet(eTeamA) for every team at game start
-            -- (CvGame.cpp:1281), so IsHasMet(own_team) does return true in
-            -- normal gameplay. Short-circuit on team identity anyway so the
-            -- backend doesn't depend on that init step having run, which
-            -- also covers the offline test harness.
-            local met = (teamId == activeTeam) or Teams[activeTeam]:IsHasMet(teamId)
-            if met then
-                local sub = citySubcategory(playerId, activePlayer, activeTeam)
-                if sub ~= nil then
-                    for city in player:Cities() do
-                        local plot = city:Plot()
-                        if plot ~= nil and plot:IsRevealed(activeTeam) then
-                            local cityId = city:GetID()
-                            out[#out + 1] = {
-                                plotIndex = plot:GetPlotIndex(),
-                                backend = ScannerBackendCities,
-                                data = {
-                                    kind = "city",
-                                    ownerId = playerId,
-                                    cityId = cityId,
-                                },
-                                category = "cities",
-                                subcategory = sub,
-                                itemName = Text.key(city:GetNameKey()),
-                                key = "cities:city:" .. playerId .. ":" .. cityId,
-                                sortKey = 0,
-                            }
-                        end
+            local sub = citySubcategory(playerId, activePlayer, activeTeam)
+            if sub ~= nil then
+                for city in player:Cities() do
+                    local plot = city:Plot()
+                    if plot ~= nil and plot:IsRevealed(activeTeam) then
+                        local cityId = city:GetID()
+                        out[#out + 1] = {
+                            plotIndex = plot:GetPlotIndex(),
+                            backend = ScannerBackendCities,
+                            data = {
+                                kind = "city",
+                                ownerId = playerId,
+                                cityId = cityId,
+                            },
+                            category = "cities",
+                            subcategory = sub,
+                            itemName = Text.key(city:GetNameKey()),
+                            key = "cities:city:" .. playerId .. ":" .. cityId,
+                            sortKey = 0,
+                        }
                     end
                 end
             end
