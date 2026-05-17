@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Added a brief Tips and tricks section to the README: https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/README.md#tips-and-tricks
+
 Bug fixes:
 - The scanner now lists cities of civilizations you have not yet met, so a city revealed by an ancient ruins map can be found in the cities list.
 
