@@ -233,7 +233,11 @@ local function onActivePlayerTurnStart()
 end
 
 local function onActivePlayerTurnEnd()
-    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TURN_ENDED"))
+    -- Queued for the same reason as the turn-start line: ActivePlayerTurnEnd
+    -- fires mid-wave alongside inter-turn announcements (combat resolution,
+    -- notifications, foreign-unit deltas) and interrupting would clip
+    -- whichever of them happens to be speaking.
+    SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_TURN_ENDED"))
 end
 
 -- Optional single-player turn-start cue. Mirrors the "It's your turn"
