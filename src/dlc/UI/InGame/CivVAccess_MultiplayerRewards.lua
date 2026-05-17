@@ -96,57 +96,30 @@ function MultiplayerRewards._onBarbarianCampCleared(playerID, _iX, _iY, iNumGold
     emit(Text.format("TXT_KEY_BARB_CAMP_CLEARED", iNumGold))
 end
 
--- Natural wonder. Mirrors NaturalWonderPopup.lua's yieldString
--- composition: feature description in a TT-format wrapper, then per-yield
--- lines from Feature_YieldChanges, then the in-border-happiness tail, the
--- adjacent-unit free-promotion tail, and the finder-gold tail (first vs
--- subsequent finder picks the right key). The bFirst signal isn't on the
--- vanilla event so we recover it from the plot's reveal state: a finder
--- gold > 0 with no team having previously revealed the feature is a
--- first-finder grant. Engine source for this branch:
--- CvGameCoreDLL_Expansion2/CvPlot.cpp around the BUTTONPOPUP_NATURAL_-
--- WONDER_REWARD construction (iFinderGold, bFirstFinder).
+-- Natural wonder. Mirrors NaturalWonderPopup.lua's yieldString composition:
+-- feature description in a TT-format wrapper, then per-yield lines from
+-- Feature_YieldChanges, then the in-border-happiness tail, then the
+-- adjacent-unit free-promotion tail.
 --
--- We don't have a Lua-side signal for iFinderGold or bFirstFinder. The
--- popup version takes them from the popupInfo struct that the engine
--- builds; in MP that struct is never built (the popup is the thing that
--- gets suppressed). Best we can do offline is announce the wonder name
--- plus its yields / happiness / promotion, and skip the finder-gold line
--- entirely. The finder gold still lands in the player's treasury (the
--- engine grants it before the popup gate); the player will hear it
--- through the next gold-change cue.
-function MultiplayerRewards._onNaturalWonderRevealed(iX, iY)
+-- The finder-gold tail (which the popup adds when iFinderGold > 0, varying
+-- by first vs subsequent finder) is skipped: the vanilla event doesn't
+-- carry iFinderGold or bFirstFinder. The popup version reads them from a
+-- popupInfo struct the engine builds, and in MP that struct is never built
+-- (the popup is the thing that gets suppressed). The finder gold still
+-- lands in the player's treasury (the engine grants it before the popup
+-- gate); the player will hear it through the next gold-change cue.
+--
+-- Args are hex coords, not grid coords -- the engine dispatches this event
+-- via gDLL->GameplayNaturalWonderRevealed(pPlot) which packs the plot's
+-- hex position. Tutorial/lua/TutorialChecks.lua DiscoveredNaturalWonder
+-- does the same ToGridFromHex translation before Map.GetPlot.
+function MultiplayerRewards._onNaturalWonderRevealed(hexX, hexY)
     if not Game:IsNetworkMultiPlayer() then
         return
     end
+    local iX, iY = ToGridFromHex(hexX, hexY)
     local plot = Map.GetPlot(iX, iY)
-    if plot == nil then
-        Log.warn(
-            "MultiplayerRewards: NaturalWonderRevealed plot nil at (" .. tostring(iX) .. "," .. tostring(iY) .. ")"
-        )
-        return
-    end
-    -- Events.NaturalWonderRevealed fires from the engine after the wonder's
-    -- feature is set on the plot, so a missing feature here is unexpected
-    -- (engine drift or a mid-event mutation). Log loud rather than fall
-    -- through silently -- a future regression that strips the feature
-    -- before the event fires would otherwise lose the announcement with
-    -- no diagnostic.
-    local feature = plot:GetFeatureType()
-    if feature == nil or feature < 0 then
-        Log.warn(
-            "MultiplayerRewards: NaturalWonderRevealed plot ("
-                .. tostring(iX)
-                .. ","
-                .. tostring(iY)
-                .. ") has no feature; skipping announcement"
-        )
-        return
-    end
-    local info = GameInfo.Features[feature]
-    if info == nil or not info.NaturalWonder then
-        return
-    end
+    local info = GameInfo.Features[plot:GetFeatureType()]
 
     local condition = "FeatureType = '" .. info.Type .. "'"
     local yieldString = Text.format("TXT_KEY_POP_NATURAL_WONDER_FOUND_TT", info.Description)

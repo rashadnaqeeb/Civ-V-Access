@@ -17,6 +17,7 @@ New Features and improvements:
 Bug fixes:
 - Adding a Declaration of Friendship to a multiplayer trade deal now works.
 - The trade screen no longer reads a turn count on items that aren't turn-timed (Allow Embassy, Declaration of Friendship).
+- Discovering a natural wonder in multiplayer now reads.
 
 ## [1.1.9] - 2026-05-17
 
