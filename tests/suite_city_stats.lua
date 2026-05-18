@@ -445,6 +445,31 @@ function M.test_yields_faith_drillin_drops_religion_tooltip_suffix()
     end
 end
 
+function M.test_yields_drillin_drops_engine_dash_separator()
+    setup()
+    local city = mkCity()
+    -- GetYieldTooltip wraps the base / modifier sections of every
+    -- non-faith yield breakdown with "----------------" rows
+    -- ("[NEWLINE]----------------[NEWLINE]"). After splitting on
+    -- [NEWLINE] each separator is its own chunk; the row filter must
+    -- drop it so the user doesn't land on a row of dashes.
+    local fakeBreakdown = "[ICON_BULLET]2 from terrain[NEWLINE]----------------"
+        .. "[NEWLINE]base 2[NEWLINE]----------------[NEWLINE]total 4"
+    local rows = CityStats.yieldRows(city, function(yieldKey)
+        if yieldKey == "GOLD" then
+            return function()
+                return fakeBreakdown
+            end
+        end
+        return nil
+    end)
+    local gold = rows[3]
+    for _, line in ipairs(gold.breakdown) do
+        T.falsy(line:find("----", 1, true), "dash separator must not leak in as a row")
+    end
+    T.eq(#gold.breakdown, 3)
+end
+
 function M.test_yields_drillin_handles_helper_returning_nil()
     setup()
     local city = mkCity()

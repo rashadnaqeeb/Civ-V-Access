@@ -124,6 +124,18 @@ function TextFilter.filter(text)
     end
     local s = tostring(text)
 
+    -- Civ uses an ASCII-dash separator ("----------------") between
+    -- sections of composite tooltips (notably GetHelpTextForBuilding
+    -- divides cost / contributions from the prose Help with one;
+    -- GetYieldTooltip wraps base / modifier rows with one each). Without
+    -- the strip the screen reader would say "dash" sixteen times mid-
+    -- tooltip. Strip runs of 4+ dashes; shorter runs (e.g. "-3" or "--")
+    -- are left for legitimate uses. Done before the fast-path check
+    -- because pre-split chunks (CityStats splits on [NEWLINE] then filters
+    -- each piece) can present a pure-dash chunk with no markup, which
+    -- otherwise bypasses the slow path entirely.
+    s = s:gsub("%-%-%-%-+", "")
+
     -- Fast path: no brackets, no emdash, no control chars. The
     -- punctuation-adjacency cleanup still has to run for plain inputs
     -- that carry "., " or ",." without going through any markup token.
@@ -134,15 +146,6 @@ function TextFilter.filter(text)
     end
 
     s = stripControl(s)
-    -- Civ uses an ASCII-dash separator ("----------------") between
-    -- sections of composite tooltips (notably GetHelpTextForBuilding
-    -- divides cost / contributions from the prose Help with one). After
-    -- the [NEWLINE] substitution below these would survive as a "dash
-    -- dash dash..." run for the screen reader. Strip runs of 4+ dashes;
-    -- shorter runs (e.g. "-3" or "--") are left for legitimate uses.
-    -- Done before the [NEWLINE] collapse so the now-empty zone between
-    -- the surrounding [NEWLINE] tokens merges into one separator.
-    s = s:gsub("%-%-%-%-+", "")
     -- [NEWLINE] is the engine's line break in display text. It often
     -- separates list items (e.g. league vote tallies "20 for X from X
     -- [NEWLINE] 5 for Y from Y ...") or paragraph chunks. A bare space

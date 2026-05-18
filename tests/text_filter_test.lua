@@ -100,6 +100,16 @@ function M.test_dash_separator_stripped_between_newlines()
     T.eq(TextFilter.filter("contribs[NEWLINE]----------------[NEWLINE]help"), "contribs, help")
 end
 
+function M.test_pure_dash_chunk_stripped()
+    setup()
+    -- Callers that pre-split engine text on [NEWLINE] (e.g. CityStats'
+    -- yield drill-in) hand chunks of pure "----------------" to the
+    -- filter. These contain no bracket / control / UTF-8 byte, so they'd
+    -- otherwise hit the fast path and pass through unchanged, surfacing
+    -- the engine's visual separator as a spoken row.
+    T.eq(TextFilter.filter("----------------"), "")
+end
+
 function M.test_short_dash_runs_preserved()
     setup()
     -- Negative numbers and hyphenated tokens use 1-3 dashes; the strip
