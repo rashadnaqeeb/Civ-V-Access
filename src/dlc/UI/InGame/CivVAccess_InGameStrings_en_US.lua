@@ -171,13 +171,54 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
 -- etc.) resolve within the turn and never reach selection. The Lua API does
 -- not expose mission type or destination plot, so we cannot say where.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "queued move"
--- Engine-fork form of the queued rung: when WaypointsCore can compute a
--- destination and turn count for the head-selected unit's queued path,
--- the rung becomes "queued move {dir}, N turns" so the user hears where
--- the unit is going and how long it takes.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "queued move {1_Dir}, {2_Turns} turn",
-    other = "queued move {1_Dir}, {2_Turns} turns",
+-- Engine-fork form of the queued rung: when WaypointsCore can compute
+-- per-leg chunks for the head-selected unit's queued action, the rung
+-- becomes one or more chunks joined by "then", followed by ", arrive"
+-- once at the end. A pure-move queue produces a single move chunk
+-- ("queued move, 3 turns: 1ne, then 2e, then 1ne, arrive"); a pure
+-- route-to queue produces a single route chunk with the localized route
+-- name ("queued road, 9 turns: 1e, then 1e, then 1e, arrive"); a
+-- mixed queue (rare -- requires deliberate interface-mode switching by
+-- the player) joins chunks with the same "then" the segments use.
+-- Segments come pre-joined as {1_Segments} so a translation can change
+-- the segment separator independent of the joiner.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "queued move, {2_Turns} turn: {1_Segments}",
+    other = "queued move, {2_Turns} turns: {1_Segments}",
+}
+-- Route-to chunk: {3_RouteName} is the lowercased route the worker will
+-- lay ("road", "railroad", or a modded route's localized name), and
+-- {2_Turns} is the summed build-turns across tiles that still need
+-- work. Walked-through tiles (already at the target route tier) don't
+-- appear as their own segments -- their direction folds into the next
+-- build stop -- so {1_Segments} always lists real build pauses only.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "queued {3_RouteName}, {2_Turns} turn: {1_Segments}",
+    other = "queued {3_RouteName}, {2_Turns} turns: {1_Segments}",
+}
+-- Joiner inserted between successive direction segments inside a chunk
+-- and between successive chunks in a mixed queue. Each "then" marks the
+-- next thing the unit will do; chunk boundaries differ from segment
+-- boundaries only in that they restart the label / turn count.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", then "
+-- Trailing tag on the queued rung, appended once at the very end of the
+-- composed chunk list. Marks the final stop as the arrival point so the
+-- player can hear the queue terminate rather than guess from a missing
+-- "then".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", arrive"
+-- Leading "here" segment used when a worker is actively building a
+-- route tile that's also the head of its queued route-to. The build
+-- and queued rungs fold into one announcement -- "queued road, 9 turns:
+-- 3 turns here, then 2e, then 1e, arrive" -- with this template
+-- carrying the current build's remaining turn count as the first
+-- segment. The rest of the route's segments stay plain direction
+-- strings (the user already opted out of per-tile turn counts for
+-- queued tiles); the current-tile time is surfaced because it's the
+-- one tile being actively worked, so its remaining turns are
+-- actionable ("when will the worker move").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} turn here",
+    other = "{1_Turns} turns here",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} melee"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} ranged, range {2_Range}"

@@ -172,11 +172,12 @@ end
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
-    -- Required by UnitSpeech.statusToken's ACTIVITY_MISSION rung (calls
-    -- Waypoints.finalAndTurns when the head-selected unit matches). The
-    -- module's lookup paths short-circuit on the polyfill's nil
-    -- UI.GetHeadSelectedUnit, so loading is enough; tests that exercise
-    -- the queued-to rung set their own UI / Waypoints fixtures.
+    -- Required by UnitSpeech.statusToken's ACTIVITY_MISSION rung
+    -- (calls Waypoints.queuedActionStatus when the head-selected unit
+    -- matches). The module's lookup paths short-circuit on the
+    -- polyfill's nil UI.GetHeadSelectedUnit, so loading is enough;
+    -- tests that exercise the queued-action rung set their own UI /
+    -- Waypoints fixtures.
     civvaccess_shared = civvaccess_shared or {}
     dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
@@ -527,26 +528,119 @@ function M.test_selection_status_queued_mission()
 end
 
 -- Engine-fork variant: when the unit IS the head-selected one and
--- WaypointsCore has a final waypoint + total-turn count, the rung
--- becomes "queued move <dir>, N turns". This path stubs Waypoints
--- directly so the test isolates statusToken's branching from the
--- pathfinder-driven WaypointsCore internals.
-function M.test_selection_status_queued_mission_with_waypoints()
+-- WaypointsCore returns a chunked queue status, the rung renders one
+-- chunk per kind joined by "then" with ", arrive" once at the end.
+-- These tests stub Waypoints directly so statusToken's chunk renderer
+-- is exercised in isolation from compute()'s engine-API plumbing.
+function M.test_selection_status_queued_mission_with_single_waypoint()
     setup()
     local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origFinal = Waypoints.finalAndTurns
-    Waypoints.finalAndTurns = function()
-        return { x = 3, y = 0, turns = 2 }
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return { chunks = { { kind = "move", segments = { "3e" }, turns = 2 } } }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.finalAndTurns = origFinal
-    T.truthy(out:find("queued move 3e, 2 turns", 1, true), "queued-to rung expected: " .. out)
+    Waypoints.queuedActionStatus = origStatus
+    T.truthy(out:find("queued move, 2 turns: 3e, arrive", 1, true), "single-waypoint rung expected: " .. out)
 end
 
--- Falls back to the bare "queued move" when Waypoints has no final
+-- Multi-segment move chunk: every additional stop adds a ", then SEG"
+-- so the user hears each segment in chronological order, with "arrive"
+-- only on the final stop.
+function M.test_selection_status_queued_mission_with_multiple_waypoints()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return { chunks = { { kind = "move", segments = { "2ne", "2e", "1ne" }, turns = 3 } } }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.queuedActionStatus = origStatus
+    T.truthy(
+        out:find("queued move, 3 turns: 2ne, then 2e, then 1ne, arrive", 1, true),
+        "multi-waypoint rung expected: " .. out
+    )
+end
+
+-- Singular "turn" form for a one-turn queue.
+function M.test_selection_status_queued_mission_one_turn_plural()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return { chunks = { { kind = "move", segments = { "1e" }, turns = 1 } } }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.queuedActionStatus = origStatus
+    T.truthy(out:find("queued move, 1 turn: 1e, arrive", 1, true), "singular-turn rung expected: " .. out)
+end
+
+-- Route-to chunk: the route name is substituted into the chunk template
+-- so the user hears "queued road" instead of "queued move", and the
+-- turn count reflects build turns rather than movement turns.
+function M.test_selection_status_queued_mission_route_chunk_uses_route_name()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return {
+            chunks = {
+                { kind = "route", segments = { "1e", "1e", "1e" }, turns = 9, routeName = "road" },
+            },
+        }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.queuedActionStatus = origStatus
+    T.truthy(
+        out:find("queued road, 9 turns: 1e, then 1e, then 1e, arrive", 1, true),
+        "route chunk rung expected: " .. out
+    )
+end
+
+-- Mixed queue: a route chunk followed by a move chunk renders as two
+-- labeled chunks joined by "then", with one trailing "arrive". The
+-- player hears the transition from build-road to plain-move and knows
+-- the queue ends at the final move's destination.
+function M.test_selection_status_queued_mission_mixed_chunks_render_both_labels()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return {
+            chunks = {
+                { kind = "route", segments = { "1e", "1e", "1e" }, turns = 9, routeName = "road" },
+                { kind = "move", segments = { "2e", "1ne" }, turns = 2 },
+            },
+        }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.queuedActionStatus = origStatus
+    T.truthy(
+        out:find(
+            "queued road, 9 turns: 1e, then 1e, then 1e, then queued move, 2 turns: 2e, then 1ne, arrive",
+            1,
+            true
+        ),
+        "mixed-queue rung expected: " .. out
+    )
+end
+
+-- Falls back to the bare "queued move" when Waypoints has no status
 -- (empty queue, all path-bearing legs unreachable, etc.).
 function M.test_selection_status_queued_mission_falls_back_when_no_waypoints()
     setup()
@@ -554,28 +648,103 @@ function M.test_selection_status_queued_mission_falls_back_when_no_waypoints()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origFinal = Waypoints.finalAndTurns
-    Waypoints.finalAndTurns = function()
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
         return nil
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.finalAndTurns = origFinal
+    Waypoints.queuedActionStatus = origStatus
     T.truthy(out:find("queued move", 1, true), "queued move fallback expected: " .. out)
-    T.truthy(not out:find("turns", 1, true), "no turns suffix when waypoints unavailable: " .. out)
+    T.truthy(not out:find("turn", 1, true), "no turns suffix when waypoints unavailable: " .. out)
 end
 
-function M.test_selection_status_building_wins_over_queued_mission()
+function M.test_selection_status_building_alone_when_no_queued_chunks()
     -- A worker executing a build has ACTIVITY_MISSION set by the engine.
-    -- The cascade puts the build rung first so the user hears the more
-    -- specific "Build Farm 5 turns" instead of a bare "queued move".
+    -- When Waypoints has nothing queued beyond the active build, the
+    -- status reads only the build rung -- no trailing "queued move"
+    -- bare fallback.
     setup()
     GameInfo.Builds[7] = { Description = "Build Farm" }
     local plot = T.fakePlot({ x = 0, y = 0 })
     plot._buildTurns[7] = 4
     local u = mkUnit({ buildType = 7, plot = plot, activity = ActivityTypes.ACTIVITY_MISSION })
     local out = UnitSpeech.selection(u, 0, 0)
-    T.truthy(out:find("Build Farm 5 turns", 1, true), "building should win: " .. out)
-    T.truthy(not out:find("queued move", 1, true), "queued move must not also fire: " .. out)
+    T.truthy(out:find("Build Farm 5 turns", 1, true), "building should be present: " .. out)
+    T.truthy(not out:find("queued", 1, true), "queued fallback must not fire when no chunks: " .. out)
+end
+
+-- A worker mid-build of a road as part of a route-to queue: the build
+-- folds into the head queued route chunk. Result is one unified
+-- announcement -- "queued road, 9 turns: 3 turns here, then ..." -- with
+-- the current build's remaining turns as the first segment ("here") and
+-- summed into the chunk's total. No separate "Build Road N turns"
+-- prefix; the build is implicit in the "queued road" label.
+function M.test_selection_status_build_folds_into_head_route_chunk()
+    setup()
+    -- Build row needs a RouteType for the fold-detection to find a
+    -- match. Routes table needs an entry for that key whose Description
+    -- resolves to the same lowercased name the chunk carries.
+    GameInfo.Builds[7] = { Description = "Build Road", RouteType = "ROUTE_ROAD" }
+    GameInfo.Routes = GameInfo.Routes or {}
+    GameInfo.Routes["ROUTE_ROAD"] = { Description = "TXT_KEY_ROUTE_ROAD" }
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(key, ...)
+        if key == "TXT_KEY_ROUTE_ROAD" then
+            return "Road"
+        end
+        return origConvert(key, ...)
+    end
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    plot._buildTurns[7] = 2
+    local u = mkUnit({ buildType = 7, plot = plot, activity = ActivityTypes.ACTIVITY_MISSION })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return {
+            chunks = {
+                { kind = "route", segments = { "1e", "1e" }, turns = 6, routeName = "road" },
+            },
+        }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.queuedActionStatus = origStatus
+    Locale.ConvertTextKey = origConvert
+    T.truthy(
+        out:find("queued road, 9 turns: 3 turns here, then 1e, then 1e, arrive", 1, true),
+        "build should fold into queued route: " .. out
+    )
+    T.truthy(not out:find("Build Road", 1, true), "no separate 'Build Road' prefix when folded: " .. out)
+end
+
+-- A worker mid-build of a non-route improvement (Farm) with a queued
+-- move: the build doesn't fold into the queued chunk -- different
+-- semantics. Both render side by side, joined by ", ".
+function M.test_selection_status_build_and_queued_side_by_side_when_kinds_differ()
+    setup()
+    -- Farm has no RouteType so the fold condition can't match.
+    GameInfo.Builds[8] = { Description = "Build Farm" }
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    plot._buildTurns[8] = 4
+    local u = mkUnit({ buildType = 8, plot = plot, activity = ActivityTypes.ACTIVITY_MISSION })
+    UI.GetHeadSelectedUnit = function()
+        return u
+    end
+    local origStatus = Waypoints.queuedActionStatus
+    Waypoints.queuedActionStatus = function()
+        return {
+            chunks = {
+                { kind = "move", segments = { "2e", "1ne" }, turns = 2 },
+            },
+        }
+    end
+    local out = UnitSpeech.selection(u, 0, 0)
+    Waypoints.queuedActionStatus = origStatus
+    T.truthy(
+        out:find("Build Farm 5 turns, queued move, 2 turns: 2e, then 1ne, arrive", 1, true),
+        "non-route build should render alongside queued move: " .. out
+    )
 end
 
 -- ===== Selection: cascade first-match-wins =====

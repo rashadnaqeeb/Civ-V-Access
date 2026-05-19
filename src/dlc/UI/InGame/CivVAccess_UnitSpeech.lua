@@ -18,10 +18,13 @@
 --     on-map path line. For a selectable player unit that falls through
 --     to this rung, the engine mission is MISSION_MOVE_TO / ROUTE_TO
 --     (build missions get caught by the build rung; one-shot missions
---     resolve within the turn). With waypoints computed by WaypointsCore
---     we can name the destination as a direction prefix ("3e 2se") and
---     the total turn count; bare "queued move" is the fallback when the
---     queue's path-bearing legs all fail to resolve a path.
+--     resolve within the turn). With chunks computed by WaypointsCore
+--     we render one chunk per queued action -- "queued move, 3 turns:
+--     2ne, then 2ne, then 1ne" for a movement leg, "queued road, 9
+--     turns: 1e, then 1e, then 1e" for a route-to leg -- joined by
+--     "then" between chunks and capped with ", arrive" at the end.
+--     Bare "queued move" is the fallback when the queue's path-bearing
+--     legs all fail to resolve a path.
 
 UnitSpeech = {}
 
@@ -198,22 +201,78 @@ local function isOutOfAttacks(unit)
     return unit:IsCombatUnit() and unit:MovesLeft() > 0 and unit:IsOutOfAttacks()
 end
 
--- "<Build> <N> turns" for a unit mid-execution on a build mission, or ""
--- when the unit isn't building. Engine adds +1 to turns-left (see
--- UnitPanel.lua:392) so a build finishing at end-of-turn reads as 1
--- rather than 0.
-local function buildToken(unit)
+-- { turns, description, routeName } for a unit mid-execution on a build
+-- mission, or nil when the unit isn't building. Turns adds +1 to the
+-- engine's GetBuildTurnsLeft (UnitPanel.lua:392) so a build finishing
+-- at end-of-turn reads as 1 rather than 0. routeName is the lowercased
+-- localized name of the route the build lays (e.g. "road" / "railroad")
+-- when the build's GameInfo row has a RouteType, nil otherwise -- the
+-- fold logic in statusToken uses this to decide whether the active
+-- build can merge into the head queued route chunk.
+local function activeBuildInfo(unit)
     local buildType = unit:GetBuildType()
     if buildType == -1 then
-        return ""
+        return nil
     end
     local buildRow = GameInfo.Builds[buildType]
     if buildRow == nil then
         Log.warn("UnitSpeech: GetBuildType returned unknown id " .. tostring(buildType))
-        return ""
+        return nil
     end
     local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
-    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", turns, Text.key(buildRow.Description), turns)
+    local routeName = nil
+    local routeType = buildRow.RouteType
+    if routeType ~= nil and routeType ~= "NULL" then
+        local routeRow = GameInfo.Routes[routeType]
+        if routeRow ~= nil then
+            local raw = Text.key(routeRow.Description)
+            if Locale and Locale.ToLower then
+                routeName = Locale.ToLower(raw)
+            else
+                routeName = raw:lower()
+            end
+        end
+    end
+    return { turns = turns, description = Text.key(buildRow.Description), routeName = routeName }
+end
+
+-- "<Build> <N> turns" for a unit mid-execution on a build mission, or ""
+-- when the unit isn't building. Thin wrapper around activeBuildInfo for
+-- callers that just want the rendered string.
+local function buildToken(unit)
+    local info = activeBuildInfo(unit)
+    if info == nil then
+        return ""
+    end
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING", info.turns, info.description, info.turns)
+end
+
+-- Render one chunk from Waypoints.queuedActionStatus into its localized
+-- "queued X, N turns: SEG, then SEG, ..." form. Move chunks use the
+-- move template; route chunks use the route template with the chunk's
+-- routeName ("road" / "railroad" / a modded route's localized name)
+-- substituted as the third arg. Returns "" if the chunk has no
+-- segments (defensive; queuedActionStatus already filters this).
+local function renderChunk(chunk, joiner)
+    if #chunk.segments == 0 then
+        return ""
+    end
+    local body = table.concat(chunk.segments, joiner)
+    if chunk.kind == "route" then
+        return Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK",
+            chunk.turns,
+            body,
+            chunk.turns,
+            chunk.routeName
+        )
+    end
+    return Text.formatPlural(
+        "TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK",
+        chunk.turns,
+        body,
+        chunk.turns
+    )
 end
 
 -- Returns the first matching status token (localized string), or "".
@@ -266,26 +325,89 @@ local function statusToken(unit)
     if activity == ActivityTypes.ACTIVITY_SLEEP then
         return Text.key("TXT_KEY_MISSION_SLEEP")
     end
-    local build = buildToken(unit)
+    -- Build + queued composition. Three outcomes depending on what the
+    -- worker is doing right now and what's still queued:
+    --   * Build is mid-execution of a route (e.g. Build Road) AND the
+    --     head queued chunk is the same route: FOLD. The build's
+    --     remaining turns prepend as a "<N> turns here" segment on the
+    --     first chunk, the chunk's turn count grows by that amount, and
+    --     the unified queued rung renders alone. The user hears one
+    --     continuous announcement covering current + future work.
+    --   * Build and queued both fire but the kinds / routes don't match
+    --     (e.g. building a Farm with a queued move): SIDE BY SIDE.
+    --     "Build Farm 3 turns, queued move, ..." -- two phrases, no
+    --     misleading unification.
+    --   * Only one fires: render it. Only build = just the build rung;
+    --     only queued = just the queued rung; neither + ACTIVITY_MISSION
+    --     = bare "queued move" fallback.
+    local buildInfo = activeBuildInfo(unit)
+    local build = ""
+    if buildInfo ~= nil then
+        build = Text.formatPlural(
+            "TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING",
+            buildInfo.turns,
+            buildInfo.description,
+            buildInfo.turns
+        )
+    end
+    local status = nil
+    if activity == ActivityTypes.ACTIVITY_MISSION then
+        local head = UI.GetHeadSelectedUnit()
+        if head ~= nil and head:GetID() == unit:GetID() then
+            status = Waypoints.queuedActionStatus()
+        end
+    end
+    if status ~= nil and #status.chunks > 0 then
+        local joiner = Text.key("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER")
+        local chunks = status.chunks
+        local foldFirst = (
+            buildInfo ~= nil
+            and buildInfo.routeName ~= nil
+            and chunks[1].kind == "route"
+            and chunks[1].routeName == buildInfo.routeName
+        )
+        if foldFirst then
+            local first = chunks[1]
+            local hereSeg = Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE",
+                buildInfo.turns,
+                buildInfo.turns
+            )
+            local foldedSegments = { hereSeg }
+            for _, seg in ipairs(first.segments) do
+                foldedSegments[#foldedSegments + 1] = seg
+            end
+            local folded = {
+                kind = "route",
+                routeName = first.routeName,
+                segments = foldedSegments,
+                turns = first.turns + buildInfo.turns,
+            }
+            local rewritten = { folded }
+            for i = 2, #chunks do
+                rewritten[i] = chunks[i]
+            end
+            chunks = rewritten
+        end
+        local parts = {}
+        for i, chunk in ipairs(chunks) do
+            parts[i] = renderChunk(chunk, joiner)
+        end
+        local queued = table.concat(parts, joiner) .. Text.key("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE")
+        if foldFirst then
+            return queued
+        end
+        if build ~= "" then
+            return build .. ", " .. queued
+        end
+        return queued
+    end
     if build ~= "" then
         return build
     end
+    -- Mid-mission with no queued path we can describe: bare fallback so
+    -- the player at least knows the unit is on a queued action.
     if activity == ActivityTypes.ACTIVITY_MISSION then
-        -- Waypoints.finalAndTurns reads the cached queue waypoints for
-        -- the active selected unit. statusToken is also called from
-        -- PlotSectionUnits against arbitrary units on the cursor plot;
-        -- the cache only matches the head-selected unit, so an unselected
-        -- friendly mid-mission falls through to the bare queued rung.
-        local head = UI.GetHeadSelectedUnit()
-        if head ~= nil and head:GetID() == unit:GetID() then
-            local fin = Waypoints.finalAndTurns()
-            if fin ~= nil then
-                local dir = HexGeom.directionString(unit:GetX(), unit:GetY(), fin.x, fin.y)
-                if dir ~= "" then
-                    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO", fin.turns, dir, fin.turns)
-                end
-            end
-        end
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED")
     end
     return ""
