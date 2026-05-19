@@ -843,6 +843,86 @@ function M.test_unmodified_nav_rewrites_for_numlock_off_case()
     T.eq(fired.count, 1)
 end
 
+-- AltGr collapse -----------------------------------------------------------
+-- On non-US keyboard layouts (German, French, Spanish, Polish, BR Portuguese,
+-- Nordic, UK-extended) the right Alt key is AltGr, which Windows implements
+-- by injecting a synthesized left-Ctrl press before the right-Alt press.
+-- GetAsyncKeyState then reports Ctrl AND Alt as held, so our Alt-only
+-- bindings never match for those players. dispatch strips the Ctrl bit
+-- when Alt is also set so the mask collapses back to plain Alt.
+
+function M.test_altgr_collapse_fires_alt_only_binding_under_ctrl_alt_mask()
+    setup()
+    local fired = 0
+    HandlerStack.push({
+        name = "Bookmarks",
+        bindings = {
+            {
+                key = 49, -- Keys["1"]
+                mods = 4, -- Alt
+                fn = function()
+                    fired = fired + 1
+                end,
+            },
+        },
+    })
+    -- AltGr+1 on a German layout: engine sees mods=6 (Ctrl+Alt). Without
+    -- the collapse, mods=6 wouldn't match the mods=4 binding.
+    T.truthy(InputRouter.dispatch(49, 6, WM_KEYDOWN), "AltGr+1 fires Alt+1 binding")
+    T.eq(fired, 1)
+end
+
+function M.test_altgr_collapse_preserves_shift_when_shift_alt_held()
+    -- Shift+AltGr+key arrives as mods=7 (Shift+Ctrl+Alt). Must collapse to
+    -- mods=5 (Shift+Alt), not strip more than the synthesized Ctrl.
+    setup()
+    local fired = 0
+    HandlerStack.push({
+        name = "test",
+        bindings = {
+            {
+                key = 65, -- Keys.A
+                mods = 5, -- Shift+Alt
+                fn = function()
+                    fired = fired + 1
+                end,
+            },
+        },
+    })
+    T.truthy(InputRouter.dispatch(65, 7, WM_KEYDOWN), "Shift+AltGr+A fires Shift+Alt+A binding")
+    T.eq(fired, 1)
+end
+
+function M.test_altgr_collapse_does_not_fire_under_plain_ctrl()
+    -- mods=2 (Ctrl alone, no Alt) must not get stripped -- the collapse is
+    -- gated on Alt being set so plain Ctrl chords still bind exactly.
+    setup()
+    local altFired = 0
+    local ctrlFired = 0
+    HandlerStack.push({
+        name = "test",
+        bindings = {
+            {
+                key = 67, -- Keys.C
+                mods = 4, -- Alt
+                fn = function()
+                    altFired = altFired + 1
+                end,
+            },
+            {
+                key = 67, -- Keys.C
+                mods = 2, -- Ctrl
+                fn = function()
+                    ctrlFired = ctrlFired + 1
+                end,
+            },
+        },
+    })
+    T.truthy(InputRouter.dispatch(67, 2, WM_KEYDOWN), "plain Ctrl+C fires the Ctrl binding")
+    T.eq(altFired, 0, "Alt binding does not fire on plain Ctrl")
+    T.eq(ctrlFired, 1, "Ctrl binding fires unchanged")
+end
+
 function M.test_dedicated_home_unmodified_passes_through_to_VK_HOME_binding()
     -- Same VK_HOME but bit 24 set: dedicated Home. Should fire Scanner's
     -- jumpToEntry (VK_HOME unmodified), not the mirrored Q binding.

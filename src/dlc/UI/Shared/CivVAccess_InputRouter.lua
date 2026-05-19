@@ -231,6 +231,25 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
             .. tostring(navRewrote)
     )
 
+    -- AltGr collapse. On non-US keyboard layouts (German, French, Spanish,
+    -- Polish, BR Portuguese, Nordic, UK-extended, ...) the right Alt key is
+    -- AltGr, which Windows implements by injecting a synthesized left-Ctrl
+    -- press immediately before the right-Alt press. GetAsyncKeyState then
+    -- reports both Ctrl and Alt as held, so our Alt-only bindings -- which
+    -- exact-match mods == MOD_ALT -- never fire when those players press
+    -- right Alt. Clear the Ctrl bit when Alt is also set so the mask
+    -- collapses back to plain Alt (or Shift+Alt when Shift was held too).
+    -- No mod or engine binding uses MOD_CTRL+MOD_ALT as a chord, so the
+    -- only side effect on US layouts is that physically holding Ctrl+Alt
+    -- with a bound key now fires the Alt binding -- not a chord any in-game
+    -- shortcut occupies. Lua 5.1 in the engine sandbox has no bitops,
+    -- hence the arithmetic.
+    local hasAlt = (modMask % 8) >= MOD_ALT
+    local hasCtrl = (modMask % 4) >= MOD_CTRL
+    if hasAlt and hasCtrl then
+        modMask = modMask - MOD_CTRL
+    end
+
     -- Drop any handlers whose owning Context env got wiped (front-end
     -- skin unload during pre-game-to-in-game, in-game env wipe on load-
     -- game-from-game). Boot.onInGameBoot purges these at LoadScreenClose

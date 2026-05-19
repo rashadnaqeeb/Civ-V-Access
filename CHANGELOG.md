@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 Bug fixes:
 - Drilling into a yield on the city stats screen no longer reads out a row of dashes between the sources and the total.
+- Alt-modified hotkeys now work with the right Alt key on non-US keyboard layouts.
 
 ## [1.1.10] - 2026-05-17
 
