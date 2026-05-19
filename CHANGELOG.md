@@ -18,6 +18,7 @@ New Features and improvements:
 Bug fixes:
 - Drilling into a yield on the city stats screen no longer reads out a row of dashes between the sources and the total.
 - Alt-modified hotkeys now work with the right Alt key on non-US keyboard layouts.
+- Route-to no longer says "no route available" on Space or Enter when the worker is standing on a tile that already has the best route (or in a city); it now reads the path the engine will actually commit.
 
 ## [1.1.10] - 2026-05-17
 

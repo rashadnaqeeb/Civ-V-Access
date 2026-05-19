@@ -352,21 +352,40 @@ local function routePathPreview(actor, targetPlot)
     if not isDebug and not targetPlot:IsRevealed(team, isDebug) then
         return Text.key("TXT_KEY_CIVVACCESS_UNEXPLORED")
     end
-    -- Engine's CvUnit::GetBestBuildRoute (CvUnit.cpp:18793) picks the
-    -- highest-Routes.Value build the worker can build on the given plot
-    -- given the player's tech. Asking against the worker's current plot
-    -- gives the route the engine will queue along the path's land tiles.
-    local routeId, buildId = actor:GetBestBuildRoute(fromPlot)
-    if buildId < 0 or routeId < 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD")
-    end
-    local routeRow = GameInfo.Routes[routeId]
-    local routeValue = (routeRow ~= nil and routeRow.Value) or 0
     local diag = PathDiagnostic.discriminativeRoutePath(actor, targetPlot)
     if diag.ok ~= "strict" then
         return PathDiagnostic.formatRouteFailure(diag, targetPlot:GetX(), targetPlot:GetY())
     end
     local path = diag.path
+    -- The route the worker will actually lay is whatever CvUnit::GetBestBuildRoute
+    -- (CvUnit.cpp:18793) picks for the first buildable plot along the path.
+    -- The worker's current plot can return NO_ROUTE even though the engine's
+    -- BuildRouteFinder (Game.GetBuildRoutePath) routes through it: a tile
+    -- already at the best tech-available tier rejects further route builds
+    -- via CvPlot::canBuild's same-or-higher-value gate (CvPlot.cpp:2363), and
+    -- a city sits in the path-cost map but isn't a build target. Falling
+    -- back to the first buildable tile gets the tier the engine will queue
+    -- segment by segment.
+    local routeId, buildId = -1, -1
+    for _, node in ipairs(path) do
+        local plot = Map.GetPlot(node.x, node.y)
+        if plot ~= nil then
+            local r, b = actor:GetBestBuildRoute(plot)
+            if r >= 0 and b >= 0 then
+                routeId, buildId = r, b
+                break
+            end
+        end
+    end
+    local tileCount = #path - 1
+    -- No plot along the path is buildable (every tile already at best route,
+    -- or every tile is a city). The mission still gets pushed and will
+    -- resolve immediately when the worker arrives per CvUnitMission.cpp:692.
+    if buildId < 0 then
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", tileCount, tileCount)
+    end
+    local routeRow = GameInfo.Routes[routeId]
+    local routeValue = (routeRow ~= nil and routeRow.Value) or 0
     local extraRate = actor:WorkRate(true, buildId)
     local actorAlreadyOnBuild = actor:GetBuildType() == buildId
     local buildTurns = 0
@@ -376,7 +395,6 @@ local function routePathPreview(actor, targetPlot)
             buildTurns = buildTurns + plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, i == 1)
         end
     end
-    local tileCount = #path - 1
     if buildTurns == 0 then
         return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE", tileCount, tileCount)
     end
