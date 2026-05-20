@@ -801,6 +801,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT"] = "Mosse rimaste"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Mosse massime"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Forza"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Distanza"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Nemici adiacenti"
 -- Great People tab. Mirrors GPList: one subgroup per specialist type
 -- populated with per-city progress rows sorted by turns ascending, plus
 -- flat GG / GA rows reusing TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row
