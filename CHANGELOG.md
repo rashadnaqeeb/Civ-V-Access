@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.11] - 2026-05-20
+
 New Features and improvements:
 - Pressing Space with a unit selected now previews its path and movement cost to the cursor tile, without entering move mode first.
 - Selecting a unit with a queued move now reads each stop on its path in order, so you can hear where it will pause along the way instead of just the final destination.
