@@ -4,16 +4,23 @@
 -- every open and on F1):
 --
 --   Units         BaseTable. One row per owned unit. Columns: Distance,
---                 Status, Moves left, Max moves, Strength, Ranged. The
---                 unit name lives on the row label rather than in a
---                 column so the user hears it once on row change instead
---                 of repeating it in a Name cell.
+--                 Status, Moves left, Max moves, Strength, Ranged,
+--                 Adjacent enemies. The unit name lives on the row label
+--                 rather than in a column so the user hears it once on
+--                 row change instead of repeating it in a Name cell.
 --
 --                 Distance is the leftmost column and uses the same
 --                 HexGeom formatter as the scanner ("3e", "2nw, 1ne");
 --                 sortKey is the cube-distance so ascending sort puts
 --                 nearest first. On the cursor's own hex the cell speaks
 --                 SCANNER_HERE.
+--
+--                 Adjacent enemies counts visible enemy units on the
+--                 unit's six neighbor tiles via the shared
+--                 PlotComposers.countAdjacentEnemies predicate -- the
+--                 same fogged-tile-gated count the cursor's adjacent-
+--                 enemy warning speaks. Sort the column descending to
+--                 lift the most-threatened units to the top.
 --
 --                 Default row order mirrors the engine's stack layout:
 --                 military first, civilian second, alphabetical within
@@ -58,6 +65,11 @@ include("CivVAccess_ScannerStrings_en_US")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_BaseTableCore")
 include("CivVAccess_HexGeom")
+-- Included only for PlotComposers.countAdjacentEnemies (Adjacent enemies
+-- column). PlotComposers has no top-level executable code and no includes
+-- of its own, so loading it here just defines the table; its plot-glance
+-- composers are never called from this Context.
+include("CivVAccess_PlotComposers")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -228,6 +240,14 @@ local function combatNumberCell(n)
     return tostring(n)
 end
 
+-- Count of visible enemy units on the unit's six neighbor tiles. Shares
+-- the predicate with the cursor's adjacent-enemy warning: each neighbor
+-- is gated on IsVisible so an enemy on a fogged tile never leaks into the
+-- count.
+local function adjacentEnemyCount(unit)
+    return PlotComposers.countAdjacentEnemies(unit:GetPlot(), Game.GetActiveTeam(), Game.IsDebugMode())
+end
+
 -- ===== Row label ======================================================
 
 -- The row label is what BaseTable speaks when the cursor enters a new
@@ -374,6 +394,15 @@ local function buildUnitColumns()
             sortKey = function(unit)
                 return unit:GetBaseRangedCombatStrength()
             end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            name = "TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT",
+            getCell = function(unit)
+                return tostring(adjacentEnemyCount(unit))
+            end,
+            sortKey = adjacentEnemyCount,
             enterAction = activateUnit,
             pediaName = unitPediaName,
         },

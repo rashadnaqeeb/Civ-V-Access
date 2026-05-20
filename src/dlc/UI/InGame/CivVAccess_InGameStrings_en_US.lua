@@ -1332,11 +1332,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Great People"
 -- (nearest first on ascending), cell uses HexGeom.directionString --
 -- the same compact "<count><dir>" format the scanner speaks ("3e",
 -- "2nw, 1ne"). On the cursor's own hex the cell speaks SCANNER_HERE.
+-- Adjacent enemies is the count of visible enemy units on the unit's six
+-- neighbor tiles.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_DISTANCE"] = "Distance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MOVEMENT"] = "Moves left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Max moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Ranged"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Adjacent enemies"
 -- Great People tab. Mirrors GPList: one subgroup per specialist type
 -- populated with per-city progress rows sorted by turns ascending, plus
 -- flat GG / GA rows reusing TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row
