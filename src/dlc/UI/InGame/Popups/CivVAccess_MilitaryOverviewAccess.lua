@@ -88,38 +88,53 @@ local function formatMoves(sixtieths)
     return tostring(whole) .. "." .. tostring(frac)
 end
 
--- Localized status text for a unit. Mirrors the engine's priority
--- cascade in BuildUnitList. Falls through to MO_STATUS_IDLE
--- ("awaiting orders") when the engine would have hidden the status
--- column -- a unit with no fortify / sleep / sentry / heal / build /
--- automation state. The engine simply omits the cell visually; in
--- speech an empty string would leave the user wondering whether the
--- screen reader cut off, so we say the idle case explicitly.
+-- Status column sort ranks. The status cell sorts by rank first and by
+-- the localized status text within a rank, so an ascending sort lifts
+-- the units still wanting orders to the top, groups the active-mission
+-- states in the middle, and sinks the finished units to the bottom.
+local STATUS_RANK_IDLE = "1"
+local STATUS_RANK_ACTIVE = "5"
+local STATUS_RANK_OUT_OF_MOVES = "9"
+
+-- Localized status for a unit, plus its sort rank. The cascade mirrors
+-- the engine's BuildUnitList priority order for the mission / activity
+-- states; past that the engine hides the status cell, but an empty cell
+-- in speech reads as a cut-off, so the no-mission case is split three
+-- ways:
+--   moving        -- a multi-turn move is queued; the unit travels on
+--                    its own and needs no attention.
+--   out of moves  -- no moves left and nothing queued; done this turn.
+--   idle          -- still has moves and no orders; awaiting the player.
+-- A unit the player skipped with Space keeps its moves, so it reads as
+-- idle -- still freely orderable, unlike an out-of-moves unit. The
+-- "moving" split needs the GetMissionQueue fork binding; on a
+-- -SkipEngine deploy that binding is absent and a travelling unit reads
+-- as out of moves rather than crashing the row build.
 local function unitStatusText(unit)
     if unit:IsEmbarked() then
-        return Text.key("TXT_KEY_UNIT_STATUS_EMBARKED")
+        return Text.key("TXT_KEY_UNIT_STATUS_EMBARKED"), STATUS_RANK_ACTIVE
     end
     if unit:IsGarrisoned() then
-        return Text.key("TXT_KEY_MISSION_GARRISON")
+        return Text.key("TXT_KEY_MISSION_GARRISON"), STATUS_RANK_ACTIVE
     end
     if unit:IsAutomated() then
         if unit:IsWork() then
-            return Text.key("TXT_KEY_ACTION_AUTOMATE_BUILD")
+            return Text.key("TXT_KEY_ACTION_AUTOMATE_BUILD"), STATUS_RANK_ACTIVE
         end
-        return Text.key("TXT_KEY_ACTION_AUTOMATE_EXPLORE")
+        return Text.key("TXT_KEY_ACTION_AUTOMATE_EXPLORE"), STATUS_RANK_ACTIVE
     end
     local activityType = unit:GetActivityType()
     if activityType == ActivityTypes.ACTIVITY_HEAL then
-        return Text.key("TXT_KEY_MISSION_HEAL")
+        return Text.key("TXT_KEY_MISSION_HEAL"), STATUS_RANK_ACTIVE
     end
     if activityType == ActivityTypes.ACTIVITY_SENTRY then
-        return Text.key("TXT_KEY_MISSION_ALERT")
+        return Text.key("TXT_KEY_MISSION_ALERT"), STATUS_RANK_ACTIVE
     end
     if unit:GetFortifyTurns() > 0 then
-        return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED")
+        return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED"), STATUS_RANK_ACTIVE
     end
     if activityType == ActivityTypes.ACTIVITY_SLEEP then
-        return Text.key("TXT_KEY_MISSION_SLEEP")
+        return Text.key("TXT_KEY_MISSION_SLEEP"), STATUS_RANK_ACTIVE
     end
     local buildType = unit:GetBuildType()
     if buildType ~= -1 then
@@ -129,9 +144,24 @@ local function unitStatusText(unit)
         if turnsLeft < 4000 and turnsLeft > 0 then
             str = str .. " (" .. tostring(turnsLeft) .. ")"
         end
-        return str
+        return str, STATUS_RANK_ACTIVE
     end
-    return Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_IDLE")
+    if unit.GetMissionQueue ~= nil and #unit:GetMissionQueue() > 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"), STATUS_RANK_ACTIVE
+    end
+    if unit:MovesLeft() == 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_MOVES"), STATUS_RANK_OUT_OF_MOVES
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"), STATUS_RANK_IDLE
+end
+
+-- Status sort key: rank digit, then the localized status text, then the
+-- zero-padded unit ID. Rank fixes the band order, the text sub-sorts
+-- within a band, and the ID makes same-status ties deterministic --
+-- the same unit-ID tiebreak the engine F3's own SortFunction uses.
+local function unitStatusSortKey(unit)
+    local text, rank = unitStatusText(unit)
+    return rank .. text .. string.format("%05d", unit:GetID())
 end
 
 -- displayName uses the no-civ form -- the list is the active player's
@@ -296,8 +326,10 @@ local function buildUnitColumns()
         },
         {
             name = "TXT_KEY_STATUS",
-            getCell = unitStatusText,
-            sortKey = unitStatusText,
+            getCell = function(unit)
+                return (unitStatusText(unit))
+            end,
+            sortKey = unitStatusSortKey,
             enterAction = activateUnit,
             pediaName = unitPediaName,
         },

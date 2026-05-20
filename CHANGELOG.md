@@ -16,6 +16,7 @@ New Features and improvements:
 - Selecting a worker with a queued route now reads "queued road" or "queued railroad" with the total build turns and each tile the worker will stop on to build, instead of describing it as a regular move with movement-only turn count.
 
 Bug fixes:
+- Military Overview units that have used their moves no longer show as idle; they read as out of moves or moving.
 - Drilling into a yield on the city stats screen no longer reads out a row of dashes between the sources and the total.
 - Alt-modified hotkeys now work with the right Alt key on non-US keyboard layouts.
 - Route-to no longer says "no route available" on Space or Enter when the worker is standing on a tile that already has the best route (or in a city); it now reads the path the engine will actually commit.

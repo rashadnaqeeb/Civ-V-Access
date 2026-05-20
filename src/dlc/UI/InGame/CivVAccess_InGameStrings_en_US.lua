@@ -1307,11 +1307,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "No combat this turn
 -- population) are dropped here in favour of brevity.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} of {3_Max} xp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Supply: {1_Use} of {2_Cap}"
--- Idle status fallback. The engine hides the status column when a unit
--- has no fortify / sleep / sentry / heal / build / automation state.
--- In speech an empty cell would leave the user wondering whether the
--- screen reader cut off, so we name the idle case explicitly.
+-- Units-tab status cell for a unit with no mission or activity. The
+-- engine hides the status column here; in speech an empty cell reads as
+-- a cut-off, so the case is named. "idle" is a unit still awaiting
+-- orders; "moving" is one walking a queued multi-turn route. The
+-- out-of-moves case reuses TXT_KEY_CIVVACCESS_UNIT_OUT_OF_MOVES.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "idle"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "moving"
 -- Tab labels. Two tabs: Units (BaseTable) and Great People (BaseMenu).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Great People"
