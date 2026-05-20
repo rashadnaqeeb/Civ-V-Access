@@ -16,9 +16,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     other = "{1_What} {2_Turns} turni",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "mossa in coda"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "mossa in coda {1_Dir}, {2_Turns} turno",
-    other = "mossa in coda {1_Dir}, {2_Turns} turni",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "mossa in coda, {2_Turns} turno: {1_Segments}",
+    other = "mossa in coda, {2_Turns} turni: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "{3_RouteName} in coda, {2_Turns} turno: {1_Segments}",
+    other = "{3_RouteName} in coda, {2_Turns} turni: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", poi "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", arrivo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} turno qui",
+    other = "{1_Turns} turni qui",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} mischia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} a distanza, portata {2_Range}"
@@ -184,7 +194,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     one = "{1_Tiles} casella, nessun lavoro necessario",
     other = "{1_Tiles} caselle, nessun lavoro necessario",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "nessuna strada disponibile"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -383,7 +392,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "controllato da {1_City
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "controllato"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} percento difesa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in zona di controllo nemica"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "nemico vicino"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} nemico nelle vicinanze",
+    other = "{1_N} nemici nelle vicinanze",
+}
 -- ===== Cursor help overlay =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Gruppo Q, W, E, A, S, D, Z, X, C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] =
@@ -402,6 +414,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Dettagli economici della casella corrente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "Dettagli di combattimento della casella corrente"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Spazio"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "Anteprima del percorso dell'unità selezionata e del costo di movimento verso la casella corrente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "Identità e combattimento della città"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -769,6 +784,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Rifornimenti: {1_Use
 -- In speech an empty cell would leave the user wondering whether the
 -- screen reader cut off, so we name the idle case explicitly.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "inattivo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "in movimento"
 -- Tab labels. Two tabs: Units (BaseTable) and Great People (BaseMenu).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Unità"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Grandi personaggi"

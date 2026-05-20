@@ -23,10 +23,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     many = "{1_What} {2_Turns} tur",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "ruch w kolejce"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "ruch w kolejce {1_Dir}, {2_Turns} tura",
-    few = "ruch w kolejce {1_Dir}, {2_Turns} tury",
-    many = "ruch w kolejce {1_Dir}, {2_Turns} tur",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "ruch w kolejce, {2_Turns} tura: {1_Segments}",
+    few = "ruch w kolejce, {2_Turns} tury: {1_Segments}",
+    many = "ruch w kolejce, {2_Turns} tur: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "{3_RouteName} w kolejce, {2_Turns} tura: {1_Segments}",
+    few = "{3_RouteName} w kolejce, {2_Turns} tury: {1_Segments}",
+    many = "{3_RouteName} w kolejce, {2_Turns} tur: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", potem "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", przybycie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} tura tutaj",
+    few = "{1_Turns} tury tutaj",
+    many = "{1_Turns} tur tutaj",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} siła walki"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} siła ataku dystansowego, zasięg {2_Range}"
@@ -217,7 +229,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     few = "{1_Tiles} pola, bez pracy",
     many = "{1_Tiles} pól, bez pracy",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "brak dostępnej trasy"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -396,7 +407,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "kontrolowane przez {1_
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "kontrolowane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} procent obrony"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "w strefie kontroli wroga"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "wróg obok"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} pobliski wróg",
+    few = "{1_N} pobliskich wrogów",
+    many = "{1_N} pobliskich wrogów",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, D, Z, X, C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] =
     "Przesuń kursor o pole (Q pn-z, E pn-w, A z, D w, Z pd-z, C pd-w)"
@@ -414,6 +429,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Szczegóły ekonomiczne bieżącego pola"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "Szczegóły walki na bieżącym polu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "Podgląd trasy wybranej jednostki i kosztu ruchu do bieżącego pola"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "Tożsamość i walka miasta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -571,19 +589,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Mowa
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Szczegółowe komunikaty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Tylko sygnały dźwiękowe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Głośność ikon dźwiękowych terenu"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = {
-    one = "Głośność ikon dźwiękowych terenu, {1_Num} procent",
-    few = "Głośność ikon dźwiękowych terenu, {1_Num} procenty",
-    many = "Głośność ikon dźwiękowych terenu, {1_Num} procent",
-}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Głośność ikon dźwiękowych terenu, {1_Num} procent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME"] = "Głośność sygnału"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"] = "Głośność sygnału, {1_Num} procent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE"] = "Zasięg słyszalności sygnału"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE_VALUE"] = {
-    one = "Zasięg słyszalności sygnału, {1_Num} heks",
-    few = "Zasięg słyszalności sygnału, {1_Num} heksy",
-    many = "Zasięg słyszalności sygnału, {1_Num} heksów",
-}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BEACON_RANGE_VALUE"] = "Zasięg słyszalności sygnału, {1_Num} heksów"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE"] = "Automatyczne przesuwanie kursora skanera"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_FOLLOWS_SELECTION"] = "Kursor śledzi wybraną jednostkę"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE"] = "Współrzędne kursora podczas ruchu"
@@ -779,6 +789,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} z 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Zaopatrzenie: {1_Use} z {2_Cap}"
 -- Idle status fallback.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "bezczynny"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "w ruchu"
 -- Tab labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Jednostki"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Wielcy ludzie"

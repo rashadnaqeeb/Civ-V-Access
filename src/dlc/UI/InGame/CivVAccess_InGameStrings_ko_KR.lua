@@ -16,8 +16,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     other = "{1_What} {2_Turns} 턴",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "이동 대기 중"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    other = "이동 대기 중 {1_Dir}, {2_Turns} 턴",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    other = "이동 대기 중, {2_Turns} 턴: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    other = "{3_RouteName} 대기 중, {2_Turns} 턴: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", 다음 "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", 도착"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    other = "{1_Turns} 턴 작업 중",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} 근접"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} 원거리, 사거리 {2_Range}"
@@ -175,7 +183,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE"] = "{1_TilesClause}, 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} 타일, 작업 필요 없음",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "사용 가능한 경로 없음"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -356,7 +363,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "{1_City}이 통제"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "통제"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "방어 {1_Pct}%"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "적 통제 지역 내"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "적 인접"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    other = "인근 적 {1_N}",
+}
 -- Cursor help-overlay key labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, D, Z, X, C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] =
@@ -375,6 +384,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "현재 타일 경제 정보"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "현재 타일 전투 정보"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "선택된 유닛의 현재 타일까지 경로 및 이동력 비용 미리 보기"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "도시 정보 및 전투"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -694,6 +706,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "보급: {1_Use}/{2_C
 
 -- Idle status fallback
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "대기"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "이동 중"
 
 -- Tab labels
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "유닛"

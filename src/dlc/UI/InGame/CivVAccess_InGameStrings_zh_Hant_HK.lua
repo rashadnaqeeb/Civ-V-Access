@@ -18,8 +18,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     other = "{1_What} {2_Turns} 回合",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "已排程移動"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    other = "已排程移動 {1_Dir}, {2_Turns} 回合",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    other = "已排程移動, {2_Turns} 回合: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    other = "已排程{3_RouteName}, {2_Turns} 回合: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", 接著 "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", 抵達"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    other = "{1_Turns} 回合於此",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} 近戰"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} 遠程戰鬥力, 射程 {2_Range}"
@@ -170,7 +178,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE"] = "{1_TilesClause}, 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     other = "{1_Tiles} 格, 無需施工",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "無可用路線"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -342,7 +349,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "由 {1_City} 管轄"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "已管轄"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} 百分比防禦"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "在敵方控制區內"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "敵方在旁"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    other = "{1_N} 個附近敵方單位",
+}
 -- Cursor help-overlay key labels
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, D, Z, X, C 組合"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] =
@@ -361,6 +370,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "當前格的經濟詳情"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "當前格的戰鬥詳情"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "預覽所選單位前往當前格的路徑及移動消耗"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "城市身分與戰鬥"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -676,6 +688,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "本回合無戰鬥.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} / {3_Max} 經驗"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "補給: {1_Use} / {2_Cap}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "閒置"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "移動中"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "單位"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "偉人"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_DISTANCE"] = "距離"

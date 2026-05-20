@@ -23,10 +23,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
 }
 -- Spoken when a unit is mid-execution on ACTIVITY_MISSION.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "eingereiht Bewegung"
--- Engine-fork form of the queued rung.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "eingereiht Bewegung {1_Dir}, {2_Turns} Runde",
-    other = "eingereiht Bewegung {1_Dir}, {2_Turns} Runden",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "eingereiht Bewegung, {2_Turns} Runde: {1_Segments}",
+    other = "eingereiht Bewegung, {2_Turns} Runden: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "eingereiht {3_RouteName}, {2_Turns} Runde: {1_Segments}",
+    other = "eingereiht {3_RouteName}, {2_Turns} Runden: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", dann "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", angekommen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} Runde hier",
+    other = "{1_Turns} Runden hier",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} Nahkampf"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} Fernkampf, Radius {2_Range}"
@@ -230,7 +239,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     one = "{1_Tiles} Geländefeld, kein Baubedarf",
     other = "{1_Tiles} Geländefelder, kein Baubedarf",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "keine Route verfügbar"
+
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -483,7 +492,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "kontrolliert"
 -- ===== Defense and zone of control =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} Prozent Verteidigung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in feindlichem Einflussbereich"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "Feind in der Nähe"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} Feind in der Nähe",
+    other = "{1_N} Feinde in der Nähe",
+}
 
 -- ===== Cursor help overlay =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Q, W, E, A, S, D, Z, X, C Gruppe"
@@ -503,6 +515,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Wirtschaftsdetails des aktuellen Geländefelds"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "Kampfdetails des aktuellen Geländefelds"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Leertaste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "Pfad der ausgewählten Einheit und Bewegungskosten zum aktuellen Geländefeld voranzeigen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "Stadtidentität und Kampf"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -859,6 +874,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} vo
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Versorgung: {1_Use} von {2_Cap}"
 -- Idle status fallback.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "untätig"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "unterwegs"
 -- Tab labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Einheiten"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Große Persönlichkeiten"

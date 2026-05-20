@@ -56,13 +56,54 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
 -- etc.) resolve within the turn and never reach selection. The Lua API does
 -- not expose mission type or destination plot, so we cannot say where.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "movimiento en cola"
--- Engine-fork form of the queued rung: when WaypointsCore can compute a
--- destination and turn count for the head-selected unit's queued path,
--- the rung becomes "queued move {dir}, N turns" so the user hears where
--- the unit is going and how long it takes.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "movimiento en cola {1_Dir}, {2_Turns} turno",
-    other = "movimiento en cola {1_Dir}, {2_Turns} turnos",
+-- Engine-fork form of the queued rung: when WaypointsCore can compute
+-- per-leg chunks for the head-selected unit's queued action, the rung
+-- becomes one or more chunks joined by "then", followed by ", arrive"
+-- once at the end. A pure-move queue produces a single move chunk
+-- ("queued move, 3 turns: 1ne, then 2e, then 1ne, arrive"); a pure
+-- route-to queue produces a single route chunk with the localized route
+-- name ("queued road, 9 turns: 1e, then 1e, then 1e, arrive"); a
+-- mixed queue (rare -- requires deliberate interface-mode switching by
+-- the player) joins chunks with the same "then" the segments use.
+-- Segments come pre-joined as {1_Segments} so a translation can change
+-- the segment separator independent of the joiner.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "movimiento en cola, {2_Turns} turno: {1_Segments}",
+    other = "movimiento en cola, {2_Turns} turnos: {1_Segments}",
+}
+-- Route-to chunk: {3_RouteName} is the lowercased route the worker will
+-- lay ("road", "railroad", or a modded route's localized name), and
+-- {2_Turns} is the summed build-turns across tiles that still need
+-- work. Walked-through tiles (already at the target route tier) don't
+-- appear as their own segments -- their direction folds into the next
+-- build stop -- so {1_Segments} always lists real build pauses only.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "{3_RouteName} en cola, {2_Turns} turno: {1_Segments}",
+    other = "{3_RouteName} en cola, {2_Turns} turnos: {1_Segments}",
+}
+-- Joiner inserted between successive direction segments inside a chunk
+-- and between successive chunks in a mixed queue. Each "then" marks the
+-- next thing the unit will do; chunk boundaries differ from segment
+-- boundaries only in that they restart the label / turn count.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", luego "
+-- Trailing tag on the queued rung, appended once at the very end of the
+-- composed chunk list. Marks the final stop as the arrival point so the
+-- player can hear the queue terminate rather than guess from a missing
+-- "then".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", llegar"
+-- Leading "here" segment used when a worker is actively building a
+-- route tile that's also the head of its queued route-to. The build
+-- and queued rungs fold into one announcement -- "queued road, 9 turns:
+-- 3 turns here, then 2e, then 1e, arrive" -- with this template
+-- carrying the current build's remaining turn count as the first
+-- segment. The rest of the route's segments stay plain direction
+-- strings (the user already opted out of per-tile turn counts for
+-- queued tiles); the current-tile time is surfaced because it's the
+-- one tile being actively worked, so its remaining turns are
+-- actionable ("when will the worker move").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} turno aquí",
+    other = "{1_Turns} turnos aquí",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} cuerpo a cuerpo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} a distancia, alcance {2_Range}"
@@ -373,7 +414,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     one = "{1_Tiles} casilla, no hay trabajo pendiente",
     other = "{1_Tiles} casillas, no hay trabajo pendiente",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "ruta no disponible"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -669,7 +709,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "controlado por {1_City
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "controlado"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} por ciento de defensa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "en zona de control enemiga"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "enemigo cerca"
+-- Cursor-move prefix used by the optional adjacent-enemy warning (Settings
+-- toggle). Counts visible enemy units across the six neighbor tiles; same
+-- predicate as the X-key ZoC line but drops the IsCombatUnit filter so
+-- workers / settlers / naval-on-coast all count, since this warning is
+-- about presence not ZoC.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} enemigo cercano",
+    other = "{1_N} enemigos cercanos",
+}
 
 -- Cursor help-overlay key labels: chord forms shared with the main letter
 -- cluster. One TXT_KEY per chord because Help dedupes by keyLabel string and
@@ -691,6 +739,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Detalles económicos de la casilla actual"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "Detalles de combate de la casilla actual"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Espacio"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "Vista previa de la ruta y el coste de movimiento de la unidad seleccionada hasta la casilla actual"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "Identidad y combate de la ciudad"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -1168,6 +1219,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Suministro: {1_Use} 
 -- In speech an empty cell would leave the user wondering whether the
 -- screen reader cut off, so we name the idle case explicitly.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "inactivo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "en movimiento"
 -- Tab labels. Two tabs: Units (BaseTable) and Great People (BaseMenu).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Unidades"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Grandes personajes"

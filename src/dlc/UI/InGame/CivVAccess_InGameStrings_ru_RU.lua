@@ -23,10 +23,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     many = "{1_What} {2_Turns} ходов",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "движение в очереди"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "движение в очереди {1_Dir}, {2_Turns} ход",
-    few = "движение в очереди {1_Dir}, {2_Turns} хода",
-    many = "движение в очереди {1_Dir}, {2_Turns} ходов",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "движение в очереди, {2_Turns} ход: {1_Segments}",
+    few = "движение в очереди, {2_Turns} хода: {1_Segments}",
+    many = "движение в очереди, {2_Turns} ходов: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "в очереди {3_RouteName}, {2_Turns} ход: {1_Segments}",
+    few = "в очереди {3_RouteName}, {2_Turns} хода: {1_Segments}",
+    many = "в очереди {3_RouteName}, {2_Turns} ходов: {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", затем "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", прибытие"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} ход здесь",
+    few = "{1_Turns} хода здесь",
+    many = "{1_Turns} ходов здесь",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} ближний бой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] =
@@ -259,7 +271,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     few = "{1_Tiles} клетки, работа не требуется",
     many = "{1_Tiles} клеток, работа не требуется",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "маршрут недоступен"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -530,7 +541,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "под управле�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "под управлением"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} процентов защиты"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "в зоне контроля врага"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "враг рядом"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} враг рядом",
+    few = "{1_N} врага рядом",
+    many = "{1_N} врагов рядом",
+}
 -- Cursor help-overlay key labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MOVE"] = "Группа клавиш Q, W, E, A, S, D, Z, X, C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MOVE"] =
@@ -554,6 +569,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] =
     "Боевые данные текущей клетки"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "Предпросмотр пути выбранного юнита и стоимости передвижения до текущей клетки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "Идентификация города и бой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -888,7 +906,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = {
     one = "{1_Rank}, {2_Name} проголосовал за {3_Cast}, получил {4_Votes} голос",
     few = "{1_Rank}, {2_Name} проголосовал за {3_Cast}, получил {4_Votes} голоса",
     many = "{1_Rank}, {2_Name} проголосовал за {3_Cast}, получил {4_Votes} голосов",
-    other = "{1_Rank}, {2_Name} проголосовал за {3_Cast}, получил {4_Votes} голосов",
 }
 
 -- WhosWinningPopup (BUTTONPOPUP_WHOS_WINNING).
@@ -916,6 +933,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Снабжение: 
 
 -- Idle status fallback.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "бездействует"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "движется"
 
 -- Tab labels.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Юниты"
@@ -938,7 +956,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_TURNS_N"] = {
     one = "{1_N} ход",
     few = "{1_N} хода",
     many = "{1_N} ходов",
-    other = "{1_N} ходов",
 }
 
 -- AdvisorCounselPopup (BUTTONPOPUP_ADVISOR_COUNSEL).
@@ -1187,10 +1204,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_HEADER"] = "Исчезло"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_CAMP_PART"] = {
     one = "варварский лагерь",
+    few = "{1_Num} варварских лагеря",
     many = "{1_Num} варварских лагерей",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
     one = "древние руины",
+    few = "{1_Num} древних руины",
     many = "{1_Num} древних руин",
 }
 

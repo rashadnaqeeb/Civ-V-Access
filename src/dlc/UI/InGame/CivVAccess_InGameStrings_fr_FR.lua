@@ -54,14 +54,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
 -- etc.) resolve within the turn and never reach selection. The Lua API does
 -- not expose mission type or destination plot, so we cannot say where.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "mouvement en file d'attente"
--- Engine-fork form of the queued rung: when WaypointsCore can compute a
--- destination and turn count for the head-selected unit's queued path,
--- the rung becomes "queued move {dir}, N turns" so the user hears where
--- the unit is going and how long it takes.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO"] = {
-    one = "mouvement en file d'attente {1_Dir}, {2_Turns} tour",
-    other = "mouvement en file d'attente {1_Dir}, {2_Turns} tours",
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK"] = {
+    one = "déplacement en file d'attente, {2_Turns} tour : {1_Segments}",
+    other = "déplacement en file d'attente, {2_Turns} tours : {1_Segments}",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ROUTE_CHUNK"] = {
+    one = "{3_RouteName} en file d'attente, {2_Turns} tour : {1_Segments}",
+    other = "{3_RouteName} en file d'attente, {2_Turns} tours : {1_Segments}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER"] = ", puis "
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_ARRIVE"] = ", arrivée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE"] = {
+    one = "{1_Turns} tour ici",
+    other = "{1_Turns} tours ici",
+}
+
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH"] = "{1_Num} mêlée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH"] = "{1_Num} à distance, portée {2_Range}"
 -- Enemy form of ranged strength: range distance is hidden to match base
@@ -354,7 +361,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_ALREADY_DONE"] = {
     one = "{1_Tiles} case, aucun travail nécessaire",
     other = "{1_Tiles} cases, aucun travail nécessaire",
 }
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ROUTE_NO_BUILD"] = "aucune route disponible"
 -- Route-to water blocker. The only route-failure cause without a move-to
 -- analog -- move-to handles water via embark/astronomy unlocks, whereas
 -- BuildRouteValid rejects every water step outright. Mountain and
@@ -602,7 +608,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "contrôlé par {1_City
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "contrôlé"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} pour cent de défense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "en zone de contrôle ennemie"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "ennemi proche"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} ennemi proche",
+    other = "{1_N} ennemis proches",
+}
 -- Cursor help-overlay key labels: chord forms shared with the main letter
 -- cluster. One TXT_KEY per chord because Help dedupes by keyLabel string and
 -- the chords don't merge cleanly into a single label (Q is its own meaning).
@@ -623,6 +632,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_ECONOMY"] = "Détails économiques de la case actuelle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COMBAT"] = "X"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT"] = "Détails de combat de la case actuelle"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW"] = "Espace"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW"] =
+    "Prévisualiser le chemin de l'unité sélectionnée et le coût en mouvements vers la case actuelle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID"] = "1"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID"] = "Identité et combat de la ville"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_DEV"] = "2"
@@ -1054,6 +1066,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Approvisionnement : 
 -- In speech an empty cell would leave the user wondering whether the
 -- screen reader cut off, so we name the idle case explicitly.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_IDLE"] = "inactive"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"] = "en mouvement"
 -- Tab labels. Two tabs: Units (BaseTable) and Great People (BaseMenu).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_UNITS"] = "Unités"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_TAB_GREAT_PEOPLE"] = "Grands personnages"
