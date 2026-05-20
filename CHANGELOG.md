@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - Selecting a unit with a queued move now reads each stop on its path in order, so you can hear where it will pause along the way instead of just the final destination.
 - Selecting a worker with a queued route now reads "queued road" or "queued railroad" with the total build turns and each tile the worker will stop on to build, instead of describing it as a regular move with movement-only turn count.
+- The optional adjacent-enemy warning now tells you how many enemies are nearby instead of just "enemy near".
 
 Bug fixes:
 - Military Overview units that have used their moves no longer show as idle; they read as out of moves or moving.

@@ -807,10 +807,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "controlled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} percent defense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in enemy zone of control"
 -- Cursor-move prefix used by the optional adjacent-enemy warning (Settings
--- toggle). Same predicate as the X-key ZoC line but a shorter phrasing
--- because it leads every step's announcement, not just an on-demand
--- readout.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ENEMY_ADJACENT"] = "enemy near"
+-- toggle). Counts visible enemy units across the six neighbor tiles; same
+-- predicate as the X-key ZoC line but drops the IsCombatUnit filter so
+-- workers / settlers / naval-on-coast all count, since this warning is
+-- about presence not ZoC.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
+    one = "{1_N} nearby enemy",
+    other = "{1_N} nearby enemies",
+}
 -- Cursor help-overlay key labels: chord forms shared with the main letter
 -- cluster. One TXT_KEY per chord because Help dedupes by keyLabel string and
 -- the chords don't merge cleanly into a single label (Q is its own meaning).

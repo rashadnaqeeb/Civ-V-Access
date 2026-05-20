@@ -186,13 +186,13 @@ function PlotComposers.inEnemyZoC(plot, activeTeam, isDebug)
     return false
 end
 
--- Broader "is there a visible enemy on any neighbor" check, distinct from
--- inEnemyZoC above which is combat-only because ZoC is a combat-unit
--- mechanic. This one drops the IsCombatUnit filter so naval-domain attackers
--- adjacent to a land tile, enemy workers / settlers, and other non-combat
--- enemy units all count -- the cursor adjacent-enemy warning is about
--- presence ("an enemy is one hex away"), not about whether the unit could
--- project zone of control onto our tile.
+-- Count visible enemy units on neighbor tiles, distinct from inEnemyZoC
+-- above which is combat-only because ZoC is a combat-unit mechanic. This
+-- one drops the IsCombatUnit filter so naval-domain attackers adjacent to
+-- a land tile, enemy workers / settlers, and other non-combat enemy units
+-- all count -- the cursor adjacent-enemy warning is about presence ("an
+-- enemy is one hex away"), not about whether the unit could project zone
+-- of control onto our tile.
 --
 -- Per-neighbor IsVisible gate matters because CvUnit::isInvisible is
 -- about stealth flags (submarines, embarked-at-distance), not fog of war
@@ -201,8 +201,9 @@ end
 -- player can't see. The cursor tile's own visibility is irrelevant: an
 -- enemy you can already see on a visible neighbor is still adjacent to
 -- your cursor whether the cursor itself sits in fog or not.
-function PlotComposers.hasAdjacentEnemy(plot, activeTeam, isDebug)
+function PlotComposers.countAdjacentEnemies(plot, activeTeam, isDebug)
     local pTeam = Teams[activeTeam]
+    local total = 0
     for _, dir in ipairs(NEIGHBOR_DIRS) do
         local n = Map.PlotDirection(plot:GetX(), plot:GetY(), dir)
         if n ~= nil and n:IsVisible(activeTeam, isDebug) then
@@ -212,13 +213,13 @@ function PlotComposers.hasAdjacentEnemy(plot, activeTeam, isDebug)
                 if u ~= nil and not u:IsInvisible(activeTeam, isDebug) then
                     local unitTeam = u:GetTeam()
                     if unitTeam ~= activeTeam and pTeam:IsAtWar(unitTeam) then
-                        return true
+                        total = total + 1
                     end
                 end
             end
         end
     end
-    return false
+    return total
 end
 
 -- Tile-level movement cost from terrain / feature / plotType data alone:

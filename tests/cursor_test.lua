@@ -711,12 +711,13 @@ function M.test_combat_zoc_fires_when_cursor_fogged_but_enemy_neighbor_visible()
     )
 end
 
-function M.test_has_adjacent_enemy_fires_for_civilian_enemy()
-    -- hasAdjacentEnemy drops the IsCombatUnit filter that inEnemyZoC keeps,
-    -- because the cursor adjacent-enemy warning is about presence, not ZoC.
-    -- A civilian enemy (worker, settler, great person) still counts. This
-    -- is the exact behavior difference between the two predicates, so if
-    -- the filter ever creeps back in this test catches it.
+function M.test_count_adjacent_enemies_counts_civilians()
+    -- countAdjacentEnemies drops the IsCombatUnit filter that inEnemyZoC
+    -- keeps, because the cursor adjacent-enemy warning is about presence,
+    -- not ZoC. A civilian enemy (worker, settler, great person) still
+    -- counts. This is the exact behavior difference between the two
+    -- predicates, so if the filter ever creeps back in this test catches
+    -- it.
     setup()
     Players[1] = T.fakePlayer({ team = 1 })
     Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
@@ -728,13 +729,41 @@ function M.test_has_adjacent_enemy_fires_for_civilian_enemy()
         return nil
     end
     local p = T.fakePlot({})
-    T.truthy(
-        PlotComposers.hasAdjacentEnemy(p, 0, false),
-        "civilian enemy on a visible neighbor must trigger the adjacent-enemy warning"
+    T.eq(
+        PlotComposers.countAdjacentEnemies(p, 0, false),
+        1,
+        "civilian enemy on a visible neighbor must count toward the adjacent-enemy total"
     )
 end
 
-function M.test_has_adjacent_enemy_suppressed_on_fogged_neighbor()
+function M.test_count_adjacent_enemies_sums_across_neighbors()
+    -- Multiple visible enemy units across different neighbor tiles all
+    -- count, so the player hears how many threats they're surrounded by
+    -- rather than just a yes/no.
+    setup()
+    Players[1] = T.fakePlayer({ team = 1 })
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local e1 = T.fakeUnit({ owner = 1, team = 1, combat = true })
+    local e2 = T.fakeUnit({ owner = 1, team = 1, combat = true })
+    local e3 = T.fakeUnit({ owner = 1, team = 1, combat = false })
+    Map.PlotDirection = function(_, _, dir)
+        if dir == DirectionTypes.DIRECTION_EAST then
+            return T.fakePlot({ units = { e1 } })
+        end
+        if dir == DirectionTypes.DIRECTION_WEST then
+            return T.fakePlot({ units = { e2, e3 } })
+        end
+        return nil
+    end
+    local p = T.fakePlot({})
+    T.eq(
+        PlotComposers.countAdjacentEnemies(p, 0, false),
+        3,
+        "every visible enemy across the six neighbors must contribute to the count"
+    )
+end
+
+function M.test_count_adjacent_enemies_suppressed_on_fogged_neighbor()
     -- Per-neighbor IsVisible gate is what keeps the predicate from leaking
     -- enemies the player cannot see. CvUnit::isInvisible is stealth-only
     -- (verified in SDK CvUnit.cpp), not fog-aware, so without this gate
@@ -751,9 +780,10 @@ function M.test_has_adjacent_enemy_suppressed_on_fogged_neighbor()
         return nil
     end
     local p = T.fakePlot({})
-    T.truthy(
-        not PlotComposers.hasAdjacentEnemy(p, 0, false),
-        "enemy on a fogged neighbor must not trigger the adjacent-enemy warning"
+    T.eq(
+        PlotComposers.countAdjacentEnemies(p, 0, false),
+        0,
+        "enemy on a fogged neighbor must not contribute to the count"
     )
 end
 
@@ -1160,8 +1190,9 @@ end
 
 function M.test_cursor_move_prepends_enemy_warning_with_glance()
     -- announceForMove composition: enemyPrefix must precede the rest of the
-    -- sentence ("enemy near. <glance>.") so the threat fact reaches the user
-    -- before anything else on the tile. Covers the non-empty-glance branch.
+    -- sentence ("1 nearby enemy. <glance>.") so the threat fact reaches
+    -- the user before anything else on the tile. Covers the non-empty-
+    -- glance branch.
     setup()
     civvaccess_shared.enemyAdjacentWarn = true
     GameInfo.Terrains[1] = { Description = "Plains" }
@@ -1188,7 +1219,7 @@ function M.test_cursor_move_prepends_enemy_warning_with_glance()
     end
     Cursor.init()
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
-    local warnAt = out:find("enemy near", 1, true)
+    local warnAt = out:find("1 nearby enemy", 1, true)
     local glanceAt = out:find("Plains", 1, true)
     T.truthy(warnAt, "warning must appear in the announcement: " .. out)
     T.truthy(glanceAt, "glance must still appear after the warning: " .. out)
@@ -1229,7 +1260,7 @@ function M.test_cursor_move_speaks_only_enemy_warning_on_otherwise_silent_tile()
     Cursor.init()
     Cursor.move(DirectionTypes.DIRECTION_EAST) -- primes _lastOwnerIdentity against unclaimed
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
-    T.eq(out, "enemy near.", "lone-enemy branch must produce a clean terminated sentence")
+    T.eq(out, "1 nearby enemy.", "lone-enemy branch must produce a clean terminated sentence")
 end
 
 function M.test_cursor_owner_diff_does_not_fire_across_unexplored_gap()

@@ -203,17 +203,20 @@ local function announceForMove(plot, prevPlot)
     -- prefix so the fastest-changing fact ("can I strike here") leads.
     local targetPrefix = targetabilityPrefix(plot)
     -- Adjacent-enemy warning. Leads the line so the threat fact reaches the
-    -- player before anything else on the tile. Uses hasAdjacentEnemy rather
-    -- than inEnemyZoC because this warning is about presence, not ZoC: a
-    -- naval combat unit on water next to the cursor's land tile counts, as
-    -- does an enemy worker or settler. No gate on the cursor tile's own
-    -- visibility -- the predicate gates per-neighbor instead, so an enemy
-    -- on a visible neighbor still warns even when the cursor itself sits
-    -- in fog. The neighbor gate is what prevents leaking units from tiles
-    -- the player can't see.
+    -- player before anything else on the tile. Uses countAdjacentEnemies
+    -- rather than inEnemyZoC because this warning is about presence, not
+    -- ZoC: a naval combat unit on water next to the cursor's land tile
+    -- counts, as does an enemy worker or settler. No gate on the cursor
+    -- tile's own visibility -- the predicate gates per-neighbor instead,
+    -- so an enemy on a visible neighbor still warns even when the cursor
+    -- itself sits in fog. The neighbor gate is what prevents leaking units
+    -- from tiles the player can't see.
     local enemyPrefix = ""
-    if civvaccess_shared.enemyAdjacentWarn and PlotComposers.hasAdjacentEnemy(plot, team, debug) then
-        enemyPrefix = Text.key("TXT_KEY_CIVVACCESS_ENEMY_ADJACENT") .. ". "
+    if civvaccess_shared.enemyAdjacentWarn then
+        local nearby = PlotComposers.countAdjacentEnemies(plot, team, debug)
+        if nearby > 0 then
+            enemyPrefix = Text.formatPlural("TXT_KEY_CIVVACCESS_NEARBY_ENEMIES", nearby, nearby) .. ". "
+        end
     end
     if glance == "" then
         if ownerPrefix ~= "" then
@@ -231,8 +234,8 @@ local function announceForMove(plot, prevPlot)
         end
         if enemyPrefix ~= "" then
             -- Lone enemy warning on an otherwise featureless tile: strip the
-            -- trailing space from "enemy near. " so the sentence terminates
-            -- cleanly.
+            -- trailing space from "N nearby enemies. " so the sentence
+            -- terminates cleanly.
             return enemyPrefix:sub(1, -2)
         end
         return ""
