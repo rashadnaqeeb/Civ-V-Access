@@ -1142,9 +1142,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Runde beendet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Rundenende abgebrochen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Strg plus Leertaste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Strg plus Leertaste oder Strg plus Eingabe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "Runde beenden oder erste Blockade ansagen und öffnen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] = "Strg plus Umschalt plus Leertaste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
+    "Strg plus Umschalt plus Leertaste oder Strg plus Umschalt plus Eingabe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
     "Runde trotz der Abfrage für Einheiten ohne Befehle beenden; andere Blockaden werden weiterhin angesagt und geöffnet"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
