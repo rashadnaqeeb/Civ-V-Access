@@ -91,6 +91,10 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COMBAT",
     },
     {
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PATH_PREVIEW",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PATH_PREVIEW",
+    },
+    {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_CITY_ID",
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_CITY_ID",
     },
@@ -227,6 +231,24 @@ function BaselineHandler.create()
         bind(Keys.X, MOD_NONE, function()
             speak(Cursor.combat())
         end, "Combat details"),
+        -- Space: move-path preview for the selected unit against the
+        -- cursor tile, shared with target mode's Space binding (both
+        -- route through UnitTargetMode.movePreview). Read-only; commits
+        -- nothing. Engine's plain Space is the unit Skip-turn mission,
+        -- swallowed by Baseline's capturesAllInput and re-exposed on
+        -- Alt+X, so the key is free. Silent with no unit selected,
+        -- matching Alt+QAZEDC directMove.
+        bind(Keys.VK_SPACE, MOD_NONE, function()
+            local unit = UI.GetHeadSelectedUnit()
+            if unit == nil then
+                return
+            end
+            local cx, cy = Cursor.position()
+            if cx == nil then
+                return
+            end
+            speak(UnitTargetMode.movePreview(unit, Map.GetPlot(cx, cy)))
+        end, "Preview path to cursor"),
         bind(Keys["1"], MOD_NONE, function()
             speak(Cursor.cityIdentity())
         end, "City identity and combat"),

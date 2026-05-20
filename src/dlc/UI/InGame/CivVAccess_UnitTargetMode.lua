@@ -566,6 +566,17 @@ local function moveModePreview(actor, plot)
     return movePathPreview(actor, plot), nil, true
 end
 
+-- Move-path preview against an arbitrary plot, without entering target
+-- mode. BaselineHandler's Space binding calls this so the player can
+-- scout the route from the selected unit to the cursor at any time, not
+-- only after committing to a move through the action menu. Returns only
+-- the speech text; moveModePreview's commitPlot / canCommit returns
+-- drive the target-mode two-press latch and carry no meaning here.
+function UnitTargetMode.movePreview(actor, plot)
+    local text = moveModePreview(actor, plot)
+    return text
+end
+
 local function buildPreview(self)
     local plot, tx, ty = cursorPlot()
     if plot == nil then
