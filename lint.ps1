@@ -52,7 +52,10 @@ Install with:
 $targets = if ($Paths -and $Paths.Count -gt 0) { $Paths } else { @("src", "tests") }
 
 Write-Host "--- luacheck" -ForegroundColor Cyan
-& $luacheck @targets
+# -q: print only files that have warnings, plus the final summary. Without
+# it luacheck emits a "Checking ... OK" line per file (~300 lines), which
+# buries the stylua output below it.
+& $luacheck -q @targets
 $luacheckExit = $LASTEXITCODE
 
 if ($Fix) {

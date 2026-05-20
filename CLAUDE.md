@@ -56,6 +56,10 @@ When a build fails on a Lua API or engine behavior, look it up in `docs/llm-docs
 - Lua files: one feature per file where possible; file name matches the `include` stem (Civ V's VFS indexes by bare stem).
 - Access wrappers: `CivVAccess_XAccess.lua` lives next to every overridden vendor `X.lua` and is what the appended `include("CivVAccess_XAccess")` line at the bottom of `X.lua` reaches. Wrappers capture `priorInput` / `priorShowHide` from the vendor file's globals, then call `BaseMenu.install(ContextPtr, spec)` (or `TabbedShell.install` for tabbed screens). Spec fields are documented in the headers of `src/dlc/UI/Shared/CivVAccess_BaseMenuInstall.lua` and `CivVAccess_BaseMenuCore.lua`.
 
+## Lint
+
+`bash lint.sh` runs luacheck (semantic) then stylua (format-check) over `src/` and `tests/`; `bash lint.sh -Fix` lets stylua rewrite files in place, `bash lint.sh <path>` restricts the run. Invoke through `lint.sh` rather than hand-composing a `powershell.exe -File ./lint.ps1` call. luacheck runs quiet, so any line under `--- luacheck` is a real warning worth investigating; a stylua format-check failure is pure formatting and clears with `-Fix`.
+
 ## Test
 
 Offline Lua harness lives at `tests/`, invoked by `test.ps1` against the bundled interpreter at `third_party/lua51/lua5.1.exe` (matches the game's Lua 5.1 exactly). Tests are modules returning a table of `test_*` functions; `tests/run.lua` aggregates across suites into a single exit code. No game launch, no network, no Tolk.
