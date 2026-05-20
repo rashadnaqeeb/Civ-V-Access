@@ -631,11 +631,7 @@ function M.test_selection_status_queued_mission_mixed_chunks_render_both_labels(
     local out = UnitSpeech.selection(u, 0, 0)
     Waypoints.queuedActionStatus = origStatus
     T.truthy(
-        out:find(
-            "queued road, 9 turns: 1e, then 1e, then 1e, then queued move, 2 turns: 2e, then 1ne, arrive",
-            1,
-            true
-        ),
+        out:find("queued road, 9 turns: 1e, then 1e, then 1e, then queued move, 2 turns: 2e, then 1ne, arrive", 1, true),
         "mixed-queue rung expected: " .. out
     )
 end

@@ -137,12 +137,14 @@ local function stillPlayingClause()
         -- is redundant and unsafe (the local player must be in the list
         -- whenever they themselves owe an end-turn click; that's the
         -- whole point of the clause), so skip it on i == activeID.
-        if p:IsHuman()
+        if
+            p:IsHuman()
             and p:IsAlive()
             and not p:IsObserver()
             and (i == activeID or Network.IsPlayerConnected(i))
             and p:IsTurnActive()
-            and not p:HasReceivedNetTurnComplete() then
+            and not p:HasReceivedNetTurnComplete()
+        then
             if i == activeID then
                 names[#names + 1] = Text.key("TXT_KEY_YOU")
             else

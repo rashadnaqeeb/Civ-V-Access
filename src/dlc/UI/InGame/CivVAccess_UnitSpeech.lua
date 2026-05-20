@@ -267,12 +267,7 @@ local function renderChunk(chunk, joiner)
             chunk.routeName
         )
     end
-    return Text.formatPlural(
-        "TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK",
-        chunk.turns,
-        body,
-        chunk.turns
-    )
+    return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK", chunk.turns, body, chunk.turns)
 end
 
 -- Returns the first matching status token (localized string), or "".
@@ -368,11 +363,8 @@ local function statusToken(unit)
         )
         if foldFirst then
             local first = chunks[1]
-            local hereSeg = Text.formatPlural(
-                "TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE",
-                buildInfo.turns,
-                buildInfo.turns
-            )
+            local hereSeg =
+                Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_HERE", buildInfo.turns, buildInfo.turns)
             local foldedSegments = { hereSeg }
             for _, seg in ipairs(first.segments) do
                 foldedSegments[#foldedSegments + 1] = seg

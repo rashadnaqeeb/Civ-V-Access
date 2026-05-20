@@ -245,17 +245,18 @@ local function compute(unit, queue)
                     if route ~= nil then
                         rok, path = pcall(
                             Game.GetBuildRoutePath,
-                            fromPlot:GetX(), fromPlot:GetY(),
-                            entry.data1, entry.data2,
+                            fromPlot:GetX(),
+                            fromPlot:GetY(),
+                            entry.data1,
+                            entry.data2,
                             unit:GetOwner()
                         )
                     end
                     if route ~= nil and rok and type(path) == "table" and #path > 0 then
                         local extraRate = unit:WorkRate(true, route.buildId)
                         local actorAlreadyOnBuild = unit:GetBuildType() == route.buildId
-                        local stops, addedTurns = routeBuildStops(
-                            path, route.buildId, route.routeValue, extraRate, actorAlreadyOnBuild
-                        )
+                        local stops, addedTurns =
+                            routeBuildStops(path, route.buildId, route.routeValue, extraRate, actorAlreadyOnBuild)
                         if #stops > 0 then
                             local chunk = openChunk(MISSION_KIND_ROUTE, route.name)
                             prevX, prevY = emitSegments(chunk.segments, stops, prevX, prevY)

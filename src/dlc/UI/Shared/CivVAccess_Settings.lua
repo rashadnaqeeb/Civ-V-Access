@@ -94,8 +94,7 @@ end
 -- gates the read. Distinct from the X-key ZoC line, which is combat-only
 -- because ZoC is a combat mechanic; CursorCore reads this cache live on
 -- every move.
-local getEnemyAdjacentWarn, setEnemyAdjacentWarn =
-    defineBoolPref("enemyAdjacentWarn", "EnemyAdjacentWarn", false)
+local getEnemyAdjacentWarn, setEnemyAdjacentWarn = defineBoolPref("enemyAdjacentWarn", "EnemyAdjacentWarn", false)
 
 -- Always-announce-territory toggle. Off by default: the cursor's owner
 -- prefix only fires on civ-border crossings (the diff in CursorCore against

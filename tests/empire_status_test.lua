@@ -464,7 +464,15 @@ function M.test_turn_still_playing_skips_ai_dead_observer_disconnected()
         [0] = { turnActive = true, ended = true },
         [1] = { human = false, alive = true, connected = false, turnActive = true, ended = false, nick = "AI Civ" },
         [2] = { human = true, alive = false, connected = true, turnActive = true, ended = false, nick = "DeadHuman" },
-        [3] = { human = true, alive = true, observer = true, connected = true, turnActive = true, ended = false, nick = "Watcher" },
+        [3] = {
+            human = true,
+            alive = true,
+            observer = true,
+            connected = true,
+            turnActive = true,
+            ended = false,
+            nick = "Watcher",
+        },
         [4] = { human = true, alive = true, connected = false, turnActive = true, ended = false, nick = "Dropped" },
         [5] = { human = true, alive = true, connected = true, turnActive = true, ended = false, nick = "Carol" },
     })
