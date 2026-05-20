@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.12] - 2026-05-20
+
 New Features and improvements:
 - End turn now also responds to Control+Enter, and force end turn to Control+Shift+Enter.
 - Military Overview Units tab adds an Adjacent enemies column.
