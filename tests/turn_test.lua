@@ -578,13 +578,15 @@ local function findBinding(bindings, key, mods)
     end
 end
 
-function M.test_bindings_expose_ctrl_space_and_ctrl_shift_space()
+function M.test_bindings_expose_end_turn_chords()
     setup()
     local MOD_CTRL = 2
     local MOD_CTRL_SHIFT = 3
     local b = Turn.getBindings()
     T.truthy(findBinding(b.bindings, Keys.VK_SPACE, MOD_CTRL), "Ctrl+Space registered")
+    T.truthy(findBinding(b.bindings, Keys.VK_RETURN, MOD_CTRL), "Ctrl+Enter registered")
     T.truthy(findBinding(b.bindings, Keys.VK_SPACE, MOD_CTRL_SHIFT), "Ctrl+Shift+Space registered")
+    T.truthy(findBinding(b.bindings, Keys.VK_RETURN, MOD_CTRL_SHIFT), "Ctrl+Shift+Enter registered")
     T.eq(#b.helpEntries, 2)
 end
 

@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- End turn now also responds to Control+Enter, and force end turn to Control+Shift+Enter.
+
 Bug fixes:
 - Switching cities with comma or period in the Choose Production popup no longer traps you in a city screen Escape cannot close.
 

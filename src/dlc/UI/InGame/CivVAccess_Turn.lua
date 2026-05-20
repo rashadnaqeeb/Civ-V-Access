@@ -1,30 +1,38 @@
 -- Turn lifecycle announcements and the player's end-turn keybindings.
 --
+-- End turn is bound on Ctrl+Space and Ctrl+Enter; force end turn on
+-- Ctrl+Shift+Space and Ctrl+Shift+Enter. The Enter chords mirror the
+-- Space chords as a fallback: an app that registers Ctrl+Shift+Space as a
+-- global hotkey (1Password's Quick Access default) intercepts it before
+-- the game window ever sees the key, so the Space chord silently fails on
+-- those machines. VK_RETURN also covers Numpad Enter -- the engine sends
+-- VK 13 for both.
+--
 -- ActivePlayerTurnStart → "Turn N, year". Fires on every turn start and on
 -- the first turn after LoadScreenClose; no special-casing needed because
 -- the first-turn announcement reads correctly as "game started at turn 0,
 -- 4000 BC" on its own.
 --
--- ActivePlayerTurnEnd → "Turn ended". Covers our Ctrl+Space path plus any
+-- ActivePlayerTurnEnd → "Turn ended". Covers our end-turn keys plus any
 -- engine-internal auto-end (the "Auto End Turn" option, force-end via
 -- CONTROL_FORCEENDTURN, the engine's own safety paths).
 --
--- Ctrl+Space dispatches the same branches the base EndTurn button callback
--- runs (`ActionInfoPanel.lua:OnEndTurnClicked`): read
+-- The end-turn keys dispatch the same branches the base EndTurn button
+-- callback runs (`ActionInfoPanel.lua:OnEndTurnClicked`): read
 -- GetEndTurnBlockingType; on a blocker, announce the matching TXT_KEY and
 -- delegate to the engine's "take me to the blocker" action (ActivateNotif-
 -- ication for screen blockers, SelectUnit+LookAt for unit blockers); on no
 -- blocker, DoControl(CONTROL_ENDTURN) and let the ActivePlayerTurnEnd
 -- listener say "Turn ended" when the engine confirms.
 --
--- Ctrl+Shift+Space mirrors the engine's Shift+Return. The engine's own
+-- The force-end keys mirror the engine's Shift+Return. The engine's own
 -- CONTROL_FORCEENDTURN handler (CvGame.cpp:3712 in Community-Patch-DLL)
 -- only ends the turn when the blocker is NO_ENDTURN_BLOCKING_TYPE or
 -- ENDTURN_BLOCKING_UNITS; any other blocker makes DoControl a silent
 -- no-op. We read the blocker in Lua first and, for the bypassable cases,
 -- call DoControl; otherwise we fall through to the same announce-and-open
--- path as Ctrl+Space so the user hears what's in the way and gets taken
--- to it, instead of getting silence.
+-- path as the end-turn keys so the user hears what's in the way and gets
+-- taken to it, instead of getting silence.
 --
 -- Multiplayer feedback: in networked MP, Events.ActivePlayerTurnEnd does
 -- not fire on submit -- it fires when the wave actually completes -- so
@@ -33,9 +41,10 @@
 -- "Waiting for players", matching the engine's own button relabel.
 --
 -- Multiplayer un-ready: if the player already submitted (HasSentNetTurn-
--- Complete) pressing Ctrl+Space un-readies them, matching base behavior --
--- otherwise a player who submitted early would be stuck spectating with no
--- keyboard escape. Announces "End turn canceled" because the post-state
+-- Complete) pressing an end-turn key un-readies them, matching base
+-- behavior -- otherwise a player who submitted early would be stuck
+-- spectating with no keyboard escape. Announces "End turn canceled"
+-- because the post-state
 -- after a successful un-ready is "back in active play"; the prior
 -- "Waiting for players" line described the state the user just left,
 -- which read as the inverse of what just happened.
@@ -257,9 +266,14 @@ end
 local bind = HandlerStack.bind
 
 function Turn.getBindings()
+    -- Each action is bound on its Space chord and the matching Enter chord;
+    -- see the header for why the Enter mirror exists. VK_RETURN also covers
+    -- Numpad Enter (same VK 13).
     local bindings = {
         bind(Keys.VK_SPACE, MOD_CTRL, endTurnDispatch, "End turn"),
+        bind(Keys.VK_RETURN, MOD_CTRL, endTurnDispatch, "End turn"),
         bind(Keys.VK_SPACE, MOD_CTRL_SHIFT, forceEndTurn, "Force end turn"),
+        bind(Keys.VK_RETURN, MOD_CTRL_SHIFT, forceEndTurn, "Force end turn"),
     }
     local helpEntries = {
         {
