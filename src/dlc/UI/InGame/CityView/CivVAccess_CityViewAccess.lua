@@ -1386,6 +1386,26 @@ hubHandler.bindings[#hubHandler.bindings + 1] = {
     description = "Previous city",
     fn = previousCity,
 }
+
+-- Esc binding: when the City Screen is opened underneath a popup-queued
+-- screen (e.g. the Economic Overview, whose Choose Production drill-in can
+-- land here), the engine routes input to that screen's Context, not
+-- CityView's. Esc then reaches the hub through InputRouter.dispatch rather
+-- than CityView's own InputHandler, so the priorInput close path in
+-- BaseMenu.install never runs -- the dispatch walk hits this hub's
+-- capturesAllInput barrier with no Esc binding and swallows the key,
+-- trapping the player. An explicit binding makes the walk find a match
+-- and close regardless of which Context dispatched. CityView's own
+-- InputHandler still closes via priorInput in the ordinary case (it never
+-- routes hub Esc through dispatch), so this fires only cross-Context.
+hubHandler.bindings[#hubHandler.bindings + 1] = {
+    key = Keys.VK_ESCAPE,
+    mods = 0,
+    description = "Close",
+    fn = function()
+        Events.SerialEventExitCityScreen()
+    end,
+}
 BaseMenuHelp.addScreenKey(hubHandler, {
     keyLabel = "TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT",
     description = "TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT",

@@ -24,7 +24,7 @@
 -- closes the popup with a "queue full" announcement. Purchase tab ignores
 -- append -- purchases always commit and close.
 --
--- Prev / next city (comma / period) cycle via Game.DoControl, close the
+-- Prev / next city (comma / period) resolve the adjacent city, close the
 -- current popup, and re-fire SerialEventGameMessagePopup for the new
 -- selection so our intercept rebuilds against the new city.
 
@@ -80,13 +80,16 @@ local function preambleFn()
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_POPULATION", city:GetPopulation())
     parts[#parts + 1] = CitySpeech.growthToken(city)
     if _appendMode then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PREAMBLE_QUEUE_COUNT", city:GetOrderQueueLength())
+        parts[#parts + 1] =
+            Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PREAMBLE_QUEUE_COUNT", city:GetOrderQueueLength())
     else
         parts[#parts + 1] = CitySpeech.productionToken(city)
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD", city:FoodDifference())
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION", city:GetYieldRate(YieldTypes.YIELD_PRODUCTION))
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE", city:GetYieldRate(YieldTypes.YIELD_SCIENCE))
+    parts[#parts + 1] =
+        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION", city:GetYieldRate(YieldTypes.YIELD_PRODUCTION))
+    parts[#parts + 1] =
+        Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE", city:GetYieldRate(YieldTypes.YIELD_SCIENCE))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLD", city:GetYieldRate(YieldTypes.YIELD_GOLD))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", city:GetJONSCulturePerTurn())
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetFaithPerTurn())
@@ -114,7 +117,9 @@ local function commitProduce(city, entry)
     Game.CityPushOrder(city, entry.orderType, entry.id, false, not _appendMode, true)
     fireBannerDirty(city)
     if not _appendMode then
-        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING", Text.key(entry.info.Description)))
+        SpeechPipeline.speakInterrupt(
+            Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING", Text.key(entry.info.Description))
+        )
         OnClose()
         return
     end
@@ -146,12 +151,19 @@ local function commitPurchase(city, entry)
         end
     end
     if not canPurchase then
-        Log.error("ChooseProductionPopupAccess: purchase failed IsCanPurchase at commit; id=" .. tostring(entry.id) .. " yield=" .. tostring(entry.yieldType))
+        Log.error(
+            "ChooseProductionPopupAccess: purchase failed IsCanPurchase at commit; id="
+                .. tostring(entry.id)
+                .. " yield="
+                .. tostring(entry.yieldType)
+        )
         return
     end
     fireBannerDirty(city)
     Events.AudioPlay2DSound("AS2D_INTERFACE_CITY_SCREEN_PURCHASE")
-    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Text.key(entry.info.Description)))
+    SpeechPipeline.speakInterrupt(
+        Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Text.key(entry.info.Description))
+    )
     OnClose()
 end
 
@@ -312,10 +324,10 @@ local mainHandler = BaseMenu.install(ContextPtr, {
 
 -- ===== Prev / next city =====
 --
--- Closes the current popup and re-fires SerialEventGameMessagePopup with the
--- new city id. Our listener rebuilds tabs against the new city. Engine-native
--- cycle includes puppets; on a puppet the intercept's puppet branch fires
--- "puppet" and closes, and the user re-presses to advance.
+-- Resolve the adjacent city, close the current popup, and re-fire
+-- SerialEventGameMessagePopup with the new city id; our listener rebuilds
+-- tabs against the new city. Includes puppets; on a puppet the intercept's
+-- puppet branch fires "puppet" and closes.
 
 local function announceNoCycle(direction)
     if direction == "next" then
@@ -325,15 +337,54 @@ local function announceNoCycle(direction)
     end
 end
 
+-- Step one city from fromCityID in the active player's city iteration
+-- order, wrapping around. Returns nil if fromCityID isn't in the list.
+local function cityStep(player, fromCityID, direction)
+    local cities = {}
+    for c in player:Cities() do
+        cities[#cities + 1] = c
+    end
+    local curIdx
+    for i, c in ipairs(cities) do
+        if c:GetID() == fromCityID then
+            curIdx = i
+            break
+        end
+    end
+    if curIdx == nil then
+        return nil
+    end
+    local newIdx = curIdx + ((direction == "next") and 1 or -1)
+    if newIdx < 1 then
+        newIdx = #cities
+    elseif newIdx > #cities then
+        newIdx = 1
+    end
+    return cities[newIdx]
+end
+
+-- The standalone popup (turn-start prompt, Economic Overview drill-in)
+-- steps through the city list directly. It must not cycle via
+-- Game.DoControl(CONTROL_NEXT/PREVCITY): that engine control opens the
+-- full City Screen as a side effect, and when the popup was opened from
+-- the still-showing Economic Overview the City Screen lands underneath it
+-- with no Esc path to the overview -- the player is trapped. Inside the
+-- City Screen the control is correct (it cycles the screen itself), so it
+-- is kept for that case.
 local function cycleCity(direction)
     local player = Players[Game.GetActivePlayer()]
     if player == nil or player:GetNumCities() <= 1 then
         announceNoCycle(direction)
         return
     end
-    local control = (direction == "next") and GameInfoTypes.CONTROL_NEXTCITY or GameInfoTypes.CONTROL_PREVCITY
-    Game.DoControl(control)
-    local newCity = UI.GetHeadSelectedCity()
+    local newCity
+    if UI.IsCityScreenUp() then
+        local control = (direction == "next") and GameInfoTypes.CONTROL_NEXTCITY or GameInfoTypes.CONTROL_PREVCITY
+        Game.DoControl(control)
+        newCity = UI.GetHeadSelectedCity()
+    else
+        newCity = cityStep(player, _cityID, direction)
+    end
     if newCity == nil then
         Log.warn("ChooseProductionPopupAccess: cycle city returned no selection")
         return
@@ -353,13 +404,17 @@ table.insert(mainHandler.bindings, {
     key = VK_OEM_COMMA,
     mods = 0,
     description = "Previous city",
-    fn = function() cycleCity("prev") end,
+    fn = function()
+        cycleCity("prev")
+    end,
 })
 table.insert(mainHandler.bindings, {
     key = VK_OEM_PERIOD,
     mods = 0,
     description = "Next city",
-    fn = function() cycleCity("next") end,
+    fn = function()
+        cycleCity("next")
+    end,
 })
 
 -- Esc binding: base ProductionPopup uses ContextPtr:SetHide instead of

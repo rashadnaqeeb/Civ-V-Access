@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Switching cities with comma or period in the Choose Production popup no longer traps you in a city screen Escape cannot close.
+
 ## [1.1.11] - 2026-05-20
 
 New Features and improvements:
