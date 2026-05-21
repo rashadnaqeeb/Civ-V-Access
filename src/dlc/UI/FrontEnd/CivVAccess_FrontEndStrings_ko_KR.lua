@@ -289,6 +289,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "금"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "식량"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "생산"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "문화"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "과학"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "과학"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "신앙"
@@ -309,6 +311,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "원거리 전투
 -- ALT: engine TXT_KEY_PRODUCTION_RANGED_STRENGTH -> "원거리 전투력: {1_Num}"; primary spoken form is "원거리 전투력" -> dormant
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "이동력"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "행복도"
 -- ALT: engine emits "행복 ..." after ICON_HAPPINESS_1; primary spoken form is "행복도" which != "행복" -> use "행복"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "행복"

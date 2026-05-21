@@ -117,6 +117,15 @@ local ALIAS_KEYS = {
     -- emits "[ICON_RANGE_STRENGTH] Ranged Strength: N", adjacent to the
     -- icon's "ranged combat strength". Alias collapses on "Ranged Strength".
     ["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = { "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT" },
+    -- Ability prose pairs [ICON_MOVES] with the noun "Movement" on either
+    -- side ("+1 Movement [ICON_MOVES]" in Denmark's Viking Fury, "+1
+    -- [ICON_MOVES] Movement" in the BNW scenarios). The icon's "moves"
+    -- primary does not collapse against "Movement"; the alias does.
+    ["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = { "TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT" },
+    -- Pedia prose pairs [ICON_CULTURE] with the adjective "Cultural"
+    -- ("[ICON_CULTURE] Cultural output of a city"). The icon's "culture"
+    -- primary does not collapse against "Cultural"; the alias does.
+    ["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = { "TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT" },
 }
 
 for name, key in pairs(ICON_KEYS) do

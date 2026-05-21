@@ -179,6 +179,35 @@ function M.test_qualifier_skip_aborts_on_digit()
     T.eq(TextFilter.filter("[ICON_HAPPINESS_1] 10 happiness boost"), "happiness 10 happiness boost")
 end
 
+-- [ICON_MOVES] sits next to the noun "Movement" in ability prose on
+-- either side -- Denmark's Viking Fury "+1 Movement [ICON_MOVES]" and the
+-- BNW scenarios' "+1 [ICON_MOVES] Movement". The "moves" primary can't
+-- bridge to "Movement", so the alias collapses it; a bare token with no
+-- adjacent noun still speaks "moves" (pedia's "N [ICON_MOVES]").
+function M.test_moves_collapses_against_movement_noun()
+    setup()
+    T.eq(
+        TextFilter.filter("Embarked units have +1 Movement [ICON_MOVES] and pay"),
+        "Embarked units have +1 Movement and pay"
+    )
+    T.eq(TextFilter.filter("+1 [ICON_MOVES] Movement"), "+1 Movement")
+    T.eq(TextFilter.filter("2 [ICON_MOVES]"), "2 moves")
+end
+
+-- [ICON_CULTURE] sits next to the adjective "Cultural" in pedia prose
+-- ("[ICON_CULTURE] Cultural output of a city"). The "culture" primary
+-- can't bridge to "Cultural", so the alias collapses it; the primary
+-- still collapses against the bare noun, and a bare token still speaks.
+function M.test_culture_collapses_against_cultural_adjective()
+    setup()
+    T.eq(
+        TextFilter.filter("increases the [ICON_CULTURE] Cultural output of a city"),
+        "increases the Cultural output of a city"
+    )
+    T.eq(TextFilter.filter("+3 [ICON_CULTURE] Culture"), "+3 Culture")
+    T.eq(TextFilter.filter("+3 [ICON_CULTURE]"), "+3 culture")
+end
+
 -- Typo-variant icons inherit aliases from their canonical TXT_KEY. A base
 -- text with the misspelled ICON_HAPPINES_4 next to "unhappy" should collapse
 -- just like ICON_HAPPINESS_4 does.

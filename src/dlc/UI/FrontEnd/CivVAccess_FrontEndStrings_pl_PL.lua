@@ -279,6 +279,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "złoto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "żywność"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "produkcja"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "kultura"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = "kultury"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "nauka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "nauka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "wiara"
@@ -312,6 +314,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "siła dystansowa
 -- the alias has to spell out the engine's variant.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "Siła ostrzału"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "ruchy"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = "ruchu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "zadowolenie"
 -- _ALT: Dormant in pl_PL (both positive-happy forms share the prefix "zadowolon").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = ""

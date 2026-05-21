@@ -1396,6 +1396,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "золото"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "пища"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "производство"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "культура"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = "культуры"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "наука"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "наука"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "вера"
@@ -1422,6 +1424,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "мощь дал�
 -- dormant; empty is fine.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "к мощи дальнего боя"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "передвижение"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "настроение"
 -- Dedup-only alias. Engine source: TXT_KEY_LOCAL_CITY_HAPPY_TEXT and
 -- TXT_KEY_PRODUCTION_BUILDING_HAPPINESS. RU_RU uses "Настроение".

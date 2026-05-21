@@ -279,6 +279,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "金幣"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "食物"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "生產"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "文化"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "科學"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "科學"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "信仰"
@@ -303,6 +305,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "遠程戰鬥力"
 -- zh_Hant_HK engine emits: [ICON_RANGE_STRENGTH]遠程戰鬥力:{1_Num}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "遠程戰鬥力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "行動力"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = "移動力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "幸福度"
 -- Dedup-only alias. Base text pairs ICON_HAPPINESS_1 with shorter "幸福" form.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "幸福"

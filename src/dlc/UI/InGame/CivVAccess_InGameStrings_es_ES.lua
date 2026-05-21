@@ -1780,6 +1780,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "oro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "comida"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "producción"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "cultura"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = "cultural"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "ciencia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "ciencia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "fe"
@@ -1813,6 +1815,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "fuerza de combat
 -- "[ICON_RANGE_STRENGTH] Fuerza a distancia: N"). Match the engine phrase.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "fuerza a distancia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "movimientos"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = "movimiento"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "felicidad"
 -- Dedup-only alias. Engine source: base text pairs the positive-happy glyph
 -- with "Happy" as well as "Happiness" (TXT_KEY_LOCAL_CITY_HAPPY_TEXT and

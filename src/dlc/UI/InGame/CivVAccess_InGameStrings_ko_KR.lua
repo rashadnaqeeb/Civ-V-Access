@@ -1094,6 +1094,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "금"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "식량"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "생산"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "문화"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "과학"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "과학"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "신앙"
@@ -1114,6 +1116,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "원거리 전투
 -- Dedup alias: engine emits "[ICON_RANGE_STRENGTH] 원거리 전투력: N" -- prefix matches primary; dormant in ko_KR
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "이동력"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "행복도"
 -- Dedup alias: engine emits "[ICON_HAPPINESS_1] 행복: +N" -- shorter form
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "행복"

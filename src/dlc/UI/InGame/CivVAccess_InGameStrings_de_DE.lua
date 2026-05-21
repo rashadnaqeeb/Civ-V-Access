@@ -1322,6 +1322,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "Gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "Nahrung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "Produktion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "Kultur"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = "Kulturertrag"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "Forschung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "Forschung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "Glaube"
@@ -1344,6 +1346,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "Fernkampfstärke
 -- both start with "Fernkampfstärke", so alias is dormant; empty is fine.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "Bewegungspunkte"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = "Fortbew."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "Zufriedenheit"
 -- Dedup alias. Engine source: shorter "Happy" / "Zufrieden" pairing in per-yield lines.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = "zufrieden"

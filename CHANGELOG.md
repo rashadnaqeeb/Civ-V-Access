@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Ability and Civilopedia descriptions no longer double a word when an icon repeats its label, such as "Movement moves" or "culture Cultural".
+
 ## [1.1.12] - 2026-05-20
 
 New Features and improvements:

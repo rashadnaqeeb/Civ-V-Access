@@ -1871,6 +1871,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "food"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "culture"
+-- Dedup-only alias. Pedia prose pairs [ICON_CULTURE] with the adjective
+-- "Cultural" ("[ICON_CULTURE] Cultural output of a city"), which the
+-- "culture" primary does not collapse against. Match the adjective form.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = "cultural"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "faith"
@@ -1907,6 +1911,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "ranged combat st
 -- is fine; the matcher skips empty aliases.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "ranged strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "moves"
+-- Dedup-only alias. Base text pairs [ICON_MOVES] with the noun "Movement"
+-- (e.g. Denmark's Viking Fury "+1 Movement [ICON_MOVES]"), which the
+-- "moves" primary does not collapse against. Match the noun form.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = "movement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "happiness"
 -- Dedup-only alias. Engine source: base text pairs the positive-happy glyph
 -- with "Happy" as well as "Happiness" (TXT_KEY_LOCAL_CITY_HAPPY_TEXT and

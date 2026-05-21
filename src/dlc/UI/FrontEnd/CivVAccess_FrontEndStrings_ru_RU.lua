@@ -308,6 +308,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "золото"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "пища"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "производство"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "культура"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = "культуры"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "наука"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "наука"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "вера"
@@ -330,6 +332,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "мощь дал�
 -- _ALT: TXT_KEY_PRODUCTION_RANGED_STRENGTH. Dormant in ru_RU (emission starts with same phrase).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "ходы"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "настроение"
 -- _ALT: Dormant in ru_RU (game uses the same word "настроение" for both forms).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY_ALT"] = ""

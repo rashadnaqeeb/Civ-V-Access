@@ -1076,6 +1076,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLD"] = "金幣"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FOOD"] = "食物"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_PRODUCTION"] = "生產"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE"] = "文化"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CULTURE_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "科學"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "科學"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "信仰"
@@ -1112,6 +1114,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "遠程戰鬥力"
 -- is fine; the matcher skips empty aliases.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = ""
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "行動力"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT_ALT"] = "移動力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_HAPPY"] = "幸福"
 -- Dedup-only alias. Engine source: base text pairs the positive-happy glyph
 -- with "Happy" as well as "Happiness" (TXT_KEY_LOCAL_CITY_HAPPY_TEXT and
