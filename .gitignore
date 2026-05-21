@@ -60,6 +60,10 @@ tools/RemuxToAsf.exe
 # luacheck cache
 .luacheckcache
 
+# Python bytecode cache from tools/*.py
+__pycache__/
+*.pyc
+
 # Extracted leader scene images (Firaxis assets — not redistributable)
 /leader images/
 
