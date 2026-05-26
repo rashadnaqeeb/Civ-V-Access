@@ -53,6 +53,8 @@ local function mkCity(opts)
         _originalOwner = (opts.originalOwner == nil) and 0 or opts.originalOwner,
         _x = opts.x or 5,
         _y = opts.y or 5,
+        _id = opts.id or 1,
+        _cityPlots = opts.cityPlots or {},
     }
     function c:GetOwner()
         return self._owner
@@ -168,7 +170,27 @@ local function mkCity(opts)
     function c:GetY()
         return self._y
     end
+    function c:GetID()
+        return self._id
+    end
+    function c:GetNumCityPlots()
+        return #self._cityPlots
+    end
+    function c:GetCityIndexPlot(i)
+        return self._cityPlots[i + 1]
+    end
     return c
+end
+
+-- Build a plot stub whose GetWorkingCity returns the given city handle
+-- (or nil for "unclaimed"). Used by identity tests that exercise the
+-- controlled-tiles count.
+local function mkPlot(workingCity)
+    return {
+        GetWorkingCity = function()
+            return workingCity
+        end,
+    }
 end
 
 -- Helpers for building player / team / game fixtures a test cares about.
@@ -656,6 +678,46 @@ function M.test_identity_enemy_city_hp_band_matches_thresholds()
     installForeignMajor(5, 5)
     local red = mkCity({ owner = 5, team = 5, damage = 140 })
     T.truthy(CitySpeech.identity(red):find("hp red", 1, true), "red band at 30%")
+end
+
+function M.test_identity_team_city_speaks_controlled_tile_count()
+    -- Ring of three plots: two assigned to this city, one to a foreign
+    -- city, one unowned. Only the two matching plots count.
+    setup()
+    local city = mkCity({ id = 7 })
+    local foreign = {
+        GetID = function()
+            return 9
+        end,
+        GetOwner = function()
+            return 5
+        end,
+    }
+    city._cityPlots = { mkPlot(city), mkPlot(city), mkPlot(foreign), mkPlot(nil) }
+    T.truthy(CitySpeech.identity(city):find("2 tiles", 1, true), "2 tiles expected: " .. CitySpeech.identity(city))
+end
+
+function M.test_identity_controlled_tile_count_singular_plural()
+    setup()
+    local one = mkCity({ id = 1 })
+    one._cityPlots = { mkPlot(one) }
+    T.truthy(CitySpeech.identity(one):find("1 tile", 1, true), "singular form expected")
+    -- Must not match the plural marker.
+    T.falsy(
+        CitySpeech.identity(one):find("1 tiles", 1, true),
+        "must not pluralise the singular: " .. CitySpeech.identity(one)
+    )
+end
+
+function M.test_identity_enemy_city_omits_controlled_tile_count()
+    -- Tile count is the engine's "which of my cities" assignment and
+    -- isn't part of the foreign banner's visible information; the count
+    -- should be team-gated, same place the garrison token used to sit.
+    setup()
+    installForeignMajor(5, 5)
+    local city = mkCity({ owner = 5, team = 5, id = 3 })
+    city._cityPlots = { mkPlot(city), mkPlot(city), mkPlot(city) }
+    T.falsy(CitySpeech.identity(city):find(" tile", 1, true), "enemy city must not speak tile count")
 end
 
 function M.test_identity_team_non_capital_speaks_connected_when_route_home()

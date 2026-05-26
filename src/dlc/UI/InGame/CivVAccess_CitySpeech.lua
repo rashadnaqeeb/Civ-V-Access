@@ -200,6 +200,25 @@ local function cityHpColorKey(city)
     return "TXT_KEY_CIVVACCESS_UNIT_HP_RED"
 end
 
+-- Count of plots inside the city's NUM_CITY_PLOTS ring whose engine-
+-- assigned working city is this one. plot:GetWorkingCity() is the
+-- "which of my cities claims this tile" accessor the engine uses for
+-- yield ownership; matching on both ID and owner guards against a
+-- neighbour civ's city happening to share the per-player id.
+local function controlledTilesCount(city)
+    local count = 0
+    for i = 0, city:GetNumCityPlots() - 1 do
+        local plot = city:GetCityIndexPlot(i)
+        if plot ~= nil then
+            local working = plot:GetWorkingCity()
+            if working ~= nil and working:GetID() == city:GetID() and working:GetOwner() == city:GetOwner() then
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
 -- ===== Key 1: identity + combat =====
 function CitySpeech.identity(city)
     if not isMet(city) then
@@ -248,6 +267,11 @@ function CitySpeech.identity(city)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - city:GetDamage(), maxHP)
     else
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_COLOR", Text.key(cityHpColorKey(city)))
+    end
+
+    if isTeam(city) then
+        local tiles = controlledTilesCount(city)
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_CONTROLLED_TILES", tiles, tiles)
     end
 
     return table.concat(parts, ", ")
