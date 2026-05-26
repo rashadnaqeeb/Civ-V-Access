@@ -200,19 +200,6 @@ local function cityHpColorKey(city)
     return "TXT_KEY_CIVVACCESS_UNIT_HP_RED"
 end
 
-local function garrisonToken(city)
-    local unit = city:GetGarrisonedUnit()
-    if unit == nil then
-        return nil
-    end
-    local row = GameInfo.Units[unit:GetUnitType()]
-    if row == nil then
-        Log.warn("CitySpeech: garrisoned unit with unknown type " .. tostring(unit:GetUnitType()))
-        return nil
-    end
-    return Text.format("TXT_KEY_CIVVACCESS_CITY_GARRISON", Text.key(row.Description))
-end
-
 -- ===== Key 1: identity + combat =====
 function CitySpeech.identity(city)
     if not isMet(city) then
@@ -261,13 +248,6 @@ function CitySpeech.identity(city)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - city:GetDamage(), maxHP)
     else
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_COLOR", Text.key(cityHpColorKey(city)))
-    end
-
-    if isTeam(city) then
-        local g = garrisonToken(city)
-        if g ~= nil then
-            parts[#parts + 1] = g
-        end
     end
 
     return table.concat(parts, ", ")

@@ -658,33 +658,6 @@ function M.test_identity_enemy_city_hp_band_matches_thresholds()
     T.truthy(CitySpeech.identity(red):find("hp red", 1, true), "red band at 30%")
 end
 
-function M.test_identity_team_city_speaks_garrison_name()
-    setup()
-    GameInfo.Units[100] = { Description = "Swordsman" }
-    local garrison = {
-        GetUnitType = function()
-            return 100
-        end,
-    }
-    local city = mkCity({ garrisonedUnit = garrison })
-    T.truthy(CitySpeech.identity(city):find("garrisoned Swordsman", 1, true), "garrison name expected")
-end
-
-function M.test_identity_enemy_city_omits_garrison()
-    -- Other-banner XML has no GarrisonFrame control, so the banner
-    -- doesn't leak the defender identity. Mirror that in speech.
-    setup()
-    installForeignMajor(5, 5)
-    GameInfo.Units[100] = { Description = "Swordsman" }
-    local garrison = {
-        GetUnitType = function()
-            return 100
-        end,
-    }
-    local city = mkCity({ owner = 5, team = 5, garrisonedUnit = garrison })
-    T.falsy(CitySpeech.identity(city):find("garrisoned", 1, true), "enemy garrison must not be spoken")
-end
-
 function M.test_identity_team_non_capital_speaks_connected_when_route_home()
     setup()
     Players[0].IsCapitalConnectedToCity = function()

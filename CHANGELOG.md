@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - R now trails the readout with your current era.
+- Reading a city with 1 no longer announces its garrisoned unit.
 
 Bug fixes:
 - Ability and Civilopedia descriptions no longer double a word when an icon repeats its label, such as "Movement moves" or "culture Cultural".
