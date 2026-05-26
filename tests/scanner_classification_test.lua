@@ -1278,17 +1278,228 @@ function M.test_terrain_validate_freshwater_goes_stale_when_river_lost()
     )
 end
 
-function M.test_terrain_unrevealed_plot_skipped()
-    -- Fog-of-war gate: every other plot-iterating backend honours this
-    -- and the terrain backend must too, or a player sees the entire map
-    -- laid out as soon as any game starts.
+function M.test_terrain_unrevealed_plot_skips_per_plot_emission()
+    -- An unrevealed plot must not leak its terrain row, feature, or
+    -- elevation through the per-plot emission path; it should only
+    -- surface via the unexplored cluster aggregation. A regression that
+    -- emits "Grassland" or "Forest" entries from fogged plots would let
+    -- the user enumerate the entire map immediately at game start.
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
+    GameInfo.Features = { [3] = { Description = "TXT_KEY_FEATURE_FOREST" } }
+    Map.PlotDirection = function()
+        return nil
+    end
+    local hidden = makePlotAt(0, 0, 0, { terrain = 1, feature = 3, hills = true, revealed = false })
+    mapFromPlots({ hidden })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.falsy(bySub.features, "fogged plot must not emit a features entry")
+    T.falsy(bySub.elevation, "fogged plot must not emit an elevation entry")
+    T.falsy(bySub.freshwater, "fogged plot must not emit a freshwater entry")
+    T.truthy(bySub.base, "fogged plot surfaces only as an unexplored cluster entry")
+    T.eq(#bySub.base, 1, "exactly one cluster entry for the lone fogged plot")
+    T.eq(bySub.base[1].data.kind, "unexplored")
+    T.eq(bySub.base[1].data.terrainId, nil, "cluster entry must not leak the underlying terrainId")
+end
+
+-- ===== Unexplored cluster =====
+
+-- Build a Map.PlotDirection mock that walks a {[x][y][dir] = plot} table.
+-- Tests only specify the adjacencies they exercise; unknown lookups
+-- return nil (off-map). The helper handles both the (x, y, dir) and
+-- (_, _, dir) calling conventions used elsewhere in the test suite.
+local function installNeighborhood(adjacency)
+    Map.PlotDirection = function(x, y, dir)
+        local col = adjacency[x]
+        if col == nil then
+            return nil
+        end
+        local row = col[y]
+        if row == nil then
+            return nil
+        end
+        return row[dir]
+    end
+end
+
+function M.test_terrain_unexplored_single_fogged_plot_emits_cluster_of_one()
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = {}
+    GameInfo.Features = {}
+    Map.PlotDirection = function()
+        return nil
+    end
+    local hidden = makePlotAt(2, 3, 0, { revealed = false })
+    mapFromPlots({ hidden })
+    local out = ScannerBackendTerrain.Scan(0, 0)
+    T.eq(#out, 1, "lone fogged plot emits one cluster entry")
+    T.eq(out[1].category, "terrain")
+    T.eq(out[1].subcategory, "base")
+    T.eq(out[1].data.kind, "unexplored")
+    T.eq(#out[1].data.cells, 1)
+    T.eq(out[1].data.cells[1], 0)
+    T.eq(out[1].plotIndex, 0, "rep is the lone cell")
+end
+
+function M.test_terrain_unexplored_contiguous_plots_collapse_to_one_cluster()
+    -- Two unrevealed plots that are hex-adjacent must collapse into a
+    -- single cluster entry whose data.cells lists both plotIndices, not
+    -- two singleton entries. This is the core invariant of the cluster
+    -- pass and the reason a 7500-plot fog map doesn't become a 7500-entry
+    -- scanner item.
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = {}
+    GameInfo.Features = {}
+    local a = makePlotAt(0, 0, 0, { revealed = false })
+    local b = makePlotAt(1, 0, 1, { revealed = false })
+    installNeighborhood({
+        [0] = { [0] = { [DirectionTypes.DIRECTION_EAST] = b } },
+        [1] = { [0] = { [DirectionTypes.DIRECTION_WEST] = a } },
+    })
+    mapFromPlots({ a, b })
+    local out = ScannerBackendTerrain.Scan(0, 0)
+    T.eq(#out, 1, "two adjacent fogged plots cluster into one entry")
+    T.eq(#out[1].data.cells, 2)
+    local cells = {}
+    for _, idx in ipairs(out[1].data.cells) do
+        cells[idx] = true
+    end
+    T.truthy(cells[0] and cells[1], "cluster cell list must contain both plotIndices")
+end
+
+function M.test_terrain_unexplored_disjoint_plots_emit_separate_clusters()
+    -- Two unrevealed plots with no shared hex edge must produce two
+    -- cluster entries, not one. A regression that unions across
+    -- disconnected regions would collapse "north pole frontier" and
+    -- "south pole frontier" into a single 5000-tile blob.
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = {}
+    GameInfo.Features = {}
+    local a = makePlotAt(0, 0, 0, { revealed = false })
+    local b = makePlotAt(5, 5, 1, { revealed = false })
+    Map.PlotDirection = function()
+        return nil
+    end
+    mapFromPlots({ a, b })
+    local out = ScannerBackendTerrain.Scan(0, 0)
+    T.eq(#out, 2, "two disjoint fogged plots produce two cluster entries")
+end
+
+function M.test_terrain_unexplored_mixed_with_revealed_emits_both()
+    -- A revealed plot keeps its per-plot terrain entry; an adjacent
+    -- unrevealed plot becomes a cluster. The revealed plot must not be
+    -- swept into the cluster's cell list (or its terrain would silently
+    -- get counted as "unexplored" once revealed-but-fogged tiles ever
+    -- existed -- which they can't here since IsRevealed is the gate, but
+    -- the test pins the invariant).
     setup()
     loadTerrainBackend()
     GameInfo.Terrains = { [1] = { Description = "TXT_KEY_TERRAIN_GRASS" } }
     GameInfo.Features = {}
-    local hidden = makePlotAt(0, 0, 0, { terrain = 1, revealed = false })
-    mapFromPlots({ hidden })
-    T.eq(#ScannerBackendTerrain.Scan(0, 0), 0, "nothing emits from a fogged plot")
+    local seen = makePlotAt(0, 0, 0, { terrain = 1, revealed = true })
+    local hidden = makePlotAt(1, 0, 1, { revealed = false })
+    installNeighborhood({
+        [0] = { [0] = { [DirectionTypes.DIRECTION_EAST] = hidden } },
+        [1] = { [0] = { [DirectionTypes.DIRECTION_WEST] = seen } },
+    })
+    mapFromPlots({ seen, hidden })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.eq(#bySub.base, 2, "one base terrain entry plus one cluster entry under base")
+    local terrainEntry, clusterEntry
+    for _, e in ipairs(bySub.base) do
+        if e.data.kind == "base" then
+            terrainEntry = e
+        elseif e.data.kind == "unexplored" then
+            clusterEntry = e
+        end
+    end
+    T.truthy(terrainEntry, "revealed plot still emits its terrain row")
+    T.truthy(clusterEntry, "unrevealed plot still surfaces as a cluster")
+    T.eq(#clusterEntry.data.cells, 1, "cluster must hold only the unrevealed plot")
+    T.eq(clusterEntry.data.cells[1], 1)
+end
+
+function M.test_terrain_unexplored_format_name_uses_cluster_count()
+    -- FormatName speaks the live cell count, mirroring ONI's
+    -- "{count} {name}" cluster label. The singular case drops the count
+    -- so a one-cell cluster reads as plain "unexplored", not "1 unexplored".
+    setup()
+    loadTerrainBackend()
+    Text.format = function(key, n)
+        return tostring(n) .. ":" .. key
+    end
+    local singleton = {
+        backend = ScannerBackendTerrain,
+        data = { kind = "unexplored", cells = { 0 } },
+        itemName = Text.key("TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED"),
+    }
+    T.eq(
+        ScannerBackendTerrain.FormatName(singleton),
+        Text.key("TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED"),
+        "singleton cluster reads as the bare itemName"
+    )
+    local big = {
+        backend = ScannerBackendTerrain,
+        data = { kind = "unexplored", cells = { 0, 1, 2, 3, 4 } },
+        itemName = Text.key("TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED"),
+    }
+    T.eq(
+        ScannerBackendTerrain.FormatName(big),
+        "5:TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED_CLUSTER",
+        "cluster of N reads with the count and the cluster template"
+    )
+end
+
+function M.test_terrain_unexplored_validate_prunes_revealed_cells_and_recenter()
+    -- Cluster ValidateEntry must drop cells whose plot is now revealed
+    -- and re-aim entry.plotIndex at the nearest surviving cell to the
+    -- cursor. A regression that left entry.plotIndex on a now-revealed
+    -- plot would produce a base-terrain bearing instead of pointing at
+    -- the frontier, breaking the "go to" target on subsequent Home.
+    setup()
+    loadTerrainBackend()
+    local a = makePlotAt(0, 0, 0, { revealed = true }) -- just got explored
+    local b = makePlotAt(1, 0, 1, { revealed = false }) -- still fogged
+    local c = makePlotAt(2, 0, 2, { revealed = false }) -- still fogged
+    mapFromPlots({ a, b, c })
+    -- Cursor at (0, 0): b (distance 1) is nearer than c (distance 2).
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.abs(x1 - x2) + math.abs(y1 - y2)
+    end
+    local entry = {
+        plotIndex = 0, -- stale rep, plot was just revealed
+        backend = ScannerBackendTerrain,
+        data = { kind = "unexplored", cells = { 0, 1, 2 } },
+    }
+    -- Cursor is on the just-revealed cell (plot index 0, at (0, 0)). The
+    -- hint travels through Map.GetPlotByIndex which mapFromPlots already
+    -- wired to return a/b/c.
+    T.truthy(ScannerBackendTerrain.ValidateEntry(entry, 0), "cluster with surviving cells stays valid")
+    T.eq(#entry.data.cells, 2, "prune drops the now-revealed cell")
+    T.eq(entry.plotIndex, 1, "rep re-centers on the nearest surviving cell to the cursor")
+end
+
+function M.test_terrain_unexplored_validate_fails_when_all_cells_revealed()
+    -- Once every cell of a cluster has been revealed, ValidateEntry
+    -- returns false so the navigator prunes the dead instance. The next
+    -- rebuild won't recreate the cluster (all its cells fail
+    -- IsRevealed=false), so this is the cluster's terminal state.
+    setup()
+    loadTerrainBackend()
+    local a = makePlotAt(0, 0, 0, { revealed = true })
+    local b = makePlotAt(1, 0, 1, { revealed = true })
+    mapFromPlots({ a, b })
+    local entry = {
+        plotIndex = 0,
+        backend = ScannerBackendTerrain,
+        data = { kind = "unexplored", cells = { 0, 1 } },
+    }
+    T.falsy(ScannerBackendTerrain.ValidateEntry(entry, nil), "cluster with no surviving cells invalidates")
+    T.eq(#entry.data.cells, 0, "all cells pruned out")
 end
 
 -- ===== Recommendations backend =====

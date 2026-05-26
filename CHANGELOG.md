@@ -16,6 +16,7 @@ New Features and improvements:
 - pressing 1 on a city now tells you how many tiles are controlled by that city.
 - Surveyor adds Control plus Shift plus A for improvements in range, Control plus Shift plus D for neutral units in range, and Control plus Shift plus Z for tile ownership in range.
 - W on a tile inside civ borders but not worked by any city now says "in your territory" or "in Arabian territory" instead of skipping ownership.
+- The scanner now lists contiguous unexplored tiles as a single entry under Terrain, Base Terrain, with the count of tiles in each unknown region.
 
 Bug fixes:
 - Ability and Civilopedia descriptions no longer double a word when an icon repeats its label, such as "Movement moves" or "culture Cultural". This may be buggy across languages, so do let me know if it doesn't work in your language.

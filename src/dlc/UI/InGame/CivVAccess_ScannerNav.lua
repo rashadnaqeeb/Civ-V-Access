@@ -248,6 +248,23 @@ local function rebuildFromCursor()
     _itemIdx, _instIdx = 0, 0
 end
 
+-- Resolve the live cursor to a plotIndex hint for ValidateEntry. Cluster
+-- backends use it to re-center their rep on the nearest surviving cell
+-- after a prune; non-cluster backends ignore the hint. Nil during very-
+-- early boot before the cursor has placed itself; cluster ValidateEntry
+-- treats nil as anchor (0, 0) and the next rebuild re-aims everything.
+local function cursorPlotIndexHint()
+    local cx, cy = Cursor.position()
+    if cx == nil then
+        return nil
+    end
+    local plot = Map.GetPlot(cx, cy)
+    if plot == nil then
+        return nil
+    end
+    return plot:GetPlotIndex()
+end
+
 -- Ask the backend whether the current instance is still live. If not,
 -- prune it and re-land on whatever the surviving neighbour is; loop
 -- because the next candidate might also be stale. Design section 5:
@@ -255,6 +272,12 @@ end
 -- navigates to it. If it returns false, the entry is pruned ... and the
 -- navigator advances to the next valid instance within the same item
 -- (or wraps up the hierarchy if the item empties out)."
+--
+-- Cluster-backed entries (terrain "unexplored") may mutate entry.plotIndex
+-- when ValidateEntry re-centers the rep on the nearest surviving cell.
+-- inst.plotX / plotY are baked at snapshot build time and would otherwise
+-- announce the old rep's bearing; we refresh them from the new plotIndex
+-- when validation returns true.
 local function ensureCurrentInstanceValid()
     while true do
         local inst = currentInstance()
@@ -262,7 +285,8 @@ local function ensureCurrentInstanceValid()
             return
         end
         local entry = inst.entry
-        local ok, valid = pcall(entry.backend.ValidateEntry, entry, nil)
+        local oldPlotIndex = entry.plotIndex
+        local ok, valid = pcall(entry.backend.ValidateEntry, entry, cursorPlotIndexHint())
         if not ok then
             Log.error(
                 "ScannerNav: backend '" .. tostring(entry.backend.name) .. "' ValidateEntry failed: " .. tostring(valid)
@@ -270,6 +294,12 @@ local function ensureCurrentInstanceValid()
             return
         end
         if valid then
+            if entry.plotIndex ~= oldPlotIndex then
+                local plot = Map.GetPlotByIndex(entry.plotIndex)
+                if plot ~= nil then
+                    inst.plotX, inst.plotY = plot:GetX(), plot:GetY()
+                end
+            end
             return
         end
         ScannerSnap.pruneInstance(_snapshot, _catIdx, _subIdx, _itemIdx, _instIdx)

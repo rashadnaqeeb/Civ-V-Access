@@ -60,6 +60,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY"] = "Enemy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_TERRAIN_BASE"] = "Base Terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION"] = "Elevation"
 
+-- Item labels for contiguous unrevealed tiles, clustered into one entry
+-- per connected region under terrain > base. The cluster form leads with
+-- the tile count so the user hears the magnitude of the unknown region
+-- before the noun, mirroring the ONI Access scanner's "{count} {name}"
+-- shape; the singular form drops the count.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED"] = "unexplored"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED_CLUSTER"] = "{1_Count} unexplored"
+
 -- ===== Announcement fragments =====
 -- Positional count tail. Carves out an exception to the concise-
 -- announcement rule that forbids "N of M" for menus: here it carries
