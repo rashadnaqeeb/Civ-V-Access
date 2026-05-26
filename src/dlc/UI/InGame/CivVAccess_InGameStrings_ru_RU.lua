@@ -621,6 +621,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} населе
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} защита"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} из {2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "гарнизон {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONTROLLED_TILES"] = {
+    one = "{1_Num} клетка",
+    few = "{1_Num} клетки",
+    many = "{1_Num} клеток",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = {
     one = "производит {1_Name} {2_Turns} ход",
     few = "производит {1_Name} {2_Turns} хода",

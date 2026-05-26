@@ -483,6 +483,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} 人口"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} 防御"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} / {2_Max} 生命力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "守備隊 {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONTROLLED_TILES"] = {
+    other = "{1_Num} マス",
+}
 
 -- City production
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = {

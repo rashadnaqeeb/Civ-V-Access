@@ -691,6 +691,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} habitants"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} défense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} sur {2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "en garnison {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONTROLLED_TILES"] = {
+    one = "{1_Num} case",
+    other = "{1_Num} cases",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PRODUCING"] = {
     one = "production de {1_Name} {2_Turns} tour",
     other = "production de {1_Name} {2_Turns} tours",
