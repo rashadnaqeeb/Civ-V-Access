@@ -1,6 +1,8 @@
 -- Surveyor: "what's within N tiles of my cursor." Sits alongside Cursor
 -- ("what's on this tile") and Scanner ("where is X"). Each Shift-letter
--- key answers one scope question against the current cursor position and
+-- key (yields / resources / terrain / own units / enemy units / cities)
+-- and Ctrl+Shift-letter key (improvements / neutral units / borders)
+-- answers one scope question against the current cursor position and
 -- the shared radius on civvaccess_shared.surveyorRadius.
 --
 -- No per-scope caching; every read re-queries live engine state so a
@@ -16,9 +18,23 @@
 SurveyorCore = {}
 
 local MOD_SHIFT = 1
+local MOD_CTRL_SHIFT = 3
 
 local MIN_RADIUS = 1
 local MAX_RADIUS = 5
+
+-- Improvement types excluded from the aggregate improvement scope.
+-- Barb camps are surfaced in cities (the hostile-settlement slot); goody
+-- huts are findable via the Scanner's Special backend; roads / railroads
+-- are routes that the base game treats as improvements only as a fallback
+-- and aren't player-built infrastructure in the same sense. Mirrors the
+-- skip list in ScannerBackendImprovements.
+local IMPROVEMENT_SKIP_TYPES = {
+    "IMPROVEMENT_BARBARIAN_CAMP",
+    "IMPROVEMENT_GOODY_HUT",
+    "IMPROVEMENT_ROAD",
+    "IMPROVEMENT_RAILROAD",
+}
 
 -- Yield id / TXT_KEY pairs in the canonical speech order the cursor's W
 -- (economy) uses. Stays in sync with PlotComposers.YIELD_KEYS by design;
@@ -217,6 +233,102 @@ function SurveyorCore.terrain()
     return appendUnexplored(body, range.unexplored)
 end
 
+-- ===== Improvements =====
+-- Aggregated bucket like resources / terrain: counts each visible
+-- improvement by name. Reads plot:GetRevealedImprovementType so fogged
+-- tiles report what the player last saw. Pillage state isn't surfaced
+-- here (use the Scanner improvements category to act on a repair list);
+-- the surveyor's job is "what's been built in the area", not "what
+-- needs fixing".
+local function buildImprovementSkipIdSet()
+    local skip = {}
+    if GameInfoTypes ~= nil then
+        for _, name in ipairs(IMPROVEMENT_SKIP_TYPES) do
+            local id = GameInfoTypes[name]
+            if id ~= nil and id >= 0 then
+                skip[id] = true
+            end
+        end
+    end
+    return skip
+end
+
+function SurveyorCore.improvements()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activeTeam = Game.GetActiveTeam()
+    local isDebug = Game.IsDebugMode()
+    local skipIds = buildImprovementSkipIdSet()
+    local buckets = {}
+    for _, plot in ipairs(range.plots) do
+        local id = plot:GetRevealedImprovementType(activeTeam, isDebug)
+        if id ~= nil and id >= 0 and not skipIds[id] then
+            local row = GameInfo.Improvements[id]
+            if row ~= nil and row.Description ~= nil then
+                local name = Text.key(row.Description)
+                buckets[name] = (buckets[name] or 0) + 1
+            end
+        end
+    end
+    local entries = sortedBucketByCountThenName(buckets)
+    local body
+    if #entries == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS")
+    else
+        body = formatBucketEntries(entries)
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
+-- ===== Borders =====
+-- Aggregated bucket of tile ownership: active player gets "yours",
+-- unowned tiles bucket under "unclaimed", everyone else under their
+-- civilization adjective. plot:GetRevealedOwner mirrors the engine's
+-- own border rendering under fog -- a tile last seen as French stays
+-- French in the readout even if it flipped to Roman after going out of
+-- sight. Sorted by count descending so the dominant owner leads.
+function SurveyorCore.borders()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activePlayer = Game.GetActivePlayer()
+    local activeTeam = Game.GetActiveTeam()
+    local isDebug = Game.IsDebugMode()
+    local yoursLabel = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS")
+    local unclaimedLabel = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_UNCLAIMED")
+    local buckets = {}
+    for _, plot in ipairs(range.plots) do
+        local ownerId = plot:GetRevealedOwner(activeTeam, isDebug)
+        local label
+        if ownerId == activePlayer then
+            label = yoursLabel
+        elseif ownerId == nil or ownerId < 0 then
+            label = unclaimedLabel
+        else
+            local owner = Players[ownerId]
+            if owner ~= nil then
+                label = Text.key(owner:GetCivilizationAdjectiveKey())
+            end
+        end
+        if label ~= nil then
+            buckets[label] = (buckets[label] or 0) + 1
+        end
+    end
+    local entries = sortedBucketByCountThenName(buckets)
+    local body
+    if #entries == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS")
+    else
+        body = formatBucketEntries(entries)
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
 -- ===== Instance scopes =====
 -- Sort instances by cube-distance ascending, then CW-from-E direction
 -- rank. Distance 0 (units at the cursor) sort before everything; within
@@ -346,6 +458,62 @@ function SurveyorCore.enemyUnits()
     return appendUnexplored(body, range.unexplored)
 end
 
+-- ===== Neutral units =====
+-- Mirror of enemyUnits with the stance filter flipped: anyone visible
+-- who isn't us, isn't a barbarian, and isn't on a team we're at war with.
+-- Includes teammates, AI civs at peace, and city-states at peace --
+-- foreign workers crossing your territory, allied caravans, missionaries
+-- spreading another religion. Labelled with the civ adjective so the
+-- player can tell a Greek Worker from an Athenian Settler.
+function SurveyorCore.neutralUnits()
+    local cx, cy = cursorPos()
+    if cx == nil then
+        return ""
+    end
+    local range = HexGeom.plotsInRange(cx, cy, getRadius())
+    local activePlayer = Game.GetActivePlayer()
+    local activeTeam = Game.GetActiveTeam()
+    local isDebug = Game.IsDebugMode()
+    local activeTeamObj = Teams[activeTeam]
+    local instances = {}
+    for _, plot in ipairs(range.plots) do
+        if plot:IsVisible(activeTeam, isDebug) then
+            local px, py = plot:GetX(), plot:GetY()
+            local dist = HexGeom.cubeDistance(cx, cy, px, py)
+            local rank = HexGeom.directionRank(cx, cy, px, py)
+            for i = 0, plot:GetNumLayerUnits(-1) - 1 do
+                local u = plot:GetLayerUnit(i, -1)
+                if u ~= nil and not u:IsInvisible(activeTeam, isDebug) then
+                    local ownerId = u:GetOwner()
+                    if ownerId ~= activePlayer then
+                        local owner = Players[ownerId]
+                        if owner ~= nil and not owner:IsBarbarian() then
+                            local atPeace = not activeTeamObj:IsAtWar(owner:GetTeam())
+                            if atPeace then
+                                local adj = Text.key(owner:GetCivilizationAdjectiveKey())
+                                instances[#instances + 1] = {
+                                    x = px,
+                                    y = py,
+                                    dist = dist,
+                                    rank = rank,
+                                    label = unitLabel(u, adj),
+                                }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    local body
+    if #instances == 0 then
+        body = Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS")
+    else
+        body = formatUnitInstances(instances, cx, cy)
+    end
+    return appendUnexplored(body, range.unexplored)
+end
+
 -- ===== Cities =====
 -- Flat closest-first listing, sorted by cube distance then CW-from-E
 -- direction rank (shared with units via distanceDirectionCompare). No
@@ -426,6 +594,15 @@ function SurveyorCore.getBindings()
         bind(Keys.C, MOD_SHIFT, function()
             speak(SurveyorCore.cities())
         end, "Surveyor: cities"),
+        bind(Keys.A, MOD_CTRL_SHIFT, function()
+            speak(SurveyorCore.improvements())
+        end, "Surveyor: improvements"),
+        bind(Keys.D, MOD_CTRL_SHIFT, function()
+            speak(SurveyorCore.neutralUnits())
+        end, "Surveyor: neutral units"),
+        bind(Keys.Z, MOD_CTRL_SHIFT, function()
+            speak(SurveyorCore.borders())
+        end, "Surveyor: borders"),
     }
     local helpEntries = {
         {
@@ -455,6 +632,18 @@ function SurveyorCore.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES",
             description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_IMPROVEMENTS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_IMPROVEMENTS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_NEUTRAL_UNITS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_NEUTRAL_UNITS",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_BORDERS",
+            description = "TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_BORDERS",
         },
     }
     return { bindings = bindings, helpEntries = helpEntries }

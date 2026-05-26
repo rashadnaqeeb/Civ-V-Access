@@ -3,10 +3,10 @@
 -- up; include order in Boot places the base InGame strings first so this
 -- file can append.
 --
--- The surveyor answers "what is in a radius around the cursor" questions:
--- yields, resources, terrain, friendly units, enemy units, and cities. Each
--- of the six scope queries (yields / resources / terrain / own units /
--- enemy units / cities) has its own Shift+letter binding documented in the
+-- The surveyor answers "what is in a radius around the cursor" questions
+-- across nine scopes: yields / resources / terrain / own units / enemy
+-- units / cities on Shift+letter, plus improvements / neutral units /
+-- borders on Ctrl+Shift+letter. Each scope's binding is documented in the
 -- help-overlay block below. See the translator orientation block at the
 -- top of CivVAccess_InGameStrings_en_US.lua for the conventions that
 -- apply across all in-game string files.
@@ -27,6 +27,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_TERRAIN"] = "no terrain in
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_OWN_UNITS"] = "no own units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS"] = "no enemy units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "no cities in range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "no improvements in range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] = "no neutral units in range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "no tiles in range"
+
+-- ===== Border ownership labels =====
+-- Bucket labels for the borders scope: active player's tiles use the
+-- literal "yours" rather than the player's own civ adjective so a single
+-- short word leads. Unowned tiles bucket under "unclaimed". Other
+-- players' tiles use their civilization adjective (Roman, Greek, etc).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS"] = "yours"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_UNCLAIMED"] = "unclaimed"
 
 -- ===== Unexplored suffix =====
 -- Plural-form bundle: forms keyed by CLDR keyword (one / few / many /
@@ -54,6 +65,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS"] = "Shift 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS"] = "List enemy units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] = "List cities in range, closest first"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_IMPROVEMENTS"] = "Control plus Shift plus A"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_IMPROVEMENTS"] = "Count improvements in range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_NEUTRAL_UNITS"] = "Control plus Shift plus D"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_NEUTRAL_UNITS"] = "List neutral units in range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_BORDERS"] = "Control plus Shift plus Z"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_BORDERS"] = "Count tile ownership in range"
 
 -- Apply the active locale's overlay so every Context that includes this
 -- baseline gets the localized overrides. WorldView's Boot includes this

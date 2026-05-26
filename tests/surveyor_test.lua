@@ -423,6 +423,206 @@ function M.test_cities_includes_barbarian_camps()
     T.truthy(r < c, "Rome (E, rank 1) must precede camp (W, rank 4): " .. out)
 end
 
+-- ===== Improvements =====
+
+function M.test_improvements_buckets_by_name()
+    setup()
+    GameInfo.Improvements[10] = { Description = "Mine" }
+    GameInfo.Improvements[11] = { Description = "Farm" }
+    -- Three mines and one farm inside r=1 (7 plots).
+    local plots = installGrid(1, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._improvement = 10
+        elseif col == 0 and row == 1 then
+            p._improvement = 10
+        elseif col == -1 and row == 0 then
+            p._improvement = 10
+        elseif col == 0 and row == -1 then
+            p._improvement = 11
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.improvements()
+    local minePos = out:find("3 Mine", 1, true)
+    local farmPos = out:find("1 Farm", 1, true)
+    T.truthy(minePos, "expected '3 Mine': " .. out)
+    T.truthy(farmPos, "expected '1 Farm': " .. out)
+    T.truthy(minePos < farmPos, "mine (count 3) must sort before farm (count 1): " .. out)
+end
+
+function M.test_improvements_skips_barbarian_camp_and_goody_hut()
+    setup()
+    GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = 99
+    GameInfoTypes.IMPROVEMENT_GOODY_HUT = 98
+    GameInfo.Improvements[10] = { Description = "Mine" }
+    GameInfo.Improvements[99] = { Description = "Barbarian Camp" }
+    GameInfo.Improvements[98] = { Description = "Ancient Ruins" }
+    local plots = installGrid(1, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._improvement = 10
+        elseif col == -1 and row == 0 then
+            p._improvement = 99
+        elseif col == 0 and row == 1 then
+            p._improvement = 98
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.improvements()
+    T.truthy(out:find("1 Mine", 1, true), "real improvement must bucket: " .. out)
+    T.truthy(not out:find("Barbarian Camp", 1, true), "barb camp must not bucket: " .. out)
+    T.truthy(not out:find("Ancient Ruins", 1, true), "goody hut must not bucket: " .. out)
+end
+
+function M.test_improvements_empty_fallback()
+    setup()
+    local plots = installGrid(2)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.improvements()
+    T.truthy(out:find("no improvements in range", 1, true), "empty fallback expected: " .. out)
+end
+
+-- ===== Neutral units =====
+
+function M.test_neutral_units_lists_peace_civs_with_civ_adj()
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Greek", team = 1 })
+    Teams[0] = T.fakeTeam({ atWar = {} })
+    GameInfo.Units[42] = { Description = "Worker" }
+    local worker = T.fakeUnit({ owner = 1, team = 1, unitType = 42 })
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._units = { worker }
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.neutralUnits()
+    T.truthy(out:find("Greek Worker", 1, true), "civ adjective + name expected: " .. out)
+    T.truthy(out:find("1e", 1, true), "direction 1e must appear for (1,0): " .. out)
+end
+
+function M.test_neutral_units_filters_own_war_and_barbarian()
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Mongolian", team = 1 })
+    Players[2] = T.fakePlayer({ adj = "Greek", team = 2 })
+    Players[63] = T.fakePlayer({ adj = "Barbarian", team = 63, isBarbarian = true })
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    GameInfo.Units[42] = { Description = "Worker" }
+    GameInfo.Units[43] = { Description = "Horseman" }
+    GameInfo.Units[44] = { Description = "Settler" }
+    GameInfo.Units[45] = { Description = "Brave" }
+    local ownWorker = T.fakeUnit({ owner = 0, team = 0, unitType = 42 })
+    local enemyHorseman = T.fakeUnit({ owner = 1, team = 1, unitType = 43 })
+    local peaceSettler = T.fakeUnit({ owner = 2, team = 2, unitType = 44 })
+    local barb = T.fakeUnit({ owner = 63, team = 63, unitType = 45 })
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._units = { ownWorker }
+        elseif col == -1 and row == 0 then
+            p._units = { enemyHorseman }
+        elseif col == 0 and row == 1 then
+            p._units = { peaceSettler }
+        elseif col == 0 and row == -1 then
+            p._units = { barb }
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.neutralUnits()
+    T.truthy(out:find("Greek Settler", 1, true), "peace civ must appear: " .. out)
+    T.truthy(not out:find("Worker", 1, true), "own unit must not appear: " .. out)
+    T.truthy(not out:find("Horseman", 1, true), "at-war unit must not appear: " .. out)
+    T.truthy(not out:find("Brave", 1, true), "barbarian must not appear: " .. out)
+end
+
+function M.test_neutral_units_filters_invisible_and_fogged()
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Greek", team = 1 })
+    Teams[0] = T.fakeTeam({ atWar = {} })
+    GameInfo.Units[42] = { Description = "Worker" }
+    GameInfo.Units[43] = { Description = "Submarine" }
+    local worker = T.fakeUnit({ owner = 1, team = 1, unitType = 42 })
+    local sub = T.fakeUnit({ owner = 1, team = 1, unitType = 43, invisible = true })
+    local plots = installGrid(2, function(col, row, p)
+        if col == 1 and row == 0 then
+            p._units = { worker, sub }
+        elseif col == -1 and row == 0 then
+            p._isVisible = false
+            p._units = { T.fakeUnit({ owner = 1, team = 1, unitType = 42 }) }
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.neutralUnits()
+    T.truthy(out:find("Greek Worker", 1, true), "visible neutral worker expected: " .. out)
+    T.truthy(not out:find("Submarine", 1, true), "invisible unit must be filtered: " .. out)
+    local count = 0
+    for _ in out:gmatch("Worker") do
+        count = count + 1
+    end
+    T.eq(count, 1, "fogged neutrals must not be listed: " .. out)
+end
+
+function M.test_neutral_units_empty_fallback()
+    setup()
+    local plots = installGrid(2)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.neutralUnits()
+    T.truthy(out:find("no neutral units in range", 1, true), "empty fallback expected: " .. out)
+end
+
+-- ===== Borders =====
+
+function M.test_borders_buckets_owners_with_yours_and_unclaimed()
+    setup()
+    Players[0] = T.fakePlayer({ adj = "Roman" })
+    Players[1] = T.fakePlayer({ adj = "Greek", team = 1 })
+    -- r=1 is 7 plots. Mix: 3 yours (active player id 0), 2 Greek,
+    -- 1 unclaimed, 1 center (also yours). Expected counts: yours 4,
+    -- Greek 2, unclaimed 1.
+    local plots = installGrid(1, function(col, row, p)
+        if col == 0 and row == 0 then
+            p._owner = 0
+        elseif col == 1 and row == 0 then
+            p._owner = 0
+        elseif col == 0 and row == 1 then
+            p._owner = 0
+        elseif col == -1 and row == 0 then
+            p._owner = 0
+        elseif col == -1 and row == -1 then
+            p._owner = 1
+        elseif col == 0 and row == -1 then
+            p._owner = 1
+        elseif col == -1 and row == 1 then
+            p._owner = -1
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.borders()
+    local yoursPos = out:find("4 yours", 1, true)
+    local greekPos = out:find("2 Greek", 1, true)
+    local unclaimedPos = out:find("1 unclaimed", 1, true)
+    T.truthy(yoursPos, "expected '4 yours': " .. out)
+    T.truthy(greekPos, "expected '2 Greek': " .. out)
+    T.truthy(unclaimedPos, "expected '1 unclaimed': " .. out)
+    T.truthy(yoursPos < greekPos, "yours (4) must sort before greek (2): " .. out)
+    T.truthy(greekPos < unclaimedPos, "greek (2) must sort before unclaimed (1): " .. out)
+end
+
+function M.test_borders_all_unclaimed_when_no_owners()
+    setup()
+    local plots = installGrid(1)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.borders()
+    T.truthy(out:find("7 unclaimed", 1, true), "r=1 (7 plots) all unclaimed expected: " .. out)
+end
+
 -- ===== Unexplored suffix =====
 
 function M.test_unexplored_suffix_appended_when_fogged_plots_in_range()
