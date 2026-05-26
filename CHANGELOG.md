@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.1.13] - 2026-05-26
+
 New Features and improvements:
 - R now also tells you your current era.
 - pressing 1 on a city now tells you how many tiles are controlled by that city.
