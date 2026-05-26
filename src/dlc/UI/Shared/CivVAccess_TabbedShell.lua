@@ -554,6 +554,51 @@ function TabbedShell.install(ContextPtr, spec)
         TickPump.install(ContextPtr)
     end
 
+    -- Esc-handling flow shared by the explicit InputHandler branch (top ==
+    -- handler) and the dispatch-reachable binding below: try the active
+    -- tab's type-ahead buffer first, then spec.onEscape, then priorInput
+    -- which fires the screen's engine-defined OnClose.
+    local function handleEscape(msg, wp, lp)
+        local activeTab = handler._tabs[handler._activeIdx]
+        if activeTab ~= nil and type(activeTab.clearSearchIfActive) == "function" then
+            local ok, consumed = Log.tryCall(
+                "TabbedShell '" .. handler.name .. "' clearSearchIfActive in '" .. tostring(activeTab.tabName) .. "'",
+                activeTab.clearSearchIfActive,
+                activeTab
+            )
+            if ok and consumed then
+                return true
+            end
+        end
+        if onEscape ~= nil then
+            local ok, consumed = Log.tryCall("TabbedShell '" .. handler.name .. "' onEscape", onEscape, handler)
+            if ok and consumed then
+                return true
+            end
+        end
+        if priorInput then
+            return priorInput(msg or 256, wp or Keys.VK_ESCAPE, lp or 0)
+        end
+        return false
+    end
+
+    -- Esc binding so InputRouter.dispatch can close the screen when our
+    -- handler is at the top of HandlerStack but a different Context owns
+    -- input routing -- the screen's own InputHandler never fires, and
+    -- without an Esc match on our bindings the capturesAllInput barrier
+    -- swallows the key. Mirrors the per-popup fix in
+    -- CivVAccess_ChooseProductionPopupAccess.lua, lifted into the framework
+    -- so every TabbedShell screen (Culture Overview, Trade Route Overview,
+    -- F2-F8 advisors) is immune. filterTabBindings strips Esc from tab
+    -- bindings already, so this never collides with a tab-authored binding.
+    table.insert(handler._shellBindings, {
+        key = Keys.VK_ESCAPE,
+        mods = 0,
+        description = "Close",
+        fn = handleEscape,
+    })
+    rebuildExposed(handler)
+
     local function runDeferredPush()
         if not pendingPush then
             return
@@ -632,36 +677,11 @@ function TabbedShell.install(ContextPtr, spec)
         local top = HandlerStack.active()
         if (msg == 256 or msg == 260) and wp == Keys.VK_ESCAPE then
             if top == handler then
-                -- Esc on the shell itself: if the active tab has a live type-
-                -- ahead buffer, clear it and stay put. Mirrors BaseMenu.install
-                -- semantics; the buffer state lives on whichever tab owns it
-                -- (BaseMenu-backed via _menu._search, BaseTable directly), so
-                -- delegate via tab.clearSearchIfActive.
-                local activeTab = handler._tabs[handler._activeIdx]
-                if activeTab ~= nil and type(activeTab.clearSearchIfActive) == "function" then
-                    local ok, consumed = Log.tryCall(
-                        "TabbedShell '"
-                            .. handler.name
-                            .. "' clearSearchIfActive in '"
-                            .. tostring(activeTab.tabName)
-                            .. "'",
-                        activeTab.clearSearchIfActive,
-                        activeTab
-                    )
-                    if ok and consumed then
-                        return true
-                    end
-                end
-                if onEscape ~= nil then
-                    local ok, consumed = Log.tryCall("TabbedShell '" .. handler.name .. "' onEscape", onEscape, handler)
-                    if ok and consumed then
-                        return true
-                    end
-                end
-                if priorInput then
-                    return priorInput(msg, wp, lp)
-                end
-                return false
+                -- Esc on the shell itself: route through the shared
+                -- handleEscape so the type-ahead-buffer-first / onEscape /
+                -- priorInput flow stays identical between this branch and
+                -- the _shellBindings binding consulted by dispatch.
+                return handleEscape(msg, wp, lp)
             end
             local mods = InputRouter.currentModifierMask()
             if InputRouter.dispatch(wp, mods, msg, lp) then

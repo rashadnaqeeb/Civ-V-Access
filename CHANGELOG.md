@@ -16,6 +16,7 @@ New Features and improvements:
 
 Bug fixes:
 - Ability and Civilopedia descriptions no longer double a word when an icon repeats its label, such as "Movement moves" or "culture Cultural".
+- Escape now reliably closes overview screens (Ctrl+C Culture, F2-F8 advisors, Ctrl+T Trade Routes) when the screen opens around a turn transition.
 
 ## [1.1.12] - 2026-05-20
 
