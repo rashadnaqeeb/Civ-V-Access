@@ -804,6 +804,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_YIELD_COUNT"] = "{1_Count} {2_Yield}"
 -- actually there. Kept the wording distinct so the two never collide.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "controlled by {1_City}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "controlled"
+-- Fallback when the plot sits inside civ borders but no city is working
+-- it (GetWorkingCity nil, GetRevealedOwner is a real civ). The cursor
+-- prefix already announces ownership on entry; this clause lets the W
+-- readout still answer "whose land am I standing in" on an unworked
+-- tile. Active player's own land collapses to "in your territory" since
+-- naming their own civ adds nothing.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "in {1_CivAdjective} territory"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "in your territory"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} percent defense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in enemy zone of control"
 -- Cursor-move prefix used by the optional adjacent-enemy warning (Settings

@@ -134,6 +134,16 @@ function PlotComposers.economy(plot, opts)
         else
             out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_CONTROLLED_BY", workingCity:GetName())
         end
+    else
+        local ownerId = plot:GetRevealedOwner(team, debug)
+        if ownerId >= 0 then
+            if ownerId == Game.GetActivePlayer() then
+                out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY")
+            else
+                local adj = Text.key(Players[ownerId]:GetCivilizationAdjectiveKey())
+                out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY", adj)
+            end
+        end
     end
     readBuildProgress(plot, out)
     -- Barren tile (no yields, no fresh water, no trade route, no working
