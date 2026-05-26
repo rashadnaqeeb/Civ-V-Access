@@ -88,7 +88,7 @@ The cursor is your position on the map, independent of any selected unit. Moveme
 
 ### The surveyor
 
-The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit. All keys use Shift plus a cluster key, and the numpad works as a substitute here too, though it's worth noting that NVDA may interfere with Shift+Numpad keys.
+The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit. All keys use Shift or Control+Shift plus a cluster key, and the numpad works as a substitute here too, though it's worth noting that NVDA may interfere with Shift+Numpad keys.
 
 - **Shift+W / Shift+X** (or **Shift+Numpad 8 / Shift+Numpad 2**) — grow or shrink the scanned radius (1-5)
 - **Shift+Q** (or **Shift+Numpad 7**) — sum yields of all tiles in range
@@ -97,6 +97,9 @@ The surveyor answers questions about a circle around the cursor: how many sheep 
 - **Shift+E** (or **Shift+Numpad 9**) — list your own units in range
 - **Shift+D** (or **Shift+Numpad 6**) — list enemy units in range
 - **Shift+C** (or **Shift+Numpad 3**) — list cities in range, closest first
+- **Ctrl+Shift+A** (or **Ctrl+Shift+Numpad 4**) — count improvements in range
+- **Ctrl+Shift+D** (or **Ctrl+Shift+Numpad 6**) — list neutral units in range
+- **Ctrl+Shift+Z** (or **Ctrl+Shift+Numpad 1**) — count tile ownership in range
 
 ### The scanner
 
