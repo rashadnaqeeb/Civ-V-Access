@@ -12,11 +12,11 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
-- R now trails the readout with your current era.
-- Reading a city with 1 no longer announces its garrisoned unit.
+- R now also tells you your current era.
+- pressing 1 on a city now tells you how many tiles are controlled by that city.
 
 Bug fixes:
-- Ability and Civilopedia descriptions no longer double a word when an icon repeats its label, such as "Movement moves" or "culture Cultural".
+- Ability and Civilopedia descriptions no longer double a word when an icon repeats its label, such as "Movement moves" or "culture Cultural". This may be buggy across languages, so do let me know if it doesn't work in your language.
 - Escape now reliably closes overview screens (Ctrl+C Culture, F2-F8 advisors, Ctrl+T Trade Routes) when the screen opens around a turn transition.
 - The scanner now identifies lake tiles as lakes instead of coast.
 
