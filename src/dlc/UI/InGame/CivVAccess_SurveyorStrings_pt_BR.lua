@@ -13,12 +13,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_TERRAIN"] = "nenhum terren
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_OWN_UNITS"] = "nenhuma unidade própria ao alcance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS"] = "nenhuma unidade inimiga ao alcance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "nenhuma cidade ao alcance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "nenhum melhoramento ao alcance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] = "nenhuma unidade neutra ao alcance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "nenhum hexágono ao alcance"
 
 -- ===== Unexplored suffix =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX"] = {
     one = "{1_N} hexágono inexplorado",
     other = "{1_N} hexágonos inexplorados",
 }
+
+-- ===== Border ownership labels =====
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS"] = "seus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_UNCLAIMED"] = "sem dono"
 
 -- ===== Help overlay entries =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_RADIUS"] = "Shift mais W ou X"
@@ -36,3 +43,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS"] = "Lista
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift mais C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] =
     "Listar cidades ao alcance, mais próximas primeiro"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_IMPROVEMENTS"] = "Control mais Shift mais A"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_IMPROVEMENTS"] = "Contar melhoramentos ao alcance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_NEUTRAL_UNITS"] = "Control mais Shift mais D"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_NEUTRAL_UNITS"] = "Listar unidades neutras ao alcance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_BORDERS"] = "Control mais Shift mais Z"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_BORDERS"] = "Contar posse dos hexágonos ao alcance"

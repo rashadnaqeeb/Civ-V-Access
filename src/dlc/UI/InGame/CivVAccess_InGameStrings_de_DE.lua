@@ -488,6 +488,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_YIELD_COUNT"] = "{1_Count} {2_Yield}"
 -- ===== Plot control =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "kontrolliert von {1_City}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "kontrolliert"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "im {1_CivAdjective}-Gebiet"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "in Eurem Gebiet"
 
 -- ===== Defense and zone of control =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} Prozent Verteidigung"

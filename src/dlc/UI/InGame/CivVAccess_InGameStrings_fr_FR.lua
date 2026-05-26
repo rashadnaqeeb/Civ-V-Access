@@ -606,6 +606,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_YIELD_COUNT"] = "{1_Count} {2_Yield}"
 -- actually there. Kept the wording distinct so the two never collide.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "contrôlé par {1_City}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "contrôlé"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "en territoire {1_CivAdjective}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "en votre territoire"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} pour cent de défense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "en zone de contrôle ennemie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {

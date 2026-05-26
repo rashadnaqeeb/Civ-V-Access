@@ -13,6 +13,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_TERRAIN"] = "範圍內無�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_OWN_UNITS"] = "範圍內無我方單位"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS"] = "範圍內無敵方單位"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "範圍內無城市"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "範圍內無改良設施"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] = "範圍內無中立單位"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "範圍內無格"
+
+-- ===== Border ownership labels =====
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS"] = "您的"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_UNCLAIMED"] = "未占領"
 
 -- ===== Unexplored suffix =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX"] = {
@@ -34,3 +41,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_ENEMY_UNITS"] = "Shift 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS"] = "列出範圍內敵方單位"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift 加 C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] = "列出範圍內城市, 最近優先"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_IMPROVEMENTS"] = "Control 加 Shift 加 A"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_IMPROVEMENTS"] = "統計範圍內改良設施"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_NEUTRAL_UNITS"] = "Control 加 Shift 加 D"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_NEUTRAL_UNITS"] = "列出範圍內中立單位"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_BORDERS"] = "Control 加 Shift 加 Z"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_BORDERS"] = "統計範圍內格的所有權"

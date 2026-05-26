@@ -14,6 +14,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_OWN_UNITS"] = "нет св
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_ENEMY_UNITS"] =
     "нет вражеских юнитов в радиусе"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "нет городов в радиусе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "нет улучшений в радиусе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] =
+    "нет нейтральных юнитов в радиусе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "нет клеток в радиусе"
+
+-- ===== Border ownership labels =====
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS"] = "ваша"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_UNCLAIMED"] = "ничейная"
 
 -- ===== Unexplored suffix =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_UNEXPLORED_SUFFIX"] = {
@@ -44,3 +52,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_ENEMY_UNITS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_CITIES"] = "Shift плюс C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_CITIES"] =
     "Список городов в радиусе, ближайшие первыми"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_IMPROVEMENTS"] = "Control плюс Shift плюс A"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_IMPROVEMENTS"] =
+    "Подсчитать улучшения в радиусе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_NEUTRAL_UNITS"] = "Control плюс Shift плюс D"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_NEUTRAL_UNITS"] =
+    "Список нейтральных юнитов в радиусе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_KEY_BORDERS"] = "Control плюс Shift плюс Z"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_HELP_DESC_BORDERS"] =
+    "Подсчитать владение клетками в радиусе"

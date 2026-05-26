@@ -707,6 +707,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_YIELD_COUNT"] = "{1_Count} {2_Yield}"
 -- actually there. Kept the wording distinct so the two never collide.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "controlado por {1_City}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "controlado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "en territorio {1_CivAdjective}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "en tu territorio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} por ciento de defensa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "en zona de control enemiga"
 -- Cursor-move prefix used by the optional adjacent-enemy warning (Settings

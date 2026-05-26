@@ -539,6 +539,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_YIELD_COUNT"] = "{1_Count} {2_Yield}"
 -- workable area.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED_BY"] = "под управлением {1_City}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONTROLLED"] = "под управлением"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "территория {1_CivAdjective}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "ваша территория"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} процентов защиты"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "в зоне контроля врага"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
