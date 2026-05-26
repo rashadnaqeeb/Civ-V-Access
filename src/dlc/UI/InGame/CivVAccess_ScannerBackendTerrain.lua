@@ -1,7 +1,10 @@
 -- Scanner backend: terrain. Emits up to four entries per revealed plot,
 -- one per applicable subcategory:
 --   base        the plot's terrain row description (grassland, plains,
---               desert, coast, ocean, mountain, ...).
+--               desert, coast, ocean, mountain, ...). Lakes use the
+--               TERRAIN_COAST row but the engine flags them via
+--               plot:IsLake(); those are emitted as "lake" so the user
+--               isn't told an inland pond is coast.
 --   features    the plot's feature row description (forest, jungle, oasis,
 --               floodplains, natural wonders, ...) when one is present.
 --   elevation   hills or mountain, when IsHills() / IsMountain() is true.
@@ -34,6 +37,7 @@ ScannerBackendTerrain = {
 local HILLS_KEY = "TXT_KEY_TERRAIN_HILLS_HEADING3_TITLE"
 local MOUNTAIN_KEY = "TXT_KEY_TERRAIN_MOUNTAIN_HEADING3_TITLE"
 local FRESH_WATER_KEY = "TXT_KEY_CIVVACCESS_FRESH_WATER"
+local LAKE_KEY = "TXT_KEY_CIVVACCESS_LAKE"
 
 function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
     local out = {}
@@ -43,8 +47,20 @@ function ScannerBackendTerrain.Scan(_activePlayer, activeTeam)
         if plot ~= nil and plot:IsRevealed(activeTeam, isDebug) then
             local terrainId = plot:GetTerrainType()
             if terrainId ~= nil and terrainId >= 0 then
+                local isLake = plot:IsLake()
                 local row = GameInfo.Terrains[terrainId]
-                if row ~= nil and row.Description ~= nil then
+                if isLake then
+                    out[#out + 1] = {
+                        plotIndex = i,
+                        backend = ScannerBackendTerrain,
+                        data = { kind = "base", terrainId = terrainId, isLake = true },
+                        category = "terrain",
+                        subcategory = "base",
+                        itemName = Text.key(LAKE_KEY),
+                        key = "terrain:base:" .. i,
+                        sortKey = 0,
+                    }
+                elseif row ~= nil and row.Description ~= nil then
                     out[#out + 1] = {
                         plotIndex = i,
                         backend = ScannerBackendTerrain,
@@ -131,7 +147,10 @@ function ScannerBackendTerrain.ValidateEntry(entry, _cursorPlotIndex)
     end
     local kind = entry.data.kind
     if kind == "base" then
-        return plot:GetTerrainType() == entry.data.terrainId
+        if plot:GetTerrainType() ~= entry.data.terrainId then
+            return false
+        end
+        return plot:IsLake() == (entry.data.isLake == true)
     elseif kind == "feature" then
         return plot:GetFeatureType() == entry.data.featureId
     elseif kind == "mountain" then

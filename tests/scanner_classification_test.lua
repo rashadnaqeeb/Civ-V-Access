@@ -1133,6 +1133,52 @@ function M.test_terrain_forested_hill_triple_emits()
     T.eq(#bySub.elevation, 1)
 end
 
+function M.test_terrain_lake_emits_lake_not_coast()
+    -- A lake plot uses the TERRAIN_COAST row but plot:IsLake() is true.
+    -- The scanner must mirror the game's plot tooltip and the cursor's
+    -- terrain readout, both of which say "lake" rather than letting the
+    -- terrain row leak through as "coast".
+    setup()
+    loadTerrainBackend()
+    GameInfo.Terrains = { [4] = { Description = "TXT_KEY_TERRAIN_COAST" } }
+    GameInfo.Features = {}
+    local plot = makePlotAt(0, 0, 0, { terrain = 4, lake = true, water = true })
+    mapFromPlots({ plot })
+    local bySub = subsFromEntries(ScannerBackendTerrain.Scan(0, 0))
+    T.truthy(bySub.base, "lake plot must still emit a base entry")
+    T.eq(#bySub.base, 1)
+    T.eq(
+        bySub.base[1].itemName,
+        Text.key("TXT_KEY_CIVVACCESS_LAKE"),
+        "lake plot must surface as lake, not the coast terrain row"
+    )
+    T.eq(bySub.base[1].data.isLake, true)
+end
+
+function M.test_terrain_validate_lake_state_change_invalidates()
+    -- Lakes and coast share the terrain row, so the only signal that a
+    -- prior lake entry has gone stale (or vice versa) is plot:IsLake().
+    -- Validation must consult it or a coast plot that just got reclassified
+    -- as a lake would keep speaking "coast" until the next snapshot.
+    setup()
+    loadTerrainBackend()
+    local plot = makePlotAt(0, 0, 0, { terrain = 4, lake = false, water = true })
+    mapFromPlots({ plot })
+    local staleLakeEntry = {
+        plotIndex = 0,
+        backend = ScannerBackendTerrain,
+        data = { kind = "base", terrainId = 4, isLake = true },
+        category = "terrain",
+        subcategory = "base",
+        itemName = "TXT_KEY_CIVVACCESS_LAKE",
+        sortKey = 0,
+    }
+    T.falsy(
+        ScannerBackendTerrain.ValidateEntry(staleLakeEntry, nil),
+        "a lake entry whose plot is no longer a lake must invalidate"
+    )
+end
+
 function M.test_terrain_freshwater_plot_emits_under_freshwater()
     setup()
     loadTerrainBackend()
