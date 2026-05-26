@@ -12,9 +12,13 @@
 --       resource shortages (GetNumResourceAvailable < 0) as a per-resource
 --       "no <name>" list. Shortages live on T because they bear on the
 --       turn-level question of what units can still be built this turn.
---   R - turns-to-completion plus tech name plus science per turn. Falls back
---       to a no-research / just-finished branch when GetCurrentResearch is
---       -1, mirroring TechPanel's eRecentTech display.
+--   R - turns-to-completion plus tech name plus science per turn, trailing
+--       the player's current era. Falls back to a no-research / just-
+--       finished branch when GetCurrentResearch is -1, mirroring TechPanel's
+--       eRecentTech display. The era trails so the often-unchanging word
+--       lands last; user can stop listening once the varying head is heard.
+--       Omitted on the science-off branch since "Science off, Ancient Era"
+--       reads awkwardly against a hard feature-disabled message.
 --   G - GPT plus total plus trade-route slot count.
 --   H - empire happiness (happy / unhappy / very unhappy), the count of
 --       luxuries currently providing happiness (any resource with
@@ -184,6 +188,13 @@ local function turnLine()
     return joinClauses(turn, date, supplyClause(player), shortageClause(player), stillPlayingClause())
 end
 
+-- Player's current era as its localized display name (engine TXT_KEY_ERA_*
+-- already bakes in the word "Era"). Trailing clause on the research line.
+local function eraClause(player)
+    local eraInfo = GameInfo.Eras[player:GetCurrentEra()]
+    return Text.key(eraInfo.Description)
+end
+
 -- Research: TechPanel's "what am I researching" merged with TopPanel's
 -- science rate. Mirrors TechPanel.OnTechPanelUpdated's three-state cascade
 -- (current research / just-finished / nothing chosen) so the spoken line
@@ -194,21 +205,25 @@ local function researchLine()
     end
     local player = Players[Game.GetActivePlayer()]
     local rate = player:GetScience()
+    local era = eraClause(player)
     local currentTech = player:GetCurrentResearch()
     if currentTech ~= -1 then
         local turns = player:GetResearchTurnsLeft(currentTech, true)
         local techInfo = GameInfo.Technologies[currentTech]
         local techName = Text.key(techInfo.Description)
-        return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE", turns, turns, techName, rate)
+        return joinClauses(
+            Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE", turns, turns, techName, rate),
+            era
+        )
     end
     local team = Teams[player:GetTeam()]
     local lastTech = team:GetTeamTechs():GetLastTechAcquired()
     if lastTech ~= -1 then
         local techInfo = GameInfo.Technologies[lastTech]
         local techName = Text.key(techInfo.Description)
-        return Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_DONE", techName, rate)
+        return joinClauses(Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_DONE", techName, rate), era)
     end
-    return Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_NONE", rate)
+    return joinClauses(Text.format("TXT_KEY_CIVVACCESS_STATUS_RESEARCH_NONE", rate), era)
 end
 
 -- Gold: GPT, total, trade-route slot use. The panel's negative-GPT visual

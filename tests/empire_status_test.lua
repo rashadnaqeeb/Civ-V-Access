@@ -34,6 +34,8 @@ local researchTech
 local researchTurns
 local lastTech
 local techDescriptions
+local currentEra
+local eras
 local options
 local goldData
 local happyData
@@ -68,6 +70,13 @@ local function setup()
     researchTurns = 0
     lastTech = -1
     techDescriptions = {}
+    -- Default to Classical so the era clause is non-empty in the common
+    -- case; tests that depend on a specific era override after setup().
+    currentEra = 1
+    eras = {
+        [0] = { Description = "Ancient Era" },
+        [1] = { Description = "Classical Era" },
+    }
 
     Game.GetActivePlayer = function()
         return 0
@@ -131,6 +140,11 @@ local function setup()
             return techDescriptions[k]
         end,
     })
+    GameInfo.Eras = setmetatable({}, {
+        __index = function(_, k)
+            return eras[k]
+        end,
+    })
     GameInfoTypes = setmetatable({}, {
         -- Map TechReveal string keys to integer ids; a missing key returns
         -- nil (production code treats nil reveal as "no tech gate").
@@ -167,6 +181,9 @@ local function setup()
         end,
         GetCurrentResearch = function()
             return researchTech
+        end,
+        GetCurrentEra = function()
+            return currentEra
         end,
         GetResearchTurnsLeft = function(_, _, _)
             return researchTurns
@@ -530,7 +547,7 @@ end
 
 -- Research line ----------------------------------------------------------
 
-function M.test_research_active_speaks_turns_tech_and_rate()
+function M.test_research_active_speaks_turns_tech_rate_then_era()
     setup()
     researchTech = 5
     researchTurns = 5
@@ -538,29 +555,40 @@ function M.test_research_active_speaks_turns_tech_and_rate()
     -- routes the value through Locale.ConvertTextKey. Pass-through Locale
     -- in setup means the description string lands verbatim in the line.
     techDescriptions[5] = { Description = "Mining" }
-    T.eq(EmpireStatus._researchLine(), "5 turns to Mining, science +12")
+    T.eq(EmpireStatus._researchLine(), "5 turns to Mining, science +12, Classical Era")
 end
 
-function M.test_research_just_finished_speaks_recent_tech()
+function M.test_research_just_finished_speaks_recent_tech_then_era()
     setup()
     researchTech = -1
     lastTech = 5
     researchTurns = 0
     techDescriptions[5] = { Description = "Mining" }
-    T.eq(EmpireStatus._researchLine(), "Mining done, science +0")
+    T.eq(EmpireStatus._researchLine(), "Mining done, science +0, Classical Era")
 end
 
-function M.test_research_none_chosen_speaks_no_research()
+function M.test_research_none_chosen_speaks_no_research_then_era()
     setup()
     researchTech = -1
     lastTech = -1
-    T.eq(EmpireStatus._researchLine(), "No research, science +0")
+    T.eq(EmpireStatus._researchLine(), "No research, science +0, Classical Era")
 end
 
-function M.test_research_off_when_option_set()
+function M.test_research_off_omits_era_clause()
     setup()
     options[GameOptionTypes.GAMEOPTION_NO_SCIENCE] = true
     T.eq(EmpireStatus._researchLine(), "Science off")
+end
+
+function M.test_research_era_tracks_current_era()
+    -- Sanity check the era trailer isn't pinned to Classical; switching the
+    -- mocked era flips the trailing word so the engine's era-advance event
+    -- actually surfaces to the bare R readout.
+    setup()
+    currentEra = 0
+    researchTech = -1
+    lastTech = -1
+    T.eq(EmpireStatus._researchLine(), "No research, science +0, Ancient Era")
 end
 
 -- Gold line --------------------------------------------------------------
