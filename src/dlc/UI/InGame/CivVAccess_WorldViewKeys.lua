@@ -33,12 +33,25 @@ include("CivVAccess_TickPump")
 
 local WM_KEYDOWN = 256
 local WM_SYSKEYDOWN = 260
+local WM_KEYUP = 257
+local WM_SYSKEYUP = 261
 local basePriorInput = InputHandler
 
+-- Suppress the key-up of any key whose key-down we consumed. WorldView sits
+-- earlier in the dispatch chain and wins the race for stack-bound keys, so
+-- it must catch their key-ups too -- otherwise the up stroke bubbles to
+-- InGame and on to the engine's key-up view toggles (grid, strategic view).
+-- See InputRouter's pendingKeyUpSuppress note.
 ContextPtr:SetInputHandler(function(msg, wp, lp)
     if msg == WM_KEYDOWN or msg == WM_SYSKEYDOWN then
         local mods = InputRouter.currentModifierMask()
         if InputRouter.dispatch(wp, mods, msg, lp) then
+            InputRouter.holdKeyUp(wp)
+            return true
+        end
+        InputRouter.takeKeyUp(wp)
+    elseif msg == WM_KEYUP or msg == WM_SYSKEYUP then
+        if InputRouter.takeKeyUp(wp) then
             return true
         end
     end

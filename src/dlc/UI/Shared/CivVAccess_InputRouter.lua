@@ -22,6 +22,21 @@ InputRouter = {}
 
 civvaccess_shared = civvaccess_shared or {}
 
+-- Key-up suppression set, keyed by the raw VK we consumed on key-down.
+-- Lives on civvaccess_shared so whichever Context consumed the key-down
+-- (WorldView wins the dispatch race for stack-bound keys; InGame catches
+-- the rest) also recognizes the matching key-up, even though each Context
+-- holds its own copy of this module.
+--
+-- Why it exists: Baseline's capturesAllInput swallows every map key-down
+-- except the passthrough set, but the engine binds some actions to key-up
+-- (InGame.lua's plain G runs UI.ToggleGridVisibleMode on KeyUp; engine
+-- controls like CONTROL_TOGGLE_STRATEGIC_VIEW on F10 likewise fire on the
+-- up stroke). Returning true on the key-down alone leaves the key-up to
+-- reach the engine and toggle a view the player never asked for. Recording
+-- every consumed key-down here lets the hooks suppress its key-up too.
+civvaccess_shared.pendingKeyUpSuppress = civvaccess_shared.pendingKeyUpSuppress or {}
+
 -- Test seam for the debounce clock. Production reads os.clock; tests
 -- swap this to a controllable source so they can drive key-repeat scenarios
 -- without sleeping.
@@ -362,4 +377,28 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
     end
 
     return consumed
+end
+
+-- Record that the key-down for this raw VK was consumed, so the matching
+-- key-up gets suppressed too. Keyed by the raw wParam the engine will
+-- redeliver on the up stroke (not dispatch's internally-rewritten keycode),
+-- so a numpad-origin nav key matches its own key-up. Idempotent across the
+-- repeated key-downs Windows sends while a key is held; the single key-up
+-- clears it.
+function InputRouter.holdKeyUp(keyCode)
+    civvaccess_shared.pendingKeyUpSuppress[keyCode] = true
+end
+
+-- Consume a pending key-up suppression for this raw VK. Returns true (and
+-- clears the flag) when the key-down was consumed; false otherwise. The
+-- hooks call this on every key-up to decide whether to swallow it, and on
+-- every non-consumed key-down to clear a stale flag -- so a key's up stroke
+-- is swallowed only when its most recent down stroke was, keeping the two
+-- edges symmetric even if a key-up was lost to focus change.
+function InputRouter.takeKeyUp(keyCode)
+    if civvaccess_shared.pendingKeyUpSuppress[keyCode] then
+        civvaccess_shared.pendingKeyUpSuppress[keyCode] = nil
+        return true
+    end
+    return false
 end

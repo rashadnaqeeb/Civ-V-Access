@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Checking gold with G no longer also toggles the map's grid overlay.
+
 ## [1.1.13] - 2026-05-26
 
 New Features and improvements:

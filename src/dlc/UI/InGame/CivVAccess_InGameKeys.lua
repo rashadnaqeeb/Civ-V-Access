@@ -27,12 +27,26 @@ include("CivVAccess_InputRouter")
 
 local WM_KEYDOWN = 256
 local WM_SYSKEYDOWN = 260
+local WM_KEYUP = 257
+local WM_SYSKEYUP = 261
 local basePriorInput = InputHandler
 
+-- Suppress the key-up of any key whose key-down we consumed. The engine
+-- binds some actions to the up stroke (plain G runs ToggleGridVisibleMode
+-- on KeyUp in this very file's base copy; engine view-toggle controls like
+-- F10 strategic view likewise), so consuming only the down stroke leaves
+-- the engine free to flip a view on the up stroke. See InputRouter's
+-- pendingKeyUpSuppress note.
 ContextPtr:SetInputHandler(function(msg, wp, lp)
     if msg == WM_KEYDOWN or msg == WM_SYSKEYDOWN then
         local mods = InputRouter.currentModifierMask()
         if InputRouter.dispatch(wp, mods, msg, lp) then
+            InputRouter.holdKeyUp(wp)
+            return true
+        end
+        InputRouter.takeKeyUp(wp)
+    elseif msg == WM_KEYUP or msg == WM_SYSKEYUP then
+        if InputRouter.takeKeyUp(wp) then
             return true
         end
     end

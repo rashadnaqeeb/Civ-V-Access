@@ -953,4 +953,32 @@ function M.test_dedicated_home_unmodified_passes_through_to_VK_HOME_binding()
     T.eq(q.count, 0, "dedicated Home does not fall through to Q")
 end
 
+-- Key-up suppression ------------------------------------------------------
+-- holdKeyUp records a consumed key-down's raw VK; takeKeyUp swallows the
+-- matching key-up exactly once. The hooks suppress the up stroke of any key
+-- whose down stroke they consumed, so the engine can't fire a key-up action
+-- (grid / strategic-view toggle) on a key the mod already claimed.
+
+function M.test_take_key_up_consumes_held_key_once()
+    setup()
+    civvaccess_shared.pendingKeyUpSuppress = {}
+    InputRouter.holdKeyUp(71) -- Keys.G
+    T.truthy(InputRouter.takeKeyUp(71), "held key-up is suppressed")
+    T.falsy(InputRouter.takeKeyUp(71), "flag cleared after one key-up so the next G key-up passes through")
+end
+
+function M.test_take_key_up_false_for_unheld_key()
+    setup()
+    civvaccess_shared.pendingKeyUpSuppress = {}
+    T.falsy(InputRouter.takeKeyUp(112), "a key whose down stroke we never consumed passes its key-up through")
+end
+
+function M.test_held_key_up_is_per_vk()
+    setup()
+    civvaccess_shared.pendingKeyUpSuppress = {}
+    InputRouter.holdKeyUp(71) -- Keys.G consumed
+    T.falsy(InputRouter.takeKeyUp(121), "holding G does not suppress F10's key-up")
+    T.truthy(InputRouter.takeKeyUp(71), "G's own key-up still suppressed")
+end
+
 return M
