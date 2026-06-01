@@ -2,7 +2,7 @@
 
 Civ V Access is an accessibility layer for Sid Meier's Civilization V that makes the game fully playable through a screen reader.
 
-Civilization V is a turn-based strategy game in which you take a civilization from the dawn of humanity into the space age. You wage war, conduct diplomacy, research technologies, build wonders, and compete against rival civilizations led by figures from history like Gandhi, Napoleon, and Catherine the Great. The game is completely turn based, so you can play at whatever pace suits you. The average standard game lasts 5-6 hours.
+Civilization V is a turn-based strategy game in which you take a civilization from the dawn of humanity into the space age. You wage war, conduct diplomacy, research technologies, build wonders, and compete against rival civilizations led by figures from history like Gandhi, Napoleon, and Catherine the Great. The game is completely turn based, so you can play at whatever pace suits you. The average standard game lasts 5-6 hours once you're familiar with the game and mod.
 
 The mod requires the Brave New World expansion, and will not work without it. However, in practice it is cheaper to buy the complete bundle than it is to buy the base game plus Brave New World expansion, so I suggest you do that instead.
 
@@ -14,7 +14,7 @@ You may wish to disable the Steam overlay, from Steam settings/in game/enable St
 
 ## Getting help
 
-**Shift+/** (question mark) opens a list of every key active in the current context. If ever you're unsure of what keys will work on any given screen, start here. It's a searchable list, so you can also type the name of the action you're looking for and you'll usually find it.
+**Shift+/** (question mark) opens a list of every key active in the current context. If ever you're unsure of what keys will work on any given screen, start here. It's a searchable list, so you can also type the name of the action you're looking for and you'll usually find it. You can also open this document and join the mod's Discord directly from the bottom of that menu.
 
 **Ctrl+I** opens the Civilopedia (in-game help) entry for whatever is currently focused, when one exists. Use this if you want to look up, for example, what the current unit under the cursor does.
 
@@ -31,9 +31,9 @@ Every menu in the game uses the same interface. It's quite straightforward.
 - **F1** — re-read the menu's description; also used to read back spoken dialogue
 - Type ahead: every menu in the mod supports searching using type ahead. Simply start typing and you will be matched as you type. You can use Up/Down arrow to scroll through results
 
-**F12** opens mod settings, where you can turn off increased menu verbosity if you prefer.
+**F12** opens mod settings, where you can turn off increased menu verbosity if you prefer. This will turn off item counts and announcement of element types.
 
-## In-game controls
+## Playing the game
 
 Let's address the elephant in the room first.
 
@@ -45,7 +45,7 @@ If you've played audiogames like Tactical Battle or Castaways, you've used squar
 
 Hexagons have six directions, and six doesn't fit the arrow key layout. So this mod uses six different keys: Q, A, Z on the left side, to move northwest, west, and southwest, and E, D, C on the right side, to move northeast, east, and southeast. The S key is the center. It represents where you currently are. Press one of the other six keys to move in that direction.
 
-The numpad mirrors this cluster, with 5 in the center as S.
+The numpad, if you have one, mirrors this cluster, with 5 in the center equivalent to S.
 
 Two things will feel strange at first.
 
@@ -69,11 +69,11 @@ Picture the six directions on a clock face. East is 3 o'clock, west is 9 o'clock
 
 Now, here's the confusing part. Imagine starting at the center of the clock face. When you move northeast then northwest, you're moving from 1 o'clock to 11 o'clock, barely moving around the clock at all, just trading one side for the other while staying near the top. Your north movements stack up, and your side-to-side movements cancel out, leaving you two tiles north. When you move northeast then southeast, you're moving from 1 o'clock to 5 o'clock, moving much farther around the clock. Your east movements stack up, and your up-and-down movements cancel out, but since you're traveling across so much of the clock, you only end up one tile east.
 
-This mod tries to make it easier to visualize by breaking the x (horizontal) coordinate into half steps. Let's imagine we're at 0, 0. Moving northeast brings us to 0.5, 1. Southeast would then bring us to 1, 0. West from here would bring us back to 0, 0. Now let's do the northwest/northeast case. Northwest brings us to -0.5, 1. Then northeast brings us to 0, 2.
+This mod tries to make it easier to visualize by breaking the x (horizontal) coordinate into half steps. Let's imagine we're at 0, 0. Moving northeast brings us to 0.5, 1. Southeast would then bring us to 1, 0. West from here would bring us back to 0, 0. Now let's do the northwest/northeast case. Northwest brings us to -0.5, 1. Then northeast brings us to 0, 2. These coordinates are turned off by default for those players that skipped this section, but you can enable them using the F12 settings menu.
 
 ### The cursor
 
-The cursor is your position on the map, independent of any selected unit. Movement keys (Q, A, Z, E, D, C, or the numpad equivalents) step it one hex at a time, and each move announces what's on the new hex: terrain, ownership, units, improvements, and so on.
+The cursor is your position on the map, independent of any selected unit. Movement keys (Q, A, Z, E, D, C, or the numpad equivalents) step it one hex at a time, and each move announces what's on the new hex: terrain, ownership, units, improvements, and so on. A cyan highlight is applied to the map to show a sighted person where your cursor is. This, and many other things, can be adjusted and disabled from the F12 settings menu.
 
 - **S** — read the units on the current tile
 - **W** — read the tile's yield
@@ -88,7 +88,7 @@ The cursor is your position on the map, independent of any selected unit. Moveme
 
 ### The surveyor
 
-The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to check threats around an exposed unit. All keys use Shift or Control+Shift plus a cluster key, and the numpad works as a substitute here too, though it's worth noting that NVDA may interfere with Shift+Numpad keys.
+The surveyor answers questions about a circle around the cursor: how many sheep are nearby, how many enemy units are within striking range, where the closest city is. Use it to scout an area before founding a city or to organise your units during combat. All keys use Shift or Control+Shift plus a cluster key, and the numpad works as a substitute here too, though it's worth noting that NVDA may interfere with Shift+Numpad keys.
 
 - **Shift+W / Shift+X** (or **Shift+Numpad 8 / Shift+Numpad 2**) — grow or shrink the scanned radius (1-5)
 - **Shift+Q** (or **Shift+Numpad 7**) — sum yields of all tiles in range
@@ -99,11 +99,11 @@ The surveyor answers questions about a circle around the cursor: how many sheep 
 - **Shift+C** (or **Shift+Numpad 3**) — list cities in range, closest first
 - **Ctrl+Shift+A** (or **Ctrl+Shift+Numpad 4**) — count improvements in range
 - **Ctrl+Shift+D** (or **Ctrl+Shift+Numpad 6**) — list neutral units in range
-- **Ctrl+Shift+Z** (or **Ctrl+Shift+Numpad 1**) — count tile ownership in range
+- **Ctrl+Shift+Z** (or **Ctrl+Shift+Numpad 1**) — count tile ownership in range, for figuring out borders.
 
 ### The scanner
 
-Where the surveyor is for figuring out what's around you, the scanner is for finding a specific thing. You'd use it to figure out where to find Iron on your map, for example, or where the city of London is.
+Where the surveyor is for figuring out what's around you, the scanner is for finding a specific thing. You'd use it to figure out where to find Iron on your map, for example, or where the city of London is. It's very good for finding specific things and not so good for getting a general overview of what's nearby, which is where the surveyor does a better job.
 
 Entries are organized into a hierarchy of categories (cities, units, resources, terrain, and so on), subcategories (your cities versus enemy, strategic versus luxury resources), items, and instances (multiple iron deposits all called "iron"). If you've used the Rimworld scanner, it's laid out exactly the same.
 
@@ -116,21 +116,35 @@ Entries are organized into a hierarchy of categories (cities, units, resources, 
 - **End** — repeat distance and direction from the cursor
 - **Ctrl+F** — search all scanner entries by name
 
-Each entry is announced with its exact hex distance and direction from the cursor.
+Each entry is announced with its exact hex distance and direction from the cursor. An orange highlight is applied to the selected item to help a sighted person watching understand what you're looking at.
+
+It is possible, from the F12 settings menu, to customise several scanner settings, controlling how information is read, whether audio beeps are played to indicate position, etc. The most useful setting is the ability to create your own custom scanner categories. This allows you to add any category/subcategory combination into a grouped category, so, for example, you could create a category with all units and cities.
 
 ### Bookmarks
 
-Bookmarks are ten saved cursor positions, one per number key. They survive saves and reloads.
+Bookmarks are ten saved positions, one per number key. The number keys bookmark map tiles by default; **Ctrl+B** switches them to bookmarking your own units, and again to switch back. The two modes keep separate sets, so you have ten tile bookmarks and ten unit bookmarks at once. Ctrl+B announces the active mode, which resets to tiles whenever you load a game.
+
+In tile mode:
 
 - **Ctrl+1-0** — save the cursor's current position to that slot
 - **Shift+1-0** — jump the cursor to the saved location (Backspace returns)
 - **Alt+1-0** — speak distance and direction from the cursor to the saved location
 
+In unit mode the same chords act on the selected unit:
+
+- **Ctrl+1-0** — bookmark the currently selected unit in that slot
+- **Shift+1-0** — select that unit and move your cursor to it.
+- **Alt+1-0** — speak distance and direction from the cursor to that unit
+
+Note that to add a unit bookmark, the unit must be selected, not just under the cursor.
+
 #### Beacons
 
-Beacons turn a bookmark into a spatial-audio marker. While active, a looping sound plays from the bookmark's location with the cursor as listener: pan tells you east versus west, pitch tells you north versus south, volume tells you how close (silent past about 30 hexes).
+Beacons turn a bookmark into a spatial-audio marker. While active, a looping sound plays from the bookmark's location with the cursor as listener: pan tells you east versus west, pitch tells you north versus south, volume tells you how close (decreasing linearly out to 30 hexes).
 
-- **Ctrl+Shift+1-0** — toggle the beacon for that bookmark slot
+Beacons attach to tile bookmarks only. Ctrl+Shift plus a number always toggles the beacon for that slot's tile bookmark, whichever mode the number keys are currently in, so there are no audio beacons on unit bookmarks.
+
+- **Ctrl+Shift+1-0** — toggle the beacon for that tile bookmark slot
 
 ## Units
 
@@ -165,7 +179,7 @@ Alt-letter shortcuts skip the menu for common actions:
 
 **Alt** plus a movement key (Q, A, Z, E, D, C, or the numpad equivalents) moves the selected unit one hex in that direction. The mod tells you where you ended up and how many moves remain, or why the move was refused.
 
-If the target hex has an enemy, the first press speaks a combat preview. The second press commits the attack.
+If the target hex has an enemy, the first press speaks a combat preview. The second press commits to the attack.
 
 ### Target mode
 
@@ -173,7 +187,7 @@ If instead of using the quick movement keys you choose move to from the action m
 
 - **Space** — preview the move from the unit to the cursor (path, cost, turns to arrive); on an enemy, previews the combat result instead
 - **Enter** — commit
-- **Shift+Enter** — queue the move so the unit keeps walking across turns
+- **Shift+Enter** — queue the move so the unit keeps walking across turns, allowing you to queue up several exact moves at once.
 
 Target mode is also used by Alt+R ranged attacks and any action menu item that needs a target (airstrikes, nuking things, and so on). In that case Space provides relevant previews for the selected mode.
 
@@ -253,9 +267,16 @@ Civ V supports both hotseat (passing one computer back and forth) and networked 
 
 **Hotseat.** Press **Ctrl+Shift+F12** to pause the mod when the sighted player takes their turn, and again to resume for yours.
 
-**Networked play.** Hosting on your local network just works. On Steam's public matchmaking, regional filters can hide games hosted by friends in other regions; the workaround is to host the game yourself and invite friends through your Steam friends list, which bypasses the filter.
+**Networked play.** Hosting on your local network works without fuss and with minimal lag. On Steam's public matchmaking, regional filters can hide games hosted by friends in other regions; the workaround is to host the game yourself and invite friends through your Steam friends list, which bypasses the filter.
 
 If you want to play online with sighted friends, they must run the mod installer on their machine and choose "As a sighted player who plays multiplayer against a blind user". This installs the minimum needed for their game to match yours; no speech code runs on their side.
+
+### Playing with a sighted player
+
+If a sighted person is playing alongside you, watching you stream, or helping you learn the game, a few visual aids make it easier for them to follow what you're doing.
+
+- The tile under your cursor and the scanner's current target are highlighted on the map, so a sighted onlooker can see where you are and what you're tracking. The cursor tile is ringed in cyan and the scanner target in orange. This is on by default; toggle it in **F12** settings.
+- **Ctrl+M** opens a Map settings menu of visual-only options: the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view. None of these settings have any effect on speech, but they change how the map is displayed for sighted players.
 
 ## Tips and tricks
 
@@ -269,6 +290,7 @@ A few habits and settings that aren't obvious but make the game noticeably smoot
 - **Press Enter on table rows as a shortcut.** On the **F2** city table, Enter on most cells sends the cursor to that city, and Enter on the Production cell opens that city's production picker directly — by far the fastest way to change what a city is building. The **F3** unit table works similarly: Enter on any row jumps the cursor to that unit and selects it for you.
 - **Try Ctrl+I almost anywhere.** Most everything in this game has a Civilopedia entry, including individual cells in tables. **Ctrl+I** on a column header, a resource cell, a leader row, or whatever else is focused usually opens the article for it, even in places you wouldn't expect the binding to work.
 - **Switch cultural perspectives.** On a cultural-victory run, the fourth tab of the **Ctrl+C** Culture Overview lets you change perspective using the left column. Each entry repivots the table to show that civ's tourism influence on every other civ, which is how you find out who else is close to a cultural win.
+- **Build your own scanner categories.** From the Scanner group in **F12** settings you can assemble custom categories that gather the filters you reach for most into one place, so the things you check every turn sit one category cycle apart instead of scattered across the full hierarchy.
 
 ## Troubleshooting
 
