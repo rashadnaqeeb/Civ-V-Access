@@ -178,13 +178,26 @@ end
 
 -- UI group --------------------------------------------------------------
 
-function M.test_ui_group_has_verbose_ui_then_read_subtitles()
+function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight()
     setup()
     Settings.open()
     local children = groupChildren(UI_GROUP)
-    T.eq(#children, 2, "verbose UI + read subtitles")
+    T.eq(#children, 3, "verbose UI + read subtitles + map highlight")
     T.eq(children[1].kind, "checkbox")
     T.eq(children[2].kind, "checkbox")
+    T.eq(children[3].kind, "checkbox")
+end
+
+function M.test_map_highlight_toggle_flip_writes_shared_and_prefs()
+    setup()
+    civvaccess_shared.mapHighlightEnabled = false
+    Settings.open()
+    -- Third child of the UI group is the map-highlight toggle. MapHighlight
+    -- itself is absent in this suite, so the setter's applyEnabled hop is a
+    -- no-op and only the pref/cache write is observable here.
+    groupChildren(UI_GROUP)[3]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.mapHighlightEnabled, true)
+    T.eq(prefsStore["MapHighlight"], true)
 end
 
 function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()

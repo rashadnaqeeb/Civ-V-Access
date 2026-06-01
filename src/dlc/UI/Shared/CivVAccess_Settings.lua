@@ -49,6 +49,19 @@ local getScannerAutoMove, setScannerAutoMove = defineBoolPref("scannerAutoMove",
 -- it off restores the deferred-preamble behavior.
 local getReadSubtitles, setReadSubtitles = defineBoolPref("readSubtitles", "ReadSubtitles", true)
 
+-- On-screen tile highlights toggle. On by default: the rings are a visual aid
+-- for a sighted companion and produce no speech, so they cost the blind
+-- player nothing. The setter persists the pref, then asks MapHighlight to
+-- redraw or clear the rings immediately -- MapHighlight is nil in the
+-- front-end Settings Context, where only the pref write matters.
+local getMapHighlight, setMapHighlightPref = defineBoolPref("mapHighlightEnabled", "MapHighlight", true)
+local function setMapHighlight(v)
+    setMapHighlightPref(v)
+    if MapHighlight ~= nil then
+        MapHighlight.applyEnabled()
+    end
+end
+
 -- Cursor-follows-selected-unit toggle. On by default: the hex cursor
 -- jumps to the unit's tile both when the unit becomes selected and when
 -- it finishes a move. Flipping it off keeps the cursor put in both
@@ -220,6 +233,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES",
                 getValue = getReadSubtitles,
                 setValue = setReadSubtitles,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT",
+                getValue = getMapHighlight,
+                setValue = setMapHighlight,
             }),
         },
     })

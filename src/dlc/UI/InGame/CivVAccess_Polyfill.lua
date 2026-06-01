@@ -123,6 +123,29 @@ Events = Events or {
     AudioPlay2DSound = function(_scriptID) end,
 }
 
+-- Hex-overlay highlight API. MapHighlight fires these to draw the cursor /
+-- scanner rings; the suite monkey-patches them to capture calls. No-op
+-- defaults so any module that draws a ring at load or under bare polyfill
+-- doesn't index nil.
+if Events.SerialEventHexHighlight == nil then
+    Events.SerialEventHexHighlight = function(_hex, _on, _color, _style) end
+end
+if Events.ClearHexHighlightStyle == nil then
+    Events.ClearHexHighlightStyle = function(_style) end
+end
+
+-- ToHexFromGrid: engine converts a grid {x, y} to a hex id. Offline we only
+-- need a stable echo so the highlight call can assert on what it was handed.
+ToHexFromGrid = ToHexFromGrid or function(grid)
+    return grid
+end
+
+-- Vector4: engine color/vector constructor. Plain table mirror so color
+-- constants built at module-load time (MapHighlight's ring colors) resolve.
+Vector4 = Vector4 or function(x, y, z, w)
+    return { x = x, y = y, z = z, w = w }
+end
+
 -- Map / Game / Players / Teams / GameInfo are populated by the engine in-game.
 -- Offline tests overwrite these tables per-suite to drive the cursor; the
 -- polyfill's job is just to ensure the names resolve so the Cursor / sections

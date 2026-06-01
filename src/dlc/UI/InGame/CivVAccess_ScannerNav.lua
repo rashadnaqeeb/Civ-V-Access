@@ -458,16 +458,35 @@ local function fireDirectionBeep(targetX, targetY)
     ScannerBeep.play(cx, cy, targetX, targetY)
 end
 
+-- Visual twin of the directional beep: ring the scanned target on screen so
+-- a sighted companion can see what the player is pointing at. No-op when the
+-- MapHighlight module is absent or the feature is toggled off (the gate lives
+-- inside MapHighlight.setScanner). The cleared-on-empty branches below keep a
+-- stale ring from lingering once the scanned set empties out.
+local function fireScannerHighlight(targetX, targetY)
+    if MapHighlight == nil then
+        return
+    end
+    MapHighlight.setScanner(targetX, targetY)
+end
+
 local function announceCurrent()
     local item = currentItem()
     if item == nil then
+        if MapHighlight ~= nil then
+            MapHighlight.clearScanner()
+        end
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
     local inst = currentInstance()
     if inst == nil then
+        if MapHighlight ~= nil then
+            MapHighlight.clearScanner()
+        end
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
     end
     fireDirectionBeep(inst.plotX, inst.plotY)
+    fireScannerHighlight(inst.plotX, inst.plotY)
     return formatInstance(inst, _instIdx, #item.instances)
 end
 

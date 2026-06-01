@@ -87,6 +87,11 @@ read_globals = {
     -- to map FOW hex coords back to plot coords.
     "HexToWorld", "ToHexFromGrid", "ToGridFromHex",
 
+    -- Engine vector constructor. MapHighlight builds its ring colors with it
+    -- (Vector4 doubles as an RGBA color); base WorldView / InGame use it the
+    -- same way for hex-highlight colors.
+    "Vector4",
+
     -- Gameplay-side event bus exposed by the engine fork. Distinct from
     -- the UI-side Events / LuaEvents buses; carries gameplay events
     -- (CivVAccessPlotRevealed, etc.) that fire from the C++ side.
@@ -136,6 +141,7 @@ globals = {
 
     -- InGame modules
     "Cursor", "CursorActivate", "CursorPedia", "HexGeom", "Pathfinder",
+    "MapHighlight",
     "RoutePathfinder", "PathDiagnostic",
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
     "PlotAudio",

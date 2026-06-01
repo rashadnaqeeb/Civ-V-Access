@@ -42,6 +42,13 @@ local function setCursor(plot)
     if Beacons ~= nil then
         Beacons.onCursorMove()
     end
+    -- Track the on-screen cursor ring (sighted-companion feature). Guarded
+    -- against the pre-MapHighlight-include window the same way Beacons is;
+    -- both globals are populated well before setCursor first runs (post
+    -- LoadScreenClose).
+    if MapHighlight ~= nil then
+        MapHighlight.setCursor(_x, _y)
+    end
 end
 
 -- Capital of the active player. Returns nil during the brief window before
@@ -292,6 +299,14 @@ function Cursor.move(direction)
     end
     local prev = Map.GetPlot(_x, _y)
     setCursor(next)
+    -- A manual cursor step means the user has shifted focus off whatever the
+    -- scanner last pointed at, so drop the scanner ring. Seated here in
+    -- Cursor.move (arrow keys) rather than setCursor so a scanner auto-move
+    -- jump -- which routes through Cursor.jumpTo -> setCursor -- doesn't tear
+    -- down the ring the cycle's announceCurrent is about to draw.
+    if MapHighlight ~= nil then
+        MapHighlight.clearScanner()
+    end
     local announcer = civvaccess_shared.mapAnnouncer
     local glance
     if announcer ~= nil then

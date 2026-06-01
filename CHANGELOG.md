@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- The cursor tile and the scanner's current target are now highlighted on screen for sighted players; toggle in Settings.
 - Ctrl+B switches the number-key bookmarks between map tiles and your own units.
 - Build custom scanner categories from the F12 Scanner settings to cluster the filters you use most into one place.
 - Ctrl+M opens a Map settings menu for the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view.

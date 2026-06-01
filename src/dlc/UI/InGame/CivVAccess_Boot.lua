@@ -41,6 +41,11 @@ include("CivVAccess_BeaconVolume")
 -- a snapshot, so the global only needs to exist by the time setCursor
 -- runs -- which is post-LoadScreenClose, well after every include here).
 include("CivVAccess_Beacons")
+-- MapHighlight before CursorCore so setCursor's MapHighlight.setCursor
+-- dispatch resolves the global at call time, and before ScannerNav so its
+-- scanner-ring calls resolve too. No listeners to register, so it stays out
+-- of onInGameBoot; the next cursor move after Cursor.init redraws the ring.
+include("CivVAccess_MapHighlight")
 include("CivVAccess_CursorCore")
 -- Surveyor strings before the core so Text.key lookups during module load
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
