@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-01
+
 New Features and improvements:
 - The surveyor's terrain count with Shift+Z now also reports how many tiles in range have river access.
 - The cursor tile and the scanner's current target are now highlighted on screen for sighted players; toggle in Settings.
