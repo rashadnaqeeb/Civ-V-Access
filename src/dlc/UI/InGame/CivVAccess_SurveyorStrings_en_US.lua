@@ -31,6 +31,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "no impro
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] = "no neutral units in range"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "no tiles in range"
 
+-- ===== Terrain bucket labels =====
+-- River access cuts across terrain types (a river tile is also grass,
+-- plains, etc), so the terrain scope counts it as its own bucket with a
+-- "tiles" label to signal it is a tile-property tally, not a terrain type.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_RIVER"] = "river tiles"
+
 -- ===== Border ownership labels =====
 -- Bucket labels for the borders scope: active player's tiles use the
 -- literal "yours" rather than the player's own civ adjective so a single

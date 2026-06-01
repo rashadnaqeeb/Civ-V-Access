@@ -93,7 +93,7 @@ The surveyor answers questions about a circle around the cursor: how many sheep 
 - **Shift+W / Shift+X** (or **Shift+Numpad 8 / Shift+Numpad 2**) — grow or shrink the scanned radius (1-5)
 - **Shift+Q** (or **Shift+Numpad 7**) — sum yields of all tiles in range
 - **Shift+A** (or **Shift+Numpad 4**) — count resources in range
-- **Shift+Z** (or **Shift+Numpad 1**) — count terrain and features in range
+- **Shift+Z** (or **Shift+Numpad 1**) — count terrain and features in range, including river tiles
 - **Shift+E** (or **Shift+Numpad 9**) — list your own units in range
 - **Shift+D** (or **Shift+Numpad 6**) — list enemy units in range
 - **Shift+C** (or **Shift+Numpad 3**) — list cities in range, closest first

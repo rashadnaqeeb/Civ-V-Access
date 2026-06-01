@@ -208,6 +208,10 @@ end
 -- suppresses-terrain / mountain-dominates / natural-wonder-stands-alone
 -- policy lives in one place. Bucket total can exceed plot count because
 -- multi-terrain features contribute two tokens ("forest on tundra" -> 2).
+-- River access is folded in as its own bucket via plot:IsRiver (true when
+-- any of the plot's six edges carries a river); it cuts across terrain
+-- types rather than being one, so it carries a "tiles" label and is
+-- skipped entirely at count zero.
 function SurveyorCore.terrain()
     local cx, cy = cursorPos()
     if cx == nil then
@@ -215,6 +219,7 @@ function SurveyorCore.terrain()
     end
     local range = HexGeom.plotsInRange(cx, cy, getRadius())
     local buckets = {}
+    local riverCount = 0
     for _, plot in ipairs(range.plots) do
         local tokens = PlotSections.terrainShape.Read(plot)
         for _, tok in ipairs(tokens) do
@@ -222,6 +227,12 @@ function SurveyorCore.terrain()
                 buckets[tok] = (buckets[tok] or 0) + 1
             end
         end
+        if plot:IsRiver() then
+            riverCount = riverCount + 1
+        end
+    end
+    if riverCount > 0 then
+        buckets[Text.key("TXT_KEY_CIVVACCESS_SURVEYOR_RIVER")] = riverCount
     end
     local entries = sortedBucketByCountThenName(buckets)
     local body

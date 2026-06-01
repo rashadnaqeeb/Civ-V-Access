@@ -228,6 +228,39 @@ function M.test_terrain_sorts_by_count_descending()
     T.truthy(plainsPos < desertPos, "descending-by-count ordering: " .. out)
 end
 
+function M.test_terrain_counts_river_tiles_as_bucket()
+    -- River access folds into the terrain readout as its own bucket,
+    -- sorted by count with the terrain tokens. Three of the seven r=1
+    -- plots carry a river; all seven are grass.
+    setup()
+    GameInfo.Terrains[1] = { Description = "Grass" }
+    local plots = installGrid(1, function(col, row, p)
+        p._terrain = 1
+        if (col == 1 and row == 0) or (col == -1 and row == 0) or (col == 0 and row == 1) then
+            p._isRiver = true
+        end
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.terrain()
+    T.truthy(out:find("7 Grass", 1, true), "all seven plots must bucket as grass: " .. out)
+    T.truthy(out:find("3 river tiles", 1, true), "river-access plots must bucket: " .. out)
+    -- Count 7 grass sorts before count 3 river.
+    T.truthy(out:find("Grass", 1, true) < out:find("river tiles", 1, true), "buckets sort by count: " .. out)
+end
+
+function M.test_terrain_omits_river_bucket_when_no_rivers()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Grass" }
+    local plots = installGrid(1, function(_, _, p)
+        p._terrain = 1
+        return p
+    end)
+    initCursorAtOrigin(plots)
+    local out = SurveyorCore.terrain()
+    T.truthy(not out:find("river", 1, true), "no river bucket when no plot has river access: " .. out)
+end
+
 -- ===== Own units =====
 
 function M.test_own_units_lists_with_direction()
