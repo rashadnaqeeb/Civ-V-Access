@@ -49,23 +49,44 @@ Install with:
     exit 2
 }
 
+# luacheck and stylua are native Windows .exe binaries. When this script is
+# reached via `bash lint.sh`, their stdout is inherited from a process whose
+# output is an MSYS / Git-Bash pipe, and writing to that foreign pipe makes
+# them abort with "fatal runtime error: I/O error: operation failed to
+# complete synchronously" (and stall en route). Run each tool with its
+# streams redirected to a native temp file -- a real Windows file handle --
+# then relay the file through PowerShell, so the .exe never writes to the
+# pipe. Direct ./lint.ps1 use in a PowerShell terminal hits a real console
+# and never tripped this; the redirect is harmless there (it only drops the
+# tools' own output coloring). Returns the tool's exit code.
+function Invoke-Tool {
+    param([Parameter(Mandatory)] [string] $Exe, [string[]] $ToolArgs)
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        & $Exe @ToolArgs *> $tmp
+        $code = $LASTEXITCODE
+        Get-Content -LiteralPath $tmp -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+        return $code
+    } finally {
+        Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
+    }
+}
+
 $targets = if ($Paths -and $Paths.Count -gt 0) { $Paths } else { @("src", "tests") }
 
 Write-Host "--- luacheck" -ForegroundColor Cyan
 # -q: print only files that have warnings, plus the final summary. Without
 # it luacheck emits a "Checking ... OK" line per file (~300 lines), which
 # buries the stylua output below it.
-& $luacheck -q @targets
-$luacheckExit = $LASTEXITCODE
+$luacheckExit = Invoke-Tool -Exe $luacheck -ToolArgs (@("-q") + $targets)
 
 if ($Fix) {
     Write-Host "--- stylua (rewrite)" -ForegroundColor Cyan
-    & $stylua @targets
+    $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs $targets
 } else {
     Write-Host "--- stylua --check" -ForegroundColor Cyan
-    & $stylua --check @targets
+    $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs (@("--check") + $targets)
 }
-$styluaExit = $LASTEXITCODE
 
 # Report in a way the user can act on: tell them which stage failed.
 if ($luacheckExit -ne 0 -and $styluaExit -ne 0) {
