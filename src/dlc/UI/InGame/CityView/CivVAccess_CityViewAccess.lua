@@ -567,7 +567,7 @@ local function unemployedLabel()
     return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNEMPLOYED_ACTION", count)
 end
 
-local function activateUnemployed()
+local function activateUnemployed(self, menu)
     local city = UI.GetHeadSelectedCity()
     if city == nil then
         return
@@ -590,6 +590,13 @@ local function activateUnemployed()
     end
     Network.SendDoTask(city:GetID(), TaskTypes.TASK_REMOVE_SLACKER, 0, -1, false, false, false, false)
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"))
+    -- TASK_REMOVE_SLACKER commits next tick; re-read the count then and
+    -- queue it after "assigned" so the user hears how many remain without
+    -- navigating off and back (the label's labelFn only re-reads on a
+    -- fresh navigate-to).
+    TickPump.runOnce(function()
+        SpeechPipeline.speakQueued(self:announce(menu))
+    end)
 end
 
 -- ===== Buildings drillable =====
