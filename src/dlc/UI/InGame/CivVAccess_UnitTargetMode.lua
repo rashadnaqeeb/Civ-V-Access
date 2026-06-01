@@ -414,21 +414,18 @@ local function targetVisible(actor, plot)
     return plot:IsVisible(actor:GetTeam(), Game.IsDebugMode())
 end
 
--- Range / melee preview that prefers a unit garrison over the city
--- itself. EnemyUnitPanel does the same: a defended city's combat goes
--- through the garrison's stats, undefended cities use city stats. Returns
--- nil if the plot has no enemy combat target (caller speaks EMPTY).
+-- Range / melee combat preview against a plot. A city tile is always
+-- attacked as the city itself: a garrison only boosts the city's defense
+-- and is never the direct combat target, so the city is checked before
+-- the garrison. EnemyUnitPanel does the same -- UpdateCombatOddsUnitVsCity
+-- for any city plot, the per-unit loop only for non-city plots -- so a
+-- ranged strike on a defended city must preview the city's HP, not the
+-- garrison's. Returns nil if the plot has no enemy combat target (caller
+-- speaks EMPTY).
 local function combatPreviewAt(actor, plot, tx, ty, ranged)
     -- Don't reveal what's on a fogged tile. Caller treats nil as "empty".
     if not targetVisible(actor, plot) then
         return nil
-    end
-    local defenderUnit = defenderAt(plot, ranged, actor)
-    if defenderUnit ~= nil then
-        if ranged then
-            return rangedPreview(actor, defenderUnit, plot, tx, ty)
-        end
-        return UnitSpeech.meleePreview(actor, defenderUnit, plot)
     end
     local defenderCity = UnitControl.enemyCityAt(plot)
     if defenderCity ~= nil then
@@ -436,6 +433,13 @@ local function combatPreviewAt(actor, plot, tx, ty, ranged)
             return UnitSpeech.cityRangedPreview(actor, defenderCity, plot)
         end
         return UnitSpeech.cityMeleePreview(actor, defenderCity, plot)
+    end
+    local defenderUnit = defenderAt(plot, ranged, actor)
+    if defenderUnit ~= nil then
+        if ranged then
+            return rangedPreview(actor, defenderUnit, plot, tx, ty)
+        end
+        return UnitSpeech.meleePreview(actor, defenderUnit, plot)
     end
     return nil
 end

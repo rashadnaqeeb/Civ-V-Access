@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.
+
 ## [1.2.0] - 2026-06-01
 
 New Features and improvements:
