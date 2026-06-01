@@ -217,34 +217,10 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
     -- untouched. Done before the early hotkey checks below because none
     -- of them (Ctrl+Shift+F12, Shift+?, F12, type-ahead) bind a key in
     -- NAV_TO_NUMPAD, so the rewrite can't shadow them.
-    local origKeyCode = keyCode
     local navMapped = NAV_TO_NUMPAD[keyCode]
-    local navRewrote = false
     if navMapped ~= nil and isNumpadOrigin(lp) then
         keyCode = navMapped
-        navRewrote = true
     end
-
-    -- TEMP diagnosis for Shift+Numpad (Windows substitutes the nav VK
-    -- when Shift is held with NumLock on, and we rewrite it above).
-    -- Logs the raw keycode, the post-rewrite keycode, modifier mask,
-    -- the raw lParam, and whether the nav-to-numpad rewrite fired so
-    -- the player log shows the dispatch chain end-to-end. Remove after
-    -- a tester confirms the fix.
-    Log.info(
-        "InputRouter.dispatch origKc="
-            .. tostring(origKeyCode)
-            .. " kc="
-            .. tostring(keyCode)
-            .. " modMask="
-            .. tostring(modMask)
-            .. " msg="
-            .. tostring(msg)
-            .. " lp="
-            .. tostring(lp)
-            .. " navRewrote="
-            .. tostring(navRewrote)
-    )
 
     -- AltGr collapse. On non-US keyboard layouts (German, French, Spanish,
     -- Polish, BR Portuguese, Nordic, UK-extended, ...) the right Alt key is
