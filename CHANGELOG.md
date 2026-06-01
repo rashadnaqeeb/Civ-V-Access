@@ -16,12 +16,13 @@ New Features and improvements:
 - The cursor tile and the scanner's current target are now highlighted on screen for sighted players; toggle in Settings.
 - Ctrl+B switches the number-key bookmarks between map tiles and your own units, allowing you to reuse the same keys to bookmark units instead of tiles.
 - Build custom scanner categories from the F12 Scanner settings to cluster the filters you use most into one place.
-- Ctrl+M opens a Map settings menu for the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view.
+- Ctrl+M opens a Map settings menu containing visual-only options for the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view.
 - The help menu now ends with a More Help group with links to open the mod read me or join the mod Discord server in your browser.
+- The scanner's new Geography category lists contiguous land and water masses you can see, each numbered outward from your capital with its tile count and whether it's fully revealed. As you clear fog of war, these may become combined as connections are revealed between them.
 
 Bug fixes:
 - Trading away a city you took the same turn no longer leaves the turn stuck demanding production for a city you no longer own. This was a game bug, not a mod bug, but I've decided to fix it anyways due to it being save breaking and easy to fix.
-- Checking gold with G no longer also toggles the map's grid overlay.
+- Checking gold with G no longer also toggles the map's visual grid overlay.
 - In hotseat, keys now reach the player switch screen when it opens over another full-screen event instead of the hidden event behind it.
 
 ## [1.1.13] - 2026-05-26

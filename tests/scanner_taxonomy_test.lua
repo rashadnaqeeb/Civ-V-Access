@@ -42,6 +42,7 @@ function M.test_category_order_fixed()
         "worked_tiles",
         "special",
         "terrain",
+        "geography",
         "waypoints",
     }
     local actual = catKeys()

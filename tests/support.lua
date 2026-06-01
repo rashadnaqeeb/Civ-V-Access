@@ -218,6 +218,12 @@ function T.fakePlot(opts)
     function p:IsWater()
         return self._isWater
     end
+    -- Engine area handle (landmass / body of water). opts.area is a fake
+    -- area table exposing GetNumRevealedTiles / GetNumTiles; the geography
+    -- backend reads it only for the "fully revealed" flag.
+    function p:Area()
+        return opts.area
+    end
     function p:GetPlotType()
         return self._plotType
     end

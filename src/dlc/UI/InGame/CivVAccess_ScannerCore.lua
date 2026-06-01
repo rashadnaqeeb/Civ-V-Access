@@ -196,6 +196,18 @@ ScannerCore.CATEGORIES = {
         },
     },
     {
+        -- Explored landmasses and bodies of open water, each clustered
+        -- from revealed tiles and numbered outward from the capital. The
+        -- two subs carry independent 1..N numberings; the implicit `all`
+        -- interleaves them. Backend: CivVAccess_ScannerBackendGeography.
+        key = "geography",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_GEOGRAPHY",
+        subcategories = {
+            { key = "landmasses", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_LANDMASSES" },
+            { key = "oceans", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_OCEANS" },
+        },
+    },
+    {
         -- Per-step plots the active selected unit will traverse on its
         -- queued mission, sourced from Waypoints.list(). Selection-scoped:
         -- the backend emits nothing when no friendly unit is selected

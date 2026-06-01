@@ -153,6 +153,7 @@ globals = {
     -- two slider modules' values live to stay in sync with user tuning.
     "Beacons", "BeaconRange", "BeaconVolume",
     "ScannerBackendCities", "ScannerBackendImprovements",
+    "ScannerBackendGeography",
     "ScannerBackendRecommendations",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",
     "ScannerBackendUnits", "ScannerBackendWaypoints", "ScannerBackendWorkedTiles",

@@ -1908,4 +1908,211 @@ function M.test_worked_tiles_validate_resolves_by_stored_city_not_head_selected(
     )
 end
 
+-- ===== Geography backend =====
+
+local function loadGeographyBackend()
+    loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendGeography.lua")
+end
+
+-- Geography's FormatName produces real localized output (ordinal name,
+-- plural-selected hex count, fully-revealed suffix), so this setup loads
+-- the scanner strings and restores the real Text module that the base
+-- setup() stubbed out. A Chebyshev PlotDistance backs the capital / cursor
+-- ranking.
+local function setupGeography()
+    setup()
+    dofile("src/dlc/UI/InGame/CivVAccess_ScannerStrings_en_US.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    loadGeographyBackend()
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.max(math.abs(x1 - x2), math.abs(y1 - y2))
+    end
+end
+
+function M.test_geography_land_water_split_lakes_excluded()
+    -- Land plots become landmasses, non-lake water becomes oceans, and a
+    -- lake forms no body of water at all (it stays lake terrain on the
+    -- land around it, owned by the terrain backend).
+    setupGeography()
+    Map.PlotDirection = function()
+        return nil
+    end
+    local land = makePlotAt(0, 0, 0, { water = false })
+    local sea = makePlotAt(5, 0, 1, { water = true, lake = false })
+    local lake = makePlotAt(0, 5, 2, { water = true, lake = true })
+    mapFromPlots({ land, sea, lake })
+    local out = ScannerBackendGeography.Scan(0, 0)
+    T.eq(#out, 2, "lake must not form its own body of water")
+    local bySub = subsFromEntries(out)
+    T.eq(#bySub.landmasses, 1, "land plot must produce one landmass")
+    T.eq(bySub.landmasses[1].data.kind, "landmass")
+    T.eq(#bySub.oceans, 1, "non-lake water must produce one ocean")
+    T.eq(bySub.oceans[1].data.kind, "ocean")
+end
+
+function M.test_geography_contiguous_land_collapses_water_stays_separate()
+    -- Two adjacent land plots collapse into one landmass; an adjacent water
+    -- plot is NOT swept into the land cluster (the domain split is the
+    -- whole point of clustering land and water separately).
+    setupGeography()
+    local a = makePlotAt(0, 0, 0, { water = false })
+    local b = makePlotAt(1, 0, 1, { water = false })
+    local w = makePlotAt(2, 0, 2, { water = true, lake = false })
+    installNeighborhood({
+        [0] = { [0] = { [DirectionTypes.DIRECTION_EAST] = b } },
+        [1] = { [0] = { [DirectionTypes.DIRECTION_WEST] = a, [DirectionTypes.DIRECTION_EAST] = w } },
+        [2] = { [0] = { [DirectionTypes.DIRECTION_WEST] = b } },
+    })
+    mapFromPlots({ a, b, w })
+    local bySub = subsFromEntries(ScannerBackendGeography.Scan(0, 0))
+    T.eq(#bySub.landmasses, 1, "two adjacent land plots collapse to one landmass")
+    T.eq(#bySub.landmasses[1].data.cells, 2)
+    T.eq(#bySub.oceans, 1, "the adjacent water plot stays its own ocean, not merged into land")
+    T.eq(#bySub.oceans[1].data.cells, 1)
+end
+
+function M.test_geography_disjoint_land_patches_are_separate_landmasses()
+    -- Clustering follows revealed adjacency, not the engine's true area
+    -- connectivity: two non-adjacent revealed land patches surface as two
+    -- landmasses even when the engine would call them one continent. This
+    -- is the no-leak invariant -- the link is only revealed once the player
+    -- has charted the connecting tiles.
+    setupGeography()
+    Map.PlotDirection = function()
+        return nil
+    end
+    local a = makePlotAt(0, 0, 0, { water = false })
+    local b = makePlotAt(9, 9, 1, { water = false })
+    mapFromPlots({ a, b })
+    local bySub = subsFromEntries(ScannerBackendGeography.Scan(0, 0))
+    T.eq(#bySub.landmasses, 2, "two disjoint revealed land patches must be two landmasses")
+end
+
+function M.test_geography_unrevealed_plots_excluded()
+    -- A fogged plot is never enumerated -- nothing about an unexplored mass
+    -- leaks, not even its existence.
+    setupGeography()
+    Map.PlotDirection = function()
+        return nil
+    end
+    local seen = makePlotAt(0, 0, 0, { water = false, revealed = true })
+    local fogged = makePlotAt(5, 0, 1, { water = false, revealed = false })
+    mapFromPlots({ seen, fogged })
+    local out = ScannerBackendGeography.Scan(0, 0)
+    T.eq(#out, 1, "only the revealed land plot forms a landmass")
+    T.eq(out[1].subcategory, "landmasses")
+end
+
+function M.test_geography_numbers_masses_outward_from_capital()
+    -- Ordinals rank by hex distance from the capital, so the mass holding
+    -- the capital is always 1 and a distant mass is 2.
+    setupGeography()
+    Map.PlotDirection = function()
+        return nil
+    end
+    local home = makePlotAt(0, 0, 0, { water = false })
+    local far = makePlotAt(20, 0, 1, { water = false })
+    mapFromPlots({ home, far })
+    local capPlot = makePlotAt(0, 0, 9, { water = false })
+    Players[0] = T.fakePlayer({ capital = T.fakeCity({ owner = 0, plot = capPlot }) })
+    local out = ScannerBackendGeography.Scan(0, 0)
+    local repByOrdinal = {}
+    for _, e in ipairs(out) do
+        repByOrdinal[e.data.ordinal] = e.plotIndex
+    end
+    T.eq(repByOrdinal[1], 0, "the mass holding the capital numbers 1")
+    T.eq(repByOrdinal[2], 1, "the distant mass numbers 2")
+end
+
+function M.test_geography_numbering_falls_back_to_unit_before_capital()
+    -- Before the first city is founded the origin falls back through cities
+    -- to the player's units, so the starting settler's mass still numbers 1.
+    setupGeography()
+    Map.PlotDirection = function()
+        return nil
+    end
+    local near = makePlotAt(2, 0, 0, { water = false })
+    local far = makePlotAt(20, 0, 1, { water = false })
+    mapFromPlots({ near, far })
+    local settler = T.fakeUnit({ owner = 0, plot = makePlotAt(2, 0, 5, { water = false }) })
+    Players[0] = T.fakePlayer({ units = { settler } })
+    local out = ScannerBackendGeography.Scan(0, 0)
+    local repByOrdinal = {}
+    for _, e in ipairs(out) do
+        repByOrdinal[e.data.ordinal] = e.plotIndex
+    end
+    T.eq(repByOrdinal[1], 0, "the settler's mass numbers 1 with no capital yet")
+end
+
+function M.test_geography_numbering_falls_back_to_city_when_no_capital()
+    -- Capital lost but another city remains: the origin anchors on the
+    -- first city, not the cursor, so the numbering still tracks the empire.
+    setupGeography()
+    Map.PlotDirection = function()
+        return nil
+    end
+    local near = makePlotAt(3, 0, 0, { water = false })
+    local far = makePlotAt(20, 0, 1, { water = false })
+    mapFromPlots({ near, far })
+    local cityPlot = makePlotAt(3, 0, 5, { water = false })
+    Players[0] = T.fakePlayer({ cities = { T.fakeCity({ owner = 0, plot = cityPlot }) } })
+    local out = ScannerBackendGeography.Scan(0, 0)
+    local repByOrdinal = {}
+    for _, e in ipairs(out) do
+        repByOrdinal[e.data.ordinal] = e.plotIndex
+    end
+    T.eq(repByOrdinal[1], 0, "with no capital, the city's mass numbers 1")
+end
+
+function M.test_geography_format_name_counts_hexes_with_plural()
+    -- FormatName speaks the revealed hex count, plural-selected in Lua. The
+    -- area is partial (revealed < total) so no fully-revealed suffix.
+    setupGeography()
+    local area = { _rev = 3, _tot = 10 }
+    function area:GetNumRevealedTiles(_team)
+        return self._rev
+    end
+    function area:GetNumTiles()
+        return self._tot
+    end
+    mapFromPlots({ makePlotAt(0, 0, 0, { water = false, area = area }) })
+    local one = { data = { kind = "landmass", ordinal = 2, cells = { 0 } } }
+    T.eq(ScannerBackendGeography.FormatName(one), "Landmass 2, 1 hex", "singular form drops the plural s")
+    local many = { data = { kind = "landmass", ordinal = 2, cells = { 0, 0, 0, 0, 0 } } }
+    T.eq(ScannerBackendGeography.FormatName(many), "Landmass 2, 5 hexes")
+end
+
+function M.test_geography_format_name_appends_fully_revealed()
+    -- When the engine confirms every tile of the underlying area is
+    -- revealed, the readout tails with "fully revealed".
+    setupGeography()
+    local area = {}
+    function area:GetNumRevealedTiles(_team)
+        return 10
+    end
+    function area:GetNumTiles()
+        return 10
+    end
+    mapFromPlots({ makePlotAt(0, 0, 0, { water = true, area = area }) })
+    local e = { data = { kind = "ocean", ordinal = 1, cells = { 0, 0, 0 } } }
+    T.eq(ScannerBackendGeography.FormatName(e), "Ocean 1, 3 hexes, fully revealed")
+end
+
+function M.test_geography_validate_recenters_rep_on_nearest_cell()
+    -- Home/jump targets the nearest cluster cell to the live cursor;
+    -- ValidateEntry re-aims entry.plotIndex there. Cells never go stale
+    -- (reveal is monotonic), so a populated cluster always stays valid.
+    setupGeography()
+    local a = makePlotAt(0, 0, 0, { water = false })
+    local b = makePlotAt(5, 0, 1, { water = false })
+    local c = makePlotAt(10, 0, 2, { water = false })
+    mapFromPlots({ a, b, c })
+    Map.PlotDistance = function(x1, y1, x2, y2)
+        return math.abs(x1 - x2) + math.abs(y1 - y2)
+    end
+    local entry = { plotIndex = 2, data = { kind = "landmass", ordinal = 1, cells = { 0, 1, 2 } } }
+    T.truthy(ScannerBackendGeography.ValidateEntry(entry, 1), "a populated cluster stays valid")
+    T.eq(entry.plotIndex, 1, "rep re-centers on the nearest cluster cell to the cursor")
+end
+
 return M

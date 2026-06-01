@@ -37,6 +37,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_WORKED_TILES"] = "Worked
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_SPECIAL"] = "Special"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_RECOMMENDATIONS"] = "Recommendations"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_WAYPOINTS"] = "Waypoints"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_GEOGRAPHY"] = "Geography"
 -- The city-site rec name lives in InGameStrings_en_US because both the
 -- scanner and the cursor glance reference it; keeping it here would hide
 -- it from the offline test harness, which only loads InGameStrings.
@@ -59,6 +60,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY"] = "Enemy"
 -- these two have no clean game equivalent.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_TERRAIN_BASE"] = "Base Terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION"] = "Elevation"
+-- Geography subs.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_LANDMASSES"] = "Landmasses"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_OCEANS"] = "Oceans"
 
 -- Item labels for contiguous unrevealed tiles, clustered into one entry
 -- per connected region under terrain > base. The cluster form leads with
@@ -67,6 +71,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION"] = "Elevation"
 -- shape; the singular form drops the count.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED"] = "unexplored"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_UNEXPLORED_CLUSTER"] = "{1_Count} unexplored"
+
+-- Geography item labels. The ordinal numbers a mass within its sub
+-- (landmass 1, ocean 2, ...); the mass-hexes bundle appends the revealed
+-- tile count and is plural-selected in Lua (CivVAccess_Strings bypass the
+-- engine's plural selector, so the form is chosen by Text.formatPlural).
+-- The fully-revealed wrapper tails the readout when the whole underlying
+-- mass has been charted.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_LANDMASS"] = "Landmass {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_OCEAN"] = "Ocean {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_MASS_HEXES"] = {
+    one = "{1_Name}, {2_Count} hex",
+    other = "{1_Name}, {2_Count} hexes",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_MASS_FULLY_REVEALED"] = "{1_Body}, fully revealed"
 
 -- ===== Announcement fragments =====
 -- Positional count tail. Carves out an exception to the concise-
