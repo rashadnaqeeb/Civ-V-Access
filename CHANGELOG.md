@@ -17,6 +17,7 @@ New Features and improvements:
 
 Bug fixes:
 - Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.
+- City yields now refresh when you reopen them after changing worker focus or specialists, instead of showing stale numbers until the city screen is reopened.
 
 ## [1.2.0] - 2026-06-01
 

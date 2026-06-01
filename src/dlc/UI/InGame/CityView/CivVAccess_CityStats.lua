@@ -15,9 +15,11 @@
 -- collaborators (active player, the engine's tooltip helpers) and
 -- returns either rows / a label / a Group. The wrapper in
 -- CityViewAccess assembles the list and pushes the sub-handler. No
--- state is cached; every group is rebuilt on each Stats push, so a buy
--- / specialist change / route shift in another sub-handler that pops
--- back through Stats produces fresh numbers.
+-- state is cached; the groups rebuild on each Stats push. The Yields
+-- group additionally re-queries on every drill (itemsFn + cached=false)
+-- so a specialist or worker-focus change made on an inline sub-handler
+-- -- which doesn't re-fire the hub's onActivate and so wouldn't trigger
+-- a Stats rebuild -- still produces fresh yield numbers on re-entry.
 
 include("CivVAccess_TradeRouteRow")
 
@@ -245,29 +247,38 @@ function CityStats.yieldRows(city, helperFn)
     return groups
 end
 
+-- itemsFn + cached=false so the seven rows are rebuilt from live engine
+-- state every time the user drills into Yields. A specialist add / remove
+-- or worker-focus change made elsewhere in the city screen recomputes the
+-- city's yields, but those edits happen on inline sub-handlers that don't
+-- re-fire the hub's onActivate, so the rows must re-query on drill rather
+-- than freeze at the last hub rebuild. (A static `items` list, even with
+-- cached=false, would stay frozen -- cached only governs itemsFn rebuilds.)
 local function buildYieldsGroup(city)
-    local rows = CityStats.yieldRows(city)
-    local items = {}
-    for _, row in ipairs(rows) do
-        local children = {}
-        if #row.breakdown == 0 then
-            children[#children + 1] = BaseMenuItems.Text({
-                labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_NO_BREAKDOWN"),
-            })
-        else
-            for _, line in ipairs(row.breakdown) do
-                children[#children + 1] = BaseMenuItems.Text({ labelText = line })
+    local function buildRows()
+        local rows = CityStats.yieldRows(city)
+        local items = {}
+        for _, row in ipairs(rows) do
+            local children = {}
+            if #row.breakdown == 0 then
+                children[#children + 1] = BaseMenuItems.Text({
+                    labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_NO_BREAKDOWN"),
+                })
+            else
+                for _, line in ipairs(row.breakdown) do
+                    children[#children + 1] = BaseMenuItems.Text({ labelText = line })
+                end
             end
+            items[#items + 1] = BaseMenuItems.Group({
+                labelText = row.label,
+                items = children,
+            })
         end
-        items[#items + 1] = BaseMenuItems.Group({
-            labelText = row.label,
-            items = children,
-            cached = false,
-        })
+        return items
     end
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_YIELDS"),
-        items = items,
+        itemsFn = buildRows,
         cached = false,
     })
 end
