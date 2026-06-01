@@ -29,10 +29,54 @@ local HELP_SELF_ENTRIES = {
     { keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_QUESTION", description = "TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE" },
 }
 
+-- External links surfaced under the "More Help" group. Plain string data,
+-- not spoken text, so they live as constants rather than TXT_KEY lookups;
+-- the spoken labels are the group's button text keys.
+local README_URL = "https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/README.md"
+local DISCORD_URL = "https://discord.gg/JQQh5j7pFb"
+
 local function resolveEntryLabel(entry)
     local keyLabel = Text.key(entry.keyLabel)
     local description = Text.key(entry.description)
     return Text.format("TXT_KEY_CIVVACCESS_HELP_ENTRY", keyLabel, description)
+end
+
+-- Open url in the system browser via the proxy's browser binding. Both
+-- failure modes -- the binding absent on a stale proxy, or ShellExecute
+-- refusing the launch -- raise, so the Text item's activate pcall logs
+-- them and withholds the click ack. A blind user must not hear the success
+-- cue when nothing opened.
+local function openURL(url)
+    Log.check(
+        type(browser) == "table" and type(browser.open) == "function",
+        "Help.openURL: proxy browser binding missing"
+    )
+    if not browser.open(url) then
+        error("Help.openURL: browser.open refused " .. url)
+    end
+end
+
+-- Always-present group at the bottom of the help list linking to the mod's
+-- documentation and community. Reachable from every Context the help
+-- overlay opens in, so it assumes no in-game state.
+local function moreHelpGroup()
+    return BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_HELP_GROUP_MORE",
+        items = {
+            BaseMenuItems.Text({
+                textKey = "TXT_KEY_CIVVACCESS_HELP_OPEN_README",
+                onActivate = function()
+                    openURL(README_URL)
+                end,
+            }),
+            BaseMenuItems.Text({
+                textKey = "TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD",
+                onActivate = function()
+                    openURL(DISCORD_URL)
+                end,
+            }),
+        },
+    })
 end
 
 local function buildItems(entries)
@@ -42,6 +86,7 @@ local function buildItems(entries)
             labelText = resolveEntryLabel(e),
         })
     end
+    items[#items + 1] = moreHelpGroup()
     return items
 end
 

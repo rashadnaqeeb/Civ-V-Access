@@ -72,6 +72,11 @@ read_globals = {
     -- stub (see the tests-section globals entry for the write permission).
     "audio",
 
+    -- System-browser binding: proxy-injected. browser.open(url) launches the
+    -- OS default browser via ShellExecute; used by the Help overlay's More
+    -- Help links. Read-only from mod code.
+    "browser",
+
     -- Proxy-injected modifier-key probe (GetAsyncKeyState-backed). Read-only
     -- from mod code; tests monkey-patch it (see the tests-section entry).
     "civvaccess_keys",

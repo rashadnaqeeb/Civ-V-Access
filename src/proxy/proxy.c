@@ -4,7 +4,8 @@
  * Replaces lua51_Win32.dll. Forwards all calls to lua51_original.dll,
  * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua
  * state, and hooks lua_setfenv to propagate the tolk, civvaccess_shared,
- * civvaccess_keys, and audio tables into every sandboxed environment. The
+ * civvaccess_keys, audio, and browser tables into every sandboxed
+ * environment. The
  * accessibility payload itself ships as a DLC at Assets/DLC/DLC_CivVAccess/
  * and is ingested natively by the engine at boot; the proxy does not
  * activate any mod.
@@ -12,9 +13,11 @@
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Ole32.lib")
 #pragma comment(lib, "Winhttp.lib")
+#pragma comment(lib, "Shell32.lib")
 
 #include <windows.h>
 #include <winhttp.h>
+#include <shellapi.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -1113,6 +1116,44 @@ static void register_audio(lua_State *L) {
     proxy_log("register_audio: L=%p done\n", (void*)L);
 }
 
+/* === System browser ===
+   Opens a URL in the OS default browser via ShellExecute. The Help
+   overlay's "More Help" links route here rather than through
+   Steam.ActivateGameOverlayToWebPage, whose in-game overlay browser is
+   inaccessible to screen readers; ShellExecute("open", url) launches
+   whatever the OS has registered for http/https, the surface the player's
+   screen reader already drives. Returns true on a successful launch so the
+   Lua caller can speak feedback. */
+static int lb_open(lua_State *L) {
+    const char *url = ORIG_luaL_checklstring(L, 1, NULL);
+    int ok = 0;
+    if (url) {
+        wchar_t *w = utf8_to_wide(url);
+        if (w) {
+            HINSTANCE r = ShellExecuteW(NULL, L"open", w, NULL, NULL, SW_SHOWNORMAL);
+            ok = ((INT_PTR)r > 32);
+            if (!ok) proxy_log("lb_open: ShellExecuteW failed (%p) for %s\n", (void*)r, url);
+            free(w);
+        } else {
+            proxy_log("lb_open: utf8_to_wide OOM for %s\n", url);
+        }
+    }
+    ORIG_lua_pushboolean(L, ok);
+    return 1;
+}
+
+static const luaL_Reg browser_funcs[] = {
+    {"open", lb_open},
+    {NULL, NULL}
+};
+
+static void register_browser(lua_State *L) {
+    int top = ORIG_lua_gettop(L);
+    ORIG_luaL_register(L, "browser", browser_funcs);
+    ORIG_lua_settop(L, top);
+    proxy_log("register_browser: L=%p done\n", (void*)L);
+}
+
 /* === Hooked exports === */
 
 __declspec(dllexport) lua_State * __cdecl luaL_newstate(void) {
@@ -1139,7 +1180,8 @@ __declspec(dllexport) void __cdecl luaL_openlibs(lua_State *L) {
     register_civvaccess_shared(L);
     register_civvaccess_keys(L);
     register_audio(L);
-    proxy_log("luaL_openlibs: tolk + civvaccess_shared + civvaccess_keys + audio registered in globals\n");
+    register_browser(L);
+    proxy_log("luaL_openlibs: tolk + civvaccess_shared + civvaccess_keys + audio + browser registered in globals\n");
 }
 
 __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
@@ -1196,6 +1238,19 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
     }
     if (ORIG_lua_type(L, -1) != LUA_TNIL) {
         ORIG_lua_setfield(L, -2, "audio");
+    } else {
+        ORIG_lua_settop(L, -2);
+    }
+
+    /* === browser injection (mirrors tolk) === */
+    ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "browser");
+    if (ORIG_lua_type(L, -1) == LUA_TNIL) {
+        ORIG_lua_settop(L, -2);
+        register_browser(L);
+        ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "browser");
+    }
+    if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+        ORIG_lua_setfield(L, -2, "browser");
     } else {
         ORIG_lua_settop(L, -2);
     }
