@@ -16,6 +16,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "aucune ville �
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "aucun aménagement à portée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] = "aucune unité neutre à portée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "aucune case à portée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_RIVER"] = "cases de rivière"
 
 -- ===== Border ownership labels =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS"] = "à vous"

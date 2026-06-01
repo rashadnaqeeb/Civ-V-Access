@@ -662,6 +662,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12"] = "Strg plus Um
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Einstellungen öffnen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "Einstellungen schließen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] = "Mod pausieren oder fortsetzen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_GROUP_MORE"] = "Weitere Hilfe"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_README"] = "Mod-Liesmich öffnen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "Discord-Server des Mods beitreten"
 -- BaseTable: 2D table viewer (used by F2 cities, future demographics, etc.).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_DESC"] = "{1_Col}, absteigend"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_ASC"] = "{1_Col}, aufsteigend"
@@ -683,6 +686,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Gelände-Ear
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Nur Sprache"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Sprache und Audiohilfen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Ausführliche Ansagen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Cursor und Scanner auf dem Bildschirm hervorheben"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Nur Audiohilfen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Gelände-Earcon-Lautstärke"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Gelände-Earcon-Lautstärke, {1_Num} Prozent"
@@ -2063,6 +2067,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY"] = "ste
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Steuerung plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Kulturübersicht öffnen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "Kulturübersicht ist in diesem Spiel deaktiviert"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_SETTINGS"] = "Karteneinstellungen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY"] = "Strg plus M"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] = "Kartendarstellungs-Einstellungen öffnen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HELP_DESC_CLOSE"] = "Karteneinstellungen schließen"
 
 -- League Overview (World Congress / United Nations).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_OVERVIEW"] = "Weltkongress"
@@ -2195,6 +2203,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_JUMP"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus Zifferntaste"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "Entfernung und Richtung vom Cursor zum Lesezeichen in diesem Platz"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_MAP"] = "Karten-Lesezeichen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_UNIT"] = "Einheiten-Lesezeichen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_NO_UNIT"] = "keine Einheit ausgewählt"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED"] = "Einheit mit Lesezeichen versehen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED_NAMED"] = "Lesezeichen für {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_EMPTY"] = "kein Einheiten-Lesezeichen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_GONE"] = "Einheit nicht mehr vorhanden"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_MODE"] = "Strg plus B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_MODE"] = "Zwischen Karten- und Einheiten-Lesezeichen wechseln"
 
 -- Beacons
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_ACTIVATED"] = "Bake {1_Slot} aktiviert"

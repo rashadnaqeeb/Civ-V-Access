@@ -16,6 +16,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_CITIES"] = "sin ciudades e
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_IMPROVEMENTS"] = "sin mejoras en alcance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_NEUTRAL_UNITS"] = "sin unidades neutrales en alcance"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_EMPTY_BORDERS"] = "sin casillas en alcance"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_RIVER"] = "casillas de río"
 
 -- ===== Border ownership labels =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SURVEYOR_BORDERS_YOURS"] = "tuyas"

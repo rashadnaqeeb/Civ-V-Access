@@ -187,6 +187,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12"] = "Strg plus Um
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Einstellungen öffnen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "Einstellungen schließen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] = "Mod pausieren oder fortsetzen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_GROUP_MORE"] = "Weitere Hilfe"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_README"] = "Mod-Liesmich öffnen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "Discord-Server des Mods beitreten"
 
 -- Settings overlay.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Einstellungen"
@@ -199,6 +202,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Gelände-Ear
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Nur Sprache"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Sprache und Audiosignale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Ausführliche Ansagen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Cursor und Scanner auf dem Bildschirm hervorheben"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Nur Audiosignale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Gelände-Earcon-Lautstärke"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Gelände-Earcon-Lautstärke, {1_Num} Prozent"

@@ -573,6 +573,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12"] = "Control plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Otwórz ustawienia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "Zamknij ustawienia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] = "Wstrzymaj lub wznów mod"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_GROUP_MORE"] = "Więcej pomocy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_README"] = "Otwórz plik readme moda"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "Dołącz do serwera Discord moda"
 -- BaseTable: 2D table viewer (used by F2 cities, future demographics, etc.).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_DESC"] = "{1_Col}, malejąco"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_ASC"] = "{1_Col}, rosnąco"
@@ -594,6 +597,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Ikony dźwi�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Tylko mowa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Mowa i sygnały dźwiękowe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Szczegółowe komunikaty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Podświetl kursor i skaner na ekranie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Tylko sygnały dźwiękowe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Głośność ikon dźwiękowych terenu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
@@ -2021,6 +2025,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY"] = "ro�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Otwórz Przegląd kultury"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "Przegląd kultury jest wyłączony w tej grze"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_SETTINGS"] = "Ustawienia mapy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY"] = "Control plus M"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] = "Otwórz ustawienia wyświetlania mapy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HELP_DESC_CLOSE"] = "Zamknij ustawienia mapy"
 -- League Overview (World Congress / United Nations). TabbedShell over the
 -- engine's BUTTONPOPUP_LEAGUE_OVERVIEW: tab 1 status / members, tab 2 current
 -- proposals (View / Propose / Vote modes), tab 3 ongoing effects.
@@ -2158,6 +2166,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_JUMP"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus klawisz cyfry"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "Odległość i kierunek od kursora do zakładki w danym slocie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_MAP"] = "zakładki mapy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_UNIT"] = "zakładki jednostek"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_NO_UNIT"] = "nie wybrano jednostki"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED"] = "jednostka dodana do zakładek"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED_NAMED"] = "dodano zakładkę dla {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_EMPTY"] = "brak zakładki jednostki"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_GONE"] = "jednostka już nie istnieje"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_MODE"] = "Control plus B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_MODE"] = "Przełącz między zakładkami mapy i jednostek"
 
 -- Beacons.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_ACTIVATED"] = "aktywowano sygnał {1_Slot}"

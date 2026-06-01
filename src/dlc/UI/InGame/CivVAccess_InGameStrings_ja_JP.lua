@@ -572,6 +572,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"] = "編集を確�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "設定を開く"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE_SETTINGS"] = "設定を閉じる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] = "modを一時停止または再開"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_GROUP_MORE"] = "その他のヘルプ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_README"] = "modの説明書を開く"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "mod Discord サーバーに参加"
 
 -- Table widget: sort announcements and help
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_DESC"] = "{1_Col}, 降順"
@@ -594,6 +597,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "地形音声
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "音声のみ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "音声と音声キュー"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "詳細な読み上げ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "画面上のカーソルとスキャナーをハイライト"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "音声キューのみ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "地形音声キュー音量"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "地形音声キュー音量, {1_Num} パーセント"
@@ -1666,6 +1670,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY"] = "緩
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control + C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "文化の概要を開く"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "このゲームでは文化の概要は無効"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_SETTINGS"] = "マップ表示設定"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY"] = "Control + M"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] = "マップ表示設定を開く"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HELP_DESC_CLOSE"] = "マップ表示設定を閉じる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_OVERVIEW"] = "世界議会"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_KEY"] = "Control + L"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_HOTKEY_HELP_DESC"] = "世界議会の概要を開く"
@@ -1760,6 +1768,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_JUMP"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt + 数字キー"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "カーソルからそのスロットのブックマークまでの距離と方向"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_MAP"] = "マップブックマーク"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_UNIT"] = "ユニットブックマーク"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_NO_UNIT"] = "ユニット未選択"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED"] = "ユニットブックマーク済み"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED_NAMED"] = "{1_Name} をブックマーク"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_EMPTY"] = "ユニットブックマークなし"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_GONE"] = "ユニットはもう存在しない"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_MODE"] = "Control + B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_MODE"] =
+    "マップブックマークとユニットブックマークを切り替え"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_ACTIVATED"] = "ビーコン {1_Slot} 有効化"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_DEACTIVATED"] = "ビーコン {1_Slot} 無効化"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BEACON_NO_BOOKMARK"] =
