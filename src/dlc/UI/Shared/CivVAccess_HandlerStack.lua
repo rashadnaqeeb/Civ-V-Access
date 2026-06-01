@@ -32,6 +32,13 @@
 --   onDeactivate       (fn(self), optional) fired on removal from the stack.
 --   tick               (fn(self), optional) called every frame by TickPump on
 --                      the active handler only.
+--   blocksPushAbove    (fn(self, incoming) -> bool, optional) gate predicate
+--                      consulted by push when this handler is the top. Return
+--                      true to refuse the incoming handler a spot above this
+--                      one (it is tucked just below instead, silently, and
+--                      surfaces when this handler is removed). For hard modal
+--                      gates like the hotseat PlayerChange switcher that must
+--                      not be buried by events the engine draws behind them.
 --   beaconsTransparent (bool, default false) handler is treated as pass-
 --                      through by Beacons.refresh's top-down stack walk.
 --                      For cursor-still-on-map flows like the Tab unit-
@@ -244,6 +251,39 @@ function HandlerStack.push(handler)
         return false
     end
     warnIfMissingHelpEntries(handler, "push")
+    -- A gate handler on top can refuse to let an unsolicited handler land
+    -- above it. The hotseat PlayerChange switcher uses this: during a player
+    -- handoff the engine can show a full-screen event (a diplo popup, etc.)
+    -- drawn behind the switcher, and its handler would otherwise push on top
+    -- here, stealing input and announcing a screen the user can't see. A
+    -- blocked handler is tucked just below the gate instead -- it never
+    -- becomes the top, so onActivate (and its announcement) never fires and
+    -- input keeps routing to the switcher. It surfaces normally when the gate
+    -- is removed, because removeByName reactivates the new top. The gate's
+    -- predicate decides what to allow through (its own children, the global
+    -- Settings / Help overlays), so the user's own actions still open on top.
+    local gateTop = _shared.stack[#_shared.stack]
+    if gateTop ~= nil and type(gateTop.blocksPushAbove) == "function" then
+        local ok, blocked = pcall(gateTop.blocksPushAbove, gateTop, handler)
+        if not ok then
+            Log.error(
+                "HandlerStack.push: blocksPushAbove on '" .. tostring(gateTop.name) .. "' failed: " .. tostring(blocked)
+            )
+        elseif blocked then
+            table.insert(_shared.stack, #_shared.stack, handler)
+            Log.debug(
+                "HandlerStack.push tucked '"
+                    .. tostring(handler.name)
+                    .. "' below gate '"
+                    .. tostring(gateTop.name)
+                    .. "' (depth="
+                    .. #_shared.stack
+                    .. ")"
+            )
+            notifyMutated()
+            return true
+        end
+    end
     if not fireOnActivate(handler, "push", "pushed") then
         return false
     end

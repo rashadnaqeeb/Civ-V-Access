@@ -613,4 +613,65 @@ function M.test_purgeDeadEnv_logs_warning_per_eviction()
     T.eq(#warns, 2)
 end
 
+-- blocksPushAbove gate --------------------------------------------------
+
+local function makeGate(name, permit)
+    local h = makeHandler(name)
+    h.blocksPushAbove = function(_, incoming)
+        return not permit[incoming.name]
+    end
+    return h
+end
+
+function M.test_gate_tucks_blocked_handler_below_without_activating()
+    setup()
+    local gate = makeGate("gate", { allowed = true })
+    local intruder = makeHandler("intruder")
+    HandlerStack.push(gate)
+    T.truthy(HandlerStack.push(intruder))
+    T.eq(HandlerStack.active(), gate, "gate stays on top")
+    T.eq(HandlerStack.at(1), intruder, "intruder tucked below the gate")
+    T.eq(intruder.activate, 0, "blocked handler does not activate, so it stays silent")
+    T.eq(gate.suspend, 0, "gate is not suspended -- it never left the top")
+end
+
+function M.test_gate_allows_permitted_handler_on_top()
+    setup()
+    local gate = makeGate("gate", { allowed = true })
+    local child = makeHandler("allowed")
+    HandlerStack.push(gate)
+    HandlerStack.push(child)
+    T.eq(HandlerStack.active(), child, "permitted handler lands on top")
+    T.eq(child.activate, 1)
+    T.eq(gate.suspend, 1, "gate suspends normally when something legitimately covers it")
+end
+
+function M.test_gate_tucked_handler_surfaces_when_gate_removed()
+    setup()
+    local base = makeHandler("base")
+    local gate = makeGate("gate", {})
+    local intruder = makeHandler("intruder")
+    HandlerStack.push(base)
+    HandlerStack.push(gate)
+    HandlerStack.push(intruder)
+    -- Stack is base, intruder, gate -- gate on top, intruder tucked under it.
+    T.eq(intruder.activate, 0)
+    HandlerStack.removeByName("gate", true)
+    T.eq(HandlerStack.active(), intruder, "tucked handler becomes top once the gate is gone")
+    T.eq(intruder.activate, 1, "it announces only now, after the gate is passed")
+end
+
+function M.test_gate_predicate_error_falls_through_to_normal_push()
+    setup()
+    local gate = makeHandler("gate")
+    gate.blocksPushAbove = function()
+        error("boom")
+    end
+    local other = makeHandler("other")
+    HandlerStack.push(gate)
+    HandlerStack.push(other)
+    T.eq(HandlerStack.active(), other, "a throwing predicate must not strand the push")
+    T.eq(#errors, 1, "the failure is logged, not swallowed")
+end
+
 return M

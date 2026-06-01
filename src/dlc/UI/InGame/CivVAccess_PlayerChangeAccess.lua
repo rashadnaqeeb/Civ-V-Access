@@ -130,7 +130,21 @@ local function wrappedShowHide(bIsHide, bIsInit)
     end
 end
 
-BaseMenu.install(ContextPtr, {
+-- Handlers allowed to stack above the open switcher: the screens PlayerChange
+-- itself opens from its buttons (Save menu, Change Password, the ExitConfirm
+-- overlay sub) plus the two global overlays reachable everywhere via their
+-- hotkeys (F12 Settings, Shift+? Help). Anything else trying to land on top is
+-- a full-screen event the engine drew behind the switcher; the gate tucks it
+-- underneath so it neither steals input nor announces itself.
+local permittedAbove = {
+    SaveMenu = true,
+    ChangePassword = true,
+    PlayerChangeExitConfirm = true,
+    Settings = true,
+    Help = true,
+}
+
+local handler = BaseMenu.install(ContextPtr, {
     name = "PlayerChange",
     displayName = Text.key("TXT_KEY_MP_NEXT_PLAYER"),
     preamble = function()
@@ -175,3 +189,11 @@ BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+-- Keep the open switcher on top: refuse any handler that isn't one the user
+-- can deliberately open from this screen. A full-screen event the engine
+-- draws behind the switcher during a player handoff is tucked underneath
+-- instead of stealing input, and surfaces once the player passes the switcher.
+handler.blocksPushAbove = function(_, incoming)
+    return not permittedAbove[incoming.name]
+end
