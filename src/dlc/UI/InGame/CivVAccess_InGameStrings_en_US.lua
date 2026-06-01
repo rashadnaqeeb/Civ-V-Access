@@ -3015,6 +3015,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_DIRECTION"] = "Alt plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_DIRECTION"] =
     "Distance and direction from cursor to the bookmark in that slot"
 
+-- Unit bookmarks: Ctrl+B switches the digit chords between map cells and
+-- the player's own units. In unit mode Ctrl + 1-0 bookmarks the selected
+-- unit, Shift + 1-0 selects it and brings it into view, Alt + 1-0 speaks
+-- direction to its live plot. Mode resets to map on every game load.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_MAP"] = "map bookmarks"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_MODE_UNIT"] = "unit bookmarks"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_NO_UNIT"] = "no unit selected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED"] = "unit bookmarked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_ADDED_NAMED"] = "bookmarked {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_EMPTY"] = "no unit bookmark"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_BOOKMARK_GONE"] = "unit no longer exists"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_MODE"] = "Control plus B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_MODE"] = "Switch between map and unit bookmarks"
+
 -- Beacons: spatial-audio markers anchored at bookmarked cells. Ctrl+Shift
 -- + 1-0 toggles the beacon for that slot. While a beacon is active, a
 -- looping point source plays from the bookmark's position with the

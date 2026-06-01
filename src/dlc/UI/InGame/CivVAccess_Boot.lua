@@ -256,6 +256,11 @@ local function onInGameBoot()
     -- A different map's seed yields an empty hydrate; same map round-
     -- trips its slots from disk.
     Bookmarks.hydrateForCurrentGame()
+    -- Start every game (and load-from-game) in map-bookmark mode. The mode
+    -- flag lives on civvaccess_shared, which survives the env kill, so
+    -- without this reset a prior session's unit mode would silently carry
+    -- over with no visible cue.
+    Bookmarks.resetMode()
     -- Baseline and Scanner are the floor of the in-game stack: Baseline
     -- owns map / unit / turn keys and is the capturesAllInput barrier;
     -- Scanner sits one above for category cycling. They are not modal

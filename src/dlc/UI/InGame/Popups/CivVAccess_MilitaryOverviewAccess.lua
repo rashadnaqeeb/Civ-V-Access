@@ -293,32 +293,20 @@ end
 
 -- ===== Activation =====================================================
 
--- Click semantics mirror the engine's UnitClicked: same unit already
--- selected re-centers the camera; otherwise select. Then close the
--- popup. The cursor jump only fires when the cursor-follows-selection
--- setting is OFF; with it ON, UnitControlSelection's
--- SerialEventUnitSelectionChanged listener already runs Cursor.jumpTo
--- on the selection event, so a second jump here would warp twice.
--- Direct Cursor.jumpTo (rather than CameraTracker.followAndJumpCursor)
--- because UI.SelectUnit doesn't reliably pan the camera, leaving the
--- camera-follow path with nothing to settle on; we know the
--- destination plot, so jump explicitly. Discard the glance return so
--- we don't double-speak: UnitControlSelection's listener already spoke
--- the unit selection text by the time we're back here.
+-- Select-or-recenter plus the cursor-follows-selection-gated jump live in
+-- UnitControlSelection.selectAndReveal, shared with the unit-bookmark jump
+-- so both behave identically. Reached through the published module registry
+-- because Cursor / UnitControl live in the WorldView Context, not this
+-- popup's. Close the popup regardless so a (pre-Boot) missing registry
+-- can't strand the screen open; the impossible miss is logged, not swallowed.
 function activateUnit(unit)
-    local head = UI:GetHeadSelectedUnit()
-    if head ~= nil and head:GetID() == unit:GetID() then
-        UI.LookAtSelectionPlot(0)
+    local UnitControl = civvaccess_shared.modules and civvaccess_shared.modules.UnitControl
+    if UnitControl ~= nil then
+        UnitControl.selectAndReveal(unit)
     else
-        UI.SelectUnit(unit)
+        Log.warn("MilitaryOverview: UnitControl module not published; cannot select unit on row activation")
     end
     OnClose()
-    if not civvaccess_shared.cursorFollowsSelection then
-        local Cursor = cursorModule()
-        if Cursor ~= nil then
-            Cursor.jumpTo(unit:GetX(), unit:GetY())
-        end
-    end
 end
 
 -- ===== Units tab ======================================================

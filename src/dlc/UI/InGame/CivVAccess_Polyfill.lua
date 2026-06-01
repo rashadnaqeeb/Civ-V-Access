@@ -468,6 +468,7 @@ Keys = Keys
         VK_NUMPAD8 = 104,
         VK_NUMPAD9 = 105,
         A = 65,
+        B = 66,
         C = 67,
         D = 68,
         E = 69,

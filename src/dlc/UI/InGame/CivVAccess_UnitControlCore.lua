@@ -41,6 +41,7 @@ UnitControl = {}
 UnitControl.markUserInitiatedSelection = UnitControlSelection.markUserInitiatedSelection
 UnitControl.cycleAll = UnitControlSelection.cycleAll
 UnitControl.cycleAllUnits = UnitControlSelection.cycleAllUnits
+UnitControl.selectAndReveal = UnitControlSelection.selectAndReveal
 UnitControl.preflightAttack = UnitControlCombat.preflightAttack
 UnitControl.preflightAttackTarget = UnitControlCombat.preflightAttackTarget
 UnitControl.enemyAt = UnitControlMovement.enemyAt

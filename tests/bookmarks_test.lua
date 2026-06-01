@@ -17,6 +17,8 @@ local T = require("support")
 local M = {}
 
 local cursorPosition
+local headUnit
+local selectReveal
 
 local function setup()
     -- Pure-Lua deps the module reaches into directly. Cursor is stubbed
@@ -30,7 +32,10 @@ local function setup()
 
     civvaccess_shared = civvaccess_shared or {}
     civvaccess_shared.bookmarks = nil
+    civvaccess_shared.unitBookmarks = nil
+    civvaccess_shared.bookmarkMode = nil
     civvaccess_shared.scannerCoords = false
+    civvaccess_shared.cursorFollowsSelection = false
 
     -- Capital-relative coord segment pulls from HexGeom.coordinateString,
     -- which scans Players slots for IsOriginalCapital. Default to no
@@ -82,6 +87,34 @@ local function setup()
         jumpCursorTo = function(x, y)
             ScannerNav._jumped = { x = x, y = y }
             return "jumped"
+        end,
+    }
+
+    -- Unit-bookmark deps. UI feeds the head selection saveUnit captures;
+    -- UnitControl.selectAndReveal is the shared select-and-reveal path
+    -- (its own behavior is covered by unit_control_test) -- here we record
+    -- the call and let each test pin its return; UnitSpeech supplies the
+    -- save-confirmation name and the already-selected info readout.
+    headUnit = nil
+    selectReveal = { calls = {}, ret = true }
+    UI = {
+        GetHeadSelectedUnit = function()
+            return headUnit
+        end,
+    }
+    UnitControl = {
+        markUserInitiatedSelection = function() end,
+        selectAndReveal = function(unit)
+            selectReveal.calls[#selectReveal.calls + 1] = unit
+            return selectReveal.ret
+        end,
+    }
+    UnitSpeech = {
+        unitName = function(unit)
+            return unit:GetNameKey()
+        end,
+        info = function(unit)
+            return "info:" .. tostring(unit:GetID())
         end,
     }
 
@@ -346,17 +379,18 @@ end
 
 -- ===== Bindings surface =====
 
-function M.test_getBindings_returns_thirtyone_bindings_and_three_help_entries()
+function M.test_getBindings_returns_thirtytwo_bindings_and_three_help_entries()
     -- Ten slots (1-9 + 0) times three modifier variants (Ctrl/Shift/Alt)
-    -- equals thirty digit-slot bindings; the Ctrl+S jump-to-capital adds
-    -- a thirty-first. The help overlay rolls the slot bindings into
-    -- three chord-style help rows; the Ctrl+S help entry is author'd in
-    -- BaselineHandler so it sits next to Shift+S in the map-mode help
-    -- list, not here -- so helpEntries stays at three. Asserting the
-    -- counts catches a future accidental drop or duplicate.
+    -- equals thirty digit-slot bindings; the Ctrl+S jump-to-capital and
+    -- the Ctrl+B mode toggle add a thirty-first and thirty-second. The
+    -- help overlay rolls the slot bindings into three chord-style help
+    -- rows; the Ctrl+S and Ctrl+B help entries are author'd in
+    -- BaselineHandler so they sit next to the other map-mode rows, not
+    -- here -- so helpEntries stays at three. Asserting the counts catches
+    -- a future accidental drop or duplicate.
     setup()
     local bs = Bookmarks.getBindings()
-    T.eq(#bs.bindings, 31)
+    T.eq(#bs.bindings, 32)
     T.eq(#bs.helpEntries, 3)
 end
 
@@ -388,6 +422,204 @@ function M.test_jumpToCapital_delegates_to_jumpCursorTo_with_capital_plot()
     T.eq(spoken, "jumped")
     T.eq(ScannerNav._jumped.x, 12)
     T.eq(ScannerNav._jumped.y, 7)
+end
+
+-- ===== Unit bookmarks: mode =====
+
+function M.test_toggleMode_flips_between_map_and_unit_and_announces()
+    -- Mode is invisible state, so the toggle's announcement is the only
+    -- orientation a blind player gets. Default is map; first toggle enters
+    -- unit mode, second returns to map. Both the flag and the spoken word
+    -- must track.
+    setup()
+    T.eq(Bookmarks.toggleMode(), "unit bookmarks")
+    T.eq(civvaccess_shared.bookmarkMode, "unit")
+    T.eq(Bookmarks.toggleMode(), "map bookmarks")
+    T.eq(civvaccess_shared.bookmarkMode, "map")
+end
+
+-- ===== Unit bookmarks: save =====
+
+function M.test_saveUnit_speaks_no_unit_selected_when_none()
+    -- Nothing selected: speak rather than write an empty slot, so the
+    -- keystroke isn't silently dropped.
+    setup()
+    headUnit = nil
+    local spoken = Bookmarks.saveUnit("3")
+    T.eq(spoken, "no unit selected")
+    T.eq(civvaccess_shared.unitBookmarks["3"], nil)
+end
+
+function M.test_saveUnit_stores_owner_id_and_names_unit()
+    setup()
+    headUnit = T.fakeUnit({ owner = 0, id = 5, nameKey = "Warrior" })
+    local spoken = Bookmarks.saveUnit("3")
+    T.eq(spoken, "bookmarked Warrior")
+    T.eq(civvaccess_shared.unitBookmarks["3"].owner, 0)
+    T.eq(civvaccess_shared.unitBookmarks["3"].id, 5)
+end
+
+function M.test_saveUnit_falls_back_to_bare_confirmation_on_empty_name()
+    -- A degenerate GameInfo miss yields an empty name; the confirmation
+    -- must not become a dangling "bookmarked " with nothing behind it.
+    setup()
+    UnitSpeech.unitName = function()
+        return ""
+    end
+    headUnit = T.fakeUnit({ owner = 0, id = 5 })
+    T.eq(Bookmarks.saveUnit("3"), "unit bookmarked")
+    T.eq(civvaccess_shared.unitBookmarks["3"].id, 5)
+end
+
+function M.test_saveUnit_writes_through_so_hydrate_round_trips()
+    -- Unit slots persist under the "<key>:units" sub-key; hydrating after
+    -- a wipe must restore the same owner/id, isolated from the tile blob.
+    setup()
+    headUnit = T.fakeUnit({ owner = 0, id = 5 })
+    Bookmarks.saveUnit("3")
+    headUnit = T.fakeUnit({ owner = 0, id = 9 })
+    Bookmarks.saveUnit("7")
+    civvaccess_shared.unitBookmarks = {}
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(civvaccess_shared.unitBookmarks["3"].id, 5)
+    T.eq(civvaccess_shared.unitBookmarks["7"].id, 9)
+end
+
+-- ===== Unit bookmarks: jumpToUnit =====
+
+function M.test_jumpToUnit_speaks_empty_on_unsaved_slot()
+    setup()
+    local spoken = T.captureSpeech()
+    Bookmarks.jumpToUnit("4")
+    T.eq(spoken[1].text, "no unit bookmark")
+    T.eq(#selectReveal.calls, 0)
+end
+
+function M.test_jumpToUnit_speaks_gone_when_unit_no_longer_exists()
+    -- The slot is populated but the unit has died / disbanded / been given
+    -- away, so GetUnitByID misses. Distinct from the empty-slot case.
+    setup()
+    civvaccess_shared.unitBookmarks["2"] = { owner = 0, id = 99 }
+    Players[0] = T.fakePlayer({ units = {} })
+    local spoken = T.captureSpeech()
+    Bookmarks.jumpToUnit("2")
+    T.eq(spoken[1].text, "unit no longer exists")
+    T.eq(#selectReveal.calls, 0)
+end
+
+function M.test_jumpToUnit_selects_live_unit_and_defers_speech()
+    -- Live unit: hand it to selectAndReveal, which (on a genuine new
+    -- selection, ret=true) fires the selection listener that speaks. So
+    -- jumpToUnit itself must stay silent -- a second announcement here
+    -- would double up.
+    setup()
+    local unit = T.fakeUnit({ owner = 0, id = 5, x = 3, y = 4 })
+    civvaccess_shared.unitBookmarks["2"] = { owner = 0, id = 5 }
+    Players[0] = T.fakePlayer({ units = { unit } })
+    selectReveal.ret = true
+    local spoken = T.captureSpeech()
+    Bookmarks.jumpToUnit("2")
+    T.eq(selectReveal.calls[1], unit)
+    T.eq(#spoken, 0)
+end
+
+function M.test_jumpToUnit_confirms_with_info_when_already_selected()
+    -- selectAndReveal returns false when the bookmarked unit is already
+    -- the head selection: it only re-centers silently, so jumpToUnit must
+    -- speak the unit info to confirm the keystroke registered.
+    setup()
+    local unit = T.fakeUnit({ owner = 0, id = 5 })
+    civvaccess_shared.unitBookmarks["2"] = { owner = 0, id = 5 }
+    Players[0] = T.fakePlayer({ units = { unit } })
+    selectReveal.ret = false
+    local spoken = T.captureSpeech()
+    Bookmarks.jumpToUnit("2")
+    T.eq(spoken[1].text, "info:5")
+end
+
+-- ===== Unit bookmarks: directionToUnit =====
+
+function M.test_directionToUnit_reads_live_unit_plot()
+    -- Direction must come off the unit's current GetX/GetY, not a stored
+    -- coordinate. Cursor at origin, unit four east: non-empty, not HERE.
+    setup()
+    local unit = T.fakeUnit({ owner = 0, id = 5, x = 4, y = 0 })
+    civvaccess_shared.unitBookmarks["2"] = { owner = 0, id = 5 }
+    Players[0] = T.fakePlayer({ units = { unit } })
+    cursorPosition = { x = 0, y = 0 }
+    local out = Bookmarks.directionToUnit("2")
+    T.truthy(out ~= "", "non-empty direction at non-zero distance")
+    T.truthy(out ~= "here", "non-zero distance must not collapse to HERE token")
+end
+
+function M.test_directionToUnit_speaks_HERE_when_cursor_on_unit()
+    setup()
+    local unit = T.fakeUnit({ owner = 0, id = 5, x = 6, y = 6 })
+    civvaccess_shared.unitBookmarks["2"] = { owner = 0, id = 5 }
+    Players[0] = T.fakePlayer({ units = { unit } })
+    cursorPosition = { x = 6, y = 6 }
+    T.eq(Bookmarks.directionToUnit("2"), "here")
+end
+
+-- ===== Unit bookmarks: binding dispatch + storage =====
+
+local function findBinding(bindings, key, mods)
+    for _, b in ipairs(bindings) do
+        if b.key == key and b.mods == mods then
+            return b
+        end
+    end
+    return nil
+end
+
+function M.test_save_binding_targets_store_by_mode()
+    -- The single Ctrl+digit binding routes to the tile store in map mode
+    -- and the unit store in unit mode. This is the load-bearing branch the
+    -- whole shared-key design rests on, so exercise the dispatch end to end
+    -- rather than the two save functions in isolation.
+    setup()
+    local saveCtrl3 = findBinding(Bookmarks.getBindings().bindings, Keys["3"], 2)
+    T.truthy(saveCtrl3 ~= nil, "Ctrl+3 save binding must exist")
+
+    cursorPosition = { x = 4, y = -2 }
+    saveCtrl3.fn()
+    T.eq(civvaccess_shared.bookmarks["3"].x, 4, "map mode must populate the tile store")
+    T.eq(civvaccess_shared.unitBookmarks["3"], nil, "map mode must leave the unit store untouched")
+
+    Bookmarks.toggleMode()
+    headUnit = T.fakeUnit({ owner = 0, id = 5 })
+    saveCtrl3.fn()
+    T.eq(civvaccess_shared.unitBookmarks["3"].id, 5, "unit mode must populate the unit store")
+end
+
+-- ===== Unit bookmarks: deserialize guard =====
+
+function M.test_deserializeUnits_skips_malformed_entries()
+    -- A corrupt unit row (non-numeric owner / empty id) must be dropped
+    -- rather than yielding {owner=nil}, which would reach Players[nil] on
+    -- jump. Mirrors the tile deserialize guard.
+    setup()
+    Modding.OpenUserData = function()
+        return {
+            GetValue = function(key)
+                if key:find(":units") then
+                    return "1,abc,5;2,0,7;9,0,"
+                end
+                return nil
+            end,
+            SetValue = function() end,
+        }
+    end
+    local warned
+    Log.warn = function(msg)
+        warned = msg
+    end
+    Bookmarks.hydrateForCurrentGame()
+    T.eq(civvaccess_shared.unitBookmarks["1"], nil, "non-numeric owner must be dropped")
+    T.eq(civvaccess_shared.unitBookmarks["2"].owner, 0, "well-formed entry must survive")
+    T.eq(civvaccess_shared.unitBookmarks["2"].id, 7)
+    T.eq(civvaccess_shared.unitBookmarks["9"], nil, "empty id capture must be dropped")
+    T.truthy(warned, "Log.warn must fire on malformed unit entry")
 end
 
 return M

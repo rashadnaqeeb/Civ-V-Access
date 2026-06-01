@@ -159,6 +159,32 @@ local function recenterOnUnit()
     speakInterrupt(Cursor.jumpTo(unit:GetX(), unit:GetY()))
 end
 
+-- Select a unit and bring it into view, mirroring the engine's click
+-- semantics: re-center the camera if it is already the head selection,
+-- otherwise select it (which fires onUnitSelectionChanged and speaks the
+-- unit). The cursor jump only fires when cursor-follows-selection is OFF;
+-- with it ON, onUnitSelectionChanged already jumps off the selection
+-- event, so a second jump here would warp twice. The jump is silent --
+-- onUnitSelectionChanged spoke the selection text, or (on the recenter
+-- branch) the caller handles confirmation. Returns true when it issued a
+-- new selection (so the listener announced), false when it only
+-- re-centered an already-selected unit (so the caller must confirm).
+-- Shared by the Military Advisor row activation and the unit-bookmark
+-- jump so both entry points behave identically.
+function UnitControlSelection.selectAndReveal(unit)
+    local head = UI.GetHeadSelectedUnit()
+    local alreadySelected = head ~= nil and head:GetID() == unit:GetID()
+    if alreadySelected then
+        UI.LookAtSelectionPlot(0)
+    else
+        UI.SelectUnit(unit)
+    end
+    if not civvaccess_shared.cursorFollowsSelection then
+        Cursor.jumpTo(unit:GetX(), unit:GetY())
+    end
+    return not alreadySelected
+end
+
 local function onUnitSelectionChanged(playerID, unitID, _hexI, _hexJ, _hexK, isSelected)
     if not isSelected then
         return

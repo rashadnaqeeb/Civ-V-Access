@@ -456,6 +456,13 @@ function BaselineHandler.create()
     appendAll(helpEntries, surveyor.helpEntries)
     appendAll(helpEntries, ScannerHandler.HELP_ENTRIES)
     appendAll(helpEntries, bookmarks.helpEntries)
+    -- Ctrl+B mode toggle author'd here (not in bookmarks.helpEntries) so it
+    -- closes the bookmark section right after the save / jump / direction
+    -- rows, same placement convention as the Ctrl+S capital row.
+    helpEntries[#helpEntries + 1] = {
+        keyLabel = "TXT_KEY_CIVVACCESS_BOOKMARK_HELP_KEY_MODE",
+        description = "TXT_KEY_CIVVACCESS_BOOKMARK_HELP_DESC_MODE",
+    }
     appendAll(helpEntries, beacons.helpEntries)
     appendAll(helpEntries, messageBuffer.helpEntries)
     appendAll(helpEntries, FUNCTION_KEY_HELP_ENTRIES)
