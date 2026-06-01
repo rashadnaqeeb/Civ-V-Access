@@ -50,23 +50,21 @@
 
 ScannerSnap = {}
 
+-- Fresh subcategory bucket. The implicit `all` and every named sub share
+-- this shape; _itemsByName dedupes entries into items during build and is
+-- dropped before the snapshot is returned.
+local function newSub(key, label)
+    return { key = key, label = label, items = {}, _itemsByName = {} }
+end
+
+local ALL_SUB_LABEL = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ALL"
+
 local function newCategory(catDef)
-    local subs = {}
     -- `all` is always first. Uses a mod-authored label; the other subs
     -- pull whatever key their taxonomy entry declared (game or mod).
-    subs[1] = {
-        key = "all",
-        label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ALL",
-        items = {},
-        _itemsByName = {},
-    }
+    local subs = { newSub("all", ALL_SUB_LABEL) }
     for _, subDef in ipairs(catDef.subcategories) do
-        subs[#subs + 1] = {
-            key = subDef.key,
-            label = subDef.label,
-            items = {},
-            _itemsByName = {},
-        }
+        subs[#subs + 1] = newSub(subDef.key, subDef.label)
     end
     local subsByKey = {}
     for _, sub in ipairs(subs) do
@@ -77,6 +75,53 @@ local function newCategory(catDef)
         label = catDef.label,
         subcategories = subs,
         _subsByKey = subsByKey,
+    }
+end
+
+-- Place one entry into (cat, sub): get-or-create the item by name, append
+-- a fresh instance, and share a newly-created item into the category's
+-- `all` sub. Each call builds its own instance object, so the same entry
+-- placed into a real category and a custom category gets independent
+-- instances -- pruning one view never disturbs the other.
+local function placeEntry(cat, sub, entry, px, py, dist)
+    local instance = {
+        entry = entry,
+        key = entry.key,
+        plotX = px,
+        plotY = py,
+        distance = dist,
+    }
+    local item = sub._itemsByName[entry.itemName]
+    if item == nil then
+        item = { name = entry.itemName, instances = {} }
+        sub._itemsByName[entry.itemName] = item
+        sub.items[#sub.items + 1] = item
+        if sub.key ~= "all" then
+            local all = cat.subcategories[1]
+            all.items[#all.items + 1] = item
+        end
+    end
+    item.instances[#item.instances + 1] = instance
+end
+
+-- Build a synthetic custom category from a customCategoryDefs() def. Its
+-- subcategories are the user's selectors (plus the implicit `all` at index
+-- 1); _selectorSubs carries the (sub, matchCat, matchSub) routing the
+-- placement loop uses to mirror matching entries in. labelText overrides
+-- the missing label key -- the spoken name is the positional "Custom N".
+local function newCustomCategory(def)
+    local subs = { newSub("all", ALL_SUB_LABEL) }
+    local selectorSubs = {}
+    for _, sel in ipairs(def.selectors) do
+        local sub = newSub(sel.cat .. ":" .. sel.sub, sel.label)
+        subs[#subs + 1] = sub
+        selectorSubs[#selectorSubs + 1] = { sub = sub, matchCat = sel.cat, matchSub = sel.sub }
+    end
+    return {
+        key = def.key,
+        labelText = def.labelText,
+        subcategories = subs,
+        _selectorSubs = selectorSubs,
     }
 end
 
@@ -109,13 +154,24 @@ end
 -- distances against. Drops entries whose category / subcategory keys
 -- don't match the taxonomy or whose plotIndex does not resolve; each
 -- drop is logged because it would otherwise be a silent backend bug.
-function ScannerSnap.build(entries, cursorX, cursorY)
+-- customDefs (from ScannerFavorites.customCategoryDefs) synthesize the
+-- user's "Custom N" categories: each entry is mirrored into every custom
+-- selector sub it matches, and the custom categories sort to the front of
+-- the cycle so a player reaches their clustered filters first. Custom
+-- categories are skipped by Nav's categoryHasItems filter when empty.
+function ScannerSnap.build(entries, cursorX, cursorY, customDefs)
+    customDefs = customDefs or {}
     local catsByKey = {}
-    local cats = {}
+    local realCats = {}
     for _, catDef in ipairs(ScannerCore.CATEGORIES) do
         local cat = newCategory(catDef)
-        cats[#cats + 1] = cat
+        realCats[#realCats + 1] = cat
         catsByKey[cat.key] = cat
+    end
+
+    local customCats = {}
+    for _, def in ipairs(customDefs) do
+        customCats[#customCats + 1] = newCustomCategory(def)
     end
 
     for _, entry in ipairs(entries) do
@@ -144,33 +200,32 @@ function ScannerSnap.build(entries, cursorX, cursorY)
                 else
                     local px, py = plot:GetX(), plot:GetY()
                     local dist = Map.PlotDistance(cursorX, cursorY, px, py)
-                    local instance = {
-                        entry = entry,
-                        key = entry.key,
-                        plotX = px,
-                        plotY = py,
-                        distance = dist,
-                    }
-                    local item = sub._itemsByName[entry.itemName]
-                    if item == nil then
-                        item = { name = entry.itemName, instances = {} }
-                        sub._itemsByName[entry.itemName] = item
-                        sub.items[#sub.items + 1] = item
-                        -- Share the ref into `all` so pruning a named
-                        -- sub's item also removes the entry from `all`.
-                        -- Skipped when the backend already emitted
-                        -- directly into `all` (all-direct mode for
-                        -- categories with no named subs) -- the item
-                        -- is already on `all.items` from the line above.
-                        if sub.key ~= "all" then
-                            local all = cat.subcategories[1]
-                            all.items[#all.items + 1] = item
+                    placeEntry(cat, sub, entry, px, py, dist)
+                    -- Mirror into every custom category whose selector
+                    -- matches. A selector of `all` catches every entry in
+                    -- its category (including those that match no named
+                    -- sub); a named selector catches only its own sub.
+                    for _, customCat in ipairs(customCats) do
+                        for _, selSub in ipairs(customCat._selectorSubs) do
+                            if
+                                selSub.matchCat == entry.category
+                                and (selSub.matchSub == "all" or selSub.matchSub == entry.subcategory)
+                            then
+                                placeEntry(customCat, selSub.sub, entry, px, py, dist)
+                            end
                         end
                     end
-                    item.instances[#item.instances + 1] = instance
                 end
             end
         end
+    end
+
+    local cats = {}
+    for _, cat in ipairs(customCats) do
+        cats[#cats + 1] = cat
+    end
+    for _, cat in ipairs(realCats) do
+        cats[#cats + 1] = cat
     end
 
     local snapshot = {
@@ -185,6 +240,7 @@ function ScannerSnap.build(entries, cursorX, cursorY)
     -- directly.
     for _, cat in ipairs(cats) do
         cat._subsByKey = nil
+        cat._selectorSubs = nil
         for _, sub in ipairs(cat.subcategories) do
             sub._itemsByName = nil
         end

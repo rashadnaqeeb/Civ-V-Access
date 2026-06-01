@@ -17,6 +17,12 @@ local function setup()
     Log.info = function() end
     Log.debug = function() end
 
+    -- This suite asserts the front-end Settings layout, where the scanner's
+    -- custom-categories drillable is absent (ScannerFavorites is in-game
+    -- only). Globals leak across suites in the shared Lua state, so clear it
+    -- explicitly rather than depend on suite order.
+    ScannerFavorites = nil
+
     UI.ShiftKeyDown = function()
         return false
     end

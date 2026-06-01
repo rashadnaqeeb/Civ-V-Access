@@ -23,6 +23,9 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_ScannerSearch.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_HexGeom.lua")
     civvaccess_shared = {}
+    -- No custom categories in this suite; clear any global a prior suite
+    -- left set so rebuildSnapshot's guarded customCategoryDefs short-circuits.
+    ScannerFavorites = nil
     _turnStartHandlers = {}
     Events.ActivePlayerTurnStart = {
         Add = function(fn)

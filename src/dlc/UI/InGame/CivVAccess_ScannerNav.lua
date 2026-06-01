@@ -108,6 +108,43 @@ local function isSearchSnapshot()
     return _snapshot ~= nil and _snapshot.isSearch == true
 end
 
+-- Index of the category carrying `key` in the current snapshot, or nil.
+-- Custom categories are prepended to the snapshot, so adding or removing one
+-- from F12 settings while the scanner is open renumbers every real
+-- category's index. _catIdx is a raw index captured against the previous
+-- snapshot; translating it through the category key re-finds the same
+-- category after such a layout shift instead of trusting the stale number.
+local function categoryIndexByKey(key)
+    if _snapshot == nil or key == nil then
+        return nil
+    end
+    for i, cat in ipairs(_snapshot.categories) do
+        if cat.key == key then
+            return i
+        end
+    end
+    return nil
+end
+
+-- Re-seat _catIdx on the category named by `key` after a rebuild, clamping
+-- into range when that category is gone (a custom category the user was on,
+-- deleted from settings). Keeps category / subcategory cycles anchored when
+-- the category layout changed underneath the old index.
+local function reanchorCategory(key)
+    local i = categoryIndexByKey(key)
+    if i ~= nil then
+        _catIdx = i
+        return
+    end
+    local n = #_snapshot.categories
+    if _catIdx > n then
+        _catIdx = n
+    end
+    if _catIdx < 1 then
+        _catIdx = 1
+    end
+end
+
 -- Set _itemIdx / _instIdx to the front of the current sub. Called after
 -- any cursor move that changes which sub is current (category or sub
 -- cycle, post-search land).
@@ -177,7 +214,8 @@ end
 -- the previous snapshot's origin (identity-preserving refresh).
 local function rebuildSnapshot(originX, originY)
     local entries = gatherEntries()
-    _snapshot = ScannerSnap.build(entries, originX, originY)
+    local customDefs = ScannerFavorites ~= nil and ScannerFavorites.customCategoryDefs() or nil
+    _snapshot = ScannerSnap.build(entries, originX, originY, customDefs)
 end
 
 -- Rebuild and re-seat the user's cursor on the same instance they were
@@ -190,21 +228,30 @@ end
 -- path. Returns whether identity was preserved.
 --
 -- On the very first build of the session, advance _catIdx past any empty
--- leading category. _catIdx starts at 1 (cities), which is empty before
--- the capital is founded; without this skip, a turn-0 PageDown would
--- speak EMPTY even though units_my holds the starting settler. Subsequent
--- rebuilds intentionally keep the user's chosen category -- if it empties
--- out mid-game, EMPTY is the correct answer rather than a silent jump
--- elsewhere.
+-- leading category. _catIdx starts at 1 -- the snapshot's first category,
+-- which is a custom category when any exist and otherwise cities -- and
+-- that slot is empty before the capital is founded; without this skip, a
+-- turn-0 PageDown would speak EMPTY even though units_my holds the starting
+-- settler. Subsequent rebuilds intentionally keep the user's chosen
+-- category -- if it empties out mid-game, EMPTY is the correct answer
+-- rather than a silent jump elsewhere.
+--
+-- The hint category is captured by key, not index: a custom category added
+-- or removed between rebuilds shifts every index, so locate translates the
+-- old category identity into the new snapshot rather than trusting a stale
+-- _catIdx (which would mis-aim the hint and let the custom-first full scan
+-- silently relocate the user into a mirrored custom category).
 local function rebuildAndLocate()
     if isSearchSnapshot() then
         return false
     end
     local isFirstBuild = (_snapshot == nil)
-    local key, hintCat, hintSub
+    local key, hintKey, hintSub
     local inst = currentInstance()
     if inst ~= nil then
-        key, hintCat, hintSub = inst.key, _catIdx, _subIdx
+        key, hintSub = inst.key, _subIdx
+        local cat = currentCategory()
+        hintKey = cat ~= nil and cat.key or nil
     end
     local originX, originY
     if isFirstBuild then
@@ -214,6 +261,7 @@ local function rebuildAndLocate()
     end
     rebuildSnapshot(originX, originY)
     if key ~= nil then
+        local hintCat = categoryIndexByKey(hintKey)
         local ci, si, ii, ini = ScannerSnap.locate(_snapshot, key, hintCat, hintSub)
         if ci ~= nil then
             _catIdx, _subIdx, _itemIdx, _instIdx = ci, si, ii, ini
@@ -243,8 +291,14 @@ end
 -- Shift+PageUp/Down, search commit). Resets item / instance to sentinels
 -- so the caller picks where to land (front of cat, front of sub, etc.).
 local function rebuildFromCursor()
+    -- Anchor by key so a category-layout shift (custom category added /
+    -- removed from settings while the scanner was open) keeps the cycle
+    -- starting from the same category rather than a stale index.
+    local cat = currentCategory()
+    local prevKey = cat ~= nil and cat.key or nil
     local cx, cy = cursorOriginOrDefault()
     rebuildSnapshot(cx, cy)
+    reanchorCategory(prevKey)
     _itemIdx, _instIdx = 0, 0
 end
 
@@ -417,10 +471,20 @@ local function announceCurrent()
     return formatInstance(inst, _instIdx, #item.instances)
 end
 
+-- Resolve a category / subcategory node's spoken label. Synthetic custom
+-- categories carry a pre-localized labelText ("Custom 3", positional and
+-- keyless); every taxonomy node carries a TXT_KEY in label instead.
+local function nodeLabel(node)
+    if node.labelText ~= nil then
+        return node.labelText
+    end
+    return Text.key(node.label)
+end
+
 -- Compose a "<label>. <current item announcement>" string for the
 -- subcategory / category cycle entries, per design section 7.
-local function announceWithLabel(labelKey)
-    return Text.key(labelKey) .. ". " .. announceCurrent()
+local function announceWithLabel(node)
+    return nodeLabel(node) .. ". " .. announceCurrent()
 end
 
 -- Auto-move side-effect shared by every cycle. Jumps the cursor to the
@@ -533,7 +597,7 @@ function ScannerNav.cycleCategory(dir)
     snapToCategoryFront()
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
-    return announceWithLabel(currentCategory().label)
+    return announceWithLabel(currentCategory())
 end
 
 function ScannerNav.cycleSubcategory(dir)
@@ -553,7 +617,7 @@ function ScannerNav.cycleSubcategory(dir)
     landOnCurrentSub()
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
-    return announceWithLabel(currentSub().label)
+    return announceWithLabel(currentSub())
 end
 
 -- _itemIdx / _instIdx sit at 0 in two cases: a fresh snapshot (first build
@@ -725,7 +789,7 @@ function ScannerNav.applySearch(query)
     snapToCategoryFront()
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
-    return announceWithLabel(currentCategory().label)
+    return announceWithLabel(currentCategory())
 end
 
 -- Test seam: exercise the rebuild + prune + announce pipeline without

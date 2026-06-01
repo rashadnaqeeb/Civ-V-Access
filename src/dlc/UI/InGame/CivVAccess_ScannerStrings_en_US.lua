@@ -106,6 +106,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_SEARCH"] = "Search scan
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN"] = "Backspace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN"] = "Return cursor to pre-jump cell"
 
+-- ===== Custom categories (F12 settings + scanner cycle) =====
+-- "Custom N" is the spoken name of a user-defined category both in the
+-- settings list and when cycling categories. The number is the group's
+-- current position, so it renumbers after a delete.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_GROUP"] = "Custom categories"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_ADD"] = "Add category"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_DELETE"] = "Delete category"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL"] = "Custom {1_Num}"
+
 -- Apply the active locale's overlay so every Context that includes this
 -- baseline gets the localized overrides. WorldView's Boot includes this
 -- file; the explicit StringsLoader call here keeps any future Context that

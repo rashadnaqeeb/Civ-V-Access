@@ -53,6 +53,10 @@ local function setup()
     -- HexGeom is a transitive requirement through the announcement helpers.
     dofile("src/dlc/UI/InGame/CivVAccess_HexGeom.lua")
     civvaccess_shared = {}
+    -- This suite tests base navigation with no custom categories. Clear the
+    -- global another suite may have left set so rebuildSnapshot's guarded
+    -- customCategoryDefs call short-circuits, regardless of suite order.
+    ScannerFavorites = nil
     -- Stubs for cursor and HandlerStack (Nav pushes ScannerInput in openSearch).
     Cursor = {
         _x = 0,
@@ -607,6 +611,62 @@ function M.test_open_search_during_search_preserves_pre_search_catidx()
         catBeforeSearch,
         "re-opening search must not overwrite the original pre-search anchor"
     )
+end
+
+-- ===== Category anchoring across a mid-session layout shift =====
+-- Custom categories are prepended to the snapshot, so adding one from F12
+-- settings while the scanner is open shifts every real category's index.
+-- The cursor must stay on the same category by identity, not drift with the
+-- stale index (which would also let the custom-first locate scan silently
+-- relocate the user into the mirrored custom category).
+
+local function withCustomDefs(defsRef)
+    ScannerFavorites = {
+        customCategoryDefs = function()
+            return defsRef.list
+        end,
+    }
+end
+
+local STRATEGIC_RESOURCE_DEF = {
+    key = "custom:1",
+    labelText = "Custom 1",
+    selectors = { { cat = "resources", sub = "strategic", label = "Strategic" } },
+}
+
+function M.test_locate_stays_on_real_category_when_custom_added_midsession()
+    setup()
+    local defsRef = { list = {} }
+    withCustomDefs(defsRef)
+    T.installMap({ mkPlot(3, 0, 0) })
+    _entries = { mkEntry("resources", "strategic", "Iron", 0) }
+    -- First build lands on the only non-empty category, resources.
+    ScannerNav.cycleItem(1)
+    local ci = select(1, ScannerNav._indices())
+    T.eq(ScannerNav._snapshot().categories[ci].key, "resources", "cursor starts on resources")
+    -- Simulate adding a custom category from settings: it mirrors Iron and
+    -- prepends, pushing resources back one slot.
+    defsRef.list = { STRATEGIC_RESOURCE_DEF }
+    ScannerNav.cycleItem(1)
+    local snap = ScannerNav._snapshot()
+    ci = select(1, ScannerNav._indices())
+    T.eq(snap.categories[1].key, "custom:1", "custom category is now prepended")
+    T.eq(snap.categories[ci].key, "resources", "cursor stays on resources, not the prepended custom mirror")
+end
+
+function M.test_category_cycle_anchors_after_custom_added_midsession()
+    setup()
+    local defsRef = { list = {} }
+    withCustomDefs(defsRef)
+    T.installMap({ mkPlot(3, 0, 0) })
+    _entries = { mkEntry("resources", "strategic", "Iron", 0) }
+    ScannerNav.cycleItem(1) -- land on resources
+    defsRef.list = { STRATEGIC_RESOURCE_DEF } -- settings add prepends custom:1
+    -- Next category from resources must advance off it; with a stale index it
+    -- would re-land on resources (the slot the old index now precedes).
+    ScannerNav.cycleCategory(1)
+    local ci = select(1, ScannerNav._indices())
+    T.eq(ScannerNav._snapshot().categories[ci].key, "custom:1", "next category lands on the other non-empty category")
 end
 
 return M

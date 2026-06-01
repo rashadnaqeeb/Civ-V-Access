@@ -326,30 +326,37 @@ local function buildItems()
             }),
         },
     })
+    local scannerItems = {
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
+            getValue = getScannerAutoMove,
+            setValue = setScannerAutoMove,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",
+            getValue = getScannerCoords,
+            setValue = setScannerCoords,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
+            getValue = getScannerCompassDirection,
+            setValue = setScannerCompassDirection,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP",
+            getValue = getScannerDirectionBeep,
+            setValue = setScannerDirectionBeep,
+        }),
+    }
+    -- Custom scanner categories live only in-game (the scanner exists only
+    -- there). ScannerFavorites is absent in the front-end Settings Context,
+    -- so the drillable simply doesn't appear there.
+    if ScannerFavorites ~= nil then
+        scannerItems[#scannerItems + 1] = ScannerFavorites.settingsGroup()
+    end
     local scannerGroup = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER",
-        items = {
-            BaseMenuItems.VirtualToggle({
-                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_AUTO_MOVE",
-                getValue = getScannerAutoMove,
-                setValue = setScannerAutoMove,
-            }),
-            BaseMenuItems.VirtualToggle({
-                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS",
-                getValue = getScannerCoords,
-                setValue = setScannerCoords,
-            }),
-            BaseMenuItems.VirtualToggle({
-                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
-                getValue = getScannerCompassDirection,
-                setValue = setScannerCompassDirection,
-            }),
-            BaseMenuItems.VirtualToggle({
-                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP",
-                getValue = getScannerDirectionBeep,
-                setValue = setScannerDirectionBeep,
-            }),
-        },
+        items = scannerItems,
     })
     local notificationsGroup = BaseMenuItems.Group({
         textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS",

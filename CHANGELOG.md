@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Build custom scanner categories from the F12 Scanner settings to cluster the filters you use most into one place.
 - Ctrl+M opens a Map settings menu for the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view.
 - The help menu now ends with a More Help group with links to open the mod read me or join the mod Discord server in your browser.
 
