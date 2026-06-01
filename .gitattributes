@@ -1,0 +1,4 @@
+# Lua sources are formatted by stylua with line_endings = "Unix" (see
+# stylua.toml). Pin them to LF in the working tree so core.autocrlf=true on
+# Windows checkouts does not smudge them to CRLF and trip the format check.
+*.lua text eol=lf
