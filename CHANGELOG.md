@@ -19,6 +19,7 @@ New Features and improvements:
 - The help menu now ends with a More Help group with links to open the mod read me or join the mod Discord server in your browser.
 
 Bug fixes:
+- Trading away a city you took the same turn no longer leaves the turn stuck demanding production for a city you no longer own. This was a game bug, not a mod bug, but I've decided to fix it anyways due to it being save breaking and easy to fix.
 - Checking gold with G no longer also toggles the map's grid overlay.
 - In hotseat, keys now reach the player switch screen when it opens over another full-screen event instead of the hidden event behind it.
 
