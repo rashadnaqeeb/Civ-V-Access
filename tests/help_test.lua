@@ -59,9 +59,11 @@ local function setup()
     HandlerStack.commonHelpEntries = {}
 end
 
-local function itemCount(handler)
-    -- Help pushes items at level 1 in a single list.
-    return #handler._items
+local function entryItemCount(handler)
+    -- Help pushes items at level 1 in a single list, always ending with the
+    -- fixed "More Help" group footer (readme / Discord links). Subtract it so
+    -- the collection / dedupe / barrier assertions stay about helpEntries.
+    return #handler._items - 1
 end
 
 local function speakTextAt(i)
@@ -106,7 +108,7 @@ function M.test_help_items_are_keyLabel_comma_description()
     })
     Help.open()
     local handler = HandlerStack.active()
-    T.eq(itemCount(handler), 1)
+    T.eq(entryItemCount(handler), 1)
     -- After push, the active item speaks at a queued speak.
     -- Find the first spoken help entry (after "Help" displayName).
     local got = speakTextAt(2) or ""
@@ -133,7 +135,7 @@ function M.test_help_collects_from_stack_before_pushing_itself()
     -- Both entries from the underlying handler show up as items. The Help
     -- handler sits on top but its own helpEntries (navigating help) don't
     -- contribute to *its own* item list.
-    T.eq(itemCount(HandlerStack.active()), 2)
+    T.eq(entryItemCount(HandlerStack.active()), 2)
 end
 
 function M.test_help_self_entries_describe_navigation_not_base_menu()
@@ -203,7 +205,7 @@ function M.test_help_respects_captures_barrier_below()
     })
     Help.open()
     -- Only the barrier's entries (inclusive) reach the list; bottom is hidden.
-    T.eq(itemCount(HandlerStack.active()), 1)
+    T.eq(entryItemCount(HandlerStack.active()), 1)
 end
 
 function M.test_help_dedupes_keyLabel_top_wins()
@@ -228,13 +230,33 @@ function M.test_help_dedupes_keyLabel_top_wins()
     })
     Help.open()
     -- Both entries share keyLabel "Escape"; top's "Close" wins.
-    T.eq(itemCount(HandlerStack.active()), 1)
+    T.eq(entryItemCount(HandlerStack.active()), 1)
     local handler = HandlerStack.active()
     -- Help builds one item per entry; find what was spoken when the cursor
     -- landed on the only item. We can inspect the item's labelText directly.
     local label = handler._items[1].labelText
     T.truthy(label:find("Close", 1, true), "top handler's description wins")
     T.falsy(label:find("Cancel", 1, true))
+end
+
+function M.test_help_appends_more_help_group()
+    setup()
+    HandlerStack.push({
+        name = "base",
+        helpEntries = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ESC",
+                description = "TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL",
+            },
+        },
+    })
+    Help.open()
+    local items = HandlerStack.active()._items
+    -- One collected entry plus the always-present More Help footer.
+    T.eq(#items, 2)
+    local group = items[#items]
+    T.eq(group.kind, "group", "the footer is a drillable group")
+    T.eq(#group:children(), 2, "More Help holds the readme and Discord links")
 end
 
 return M
