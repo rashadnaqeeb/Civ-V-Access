@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates.
+- Active deals in the diplomacy screen now report turns left until each item expires instead of the duration it was signed for.
 
 Bug fixes:
 - Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.

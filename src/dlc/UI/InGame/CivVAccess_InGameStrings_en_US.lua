@@ -1107,6 +1107,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amou
 -- {3_TurnsLine} is the already-localized turns clause from
 -- TXT_KEY_DIPLO_TURNS so the template holds only the separator pattern.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+-- Turns remaining on a timed item in an active deal (gold-per-turn, open
+-- borders, a current peace treaty, etc.). Distinct from TXT_KEY_DIPLO_TURNS,
+-- which states the duration a historic deal ran for.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    one = "{1_Num} turn left",
+    other = "{1_Num} turns left",
+}
+-- Bare "Peace Treaty" label. The game's TXT_KEY_DIPLO_PEACE_TREATY embeds a
+-- turn count in the string; for an active treaty we append the turns-left
+-- clause instead, so we need the label without a count baked in.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "Peace Treaty"
 -- Compact "<value> <unit>" template used by Demographics rows that
 -- append a measurement noun (Bushels, Soldiers, Tons) to the active
 -- player's value.

@@ -30,14 +30,32 @@ local priorShowHide = ShowHideHandler
 local RELATIONS_TAB_MAJORS = 1
 local RELATIONS_TAB_MINORS = 2
 
--- Per-item duration suffix. Empty string for items that don't carry one
--- (lump gold, cities, third-party, vote, allow embassy in BNW where it's
--- permanent), so the caller can append unconditionally.
-local function turnsSuffix(duration)
-    if duration == nil or duration <= 0 then
+-- Per-item duration suffix. Empty string for items that don't carry one, so
+-- the caller can append unconditionally.
+--
+-- Current deals report turns remaining: finalTurn is the engine's absolute
+-- expiry turn, stamped on deal activation as duration + game turn, so
+-- remaining is finalTurn minus the current turn. Items with no end date
+-- (lump gold, cities, third-party, vote, permanent BNW embassy) keep the
+-- engine's finalTurn == -1 sentinel and get no suffix -- the same condition
+-- that drives the feature also drops the never-expiring items. Historic
+-- deals are already over, so remaining is meaningless; they keep reporting
+-- the duration the item ran for.
+local function turnsSuffix(isHistoric, duration, finalTurn)
+    if isHistoric then
+        if duration == nil or duration <= 0 then
+            return ""
+        end
+        return ", " .. Text.format("TXT_KEY_DIPLO_TURNS", duration)
+    end
+    if finalTurn == nil or finalTurn <= 0 then
         return ""
     end
-    return ", " .. Text.format("TXT_KEY_DIPLO_TURNS", duration)
+    local remaining = finalTurn - Game.GetGameTurn()
+    if remaining < 1 then
+        return ""
+    end
+    return ", " .. Text.formatPlural("TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT", remaining, remaining)
 end
 
 -- Boolean diplo items share a label-key shape; map item type to its key.
@@ -66,25 +84,23 @@ end
 -- TradeLogicAccess.offeringItem builds, with duration appended for the
 -- item types that carry one (per-item, since durations within one deal can
 -- differ -- gold-per-turn 30 turns alongside a 50-turn open borders, etc).
-local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
+local function describeDealItem(itemType, data1, data2, data3, flag1, duration, finalTurn, isHistoric)
     if itemType == TradeableItems.TRADE_ITEM_PEACE_TREATY then
-        -- TXT_KEY_DIPLO_PEACE_TREATY already embeds the turn count.
-        return Text.format("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0)
+        -- Historic: TXT_KEY_DIPLO_PEACE_TREATY embeds the turn count the
+        -- treaty ran for. Current: a bare label plus the turns-left clause,
+        -- since the count-embedding key can't express turns remaining.
+        if isHistoric then
+            return Text.format("TXT_KEY_DIPLO_PEACE_TREATY", duration or 0)
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY") .. turnsSuffix(false, duration, finalTurn)
     end
     if itemType == TradeableItems.TRADE_ITEM_GOLD then
-        return Text.format(
-            "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
-            Text.key("TXT_KEY_DIPLO_GOLD"),
-            data1 or 0
-        )
+        return Text.format("TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT", Text.key("TXT_KEY_DIPLO_GOLD"), data1 or 0)
     end
     if itemType == TradeableItems.TRADE_ITEM_GOLD_PER_TURN then
-        local base = Text.format(
-            "TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT",
-            Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"),
-            data1 or 0
-        )
-        return base .. turnsSuffix(duration)
+        local base =
+            Text.format("TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT", Text.key("TXT_KEY_DIPLO_GOLD_PER_TURN"), data1 or 0)
+        return base .. turnsSuffix(isHistoric, duration, finalTurn)
     end
     if itemType == TradeableItems.TRADE_ITEM_RESOURCES then
         local resInfo = GameInfo.Resources[data1]
@@ -92,19 +108,15 @@ local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
         local isStrategic = resInfo and resInfo.ResourceUsage == 1
         if isStrategic then
             return Text.format("TXT_KEY_CIVVACCESS_TRADE_STRATEGIC_OFFERING", resName, tostring(data2 or 0))
-                .. turnsSuffix(duration)
+                .. turnsSuffix(isHistoric, duration, finalTurn)
         end
-        return resName .. turnsSuffix(duration)
+        return resName .. turnsSuffix(isHistoric, duration, finalTurn)
     end
     if itemType == TradeableItems.TRADE_ITEM_CITIES then
         local plot = Map.GetPlot(data1, data2)
         local city = plot and plot:GetPlotCity()
         if city ~= nil then
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_TRADE_CITY_OFFERING",
-                city:GetName(),
-                tostring(city:GetPopulation())
-            )
+            return Text.format("TXT_KEY_CIVVACCESS_TRADE_CITY_OFFERING", city:GetName(), tostring(city:GetPopulation()))
         end
         return Text.key("TXT_KEY_RAZED_CITY")
     end
@@ -134,7 +146,7 @@ local function describeDealItem(itemType, data1, data2, data3, flag1, duration)
     end
     local boolKey = BOOLEAN_KEYS[itemType]
     if boolKey ~= nil then
-        return Text.key(boolKey) .. turnsSuffix(duration)
+        return Text.key(boolKey) .. turnsSuffix(isHistoric, duration, finalTurn)
     end
     return nil
 end
@@ -159,11 +171,11 @@ local function buildDealLabel(iPlayer, pScratch, isHistoric)
     local weGive, theyGive = {}, {}
     pScratch:ResetIterator()
     -- 8-tuple matches engine: itemType, duration, finalTurn, data1, data2,
-    -- data3, flag1, fromPlayer. finalTurn isn't surfaced here; per-item
-    -- duration is the relevant time field for review.
-    local itemType, duration, _, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
+    -- data3, flag1, fromPlayer. Current deals report turns remaining off
+    -- finalTurn (the absolute expiry turn); historic deals report duration.
+    local itemType, duration, finalTurn, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
     while itemType ~= nil do
-        local desc = describeDealItem(itemType, data1, data2, data3, flag1, duration)
+        local desc = describeDealItem(itemType, data1, data2, data3, flag1, duration, finalTurn, isHistoric)
         if desc ~= nil then
             if fromPlayer == iPlayer then
                 weGive[#weGive + 1] = desc
@@ -171,7 +183,7 @@ local function buildDealLabel(iPlayer, pScratch, isHistoric)
                 theyGive[#theyGive + 1] = desc
             end
         end
-        itemType, duration, _, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
+        itemType, duration, finalTurn, data1, data2, data3, flag1, fromPlayer = pScratch:GetNextItem()
     end
 
     local weKey = isHistoric and "TXT_KEY_CIVVACCESS_DEAL_WE_GAVE" or "TXT_KEY_CIVVACCESS_DEAL_WE_GIVE"
