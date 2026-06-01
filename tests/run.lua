@@ -8,6 +8,7 @@ local T = require("support")
 dofile("src/dlc/UI/InGame/CivVAccess_Polyfill.lua")
 dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
 dofile("src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua")
+dofile("src/dlc/UI/InGame/CivVAccess_ScannerStrings_en_US.lua")
 dofile("src/dlc/UI/Shared/CivVAccess_PluralRules.lua")
 -- UserPrefs must load before any ScannerNav-touching suite so the
 -- Prefs.getBool call ScannerNav makes at dofile time to hydrate the

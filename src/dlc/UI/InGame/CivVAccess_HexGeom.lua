@@ -1,10 +1,11 @@
 -- Shared hex-grid math. directionString turns a (from) to (to) delta
--- into the spoken cardinal form ("4e, 5ne") that the scanner's End key
--- and the surveyor rely on. coordinateString turns a plot's offset
--- coords into a capital-relative (x, y) pair for Shift+S, the optional
--- cursor-move prefix, and the optional scanner coord splice. Composition
--- in one place guarantees byte-identical output across callers; a future
--- format change lands here and applies to all of them.
+-- into the spoken cardinal form ("4e, 5ne") that the scanner's End key,
+-- the surveyor, and Shift+S (via directionToCapital) rely on.
+-- coordinateString turns a plot's offset coords into a capital-relative
+-- (x, y) pair for the optional cursor-move prefix, the optional scanner
+-- coord splice, and Shift+S when the cursor-coordinate setting is on.
+-- Composition in one place guarantees byte-identical output across
+-- callers; a future format change lands here and applies to all of them.
 --
 -- directionString contract: identical endpoints return the empty
 -- string. Each caller supplies its own "at origin" TXT_KEY
@@ -303,6 +304,21 @@ function HexGeom.coordinateString(x, y)
         end
     end
     return Text.format("TXT_KEY_CIVVACCESS_COORDINATE", dx, dy)
+end
+
+-- Direction decomposition from (x, y) to the active player's original
+-- capital -- which way and how far home sits from the cursor, so a cursor
+-- 2nw of the capital reads "2se". Same "<n><token>, ..." form
+-- directionString gives every other spatial readout. Returns nil when the
+-- active player has no original capital yet; the empty string when (x, y)
+-- is the capital itself (zero delta). Callers distinguish the two: nil
+-- means "nothing to say", "" means "supply the at-origin token".
+function HexGeom.directionToCapital(x, y)
+    local capX, capY = activeOriginalCapital()
+    if capX == nil then
+        return nil
+    end
+    return HexGeom.directionString(x, y, capX, capY)
 end
 
 -- Pointy-top odd-r row-corrected displacement from (fromX, fromY) to

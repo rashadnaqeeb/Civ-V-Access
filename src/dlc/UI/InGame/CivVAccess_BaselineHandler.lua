@@ -226,7 +226,7 @@ function BaselineHandler.create()
         end, "Read unit on tile"),
         bind(Keys.S, MOD_SHIFT, function()
             speak(Cursor.coordinates())
-        end, "Coordinates from capital"),
+        end, "Distance and direction from capital"),
         -- Ctrl+S (jump cursor to capital) is bound from Bookmarks.getBindings
         -- so it shares ScannerNav.jumpCursorTo with the digit-slot jumps;
         -- the help entry stays here in MOVEMENT_AND_INFO_HELP_ENTRIES so it

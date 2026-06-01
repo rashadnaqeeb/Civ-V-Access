@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates.
+
 Bug fixes:
 - Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.
 

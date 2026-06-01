@@ -16,9 +16,14 @@ local function setup()
 
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     -- Fresh strings + Text so Icons.lua resolves keys through the same
-    -- CivVAccess_Strings table the production include chain uses.
+    -- CivVAccess_Strings table the production include chain uses. Reload
+    -- every strings file run.lua seeds, not just InGame: the table is
+    -- global, so leaving the others stripped breaks later suites that read
+    -- keys only those files define (e.g. SCANNER_HERE in the cursor suite).
     CivVAccess_Strings = {}
     dofile("src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_ScannerStrings_en_US.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Icons.lua")
 end

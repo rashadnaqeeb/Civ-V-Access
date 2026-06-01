@@ -317,19 +317,34 @@ function Cursor.move(direction)
     return withCoords(next, glance)
 end
 
--- ===== Coordinates =====
--- Cursor position expressed as (x, y) relative to the active player's
--- original capital. HexGeom owns the math (offset-correction + wrap
--- folding) so every coordinate caller -- this S+Shift bind, the optional
--- cursor-move prefix, and the scanner's optional coord append -- speaks
--- byte-identical numbers. Empty return before the original capital
--- exists; the binding speaks nothing in that window.
+-- ===== Capital bearing (Shift+S) =====
+-- Distance and direction from the cursor to the active player's original
+-- capital -- which way home sits -- in the same hex decomposition
+-- ("3se, 1ne") the scanner and surveyor speak, the format the rest of the
+-- interface uses rather than raw (x, y) offsets. On the capital itself the
+-- bearing collapses to the same SCANNER_HERE ("here") token the scanner
+-- speaks on the cursor's own hex. When the cursor-coordinate
+-- setting is on, the raw coordinate is already what the user has chosen to
+-- orient by, so this key speaks that coordinate alone -- the bearing would
+-- be redundant. Empty return before the original capital exists; the
+-- binding speaks nothing in that window.
 function Cursor.coordinates()
     if _x == nil then
         Log.warn("Cursor.coordinates before init")
         return ""
     end
-    return HexGeom.coordinateString(_x, _y)
+    local mode = civvaccess_shared.cursorCoordMode
+    if mode == "prepend" or mode == "append" then
+        return HexGeom.coordinateString(_x, _y)
+    end
+    local direction = HexGeom.directionToCapital(_x, _y)
+    if direction == nil then
+        return ""
+    end
+    if direction == "" then
+        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+    end
+    return direction
 end
 
 -- ===== Position accessor / programmatic jump =====

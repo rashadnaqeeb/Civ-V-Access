@@ -75,8 +75,9 @@ local getCursorFollowsSelection, setCursorFollowsSelection =
 -- the directional reads (cardinal-distance from cursor / capital), and
 -- speaking the coordinate on every step adds noise. Prepend / append put
 -- the capital-relative (x, y) at the start or end of every cursor-move
--- announcement; Cursor.coordinates (Shift+S) ignores the mode and always
--- speaks the coord. Stored as a string on civvaccess_shared so CursorCore
+-- announcement; they also switch Cursor.coordinates (Shift+S) from the
+-- bearing-from-capital readout to that raw coordinate. Stored as a
+-- string on civvaccess_shared so CursorCore
 -- reads it as "off" / "prepend" / "append" directly; Prefs persists an
 -- int (0/1/2) since the prefs file has no string type.
 local CURSOR_COORD_BY_INT = { [0] = "off", [1] = "prepend", [2] = "append" }

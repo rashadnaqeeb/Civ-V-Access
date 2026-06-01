@@ -1023,8 +1023,11 @@ end
 -- still uses GetCapitalCity for the boot position; HexGeom.coordinateString
 -- reaches the same city via the Cities() iterator on the same player.
 
-function M.test_cursor_coordinates_at_capital_is_zero_zero()
+-- On the capital itself the bearing has zero delta, so it collapses to
+-- the scanner's "here" token rather than an empty direction string.
+function M.test_cursor_coordinates_at_capital_speaks_here()
     setup()
+    civvaccess_shared.cursorCoordMode = "off"
     Map.IsWrapX = function()
         return false
     end
@@ -1040,11 +1043,15 @@ function M.test_cursor_coordinates_at_capital_is_zero_zero()
         return unit
     end
     Cursor.init()
-    T.eq(Cursor.coordinates(), "0, 0")
+    T.eq(Cursor.coordinates(), "here")
 end
 
-function M.test_cursor_coordinates_three_east()
+-- The bearing points toward the capital, not away: a cursor 3 east of the
+-- capital reads "3w" (home is 3 west of here), the inverse of the
+-- cursor-relative coordinate.
+function M.test_cursor_coordinates_bearing_points_to_capital()
     setup()
+    civvaccess_shared.cursorCoordMode = "off"
     Map.IsWrapX = function()
         return false
     end
@@ -1064,7 +1071,37 @@ function M.test_cursor_coordinates_three_east()
         return unit
     end
     Cursor.init()
+    T.eq(Cursor.coordinates(), "3w")
+end
+
+-- With the cursor-coordinate setting on, the user already orients by the
+-- raw coordinate, so Shift+S speaks that coordinate alone and drops the
+-- now-redundant bearing. Prepend and append share the one branch, so one
+-- case covers both.
+function M.test_cursor_coordinates_setting_on_speaks_coord_only()
+    setup()
+    Map.IsWrapX = function()
+        return false
+    end
+    civvaccess_shared.cursorCoordMode = "append"
+    local cap = T.installOriginalCapital(0, 0)
+    local east3 = T.fakePlot({ x = 3, y = 0 })
+    Map.GetPlot = function(x, y)
+        if x == 0 and y == 0 then
+            return cap
+        end
+        if x == 3 and y == 0 then
+            return east3
+        end
+    end
+    local unit = T.fakeUnit({})
+    unit._plot = east3
+    UI.GetHeadSelectedUnit = function()
+        return unit
+    end
+    Cursor.init()
     T.eq(Cursor.coordinates(), "3, 0")
+    civvaccess_shared.cursorCoordMode = "off"
 end
 
 function M.test_cursor_coordinates_pre_capital_returns_empty()
