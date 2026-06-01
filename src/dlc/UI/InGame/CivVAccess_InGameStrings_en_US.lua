@@ -2823,6 +2823,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY"] = "ris
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Open Culture Overview"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "Culture Overview is disabled in this game"
+-- Map settings overlay (Ctrl+M). Mirrors the minimap Map Options flyout:
+-- the toggle labels themselves reuse the engine's TXT_KEY_MAP_OPTIONS_* /
+-- TXT_KEY_STRAT_* keys, so only the screen title and hotkey help are
+-- mod-authored here.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_SETTINGS"] = "Map settings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY"] = "Control plus M"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] = "Open map display settings"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HELP_DESC_CLOSE"] = "Close map settings"
 -- League Overview (World Congress / United Nations). TabbedShell over the
 -- engine's BUTTONPOPUP_LEAGUE_OVERVIEW: tab 1 status / members, tab 2 current
 -- proposals (View / Propose / Vote modes), tab 3 ongoing effects.

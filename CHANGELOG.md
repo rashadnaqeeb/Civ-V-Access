@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Ctrl+M opens a Map settings menu for the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view.
+
 Bug fixes:
 - Checking gold with G no longer also toggles the map's grid overlay.
 

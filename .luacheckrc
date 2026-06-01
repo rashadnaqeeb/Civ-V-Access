@@ -357,6 +357,7 @@ files["src/dlc/UI/InGame/WorldView/WorldView.lua"] = { ignore = { "1", "2", "3",
 files["src/dlc/UI/InGame/WorldView/Advisors.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/TradeLogic.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/WorldView/DiploCorner.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
+files["src/dlc/UI/InGame/WorldView/MiniMapPanel.lua"] = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/InGame/CityView/CityView.lua"]  = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/TechTree/TechTree.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }
 files["src/dlc/UI/FrontEnd/ToolTips.lua"]         = { ignore = { "1", "2", "3", "4", "5", "6" } }

@@ -189,6 +189,13 @@ local FUNCTION_KEY_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_DESC",
     },
+    -- Map display settings. Mod-bound chord opening the accessible Map
+    -- Options menu (grid, yields, resources, trade, recommendations,
+    -- strategic view, plus strategic-view sub-settings).
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC",
+    },
 }
 
 local function appendAll(dst, src)
@@ -390,6 +397,16 @@ function BaselineHandler.create()
             end
             LuaEvents.CivVAccessChatToggle()
         end, "Toggle multiplayer chat"),
+        -- Map display settings (Ctrl+M). Fires the cross-Context bridge
+        -- LuaEvents.CivVAccessMapSettingsToggle that MiniMapPanelAccess
+        -- (seated in MiniMapPanel's env) listens for; the toggle logic needs
+        -- the panel's GetMapOptions / On*Checked handlers, which aren't
+        -- reachable from here. Engine's native Ctrl+M (move same-type units
+        -- on plot) is contextual / mouse-first and already swallowed by
+        -- Baseline's letter wall, so the chord is free.
+        bind(Keys.M, MOD_CTRL, function()
+            LuaEvents.CivVAccessMapSettingsToggle()
+        end, "Open map settings"),
     }
 
     -- Pull sibling modules' bindings into Baseline's list, and their help
