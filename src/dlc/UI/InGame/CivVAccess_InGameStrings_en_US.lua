@@ -1674,6 +1674,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] = "New hostile 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "Hostile units no longer in view: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "New neutral units in view: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "Neutral units no longer in view: {1_List}"
+-- F7 Turn Log jump entries. The entered units are listed individually under
+-- one of these group headers so each can jump to the unit's tile. Identical
+-- units in a bucket get a trailing ordinal (NUMBERED) so they're tellable
+-- apart. A unit killed or fogged since it entered speaks UNIT_GONE on Enter
+-- instead of jumping.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] = "New hostile units in view"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] = "New neutral units in view"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "No longer in view"
 -- Foreign-clear watch. One line spoken at the start of each player turn
 -- summarising goody huts and barbarian camps that some other civ cleared
 -- on a plot the active team could see during the AI turn just past. Camps

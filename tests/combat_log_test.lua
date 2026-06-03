@@ -43,15 +43,20 @@ end
 function M.test_ai_turn_collects_combats_in_order()
     setup()
     CombatLog._onTurnEnd()
-    CombatLog.recordCombat("first combat")
-    CombatLog.recordCombat("second combat")
+    CombatLog.recordCombat("first combat", 3, 4)
+    CombatLog.recordCombat("second combat", 5, 6)
     CombatLog.recordCombat("third combat")
     local list = civvaccess_shared.combatLog
     T.eq(type(list), "table", "list created on first record")
     T.eq(#list, 3, "all three combats logged")
-    T.eq(list[1], "first combat")
-    T.eq(list[2], "second combat")
-    T.eq(list[3], "third combat")
+    T.eq(list[1].text, "first combat")
+    T.eq(list[1].x, 3, "combat plot x retained for the jump")
+    T.eq(list[1].y, 4, "combat plot y retained for the jump")
+    T.eq(list[2].text, "second combat")
+    -- Plotless combats (e.g. an air sweep that found no interceptor) still
+    -- log their text; the popup renders those as plain text, no jump.
+    T.eq(list[3].text, "third combat")
+    T.eq(list[3].x, nil, "plotless combat has no jump coords")
 end
 
 -- The list must persist through the player's next turn so F7 can show it.
@@ -68,7 +73,7 @@ function M.test_list_survives_player_turn_until_next_turn_end()
     -- the gate rejects (window closed). List stays the same.
     CombatLog.recordCombat("player-initiated combat")
     T.eq(#civvaccess_shared.combatLog, 1, "player-turn combat does not append")
-    T.eq(civvaccess_shared.combatLog[1], "ai combat", "list contents unchanged")
+    T.eq(civvaccess_shared.combatLog[1].text, "ai combat", "list contents unchanged")
     -- Player ends turn. The new AI turn window opens; prior list cleared.
     CombatLog._onTurnEnd()
     T.eq(civvaccess_shared.combatLog, nil, "list cleared at next TurnEnd")

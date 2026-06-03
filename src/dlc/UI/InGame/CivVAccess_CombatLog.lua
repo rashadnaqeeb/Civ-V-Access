@@ -41,7 +41,10 @@ CombatLog = {}
 
 local _inAiTurn = false
 
-function CombatLog.recordCombat(text)
+-- x / y are the combat's target plot (nil for the rare plotless combat
+-- strings, e.g. an air sweep that found no interceptor). The F7 popup turns
+-- entries with a plot into jump targets and renders the rest as plain text.
+function CombatLog.recordCombat(text, x, y)
     if not _inAiTurn then
         return
     end
@@ -50,7 +53,7 @@ function CombatLog.recordCombat(text)
         list = {}
         civvaccess_shared.combatLog = list
     end
-    list[#list + 1] = text
+    list[#list + 1] = { text = text, x = x, y = y }
 end
 
 function CombatLog._onTurnEnd()

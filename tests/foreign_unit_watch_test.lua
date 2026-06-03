@@ -447,22 +447,52 @@ function M.test_multiple_lines_speech_order()
     T.eq(spoken[4].text, "Neutral units no longer in view: Arabian Warrior")
 end
 
-function M.test_delta_stored_for_f7()
+-- Entered units are parked as structured per-unit metadata (owner / unit
+-- ids plus the display keys) rather than a flat string, so the F7 popup can
+-- re-resolve each to a live plot and offer a jump.
+function M.test_entered_units_stored_structured_for_f7()
     setup()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
     installForeign(1, {
         adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
         atWar = true,
-        units = { makeUnit({ id = 1, plot = visiblePlot() }) },
+        units = { makeUnit({ id = 7, plot = visiblePlot() }) },
     })
     ForeignUnitWatch._onTurnStart()
-    T.truthy(civvaccess_shared.foreignUnitDelta, "delta stored")
-    T.eq(#civvaccess_shared.foreignUnitDelta, 1, "one non-empty line")
-    T.eq(civvaccess_shared.foreignUnitDelta[1], "New hostile units in view: Roman Warrior")
+    local entered = civvaccess_shared.foreignUnitEntered
+    T.truthy(entered, "entered metadata stored")
+    T.eq(#entered.hostile, 1, "one hostile entered unit")
+    T.eq(entered.hostile[1].ownerId, 1)
+    T.eq(entered.hostile[1].unitId, 7)
+    T.eq(entered.hostile[1].civAdjKey, "TXT_KEY_CIV_ROME_ADJECTIVE")
+    T.eq(entered.hostile[1].unitDescKey, "TXT_KEY_UNIT_WARRIOR")
+    T.eq(#entered.neutral, 0, "no neutral entered units")
+    -- The string delta carries only left-view lines; nothing left here.
+    T.eq(civvaccess_shared.foreignUnitDelta, nil, "no left-view lines, delta nil")
 end
 
-function M.test_announce_off_silent_but_delta_still_set()
+-- Left-view units take the other path: an aggregated string on the delta
+-- (no jump -- a departed unit's live plot is in fog), and no entered metadata.
+function M.test_left_units_stored_as_string_delta()
+    setup()
+    ForeignUnitWatch.installListeners()
+    local unit = makeUnit({ id = 1, plot = visiblePlot() })
+    installForeign(1, {
+        adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
+        atWar = true,
+        units = { unit },
+    })
+    ForeignUnitWatch._onTurnEnd() -- snapshot has the unit visible
+    unit._plot = fogPlot() -- it walks into fog
+    ForeignUnitWatch._onTurnStart()
+    T.truthy(civvaccess_shared.foreignUnitDelta, "left delta stored")
+    T.eq(#civvaccess_shared.foreignUnitDelta, 1)
+    T.eq(civvaccess_shared.foreignUnitDelta[1], "Hostile units no longer in view: Roman Warrior")
+    T.eq(civvaccess_shared.foreignUnitEntered, nil, "nothing entered this turn")
+end
+
+function M.test_announce_off_silent_but_entered_still_stored()
     setup()
     civvaccess_shared.foreignUnitWatchAnnounce = false
     ForeignUnitWatch.installListeners()
@@ -474,11 +504,11 @@ function M.test_announce_off_silent_but_delta_still_set()
     })
     ForeignUnitWatch._onTurnStart()
     T.eq(#spoken, 0, "no speech when announce setting is off")
-    T.truthy(civvaccess_shared.foreignUnitDelta, "delta still written so F7 turn log shows the diff")
-    T.eq(#civvaccess_shared.foreignUnitDelta, 1)
+    T.truthy(civvaccess_shared.foreignUnitEntered, "entered metadata still written so F7 shows the diff")
+    T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 1)
 end
 
-function M.test_delta_cleared_on_turn_end()
+function M.test_entered_and_delta_cleared_on_turn_end()
     setup()
     ForeignUnitWatch.installListeners()
     ForeignUnitWatch._onTurnEnd()
@@ -488,9 +518,10 @@ function M.test_delta_cleared_on_turn_end()
         units = { makeUnit({ id = 1, plot = visiblePlot() }) },
     })
     ForeignUnitWatch._onTurnStart()
-    T.truthy(civvaccess_shared.foreignUnitDelta, "delta set after turn start")
+    T.truthy(civvaccess_shared.foreignUnitEntered, "entered set after turn start")
     ForeignUnitWatch._onTurnEnd()
-    T.eq(civvaccess_shared.foreignUnitDelta, nil, "delta cleared on next turn end so F7 doesn't show stale info")
+    T.eq(civvaccess_shared.foreignUnitEntered, nil, "entered cleared on next turn end so F7 doesn't show stale info")
+    T.eq(civvaccess_shared.foreignUnitDelta, nil, "delta cleared on next turn end")
 end
 
 return M

@@ -2,10 +2,12 @@
 -- foreign units that entered or walked out of the active team's view
 -- during the AI turn just past. Splits hostile (at-war + barb) from
 -- neutral (every foreign owner you can see who isn't at war with you,
--- civilians included). The same lines (as a flat array of non-empty
--- strings) are parked on civvaccess_shared so NotificationLogPopupAccess
--- can prepend them at the top of F7 for the duration of the player's
--- turn.
+-- civilians included). For the F7 Turn Log the diff is parked on
+-- civvaccess_shared in two shapes: foreignUnitEntered carries the entered
+-- units as structured per-unit metadata (owner / unit ids) so the popup can
+-- re-resolve each to a live plot and offer a jump; foreignUnitDelta carries
+-- the left-view units as a flat array of aggregated strings (no jump -- a
+-- departed unit sits in fog). Both clear at the next turn end.
 --
 -- Strategy is snapshot-diff at turn boundaries. A unit walks-into-view
 -- and back-out within the same AI turn nets to nothing in the diff and
@@ -101,6 +103,7 @@ function ForeignUnitWatch._onTurnEnd()
     local ok, err = pcall(function()
         _snapshot = buildVisibleSet()
         civvaccess_shared.foreignUnitDelta = nil
+        civvaccess_shared.foreignUnitEntered = nil
     end)
     if not ok then
         Log.error("ForeignUnitWatch: TurnEnd snapshot failed: " .. tostring(err))
@@ -151,11 +154,13 @@ function ForeignUnitWatch._onTurnStart()
 
         -- Stable order: entered before left, hostile before neutral.
         -- Keeps the audible shape predictable for the user.
+        local hLstr = formatLine(hL, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT")
+        local nLstr = formatLine(nL, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT")
         local rawLines = {
             formatLine(hE, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"),
-            formatLine(hL, "TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"),
+            hLstr,
             formatLine(nE, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"),
-            formatLine(nL, "TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"),
+            nLstr,
         }
         local nonEmpty = {}
         for _, line in ipairs(rawLines) do
@@ -164,27 +169,43 @@ function ForeignUnitWatch._onTurnStart()
             end
         end
 
+        -- Speech + message scrollback get all four aggregated lines.
+        -- Speech is gated by the foreignUnitWatchAnnounce setting; the
+        -- scrollback and F7 surfaces land either way so the user can
+        -- review the diff manually when speech is off. All lines queue:
+        -- NotificationAnnounce and RevealAnnounce also fire around the
+        -- turn boundary and queue everything, so interrupting here would
+        -- cut whichever of them happens to be speaking when the diff lands.
         if #nonEmpty > 0 then
-            civvaccess_shared.foreignUnitDelta = nonEmpty
-            -- Speech is gated by the foreignUnitWatchAnnounce setting;
-            -- the F7 Turn Log entry above lands either way so the user
-            -- can review the diff manually when speech is off. All
-            -- lines queue: NotificationAnnounce and RevealAnnounce also
-            -- fire around the turn boundary and queue everything, so
-            -- interrupting here would cut whichever of them happens to
-            -- be speaking when the diff lands.
             if civvaccess_shared.foreignUnitWatchAnnounce then
                 for _, line in ipairs(nonEmpty) do
                     SpeechPipeline.speakQueued(line)
                 end
             end
-            -- Append regardless of the speech gate. The lines are useful
-            -- review material whether or not the user opted into hearing
-            -- them at turn start, and the F7 Turn Log already lands the
-            -- same content under the same condition.
             for _, line in ipairs(nonEmpty) do
                 MessageBuffer.append(line, "reveal")
             end
+        end
+
+        -- F7 Turn Log split. Entered units are parked as structured per-
+        -- unit metadata (owner / unit ids) so the popup can re-resolve each
+        -- to a live plot and offer a jump. Left units stay aggregated text:
+        -- a departed unit's live plot is in fog, so there's nothing safe to
+        -- jump to.
+        if #hE > 0 or #nE > 0 then
+            civvaccess_shared.foreignUnitEntered = { hostile = hE, neutral = nE }
+        else
+            civvaccess_shared.foreignUnitEntered = nil
+        end
+        local leftLines = {}
+        if hLstr ~= "" then
+            leftLines[#leftLines + 1] = hLstr
+        end
+        if nLstr ~= "" then
+            leftLines[#leftLines + 1] = nLstr
+        end
+        if #leftLines > 0 then
+            civvaccess_shared.foreignUnitDelta = leftLines
         else
             civvaccess_shared.foreignUnitDelta = nil
         end
@@ -202,6 +223,7 @@ end
 function ForeignUnitWatch.installListeners()
     _snapshot = buildVisibleSet()
     civvaccess_shared.foreignUnitDelta = nil
+    civvaccess_shared.foreignUnitEntered = nil
     Log.installEvent(Events, "ActivePlayerTurnEnd", ForeignUnitWatch._onTurnEnd, "ForeignUnitWatch")
     Log.installEvent(Events, "ActivePlayerTurnStart", ForeignUnitWatch._onTurnStart, "ForeignUnitWatch")
 end
