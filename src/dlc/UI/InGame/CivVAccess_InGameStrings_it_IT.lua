@@ -2387,3 +2387,44 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} alla s
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} a {2_To}: {3_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Backslash o Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Chiudi pannello chat"
+
+-- Scansione direzionale (tasto L). Modalita dedicata che legge una linea di
+-- caselle dal cursore senza spostarlo.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NW"] = "nordovest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NE"] = "nordest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_W"] = "ovest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_E"] = "est"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SW"] = "sudovest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SE"] = "sudest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_N"] = "nord"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_S"] = "sud"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP"] = "{1_Dir} {2_Step}: {3_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP_EDGE"] = "{1_Dir} {2_Step}: bordo della mappa"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_BANNER"] = "{1_Dir}: {2_DirA} e {3_DirB}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OWNER_PREFIX"] = "{1_Owner}. {2_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OPEN"] = "terreno aperto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_ENTER"] = "Scansione direzionale. Scegli una direzione."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_EXIT"] = "Scansione direzionale chiusa."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_COMPLETE"] = {
+    one = "{1_Count} casella esaminata {2_Dir}",
+    other = "{1_Count} caselle esaminate {2_Dir}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_TRUNCATED"] = {
+    one = "{1_Count} casella esaminata, bordo raggiunto prima di {2_Max}",
+    other = "{1_Count} caselle esaminate, bordo raggiunto prima di {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_FOGGED"] = {
+    one = "{1_Count} casella esaminata, nebbia raggiunta prima di {2_Max}",
+    other = "{1_Count} caselle esaminate, nebbia raggiunta prima di {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY"] = "L o Numpad asterisco"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC"] =
+    "Scansione direzionale: legge una linea di caselle dal cursore"
+-- ===== Radius announcements =====
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS"] = "raggio {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MIN"] = "raggio {1_N} minimo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "raggio {1_N} massimo"
+-- Second help row: radius keys available while inside the scan mode.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad più o meno"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
+    "Nella scansione direzionale: aumenta o diminuisce il raggio (da 1 a 10)"

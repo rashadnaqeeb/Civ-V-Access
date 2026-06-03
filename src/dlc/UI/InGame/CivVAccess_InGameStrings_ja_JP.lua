@@ -1923,3 +1923,46 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_ENRICO_DANDOLO"] =
     "最も穏やかなヴェネツィア共和国の総督, エンリコ・ダンドロは, 夜の運河に架かる石橋の上に立ち, 手袋をした片手を胸元へ引き寄せている. 老齢の姿だ. 長い灰色の鬚が胸まで垂れ, こめかみには白髪が見え, 顔には深い皺が刻まれている. 頭には, フリュギア帽に似た後ろがなだらかな尖りになる, 錆色のブロケード製の硬いコルノ・ドゥカーレが乗り, その下には白いリネンのカマウロが顔を縁取るように覗いている. 肩には淡い毛皮で縁取られた重い灰色のマントが掛かり, 前は開いてコルノと同じ錆色の裏地が見えている. その下には, 腰を金の組み紐で結んだ深紅色ブロケードの長いローブを纏っている. 橋の欄干は鍛鉄製で, ヴェネツィア・ゴシック様式の細い尖頭アーチがパネルを埋めている. 背後では運河が暗闇の奥へと消えていき, 両脇のパラッツォの窓が青い夜の中に暖かいオレンジ色の光を灯している. 左手の岸壁には細いゴンドラが一艘係留されており, 屋根の上には雲の切れ間から星を散らした空が広がっている."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_SHAKA"] =
     "ズールーの王, シャカ・カセンザンガコーナは, 王家の集落の広場に足を踏ん張って立つ. 左手に盾を横に張り出し, 右手には短い槍を持つ. 上半身は裸で肌は黒く, 筋肉は重厚だ. 胴体には小さなビーズを通した細い紐が交差している. 頭にはウムクヘレ, 王族と上位者の証である豹の斑点毛皮の厚い円形の頭帯が巻かれている. 眉の上にはその帯に固定された白い羽根の直立した房飾りがあり, 先端は赤い. 腰には豹の皮のエプロンが下がり, その下には長い薄い毛皮の房飾りが腿に揺れている. 同じ豹の斑点毛皮の帯が足首に巻かれている. 左手に持つのはイシラング, 牛の皮製の高く先が尖った楕円形の戦の盾だ. 表面は茶色と白のまだら模様で, 中央を真っ直ぐな木製の柄が縦に走り, 革のループで留められている. 右手には低く構えてイクルワ, 短い柄の刺突槍が握られ, 幅広の長い葉形の刃が付いている. 背後にはイククワネ, ズールーのウムジの丸天井型草葺きビーハイブ小屋の列が弧を描き, その織られた表面に陽光が当たっている. 空き地の両脇には木の柱が立ち, 長い角を持つ牛の頭蓋骨が頂に飾られている. 大きく弧を描く角はそのまま残されており, 富と生贄が門に示されている. 地面は乾いた淡い土で, 遠くに平頂のメサが見え, 空は薄い雲が筋を引く澄んだ青空だ."
+
+-- TODO: translate -- Directional scan strings (mirror of en_US until localized).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NW"] = "northwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NE"] = "northeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_W"] = "west"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_E"] = "east"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SW"] = "southwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SE"] = "southeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_N"] = "north"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_S"] = "south"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP"] = "{1_Dir} {2_Step}: {3_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP_EDGE"] = "{1_Dir} {2_Step}: edge of map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_BANNER"] = "{1_Dir}: {2_DirA} and {3_DirB}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OWNER_PREFIX"] = "{1_Owner}. {2_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OPEN"] = "open terrain"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_ENTER"] = "Directional scan. Choose a direction."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_EXIT"] = "Directional scan closed."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_COMPLETE"] = {
+    one = "{1_Count} tile scanned {2_Dir}",
+    other = "{1_Count} tiles scanned {2_Dir}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_TRUNCATED"] = {
+    one = "{1_Count} tile scanned, edge reached before {2_Max}",
+    other = "{1_Count} tiles scanned, edge reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_FOGGED"] = {
+    one = "{1_Count} tile scanned, fog reached before {2_Max}",
+    other = "{1_Count} tiles scanned, fog reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY"] = "L or Numpad star" -- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC"] = "Directional scan: read a line of tiles from the cursor"
+-- ===== Radius announcements =====
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS"] = "radius {1_N}"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MIN"] = "radius {1_N} min"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "radius {1_N} max"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad plus or minus"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
+    "Inside directional scan: grow or shrink radius (1 to 10)"

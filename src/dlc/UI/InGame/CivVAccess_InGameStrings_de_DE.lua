@@ -2274,3 +2274,46 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} an Tea
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} an {2_To}: {3_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Rückstrich oder Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Chat-Panel schließen"
+
+-- TODO: translate -- Directional scan strings (mirror of en_US until localized).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NW"] = "northwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NE"] = "northeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_W"] = "west"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_E"] = "east"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SW"] = "southwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SE"] = "southeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_N"] = "north"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_S"] = "south"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP"] = "{1_Dir} {2_Step}: {3_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP_EDGE"] = "{1_Dir} {2_Step}: edge of map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_BANNER"] = "{1_Dir}: {2_DirA} and {3_DirB}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OWNER_PREFIX"] = "{1_Owner}. {2_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OPEN"] = "open terrain"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_ENTER"] = "Directional scan. Choose a direction."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_EXIT"] = "Directional scan closed."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_COMPLETE"] = {
+    one = "{1_Count} tile scanned {2_Dir}",
+    other = "{1_Count} tiles scanned {2_Dir}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_TRUNCATED"] = {
+    one = "{1_Count} tile scanned, edge reached before {2_Max}",
+    other = "{1_Count} tiles scanned, edge reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_FOGGED"] = {
+    one = "{1_Count} tile scanned, fog reached before {2_Max}",
+    other = "{1_Count} tiles scanned, fog reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY"] = "L or Numpad star" -- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC"] = "Directional scan: read a line of tiles from the cursor"
+-- ===== Radius announcements =====
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS"] = "radius {1_N}"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MIN"] = "radius {1_N} min"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "radius {1_N} max"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad plus or minus"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
+    "Inside directional scan: grow or shrink radius (1 to 10)"

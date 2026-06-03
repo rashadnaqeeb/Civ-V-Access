@@ -1820,3 +1820,46 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_ENRICO_DANDOLO"] =
     "Enrico Dandolo, Doge da Serenissima Republica de Veneza, está em pé sobre uma ponte de pedra sobre um canal à noite, uma mão enluvada levantada ao peito. Ele é velho: uma longa barba cinza cai até o peito, cabelos grisalhos aparecem nas têmporas, e seu rosto está profundamente marcado por rugas. Em sua cabeça assenta o corno ducale, uma rígida boina ducal em forma de chifre de brocado vermelho-ferrugem que se ergue em uma ponta romba na parte traseira como um barrete frígio, usado aqui sobre um camauro de linho branco bem ajustado cuja borda aparece por baixo na testa. Sobre seus ombros repousa um pesado manto cinza guarnecido de pele pálida, caindo aberto na frente e forrado com o mesmo vermelho-ferrugem do gorro. Por baixo ele usa uma longa veste de brocado vermelho profundo cingida na cintura com um cordão dourado atado. A balaustrada da ponte é de ferro forjado, com painéis preenchidos por esbeltos arcos pontiagudos ao estilo gótico veneziano. Atrás dele o canal recua para a escuridão, ladeado por palácios cujas janelas brilham em laranja quente contra a noite azul. Uma estreita gôndola está atracada no cais à esquerda, e o céu estrelado rompe as nuvens acima dos telhados."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_SHAKA"] =
     "Shaka kaSenzangakhona, Rei dos Zulus, está em pé no terreiro aberto de uma moradia real, com os pés fincados, o escudo estendido ao seu lado esquerdo e a lança curta ao direito. Ele tem o torso nu, pele escura e musculatura robusta, com o torso cruzado por cordas esbeltas cravejadas de pequenas contas. Em torno de sua cabeça está o umqhele, uma espessa faixa circular de cabeça de pelo de leopardo malhado que marca a realeza e o posto superior. Fixada a ela na testa está uma pluma ereta de penas brancas com pontas vermelhas. Em sua cintura pende um avental de pele de leopardo caindo sobre os quadris, e por baixo uma saia de longos pingentes de pelo pálido balança contra suas coxas. Bandas do mesmo pelo malhado envolvem seus tornozelos. Em sua mão esquerda ele carrega um isihlangu, um alto e pontudo escudo oval de guerra em couro de boi; sua superfície é manchada de marrom e branco, com um reto cabo de madeira descendo pelo centro e fixado por laços de couro. Em sua mão direita, mantida baixa e pronta, está um iklwa, uma lança de cabo curto para estocadas com uma longa e larga lâmina em forma de folha. Atrás dele se curva uma fileira de iqukwane, cabanas em forma de colmeia de capim e palha de um umuzi zulu, com suas superfícies tecidas brilhando ao sol. Flanqueando a clareira em ambos os lados se erguem postes de madeira coroados com caveiras de gado de chifres longos, os grandes chifres curvados ainda presos, riqueza e sacrifício expostos no portão. O chão é de terra clara e seca, uma mesa de topo plano aparece ao longe, e o céu acima é de um azul pálido claro rajado de finas nuvens."
+
+-- TODO: translate -- Directional scan strings (mirror of en_US until localized).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NW"] = "northwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NE"] = "northeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_W"] = "west"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_E"] = "east"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SW"] = "southwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SE"] = "southeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_N"] = "north"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_S"] = "south"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP"] = "{1_Dir} {2_Step}: {3_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP_EDGE"] = "{1_Dir} {2_Step}: edge of map"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_BANNER"] = "{1_Dir}: {2_DirA} and {3_DirB}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OWNER_PREFIX"] = "{1_Owner}. {2_Info}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OPEN"] = "open terrain"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_ENTER"] = "Directional scan. Choose a direction."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_EXIT"] = "Directional scan closed."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_COMPLETE"] = {
+    one = "{1_Count} tile scanned {2_Dir}",
+    other = "{1_Count} tiles scanned {2_Dir}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_TRUNCATED"] = {
+    one = "{1_Count} tile scanned, edge reached before {2_Max}",
+    other = "{1_Count} tiles scanned, edge reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_FOGGED"] = {
+    one = "{1_Count} tile scanned, fog reached before {2_Max}",
+    other = "{1_Count} tiles scanned, fog reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY"] = "L or Numpad star" -- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC"] = "Directional scan: read a line of tiles from the cursor"
+-- ===== Radius announcements =====
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS"] = "radius {1_N}"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MIN"] = "radius {1_N} min"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "radius {1_N} max"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad plus or minus"
+-- TODO: translate
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
+    "Inside directional scan: grow or shrink radius (1 to 10)"

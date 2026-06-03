@@ -738,6 +738,59 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "nw"
 -- delta resolves there on the unit circle).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "n"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
+-- Directional scan (plain L). A dedicated mode that reads a straight line of
+-- tiles outward from the cursor without moving it. Full-word heading labels,
+-- distinct from the cursor's terse DIR_* tokens above, because the scan reads
+-- its heading once in a banner where the long form is clearer.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NW"] = "northwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_NE"] = "northeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_W"] = "west"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_E"] = "east"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SW"] = "southwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_SE"] = "southeast"
+-- Composite headings: W scans north (NW + NE interleaved), X scans south.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_N"] = "north"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_DIR_S"] = "south"
+-- One scan step: heading, 1-based distance, then the tile glance.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP"] = "{1_Dir} {2_Step}: {3_Info}"
+-- Step that ran off the map edge; the line stops here.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_STEP_EDGE"] = "{1_Dir} {2_Step}: edge of map"
+-- Composite banner naming the two diagonals folded into one heading.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_BANNER"] = "{1_Dir}: {2_DirA} and {3_DirB}"
+-- Owner-change prefix: spoken civ name, then the tile glance, when the scan
+-- crosses into a different civ's territory between steps.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OWNER_PREFIX"] = "{1_Owner}. {2_Info}"
+-- Substituted when the glance composer finds nothing nameable on a tile.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_OPEN"] = "open terrain"
+-- Spoken on entering and leaving the mode.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_ENTER"] = "Directional scan. Choose a direction."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_EXIT"] = "Directional scan closed."
+-- Closing summary: how many tiles the scan read, in the given heading.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_COMPLETE"] = {
+    one = "{1_Count} tile scanned {2_Dir}",
+    other = "{1_Count} tiles scanned {2_Dir}",
+}
+-- Edge-stop summary: how many tiles were read before the map edge cut the
+-- requested reach short.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_TRUNCATED"] = {
+    one = "{1_Count} tile scanned, edge reached before {2_Max}",
+    other = "{1_Count} tiles scanned, edge reached before {2_Max}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_FOGGED"] = {
+    one = "{1_Count} tile scanned, fog reached before {2_Max}",
+    other = "{1_Count} tiles scanned, fog reached before {2_Max}",
+}
+-- ===== Radius announcements =====
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS"] = "radius {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MIN"] = "radius {1_N} min"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "radius {1_N} max"
+-- Help row for the map-mode key list. Key updated to include Numpad * entry.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY"] = "L or Numpad star"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC"] = "Directional scan: read a line of tiles from the cursor"
+-- Second help row: radius keys available while inside the scan mode.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad plus or minus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
+    "Inside directional scan: grow or shrink radius (1 to 10)"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
 -- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
 -- Tight glue (no separator) is the EN form; positional template lets

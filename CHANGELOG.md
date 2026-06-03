@@ -11,6 +11,10 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Press L or Numpad star to enter directional scan mode, which reads a straight line of tiles outward from the cursor without moving it. Inside the mode Q, E, A, D, Z and C scan the six directions, W and X scan north and south, and Escape leaves the mode.
+- The directional scan now uses its own adjustable radius (1–10 tiles, default 3), independent of the surveyor radius. Inside the mode press Numpad plus to grow the radius and Numpad minus to shrink it; the new value is announced on each press and the word "max" or "min" is appended when the limit is reached.
+
 ## [1.3.0] - 2026-06-05
 
 New Features and improvements:
