@@ -2153,7 +2153,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Apri Panoramica 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "La Panoramica culturale è disattivata in questa partita"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_SETTINGS"] = "Impostazioni mappa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY"] = "Control più M"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] = "Apri le impostazioni di visualizzazione della mappa"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] =
+    "Apri le impostazioni di visualizzazione della mappa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HELP_DESC_CLOSE"] = "Chiudi impostazioni mappa"
 -- ===== League Overview (World Congress / United Nations) =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_OVERVIEW"] = "Congresso Mondiale"

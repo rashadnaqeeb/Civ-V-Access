@@ -722,7 +722,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] =
     "Поставить мод на паузу или возобновить"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_GROUP_MORE"] = "Дополнительная помощь"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_README"] = "Открыть руководство мода"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "Присоединиться к серверу Discord мода"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] =
+    "Присоединиться к серверу Discord мода"
 -- ===== BaseTable: 2D table viewer =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_DESC"] = "{1_Col}, по убыванию"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_SORT_ASC"] = "{1_Col}, по возрастанию"

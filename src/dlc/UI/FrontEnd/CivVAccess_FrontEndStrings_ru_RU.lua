@@ -201,7 +201,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_TOGGLE_MUTE"] =
     "Поставить мод на паузу или возобновить"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_GROUP_MORE"] = "Дополнительная помощь"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_README"] = "Открыть руководство мода"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "Присоединиться к серверу Discord мода"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] =
+    "Присоединиться к серверу Discord мода"
 
 -- Settings overlay.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Настройки"
