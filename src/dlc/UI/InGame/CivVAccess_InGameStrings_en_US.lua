@@ -2211,6 +2211,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "strategic: {1_L
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "luxury: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "nearby: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "bonus: {1_List}"
+-- Appended to the end of the Your-relationship cell on the Majors tab: the
+-- AI's opinion modifiers toward us, the same breakdown the game's stance
+-- tooltip shows (GetOpinionTable). {1_List} is the comma-joined modifiers.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "relationship breakdown: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "policies: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "wonders: {1_List}"

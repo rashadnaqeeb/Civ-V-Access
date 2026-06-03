@@ -16,6 +16,7 @@ New Features and improvements:
 - In the F7 Turn Log, units that entered view this turn are listed individually under their group, and activating one jumps the cursor to it.
 - Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates.
 - Active deals in the diplomacy screen now report turns left until each item expires instead of the duration it was signed for.
+- The F4 Diplomatic Overview's relationship cell now lists what is driving each AI's stance toward you, the same breakdown as the game's stance tooltip.
 
 Bug fixes:
 - Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.

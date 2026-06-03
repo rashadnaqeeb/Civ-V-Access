@@ -212,11 +212,32 @@ local function treatyFragments(iOther)
     return out
 end
 
+-- Relationship breakdown: the AI's opinion modifiers toward us, exactly as
+-- the game serves them in the stance tooltip. GetOpinionTable is the same
+-- list base DiploList's GetMoodInfo and the leader-head tooltip show; the
+-- speech filter strips the [COLOR] / [ICON] markup the entries carry.
+-- Skipped for teammates (no diplomacy with us) and at war (the engine
+-- collapses the table to a lone "at war" entry the stance word already
+-- carries). Empty table (genuinely neutral AI, no modifiers) adds nothing.
+local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
+    if pOther:GetTeam() == pUs:GetTeam() then
+        return nil
+    end
+    if pUsTeam:IsAtWar(pOther:GetTeam()) then
+        return nil
+    end
+    local opinions = pOther:GetOpinionTable(iUs)
+    if opinions == nil or #opinions == 0 then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN", table.concat(opinions, ", "))
+end
+
 -- Your-relationship cell: stance word first (war / denouncing / hostile /
--- guarded / friendly / etc.), then active treaties. Stance is non-nil
--- for every reachable branch except same-team-with-NO_SCIENCE; treaties
--- can be empty. Empty cell (no stance and no treaties) falls back to
--- "none".
+-- guarded / friendly / etc.), then active treaties, then the opinion
+-- breakdown. Stance is non-nil for every reachable branch except
+-- same-team-with-NO_SCIENCE; treaties and breakdown can be empty. Empty
+-- cell (no stance, treaties, or breakdown) falls back to "none".
 local function yourRelationshipCell(iOther)
     local iUs = Game.GetActivePlayer()
     local pUs = Players[iUs]
@@ -227,6 +248,7 @@ local function yourRelationshipCell(iOther)
     for _, t in ipairs(treatyFragments(iOther)) do
         parts[#parts + 1] = t
     end
+    parts[#parts + 1] = relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
     local joined = Text.joinNonEmpty(parts)
     if joined == nil or joined == "" then
         return noneCell()
