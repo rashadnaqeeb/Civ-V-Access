@@ -461,11 +461,8 @@ local function policiesCell(iOther)
             end
         end
         if count > 0 then
-            items[#items + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT",
-                Text.key(branch.Description),
-                tostring(count)
-            )
+            items[#items + 1] =
+                Text.format("TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT", Text.key(branch.Description), tostring(count))
         end
     end
     if #items == 0 then
@@ -653,11 +650,8 @@ local function relationshipCell(iOther)
             local rid = row.ID
             local count = pOther:GetResourceExport(rid)
             if count > 0 and Game.GetResourceUsageType(rid) ~= ResourceUsageTypes.RESOURCEUSAGE_BONUS then
-                local entry = Text.format(
-                    "TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT",
-                    Text.key(row.Description),
-                    tostring(count)
-                )
+                local entry =
+                    Text.format("TXT_KEY_CIVVACCESS_DIPLO_RES_COUNT", Text.key(row.Description), tostring(count))
                 if row.ResourceClassType == "RESOURCECLASS_LUXURY" then
                     luxury[#luxury + 1] = entry
                 else
@@ -868,7 +862,8 @@ local function minorRowLabel(iOther)
     if status ~= nil and status ~= "" then
         parts[#parts + 1] = status
     end
-    if pOther:CanMajorBullyGold(iUs)
+    if
+        pOther:CanMajorBullyGold(iUs)
         and pOther:GetMinorCivFriendshipWithMajor(iUs) >= GameDefines.FRIENDSHIP_THRESHOLD_NEUTRAL
     then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DIPLO_BULLYABLE")

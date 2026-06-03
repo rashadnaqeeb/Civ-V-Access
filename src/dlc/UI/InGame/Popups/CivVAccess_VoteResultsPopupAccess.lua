@@ -30,9 +30,9 @@ AddTeamEntry = function(iTeam, iVotes, iRank)
         capturedTeamGame = g_bIsTeamGame == true
     end
     capturedEntries[#capturedEntries + 1] = {
-        iTeam  = iTeam,
+        iTeam = iTeam,
         iVotes = iVotes,
-        iRank  = iRank,
+        iRank = iRank,
     }
 end
 
@@ -103,20 +103,22 @@ local function buildItems()
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "CloseButton",
-        textKey     = "TXT_KEY_CLOSE",
-        activate    = function() OnClose() end,
+        textKey = "TXT_KEY_CLOSE",
+        activate = function()
+            OnClose()
+        end,
     })
     return items
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "VoteResultsPopup",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"),
-    preamble      = buildPreamble,
-    priorInput    = priorInput,
+    name = "VoteResultsPopup",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"),
+    preamble = buildPreamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow        = function(handler)
+    onShow = function(handler)
         handler.setItems(buildItems())
     end,
-    items         = {},
+    items = {},
 })

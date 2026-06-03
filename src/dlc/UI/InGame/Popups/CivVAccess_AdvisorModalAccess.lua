@@ -32,25 +32,29 @@ local function buildPreamble()
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "AdvisorModal",
-    displayName   = Text.key("TXT_KEY_ADVISOR_MODAL_TITLE"),
-    preamble      = buildPreamble,
-    priorInput    = priorInput,
+    name = "AdvisorModal",
+    displayName = Text.key("TXT_KEY_ADVISOR_MODAL_TITLE"),
+    preamble = buildPreamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Button({
             controlName = "ConfirmButton",
-            textKey     = "TXT_KEY_ADVISOR_MODAL_CONFIRM",
-            activate    = function() OnConfirmButtonClicked() end,
+            textKey = "TXT_KEY_ADVISOR_MODAL_CONFIRM",
+            activate = function()
+                OnConfirmButtonClicked()
+            end,
         }),
         BaseMenuItems.Button({
             controlName = "CancelButton",
-            textKey     = "TXT_KEY_ADVISOR_MODAL_CANCEL",
-            activate    = function() OnCancelButtonClicked() end,
+            textKey = "TXT_KEY_ADVISOR_MODAL_CANCEL",
+            activate = function()
+                OnCancelButtonClicked()
+            end,
         }),
         BaseMenuItems.Checkbox({
-            controlName      = "DontShowAgainCheckbox",
-            textKey          = "TXT_KEY_ADVISOR_MODAL_DONT_SHOW_ME_AGAIN",
+            controlName = "DontShowAgainCheckbox",
+            textKey = "TXT_KEY_ADVISOR_MODAL_DONT_SHOW_ME_AGAIN",
             -- No engine-side callback exists: the base's Close() reads
             -- DontShowAgainCheckbox at dismiss time and calls
             -- Game.SetAdvisor*Interrupt(false) there. The toggle on our

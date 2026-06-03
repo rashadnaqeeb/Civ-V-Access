@@ -15,9 +15,15 @@ local priorShowHide = ShowHideHandler
 
 local function labelOf(name)
     local c = Controls[name]
-    if c == nil or c:IsHidden() then return "" end
-    local ok, text = pcall(function() return c:GetText() end)
-    if not ok or text == nil then return "" end
+    if c == nil or c:IsHidden() then
+        return ""
+    end
+    local ok, text = pcall(function()
+        return c:GetText()
+    end)
+    if not ok or text == nil then
+        return ""
+    end
     return tostring(text)
 end
 
@@ -27,20 +33,22 @@ local function preamble()
 end
 
 BaseMenu.install(ContextPtr, {
-    name            = "WonderPopup",
-    displayName     = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WONDER_POPUP"),
-    preamble        = preamble,
+    name = "WonderPopup",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WONDER_POPUP"),
+    preamble = preamble,
     silentFirstOpen = true,
-    priorInput      = priorInput,
-    priorShowHide   = priorShowHide,
-    items           = {
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    items = {
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_CLOSE",
-            activate    = function() OnClose() end,
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnClose()
+            end,
         }),
     },
-    onShow          = function(h)
+    onShow = function(h)
         local title = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WONDER_POPUP")
         local name = labelOf("Title")
         if name ~= "" then

@@ -45,8 +45,7 @@ end
 -- instead.
 function DiploCommon.openTradeWith(iOther)
     if Players[iOther]:IsHuman() then
-        if civvaccess_shared.DiploOverview ~= nil
-            and type(civvaccess_shared.DiploOverview.close) == "function" then
+        if civvaccess_shared.DiploOverview ~= nil and type(civvaccess_shared.DiploOverview.close) == "function" then
             civvaccess_shared.DiploOverview.close()
         end
         Events.OpenPlayerDealScreenEvent(iOther)

@@ -125,8 +125,7 @@ end
 -- callback runs).
 
 local function pushPolicyConfirm(name, isBranch, successKey)
-    local promptKey = isBranch
-            and "TXT_KEY_CIVVACCESS_SOCIALPOLICY_CONFIRM_OPEN_BRANCH"
+    local promptKey = isBranch and "TXT_KEY_CIVVACCESS_SOCIALPOLICY_CONFIRM_OPEN_BRANCH"
         or "TXT_KEY_CIVVACCESS_SOCIALPOLICY_CONFIRM_ADOPT_POLICY"
     local sub = BaseMenu.create({
         name = SUB_POLICY_CONFIRM,
@@ -191,9 +190,7 @@ local function pushTenetConfirm(name)
                         Log.error("SocialPolicyPopupAccess OnTenetConfirmYes failed: " .. tostring(err))
                     end
                     HandlerStack.removeByName(SUB_TENET_PICKER, true)
-                    SpeechPipeline.speakInterrupt(
-                        Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_ADOPTED_TENET", name)
-                    )
+                    SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_ADOPTED_TENET", name))
                 end,
             }),
             BaseMenuItems.Button({
@@ -308,9 +305,7 @@ local function pushChangeIdeologyConfirm()
                     HandlerStack.removeByName(SUB_CHANGE_IDEOLOGY, false)
                     local ok, err = pcall(OnChangeIdeologyConfirmYes)
                     if not ok then
-                        Log.error(
-                            "SocialPolicyPopupAccess OnChangeIdeologyConfirmYes failed: " .. tostring(err)
-                        )
+                        Log.error("SocialPolicyPopupAccess OnChangeIdeologyConfirmYes failed: " .. tostring(err))
                     end
                     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCHED"))
                 end,
@@ -322,9 +317,7 @@ local function pushChangeIdeologyConfirm()
                     HandlerStack.removeByName(SUB_CHANGE_IDEOLOGY, true)
                     local ok, err = pcall(OnChangeIdeologyConfirmNo)
                     if not ok then
-                        Log.error(
-                            "SocialPolicyPopupAccess OnChangeIdeologyConfirmNo failed: " .. tostring(err)
-                        )
+                        Log.error("SocialPolicyPopupAccess OnChangeIdeologyConfirmNo failed: " .. tostring(err))
                     end
                 end,
             }),
@@ -368,10 +361,7 @@ local function activateBranchUnlock(branchRow)
     if player == nil then
         return
     end
-    if
-        not player:CanUnlockPolicyBranch(branchRow.ID)
-        or player:IsPolicyBranchBlocked(branchRow.ID)
-    then
+    if not player:CanUnlockPolicyBranch(branchRow.ID) or player:IsPolicyBranchBlocked(branchRow.ID) then
         return
     end
     local name = Text.key(branchRow.Description)
@@ -434,10 +424,7 @@ local function buildBranchChildren(branchRow)
     then
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_SOCIALPOLICY_OPEN_BRANCH_ITEM",
-                    Text.key(branch.Description)
-                )
+                return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_OPEN_BRANCH_ITEM", Text.key(branch.Description))
             end,
             onActivate = function()
                 activateBranchUnlock(branch)
@@ -592,8 +579,7 @@ local function buildIdeologyTabItems()
 
     items[#items + 1] = BaseMenuItems.Text({
         labelFn = function()
-            local disabled = Controls.SwitchIdeologyButton ~= nil
-                and Controls.SwitchIdeologyButton:IsDisabled()
+            local disabled = Controls.SwitchIdeologyButton ~= nil and Controls.SwitchIdeologyButton:IsDisabled()
             if disabled then
                 return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY_DISABLED")
             end

@@ -184,9 +184,8 @@ end
 -- non-empty for other members but vote-opinion is empty between sessions).
 local function buildMemberDrillItems(pLeague, member, activePlayer)
     local items = {}
-    local delegation = LeagueOverviewRow.formatDelegationBreakdown(
-        pLeague:GetMemberDelegationDetails(member.playerID, activePlayer)
-    )
+    local delegation =
+        LeagueOverviewRow.formatDelegationBreakdown(pLeague:GetMemberDelegationDetails(member.playerID, activePlayer))
     if delegation ~= "" then
         items[#items + 1] = BaseMenuItems.Text({ labelText = delegation })
     end

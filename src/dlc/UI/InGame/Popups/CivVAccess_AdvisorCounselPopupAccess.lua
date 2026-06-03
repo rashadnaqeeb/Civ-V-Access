@@ -34,8 +34,8 @@ local priorShowHide = ShowHideHandler
 local Advisors = {
     { type = AdvisorTypes.ADVISOR_ECONOMIC, nameKey = "TXT_KEY_ADVISOR_ECON_TITLE" },
     { type = AdvisorTypes.ADVISOR_MILITARY, nameKey = "TXT_KEY_ADVISOR_MILITARY_TITLE" },
-    { type = AdvisorTypes.ADVISOR_FOREIGN,  nameKey = "TXT_KEY_ADVISOR_FOREIGN_TITLE" },
-    { type = AdvisorTypes.ADVISOR_SCIENCE,  nameKey = "TXT_KEY_ADVISOR_SCIENCE_TITLE" },
+    { type = AdvisorTypes.ADVISOR_FOREIGN, nameKey = "TXT_KEY_ADVISOR_FOREIGN_TITLE" },
+    { type = AdvisorTypes.ADVISOR_SCIENCE, nameKey = "TXT_KEY_ADVISOR_SCIENCE_TITLE" },
 }
 
 local function emptyItem()
@@ -92,16 +92,16 @@ end
 local tabs = {}
 for i, advisor in ipairs(Advisors) do
     tabs[i] = {
-        name  = advisor.nameKey,
+        name = advisor.nameKey,
         items = { emptyItem() },
     }
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "AdvisorCounselPopup",
-    displayName   = Text.key("TXT_KEY_ADVISOR_COUNSEL"),
-    priorInput    = priorInput,
+    name = "AdvisorCounselPopup",
+    displayName = Text.key("TXT_KEY_ADVISOR_COUNSEL"),
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow        = onShow,
-    tabs          = tabs,
+    onShow = onShow,
+    tabs = tabs,
 })

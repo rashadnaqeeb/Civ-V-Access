@@ -352,10 +352,7 @@ end
 local function buildSortPulldown()
     return BaseMenuItems.Choice({
         labelFn = function()
-            return Text.format(
-                "TXT_KEY_CIVVACCESS_TRO_SORT_LABEL",
-                Text.key(SORT_LABEL_KEYS[m_currentSort])
-            )
+            return Text.format("TXT_KEY_CIVVACCESS_TRO_SORT_LABEL", Text.key(SORT_LABEL_KEYS[m_currentSort]))
         end,
         activate = pushSortPicker,
     })

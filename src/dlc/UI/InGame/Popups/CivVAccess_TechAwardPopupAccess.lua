@@ -16,9 +16,15 @@ local priorShowHide = ShowHideHandler
 
 local function labelOf(name)
     local c = Controls[name]
-    if c == nil or c:IsHidden() then return "" end
-    local ok, text = pcall(function() return c:GetText() end)
-    if not ok or text == nil then return "" end
+    if c == nil or c:IsHidden() then
+        return ""
+    end
+    local ok, text = pcall(function()
+        return c:GetText()
+    end)
+    if not ok or text == nil then
+        return ""
+    end
     return tostring(text)
 end
 
@@ -41,27 +47,31 @@ local function awardedTechPedia()
 end
 
 local handler = BaseMenu.install(ContextPtr, {
-    name            = "TechAwardPopup",
-    displayName     = Text.key("TXT_KEY_TECH_AWARD_TITLE"),
-    preamble        = preamble,
+    name = "TechAwardPopup",
+    displayName = Text.key("TXT_KEY_TECH_AWARD_TITLE"),
+    preamble = preamble,
     silentFirstOpen = true,
-    priorInput      = priorInput,
-    priorShowHide   = priorShowHide,
-    items           = {
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    items = {
         BaseMenuItems.Button({
             controlName = "ContinueButton",
-            textKey     = "TXT_KEY_TECH_AWARD_BUTTON",
-            activate    = function() OnContinueButtonClicked() end,
+            textKey = "TXT_KEY_TECH_AWARD_BUTTON",
+            activate = function()
+                OnContinueButtonClicked()
+            end,
             pediaNameFn = awardedTechPedia,
         }),
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_CLOSE",
-            activate    = function() OnClose() end,
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnClose()
+            end,
             pediaNameFn = awardedTechPedia,
         }),
     },
-    onShow          = function(h)
+    onShow = function(h)
         local title = Text.key("TXT_KEY_TECH_AWARD_TITLE")
         local name = labelOf("TechName")
         if name ~= "" then

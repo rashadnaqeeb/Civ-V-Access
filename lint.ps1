@@ -80,12 +80,17 @@ Write-Host "--- luacheck" -ForegroundColor Cyan
 # buries the stylua output below it.
 $luacheckExit = Invoke-Tool -Exe $luacheck -ToolArgs (@("-q") + $targets)
 
+# --respect-ignores so explicitly-named paths honor .styluaignore the same
+# way directory traversal does. Without it stylua silently bypasses the
+# ignore file for paths handed to it directly, so `lint.ps1 <vendor-file>`
+# reports drift on a file the full run skips -- a verdict that contradicts
+# the authoritative `lint.ps1` run over src / tests.
 if ($Fix) {
     Write-Host "--- stylua (rewrite)" -ForegroundColor Cyan
-    $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs $targets
+    $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs (@("--respect-ignores") + $targets)
 } else {
     Write-Host "--- stylua --check" -ForegroundColor Cyan
-    $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs (@("--check") + $targets)
+    $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs (@("--respect-ignores", "--check") + $targets)
 }
 
 # Report in a way the user can act on: tell them which stage failed.

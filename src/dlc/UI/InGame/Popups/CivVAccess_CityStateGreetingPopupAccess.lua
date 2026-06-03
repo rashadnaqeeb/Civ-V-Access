@@ -18,26 +18,32 @@ local function preamble()
     if title ~= "" and description ~= "" then
         return title .. ", " .. description
     end
-    if title ~= "" then return title end
+    if title ~= "" then
+        return title
+    end
     return description
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "CityStateGreetingPopup",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"),
-    preamble      = preamble,
-    priorInput    = priorInput,
+    name = "CityStateGreetingPopup",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"),
+    preamble = preamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_CLOSE",
-            activate    = function() OnCloseButtonClicked() end,
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnCloseButtonClicked()
+            end,
         }),
         BaseMenuItems.Button({
             controlName = "FindOnMapButton",
-            textKey     = "TXT_KEY_POP_CSTATE_FIND_ON_MAP",
-            activate    = function() OnFindOnMapButtonClicked() end,
+            textKey = "TXT_KEY_POP_CSTATE_FIND_ON_MAP",
+            activate = function()
+                OnFindOnMapButtonClicked()
+            end,
         }),
     },
 })

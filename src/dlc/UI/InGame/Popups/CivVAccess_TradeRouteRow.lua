@@ -143,18 +143,12 @@ function TradeRouteRow.rowLabel(route, isInbound)
         -- "You get / they get" is meaningless when both sides are us,
         -- so frame each side by the city that earns the yields.
         if originYields ~= "" then
-            parts[#parts + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS",
-                route.FromCityName,
-                originYields
-            )
+            parts[#parts + 1] =
+                Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS", route.FromCityName, originYields)
         end
         if destinationYields ~= "" then
-            parts[#parts + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS",
-                route.ToCityName,
-                destinationYields
-            )
+            parts[#parts + 1] =
+                Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS", route.ToCityName, destinationYields)
         end
     else
         local yourSide, theirSide

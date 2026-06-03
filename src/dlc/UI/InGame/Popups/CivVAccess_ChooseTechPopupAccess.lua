@@ -126,7 +126,9 @@ local function buildItems()
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "OpenTTButton",
         textKey = "TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE",
-        activate = function() OpenTechTree() end,
+        activate = function()
+            OpenTechTree()
+        end,
     })
 
     return items
@@ -152,15 +154,16 @@ table.insert(mainHandler.bindings, {
     key = Keys.VK_F6,
     mods = 0,
     description = "Open Tech Tree",
-    fn = function() OpenTechTree() end,
+    fn = function()
+        OpenTechTree()
+    end,
 })
 
 -- ===== Popup intercept =====
 
 Events.SerialEventGameMessagePopup.Add(function(popupInfo)
     local t = popupInfo.Type
-    if t ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSETECH
-        and t ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSE_TECH_TO_STEAL then
+    if t ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSETECH and t ~= ButtonPopupTypes.BUTTONPOPUP_CHOOSE_TECH_TO_STEAL then
         return
     end
     -- Base TechPopup.lua gates on popupInfo.Data1 == active player (line 75);

@@ -135,28 +135,56 @@ end
 
 local function buildScoreColumns()
     local cols = {
-        scoreColumn("TXT_KEY_CIVVACCESS_VP_COL_TOTAL", function(p) return p:GetScore() end),
-        scoreColumn("TXT_KEY_VP_CITIES", function(p) return p:GetScoreFromCities() end),
-        scoreColumn("TXT_KEY_VP_POPULATION", function(p) return p:GetScoreFromPopulation() end),
-        scoreColumn("TXT_KEY_VP_LAND", function(p) return p:GetScoreFromLand() end),
-        scoreColumn("TXT_KEY_VP_WONDERS", function(p) return p:GetScoreFromWonders() end),
+        scoreColumn("TXT_KEY_CIVVACCESS_VP_COL_TOTAL", function(p)
+            return p:GetScore()
+        end),
+        scoreColumn("TXT_KEY_VP_CITIES", function(p)
+            return p:GetScoreFromCities()
+        end),
+        scoreColumn("TXT_KEY_VP_POPULATION", function(p)
+            return p:GetScoreFromPopulation()
+        end),
+        scoreColumn("TXT_KEY_VP_LAND", function(p)
+            return p:GetScoreFromLand()
+        end),
+        scoreColumn("TXT_KEY_VP_WONDERS", function(p)
+            return p:GetScoreFromWonders()
+        end),
     }
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_TECH", function(p) return p:GetScoreFromTechs() end)
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_FUTURE_TECH", function(p) return p:GetScoreFromFutureTech() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_TECH", function(p)
+            return p:GetScoreFromTechs()
+        end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_FUTURE_TECH", function(p)
+            return p:GetScoreFromFutureTech()
+        end)
     end
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_POLICIES) then
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_POLICIES", function(p) return p:GetScoreFromPolicies() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_POLICIES", function(p)
+            return p:GetScoreFromPolicies()
+        end)
     end
-    cols[#cols + 1] = scoreColumn("TXT_KEY_VP_GREAT_WORKS", function(p) return p:GetScoreFromGreatWorks() end)
+    cols[#cols + 1] = scoreColumn("TXT_KEY_VP_GREAT_WORKS", function(p)
+        return p:GetScoreFromGreatWorks()
+    end)
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_RELIGION", function(p) return p:GetScoreFromReligion() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_RELIGION", function(p)
+            return p:GetScoreFromReligion()
+        end)
     end
     if PreGame.GetLoadWBScenario() then
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO1", function(p) return p:GetScoreFromScenario1() end)
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO2", function(p) return p:GetScoreFromScenario2() end)
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO3", function(p) return p:GetScoreFromScenario3() end)
-        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO4", function(p) return p:GetScoreFromScenario4() end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO1", function(p)
+            return p:GetScoreFromScenario1()
+        end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO2", function(p)
+            return p:GetScoreFromScenario2()
+        end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO3", function(p)
+            return p:GetScoreFromScenario3()
+        end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO4", function(p)
+            return p:GetScoreFromScenario4()
+        end)
     end
     return cols
 end
@@ -245,38 +273,20 @@ local function dominationLeadingLine(state)
         return Text.key("TXT_KEY_VP_DIPLO_NEW_CAPITALS_REMAINING")
     end
     if state.leadingNumPlayersOnTeam > 1 then
-        return Text.format(
-            "TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING",
-            state.leadingTeam + 1,
-            state.leadingNumCapitals
-        )
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING", state.leadingTeam + 1, state.leadingNumCapitals)
     end
     if state.leadingPlayer == activePlayerId() then
-        return Text.format(
-            "TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING",
-            state.leadingNumCapitals
-        )
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING", state.leadingNumCapitals)
     end
     local pLeader = Players[state.leadingPlayer]
     local activeT = Teams[activeTeamId()]
     if pLeader:GetNickName() ~= "" and pLeader:IsHuman() then
-        return Text.format(
-            "TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING",
-            pLeader:GetNickName(),
-            state.leadingNumCapitals
-        )
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING", pLeader:GetNickName(), state.leadingNumCapitals)
     end
     if not activeT:IsHasMet(pLeader:GetTeam()) then
-        return Text.format(
-            "TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING",
-            state.leadingNumCapitals
-        )
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING", state.leadingNumCapitals)
     end
-    return Text.format(
-        "TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING",
-        pLeader:GetName(),
-        state.leadingNumCapitals
-    )
+    return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING", pLeader:GetName(), state.leadingNumCapitals)
 end
 
 -- Per-civ capital sentence. Picks one of vanilla's TT_* tooltip strings
@@ -336,11 +346,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         else
             subjectName = pPlayer:GetName()
         end
-        return Text.format(
-            "TXT_KEY_VP_DIPLO_TT_SOMEONE_CONTROLS_THEIR_CAPITAL",
-            subjectName,
-            capName
-        )
+        return Text.format("TXT_KEY_VP_DIPLO_TT_SOMEONE_CONTROLS_THEIR_CAPITAL", subjectName, capName)
     end
 
     -- Subject's original capital is held by someone else.
@@ -354,11 +360,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
             else
                 domName = pDominator:GetName()
             end
-            return Text.format(
-                "TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_YOUR_CAPITAL",
-                domName,
-                capName
-            )
+            return Text.format("TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_YOUR_CAPITAL", domName, capName)
         end
         if iDominator == activePlayerId() then
             return Text.format(
@@ -394,10 +396,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         else
             domName = pDominator:GetName()
         end
-        return Text.format(
-            "TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_UNMET_PLAYER_CAPITAL",
-            domName
-        )
+        return Text.format("TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_CONTROLS_UNMET_PLAYER_CAPITAL", domName)
     end
     return Text.key("TXT_KEY_VP_DIPLO_TT_UNMET_PLAYER_CONTROLS_UNMET_PLAYER_CAPITAL")
 end
@@ -485,7 +484,7 @@ local function collectPrereqs(techType)
     end
     g_TechPreReqSet[techType] = true
     g_TechPreReqList[#g_TechPreReqList + 1] = techType
-    for row in GameInfo.Technology_PrereqTechs{TechType = techType} do
+    for row in GameInfo.Technology_PrereqTechs({ TechType = techType }) do
         collectPrereqs(row.PrereqTech)
     end
 end
@@ -510,7 +509,7 @@ end
 -- engine in BNW vanilla (see XML Project_VictoryThresholds). Re-query
 -- per call so a Mod altering thresholds is honored.
 local function projectThreshold(typeKey)
-    local row = GameInfo.Project_VictoryThresholds{ProjectType = typeKey}()
+    local row = GameInfo.Project_VictoryThresholds({ ProjectType = typeKey })()
     return row ~= nil and row.Threshold or 0
 end
 
@@ -855,14 +854,26 @@ local function buildVictoriesItems()
             pediaName = "TXT_KEY_SCORE_TIMETOVICTORY_HEADING2_TITLE",
         })
     end
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION", buildDominationItems,
-        "TXT_KEY_VICTORY_DOMINATION_HEADING3_TITLE")
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE", buildScienceItems,
-        "TXT_KEY_VICTORY_SCIENCE_HEADING3_TITLE")
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC", buildDiplomaticItems,
-        "TXT_KEY_VICTORY_DIPLOMATIC_HEADING3_TITLE")
-    items[#items + 1] = sectionGroup("TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL", buildCulturalItems,
-        "TXT_KEY_VICTORY_CULTURAL_HEADING3_TITLE")
+    items[#items + 1] = sectionGroup(
+        "TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION",
+        buildDominationItems,
+        "TXT_KEY_VICTORY_DOMINATION_HEADING3_TITLE"
+    )
+    items[#items + 1] = sectionGroup(
+        "TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE",
+        buildScienceItems,
+        "TXT_KEY_VICTORY_SCIENCE_HEADING3_TITLE"
+    )
+    items[#items + 1] = sectionGroup(
+        "TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC",
+        buildDiplomaticItems,
+        "TXT_KEY_VICTORY_DIPLOMATIC_HEADING3_TITLE"
+    )
+    items[#items + 1] = sectionGroup(
+        "TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL",
+        buildCulturalItems,
+        "TXT_KEY_VICTORY_CULTURAL_HEADING3_TITLE"
+    )
     return items
 end
 

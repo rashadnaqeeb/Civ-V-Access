@@ -88,8 +88,12 @@ end
 -- to 0..100. Matches Demographics.lua's GetApprovalValue.
 local function valueApproval(pPlayer)
     local v = 60 + (pPlayer:GetExcessHappiness() * 3)
-    if v < 0 then return 0 end
-    if v > 100 then return 100 end
+    if v < 0 then
+        return 0
+    end
+    if v > 100 then
+        return 100
+    end
     return v
 end
 
@@ -147,7 +151,9 @@ local function averageOf(valueFn)
         accum = accum + valueFn(p)
         count = count + 1
     end
-    if count == 0 then return 0 end
+    if count == 0 then
+        return 0
+    end
     return accum / count
 end
 
@@ -224,16 +230,28 @@ end
 
 function DemographicsRows.buildItems()
     return {
-        metricRow("TXT_KEY_DEMOGRAPHICS_POPULATION", valuePopulation, formatBig, "TXT_KEY_DEMOGRAPHICS_POPULATION_MEASURE", nil),
-        metricRow("TXT_KEY_DEMOGRAPHICS_FOOD",       valueFood,       formatBig, "TXT_KEY_DEMOGRAPHICS_FOOD_MEASURE",       "m"),
-        metricRow("TXT_KEY_DEMOGRAPHICS_PRODUCTION", valueProduction, formatBig, "TXT_KEY_DEMOGRAPHICS_PRODUCTION_MEASURE", "m"),
+        metricRow(
+            "TXT_KEY_DEMOGRAPHICS_POPULATION",
+            valuePopulation,
+            formatBig,
+            "TXT_KEY_DEMOGRAPHICS_POPULATION_MEASURE",
+            nil
+        ),
+        metricRow("TXT_KEY_DEMOGRAPHICS_FOOD", valueFood, formatBig, "TXT_KEY_DEMOGRAPHICS_FOOD_MEASURE", "m"),
+        metricRow(
+            "TXT_KEY_DEMOGRAPHICS_PRODUCTION",
+            valueProduction,
+            formatBig,
+            "TXT_KEY_DEMOGRAPHICS_PRODUCTION_MEASURE",
+            "m"
+        ),
         -- Spell out vanilla's "GNP" acronym for speech; the underlying value
         -- and unit ("Million Gold") stay engine-sourced.
-        metricRow("TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD", valueGold,       formatBig, "TXT_KEY_DEMOGRAPHICS_GOLD_MEASURE",       "m"),
-        metricRow("TXT_KEY_DEMOGRAPHICS_LAND",       valueLand,       formatBig, "TXT_KEY_DEMOGRAPHICS_LAND_MEASURE",       nil),
-        metricRow("TXT_KEY_DEMOGRAPHICS_ARMY",       valueArmy,       formatBig, nil,                                       nil),
-        metricRow("TXT_KEY_DEMOGRAPHICS_APPROVAL",   valueApproval,   formatPct, nil,                                       nil),
-        metricRow("TXT_KEY_DEMOGRAPHICS_LITERACY",   valueLiteracy,   formatPct, nil,                                       nil),
+        metricRow("TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD", valueGold, formatBig, "TXT_KEY_DEMOGRAPHICS_GOLD_MEASURE", "m"),
+        metricRow("TXT_KEY_DEMOGRAPHICS_LAND", valueLand, formatBig, "TXT_KEY_DEMOGRAPHICS_LAND_MEASURE", nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_ARMY", valueArmy, formatBig, nil, nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_APPROVAL", valueApproval, formatPct, nil, nil),
+        metricRow("TXT_KEY_DEMOGRAPHICS_LITERACY", valueLiteracy, formatPct, nil, nil),
     }
 end
 

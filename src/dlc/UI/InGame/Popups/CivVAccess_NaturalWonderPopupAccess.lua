@@ -14,21 +14,25 @@ local function preamble()
     if wonder ~= "" and description ~= "" then
         return wonder .. ", " .. description
     end
-    if wonder ~= "" then return wonder end
+    if wonder ~= "" then
+        return wonder
+    end
     return description
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "NaturalWonderPopup",
-    displayName   = Text.key("TXT_KEY_POP_NATURAL_WONDER_FOUND"),
-    preamble      = preamble,
-    priorInput    = priorInput,
+    name = "NaturalWonderPopup",
+    displayName = Text.key("TXT_KEY_POP_NATURAL_WONDER_FOUND"),
+    preamble = preamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_CLOSE",
-            activate    = function() OnCloseButtonClicked() end,
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnCloseButtonClicked()
+            end,
         }),
     },
 })

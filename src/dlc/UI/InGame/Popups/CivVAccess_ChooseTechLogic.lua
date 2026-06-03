@@ -12,8 +12,8 @@ ChooseTechLogic = {}
 ChooseTechLogic.ADVISORS = {
     { name = "ECONOMIC", key = "TXT_KEY_TECH_CHOOSER_ADVISOR_RECOMMENDATION_ECONOMIC" },
     { name = "MILITARY", key = "TXT_KEY_TECH_CHOOSER_ADVISOR_RECOMMENDATION_MILITARY" },
-    { name = "SCIENCE",  key = "TXT_KEY_TECH_CHOOSER_ADVISOR_RECOMMENDATION_SCIENCE" },
-    { name = "FOREIGN",  key = "TXT_KEY_TECH_CHOOSER_ADVISOR_RECOMMENDATION_FOREIGN" },
+    { name = "SCIENCE", key = "TXT_KEY_TECH_CHOOSER_ADVISOR_RECOMMENDATION_SCIENCE" },
+    { name = "FOREIGN", key = "TXT_KEY_TECH_CHOOSER_ADVISOR_RECOMMENDATION_FOREIGN" },
 }
 
 -- Requires Game.SetAdvisorRecommenderTech(playerID) to have been called before
@@ -164,19 +164,13 @@ end
 function ChooseTechLogic.buildPreamble(player, mode, stealingTargetID)
     local parts = {}
     if mode == "free" then
-        parts[#parts + 1] = Text.format(
-            "TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE",
-            player:GetNumFreeTechs()
-        )
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_FREE", player:GetNumFreeTechs())
     elseif mode == "stealing" and stealingTargetID ~= nil and stealingTargetID >= 0 then
         local opp = Players[stealingTargetID]
         if opp ~= nil then
             local civ = GameInfo.Civilizations[opp:GetCivilizationType()]
             local civName = (civ ~= nil) and Text.key(civ.ShortDescription) or opp:GetName()
-            parts[#parts + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING",
-                civName
-            )
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_PREAMBLE_STEALING", civName)
         end
     end
     local science = player:GetScience()

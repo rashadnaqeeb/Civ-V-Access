@@ -91,7 +91,10 @@ local function activateQuestInfo()
     end
     -- Match base's narrow scope: only KILL_CAMP has a displayed plot.
     if
-        not minor:IsMinorCivDisplayedQuestForPlayer(Game.GetActivePlayer(), MinorCivQuestTypes.MINOR_CIV_QUEST_KILL_CAMP)
+        not minor:IsMinorCivDisplayedQuestForPlayer(
+            Game.GetActivePlayer(),
+            MinorCivQuestTypes.MINOR_CIV_QUEST_KILL_CAMP
+        )
     then
         return
     end

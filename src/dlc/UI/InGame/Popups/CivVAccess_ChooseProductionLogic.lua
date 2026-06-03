@@ -25,9 +25,7 @@ function ChooseProductionLogic.isWonderBuilding(building)
     if bclass == nil then
         return false
     end
-    return bclass.MaxGlobalInstances > 0
-        or bclass.MaxPlayerInstances == 1
-        or bclass.MaxTeamInstances > 0
+    return bclass.MaxGlobalInstances > 0 or bclass.MaxPlayerInstances == 1 or bclass.MaxTeamInstances > 0
 end
 
 -- Era-by-tech mapping used by unit/building sort. +10 per era matches base's
@@ -227,13 +225,25 @@ local function mkUnitEntry(id, unit, yieldType, isProduce)
     return { orderType = OrderTypes.ORDER_TRAIN, id = id, info = unit, yieldType = yieldType, isProduce = isProduce }
 end
 local function mkBuildingEntry(id, building, yieldType, isProduce)
-    return { orderType = OrderTypes.ORDER_CONSTRUCT, id = id, info = building, yieldType = yieldType, isProduce = isProduce }
+    return {
+        orderType = OrderTypes.ORDER_CONSTRUCT,
+        id = id,
+        info = building,
+        yieldType = yieldType,
+        isProduce = isProduce,
+    }
 end
 local function mkProjectEntry(id, project, yieldType, isProduce)
     return { orderType = OrderTypes.ORDER_CREATE, id = id, info = project, yieldType = yieldType, isProduce = isProduce }
 end
 local function mkProcessEntry(id, process)
-    return { orderType = OrderTypes.ORDER_MAINTAIN, id = id, info = process, yieldType = YieldTypes.NO_YIELD, isProduce = true }
+    return {
+        orderType = OrderTypes.ORDER_MAINTAIN,
+        id = id,
+        info = process,
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
 end
 
 ChooseProductionLogic._mkUnitEntry = mkUnitEntry
@@ -326,7 +336,9 @@ function ChooseProductionLogic.buildOtherEntries(city, isProduce)
     for _, e in ipairs(entries) do
         e.disabledForSort = ChooseProductionLogic.isEntryDisabled(city, e)
     end
-    ChooseProductionLogic.sortEntries(entries, function(_) return 0 end)
+    ChooseProductionLogic.sortEntries(entries, function(_)
+        return 0
+    end)
     return entries
 end
 

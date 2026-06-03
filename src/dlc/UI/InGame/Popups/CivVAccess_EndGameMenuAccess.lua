@@ -97,9 +97,13 @@ local function buildRankingItems()
         items[count] = BaseMenuItems.Text({ labelText = label })
     end
     if matchedLeader ~= nil then
-        table.insert(items, 1, BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_RANKING_STATEMENT", matchedLeader),
-        }))
+        table.insert(
+            items,
+            1,
+            BaseMenuItems.Text({
+                labelText = Text.format("TXT_KEY_RANKING_STATEMENT", matchedLeader),
+            })
+        )
         matchedIdx = matchedIdx + 1
     end
     return items, matchedIdx
@@ -235,6 +239,8 @@ m_handler = BaseMenu.install(ContextPtr, {
     silentFirstOpen = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onEscape = function() return true end,
+    onEscape = function()
+        return true
+    end,
     tabs = { infoTab, demographicsTab, rankingTab, replayTab },
 })

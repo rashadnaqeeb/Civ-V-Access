@@ -37,8 +37,7 @@ end
 -- (no fog-of-war on player identity in MP). Single-player respects the
 -- team's IsHasMet flag.
 function OverviewCivLabels.playerHasMet(pPlayer)
-    return Teams[pPlayer:GetTeam()]:IsHasMet(Game.GetActiveTeam())
-        or OverviewCivLabels.isMP()
+    return Teams[pPlayer:GetTeam()]:IsHasMet(Game.GetActiveTeam()) or OverviewCivLabels.isMP()
 end
 
 -- "Augustus of Rome" / "You of Rome" / "Unknown Civilization". Mirrors the

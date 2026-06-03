@@ -136,8 +136,11 @@ local function productionCellText(city)
     else
         nameText = Text.key(nameKey)
     end
-    if city:IsProduction() and not city:IsProductionProcess()
-        and city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then
+    if
+        city:IsProduction()
+        and not city:IsProductionProcess()
+        and city:GetCurrentProductionDifferenceTimes100(false, false) > 0
+    then
         local turns = city:GetProductionTurnsLeft()
         if turns ~= nil and turns > 0 then
             return Text.formatPlural("TXT_KEY_CIVVACCESS_EO_PROD_CELL", turns, turns, nameText)
@@ -150,11 +153,7 @@ end
 -- description, so a single column conveys both rate and target. Sort by
 -- the rate so columnar comparison is meaningful.
 local function productionColumnCell(city)
-    return Text.format(
-        "TXT_KEY_CIVVACCESS_EO_PROD_FULL",
-        cityProductionPerTurn(city),
-        productionCellText(city)
-    )
+    return Text.format("TXT_KEY_CIVVACCESS_EO_PROD_FULL", cityProductionPerTurn(city), productionCellText(city))
 end
 
 -- Mirror of EconomicOverview.lua's OnClose: dequeue this popup so the engine
@@ -219,7 +218,9 @@ end
 -- TXT_KEY of each concept's Description, which CivilopediaScreen indexes
 -- in searchableTextKeyList.
 local function constPedia(textKey)
-    return function(_) return textKey end
+    return function(_)
+        return textKey
+    end
 end
 
 -- Enter on a stat column with no more specific destination defaults to
@@ -232,13 +233,11 @@ local function buildCityColumns()
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_POPULATION",
             getCell = function(c)
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_POP_CELL",
-                    c:GetPopulation(),
-                    CitySpeech.growthToken(c)
-                )
+                return Text.format("TXT_KEY_CIVVACCESS_EO_POP_CELL", c:GetPopulation(), CitySpeech.growthToken(c))
             end,
-            sortKey = function(c) return c:GetPopulation() end,
+            sortKey = function(c)
+                return c:GetPopulation()
+            end,
             enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_FOOD_CITYGROWTH_HEADING2_TITLE"),
         },
@@ -246,36 +245,24 @@ local function buildCityColumns()
             name = "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH",
             getCell = function(c)
                 local maxHP = GameDefines.MAX_CITY_HIT_POINTS
-                local hpText = Text.format(
-                    "TXT_KEY_CIVVACCESS_CITY_HP_FRACTION",
-                    maxHP - c:GetDamage(),
-                    maxHP
-                )
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_DEF_CELL",
-                    math.floor(c:GetStrengthValue() / 100),
-                    hpText
-                )
+                local hpText = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - c:GetDamage(), maxHP)
+                return Text.format("TXT_KEY_CIVVACCESS_EO_DEF_CELL", math.floor(c:GetStrengthValue() / 100), hpText)
             end,
-            sortKey = function(c) return c:GetStrengthValue() end,
+            sortKey = function(c)
+                return c:GetStrengthValue()
+            end,
             enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_COMBAT_COMBATSTRENGTH_HEADING3_TITLE"),
         },
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FOOD",
             getCell = function(c)
-                local progress = Text.format(
-                    "TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS",
-                    c:GetFood(),
-                    c:GrowthThreshold()
-                )
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_FOOD_CELL",
-                    formatSigned(c:FoodDifference()),
-                    progress
-                )
+                local progress = Text.format("TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS", c:GetFood(), c:GrowthThreshold())
+                return Text.format("TXT_KEY_CIVVACCESS_EO_FOOD_CELL", formatSigned(c:FoodDifference()), progress)
             end,
-            sortKey = function(c) return c:FoodDifference() end,
+            sortKey = function(c)
+                return c:FoodDifference()
+            end,
             enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_FOOD_HEADING1_TITLE"),
         },
@@ -283,16 +270,24 @@ local function buildCityColumns()
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
         cols[#cols + 1] = {
             name = "TXT_KEY_CIVVACCESS_EO_COL_SCIENCE",
-            getCell = function(c) return formatSigned(c:GetYieldRate(YieldTypes.YIELD_SCIENCE)) end,
-            sortKey = function(c) return c:GetYieldRate(YieldTypes.YIELD_SCIENCE) end,
+            getCell = function(c)
+                return formatSigned(c:GetYieldRate(YieldTypes.YIELD_SCIENCE))
+            end,
+            sortKey = function(c)
+                return c:GetYieldRate(YieldTypes.YIELD_SCIENCE)
+            end,
             enterAction = openTechTree,
             pediaName = constPedia("TXT_KEY_TECH_HEADING1_TITLE"),
         }
     end
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_EO_COL_GOLD",
-        getCell = function(c) return formatSigned(c:GetYieldRate(YieldTypes.YIELD_GOLD)) end,
-        sortKey = function(c) return c:GetYieldRate(YieldTypes.YIELD_GOLD) end,
+        getCell = function(c)
+            return formatSigned(c:GetYieldRate(YieldTypes.YIELD_GOLD))
+        end,
+        sortKey = function(c)
+            return c:GetYieldRate(YieldTypes.YIELD_GOLD)
+        end,
         enterAction = focusCity,
         pediaName = constPedia("TXT_KEY_GOLD_HEADING1_TITLE"),
     }
@@ -305,15 +300,21 @@ local function buildCityColumns()
                 CitySpeech.borderGrowthToken(c)
             )
         end,
-        sortKey = function(c) return c:GetJONSCulturePerTurn() end,
+        sortKey = function(c)
+            return c:GetJONSCulturePerTurn()
+        end,
         enterAction = focusCity,
         pediaName = constPedia("TXT_KEY_CULTURE_HEADING1_TITLE"),
     }
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
         cols[#cols + 1] = {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FAITH",
-            getCell = function(c) return formatSigned(c:GetFaithPerTurn()) end,
-            sortKey = function(c) return c:GetFaithPerTurn() end,
+            getCell = function(c)
+                return formatSigned(c:GetFaithPerTurn())
+            end,
+            sortKey = function(c)
+                return c:GetFaithPerTurn()
+            end,
             enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION"),
         }
@@ -379,11 +380,7 @@ local function perCityGoldEntries(amountFn, includePred)
             local amount = amountFn(p, city)
             if amount and amount ~= 0 then
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format(
-                        "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
-                        city:GetName(),
-                        formatNumber(amount)
-                    ),
+                    labelText = Text.format("TXT_KEY_CIVVACCESS_EO_CITY_LINE", city:GetName(), formatNumber(amount)),
                 })
             end
         end
@@ -487,7 +484,9 @@ local function buildIncomeBreakdownItems()
         BaseMenuItems.Text({
             labelFn = function()
                 local v = activePlayer():GetGoldPerTurnFromDiplomacy()
-                if v < 0 then v = 0 end
+                if v < 0 then
+                    v = 0
+                end
                 return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_DIPLO", formatNumber(v))
             end,
             pediaName = "TXT_KEY_GOLD_DIPLOMACY_HEADING3_TITLE",
@@ -495,7 +494,9 @@ local function buildIncomeBreakdownItems()
         BaseMenuItems.Text({
             labelFn = function()
                 local v = activePlayer():GetGoldPerTurnFromReligion()
-                if v < 0 then v = 0 end
+                if v < 0 then
+                    v = 0
+                end
                 return Text.format("TXT_KEY_CIVVACCESS_EO_INCOME_RELIGION", formatNumber(v))
             end,
             pediaName = "TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION",
@@ -511,14 +512,11 @@ local function buildIncomeBreakdownItems()
             tooltipFn = tradeRoutesIncomeTooltip,
             pediaName = "TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_TITLE",
             itemsFn = function()
-                return perCityGoldEntries(
-                    function(p, c)
-                        return p:GetCityConnectionRouteGoldTimes100(c) / 100
-                    end,
-                    function(p, c)
-                        return p:IsCapitalConnectedToCity(c)
-                    end
-                )
+                return perCityGoldEntries(function(p, c)
+                    return p:GetCityConnectionRouteGoldTimes100(c) / 100
+                end, function(p, c)
+                    return p:IsCapitalConnectedToCity(c)
+                end)
             end,
         }),
     }
@@ -569,7 +567,11 @@ local function buildExpensesBreakdownItems()
         BaseMenuItems.Text({
             labelFn = function()
                 local v = activePlayer():GetGoldPerTurnFromDiplomacy()
-                if v > 0 then v = 0 else v = -v end
+                if v > 0 then
+                    v = 0
+                else
+                    v = -v
+                end
                 return Text.format("TXT_KEY_CIVVACCESS_EO_EXPENSE_DIPLO", formatNumber(v))
             end,
             pediaName = "TXT_KEY_GOLD_DIPLOMACY_HEADING3_TITLE",
@@ -702,11 +704,7 @@ local function perCityHappinessEntries(amountFn, includePred, annotateFn)
                     annot
                 )
             else
-                label = Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_CITY_LINE",
-                    city:GetName(),
-                    formatNumber(amount or 0)
-                )
+                label = Text.format("TXT_KEY_CIVVACCESS_EO_CITY_LINE", city:GetName(), formatNumber(amount or 0))
             end
             items[#items + 1] = BaseMenuItems.Text({ labelText = label })
         end
@@ -947,10 +945,7 @@ local function buildHappinessItems()
     return {
         BaseMenuItems.Text({
             labelFn = function()
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL",
-                    activePlayer():GetHappiness()
-                )
+                return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL", activePlayer():GetHappiness())
             end,
             pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         }),
@@ -1116,14 +1111,11 @@ local function buildHappinessItems()
                     cached = false,
                     pediaName = "TXT_KEY_GOLD_TRADE_ROUTES_HEADING3_TITLE",
                     itemsFn = function()
-                        return perCityHappinessEntries(
-                            function(player)
-                                return player:GetHappinessPerTradeRoute() / 100
-                            end,
-                            function(player, c)
-                                return not c:IsCapital() and player:IsCapitalConnectedToCity(c)
-                            end
-                        )
+                        return perCityHappinessEntries(function(player)
+                            return player:GetHappinessPerTradeRoute() / 100
+                        end, function(player, c)
+                            return not c:IsCapital() and player:IsCapitalConnectedToCity(c)
+                        end)
                     end,
                 })
                 items[#items + 1] = BaseMenuItems.Text({
@@ -1188,10 +1180,7 @@ local function buildHappinessItems()
         }),
         BaseMenuItems.Text({
             labelFn = function()
-                return Text.format(
-                    "TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL",
-                    activePlayer():GetUnhappiness()
-                )
+                return Text.format("TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL", activePlayer():GetUnhappiness())
             end,
             pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         }),

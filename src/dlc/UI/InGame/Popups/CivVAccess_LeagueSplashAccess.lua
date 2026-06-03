@@ -10,9 +10,15 @@ local priorShowHide = ShowHideHandler
 
 local function labelOf(name)
     local c = Controls[name]
-    if c == nil or c:IsHidden() then return "" end
-    local ok, text = pcall(function() return c:GetText() end)
-    if not ok or text == nil then return "" end
+    if c == nil or c:IsHidden() then
+        return ""
+    end
+    local ok, text = pcall(function()
+        return c:GetText()
+    end)
+    if not ok or text == nil then
+        return ""
+    end
     return tostring(text)
 end
 
@@ -26,16 +32,18 @@ local function preamble()
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "LeagueSplash",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"),
-    preamble      = preamble,
-    priorInput    = priorInput,
+    name = "LeagueSplash",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_SPLASH"),
+    preamble = preamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_CLOSE",
-            activate    = function() OnClose() end,
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnClose()
+            end,
         }),
     },
 })

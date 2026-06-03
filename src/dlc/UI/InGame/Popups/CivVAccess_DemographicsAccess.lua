@@ -36,7 +36,8 @@ include("CivVAccess_DemographicsRows")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
-if type(ContextPtr) == "table"
+if
+    type(ContextPtr) == "table"
     and type(ContextPtr.SetShowHideHandler) == "function"
     and ContextPtr:GetID() ~= "EndGameDemographics"
 then

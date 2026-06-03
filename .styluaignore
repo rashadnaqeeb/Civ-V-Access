@@ -50,7 +50,12 @@ src/dlc/UI/InGame/WorldView/DiploCorner.lua
 src/dlc/UI/InGame/WorldView/MiniMapPanel.lua
 src/dlc/UI/InGame/Menus/GameMenu.lua
 src/dlc/UI/InGame/Menus/SaveMenu.lua
-src/dlc/UI/InGame/Popups/
+# Popups holds both vendor base files and our CivVAccess_* wrappers. Ignore
+# the vendor files but keep the wrappers under stylua (per the rule of thumb
+# above). Glob the directory's files rather than the directory itself so the
+# negation can re-include -- a trailing-slash dir exclusion blocks re-inclusion.
+src/dlc/UI/InGame/Popups/*.lua
+!src/dlc/UI/InGame/Popups/CivVAccess_*.lua
 src/dlc/UI/InGame/LeaderHead/LeaderHeadRoot.lua
 src/dlc/UI/InGame/LeaderHead/DiscussionDialog.lua
 src/dlc/UI/InGame/CityView/CityView.lua

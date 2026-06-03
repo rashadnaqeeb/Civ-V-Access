@@ -188,12 +188,8 @@ end
 -- ProposerDecision (the snapshotProposal shape collectProposals returns).
 function LeagueOverviewRow.formatProposalWithDetails(pLeague, proposal, activePlayer, voteState)
     local label = LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer, voteState)
-    local detailsText = pLeague:GetResolutionDetails(
-        proposal.Type,
-        activePlayer,
-        proposal.ID,
-        proposal.ProposerDecision or kChoiceNone
-    )
+    local detailsText =
+        pLeague:GetResolutionDetails(proposal.Type, activePlayer, proposal.ID, proposal.ProposerDecision or kChoiceNone)
     return LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.formatResolutionDetails(detailsText))
 end
 

@@ -284,10 +284,8 @@ function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_BLOCKED")
     else
         if missing ~= nil and #missing > 0 then
-            parts[#parts + 1] = Text.format(
-                "TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED_REQUIRES",
-                table.concat(missing, ", ")
-            )
+            parts[#parts + 1] =
+                Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED_REQUIRES", table.concat(missing, ", "))
         else
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED")
         end

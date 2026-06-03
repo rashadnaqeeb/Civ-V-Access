@@ -30,8 +30,8 @@ local function nameFailureReason(text)
 end
 
 local textfieldItem = BaseMenuItems.Textfield({
-    controlName   = "EditCityName",
-    textKey       = "TXT_KEY_PRODPANEL_CITY_NAME",
+    controlName = "EditCityName",
+    textKey = "TXT_KEY_PRODPANEL_CITY_NAME",
     priorCallback = function(text, control, bIsEnter)
         Validate(text, control, bIsEnter)
         if not bIsEnter then
@@ -50,11 +50,11 @@ local textfieldItem = BaseMenuItems.Textfield({
 })
 
 BaseMenu.install(ContextPtr, {
-    name          = "SetCityName",
-    displayName   = Text.key("TXT_KEY_NAME_CITY_TITLE"),
-    priorInput    = priorInput,
+    name = "SetCityName",
+    displayName = Text.key("TXT_KEY_NAME_CITY_TITLE"),
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow        = function(handler)
+    onShow = function(handler)
         TickPump.runOnce(function()
             if HandlerStack.active() ~= handler then
                 return
@@ -62,17 +62,21 @@ BaseMenu.install(ContextPtr, {
             BaseMenuEditMode.push(handler, textfieldItem)
         end)
     end,
-    items         = {
+    items = {
         textfieldItem,
         BaseMenuItems.Button({
             controlName = "AcceptButton",
-            textKey     = "TXT_KEY_ACCEPT_BUTTON",
-            activate    = function() OnAccept() end,
+            textKey = "TXT_KEY_ACCEPT_BUTTON",
+            activate = function()
+                OnAccept()
+            end,
         }),
         BaseMenuItems.Button({
             controlName = "CancelButton",
-            textKey     = "TXT_KEY_CANCEL_BUTTON",
-            activate    = function() OnCancel() end,
+            textKey = "TXT_KEY_CANCEL_BUTTON",
+            activate = function()
+                OnCancel()
+            end,
         }),
     },
 })

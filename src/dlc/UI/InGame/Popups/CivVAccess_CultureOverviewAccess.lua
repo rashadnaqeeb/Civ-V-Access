@@ -586,15 +586,7 @@ local function buildCityGroup(city)
                     damagePct
                 )
             end
-            return Text.formatPlural(
-                "TXT_KEY_CIVVACCESS_CO_CITY_LABEL",
-                total,
-                namePart,
-                cul,
-                tou,
-                filled,
-                total
-            )
+            return Text.formatPlural("TXT_KEY_CIVVACCESS_CO_CITY_LABEL", total, namePart, cul, tou, filled, total)
         end,
         cached = false,
         itemsFn = function()
@@ -1176,10 +1168,7 @@ end
 -- header) plus the "press enter to switch" discoverability hint. The
 -- combined string is one TXT_KEY for translatability.
 local function perspectiveCellText(targetID)
-    return Text.format(
-        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE_CELL",
-        Players[targetID]:GetTourism()
-    )
+    return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE_CELL", Players[targetID]:GetTourism())
 end
 
 -- Enter on column 1 mutates g_iSelectedPlayerID directly (engine pattern;

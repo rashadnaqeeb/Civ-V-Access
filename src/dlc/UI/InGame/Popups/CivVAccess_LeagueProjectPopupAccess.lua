@@ -44,9 +44,9 @@ AddPlayerEntry = function(iPlayerID, iScore, iTier, iRank)
     end
     capturedEntries[#capturedEntries + 1] = {
         iPlayerID = iPlayerID,
-        iScore    = iScore,
-        iTier     = iTier,
-        iRank     = iRank,
+        iScore = iScore,
+        iTier = iTier,
+        iRank = iRank,
     }
 end
 
@@ -80,7 +80,9 @@ local function buildPreamble()
     for _, name in ipairs({ "PresentsLabel", "ListNameLabel", "ProjectInfoLabel" }) do
         local c = Controls[name]
         if c ~= nil then
-            local ok, t = pcall(function() return c:GetText() end)
+            local ok, t = pcall(function()
+                return c:GetText()
+            end)
             if ok and t ~= nil and t ~= "" then
                 parts[#parts + 1] = tostring(t)
             end
@@ -93,10 +95,16 @@ local function buildPreamble()
 end
 
 local function rewardTooltipFor(iTier)
-    if iTier <= 0 then return nil end
-    if capturedLeague == nil or capturedProject == nil then return nil end
+    if iTier <= 0 then
+        return nil
+    end
+    if capturedLeague == nil or capturedProject == nil then
+        return nil
+    end
     local pLeague = Game.GetLeague(capturedLeague)
-    if pLeague == nil then return nil end
+    if pLeague == nil then
+        return nil
+    end
     -- Cumulative: a silver-tier earner also got bronze, gold also got silver+bronze.
     -- Order highest-to-lowest to match base's tooltip ordering.
     local parts = {}
@@ -109,32 +117,36 @@ end
 local function buildItems()
     local items = {}
     for _, e in ipairs(capturedEntries) do
-        local label = Text.format("TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_ENTRY",
+        local label = Text.format(
+            "TXT_KEY_CIVVACCESS_LEAGUE_PROJECT_ENTRY",
             e.iRank,
             playerNameFor(e.iPlayerID),
             e.iScore,
-            tierLabel(e.iTier))
+            tierLabel(e.iTier)
+        )
         items[#items + 1] = BaseMenuItems.Text({
-            labelText   = label,
+            labelText = label,
             tooltipText = rewardTooltipFor(e.iTier),
         })
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "CloseButton",
-        textKey     = "TXT_KEY_CLOSE",
-        activate    = function() OnClose() end,
+        textKey = "TXT_KEY_CLOSE",
+        activate = function()
+            OnClose()
+        end,
     })
     return items
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "LeagueProjectPopup",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_PROJECT"),
-    preamble      = buildPreamble,
-    priorInput    = priorInput,
+    name = "LeagueProjectPopup",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_PROJECT"),
+    preamble = buildPreamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow        = function(handler)
+    onShow = function(handler)
         handler.setItems(buildItems())
     end,
-    items         = {},
+    items = {},
 })

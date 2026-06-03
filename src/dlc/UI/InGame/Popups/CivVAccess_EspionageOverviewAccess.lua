@@ -112,9 +112,7 @@ local function activityTooltip(agent, city)
         end
         local policyChance = activePlayer():GetPolicyCatchSpiesModifier()
         if rankChance ~= 0 then
-            tt = tt
-                .. ". "
-                .. Text.format("TXT_KEY_EO_SPY_COUNTER_INTEL_SPY_RANK_TT", rankChance, rank, name)
+            tt = tt .. ". " .. Text.format("TXT_KEY_EO_SPY_COUNTER_INTEL_SPY_RANK_TT", rankChance, rank, name)
         end
         if policyChance ~= 0 then
             tt = tt .. ". " .. Text.format("TXT_KEY_EO_SPY_COUNTER_INTEL_POLICY_TT", policyChance)
@@ -175,8 +173,7 @@ local function agentRowLabel(agent)
         return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_KIA", rank, name)
     end
     local city = plotCity(agent.CityX, agent.CityY)
-    local where = (city ~= nil) and Text.key(city:GetName())
-        or Text.key("TXT_KEY_SPY_LOCATION_UNASSIGNED")
+    local where = (city ~= nil) and Text.key(city:GetName()) or Text.key("TXT_KEY_SPY_LOCATION_UNASSIGNED")
     local activity = Text.key(activityKey(agent))
     local diplomatTail = agent.IsDiplomat and Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_TAIL") or ""
     if agent.TurnsLeft and agent.TurnsLeft > 0 then
@@ -998,7 +995,11 @@ pushMoveSub = function(agent)
     local items, initialIndex = buildMoveSubItems(agent)
     local sub = BaseMenu.create({
         name = "EspionageOverview/Move",
-        displayName = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY", Text.key(agent.Rank), Text.key(agent.Name)),
+        displayName = Text.format(
+            "TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY",
+            Text.key(agent.Rank),
+            Text.key(agent.Name)
+        ),
         preamble = Text.format("TXT_KEY_MOVE_SPY_INSTRUCTIONS", agent.Rank, agent.Name),
         items = items,
         initialIndex = initialIndex,

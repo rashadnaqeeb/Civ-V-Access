@@ -51,37 +51,49 @@ local mainHandler -- forward declared, assigned after install
 local SLOT_PANTHEON = {
     slotIndex = 1,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_PANTHEON_BELIEF",
-    picker = function() return Game.GetAvailablePantheonBeliefs() end,
+    picker = function()
+        return Game.GetAvailablePantheonBeliefs()
+    end,
     dedup = { 6 },
 }
 local SLOT_FOUNDER = {
     slotIndex = 2,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_FOUNDER_BELIEF",
-    picker = function() return Game.GetAvailableFounderBeliefs() end,
+    picker = function()
+        return Game.GetAvailableFounderBeliefs()
+    end,
     dedup = { 6 },
 }
 local SLOT_FOLLOWER = {
     slotIndex = 3,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_FOLLOWER_BELIEF",
-    picker = function() return Game.GetAvailableFollowerBeliefs() end,
+    picker = function()
+        return Game.GetAvailableFollowerBeliefs()
+    end,
     dedup = { 6 },
 }
 local SLOT_FOLLOWER2 = {
     slotIndex = 4,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_FOLLOWER_BELIEF2",
-    picker = function() return Game.GetAvailableFollowerBeliefs() end,
+    picker = function()
+        return Game.GetAvailableFollowerBeliefs()
+    end,
     dedup = {},
 }
 local SLOT_ENHANCER = {
     slotIndex = 5,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_SPREAD_BELIEF",
-    picker = function() return Game.GetAvailableEnhancerBeliefs() end,
+    picker = function()
+        return Game.GetAvailableEnhancerBeliefs()
+    end,
     dedup = {},
 }
 local SLOT_BONUS = {
     slotIndex = 6,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_BONUS_BELIEF",
-    picker = function() return Game.GetAvailableBonusBeliefs() end,
+    picker = function()
+        return Game.GetAvailableBonusBeliefs()
+    end,
     dedup = { 1, 2, 3 },
 }
 

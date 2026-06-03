@@ -8,16 +8,20 @@ local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 BaseMenu.install(ContextPtr, {
-    name          = "TextPopup",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TEXT_POPUP"),
-    preamble      = function() return Controls.DescriptionLabel:GetText() end,
-    priorInput    = priorInput,
+    name = "TextPopup",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TEXT_POPUP"),
+    preamble = function()
+        return Controls.DescriptionLabel:GetText()
+    end,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_OK_BUTTON",
-            activate    = function() OnCloseButtonClicked() end,
+            textKey = "TXT_KEY_OK_BUTTON",
+            activate = function()
+                OnCloseButtonClicked()
+            end,
         }),
     },
 })

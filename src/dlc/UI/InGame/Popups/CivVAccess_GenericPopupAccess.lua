@@ -40,30 +40,30 @@ local priorInput = InputHandler
 -- cost. Capturing it per slot lets every Button item announce the tradeoff
 -- alongside its label without per-popup wiring.
 
-local baseAddButton    = AddButton
+local baseAddButton = AddButton
 local baseClearButtons = ClearButtons
 
-local buttonCallbacks    = {}
+local buttonCallbacks = {}
 local buttonPreventClose = {}
-local buttonTooltips     = {}
-local nextButtonIdx      = 1
+local buttonTooltips = {}
+local nextButtonIdx = 1
 
 AddButton = function(buttonText, buttonClickFunc, strToolTip, bPreventClose)
     baseAddButton(buttonText, buttonClickFunc, strToolTip, bPreventClose)
     if nextButtonIdx <= 4 then
-        buttonCallbacks[nextButtonIdx]    = buttonClickFunc
+        buttonCallbacks[nextButtonIdx] = buttonClickFunc
         buttonPreventClose[nextButtonIdx] = bPreventClose == true
-        buttonTooltips[nextButtonIdx]     = strToolTip
+        buttonTooltips[nextButtonIdx] = strToolTip
         nextButtonIdx = nextButtonIdx + 1
     end
 end
 
 ClearButtons = function()
     baseClearButtons()
-    buttonCallbacks    = {}
+    buttonCallbacks = {}
     buttonPreventClose = {}
-    buttonTooltips     = {}
-    nextButtonIdx      = 1
+    buttonTooltips = {}
+    nextButtonIdx = 1
 end
 
 -- Items ---------------------------------------------------------------------
@@ -73,8 +73,7 @@ local function invokeSlot(idx)
     if fn ~= nil then
         local ok, err = pcall(fn)
         if not ok then
-            Log.error("GenericPopupAccess: button " .. idx
-                .. " callback failed: " .. tostring(err))
+            Log.error("GenericPopupAccess: button " .. idx .. " callback failed: " .. tostring(err))
         end
     end
     if not buttonPreventClose[idx] then
@@ -87,31 +86,69 @@ local function labelForSlot(idx)
 end
 
 local items = {
-    BaseMenuItems.Button({ controlName = "Button1",
-        labelFn   = function() return labelForSlot(1) end,
-        tooltipFn = function() return buttonTooltips[1] end,
-        activate  = function() invokeSlot(1) end }),
-    BaseMenuItems.Button({ controlName = "Button2",
-        labelFn   = function() return labelForSlot(2) end,
-        tooltipFn = function() return buttonTooltips[2] end,
-        activate  = function() invokeSlot(2) end }),
-    BaseMenuItems.Button({ controlName = "Button3",
-        labelFn   = function() return labelForSlot(3) end,
-        tooltipFn = function() return buttonTooltips[3] end,
-        activate  = function() invokeSlot(3) end }),
-    BaseMenuItems.Button({ controlName = "Button4",
-        labelFn   = function() return labelForSlot(4) end,
-        tooltipFn = function() return buttonTooltips[4] end,
-        activate  = function() invokeSlot(4) end }),
-    BaseMenuItems.Button({ controlName = "CloseButton",
-        textKey  = "TXT_KEY_CLOSE",
-        activate = function() HideWindow() end }),
+    BaseMenuItems.Button({
+        controlName = "Button1",
+        labelFn = function()
+            return labelForSlot(1)
+        end,
+        tooltipFn = function()
+            return buttonTooltips[1]
+        end,
+        activate = function()
+            invokeSlot(1)
+        end,
+    }),
+    BaseMenuItems.Button({
+        controlName = "Button2",
+        labelFn = function()
+            return labelForSlot(2)
+        end,
+        tooltipFn = function()
+            return buttonTooltips[2]
+        end,
+        activate = function()
+            invokeSlot(2)
+        end,
+    }),
+    BaseMenuItems.Button({
+        controlName = "Button3",
+        labelFn = function()
+            return labelForSlot(3)
+        end,
+        tooltipFn = function()
+            return buttonTooltips[3]
+        end,
+        activate = function()
+            invokeSlot(3)
+        end,
+    }),
+    BaseMenuItems.Button({
+        controlName = "Button4",
+        labelFn = function()
+            return labelForSlot(4)
+        end,
+        tooltipFn = function()
+            return buttonTooltips[4]
+        end,
+        activate = function()
+            invokeSlot(4)
+        end,
+    }),
+    BaseMenuItems.Button({
+        controlName = "CloseButton",
+        textKey = "TXT_KEY_CLOSE",
+        activate = function()
+            HideWindow()
+        end,
+    }),
 }
 
 BaseMenu.install(ContextPtr, {
-    name        = "GenericPopup",
+    name = "GenericPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GENERIC_POPUP"),
-    preamble    = function() return Controls.PopupText:GetText() end,
-    priorInput  = priorInput,
-    items       = items,
+    preamble = function()
+        return Controls.PopupText:GetText()
+    end,
+    priorInput = priorInput,
+    items = items,
 })

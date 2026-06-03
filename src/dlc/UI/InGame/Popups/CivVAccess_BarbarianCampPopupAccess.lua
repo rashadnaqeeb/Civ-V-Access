@@ -8,16 +8,20 @@ local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 BaseMenu.install(ContextPtr, {
-    name          = "BarbarianCampPopup",
-    displayName   = Text.key("TXT_KEY_POP_BARBARIAN_CLEARED"),
-    preamble      = function() return Controls.DescriptionLabel:GetText() end,
-    priorInput    = priorInput,
+    name = "BarbarianCampPopup",
+    displayName = Text.key("TXT_KEY_POP_BARBARIAN_CLEARED"),
+    preamble = function()
+        return Controls.DescriptionLabel:GetText()
+    end,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    items         = {
+    items = {
         BaseMenuItems.Button({
             controlName = "CloseButton",
-            textKey     = "TXT_KEY_CLOSE",
-            activate    = function() OnCloseButtonClicked() end,
+            textKey = "TXT_KEY_CLOSE",
+            activate = function()
+                OnCloseButtonClicked()
+            end,
         }),
     },
 })

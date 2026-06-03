@@ -249,8 +249,7 @@ local function buildSection(headerKey, candidates, controller, slotIdx, pLeague,
     end
     local children = {}
     for _, candidate in ipairs(candidates) do
-        children[#children + 1] =
-            buildCandidateItem(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
+        children[#children + 1] = buildCandidateItem(controller, slotIdx, candidate, pLeague, activePlayer, allowCommit)
     end
     return BaseMenuItems.Group({
         labelText = Text.key(headerKey),

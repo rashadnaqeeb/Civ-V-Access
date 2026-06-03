@@ -38,8 +38,8 @@ AddPlayerEntry = function(iPlayerID, iScore, iRank)
     end
     capturedEntries[#capturedEntries + 1] = {
         iPlayerID = iPlayerID,
-        iScore    = iScore,
-        iRank     = iRank,
+        iScore = iScore,
+        iRank = iRank,
     }
 end
 
@@ -52,9 +52,9 @@ AddCityEntry = function(iPlayerID, iCityID, iScore, iRank)
     end
     capturedEntries[#capturedEntries + 1] = {
         iPlayerID = iPlayerID,
-        iCityID   = iCityID,
-        iScore    = iScore,
-        iRank     = iRank,
+        iCityID = iCityID,
+        iScore = iScore,
+        iRank = iRank,
     }
 end
 
@@ -110,23 +110,24 @@ local function buildItems()
         local label
         if capturedKind == "city" then
             if not isMet(e.iPlayerID) then
-                label = Text.format("TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY",
+                label = Text.format(
+                    "TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY",
                     e.iRank,
                     Text.key("TXT_KEY_POP_VOTE_RESULTS_UNMET_PLAYER"),
-                    score)
+                    score
+                )
             else
                 local pCity = Players[e.iPlayerID]:GetCityByID(e.iCityID)
-                label = Text.format("TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY",
+                label = Text.format(
+                    "TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY",
                     e.iRank,
                     Text.key(pCity:GetNameKey()),
                     leaderName(e.iPlayerID),
-                    score)
+                    score
+                )
             end
         else
-            label = Text.format("TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY",
-                e.iRank,
-                nameForPlayer(e.iPlayerID),
-                score)
+            label = Text.format("TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY", e.iRank, nameForPlayer(e.iPlayerID), score)
         end
         items[#items + 1] = BaseMenuItems.Text({
             labelText = label,
@@ -135,20 +136,22 @@ local function buildItems()
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "CloseButton",
-        textKey     = "TXT_KEY_CLOSE",
-        activate    = function() OnClose() end,
+        textKey = "TXT_KEY_CLOSE",
+        activate = function()
+            OnClose()
+        end,
     })
     return items
 end
 
 BaseMenu.install(ContextPtr, {
-    name          = "WhosWinningPopup",
-    displayName   = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"),
-    preamble      = buildPreamble,
-    priorInput    = priorInput,
+    name = "WhosWinningPopup",
+    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"),
+    preamble = buildPreamble,
+    priorInput = priorInput,
     priorShowHide = priorShowHide,
-    onShow        = function(handler)
+    onShow = function(handler)
         handler.setItems(buildItems())
     end,
-    items         = {},
+    items = {},
 })
