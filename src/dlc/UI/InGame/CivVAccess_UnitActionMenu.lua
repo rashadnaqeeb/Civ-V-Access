@@ -472,6 +472,61 @@ local function buildActionTooltip(unit, action)
     return table.concat(parts, ". ")
 end
 
+-- Upgrade tooltip mirroring UnitPanel.lua's COMMAND_UPGRADE branch
+-- (lines 1009-1122): the target unit and gold cost, plus -- only when
+-- the upgrade is currently blocked -- the same named reasons the
+-- grayed-out button surfaces (outside friendly territory, an air unit
+-- not in a city, insufficient gold, missing strategic resources,
+-- stacking). The lead line reuses the concise key the unit-info path
+-- speaks so the inspect and Tab-menu surfaces phrase the upgrade the
+-- same way; the blocker lines reuse the game's own localized keys.
+-- Re-queried at announce time per the "never cache game state" rule.
+local function upgradeTooltip(unit)
+    local iUnitType = unit:GetUpgradeUnitType()
+    if iUnitType == -1 then
+        return nil
+    end
+    local upgradeRow = GameInfo.Units[iUnitType]
+    if upgradeRow == nil then
+        Log.warn("UnitActionMenu: GetUpgradeUnitType returned unknown id " .. tostring(iUnitType))
+        return nil
+    end
+    local iGold = unit:UpgradePrice(iUnitType)
+    local parts = { Text.format("TXT_KEY_CIVVACCESS_UNIT_UPGRADE", Text.key(upgradeRow.Description), iGold) }
+
+    -- bTestVisible = 0 is the full "can upgrade right now" gate; when it
+    -- fails the entry shows disabled and the blockers explain what to fix.
+    if not unit:CanUpgradeRightNow(0) then
+        local plot = unit:GetPlot()
+        local pActivePlayer = Players[Game.GetActivePlayer()]
+        if plot:GetOwner() ~= unit:GetOwner() then
+            parts[#parts + 1] = Text.key("TXT_KEY_UPGRADE_HELP_DISABLED_TERRITORY")
+        end
+        if unit:GetDomainType() == DomainTypes.DOMAIN_AIR and not plot:IsCity() then
+            parts[#parts + 1] = Text.key("TXT_KEY_UPGRADE_HELP_DISABLED_CITY")
+        end
+        if iGold > pActivePlayer:GetGold() then
+            parts[#parts + 1] = Text.key("TXT_KEY_UPGRADE_HELP_DISABLED_GOLD")
+        end
+        local needed = {}
+        for pResource in GameInfo.Resources() do
+            local iNeed = unit:GetNumResourceNeededToUpgrade(pResource.ID)
+            if iNeed > 0 and iNeed > pActivePlayer:GetNumResourceAvailable(pResource.ID) then
+                needed[#needed + 1] =
+                    Text.format("TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED", iNeed, Text.key(pResource.Description))
+            end
+        end
+        if #needed > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_UPGRADE_HELP_DISABLED_RESOURCES", table.concat(needed, ", "))
+        end
+        if plot:GetNumFriendlyUnitsOfType(unit) > 1 then
+            parts[#parts + 1] = Text.key("TXT_KEY_UPGRADE_HELP_DISABLED_STACKING")
+        end
+    end
+
+    return table.concat(parts, ". ")
+end
+
 -- Reason a visible build is currently disabled, mirroring the named cases
 -- UnitPanel.lua's TipHandler reports (lines 1327-1498) so blind players
 -- read the same blocked-reason set sighted players see in the grayed-out
@@ -860,9 +915,15 @@ local function buildTopLevelItems(unit, buckets)
                 end,
             })
         else
+            -- COMMAND_UPGRADE swaps the useless static "Upgrade the unit."
+            -- help for the live target / gold / blocker breakdown.
+            local isUpgrade = action.Type == "COMMAND_UPGRADE"
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = label,
                 tooltipFn = function()
+                    if isUpgrade then
+                        return upgradeTooltip(unit)
+                    end
                     return staticHelpText(action)
                 end,
                 activate = function()
@@ -871,6 +932,24 @@ local function buildTopLevelItems(unit, buckets)
                 end,
             })
         end
+    end
+    -- A visible-but-disabled upgrade (tech / target / moves satisfy the
+    -- visible gate but gold / territory / resources block the commit) is
+    -- shown the same way disabled builds are: a non-committing entry whose
+    -- label leads with the status word and whose tooltip explains what to
+    -- fix, so the player can plan toward affording it.
+    if buckets.disabledUpgrade ~= nil then
+        local action = buckets.disabledUpgrade.action
+        local actionName = actionLabel(action)
+        items[#items + 1] = BaseMenuItems.Choice({
+            labelText = Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE", actionName),
+            tooltipFn = function()
+                return upgradeTooltip(unit)
+            end,
+            activate = function()
+                SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE", actionName))
+            end,
+        })
     end
     if #buckets.promotions > 0 then
         items[#items + 1] = BaseMenuItems.Group({
@@ -888,7 +967,7 @@ local function buildTopLevelItems(unit, buckets)
 end
 
 local function collectActions(unit)
-    local buckets = { plain = {}, promotions = {}, builds = {}, disabledBuilds = {} }
+    local buckets = { plain = {}, promotions = {}, builds = {}, disabledBuilds = {}, disabledUpgrade = nil }
     if GameInfoActions == nil then
         Log.error("UnitActionMenu: GameInfoActions missing; no actions to list")
         return buckets
@@ -901,6 +980,17 @@ local function collectActions(unit)
                     buckets.builds[#buckets.builds + 1] = { iAction = iAction, action = action }
                 elseif isVisibleForBuild(unit, iAction, action) then
                     buckets.disabledBuilds[#buckets.disabledBuilds + 1] = { iAction = iAction, action = action }
+                end
+            elseif action.Type == "COMMAND_UPGRADE" then
+                -- The visible gate (CanHandleAction with bTestVisible) already
+                -- requires moves, the upgrade target, and its prereq tech, so a
+                -- 0-MP or non-upgradable unit drops out here without a separate
+                -- moves filter. Available -> plain (commits in place); visible
+                -- but blocked -> disabledUpgrade (shown, non-committing).
+                if isAvailable(unit, iAction, action) then
+                    buckets.plain[#buckets.plain + 1] = { iAction = iAction, action = action }
+                elseif action.Visible and Game.CanHandleAction(iAction, 0, 1) then
+                    buckets.disabledUpgrade = { iAction = iAction, action = action }
                 end
             elseif isAvailable(unit, iAction, action) then
                 if isPromotionAction(action) then

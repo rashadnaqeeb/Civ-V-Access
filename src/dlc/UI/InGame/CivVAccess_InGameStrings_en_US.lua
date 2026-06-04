@@ -334,6 +334,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Build improvements"
 -- named set.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "unavailable, {1_BuildName}, {2_Reason}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "unavailable, {1_BuildName}"
+-- Label for a visible-but-blocked single action (e.g. an upgrade the player
+-- can't yet afford); leads with the status word, the tooltip carries the why.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "unavailable, {1_Action}"
+-- One strategic-resource shortfall line in an upgrade's blocker breakdown.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 -- Spoken on entering a target-picker mode (ranged attack, paradrop, etc.)
 -- as the audible confirmation that the cursor's keys are now picking a
 -- target rather than navigating freely.
