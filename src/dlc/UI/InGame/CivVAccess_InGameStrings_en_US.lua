@@ -337,6 +337,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "unavailable, {1_Bu
 -- Label for a visible-but-blocked single action (e.g. an upgrade the player
 -- can't yet afford); leads with the status word, the tooltip carries the why.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "unavailable, {1_Action}"
+-- Appends the mod's Alt+letter shortcut after a Tab-menu action's label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
 -- One strategic-resource shortfall line in an upgrade's blocker breakdown.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 -- Spoken on entering a target-picker mode (ranged attack, paradrop, etc.)

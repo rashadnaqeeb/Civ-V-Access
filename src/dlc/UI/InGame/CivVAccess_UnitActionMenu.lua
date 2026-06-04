@@ -346,6 +346,22 @@ local function actionLabel(action)
     return Text.key(key)
 end
 
+-- Append the mod's Alt+letter shortcut for this action, pulled from the same
+-- help-key strings the unit help screen uses, so the Tab menu teaches the
+-- keyboard shortcut inline (e.g. "Move To, Alt plus M"). Actions the mod
+-- binds no shortcut to (promotions, builds, automate, disband, the engine's
+-- own target pickers) pass through unchanged, as does an empty label.
+local function appendActionKey(labelText, action)
+    if labelText == "" then
+        return labelText
+    end
+    local keyLabelKey = UnitControl.actionKeyLabel(action.Type)
+    if keyLabelKey == nil then
+        return labelText
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY", labelText, Text.key(keyLabelKey))
+end
+
 -- Static Help text from the action's underlying table (Builds.Help,
 -- UnitPromotions.Help, Missions.Help, etc.). Engine defaults are "" for
 -- rows that don't author one, so treat empty / nil the same.
@@ -862,7 +878,7 @@ local function buildTopLevelItems(unit, buckets)
     for _, row in ipairs(buckets.plain) do
         local iAction = row.iAction
         local action = row.action
-        local label = actionLabel(action)
+        local label = appendActionKey(actionLabel(action), action)
         local destBuilder = DESTINATION_LIST_BUILDERS[action.Type]
         local submenuOpener = SUBMENU_OPENERS[action.Type]
         if label == "" then
@@ -942,7 +958,7 @@ local function buildTopLevelItems(unit, buckets)
         local action = buckets.disabledUpgrade.action
         local actionName = actionLabel(action)
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE", actionName),
+            labelText = appendActionKey(Text.format("TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE", actionName), action),
             tooltipFn = function()
                 return upgradeTooltip(unit)
             end,

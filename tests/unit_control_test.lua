@@ -436,4 +436,35 @@ function M.test_preflight_attack_target_city_attack_only_beats_naval_drill()
     T.eq(UnitControl.preflightAttackTarget(unit, target), "only attacks cities")
 end
 
+-- ===== Action-type -> shortcut-key-label reverse index =====
+-- The Tab menu appends each action's Alt+letter shortcut via this lookup;
+-- a typo in a group name or a missing entry would silently drop (or
+-- mislabel) the shortcut on a real menu item, so assert the mapping
+-- directly: single-Type groups, a multi-Type group where every Type must
+-- resolve to the one shortcut that commits it, and the unmapped-Type nil.
+function M.test_action_key_label_maps_single_type_actions()
+    setup()
+    T.eq(UnitControl.actionKeyLabel("COMMAND_UPGRADE"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_UPGRADE")
+    T.eq(UnitControl.actionKeyLabel("INTERFACEMODE_MOVE_TO"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_MOVE_TO")
+    T.eq(UnitControl.actionKeyLabel("MISSION_SKIP"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SKIP")
+end
+
+function M.test_action_key_label_maps_every_type_in_a_multi_type_group()
+    setup()
+    -- Sleep covers fortify (military) and sleep (civilian); both point at Alt+S.
+    T.eq(UnitControl.actionKeyLabel("MISSION_FORTIFY"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SLEEP")
+    T.eq(UnitControl.actionKeyLabel("MISSION_SLEEP"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SLEEP")
+    -- Wake covers wake / cancel-queue / stop-automation; all point at Alt+W.
+    T.eq(UnitControl.actionKeyLabel("COMMAND_CANCEL"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_WAKE")
+    T.eq(UnitControl.actionKeyLabel("COMMAND_STOP_AUTOMATION"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_WAKE")
+end
+
+function M.test_action_key_label_unmapped_type_returns_nil()
+    setup()
+    -- A build action carries no Alt shortcut; the menu must get nil so the
+    -- label passes through without a bogus key suffix.
+    T.eq(UnitControl.actionKeyLabel("MISSION_BUILD"), nil)
+    T.eq(UnitControl.actionKeyLabel("COMMAND_PROMOTION"), nil)
+end
+
 return M

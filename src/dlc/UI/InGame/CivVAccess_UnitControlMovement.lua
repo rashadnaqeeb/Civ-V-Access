@@ -321,6 +321,42 @@ local ALT_ACTION_TYPES = {
     UPGRADE = { "COMMAND_UPGRADE" },
 }
 
+-- The help-key TXT_KEY naming each group's Alt+letter shortcut. Same key
+-- strings the unit help screen lists (helpEntries below), keyed by group so
+-- the reverse index can tie a GameInfoActions Type to its shortcut.
+local ALT_ACTION_KEY_LABELS = {
+    SLEEP = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SLEEP",
+    SENTRY = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SENTRY",
+    WAKE = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_WAKE",
+    HEAL = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_HEAL",
+    PILLAGE = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_PILLAGE",
+    RANGED = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_RANGED",
+    MOVE_TO = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_MOVE_TO",
+    SKIP = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_SKIP",
+    UPGRADE = "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_UPGRADE",
+}
+
+-- Reverse index: GameInfoActions Type -> its shortcut's key-label TXT_KEY,
+-- built from the two tables above so the Tab menu can append the shortcut to
+-- each action it lists without restating the action-Type lists. A group with
+-- several Types (Sleep covers fortify and sleep; Wake covers wake / cancel /
+-- stop-automation) points every Type at the one shortcut that commits it.
+local ACTION_TYPE_KEY_LABEL = {}
+for group, types in pairs(ALT_ACTION_TYPES) do
+    local labelKey = ALT_ACTION_KEY_LABELS[group]
+    if labelKey ~= nil then
+        for _, actionType in ipairs(types) do
+            ACTION_TYPE_KEY_LABEL[actionType] = labelKey
+        end
+    end
+end
+
+-- The help-key TXT_KEY naming the mod's Alt+letter shortcut for a
+-- GameInfoActions Type, or nil when the mod binds no shortcut to it.
+function UnitControlMovement.actionKeyLabel(actionType)
+    return ACTION_TYPE_KEY_LABEL[actionType]
+end
+
 local function quickAction(types)
     return function()
         local unit = selectedUnit()
