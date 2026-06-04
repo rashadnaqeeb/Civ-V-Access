@@ -437,6 +437,21 @@ function M.test_numpad_minus_clamps_at_min()
     T.truthy(spoken[1].text:find("min", 1, true), "min-clamp announcement contains 'min': " .. tostring(spoken[1].text))
 end
 
+function M.test_top_row_plus_minus_alias_radius_controls()
+    setup()
+    civvaccess_shared.dirScanRadius = 5
+    DirectionalScan.enterMode()
+    spoken = {}
+    local plus = findBinding(HandlerStack.active(), Keys.VK_OEM_PLUS)
+    local minus = findBinding(HandlerStack.active(), Keys.VK_OEM_MINUS)
+    T.truthy(plus, "enterMode binds top-row plus for radius grow")
+    T.truthy(minus, "enterMode binds top-row minus for radius shrink")
+    plus.fn()
+    T.eq(civvaccess_shared.dirScanRadius, 6, "VK_OEM_PLUS increments dirScanRadius")
+    minus.fn()
+    T.eq(civvaccess_shared.dirScanRadius, 5, "VK_OEM_MINUS decrements dirScanRadius")
+end
+
 function M.test_getbindings_includes_numpad_star()
     setup()
     local b = DirectionalScan.getBindings()

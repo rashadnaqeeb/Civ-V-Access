@@ -2425,6 +2425,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS"] = "raggio {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MIN"] = "raggio {1_N} minimo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "raggio {1_N} massimo"
 -- Second help row: radius keys available while inside the scan mode.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad più o meno"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad più o meno o + / -"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
     "Nella scansione direzionale: aumenta o diminuisce il raggio (da 1 a 10)"

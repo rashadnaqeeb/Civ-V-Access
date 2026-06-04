@@ -146,6 +146,7 @@ globals = {
     "PlotComposers", "PlotSections", "PlotSectionRiver", "PlotSectionUnits",
     "PlotAudio",
     "EmpireStatus",
+    "DirectionalScan",
     "ScannerCore", "ScannerHandler", "ScannerInput", "ScannerNav",
     "ScannerSearch", "ScannerSnap", "ScannerBeep", "ScannerFavorites",
     -- Beacon and beacon-derived modules. Beacons owns the looping bookmark
@@ -294,7 +295,7 @@ files["tests/"] = {
         "civvaccess_keys",
         -- Mod modules the test suites exercise directly.
         "UnitSpeech", "Pathfinder", "RoutePathfinder",
-        "ScannerBackendTerrain", "EmpireStatus",
+        "ScannerBackendTerrain", "EmpireStatus", "DirectionalScan",
         "LeagueOverviewRow",
         -- Wrapper module that exposes its functions globally so tests can
         -- exercise it directly. Other *Access wrappers don't expose globals

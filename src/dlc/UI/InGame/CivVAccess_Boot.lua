@@ -47,6 +47,11 @@ include("CivVAccess_Beacons")
 -- of onInGameBoot; the next cursor move after Cursor.init redraws the ring.
 include("CivVAccess_MapHighlight")
 include("CivVAccess_CursorCore")
+-- DirectionalScan reads the cursor position plus PlotComposers / PlotSections
+-- (all loaded above) to voice a line of tiles without moving the cursor.
+-- BaselineHandler.create pulls DirectionalScan.getBindings() at create time,
+-- so the module must be loaded before BaselineHandler is included.
+include("CivVAccess_DirectionalScan")
 -- Surveyor strings before the core so Text.key lookups during module load
 -- resolve. BaselineHandler pulls SurveyorCore.getBindings() at create time
 -- so the core must be loaded before BaselineHandler is included.

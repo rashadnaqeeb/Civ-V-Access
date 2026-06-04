@@ -143,6 +143,15 @@ local function setup()
             return { bindings = {}, helpEntries = {} }
         end,
     }
+    -- DirectionalScan contributes plain L (enter scan mode) to Baseline's
+    -- bindings. Its own behavior is covered by directional_scan_test; the stub
+    -- here just exposes a non-nil getBindings so BaselineHandler.create doesn't
+    -- index nil.
+    DirectionalScan = {
+        getBindings = function()
+            return { bindings = {}, helpEntries = {} }
+        end,
+    }
     -- BaselineHandler surfaces the scanner keys from ScannerHandler's
     -- module-level HELP_ENTRIES (its own handler.helpEntries is {} so the
     -- four-section map-mode help list can place scanner keys between the

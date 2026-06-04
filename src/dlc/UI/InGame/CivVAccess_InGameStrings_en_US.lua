@@ -788,7 +788,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_RADIUS_MAX"] = "radius {1_N} max"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY"] = "L or Numpad star"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC"] = "Directional scan: read a line of tiles from the cursor"
 -- Second help row: radius keys available while inside the scan mode.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad plus or minus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_KEY_RADIUS"] = "Numpad plus/minus or + / -"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRSCAN_HELP_DESC_RADIUS"] =
     "Inside directional scan: grow or shrink radius (1 to 10)"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /

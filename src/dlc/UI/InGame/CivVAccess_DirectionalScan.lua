@@ -301,6 +301,12 @@ function DirectionalScan.enterMode()
             bind(Keys.VK_SUBTRACT, MOD_NONE, function()
                 SpeechPipeline.speakInterrupt(speakRadius(setRadius(getRadius() - 1)))
             end, "Decrease directional scan radius"),
+            bind(Keys.VK_OEM_PLUS, MOD_NONE, function()
+                SpeechPipeline.speakInterrupt(speakRadius(setRadius(getRadius() + 1)))
+            end, "Increase directional scan radius"),
+            bind(Keys.VK_OEM_MINUS, MOD_NONE, function()
+                SpeechPipeline.speakInterrupt(speakRadius(setRadius(getRadius() - 1)))
+            end, "Decrease directional scan radius"),
         },
         -- Empty by design: the mode is transient and its keys are announced on
         -- entry, so it opts out of the persistent map-mode help list rather
