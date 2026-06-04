@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-05
+
 New Features and improvements:
 - The Slash unit readout now leads with HP, moves, and status, with promotions last, so the most time-sensitive details come first.
 - In the F7 Turn Log, activating a combat entry jumps the cursor to the tile where it happened.
