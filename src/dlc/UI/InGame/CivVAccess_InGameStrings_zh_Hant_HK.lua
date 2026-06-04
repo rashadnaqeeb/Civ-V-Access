@@ -72,6 +72,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "晉升"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "建造改良設施"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "不可用, {1_BuildName}, {2_Reason}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "不可用, {1_BuildName}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "不可用, {1_Action}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "目標模式"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "已排程"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "無法排程攻擊"
@@ -365,7 +368,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "讀取當前格上的單位"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift 加 S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "游標相對於原始首都的坐標, 採用修正偏移表示法 (每向東一步 x 加一, 每向東北一步 x 加 0.5 及 y 加一, 每向東南一步 x 加 0.5 及 y 減一)"
+    "游標至原始首都的距離與方向, 以與其他方向播報相同的格式表示; 若已開啟游標座標設定, 則顯示相對首都的座標"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control 加 S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "將游標跳至您的首都"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
@@ -551,6 +554,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "播報視野內其他文明佔領的營地和遺址"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "在單人遊戲中播放回合開始音效"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "播報單位移動"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "關"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "僅在同步多人模式中"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "開"
 
 -- ===== Widget-generic strings =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "已選取"
@@ -562,6 +569,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amount}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    other = "{1_Num} 回合剩餘",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "和平條約"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT"] = "{1_Value} {2_Unit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "編輯"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "空白"
@@ -692,6 +703,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, 第 {2_T
 -- Combat Log
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "戰鬥紀錄"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "本回合無戰鬥."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} 移動 {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "您的 {1_Name} 移動 {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "單位移動"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "本回合無單位移動."
 
 -- Military Overview
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} / {3_Max} 經驗"
@@ -908,6 +923,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] = "新敵方單
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "敵方單位已離開視野: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "新中立單位進入視野: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "中立單位已離開視野: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] = "視野內有新敵方單位"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] = "視野內有新中立單位"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "已不在視野內"
 
 -- ===== Foreign clear watch =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] = "其他人已奪取 "
@@ -1375,6 +1394,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "戰略: {1_List
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "奢侈: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "附近: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "額外: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "關係分析: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "政策: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "奇蹟: {1_List}"

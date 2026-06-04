@@ -95,6 +95,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Awanse"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Buduj ulepszenia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "niedostępne, {1_BuildName}, {2_Reason}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "niedostępne, {1_BuildName}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "niedostępne, {1_Action}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "tryb wyboru celu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "w kolejce"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "nie można ustawić ataku w kolejce"
@@ -424,7 +427,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Odczytaj jednostkę na bieżącym polu"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift plus S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "Współrzędne kursora względem pierwotnej stolicy w zmodyfikowanym układzie współrzędnych (każdy krok na wschód to plus jeden w x, każdy krok pn-w to plus 0,5 w x i plus jeden w y, każdy krok pd-w to plus 0,5 w x i minus jeden w y)"
+    "Odległość i kierunek od kursora do twojej pierwotnej stolicy, w tej samej formie co inne odczyty kierunkowe, lub współrzędna względem stolicy przy włączonym ustawieniu współrzędnych kursora"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control plus S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "Przenieś kursor do swojej stolicy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
@@ -627,6 +630,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Ogłaszaj obozy i ruiny przejęte przez innych w polu widzenia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "Odtwarzaj dźwięk na początku tury w grze jednoosobowej"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Ogłaszaj ruchy jednostek"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Wył."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Tylko w jednoczesnym trybie wieloosobowym"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Wł."
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -658,6 +665,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amou
 -- {3_TurnsLine} is the already-localized turns clause from
 -- TXT_KEY_DIPLO_TURNS so the template holds only the separator pattern.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    one = "{1_Num} tura pozostała",
+    few = "{1_Num} tury pozostały",
+    many = "{1_Num} tur pozostało",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "Traktat pokojowy"
 -- Compact "<value> <unit>" template used by Demographics rows that
 -- append a measurement noun (Bushels, Soldiers, Tons) to the active
 -- player's value.
@@ -797,6 +810,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, tura {2_
 -- Combat Log group inside the Turn Log tab.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Dziennik walki"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "Brak walk w tej turze."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} porusza się {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "Twój {1_Name} porusza się {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "Ruchy jednostek"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "Brak ruchów jednostek w tej turze."
 -- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} z {3_Max} pd"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF"] = "Zaopatrzenie: {1_Use} z {2_Cap}"
@@ -1094,6 +1111,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] =
     "Nowe neutralne jednostki w zasięgu wzroku: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] =
     "Neutralne jednostki opuściły zasięg wzroku: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] = "Nowe wrogie jednostki w zasięgu wzroku"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] = "Nowe neutralne jednostki w zasięgu wzroku"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "Nie w zasięgu wzroku"
 
 -- Foreign-clear watch
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] = "Inna cywilizacja przejęła "
@@ -1519,6 +1540,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "strategiczne: {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "luksusowe: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "w pobliżu: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "bonusowe: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "rozkład relacji: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "instytucje: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "cuda świata: {1_List}"

@@ -96,6 +96,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "昇進"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "改善を建設"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "利用不可, {1_BuildName}, {2_Reason}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "利用不可, {1_BuildName}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "利用不可, {1_Action}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 
 -- Target mode tokens.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_MODE"] = "目標選択モード"
@@ -426,7 +429,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "現在のマスのユニットを読み上げる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift + S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "カーソルの座標を元の首都基準で読み上げる. 修正オフセット表記 (東に1マス進むとxが+1, 北東に1マス進むとxが+0.5かつyが+1, 南東に1マス進むとxが+0.5かつyが-1)"
+    "カーソルから元の首都までの距離と方向. 他の方向読み上げと同じ形式. カーソル座標設定がオンの場合は首都基準の座標で読み上げる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control + S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "カーソルを自国の首都へジャンプ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
@@ -628,6 +631,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "視界内で他文明が制圧した野営地と遺跡を通知"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "シングルプレイでターン開始時に音を再生"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "ユニットの移動を通知"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "オフ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "同時進行マルチプレイのみ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "オン"
 
 -- Generic widget vocabulary
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "選択済み"
@@ -639,6 +646,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amount}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    other = "{1_Num} ターン残り",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "和平条約"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT"] = "{1_Value} {2_Unit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "編集"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "空白"
@@ -760,6 +771,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, ター�
 -- Combat log
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "戦闘ログ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "このターンの戦闘なし."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} が {2_Steps} 移動"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "自分の {1_Name} が {2_Steps} 移動"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "ユニットの移動"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "このターンのユニット移動なし."
 
 -- Military overview
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: 経験値 {2_Cur}/{3_Max}"
@@ -966,6 +981,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] = "視野内に
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "敵対ユニットが視野外に: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "視野内に新たな中立ユニット: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "中立ユニットが視野外に: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] = "視野内に新たな敵対ユニット"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] = "視野内に新たな中立ユニット"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "視野外になった"
 
 -- Batch 07: 102 keys
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] = "占領済み: "
@@ -1323,6 +1342,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "戦略資源: {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "高級資源: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "周辺: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "ボーナス: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "関係の内訳: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "社会制度: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "遺産: {1_List}"

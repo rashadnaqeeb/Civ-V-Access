@@ -272,6 +272,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_UPGRADE"] = "유닛 �
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_RENAME"] = "Alt 플러스 N"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_RENAME"] = "유닛 이름 변경"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE"] = "{1_Action} 사용 불가"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "사용 불가, {1_Action}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 
 -- Combat result announcements
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_ATTACKER_DAMAGE"] = "공격자 {1_Name} -{2_Dmg} 체력"
@@ -379,7 +382,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "현재 타일의 유닛 읽기"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift+S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "수도 기준 커서 좌표 (동쪽 이동 시 x +1, 북동 이동 시 x +0.5 y +1, 남동 이동 시 x +0.5 y -1)"
+    "커서에서 원래 수도까지의 거리와 방향을 다른 방향 읽기와 같은 형식으로 안내하거나, 커서 좌표 설정이 켜져 있을 때는 수도 기준 좌표를 안내"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Ctrl+S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "커서를 수도로 이동"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
@@ -564,6 +567,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "시야 내 다른 세력이 야영지 또는 유적 점령 시 알림"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "싱글 플레이에서 턴 시작 시 소리 재생"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "유닛 이동 알림"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "꺼짐"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "동시 멀티플레이에서만"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "켜짐"
 
 -- Widget-generic: Choice / Checkbox / Textfield
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "선택됨"
@@ -575,6 +582,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amount}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    other = "{1_Num} 턴 남음",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "평화 조약"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT"] = "{1_Value} {2_Unit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "편집"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "비어 있음"
@@ -708,6 +719,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, {2_Turn}
 -- Combat Log group
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "전투 기록"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "이번 턴에 전투 없음."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} {2_Steps} 이동"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "내 {1_Name} {2_Steps} 이동"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "유닛 이동"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "이번 턴에 유닛 이동 없음."
 
 -- MilitaryOverview
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur}/{3_Max} 경험치"
@@ -938,6 +953,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_ENTERED"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "시야에서 사라진 적대적 유닛: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "새로 시야에 들어온 중립 유닛: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] = "시야에서 사라진 중립 유닛: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] = "새로 시야에 들어온 적대적 유닛"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] = "새로 시야에 들어온 중립 유닛"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "더 이상 시야에 없음"
 
 -- Foreign-clear watch
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] = "다른 문명이 "
@@ -1318,6 +1337,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "전략 자원: 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "사치품: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "인근: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "보너스: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "관계 분석: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "정책: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "불가사의: {1_List}"

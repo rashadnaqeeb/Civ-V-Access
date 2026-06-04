@@ -403,6 +403,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_UPGRADE"] = "Alt плю
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_UPGRADE"] = "Улучшить юнит"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_ALT_RENAME"] = "Alt плюс N"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_ALT_RENAME"] = "Переименовать юнит"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "недоступно, {1_Action}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_NOT_AVAILABLE"] = "{1_Action} недоступно"
 -- Combat-result payload from the engine fork's CombatResolved hook.
 -- Damage values speak absolute-delta ("attacker -8 hp") rather than
@@ -561,7 +564,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] =
     "Прочитать юнит на текущей клетке"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Shift плюс S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "Координаты курсора относительно первоначальной столицы в модифицированной смещённой нотации (каждый шаг на восток прибавляет 1 к x, каждый шаг на северо-восток прибавляет 0.5 к x и 1 к y, каждый шаг на юго-восток прибавляет 0.5 к x и вычитает 1 из y)"
+    "Расстояние и направление от курсора до вашей первоначальной столицы в той же форме, что и другие направленные показания, либо координата относительно столицы, если включена настройка координат курсора"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control плюс S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] =
     "Переместить курсор к Вашей столице"
@@ -791,6 +794,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Объявлять лагеря и руины, захваченные другими в поле зрения"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "Воспроизводить звук в начале хода в одиночной игре"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Объявлять движения юнитов"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Выкл."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Вкл."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] =
+    "Только в одновременной многопользовательской игре"
 -- ===== Widget-generic strings =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "выбран"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED_NAMED"] = "выбран, {1_Label}"
@@ -801,6 +809,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABELED_LIST"] = "{1_Label} {2_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amount}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    one = "{1_Num} ход остался",
+    few = "{1_Num} хода осталось",
+    many = "{1_Num} ходов осталось",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "Мирный договор"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT"] = "{1_Value} {2_Unit}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"] = "редактировать"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TEXTFIELD_BLANK"] = "пусто"
@@ -939,6 +953,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, ход {
 -- Combat Log group inside the Turn Log tab.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Журнал боя"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "Боёв в этом ходу не было."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} движется {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "Ваш {1_Name} движется {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "Движения юнитов"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "В этом ходу юниты не двигались."
 
 -- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_PROGRESS"] = "{1_Label}: {2_Cur} из {3_Max} оп"
@@ -1197,6 +1215,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] =
     "Новые нейтральные юниты в поле зрения: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] =
     "Нейтральные юниты вышли из поля зрения: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] =
+    "Новые враждебные юниты в поле зрения"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] =
+    "Новые нейтральные юниты в поле зрения"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "Больше не в поле зрения"
 
 -- Foreign-clear watch
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_PREFIX"] =
@@ -1666,6 +1690,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "стратег�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "предметы роскоши: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "рядом: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "бонусные: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] =
+    "разбор отношений: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "институты: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "чудеса: {1_List}"

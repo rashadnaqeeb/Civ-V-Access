@@ -212,6 +212,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_PROMOTIONS"] = "Ascensos"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MENU_BUILDS"] = "Construir mejoras"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE_WITH_REASON"] = "no disponible, {1_BuildName}, {2_Reason}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_BUILD_UNAVAILABLE"] = "no disponible, {1_BuildName}"
+-- Label for a visible-but-blocked single action (e.g. an upgrade the player
+-- can't yet afford); leads with the status word, the tooltip carries the why.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_UNAVAILABLE"] = "no disponible, {1_Action}"
+-- Appends the mod's Alt+letter shortcut after a Tab-menu action's label.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_ACTION_WITH_KEY"] = "{1_Action}, {2_Key}"
+-- One strategic-resource shortfall line in an upgrade's blocker breakdown.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UPGRADE_RESOURCE_NEED"] = "{1_Num} {2_Name}"
 -- Spoken on entering a target-picker mode (ranged attack, paradrop, etc.)
 -- as the audible confirmation that the cursor's keys are now picking a
 -- target rather than navigating freely.
@@ -734,7 +741,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_UNIT_INFO"] = "S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_UNIT_INFO"] = "Lee la unidad en la casilla actual"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_COORDINATES"] = "Mayúsculas más S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_COORDINATES"] =
-    "Coordenadas del cursor relativas a la capital original, en notación de desplazamiento modificado (cada paso al este suma uno en x, cada paso al noreste suma 0,5 en x y uno en y, cada paso al sureste suma 0,5 en x y resta uno en y)"
+    "Distancia y dirección desde el cursor hasta tu capital original, en el mismo formato que otras lecturas direccionales, o la coordenada relativa a la capital cuando el ajuste de coordenadas del cursor está activado."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_JUMP_CAPITAL"] = "Control más S"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_JUMP_CAPITAL"] = "Salta el cursor a tu capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_ECONOMY"] = "W"
@@ -979,6 +986,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Anunciar campamentos y ruinas reclamados por otros en el campo de visión"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "Reproducir sonido al inicio del turno en un jugador"
+-- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
+-- Gates speech only; the F7 Unit Moves log populates regardless.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Anunciar movimientos de unidades"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Desactivado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Solo en multijugador simultáneo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Activado"
 
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
@@ -1011,6 +1024,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_AMOUNT"] = "{1_Label}, {2_Amou
 -- {3_TurnsLine} is the already-localized turns clause from
 -- TXT_KEY_DIPLO_TURNS so the template holds only the separator pattern.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_GOLD_PER_TURN_LINE"] = "{1_Label}, {2_Amount}, {3_TurnsLine}"
+-- Turns remaining on a timed item in an active deal (gold-per-turn, open
+-- borders, a current peace treaty, etc.).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TURNS_LEFT"] = {
+    one = "{1_Num} turno restante",
+    other = "{1_Num} turnos restantes",
+}
+-- Bare "Peace Treaty" label. The game's TXT_KEY_DIPLO_PEACE_TREATY embeds a
+-- turn count in the string; for an active treaty we append the turns-left
+-- clause instead, so we need the label without a count baked in.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PEACE_TREATY"] = "Tratado de paz"
 -- Compact "<value> <unit>" template used by Demographics rows that
 -- append a measurement noun (Bushels, Soldiers, Tons) to the active
 -- player's value.
@@ -1206,6 +1229,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turno {2
 -- Turn and the next turn start). Drilled into from the level-0 group label.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Registro de combate"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "Sin combates este turno."
+-- Per-move readout for foreign / other-human units (UnitMoveLog) and its F7
+-- Unit Moves group. {2_Steps} is the run-length-encoded direction list.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} se mueve {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "Tu {1_Name} se mueve {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "Movimientos de unidades"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "No hay movimientos de unidades este turno."
 -- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Key prefix MO_*
 -- throughout. Glossary for the abbreviations used here and below: GP =
 -- Great People (the umbrella term), GG = Great General (military land
@@ -1559,6 +1588,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_HOSTILE_LEFT"] = "Unidades hostil
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_ENTERED"] = "Nuevas unidades neutrales a la vista: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_NEUTRAL_LEFT"] =
     "Unidades neutrales que han salido de la vista: {1_List}"
+-- F7 Turn Log jump entries. The entered units are listed individually under
+-- one of these group headers so each can jump to the unit's tile. Units with
+-- the same name get a trailing ordinal (NUMBERED) so they're tellable apart.
+-- A unit killed or fogged since it entered speaks UNIT_GONE on Enter.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_HOSTILE_GROUP"] = "Nuevas unidades hostiles a la vista"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NEUTRAL_GROUP"] = "Nuevas unidades neutrales a la vista"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED"] = "{1_Name} {2_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_UNIT_GONE"] = "Ya no está a la vista"
 -- Foreign-clear watch. One line spoken at the start of each player turn
 -- summarising goody huts and barbarian camps that some other civ cleared
 -- on a plot the active team could see during the AI turn just past. Camps
@@ -2090,6 +2127,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "estratégicos: 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "de lujo: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "cercanos: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "adicionales: {1_List}"
+-- Appended to the end of the Your-relationship cell on the Majors tab: the
+-- AI's opinion modifiers toward us, the same breakdown the game's stance
+-- tooltip shows (GetOpinionTable). {1_List} is the comma-joined modifiers.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "motivos de la relación: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "políticas: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "maravillas: {1_List}"
