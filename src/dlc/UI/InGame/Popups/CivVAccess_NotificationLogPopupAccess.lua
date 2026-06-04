@@ -90,6 +90,27 @@ local function unitBaseName(meta)
     return Text.unitWithCiv(meta.civAdjKey, meta.unitDescKey, nil)
 end
 
+-- The unit's current plot coords if it's still alive on a tile the active
+-- team can see, else nil, nil. Shared by the entered-units and unit-moves
+-- builders, which re-resolve owner / unit id live at open and differ only in
+-- their fallback when the unit is gone or fogged. The owner slot can be nil
+-- (civ eliminated since the entry was logged).
+local function liveUnitPlot(ownerId, unitId, activeTeam)
+    local owner = Players[ownerId]
+    if owner == nil then
+        return nil, nil
+    end
+    local unit = owner:GetUnitByID(unitId)
+    if unit == nil or unit:IsInvisible(activeTeam, false) then
+        return nil, nil
+    end
+    local plot = unit:GetPlot()
+    if plot == nil or not plot:IsVisible(activeTeam, false) then
+        return nil, nil
+    end
+    return plot:GetX(), plot:GetY()
+end
+
 -- Build the per-unit child items for one entered bucket. Each meta is
 -- { ownerId, unitId, civAdjKey, unitDescKey }. We re-resolve every unit live
 -- here at open: present-and-visible gives a Choice that jumps to its current
@@ -118,21 +139,9 @@ local function buildEnteredChildren(metas)
             label = Text.format("TXT_KEY_CIVVACCESS_FOREIGN_ENTERED_NUMBERED", name, n)
         end
         -- Resolve live to decide jump vs gone. The popup is modal on the
-        -- player's turn, so state can't change again before the user
-        -- presses Enter; resolve once here and bake the result. The owner
-        -- slot can be nil (civ eliminated since the unit entered view), same
-        -- guard the turn-start re-resolve uses.
-        local jumpX, jumpY
-        local owner = Players[meta.ownerId]
-        if owner ~= nil then
-            local unit = owner:GetUnitByID(meta.unitId)
-            if unit ~= nil and not unit:IsInvisible(activeTeam, false) then
-                local plot = unit:GetPlot()
-                if plot ~= nil and plot:IsVisible(activeTeam, false) then
-                    jumpX, jumpY = plot:GetX(), plot:GetY()
-                end
-            end
-        end
+        -- player's turn, so state can't change again before the user presses
+        -- Enter; resolve once here and bake the result.
+        local jumpX, jumpY = liveUnitPlot(meta.ownerId, meta.unitId, activeTeam)
         local activate
         if jumpX ~= nil then
             activate = function()
@@ -159,16 +168,12 @@ local function buildUnitMoveChildren(entries)
     local children = {}
     local activeTeam = Game.GetActiveTeam()
     for _, entry in ipairs(entries) do
-        local jx, jy = entry.x, entry.y
-        local owner = Players[entry.ownerId]
-        if owner ~= nil then
-            local unit = owner:GetUnitByID(entry.unitId)
-            if unit ~= nil and not unit:IsInvisible(activeTeam, false) then
-                local plot = unit:GetPlot()
-                if plot ~= nil and plot:IsVisible(activeTeam, false) then
-                    jx, jy = plot:GetX(), plot:GetY()
-                end
-            end
+        -- Follow the unit to its live tile if still visible, else fall back to
+        -- the recorded destination -- always a tile the player could see,
+        -- since only visible moves are logged.
+        local jx, jy = liveUnitPlot(entry.ownerId, entry.unitId, activeTeam)
+        if jx == nil then
+            jx, jy = entry.x, entry.y
         end
         children[#children + 1] = BaseMenuItems.Choice({
             labelText = entry.text,

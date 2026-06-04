@@ -53,10 +53,13 @@ end
 -- their moves live. Hotseat and sequential MP don't qualify (no concurrent
 -- human action); single-player never does.
 local function isSimultaneousPlay()
-    if not Game:IsNetworkMultiPlayer() then
+    if not Game.IsNetworkMultiPlayer() then
         return false
     end
-    return Game:IsOption("GAMEOPTION_SIMULTANEOUS_TURNS")
+    -- Dot, not colon: Game is a plain Lua table and IsOption reads its
+    -- argument from stack slot 1, so a colon call would put the Game table
+    -- there and the option string would be ignored (always false).
+    return Game.IsOption("GAMEOPTION_SIMULTANEOUS_TURNS")
 end
 
 local function shouldSpeak()
@@ -77,11 +80,11 @@ function UnitMoveLog._flushBody()
     local list = civvaccess_shared.unitMoveLog
     for _, key in ipairs(order) do
         local entry = pending[key]
-        -- A teleport (or a buffer that recorded only non-adjacent steps)
-        -- can't be told as a step sequence, so fall back to the net
-        -- displacement -- "where it ended up" rather than a fake path.
+        -- A teleport, a fog-gap discontinuity, or a buffer that recorded no
+        -- clean steps reads as net displacement -- "where it ended up" rather
+        -- than a fabricated contiguous path.
         local steps
-        if entry.teleported or #entry.dirs == 0 then
+        if entry.netOnly or #entry.dirs == 0 then
             steps = HexGeom.directionString(entry.startX, entry.startY, entry.lastX, entry.lastY)
         else
             steps = HexGeom.stepListString(entry.dirs)
@@ -143,11 +146,7 @@ local function classifyMove(ownerId, unitId, toX, toY)
         if UnitControlMovement.hasPendingFor(unitId) then
             return nil
         end
-        local owner = Players[ownerId]
-        if owner == nil then
-            return nil
-        end
-        local unit = owner:GetUnitByID(unitId)
+        local unit = Players[ownerId]:GetUnitByID(unitId)
         if unit == nil or unit:IsAutomated() then
             return nil
         end
@@ -194,17 +193,25 @@ local function onUnitMoved(ownerId, unitId, fromX, fromY, toX, toY)
             unitDescKey = meta.unitDescKey,
             startX = fromX,
             startY = fromY,
+            lastX = fromX,
+            lastY = fromY,
             dirs = {},
-            teleported = false,
+            netOnly = false,
         }
         _pending[key] = entry
         _order[#_order + 1] = key
     end
+    -- Append this hex's direction only when it's an adjacent step continuing
+    -- from the last buffered hex. A non-adjacent jump (teleport) or a break in
+    -- continuity -- the unit crossed a fogged tile we didn't buffer, so this
+    -- step starts somewhere other than the last one ended -- can't be told as
+    -- a clean step sequence, so flag the readout to fall back to net
+    -- displacement rather than imply a shorter contiguous path.
     local dir = HexGeom.stepDirection(fromX, fromY, toX, toY)
-    if dir ~= nil then
+    if dir ~= nil and fromX == entry.lastX and fromY == entry.lastY then
         entry.dirs[#entry.dirs + 1] = dir
     else
-        entry.teleported = true
+        entry.netOnly = true
     end
     entry.lastX, entry.lastY = toX, toY
     scheduleFlush()

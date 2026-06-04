@@ -50,7 +50,7 @@ local function setup()
     Game.IsNetworkMultiPlayer = function()
         return false
     end
-    Game.IsOption = function(_self, _o)
+    Game.IsOption = function(_o)
         return false
     end
     Game.IsHotSeat = function()
@@ -222,7 +222,7 @@ function M.test_sim_only_gating()
     Game.IsNetworkMultiPlayer = function()
         return true
     end
-    Game.IsOption = function(_self, o)
+    Game.IsOption = function(o)
         return o == "GAMEOPTION_SIMULTANEOUS_TURNS"
     end
     step(1, 5, 1, 0, 2, 0)
@@ -313,6 +313,23 @@ function M.test_teleport_net_fallback()
     local log = civvaccess_shared.unitMoveLog
     T.eq(#log, 1)
     T.eq(log[1].text, "Roman Warrior moves 3e", "teleport reads as net displacement")
+end
+
+-- A unit crossing a fogged tile between two visible ones leaves a gap in the
+-- buffered steps; rather than imply a shorter contiguous path, the readout
+-- falls back to net displacement.
+function M.test_fog_gap_uses_net_displacement()
+    setup()
+    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    foreignUnit(1, 5)
+    step(1, 5, 0, 0, 1, 0) -- visible east step
+    -- (1,0)->(2,0) crossed fog and was dropped; the next visible step starts
+    -- at (2,0), discontinuous with the last buffered hex (1,0).
+    step(1, 5, 2, 0, 3, 0)
+    UnitMoveLog._flush()
+    local log = civvaccess_shared.unitMoveLog
+    T.eq(#log, 1)
+    T.eq(log[1].text, "Roman Warrior moves 3e", "fog gap reads as net displacement, not a contiguous step list")
 end
 
 -- Two units moving in the same tick produce two entries in first-moved order.

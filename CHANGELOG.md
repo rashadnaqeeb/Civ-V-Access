@@ -15,13 +15,13 @@ New Features and improvements:
 - The Slash unit readout now leads with HP, moves, and status, with promotions last, so the most time-sensitive details come first.
 - In the F7 Turn Log, activating a combat entry jumps the cursor to the tile where it happened.
 - In the F7 Turn Log, units that entered view this turn are listed individually under their group, and activating one jumps the cursor to it.
-- Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates.
+- Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates if you have coordinates turned off.
 - Active deals in the diplomacy screen now report turns left until each item expires instead of the duration it was signed for.
 - The F4 Diplomatic Overview's relationship cell now lists what is driving each AI's stance toward you, the same breakdown as the game's stance tooltip.
 - Upgrade in a unit's Tab menu now reads the target unit and gold cost, and stays listed when you can't afford it, explaining what is blocking it.
 - A unit's Tab menu now reads the Alt+letter shortcut after each action that has one, so you can learn the quick keys as you browse.
 - Foreign and rival units moving within your sight can now be announced as they move and collect under a new Unit Moves group in the F7 Turn Log; an F12 Notifications setting turns the speech off, on, or on only in simultaneous multiplayer.
-- A unit you sent on a multi-turn move is now announced as it continues on later turns, not only the turn you ordered it, under the same Unit Moves setting.
+- A unit you sent on a multi-turn move is now announced as it continues on later turns, under the same Unit Moves setting.
 
 Bug fixes:
 - The F7 Turn Log now logs combat from your own turn, not just the AI's.
