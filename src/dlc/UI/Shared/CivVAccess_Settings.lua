@@ -62,6 +62,18 @@ local function setMapHighlight(v)
     end
 end
 
+-- Long compass-direction labels. Off by default to preserve the terse
+-- historical readout ("3e", "2ne"). When on, HexGeom reads the same shared
+-- field live and switches to spaced, localized direction names.
+local getCompassLongForm, setCompassLongForm = defineBoolPref("compassLongForm", "compass_long_form", false)
+
+local function compassLongFormStateText(on)
+    if on then
+        return Text.key("TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_ON")
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_OFF")
+end
+
 -- Cursor-follows-selected-unit toggle. On by default: the hex cursor
 -- jumps to the unit's tile both when the unit becomes selected and when
 -- it finishes a move. Flipping it off keeps the cursor put in both
@@ -277,6 +289,12 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT",
                 getValue = getMapHighlight,
                 setValue = setMapHighlight,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM",
+                getValue = getCompassLongForm,
+                setValue = setCompassLongForm,
+                stateTextFn = compassLongFormStateText,
             }),
         },
     })

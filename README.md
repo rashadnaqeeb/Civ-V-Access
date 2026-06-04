@@ -31,7 +31,7 @@ Every menu in the game uses the same interface. It's quite straightforward.
 - **F1** — re-read the menu's description; also used to read back spoken dialogue
 - Type ahead: every menu in the mod supports searching using type ahead. Simply start typing and you will be matched as you type. You can use Up/Down arrow to scroll through results
 
-**F12** opens mod settings, where you can turn off increased menu verbosity if you prefer. This will turn off item counts and announcement of element types.
+**F12** opens mod settings, where you can turn off increased menu verbosity if you prefer. This will turn off item counts and announcement of element types. You can also switch direction readouts between short labels such as "ne" and full names such as "north east".
 
 ## Playing the game
 

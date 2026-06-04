@@ -14,19 +14,28 @@
 -- token so the user doesn't sit through six direction tokens for what is
 -- effectively "you are on a river island."
 
+local DIRECTIONS = {
+    NE = { shortKey = "TXT_KEY_CIVVACCESS_DIR_NE", longKey = "TXT_KEY_CIVVACCESS_DIR_LONG_NE" },
+    E = { shortKey = "TXT_KEY_CIVVACCESS_DIR_E", longKey = "TXT_KEY_CIVVACCESS_DIR_LONG_E" },
+    SE = { shortKey = "TXT_KEY_CIVVACCESS_DIR_SE", longKey = "TXT_KEY_CIVVACCESS_DIR_LONG_SE" },
+    SW = { shortKey = "TXT_KEY_CIVVACCESS_DIR_SW", longKey = "TXT_KEY_CIVVACCESS_DIR_LONG_SW" },
+    W = { shortKey = "TXT_KEY_CIVVACCESS_DIR_W", longKey = "TXT_KEY_CIVVACCESS_DIR_LONG_W" },
+    NW = { shortKey = "TXT_KEY_CIVVACCESS_DIR_NW", longKey = "TXT_KEY_CIVVACCESS_DIR_LONG_NW" },
+}
+
 local SELF_EDGES = {
-    { dir = "TXT_KEY_CIVVACCESS_DIR_SW", method = "IsNEOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_E", method = "IsWOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_SE", method = "IsNWOfRiver" },
+    { dir = DIRECTIONS.SW, method = "IsNEOfRiver" },
+    { dir = DIRECTIONS.E, method = "IsWOfRiver" },
+    { dir = DIRECTIONS.SE, method = "IsNWOfRiver" },
 }
 
 -- The neighbor in direction D, checked with the same flag, owns our D edge:
 -- "neighbor is D of a river" means the river is on the side of the neighbor
 -- facing us.
 local NEIGHBOR_EDGES = {
-    { dir = "TXT_KEY_CIVVACCESS_DIR_NE", neighborDir = "DIRECTION_NORTHEAST", method = "IsNEOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_W", neighborDir = "DIRECTION_WEST", method = "IsWOfRiver" },
-    { dir = "TXT_KEY_CIVVACCESS_DIR_NW", neighborDir = "DIRECTION_NORTHWEST", method = "IsNWOfRiver" },
+    { dir = DIRECTIONS.NE, neighborDir = "DIRECTION_NORTHEAST", method = "IsNEOfRiver" },
+    { dir = DIRECTIONS.W, neighborDir = "DIRECTION_WEST", method = "IsWOfRiver" },
+    { dir = DIRECTIONS.NW, neighborDir = "DIRECTION_NORTHWEST", method = "IsNWOfRiver" },
 }
 
 -- Spoken order (clockwise from NE), independent of how we collected the
@@ -34,13 +43,20 @@ local NEIGHBOR_EDGES = {
 -- ordering -- the river-all-sides collapse depends on the count matching
 -- this list's length.
 local SPOKEN_ORDER = {
-    "TXT_KEY_CIVVACCESS_DIR_NE",
-    "TXT_KEY_CIVVACCESS_DIR_E",
-    "TXT_KEY_CIVVACCESS_DIR_SE",
-    "TXT_KEY_CIVVACCESS_DIR_SW",
-    "TXT_KEY_CIVVACCESS_DIR_W",
-    "TXT_KEY_CIVVACCESS_DIR_NW",
+    DIRECTIONS.NE,
+    DIRECTIONS.E,
+    DIRECTIONS.SE,
+    DIRECTIONS.SW,
+    DIRECTIONS.W,
+    DIRECTIONS.NW,
 }
+
+local function directionLabel(dir)
+    if HexGeom ~= nil and HexGeom.directionLabel ~= nil then
+        return HexGeom.directionLabel(dir.shortKey, dir.longKey)
+    end
+    return Text.key(dir.shortKey)
+end
 
 PlotSectionRiver = {
     Read = function(plot)
@@ -60,7 +76,7 @@ PlotSectionRiver = {
         local present = {}
         for _, dir in ipairs(SPOKEN_ORDER) do
             if edges[dir] then
-                present[#present + 1] = Text.key(dir)
+                present[#present + 1] = directionLabel(dir)
             end
         end
 

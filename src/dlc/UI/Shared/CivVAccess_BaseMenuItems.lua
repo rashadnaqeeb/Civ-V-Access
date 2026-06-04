@@ -1234,10 +1234,15 @@ function BaseMenuItems.VirtualToggle(spec)
     assertTooltip(spec, "VirtualToggle")
     Log.check(type(spec.getValue) == "function", "VirtualToggle needs getValue fn")
     Log.check(type(spec.setValue) == "function", "VirtualToggle needs setValue fn")
+    Log.check(
+        spec.stateTextFn == nil or type(spec.stateTextFn) == "function",
+        "VirtualToggle stateTextFn must be a function if provided"
+    )
     local item = {
         kind = "checkbox",
         _getValue = spec.getValue,
         _setValue = spec.setValue,
+        _stateTextFn = spec.stateTextFn,
     }
     copyCommonFields(spec, item)
     function item:isNavigable()
@@ -1252,8 +1257,19 @@ function BaseMenuItems.VirtualToggle(spec)
             Log.error("BaseMenuItems VirtualToggle getValue failed: " .. tostring(value))
             return resolveLabel(self)
         end
-        local stateKey = value and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF"
-        local base = Text.format("TXT_KEY_CIVVACCESS_LABEL_STATE", resolveLabel(self), Text.key(stateKey))
+        local base
+        if self._stateTextFn ~= nil then
+            local okState, stateText = pcall(self._stateTextFn, value)
+            if okState and stateText ~= nil and stateText ~= "" then
+                base = tostring(stateText)
+            else
+                Log.error("BaseMenuItems VirtualToggle stateTextFn failed: " .. tostring(stateText))
+            end
+        end
+        if base == nil then
+            local stateKey = value and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF"
+            base = Text.format("TXT_KEY_CIVVACCESS_LABEL_STATE", resolveLabel(self), Text.key(stateKey))
+        end
         return composeSpeech(self, { base })
     end
     function item:activate(menu)

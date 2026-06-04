@@ -218,6 +218,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Подробные сообщения"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Выделять курсор и сканер на экране"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM"] =
+    "Полные названия направлений"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_ON"] =
+    "Полные названия направлений включены"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_OFF"] =
+    "Краткие названия направлений включены"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Только звуковые подсказки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] =
     "Громкость звуковых сигналов местности"

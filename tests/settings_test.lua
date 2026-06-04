@@ -178,14 +178,15 @@ end
 
 -- UI group --------------------------------------------------------------
 
-function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight()
+function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight_compass_labels()
     setup()
     Settings.open()
     local children = groupChildren(UI_GROUP)
-    T.eq(#children, 3, "verbose UI + read subtitles + map highlight")
+    T.eq(#children, 4, "verbose UI + read subtitles + map highlight + compass labels")
     T.eq(children[1].kind, "checkbox")
     T.eq(children[2].kind, "checkbox")
     T.eq(children[3].kind, "checkbox")
+    T.eq(children[4].kind, "checkbox")
 end
 
 function M.test_map_highlight_toggle_flip_writes_shared_and_prefs()
@@ -208,6 +209,26 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     groupChildren(UI_GROUP)[2]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.readSubtitles, true)
     T.eq(prefsStore["ReadSubtitles"], true)
+end
+
+function M.test_compass_long_form_toggle_flip_writes_shared_and_prefs()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.compassLongForm, false, "long compass labels default off")
+    local toggle = groupChildren(UI_GROUP)[4]
+    local handler = HandlerStack.active()
+
+    speaks = {}
+    toggle:activate(handler)
+    T.eq(civvaccess_shared.compassLongForm, true)
+    T.eq(prefsStore["compass_long_form"], true)
+    T.eq(speaks[#speaks].text, "Long direction labels enabled")
+
+    speaks = {}
+    toggle:activate(handler)
+    T.eq(civvaccess_shared.compassLongForm, false)
+    T.eq(prefsStore["compass_long_form"], false)
+    T.eq(speaks[#speaks].text, "Short direction labels enabled")
 end
 
 -- Cursor group ----------------------------------------------------------

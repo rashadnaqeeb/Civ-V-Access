@@ -14,6 +14,8 @@
 
 HexGeom = {}
 
+local COMPASS_LONG_FORM_PREF = "compass_long_form"
+
 local function offsetToCube(col, row)
     -- Odd-row offset -> axial: q = col - (row - (row%2)) / 2; r = row.
     -- Lua 5.1 has no integer / or bit-and; (row - row%2) is always even so
@@ -87,14 +89,58 @@ local function decomposeCube(dx, dy, dz)
     return counts
 end
 
+local long_east = "TXT_KEY_CIVVACCESS_DIR_LONG_E"
+local long_south_east = "TXT_KEY_CIVVACCESS_DIR_LONG_SE"
+local long_south_west = "TXT_KEY_CIVVACCESS_DIR_LONG_SW"
+local long_west = "TXT_KEY_CIVVACCESS_DIR_LONG_W"
+local long_north_west = "TXT_KEY_CIVVACCESS_DIR_LONG_NW"
+local long_north_east = "TXT_KEY_CIVVACCESS_DIR_LONG_NE"
+local long_north = "TXT_KEY_CIVVACCESS_DIR_LONG_N"
+local long_south = "TXT_KEY_CIVVACCESS_DIR_LONG_S"
+
 local OUTPUT_ORDER = {
-    { dir = "E", key = "TXT_KEY_CIVVACCESS_DIR_E" },
-    { dir = "SE", key = "TXT_KEY_CIVVACCESS_DIR_SE" },
-    { dir = "SW", key = "TXT_KEY_CIVVACCESS_DIR_SW" },
-    { dir = "W", key = "TXT_KEY_CIVVACCESS_DIR_W" },
-    { dir = "NW", key = "TXT_KEY_CIVVACCESS_DIR_NW" },
-    { dir = "NE", key = "TXT_KEY_CIVVACCESS_DIR_NE" },
+    { dir = "E", key = "TXT_KEY_CIVVACCESS_DIR_E", longKey = long_east },
+    { dir = "SE", key = "TXT_KEY_CIVVACCESS_DIR_SE", longKey = long_south_east },
+    { dir = "SW", key = "TXT_KEY_CIVVACCESS_DIR_SW", longKey = long_south_west },
+    { dir = "W", key = "TXT_KEY_CIVVACCESS_DIR_W", longKey = long_west },
+    { dir = "NW", key = "TXT_KEY_CIVVACCESS_DIR_NW", longKey = long_north_west },
+    { dir = "NE", key = "TXT_KEY_CIVVACCESS_DIR_NE", longKey = long_north_east },
 }
+
+local LONG_KEY_BY_SHORT = {
+    TXT_KEY_CIVVACCESS_DIR_E = long_east,
+    TXT_KEY_CIVVACCESS_DIR_SE = long_south_east,
+    TXT_KEY_CIVVACCESS_DIR_SW = long_south_west,
+    TXT_KEY_CIVVACCESS_DIR_W = long_west,
+    TXT_KEY_CIVVACCESS_DIR_NW = long_north_west,
+    TXT_KEY_CIVVACCESS_DIR_NE = long_north_east,
+}
+
+local function compassLongForm()
+    if civvaccess_shared == nil then
+        return false
+    end
+    if civvaccess_shared.compassLongForm == nil then
+        if Prefs ~= nil and Prefs.getBool ~= nil then
+            civvaccess_shared.compassLongForm = Prefs.getBool(COMPASS_LONG_FORM_PREF, false)
+        end
+    end
+    return civvaccess_shared.compassLongForm == true
+end
+
+function HexGeom.directionLabel(shortKey, longKey)
+    if compassLongForm() and longKey ~= nil then
+        return Text.key(longKey)
+    end
+    return Text.key(shortKey)
+end
+
+local function directionStep(count, shortKey, longKey)
+    if compassLongForm() and longKey ~= nil then
+        return Text.format("TXT_KEY_CIVVACCESS_DIRECTION_LONG_STEP", count, Text.key(longKey))
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", count, Text.key(shortKey))
+end
 
 -- Map engine DirectionTypes constant to the spoken short-token TXT_KEY.
 -- Used by stepListString; populated lazily because DirectionTypes isn't
@@ -116,8 +162,10 @@ local function dirKey(dir)
     return nil
 end
 
--- Returns the concatenated "<n><short-token>, ..." decomposition of the
--- (fromX, fromY) -> (toX, toY) delta. Empty string at zero delta.
+-- Returns the concatenated "<n><direction>, ..." decomposition of the
+-- (fromX, fromY) -> (toX, toY) delta, using short or long direction labels
+-- according to the live compass_long_form preference. Empty string at zero
+-- delta.
 function HexGeom.directionString(fromX, fromY, toX, toY)
     if fromX == toX and fromY == toY then
         return ""
@@ -130,7 +178,7 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
     for _, d in ipairs(OUTPUT_ORDER) do
         local n = counts[d.dir]
         if n > 0 then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", n, Text.key(d.key))
+            parts[#parts + 1] = directionStep(n, d.key, d.longKey)
         end
     end
     return table.concat(parts, ", ")
@@ -142,14 +190,14 @@ end
 -- no direct N/S step, but the resultant of an endpoint delta whose NE/SE
 -- (or NW/SW) components cancel lands exactly on those axes.
 local COMPASS_KEYS = {
-    [0] = "TXT_KEY_CIVVACCESS_DIR_E",
-    [1] = "TXT_KEY_CIVVACCESS_DIR_NE",
-    [2] = "TXT_KEY_CIVVACCESS_DIR_N",
-    [3] = "TXT_KEY_CIVVACCESS_DIR_NW",
-    [4] = "TXT_KEY_CIVVACCESS_DIR_W",
-    [5] = "TXT_KEY_CIVVACCESS_DIR_SW",
-    [6] = "TXT_KEY_CIVVACCESS_DIR_S",
-    [7] = "TXT_KEY_CIVVACCESS_DIR_SE",
+    [0] = { key = "TXT_KEY_CIVVACCESS_DIR_E", longKey = long_east },
+    [1] = { key = "TXT_KEY_CIVVACCESS_DIR_NE", longKey = long_north_east },
+    [2] = { key = "TXT_KEY_CIVVACCESS_DIR_N", longKey = long_north },
+    [3] = { key = "TXT_KEY_CIVVACCESS_DIR_NW", longKey = long_north_west },
+    [4] = { key = "TXT_KEY_CIVVACCESS_DIR_W", longKey = long_west },
+    [5] = { key = "TXT_KEY_CIVVACCESS_DIR_SW", longKey = long_south_west },
+    [6] = { key = "TXT_KEY_CIVVACCESS_DIR_S", longKey = long_south },
+    [7] = { key = "TXT_KEY_CIVVACCESS_DIR_SE", longKey = long_south_east },
 }
 
 -- "<cube-distance><nearest-compass-token>" summary for the endpoint
@@ -182,7 +230,8 @@ function HexGeom.compassDirectionString(fromX, fromY, toX, toY)
     local SLOT = math.pi / 4
     local index = math.floor(angle / SLOT + 0.5) % 8
     local dist = HexGeom.cubeDistance(fromX, fromY, toX, toY)
-    return Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", dist, Text.key(COMPASS_KEYS[index]))
+    local dir = COMPASS_KEYS[index]
+    return directionStep(dist, dir.key, dir.longKey)
 end
 
 -- Run-length encoded list of step directions: [E, E, SE, NW, NW, NW]
@@ -201,7 +250,7 @@ function HexGeom.stepListString(directions)
     local function flush(dir, n)
         local key = dirKey(dir)
         if key ~= nil then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", n, Text.key(key))
+            parts[#parts + 1] = directionStep(n, key, LONG_KEY_BY_SHORT[key])
         end
     end
     for i = 2, #directions do

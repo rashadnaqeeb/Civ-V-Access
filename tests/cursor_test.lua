@@ -9,6 +9,7 @@ local M = {}
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/InGame/CivVAccess_HexGeom.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_RecommendationsCore.lua")
     -- WaypointsCore is referenced by PlotSections.waypoint, which the
@@ -36,6 +37,7 @@ local function setup()
     civvaccess_shared.plotAudioHandles = nil
     civvaccess_shared.audioCueMode = AudioCueMode.MODE_SPEECH
     civvaccess_shared.borderAlwaysAnnounce = nil
+    civvaccess_shared.compassLongForm = false
 
     Game.GetActivePlayer = function()
         return 0
@@ -457,6 +459,14 @@ function M.test_river_self_edge_only()
     -- IsNEOfRiver means "this plot is NE of a river" -- river is on SW edge.
     local p = T.fakePlot({ neOfRiver = true })
     T.eq(PlotSectionRiver.Read(p, {})[1], "river sw")
+end
+
+function M.test_river_edge_uses_long_direction_labels_when_enabled()
+    setup()
+    civvaccess_shared.compassLongForm = true
+    -- IsNEOfRiver means "this plot is NE of a river" -- river is on SW edge.
+    local p = T.fakePlot({ neOfRiver = true })
+    T.eq(PlotSectionRiver.Read(p, {})[1], "river south west")
 end
 
 function M.test_river_neighbor_sourced_edge()

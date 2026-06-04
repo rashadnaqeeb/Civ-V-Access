@@ -495,9 +495,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W"] = "з"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "сз"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "с"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "ю"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_E"] = "восток"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_NE"] = "северо восток"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_SE"] = "юго восток"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_SW"] = "юго запад"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_W"] = "запад"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_NW"] = "северо запад"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_N"] = "север"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_S"] = "юг"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
 -- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_LONG_STEP"] = "{1_Count} на {2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "край карты"
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE"] = "край зоны"
@@ -751,6 +760,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Ре
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Подробные сообщения"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Выделять курсор и сканер на экране"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM"] =
+    "Полные названия направлений"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_ON"] =
+    "Полные названия направлений включены"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_OFF"] =
+    "Краткие названия направлений включены"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Только звуковые сигналы"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] =
     "Громкость звуковых сигналов местности"
@@ -1690,8 +1705,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "стратег�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "предметы роскоши: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "рядом: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "бонусные: {1_List}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] =
-    "разбор отношений: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "разбор отношений: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "институты: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "чудеса: {1_List}"

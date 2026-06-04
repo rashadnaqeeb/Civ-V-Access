@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- F12 Settings can switch direction readouts from short labels to full compass names.
+
 ## [1.3.0] - 2026-06-05
 
 New Features and improvements:

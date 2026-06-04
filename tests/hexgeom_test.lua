@@ -164,6 +164,8 @@ end
 -- Text.key resolving the DIR_* keys via run.lua's strings dofile.
 local function setupSteps()
     setup()
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.compassLongForm = false
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
 end
 
@@ -197,6 +199,17 @@ function M.test_stepListString_groups_consecutive_only()
         DirectionTypes.DIRECTION_EAST,
     }
     T.eq(HexGeom.stepListString(steps), "2e, 1se, 3nw, 1e")
+end
+
+function M.test_stepListString_uses_long_labels_when_enabled()
+    setupSteps()
+    civvaccess_shared.compassLongForm = true
+    local steps = {
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_SOUTHEAST,
+    }
+    T.eq(HexGeom.stepListString(steps), "2 east, 1 south east")
 end
 
 -- ===== coordinateString =====
@@ -350,6 +363,12 @@ function M.test_directionString_wrapX_folds_seam_short_east_across_seam()
     T.eq(HexGeom.directionString(78, 10, 2, 10), "4e")
 end
 
+function M.test_directionString_uses_long_labels_when_enabled()
+    wrapSetup(80, 40, false, false)
+    civvaccess_shared.compassLongForm = true
+    T.eq(HexGeom.directionString(0, 0, 1, 1), "1 east, 1 north east")
+end
+
 function M.test_directionString_wrapX_folds_seam_short_west_across_seam()
     -- Mirror direction: cursor=(2,10), target=(78,10). Naive +76 east;
     -- folded -4 west (2 -> 1 -> 0 -> 79 -> 78).
@@ -430,6 +449,12 @@ function M.test_compassDirectionString_zigzag_lands_due_south()
     -- Mirror of the north case: (0,0) -> (0,-2) is 1 SE + 1 SW. atan2 = -pi/2
     -- normalizes to 3pi/2, bins to S.
     T.eq(HexGeom.compassDirectionString(0, 0, 0, -2), "2s")
+end
+
+function M.test_compassDirectionString_uses_long_labels_when_enabled()
+    setupSteps()
+    civvaccess_shared.compassLongForm = true
+    T.eq(HexGeom.compassDirectionString(0, 0, 0, 2), "2 north")
 end
 
 function M.test_compassDirectionString_single_ne_step_stays_ne()

@@ -194,6 +194,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Synt
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Annonces détaillées"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Mettre en valeur le curseur et le scanner à l'écran"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM"] = "Noms de direction longs"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_ON"] = "Noms de direction longs activés"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_OFF"] = "Noms de direction courts activés"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Indices audio uniquement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volume des icones auditives de terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =

@@ -629,12 +629,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "no"
 -- delta resolves there on the unit circle).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "n"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_E"] = "este"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_NE"] = "norte este"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_SE"] = "sur este"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_SW"] = "sur oeste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_W"] = "oeste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_NW"] = "norte oeste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_N"] = "norte"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_LONG_S"] = "sur"
 
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
 -- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
 -- Tight glue (no separator) is the EN form; positional template lets
 -- locales insert a space or reorder count and direction.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_LONG_STEP"] = "{1_Count} {2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "borde del mapa"
 
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
@@ -957,6 +966,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Solo voz"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Voz y señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Anuncios detallados"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Resaltar cursor y escáner en pantalla"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM"] = "Nombres largos de dirección"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_ON"] = "Nombres largos de dirección activados"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_COMPASS_LONG_FORM_OFF"] = "Nombres cortos de dirección activados"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Solo señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volumen de iconos de audio del terreno"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
