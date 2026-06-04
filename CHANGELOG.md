@@ -15,8 +15,6 @@ New Features and improvements:
 - The Slash unit readout now leads with HP, moves, and status, with promotions last, so the most time-sensitive details come first.
 - In the F7 Turn Log, activating a combat entry jumps the cursor to the tile where it happened.
 - In the F7 Turn Log, units that entered view this turn are listed individually under their group, and activating one jumps the cursor to it.
-- Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates if you have coordinates turned off.
-- Active deals in the diplomacy screen now report turns left until each item expires instead of the duration it was signed for.
 - The F4 Diplomatic Overview's relationship cell now lists what is driving each AI's stance toward you, the same breakdown as the game's stance tooltip.
 - Upgrade in a unit's Tab menu now reads the target unit and gold cost, and stays listed when you can't afford it, explaining what is blocking it.
 - A unit's Tab menu now reads the Alt+letter shortcut after each action that has one, so you can learn the quick keys as you browse.
@@ -29,6 +27,8 @@ Bug fixes:
 - Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.
 - City yields now refresh when you reopen them after changing worker focus or specialists, instead of showing stale numbers until the city screen is reopened.
 - Assigning an unemployed citizen in the city screen now reports the remaining unemployed count.
+- Active deals in the diplomacy screen now report turns left until each item expires instead of the duration it was signed for.
+- Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates if you have coordinates turned off.
 
 ## [1.2.0] - 2026-06-01
 
