@@ -784,19 +784,46 @@ function M.test_info_ranged_unit_speaks_range_and_strength()
     T.truthy(out:find("9 ranged, range 2", 1, true), "ranged strength + range expected: " .. out)
 end
 
-function M.test_info_hp_always_last()
+function M.test_info_hp_leads_after_name()
     setup()
     local u = mkUnit({ damage = 30, combat = 10, ranged = 9, range = 2, upgradeType = 101, upgradePrice = 120 })
     local out = UnitSpeech.info(u)
-    -- HP fraction must be the final comma-separated token. Split on
-    -- ", " and inspect the tail to avoid a brittle prefix assertion.
+    -- HP leads the condition block: the first comma-separated token after
+    -- the name. Split on ", " (the name carries no comma) and inspect
+    -- index 2 to avoid a brittle prefix assertion.
     local parts = {}
     for part in (out .. ", "):gmatch("(.-), ") do
         parts[#parts + 1] = part
     end
-    T.truthy(#parts > 0, "info must produce parts: " .. out)
-    local last = parts[#parts]
-    T.truthy(last:find("hp", 1, true), "last token must be HP: " .. tostring(last))
+    T.truthy(#parts >= 2, "info must produce a name and HP: " .. out)
+    T.truthy(parts[2]:find("hp", 1, true), "HP must follow the name: " .. tostring(parts[2]))
+end
+
+function M.test_info_promotions_stay_last()
+    setup()
+    GameInfo.UnitPromotions = function()
+        local rows = { { ID = 1, Description = "Shock" } }
+        local i = 0
+        return function()
+            i = i + 1
+            return rows[i]
+        end
+    end
+    -- Upgrade is the token just ahead of promotions in the order; having
+    -- both present proves promotions still wins the tail.
+    local u = mkUnit({
+        combat = 10,
+        upgradeType = 101,
+        upgradePrice = 120,
+        canUpgradeRightNow = true,
+        promotions = { [1] = true },
+    })
+    local out = UnitSpeech.info(u)
+    local parts = {}
+    for part in (out .. ", "):gmatch("(.-), ") do
+        parts[#parts + 1] = part
+    end
+    T.truthy(parts[#parts]:find("promotions", 1, true), "promotions must be the final token: " .. out)
 end
 
 function M.test_info_upgrade_speaks_only_when_available()
@@ -1117,17 +1144,15 @@ function M.test_info_embarked_prefixes_name()
     T.truthy(out:find("embarked Roman Warrior", 1, true), "info must embarked-prefix name: " .. out)
 end
 
-function M.test_info_hp_stays_last_when_status_present()
+function M.test_info_hp_precedes_status()
     setup()
     local u = mkUnit({ fortifyTurns = 3, damage = 40 })
     local out = UnitSpeech.info(u)
-    local parts = {}
-    for part in (out .. ", "):gmatch("(.-), ") do
-        parts[#parts + 1] = part
-    end
-    T.truthy(#parts > 0, "info must produce parts: " .. out)
-    T.truthy(parts[#parts]:find("hp", 1, true), "HP must stay the final token: " .. out)
-    T.truthy(out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true), "fortified must appear before HP: " .. out)
+    local iHp = out:find("hp", 1, true)
+    local iStatus = out:find("TXT_KEY_UNIT_STATUS_FORTIFIED", 1, true)
+    T.truthy(iHp ~= nil, "HP expected in output: " .. out)
+    T.truthy(iStatus ~= nil, "fortified expected in output: " .. out)
+    T.truthy(iHp < iStatus, "HP leads the condition block, before status: " .. out)
 end
 
 function M.test_info_status_speaks_before_level_xp()

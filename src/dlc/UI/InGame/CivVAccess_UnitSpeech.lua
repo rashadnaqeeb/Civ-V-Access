@@ -540,13 +540,16 @@ end
 
 -- Flat info dump scoped by unit ownership so blind players hear what
 -- sighted players see on the unit flag and EnemyUnitPanel rather than
--- the full own-unit tooltip. Friendlies (own or same-team) get the deep
--- dump: embarked-prefixed name, combat, ranged + range, moves fraction,
--- out-of-attacks (when spent), status, level / xp, promotions, upgrade
--- target + cost, HP. Visible enemies get the subset sighted players can
--- read off a foreign flag / EnemyUnitPanel: embarked-prefixed name,
--- combat, ranged (no range), moves fraction, fortified only, promotions,
--- HP. HP is the same exact fraction for both -- sighted players get a
+-- the full own-unit tooltip. Order leads with the condition and
+-- actionability the player needs first -- HP, then the moves / status /
+-- cargo cluster -- and trails with standing capability and history.
+-- Friendlies (own or same-team) get the deep dump: embarked-prefixed
+-- name, HP, moves fraction, out-of-attacks (when spent), status, cargo,
+-- combat, ranged + range, level / xp, upgrade target + cost, promotions.
+-- Visible enemies get the subset sighted players can read off a foreign
+-- flag / EnemyUnitPanel: embarked-prefixed name, HP, moves fraction,
+-- fortified only, combat, ranged (no range), promotions. HP is the same
+-- exact fraction for both -- sighted players get a
 -- numeric HP readout off any unit's plot hover tooltip
 -- (PlotMouseoverInclude.lua), so there's no parity reason to coarsen
 -- enemy HP into a band. Zero-valued strength fields skip so melee units
@@ -558,7 +561,8 @@ end
 -- skips transient conditions (territory, gold, resources, ...) so a
 -- tech-unlocked upgrade still speaks for a unit in enemy land the
 -- player may want to bring home; tech-locked targets stay silent so we
--- don't spam an unactionable cost. HP stays the final token.
+-- don't spam an unactionable cost. Promotions, the one variable-length
+-- list, stays last so the leading tokens hold predictable positions.
 function UnitSpeech.info(unit)
     local parts = {}
     local friendly = isFriendly(unit)
@@ -566,21 +570,7 @@ function UnitSpeech.info(unit)
     if name ~= "" then
         parts[#parts + 1] = name
     end
-    local combat = unit:GetBaseCombatStrength()
-    if combat > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH", combat)
-    end
-    local ranged = unit:GetBaseRangedCombatStrength()
-    if ranged > 0 then
-        -- Aircraft surface range alongside rebase range in the reach token
-        -- below, so the strength line drops the embedded range to avoid
-        -- speaking it twice.
-        if friendly and not isAir(unit) then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, unit:Range())
-        else
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY", ranged)
-        end
-    end
+    parts[#parts + 1] = hpFraction(unit)
     parts[#parts + 1] = reachToken(unit)
     local outOfMoves = airOutOfMovesToken(unit)
     if outOfMoves ~= "" then
@@ -593,6 +583,25 @@ function UnitSpeech.info(unit)
     if status ~= "" then
         parts[#parts + 1] = status
     end
+    local cargo = UnitSpeech.cargoAircraftToken(unit)
+    if cargo ~= "" then
+        parts[#parts + 1] = cargo
+    end
+    local combat = unit:GetBaseCombatStrength()
+    if combat > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_COMBAT_STRENGTH", combat)
+    end
+    local ranged = unit:GetBaseRangedCombatStrength()
+    if ranged > 0 then
+        -- Aircraft surface range alongside rebase range in the reach token
+        -- above, so the strength line drops the embedded range to avoid
+        -- speaking it twice.
+        if friendly and not isAir(unit) then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH", ranged, unit:Range())
+        else
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY", ranged)
+        end
+    end
     if friendly and unit:IsCombatUnit() then
         parts[#parts + 1] = Text.format(
             "TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP",
@@ -600,10 +609,6 @@ function UnitSpeech.info(unit)
             unit:GetExperience(),
             unit:ExperienceNeeded()
         )
-    end
-    local promos = promotionList(unit)
-    if #promos > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL", table.concat(promos, ", "))
     end
     if friendly and unit:CanUpgradeRightNow(1) then
         local upgradeType = unit:GetUpgradeUnitType()
@@ -620,11 +625,10 @@ function UnitSpeech.info(unit)
             end
         end
     end
-    local cargo = UnitSpeech.cargoAircraftToken(unit)
-    if cargo ~= "" then
-        parts[#parts + 1] = cargo
+    local promos = promotionList(unit)
+    if #promos > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PROMOTIONS_LABEL", table.concat(promos, ", "))
     end
-    parts[#parts + 1] = hpFraction(unit)
     return table.concat(parts, ", ")
 end
 

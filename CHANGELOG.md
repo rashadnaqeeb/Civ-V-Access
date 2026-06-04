@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- The Slash unit readout now leads with HP, moves, and status, with promotions last, so the most time-sensitive details come first.
 - In the F7 Turn Log, activating a combat entry jumps the cursor to the tile where it happened.
 - In the F7 Turn Log, units that entered view this turn are listed individually under their group, and activating one jumps the cursor to it.
 - Shift+S reports the distance to your capital as a direction, like other readouts, rather than as coordinates.
