@@ -250,6 +250,21 @@ function HexGeom.stepListFromPath(path)
     return HexGeom.stepListString(directions)
 end
 
+-- DirectionTypes of the single adjacent step from (fromX, fromY) to
+-- (toX, toY), or nil when the two plots aren't neighbors (a teleport).
+-- UnitMoveLog turns each per-hex setXY step into a direction token with
+-- this, accumulating the tokens for stepListString; a nil return flags the
+-- step as a jump so the readout falls back to net displacement.
+function HexGeom.stepDirection(fromX, fromY, toX, toY)
+    for _, dir in ipairs(NEIGHBOR_DIRS) do
+        local n = Map.PlotDirection(fromX, fromY, dir)
+        if n ~= nil and n:GetX() == toX and n:GetY() == toY then
+            return dir
+        end
+    end
+    return nil
+end
+
 -- ===== Capital-relative coordinates =====
 
 -- Locate the active player's original capital and return its (x, y) plot

@@ -175,7 +175,7 @@ globals = {
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
     "UnitControlCombat", "UnitControlMovement", "UnitControlSelection",
     "Bookmarks", "Waypoints",
-    "MessageBuffer", "ChatBuffer", "CombatLog",
+    "MessageBuffer", "ChatBuffer", "CombatLog", "UnitMoveLog",
     "RevealAnnounce", "ForeignUnitSnapshot", "ForeignUnitWatch", "ForeignClearWatch",
     "HotseatCursor", "HotseatMessageBuffer", "MultiplayerTurnEnd",
     "MultiplayerRewards",

@@ -145,7 +145,11 @@ end
 -- { ownerId, unitId, civAdjKey, unitDescKey, bucket = "hostile" | "other" }.
 local _visibleUnits = {}
 
-local function isEnabled()
+-- Gates speech only. Collection, the F7 entered-set updates, and the message
+-- scrollback run regardless, so the F7 Turn Log and history reflect what your
+-- movement revealed even when spoken Reveal Announce is switched off -- the
+-- same speech-vs-surface split ForeignUnitWatch uses for its turn-start diff.
+local function speechEnabled()
     return civvaccess_shared.revealAnnounce == true
 end
 
@@ -170,9 +174,6 @@ function RevealAnnounce._maybeFlush()
 end
 
 local function recordFirstReveal(eTeam, iX, iY)
-    if not isEnabled() then
-        return
-    end
     if eTeam ~= Game.GetActiveTeam() then
         return
     end
@@ -186,9 +187,6 @@ end
 
 local function recordNowVisible(hexPos, _fowType, bWholeMap)
     if bWholeMap then
-        return
-    end
-    if not isEnabled() then
         return
     end
     local gridX, gridY = ToGridFromHex(hexPos.x, hexPos.y)
@@ -466,6 +464,18 @@ function RevealAnnounce._flushBody()
     end
     _visibleUnits = currentUnits
 
+    -- Mirror this move's reveal / hide into the F7 Turn Log's foreign-unit
+    -- set: units the move brought into view join the entered group, units it
+    -- pushed into fog leave it. ForeignUnitWatch owns the shared structure and
+    -- seeds it from the turn-start diff; this keeps it live through the turn.
+    -- enemy / other map onto the hostile / neutral buckets the renderer groups
+    -- by. Runs regardless of whether a speech line was built -- the F7 surface
+    -- tracks visibility even when a reveal had no nameable payload to speak.
+    ForeignUnitWatch.addEntered("hostile", enemyUnits)
+    ForeignUnitWatch.addEntered("neutral", otherUnits)
+    ForeignUnitWatch.removeEntered(enemyHidden)
+    ForeignUnitWatch.removeEntered(otherHidden)
+
     local hidePayload = {}
     if #enemyHidden > 0 then
         hidePayload[#hidePayload + 1] = Text.format("TXT_KEY_CIVVACCESS_REVEAL_ENEMY", formatUnitList(enemyHidden))
@@ -495,16 +505,23 @@ function RevealAnnounce._flushBody()
             .. table.concat(goneParts, Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND"))
     end
 
+    local speak = speechEnabled()
     if revealLine ~= nil then
-        SpeechPipeline.speakQueued(revealLine)
+        if speak then
+            SpeechPipeline.speakQueued(revealLine)
+        end
         MessageBuffer.append(revealLine, "reveal")
     end
     if hideLine ~= nil then
-        SpeechPipeline.speakQueued(hideLine)
+        if speak then
+            SpeechPipeline.speakQueued(hideLine)
+        end
         MessageBuffer.append(hideLine, "reveal")
     end
     if goneLine ~= nil then
-        SpeechPipeline.speakQueued(goneLine)
+        if speak then
+            SpeechPipeline.speakQueued(goneLine)
+        end
         MessageBuffer.append(goneLine, "reveal")
     end
 end

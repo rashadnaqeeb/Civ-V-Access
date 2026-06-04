@@ -56,6 +56,14 @@ local function clearPending()
     _pending = nil
 end
 
+-- True while an interactive move this module committed for `unitId` is still
+-- resolving. UnitMoveLog consults this so it doesn't double-announce the
+-- active player's own commit (which speaks here via the pending resolver);
+-- it logs the unit's later queued-move continuations, which have no pending.
+function UnitControlMovement.hasPendingFor(unitId)
+    return _pending ~= nil and _pending.unitID == unitId
+end
+
 -- opts.kind / opts.destLabel: discriminator + payload for the announcement
 -- path. Default (nil opts) speaks the MOVE_TO-style "moved, N moves left" /
 -- "stopped short" lines through UnitSpeech.moveResult. kind = "rebase" with

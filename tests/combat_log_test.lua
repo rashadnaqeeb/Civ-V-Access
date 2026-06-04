@@ -1,7 +1,7 @@
--- CombatLog: per-AI-turn capture of combat-readout text. Tests exercise
--- the AI-turn gate (only records between TurnEnd and the next TurnStart),
--- the reset-on-TurnEnd contract, and the survives-across-the-player-turn
--- behavior the F7 popup depends on.
+-- CombatLog: rolling capture of combat-readout text for the F7 Turn Log.
+-- Tests exercise the always-record contract (combat on your own turn lands
+-- too, not just AI-turn combat), the clear-on-TurnEnd lifecycle, and the
+-- hotseat active-player-change clear.
 
 local T = require("support")
 local M = {}
@@ -13,7 +13,6 @@ local function setup()
     activePlayerListeners = {}
     Events = {
         ActivePlayerTurnEnd = { Add = function(_) end },
-        ActivePlayerTurnStart = { Add = function(_) end },
         GameplaySetActivePlayer = {
             Add = function(fn)
                 activePlayerListeners[#activePlayerListeners + 1] = fn
@@ -29,25 +28,17 @@ local function setup()
     CombatLog.installListeners()
 end
 
--- During the player's own turn (boot priming flips _inAiTurn false),
--- a recordCombat call is a no-op: combats the player initiated speak in
--- real time and don't belong on the per-AI-turn log.
-function M.test_player_turn_records_nothing()
+-- The core record path: combats accumulate in call order with their plot
+-- coords retained, and crucially they record with no prior TurnEnd -- i.e.
+-- combat the player causes on their own turn lands on the log, which is the
+-- whole point of the rolling log (a gate here used to drop those).
+function M.test_records_combat_in_order_during_own_turn()
     setup()
-    CombatLog.recordCombat("Roman Warrior hit Greek Spearman")
-    T.eq(civvaccess_shared.combatLog, nil, "no list created during player turn")
-end
-
--- After ActivePlayerTurnEnd fires, the AI-turn window is open and combat
--- text accumulates onto civvaccess_shared.combatLog in call order.
-function M.test_ai_turn_collects_combats_in_order()
-    setup()
-    CombatLog._onTurnEnd()
     CombatLog.recordCombat("first combat", 3, 4)
     CombatLog.recordCombat("second combat", 5, 6)
     CombatLog.recordCombat("third combat")
     local list = civvaccess_shared.combatLog
-    T.eq(type(list), "table", "list created on first record")
+    T.eq(type(list), "table", "list created on first record, no TurnEnd needed")
     T.eq(#list, 3, "all three combats logged")
     T.eq(list[1].text, "first combat")
     T.eq(list[1].x, 3, "combat plot x retained for the jump")
@@ -59,39 +50,37 @@ function M.test_ai_turn_collects_combats_in_order()
     T.eq(list[3].x, nil, "plotless combat has no jump coords")
 end
 
--- The list must persist through the player's next turn so F7 can show it.
--- Only the *next* TurnEnd resets it (re-opening the window for the new
--- AI turn).
-function M.test_list_survives_player_turn_until_next_turn_end()
+-- Lifecycle: a combat recorded during the AI turn survives into the player's
+-- next turn (only TurnEnd clears), the player's own-turn combat appends on
+-- top, and the following TurnEnd clears the whole window for a fresh start.
+function M.test_accumulates_across_turn_boundary_until_turn_end()
     setup()
+    -- AI turn (after the player ended their turn) records a combat.
     CombatLog._onTurnEnd()
     CombatLog.recordCombat("ai combat")
-    CombatLog._onTurnStart()
-    -- Player turn now in progress. List still readable for F7.
-    T.eq(#civvaccess_shared.combatLog, 1, "list intact through player turn")
-    -- Player initiates an attack: the speech path calls recordCombat but
-    -- the gate rejects (window closed). List stays the same.
-    CombatLog.recordCombat("player-initiated combat")
-    T.eq(#civvaccess_shared.combatLog, 1, "player-turn combat does not append")
-    T.eq(civvaccess_shared.combatLog[1].text, "ai combat", "list contents unchanged")
-    -- Player ends turn. The new AI turn window opens; prior list cleared.
+    -- Player's next turn is now in progress; the list is still readable for F7
+    -- (nothing clears it at turn start) and the player's own combat appends.
+    T.eq(#civvaccess_shared.combatLog, 1, "AI combat intact through to the player's turn")
+    CombatLog.recordCombat("player combat")
+    T.eq(#civvaccess_shared.combatLog, 2, "player-turn combat appends, not dropped")
+    T.eq(civvaccess_shared.combatLog[2].text, "player combat")
+    -- Player ends turn: the window clears for the next cycle.
     CombatLog._onTurnEnd()
-    T.eq(civvaccess_shared.combatLog, nil, "list cleared at next TurnEnd")
+    T.eq(civvaccess_shared.combatLog, nil, "list cleared at TurnEnd")
 end
 
--- Reinstalling listeners (load-game-from-game) clears prior shared state
--- and resets the AI-turn flag. A combat recorded after reinstall but
--- before the next TurnEnd is dropped (window is closed at install).
-function M.test_reinstall_resets_state()
+-- Reinstalling listeners (load-game-from-game) clears prior shared state,
+-- then recording resumes immediately -- no window to wait for.
+function M.test_reinstall_clears_then_records()
     setup()
-    CombatLog._onTurnEnd()
     CombatLog.recordCombat("game1 combat")
-    -- Simulate load-game-from-game: civvaccess_shared survives, but the
-    -- new Boot calls installListeners, which clears it and re-arms.
+    -- Simulate load-game-from-game: civvaccess_shared survives, but the new
+    -- Boot calls installListeners, which clears it and re-arms.
     CombatLog.installListeners()
     T.eq(civvaccess_shared.combatLog, nil, "shared list cleared on install")
-    CombatLog.recordCombat("would-be combat")
-    T.eq(civvaccess_shared.combatLog, nil, "window closed after install until TurnEnd")
+    CombatLog.recordCombat("game2 combat")
+    T.eq(#civvaccess_shared.combatLog, 1, "records immediately after reinstall")
+    T.eq(civvaccess_shared.combatLog[1].text, "game2 combat")
 end
 
 -- Hotseat path -----------------------------------------------------------
@@ -117,13 +106,11 @@ function M.test_hotseat_active_player_change_clears_log()
     end
     CombatLog.installListeners()
     T.eq(#activePlayerListeners, 1, "hotseat install must register the player-change listener")
-    -- Simulate the AI window populating the log.
-    CombatLog._onTurnEnd()
-    CombatLog.recordCombat("ai-window combat")
+    CombatLog.recordCombat("prior-human combat")
     T.eq(#civvaccess_shared.combatLog, 1)
     -- Active player change: the log goes away.
     activePlayerListeners[1](1, 0)
-    T.eq(civvaccess_shared.combatLog, nil, "active-player change clears the AI-window log in hotseat")
+    T.eq(civvaccess_shared.combatLog, nil, "active-player change clears the log in hotseat")
 end
 
 return M

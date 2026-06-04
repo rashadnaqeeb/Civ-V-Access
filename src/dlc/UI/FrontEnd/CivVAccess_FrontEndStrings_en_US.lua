@@ -445,6 +445,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Announce camps and ruins others claimed in view"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Play turn-start sound in single player"
+-- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
+-- Gates speech only; the F7 Unit Moves log populates regardless.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Announce unit movements"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Off"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Only in simultaneous multiplayer"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "On"
 -- LoadMenu (PickerReader over the save picker). Saves-tab label, details-tab
 -- label, empty-list placeholder, delete confirmation (format key takes the
 -- save's display name), post-delete acknowledgement. The two PICKER_READER_

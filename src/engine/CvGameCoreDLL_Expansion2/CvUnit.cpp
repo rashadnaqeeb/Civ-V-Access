@@ -13714,6 +13714,32 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 		DLLUI->SetSpecificCityInfoDirty(pkDllCity.get(), CITY_UPDATE_TYPE_GARRISON);
 	}
 	
+	// CIVVACCESS: per-step unit-move hook. setXY is called once per hex as a
+	// unit traverses its path (and once per teleport), so this fires one event
+	// per step with the from / to coords; the Lua side (CivVAccess_UnitMoveLog
+	// .lua) buffers a unit's steps within a tick and run-length-encodes the
+	// direction sequence ("moves 2 E, 1 NE"). Fires for every owner -- the Lua
+	// side filters to visible foreign / other-human units plus the active
+	// player's own queued-move continuations. Guarded to an actual position
+	// change so initial placement and no-op setXY calls emit no spurious step;
+	// teleports (distance > 1) are told apart on the Lua side via PlotDistance.
+	if(pOldPlot != NULL && pNewPlot != NULL && pOldPlot != pNewPlot)
+	{
+		ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+		if(pkScriptSystem)
+		{
+			CvLuaArgsHandle args;
+			args->Push(getOwner());
+			args->Push(GetID());
+			args->Push(pOldPlot->getX());
+			args->Push(pOldPlot->getY());
+			args->Push(pNewPlot->getX());
+			args->Push(pNewPlot->getY());
+			bool bResult = false;
+			LuaSupport::CallHook(pkScriptSystem, "CivVAccessUnitMoved", args.get(), bResult);
+		}
+	}
+
 	//Dr. Livingstone I presume?
 	if (isHuman() && !isDelayedDeath())
 	{

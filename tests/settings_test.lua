@@ -380,10 +380,11 @@ function M.test_notifications_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(NOTIFICATIONS_GROUP)
-    T.eq(#children, 5, "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound")
+    T.eq(#children, 6, "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound + unit-moves")
     for i = 1, 5 do
         T.eq(children[i].kind, "checkbox", "notification toggle " .. i)
     end
+    T.eq(children[6].kind, "group", "unit-moves tri-state group")
 end
 
 function M.test_ai_combat_announce_default_on_and_flip()

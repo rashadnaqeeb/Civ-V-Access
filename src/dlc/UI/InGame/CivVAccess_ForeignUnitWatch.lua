@@ -217,6 +217,74 @@ function ForeignUnitWatch._onTurnStart()
     end
 end
 
+-- Live mutators on the F7 entered set, called by RevealAnnounce as the
+-- player's own movement brings foreign units into view or pushes them into
+-- fog mid-turn. The turn-start diff above seeds foreignUnitEntered with the
+-- AI batch's newly visible units; these keep it current through the player's
+-- turn so the F7 group reflects what the player can actually see right now,
+-- not just the turn-boundary snapshot. bucketKey is "hostile" / "neutral"
+-- (the sub-table the F7 renderer groups by); metas carry the same
+-- { ownerId, unitId, civAdjKey, unitDescKey } shape the turn-start path uses.
+
+local function enteredKeySet(list)
+    local seen = {}
+    for _, m in ipairs(list) do
+        seen[ForeignUnitSnapshot.unitKey(m.ownerId, m.unitId)] = true
+    end
+    return seen
+end
+
+-- Append metas to one bucket, skipping any unit already present. Creates the
+-- shared structure if the turn-start diff parked nothing this turn.
+function ForeignUnitWatch.addEntered(bucketKey, metas)
+    if #metas == 0 then
+        return
+    end
+    local entered = civvaccess_shared.foreignUnitEntered
+    if entered == nil then
+        entered = { hostile = {}, neutral = {} }
+        civvaccess_shared.foreignUnitEntered = entered
+    end
+    local list = entered[bucketKey]
+    local seen = enteredKeySet(list)
+    for _, m in ipairs(metas) do
+        local key = ForeignUnitSnapshot.unitKey(m.ownerId, m.unitId)
+        if not seen[key] then
+            seen[key] = true
+            list[#list + 1] = m
+        end
+    end
+end
+
+-- Drop the given units (by owner / unit id) from both buckets. A unit the
+-- player just lost sight of leaves the list entirely rather than lingering
+-- as a stale "no longer in view" entry.
+function ForeignUnitWatch.removeEntered(metas)
+    if #metas == 0 then
+        return
+    end
+    local entered = civvaccess_shared.foreignUnitEntered
+    if entered == nil then
+        return
+    end
+    local drop = {}
+    for _, m in ipairs(metas) do
+        drop[ForeignUnitSnapshot.unitKey(m.ownerId, m.unitId)] = true
+    end
+    for _, bucketKey in ipairs({ "hostile", "neutral" }) do
+        local list = entered[bucketKey]
+        if list ~= nil then
+            local kept = {}
+            for _, m in ipairs(list) do
+                if not drop[ForeignUnitSnapshot.unitKey(m.ownerId, m.unitId)] then
+                    kept[#kept + 1] = m
+                end
+            end
+            entered[bucketKey] = kept
+        end
+    end
+end
+
 -- Registers fresh listeners on every call. See CivVAccess_Boot.lua's
 -- LoadScreenClose registration for the rationale: prior-Context listener
 -- closures die on load-game-from-game.

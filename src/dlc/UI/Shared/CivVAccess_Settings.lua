@@ -192,6 +192,44 @@ local getForeignClearWatchAnnounce, setForeignClearWatchAnnounce =
 -- double-play.
 local getTurnStartSound, setTurnStartSound = defineBoolPref("turnStartSound", "TurnStartSound", false)
 
+-- Tri-state unit-movement announcement. Off by default. Off: foreign and
+-- other-human moves only land in the F7 Unit Moves log. Simultaneous-only:
+-- also speak them live, but only in simultaneous-turn multiplayer (where
+-- other humans act during your turn). On: speak in every game. UnitMoveLog
+-- reads the int live, so toggling takes effect on the next move; the F7 log
+-- populates regardless of this setting. Defined here (not in UnitMoveLog,
+-- which is in-game only) because the Settings screen renders in the front-end
+-- Context too. Constants mirror UnitMoveLog.MODE_*.
+local UNIT_MOVE_OFF, UNIT_MOVE_SIM, UNIT_MOVE_ON = 0, 1, 2
+if civvaccess_shared.unitMoveMode == nil then
+    civvaccess_shared.unitMoveMode = Prefs.getInt("UnitMoveMode", UNIT_MOVE_OFF)
+end
+
+local function getUnitMoveMode()
+    return civvaccess_shared.unitMoveMode or UNIT_MOVE_OFF
+end
+
+local function setUnitMoveMode(mode)
+    if mode ~= UNIT_MOVE_OFF and mode ~= UNIT_MOVE_SIM and mode ~= UNIT_MOVE_ON then
+        Log.warn("Settings.setUnitMoveMode: invalid mode " .. tostring(mode))
+        return
+    end
+    civvaccess_shared.unitMoveMode = mode
+    Prefs.setInt("UnitMoveMode", mode)
+end
+
+local function unitMoveModeChoice(mode, textKey)
+    return BaseMenuItems.Choice({
+        textKey = textKey,
+        selectedFn = function()
+            return getUnitMoveMode() == mode
+        end,
+        activate = function()
+            setUnitMoveMode(mode)
+        end,
+    })
+end
+
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
         textKey = textKey,
@@ -404,6 +442,14 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND",
                 getValue = getTurnStartSound,
                 setValue = setTurnStartSound,
+            }),
+            BaseMenuItems.Group({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES",
+                items = {
+                    unitMoveModeChoice(UNIT_MOVE_OFF, "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"),
+                    unitMoveModeChoice(UNIT_MOVE_SIM, "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"),
+                    unitMoveModeChoice(UNIT_MOVE_ON, "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"),
+                },
             }),
         },
     })

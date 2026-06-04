@@ -174,6 +174,9 @@ local function setup()
     RevealAnnounce = nil
     dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_ForeignUnitSnapshot.lua")
+    -- RevealAnnounce mirrors reveals/hides into ForeignUnitWatch's F7 entered
+    -- set, so the dependency has to be present as it is in the in-game Context.
+    dofile("src/dlc/UI/InGame/CivVAccess_ForeignUnitWatch.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_RevealAnnounce.lua")
 end
 
@@ -273,6 +276,33 @@ function M.test_persistent_unit_no_announce()
     RevealAnnounce.installListeners()
     RevealAnnounce._flush()
     T.eq(#spoken, 0, "persistent units do not announce")
+end
+
+-- Speech is decoupled from the F7 surface: with spoken Reveal Announce off,
+-- a unit slipping into fog still leaves the F7 entered set (removed) but says
+-- nothing. The flush, the diff, and the F7 mutation all run regardless of the
+-- speech toggle.
+function M.test_speech_off_still_updates_f7_set()
+    setup()
+    civvaccess_shared.revealAnnounce = false
+    local unit = makeUnit({ id = 1, plot = visiblePlot() })
+    installForeign(1, {
+        adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
+        atWar = true,
+        units = { unit },
+    })
+    RevealAnnounce.installListeners()
+    -- The unit is already in the F7 entered set (it entered earlier this turn).
+    civvaccess_shared.foreignUnitEntered = {
+        hostile = {
+            { ownerId = 1, unitId = 1, civAdjKey = "TXT_KEY_CIV_ROME_ADJECTIVE", unitDescKey = "TXT_KEY_UNIT_WARRIOR" },
+        },
+        neutral = {},
+    }
+    unit._plot = fogPlot()
+    RevealAnnounce._flush()
+    T.eq(#spoken, 0, "no speech when Reveal Announce is off")
+    T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 0, "hidden unit still removed from F7 set with speech off")
 end
 
 -- Hostile and neutral units both hide in the same flush. The line

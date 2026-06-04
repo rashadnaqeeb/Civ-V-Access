@@ -8,9 +8,11 @@
 --             (one jump group per hostile / neutral bucket, each child
 --             jumping to that unit's tile), its left-view summary lines
 --             (plain text), the ForeignClearWatch line (camps and ruins
---             others claimed in view), and the CombatLog group (one jump
---             entry per combat announced while the player was waiting). All
---             clear at the next TurnEnd.
+--             others claimed in view), the CombatLog group (one jump
+--             entry per combat announced while the player was waiting), and
+--             the Unit Moves group (one jump entry per foreign / other-human
+--             move, each re-resolved to the unit's live tile). All clear at
+--             the next TurnEnd.
 --   Dismissed notifications whose dismissed flag is true (activated,
 --             right-clicked, or auto-expired by the engine).
 -- Enter on an active entry calls NotificationSelected(id), which is the
@@ -146,6 +148,38 @@ local function buildEnteredChildren(metas)
     return children
 end
 
+-- Build the Unit Moves group children. Each entry is a logged move string
+-- with the moved unit's owner / id and the move's destination plot. Re-resolve
+-- the unit live at open: if it's still alive on a visible plot, the jump
+-- follows it there; otherwise fall back to the recorded destination, always a
+-- tile the player could see since only visible moves are logged. Resolve once
+-- and bake -- the popup is modal on the player's turn, so state can't change
+-- before the user presses Enter.
+local function buildUnitMoveChildren(entries)
+    local children = {}
+    local activeTeam = Game.GetActiveTeam()
+    for _, entry in ipairs(entries) do
+        local jx, jy = entry.x, entry.y
+        local owner = Players[entry.ownerId]
+        if owner ~= nil then
+            local unit = owner:GetUnitByID(entry.unitId)
+            if unit ~= nil and not unit:IsInvisible(activeTeam, false) then
+                local plot = unit:GetPlot()
+                if plot ~= nil and plot:IsVisible(activeTeam, false) then
+                    jx, jy = plot:GetX(), plot:GetY()
+                end
+            end
+        end
+        children[#children + 1] = BaseMenuItems.Choice({
+            labelText = entry.text,
+            activate = function()
+                jumpToPlot(jx, jy)
+            end,
+        })
+    end
+    return children
+end
+
 -- Append each line in a watcher's delta (a flat array of strings on
 -- civvaccess_shared, or nil when the watcher has nothing to report this
 -- turn) as a plain Text item. Producers: ForeignUnitWatch (foreignUnit-
@@ -240,6 +274,19 @@ local function buildItems()
     turnLog[#turnLog + 1] = BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"),
         items = combatChildren,
+    })
+
+    local moveChildren = {}
+    local moveLog = civvaccess_shared.unitMoveLog
+    if moveLog ~= nil then
+        moveChildren = buildUnitMoveChildren(moveLog)
+    end
+    if #moveChildren == 0 then
+        moveChildren[1] = BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY") })
+    end
+    turnLog[#turnLog + 1] = BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"),
+        items = moveChildren,
     })
 
     return active, turnLog, dismissed

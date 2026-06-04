@@ -1083,6 +1083,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Announce camps and ruins others claimed in view"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Play turn-start sound in single player"
+-- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
+-- Gates speech only; the F7 Unit Moves log populates regardless.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Announce unit movements"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Off"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Only in simultaneous multiplayer"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "On"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -1333,6 +1339,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_
 -- Turn and the next turn start). Drilled into from the level-0 group label.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Combat Log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_EMPTY"] = "No combat this turn."
+-- Per-move readout for foreign / other-human units (UnitMoveLog) and its F7
+-- Unit Moves group. {2_Steps} is the run-length-encoded direction list.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE"] = "{1_Name} moves {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN"] = "Your {1_Name} moves {2_Steps}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_GROUP"] = "Unit Moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_MOVES_EMPTY"] = "No unit moves this turn."
 -- MilitaryOverview (BUTTONPOPUP_MILITARY_OVERVIEW, F3). Key prefix MO_*
 -- throughout. Glossary for the abbreviations used here and below: GP =
 -- Great People (the umbrella term), GG = Great General (military land

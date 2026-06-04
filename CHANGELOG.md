@@ -20,8 +20,12 @@ New Features and improvements:
 - The F4 Diplomatic Overview's relationship cell now lists what is driving each AI's stance toward you, the same breakdown as the game's stance tooltip.
 - Upgrade in a unit's Tab menu now reads the target unit and gold cost, and stays listed when you can't afford it, explaining what is blocking it.
 - A unit's Tab menu now reads the Alt+letter shortcut after each action that has one, so you can learn the quick keys as you browse.
+- Foreign and rival units moving within your sight can now be announced as they move and collect under a new Unit Moves group in the F7 Turn Log; an F12 Notifications setting turns the speech off, on, or on only in simultaneous multiplayer.
+- A unit you sent on a multi-turn move is now announced as it continues on later turns, not only the turn you ordered it, under the same Unit Moves setting.
 
 Bug fixes:
+- The F7 Turn Log now logs combat from your own turn, not just the AI's.
+- Foreign units revealed or hidden by your own units' movement now update the F7 Turn Log as you move.
 - Combat preview against a garrisoned enemy city now reflects an attack on the city rather than the garrisoned unit.
 - City yields now refresh when you reopen them after changing worker focus or specialists, instead of showing stale numbers until the city screen is reopened.
 - Assigning an unemployed citizen in the city screen now reports the remaining unemployed count.

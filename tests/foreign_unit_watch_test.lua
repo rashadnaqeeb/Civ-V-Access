@@ -508,6 +508,63 @@ function M.test_announce_off_silent_but_entered_still_stored()
     T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 1)
 end
 
+-- Live mutators -----------------------------------------------------------
+-- RevealAnnounce calls addEntered / removeEntered as the player's own
+-- movement reveals or hides foreign units mid-turn, keeping the F7 entered
+-- set current between turn-start diffs.
+
+-- A unit revealed by movement joins its bucket; the same unit revealed again
+-- (walked out of view and back) must not double-list.
+function M.test_add_entered_appends_and_dedups()
+    setup()
+    civvaccess_shared.foreignUnitEntered = { hostile = {}, neutral = {} }
+    ForeignUnitWatch.addEntered("hostile", {
+        { ownerId = 1, unitId = 7, civAdjKey = "TXT_KEY_CIV_ROME_ADJECTIVE", unitDescKey = "TXT_KEY_UNIT_WARRIOR" },
+    })
+    T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 1, "unit added to hostile bucket")
+    ForeignUnitWatch.addEntered("hostile", {
+        { ownerId = 1, unitId = 7, civAdjKey = "TXT_KEY_CIV_ROME_ADJECTIVE", unitDescKey = "TXT_KEY_UNIT_WARRIOR" },
+    })
+    T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 1, "re-revealed unit not duplicated")
+end
+
+-- When the turn-start diff parked nothing, the first movement reveal has to
+-- create the shared structure (both buckets) rather than index a nil table.
+function M.test_add_entered_creates_structure_when_absent()
+    setup()
+    civvaccess_shared.foreignUnitEntered = nil
+    ForeignUnitWatch.addEntered("neutral", {
+        { ownerId = 2, unitId = 3, civAdjKey = "TXT_KEY_CIV_ROME_ADJECTIVE", unitDescKey = "TXT_KEY_UNIT_WARRIOR" },
+    })
+    local entered = civvaccess_shared.foreignUnitEntered
+    T.truthy(entered, "structure created when nothing parked this turn")
+    T.eq(#entered.neutral, 1)
+    T.eq(#entered.hostile, 0, "hostile bucket initialized empty")
+end
+
+-- A unit pushed into fog is dropped from whichever bucket holds it; others
+-- in both buckets stay.
+function M.test_remove_entered_drops_matching_across_buckets()
+    setup()
+    civvaccess_shared.foreignUnitEntered = {
+        hostile = {
+            { ownerId = 1, unitId = 7, civAdjKey = "k", unitDescKey = "k" },
+            { ownerId = 1, unitId = 8, civAdjKey = "k", unitDescKey = "k" },
+        },
+        neutral = {
+            { ownerId = 2, unitId = 9, civAdjKey = "k", unitDescKey = "k" },
+        },
+    }
+    ForeignUnitWatch.removeEntered({
+        { ownerId = 1, unitId = 7 },
+        { ownerId = 2, unitId = 9 },
+    })
+    local entered = civvaccess_shared.foreignUnitEntered
+    T.eq(#entered.hostile, 1, "hostile unit 7 removed, 8 kept")
+    T.eq(entered.hostile[1].unitId, 8)
+    T.eq(#entered.neutral, 0, "neutral unit 9 removed")
+end
+
 function M.test_entered_and_delta_cleared_on_turn_end()
     setup()
     ForeignUnitWatch.installListeners()
