@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Enabling or disabling a mod in the mods list now updates the open entry immediately instead of only after returning to the list.
+
 ## [1.3.1] - 2026-06-05
 
 New Features and improvements:

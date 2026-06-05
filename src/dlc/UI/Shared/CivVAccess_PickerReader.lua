@@ -416,6 +416,62 @@ function PickerReader.create()
             state.selectedId = id
         end
 
+        -- Rebuild the reader tab in place from the current selection, so a
+        -- write action performed behind an already-open article (enable /
+        -- disable a mod, update, etc.) is reflected without the user
+        -- bouncing back to the picker and re-opening the entry. No-op
+        -- before any article has been opened or if its Entry has since
+        -- vanished from the picker. When this handler is the one on screen
+        -- with the reader tab showing, the cursor item is re-announced so
+        -- the user hears the post-action state; when a confirmation sub
+        -- sits on top, the announcement is left to the sub's own pop (the
+        -- reactivated handler's onActivate re-speaks the refreshed cursor).
+        function handler.refreshReader()
+            if state.selectedId == nil then
+                return
+            end
+            local pickerTab = handler.tabs[state.pickerTabIdx]
+            if pickerTab == nil or pickerTab._items == nil then
+                return
+            end
+            local entry
+            forEachEntry(pickerTab._items, {}, function(e)
+                if e.id == state.selectedId then
+                    entry = e
+                    return true
+                end
+                return false
+            end)
+            if entry == nil then
+                return
+            end
+            local ok, result = pcall(entry._buildReader, handler, state.selectedId)
+            if not ok then
+                Log.error(
+                    "PickerReader '"
+                        .. tostring(handler.name)
+                        .. "' refreshReader buildReader for id '"
+                        .. tostring(state.selectedId)
+                        .. "' failed: "
+                        .. tostring(result)
+                )
+                return
+            end
+            local items = result and result.items
+            -- Empty rebuild (row deleted under us) leaves the reader as-is;
+            -- callers that want a "deleted" message set it themselves.
+            if type(items) ~= "table" or #items == 0 then
+                return
+            end
+            handler.setItems(items, state.readerTabIdx)
+            if HandlerStack.active() == handler and handler._tabIndex == state.readerTabIdx then
+                local current = items[(handler._indices and handler._indices[1]) or 1]
+                if current ~= nil then
+                    SpeechPipeline.speakInterrupt(current:announce(handler))
+                end
+            end
+        end
+
         return handler
     end
 

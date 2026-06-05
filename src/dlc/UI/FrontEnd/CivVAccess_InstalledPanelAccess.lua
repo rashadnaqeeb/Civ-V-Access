@@ -59,10 +59,21 @@ end
 -- Monkey-patch RefreshMods so every rebuild (sort toggle, enable / disable,
 -- download state transition, explicit Options-apply) also refreshes our
 -- picker items. The base body runs first (it repopulates g_SortedMods and
--- the visual Stack); the helper then rebuilds from the new state.
-RefreshMods = PickerReader.wrapRebuild(RefreshMods, getHandler, function()
-    return InstalledPanel.buildPickerItems(session.Entry, getHandler)
-end, 1)
+-- the visual Stack); we then rebuild the picker, and rebuild the reader tab
+-- in place so a toggle made while an article is open reflects the new state
+-- without bouncing back to the picker.
+local baseRefreshMods = RefreshMods
+RefreshMods = function(...)
+    baseRefreshMods(...)
+    local h = getHandler()
+    -- nil before the install call returns (several base ShowHide paths fire
+    -- RefreshMods at include time).
+    if h == nil then
+        return
+    end
+    h.setItems(InstalledPanel.buildPickerItems(session.Entry, getHandler), 1)
+    h.refreshReader()
+end
 
 local pickerItems = InstalledPanel.buildPickerItems(session.Entry, getHandler)
 
