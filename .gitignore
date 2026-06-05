@@ -24,7 +24,15 @@ Release/
 .vs/
 .vscode/
 .idea/
+# Ignore Claude Code local state everywhere (e.g. docs/.claude), but publish
+# the project-specific skills under the repo-root .claude.
 .claude/
+!/.claude/
+/.claude/*
+!/.claude/skills/
+# Re-include the release skill: the case-insensitive Release/ rule above
+# (meant for build output) otherwise swallows the release/ skill folder.
+!/.claude/skills/release/
 
 # OS
 Thumbs.db
