@@ -80,3 +80,5 @@ dist/release/
 # that survives across releases. Rebuild via build-installer.ps1 only when
 # installer/ source changed since the last release; commit the new exe in the
 # same commit as the corresponding versions.json + CHANGELOG bump.
+# personal folders
+docs/coding
