@@ -192,43 +192,18 @@ local getForeignClearWatchAnnounce, setForeignClearWatchAnnounce =
 -- double-play.
 local getTurnStartSound, setTurnStartSound = defineBoolPref("turnStartSound", "TurnStartSound", false)
 
--- Tri-state unit-movement announcement. Off by default. Off: foreign and
--- other-human moves only land in the F7 Unit Moves log. Simultaneous-only:
--- also speak them live, but only in simultaneous-turn multiplayer (where
--- other humans act during your turn). On: speak in every game. UnitMoveLog
--- reads the int live, so toggling takes effect on the next move; the F7 log
--- populates regardless of this setting. Defined here (not in UnitMoveLog,
--- which is in-game only) because the Settings screen renders in the front-end
--- Context too. Constants mirror UnitMoveLog.MODE_*.
-local UNIT_MOVE_OFF, UNIT_MOVE_SIM, UNIT_MOVE_ON = 0, 1, 2
-if civvaccess_shared.unitMoveMode == nil then
-    civvaccess_shared.unitMoveMode = Prefs.getInt("UnitMoveMode", UNIT_MOVE_OFF)
-end
-
-local function getUnitMoveMode()
-    return civvaccess_shared.unitMoveMode or UNIT_MOVE_OFF
-end
-
-local function setUnitMoveMode(mode)
-    if mode ~= UNIT_MOVE_OFF and mode ~= UNIT_MOVE_SIM and mode ~= UNIT_MOVE_ON then
-        Log.warn("Settings.setUnitMoveMode: invalid mode " .. tostring(mode))
-        return
-    end
-    civvaccess_shared.unitMoveMode = mode
-    Prefs.setInt("UnitMoveMode", mode)
-end
-
-local function unitMoveModeChoice(mode, textKey)
-    return BaseMenuItems.Choice({
-        textKey = textKey,
-        selectedFn = function()
-            return getUnitMoveMode() == mode
-        end,
-        activate = function()
-            setUnitMoveMode(mode)
-        end,
-    })
-end
+-- Per-owner unit-movement announcements. Each owner bucket has its own toggle,
+-- all off by default: a move speaks only when its bucket's toggle is on, while
+-- the F7 Unit Moves log populates regardless. UnitMoveLog reads these
+-- civvaccess_shared fields live, so a toggle takes effect on the next move.
+-- Defined here (not in UnitMoveLog, which is in-game only) because the Settings
+-- screen renders in the front-end Context too.
+local getUnitMoveOwn, setUnitMoveOwn = defineBoolPref("unitMoveOwn", "UnitMoveOwn", false)
+local getUnitMoveHostile, setUnitMoveHostile = defineBoolPref("unitMoveHostile", "UnitMoveHostile", false)
+local getUnitMoveNeutral, setUnitMoveNeutral = defineBoolPref("unitMoveNeutral", "UnitMoveNeutral", false)
+local getUnitMoveCityState, setUnitMoveCityState = defineBoolPref("unitMoveCityState", "UnitMoveCityState", false)
+local getUnitMoveBarbarian, setUnitMoveBarbarian = defineBoolPref("unitMoveBarbarian", "UnitMoveBarbarian", false)
+local getUnitMoveTeammate, setUnitMoveTeammate = defineBoolPref("unitMoveTeammate", "UnitMoveTeammate", false)
 
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
@@ -446,9 +421,36 @@ local function buildItems()
             BaseMenuItems.Group({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES",
                 items = {
-                    unitMoveModeChoice(UNIT_MOVE_OFF, "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"),
-                    unitMoveModeChoice(UNIT_MOVE_SIM, "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"),
-                    unitMoveModeChoice(UNIT_MOVE_ON, "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"),
+                    BaseMenuItems.VirtualToggle({
+                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN",
+                        getValue = getUnitMoveOwn,
+                        setValue = setUnitMoveOwn,
+                    }),
+                    BaseMenuItems.VirtualToggle({
+                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE",
+                        getValue = getUnitMoveHostile,
+                        setValue = setUnitMoveHostile,
+                    }),
+                    BaseMenuItems.VirtualToggle({
+                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL",
+                        getValue = getUnitMoveNeutral,
+                        setValue = setUnitMoveNeutral,
+                    }),
+                    BaseMenuItems.VirtualToggle({
+                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE",
+                        getValue = getUnitMoveCityState,
+                        setValue = setUnitMoveCityState,
+                    }),
+                    BaseMenuItems.VirtualToggle({
+                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN",
+                        getValue = getUnitMoveBarbarian,
+                        setValue = setUnitMoveBarbarian,
+                    }),
+                    BaseMenuItems.VirtualToggle({
+                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE",
+                        getValue = getUnitMoveTeammate,
+                        setValue = setUnitMoveTeammate,
+                    }),
                 },
             }),
         },

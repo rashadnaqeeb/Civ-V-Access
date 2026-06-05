@@ -8,13 +8,14 @@
 -- step list; different units flush as the simulation processes each, pacing
 -- the readouts across the turn the way combat readouts already pace.
 --
--- Speech is gated by the tri-state unitMoveMode setting (off / simultaneous-
--- only / on); the F7 Unit Moves log (civvaccess_shared.unitMoveLog) is
--- populated regardless, decoupled from speech the same way RevealAnnounce's
--- F7 surface is. Visibility is filtered per step: only steps whose
--- destination the active team can see are buffered, so a unit crossing fog
--- reads only the part you could watch, and a move entirely in fog produces
--- nothing.
+-- Speech is gated per owner bucket: each move is classified (your queued
+-- continuations, teammates, hostile civs, neutral civs, city-states,
+-- barbarians) and speaks only when that bucket's toggle is on. The F7 Unit
+-- Moves log (civvaccess_shared.unitMoveLog) is populated regardless,
+-- decoupled from speech the same way RevealAnnounce's F7 surface is.
+-- Visibility is filtered per step: only steps whose destination the active
+-- team can see are buffered, so a unit crossing fog reads only the part you
+-- could watch, and a move entirely in fog produces nothing.
 --
 -- Lifecycle mirrors CombatLog: the log clears at ActivePlayerTurnEnd and
 -- accumulates through the AI turn and the player's next turn until the
@@ -27,56 +28,41 @@
 -- commit, which UnitControlMovement already speaks). Those are filtered out
 -- here via UnitControlMovement.hasPendingFor so the commit isn't double-
 -- announced, and automated units are skipped. They read as "Your <unit>
--- moves <steps>" and share the F7 group and the same speech gating.
+-- moves <steps>", share the F7 group, and speak only when the Your-queued-
+-- moves toggle is on.
 
 UnitMoveLog = {}
 
-UnitMoveLog.MODE_OFF = 0
-UnitMoveLog.MODE_SIM_ONLY = 1
-UnitMoveLog.MODE_ON = 2
-
 -- Per-unit step buffer keyed "<ownerId>:<unitId>", with _order preserving
 -- first-appearance order so a multi-unit flush speaks deterministically.
--- Entry: { ownerId, unitId, civAdjKey, unitDescKey, startX, startY, lastX,
--- lastY, dirs = { DirectionTypes... }, teleported }. Module-local so a
+-- Entry: { ownerId, unitId, bucket, civAdjKey, unitDescKey, startX, startY,
+-- lastX, lastY, dirs = { DirectionTypes... }, netOnly }. Module-local so a
 -- Context re-entry drops any in-flight buffer; installListeners re-arms.
 local _pending = {}
 local _order = {}
 local _flushScheduled = false
 
-local function speechMode()
-    return civvaccess_shared.unitMoveMode or UnitMoveLog.MODE_OFF
-end
+-- civvaccess_shared field gating speech for each owner bucket. Seeded by
+-- Settings (defineBoolPref) in both the front-end and in-game Contexts, read
+-- live here so a toggle takes effect on the next move. The F7 log populates
+-- regardless of these; only speech is gated.
+local BUCKET_FIELD = {
+    own = "unitMoveOwn",
+    teammate = "unitMoveTeammate",
+    hostile = "unitMoveHostile",
+    neutral = "unitMoveNeutral",
+    cityState = "unitMoveCityState",
+    barbarian = "unitMoveBarbarian",
+}
 
--- "Simultaneous play with other humans" -- network MP with the simultaneous-
--- turns option, where other players act during your own turn and you want
--- their moves live. Hotseat and sequential MP don't qualify (no concurrent
--- human action); single-player never does.
-local function isSimultaneousPlay()
-    if not Game.IsNetworkMultiPlayer() then
-        return false
-    end
-    -- Dot, not colon: Game is a plain Lua table and IsOption reads its
-    -- argument from stack slot 1, so a colon call would put the Game table
-    -- there and the option string would be ignored (always false).
-    return Game.IsOption("GAMEOPTION_SIMULTANEOUS_TURNS")
-end
-
-local function shouldSpeak()
-    local m = speechMode()
-    if m == UnitMoveLog.MODE_ON then
-        return true
-    end
-    if m == UnitMoveLog.MODE_SIM_ONLY then
-        return isSimultaneousPlay()
-    end
-    return false
+local function shouldSpeak(bucket)
+    local field = BUCKET_FIELD[bucket]
+    return field ~= nil and civvaccess_shared[field] == true
 end
 
 function UnitMoveLog._flushBody()
     local pending, order = _pending, _order
     _pending, _order = {}, {}
-    local speak = shouldSpeak()
     local list = civvaccess_shared.unitMoveLog
     for _, key in ipairs(order) do
         local entry = pending[key]
@@ -95,7 +81,7 @@ function UnitMoveLog._flushBody()
             -- Own continuations read "Your <unit> moves ..."; foreign reads
             -- "<civ> <unit> moves ..." so you can tell whose unit it is.
             local text
-            if entry.own then
+            if entry.bucket == "own" then
                 text = Text.format("TXT_KEY_CIVVACCESS_UNIT_MOVE_OWN", Text.key(entry.unitDescKey), steps)
             else
                 local name = Text.unitWithCiv(entry.civAdjKey, entry.unitDescKey, nil)
@@ -112,7 +98,7 @@ function UnitMoveLog._flushBody()
                 x = entry.lastX,
                 y = entry.lastY,
             }
-            if speak then
+            if shouldSpeak(entry.bucket) then
                 SpeechPipeline.speakQueued(text)
             end
         end
@@ -135,12 +121,32 @@ local function scheduleFlush()
     TickPump.runOnce(UnitMoveLog._flush)
 end
 
--- Classify a move into a loggable (unit, isOwn) pair, or nil to drop it.
--- Own units log only as queued continuations: skip the move while the
--- interactive commit is still resolving (UnitControlMovement speaks that) and
--- skip automated units. Foreign units must be alive, non-teammate, visible,
--- and non-invisible, with a visible destination so fogged movement stays
--- silent.
+-- Bucket a non-own owner by its relationship to the active team. City-states
+-- and barbarians take their own bucket regardless of war status, checked
+-- before the at-war split so a city-state you're at war with still reads as a
+-- city-state, not a hostile civ. Teammates (allied into one team in MP) get
+-- their own bucket rather than being dropped.
+local function classifyOwnerBucket(owner, activeTeam)
+    if owner:GetTeam() == activeTeam then
+        return "teammate"
+    end
+    if owner:IsBarbarian() then
+        return "barbarian"
+    end
+    if owner:IsMinorCiv() then
+        return "cityState"
+    end
+    if Teams[activeTeam]:IsAtWar(owner:GetTeam()) then
+        return "hostile"
+    end
+    return "neutral"
+end
+
+-- Classify a move into a (unit, bucket) pair, or nil to drop it. Own units log
+-- only as queued continuations: skip the move while the interactive commit is
+-- still resolving (UnitControlMovement speaks that) and skip automated units.
+-- Non-own units must be alive, visible, and non-invisible, with a visible
+-- destination so fogged movement stays silent.
 local function classifyMove(ownerId, unitId, toX, toY)
     if ownerId == Game.GetActivePlayer() then
         if UnitControlMovement.hasPendingFor(unitId) then
@@ -150,14 +156,11 @@ local function classifyMove(ownerId, unitId, toX, toY)
         if unit == nil or unit:IsAutomated() then
             return nil
         end
-        return unit, true
+        return unit, "own"
     end
     local activeTeam = Game.GetActiveTeam()
     local owner = Players[ownerId]
     if owner == nil or not owner:IsAlive() then
-        return nil
-    end
-    if owner:GetTeam() == activeTeam then
         return nil
     end
     local unit = owner:GetUnitByID(unitId)
@@ -168,11 +171,11 @@ local function classifyMove(ownerId, unitId, toX, toY)
     if plot == nil or not plot:IsVisible(activeTeam, false) then
         return nil
     end
-    return unit, false
+    return unit, classifyOwnerBucket(owner, activeTeam)
 end
 
 local function onUnitMoved(ownerId, unitId, fromX, fromY, toX, toY)
-    local unit, isOwn = classifyMove(ownerId, unitId, toX, toY)
+    local unit, bucket = classifyMove(ownerId, unitId, toX, toY)
     if unit == nil then
         return
     end
@@ -188,7 +191,7 @@ local function onUnitMoved(ownerId, unitId, fromX, fromY, toX, toY)
         entry = {
             ownerId = ownerId,
             unitId = unitId,
-            own = isOwn,
+            bucket = bucket,
             civAdjKey = meta.civAdjKey,
             unitDescKey = meta.unitDescKey,
             startX = fromX,

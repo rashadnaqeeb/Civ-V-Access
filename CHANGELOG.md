@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Unit movement announcements now have a separate on/off toggle per owner: your queued moves, hostile civs, neutral civs, city-states, barbarians, and teammates.
+
 Bug fixes:
 - A caravan or cargo ship you renamed keeps its name when a trade route starts or ends.
 

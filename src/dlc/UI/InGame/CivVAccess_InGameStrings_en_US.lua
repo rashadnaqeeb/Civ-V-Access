@@ -1083,12 +1083,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Announce camps and ruins others claimed in view"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Play turn-start sound in single player"
--- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
--- Gates speech only; the F7 Unit Moves log populates regardless.
+-- Per-owner unit-movement announcement toggles, under one drillable. Each
+-- gates speech for its owner bucket only; the F7 Unit Moves log populates
+-- regardless.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Announce unit movements"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Off"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Only in simultaneous multiplayer"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "On"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Your queued moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Hostile civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Neutral civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "City-States"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbarians"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Teammates"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds

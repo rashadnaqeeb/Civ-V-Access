@@ -1,8 +1,9 @@
--- UnitMoveLog: per-move readout of foreign / other-human units. Tests
--- exercise the per-unit step buffering and RLE, the visibility / ownership
--- filters, the tri-state speech gating with F7 decoupling, the teleport
--- fallback, insertion ordering, and the clear lifecycle. HexGeom (real,
--- loaded by run.lua) does the RLE; Map.PlotDirection is stubbed to a simple
+-- UnitMoveLog: per-move readout of foreign / own units. Tests exercise the
+-- per-unit step buffering and RLE, the visibility / ownership filters, the
+-- per-owner-bucket speech gating with F7 decoupling, the bucket classification
+-- (own / teammate / hostile / neutral / city-state / barbarian), the teleport
+-- fallback, insertion ordering, and the clear lifecycle. HexGeom (real, loaded
+-- by run.lua) does the RLE; Map.PlotDirection is stubbed to a simple
 -- self-consistent neighbor convention so step directions resolve.
 
 local T = require("support")
@@ -10,6 +11,7 @@ local M = {}
 
 local spoken
 local fog
+local warWith
 local playerChangeListeners
 
 -- dir -> (dcol, drow). Arbitrary but self-consistent: stepDirection finds the
@@ -38,8 +40,9 @@ end
 local function setup()
     spoken = {}
     fog = {}
+    warWith = {}
     playerChangeListeners = {}
-    civvaccess_shared = { unitMoveMode = 0 }
+    civvaccess_shared = {}
 
     Game.GetActivePlayer = function()
         return 0
@@ -56,6 +59,16 @@ local function setup()
     Game.IsHotSeat = function()
         return false
     end
+
+    -- The active team (0) is at war with a team iff warWith[team] is set; tests
+    -- that need a hostile owner flip the entry before stepping.
+    Teams = {
+        [0] = {
+            IsAtWar = function(_self, otherTeam)
+                return warWith[otherTeam] == true
+            end,
+        },
+    }
 
     Players = {}
     GameInfo = { Units = { [100] = { Description = "Warrior" } } }
@@ -142,8 +155,10 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_UnitMoveLog.lua")
 end
 
--- Install a foreign unit at player slot `slot` (team defaults to the slot, so
--- it isn't on the active team 0). Returns nothing; feed moves via step().
+-- Install a unit at player slot `slot`. By default team is the slot (so it
+-- isn't on the active team 0) and the owner is a peaceful major civ; opts can
+-- make it a teammate (team = 0), a city-state (isMinor), or a barbarian (barb).
+-- Returns nothing; feed moves via step().
 local function foreignUnit(slot, unitId, opts)
     opts = opts or {}
     local unit = {
@@ -168,6 +183,8 @@ local function foreignUnit(slot, unitId, opts)
         adj = opts.adj or "Roman",
         team = opts.team or slot,
         alive = opts.alive,
+        isMinor = opts.isMinor,
+        barb = opts.barb,
         units = { unit },
     })
 end
@@ -179,10 +196,11 @@ end
 -- ===== Tests =====
 
 -- A unit's consecutive hexes within a tick buffer into one readout, with the
--- direction run-length-encoded, and speak when the mode is On.
+-- direction run-length-encoded, and speak when the matching bucket toggle is on
+-- (a peaceful major civ buckets as neutral).
 function M.test_adjacent_steps_rle_and_speech()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    civvaccess_shared.unitMoveNeutral = true
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 1, 0) -- east
     step(1, 5, 1, 0, 2, 1) -- northeast
@@ -194,48 +212,89 @@ function M.test_adjacent_steps_rle_and_speech()
     T.eq(log[1].unitId, 5)
     T.eq(log[1].x, 2, "jump coords are the last hex")
     T.eq(log[1].y, 1)
-    T.eq(#spoken, 1, "mode On speaks the readout")
+    T.eq(#spoken, 1, "neutral toggle speaks the readout")
     T.eq(spoken[1], "Roman Warrior moves 1e, 1ne")
 end
 
--- Mode Off: the F7 log still populates (decoupled), but nothing is spoken.
+-- All toggles off: the F7 log still populates (decoupled), but nothing is
+-- spoken.
 function M.test_speech_off_still_logs_f7()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_OFF
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
-    T.eq(#civvaccess_shared.unitMoveLog, 1, "F7 logged with speech off")
-    T.eq(#spoken, 0, "no speech when off")
+    T.eq(#civvaccess_shared.unitMoveLog, 1, "F7 logged with all toggles off")
+    T.eq(#spoken, 0, "no speech when the bucket toggle is off")
 end
 
--- Mode simultaneous-only: silent outside simultaneous MP, speaks inside it.
--- The F7 log populates in both cases.
-function M.test_sim_only_gating()
+-- A major civ at war buckets as hostile: the neutral toggle doesn't speak it,
+-- the hostile toggle does. F7 logs either way.
+function M.test_hostile_bucket_gated_separately_from_neutral()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_SIM_ONLY
+    warWith[1] = true
+    civvaccess_shared.unitMoveNeutral = true
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
-    T.eq(#spoken, 0, "sim-only stays silent outside simultaneous MP")
-    T.eq(#civvaccess_shared.unitMoveLog, 1, "still logged to F7")
-    Game.IsNetworkMultiPlayer = function()
-        return true
-    end
-    Game.IsOption = function(o)
-        return o == "GAMEOPTION_SIMULTANEOUS_TURNS"
-    end
+    T.eq(#civvaccess_shared.unitMoveLog, 1, "hostile move logged to F7 regardless")
+    T.eq(#spoken, 0, "neutral toggle does not speak a hostile-bucket move")
+    civvaccess_shared.unitMoveHostile = true
     step(1, 5, 1, 0, 2, 0)
     UnitMoveLog._flush()
-    T.eq(#spoken, 1, "sim-only speaks in simultaneous MP")
-    T.eq(spoken[1], "Roman Warrior moves 1e")
+    T.eq(#spoken, 1, "hostile toggle speaks the hostile move")
+end
+
+-- A city-state you're at war with still buckets as a city-state, not hostile:
+-- the minor-civ check precedes the at-war split.
+function M.test_city_state_routes_before_war()
+    setup()
+    warWith[1] = true
+    civvaccess_shared.unitMoveHostile = true
+    foreignUnit(1, 5, { isMinor = true })
+    step(1, 5, 0, 0, 1, 0)
+    UnitMoveLog._flush()
+    T.eq(#spoken, 0, "at-war city-state is not a hostile-bucket move")
+    civvaccess_shared.unitMoveCityState = true
+    step(1, 5, 1, 0, 2, 0)
+    UnitMoveLog._flush()
+    T.eq(#spoken, 1, "city-state toggle speaks it")
+end
+
+-- A barbarian buckets to its own toggle, not hostile, despite always being at
+-- war.
+function M.test_barbarian_routes_to_own_bucket()
+    setup()
+    civvaccess_shared.unitMoveHostile = true
+    foreignUnit(1, 5, { barb = true })
+    step(1, 5, 0, 0, 1, 0)
+    UnitMoveLog._flush()
+    T.eq(#spoken, 0, "barbarian is not a hostile-bucket move")
+    civvaccess_shared.unitMoveBarbarian = true
+    step(1, 5, 1, 0, 2, 0)
+    UnitMoveLog._flush()
+    T.eq(#spoken, 1, "barbarian toggle speaks it")
+end
+
+-- A foreign player allied into the active team buckets as a teammate: logged to
+-- F7 regardless, spoken only when the teammate toggle is on.
+function M.test_teammate_bucket_logged_and_gated()
+    setup()
+    foreignUnit(1, 5, { team = 0 })
+    step(1, 5, 0, 0, 1, 0)
+    UnitMoveLog._flush()
+    T.eq(#civvaccess_shared.unitMoveLog, 1, "teammate move logged to F7")
+    T.eq(#spoken, 0, "teammate silent without its toggle")
+    civvaccess_shared.unitMoveTeammate = true
+    step(1, 5, 1, 0, 2, 0)
+    UnitMoveLog._flush()
+    T.eq(#spoken, 1, "teammate toggle speaks it")
 end
 
 -- A step whose destination the active team can't see is not buffered, so a
 -- move entirely in fog produces no readout and no log entry.
 function M.test_fogged_destination_not_logged()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    civvaccess_shared.unitMoveNeutral = true
     foreignUnit(1, 5)
     fog["1,0"] = true
     step(1, 5, 0, 0, 1, 0)
@@ -245,10 +304,10 @@ function M.test_fogged_destination_not_logged()
 end
 
 -- A queued continuation of the active player's own unit (no interactive
--- commit in flight) logs and speaks as "Your <unit> ...".
+-- commit in flight) logs and speaks as "Your <unit> ..." under the own toggle.
 function M.test_own_continuation_logged()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    civvaccess_shared.unitMoveOwn = true
     foreignUnit(0, 5, { team = 0 })
     step(0, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
@@ -262,7 +321,7 @@ end
 -- UnitControlMovement speaks it, so logging would double-announce.
 function M.test_own_interactive_commit_skipped()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    civvaccess_shared.unitMoveOwn = true
     UnitControlMovement.hasPendingFor = function(_)
         return true
     end
@@ -275,27 +334,17 @@ end
 -- Automated own units (auto-explore / auto-worker) are dropped to avoid noise.
 function M.test_own_automated_skipped()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    civvaccess_shared.unitMoveOwn = true
     foreignUnit(0, 5, { team = 0, automated = true })
     step(0, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
     T.eq(civvaccess_shared.unitMoveLog, nil, "automated own unit not logged")
 end
 
--- A foreign player on the active team (allied into one team) is dropped.
-function M.test_teammate_not_logged()
-    setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
-    foreignUnit(1, 5, { team = 0 })
-    step(1, 5, 0, 0, 1, 0)
-    UnitMoveLog._flush()
-    T.eq(civvaccess_shared.unitMoveLog, nil, "teammate move not logged")
-end
-
 -- An invisible-to-team unit (e.g. submarine) on a visible plot is dropped.
 function M.test_invisible_unit_not_logged()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
+    civvaccess_shared.unitMoveNeutral = true
     foreignUnit(1, 5, { invisible = true })
     step(1, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
@@ -306,7 +355,6 @@ end
 -- readout falls back to the net displacement rather than fabricating steps.
 function M.test_teleport_net_fallback()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 3, 0) -- three tiles east in one jump
     UnitMoveLog._flush()
@@ -320,7 +368,6 @@ end
 -- falls back to net displacement.
 function M.test_fog_gap_uses_net_displacement()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 1, 0) -- visible east step
     -- (1,0)->(2,0) crossed fog and was dropped; the next visible step starts
@@ -335,7 +382,6 @@ end
 -- Two units moving in the same tick produce two entries in first-moved order.
 function M.test_multiple_units_insertion_order()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
     foreignUnit(1, 5)
     foreignUnit(2, 6, { team = 2 })
     step(1, 5, 0, 0, 1, 0)
@@ -350,7 +396,6 @@ end
 -- The log clears at turn end, mirroring CombatLog's window.
 function M.test_clear_on_turn_end()
     setup()
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
@@ -375,7 +420,6 @@ function M.test_hotseat_active_player_change_clears()
     end
     UnitMoveLog.installListeners()
     T.eq(#playerChangeListeners, 1, "hotseat install registers the player-change listener")
-    civvaccess_shared.unitMoveMode = UnitMoveLog.MODE_ON
     foreignUnit(1, 5)
     step(1, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
