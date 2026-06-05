@@ -5577,6 +5577,11 @@ bool CvUnit::makeTradeRoute(int iX, int iY, TradeConnectionType eConnectionType)
 		return false;
 	}
 
+	// CIVVACCESS: kill() consumes this unit and the engine spawns a fresh
+	// trade unit to run the route, so capture any player-set name first and
+	// carry it onto the new unit (issue #13).
+	CvString strCarriedName = getNameNoDesc();
+
 	kill(true);
 
 	CvCity* pFromCity = NULL;
@@ -5593,7 +5598,7 @@ bool CvUnit::makeTradeRoute(int iX, int iY, TradeConnectionType eConnectionType)
 		pToCity = pToPlot->getPlotCity();
 	}
 
-	bool bResult = GET_PLAYER(getOwner()).GetTrade()->CreateTradeRoute(pFromCity, pToCity, getDomainType(), eConnectionType);
+	bool bResult = GET_PLAYER(getOwner()).GetTrade()->CreateTradeRoute(pFromCity, pToCity, getDomainType(), eConnectionType, strCarriedName);
 	return bResult;
 }
 

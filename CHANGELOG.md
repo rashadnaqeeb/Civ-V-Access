@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- A caravan or cargo ship you renamed keeps its name when a trade route starts or ends.
+
 ## [1.3.0] - 2026-06-05
 
 New Features and improvements:
