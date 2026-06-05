@@ -203,6 +203,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Nur Sprac
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Sprache und Audiosignale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Ausführliche Ansagen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Cursor und Scanner auf dem Bildschirm hervorheben"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Lange Himmelsrichtungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Nur Audiosignale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Gelände-Earcon-Lautstärke"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Gelände-Earcon-Lautstärke, {1_Num} Prozent"
@@ -231,9 +232,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Lager und Ruinen ansagen, die andere im Sichtfeld beansprucht haben"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Ton zu Rundenbeginn im Einzelspieler abspielen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Einheitenbewegungen ansagen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Aus"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Nur im simultanen Mehrspieler"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "An"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Eure eingereihten Bewegungen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Feindliche Zivilisationen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Neutrale Zivilisationen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Stadtstaaten"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbaren"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Verbündete"
 
 -- LoadMenu.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SORT_BY"] = "Sortieren nach"

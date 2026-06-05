@@ -215,6 +215,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Solo voz"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Voz y señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Anuncios detallados"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Resaltar cursor y escáner en pantalla"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Direcciones cardinales completas"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Solo señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volumen de iconos de audio del terreno"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
@@ -246,9 +247,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
 -- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
 -- Gates speech only; the F7 Unit Moves log populates regardless.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Anunciar movimientos de unidades"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Desactivado"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Solo en multijugador simultáneo"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Activado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Tus movimientos en cola"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Civilizaciones hostiles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Civilizaciones neutrales"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Ciudades-estado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Bárbaros"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Aliados"
 
 -- LoadMenu
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOAD_SORT_BY"] = "Ordenar por"

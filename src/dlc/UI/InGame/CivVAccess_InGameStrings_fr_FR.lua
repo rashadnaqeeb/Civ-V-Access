@@ -541,6 +541,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
 -- Tight glue (no separator) is the EN form; positional template lets
 -- locales insert a space or reorder count and direction.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E_LONG"] = "est"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE_LONG"] = "nord-est"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE_LONG"] = "sud-est"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW_LONG"] = "sud-ouest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W_LONG"] = "ouest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW_LONG"] = "nord-ouest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N_LONG"] = "nord"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S_LONG"] = "sud"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP_LONG"] = "{1_Count} {2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "bord de la carte"
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
 -- Generic wording rather than CityView-specific so Phase 8's ranged-strike
@@ -837,6 +846,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Voix
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Annonces détaillées"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Mettre en valeur le curseur et le scanner à l'écran"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Noms longs des points cardinaux"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Indices sonores uniquement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volume des icones auditives de terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
@@ -867,9 +877,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Annoncer les campements et ruines réclamés par d'autres en vue"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Jouer le son de début de tour en solo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Annoncer les déplacements d'unités"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Désactivé"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Activé"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Uniquement en multijoueur simultané"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Vos déplacements en file d'attente"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Civilisations hostiles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Civilisations neutres"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Cités-états"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbares"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Coéquipiers"
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds

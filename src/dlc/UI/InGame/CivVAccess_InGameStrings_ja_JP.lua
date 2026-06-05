@@ -369,6 +369,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW"] = "北西"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N"] = "北"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "南"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E_LONG"] = "東"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE_LONG"] = "北東"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE_LONG"] = "南東"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW_LONG"] = "南西"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W_LONG"] = "西"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW_LONG"] = "北西"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N_LONG"] = "北"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S_LONG"] = "南"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP_LONG"] = "{1_Count}{2_Dir}"
 
 -- Map edge / visibility
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "マップの端"
@@ -602,6 +611,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "音�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "詳細な読み上げ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "画面上のカーソルとスキャナーをハイライト"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "長い方位表示"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "音声キューのみ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "地形音声キュー音量"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "地形音声キュー音量, {1_Num} パーセント"
@@ -632,9 +642,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "シングルプレイでターン開始時に音を再生"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "ユニットの移動を通知"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "オフ"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "同時進行マルチプレイのみ"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "オン"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "自分の予約済み移動"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "敵対文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "中立文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "都市国家"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "蛮族"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "チームメイト"
 
 -- Generic widget vocabulary
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "選択済み"

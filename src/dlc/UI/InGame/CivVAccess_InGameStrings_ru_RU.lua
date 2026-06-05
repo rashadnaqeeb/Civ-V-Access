@@ -498,6 +498,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "ю"
 -- Compact "<count><dir>" glue used by HexGeom.directionString /
 -- stepListString to assemble run-length step lists ("2e, 1se, 3nw").
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E_LONG"] = "восток"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE_LONG"] = "северо-восток"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE_LONG"] = "юго-восток"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW_LONG"] = "юго-запад"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W_LONG"] = "запад"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW_LONG"] = "северо-запад"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N_LONG"] = "север"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S_LONG"] = "юг"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP_LONG"] = "{1_Count} {2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "край карты"
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_SCOPE"] = "край зоны"
@@ -751,6 +760,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Ре
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Подробные сообщения"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Выделять курсор и сканер на экране"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Полные стороны света"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Только звуковые сигналы"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] =
     "Громкость звуковых сигналов местности"
@@ -795,10 +805,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "Воспроизводить звук в начале хода в одиночной игре"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Объявлять движения юнитов"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Выкл."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Вкл."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] =
-    "Только в одновременной многопользовательской игре"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Ваши движения в очереди"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Враждебные цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Нейтральные цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Города-государства"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Варвары"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Союзники"
 -- ===== Widget-generic strings =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "выбран"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED_NAMED"] = "выбран, {1_Label}"

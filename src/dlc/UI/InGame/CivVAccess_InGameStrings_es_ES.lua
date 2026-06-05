@@ -635,6 +635,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
 -- Tight glue (no separator) is the EN form; positional template lets
 -- locales insert a space or reorder count and direction.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E_LONG"] = "este"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE_LONG"] = "noreste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE_LONG"] = "sureste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW_LONG"] = "suroeste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W_LONG"] = "oeste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW_LONG"] = "noroeste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N_LONG"] = "norte"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S_LONG"] = "sur"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP_LONG"] = "{1_Count} {2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "borde del mapa"
 
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
@@ -957,6 +966,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Solo voz"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Voz y señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Anuncios detallados"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Resaltar cursor y escáner en pantalla"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Direcciones cardinales completas"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Solo señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volumen de iconos de audio del terreno"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
@@ -989,9 +999,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
 -- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
 -- Gates speech only; the F7 Unit Moves log populates regardless.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Anunciar movimientos de unidades"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OFF"] = "Desactivado"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_SIM"] = "Solo en multijugador simultáneo"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_ON"] = "Activado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Tus movimientos en cola"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Civilizaciones hostiles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Civilizaciones neutrales"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Ciudades-estado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Bárbaros"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Aliados"
 
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
