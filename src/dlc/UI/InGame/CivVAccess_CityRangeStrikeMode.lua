@@ -73,7 +73,7 @@ local function strikeFailureReason(city, plot, tx, ty)
         return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
     end
     local indirectFireOn = (GameDefines.CAN_CITY_USE_INDIRECT_FIRE or 0) ~= 0
-    if not indirectFireOn and not city:Plot():HasLineOfSight(plot, team) then
+    if not indirectFireOn and not EngineData.hasLineOfSight(city:Plot(), plot, team) then
         return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN")
     end
     if topStrikableTargetAt(plot) == nil then

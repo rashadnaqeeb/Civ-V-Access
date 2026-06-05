@@ -87,7 +87,7 @@ local function movePathPreview(actor, targetPlot)
     if diag.ok ~= "strict" then
         return PathDiagnostic.formatFailure(diag, targetPlot:GetX(), targetPlot:GetY())
     end
-    local path = actor:GetPath()
+    local path = EngineData.getPath(actor)
     -- Engine path nodes carry m_iData1=moves remaining and m_iData2=turn
     -- count after arriving at that node. Front of GetPath() is the start
     -- (we reverse in the binding); end is the destination. iData2 starts
@@ -370,7 +370,7 @@ local function routePathPreview(actor, targetPlot)
     for _, node in ipairs(path) do
         local plot = Map.GetPlot(node.x, node.y)
         if plot ~= nil then
-            local r, b = actor:GetBestBuildRoute(plot)
+            local r, b = EngineData.bestBuildRoute(actor, plot)
             if r >= 0 and b >= 0 then
                 routeId, buildId = r, b
                 break
@@ -556,7 +556,7 @@ local function moveModePreview(actor, plot)
         if text == nil or text == "" then
             text = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
         end
-        local path = actor:GetPath()
+        local path = EngineData.getPath(actor)
         local suffix = formatAttackAfterMove(path)
         if suffix ~= "" then
             text = text .. ", " .. suffix
@@ -731,7 +731,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
     -- specific to move mode (combat-causing and path-failure cases both
     -- arm the latch differently).
     if isRouteMode(mode) then
-        local path = Game.GetBuildRoutePath(actor:GetX(), actor:GetY(), tx, ty, actor:GetOwner())
+        local path = EngineData.buildRoutePath(actor:GetX(), actor:GetY(), tx, ty, actor:GetOwner())
         if #path == 0 then
             return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE") }
         end
@@ -782,7 +782,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
                 return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE") }
             end
             local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR or actor:IsRangeAttackIgnoreLOS()
-            if not ignoresLoS and not actor:GetPlot():HasLineOfSight(plot, actor:GetTeam()) then
+            if not ignoresLoS and not EngineData.hasLineOfSight(actor:GetPlot(), plot, actor:GetTeam()) then
                 return { reason = Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") }
             end
             return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED") }

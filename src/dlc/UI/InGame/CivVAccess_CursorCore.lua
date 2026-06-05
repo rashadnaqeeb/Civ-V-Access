@@ -150,7 +150,7 @@ local function targetabilityPrefix(plot)
     if ax == tx and ay == ty then
         return ""
     end
-    if not ignoresLoS and not attackerPlot:HasLineOfSight(plot, team) then
+    if not ignoresLoS and not EngineData.hasLineOfSight(attackerPlot, plot, team) then
         return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") .. ", "
     end
     if Map.PlotDistance(ax, ay, tx, ty) > range then

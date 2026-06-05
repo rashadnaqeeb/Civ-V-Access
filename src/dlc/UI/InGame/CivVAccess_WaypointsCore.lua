@@ -110,8 +110,8 @@ end
 -- "fall back to move dialect for this leg" so the player still hears
 -- the path.
 local function bestRouteForLeg(unit, fromPlot)
-    local ok, routeId, buildId = pcall(unit.GetBestBuildRoute, unit, fromPlot)
-    if not ok or routeId == nil or routeId < 0 or buildId == nil or buildId < 0 then
+    local routeId, buildId = EngineData.bestBuildRoute(unit, fromPlot)
+    if routeId < 0 or buildId < 0 then
         return nil
     end
     local routeRow = GameInfo.Routes[routeId]
@@ -132,14 +132,7 @@ end
 -- or nil. nodes[1] is the leg's start (== fromPlot); nodes[2..#nodes]
 -- are the plots the unit will step onto.
 local function computeMovePath(unit, fromPlot, toPlot, flags)
-    -- pcall guards against the vanilla DLL: ComputePath is a fork
-    -- binding (CIVVACCESS in CvLuaUnit.cpp), absent in stock Expansion2
-    -- builds.
-    local ok, nodes, success, legTurns = pcall(unit.ComputePath, unit, fromPlot, toPlot, flags)
-    if not ok then
-        Log.warn("WaypointsCore: Unit:ComputePath threw " .. tostring(nodes) .. " (engine fork deployed?)")
-        return nil
-    end
+    local nodes, success, legTurns = EngineData.computePath(unit, fromPlot, toPlot, flags)
     if not success or type(nodes) ~= "table" or #nodes == 0 then
         return nil
     end
@@ -241,10 +234,9 @@ local function compute(unit, queue)
                 local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags)
                 if kind == MISSION_KIND_ROUTE then
                     local route = bestRouteForLeg(unit, fromPlot)
-                    local rok, path
+                    local path
                     if route ~= nil then
-                        rok, path = pcall(
-                            Game.GetBuildRoutePath,
+                        path = EngineData.buildRoutePath(
                             fromPlot:GetX(),
                             fromPlot:GetY(),
                             entry.data1,
@@ -252,7 +244,7 @@ local function compute(unit, queue)
                             unit:GetOwner()
                         )
                     end
-                    if route ~= nil and rok and type(path) == "table" and #path > 0 then
+                    if route ~= nil and type(path) == "table" and #path > 0 then
                         local extraRate = unit:WorkRate(true, route.buildId)
                         local actorAlreadyOnBuild = unit:GetBuildType() == route.buildId
                         local stops, addedTurns =

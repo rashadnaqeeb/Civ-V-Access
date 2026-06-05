@@ -499,7 +499,7 @@ local function speakMoveResult(unit, cx, cy)
         if not reachedTarget then
             local targetPlot = plotAt(tx, ty)
             if targetPlot ~= nil then
-                local ok, pathTurns = unit:GeneratePath(targetPlot)
+                local ok, pathTurns = EngineData.generatePath(unit, targetPlot)
                 if ok then
                     -- Engine's iPathTurns starts at 1 (initial node) and
                     -- bumps on turn boundaries. The unit has just stopped

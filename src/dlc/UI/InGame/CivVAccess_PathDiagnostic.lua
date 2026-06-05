@@ -69,7 +69,7 @@ end
 -- subsequent GeneratePath call wipes the unit's m_kLastPath, so the
 -- binary search below needs a stable copy rather than re-fetching.
 local function snapshotPath(unit)
-    local path = unit:GetPath()
+    local path = EngineData.getPath(unit)
     local snap = {}
     for i, node in ipairs(path) do
         snap[i] = { x = node.x, y = node.y }
@@ -96,7 +96,7 @@ local function findReachabilityBoundary(unit, relaxedPath)
         local mid = math.floor((lo + hi) / 2)
         local node = relaxedPath[mid]
         local plot = Map.GetPlot(node.x, node.y)
-        if unit:GeneratePath(plot) then
+        if EngineData.generatePath(unit, plot) then
             lo = mid
         else
             hi = mid
@@ -106,7 +106,7 @@ local function findReachabilityBoundary(unit, relaxedPath)
 end
 
 local function readClosedListClosest(targetX, targetY)
-    local cx, cy, cdist = Game.GetClosestSearchedPlot(targetX, targetY)
+    local cx, cy, cdist = EngineData.closestSearchedPlot(targetX, targetY)
     if cx == nil then
         return nil
     end
@@ -314,7 +314,7 @@ end
 function PathDiagnostic.discriminativePath(unit, target)
     local tx, ty = target:GetX(), target:GetY()
 
-    if unit:GeneratePath(target) then
+    if EngineData.generatePath(unit, target) then
         return { ok = "strict" }
     end
 
@@ -323,7 +323,7 @@ function PathDiagnostic.discriminativePath(unit, target)
     -- blocker tile (first tile strict can't reach) names the cause; the
     -- previous tile is the closest reachable.
 
-    if unit:GeneratePath(target, MOVE_DECLARE_WAR) then
+    if EngineData.generatePath(unit, target, MOVE_DECLARE_WAR) then
         local relaxed = snapshotPath(unit)
         local closest, blocker = findReachabilityBoundary(unit, relaxed)
         local blockingTeam = nil
@@ -333,7 +333,7 @@ function PathDiagnostic.discriminativePath(unit, target)
         return applyFogFilter({ ok = "declareWar", blockingTeam = blockingTeam, closest = closest })
     end
 
-    if unit:GeneratePath(target, MOVE_IGNORE_STACKING) then
+    if EngineData.generatePath(unit, target, MOVE_IGNORE_STACKING) then
         local relaxed = snapshotPath(unit)
         local closest, blocker = findReachabilityBoundary(unit, relaxed)
         local blockingUnit = nil
@@ -354,7 +354,7 @@ function PathDiagnostic.discriminativePath(unit, target)
         return applyFogFilter({ ok = "stacking", blockingUnit = blockingUnit, closest = closest })
     end
 
-    if unit:GeneratePath(target, MOVE_UNITS_THROUGH_ENEMY) then
+    if EngineData.generatePath(unit, target, MOVE_UNITS_THROUGH_ENEMY) then
         local relaxed = snapshotPath(unit)
         local closest, blocker = findReachabilityBoundary(unit, relaxed)
         local blockingUnit = nil
@@ -387,7 +387,7 @@ function PathDiagnostic.discriminativePath(unit, target)
     -- With the flag, intermediate PathValid still rejects steps the
     -- unit can't take, so the search exhausts naturally on unreachable
     -- destinations and m_pClosed has the reachable region.
-    unit:GeneratePath(target, MOVE_CIVVACCESS_FORCE_DEST_VALID)
+    EngineData.generatePath(unit, target, MOVE_CIVVACCESS_FORCE_DEST_VALID)
     local closest = readClosedListClosest(tx, ty)
     local result = { ok = "unreachable", closest = closest }
     local cause = identifyUnreachableCause(unit, target, closest)
@@ -600,7 +600,7 @@ local function findRouteBoundary(actor, owner, movePath)
     while lo + 1 < hi do
         local mid = math.floor((lo + hi) / 2)
         local node = movePath[mid]
-        local p = Game.GetBuildRoutePath(fx, fy, node.x, node.y, owner)
+        local p = EngineData.buildRoutePath(fx, fy, node.x, node.y, owner)
         if #p > 0 then
             lo = mid
         else
@@ -621,7 +621,7 @@ function PathDiagnostic.discriminativeRoutePath(actor, target)
     local fx, fy = fromPlot:GetX(), fromPlot:GetY()
     local tx, ty = target:GetX(), target:GetY()
 
-    local path = Game.GetBuildRoutePath(fx, fy, tx, ty, owner)
+    local path = EngineData.buildRoutePath(fx, fy, tx, ty, owner)
     if #path > 0 then
         return { ok = "strict", path = path }
     end
@@ -649,7 +649,7 @@ function PathDiagnostic.discriminativeRoutePath(actor, target)
     -- can't reach target either, the worker has a fundamental movement
     -- problem (own-unit stacking, mountain pass, etc.) and move-to's
     -- diagnostic names it correctly.
-    if not actor:GeneratePath(target) then
+    if not EngineData.generatePath(actor, target) then
         return PathDiagnostic.discriminativePath(actor, target)
     end
 
