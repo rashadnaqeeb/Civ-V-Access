@@ -180,6 +180,30 @@ local COMPASS_KEYS = {
     [7] = "TXT_KEY_CIVVACCESS_DIR_SE",
 }
 
+-- Pixel-space bearing of the (fromX, fromY) -> (toX, toY) endpoint delta,
+-- in radians CCW from east, normalized to [0, 2pi). Returns nil at zero
+-- delta. Pointy-top column-step is sqrt(3) units wide, row-step is 1.5
+-- units tall; scaling the raw (dcol, drow) by these factors puts each hex
+-- neighbour direction on its true unit-circle angle (NE at 60 degrees, not
+-- 45), so atan2 yields the screen-space bearing the player perceives
+-- spatially. Map wrap is handled through displacement. Shared by
+-- compassDirectionString (which bins it to the 8-point compass) and
+-- bearingInArc (the directional scanner's membership test), so the scoped
+-- direction and the spoken direction are computed identically.
+local function bearingAngle(fromX, fromY, toX, toY)
+    if fromX == toX and fromY == toY then
+        return nil
+    end
+    local dcol, drow = HexGeom.displacement(fromX, fromY, toX, toY)
+    local px = dcol * math.sqrt(3)
+    local py = drow * 1.5
+    local angle = math.atan2(py, px) -- (-pi, pi]
+    if angle < 0 then
+        angle = angle + 2 * math.pi
+    end
+    return angle
+end
+
 -- "<cube-distance><nearest-compass-token>" summary for the endpoint
 -- delta from (fromX, fromY) to (toX, toY). Distinct from directionString,
 -- which decomposes the delta into two adjacent hex axes ("1ne, 1nw" for
@@ -191,27 +215,44 @@ local COMPASS_KEYS = {
 -- zero delta. Map wrap is handled the same way as directionString via
 -- the shared displacement / cubeDistance helpers.
 function HexGeom.compassDirectionString(fromX, fromY, toX, toY)
-    if fromX == toX and fromY == toY then
+    local angle = bearingAngle(fromX, fromY, toX, toY)
+    if angle == nil then
         return ""
-    end
-    -- Pointy-top column-step is sqrt(3) units wide, row-step is 1.5 units
-    -- tall. Scaling the raw (dcol, drow) by these factors puts each hex
-    -- neighbour direction on its true unit-circle angle (NE at 60 degrees,
-    -- not 45). atan2 then yields the screen-space bearing the player
-    -- perceives spatially, which is what gets binned to the 8-point
-    -- compass.
-    local dcol, drow = HexGeom.displacement(fromX, fromY, toX, toY)
-    local px = dcol * math.sqrt(3)
-    local py = drow * 1.5
-    local angle = math.atan2(py, px) -- (-pi, pi]
-    if angle < 0 then
-        angle = angle + 2 * math.pi
     end
     local SLOT = math.pi / 4
     local index = math.floor(angle / SLOT + 0.5) % 8
     local dist = HexGeom.cubeDistance(fromX, fromY, toX, toY)
     return Text.format(stepTemplate(), dist, HexGeom.dirText(COMPASS_KEYS[index]))
 end
+
+-- Membership predicate for the directional scanner's 90-degree arc: does
+-- the bearing from (fromX, fromY) to (toX, toY) fall within halfWidth of
+-- centerAngle? A zero delta (the cursor sitting on the target) is always
+-- in-arc, so jumping onto an item never makes it vanish. Otherwise folds
+-- the circular difference to centerAngle down past pi (the short way
+-- around the circle) and compares against halfWidth. Center angles follow
+-- the same atan2 convention bearingAngle returns (E = 0, N = pi/2,
+-- W = pi, S = 3pi/2); a halfWidth of pi/4 tiles the circle into four
+-- gap-free, non-overlapping arcs. Map wrap is handled for free through
+-- bearingAngle's displacement.
+function HexGeom.bearingInArc(fromX, fromY, toX, toY, centerAngle, halfWidth)
+    local angle = bearingAngle(fromX, fromY, toX, toY)
+    if angle == nil then
+        return true
+    end
+    local diff = math.abs(angle - centerAngle)
+    if diff > math.pi then
+        diff = 2 * math.pi - diff
+    end
+    return diff <= halfWidth
+end
+
+-- Center bearings for the four cardinal scanner arcs, keyed by dir code, in
+-- the same atan2 convention bearingAngle returns (CCW from east). Lives here
+-- so the centers and the angle they are compared against can never drift to
+-- different conventions; the scanner pairs these with a pi/4 half-width to
+-- tile the circle into four gap-free, non-overlapping arcs via bearingInArc.
+HexGeom.DIRECTION_ARC_CENTER = { E = 0, N = math.pi / 2, W = math.pi, S = 3 * math.pi / 2 }
 
 -- Run-length encoded list of step directions: [E, E, SE, NW, NW, NW]
 -- becomes "2e, 1se, 3nw". Distinct from directionString -- this caller

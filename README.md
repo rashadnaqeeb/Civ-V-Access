@@ -115,6 +115,9 @@ Entries are organized into a hierarchy of categories (cities, units, resources, 
 - **Backspace** — return the cursor to its position before the jump
 - **End** — repeat distance and direction from the cursor
 - **Ctrl+F** — search all scanner entries by name
+- **Ctrl+arrow keys** — scope the scanner to that compass direction; press the same direction again to clear
+
+By default the scanner walks the nearest thing in any direction. The arrow keys let you narrow it to one: **Ctrl+Left** scopes to west, **Ctrl+Up** to north, and so on, fanning out a quarter-circle that way from the cursor so only things in that direction show up. This answers "what's to my west" instead of "what's nearest". The scope stays on the category you're already in, and it tracks the cursor as you move, dropping things that fall behind you, so you can sweep an area by walking the cursor through it. Press the same direction again to clear the scope.
 
 Each entry is announced with its exact hex distance and direction from the cursor. An orange highlight is applied to the selected item to help a sighted person watching understand what you're looking at.
 
@@ -290,7 +293,7 @@ A few habits and settings that aren't obvious but make the game noticeably smoot
 - **Press Enter on table rows as a shortcut.** On the **F2** city table, Enter on most cells sends the cursor to that city, and Enter on the Production cell opens that city's production picker directly — by far the fastest way to change what a city is building. The **F3** unit table works similarly: Enter on any row jumps the cursor to that unit and selects it for you.
 - **Try Ctrl+I almost anywhere.** Most everything in this game has a Civilopedia entry, including individual cells in tables. **Ctrl+I** on a column header, a resource cell, a leader row, or whatever else is focused usually opens the article for it, even in places you wouldn't expect the binding to work.
 - **Switch cultural perspectives.** On a cultural-victory run, the fourth tab of the **Ctrl+C** Culture Overview lets you change perspective using the left column. Each entry repivots the table to show that civ's tourism influence on every other civ, which is how you find out who else is close to a cultural win.
-- **Build your own scanner categories.** From the Scanner group in **F12** settings you can assemble custom categories that gather the filters you reach for most into one place, so the things you check every turn sit one category cycle apart instead of scattered across the full hierarchy.
+- **Build your own scanner categories.** From the Scanner group in **F12** settings you can assemble custom categories that gather the filters you reach for most into one place, so the things you check every turn sit one category cycle apart instead of scattered across the full hierarchy. Pair this with the scanner's directional scope (**Ctrl** plus an arrow key): a custom category already narrows the scanner to the subset you care about, and scoping it to a direction points that subset where the action is. Say you build a category of enemy cities and enemy units, and you know their territory is off to the west; scope it west and you walk straight through your targets without the rest of the map getting in the way.
 
 ## Troubleshooting
 

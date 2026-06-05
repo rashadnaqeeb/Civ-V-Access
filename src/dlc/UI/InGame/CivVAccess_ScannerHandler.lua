@@ -76,6 +76,10 @@ ScannerHandler.HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN",
         description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN",
     },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_DIRECTION",
+        description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DIRECTION",
+    },
 }
 
 function ScannerHandler.create()
@@ -117,6 +121,14 @@ function ScannerHandler.create()
             bind(Keys.VK_END, MOD_NONE, call(ScannerNav.distanceFromCursor), "Distance from cursor to entry"),
             bind(Keys.F, MOD_CTRL, call(ScannerNav.openSearch), "Search scanner entries"),
             bind(Keys.VK_BACK, MOD_NONE, call(ScannerNav.returnToPreJump), "Return to pre-jump cell"),
+            -- Directional scope. Ctrl+arrow constrains the scanner to a
+            -- 90-degree arc fanning out from the cursor; pressing the active
+            -- direction again clears it. Base game uses bare arrows for
+            -- camera pan (no value to a blind player); Ctrl+arrows are free.
+            bind(Keys.VK_UP, MOD_CTRL, cycle(ScannerNav.setDirection, "N"), "Scan north"),
+            bind(Keys.VK_DOWN, MOD_CTRL, cycle(ScannerNav.setDirection, "S"), "Scan south"),
+            bind(Keys.VK_LEFT, MOD_CTRL, cycle(ScannerNav.setDirection, "W"), "Scan west"),
+            bind(Keys.VK_RIGHT, MOD_CTRL, cycle(ScannerNav.setDirection, "E"), "Scan east"),
         },
         -- Empty on purpose: BaselineHandler surfaces the scanner keys from
         -- HELP_ENTRIES above so they land between the surveyor and

@@ -12,11 +12,12 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Scope the scanner to one compass direction with Ctrl plus arrow keys; press the same direction again to clear.
 - Settings has a Long compass directions toggle that speaks directions in full ("northeast" instead of "ne") everywhere they are announced.
 - Unit movement announcements now have a separate on/off toggle per owner: your queued moves, hostile civs, neutral civs, city-states, barbarians, and teammates.
 
 Bug fixes:
-- A caravan or cargo ship you renamed keeps its name when a trade route starts or ends.
+- A caravan or cargo ship you renamed keeps its name when a trade route starts or ends. Game bug, but fixed it as it was easy and annoying.
 
 ## [1.3.0] - 2026-06-05
 
