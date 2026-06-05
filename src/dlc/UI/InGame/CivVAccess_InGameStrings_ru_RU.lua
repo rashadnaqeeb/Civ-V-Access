@@ -1690,8 +1690,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_STRATEGIC_LIST"] = "стратег�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_LUXURY_LIST"] = "предметы роскоши: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "рядом: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "бонусные: {1_List}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] =
-    "разбор отношений: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "разбор отношений: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "институты: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "чудеса: {1_List}"
