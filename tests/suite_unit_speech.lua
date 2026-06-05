@@ -1234,6 +1234,328 @@ function M.test_self_plot_confirm_unknown_token_empty()
     T.eq(UnitSpeech.selfPlotConfirm("NOT_A_REAL_TOKEN"), "")
 end
 
+-- ===== Combat preview =====
+-- The four preview functions (melee / ranged / city-melee / city-ranged)
+-- carry the most decision-critical drift getters: GetCombatDamage,
+-- GetMaxDefenseStrength, and Plot:DefenseModifier, all routed through
+-- EngineData. These characterization tests pin the rendered core line --
+-- name, strengths, prediction, and the two damage numbers -- so a change
+-- to the call wiring (including the EngineData migration) that alters any
+-- of those numbers breaks the test. Per-side modifier breakdowns are held
+-- at neutral, so the spoken line is the core line alone.
+
+-- Deterministic stand-in for the engine's C++ GetCombatDamage, which is
+-- unreachable offline. It only has to be stable and depend on its inputs,
+-- so the attacker's and defender's calls (which pass the two strengths in
+-- opposite order) yield different, hand-checkable numbers. The tests pin
+-- the rendered numbers; the EngineData migration routes the same arguments
+-- here, so the numbers are unchanged by it.
+local function fakeCombatDamage(myStr, oppStr, curDmg)
+    return math.floor(myStr / oppStr * 18) + math.floor(curDmg / 10)
+end
+
+-- Metatable that absorbs the long tail of per-side modifier getters the
+-- attackerMods / defenderMods passes read. Boolean-shaped names (Is/Has/No
+-- prefixes) degrade to false, every other getter to 0, so every modifier
+-- branch is skipped and the modifier list stays empty. Methods whose return
+-- shape matters (strengths, damage, nil-checked handles) are defined
+-- explicitly on the mocks below and take precedence over this fallback.
+local function combatFallback()
+    return {
+        __index = function(_, key)
+            if key:match("^Is") or key:match("^Has") or key:match("^No") then
+                return function()
+                    return false
+                end
+            end
+            return function()
+                return 0
+            end
+        end,
+    }
+end
+
+-- Combatant mock for the preview paths. opts drives the core line:
+-- attackStrength / defenseStrength / rangedStrength (engine-native, times
+-- 100), rangeDamage, captureChance, plus identity (owner / unitType /
+-- team). GetCombatDamage uses the shared deterministic stand-in.
+local function mkCombatUnit(opts)
+    opts = opts or {}
+    local u = {}
+    function u:GetOwner()
+        return opts.owner or 0
+    end
+    function u:GetTeam()
+        return opts.team or 0
+    end
+    function u:GetUnitType()
+        return opts.unitType or 100
+    end
+    function u:GetNameKey()
+        local row = GameInfo.Units[opts.unitType or 100]
+        return row and row.Description or ""
+    end
+    function u:HasName()
+        return opts.hasName or false
+    end
+    function u:GetNameNoDesc()
+        return opts.nameNoDesc or ""
+    end
+    function u:GetReligion()
+        return opts.religion or ReligionTypes.NO_RELIGION
+    end
+    function u:GetPlot()
+        return opts.plot
+    end
+    function u:GetDomainType()
+        return opts.domain or DomainTypes.DOMAIN_LAND
+    end
+    function u:GetUnitClassType()
+        return -1
+    end
+    function u:GetUnitCombatType()
+        return -1
+    end
+    function u:GetDamage()
+        return opts.damage or 0
+    end
+    function u:IsCombatUnit()
+        return opts.isCombat ~= false
+    end
+    function u:IsEmbarked()
+        return opts.embarked or false
+    end
+    function u:GetEmbarkedUnitDefense()
+        return opts.embarkedDefense or 0
+    end
+    function u:IsRangedSupportFire()
+        return opts.rangedSupportFire or false
+    end
+    -- nil-checked handle: a non-nil return would make the preview try to
+    -- read a fire-support unit's damage, so this must stay nil unless a
+    -- test wants support fire.
+    function u:GetFireSupportUnit(_owner, _x, _y)
+        return opts.fireSupport
+    end
+    function u:GetMaxAttackStrength(_from, _to, _defender)
+        return opts.attackStrength or 0
+    end
+    function u:GetMaxDefenseStrength(_to, _attacker, _fromRanged)
+        return opts.defenseStrength or 0
+    end
+    function u:GetMaxRangedCombatStrength(_unit, _city, _attacking, _ranged)
+        return opts.rangedStrength or 0
+    end
+    function u:GetRangeCombatDamage(_unit, _city, _rand)
+        return opts.rangeDamage or 0
+    end
+    function u:GetCombatDamage(s1, s2, curDmg, _rand, _atkCity, _defCity)
+        return fakeCombatDamage(s1, s2, curDmg)
+    end
+    function u:GetCaptureChance(_defender)
+        return opts.captureChance or 0
+    end
+    function u:GetAirStrikeDefenseDamage(_attacker, _rand)
+        return opts.airStrikeDefense or 0
+    end
+    function u:GetInterceptorCount(_plot, _defender, _a, _b)
+        return opts.interceptorCount or 0
+    end
+    return setmetatable(u, combatFallback())
+end
+
+-- City defender mock for the city-preview paths. Strength / hit points /
+-- damage drive the rendered line; the fallback covers any modifier getter.
+local function mkCombatCity(opts)
+    opts = opts or {}
+    local c = {}
+    function c:GetName()
+        return opts.name or "Babylon"
+    end
+    function c:GetOwner()
+        return opts.owner or 1
+    end
+    function c:GetStrengthValue()
+        return opts.strength or 0
+    end
+    function c:GetMaxHitPoints()
+        return opts.maxHP or 200
+    end
+    function c:GetDamage()
+        return opts.damage or 0
+    end
+    function c:GetAirStrikeDefenseDamage(_attacker, _rand)
+        return opts.airStrikeDefense or 0
+    end
+    return setmetatable(c, combatFallback())
+end
+
+-- Plot mock with the two ground-shape probes attackerMods / defenderMods
+-- read that T.fakePlot lacks; everything else (DefenseModifier, terrain,
+-- ownership, river crossings) comes from fakePlot.
+local function mkCombatPlot(opts)
+    opts = opts or {}
+    local p = T.fakePlot(opts)
+    function p:IsOpenGround()
+        return opts.openGround or false
+    end
+    function p:IsRoughGround()
+        return opts.roughGround or false
+    end
+    return p
+end
+
+-- Player mock with the always-called combat modifier getters T.fakePlayer
+-- lacks. Neutral (0) so no attacker/defender bonus surfaces.
+local function mkCombatPlayer(adj)
+    local p = T.fakePlayer({ adj = adj })
+    p.GetAttackBonusTurns = function()
+        return 0
+    end
+    p.GetCombatBonusVsLargerCiv = function()
+        return 0
+    end
+    p.GetCombatBonusVsHigherTech = function()
+        return 0
+    end
+    p.GetFoundedReligionEnemyCityCombatMod = function()
+        return 0
+    end
+    p.GetFoundedReligionFriendlyCityCombatMod = function()
+        return 0
+    end
+    p.GetTraitGoldenAgeCombatModifier = function()
+        return 0
+    end
+    p.GetTraitCityStateCombatModifier = function()
+        return 0
+    end
+    return p
+end
+
+-- Shared scaffold for the combat-preview tests: engine number formatters,
+-- a fixed combat prediction, neutral combat players, and the GameInfo
+-- class / terrain rows the modifier passes look up at class id -1 / terrain
+-- id -1.
+local function combatSetup()
+    setup()
+    Locale.ToLower = function(s)
+        return s:lower()
+    end
+    Locale.ToNumber = function(n, _fmt)
+        return tostring(n)
+    end
+    Game.GetCombatPrediction = function(_actor, _defender)
+        return CombatPredictionTypes.COMBAT_PREDICTION_MAJOR_VICTORY
+    end
+    Players[0] = mkCombatPlayer("Roman")
+    Players[1] = mkCombatPlayer("Persian")
+    GameInfo.UnitClasses = { [-1] = { Description = "Test Class" } }
+    GameInfo.Terrains = { [-1] = { Description = "Test Terrain" } }
+end
+
+function M.test_melee_preview_core_line()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, unitType = 100, attackStrength = 1000, plot = mkCombatPlot({}) })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500 })
+    local targetPlot = mkCombatPlot({})
+    local out = UnitSpeech.meleePreview(actor, defender, targetPlot)
+    -- attackStrength 1000 -> "10", defenseStrength 500 -> "5".
+    -- to-them: fakeCombatDamage(1000, 500, 0) = floor(36) = 36.
+    -- to-me:   fakeCombatDamage(500, 1000, 0) = floor(9)  = 9.
+    T.truthy(out:find("Persian Swordsman", 1, true), "defender name expected: " .. out)
+    T.truthy(out:find("10 vs 5", 1, true), "strengths expected: " .. out)
+    T.truthy(out:find("major victory", 1, true), "prediction expected: " .. out)
+    T.truthy(out:find("9 damage to me", 1, true), "damage-to-me expected: " .. out)
+    T.truthy(out:find("36 to them", 1, true), "damage-to-them expected: " .. out)
+    T.truthy(not out:find("bonuses", 1, true), "no modifier list when all mods neutral: " .. out)
+end
+
+function M.test_melee_preview_support_fire_and_capture_chance()
+    combatSetup()
+    local support = mkCombatUnit({ owner = 1, team = 1, unitType = 101, rangeDamage = 7 })
+    local actor = mkCombatUnit({
+        owner = 0,
+        unitType = 100,
+        attackStrength = 1000,
+        captureChance = 40,
+        fireSupport = support,
+        plot = mkCombatPlot({}),
+    })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500 })
+    local out = UnitSpeech.meleePreview(actor, defender, mkCombatPlot({}))
+    -- supportDmg = support:GetRangeCombatDamage = 7; folds into the
+    -- attacker's input damage and onto the defender's output.
+    T.truthy(out:find("support fire 7", 1, true), "support fire line expected: " .. out)
+    T.truthy(out:find("capture chance 40 percent", 1, true), "capture chance expected: " .. out)
+end
+
+function M.test_melee_preview_zero_strength_suppressed()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, attackStrength = 0, plot = mkCombatPlot({}) })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500 })
+    local out = UnitSpeech.meleePreview(actor, defender, mkCombatPlot({}))
+    T.eq(out, "")
+end
+
+function M.test_ranged_preview_core_line()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, unitType = 100, rangedStrength = 900, rangeDamage = 25 })
+    -- Defender has no ranged strength, so theirStrength falls through to
+    -- GetMaxDefenseStrength (the migrated read) -> 500 -> "5".
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500 })
+    local out = UnitSpeech.rangedPreview(actor, defender, mkCombatPlot({}))
+    T.truthy(out:find("Persian Swordsman", 1, true), "defender name expected: " .. out)
+    T.truthy(out:find("9 vs 5", 1, true), "strengths expected: " .. out)
+    T.truthy(out:find("major victory", 1, true), "prediction expected: " .. out)
+    T.truthy(out:find("25 damage to them", 1, true), "ranged damage expected: " .. out)
+    T.truthy(not out:find("bonuses", 1, true), "no modifier list when all mods neutral: " .. out)
+end
+
+function M.test_ranged_preview_zero_strength_suppressed()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, rangedStrength = 0 })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500 })
+    local out = UnitSpeech.rangedPreview(actor, defender, mkCombatPlot({}))
+    T.eq(out, "")
+end
+
+function M.test_city_melee_preview_core_line()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, unitType = 100, attackStrength = 1000, plot = mkCombatPlot({}) })
+    local city = mkCombatCity({ name = "Babylon", owner = 1, strength = 500, maxHP = 200 })
+    local out = UnitSpeech.cityMeleePreview(actor, city, mkCombatPlot({}))
+    -- to-them (city): fakeCombatDamage(1000, 500, 0) = 36.
+    -- to-me:          fakeCombatDamage(500, 1000, 0) = 9.
+    T.truthy(out:find("city Babylon", 1, true), "city name expected: " .. out)
+    T.truthy(out:find("10 vs 5", 1, true), "strengths expected: " .. out)
+    T.truthy(out:find("9 damage to me", 1, true), "damage-to-me expected: " .. out)
+    T.truthy(out:find("36 to them", 1, true), "damage-to-city expected: " .. out)
+    T.truthy(not out:find("victory", 1, true), "city preview has no prediction verdict: " .. out)
+end
+
+-- City and unit HP caps clamp the two damage numbers. A huge attack
+-- strength would compute past the city's max HP / the unit's max HP; the
+-- preview reports the capped values.
+function M.test_city_melee_preview_caps_damage_at_max_hp()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, unitType = 100, attackStrength = 100000, plot = mkCombatPlot({}) })
+    local city = mkCombatCity({ name = "Babylon", owner = 1, strength = 100, maxHP = 200 })
+    local out = UnitSpeech.cityMeleePreview(actor, city, mkCombatPlot({}))
+    -- to-them = fakeCombatDamage(100000, 100, 0) = 18000, capped to maxHP 200.
+    T.truthy(out:find("200 to them", 1, true), "city damage capped at max HP: " .. out)
+end
+
+function M.test_city_ranged_preview_core_line()
+    combatSetup()
+    local actor = mkCombatUnit({ owner = 0, unitType = 100, rangedStrength = 900, rangeDamage = 25 })
+    local city = mkCombatCity({ name = "Babylon", owner = 1, strength = 500, maxHP = 200 })
+    local out = UnitSpeech.cityRangedPreview(actor, city, mkCombatPlot({}))
+    T.truthy(out:find("city Babylon", 1, true), "city name expected: " .. out)
+    T.truthy(out:find("9 vs 5", 1, true), "strengths expected: " .. out)
+    T.truthy(out:find("25 damage to them", 1, true), "ranged damage to city expected: " .. out)
+end
+
 -- ===== Combat result =====
 
 function M.test_combat_result_both_sides_take_damage()

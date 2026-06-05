@@ -922,7 +922,7 @@ local function defenderMods(actor, defender, targetPlot)
         pushMod(mods, adj, "TXT_KEY_EUPANEL_ADJACENT_FRIEND_UNIT_BONUS")
     end
 
-    local plotDef = targetPlot:DefenseModifier(defender:GetTeam(), false, false)
+    local plotDef = EngineData.plotDefenseModifier(targetPlot, defender:GetTeam(), false, false)
     if plotDef < 0 or not defender:NoDefensiveBonus() then
         pushMod(mods, plotDef, "TXT_KEY_EUPANEL_TERRAIN_MODIFIER")
     end
@@ -1057,13 +1057,11 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
     end
 
     local myStrength = actor:GetMaxAttackStrength(actor:GetPlot(), targetPlot, defender)
-    local theirStrength = defender:GetMaxDefenseStrength(targetPlot, actor)
+    local theirStrength = EngineData.maxDefenseStrength(defender, targetPlot, actor, false)
     if myStrength <= 0 or theirStrength <= 0 then
         return ""
     end
-    local myDmg = actor:GetCombatDamage(myStrength, theirStrength, actor:GetDamage() + supportDmg, false, false, false)
-    local theirDmg = defender:GetCombatDamage(theirStrength, myStrength, defender:GetDamage(), false, false, false)
-        + supportDmg
+    local myDmg, theirDmg = EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg)
 
     local name = unitName(defender)
     local myStr = Locale.ToNumber(myStrength / 100, "#.##")
@@ -1114,7 +1112,7 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
         theirStrength = defender:GetMaxRangedCombatStrength(actor, nil, false, true)
     end
     if theirStrength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA or defender:IsRangedSupportFire() then
-        theirStrength = defender:GetMaxDefenseStrength(targetPlot, actor, true)
+        theirStrength = EngineData.maxDefenseStrength(defender, targetPlot, actor, true)
     end
 
     local theirDmg = 0
@@ -1181,10 +1179,7 @@ function UnitSpeech.cityMeleePreview(actor, city, targetPlot)
     if myStrength <= 0 or theirStrength <= 0 then
         return ""
     end
-    local myDmg =
-        actor:GetCombatDamage(myStrength, theirStrength, actor:GetDamage() + fireSupportDmg, false, false, true)
-    local theirDmg = actor:GetCombatDamage(theirStrength, myStrength, city:GetDamage(), false, true, false)
-        + fireSupportDmg
+    local myDmg, theirDmg = EngineData.cityMeleeDamage(actor, city, myStrength, theirStrength, fireSupportDmg)
 
     local maxCityHP = city:GetMaxHitPoints()
     if myDmg > maxCityHP then

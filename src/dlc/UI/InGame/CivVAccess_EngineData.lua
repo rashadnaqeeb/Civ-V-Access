@@ -40,6 +40,65 @@ function EngineData.forkPresent()
         and Game.GetClosestSearchedPlot ~= nil
 end
 
+-- Drift read: bidirectional melee damage for a unit-vs-unit attack.
+-- Returns (damage to defender, damage to attacker). Vanilla has no single
+-- call for this, so it synthesizes both sides from two GetCombatDamage
+-- calls, folding fire-support damage into the attacker's input and onto the
+-- defender's output exactly as EnemyUnitPanel does. VP replaces this with a
+-- single GetMeleeCombatDamage that returns both sides at once, which is why
+-- the seam is shaped as "give me both numbers for this matchup" rather than
+-- exposing GetCombatDamage directly.
+function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage)
+    local toDefender = attacker:GetCombatDamage(
+        attackStrength,
+        defenseStrength,
+        attacker:GetDamage() + supportDamage,
+        false,
+        false,
+        false
+    )
+    local toAttacker = defender:GetCombatDamage(
+        defenseStrength,
+        attackStrength,
+        defender:GetDamage(),
+        false,
+        false,
+        false
+    ) + supportDamage
+    return toDefender, toAttacker
+end
+
+-- Drift read: bidirectional melee damage for a unit-vs-city attack. Returns
+-- (damage to city, damage to attacker). Both numbers come from the
+-- attacker's GetCombatDamage with the city flags set -- defender-is-city
+-- for the outgoing hit, attacker-is-city for the city's counter, with the
+-- city supplying its own current damage for the counter. VP collapses this
+-- into GetMeleeCombatDamageCity.
+function EngineData.cityMeleeDamage(attacker, city, attackStrength, cityStrength, supportDamage)
+    local toCity =
+        attacker:GetCombatDamage(attackStrength, cityStrength, attacker:GetDamage() + supportDamage, false, false, true)
+    local toAttacker = attacker:GetCombatDamage(cityStrength, attackStrength, city:GetDamage(), false, true, false)
+        + supportDamage
+    return toCity, toAttacker
+end
+
+-- Drift read: a defender's maximum defense strength on a plot against an
+-- attacker. VP inserted a from-plot parameter into the signature, so the
+-- seam carries the attacker (whose plot the VP body passes); the vanilla
+-- body ignores it. bFromRangedAttack distinguishes the melee caller (false)
+-- from the ranged caller (true).
+function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack)
+    return defender:GetMaxDefenseStrength(toPlot, attacker, bFromRangedAttack)
+end
+
+-- Drift read: the defense modifier a plot grants a defender. VP inserted a
+-- bIgnoreFeature parameter ahead of bHelp; the vanilla body uses the
+-- three-argument form. bHelp=true is the tooltip variant (includes terrain
+-- + feature + improvement components).
+function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHelp)
+    return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, bHelp)
+end
+
 -- Extension binding: Unit:GetMissionQueue (the unit's queued missions).
 -- Absent on a non-fork DLL, where a bare call throws a method-not-found
 -- error the engine swallows per listener -- which is what silenced the

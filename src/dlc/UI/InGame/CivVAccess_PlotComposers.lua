@@ -288,7 +288,7 @@ function PlotComposers.combat(plot)
     -- get our perspective on what defenders here would gain. Reads live
     -- on fogged tiles (the improvement component can be stale), matching
     -- PlotHelpManager.lua's unguarded use.
-    local def = plot:DefenseModifier(team, false, true)
+    local def = EngineData.plotDefenseModifier(plot, team, false, true)
     if def ~= 0 then
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
     end

@@ -52,6 +52,17 @@ civvaccess_shared = civvaccess_shared or {}
 -- shape of the resolved phrase rather than the literal key.
 local baseGameStrings = {
     TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV = "{1_Adj} {2_Name}",
+    -- Combat-prediction verdict labels read by UnitSpeech.meleePreview /
+    -- rangedPreview through predictionLabel. Mapped to their resolved phrases
+    -- so the combat-preview characterization tests pin a clean spoken result
+    -- ("major victory") rather than a lowercased raw key.
+    TXT_KEY_EUPANEL_TOTAL_VICTORY = "total victory",
+    TXT_KEY_EUPANEL_MAJOR_VICTORY = "major victory",
+    TXT_KEY_EUPANEL_MINOR_VICTORY = "minor victory",
+    TXT_KEY_EUPANEL_STALEMATE = "stalemate",
+    TXT_KEY_EUPANEL_MINOR_DEFEAT = "minor defeat",
+    TXT_KEY_EUPANEL_MAJOR_DEFEAT = "major defeat",
+    TXT_KEY_EUPANEL_TOTAL_DEFEAT = "total defeat",
 }
 Locale = Locale or {}
 Locale.ConvertTextKey = function(key, ...)
