@@ -122,7 +122,7 @@ local function availableResourceLeaf(side, resType, resInfo)
         -- extra. Phrased "you have N" / "they have N" rather than a bare
         -- number so it can't be misread as a trade quantity -- luxuries
         -- are always 1-quantity. Mirrors the engine's "(N)" pocket suffix.
-        local qty = g_Deal:GetNumResource(iPlayer, resType) or 0
+        local qty = EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0
         local luxuryLabel = resName .. TradeLogicAccess.turnsSuffix(dealDur) .. TradeLogicAccess.stockSuffix(side, qty)
         return BaseMenuItems.Text({
             labelText = luxuryLabel,
@@ -136,13 +136,13 @@ local function availableResourceLeaf(side, resType, resInfo)
         })
     end
     -- Strategic: prompt for amount, capped at g_Deal:GetNumResource.
-    local strategicQty = g_Deal:GetNumResource(iPlayer, resType) or 0
+    local strategicQty = EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0
     local strategicLabel = label .. TradeLogicAccess.stockSuffix(side, strategicQty)
     return BaseMenuItems.Text({
         labelText = strategicLabel,
         pediaName = pediaName,
         onActivate = function()
-            local maxQty = g_Deal:GetNumResource(iPlayer, resType) or 0
+            local maxQty = EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0
             if maxQty <= 0 then
                 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE"))
                 return

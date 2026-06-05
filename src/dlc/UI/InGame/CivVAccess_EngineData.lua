@@ -172,6 +172,16 @@ function EngineData.baseTourism(city)
     return city:GetBaseTourism()
 end
 
+-- Drift read: how many of a resource a player can put into a deal. VP does
+-- not register Deal:GetNumResource, so on VP the bare call throws and the
+-- trade Available drawer's resource sub-group silently vanishes. A VP
+-- adapter sources the count from Players[playerId]:GetNumResourceAvailable(
+-- resType, true) instead -- the same call the offering drawer already makes
+-- for the player-side stock. The vanilla body keeps the deal-scoped getter.
+function EngineData.dealResourceCount(deal, playerId, resType)
+    return deal:GetNumResource(playerId, resType)
+end
+
 -- Extension binding: Unit:GetMissionQueue (the unit's queued missions).
 -- Absent on a non-fork DLL, where a bare call throws a method-not-found
 -- error the engine swallows per listener -- which is what silenced the

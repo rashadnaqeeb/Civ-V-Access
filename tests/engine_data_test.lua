@@ -1,8 +1,10 @@
--- EngineData port tests. The drift reads are covered where they are
+-- EngineData port tests. Most drift reads are covered where they are
 -- consumed (combat in the unit-speech suite, happiness in the empire-status
 -- suite, and so on); this suite owns the behavior unique to the port
 -- itself: graceful degradation of fork-added bindings when the engine fork
--- DLL is absent, the case that silenced the tile read on a stock engine.
+-- DLL is absent, the case that silenced the tile read on a stock engine. It
+-- also covers the trade resource-count drift read directly, since the trade
+-- Available drawer has no consumer suite to exercise it through.
 
 local T = require("support")
 local M = {}
@@ -56,6 +58,23 @@ function M.test_mission_queue_degrades_to_empty_when_fork_absent()
         T.eq(#result, 0)
         T.truthy(warned, "absent fork must log a warning")
     end)
+end
+
+-- Trade resource count: the vanilla body is a deal-scoped getter taking
+-- (playerId, resourceType). Pins the argument order and pass-through so a
+-- regression that swaps player and resource (which would silently report
+-- the wrong tradeable count) fails here.
+function M.test_deal_resource_count_passes_player_and_resource_through()
+    local seen
+    local deal = {
+        GetNumResource = function(_, playerId, resType)
+            seen = { playerId = playerId, resType = resType }
+            return 5
+        end,
+    }
+    T.eq(EngineData.dealResourceCount(deal, 3, 7), 5)
+    T.eq(seen.playerId, 3)
+    T.eq(seen.resType, 7)
 end
 
 return M
