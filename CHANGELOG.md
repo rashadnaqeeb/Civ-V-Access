@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-06-05
+
 New Features and improvements:
 - Scope the scanner to one compass direction with Ctrl plus arrow keys; press the same direction again to clear.
 - Settings has a Long compass directions toggle that speaks directions in full ("northeast" instead of "ne") everywhere they are announced.
