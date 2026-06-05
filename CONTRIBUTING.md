@@ -58,7 +58,9 @@ them.
   goes through the announcement pipeline, never `tolk` directly. Never cache game
   state; re-query it at speech time.
 - **The gates must be clean.** Run `bash lint.sh` and `./test.ps1`; both must
-  pass, and new logic needs tests. New engine bindings need an engine build, which requires Visual Studio 2008.
+  pass, and new logic needs tests. New engine bindings need an engine build,
+  which uses the VC9 compiler from the Windows SDK 7.0 (set up once by
+  `build/sdk7-install/install.cmd`); most contributions don't touch the engine.
 - **Make the PR description true.** If it claims it follows a rule, it must
   actually follow it. A description that contradicts its own diff costs trust and
   review time.
