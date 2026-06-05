@@ -757,9 +757,9 @@ end
 -- same subtraction chain HappinessInfo.lua does.
 local function difficultyHappiness(player)
     return player:GetHappiness()
-        - player:GetHappinessFromPolicies()
+        - EngineData.happinessFromPolicies(player)
         - player:GetHappinessFromResources()
-        - player:GetHappinessFromBuildings()
+        - EngineData.happinessFromBuildings(player)
         - player:GetHappinessFromCities()
         - player:GetHappinessFromTradeRoutes()
         - player:GetHappinessFromReligion()
@@ -989,7 +989,7 @@ local function buildHappinessItems()
                     labelFn = function()
                         local pl = activePlayer()
                         local sum = pl:GetHappinessFromCities()
-                            + pl:GetHappinessFromBuildings()
+                            + EngineData.happinessFromBuildings(pl)
                             + (pl:GetExtraHappinessPerCity() * pl:GetNumCities())
                         return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES", sum)
                     end,
@@ -998,7 +998,7 @@ local function buildHappinessItems()
                     itemsFn = function()
                         local pl = activePlayer()
                         local cityHappy = pl:GetHappinessFromCities()
-                        local wonderBonuses = pl:GetHappinessFromBuildings()
+                        local wonderBonuses = EngineData.happinessFromBuildings(pl)
                         local perCityBonuses = pl:GetExtraHappinessPerCity() * pl:GetNumCities()
                         local children = {}
                         -- Buildings: per-city local happiness from Colosseum,
@@ -1039,7 +1039,7 @@ local function buildHappinessItems()
                                 labelFn = function()
                                     return Text.format(
                                         "TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES",
-                                        activePlayer():GetHappinessFromBuildings()
+                                        EngineData.happinessFromBuildings(activePlayer())
                                     )
                                 end,
                                 cached = false,
@@ -1055,7 +1055,7 @@ local function buildHappinessItems()
                                     for c in pl:Cities() do
                                         perCitySum = perCitySum + c:GetHappiness()
                                     end
-                                    local empireBonus = pl:GetHappinessFromBuildings() - perCitySum
+                                    local empireBonus = EngineData.happinessFromBuildings(pl) - perCitySum
                                     if empireBonus ~= 0 then
                                         rows[#rows + 1] = BaseMenuItems.Text({
                                             labelFn = function()
@@ -1066,7 +1066,7 @@ local function buildHappinessItems()
                                                 end
                                                 return Text.format(
                                                     "TXT_KEY_CIVVACCESS_EO_HAPPY_WONDER_BONUSES_EMPIRE",
-                                                    pl2:GetHappinessFromBuildings() - sum
+                                                    EngineData.happinessFromBuildings(pl2) - sum
                                                 )
                                             end,
                                         })
@@ -1131,7 +1131,7 @@ local function buildHappinessItems()
                     labelFn = function()
                         return Text.format(
                             "TXT_KEY_CIVVACCESS_EO_HAPPY_POLICIES",
-                            activePlayer():GetHappinessFromPolicies()
+                            EngineData.happinessFromPolicies(activePlayer())
                         )
                     end,
                     pediaName = "TXT_KEY_SOCIALPOLICY_HEADING1_TITLE",
@@ -1212,7 +1212,7 @@ local function buildHappinessItems()
                             "TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES",
                             count,
                             count,
-                            formatGoldT100(pl:GetUnhappinessFromCityCount())
+                            formatGoldT100(EngineData.unhappinessFromCityCount(pl))
                         )
                     end,
                     tooltipFn = citiesUnhappinessTooltip,
@@ -1226,7 +1226,7 @@ local function buildHappinessItems()
                                 "TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_CITIES",
                                 count,
                                 count,
-                                formatGoldT100(pl:GetUnhappinessFromCapturedCityCount())
+                                formatGoldT100(EngineData.unhappinessFromCapturedCityCount(pl))
                             )
                         end,
                         tooltipFn = occupiedCitiesUnhappinessTooltip,
@@ -1240,7 +1240,7 @@ local function buildHappinessItems()
                             "TXT_KEY_CIVVACCESS_EO_UNHAPPY_POPULATION",
                             count,
                             count,
-                            formatGoldT100(pl:GetUnhappinessFromCityPopulation())
+                            formatGoldT100(EngineData.unhappinessFromCityPopulation(pl))
                         )
                     end,
                     tooltipFn = citizensUnhappinessTooltip,
@@ -1277,7 +1277,7 @@ local function buildHappinessItems()
                     itemsFn = function()
                         return perCityHappinessEntries(
                             function(pl, c)
-                                return pl:GetUnhappinessFromCityForUI(c) / 100
+                                return EngineData.unhappinessFromCity(pl, c) / 100
                             end,
                             nil,
                             function(_, c)

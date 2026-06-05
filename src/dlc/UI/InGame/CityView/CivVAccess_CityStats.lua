@@ -205,7 +205,7 @@ local YIELD_DEFS = {
         labelKey = "TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM",
         helperKey = "TOURISM",
         rate = function(c)
-            return math.floor(c:GetBaseTourism() / 100)
+            return math.floor(EngineData.baseTourism(c) / 100)
         end,
     },
     {
@@ -293,7 +293,7 @@ end
 -- per-city.
 function CityStats.happinessLine(city, player)
     local localValue = city:GetLocalHappiness()
-    local unhappiness100 = player:GetUnhappinessFromCityForUI(city)
+    local unhappiness100 = EngineData.unhappinessFromCity(player, city)
     local unhappiness = math.floor(unhappiness100 / 100)
     return Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LINE", localValue, unhappiness)
 end

@@ -87,7 +87,7 @@ end
 -- 60 baseline (zero excess happiness) plus 3 points per surplus, clamped
 -- to 0..100. Matches Demographics.lua's GetApprovalValue.
 local function valueApproval(pPlayer)
-    local v = 60 + (pPlayer:GetExcessHappiness() * 3)
+    local v = 60 + (EngineData.excessHappiness(pPlayer) * 3)
     if v < 0 then
         return 0
     end

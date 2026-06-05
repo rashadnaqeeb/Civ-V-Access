@@ -572,7 +572,7 @@ local function buildCityGroup(city)
                 total = total + (b.building.GreatWorkCount or 0)
             end
             local cul = city:GetJONSCulturePerTurn()
-            local tou = city:GetBaseTourism()
+            local tou = EngineData.baseTourism(city)
             local damagePct = math.floor((city:GetDamage() / city:GetMaxHitPoints()) * 100 + 0.5)
             if damagePct > 0 then
                 return Text.formatPlural(
@@ -1023,7 +1023,7 @@ end
 -- ideology (city happiness summed minus unhappiness from all sources).
 -- Show in both branches, signed.
 local function happyCellText(pPlayer)
-    return formatSigned(pPlayer:GetExcessHappiness())
+    return formatSigned(EngineData.excessHappiness(pPlayer))
 end
 
 local function buildVictoryColumns()
@@ -1036,10 +1036,10 @@ local function buildVictoryColumns()
         {
             name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_TOURISM",
             getCell = function(p)
-                return tostring(p:GetTourism())
+                return tostring(EngineData.tourism(p))
             end,
             sortKey = function(p)
-                return p:GetTourism()
+                return EngineData.tourism(p)
             end,
         },
         {
@@ -1074,7 +1074,7 @@ local function buildVictoryColumns()
             name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY",
             getCell = happyCellText,
             sortKey = function(p)
-                return p:GetExcessHappiness()
+                return EngineData.excessHappiness(p)
             end,
         },
     }
@@ -1168,7 +1168,7 @@ end
 -- header) plus the "press enter to switch" discoverability hint. The
 -- combined string is one TXT_KEY for translatability.
 local function perspectiveCellText(targetID)
-    return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE_CELL", Players[targetID]:GetTourism())
+    return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERSPECTIVE_CELL", EngineData.tourism(Players[targetID]))
 end
 
 -- Enter on column 1 mutates g_iSelectedPlayerID directly (engine pattern;
@@ -1315,7 +1315,7 @@ local function buildInfluenceColumns()
             -- Sort by the row civ's overall tourism so the perspective
             -- column is also a tourism-output ranking.
             sortKey = function(targetID)
-                return Players[targetID]:GetTourism()
+                return EngineData.tourism(Players[targetID])
             end,
             enterAction = switchPerspectiveTo,
         },

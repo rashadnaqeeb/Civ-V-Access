@@ -99,6 +99,79 @@ function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHe
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, bHelp)
 end
 
+-- Drift read: the player's net happiness surplus. On vanilla this is a
+-- signed integer (positive = happy, negative = unhappy). Consumers treat it
+-- as a signed surplus: the H-key readout, the golden-age detail, the
+-- Culture Overview cell, and the Demographics approval formula
+-- (60 + excess*3).
+--
+-- KNOWN COARSENING CANDIDATE FOR VP. Routing this getter is necessary but
+-- not sufficient on Vox Populi: VP redefines GetExcessHappiness as a 0-to-100
+-- approval percentage where 50 is neutral, not a signed surplus, so every
+-- consumer that interprets the number is wrong for VP no matter how clean
+-- the getter call is. When VP is onboarded this seam must coarsen -- return
+-- a model (the number plus whether it is an approval or a surplus, plus the
+-- breakdown) and have the readouts format from that model. Deferred until VP
+-- forces it; flagged here so the VP work does not rediscover it. The same
+-- caveat applies to the unhappiness-component reads below, which VP zeroes
+-- under its citizen-needs model.
+function EngineData.excessHappiness(player)
+    return player:GetExcessHappiness()
+end
+
+-- Drift read: happiness contributed by buildings. VP returns a hardcoded 0
+-- (its happiness lives in the citizen-needs model), so this seam is where a
+-- VP adapter would source the equivalent value.
+function EngineData.happinessFromBuildings(player)
+    return player:GetHappinessFromBuildings()
+end
+
+-- Drift read: happiness contributed by social policies. VP returns 0 (see
+-- happinessFromBuildings).
+function EngineData.happinessFromPolicies(player)
+    return player:GetHappinessFromPolicies()
+end
+
+-- Drift read: unhappiness from the number of cities (engine times-100). VP
+-- returns 0 under its citizen-needs guard.
+function EngineData.unhappinessFromCityCount(player)
+    return player:GetUnhappinessFromCityCount()
+end
+
+-- Drift read: unhappiness from captured cities (engine times-100). VP
+-- returns 0.
+function EngineData.unhappinessFromCapturedCityCount(player)
+    return player:GetUnhappinessFromCapturedCityCount()
+end
+
+-- Drift read: unhappiness from city population (engine times-100). VP
+-- returns 0.
+function EngineData.unhappinessFromCityPopulation(player)
+    return player:GetUnhappinessFromCityPopulation()
+end
+
+-- Drift read: a single city's unhappiness contribution for UI (engine
+-- times-100). A player method that takes the city. VP returns 0 under its
+-- citizen-needs guard.
+function EngineData.unhappinessFromCity(player, city)
+    return player:GetUnhappinessFromCityForUI(city)
+end
+
+-- Drift read: the player's tourism output per turn. VP returns a times-100
+-- value where vanilla returns the plain rate, so a VP adapter divides by
+-- 100 here and every consumer keeps reading a plain rate.
+function EngineData.tourism(player)
+    return player:GetTourism()
+end
+
+-- Drift read: a city's base tourism (engine times-100 on both engines; the
+-- consumer divides). VP shares the times-100 convention, so this is a plain
+-- passthrough; it lives here because it is on the same drift surface as the
+-- player-level tourism getter.
+function EngineData.baseTourism(city)
+    return city:GetBaseTourism()
+end
+
 -- Extension binding: Unit:GetMissionQueue (the unit's queued missions).
 -- Absent on a non-fork DLL, where a bare call throws a method-not-found
 -- error the engine swallows per listener -- which is what silenced the

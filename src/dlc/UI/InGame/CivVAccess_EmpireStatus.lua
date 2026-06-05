@@ -283,7 +283,7 @@ local function happinessLine()
         return Text.key("TXT_KEY_CIVVACCESS_STATUS_HAPPINESS_OFF")
     end
     local player = Players[Game.GetActivePlayer()]
-    local excess = player:GetExcessHappiness()
+    local excess = EngineData.excessHappiness(player)
     local happinessClause
     if player:IsEmpireVeryUnhappy() then
         happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY", -excess)
@@ -358,7 +358,7 @@ end
 local function tourismLine()
     local activeID = Game.GetActivePlayer()
     local player = Players[activeID]
-    local rate = player:GetTourism()
+    local rate = EngineData.tourism(player)
     local count, total = influentialStats(player, activeID)
     if count == 0 then
         return Text.format("TXT_KEY_CIVVACCESS_STATUS_TOURISM", rate)
@@ -597,7 +597,7 @@ end
 -- effect description, and the Brazil carnival modifier when active.
 local function goldenAgeDetailSegments(player, d)
     if player:GetGoldenAgeTurns() <= 0 then
-        local excessHappy = player:GetExcessHappiness()
+        local excessHappy = EngineData.excessHappiness(player)
         if excessHappy >= 0 then
             d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION", excessHappy))
         else
@@ -645,11 +645,11 @@ local function happinessDetail()
         d.add(Text.key("TXT_KEY_TP_EMPIRE_UNHAPPY"))
     end
 
-    local policiesHappiness = player:GetHappinessFromPolicies()
+    local policiesHappiness = EngineData.happinessFromPolicies(player)
     local resourcesHappiness = player:GetHappinessFromResources()
     local extraLuxuryHappiness = player:GetExtraHappinessPerLuxury()
     local cityHappiness = player:GetHappinessFromCities()
-    local buildingHappiness = player:GetHappinessFromBuildings()
+    local buildingHappiness = EngineData.happinessFromBuildings(player)
     local tradeRouteHappiness = player:GetHappinessFromTradeRoutes()
     local religionHappiness = player:GetHappinessFromReligion()
     local naturalWonderHappiness = player:GetHappinessFromNaturalWonders()
@@ -712,11 +712,11 @@ local function happinessDetail()
 
     local totalUnhappiness = player:GetUnhappiness()
     local fromUnits = Locale.ToNumber(player:GetUnhappinessFromUnits() / 100, "#.##")
-    local fromCityCount = Locale.ToNumber(player:GetUnhappinessFromCityCount() / 100, "#.##")
-    local fromCapturedCities = Locale.ToNumber(player:GetUnhappinessFromCapturedCityCount() / 100, "#.##")
+    local fromCityCount = Locale.ToNumber(EngineData.unhappinessFromCityCount(player) / 100, "#.##")
+    local fromCapturedCities = Locale.ToNumber(EngineData.unhappinessFromCapturedCityCount(player) / 100, "#.##")
     local fromPuppets = player:GetUnhappinessFromPuppetCityPopulation()
     local fromSpecialists = player:GetUnhappinessFromCitySpecialists()
-    local popOnly = player:GetUnhappinessFromCityPopulation() - fromSpecialists - fromPuppets
+    local popOnly = EngineData.unhappinessFromCityPopulation(player) - fromSpecialists - fromPuppets
     local fromPop = Locale.ToNumber(popOnly / 100, "#.##")
     local fromOccupied = Locale.ToNumber(player:GetUnhappinessFromOccupiedCities() / 100, "#.##")
     local publicOpinion = player:GetUnhappinessFromPublicOpinion()
