@@ -158,7 +158,7 @@ local function unitStatusText(unit)
         end
         return str, STATUS_RANK_ACTIVE
     end
-    if unit.GetMissionQueue ~= nil and #unit:GetMissionQueue() > 0 then
+    if #civvaccess_shared.modules.EngineData.missionQueue(unit) > 0 then
         return Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"), STATUS_RANK_ACTIVE
     end
     if unit:MovesLeft() == 0 then

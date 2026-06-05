@@ -39,3 +39,16 @@ function EngineData.forkPresent()
         and Game.GetCycleUnits ~= nil
         and Game.GetClosestSearchedPlot ~= nil
 end
+
+-- Extension binding: Unit:GetMissionQueue (the unit's queued missions).
+-- Absent on a non-fork DLL, where a bare call throws a method-not-found
+-- error the engine swallows per listener -- which is what silenced the
+-- whole tile read on a stock engine. Degrades to an empty queue so callers
+-- measuring #queue see "no queued missions" and keep going.
+function EngineData.missionQueue(unit)
+    if not EngineData.forkPresent() then
+        Log.warn("EngineData.missionQueue: engine fork absent, returning empty queue")
+        return {}
+    end
+    return unit:GetMissionQueue()
+end

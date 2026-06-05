@@ -598,7 +598,7 @@ local function onMissionDispatched(playerID, unitID, _missionType, _iData1, _iDa
         -- ACTIVITY_HOLD until MP refresh) or it was refused outright
         -- (engine dropped the PUSH_MISSION, unit ineligible at dispatch
         -- time, etc.).
-        if #unit:GetMissionQueue() > 0 then
+        if #EngineData.missionQueue(unit) > 0 then
             speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_QUEUED_NEXT_TURN"))
         else
             speakQueued(Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED"))

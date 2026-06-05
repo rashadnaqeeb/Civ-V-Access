@@ -207,7 +207,24 @@ Game = Game
         GetReligionName = function(_eReligion)
             return ""
         end,
+        -- The three engine-fork canaries EngineData.forkPresent() probes.
+        -- Present here so tests run as if the fork DLL is deployed (the
+        -- mod's normal runtime); engine_data_test overrides Game to
+        -- exercise the absent case. No-ops -- only their presence is read.
+        GetBuildRoutePath = function() end,
+        GetCycleUnits = function() end,
     }
+if Game.GetBuildRoutePath == nil then
+    Game.GetBuildRoutePath = function() end
+end
+if Game.GetCycleUnits == nil then
+    Game.GetCycleUnits = function() end
+end
+if Game.GetClosestSearchedPlot == nil then
+    Game.GetClosestSearchedPlot = function()
+        return nil
+    end
+end
 if Game.GetReligionName == nil then
     Game.GetReligionName = function(_eReligion)
         return ""

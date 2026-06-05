@@ -849,7 +849,7 @@ local function pushMission(self, mission, plot, mode, queued)
         -- already activated a head. We treat the first shift+enter as
         -- equivalent to plain enter (queue starts immediately), and only
         -- second-and-later shift+enters as true appends.
-        bShift = #self._actor:GetMissionQueue() > 0
+        bShift = #EngineData.missionQueue(self._actor) > 0
     else
         -- Route mode skips the move-pending resolver. The resolver assumes
         -- MOVE_TO semantics (announce "moved to X" when the unit reaches
@@ -996,7 +996,7 @@ local function commitAtCursor(self, queued)
             -- worker ends up after prior queue items finish, not
             -- actor:GetPlot(), so a precomputed preview would speak
             -- misleading numbers -- fall back to plain "queued."
-            local queueWasEmpty = #self._actor:GetMissionQueue() == 0
+            local queueWasEmpty = #EngineData.missionQueue(self._actor) == 0
             pushMission(self, mission, plot, mode, true)
             if queueWasEmpty then
                 SpeechPipeline.speakInterrupt(text)
@@ -1045,7 +1045,7 @@ local function commitAtCursor(self, queued)
         -- prior queue rather than actor:GetPlot(), so the summary
         -- would speak misleading numbers and we fall back to "queued."
         local routeSummary = nil
-        if isRouteMode(mode) and #self._actor:GetMissionQueue() == 0 then
+        if isRouteMode(mode) and #EngineData.missionQueue(self._actor) == 0 then
             routeSummary = routePathPreview(self._actor, plot)
         end
         pushMission(self, mission, plot, mode, true)

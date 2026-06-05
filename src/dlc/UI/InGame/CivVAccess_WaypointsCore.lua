@@ -313,7 +313,7 @@ local function activeSnapshot()
     if unit:GetOwner() ~= Game.GetActivePlayer() then
         return nil
     end
-    local queue = unit:GetMissionQueue()
+    local queue = EngineData.missionQueue(unit)
     local sig = computeSig(queue)
     local ux, uy = unit:GetX(), unit:GetY()
     local cache = civvaccess_shared.waypointsCache
