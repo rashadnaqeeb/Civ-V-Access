@@ -140,6 +140,7 @@ globals = {
     "CameraTracker", "NavigableGraph",
 
     -- InGame modules
+    "EngineData",
     "Cursor", "CursorActivate", "CursorPedia", "HexGeom", "Pathfinder",
     "MapHighlight",
     "RoutePathfinder", "PathDiagnostic",

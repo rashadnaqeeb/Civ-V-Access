@@ -125,6 +125,15 @@ SpeechEngine = {
     stop = function() end,
 }
 
+-- EngineData port: the vanilla implementation of the engine-sensitive data
+-- seam. Loaded after the Log stub so its binding wrappers' degrade path can
+-- resolve Log at call time. Suites that exercise a migrated read or binding
+-- reach it through civvaccess_shared.modules.EngineData, mirroring Boot.
+dofile("src/dlc/UI/InGame/CivVAccess_EngineData.lua")
+civvaccess_shared = civvaccess_shared or {}
+civvaccess_shared.modules = civvaccess_shared.modules or {}
+civvaccess_shared.modules.EngineData = EngineData
+
 -- Audio: capturing stub for the proxy's miniaudio binding so PlotAudio and
 -- Cursor suites can assert bed / fog / stinger / cancel_all call ordering
 -- without touching real audio. Stays here (not in the polyfill) for the

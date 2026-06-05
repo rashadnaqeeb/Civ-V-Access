@@ -1,5 +1,9 @@
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
+-- EngineData before any module that reads engine-sensitive values or fork
+-- bindings (WaypointsCore, CursorCore, UnitSpeech, PathDiagnostic, ...).
+-- It is the capability source the fork probe below logs from.
+include("CivVAccess_EngineData")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
 include("CivVAccess_Verbosity")
@@ -180,18 +184,16 @@ end
 -- include and emits one line so a contributor reading Lua.log sees the
 -- missing-fork case immediately. Game methods are the canary: if they're
 -- present, the fork is deployed and the Unit / Plot bindings resolve too.
-if Game ~= nil then
-    if Game.GetBuildRoutePath ~= nil and Game.GetCycleUnits ~= nil and Game.GetClosestSearchedPlot ~= nil then
-        Log.info("CivVAccess_Boot: engine fork bindings present " .. bootSuffix)
-    else
-        Log.warn(
-            "CivVAccess_Boot: engine fork DLL not deployed "
-                .. bootSuffix
-                .. " -- move-target preview, build-route preview, ranged-strike "
-                .. "LoS, unit cycler, and path-failure diagnostic will silently fail. "
-                .. "Run ./deploy.ps1 (without -SkipEngine) to install."
-        )
-    end
+if EngineData.forkPresent() then
+    Log.info("CivVAccess_Boot: engine fork bindings present " .. bootSuffix)
+else
+    Log.warn(
+        "CivVAccess_Boot: engine fork DLL not deployed "
+            .. bootSuffix
+            .. " -- move-target preview, build-route preview, ranged-strike "
+            .. "LoS, unit cycler, and path-failure diagnostic will silently fail. "
+            .. "Run ./deploy.ps1 (without -SkipEngine) to install."
+    )
 end
 
 -- Publish mod modules to other in-game Contexts. Civ V sandboxes Lua
@@ -204,6 +206,7 @@ end
 -- Consumers capture refs into locals at file-scope and nil-guard the
 -- value in case Boot hasn't completed (edge: pre-game setup Context).
 civvaccess_shared.modules = civvaccess_shared.modules or {}
+civvaccess_shared.modules.EngineData = EngineData
 civvaccess_shared.modules.Cursor = Cursor
 civvaccess_shared.modules.ScannerNav = ScannerNav
 civvaccess_shared.modules.ScannerHandler = ScannerHandler
