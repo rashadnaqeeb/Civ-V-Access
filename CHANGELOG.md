@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Settings has a Long compass directions toggle that speaks directions in full ("northeast" instead of "ne") everywhere they are announced.
 - Unit movement announcements now have a separate on/off toggle per owner: your queued moves, hostile civs, neutral civs, city-states, barbarians, and teammates.
 
 Bug fixes:

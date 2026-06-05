@@ -116,6 +116,34 @@ local function dirKey(dir)
     return nil
 end
 
+-- Long-form direction rendering. When the player enables "Long compass
+-- directions" in Settings (civvaccess_shared.directionLongForm), every spoken
+-- token swaps from its short form ("ne") to the spelled form ("northeast")
+-- and the count/direction glue gains a separating space ("2 northeast"). Read
+-- live so a Settings toggle takes effect on the next readout. The flag is nil
+-- until Settings seeds the cache; nil reads as short form, matching the
+-- default.
+local function longForm()
+    return civvaccess_shared ~= nil and civvaccess_shared.directionLongForm == true
+end
+
+-- Resolve a short DIR_* TXT_KEY to its spoken text, swapping to the _LONG
+-- variant when long form is on. Exposed so PlotSectionRiver renders river
+-- edges through the same setting.
+function HexGeom.dirText(shortKey)
+    if longForm() then
+        return Text.key(shortKey .. "_LONG")
+    end
+    return Text.key(shortKey)
+end
+
+local function stepTemplate()
+    if longForm() then
+        return "TXT_KEY_CIVVACCESS_DIRECTION_STEP_LONG"
+    end
+    return "TXT_KEY_CIVVACCESS_DIRECTION_STEP"
+end
+
 -- Returns the concatenated "<n><short-token>, ..." decomposition of the
 -- (fromX, fromY) -> (toX, toY) delta. Empty string at zero delta.
 function HexGeom.directionString(fromX, fromY, toX, toY)
@@ -130,7 +158,7 @@ function HexGeom.directionString(fromX, fromY, toX, toY)
     for _, d in ipairs(OUTPUT_ORDER) do
         local n = counts[d.dir]
         if n > 0 then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", n, Text.key(d.key))
+            parts[#parts + 1] = Text.format(stepTemplate(), n, HexGeom.dirText(d.key))
         end
     end
     return table.concat(parts, ", ")
@@ -182,7 +210,7 @@ function HexGeom.compassDirectionString(fromX, fromY, toX, toY)
     local SLOT = math.pi / 4
     local index = math.floor(angle / SLOT + 0.5) % 8
     local dist = HexGeom.cubeDistance(fromX, fromY, toX, toY)
-    return Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", dist, Text.key(COMPASS_KEYS[index]))
+    return Text.format(stepTemplate(), dist, HexGeom.dirText(COMPASS_KEYS[index]))
 end
 
 -- Run-length encoded list of step directions: [E, E, SE, NW, NW, NW]
@@ -201,7 +229,7 @@ function HexGeom.stepListString(directions)
     local function flush(dir, n)
         local key = dirKey(dir)
         if key ~= nil then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DIRECTION_STEP", n, Text.key(key))
+            parts[#parts + 1] = Text.format(stepTemplate(), n, HexGeom.dirText(key))
         end
     end
     for i = 2, #directions do

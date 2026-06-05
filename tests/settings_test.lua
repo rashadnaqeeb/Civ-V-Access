@@ -178,14 +178,25 @@ end
 
 -- UI group --------------------------------------------------------------
 
-function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight()
+function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight_long_form()
     setup()
     Settings.open()
     local children = groupChildren(UI_GROUP)
-    T.eq(#children, 3, "verbose UI + read subtitles + map highlight")
+    T.eq(#children, 4, "verbose UI + read subtitles + map highlight + long-form directions")
     T.eq(children[1].kind, "checkbox")
     T.eq(children[2].kind, "checkbox")
     T.eq(children[3].kind, "checkbox")
+    T.eq(children[4].kind, "checkbox")
+end
+
+function M.test_direction_long_form_default_off_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.directionLongForm, false, "opt-in: defaults off")
+    -- Fourth child of the UI group is the long-form direction toggle.
+    groupChildren(UI_GROUP)[4]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.directionLongForm, true)
+    T.eq(prefsStore["DirectionLongForm"], true)
 end
 
 function M.test_map_highlight_toggle_flip_writes_shared_and_prefs()

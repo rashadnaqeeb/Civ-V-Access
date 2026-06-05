@@ -62,6 +62,13 @@ local function setMapHighlight(v)
     end
 end
 
+-- Long-form direction toggle. Off by default: the short tokens (ne, se) are
+-- the established default and existing users orient by them. When on, every
+-- spoken direction across the mod (cursor, scanner, surveyor, river edges,
+-- path previews) swaps to the spelled form ("northeast") -- HexGeom.dirText
+-- reads this cache live, so toggling takes effect on the next readout.
+local getDirectionLongForm, setDirectionLongForm = defineBoolPref("directionLongForm", "DirectionLongForm", false)
+
 -- Cursor-follows-selected-unit toggle. On by default: the hex cursor
 -- jumps to the unit's tile both when the unit becomes selected and when
 -- it finishes a move. Flipping it off keeps the cursor put in both
@@ -252,6 +259,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT",
                 getValue = getMapHighlight,
                 setValue = setMapHighlight,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM",
+                getValue = getDirectionLongForm,
+                setValue = setDirectionLongForm,
             }),
         },
     })

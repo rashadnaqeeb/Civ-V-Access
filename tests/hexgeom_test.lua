@@ -165,6 +165,12 @@ end
 local function setupSteps()
     setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    -- Default every direction readout to short form; the long-form suite
+    -- below overrides this after calling setupSteps. Reset here (not only in
+    -- those tests) so a long-form assertion that throws can't leak the flag
+    -- into a later short-form suite via the shared Lua state.
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.directionLongForm = false
 end
 
 function M.test_stepListString_empty_input_returns_empty()
@@ -472,6 +478,79 @@ function M.test_directionString_wrapY_folds_seam()
         total = total + tonumber(n)
     end
     T.truthy(total < 10, "wrap-Y fold must collapse 36-row delta to <10 steps; got " .. folded)
+end
+
+-- ===== Long-form direction rendering =====
+-- The Settings "Long compass directions" toggle flips HexGeom from short
+-- tokens ("2ne") to spelled tokens joined by a space ("2 northeast"). Every
+-- emit path (directionString, compassDirectionString, stepListString) reads
+-- civvaccess_shared.directionLongForm live, so each is covered here.
+
+function M.test_directionString_long_form_spells_and_spaces()
+    setupSteps()
+    civvaccess_shared.directionLongForm = true
+    -- One E hex step: short "1e" becomes long "1 east".
+    T.eq(HexGeom.directionString(0, 0, 1, 0), "1 east")
+end
+
+function M.test_directionString_long_form_multi_axis()
+    setupSteps()
+    civvaccess_shared.directionLongForm = true
+    -- (0,0)->(1,1) decomposes to "1e, 1ne" short; both axes spell out.
+    T.eq(HexGeom.directionString(0, 0, 1, 1), "1 east, 1 northeast")
+end
+
+function M.test_compassDirectionString_long_form_due_north()
+    setupSteps()
+    civvaccess_shared.directionLongForm = true
+    -- Compass-only N: the short "2n" becomes "2 north".
+    T.eq(HexGeom.compassDirectionString(0, 0, 0, 2), "2 north")
+end
+
+function M.test_stepListString_long_form_runs()
+    setupSteps()
+    civvaccess_shared.directionLongForm = true
+    local steps = {
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_EAST,
+        DirectionTypes.DIRECTION_SOUTHEAST,
+    }
+    T.eq(HexGeom.stepListString(steps), "2 east, 1 southeast")
+end
+
+function M.test_directionString_short_form_default_after_setup()
+    -- setupSteps resets the flag, so a plain setup speaks short form even
+    -- when a prior long-form test ran first in the shared state.
+    setupSteps()
+    T.eq(HexGeom.directionString(0, 0, 1, 0), "1e")
+end
+
+-- HexGeom.dirText is the resolver PlotSectionRiver calls directly to render
+-- river edges -- the one direction emit path that doesn't run through the
+-- three step-formatting functions above. Pin its contract on its own so a
+-- regression there surfaces here rather than only via river-edge speech.
+function M.test_dirText_short_form_default()
+    setupSteps()
+    T.eq(HexGeom.dirText("TXT_KEY_CIVVACCESS_DIR_NE"), "ne")
+end
+
+function M.test_dirText_long_form_spells()
+    setupSteps()
+    civvaccess_shared.directionLongForm = true
+    T.eq(HexGeom.dirText("TXT_KEY_CIVVACCESS_DIR_NE"), "northeast")
+end
+
+function M.test_dirText_short_fallback_when_flag_absent()
+    setupSteps()
+    civvaccess_shared.directionLongForm = nil
+    T.eq(HexGeom.dirText("TXT_KEY_CIVVACCESS_DIR_NE"), "ne", "nil flag must read as short form")
+end
+
+function M.test_dirText_short_fallback_when_shared_nil()
+    setupSteps()
+    civvaccess_shared = nil
+    T.eq(HexGeom.dirText("TXT_KEY_CIVVACCESS_DIR_NE"), "ne", "absent shared table must read as short form")
+    civvaccess_shared = {}
 end
 
 -- Reset wrap state so subsequent suites don't inherit a non-default Map.

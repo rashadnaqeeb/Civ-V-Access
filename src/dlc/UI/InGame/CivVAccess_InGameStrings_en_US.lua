@@ -743,6 +743,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S"] = "s"
 -- Tight glue (no separator) is the EN form; positional template lets
 -- locales insert a space or reorder count and direction.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP"] = "{1_Count}{2_Dir}"
+-- Long-form direction tokens, spoken when the player enables "Long compass
+-- directions" in Settings. Same six hex tokens plus the two compass-only
+-- N/S; HexGeom selects these by appending _LONG to the short key. The long
+-- glue inserts a space so the count and word don't run together ("2
+-- northeast" rather than "2northeast").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_E_LONG"] = "east"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NE_LONG"] = "northeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SE_LONG"] = "southeast"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_SW_LONG"] = "southwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_W_LONG"] = "west"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_NW_LONG"] = "northwest"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_N_LONG"] = "north"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIR_S_LONG"] = "south"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIRECTION_STEP_LONG"] = "{1_Count} {2_Dir}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EDGE_OF_MAP"] = "edge of map"
 -- Spoken by Cursor.move when civvaccess_shared.mapScope rejects the target.
 -- Generic wording rather than CityView-specific so Phase 8's ranged-strike
@@ -1057,6 +1071,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Speech on
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Speech and audio cues"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Verbose UI"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Highlight cursor and scanner on screen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Long compass directions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Audio cues only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Terrain earcon volume"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "Terrain earcon volume, {1_Num} percent"

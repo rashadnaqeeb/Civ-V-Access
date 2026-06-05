@@ -60,7 +60,7 @@ PlotSectionRiver = {
         local present = {}
         for _, dir in ipairs(SPOKEN_ORDER) do
             if edges[dir] then
-                present[#present + 1] = Text.key(dir)
+                present[#present + 1] = HexGeom.dirText(dir)
             end
         end
 
