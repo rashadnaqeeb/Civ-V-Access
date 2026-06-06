@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-06-06
+
 New Features and improvements:
 - AZERTY, QWERTZ, and Italian keyboards keep the in-game key cluster in its physical position; a Keyboard layout setting under UI settings overrides the detected layout.
 
