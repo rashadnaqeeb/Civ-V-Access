@@ -29,6 +29,11 @@ civvaccess_shared.verbosity = false
 -- dofile chain can call HexGeom.directionString without each test having
 -- to dofile it explicitly.
 dofile("src/dlc/UI/InGame/CivVAccess_HexGeom.lua")
+-- KeyLayout owns the keyboard-layout VK remap. InputRouter include()s it
+-- in-game, but include is a no-op here, so load it once so the input-router
+-- and keylayout suites find the global. No load-time deps: it reads
+-- civvaccess_shared live and uses numeric VK constants.
+dofile("src/dlc/UI/Shared/CivVAccess_KeyLayout.lua")
 
 -- Shared state table that the proxy installs per-Context in-game.
 -- HandlerStack and others read it as a module-level reference.
@@ -240,6 +245,7 @@ T.register("text_plural", require("text_plural_test"))
 T.register("strings_loader", require("strings_loader_test"))
 T.register("handler_stack", require("handler_stack_test"))
 T.register("input_router", require("input_router_test"))
+T.register("keylayout", require("keylayout_test"))
 T.register("engine_data", require("engine_data_test"))
 T.register("tick_pump", require("tick_pump_test"))
 T.register("baseline_handler", require("baseline_handler_test"))

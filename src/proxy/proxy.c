@@ -536,6 +536,46 @@ static int lp_get_latest_version(lua_State *L) {
     return 1;
 }
 
+/* === Keyboard layout detection ===
+   Classify the active keyboard into one of three families the mod remaps
+   the in-game key cluster against: "qwerty" (default and fallback),
+   "azerty" (French / Belgian), or "qwertz" (German / Swiss / much of
+   Central Europe). Probed empirically through MapVirtualKeyEx so no
+   per-locale layout-ID allowlist has to be maintained: the top-left letter
+   key (scancode 0x10) emits VK_A on AZERTY and VK_Q on QWERTY, and the
+   bottom-left letter key (scancode 0x2C) emits VK_Y on QWERTZ and VK_Z on
+   QWERTY. Classification stays here -- the only place with the HKL -- while
+   the swap tables and the override live in the Lua KeyLayout module, so the
+   remap can be tuned without recompiling the DLL. The Lua side reads the
+   result from civvaccess_shared.keyboard_profile. */
+static char g_keyboardProfile[8] = "qwerty";
+
+static void detect_keyboard_profile(void) {
+    HKL hkl = GetKeyboardLayout(0);
+    UINT vkTopLeft = MapVirtualKeyExW(0x10, MAPVK_VSC_TO_VK, hkl);
+    UINT vkBottomLeft = MapVirtualKeyExW(0x2C, MAPVK_VSC_TO_VK, hkl);
+    char nameBuf[KL_NAMELENGTH];
+    if (vkTopLeft == 'A') {
+        strcpy(g_keyboardProfile, "azerty");
+    } else if (vkBottomLeft == 'Y') {
+        strcpy(g_keyboardProfile, "qwertz");
+    } else {
+        strcpy(g_keyboardProfile, "qwerty");
+    }
+    /* Publish the write before any Lua-state hook on another thread reads
+       g_keyboardProfile, matching the barrier discipline g_latestVersion
+       uses. In practice the reader is the same thread, but the fence keeps
+       the cross-thread contract explicit. */
+    MemoryBarrier();
+    if (GetKeyboardLayoutNameA(nameBuf)) {
+        proxy_log("detect_keyboard_profile: hkl=%p name=%s topLeftVK=0x%02X bottomLeftVK=0x%02X -> %s\n",
+                  (void*)hkl, nameBuf, vkTopLeft, vkBottomLeft, g_keyboardProfile);
+    } else {
+        proxy_log("detect_keyboard_profile: hkl=%p topLeftVK=0x%02X bottomLeftVK=0x%02X -> %s (name lookup failed)\n",
+                  (void*)hkl, vkTopLeft, vkBottomLeft, g_keyboardProfile);
+    }
+}
+
 static void register_civvaccess_shared(lua_State *L) {
     int top = ORIG_lua_gettop(L);
     ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
@@ -544,9 +584,11 @@ static void register_civvaccess_shared(lua_State *L) {
         return;
     }
     ORIG_lua_settop(L, -2); /* pop nil */
-    ORIG_lua_createtable(L, 0, 4);
+    ORIG_lua_createtable(L, 0, 5);
     ORIG_lua_pushcclosure(L, lp_get_latest_version, 0);
     ORIG_lua_setfield(L, -2, "get_latest_version");
+    ORIG_lua_pushstring(L, g_keyboardProfile);
+    ORIG_lua_setfield(L, -2, "keyboard_profile");
     ORIG_lua_setfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
     ORIG_lua_settop(L, top);
     proxy_log("register_civvaccess_shared: L=%p done\n", (void*)L);
@@ -1338,6 +1380,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID reserved) {
         } else {
             proxy_log("ERROR: could not load Tolk.dll from %s\n", path);
         }
+
+        /* Classify the active keyboard layout before any Lua state is
+           created, so civvaccess_shared.keyboard_profile is populated the
+           first time register_civvaccess_shared runs. */
+        detect_keyboard_profile();
 
         /* Kick off the GitHub release check on a background thread. CreateThread
            queues the thread; the actual WinHTTP work runs after DllMain returns

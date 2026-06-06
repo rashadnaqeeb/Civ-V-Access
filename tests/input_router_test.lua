@@ -315,6 +315,25 @@ function M.test_shift_question_opens_help()
     Help = nil
 end
 
+function M.test_shift_question_opens_help_on_azerty()
+    -- On AZERTY '?' is Shift + the comma key (VK 188), not the US '/?' key.
+    -- The help hook must match the layout-correct VK from KeyLayout, on the
+    -- raw keyCode (before the cluster remap).
+    setup()
+    civvaccess_shared.keyboard_profile = "azerty"
+    local opened = 0
+    Help = {
+        open = function()
+            opened = opened + 1
+        end,
+    }
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    T.truthy(InputRouter.dispatch(188, MOD_SHIFT, WM_KEYDOWN))
+    T.eq(opened, 1)
+    Help = nil
+    civvaccess_shared.keyboard_profile = nil
+end
+
 function M.test_shift_question_skipped_when_help_on_top()
     setup()
     local opened = 0

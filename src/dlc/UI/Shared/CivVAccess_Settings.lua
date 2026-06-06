@@ -94,6 +94,31 @@ if civvaccess_shared.cursorCoordMode == nil then
     civvaccess_shared.cursorCoordMode = CURSOR_COORD_BY_INT[stored] or "off"
 end
 
+-- Keyboard-layout override. "auto" (default) defers to the proxy-detected
+-- profile; the other three force a specific cluster remap. Stored as a
+-- string on civvaccess_shared so KeyLayout reads it directly; Prefs persists
+-- an int since the prefs file has no string type. KeyLayout reads the cache
+-- live, so a change takes effect on the next keypress.
+local KB_PROFILE_BY_INT = { [0] = "auto", [1] = "qwerty", [2] = "azerty", [3] = "qwertz" }
+local KB_PROFILE_BY_NAME = { auto = 0, qwerty = 1, azerty = 2, qwertz = 3 }
+if civvaccess_shared.keyboardProfileOverride == nil then
+    local stored = Prefs.getInt("KeyboardProfileOverride", 0)
+    civvaccess_shared.keyboardProfileOverride = KB_PROFILE_BY_INT[stored] or "auto"
+end
+
+local function getKeyboardProfileOverride()
+    return civvaccess_shared.keyboardProfileOverride or "auto"
+end
+
+local function setKeyboardProfileOverride(name)
+    if KB_PROFILE_BY_NAME[name] == nil then
+        Log.warn("Settings.setKeyboardProfileOverride: invalid profile " .. tostring(name))
+        return
+    end
+    civvaccess_shared.keyboardProfileOverride = name
+    Prefs.setInt("KeyboardProfileOverride", KB_PROFILE_BY_NAME[name])
+end
+
 local function getCursorCoordMode()
     return civvaccess_shared.cursorCoordMode or "off"
 end
@@ -236,6 +261,18 @@ local function cursorCoordModeChoice(name, textKey)
     })
 end
 
+local function keyboardProfileChoice(name, textKey)
+    return BaseMenuItems.Choice({
+        textKey = textKey,
+        selectedFn = function()
+            return getKeyboardProfileOverride() == name
+        end,
+        activate = function()
+            setKeyboardProfileOverride(name)
+        end,
+    })
+end
+
 local function buildItems()
     local masterVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"
     local beaconVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"
@@ -264,6 +301,19 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM",
                 getValue = getDirectionLongForm,
                 setValue = setDirectionLongForm,
+            }),
+            -- Keyboard-layout remap. Auto follows the proxy's detection;
+            -- the explicit choices let a player whose keyboard and locale
+            -- disagree (e.g. a French player on a QWERTY laptop) pick the
+            -- layout their fingers actually use.
+            BaseMenuItems.Group({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT",
+                items = {
+                    keyboardProfileChoice("auto", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AUTO"),
+                    keyboardProfileChoice("qwerty", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTY"),
+                    keyboardProfileChoice("azerty", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AZERTY"),
+                    keyboardProfileChoice("qwertz", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTZ"),
+                },
             }),
         },
     })

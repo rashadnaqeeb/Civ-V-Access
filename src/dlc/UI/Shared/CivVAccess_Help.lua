@@ -36,7 +36,11 @@ local README_URL = "https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/READM
 local DISCORD_URL = "https://discord.gg/JQQh5j7pFb"
 
 local function resolveEntryLabel(entry)
-    local keyLabel = Text.key(entry.keyLabel)
+    -- Key labels are authored for QWERTY. resolveKeyLabel picks the layout
+    -- variant for OEM keys whose keycap name changes (slash, brackets, ...);
+    -- swapLabel then handles the single-letter cluster keys. The two are
+    -- disjoint, so order doesn't matter.
+    local keyLabel = KeyLayout.swapLabel(Text.key(KeyLayout.resolveKeyLabel(entry.keyLabel)))
     local description = Text.key(entry.description)
     return Text.format("TXT_KEY_CIVVACCESS_HELP_ENTRY", keyLabel, description)
 end
@@ -111,9 +115,10 @@ function Help.open()
 
     -- ? while Help is on top closes help. InputRouter's pre-walk ? check
     -- bails when top.name == "Help" so this binding gets a chance to fire.
-    -- Windows VK for '/?' is 191; mods bit 1 is Shift (see InputRouter).
+    -- The VK that means '?' is layout-dependent, so ask KeyLayout rather than
+    -- hardcoding the US '/?' key; mods bit 1 is Shift (see InputRouter).
     handler.bindings[#handler.bindings + 1] = {
-        key = 191,
+        key = KeyLayout.questionKey(),
         mods = 1,
         description = "Close help",
         fn = function()

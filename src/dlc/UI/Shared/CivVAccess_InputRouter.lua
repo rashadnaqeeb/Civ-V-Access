@@ -20,6 +20,11 @@
 
 InputRouter = {}
 
+-- KeyLayout owns the per-keyboard VK remap and the layout-aware '?' key.
+-- Included here so every Context that routes input through InputRouter has
+-- it without each boot chain listing it separately.
+include("CivVAccess_KeyLayout")
+
 civvaccess_shared = civvaccess_shared or {}
 
 -- Key-up suppression set, keyed by the raw VK we consumed on key-down.
@@ -56,10 +61,6 @@ local MOD_SHIFT = 1
 local MOD_CTRL = 2
 local MOD_ALT = 4
 
--- Windows VK for the US '/?' key. Shift+OEM_2 is what the user types to
--- mean '?'. Non-US layouts produce '?' via a different VK; revisit if we
--- localize the help hotkey.
-local VK_OEM_2 = 191
 local VK_F12 = 123
 
 -- Numpad-to-letter mirror for the Q/W/E/A/S/D/Z/X/C cluster. With NumLock
@@ -278,8 +279,11 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
 
     -- Help overlay hotkey. Fires before the binding walk so every screen
     -- that routes through InputRouter gets ? help uniformly, without each
-    -- handler having to bind it. Skips when Help is already on top.
-    if keyCode == VK_OEM_2 and modMask == MOD_SHIFT then
+    -- handler having to bind it. Skips when Help is already on top. The VK
+    -- that means '?' depends on the keyboard layout, so ask KeyLayout rather
+    -- than hardcoding the US '/?' key. Matched on the raw keyCode (not the
+    -- cluster remap) because '?' is a character, not a cluster position.
+    if keyCode == KeyLayout.questionKey() and modMask == MOD_SHIFT then
         local top = HandlerStack.active()
         if top == nil or top.name ~= "Help" then
             if Help ~= nil and type(Help.open) == "function" then
@@ -328,12 +332,19 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
         end
     end
 
-    -- First pass: original keycode. Barrier passthroughKeys are checked
-    -- here against the literal keycode the user pressed. Comment on
-    -- passthrough behavior: matches on keycode only -- modifier chords
-    -- (Ctrl+F10, Ctrl+F11) pass through alongside plain F10 / F11 without
-    -- a per-chord entry.
-    local fired, consumed = walkBindings(keyCode, modMask)
+    -- Cluster remap: rewrite the engine-delivered VK to the QWERTY VK the
+    -- bindings are authored in, so the 3x3 cluster keeps its physical shape
+    -- on AZERTY / QWERTZ. Applied here, in the binding walk only -- the
+    -- type-ahead hook above runs on the raw keyCode, where the delivered VK
+    -- already carries the user's intended letter. Identity on QWERTY.
+    local boundKey = KeyLayout.remap(keyCode)
+
+    -- First pass: remapped keycode. Barrier passthroughKeys are checked
+    -- here against the keycode the binding sees. Comment on passthrough
+    -- behavior: matches on keycode only -- modifier chords (Ctrl+F10,
+    -- Ctrl+F11) pass through alongside plain F10 / F11 without a per-chord
+    -- entry.
+    local fired, consumed = walkBindings(boundKey, modMask)
     if fired then
         return true
     end

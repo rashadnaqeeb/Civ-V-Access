@@ -124,7 +124,7 @@ globals = {
     "civvaccess_shared",
 
     -- Shared modules (UI/Shared/)
-    "HandlerStack", "InputRouter", "TickPump", "BaselineHandler",
+    "HandlerStack", "InputRouter", "KeyLayout", "TickPump", "BaselineHandler",
     "SpeechEngine", "SpeechPipeline", "TextFilter", "Text", "PluralRules",
     "Log", "Help", "Nav", "Icons", "StringsLoader",
     "PickerReader", "PullDownProbe", "TypeAheadSearch",

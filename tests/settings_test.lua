@@ -178,15 +178,31 @@ end
 
 -- UI group --------------------------------------------------------------
 
-function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight_long_form()
+function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight_long_form_keyboard()
     setup()
     Settings.open()
     local children = groupChildren(UI_GROUP)
-    T.eq(#children, 4, "verbose UI + read subtitles + map highlight + long-form directions")
+    T.eq(#children, 5, "verbose UI + read subtitles + map highlight + long-form + keyboard layout")
     T.eq(children[1].kind, "checkbox")
     T.eq(children[2].kind, "checkbox")
     T.eq(children[3].kind, "checkbox")
     T.eq(children[4].kind, "checkbox")
+    T.eq(children[5].kind, "group", "keyboard layout choice group")
+end
+
+function M.test_keyboard_layout_default_auto_and_override_flip()
+    setup()
+    Settings.open()
+    -- Fifth child of the UI group is the keyboard-layout choice group.
+    local choices = groupChildren(UI_GROUP)[5]:children()
+    T.eq(#choices, 4, "auto / qwerty / azerty / qwertz")
+    -- Default override is auto; activating AZERTY (the third choice) writes
+    -- the shared cache and Prefs.
+    T.truthy(choices[1]._selectedFn(), "auto is the default")
+    T.eq(civvaccess_shared.keyboardProfileOverride, "auto", "defaults to auto")
+    choices[3]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.keyboardProfileOverride, "azerty")
+    T.eq(prefsStore["KeyboardProfileOverride"], 2)
 end
 
 function M.test_direction_long_form_default_off_and_flip()
