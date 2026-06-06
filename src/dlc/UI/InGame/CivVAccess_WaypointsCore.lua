@@ -380,3 +380,47 @@ function Waypoints.queuedActionStatus()
     end
     return { chunks = snap.chunks }
 end
+
+-- Public: total turns for `unit` to traverse its currently queued
+-- move-like legs, chaining the pathfinder from each leg's destination,
+-- or nil when the queue holds no reachable move leg (empty queue, a
+-- non-path mission, an unreachable target, or the engine fork's
+-- ComputePath binding absent). Takes an explicit unit and bypasses the
+-- active-unit snapshot cache so callers can price an arbitrary owned
+-- unit's arrival ETA without disturbing the selected unit's waypoint
+-- snapshot. Route-to legs count walk time, not build time -- the
+-- Military Overview caller reaches this only for units not currently
+-- building, where "turns to arrive" is the meaningful number.
+function Waypoints.queueTurns(unit)
+    local queue = EngineData.missionQueue(unit)
+    if #queue == 0 then
+        return nil
+    end
+    local kinds = missionKinds()
+    local fromPlot = unit:GetPlot()
+    if fromPlot == nil then
+        return nil
+    end
+    local total = 0
+    local any = false
+    for _, entry in ipairs(queue) do
+        if kinds[entry.mission] ~= nil then
+            local toPlot = Map.GetPlot(entry.data1, entry.data2)
+            if toPlot ~= nil then
+                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags)
+                if moveLeg ~= nil then
+                    total = total + moveLeg.turns
+                    any = true
+                end
+                -- Chain from the leg's intended destination even when the
+                -- pathfinder failed, mirroring compute(): the engine still
+                -- anchors the next leg on toPlot.
+                fromPlot = toPlot
+            end
+        end
+    end
+    if not any then
+        return nil
+    end
+    return total
+end

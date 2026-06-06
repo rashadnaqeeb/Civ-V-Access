@@ -115,16 +115,28 @@ local STATUS_RANK_OUT_OF_MOVES = "9"
 -- states; past that the engine hides the status cell, but an empty cell
 -- in speech reads as a cut-off, so the no-mission case is split three
 -- ways:
---   moving        -- a multi-turn move is queued; the unit travels on
---                    its own and needs no attention.
+--   moving (N turns) -- a multi-turn move is queued; the count is the
+--                       pathfinder ETA to the queued destination, dropped
+--                       when it can't be priced (ComputePath fork binding
+--                       absent, or an unreachable target).
 --   out of moves  -- no moves left and nothing queued; done this turn.
 --   idle          -- still has moves and no orders; awaiting the player.
 -- A unit the player skipped with Space keeps its moves, so it reads as
 -- idle -- still freely orderable, unlike an out-of-moves unit. The
 -- "moving" split needs the GetMissionQueue fork binding; on a
 -- -SkipEngine deploy that binding is absent and a travelling unit reads
--- as out of moves rather than crashing the row build.
-local function unitStatusText(unit)
+-- as out of moves rather than crashing the row build. Both the build and
+-- move turn counts use the shared "(N turns)" fragment
+-- (TXT_KEY_CIVVACCESS_MO_GP_TURNS_N, the same key the Great People tab
+-- uses for its per-city ETAs).
+--
+-- withTurns gates the turn-count suffix so the status sort key
+-- (unitStatusSortKey) can take the cheap path: the column sorter calls
+-- the key inside its comparator (O(n log n) calls), and the move case
+-- runs the pathfinder, so the suffix is display-only. Dropping it from
+-- the sort key also stops the band from sub-sorting lexically by digits
+-- ("(10 turns)" before "(2 turns)").
+local function unitStatusText(unit, withTurns)
     if unit:IsEmbarked() then
         return Text.key("TXT_KEY_UNIT_STATUS_EMBARKED"), STATUS_RANK_ACTIVE
     end
@@ -154,14 +166,30 @@ local function unitStatusText(unit)
     if buildType ~= -1 then
         local build = GameInfo.Builds[buildType]
         local str = Text.key(build.Description)
-        local turnsLeft = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0)
-        if turnsLeft < 4000 and turnsLeft > 0 then
-            str = str .. " (" .. tostring(turnsLeft) .. ")"
+        if withTurns then
+            -- +1 matches UnitSpeech.activeBuildInfo (and UnitPanel.lua) so a
+            -- build finishing at end-of-turn reads as 1, not 0, and the F3
+            -- cell agrees with the count the cursor speaks for the same unit.
+            local turnsLeft = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0)
+            if turnsLeft < 4000 then
+                str = str
+                    .. " ("
+                    .. Text.formatPlural("TXT_KEY_CIVVACCESS_MO_GP_TURNS_N", turnsLeft + 1, turnsLeft + 1)
+                    .. ")"
+            end
         end
         return str, STATUS_RANK_ACTIVE
     end
     if #civvaccess_shared.modules.EngineData.missionQueue(unit) > 0 then
-        return Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_MOVING"), STATUS_RANK_ACTIVE
+        local str = Text.key("TXT_KEY_CIVVACCESS_MO_STATUS_MOVING")
+        if withTurns then
+            local Waypoints = civvaccess_shared.modules.Waypoints
+            local turns = Waypoints and Waypoints.queueTurns(unit)
+            if turns ~= nil and turns > 0 then
+                str = str .. " (" .. Text.formatPlural("TXT_KEY_CIVVACCESS_MO_GP_TURNS_N", turns, turns) .. ")"
+            end
+        end
+        return str, STATUS_RANK_ACTIVE
     end
     if unit:MovesLeft() == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_OUT_OF_MOVES"), STATUS_RANK_OUT_OF_MOVES
@@ -174,7 +202,7 @@ end
 -- within a band, and the ID makes same-status ties deterministic --
 -- the same unit-ID tiebreak the engine F3's own SortFunction uses.
 local function unitStatusSortKey(unit)
-    local text, rank = unitStatusText(unit)
+    local text, rank = unitStatusText(unit, false)
     return rank .. text .. string.format("%05d", unit:GetID())
 end
 
@@ -339,7 +367,7 @@ local function buildUnitColumns()
         {
             name = "TXT_KEY_STATUS",
             getCell = function(unit)
-                return (unitStatusText(unit))
+                return (unitStatusText(unit, true))
             end,
             sortKey = unitStatusSortKey,
             enterAction = activateUnit,

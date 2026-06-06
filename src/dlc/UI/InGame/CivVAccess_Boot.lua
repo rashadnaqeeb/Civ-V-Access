@@ -207,6 +207,7 @@ end
 -- value in case Boot hasn't completed (edge: pre-game setup Context).
 civvaccess_shared.modules = civvaccess_shared.modules or {}
 civvaccess_shared.modules.EngineData = EngineData
+civvaccess_shared.modules.Waypoints = Waypoints
 civvaccess_shared.modules.Cursor = Cursor
 civvaccess_shared.modules.ScannerNav = ScannerNav
 civvaccess_shared.modules.ScannerHandler = ScannerHandler
