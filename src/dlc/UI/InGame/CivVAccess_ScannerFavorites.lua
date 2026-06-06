@@ -1,26 +1,29 @@
--- User-defined custom scanner categories ("Custom 1", "Custom 2", ...).
--- Each custom category clusters a handful of the taxonomy's category /
--- subcategory filters so a player who reaches for the same few scopes
--- every turn cycles to them in one place instead of hunting the full
--- 13-category list. Custom categories sort to the front of the category
--- cycle (Ctrl+PageUp/Down); an empty one is skipped by the same
+-- User-defined custom scanner categories. Each one clusters a handful of
+-- the taxonomy's category / subcategory filters so a player who reaches for
+-- the same few scopes every turn cycles to them in one place instead of
+-- hunting the full 13-category list. Custom categories sort to the front of
+-- the category cycle (Ctrl+PageUp/Down); an empty one is skipped by the same
 -- categoryHasItems filter that hides any empty category.
 --
 -- Three layers live here:
---   1. The persistent model. A group is { id, sel } where sel maps a
+--   1. The persistent model. A group is { id, name, sel } where sel maps a
 --      taxonomy category key to either { all = true } (the whole category
 --      as one scanner stop, including entries that match no named sub) or
 --      { all = false, subs = { <subKey> = true, ... } } (specific named
---      subs as separate stops). `id` is stable across the session and
---      across deletes; the spoken "Custom N" label is the group's current
---      1-based POSITION, so deleting Custom 2 renumbers the rest with no
---      gap while leaving every surviving group's stored selectors intact.
+--      subs as separate stops). `id` is stable across the session and across
+--      deletes. `name` is the user-facing label, spoken in the cycle and the
+--      settings list; it defaults to "Custom N" (N = the position at
+--      creation) and is editable via the per-category rename field. Groups
+--      are kept sorted by name (case-insensitively, id as tiebreak), so the
+--      cycle and the settings list read in the same alphabetical order; the
+--      stable id, not the position, anchors identity, so a resort never
+--      strands the navigator (ScannerNav re-finds by the "custom:<id>" key).
 --   2. customCategoryDefs(): the model flattened into the shape
 --      ScannerSnap.build consumes to synthesize the custom categories.
 --   3. The settings UI: settingsGroup() is the drillable spliced under the
 --      F12 Scanner group, and openEditor(id) is the per-category editor it
---      pushes -- a checkbox per subcategory under a drillable per category,
---      with a Delete button at the bottom.
+--      pushes -- a rename field, a checkbox per subcategory under a drillable
+--      per category, and a Delete button at the bottom.
 --
 -- Persistence rides Prefs (Modding.OpenUserData), so picks survive across
 -- sessions and games and never touch the savefile or the MP mod-hash.
@@ -42,8 +45,33 @@ local function activeKey(id)
     return "ScnCustActive:" .. id
 end
 
+local function nameKey(id)
+    return "ScnCustName:" .. id
+end
+
 local function selKey(id, catKey, subKey)
     return "ScnCustSel:" .. id .. ":" .. catKey .. ":" .. subKey
+end
+
+-- Default name for a group at the given 1-based position. Resolved through
+-- Text.format so it localizes, and persisted at creation so it stays stable
+-- across sessions rather than drifting with load order.
+local function defaultName(pos)
+    return Text.format("TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL", pos)
+end
+
+-- Keep the group list sorted by name (case-insensitive), id as tiebreak so
+-- the order is deterministic when two share a name. Both the scanner cycle
+-- and the settings list iterate this array, so sorting once on mutation
+-- keeps them consistent without a per-read sort.
+local function sortGroups()
+    table.sort(civvaccess_shared.scannerCustom.groups, function(a, b)
+        local an, bn = string.lower(a.name), string.lower(b.name)
+        if an == bn then
+            return a.id < b.id
+        end
+        return an < bn
+    end)
 end
 
 -- ===== Model hydration =====
@@ -76,10 +104,14 @@ local function hydrate()
                     end
                 end
             end
-            groups[#groups + 1] = { id = id, sel = sel }
+            -- Name falls back to the creation-order default when a saved row
+            -- predates the rename feature (no stored name yet).
+            local name = Prefs.getString(nameKey(id), defaultName(#groups + 1))
+            groups[#groups + 1] = { id = id, name = name, sel = sel }
         end
     end
     civvaccess_shared.scannerCustom = { nextId = nextId, groups = groups }
+    sortGroups()
 end
 
 -- Locate a group and its current 1-based position by stable id.
@@ -99,10 +131,46 @@ function ScannerFavorites.add()
     local state = civvaccess_shared.scannerCustom
     local id = state.nextId
     state.nextId = id + 1
-    state.groups[#state.groups + 1] = { id = id, sel = {} }
+    local name = defaultName(#state.groups + 1)
+    state.groups[#state.groups + 1] = { id = id, name = name, sel = {} }
     Prefs.setInt(PREF_NEXT_ID, state.nextId)
     Prefs.setBool(activeKey(id), true)
+    Prefs.setString(nameKey(id), name)
+    sortGroups()
     return id
+end
+
+-- Rename a group. Trims, then rejects a blank result: a whitespace-only name
+-- would persist as something the screen reader speaks as silence with no cue
+-- anything went wrong. A real rename persists and re-sorts so the new name
+-- takes its alphabetical place immediately.
+function ScannerFavorites.rename(id, name)
+    hydrate()
+    local trimmed = name and string.match(name, "^%s*(.-)%s*$") or ""
+    if trimmed == "" then
+        return
+    end
+    local group = findGroup(id)
+    if group == nil then
+        Log.warn("ScannerFavorites.rename: unknown id " .. tostring(id))
+        return
+    end
+    group.name = trimmed
+    Prefs.setString(nameKey(id), trimmed)
+    sortGroups()
+    -- BaseMenu captures displayName by value at open, so the live editor's
+    -- spoken title is the pre-rename name until close. Refresh it so an F1
+    -- re-read speaks the new name. Guarded for the offline test harness,
+    -- which drives rename without a HandlerStack.
+    if HandlerStack ~= nil then
+        for i = HandlerStack.count(), 1, -1 do
+            local h = HandlerStack.at(i)
+            if h.name == "ScannerCustomEditor" then
+                h.displayName = trimmed
+                break
+            end
+        end
+    end
 end
 
 function ScannerFavorites.delete(id)
@@ -120,6 +188,7 @@ function ScannerFavorites.delete(id)
         return
     end
     Prefs.setBool(activeKey(id), false)
+    Prefs.setString(nameKey(id), "")
     -- Zero every selector row so a future id can never inherit a stale
     -- bool (ids don't reuse, but a wiped row keeps the user-data file from
     -- accumulating dead keys that a reader might misread).
@@ -244,18 +313,18 @@ end
 
 -- ===== Snapshot feed =====
 -- Flatten the model into the def shape ScannerSnap.build consumes. One
--- def per group in display order; selectors in taxonomy order so the
+-- def per group in name-sorted order; selectors in taxonomy order so the
 -- subcategory cycle inside a custom category reads in the same order as
--- the source categories. labelText is pre-resolved ("Custom 3") because
--- the number is positional and has no TXT_KEY; ScannerSnap stamps it onto
--- the category and Nav speaks labelText in preference to a label key.
--- Empty groups still emit a def (so the snapshot's numbering matches the
--- settings list), but the snapshot drops any category with no items, so
--- an empty custom category never surfaces in the cycle.
+-- the source categories. labelText carries the group's user-facing name
+-- (free text, no TXT_KEY); ScannerSnap stamps it onto the category and Nav
+-- speaks labelText in preference to a label key. Empty groups still emit a
+-- def (so the snapshot's set matches the settings list), but the snapshot
+-- drops any category with no items, so an empty custom category never
+-- surfaces in the cycle.
 function ScannerFavorites.customCategoryDefs()
     hydrate()
     local defs = {}
-    for pos, group in ipairs(civvaccess_shared.scannerCustom.groups) do
+    for _, group in ipairs(civvaccess_shared.scannerCustom.groups) do
         local selectors = {}
         for _, catDef in ipairs(ScannerCore.CATEGORIES) do
             local catSel = group.sel[catDef.key]
@@ -273,7 +342,7 @@ function ScannerFavorites.customCategoryDefs()
         end
         defs[#defs + 1] = {
             key = "custom:" .. group.id,
-            labelText = Text.format("TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL", pos),
+            labelText = group.name,
             selectors = selectors,
         }
     end
@@ -299,10 +368,10 @@ function ScannerFavorites.settingsGroup()
                     end,
                 }),
             }
-            for pos, group in ipairs(civvaccess_shared.scannerCustom.groups) do
+            for _, group in ipairs(civvaccess_shared.scannerCustom.groups) do
                 local id = group.id
                 items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.format("TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL", pos),
+                    labelText = group.name,
                     onActivate = function()
                         ScannerFavorites.openEditor(id)
                     end,
@@ -313,13 +382,33 @@ function ScannerFavorites.settingsGroup()
     })
 end
 
--- One drillable per taxonomy category, each holding an All checkbox plus a
--- checkbox per named subcategory. Categories with no named subs surface
--- only the All box -- their whole-category selector is the single
--- meaningful pick. cached = false so reopening the editor reflects the
--- live model.
+-- A rename field on top, then one drillable per taxonomy category, each
+-- holding an All checkbox plus a checkbox per named subcategory. Categories
+-- with no named subs surface only the All box -- their whole-category
+-- selector is the single meaningful pick. cached = false so reopening the
+-- editor reflects the live model.
+--
+-- The rename Textfield reads its value through valueFn (the live group name)
+-- rather than the EditBox: Civ V's focused EditBox keeps a typing buffer that
+-- TakeFocus and arrow-key navigation wipe to empty, so GetText is unreliable
+-- for display. priorCallback commits on Enter, dropping empty text (edit mode
+-- clears the box on entry, and a no-change Enter-through reads back "").
 local function buildEditorItems(id)
-    local items = {}
+    local items = {
+        BaseMenuItems.Textfield({
+            controlName = "CivVAccessScannerRenameEntry",
+            textKey = "TXT_KEY_MODDING_HEADING_NAME",
+            valueFn = function()
+                local group = findGroup(id)
+                return group and group.name or ""
+            end,
+            priorCallback = function(text, _, bIsEnter)
+                if bIsEnter then
+                    ScannerFavorites.rename(id, text)
+                end
+            end,
+        }),
+    }
     for _, catDef in ipairs(ScannerCore.CATEGORIES) do
         local catKey = catDef.key
         items[#items + 1] = BaseMenuItems.Group({
@@ -365,14 +454,23 @@ end
 
 function ScannerFavorites.openEditor(id)
     hydrate()
-    local _, pos = findGroup(id)
-    if pos == nil then
+    local group = findGroup(id)
+    if group == nil then
         Log.warn("ScannerFavorites.openEditor: unknown id " .. tostring(id))
         return
     end
+    -- One EditBox is shared by every category's rename field, so a name typed
+    -- for a prior category lingers in it. Wipe it on open (ClearString resets
+    -- the typing buffer GetText reads from, SetText clears the display) so the
+    -- Name field announces this group's name via valueFn, not stale text.
+    local box = Controls.CivVAccessScannerRenameEntry
+    if box ~= nil then
+        box:ClearString()
+        box:SetText("")
+    end
     local handler = BaseMenu.create({
         name = "ScannerCustomEditor",
-        displayName = Text.format("TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL", pos),
+        displayName = group.name,
         items = buildEditorItems(id),
         capturesAllInput = true,
         escapePops = true,

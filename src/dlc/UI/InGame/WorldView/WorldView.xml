@@ -30,4 +30,12 @@
 
     <LuaContext FileName="Assets/UI/InGame/Tutorial" ID="Tutorial" Hidden="1"/>
 
+    <!-- Off-screen text-entry box for renaming scanner custom categories.
+         Seated here because ScannerFavorites runs in WorldView's env, so its
+         Textfield resolves Controls against this Context. CallOnChar drives
+         the per-keystroke spoken feedback; EditMode enables typing. Not
+         Hidden (a hidden EditBox refuses focus); pushed off-screen so sighted
+         players never see it. -->
+    <EditBox CallOnChar="1" EditMode="1" Size="2,2" Anchor="L,T" Offset="-200,-200" ID="CivVAccessScannerRenameEntry" Font="TwCenMT20" MaxLength="32" FocusStop="0"/>
+
 </Context>

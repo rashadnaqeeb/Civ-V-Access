@@ -135,9 +135,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DIRECTION"] =
     "Scope scanner to one compass direction; press again to clear"
 
 -- ===== Custom categories (F12 settings + scanner cycle) =====
--- "Custom N" is the spoken name of a user-defined category both in the
--- settings list and when cycling categories. The number is the group's
--- current position, so it renumbers after a delete.
+-- CUSTOM_LABEL is the default name a new custom category is created with
+-- ({1_Num} is its position at creation). The user can rename it from the
+-- editor; the stored name is what's spoken in the settings list and the
+-- category cycle, and categories sort alphabetically by it.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_GROUP"] = "Custom categories"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_ADD"] = "Add category"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_DELETE"] = "Delete category"

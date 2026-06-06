@@ -118,3 +118,15 @@ end
 function Prefs.setFloat(key, v)
     setValue("setFloat", key, v)
 end
+
+-- String pair. The underlying FVariableSystem store has FVARTYPE_STRING with
+-- its own serialization, so persistence is supported at the C++ layer; what
+-- this exercises is whether the Lua binding marshals a Lua string through to
+-- the const char* SetValue/GetValue overloads rather than the number path.
+function Prefs.getString(key, default)
+    return getValue("getString", key, default)
+end
+
+function Prefs.setString(key, v)
+    setValue("setString", key, v)
+end

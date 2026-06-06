@@ -32,8 +32,18 @@ local function setup()
     Prefs.setInt = function(key, v)
         prefsStore[key] = v
     end
-    -- customCategoryDefs resolves the positional label through Text.format;
-    -- a stub that echoes key + position is enough to assert numbering.
+    Prefs.getString = function(key, default)
+        local v = prefsStore[key]
+        if v == nil then
+            return default
+        end
+        return v
+    end
+    Prefs.setString = function(key, v)
+        prefsStore[key] = v
+    end
+    -- add()/hydrate() resolve the default name through Text.format; a stub
+    -- that echoes key + position is enough to assert default-name numbering.
     Text = {
         format = function(key, pos)
             return key .. ":" .. tostring(pos)
@@ -58,6 +68,12 @@ function M.test_add_assigns_sequential_ids_and_persists()
     T.eq(prefsStore["ScnCustNextId"], 3, "nextId persists past the last assigned")
     T.eq(prefsStore["ScnCustActive:1"], true, "group 1 marked active")
     T.eq(prefsStore["ScnCustActive:2"], true, "group 2 marked active")
+    T.eq(
+        prefsStore["ScnCustName:1"],
+        "TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL:1",
+        "default name persists at creation position"
+    )
+    T.eq(prefsStore["ScnCustName:2"], "TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL:2")
 end
 
 function M.test_set_all_supersedes_named_subs()
@@ -92,7 +108,7 @@ function M.test_clearing_last_named_sub_drops_the_category()
     T.eq(#defs[1].selectors, 0, "no selectors remain")
 end
 
-function M.test_delete_renumbers_survivors_and_keeps_their_selectors()
+function M.test_delete_keeps_survivor_name_and_selectors()
     setup()
     local id1 = ScannerFavorites.add()
     local id2 = ScannerFavorites.add()
@@ -100,10 +116,54 @@ function M.test_delete_renumbers_survivors_and_keeps_their_selectors()
     ScannerFavorites.delete(id1)
     local defs = ScannerFavorites.customCategoryDefs()
     T.eq(#defs, 1, "one group remains after delete")
-    T.eq(defs[1].labelText, "TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL:1", "survivor renumbers to position 1")
+    -- Names are stable, not positional: the survivor keeps its creation-time
+    -- name rather than renumbering into the gap.
+    T.eq(defs[1].labelText, "TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL:2", "survivor keeps its own name")
     T.eq(defs[1].selectors[1].cat, "cities", "survivor keeps its selector")
     T.eq(defs[1].selectors[1].sub, "my")
     T.eq(prefsStore["ScnCustActive:1"], false, "deleted group marked inactive in Prefs")
+    T.eq(prefsStore["ScnCustName:1"], "", "deleted group's name row cleared")
+end
+
+function M.test_rename_persists_and_resorts_alphabetically()
+    setup()
+    local id1 = ScannerFavorites.add()
+    local id2 = ScannerFavorites.add()
+    ScannerFavorites.rename(id1, "Zulu raids")
+    ScannerFavorites.rename(id2, "aztec sites")
+    local defs = ScannerFavorites.customCategoryDefs()
+    -- Case-insensitive sort: "aztec" precedes "Zulu".
+    T.eq(defs[1].labelText, "aztec sites", "lowercase name still sorts ahead of a capitalized one")
+    T.eq(defs[2].labelText, "Zulu raids")
+    T.eq(prefsStore["ScnCustName:1"], "Zulu raids", "rename persists to Prefs")
+    T.eq(prefsStore["ScnCustName:2"], "aztec sites")
+end
+
+function M.test_rename_rejects_empty()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.rename(id, "")
+    local defs = ScannerFavorites.customCategoryDefs()
+    T.eq(defs[1].labelText, "TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL:1", "empty rename keeps the default name")
+end
+
+function M.test_rename_rejects_whitespace_only()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.rename(id, "   ")
+    local defs = ScannerFavorites.customCategoryDefs()
+    -- A whitespace-only name would read as silence; the trim-then-blank guard
+    -- must drop it and keep the default.
+    T.eq(defs[1].labelText, "TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL:1", "whitespace-only rename is rejected")
+end
+
+function M.test_rename_trims_surrounding_whitespace()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.rename(id, "  Hunters  ")
+    local defs = ScannerFavorites.customCategoryDefs()
+    T.eq(defs[1].labelText, "Hunters", "leading/trailing whitespace is trimmed")
+    T.eq(prefsStore["ScnCustName:1"], "Hunters", "the trimmed form persists")
 end
 
 function M.test_custom_defs_flatten_all_and_named_selectors()
