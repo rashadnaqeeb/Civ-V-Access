@@ -334,6 +334,24 @@ function M.test_shift_question_opens_help_on_azerty()
     civvaccess_shared.keyboard_profile = nil
 end
 
+function M.test_shift_question_opens_help_on_italian()
+    -- On Italian '?' is Shift + the apostrophe key (VK 219), the same VK as
+    -- German's '?'. The help hook must match the layout-correct VK.
+    setup()
+    civvaccess_shared.keyboard_profile = "italian"
+    local opened = 0
+    Help = {
+        open = function()
+            opened = opened + 1
+        end,
+    }
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    T.truthy(InputRouter.dispatch(219, MOD_SHIFT, WM_KEYDOWN))
+    T.eq(opened, 1)
+    Help = nil
+    civvaccess_shared.keyboard_profile = nil
+end
+
 function M.test_shift_question_skipped_when_help_on_top()
     setup()
     local opened = 0
@@ -375,6 +393,90 @@ function M.test_shift_question_without_Help_module_warns()
     HandlerStack.push({ name = "base", helpEntries = {} })
     T.truthy(InputRouter.dispatch(VK_OEM_2, MOD_SHIFT, WM_KEYDOWN), "key still consumed even without Help module")
     T.truthy(#warns >= 1)
+end
+
+-- National-layout ghost suppression -------------------------------------
+-- The message buffer binds prev to bare VK_OEM_4 (the '[' key on QWERTY).
+-- On QWERTZ / Italian the real prev key reaches that VK via the remap from
+-- VK_OEM_1, while the accent key beside Backspace emits VK_OEM_4 natively
+-- and would otherwise ghost-fire prev.
+local VK_OEM_1 = 186
+local VK_OEM_4 = 219
+
+local function pushPrevBinding()
+    local fired = 0
+    HandlerStack.push({
+        name = "msgbuf",
+        capturesAllInput = true,
+        helpEntries = {},
+        bindings = {
+            {
+                key = VK_OEM_4,
+                mods = 0,
+                fn = function()
+                    fired = fired + 1
+                end,
+            },
+        },
+    })
+    return function()
+        return fired
+    end
+end
+
+function M.test_native_collision_key_suppressed_on_qwertz()
+    setup()
+    civvaccess_shared.keyboard_profile = "qwertz"
+    local prevFired = pushPrevBinding()
+    -- The native VK_OEM_4 key (ß) must not reach the prev binding.
+    T.truthy(InputRouter.dispatch(VK_OEM_4, 0, WM_KEYDOWN), "key still consumed")
+    T.eq(prevFired(), 0, "native OEM_4 (ß) does not ghost-fire message prev")
+    civvaccess_shared.keyboard_profile = nil
+end
+
+function M.test_remapped_key_still_fires_on_qwertz()
+    setup()
+    civvaccess_shared.keyboard_profile = "qwertz"
+    local prevFired = pushPrevBinding()
+    -- The intended key (ü) arrives as VK_OEM_1 and remaps onto VK_OEM_4.
+    T.truthy(InputRouter.dispatch(VK_OEM_1, 0, WM_KEYDOWN))
+    T.eq(prevFired(), 1, "the remapped ü key still fires message prev")
+    civvaccess_shared.keyboard_profile = nil
+end
+
+function M.test_native_collision_key_not_suppressed_on_qwerty()
+    setup()
+    civvaccess_shared.keyboard_profile = nil
+    local prevFired = pushPrevBinding()
+    -- On QWERTY VK_OEM_4 is the real '[' key and must fire prev.
+    T.truthy(InputRouter.dispatch(VK_OEM_4, 0, WM_KEYDOWN))
+    T.eq(prevFired(), 1, "native OEM_4 is the real bracket key on QWERTY")
+end
+
+function M.test_help_close_chord_survives_collision_on_qwertz()
+    setup()
+    civvaccess_shared.keyboard_profile = "qwertz"
+    -- '?' is Shift+OEM_4 on QWERTZ; even though OEM_4 collides, the help
+    -- close chord (matched on the raw keycode) must still fire.
+    local closed = 0
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    HandlerStack.push({
+        name = "Help",
+        capturesAllInput = true,
+        helpEntries = {},
+        bindings = {
+            {
+                key = VK_OEM_4,
+                mods = MOD_SHIFT,
+                fn = function()
+                    closed = closed + 1
+                end,
+            },
+        },
+    })
+    T.truthy(InputRouter.dispatch(VK_OEM_4, MOD_SHIFT, WM_KEYDOWN))
+    T.eq(closed, 1, "Shift+? still closes help despite the native OEM_4 collision")
+    civvaccess_shared.keyboard_profile = nil
 end
 
 -- Type-ahead search hook ----------------------------------------------------

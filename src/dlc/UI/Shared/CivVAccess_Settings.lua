@@ -99,8 +99,8 @@ end
 -- string on civvaccess_shared so KeyLayout reads it directly; Prefs persists
 -- an int since the prefs file has no string type. KeyLayout reads the cache
 -- live, so a change takes effect on the next keypress.
-local KB_PROFILE_BY_INT = { [0] = "auto", [1] = "qwerty", [2] = "azerty", [3] = "qwertz" }
-local KB_PROFILE_BY_NAME = { auto = 0, qwerty = 1, azerty = 2, qwertz = 3 }
+local KB_PROFILE_BY_INT = { [0] = "auto", [1] = "qwerty", [2] = "azerty", [3] = "qwertz", [4] = "italian" }
+local KB_PROFILE_BY_NAME = { auto = 0, qwerty = 1, azerty = 2, qwertz = 3, italian = 4 }
 if civvaccess_shared.keyboardProfileOverride == nil then
     local stored = Prefs.getInt("KeyboardProfileOverride", 0)
     civvaccess_shared.keyboardProfileOverride = KB_PROFILE_BY_INT[stored] or "auto"
@@ -313,6 +313,7 @@ local function buildItems()
                     keyboardProfileChoice("qwerty", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTY"),
                     keyboardProfileChoice("azerty", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AZERTY"),
                     keyboardProfileChoice("qwertz", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTZ"),
+                    keyboardProfileChoice("italian", "TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_ITALIAN"),
                 },
             }),
         },

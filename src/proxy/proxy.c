@@ -537,28 +537,37 @@ static int lp_get_latest_version(lua_State *L) {
 }
 
 /* === Keyboard layout detection ===
-   Classify the active keyboard into one of three families the mod remaps
+   Classify the active keyboard into one of four families the mod remaps
    the in-game key cluster against: "qwerty" (default and fallback),
-   "azerty" (French / Belgian), or "qwertz" (German / Swiss / much of
-   Central Europe). Probed empirically through MapVirtualKeyEx so no
-   per-locale layout-ID allowlist has to be maintained: the top-left letter
-   key (scancode 0x10) emits VK_A on AZERTY and VK_Q on QWERTY, and the
-   bottom-left letter key (scancode 0x2C) emits VK_Y on QWERTZ and VK_Z on
-   QWERTY. Classification stays here -- the only place with the HKL -- while
-   the swap tables and the override live in the Lua KeyLayout module, so the
-   remap can be tuned without recompiling the DLL. The Lua side reads the
-   result from civvaccess_shared.keyboard_profile. */
-static char g_keyboardProfile[8] = "qwerty";
+   "azerty" (French / Belgian), "qwertz" (German / Swiss / much of Central
+   Europe), or "italian" (QWERTY letters but the OEM punctuation keys
+   scrambled the QWERTZ way). Probed empirically through MapVirtualKeyEx so
+   no per-locale layout-ID allowlist has to be maintained: the top-left
+   letter key (scancode 0x10) emits VK_A on AZERTY and VK_Q on QWERTY, and
+   the bottom-left letter key (scancode 0x2C) emits VK_Y on QWERTZ and VK_Z
+   on QWERTY. Italian has QWERTY letters, so neither letter probe catches it;
+   it is distinguished by the US '/?' position (scancode 0x35) emitting
+   VK_OEM_MINUS (the '-' key) instead of VK_OEM_2 -- true on Italian and
+   German, but German is already taken by the QWERTZ branch, so among
+   QWERTY-letter layouts this uniquely flags Italian. Classification stays
+   here -- the only place with the HKL -- while the swap tables and the
+   override live in the Lua KeyLayout module, so the remap can be tuned
+   without recompiling the DLL. The Lua side reads the result from
+   civvaccess_shared.keyboard_profile. */
+static char g_keyboardProfile[16] = "qwerty";
 
 static void detect_keyboard_profile(void) {
     HKL hkl = GetKeyboardLayout(0);
     UINT vkTopLeft = MapVirtualKeyExW(0x10, MAPVK_VSC_TO_VK, hkl);
     UINT vkBottomLeft = MapVirtualKeyExW(0x2C, MAPVK_VSC_TO_VK, hkl);
+    UINT vkSlash = MapVirtualKeyExW(0x35, MAPVK_VSC_TO_VK, hkl);
     char nameBuf[KL_NAMELENGTH];
     if (vkTopLeft == 'A') {
         strcpy(g_keyboardProfile, "azerty");
     } else if (vkBottomLeft == 'Y') {
         strcpy(g_keyboardProfile, "qwertz");
+    } else if (vkSlash == VK_OEM_MINUS) {
+        strcpy(g_keyboardProfile, "italian");
     } else {
         strcpy(g_keyboardProfile, "qwerty");
     }
@@ -568,11 +577,11 @@ static void detect_keyboard_profile(void) {
        the cross-thread contract explicit. */
     MemoryBarrier();
     if (GetKeyboardLayoutNameA(nameBuf)) {
-        proxy_log("detect_keyboard_profile: hkl=%p name=%s topLeftVK=0x%02X bottomLeftVK=0x%02X -> %s\n",
-                  (void*)hkl, nameBuf, vkTopLeft, vkBottomLeft, g_keyboardProfile);
+        proxy_log("detect_keyboard_profile: hkl=%p name=%s topLeftVK=0x%02X bottomLeftVK=0x%02X slashVK=0x%02X -> %s\n",
+                  (void*)hkl, nameBuf, vkTopLeft, vkBottomLeft, vkSlash, g_keyboardProfile);
     } else {
-        proxy_log("detect_keyboard_profile: hkl=%p topLeftVK=0x%02X bottomLeftVK=0x%02X -> %s (name lookup failed)\n",
-                  (void*)hkl, vkTopLeft, vkBottomLeft, g_keyboardProfile);
+        proxy_log("detect_keyboard_profile: hkl=%p topLeftVK=0x%02X bottomLeftVK=0x%02X slashVK=0x%02X -> %s (name lookup failed)\n",
+                  (void*)hkl, vkTopLeft, vkBottomLeft, vkSlash, g_keyboardProfile);
     }
 }
 

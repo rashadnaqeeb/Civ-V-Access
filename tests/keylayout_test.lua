@@ -79,6 +79,69 @@ function M.test_remap_qwerty_punctuation_identity()
     T.eq(KeyLayout.remap(OEM_PLUS), OEM_PLUS)
 end
 
+function M.test_remap_italian_leaves_letters_alone()
+    setup("italian", nil)
+    -- Italian is QWERTY for letters; the movement cluster never moves.
+    T.eq(KeyLayout.remap(VK_A), VK_A)
+    T.eq(KeyLayout.remap(VK_Q), VK_Q)
+    T.eq(KeyLayout.remap(VK_W), VK_W)
+    T.eq(KeyLayout.remap(VK_Z), VK_Z)
+    T.eq(KeyLayout.remap(VK_Y), VK_Y)
+end
+
+function M.test_remap_italian_punctuation_clusters()
+    setup("italian", nil)
+    -- Same OEM remap as QWERTZ; the comma/period keys stay native.
+    T.eq(KeyLayout.remap(OEM_MINUS), OEM_2) -- "-" -> unit info
+    T.eq(KeyLayout.remap(OEM_1), OEM_4) -- "è" -> message previous
+    T.eq(KeyLayout.remap(OEM_PLUS), OEM_6) -- "+" -> message next
+    T.eq(KeyLayout.remap(OEM_2), OEM_5) -- "ù" -> chat
+    T.eq(KeyLayout.remap(OEM_COMMA), OEM_COMMA) -- unit previous
+    T.eq(KeyLayout.remap(OEM_PERIOD), OEM_PERIOD) -- unit next
+end
+
+function M.test_collidesnative_qwerty_none()
+    setup("qwerty", nil)
+    -- OEM_4 / OEM_2 are the real bracket / slash keys here, never ghosts.
+    T.eq(KeyLayout.collidesNative(OEM_4), false)
+    T.eq(KeyLayout.collidesNative(OEM_2), false)
+end
+
+function M.test_collidesnative_azerty()
+    setup("azerty", nil)
+    -- The ',' key (questionKey) and the '^' key emit the unit-prev / message-
+    -- next VKs natively, away from their intended ; : and = keys.
+    T.eq(KeyLayout.collidesNative(OEM_COMMA), true)
+    T.eq(KeyLayout.collidesNative(OEM_6), true)
+    -- Keys that are both source and target, and plain sources, are not ghosts.
+    T.eq(KeyLayout.collidesNative(OEM_PERIOD), false)
+    T.eq(KeyLayout.collidesNative(OEM_2), false)
+    T.eq(KeyLayout.collidesNative(VK_A), false)
+end
+
+function M.test_collidesnative_qwertz()
+    setup("qwertz", nil)
+    -- ß / ´ / ^° emit message-prev / next / chat VKs natively.
+    T.eq(KeyLayout.collidesNative(OEM_4), true)
+    T.eq(KeyLayout.collidesNative(OEM_6), true)
+    T.eq(KeyLayout.collidesNative(OEM_5), true)
+    -- The # key (OEM_2) is a source remapped to chat, not a ghost; ü likewise;
+    -- the symmetric Z/Y letter swap is not a collision.
+    T.eq(KeyLayout.collidesNative(OEM_2), false)
+    T.eq(KeyLayout.collidesNative(OEM_1), false)
+    T.eq(KeyLayout.collidesNative(VK_Y), false)
+end
+
+function M.test_collidesnative_italian()
+    setup("italian", nil)
+    -- Same colliding OEM keys as QWERTZ (apostrophe / ì / backslash).
+    T.eq(KeyLayout.collidesNative(OEM_4), true)
+    T.eq(KeyLayout.collidesNative(OEM_6), true)
+    T.eq(KeyLayout.collidesNative(OEM_5), true)
+    T.eq(KeyLayout.collidesNative(OEM_2), false)
+    T.eq(KeyLayout.collidesNative(OEM_COMMA), false)
+end
+
 function M.test_override_beats_detected()
     setup("qwerty", "azerty")
     T.eq(KeyLayout.activeProfile(), "azerty")
@@ -112,6 +175,13 @@ function M.test_swaplabel_qwerty_unchanged()
     T.eq(KeyLayout.swapLabel("Q, W, E, A, S, D, Z, X, C cluster"), "Q, W, E, A, S, D, Z, X, C cluster")
 end
 
+function M.test_swaplabel_italian_unchanged()
+    -- Italian has no letter swap (QWERTY letters), so the cluster label is
+    -- left intact -- only the OEM symbol names change, via resolveKeyLabel.
+    setup("italian", nil)
+    T.eq(KeyLayout.swapLabel("Q, W, E, A, S, D, Z, X, C cluster"), "Q, W, E, A, S, D, Z, X, C cluster")
+end
+
 function M.test_swaplabel_swaps_single_letters_only()
     setup("azerty", nil)
     -- The chord prefix words stay; the single-letter key swaps.
@@ -136,6 +206,18 @@ function M.test_resolvekeylabel_picks_profile_variant()
         KeyLayout.resolveKeyLabel("TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO"),
         "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_QWERTZ"
     )
+end
+
+function M.test_resolvekeylabel_picks_italian_variant()
+    setup("italian", nil)
+    -- Info moves to the hyphen key on Italian, like QWERTZ, so it has an
+    -- _ITALIAN variant.
+    T.eq(
+        KeyLayout.resolveKeyLabel("TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO"),
+        "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_ITALIAN"
+    )
+    -- Comma/period don't move, so the cycle label stays on the base key.
+    T.eq(KeyLayout.resolveKeyLabel("TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"), "TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE")
 end
 
 function M.test_resolvekeylabel_period_variant_only_on_azerty()
@@ -181,6 +263,16 @@ function M.test_questionkey_per_profile()
     T.eq(KeyLayout.questionKey(), 188)
     setup("qwertz", nil)
     T.eq(KeyLayout.questionKey(), 219)
+    -- Italian reaches '?' via Shift + the apostrophe key, same VK as German.
+    setup("italian", nil)
+    T.eq(KeyLayout.questionKey(), 219)
+end
+
+function M.test_activeprofile_italian()
+    setup("italian", nil)
+    T.eq(KeyLayout.activeProfile(), "italian")
+    setup("qwerty", "italian")
+    T.eq(KeyLayout.activeProfile(), "italian")
 end
 
 return M

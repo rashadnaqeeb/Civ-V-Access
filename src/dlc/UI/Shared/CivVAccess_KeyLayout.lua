@@ -1,15 +1,18 @@
 -- Keyboard-layout remap policy for the in-game key cluster. The proxy
--- classifies the user's physical keyboard into one of three families and
+-- classifies the user's physical keyboard into one of four families and
 -- publishes it as civvaccess_shared.keyboard_profile ("qwerty" / "azerty" /
--- "qwertz"); this module owns what that classification means.
+-- "qwertz" / "italian"); this module owns what that classification means.
 --
 -- The mod's bindings are all authored in QWERTY virtual-key codes. On a
 -- national layout the same physical key emits a different VK, so the 3x3
 -- movement cluster (and everything keyed to a cluster position -- unit
 -- moves, surveyor scope reads, grow/shrink) would scatter. remap() rewrites
 -- the VK the engine delivered back to the QWERTY VK the binding expects, so
--- the whole cluster keeps its physical shape. The swaps are symmetric and
--- tiny: AZERTY swaps A/Q and W/Z, QWERTZ swaps Z/Y, QWERTY is identity.
+-- the whole cluster keeps its physical shape. The letter swaps are symmetric
+-- and tiny: AZERTY swaps A/Q and W/Z, QWERTZ swaps Z/Y, QWERTY is identity.
+-- Italian leaves letters alone (it is QWERTY for letters) but scrambles the
+-- OEM punctuation keys exactly the way QWERTZ does, so its remap is QWERTZ's
+-- punctuation entries without the Z/Y letter swap.
 --
 -- Two consumers, two spaces, one source of truth: InputRouter calls remap()
 -- in VK space inside the binding walk only (never on the type-ahead path,
@@ -67,11 +70,28 @@ local VK_SWAP = {
         [VK_OEM_PLUS] = VK_OEM_6, -- "+" key -> message next
         [VK_OEM_2] = VK_OEM_5, -- "#" key -> chat
     },
+    -- Italian: QWERTY letters, so no letter swap. The OEM keys carry the same
+    -- VKs at the same physical positions as QWERTZ, so the punctuation remap
+    -- is identical -- the , . keys stay unit prev/next; the - key (physical /
+    -- position) is info; the è and + keys (physical [ ] positions) are message
+    -- prev/next; the ù key (physical \ position) is chat. The - and + keys
+    -- override engine zoom. As on QWERTZ, the keycaps at the physical - and =
+    -- positions (the ' and ì keys) emit OEM_4 / OEM_6 natively, so they double
+    -- as message prev/next while the message buffer is active; Shift on the '
+    -- key is the '?' help key (see QUESTION_VK).
+    italian = {
+        [VK_OEM_MINUS] = VK_OEM_2, -- "-" key -> unit info
+        [VK_OEM_1] = VK_OEM_4, -- "è" key -> message previous
+        [VK_OEM_PLUS] = VK_OEM_6, -- "+" key -> message next
+        [VK_OEM_2] = VK_OEM_5, -- "ù" key -> chat
+    },
 }
 
 -- Display-side swaps, keycap letter -> keycap letter, per profile. Same
 -- pairs as VK_SWAP, expressed as the single-letter tokens that appear in
--- help key labels.
+-- help key labels. Italian is absent: its letters are QWERTY, so the cluster
+-- keycaps already match the authored labels and only the OEM symbol names
+-- (handled by LABEL_VARIANTS) differ.
 local LETTER_SWAP = {
     azerty = { A = "Q", Q = "A", W = "Z", Z = "W" },
     qwertz = { Z = "Y", Y = "Z" },
@@ -79,15 +99,16 @@ local LETTER_SWAP = {
 
 -- VK that produces '?' (Shift + this key) per profile, for the help hotkey.
 -- US '/?' is VK_OEM_2; AZERTY reaches '?' via Shift + the ',' key
--- (VK_OEM_COMMA), QWERTZ via Shift + the 'ß' key (VK_OEM_4).
-local QUESTION_VK = { qwerty = 191, azerty = 188, qwertz = 219 }
+-- (VK_OEM_COMMA), QWERTZ via Shift + the 'ß' key (VK_OEM_4), Italian via
+-- Shift + the apostrophe key (VK_OEM_4, same VK as the German 'ß').
+local QUESTION_VK = { qwerty = 191, azerty = 188, qwertz = 219, italian = 219 }
 
 -- Profiles offered in the Settings override, in display order. "auto" means
 -- "use the detected profile".
-KeyLayout.OVERRIDE_PROFILES = { "auto", "qwerty", "azerty", "qwertz" }
+KeyLayout.OVERRIDE_PROFILES = { "auto", "qwerty", "azerty", "qwertz", "italian" }
 
 local function normalize(name)
-    if name == "azerty" or name == "qwertz" then
+    if name == "azerty" or name == "qwertz" or name == "italian" then
         return name
     end
     return "qwerty"
@@ -116,6 +137,30 @@ function KeyLayout.remap(vk)
         return vk
     end
     return swap[vk] or vk
+end
+
+-- True when a native press of vk on the active profile would ghost-fire a
+-- cluster binding. The remap routes the real info / message / chat keys onto
+-- their QWERTY VKs from national source keys, so any other physical key that
+-- emits one of those target VKs natively (an accent or dead key, or the '?'
+-- key) lands on the same binding. Such a vk is a remap target (a value in
+-- VK_SWAP) that is not itself a source (not a key in VK_SWAP, so the remap
+-- never moves it away). Derived from VK_SWAP so it stays correct for every
+-- profile with no separate table to maintain; the letter swaps are symmetric
+-- (each letter is both source and target) so they never count as collisions.
+-- InputRouter swallows these, sparing the one real use -- Shift + the '?' key
+-- for help -- which it matches on the raw keycode.
+function KeyLayout.collidesNative(vk)
+    local swap = VK_SWAP[KeyLayout.activeProfile()]
+    if swap == nil or swap[vk] ~= nil then
+        return false
+    end
+    for _, target in pairs(swap) do
+        if target == vk then
+            return true
+        end
+    end
+    return false
 end
 
 -- Rewrite the single-letter key-name tokens in a help label to the keycaps
@@ -152,7 +197,10 @@ end
 -- punctuation clusters move (unit prev/next/info and city prev/next shift to
 -- ; : keys, message keys to ) = *). On QWERTZ the comma/period keys don't
 -- move, so unit cycle and city prev/next keep their base labels; only info,
--- recenter, the message keys, and chat get QWERTZ variants.
+-- recenter, the message keys, and chat get QWERTZ variants. Italian moves the
+-- same OEM keys as QWERTZ, so it carries the same variant set; only the keycap
+-- names differ (è / ù instead of ü / #), so each variant gets its own
+-- _ITALIAN string rather than reusing the QWERTZ one.
 KeyLayout.LABEL_VARIANTS = {
     azerty = {
         TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE = true,
@@ -168,6 +216,15 @@ KeyLayout.LABEL_VARIANTS = {
         TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE = true,
     },
     qwertz = {
+        TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO = true,
+        TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER = true,
+        TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV = true,
+        TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE = true,
+        TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER = true,
+        TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY = true,
+        TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE = true,
+    },
+    italian = {
         TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO = true,
         TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER = true,
         TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV = true,

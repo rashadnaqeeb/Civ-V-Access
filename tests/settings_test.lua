@@ -195,7 +195,7 @@ function M.test_keyboard_layout_default_auto_and_override_flip()
     Settings.open()
     -- Fifth child of the UI group is the keyboard-layout choice group.
     local choices = groupChildren(UI_GROUP)[5]:children()
-    T.eq(#choices, 4, "auto / qwerty / azerty / qwertz")
+    T.eq(#choices, 5, "auto / qwerty / azerty / qwertz / italian")
     -- Default override is auto; activating AZERTY (the third choice) writes
     -- the shared cache and Prefs.
     T.truthy(choices[1]._selectedFn(), "auto is the default")
@@ -203,6 +203,16 @@ function M.test_keyboard_layout_default_auto_and_override_flip()
     choices[3]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.keyboardProfileOverride, "azerty")
     T.eq(prefsStore["KeyboardProfileOverride"], 2)
+end
+
+function M.test_keyboard_layout_italian_choice_writes()
+    setup()
+    Settings.open()
+    -- Fifth choice is Italian; it persists as int 4.
+    local choices = groupChildren(UI_GROUP)[5]:children()
+    choices[5]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.keyboardProfileOverride, "italian")
+    T.eq(prefsStore["KeyboardProfileOverride"], 4)
 end
 
 function M.test_direction_long_form_default_off_and_flip()

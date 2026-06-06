@@ -12,7 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
-- AZERTY and QWERTZ keyboards keep the in-game key cluster in its physical position; a Keyboard layout setting under UI settings overrides the detected layout.
+- AZERTY, QWERTZ, and Italian keyboards keep the in-game key cluster in its physical position; a Keyboard layout setting under UI settings overrides the detected layout.
 
 Bug fixes:
 - Enabling or disabling a mod in the mods list now updates the open entry immediately instead of only after returning to the list.

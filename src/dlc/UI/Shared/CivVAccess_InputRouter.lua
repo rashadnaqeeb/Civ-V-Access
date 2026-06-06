@@ -332,6 +332,20 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
         end
     end
 
+    -- National-layout ghost suppression. The cluster remap routes the real
+    -- info / message / chat keys onto their QWERTY VKs from national source
+    -- keys; on AZERTY / QWERTZ / Italian the stray national keys that emit
+    -- those same VKs natively (accent and dead keys, and the '?' key) would
+    -- otherwise ghost-fire the same bindings. Swallow them -- they already
+    -- consume today via the ghost binding, so this only drops the unwanted
+    -- action. The one real use of such a key is Shift + '?' (help open and,
+    -- when Help is on top, close), matched on the raw keycode, so let that
+    -- chord fall through. Runs after the type-ahead hook so a colliding key
+    -- still types into a search field. No-op on QWERTY (no remap targets).
+    if KeyLayout.collidesNative(keyCode) and not (keyCode == KeyLayout.questionKey() and modMask == MOD_SHIFT) then
+        return true
+    end
+
     -- Cluster remap: rewrite the engine-delivered VK to the QWERTY VK the
     -- bindings are authored in, so the 3x3 cluster keeps its physical shape
     -- on AZERTY / QWERTZ. Applied here, in the binding walk only -- the
