@@ -5,6 +5,10 @@
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
+-- This is its own Context with its own env; Boot's EngineData global lives
+-- only in the InGame Context, so the trade Context includes it itself
+-- (TradeLogicAvailable reads it for the deal resource count).
+include("CivVAccess_EngineData")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")

@@ -21,6 +21,9 @@
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
+-- Each popup is its own Context with its own env; Boot's EngineData global
+-- lives only in the InGame Context, so popup Contexts include it themselves.
+include("CivVAccess_EngineData")
 include("CivVAccess_UserPrefs")
 include("CivVAccess_AudioCueMode")
 include("CivVAccess_TextFilter")
