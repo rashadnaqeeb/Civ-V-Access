@@ -219,6 +219,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Подробны
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Выделять курсор и сканер на экране"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Полные стороны света"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Раскладка клавиатуры"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AUTO"] = "Автоматически"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTY"] = "QWERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AZERTY"] = "AZERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTZ"] = "QWERTZ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_ITALIAN"] = "Итальянская"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Только звуковые подсказки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] =
     "Громкость звуковых сигналов местности"

@@ -403,14 +403,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_AIRLIFT_NO_DESTINATIONS"] = "aucune 
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "Point, virgule"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_AZERTY"] = "Deux-points, point-virgule"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE"] = "Passer à l'unité suivante ou précédente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL"] = "Contrôle plus point ou virgule"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL_AZERTY"] = "Contrôle plus deux-points ou point-virgule"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE_ALL"] =
     "Passer à l'unité suivante ou précédente, y compris celles qui ont déjà agi"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO"] = "Barre oblique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_AZERTY"] = "Point d'exclamation"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_QWERTZ"] = "Trait d'union"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_ITALIAN"] = "Trait d'union"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_INFO"] =
     "Lire les informations de combat et de promotion de l'unité sélectionnée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER"] = "Contrôle plus barre oblique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_AZERTY"] = "Contrôle plus point d'exclamation"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_QWERTZ"] = "Contrôle plus trait d'union"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_ITALIAN"] = "Contrôle plus trait d'union"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_RECENTER"] =
     "Recentrer le curseur hexagonal sur l'unité sélectionnée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_TAB"] = "Tabulation"
@@ -847,6 +855,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Annonces détail
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Mettre en valeur le curseur et le scanner à l'écran"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Noms longs des points cardinaux"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Disposition du clavier"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AUTO"] = "Automatique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTY"] = "QWERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AZERTY"] = "AZERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTZ"] = "QWERTZ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_ITALIAN"] = "Italien"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Indices sonores uniquement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volume des icones auditives de terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =
@@ -1190,8 +1204,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "foi {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "tourisme {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "culture {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "Point"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT_AZERTY"] = "Deux-points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT"] = "Ville suivante"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_PREV"] = "Virgule"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_PREV_AZERTY"] = "Point-virgule"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_PREV"] = "Ville précédente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_NEXT_CITY"] = "pas de ville suivante"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_PREV_CITY"] = "pas de ville précédente"
@@ -2616,11 +2632,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Combat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Discussion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "aucun message"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Crochet gauche et crochet droit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV_AZERTY"] = "Parenthese droite et signe egal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV_QWERTZ"] = "U trema et signe plus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV_ITALIAN"] = "E accent grave et signe plus"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_NAV"] = "Message précédent et suivant dans le tampon"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE"] = "Contrôle plus crochet gauche et crochet droit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_AZERTY"] = "Contrôle plus parenthese droite et signe egal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_QWERTZ"] = "Contrôle plus u trema et signe plus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_ITALIAN"] = "Contrôle plus e accent grave et signe plus"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] =
     "Message le plus ancien et le plus récent dans le tampon"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Maj plus crochet gauche et crochet droit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_AZERTY"] = "Maj plus parenthese droite et signe egal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_QWERTZ"] = "Maj plus u trema et signe plus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_ITALIAN"] = "Maj plus e accent grave et signe plus"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
     "Changer de catégorie de filtre, en ignorant les catégories vides"
 
@@ -2631,6 +2656,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
 -- target types (all / team / whisper) format the inline announce and the
 -- MessageBuffer "chat" entries so the user can tell whom a message went to.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY"] = "Antislash"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY_AZERTY"] = "Asterisque"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY_QWERTZ"] = "Diese"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY_ITALIAN"] = "U accent grave"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_DESC"] =
     "Ouvrir le panneau de discussion multijoueur, sans effet en solo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"] = "La discussion est réservée au multijoueur"
@@ -2647,4 +2675,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} à l'�
 -- {2_To} recipient name (or "you" when the local player is the target).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} à {2_To} : {3_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] = "Antislash ou Échap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE_AZERTY"] = "Asterisque ou Échap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE_QWERTZ"] = "Diese ou Échap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE_ITALIAN"] = "U accent grave ou Échap"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Fermer le panneau de discussion"

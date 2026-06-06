@@ -195,6 +195,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Annonces détail
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Mettre en valeur le curseur et le scanner à l'écran"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Noms longs des points cardinaux"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Disposition du clavier"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AUTO"] = "Automatique"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTY"] = "QWERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AZERTY"] = "AZERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTZ"] = "QWERTZ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_ITALIAN"] = "Italien"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Indices audio uniquement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "Volume des icones auditives de terrain"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] =

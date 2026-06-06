@@ -361,15 +361,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_GIFT_IMPROVEMENT_LEGAL"] =
 -- Unit control help overlay entries. Chord labels merge each binding
 -- cluster into one line so the ? screen doesn't list six Alt+letter rows.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "Точка, запятая"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_AZERTY"] = "Двоеточие, точка с запятой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE"] =
     "Переключиться на следующий или предыдущий юнит"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL"] = "Control плюс period или comma"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL_AZERTY"] =
+    "Control плюс двоеточие или точка с запятой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE_ALL"] =
     "Переключиться на следующий или предыдущий юнит, включая уже выполнивших действие"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO"] = "Слэш"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_AZERTY"] = "Восклицательный знак"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_QWERTZ"] = "Дефис"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_ITALIAN"] = "Дефис"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_INFO"] =
     "Прочитать боевые характеристики и продвижения выбранного юнита"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER"] = "Control плюс slash"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_AZERTY"] =
+    "Control плюс восклицательный знак"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_QWERTZ"] = "Control плюс дефис"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_ITALIAN"] = "Control плюс дефис"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_RECENTER"] =
     "Центрировать курсор клеток на выбранном юните"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_TAB"] = "Tab"
@@ -761,6 +771,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Подробны
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "Выделять курсор и сканер на экране"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Полные стороны света"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Раскладка клавиатуры"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AUTO"] = "Автоматически"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTY"] = "QWERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_AZERTY"] = "AZERTY"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_QWERTZ"] = "QWERTZ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_ITALIAN"] = "Итальянская"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "Только звуковые сигналы"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] =
     "Громкость звуковых сигналов местности"
@@ -1042,8 +1058,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "вера {1_Num
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "туризм {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "культура {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "Точка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT_AZERTY"] = "Двоеточие"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT"] = "Следующий город"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_PREV"] = "Запятая"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_PREV_AZERTY"] = "Точка с запятой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_PREV"] = "Предыдущий город"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_NEXT_CITY"] = "нет следующего города"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_PREV_CITY"] = "нет предыдущего города"
@@ -2427,14 +2445,30 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Бой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Чат"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "нет сообщений"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Левая скобка и правая скобка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV_AZERTY"] =
+    "Правая скобка и знак равенства"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV_QWERTZ"] = "U с умлаутом и знак плюса"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV_ITALIAN"] = "E с гравис и знак плюса"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_NAV"] =
     "Предыдущее и следующее сообщение в буфере"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE"] =
     "Control плюс левая скобка и правая скобка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_AZERTY"] =
+    "Control плюс правая скобка и знак равенства"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_QWERTZ"] =
+    "Control плюс u с умлаутом и знак плюса"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_ITALIAN"] =
+    "Control плюс e с гравис и знак плюса"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] =
     "Самое старое и самое новое сообщение в буфере"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] =
     "Shift плюс левая скобка и правая скобка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_AZERTY"] =
+    "Shift плюс правая скобка и знак равенства"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_QWERTZ"] =
+    "Shift плюс u с умлаутом и знак плюса"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_ITALIAN"] =
+    "Shift плюс e с гравис и знак плюса"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
     "Переключить категорию фильтра буфера, пропуская пустые категории"
 
@@ -2445,6 +2479,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
 -- target types (all / team / whisper) format the inline announce and the
 -- MessageBuffer "chat" entries so the user can tell whom a message went to.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY"] = "Обратная косая черта"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY_AZERTY"] = "Звёздочка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY_QWERTZ"] = "Решётка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_KEY_ITALIAN"] = "U с гравис"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_HOTKEY_HELP_DESC"] =
     "Открыть панель чата многопользовательской игры, в одиночной игре не работает"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"] =
@@ -2459,4 +2496,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_TEAM"] = "{1_Name} ком
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_MSG_WHISPER"] = "{1_Name} для {2_To}: {3_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE"] =
     "Обратная косая черта или Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE_AZERTY"] = "Звёздочка или Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE_QWERTZ"] = "Решётка или Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_KEY_CLOSE_ITALIAN"] = "U с гравис или Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_INGAME_CHAT_HELP_DESC_CLOSE"] = "Закрыть панель чата"
