@@ -3007,7 +3007,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_ITALIAN"] = "Control
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] = "Mensaje más antiguo y más reciente del historial"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] =
     "Mayúsculas más corchete de apertura y corchete de cierre"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_AZERTY"] = "Mayúsculas más paréntesis de cierre e igual"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_AZERTY"] =
+    "Mayúsculas más paréntesis de cierre e igual"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_QWERTZ"] = "Mayúsculas más u con diéresis y signo más"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_ITALIAN"] =
     "Mayúsculas más e con acento grave y signo más"

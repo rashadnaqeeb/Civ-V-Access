@@ -271,7 +271,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE"] = "ピリオド, �
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_AZERTY"] = "コロン, セミコロン"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE"] = "次または前のユニットに切り替え"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL"] = "Control + ピリオド または カンマ"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL_AZERTY"] = "Control + コロン または セミコロン"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_CYCLE_ALL_AZERTY"] =
+    "Control + コロン または セミコロン"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_CYCLE_ALL"] =
     "行動済みを含む, 次または前のユニットに切り替え"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO"] = "スラッシュ"
@@ -281,7 +282,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_INFO_ITALIAN"] = "ハイフ
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_INFO"] =
     "選択中ユニットの戦闘情報と昇進情報を読み上げ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER"] = "Control + Slash"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_AZERTY"] = "Control + エクスクラメーションマーク"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_AZERTY"] =
+    "Control + エクスクラメーションマーク"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_QWERTZ"] = "Control + ハイフン"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_KEY_RECENTER_ITALIAN"] = "Control + ハイフン"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_HELP_DESC_RECENTER"] = "選択中ユニットにカーソルを戻す"

@@ -2289,7 +2289,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_QWERTZ"] = "Strg plu
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_EDGE_ITALIAN"] = "Strg plus e mit Gravis und Pluszeichen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_EDGE"] = "Älteste und neueste Nachricht im Puffer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER"] = "Umschalt plus linke und rechte eckige Klammer"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_AZERTY"] = "Umschalt plus rechte Klammer und Gleichheitszeichen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_AZERTY"] =
+    "Umschalt plus rechte Klammer und Gleichheitszeichen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_QWERTZ"] = "Umschalt plus u-Umlaut und Pluszeichen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_FILTER_ITALIAN"] = "Umschalt plus e mit Gravis und Pluszeichen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_DESC_FILTER"] =
