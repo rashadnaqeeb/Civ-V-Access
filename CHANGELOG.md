@@ -16,6 +16,7 @@ New Features and improvements:
 - The relationship breakdown on the F4 diplomacy screen now groups each civ's opinion modifiers by how much they help or hurt, from very pleased to very displeased.
 - The F3 units table now opens sorted nearest-first by distance.
 - A moving unit's status on the F3 units table now shows the turns remaining to reach its destination.
+- Cursoring over one of your moving units now reads its full queued path and ETA, not just "queued move", even when the unit isn't selected.
 
 ## [1.3.2] - 2026-06-06
 

@@ -46,6 +46,7 @@ local function mkUnit(opts)
         _domain = opts.domain or DomainTypes.DOMAIN_LAND,
         _hasName = opts.hasName or false,
         _nameNoDesc = opts.nameNoDesc or "",
+        _queue = opts.queue or {},
     }
     function u:GetX()
         return self._x
@@ -61,6 +62,9 @@ local function mkUnit(opts)
     end
     function u:GetOwner()
         return self._owner
+    end
+    function u:GetMissionQueue()
+        return self._queue
     end
     function u:GetNameKey()
         local row = GameInfo.Units[self._unitType]
@@ -172,12 +176,11 @@ end
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
-    -- Required by UnitSpeech.statusToken's ACTIVITY_MISSION rung
-    -- (calls Waypoints.queuedActionStatus when the head-selected unit
-    -- matches). The module's lookup paths short-circuit on the
-    -- polyfill's nil UI.GetHeadSelectedUnit, so loading is enough;
-    -- tests that exercise the queued-action rung set their own UI /
-    -- Waypoints fixtures.
+    -- Required by UnitSpeech.statusToken's ACTIVITY_MISSION rung (calls
+    -- Waypoints.queuedActionStatusFor for any own unit). Tests that
+    -- exercise the queued-action rung stub queuedActionStatusFor and set
+    -- their own UI fixtures; loading the real module here is enough for
+    -- the rest.
     civvaccess_shared = civvaccess_shared or {}
     dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
@@ -520,11 +523,24 @@ function M.test_selection_status_building_with_turns()
     T.truthy(out:find("Build Farm 5 turns", 1, true), "building status with turns expected: " .. out)
 end
 
-function M.test_selection_status_queued_mission()
+-- A unit on ACTIVITY_MISSION that is NOT the selected unit still gets the
+-- full per-leg detail: statusToken prices the path for any own unit via
+-- queuedActionStatusFor, passing the glanced unit (not the head-selected
+-- one), so a cursor read over a moving unit reads its segments and ETA.
+function M.test_selection_status_queued_mission_non_selected_gets_detail()
     setup()
-    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION })
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_MISSION, x = 0, y = 0 })
+    UI.GetHeadSelectedUnit = function()
+        return mkUnit({ x = 5, y = 5 })
+    end
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function(unit)
+        T.truthy(unit == u, "statusToken should price the glanced unit, not the selected one")
+        return { chunks = { { kind = "move", segments = { "3e" }, turns = 2 } } }
+    end
     local out = UnitSpeech.selection(u, 0, 0)
-    T.truthy(out:find("queued move", 1, true), "queued move status expected: " .. out)
+    Waypoints.queuedActionStatusFor = origStatus
+    T.truthy(out:find("queued move, 2 turns: 3e, arrive", 1, true), "non-selected unit detail expected: " .. out)
 end
 
 -- Engine-fork variant: when the unit IS the head-selected one and
@@ -538,12 +554,12 @@ function M.test_selection_status_queued_mission_with_single_waypoint()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return { chunks = { { kind = "move", segments = { "3e" }, turns = 2 } } }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(out:find("queued move, 2 turns: 3e, arrive", 1, true), "single-waypoint rung expected: " .. out)
 end
 
@@ -556,12 +572,12 @@ function M.test_selection_status_queued_mission_with_multiple_waypoints()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return { chunks = { { kind = "move", segments = { "2ne", "2e", "1ne" }, turns = 3 } } }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(
         out:find("queued move, 3 turns: 2ne, then 2e, then 1ne, arrive", 1, true),
         "multi-waypoint rung expected: " .. out
@@ -575,12 +591,12 @@ function M.test_selection_status_queued_mission_one_turn_plural()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return { chunks = { { kind = "move", segments = { "1e" }, turns = 1 } } }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(out:find("queued move, 1 turn: 1e, arrive", 1, true), "singular-turn rung expected: " .. out)
 end
 
@@ -593,8 +609,8 @@ function M.test_selection_status_queued_mission_route_chunk_uses_route_name()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return {
             chunks = {
                 { kind = "route", segments = { "1e", "1e", "1e" }, turns = 9, routeName = "road" },
@@ -602,7 +618,7 @@ function M.test_selection_status_queued_mission_route_chunk_uses_route_name()
         }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(
         out:find("queued road, 9 turns: 1e, then 1e, then 1e, arrive", 1, true),
         "route chunk rung expected: " .. out
@@ -619,8 +635,8 @@ function M.test_selection_status_queued_mission_mixed_chunks_render_both_labels(
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return {
             chunks = {
                 { kind = "route", segments = { "1e", "1e", "1e" }, turns = 9, routeName = "road" },
@@ -629,7 +645,7 @@ function M.test_selection_status_queued_mission_mixed_chunks_render_both_labels(
         }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(
         out:find("queued road, 9 turns: 1e, then 1e, then 1e, then queued move, 2 turns: 2e, then 1ne, arrive", 1, true),
         "mixed-queue rung expected: " .. out
@@ -644,12 +660,12 @@ function M.test_selection_status_queued_mission_falls_back_when_no_waypoints()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return nil
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(out:find("queued move", 1, true), "queued move fallback expected: " .. out)
     T.truthy(not out:find("turn", 1, true), "no turns suffix when waypoints unavailable: " .. out)
 end
@@ -696,8 +712,8 @@ function M.test_selection_status_build_folds_into_head_route_chunk()
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return {
             chunks = {
                 { kind = "route", segments = { "1e", "1e" }, turns = 6, routeName = "road" },
@@ -705,7 +721,7 @@ function M.test_selection_status_build_folds_into_head_route_chunk()
         }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     Locale.ConvertTextKey = origConvert
     T.truthy(
         out:find("queued road, 9 turns: 3 turns here, then 1e, then 1e, arrive", 1, true),
@@ -727,8 +743,8 @@ function M.test_selection_status_build_and_queued_side_by_side_when_kinds_differ
     UI.GetHeadSelectedUnit = function()
         return u
     end
-    local origStatus = Waypoints.queuedActionStatus
-    Waypoints.queuedActionStatus = function()
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
         return {
             chunks = {
                 { kind = "move", segments = { "2e", "1ne" }, turns = 2 },
@@ -736,7 +752,7 @@ function M.test_selection_status_build_and_queued_side_by_side_when_kinds_differ
         }
     end
     local out = UnitSpeech.selection(u, 0, 0)
-    Waypoints.queuedActionStatus = origStatus
+    Waypoints.queuedActionStatusFor = origStatus
     T.truthy(
         out:find("Build Farm 5 turns, queued move, 2 turns: 2e, then 1ne, arrive", 1, true),
         "non-route build should render alongside queued move: " .. out

@@ -297,8 +297,15 @@ end
 -- when the unit changed or the queue mutated. nil when no head selected
 -- unit or the unit isn't owned by the active player (queued moves only
 -- meaningful for the player's own units).
-local function activeSnapshot()
-    local unit = UI.GetHeadSelectedUnit()
+-- Snapshot ({ waypoints, chunks }) for an explicit unit, or nil when the
+-- unit is nil or not owned by the active player (we never price a foreign
+-- queue). The single-slot shared cache (civvaccess_shared.waypointsCache)
+-- holds only the active selected unit: a cursor glance over some other
+-- moving unit computes fresh each call so it can't evict the selected
+-- unit's snapshot. compute() is parameterized purely by the unit handle
+-- and runs the cache-safe ComputePath pathfinder, so pricing a
+-- non-selected unit never disturbs its real movement.
+local function snapshotFor(unit)
     if unit == nil then
         return nil
     end
@@ -306,6 +313,11 @@ local function activeSnapshot()
         return nil
     end
     local queue = EngineData.missionQueue(unit)
+    local head = UI.GetHeadSelectedUnit()
+    if head == nil or head:GetID() ~= unit:GetID() then
+        -- Non-selected unit: compute fresh, leave the cache untouched.
+        return compute(unit, queue)
+    end
     local sig = computeSig(queue)
     local ux, uy = unit:GetX(), unit:GetY()
     local cache = civvaccess_shared.waypointsCache
@@ -329,6 +341,10 @@ local function activeSnapshot()
     }
     civvaccess_shared.waypointsCache = cache
     return cache
+end
+
+local function activeSnapshot()
+    return snapshotFor(UI.GetHeadSelectedUnit())
 end
 
 -- Public: full waypoint list for the active selected unit. Empty list
@@ -368,8 +384,7 @@ end
 -- Each chunk's `kind` is "move" or "route"; "route" chunks carry a
 -- localized `routeName` ("road", "railroad", or a modded route's name)
 -- so the renderer can name it directly.
-function Waypoints.queuedActionStatus()
-    local snap = activeSnapshot()
+local function statusFromSnapshot(snap)
     if snap == nil or #snap.chunks == 0 then
         return nil
     end
@@ -379,6 +394,20 @@ function Waypoints.queuedActionStatus()
         end
     end
     return { chunks = snap.chunks }
+end
+
+function Waypoints.queuedActionStatus()
+    return statusFromSnapshot(activeSnapshot())
+end
+
+-- Public: queued-action chunks for an explicit unit -- the cursor-glance
+-- path readout for a unit that isn't the selected one. Same shape and
+-- empty-segment filtering as queuedActionStatus (which is the head-unit
+-- case of this). nil for a nil / non-active-player unit or one with no
+-- describable path-bearing legs, so the caller falls back to the bare
+-- "queued move" rung.
+function Waypoints.queuedActionStatusFor(unit)
+    return statusFromSnapshot(snapshotFor(unit))
 end
 
 -- Public: total turns for `unit` to traverse its currently queued

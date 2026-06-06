@@ -163,16 +163,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_BUILDING"] = {
     one = "{1_What} {2_Turns} turn",
     other = "{1_What} {2_Turns} turns",
 }
--- Spoken when a unit is mid-execution on ACTIVITY_MISSION. For a selectable
--- player-controlled unit the cascade falls through to this rung only for
--- multi-turn movement missions (MISSION_MOVE_TO / MISSION_ROUTE_TO) -- build
--- missions get caught by the build rung above, automated units by the
--- automate rung, and one-shot missions (attack, embark, found, airstrike,
--- etc.) resolve within the turn and never reach selection. The Lua API does
--- not expose mission type or destination plot, so we cannot say where.
+-- Bare fallback for a unit mid-execution on ACTIVITY_MISSION whose queued
+-- path can't be described as segments: a foreign unit (we don't price
+-- another player's queue) or a unit whose path the pathfinder can't
+-- compute (e.g. the engine-fork binding is absent). Own units with a
+-- computable path get the per-leg detail rung below instead, whether or
+-- not they are the selected unit. Multi-turn movement is the usual case
+-- that reaches here -- build missions are caught by the build rung above,
+-- automated units by the automate rung, and one-shot missions (attack,
+-- embark, found, airstrike, etc.) resolve within the turn.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED"] = "queued move"
 -- Engine-fork form of the queued rung: when WaypointsCore can compute
--- per-leg chunks for the head-selected unit's queued action, the rung
+-- per-leg chunks for an own unit's queued action, the rung
 -- becomes one or more chunks joined by "then", followed by ", arrive"
 -- once at the end. A pure-move queue produces a single move chunk
 -- ("queued move, 3 turns: 1ne, then 2e, then 1ne, arrive"); a pure

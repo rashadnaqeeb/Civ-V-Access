@@ -289,6 +289,66 @@ function M.test_compute_move_to_produces_move_chunk()
     T.eq(c.segments[3], "1e", "third segment")
 end
 
+-- A non-selected own unit still computes a full snapshot: queuedActionStatusFor
+-- prices an explicit unit even when it isn't the head selection, and does so
+-- without overwriting the selected unit's cached snapshot (the single cache
+-- slot belongs to the head unit only).
+function M.test_queued_action_status_for_non_selected_unit_computes_without_caching()
+    local plots = {
+        ["0,0"] = fakePlot(0, 0),
+        ["3,0"] = fakePlot(3, 0),
+    }
+    local unit = setupCompute({
+        plots = plots,
+        unitX = 0,
+        unitY = 0,
+        queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        computePath = function()
+            return {
+                { x = 0, y = 0, moves = 100 },
+                { x = 1, y = 0, moves = 0 },
+                { x = 2, y = 0, moves = 0 },
+                { x = 3, y = 0, moves = 100 },
+            }
+        end,
+        legTurns = 3,
+    })
+    -- The glanced unit is not the selected one.
+    UI.GetHeadSelectedUnit = function()
+        return nil
+    end
+    local sentinel = { unitID = 999 }
+    civvaccess_shared.waypointsCache = sentinel
+    local status = Waypoints.queuedActionStatusFor(unit)
+    T.truthy(status ~= nil and #status.chunks == 1, "non-selected unit still produces a chunk")
+    T.eq(status.chunks[1].kind, "move", "move chunk for non-selected unit")
+    T.truthy(civvaccess_shared.waypointsCache == sentinel, "selected unit's cache untouched by non-selected glance")
+end
+
+-- queuedActionStatusFor refuses a unit the active player doesn't own, so a
+-- glance over a foreign moving unit never prices (or leaks) its queue.
+function M.test_queued_action_status_for_returns_nil_for_foreign_unit()
+    local plots = {
+        ["0,0"] = fakePlot(0, 0),
+        ["3,0"] = fakePlot(3, 0),
+    }
+    local unit = setupCompute({
+        plots = plots,
+        unitX = 0,
+        unitY = 0,
+        queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        computePath = function()
+            return {
+                { x = 0, y = 0, moves = 100 },
+                { x = 3, y = 0, moves = 100 },
+            }
+        end,
+        legTurns = 3,
+    })
+    unit._owner = 1
+    T.eq(Waypoints.queuedActionStatusFor(unit), nil, "foreign unit returns nil")
+end
+
 -- A single ROUTE_TO leg whose build path covers three tiles, all
 -- needing 3 build turns each, produces one route chunk named "road"
 -- with three segments summing to 9 turns.

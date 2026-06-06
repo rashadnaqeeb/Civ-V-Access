@@ -347,10 +347,13 @@ local function statusToken(unit)
     end
     local status = nil
     if activity == ActivityTypes.ACTIVITY_MISSION then
-        local head = UI.GetHeadSelectedUnit()
-        if head ~= nil and head:GetID() == unit:GetID() then
-            status = Waypoints.queuedActionStatus()
-        end
+        -- Full queued-path detail for any of the player's own units, not
+        -- just the selected one, so a cursor glance over a moving unit
+        -- reads its segments and ETA. queuedActionStatusFor owner-gates
+        -- and prices the path off the cache-safe pathfinder; a foreign
+        -- unit or an uncomputable path returns nil and falls through to
+        -- the bare "queued move" rung below.
+        status = Waypoints.queuedActionStatusFor(unit)
     end
     if status ~= nil and #status.chunks > 0 then
         local joiner = Text.key("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_TO_JOINER")
