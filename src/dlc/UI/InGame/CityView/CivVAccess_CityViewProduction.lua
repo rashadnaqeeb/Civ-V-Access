@@ -7,7 +7,8 @@
 --   specialist slots) sourced from InfoTooltipInclude's helpers, so
 --   each slot announces what it will deliver -- not just the prose
 --   description -- alongside its turns / percent line.
--- - The slot drill-in (Move up / Move down / Remove / Back) with engine
+-- - The slot drill-in (Move up / Move down / Move to top / Move to
+--   bottom / Remove / Back) with engine
 --   net-message dispatch (GAMEMESSAGE_SWAP_ORDER / POP_ORDER) and the
 --   pop-and-re-push rebuild that follows a successful mutation.
 -- - The Production handler itself (push), its item builder
@@ -249,11 +250,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
                 if not isTurnActive() then
                     return
                 end
-                local city2 = UI.GetHeadSelectedCity()
-                if city2 == nil then
-                    return
-                end
-                for i = zeroIdx, city2:GetOrderQueueLength() - 2 do
+                for i = zeroIdx, UI.GetHeadSelectedCity():GetOrderQueueLength() - 2 do
                     Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, i)
                 end
                 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_BOTTOM"))
