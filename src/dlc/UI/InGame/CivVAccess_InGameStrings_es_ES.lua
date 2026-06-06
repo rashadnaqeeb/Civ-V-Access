@@ -2158,8 +2158,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NEARBY_LIST"] = "cercanos: {1_List}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "adicionales: {1_List}"
 -- Appended to the end of the Your-relationship cell on the Majors tab: the
 -- AI's opinion modifiers toward us, the same breakdown the game's stance
--- tooltip shows (GetOpinionTable). {1_List} is the comma-joined modifiers.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "motivos de la relación: {1_List}"
+-- tooltip shows (GetOpinionTable), grouped into valence sections.
+-- {1_List} is the comma-joined sections.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "{1_List}"
+-- Valence sections of the relationship breakdown, strongest bonus to
+-- strongest penalty. {1_List} is the comma-joined modifiers in that band.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_PLEASED"] = "le complace mucho: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_PLEASED"] = "le complace algo: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_NEUTRAL"] = "le es indiferente: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_DISPLEASED"] = "le molesta algo: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_DISPLEASED"] = "le molesta mucho: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "políticas: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "maravillas: {1_List}"
