@@ -211,6 +211,57 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         })
     end
 
+    -- Move to top / bottom: the engine has no relocate primitive, so each
+    -- lifts/sinks the slot one position at a time via adjacent SWAP_ORDER
+    -- (swapOrder(i) swaps slot i with i+1). The index sequence is fixed at
+    -- send time and only the slot owner can mutate the queue, so every
+    -- client applies the same replicated swaps in order -- MP-safe.
+    if zeroIdx > 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_TOP"),
+            onActivate = function()
+                if
+                    refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                then
+                    return
+                end
+                if not isTurnActive() then
+                    return
+                end
+                for i = zeroIdx - 1, 0, -1 do
+                    Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, i)
+                end
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_TOP"))
+                rebuildQueueAfterMutation()
+            end,
+        })
+    end
+
+    if zeroIdx < qLength - 1 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVE_BOTTOM"),
+            onActivate = function()
+                if
+                    refuseIfNotActiveOwn(UI.GetHeadSelectedCity(), "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                then
+                    return
+                end
+                if not isTurnActive() then
+                    return
+                end
+                local city2 = UI.GetHeadSelectedCity()
+                if city2 == nil then
+                    return
+                end
+                for i = zeroIdx, city2:GetOrderQueueLength() - 2 do
+                    Game.SelectedCitiesGameNetMessage(GameMessageTypes.GAMEMESSAGE_SWAP_ORDER, i)
+                end
+                SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_BOTTOM"))
+                rebuildQueueAfterMutation()
+            end,
+        })
+    end
+
     items[#items + 1] = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVE"),
         onActivate = function()
