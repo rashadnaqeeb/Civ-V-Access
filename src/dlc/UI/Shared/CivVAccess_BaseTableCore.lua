@@ -50,6 +50,12 @@
 --                  fresh on every nav event.
 --   rowLabel       fn(row) -> string (required). Row's primary identifier.
 --   capturesAllInput  default true.
+--   defaultSort    {column = <1-based index>, ascending = <bool>} | nil.
+--                  Optional. When set, the table opens with that column's
+--                  sort active (so the header row honestly reports it and
+--                  Enter cycles it onward), and the default re-applies on
+--                  every (re)initialization. The referenced column must
+--                  carry a sortKey. Omit for natural rebuildRows order.
 --
 -- Hidden columns: callers filter columns before passing to BaseTable. F2's
 -- science / faith columns are dropped at create time when the corresponding
@@ -482,6 +488,23 @@ function BaseTable.create(spec)
     Log.check(type(spec.rebuildRows) == "function", "spec.rebuildRows required")
     Log.check(type(spec.rowLabel) == "function", "spec.rowLabel required")
 
+    local defaultSortColumn = nil
+    local defaultSortAscending = false
+    if spec.defaultSort ~= nil then
+        Log.check(type(spec.defaultSort) == "table", "spec.defaultSort must be a table")
+        local ds = spec.defaultSort
+        Log.check(
+            type(ds.column) == "number" and ds.column >= 1 and ds.column <= #spec.columns,
+            "spec.defaultSort.column must be a valid column index"
+        )
+        Log.check(
+            type(spec.columns[ds.column].sortKey) == "function",
+            "spec.defaultSort.column must reference a sortable column"
+        )
+        defaultSortColumn = ds.column
+        defaultSortAscending = ds.ascending == true
+    end
+
     local self = {
         tabName = spec.tabName,
         -- Verbosity-gated suffix appended to the spoken tab name on every
@@ -498,8 +521,10 @@ function BaseTable.create(spec)
         _col = 1,
         _lastSpokenRow = nil,
         _lastSpokenCol = nil,
-        _sortColumn = nil,
-        _sortAscending = false,
+        _defaultSortColumn = defaultSortColumn,
+        _defaultSortAscending = defaultSortAscending,
+        _sortColumn = defaultSortColumn,
+        _sortAscending = defaultSortAscending,
         _initialized = false,
         _search = TypeAheadSearch.new(),
     }
@@ -602,8 +627,8 @@ function BaseTable.create(spec)
             self._col = 1
             self._lastSpokenRow = nil
             self._lastSpokenCol = nil
-            self._sortColumn = nil
-            self._sortAscending = false
+            self._sortColumn = self._defaultSortColumn
+            self._sortAscending = self._defaultSortAscending
             self._search:clear()
             -- If rebuildRows yields zero rows on first open, land on row 0
             -- (header) so the user hears something speakable.

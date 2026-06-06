@@ -389,6 +389,74 @@ function M.test_enter_on_header_for_unsortable_column_is_silent()
     T.eq(#speaks, 0, "non-sortable column is silent on Enter")
 end
 
+-- Default sort ---------------------------------------------------------
+
+function M.test_default_sort_opens_with_column_sorted()
+    setup()
+    local spec = makeBasicSpec()
+    -- Open sorted ascending on Pop (col 2): Athens(3), Rome(5), Memphis(7).
+    spec.defaultSort = { column = 2, ascending = true }
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    -- First data row is Athens (lowest pop), proving the sort applied on open.
+    T.truthy(speaks[#speaks].text:find("Athens"), "lowest pop appears first on open")
+    findBinding(h, Keys.VK_DOWN)()
+    T.truthy(speaks[#speaks].text:find("Rome"), "ascending pop order")
+end
+
+function M.test_default_sort_header_reports_active_sort_and_enter_cycles_onward()
+    setup()
+    local spec = makeBasicSpec()
+    -- Default ascending on Pop; Enter on its header should advance the
+    -- cycle to cleared (none -> desc -> asc -> none), not restart at desc.
+    spec.defaultSort = { column = 2, ascending = true }
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)() -- to header, col 1
+    findBinding(h, Keys.VK_RIGHT)() -- to col 2 (Pop)
+    speaks = {}
+    SpeechPipeline._reset()
+    findBinding(h, Keys.VK_RETURN)()
+    T.eq(speaks[#speaks].text, "Pop, sort cleared", "Enter advances past the default ascending state")
+end
+
+function M.test_default_sort_reapplies_after_reinitialization()
+    setup()
+    local spec = makeBasicSpec()
+    spec.defaultSort = { column = 2, ascending = true }
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    -- Clear the sort, then force a fresh init (mimics a close / reopen).
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_RIGHT)()
+    findBinding(h, Keys.VK_RETURN)() -- Pop -> cleared
+    T.eq(h._sortColumn, nil, "sort cleared")
+    h.resetForNextOpen()
+    speaks = {}
+    SpeechPipeline._reset()
+    h.onTabActivated(h, false)
+    T.eq(h._sortColumn, 2, "default sort restored on reinit")
+    T.eq(h._sortAscending, true)
+    T.truthy(speaks[#speaks].text:find("Athens"), "rows sorted nearest-first again on reopen")
+end
+
+function M.test_default_sort_rejects_unsortable_column()
+    setup()
+    local spec = makeBasicSpec()
+    spec.columns[1].sortKey = nil
+    spec.defaultSort = { column = 1, ascending = true }
+    local ok = pcall(BaseTable.create, spec)
+    T.falsy(ok, "defaultSort on a column without sortKey is rejected")
+end
+
+function M.test_default_sort_rejects_out_of_range_column()
+    setup()
+    local spec = makeBasicSpec()
+    spec.defaultSort = { column = 99, ascending = true }
+    local ok = pcall(BaseTable.create, spec)
+    T.falsy(ok, "defaultSort column index out of range is rejected")
+end
+
 -- Enter on data row ---------------------------------------------------
 
 function M.test_enter_on_data_row_invokes_column_enterAction()

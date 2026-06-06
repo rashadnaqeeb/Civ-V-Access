@@ -22,9 +22,11 @@
 --                 enemy warning speaks. Sort the column descending to
 --                 lift the most-threatened units to the top.
 --
---                 Default row order mirrors the engine's stack layout:
---                 military first, civilian second, alphabetical within
---                 each group. Selecting a row activates the unit (engine
+--                 Opens sorted nearest-first on the Distance column; the
+--                 user can cycle or clear that sort like any column. With
+--                 the sort cleared, rows fall back to the engine's stack
+--                 layout: military first, civilian second, alphabetical
+--                 within each group. Selecting a row activates the unit (engine
 --                 click semantics: re-center if already selected, else
 --                 select), closes the popup, and -- only when the
 --                 cursor-follows-selection setting is OFF -- jumps the
@@ -267,10 +269,12 @@ end
 -- Military first, civilian second, alphabetical within each group.
 -- Mirrors the engine's two-stack layout (MilitaryStack above,
 -- CivilianSeparator, CivilianStack below) under the default eName sort.
--- BaseTable preserves rebuildRows order when no sort column is active;
--- once the user picks a sort column the table sorts globally and the
--- two groups merge, which is the standard mod-wide BaseTable behavior
--- and consistent with EO Resources' strategic-then-luxury default.
+-- This order is the fallback the user sees only after clearing the
+-- default Distance sort: BaseTable preserves rebuildRows order when no
+-- sort column is active, and the units tab opens with the Distance
+-- column sorted ascending (see buildUnitsTab's defaultSort). Once any
+-- sort column is active the table sorts globally and the two groups
+-- merge, the standard mod-wide BaseTable behavior.
 local function rebuildUnitRows()
     local p = Players[Game.GetActivePlayer()]
     if p == nil then
@@ -403,6 +407,11 @@ local function buildUnitsTab()
         columns = buildUnitColumns(),
         rebuildRows = rebuildUnitRows,
         rowLabel = unitRowLabel,
+        -- Open sorted nearest-first on the Distance column (index 1). The
+        -- header reports the active sort and Enter cycles it onward; the
+        -- military / civilian rebuildRows order shows only once the user
+        -- clears the sort.
+        defaultSort = { column = 1, ascending = true },
     })
 end
 

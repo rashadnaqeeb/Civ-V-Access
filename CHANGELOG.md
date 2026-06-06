@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - Custom scanner categories can be renamed from their editor, and are listed and cycled in alphabetical order by name.
 - The relationship breakdown on the F4 diplomacy screen now groups each civ's opinion modifiers by how much they help or hurt, from very pleased to very displeased.
+- The F3 units table now opens sorted nearest-first by distance.
 
 ## [1.3.2] - 2026-06-06
 
