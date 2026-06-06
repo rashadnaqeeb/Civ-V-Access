@@ -18,6 +18,16 @@ You may wish to disable the Steam overlay, from Steam settings/in game/enable St
 
 **Ctrl+I** opens the Civilopedia (in-game help) entry for whatever is currently focused, when one exists. Use this if you want to look up, for example, what the current unit under the cursor does.
 
+## Keyboard layouts
+
+This guide names keys as they sit on a US keyboard. If yours is AZERTY, QWERTZ, or Italian, the mod detects it and adjusts so everything still works; a few keys just aren't where the guide's letters suggest.
+
+Keys named after what they do keep their letter. H is still happiness, T still reports the turn, Alt+H still heals. Press the letter you read here.
+
+The movement cluster and the keys around it are the exception. They keep their physical place rather than their letter, so the square holds its shape on any keyboard. The top-left movement key is northwest whether your keycap reads Q or A. Where the guide says Q, reach for the key in that spot, whatever's printed on it.
+
+When you're not sure which key the guide means, **Shift+/** lists every key by the letter printed on your own keyboard. And if the mod ever picks the wrong layout, set **Keyboard layout** under UI settings in **F12**.
+
 ## Menus
 
 Every menu in the game uses the same interface. It's quite straightforward.
