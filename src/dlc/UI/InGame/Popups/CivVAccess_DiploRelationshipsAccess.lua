@@ -212,13 +212,35 @@ local function treatyFragments(iOther)
     return out
 end
 
--- Relationship breakdown: the AI's opinion modifiers toward us, exactly as
--- the game serves them in the stance tooltip. GetOpinionTable is the same
--- list base DiploList's GetMoodInfo and the leader-head tooltip show; the
--- speech filter strips the [COLOR] / [ICON] markup the entries carry.
--- Skipped for teammates (no diplomacy with us) and at war (the engine
--- collapses the table to a lone "at war" entry the stance word already
--- carries). Empty table (genuinely neutral AI, no modifiers) adds nothing.
+-- Valence buckets for opinion modifiers, strongest bonus to strongest
+-- penalty. GetOpinionTable returns each modifier already wrapped in one of
+-- five [COLOR_*] tags keyed on the modifier's hidden score (the only
+-- positive/negative signal the engine exposes; CvLuaPlayer.cpp
+-- lGetOpinionTable), so we bucket on that tag and label each section
+-- accordingly. The raw score never reaches Lua, so five buckets is the
+-- finest granularity recoverable. The engine inverts sign against valence:
+-- a green (positive-text) tag is a relationship bonus, red a penalty.
+local OPINION_BUCKETS = {
+    { color = "COLOR_POSITIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_PLEASED" },
+    { color = "COLOR_FADING_POSITIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_PLEASED" },
+    { color = "COLOR_GREY", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_NEUTRAL" },
+    { color = "COLOR_FADING_NEGATIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_DISPLEASED" },
+    { color = "COLOR_NEGATIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_DISPLEASED" },
+}
+local OPINION_NEUTRAL_BUCKET = 3
+local OPINION_BUCKET_BY_COLOR = {}
+for i, b in ipairs(OPINION_BUCKETS) do
+    OPINION_BUCKET_BY_COLOR[b.color] = i
+end
+
+-- Relationship breakdown: the AI's opinion modifiers toward us, grouped by
+-- valence into "very pleased by" / "slightly pleased by" / "neutral about"
+-- / "slightly displeased about" / "very displeased about" sections, in that
+-- order, empty sections omitted. Same modifier list base DiploList's
+-- GetMoodInfo and the leader-head tooltip show. Skipped for teammates (no
+-- diplomacy with us) and at war (the engine collapses the table to a lone
+-- "at war" entry the stance word already carries). Empty table (genuinely
+-- neutral AI, no modifiers) adds nothing.
 local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
     if pOther:GetTeam() == pUs:GetTeam() then
         return nil
@@ -230,7 +252,23 @@ local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
     if opinions == nil or #opinions == 0 then
         return nil
     end
-    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN", table.concat(opinions, ", "))
+
+    local grouped = { {}, {}, {}, {}, {} }
+    for _, entry in ipairs(opinions) do
+        local color = entry:match("^%[(COLOR_[A-Z_]+)%]")
+        local idx = (color and OPINION_BUCKET_BY_COLOR[color]) or OPINION_NEUTRAL_BUCKET
+        local list = grouped[idx]
+        list[#list + 1] = entry
+    end
+
+    local sections = {}
+    for i, bucket in ipairs(OPINION_BUCKETS) do
+        if #grouped[i] > 0 then
+            sections[#sections + 1] = Text.format(bucket.label, table.concat(grouped[i], ", "))
+        end
+    end
+
+    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN", table.concat(sections, ", "))
 end
 
 -- Your-relationship cell: stance word first (war / denouncing / hostile /
