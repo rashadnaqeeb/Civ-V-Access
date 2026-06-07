@@ -612,14 +612,28 @@ function BaseMenuItems.Slider(spec)
         end
         local delta = (big and self.bigStep or self.step) * dir
         local c = self._control
+        -- A slider whose value maps to a coarser display (e.g. the
+        -- city-states slider quantizes the [0,1] track into integer
+        -- counts) can hold the same spoken label across several unit
+        -- steps. Stepping once would re-announce the unchanged value, so
+        -- keep stepping until the label changes or we reach an end. The
+        -- spoken value then advances by exactly one per keypress.
+        -- Sliders with no live value label (composite nil) break after a
+        -- single step, preserving the continuous behaviour.
+        local prevLabel = sliderCompositeLabel(self)
         local cur = c:GetValue()
-        local next = clampUnit(cur + delta)
-        if next == cur then
-            SpeechPipeline.speakInterrupt(self:announce(menu))
-            return
+        while true do
+            local next = clampUnit(cur + delta)
+            if next == cur then
+                break
+            end
+            c:SetValue(next)
+            fireSliderCallback(self, next)
+            cur = next
+            if prevLabel == nil or sliderCompositeLabel(self) ~= prevLabel then
+                break
+            end
         end
-        c:SetValue(next)
-        fireSliderCallback(self, next)
         SpeechPipeline.speakInterrupt(self:announce(menu))
     end
     return item
