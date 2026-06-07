@@ -6,12 +6,16 @@
 -- categoryHasItems filter that hides any empty category.
 --
 -- Three layers live here:
---   1. The persistent model. A group is { id, name, sel } where sel maps a
---      taxonomy category key to either { all = true } (the whole category
---      as one scanner stop, including entries that match no named sub) or
---      { all = false, subs = { <subKey> = true, ... } } (specific named
---      subs as separate stops). `id` is stable across the session and across
---      deletes. `name` is the user-facing label, spoken in the cycle and the
+--   1. The persistent model. A group is { id, name, sel, keywords } where
+--      sel maps a taxonomy category key to either { all = true } (the whole
+--      category as one scanner stop, including entries that match no named
+--      sub) or { all = false, subs = { <subKey> = true, ... } } (specific
+--      named subs as separate stops), and keywords is a list of free-text
+--      strings, each of which becomes its own subcategory matching every
+--      entry whose spoken name matches the keyword (TypeAheadSearch tiers,
+--      same engine as Ctrl+F search). `id` is stable across the session and
+--      across deletes. `name` is the user-facing label, spoken in the cycle
+--      and the
 --      settings list; it defaults to "Custom N" (N = the position at
 --      creation) and is editable via the per-category rename field. Groups
 --      are kept sorted by name (case-insensitively, id as tiebreak), so the
@@ -51,6 +55,17 @@ end
 
 local function selKey(id, catKey, subKey)
     return "ScnCustSel:" .. id .. ":" .. catKey .. ":" .. subKey
+end
+
+-- Keyword list persistence: a count plus one indexed slot per keyword.
+-- removeKeyword compacts the list, so persistKeywords rewrites every slot
+-- and the count rather than poking a single key.
+local function kwCountKey(id)
+    return "ScnCustKwCount:" .. id
+end
+
+local function kwKey(id, n)
+    return "ScnCustKw:" .. id .. ":" .. n
 end
 
 -- Default name for a group at the given 1-based position. Resolved through
@@ -107,7 +122,15 @@ local function hydrate()
             -- Name falls back to the creation-order default when a saved row
             -- predates the rename feature (no stored name yet).
             local name = Prefs.getString(nameKey(id), defaultName(#groups + 1))
-            groups[#groups + 1] = { id = id, name = name, sel = sel }
+            local keywords = {}
+            local kwCount = Prefs.getInt(kwCountKey(id), 0)
+            for n = 1, kwCount do
+                local kw = Prefs.getString(kwKey(id, n), "")
+                if kw ~= "" then
+                    keywords[#keywords + 1] = kw
+                end
+            end
+            groups[#groups + 1] = { id = id, name = name, sel = sel, keywords = keywords }
         end
     end
     civvaccess_shared.scannerCustom = { nextId = nextId, groups = groups }
@@ -132,7 +155,7 @@ function ScannerFavorites.add()
     local id = state.nextId
     state.nextId = id + 1
     local name = defaultName(#state.groups + 1)
-    state.groups[#state.groups + 1] = { id = id, name = name, sel = {} }
+    state.groups[#state.groups + 1] = { id = id, name = name, sel = {}, keywords = {} }
     Prefs.setInt(PREF_NEXT_ID, state.nextId)
     Prefs.setBool(activeKey(id), true)
     Prefs.setString(nameKey(id), name)
@@ -146,7 +169,7 @@ end
 -- takes its alphabetical place immediately.
 function ScannerFavorites.rename(id, name)
     hydrate()
-    local trimmed = name and string.match(name, "^%s*(.-)%s*$") or ""
+    local trimmed = Text.trim(name)
     if trimmed == "" then
         return
     end
@@ -198,6 +221,12 @@ function ScannerFavorites.delete(id)
             Prefs.setBool(selKey(id, catDef.key, subDef.key), false)
         end
     end
+    -- Same hygiene for the keyword slots.
+    local kwCount = Prefs.getInt(kwCountKey(id), 0)
+    for n = 1, kwCount do
+        Prefs.setString(kwKey(id, n), "")
+    end
+    Prefs.setInt(kwCountKey(id), 0)
 end
 
 -- ===== Selector queries =====
@@ -311,11 +340,83 @@ function ScannerFavorites.setSub(id, catKey, subKey, on)
     end
 end
 
+-- ===== Keyword mutation =====
+-- Rewrite the persisted keyword list from the live model: every indexed slot
+-- plus the count. Called after any add/remove so a compacted list never
+-- leaves a stale trailing slot for the next hydrate to read back.
+local function persistKeywords(id, keywords)
+    for n, kw in ipairs(keywords) do
+        Prefs.setString(kwKey(id, n), kw)
+    end
+    Prefs.setInt(kwCountKey(id), #keywords)
+end
+
+-- Add a keyword. Trims, rejects a blank (a whitespace-only keyword matches
+-- nothing and would read as a silent empty stop), and rejects a
+-- case-insensitive duplicate so the same scope can't surface twice in the
+-- cycle. Returns true on a real add; otherwise false plus a reason
+-- ("duplicate" or "blank") so the caller can voice the duplicate case rather
+-- than silently swallowing the keypress.
+function ScannerFavorites.addKeyword(id, text)
+    hydrate()
+    local trimmed = Text.trim(text)
+    if trimmed == "" then
+        return false, "blank"
+    end
+    local group = findGroup(id)
+    if group == nil then
+        Log.warn("ScannerFavorites.addKeyword: unknown id " .. tostring(id))
+        return false, "blank"
+    end
+    local lower = string.lower(trimmed)
+    for _, kw in ipairs(group.keywords) do
+        if string.lower(kw) == lower then
+            return false, "duplicate"
+        end
+    end
+    group.keywords[#group.keywords + 1] = trimmed
+    persistKeywords(id, group.keywords)
+    return true
+end
+
+-- Remove a keyword by case-insensitive match. Returns true when one went.
+function ScannerFavorites.removeKeyword(id, text)
+    hydrate()
+    local group = findGroup(id)
+    if group == nil then
+        Log.warn("ScannerFavorites.removeKeyword: unknown id " .. tostring(id))
+        return false
+    end
+    local lower = string.lower(text or "")
+    for i, kw in ipairs(group.keywords) do
+        if string.lower(kw) == lower then
+            table.remove(group.keywords, i)
+            -- Clear the now-vacant trailing slot before rewriting the rest,
+            -- so the file never carries a dead key past the new count.
+            Prefs.setString(kwKey(id, #group.keywords + 1), "")
+            persistKeywords(id, group.keywords)
+            return true
+        end
+    end
+    return false
+end
+
+function ScannerFavorites.getKeywords(id)
+    hydrate()
+    local group = findGroup(id)
+    if group == nil then
+        return {}
+    end
+    return group.keywords
+end
+
 -- ===== Snapshot feed =====
 -- Flatten the model into the def shape ScannerSnap.build consumes. One
 -- def per group in name-sorted order; selectors in taxonomy order so the
 -- subcategory cycle inside a custom category reads in the same order as
--- the source categories. labelText carries the group's user-facing name
+-- the source categories, followed by the group's keywords (insertion
+-- order) which ScannerSnap turns into name-matched subcategories.
+-- labelText carries the group's user-facing name
 -- (free text, no TXT_KEY); ScannerSnap stamps it onto the category and Nav
 -- speaks labelText in preference to a label key. Empty groups still emit a
 -- def (so the snapshot's set matches the settings list), but the snapshot
@@ -344,6 +445,7 @@ function ScannerFavorites.customCategoryDefs()
             key = "custom:" .. group.id,
             labelText = group.name,
             selectors = selectors,
+            keywords = group.keywords,
         }
     end
     return defs
@@ -382,8 +484,61 @@ function ScannerFavorites.settingsGroup()
     })
 end
 
--- A rename field on top, then one drillable per taxonomy category, each
--- holding an All checkbox plus a checkbox per named subcategory. Categories
+-- The keyword editor, spliced under the F12 custom-category editor: an entry
+-- field that adds a keyword on Enter, then one activatable row per existing
+-- keyword that removes it. cached = false so the row list re-reads
+-- getKeywords on each drill-in. Add/remove speak a confirmation -- a silent
+-- commit would leave the user no cue it took. The entry box is wiped after a
+-- successful add so the next keyword starts from empty.
+local function keywordSettingsGroup(id)
+    return BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SCANNER_KEYWORDS_GROUP",
+        cached = false,
+        itemsFn = function()
+            local items = {
+                BaseMenuItems.Textfield({
+                    controlName = "CivVAccessScannerKeywordEntry",
+                    textKey = "TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_ADD",
+                    valueFn = function()
+                        return ""
+                    end,
+                    priorCallback = function(text, _, bIsEnter)
+                        if not bIsEnter then
+                            return
+                        end
+                        local added, reason = ScannerFavorites.addKeyword(id, text)
+                        local box = Controls.CivVAccessScannerKeywordEntry
+                        if box ~= nil then
+                            box:ClearString()
+                            box:SetText("")
+                        end
+                        if added then
+                            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_ADDED"))
+                        elseif reason == "duplicate" then
+                            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_DUPLICATE"))
+                        end
+                    end,
+                }),
+            }
+            for _, kw in ipairs(ScannerFavorites.getKeywords(id)) do
+                local keyword = kw
+                items[#items + 1] = BaseMenuItems.Text({
+                    labelText = keyword,
+                    onActivate = function()
+                        if ScannerFavorites.removeKeyword(id, keyword) then
+                            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_REMOVED"))
+                        end
+                    end,
+                })
+            end
+            return items
+        end,
+    })
+end
+
+-- A rename field on top, then a keywords drillable, then one drillable per
+-- taxonomy category, each holding an All checkbox plus a checkbox per named
+-- subcategory. Categories
 -- with no named subs surface only the All box -- their whole-category
 -- selector is the single meaningful pick. cached = false so reopening the
 -- editor reflects the live model.
@@ -408,6 +563,7 @@ local function buildEditorItems(id)
                 end
             end,
         }),
+        keywordSettingsGroup(id),
     }
     for _, catDef in ipairs(ScannerCore.CATEGORIES) do
         local catKey = catDef.key
@@ -467,6 +623,12 @@ function ScannerFavorites.openEditor(id)
     if box ~= nil then
         box:ClearString()
         box:SetText("")
+    end
+    -- The keyword entry box shares the same stale-buffer hazard.
+    local kwBox = Controls.CivVAccessScannerKeywordEntry
+    if kwBox ~= nil then
+        kwBox:ClearString()
+        kwBox:SetText("")
     end
     local handler = BaseMenu.create({
         name = "ScannerCustomEditor",

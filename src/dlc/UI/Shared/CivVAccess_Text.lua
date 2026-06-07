@@ -226,6 +226,16 @@ function Text.joinNonEmpty(parts, sep)
     return table.concat(out, sep or ", ")
 end
 
+-- Strip leading and trailing whitespace. Returns "" for nil so callers can
+-- trim-then-blank-check free-text input (rename fields, search queries,
+-- keyword entry) in a single step.
+function Text.trim(s)
+    if s == nil then
+        return ""
+    end
+    return (s:match("^%s*(.-)%s*$"))
+end
+
 -- Compose a string from a list of Controls names: look up each by name,
 -- skip nil and hidden controls, read text via Text.controlText (pcall +
 -- nil-tolerant), drop empty, and concatenate with sep (default ", ").

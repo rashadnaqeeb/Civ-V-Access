@@ -42,13 +42,14 @@ local function setup()
     Prefs.setString = function(key, v)
         prefsStore[key] = v
     end
-    -- add()/hydrate() resolve the default name through Text.format; a stub
-    -- that echoes key + position is enough to assert default-name numbering.
-    Text = {
-        format = function(key, pos)
-            return key .. ":" .. tostring(pos)
-        end,
-    }
+    -- addKeyword/rename trim via the real Text.trim; load the real module so
+    -- that path isn't simulated, then override Text.format with an echo of
+    -- key + position, which is enough to assert default-name numbering without
+    -- a full Locale/Strings stack.
+    dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    Text.format = function(key, pos)
+        return key .. ":" .. tostring(pos)
+    end
 
     ScannerCore = nil
     dofile("src/dlc/UI/InGame/CivVAccess_ScannerCore.lua")
@@ -182,6 +183,81 @@ function M.test_custom_defs_flatten_all_and_named_selectors()
     T.eq(sels[2].sub, "enemy")
     T.eq(sels[3].cat, "units_my")
     T.eq(sels[3].sub, "all", "whole-category pick flattens to a single all-selector")
+end
+
+function M.test_add_keyword_persists_and_appears_in_defs()
+    setup()
+    local id = ScannerFavorites.add()
+    T.truthy(ScannerFavorites.addKeyword(id, "warrior"), "a fresh keyword is added")
+    T.eq(prefsStore["ScnCustKwCount:1"], 1, "keyword count persists")
+    T.eq(prefsStore["ScnCustKw:1:1"], "warrior", "keyword text persists at its slot")
+    local defs = ScannerFavorites.customCategoryDefs()
+    T.eq(defs[1].keywords[1], "warrior", "customCategoryDefs carries the keyword")
+end
+
+function M.test_add_keyword_trims_and_rejects_blank()
+    setup()
+    local id = ScannerFavorites.add()
+    T.truthy(ScannerFavorites.addKeyword(id, "  iron  "), "surrounding whitespace is trimmed, not rejected")
+    T.eq(ScannerFavorites.getKeywords(id)[1], "iron", "stored trimmed")
+    local ok, reason = ScannerFavorites.addKeyword(id, "   ")
+    T.falsy(ok, "a whitespace-only keyword is rejected")
+    T.eq(reason, "blank", "blank rejection is distinguishable from a duplicate")
+    T.eq(#ScannerFavorites.getKeywords(id), 1, "the blank did not add a slot")
+end
+
+function M.test_add_keyword_rejects_case_insensitive_duplicate()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.addKeyword(id, "Iron")
+    local ok, reason = ScannerFavorites.addKeyword(id, "iron")
+    T.falsy(ok, "a case-variant duplicate is rejected")
+    T.eq(reason, "duplicate", "and reports the duplicate reason for the spoken cue")
+    T.eq(#ScannerFavorites.getKeywords(id), 1, "only the first spelling is kept")
+end
+
+function M.test_remove_keyword_compacts_and_clears_trailing_slot()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.addKeyword(id, "warrior")
+    ScannerFavorites.addKeyword(id, "iron")
+    T.truthy(ScannerFavorites.removeKeyword(id, "WARRIOR"), "removal matches case-insensitively")
+    local kws = ScannerFavorites.getKeywords(id)
+    T.eq(#kws, 1, "one keyword remains")
+    T.eq(kws[1], "iron", "the list compacts onto the survivor")
+    T.eq(prefsStore["ScnCustKwCount:1"], 1, "persisted count drops")
+    T.eq(prefsStore["ScnCustKw:1:1"], "iron", "slot 1 now holds the survivor")
+    T.eq(prefsStore["ScnCustKw:1:2"], "", "the vacated trailing slot is cleared")
+end
+
+function M.test_remove_keyword_reports_miss()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.addKeyword(id, "iron")
+    T.falsy(ScannerFavorites.removeKeyword(id, "gold"), "removing an absent keyword reports no change")
+end
+
+function M.test_delete_clears_keyword_prefs()
+    setup()
+    local id = ScannerFavorites.add()
+    ScannerFavorites.addKeyword(id, "warrior")
+    ScannerFavorites.delete(id)
+    T.eq(prefsStore["ScnCustKwCount:1"], 0, "keyword count zeroed on delete")
+    T.eq(prefsStore["ScnCustKw:1:1"], "", "keyword slot cleared on delete")
+end
+
+function M.test_hydrate_restores_keywords()
+    setup()
+    prefsStore["ScnCustNextId"] = 2
+    prefsStore["ScnCustActive:1"] = true
+    prefsStore["ScnCustKwCount:1"] = 2
+    prefsStore["ScnCustKw:1:1"] = "warrior"
+    prefsStore["ScnCustKw:1:2"] = "iron"
+    civvaccess_shared.scannerCustom = nil
+    local kws = ScannerFavorites.getKeywords(1)
+    T.eq(#kws, 2, "both saved keywords restored")
+    T.eq(kws[1], "warrior")
+    T.eq(kws[2], "iron")
 end
 
 function M.test_hydrate_reconstructs_from_prefs()

@@ -27,7 +27,7 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
     if query == nil then
         return nil
     end
-    local trimmed = query:match("^%s*(.-)%s*$") or ""
+    local trimmed = Text.trim(query)
     if #trimmed == 0 then
         return nil
     end

@@ -144,6 +144,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_ADD"] = "Add category"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_DELETE"] = "Delete category"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_LABEL"] = "Custom {1_Num}"
 
+-- Keywords drillable inside a custom category's editor. Each keyword becomes
+-- a subcategory matching every entry whose spoken name matches it. KEYWORD_ADD
+-- labels the entry field; ADDED / REMOVED confirm a change and DUPLICATE
+-- voices a rejected re-add, so the commit is never silent.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_KEYWORDS_GROUP"] = "Keywords"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_ADD"] = "Add keyword"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_ADDED"] = "Keyword added"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_REMOVED"] = "Keyword removed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_KEYWORD_DUPLICATE"] = "Keyword already added"
+
 -- Apply the active locale's overlay so every Context that includes this
 -- baseline gets the localized overrides. WorldView's Boot includes this
 -- file; the explicit StringsLoader call here keeps any future Context that

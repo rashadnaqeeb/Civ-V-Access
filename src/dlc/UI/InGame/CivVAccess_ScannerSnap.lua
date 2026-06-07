@@ -105,24 +105,85 @@ local function placeEntry(cat, sub, entry, px, py, dist)
 end
 
 -- Build a synthetic custom category from a customCategoryDefs() def. Its
--- subcategories are the user's selectors (plus the implicit `all` at index
--- 1); _selectorSubs carries the (sub, matchCat, matchSub) routing the
--- placement loop uses to mirror matching entries in. labelText overrides
--- the missing label key -- the spoken name is the positional "Custom N".
+-- subcategories are the user's selectors then the user's keywords (plus the
+-- implicit `all` at index 1). Both kinds are unified into _matchSubs, a list
+-- of { sub, matches = function(entry, lowerName) -> bool } the placement loop
+-- walks once per entry: a selector matches by category/subcategory equality,
+-- a keyword by TypeAheadSearch tier against the lowercased name. A keyword
+-- sub's label is the keyword text itself (labelText, no key). labelText
+-- overrides the missing category label key -- the spoken name is "Custom N".
 local function newCustomCategory(def)
     local subs = { newSub("all", ALL_SUB_LABEL) }
-    local selectorSubs = {}
+    local matchSubs = {}
     for _, sel in ipairs(def.selectors) do
         local sub = newSub(sel.cat .. ":" .. sel.sub, sel.label)
         subs[#subs + 1] = sub
-        selectorSubs[#selectorSubs + 1] = { sub = sub, matchCat = sel.cat, matchSub = sel.sub }
+        local matchCat, matchSub = sel.cat, sel.sub
+        matchSubs[#matchSubs + 1] = {
+            sub = sub,
+            matches = function(entry)
+                return entry.category == matchCat and (matchSub == "all" or entry.subcategory == matchSub)
+            end,
+        }
+    end
+    for _, keyword in ipairs(def.keywords or {}) do
+        local sub = newSub("kw:" .. keyword)
+        sub.labelText = keyword
+        subs[#subs + 1] = sub
+        local lowerKeyword = string.lower(keyword)
+        matchSubs[#matchSubs + 1] = {
+            sub = sub,
+            matches = function(_, lowerName)
+                return TypeAheadSearch.matchTier(lowerName, lowerKeyword) >= 0
+            end,
+        }
     end
     return {
         key = def.key,
         labelText = def.labelText,
         subcategories = subs,
-        _selectorSubs = selectorSubs,
+        _matchSubs = matchSubs,
     }
+end
+
+-- Place one entry into a custom category. Each matched named sub keeps its
+-- OWN item per name, so a sub lists only the entries that matched it and
+-- never an identically-named entry that matched a different sub (your Warrior
+-- in `my melee` must not surface a neutral Warrior that only matched `neutral
+-- melee`). The `all` sub dedups by name so an entry caught by several subs is
+-- heard once there. The instance object is shared across the subs it lands
+-- in; pruning is per-sub and any cross-sub staleness self-heals through
+-- ValidateEntry on the next landing, exactly as a real category's subs do not
+-- prune each other. matchedSubs is the named subs this entry belongs to;
+-- empty means the entry matched nothing in this category, so skip it.
+local function placeCustom(cat, matchedSubs, entry, px, py, dist)
+    if #matchedSubs == 0 then
+        return
+    end
+    local instance = {
+        entry = entry,
+        key = entry.key,
+        plotX = px,
+        plotY = py,
+        distance = dist,
+    }
+    for _, sub in ipairs(matchedSubs) do
+        local item = sub._itemsByName[entry.itemName]
+        if item == nil then
+            item = { name = entry.itemName, instances = {} }
+            sub._itemsByName[entry.itemName] = item
+            sub.items[#sub.items + 1] = item
+        end
+        item.instances[#item.instances + 1] = instance
+    end
+    local all = cat.subcategories[1]
+    local allItem = all._itemsByName[entry.itemName]
+    if allItem == nil then
+        allItem = { name = entry.itemName, instances = {} }
+        all._itemsByName[entry.itemName] = allItem
+        all.items[#all.items + 1] = allItem
+    end
+    allItem.instances[#allItem.instances + 1] = instance
 end
 
 local function sortSnapshot(snapshot)
@@ -156,9 +217,10 @@ end
 -- drop is logged because it would otherwise be a silent backend bug.
 -- customDefs (from ScannerFavorites.customCategoryDefs) synthesize the
 -- user's "Custom N" categories: each entry is mirrored into every custom
--- selector sub it matches, and the custom categories sort to the front of
--- the cycle so a player reaches their clustered filters first. Custom
--- categories are skipped by Nav's categoryHasItems filter when empty.
+-- selector sub it matches and every keyword sub whose keyword matches its
+-- spoken name, and the custom categories sort to the front of the cycle so a
+-- player reaches their clustered filters first. Custom categories are
+-- skipped by Nav's categoryHasItems filter when empty.
 function ScannerSnap.build(entries, cursorX, cursorY, customDefs)
     customDefs = customDefs or {}
     local catsByKey = {}
@@ -201,19 +263,21 @@ function ScannerSnap.build(entries, cursorX, cursorY, customDefs)
                     local px, py = plot:GetX(), plot:GetY()
                     local dist = Map.PlotDistance(cursorX, cursorY, px, py)
                     placeEntry(cat, sub, entry, px, py, dist)
-                    -- Mirror into every custom category whose selector
-                    -- matches. A selector of `all` catches every entry in
-                    -- its category (including those that match no named
-                    -- sub); a named selector catches only its own sub.
+                    -- Mirror into every custom category this entry matches.
+                    -- A selector of `all` catches every entry in its category
+                    -- (including those that match no named sub); a named
+                    -- selector catches only its own sub; a keyword catches any
+                    -- entry whose spoken name matches it (same tiers as Ctrl+F
+                    -- search). placeCustom lands the entry in each matched sub.
+                    local lowerName = string.lower(entry.itemName or "")
                     for _, customCat in ipairs(customCats) do
-                        for _, selSub in ipairs(customCat._selectorSubs) do
-                            if
-                                selSub.matchCat == entry.category
-                                and (selSub.matchSub == "all" or selSub.matchSub == entry.subcategory)
-                            then
-                                placeEntry(customCat, selSub.sub, entry, px, py, dist)
+                        local matched = {}
+                        for _, ms in ipairs(customCat._matchSubs) do
+                            if ms.matches(entry, lowerName) then
+                                matched[#matched + 1] = ms.sub
                             end
                         end
+                        placeCustom(customCat, matched, entry, px, py, dist)
                     end
                 end
             end
@@ -240,7 +304,7 @@ function ScannerSnap.build(entries, cursorX, cursorY, customDefs)
     -- directly.
     for _, cat in ipairs(cats) do
         cat._subsByKey = nil
-        cat._selectorSubs = nil
+        cat._matchSubs = nil
         for _, sub in ipairs(cat.subcategories) do
             sub._itemsByName = nil
         end
