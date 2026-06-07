@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- A new pair of settings can widen the scanner and the tile readout to show queued waypoints for every unit, not just the selected one.
 - Custom scanner categories can hold search keywords, each becoming a subcategory of everything whose name matches it.
 - Custom scanner categories can be renamed from their editor, and are listed and cycled in alphabetical order by name.
 - The relationship breakdown on the F4 diplomacy screen now groups each civ's opinion modifiers by how much they help or hurt, from very pleased to very displeased.

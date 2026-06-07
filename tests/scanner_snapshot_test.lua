@@ -197,6 +197,45 @@ function M.test_all_direct_category_prune_removes_from_all()
     T.eq(#cat.subcategories[1].items, 0, "empty item must drop from `all`")
 end
 
+function M.test_itemkey_separates_same_named_entries()
+    -- Two entries sharing a spoken name but carrying distinct itemKeys
+    -- must stay as two items (the waypoints all-units case: two "Warrior"
+    -- units kept apart by unit ID). Without itemKey they would collapse
+    -- into one item with two instances.
+    setup()
+    local p1 = mkPlot(0, 0, 0)
+    local p2 = mkPlot(1, 0, 1)
+    T.installMap({ p1, p2 })
+    local entries = {
+        T.mkEntry("cities", "my", "Warrior", 0, { itemKey = "unit:5" }),
+        T.mkEntry("cities", "my", "Warrior", 1, { itemKey = "unit:6" }),
+    }
+    local snap = ScannerSnap.build(entries, 0, 0)
+    local sub = findSub(findCat(snap, "cities"), "my")
+    T.eq(#sub.items, 2, "distinct itemKeys must produce two items despite the shared name")
+    T.eq(sub.items[1].name, "Warrior", "both items still speak the shared name")
+    T.eq(sub.items[2].name, "Warrior")
+    T.eq(#sub.items[1].instances, 1, "each item carries only its own instance")
+    T.eq(#sub.items[2].instances, 1)
+end
+
+function M.test_no_itemkey_still_groups_by_name()
+    -- Backends that omit itemKey keep grouping by name: two same-named
+    -- entries collapse into one item with two instances, unchanged.
+    setup()
+    local p1 = mkPlot(0, 0, 0)
+    local p2 = mkPlot(1, 0, 1)
+    T.installMap({ p1, p2 })
+    local entries = {
+        T.mkEntry("cities", "my", "Rome", 0),
+        T.mkEntry("cities", "my", "Rome", 1),
+    }
+    local snap = ScannerSnap.build(entries, 0, 0)
+    local sub = findSub(findCat(snap, "cities"), "my")
+    T.eq(#sub.items, 1, "no itemKey means group by name")
+    T.eq(#sub.items[1].instances, 2)
+end
+
 function M.test_unknown_category_logged_and_dropped()
     setup()
     local warned = 0

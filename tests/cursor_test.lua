@@ -36,6 +36,11 @@ local function setup()
     civvaccess_shared.plotAudioHandles = nil
     civvaccess_shared.audioCueMode = AudioCueMode.MODE_SPEECH
     civvaccess_shared.borderAlwaysAnnounce = nil
+    -- Default the waypoint glance to its shipped "selected unit only"
+    -- scope so glance tests don't trip the all-units atXYAll path (which
+    -- would need a Players:Units() iterator). The all-units case opts in
+    -- per test by setting this false.
+    civvaccess_shared.cursorSelectedWaypointsOnly = nil
 
     Game.GetActivePlayer = function()
         return 0
@@ -94,6 +99,61 @@ local function setup()
     UI.CanSelectionListFound = nil
 
     Cursor._reset()
+end
+
+-- ===== Waypoint glance, all-units scope =====
+
+-- Install the two waypoint glance keys for the duration of fn, then
+-- restore the ambient Locale.ConvertTextKey. installLocaleStrings swaps
+-- the global resolver, so leaving it in place would clobber sibling
+-- cursor tests and later suites (suite_unit_speech reads the ambient
+-- resolver and is sensitive to it).
+local function withWaypointStrings(fn)
+    local origConvert = Locale.ConvertTextKey
+    T.installLocaleStrings({
+        ["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "waypoint {1_Index} of {2_Total}",
+        ["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED"] = "{1_Name} waypoint",
+    })
+    fn()
+    Locale.ConvertTextKey = origConvert
+end
+
+function M.test_glance_waypoint_all_units_lists_selected_then_named()
+    -- With the all-units scope on, the glance leads with the selected
+    -- unit's numbered token and then names each other owned unit whose
+    -- path crosses the tile, in order. atXYAll is stubbed; this covers the
+    -- section's token composition, not the enumeration (tested in
+    -- waypoints).
+    setup()
+    civvaccess_shared.cursorSelectedWaypointsOnly = false
+    Waypoints.atXYAll = function()
+        return {
+            selected = { index = 2, total = 4 },
+            others = { { unitName = "Scout" }, { unitName = "Warrior" } },
+        }
+    end
+    withWaypointStrings(function()
+        local tokens = PlotSections.waypoint.Read(T.fakePlot({ x = 3, y = 0 }))
+        T.eq(#tokens, 3)
+        T.eq(tokens[1], "waypoint 2 of 4", "selected unit numbered, first")
+        T.eq(tokens[2], "Scout waypoint", "other units named, in order")
+        T.eq(tokens[3], "Warrior waypoint")
+    end)
+end
+
+function M.test_glance_waypoint_all_units_named_only_when_no_selection_hit()
+    -- No selected-unit hit on this tile: only the named tokens, no leading
+    -- numbered one.
+    setup()
+    civvaccess_shared.cursorSelectedWaypointsOnly = false
+    Waypoints.atXYAll = function()
+        return { selected = nil, others = { { unitName = "Warrior" } } }
+    end
+    withWaypointStrings(function()
+        local tokens = PlotSections.waypoint.Read(T.fakePlot({ x = 3, y = 0 }))
+        T.eq(#tokens, 1)
+        T.eq(tokens[1], "Warrior waypoint")
+    end)
 end
 
 -- ===== Owner identity =====

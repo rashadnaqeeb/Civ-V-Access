@@ -300,16 +300,35 @@ PlotSections.recommendation = {
     end,
 }
 
--- Tail-fact "btw, this hex is on the selected unit's queued path." Reads
--- the same WaypointsCore cache the scanner uses, so the K of N numbers
--- agree across the cursor glance and the scanner readout for one
--- selection frame.
+-- Tail-fact "btw, this hex is on a queued path." With the default
+-- "selected unit only" setting on, this is the selected unit's "waypoint
+-- K of N" -- the same WaypointsCore cache the scanner reads, so the
+-- numbers agree across the glance and the scanner for one selection
+-- frame. With the setting off, it also names every other owned unit whose
+-- queued path crosses this tile ("Warrior waypoint", unnumbered); only
+-- the selected unit keeps a numbered position.
 PlotSections.waypoint = {
     Read = function(plot)
-        local hit = Waypoints.atXY(plot:GetX(), plot:GetY())
-        if hit == nil then
+        local x, y = plot:GetX(), plot:GetY()
+        if civvaccess_shared.cursorSelectedWaypointsOnly ~= false then
+            local hit = Waypoints.atXY(x, y)
+            if hit == nil then
+                return {}
+            end
+            return { Text.format("TXT_KEY_CIVVACCESS_PLOT_WAYPOINT", hit.index, hit.total) }
+        end
+        local hits = Waypoints.atXYAll(x, y)
+        if hits == nil then
             return {}
         end
-        return { Text.format("TXT_KEY_CIVVACCESS_PLOT_WAYPOINT", hit.index, hit.total) }
+        local tokens = {}
+        if hits.selected ~= nil then
+            tokens[#tokens + 1] =
+                Text.format("TXT_KEY_CIVVACCESS_PLOT_WAYPOINT", hits.selected.index, hits.selected.total)
+        end
+        for _, other in ipairs(hits.others) do
+            tokens[#tokens + 1] = Text.format("TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED", other.unitName)
+        end
+        return tokens
     end,
 }

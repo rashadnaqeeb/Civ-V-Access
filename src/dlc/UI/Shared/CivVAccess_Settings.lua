@@ -184,6 +184,19 @@ local getScannerCompassDirection, setScannerCompassDirection =
 local getScannerDirectionBeep, setScannerDirectionBeep =
     defineBoolPref("scannerDirectionBeep", "ScannerDirectionBeep", false)
 
+-- Selected-unit-only waypoint scope, one toggle per surface. Both on by
+-- default: the shipped behavior shows only the selected unit's queued
+-- path. Turning a toggle off opens that surface up to every owned unit --
+-- the scanner lists each unit's stops as its own item, and the cursor
+-- glance names other units whose path crosses the tile. ScannerBackend-
+-- Waypoints / PlotSections.waypoint read these caches live; the value is
+-- treated as "selected only" unless explicitly false, so a surface stays
+-- restricted even before this seed runs.
+local getScannerWaypointsSelectedOnly, setScannerWaypointsSelectedOnly =
+    defineBoolPref("scannerSelectedWaypointsOnly", "ScannerSelectedWaypointsOnly", true)
+local getCursorWaypointsSelectedOnly, setCursorWaypointsSelectedOnly =
+    defineBoolPref("cursorSelectedWaypointsOnly", "CursorSelectedWaypointsOnly", true)
+
 -- Reveal-announcement toggle. On by default: tells the user what just
 -- appeared on the map after a unit move (or any reveal source). Reads
 -- live from the cache inside the listeners in RevealAnnounce, so
@@ -336,6 +349,11 @@ local function buildItems()
                 getValue = getEnemyAdjacentWarn,
                 setValue = setEnemyAdjacentWarn,
             }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY",
+                getValue = getCursorWaypointsSelectedOnly,
+                setValue = setCursorWaypointsSelectedOnly,
+            }),
             BaseMenuItems.Group({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_MODE",
                 items = {
@@ -442,6 +460,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP",
             getValue = getScannerDirectionBeep,
             setValue = setScannerDirectionBeep,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY",
+            getValue = getScannerWaypointsSelectedOnly,
+            setValue = setScannerWaypointsSelectedOnly,
         }),
     }
     -- Custom scanner categories live only in-game (the scanner exists only

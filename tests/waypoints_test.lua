@@ -654,4 +654,257 @@ function M.test_compute_route_to_falls_back_to_move_chunk_when_buildroute_fails(
     T.eq(status.chunks[1].turns, 2, "movement-path turn count on fallback")
 end
 
+-- ===== All-units view group =====
+-- Drives Waypoints.allUnitsList / atXYAll with a Players[0]:Units()
+-- iterator over several owned units, exercising the multi-unit snapshot,
+-- its global-signature cache, and the selected-vs-named split.
+
+local function makeAllUnit(spec, startPlot)
+    local u = {
+        _id = spec.id,
+        _x = spec.x or 0,
+        _y = spec.y or 0,
+        _owner = spec.owner or 0,
+        _queue = spec.queue or {},
+        _plot = startPlot,
+        _name = spec.name,
+        _hasName = spec.hasName or false,
+        _nameKey = spec.nameKey,
+    }
+    function u:GetID()
+        return self._id
+    end
+    function u:GetX()
+        return self._x
+    end
+    function u:GetY()
+        return self._y
+    end
+    function u:GetOwner()
+        return self._owner
+    end
+    function u:GetPlot()
+        return self._plot
+    end
+    function u:GetMissionQueue()
+        return self._queue
+    end
+    function u:GetBuildType()
+        return -1
+    end
+    function u:ComputePath(fromPlot, toPlot)
+        -- Two-node path: the destination is the single turn-end stop.
+        return {
+            { x = fromPlot:GetX(), y = fromPlot:GetY(), moves = 100 },
+            { x = toPlot:GetX(), y = toPlot:GetY(), moves = 100 },
+        },
+            true,
+            1
+    end
+    function u:GetBestBuildRoute()
+        return -1, -1
+    end
+    function u:WorkRate()
+        return 100
+    end
+    function u:HasName()
+        return self._hasName
+    end
+    function u:GetNameNoDesc()
+        return self._name
+    end
+    function u:GetNameKey()
+        return self._nameKey
+    end
+    return u
+end
+
+local function setupAllUnits(specs, selectedIndex)
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.waypointsAllCache = nil
+    civvaccess_shared.waypointsCache = nil
+    dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
+
+    GameInfoTypes = GameInfoTypes or {}
+    GameInfoTypes.MISSION_MOVE_TO = 1
+    GameInfoTypes.MISSION_ROUTE_TO = 2
+    GameInfoTypes.MISSION_MOVE_TO_UNIT = 3
+    GameInfoTypes.MISSION_EMBARK = 4
+    GameInfoTypes.MISSION_DISEMBARK = 5
+    GameInfoTypes.MISSION_SWAP_UNITS = 6
+
+    Locale = Locale or {}
+    local nameMap = { ["TXT_KEY_UNIT_WARRIOR"] = "Warrior", ["TXT_KEY_UNIT_SCOUT"] = "Scout" }
+    Locale.ConvertTextKey = function(key)
+        return nameMap[key] or key
+    end
+    Locale.ToLower = function(s)
+        return s:lower()
+    end
+
+    Game = Game or {}
+    Game.GetActivePlayer = function()
+        return 0
+    end
+
+    local plots = {}
+    local function plotAt(x, y)
+        local k = x .. "," .. y
+        if plots[k] == nil then
+            plots[k] = fakePlot(x, y)
+        end
+        return plots[k]
+    end
+    Map = Map or {}
+    Map.GetPlot = function(x, y)
+        return plots[x .. "," .. y]
+    end
+
+    local units = {}
+    for _, spec in ipairs(specs) do
+        local startPlot = plotAt(spec.x or 0, spec.y or 0)
+        for _, leg in ipairs(spec.queue or {}) do
+            plotAt(leg.data1, leg.data2)
+        end
+        units[#units + 1] = makeAllUnit(spec, startPlot)
+    end
+
+    Players = Players or {}
+    Players[0] = {
+        _units = units,
+        Units = function(self)
+            local i = 0
+            return function()
+                i = i + 1
+                return self._units[i]
+            end
+        end,
+        GetUnitByID = function(self, id)
+            for _, u in ipairs(self._units) do
+                if u._id == id then
+                    return u
+                end
+            end
+            return nil
+        end,
+    }
+
+    UI = UI or {}
+    UI.GetHeadSelectedUnit = function()
+        if selectedIndex == nil then
+            return nil
+        end
+        return units[selectedIndex]
+    end
+    return units
+end
+
+function M.test_all_units_list_groups_each_unit_with_name()
+    setupAllUnits({
+        {
+            id = 5,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+        {
+            id = 6,
+            y = 1,
+            hasName = true,
+            name = "George",
+            queue = { { mission = 1, data1 = 5, data2 = 0, flags = 0 } },
+        },
+    })
+    local groups = Waypoints.allUnitsList()
+    T.eq(#groups, 2, "one group per queued unit")
+    T.eq(groups[1].waypoints[1].x, 3, "warrior stop plot")
+    T.eq(groups[2].waypoints[1].x, 5, "george stop plot")
+    -- The name is not stored on the group; it resolves live by unit id.
+    T.eq(Waypoints.unitName(groups[1].unitID), "Warrior", "unnamed unit uses its type name")
+    T.eq(Waypoints.unitName(groups[2].unitID), "George", "renamed unit uses its custom name")
+end
+
+function M.test_all_units_list_skips_units_without_a_queue()
+    setupAllUnits({
+        {
+            id = 5,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+        { id = 6, y = 1, nameKey = "TXT_KEY_UNIT_SCOUT", queue = {} },
+    })
+    local groups = Waypoints.allUnitsList()
+    T.eq(#groups, 1, "a unit with no queued missions is excluded")
+    T.eq(Waypoints.unitName(groups[1].unitID), "Warrior")
+end
+
+function M.test_atxyall_splits_selected_unit_from_others()
+    -- Two units stop on the same plot; the selected one is numbered, the
+    -- other is named without a number.
+    setupAllUnits({
+        {
+            id = 5,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+        {
+            id = 6,
+            y = 1,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+    }, 1)
+    local hits = Waypoints.atXYAll(3, 0)
+    T.truthy(hits ~= nil, "a tile on two queued paths returns hits")
+    T.truthy(hits.selected ~= nil, "the selected unit's hit is present")
+    T.eq(hits.selected.index, 1, "selected hit is numbered")
+    T.eq(hits.selected.total, 1)
+    T.eq(#hits.others, 1, "the other unit is listed")
+    T.eq(hits.others[1].unitName, "Warrior", "other unit named, unnumbered")
+end
+
+function M.test_atxyall_nil_when_no_unit_stops_there()
+    setupAllUnits({
+        {
+            id = 5,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+    }, 1)
+    T.eq(Waypoints.atXYAll(9, 9), nil, "an off-path tile returns nil")
+end
+
+function M.test_all_units_snapshot_cached_on_matching_signature()
+    setupAllUnits({
+        {
+            id = 5,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+    })
+    local first = Waypoints.allUnitsList()
+    local second = Waypoints.allUnitsList()
+    T.truthy(rawequal(first, second), "an unchanged army returns the cached groups table")
+end
+
+function M.test_rename_reflects_even_with_a_warm_cache()
+    -- A rename changes neither id, position, nor queue, so it does not
+    -- bust the snapshot cache. The name must still update because it is
+    -- resolved live, not stored on the group -- the in-game bug this guards.
+    local units = setupAllUnits({
+        {
+            id = 5,
+            nameKey = "TXT_KEY_UNIT_WARRIOR",
+            queue = { { mission = 1, data1 = 3, data2 = 0, flags = 0 } },
+        },
+    })
+    local before = Waypoints.allUnitsList()
+    T.eq(Waypoints.unitName(units[1]._id), "Warrior", "type name before rename")
+    -- Rename in place, leaving id / position / queue untouched.
+    units[1]._hasName = true
+    units[1]._name = "Scarface"
+    local after = Waypoints.allUnitsList()
+    T.truthy(rawequal(before, after), "rename does not bust the cache (sig unchanged)")
+    T.eq(Waypoints.unitName(units[1]._id), "Scarface", "live name reflects the rename despite the cache hit")
+end
+
 return M

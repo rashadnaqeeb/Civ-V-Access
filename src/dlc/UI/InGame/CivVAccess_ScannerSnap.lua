@@ -91,10 +91,16 @@ local function placeEntry(cat, sub, entry, px, py, dist)
         plotY = py,
         distance = dist,
     }
-    local item = sub._itemsByName[entry.itemName]
+    -- Items group by identity, not spoken name: a backend that wants two
+    -- identically-named entries kept apart (waypoints, one item per unit
+    -- even when two units share a type name) sets itemKey; everything else
+    -- omits it and groups by name as before. The map is keyed by identity;
+    -- the displayed `name` stays the spoken itemName.
+    local itemId = entry.itemKey or entry.itemName
+    local item = sub._itemsByName[itemId]
     if item == nil then
         item = { name = entry.itemName, instances = {} }
-        sub._itemsByName[entry.itemName] = item
+        sub._itemsByName[itemId] = item
         sub.items[#sub.items + 1] = item
         if sub.key ~= "all" then
             local all = cat.subcategories[1]
@@ -167,20 +173,23 @@ local function placeCustom(cat, matchedSubs, entry, px, py, dist)
         plotY = py,
         distance = dist,
     }
+    -- Identity-keyed grouping, matching placeEntry: itemKey separates
+    -- same-named entries; the displayed name stays itemName.
+    local itemId = entry.itemKey or entry.itemName
     for _, sub in ipairs(matchedSubs) do
-        local item = sub._itemsByName[entry.itemName]
+        local item = sub._itemsByName[itemId]
         if item == nil then
             item = { name = entry.itemName, instances = {} }
-            sub._itemsByName[entry.itemName] = item
+            sub._itemsByName[itemId] = item
             sub.items[#sub.items + 1] = item
         end
         item.instances[#item.instances + 1] = instance
     end
     local all = cat.subcategories[1]
-    local allItem = all._itemsByName[entry.itemName]
+    local allItem = all._itemsByName[itemId]
     if allItem == nil then
         allItem = { name = entry.itemName, instances = {} }
-        all._itemsByName[entry.itemName] = allItem
+        all._itemsByName[itemId] = allItem
         all.items[#all.items + 1] = allItem
     end
     allItem.instances[#allItem.instances + 1] = instance

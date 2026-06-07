@@ -812,6 +812,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "fresh water"
 -- Numbered step on the head-selected unit's queued path. Speaks on cursor
 -- glance and as the scanner item name for the "waypoints" category.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "waypoint {1_Index} of {2_Total}"
+-- Unnumbered waypoint of a non-selected unit, named for its owner. Speaks
+-- in the cursor glance when the all-unit waypoint setting is on; the unit
+-- name disambiguates whose path crosses the tile.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED"] = "{1_Name} waypoint"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_NAMED"] = "{1_Name} pillaged"
 -- Macro-terrain tokens. Spoken inside the cursor glance for plots the engine
 -- does not give a per-terrain TXT key for (hills are a flag on top of base
@@ -1109,6 +1113,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_ENEMY_ADJACENT_WARN"] = "Warn wh
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner shows coordinates"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "Scanner uses compass direction"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Scanner plays directional beep"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
+    "Show only selected unit waypoints in scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
+    "Show only selected unit waypoints in tile readout"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Read subtitles"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Announce visibility changes while moving"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "Announce AI combat resolution"

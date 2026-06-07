@@ -381,6 +381,139 @@ function Waypoints.atXY(x, y)
     return nil
 end
 
+-- ===== All-units view =====
+-- When the player turns off "show only selected unit waypoints", the
+-- scanner lists every owned unit's queued stops and the cursor glance
+-- names the units whose path crosses the current tile. Both read the
+-- multi-unit snapshot below. It is a separate cache from the single-slot
+-- selected-unit snapshot above: enumerating every unit on each cursor
+-- step would re-price the whole army, so a global signature (each owned
+-- unit's id, position, and queue sig) gates a recompute the same way the
+-- single-unit sig does. Within a turn the player's queued units don't
+-- move until they execute, so the signature holds and the passive glance
+-- reads the cache; queuing a new order or a turn boundary busts it.
+
+-- Spoken name for a waypoint's owning unit: the custom name if the player
+-- renamed it (their disambiguation handle), otherwise the unit type. No
+-- civ adjective -- every unit here is the active player's own, so "Roman"
+-- would be redundant on every entry. GetNameKey returns only the type key
+-- regardless of rename (see UnitSpeech.unitName), so the rename is read
+-- separately via HasName / GetNameNoDesc.
+local function unitDisplayName(unit)
+    if unit:HasName() then
+        return Text.key(unit:GetNameNoDesc())
+    end
+    return Text.key(unit:GetNameKey())
+end
+
+-- Public: live display name for an owned unit by ID. Re-queried at speech
+-- time, never stored in the snapshot: a rename leaves the unit's id,
+-- position, and queue untouched, so it does not bust the waypoint cache --
+-- caching the name would speak the stale one until the unit next moved.
+-- "" when the unit is gone (a freshly busted cache drops it anyway).
+function Waypoints.unitName(unitID)
+    local player = Players[Game.GetActivePlayer()]
+    if player == nil then
+        return ""
+    end
+    local unit = player:GetUnitByID(unitID)
+    if unit == nil then
+        return ""
+    end
+    return unitDisplayName(unit)
+end
+
+-- Cheap pass: the active player's units that carry a non-empty mission
+-- queue, each paired with that queue. No pathfinder here -- this is the
+-- enumeration the global signature is built from before deciding whether
+-- a recompute is needed.
+local function ownedQueuedUnits()
+    local player = Players[Game.GetActivePlayer()]
+    if player == nil then
+        return {}
+    end
+    local out = {}
+    for unit in player:Units() do
+        local queue = EngineData.missionQueue(unit)
+        if #queue > 0 then
+            out[#out + 1] = { unit = unit, queue = queue }
+        end
+    end
+    return out
+end
+
+local function allUnitsSig(entries)
+    local parts = {}
+    for i, e in ipairs(entries) do
+        parts[i] = e.unit:GetID() .. ":" .. e.unit:GetX() .. ":" .. e.unit:GetY() .. ":" .. computeSig(e.queue)
+    end
+    return table.concat(parts, "||")
+end
+
+-- The multi-unit snapshot: one group per owned unit with at least one
+-- queued stop, each { unitID, waypoints }. Cached on civvaccess_shared
+-- keyed by the global signature; a miss re-prices every unit via compute()
+-- -- the same cache-safe call the single-unit path uses, so the two views
+-- agree on stop plots for any given unit. The unit's name is deliberately
+-- not stored here -- it is resolved live via Waypoints.unitName so a rename
+-- (which doesn't change the signature) takes effect immediately.
+local function allUnitsGroups()
+    local entries = ownedQueuedUnits()
+    local sig = allUnitsSig(entries)
+    local cache = civvaccess_shared.waypointsAllCache
+    if cache ~= nil and cache.sig == sig then
+        return cache.groups
+    end
+    local groups = {}
+    for _, e in ipairs(entries) do
+        local computed = compute(e.unit, e.queue)
+        if #computed.waypoints > 0 then
+            groups[#groups + 1] = {
+                unitID = e.unit:GetID(),
+                waypoints = computed.waypoints,
+            }
+        end
+    end
+    civvaccess_shared.waypointsAllCache = { sig = sig, groups = groups }
+    return groups
+end
+
+-- Public: the multi-unit groups for the scanner's all-units waypoint
+-- view. Each group is one navigable unit; its waypoints are the instances.
+function Waypoints.allUnitsList()
+    return allUnitsGroups()
+end
+
+-- Public: who stops on (x, y) across every owned unit's queue, split into
+-- the selected unit's hit (carries index/total so the glance numbers it)
+-- and the other units' hits (named, unnumbered). nil when no owned unit's
+-- path crosses the tile. One hit per unit even if a reversal leg revisits
+-- the plot, mirroring atXY's first-match behavior.
+function Waypoints.atXYAll(x, y)
+    local groups = allUnitsGroups()
+    local head = UI.GetHeadSelectedUnit()
+    local headID = head ~= nil and head:GetID() or nil
+    local selected = nil
+    local others = {}
+    for _, g in ipairs(groups) do
+        local total = #g.waypoints
+        for i, wp in ipairs(g.waypoints) do
+            if wp.x == x and wp.y == y then
+                if g.unitID == headID then
+                    selected = { index = i, total = total }
+                else
+                    others[#others + 1] = { unitName = Waypoints.unitName(g.unitID) }
+                end
+                break
+            end
+        end
+    end
+    if selected == nil and #others == 0 then
+        return nil
+    end
+    return { selected = selected, others = others }
+end
+
 -- Public: { chunks = { { kind, segments, turns, routeName? }, ... } }
 -- describing the queued action of the active selected unit. nil when
 -- there's no head-selected unit, no path-bearing legs, or every chunk

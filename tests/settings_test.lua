@@ -250,18 +250,19 @@ end
 -- Cursor group ----------------------------------------------------------
 --
 -- Layout: follows-selection, border-always, enemy-adjacent-warn,
--- coord-mode (group). Audio-cue-mode and master-volume live in the Audio
--- group, not here.
+-- waypoints-selected-only, coord-mode (group). Audio-cue-mode and
+-- master-volume live in the Audio group, not here.
 
 function M.test_cursor_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(CURSOR_GROUP)
-    T.eq(#children, 4, "four cursor-area settings")
+    T.eq(#children, 5, "five cursor-area settings")
     T.eq(children[1].kind, "checkbox", "cursor follows selection")
     T.eq(children[2].kind, "checkbox", "border always announce")
     T.eq(children[3].kind, "checkbox", "enemy adjacent warn")
-    T.eq(children[4].kind, "group", "cursor coord mode group")
+    T.eq(children[4].kind, "checkbox", "waypoints selected only")
+    T.eq(children[5].kind, "group", "cursor coord mode group")
 end
 
 function M.test_cursor_follows_selection_default_on_and_flip()
@@ -295,7 +296,7 @@ end
 function M.test_cursor_coord_mode_default_off_and_append_choice_writes()
     setup()
     Settings.open()
-    local coordGroup = groupChildren(CURSOR_GROUP)[4]
+    local coordGroup = groupChildren(CURSOR_GROUP)[5]
     local coordChildren = coordGroup:children()
     T.eq(#coordChildren, 3, "off / prepend / append")
     T.truthy(coordChildren[1]._selectedFn(), "off is the lazy-init default")
@@ -372,11 +373,12 @@ function M.test_scanner_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(SCANNER_GROUP)
-    T.eq(#children, 4, "auto-move + coords + compass direction + direction beep")
+    T.eq(#children, 5, "auto-move + coords + compass direction + direction beep + waypoints scope")
     T.eq(children[1].kind, "checkbox", "auto-move")
     T.eq(children[2].kind, "checkbox", "coords")
     T.eq(children[3].kind, "checkbox", "compass direction")
     T.eq(children[4].kind, "checkbox", "direction beep")
+    T.eq(children[5].kind, "checkbox", "waypoints selected only")
 end
 
 function M.test_scanner_auto_move_flip_writes_shared_and_prefs()
