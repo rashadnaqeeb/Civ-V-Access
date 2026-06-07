@@ -21,6 +21,7 @@ New Features and improvements:
 - The F12 settings menu renames the UI group to General and gathers volume and audio-cue controls under a new Audio group.
 - Unit movement readouts now appear in the message buffer reviewed with the bracket keys, under a new Movement filter.
 - Producing an international project (World's Fair, International Games, Space Station) now reads its global progress and your contribution, in the production menu and on the city's production readout with 2.
+- In move mode, Shift plus space previews the path from the last queued waypoint to the target, the leg Shift plus enter would add.
 
 Bug fixes:
 - Incoming multiplayer chat is no longer announced and buffered two or three times.

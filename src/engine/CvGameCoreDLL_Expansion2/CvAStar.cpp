@@ -1542,7 +1542,19 @@ int PathAdd(CvAStarNode* parent, CvAStarNode* node, int data, const void* pointe
 	if(data == ASNC_INITIALADD)
 	{
 		iTurns = 1;
-		iMoves = std::min(iMoves, pUnit->movesLeft());
+		// CIVVACCESS: MOVE_CIVVACCESS_FRESH_TURN prices the leg as if begun
+		// on a fresh turn (full move allowance) rather than inheriting moves
+		// the unit has already spent this turn. ComputePath sets it when
+		// previewing a leg that starts at a future waypoint, where the unit
+		// will have reset to full moves by the time it arrives.
+		if(finder->GetInfo() & MOVE_CIVVACCESS_FRESH_TURN)
+		{
+			iMoves = std::min(iMoves, pCacheData->maxMoves());
+		}
+		else
+		{
+			iMoves = std::min(iMoves, pUnit->movesLeft());
+		}
 	}
 	else
 	{

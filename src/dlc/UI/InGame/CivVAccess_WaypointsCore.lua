@@ -131,8 +131,8 @@ end
 -- Move-like leg: run the movement pathfinder. Returns { nodes, turns }
 -- or nil. nodes[1] is the leg's start (== fromPlot); nodes[2..#nodes]
 -- are the plots the unit will step onto.
-local function computeMovePath(unit, fromPlot, toPlot, flags)
-    local nodes, success, legTurns = EngineData.computePath(unit, fromPlot, toPlot, flags)
+local function computeMovePath(unit, fromPlot, toPlot, flags, freshTurn)
+    local nodes, success, legTurns = EngineData.computePath(unit, fromPlot, toPlot, flags, freshTurn)
     if not success or type(nodes) ~= "table" or #nodes == 0 then
         return nil
     end
@@ -226,12 +226,17 @@ local function compute(unit, queue)
             out.waypoints[#out.waypoints + 1] = { x = stop.x, y = stop.y }
         end
     end
+    -- Only the head leg starts at the unit's live position with its real
+    -- remaining moves; every later leg begins at a prior waypoint the unit
+    -- reaches on a future turn, so it is priced fresh (full moves) rather
+    -- than inheriting moves already spent this turn.
+    local firstLeg = true
     for _, entry in ipairs(queue) do
         local kind = kinds[entry.mission]
         if kind ~= nil then
             local toPlot = Map.GetPlot(entry.data1, entry.data2)
             if toPlot ~= nil then
-                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags)
+                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags, not firstLeg)
                 if kind == MISSION_KIND_ROUTE then
                     local route = bestRouteForLeg(unit, fromPlot)
                     local path
@@ -287,6 +292,7 @@ local function compute(unit, queue)
                 -- at toPlot in the engine's mission queue (the engine
                 -- abandons execution but the next leg anchors on toPlot).
                 fromPlot = toPlot
+                firstLeg = false
             end
         end
     end
@@ -432,11 +438,16 @@ function Waypoints.queueTurns(unit)
     end
     local total = 0
     local any = false
+    -- Mirror compute()'s pricing: only the head leg keeps the unit's live
+    -- remaining moves; later legs begin at a waypoint the unit reaches on a
+    -- future turn and are priced fresh. Without this the F3 arrival ETA
+    -- disagrees with the per-leg turn counts spoken from compute().
+    local firstLeg = true
     for _, entry in ipairs(queue) do
         if kinds[entry.mission] ~= nil then
             local toPlot = Map.GetPlot(entry.data1, entry.data2)
             if toPlot ~= nil then
-                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags)
+                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags, not firstLeg)
                 if moveLeg ~= nil then
                     total = total + moveLeg.turns
                     any = true
@@ -445,6 +456,7 @@ function Waypoints.queueTurns(unit)
                 -- pathfinder failed, mirroring compute(): the engine still
                 -- anchors the next leg on toPlot.
                 fromPlot = toPlot
+                firstLeg = false
             end
         end
     end

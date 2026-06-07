@@ -62,6 +62,14 @@ typedef void(*CvAEnd)(const void*, CvAStar*);
 // with the unit's reachable region. Reserved for the path-failure
 // diagnostic; do not use for real mission flags.
 #define MOVE_CIVVACCESS_FORCE_DEST_VALID	(0x20000000)
+// CIVVACCESS: Fresh-turn move accounting. When set, PathAdd seeds the
+// start node with the unit's full move allowance (maxMoves) instead of its
+// current movesLeft. ComputePath sets it when previewing a leg that begins
+// at a future waypoint rather than the unit's current plot: by the time the
+// unit reaches that waypoint it has reset to full moves, so pricing the leg
+// against moves already spent this turn would overstate its turn count.
+// Reserved for ComputePath previews; do not use for real mission flags.
+#define MOVE_CIVVACCESS_FRESH_TURN			(0x10000000)
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //

@@ -364,6 +364,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "cannot que
 -- strikes have no meaningful queued semantics).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW"] = "Space"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW"] = "Preview the action against the target tile"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_WAYPOINT_PREVIEW"] = "Shift plus space"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_WAYPOINT_PREVIEW"] =
+    "Preview the move from the last queued waypoint to the target tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT"] = "Commit the action against the target tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_QUEUE"] = "Shift plus enter"

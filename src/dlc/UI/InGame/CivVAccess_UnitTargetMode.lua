@@ -73,21 +73,13 @@ local function formatMP(mp60ths)
     return tostring(whole) .. "." .. tostring(frac)
 end
 
-local function movePathPreview(actor, targetPlot)
-    local fromPlot = actor:GetPlot()
-    if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
-        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
-    end
-    -- Discriminative retry: strict first, then DECLARE_WAR / IGNORE_STACKING /
-    -- UNITS_THROUGH_ENEMY in turn. The first relaxation that recovers the
-    -- path names the cause. None work -> closest-reached fallback. Closest-
-    -- reached coords come from the strict-failure closed list (saved in
-    -- diag.closest before any retry overwrites it).
-    local diag = PathDiagnostic.discriminativePath(actor, targetPlot)
-    if diag.ok ~= "strict" then
-        return PathDiagnostic.formatFailure(diag, targetPlot:GetX(), targetPlot:GetY())
-    end
-    local path = EngineData.getPath(actor)
+-- Format an engine path node list (origin at [1], destination at [#path])
+-- into the spoken move preview: turn count, MP spent / left, per-tile
+-- direction steps, fog handling, and embark / disembark hints. startMP is
+-- the unit's move allowance at the origin in 60ths -- live movesLeft for a
+-- path from the unit's current plot, a full fresh-turn allowance for a leg
+-- previewed from a future waypoint the unit reaches on a later turn.
+local function formatMovePath(actor, path, startMP)
     -- Engine path nodes carry m_iData1=moves remaining and m_iData2=turn
     -- count after arriving at that node. Front of GetPath() is the start
     -- (we reverse in the binding); end is the destination. iData2 starts
@@ -148,7 +140,6 @@ local function movePathPreview(actor, targetPlot)
         end
     else
         local maxMoves = actor:MaxMoves()
-        local startMP = actor:MovesLeft()
         if startMP < 0 then
             startMP = maxMoves
         end
@@ -205,6 +196,67 @@ local function movePathPreview(actor, targetPlot)
         end
     end
     return summary
+end
+
+local function movePathPreview(actor, targetPlot)
+    local fromPlot = actor:GetPlot()
+    if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    -- Discriminative retry: strict first, then DECLARE_WAR / IGNORE_STACKING /
+    -- UNITS_THROUGH_ENEMY in turn. The first relaxation that recovers the
+    -- path names the cause. None work -> closest-reached fallback. Closest-
+    -- reached coords come from the strict-failure closed list (saved in
+    -- diag.closest before any retry overwrites it).
+    local diag = PathDiagnostic.discriminativePath(actor, targetPlot)
+    if diag.ok ~= "strict" then
+        return PathDiagnostic.formatFailure(diag, targetPlot:GetX(), targetPlot:GetY())
+    end
+    -- Path from the unit's current plot: the start carries its live movesLeft.
+    return formatMovePath(actor, EngineData.getPath(actor), actor:MovesLeft())
+end
+
+-- Preview the leg from the last queued waypoint to the cursor target -- the
+-- path Shift+Enter would append. Priced fresh (full moves) via ComputePath's
+-- freshTurn seed, because the unit reaches the waypoint and resumes there on
+-- a later turn rather than inheriting moves spent this turn. Returns nil when
+-- the queue is empty so the caller can fall back to the from-current preview.
+local function moveFromWaypointPreview(actor, targetPlot)
+    local queue = EngineData.missionQueue(actor)
+    if #queue == 0 then
+        return nil
+    end
+    local last = queue[#queue]
+    -- The last waypoint is only well-defined when the tail mission ends at a
+    -- known plot. MOVE_TO / SWAP_UNITS / EMBARK / DISEMBARK / ROUTE_TO store
+    -- the destination in data1/data2; other queue entries do not -- a build
+    -- or fortify carries no plot, and MOVE_TO_UNIT stores a player/unit id
+    -- pair that Map.GetPlot would misread as coordinates. Any of those would
+    -- yield a path from a bogus origin, so fall back to the from-current
+    -- preview rather than speak a confidently wrong route.
+    local mt = MissionTypes
+    local m = last.mission
+    if
+        m ~= mt.MISSION_MOVE_TO
+        and m ~= mt.MISSION_SWAP_UNITS
+        and m ~= mt.MISSION_EMBARK
+        and m ~= mt.MISSION_DISEMBARK
+        and m ~= mt.MISSION_ROUTE_TO
+    then
+        return nil
+    end
+    local fromPlot = Map.GetPlot(last.data1, last.data2)
+    if fromPlot == nil then
+        return nil
+    end
+    if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
+    end
+    local nodes, success = EngineData.computePath(actor, fromPlot, targetPlot, 0, true)
+    if not success or type(nodes) ~= "table" or #nodes == 0 then
+        return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
+    end
+    return formatMovePath(actor, nodes, actor:MaxMoves())
 end
 
 local function rangedPreview(actor, defender, targetPlot, targetX, targetY)
@@ -1130,6 +1182,23 @@ function UnitTargetMode.enter(actor, iAction, mode)
                 self._pendingFallback = nil
             end
         end, "Target preview"),
+        bind(Keys.VK_SPACE, MOD_SHIFT, function()
+            -- Preview the leg from the last queued waypoint instead of the
+            -- unit's current plot -- the path Shift+Enter would append. Only
+            -- meaningful for move mode with a non-empty queue; otherwise this
+            -- falls back to the from-current preview so the key always
+            -- answers. Pure read: it never arms the two-press commit latch.
+            local plot = cursorPlot()
+            if plot ~= nil and isMoveMode(self._mode) then
+                local text = moveFromWaypointPreview(self._actor, plot)
+                if text ~= nil then
+                    speakInterrupt(text)
+                    return
+                end
+            end
+            local text = buildPreview(self)
+            speakInterrupt(text)
+        end, "Waypoint preview"),
         bind(Keys.VK_RETURN, MOD_NONE, function()
             commitAtCursor(self)
         end, "Commit target"),
@@ -1158,12 +1227,17 @@ function UnitTargetMode.enter(actor, iAction, mode)
     -- here rather than leaning on Baseline's cursor-mode Enter entry,
     -- which means something different (activate / select / open city).
     -- Shared TARGET_HELP_* keys with the other target-picker handlers
-    -- (GiftMode, CityRangeStrikeMode); only UnitTargetMode adds the
-    -- QUEUE entry because Shift+Enter is only meaningful here.
+    -- (GiftMode, CityRangeStrikeMode); only UnitTargetMode adds the QUEUE
+    -- and WAYPOINT_PREVIEW entries because Shift+Enter and the waypoint
+    -- preview are only meaningful here.
     self.helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW",
             description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_WAYPOINT_PREVIEW",
+            description = "TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_WAYPOINT_PREVIEW",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT",

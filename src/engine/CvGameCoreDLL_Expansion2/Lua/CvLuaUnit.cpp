@@ -639,19 +639,27 @@ int CvLuaUnit::lGetPath(lua_State* L)
 // entry is { x, y, moves, turn, flags, revealed } matching GetPath's shape.
 // legTurns is INT_MAX-equivalent on failure; caller treats ok==false as
 // "skip this leg." Empty array on failure.
+//
+// Optional 5th arg bFreshTurn (default false): when true the start node is
+// seeded with the unit's full move allowance rather than its current
+// movesLeft, so a leg that begins at a future waypoint is priced as if the
+// unit resumes there on a fresh turn instead of inheriting moves already
+// spent this turn. See MOVE_CIVVACCESS_FRESH_TURN.
 int CvLuaUnit::lComputePath(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	CvPlot* pkFromPlot = CvLuaPlot::GetInstance(L, 2);
 	CvPlot* pkToPlot = CvLuaPlot::GetInstance(L, 3);
 	const int iFlags = luaL_optint(L, 4, 0);
+	const bool bFreshTurn = lua_toboolean(L, 5) != 0;
+	const int iPathFlags = bFreshTurn ? (iFlags | MOVE_CIVVACCESS_FRESH_TURN) : iFlags;
 
 	CvTwoLayerPathFinder& kPathFinder = GC.getPathFinder();
 	const bool bSuccess = pkFromPlot && pkToPlot && kPathFinder.GenerateUnitPath(
 		pkUnit,
 		pkFromPlot->getX(), pkFromPlot->getY(),
 		pkToPlot->getX(), pkToPlot->getY(),
-		iFlags, false);
+		iPathFlags, false);
 
 	CvPathNodeArray kNodes;
 	if(bSuccess)

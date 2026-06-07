@@ -221,16 +221,18 @@ function EngineData.getPath(unit)
     return unit:GetPath()
 end
 
--- Extension binding: Unit:ComputePath(fromPlot, toPlot, flags) -- a one-shot
--- path between two plots, returning (nodes, success, legTurns). Folds the
--- pcall WaypointsCore used to guard the stock-DLL case; the caller's
--- `not success` branch falls back to the move dialect.
-function EngineData.computePath(unit, fromPlot, toPlot, flags)
+-- Extension binding: Unit:ComputePath(fromPlot, toPlot, flags, freshTurn) --
+-- a one-shot path between two plots, returning (nodes, success, legTurns).
+-- Folds the pcall WaypointsCore used to guard the stock-DLL case; the
+-- caller's `not success` branch falls back to the move dialect. freshTurn
+-- seeds the start node with the unit's full move allowance instead of its
+-- current movesLeft, for pricing a leg that begins at a future waypoint.
+function EngineData.computePath(unit, fromPlot, toPlot, flags, freshTurn)
     if not EngineData.forkPresent() then
         Log.warn("EngineData.computePath: engine fork absent")
         return nil, false, nil
     end
-    return unit:ComputePath(fromPlot, toPlot, flags)
+    return unit:ComputePath(fromPlot, toPlot, flags, freshTurn)
 end
 
 -- Extension binding: Unit:GetBestBuildRoute(plot) -- the best route the
