@@ -243,9 +243,9 @@ local function flushPendingHooks()
             })
             if h.attackerIsActivePlayer or civvaccess_shared.aiCombatAnnounce then
                 speakQueued(text)
+                MessageBuffer.append(text, "combat")
             end
             CombatLog.recordCombat(text, h.plotX, h.plotY)
-            MessageBuffer.append(text, "combat")
         end
     end
 end

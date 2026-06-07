@@ -212,6 +212,7 @@ function M.test_announce_off_silent_but_delta_still_set()
     ForeignClearWatch._onForeignBarbCampCleared(1, 3, 4)
     ForeignClearWatch._onTurnStart()
     T.eq(#spoken, 0, "no speech when announce setting is off")
+    T.eq(MessageBuffer._snapshot(), nil, "buffer stays empty when announce setting is off")
     T.truthy(civvaccess_shared.foreignClearDelta, "delta still written so F7 turn log shows the line")
 end
 

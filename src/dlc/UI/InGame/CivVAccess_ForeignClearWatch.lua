@@ -106,16 +106,17 @@ function ForeignClearWatch._onTurnStart()
             .. body
             .. Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_SUFFIX")
         civvaccess_shared.foreignClearDelta = { line }
-        -- Speech is gated by the foreignClearWatchAnnounce setting; the
-        -- F7 Turn Log entry above lands either way so the user can
-        -- review the clears manually when speech is off. Queued (not
-        -- interrupt) to share the turn-boundary lane with Notification-
-        -- Announce, RevealAnnounce, and ForeignUnitWatch -- interrupting
-        -- here would cut whichever of those is currently speaking.
+        -- Speech and the message buffer are gated together by the foreign
+        -- ClearWatchAnnounce setting so the buffer mirrors what was spoken;
+        -- the F7 Turn Log entry above lands either way so the user can review
+        -- the clears manually when speech is off. Queued (not interrupt) to
+        -- share the turn-boundary lane with NotificationAnnounce, Reveal
+        -- Announce, and ForeignUnitWatch -- interrupting here would cut
+        -- whichever of those is currently speaking.
         if civvaccess_shared.foreignClearWatchAnnounce then
             SpeechPipeline.speakQueued(line)
+            MessageBuffer.append(line, "reveal")
         end
-        MessageBuffer.append(line, "reveal")
     end)
     if not ok then
         Log.error("ForeignClearWatch: TurnStart flush failed: " .. tostring(err))

@@ -504,8 +504,28 @@ function M.test_announce_off_silent_but_entered_still_stored()
     })
     ForeignUnitWatch._onTurnStart()
     T.eq(#spoken, 0, "no speech when announce setting is off")
+    T.eq(MessageBuffer._snapshot(), nil, "buffer stays empty when speech is off")
     T.truthy(civvaccess_shared.foreignUnitEntered, "entered metadata still written so F7 shows the diff")
     T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 1)
+end
+
+-- With announce on, each spoken diff line also lands in the message buffer
+-- under the reveal category: the buffer mirrors what was spoken.
+function M.test_announce_on_buffers_reveal_lines()
+    setup()
+    ForeignUnitWatch.installListeners()
+    ForeignUnitWatch._onTurnEnd()
+    installForeign(1, {
+        adj = "TXT_KEY_CIV_ROME_ADJECTIVE",
+        atWar = true,
+        units = { makeUnit({ id = 1, plot = visiblePlot() }) },
+    })
+    ForeignUnitWatch._onTurnStart()
+    local s = MessageBuffer._snapshot()
+    T.truthy(s, "buffer populated when announce is on")
+    T.eq(#s.entries, 1, "the one diff line buffered")
+    T.eq(s.entries[1].text, "New hostile units in view: Roman Warrior")
+    T.eq(s.entries[1].category, "reveal")
 end
 
 -- Live mutators -----------------------------------------------------------

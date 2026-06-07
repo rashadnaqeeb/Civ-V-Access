@@ -10,6 +10,7 @@ local T = require("support")
 local M = {}
 
 local spoken
+local buffered
 local fog
 local warWith
 local playerChangeListeners
@@ -39,6 +40,7 @@ end
 
 local function setup()
     spoken = {}
+    buffered = {}
     fog = {}
     warWith = {}
     playerChangeListeners = {}
@@ -127,6 +129,11 @@ local function setup()
     SpeechPipeline = {
         speakQueued = function(t)
             spoken[#spoken + 1] = t
+        end,
+    }
+    MessageBuffer = {
+        append = function(text, category)
+            buffered[#buffered + 1] = { text = text, category = category }
         end,
     }
     TickPump = { runOnce = function(_fn) end }
@@ -225,6 +232,23 @@ function M.test_speech_off_still_logs_f7()
     UnitMoveLog._flush()
     T.eq(#civvaccess_shared.unitMoveLog, 1, "F7 logged with all toggles off")
     T.eq(#spoken, 0, "no speech when the bucket toggle is off")
+end
+
+-- The bracket-navigable message buffer mirrors what was spoken: a move enters
+-- it only when its bucket toggle is on, under the movement category. F7 logs
+-- either way (covered above).
+function M.test_buffer_mirrors_speech_gating()
+    setup()
+    foreignUnit(1, 5)
+    step(1, 5, 0, 0, 1, 0)
+    UnitMoveLog._flush()
+    T.eq(#buffered, 0, "unspoken move stays out of the buffer")
+    civvaccess_shared.unitMoveNeutral = true
+    step(1, 5, 1, 0, 2, 0)
+    UnitMoveLog._flush()
+    T.eq(#buffered, 1, "spoken move enters the buffer")
+    T.eq(buffered[1].text, "Roman Warrior moves 1e")
+    T.eq(buffered[1].category, "movement")
 end
 
 -- A major civ at war buckets as hostile: the neutral toggle doesn't speak it,

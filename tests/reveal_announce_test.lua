@@ -302,6 +302,7 @@ function M.test_speech_off_still_updates_f7_set()
     unit._plot = fogPlot()
     RevealAnnounce._flush()
     T.eq(#spoken, 0, "no speech when Reveal Announce is off")
+    T.eq(MessageBuffer._snapshot(), nil, "buffer stays empty when Reveal Announce is off")
     T.eq(#civvaccess_shared.foreignUnitEntered.hostile, 0, "hidden unit still removed from F7 set with speech off")
 end
 
@@ -444,6 +445,12 @@ function M.test_reveal_uses_civ_adjective_and_aggregates()
         "1 tile revealed: Enemy: 2 Roman Warrior",
         "civ adjective prefixes the unit and identical units aggregate"
     )
+    -- The buffer mirrors the spoken line under the reveal category.
+    local s = MessageBuffer._snapshot()
+    T.truthy(s, "spoken reveal line also buffered")
+    T.eq(#s.entries, 1)
+    T.eq(s.entries[1].text, "1 tile revealed: Enemy: 2 Roman Warrior")
+    T.eq(s.entries[1].category, "reveal")
 end
 
 -- Snapshot gate on the reveal direction. A foreign unit already in

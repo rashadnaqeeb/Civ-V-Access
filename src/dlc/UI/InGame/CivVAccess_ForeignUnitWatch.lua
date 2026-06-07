@@ -169,20 +169,16 @@ function ForeignUnitWatch._onTurnStart()
             end
         end
 
-        -- Speech + message scrollback get all four aggregated lines.
-        -- Speech is gated by the foreignUnitWatchAnnounce setting; the
-        -- scrollback and F7 surfaces land either way so the user can
-        -- review the diff manually when speech is off. All lines queue:
-        -- NotificationAnnounce and RevealAnnounce also fire around the
-        -- turn boundary and queue everything, so interrupting here would
-        -- cut whichever of them happens to be speaking when the diff lands.
-        if #nonEmpty > 0 then
-            if civvaccess_shared.foreignUnitWatchAnnounce then
-                for _, line in ipairs(nonEmpty) do
-                    SpeechPipeline.speakQueued(line)
-                end
-            end
+        -- Speech and the message buffer get all four aggregated lines, both
+        -- gated by foreignUnitWatchAnnounce so the buffer mirrors what was
+        -- spoken; the F7 surface below lands either way so the user can review
+        -- the diff manually when speech is off. All lines queue: Notification
+        -- Announce and RevealAnnounce also fire around the turn boundary and
+        -- queue everything, so interrupting here would cut whichever of them
+        -- happens to be speaking when the diff lands.
+        if #nonEmpty > 0 and civvaccess_shared.foreignUnitWatchAnnounce then
             for _, line in ipairs(nonEmpty) do
+                SpeechPipeline.speakQueued(line)
                 MessageBuffer.append(line, "reveal")
             end
         end

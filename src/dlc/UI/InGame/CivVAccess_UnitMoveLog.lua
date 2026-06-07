@@ -100,6 +100,7 @@ function UnitMoveLog._flushBody()
             }
             if shouldSpeak(entry.bucket) then
                 SpeechPipeline.speakQueued(text)
+                MessageBuffer.append(text, "movement")
             end
         end
     end

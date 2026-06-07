@@ -35,7 +35,7 @@ local _cap = 5000
 -- skipped at cycle time so the user never lands on a filter view with
 -- nothing in it -- the cycle order is what to consider, not what to
 -- visit unconditionally.
-local FILTER_CYCLE = { "all", "notification", "reveal", "combat", "chat" }
+local FILTER_CYCLE = { "all", "notification", "reveal", "combat", "movement", "chat" }
 
 -- Categories must stay in lockstep with FILTER_CYCLE: an entry that
 -- passes append's category guard but has no slot in the cycle is
@@ -44,6 +44,7 @@ local CATEGORIES = {
     notification = true,
     reveal = true,
     combat = true,
+    movement = true,
     chat = true,
 }
 

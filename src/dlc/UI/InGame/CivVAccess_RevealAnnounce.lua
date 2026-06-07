@@ -145,10 +145,11 @@ end
 -- { ownerId, unitId, civAdjKey, unitDescKey, bucket = "hostile" | "other" }.
 local _visibleUnits = {}
 
--- Gates speech only. Collection, the F7 entered-set updates, and the message
--- scrollback run regardless, so the F7 Turn Log and history reflect what your
--- movement revealed even when spoken Reveal Announce is switched off -- the
--- same speech-vs-surface split ForeignUnitWatch uses for its turn-start diff.
+-- Gates speech and the message buffer together so the buffer mirrors what was
+-- spoken. Collection and the F7 entered-set updates run regardless, so the F7
+-- Turn Log reflects what your movement revealed even when spoken Reveal
+-- Announce is switched off -- the same speech-vs-F7 split ForeignUnitWatch uses
+-- for its turn-start diff.
 local function speechEnabled()
     return civvaccess_shared.revealAnnounce == true
 end
@@ -505,24 +506,19 @@ function RevealAnnounce._flushBody()
             .. table.concat(goneParts, Text.key("TXT_KEY_CIVVACCESS_FOREIGN_CLEAR_AND"))
     end
 
-    local speak = speechEnabled()
-    if revealLine ~= nil then
-        if speak then
+    if speechEnabled() then
+        if revealLine ~= nil then
             SpeechPipeline.speakQueued(revealLine)
+            MessageBuffer.append(revealLine, "reveal")
         end
-        MessageBuffer.append(revealLine, "reveal")
-    end
-    if hideLine ~= nil then
-        if speak then
+        if hideLine ~= nil then
             SpeechPipeline.speakQueued(hideLine)
+            MessageBuffer.append(hideLine, "reveal")
         end
-        MessageBuffer.append(hideLine, "reveal")
-    end
-    if goneLine ~= nil then
-        if speak then
+        if goneLine ~= nil then
             SpeechPipeline.speakQueued(goneLine)
+            MessageBuffer.append(goneLine, "reveal")
         end
-        MessageBuffer.append(goneLine, "reveal")
     end
 end
 
