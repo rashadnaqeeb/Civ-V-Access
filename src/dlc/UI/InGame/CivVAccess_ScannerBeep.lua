@@ -59,7 +59,7 @@
 --     the range). The user-set beacon master attenuates this voice the
 --     same way it attenuates bookmark beacons: see ScannerBeep.loadAll's
 --     load_voice_in_beacon_group call below, which parents the voice
---     under the proxy's beacon mixer group. The F12 Beacon group is the
+--     under the proxy's beacon mixer group. The F12 Audio group is the
 --     single point of control for this entire family of spatial audio
 --     cues.
 --

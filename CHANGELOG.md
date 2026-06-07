@@ -18,6 +18,7 @@ New Features and improvements:
 - A moving unit's status on the F3 units table now shows the turns remaining to reach its destination.
 - Cursoring over one of your moving units now reads its full queued path and ETA, not just "queued move", even when the unit isn't selected.
 - A city production queue slot now offers Move to top and Move to bottom alongside Move up and Move down.
+- The F12 settings menu renames the UI group to General and gathers volume and audio-cue controls under a new Audio group.
 
 Bug fixes:
 - The Warn when adjacent to enemy setting now reads its label, not a raw key name, when settings are opened from the main menu.

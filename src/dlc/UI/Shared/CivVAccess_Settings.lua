@@ -1,7 +1,7 @@
 -- Settings overlay. Opens via the F12 pre-walk hook in InputRouter and
 -- gives the user a single place to flip mod-wide preferences. Built as a
--- BaseMenu handler with five top-level drillable groups: UI, Cursor,
--- Beacon, Scanner, Notifications. New settings drop into the group whose
+-- BaseMenu handler with five top-level drillable groups: General, Cursor,
+-- Audio, Scanner, Notifications. New settings drop into the group whose
 -- feature they belong to.
 --
 -- The handler is reachable from every Context that routes through
@@ -176,7 +176,7 @@ local getScannerCompassDirection, setScannerCompassDirection =
 -- the displacement from the readout origin to the cycled-to entry's
 -- plot, using the same per-axis math as the audio beacons. ScannerBeep
 -- reads the cache live in its play function, and the beep shares the
--- BeaconVolume / BeaconRange sliders -- the F12 Beacon group is the
+-- BeaconVolume / BeaconRange sliders -- the F12 Audio group is the
 -- single point of volume / range control for this entire family of
 -- spatial audio cues. Initialization mirrors scannerAutoMove: ScannerBeep
 -- seeds the cache from Prefs at module load; calling defineBoolPref here
@@ -276,8 +276,8 @@ end
 local function buildItems()
     local masterVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"
     local beaconVolumeFormat = "TXT_KEY_CIVVACCESS_SETTINGS_BEACON_VOLUME_VALUE"
-    local uiGroup = BaseMenuItems.Group({
-        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI",
+    local generalGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_GENERAL",
         items = {
             -- Verbose UI: appends screen-reader-style metadata (control type
             -- tags, position-within-list, table row/column counts, "table"
@@ -344,17 +344,16 @@ local function buildItems()
                     cursorCoordModeChoice("append", "TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_COORD_APPEND"),
                 },
             }),
-            BaseMenuItems.Group({
-                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE",
-                items = {
-                    audioCueModeChoice(AudioCueMode.MODE_SPEECH, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"),
-                    audioCueModeChoice(
-                        AudioCueMode.MODE_SPEECH_PLUS_CUE,
-                        "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"
-                    ),
-                    audioCueModeChoice(AudioCueMode.MODE_CUE_ONLY, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"),
-                },
-            }),
+        },
+    })
+    -- Audio group gathers every volume / range / cue-mode control for the
+    -- mod's proxy-mixed sound layer: the per-hex cue master and its
+    -- speech / cue mode, plus the bookmark-beacon volume and range (which
+    -- the scanner directional beep also rides). Keeping them together is
+    -- why the scanner beep's controlling sliders live here, not in Scanner.
+    local audioGroup = BaseMenuItems.Group({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_AUDIO",
+        items = {
             BaseMenuItems.VirtualSlider({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME",
                 getValue = VolumeControl.get,
@@ -366,15 +365,17 @@ local function buildItems()
                 step = 0.01,
                 bigStep = 0.10,
             }),
-        },
-    })
-    -- Beacon volume / range live in their own drillable. Beacons are a
-    -- cursor-positioning feature, but they're a distinct mechanic from
-    -- per-hex earcons and the two sliders pair naturally on the same
-    -- screen.
-    local beaconGroup = BaseMenuItems.Group({
-        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON",
-        items = {
+            BaseMenuItems.Group({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE",
+                items = {
+                    audioCueModeChoice(AudioCueMode.MODE_SPEECH, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"),
+                    audioCueModeChoice(
+                        AudioCueMode.MODE_SPEECH_PLUS_CUE,
+                        "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"
+                    ),
+                    audioCueModeChoice(AudioCueMode.MODE_CUE_ONLY, "TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"),
+                },
+            }),
             -- Beacon master volume. Drives the proxy's dedicated beacon
             -- sound group in parallel with the main "Master volume"
             -- slider above; the two faders are independent (raising one
@@ -518,7 +519,7 @@ local function buildItems()
             }),
         },
     })
-    return { uiGroup, cursorGroup, beaconGroup, scannerGroup, notificationsGroup }
+    return { generalGroup, cursorGroup, audioGroup, scannerGroup, notificationsGroup }
 end
 
 -- F12 binding spec. Help-list entry uses the curated label so the help

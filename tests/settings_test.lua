@@ -104,9 +104,9 @@ local function setup()
 end
 
 -- Top-level group indices in the order buildItems returns them.
-local UI_GROUP = 1
+local GENERAL_GROUP = 1
 local CURSOR_GROUP = 2
-local BEACON_GROUP = 3
+local AUDIO_GROUP = 3
 local SCANNER_GROUP = 4
 local NOTIFICATIONS_GROUP = 5
 
@@ -139,7 +139,7 @@ function M.test_top_level_has_five_drillable_groups()
     setup()
     Settings.open()
     local items = topItems()
-    T.eq(#items, 5, "five top-level groups: UI / cursor / beacon / scanner / notifications")
+    T.eq(#items, 5, "five top-level groups: general / cursor / audio / scanner / notifications")
     for i = 1, 5 do
         T.eq(items[i].kind, "group", "top-level item " .. i .. " is a drillable group")
     end
@@ -176,12 +176,12 @@ function M.test_escape_pops_settings()
     T.eq(HandlerStack.active().name, "base")
 end
 
--- UI group --------------------------------------------------------------
+-- General group ----------------------------------------------------
 
-function M.test_ui_group_has_verbose_ui_read_subtitles_map_highlight_long_form_keyboard()
+function M.test_general_group_has_verbose_ui_read_subtitles_map_highlight_long_form_keyboard()
     setup()
     Settings.open()
-    local children = groupChildren(UI_GROUP)
+    local children = groupChildren(GENERAL_GROUP)
     T.eq(#children, 5, "verbose UI + read subtitles + map highlight + long-form + keyboard layout")
     T.eq(children[1].kind, "checkbox")
     T.eq(children[2].kind, "checkbox")
@@ -193,8 +193,8 @@ end
 function M.test_keyboard_layout_default_auto_and_override_flip()
     setup()
     Settings.open()
-    -- Fifth child of the UI group is the keyboard-layout choice group.
-    local choices = groupChildren(UI_GROUP)[5]:children()
+    -- Fifth child of the General group is the keyboard-layout choice group.
+    local choices = groupChildren(GENERAL_GROUP)[5]:children()
     T.eq(#choices, 5, "auto / qwerty / azerty / qwertz / italian")
     -- Default override is auto; activating AZERTY (the third choice) writes
     -- the shared cache and Prefs.
@@ -209,7 +209,7 @@ function M.test_keyboard_layout_italian_choice_writes()
     setup()
     Settings.open()
     -- Fifth choice is Italian; it persists as int 4.
-    local choices = groupChildren(UI_GROUP)[5]:children()
+    local choices = groupChildren(GENERAL_GROUP)[5]:children()
     choices[5]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.keyboardProfileOverride, "italian")
     T.eq(prefsStore["KeyboardProfileOverride"], 4)
@@ -219,8 +219,8 @@ function M.test_direction_long_form_default_off_and_flip()
     setup()
     Settings.open()
     T.eq(civvaccess_shared.directionLongForm, false, "opt-in: defaults off")
-    -- Fourth child of the UI group is the long-form direction toggle.
-    groupChildren(UI_GROUP)[4]:activate(HandlerStack.active())
+    -- Fourth child of the General group is the long-form direction toggle.
+    groupChildren(GENERAL_GROUP)[4]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.directionLongForm, true)
     T.eq(prefsStore["DirectionLongForm"], true)
 end
@@ -229,10 +229,10 @@ function M.test_map_highlight_toggle_flip_writes_shared_and_prefs()
     setup()
     civvaccess_shared.mapHighlightEnabled = false
     Settings.open()
-    -- Third child of the UI group is the map-highlight toggle. MapHighlight
+    -- Third child of the General group is the map-highlight toggle. MapHighlight
     -- itself is absent in this suite, so the setter's applyEnabled hop is a
     -- no-op and only the pref/cache write is observable here.
-    groupChildren(UI_GROUP)[3]:activate(HandlerStack.active())
+    groupChildren(GENERAL_GROUP)[3]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.mapHighlightEnabled, true)
     T.eq(prefsStore["MapHighlight"], true)
 end
@@ -241,8 +241,8 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     setup()
     civvaccess_shared.readSubtitles = false
     Settings.open()
-    -- Second child of the UI group is the read-subtitles toggle.
-    groupChildren(UI_GROUP)[2]:activate(HandlerStack.active())
+    -- Second child of the General group is the read-subtitles toggle.
+    groupChildren(GENERAL_GROUP)[2]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.readSubtitles, true)
     T.eq(prefsStore["ReadSubtitles"], true)
 end
@@ -250,19 +250,18 @@ end
 -- Cursor group ----------------------------------------------------------
 --
 -- Layout: follows-selection, border-always, enemy-adjacent-warn,
--- coord-mode (group), audio-cue-mode (group), master-volume (slider).
+-- coord-mode (group). Audio-cue-mode and master-volume live in the Audio
+-- group, not here.
 
 function M.test_cursor_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(CURSOR_GROUP)
-    T.eq(#children, 6, "six cursor-area settings")
+    T.eq(#children, 4, "four cursor-area settings")
     T.eq(children[1].kind, "checkbox", "cursor follows selection")
     T.eq(children[2].kind, "checkbox", "border always announce")
     T.eq(children[3].kind, "checkbox", "enemy adjacent warn")
     T.eq(children[4].kind, "group", "cursor coord mode group")
-    T.eq(children[5].kind, "group", "audio cue mode group")
-    T.eq(children[6].kind, "slider", "master volume slider")
 end
 
 function M.test_cursor_follows_selection_default_on_and_flip()
@@ -307,11 +306,39 @@ function M.test_cursor_coord_mode_default_off_and_append_choice_writes()
     T.eq(prefsStore["CursorCoordMode"], 2)
 end
 
+-- Audio group -----------------------------------------------------------
+--
+-- Layout: master-volume (slider), audio-cue-mode (group), beacon-volume
+-- (slider), beacon-range (slider).
+
+function M.test_audio_group_layout()
+    setup()
+    Settings.open()
+    local children = groupChildren(AUDIO_GROUP)
+    T.eq(#children, 4, "master volume + audio cue mode + beacon volume + beacon range")
+    T.eq(children[1].kind, "slider", "master volume slider")
+    T.eq(children[2].kind, "group", "audio cue mode group")
+    T.eq(children[3].kind, "slider", "beacon volume")
+    T.eq(children[4].kind, "slider", "beacon range")
+end
+
+function M.test_master_volume_slider_adjust_drives_VolumeControl_set()
+    setup()
+    Settings.open()
+    local volumeSlider = groupChildren(AUDIO_GROUP)[1]
+    T.eq(volumeSlider.kind, "slider")
+    audio._reset()
+    volumeSlider:adjust(HandlerStack.active(), 1, false)
+    local last = audio._calls[#audio._calls]
+    T.eq(last.op, "set_master_volume")
+    T.eq(prefsStore["MasterVolume"], VolumeControl.get())
+end
+
 function M.test_audio_cue_mode_choices_call_setMode_and_mark_current()
     setup()
     AudioCueMode.setMode(AudioCueMode.MODE_SPEECH_PLUS_CUE)
     Settings.open()
-    local cueGroup = groupChildren(CURSOR_GROUP)[5]
+    local cueGroup = groupChildren(AUDIO_GROUP)[2]
     local cueChildren = cueGroup:children()
     T.eq(#cueChildren, 3, "speech / both / cue only")
     T.falsy(cueChildren[1]._selectedFn(), "speech only is not selected")
@@ -321,34 +348,11 @@ function M.test_audio_cue_mode_choices_call_setMode_and_mark_current()
     T.eq(AudioCueMode.getMode(), AudioCueMode.MODE_CUE_ONLY)
 end
 
-function M.test_master_volume_slider_adjust_drives_VolumeControl_set()
-    setup()
-    Settings.open()
-    local volumeSlider = groupChildren(CURSOR_GROUP)[6]
-    T.eq(volumeSlider.kind, "slider")
-    audio._reset()
-    volumeSlider:adjust(HandlerStack.active(), 1, false)
-    local last = audio._calls[#audio._calls]
-    T.eq(last.op, "set_master_volume")
-    T.eq(prefsStore["MasterVolume"], VolumeControl.get())
-end
-
--- Beacon group ----------------------------------------------------------
-
-function M.test_beacon_group_has_volume_then_range()
-    setup()
-    Settings.open()
-    local children = groupChildren(BEACON_GROUP)
-    T.eq(#children, 2, "beacon volume + beacon range")
-    T.eq(children[1].kind, "slider", "beacon volume")
-    T.eq(children[2].kind, "slider", "beacon range")
-end
-
 function M.test_beacon_volume_adjust_drives_BeaconVolume_set()
     setup()
     Settings.open()
     local before = BeaconVolume.get()
-    groupChildren(BEACON_GROUP)[1]:adjust(HandlerStack.active(), 1, false)
+    groupChildren(AUDIO_GROUP)[3]:adjust(HandlerStack.active(), 1, false)
     local after = BeaconVolume.get()
     T.truthy(after > before, "beacon volume increased on Right")
 end
@@ -357,7 +361,7 @@ function M.test_beacon_range_adjust_drives_BeaconRange_set()
     setup()
     Settings.open()
     local before = BeaconRange.get()
-    groupChildren(BEACON_GROUP)[2]:adjust(HandlerStack.active(), 1, false)
+    groupChildren(AUDIO_GROUP)[4]:adjust(HandlerStack.active(), 1, false)
     local after = BeaconRange.get()
     T.truthy(after > before, "beacon range increased on Right")
 end
