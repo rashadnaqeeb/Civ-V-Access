@@ -349,9 +349,11 @@ function M.test_queued_action_status_for_returns_nil_for_foreign_unit()
     T.eq(Waypoints.queuedActionStatusFor(unit), nil, "foreign unit returns nil")
 end
 
--- A single ROUTE_TO leg whose build path covers three tiles, all
--- needing 3 build turns each, produces one route chunk named "road"
--- with three segments summing to 9 turns.
+-- A single ROUTE_TO leg whose build path covers three traversed tiles,
+-- all needing 3 build turns each, produces one route chunk named "road"
+-- with three segments. The worker's origin tile (0,0) also needs the road
+-- and is built first, so the turn total is the origin's 3 plus the three
+-- traversed tiles' 9, but the origin is not one of the three segments.
 function M.test_compute_route_to_produces_route_chunk()
     local plots = {
         ["0,0"] = fakePlot(0, 0),
@@ -381,8 +383,8 @@ function M.test_compute_route_to_produces_route_chunk()
     local c = status.chunks[1]
     T.eq(c.kind, "route", "kind")
     T.eq(c.routeName, "road", "route name (lowercased)")
-    T.eq(c.turns, 9, "summed build turns (3 tiles x 3 turns)")
-    T.eq(#c.segments, 3, "three build stops")
+    T.eq(c.turns, 12, "origin (3) plus three traversed tiles (9)")
+    T.eq(#c.segments, 3, "three build stops, origin not a segment")
     T.eq(c.segments[1], "1e", "first segment")
 end
 
@@ -422,7 +424,9 @@ function M.test_compute_route_to_skips_walked_through_tile_and_folds_direction()
     -- the first real build at (2, 0) -- direction is two-east.
     T.eq(c.segments[1], "2e", "first segment folds past the walked-through tile")
     T.eq(c.segments[2], "1e", "second segment measured from last real build")
-    T.eq(c.turns, 6, "summed build turns (2 tiles x 3 turns)")
+    -- Origin (0, 0) needs the road and is built first (3), plus the two
+    -- traversed build tiles (6); the walked-through tile contributes 0.
+    T.eq(c.turns, 9, "origin (3) plus two traversed build tiles (6)")
 end
 
 -- Two consecutive MOVE_TO legs merge into one move chunk. The user
@@ -652,6 +656,96 @@ function M.test_compute_route_to_falls_back_to_move_chunk_when_buildroute_fails(
     T.eq(#status.chunks, 1, "one chunk")
     T.eq(status.chunks[1].kind, "move", "fell back to move chunk")
     T.eq(status.chunks[1].turns, 2, "movement-path turn count on fallback")
+end
+
+-- The worker's current tile needs the road, so its build time counts
+-- toward the total (CvUnit::UnitRoadTo builds it first), but it is never
+-- emitted as a waypoint -- the player isn't navigated to where the worker
+-- already stands.
+function M.test_compute_route_to_counts_origin_turns_without_a_waypoint()
+    local plots = {
+        ["0,0"] = fakePlot(0, 0), -- origin, needs the road
+        ["1,0"] = fakePlot(1, 0), -- traversed build tile
+    }
+    setupCompute({
+        plots = plots,
+        unitX = 0,
+        unitY = 0,
+        queue = { { mission = 2, data1 = 1, data2 = 0, flags = 0 } },
+        bestBuildRoute = function()
+            return 0, 100
+        end,
+        getBuildRoutePath = function()
+            return { { x = 0, y = 0 }, { x = 1, y = 0 } }
+        end,
+    })
+    local c = Waypoints.queuedActionStatus().chunks[1]
+    T.eq(c.turns, 6, "origin build (3) plus the one traversed tile (3)")
+    T.eq(#c.segments, 1, "only the traversed tile is a segment")
+    local wps = Waypoints.list()
+    T.eq(#wps, 1, "origin is not a waypoint")
+    T.eq(wps[1].x, 1, "the only waypoint is the traversed build tile")
+end
+
+-- A later route leg must not re-count its origin: that tile is the prior
+-- leg's destination, which the prior leg already counted. Only the head
+-- leg counts its origin, so the shared boundary tile is counted once.
+function M.test_compute_consecutive_route_legs_count_boundary_once()
+    local plots = {
+        ["0,0"] = fakePlot(0, 0),
+        ["1,0"] = fakePlot(1, 0),
+        ["2,0"] = fakePlot(2, 0),
+    }
+    setupCompute({
+        plots = plots,
+        unitX = 0,
+        unitY = 0,
+        queue = {
+            { mission = 2, data1 = 1, data2 = 0, flags = 0 },
+            { mission = 2, data1 = 2, data2 = 0, flags = 0 },
+        },
+        bestBuildRoute = function()
+            return 0, 100
+        end,
+        getBuildRoutePath = function(fx, fy, tx, ty)
+            return { { x = fx, y = fy }, { x = tx, y = ty } }
+        end,
+    })
+    -- Leg 1: origin (0,0)=3 + boundary stop (1,0)=3 = 6. Leg 2: origin
+    -- (1,0) NOT counted again + stop (2,0)=3 = 3. Merged chunk = 9.
+    local status = Waypoints.queuedActionStatus()
+    T.eq(#status.chunks, 1, "consecutive route legs merge into one chunk")
+    T.eq(status.chunks[1].turns, 9, "boundary tile (1,0) counted once, not twice")
+end
+
+-- The revived start-plot guard: on the head leg's origin, when the worker
+-- is already mid-build of this route, GetBuildTurnsLeft already folds in
+-- the worker's own rate, so the extra rate must pass as 0 to avoid
+-- under-counting. The traversed tiles, where the worker isn't standing,
+-- keep the full extra rate.
+function M.test_compute_route_origin_zeroes_extra_rate_when_already_building()
+    local origin = fakePlot(0, 0)
+    -- Echo whether the extra-rate arg was zeroed so the test can see the
+    -- guard fire: 7 when zeroed (guarded), 99 when the rate was passed.
+    origin.GetBuildTurnsLeft = function(_self, _buildId, _owner, extra1, _extra2)
+        return extra1 == 0 and 7 or 99
+    end
+    local plots = { ["0,0"] = origin, ["1,0"] = fakePlot(1, 0) }
+    setupCompute({
+        plots = plots,
+        unitX = 0,
+        unitY = 0,
+        unitBuildType = 100, -- worker already on this build
+        queue = { { mission = 2, data1 = 1, data2 = 0, flags = 0 } },
+        bestBuildRoute = function()
+            return 0, 100
+        end,
+        getBuildRoutePath = function()
+            return { { x = 0, y = 0 }, { x = 1, y = 0 } }
+        end,
+    })
+    local c = Waypoints.queuedActionStatus().chunks[1]
+    T.eq(c.turns, 10, "origin extra-rate zeroed (7), not double-counted (99), plus the stop (3)")
 end
 
 -- ===== All-units view group =====

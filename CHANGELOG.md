@@ -26,6 +26,7 @@ New Features and improvements:
 - In move mode, Shift plus space previews the path from the last queued waypoint to the target, the leg Shift plus enter would add.
 
 Bug fixes:
+- A worker's queued road turn estimate now counts the tile it starts on, no longer under-reporting when that tile still needs the road.
 - Incoming multiplayer chat is no longer announced and buffered two or three times.
 - The bracket-key message buffer now matches what was spoken: combat and reveal lines you have set not to announce no longer appear in it.
 - The Warn when adjacent to enemy setting now reads its label, not a raw key name, when settings are opened from the main menu.

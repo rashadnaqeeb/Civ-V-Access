@@ -171,14 +171,30 @@ end
 -- with their summed build turns. Walked-through tiles (already at
 -- target tier) contribute no stop -- their direction folds into the
 -- next emitted segment because the anchor only advances on real stops.
-local function routeBuildStops(path, buildId, routeValue, extraRate, actorAlreadyOnBuild)
+--
+-- includeOrigin adds the leg's origin tile (path[1]) to the turn total
+-- without emitting it as a stop. The worker builds the tile it stands on
+-- first when that tile needs the route (CvUnit::UnitRoadTo), so its build
+-- time is real, but the player isn't navigated to where the worker
+-- already is. Only the head leg sets this: a later leg's origin is a prior
+-- leg's destination that leg already counted, so counting it again would
+-- double up. The origin passes isStartPlot=true so the engine's auto-added
+-- work rate for a worker mid-build there isn't double-counted; the
+-- traversed tiles pass false (none of them is where the worker stands).
+local function routeBuildStops(path, buildId, routeValue, extraRate, actorAlreadyOnBuild, includeOrigin)
     local stops = {}
     local turns = 0
+    if includeOrigin and #path > 0 then
+        local origin = Map.GetPlot(path[1].x, path[1].y)
+        if origin ~= nil then
+            turns = turns + plotBuildTurns(origin, buildId, routeValue, extraRate, actorAlreadyOnBuild, true)
+        end
+    end
     for i = 2, #path do
         local n = path[i]
         local plot = Map.GetPlot(n.x, n.y)
         if plot ~= nil then
-            local pt = plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, i == 1)
+            local pt = plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, false)
             if pt > 0 then
                 stops[#stops + 1] = { x = n.x, y = n.y }
                 turns = turns + pt
@@ -252,21 +268,29 @@ local function compute(unit, queue)
                     if route ~= nil and type(path) == "table" and #path > 0 then
                         local extraRate = unit:WorkRate(true, route.buildId)
                         local actorAlreadyOnBuild = unit:GetBuildType() == route.buildId
-                        local stops, addedTurns =
-                            routeBuildStops(path, route.buildId, route.routeValue, extraRate, actorAlreadyOnBuild)
+                        local stops, addedTurns = routeBuildStops(
+                            path,
+                            route.buildId,
+                            route.routeValue,
+                            extraRate,
+                            actorAlreadyOnBuild,
+                            firstLeg
+                        )
                         if #stops > 0 then
                             local chunk = openChunk(MISSION_KIND_ROUTE, route.name)
                             prevX, prevY = emitSegments(chunk.segments, stops, prevX, prevY)
                             chunk.turns = chunk.turns + addedTurns
                             appendWaypointStops(stops)
                         else
-                            -- Route leg had a valid path but every tile is
-                            -- already at-or-above the target tier. No
-                            -- chunk to open, no waypoints to emit. The
-                            -- anchor must still advance to the leg
-                            -- destination so any subsequent leg measures
-                            -- its segments from here instead of the stale
-                            -- prior anchor.
+                            -- Route leg with no navigable build stop (every
+                            -- traversed tile is already at-or-above the
+                            -- target tier). No chunk to open, no waypoints to
+                            -- emit; any head-leg origin build time has
+                            -- nowhere to attach since a chunk needs a segment
+                            -- to be spoken. The anchor must still advance to
+                            -- the leg destination so a subsequent leg
+                            -- measures its segments from here instead of the
+                            -- stale prior anchor.
                             prevX, prevY = entry.data1, entry.data2
                         end
                     elseif moveLeg ~= nil then
