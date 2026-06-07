@@ -103,19 +103,14 @@ end
 
 -- ===== Waypoint glance, all-units scope =====
 
--- Install the two waypoint glance keys for the duration of fn, then
--- restore the ambient Locale.ConvertTextKey. installLocaleStrings swaps
--- the global resolver, so leaving it in place would clobber sibling
--- cursor tests and later suites (suite_unit_speech reads the ambient
--- resolver and is sensitive to it).
-local function withWaypointStrings(fn)
-    local origConvert = Locale.ConvertTextKey
+-- Install the two waypoint glance keys for the all-units token tests. The
+-- runner resets Locale.ConvertTextKey to the base-game baseline before each
+-- case, so no restore is needed.
+local function installWaypointStrings()
     T.installLocaleStrings({
         ["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "waypoint {1_Index} of {2_Total}",
         ["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED"] = "{1_Name} waypoint",
     })
-    fn()
-    Locale.ConvertTextKey = origConvert
 end
 
 function M.test_glance_waypoint_all_units_lists_selected_then_named()
@@ -125,6 +120,7 @@ function M.test_glance_waypoint_all_units_lists_selected_then_named()
     -- section's token composition, not the enumeration (tested in
     -- waypoints).
     setup()
+    installWaypointStrings()
     civvaccess_shared.cursorSelectedWaypointsOnly = false
     Waypoints.atXYAll = function()
         return {
@@ -132,28 +128,25 @@ function M.test_glance_waypoint_all_units_lists_selected_then_named()
             others = { { unitName = "Scout" }, { unitName = "Warrior" } },
         }
     end
-    withWaypointStrings(function()
-        local tokens = PlotSections.waypoint.Read(T.fakePlot({ x = 3, y = 0 }))
-        T.eq(#tokens, 3)
-        T.eq(tokens[1], "waypoint 2 of 4", "selected unit numbered, first")
-        T.eq(tokens[2], "Scout waypoint", "other units named, in order")
-        T.eq(tokens[3], "Warrior waypoint")
-    end)
+    local tokens = PlotSections.waypoint.Read(T.fakePlot({ x = 3, y = 0 }))
+    T.eq(#tokens, 3)
+    T.eq(tokens[1], "waypoint 2 of 4", "selected unit numbered, first")
+    T.eq(tokens[2], "Scout waypoint", "other units named, in order")
+    T.eq(tokens[3], "Warrior waypoint")
 end
 
 function M.test_glance_waypoint_all_units_named_only_when_no_selection_hit()
     -- No selected-unit hit on this tile: only the named tokens, no leading
     -- numbered one.
     setup()
+    installWaypointStrings()
     civvaccess_shared.cursorSelectedWaypointsOnly = false
     Waypoints.atXYAll = function()
         return { selected = nil, others = { { unitName = "Warrior" } } }
     end
-    withWaypointStrings(function()
-        local tokens = PlotSections.waypoint.Read(T.fakePlot({ x = 3, y = 0 }))
-        T.eq(#tokens, 1)
-        T.eq(tokens[1], "Warrior waypoint")
-    end)
+    local tokens = PlotSections.waypoint.Read(T.fakePlot({ x = 3, y = 0 }))
+    T.eq(#tokens, 1)
+    T.eq(tokens[1], "Warrior waypoint")
 end
 
 -- ===== Owner identity =====

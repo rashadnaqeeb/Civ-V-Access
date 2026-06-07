@@ -670,26 +670,59 @@ function T.mkEntry(cat, sub, name, plotIndex, opts)
     }
 end
 
--- Install a Locale.ConvertTextKey stub backed by the supplied { key = format }
--- map. The format string supports the engine's positional `{N_Tag}`
--- substitution; unmapped keys come back as themselves so missing-key
+-- Resolve `key` against `map`, running the engine's {N_Tag} positional
+-- substitution. Unmapped keys come back as themselves so missing-key
 -- assertions still see the raw key.
+local function resolveLocale(map, key, ...)
+    local template = map[key] or key
+    local args = { ... }
+    if #args == 0 then
+        return template
+    end
+    return (
+        template:gsub("{(%d+)_[^}]*}", function(n)
+            local v = args[tonumber(n)]
+            if v == nil then
+                return ""
+            end
+            return tostring(v)
+        end)
+    )
+end
+
+-- Canonical base-game Locale.ConvertTextKey for the whole runner. Maps the
+-- handful of base-game format strings whose VALUES (not just placeholder
+-- substitution) suites assert on -- UnitSpeech.unitName builds "Roman
+-- Warrior" via TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV, predictionLabel
+-- resolves the combat verdict to "major victory" -- and echoes every other
+-- key. T.run re-installs this before each case so a suite that swaps
+-- Locale.ConvertTextKey (installLocaleStrings, or a hand-rolled override)
+-- can't leak its resolver into a later suite that depends on this baseline;
+-- test order stays irrelevant.
+T.BASE_GAME_STRINGS = {
+    TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV = "{1_Adj} {2_Name}",
+    TXT_KEY_EUPANEL_TOTAL_VICTORY = "total victory",
+    TXT_KEY_EUPANEL_MAJOR_VICTORY = "major victory",
+    TXT_KEY_EUPANEL_MINOR_VICTORY = "minor victory",
+    TXT_KEY_EUPANEL_STALEMATE = "stalemate",
+    TXT_KEY_EUPANEL_MINOR_DEFEAT = "minor defeat",
+    TXT_KEY_EUPANEL_MAJOR_DEFEAT = "major defeat",
+    TXT_KEY_EUPANEL_TOTAL_DEFEAT = "total defeat",
+}
+
+function T.installBaseLocale()
+    Locale = Locale or {}
+    Locale.ConvertTextKey = function(key, ...)
+        return resolveLocale(T.BASE_GAME_STRINGS, key, ...)
+    end
+end
+
+-- Install a Locale.ConvertTextKey stub backed by the supplied { key = format }
+-- map. The runner resets the resolver to the base-game baseline before each
+-- case, so a suite calling this doesn't need to restore afterward.
 function T.installLocaleStrings(map)
     Locale.ConvertTextKey = function(key, ...)
-        local template = map[key] or key
-        local args = { ... }
-        if #args == 0 then
-            return template
-        end
-        return (
-            template:gsub("{(%d+)_[^}]*}", function(n)
-                local v = args[tonumber(n)]
-                if v == nil then
-                    return ""
-                end
-                return tostring(v)
-            end)
-        )
+        return resolveLocale(map, key, ...)
     end
 end
 
@@ -708,6 +741,10 @@ end
 function T.run()
     local passed, failed = 0, {}
     for _, c in ipairs(T.cases) do
+        -- Reset the shared locale resolver before each case so a suite that
+        -- swapped Locale.ConvertTextKey can't leak into the next. Suites that
+        -- need their own strings re-install in their own setup().
+        T.installBaseLocale()
         local ok, err = pcall(c.fn)
         if ok then
             passed = passed + 1

@@ -39,53 +39,13 @@ dofile("src/dlc/UI/Shared/CivVAccess_KeyLayout.lua")
 -- HandlerStack and others read it as a module-level reference.
 civvaccess_shared = civvaccess_shared or {}
 
--- Override Locale.ConvertTextKey so it runs the engine's {N_Tag} positional
--- substitution. The polyfill's passthrough is enough to avoid load-time
--- crashes but loses the substitution behavior the cursor / city sections
--- rely on for game-side keys (TXT_KEY_CITY_OF, TXT_KEY_PLOTROLL_*) -- mod-
--- authored CivVAccess keys go through CivVAccess_Strings and don't need
--- this. Existing suites pass single-arg keys, which short-circuit through
--- the no-args branch unchanged.
---
--- baseGameStrings registers a small set of base-game format strings whose
--- VALUES (not just placeholder substitution) the test needs to mirror
--- production. UnitSpeech.unitName builds "Roman Warrior" via the base
--- game's TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV ("{1_Adj} {2_Name}"); in-
--- game the engine resolves the key to its registered string and then
--- substitutes args, but the test stub has no string registry. Mapping
--- the key to its format here closes the gap so suites can assert on the
--- shape of the resolved phrase rather than the literal key.
-local baseGameStrings = {
-    TXT_KEY_PLOTROLL_UNIT_DESCRIPTION_CIV = "{1_Adj} {2_Name}",
-    -- Combat-prediction verdict labels read by UnitSpeech.meleePreview /
-    -- rangedPreview through predictionLabel. Mapped to their resolved phrases
-    -- so the combat-preview characterization tests pin a clean spoken result
-    -- ("major victory") rather than a lowercased raw key.
-    TXT_KEY_EUPANEL_TOTAL_VICTORY = "total victory",
-    TXT_KEY_EUPANEL_MAJOR_VICTORY = "major victory",
-    TXT_KEY_EUPANEL_MINOR_VICTORY = "minor victory",
-    TXT_KEY_EUPANEL_STALEMATE = "stalemate",
-    TXT_KEY_EUPANEL_MINOR_DEFEAT = "minor defeat",
-    TXT_KEY_EUPANEL_MAJOR_DEFEAT = "major defeat",
-    TXT_KEY_EUPANEL_TOTAL_DEFEAT = "total defeat",
-}
-Locale = Locale or {}
-Locale.ConvertTextKey = function(key, ...)
-    local fmt = baseGameStrings[key] or key
-    local args = { ... }
-    if #args == 0 then
-        return fmt
-    end
-    return (
-        fmt:gsub("{(%d+)_[^}]*}", function(n)
-            local v = args[tonumber(n)]
-            if v == nil then
-                return ""
-            end
-            return tostring(v)
-        end)
-    )
-end
+-- Install the canonical base-game Locale.ConvertTextKey (echo plus {N_Tag}
+-- substitution, with the base-game format strings suites assert resolved
+-- values for -- "Roman Warrior", "major victory"). Defined in support so the
+-- runner can re-install it before every case; this initial call covers any
+-- module-load code that resolves a key before the first case runs. See
+-- T.installBaseLocale for the rationale and the baseGameStrings set.
+T.installBaseLocale()
 
 -- Log and SpeechEngine stay as test-owned capturing stubs so suites can
 -- monkey-patch them (warn-capture, stop() observation). They're deliberately

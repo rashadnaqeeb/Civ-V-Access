@@ -222,18 +222,21 @@ local function setup()
     end
 
     -- Wrap the runner's ConvertTextKey so engine TXT keys map to real
-    -- format strings before substitution. Idempotent: a re-setup() inside
-    -- the same suite returns the wrapped fn untouched.
-    if not Locale._cityStatsKeyWrap then
+    -- format strings before substitution. The runner resets ConvertTextKey
+    -- to the base-game baseline before each case, so re-wrap whenever the
+    -- current resolver isn't our wrapper (a fresh baseline); a repeat
+    -- setup() within one case sees the wrapper already installed and leaves
+    -- it untouched, so the wrap never stacks.
+    if Locale.ConvertTextKey ~= Locale._cityStatsWrapped then
         local prev = Locale.ConvertTextKey
-        Locale.ConvertTextKey = function(key, ...)
+        Locale._cityStatsWrapped = function(key, ...)
             local template = GAME_KEY_TEMPLATES[key]
             if template ~= nil then
                 return prev(template, ...)
             end
             return prev(key, ...)
         end
-        Locale._cityStatsKeyWrap = true
+        Locale.ConvertTextKey = Locale._cityStatsWrapped
     end
 
     GameInfo = GameInfo or {}
