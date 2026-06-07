@@ -76,6 +76,9 @@ include("CivVAccess_Settings")
 -- and target-mode modules can reference it; UnitControl last because it
 -- ties the others into the listener / bindings surface.
 include("CivVAccess_UnitSpeech")
+-- CitySpeech's development line reaches ProductionHelpText for live
+-- international-project status, so the shared module must load first.
+include("CivVAccess_ProductionHelpText")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_UnitActionMenu")
 include("CivVAccess_CursorActivate")

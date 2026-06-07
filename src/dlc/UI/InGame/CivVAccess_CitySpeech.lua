@@ -353,6 +353,12 @@ function CitySpeech.development(city)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_NOT_PRODUCING")
     elseif city:IsProductionProcess() then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_PRODUCING_PROCESS", Text.key(prodKey))
+        -- International projects (World's Fair etc.) run as processes; append
+        -- the league's global progress and this player's contribution.
+        local progress = ProductionHelpText.leagueProgressFor(GameInfo.Processes[city:GetProductionProcess()])
+        if progress ~= nil and progress ~= "" then
+            parts[#parts + 1] = progress
+        end
     else
         local turnsLeft = 0
         if city:GetCurrentProductionDifferenceTimes100(false, false) > 0 then

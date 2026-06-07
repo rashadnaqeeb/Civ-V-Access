@@ -189,6 +189,95 @@ function M.test_processHelp_returns_empty_when_help_unresolved()
 end
 
 -- ---------------------------------------------------------------------
+-- League-project processes (World's Fair etc.): processHelp appends the
+-- full GetProjectDetails block; leagueProgressFor returns just the
+-- progress line. Shared fixture wires Game + GameInfo to a single project.
+-- ---------------------------------------------------------------------
+
+local function installLeague(opts)
+    opts = opts or {}
+    local procRow = { ID = 7, Description = "World's Fair", Help = "TXT_KEY_WF_HELP" }
+    GameInfo.Processes = { [7] = procRow, PROCESS_WORLD_FAIR = procRow }
+    local lpRow = { Type = "LEAGUE_PROJECT_WORLD_FAIR", Process = "PROCESS_WORLD_FAIR", ID = 1 }
+    GameInfo.LeagueProjects = setmetatable({ LEAGUE_PROJECT_WORLD_FAIR = lpRow }, {
+        __call = function()
+            local i = 0
+            return function()
+                i = i + 1
+                return ({ lpRow })[i]
+            end
+        end,
+    })
+    Game = {
+        GetActivePlayer = function()
+            return 0
+        end,
+        IsOption = function()
+            return opts.noLeagues or false
+        end,
+        GetActiveLeague = function()
+            if opts.noLeague then
+                return nil
+            end
+            return {
+                IsProjectActive = function(_, id)
+                    return id == 1 and not opts.inactive
+                end,
+                IsProjectComplete = function()
+                    return false
+                end,
+                GetProjectDetails = function()
+                    return "40% complete. You contributed 12.[NEWLINE][NEWLINE]GOLD TIER[NEWLINE][NEWLINE]SILVER TIER"
+                end,
+            }
+        end,
+    }
+    return procRow
+end
+
+function M.test_processHelp_appends_full_league_details()
+    setup()
+    Locale.ConvertTextKey = function(k)
+        if k == "TXT_KEY_WF_HELP" then
+            return "Contribute production to the World's Fair."
+        end
+        return k
+    end
+    local process = installLeague()
+    local out = ProductionHelpText.processHelp(process)
+    -- Help prose, then a blank-line separator, then the engine details
+    -- block (progress + every reward tier).
+    T.truthy(out:find("Contribute production to the World's Fair.", 1, true), "prose retained: " .. out)
+    T.truthy(out:find("40% complete. You contributed 12.", 1, true), "progress in details: " .. out)
+    T.truthy(out:find("GOLD TIER", 1, true), "reward tiers in details: " .. out)
+end
+
+function M.test_leagueProgressFor_returns_progress_line_only()
+    setup()
+    local process = installLeague()
+    T.eq(ProductionHelpText.leagueProgressFor(process), "40% complete. You contributed 12.")
+end
+
+function M.test_leagueProgressFor_nil_for_ordinary_process()
+    setup()
+    installLeague()
+    -- A process with no matching LeagueProjects row is ordinary.
+    T.eq(ProductionHelpText.leagueProgressFor({ ID = 99, Description = "Wealth" }), nil)
+end
+
+function M.test_leagueProgressFor_nil_when_project_inactive()
+    setup()
+    local process = installLeague({ inactive = true })
+    T.eq(ProductionHelpText.leagueProgressFor(process), nil)
+end
+
+function M.test_leagueProgressFor_nil_when_leagues_disabled()
+    setup()
+    local process = installLeague({ noLeagues = true })
+    T.eq(ProductionHelpText.leagueProgressFor(process), nil)
+end
+
+-- ---------------------------------------------------------------------
 -- Strategy fallback (applied uniformly across building / unit / project /
 -- process when Help is missing on the row).
 -- ---------------------------------------------------------------------

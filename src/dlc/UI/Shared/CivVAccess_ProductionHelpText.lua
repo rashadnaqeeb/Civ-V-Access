@@ -140,18 +140,92 @@ function ProductionHelpText.projectHelp(_city, project, includeCost)
     return applyStrategyFallback(body, project)
 end
 
--- Processes have no engine-exposed contribution data (their effect is a
--- runtime conversion, not a stored set of yields), so we surface the
--- static prose Help / Strategy directly. Text.keyOrNil drops unresolved
--- keys (e.g. PROCESS_RESEARCH_HELP variants that some installs ship
--- without rows) so an unresolved key never reaches Tolk and gets
+-- Resolves the active league and league-project id driven by a process,
+-- or nil for ordinary processes (Wealth / Research), when leagues are
+-- disabled, or when no project is active / complete. International
+-- projects (World's Fair, International Games, ISS) are built by setting
+-- a city to produce their Process; the live global progress and the
+-- player's contribution hang off the league, not the process row.
+-- Mirrors the lookup the engine's GetHelpTextForProcess does. Engine
+-- globals are guarded so the module still dofiles offline.
+local function leagueProjectFor(process)
+    if process == nil then
+        return nil
+    end
+    if Game == nil or Game.GetActiveLeague == nil or Game.IsOption == nil then
+        return nil
+    end
+    if GameInfo == nil or GameInfo.LeagueProjects == nil then
+        return nil
+    end
+    if Game.IsOption("GAMEOPTION_NO_LEAGUES") then
+        return nil
+    end
+    local pLeague = Game.GetActiveLeague()
+    if pLeague == nil then
+        return nil
+    end
+    for row in GameInfo.LeagueProjects() do
+        local proc = GameInfo.Processes[row.Process]
+        if proc ~= nil and proc.ID == process.ID then
+            local lpID = GameInfo.LeagueProjects[row.Type].ID
+            if pLeague:IsProjectActive(lpID) or pLeague:IsProjectComplete(lpID) then
+                return pLeague, lpID
+            end
+            return nil
+        end
+    end
+    return nil
+end
+
+-- Ordinary processes have no engine-exposed contribution data (their
+-- effect is a runtime conversion, not a stored set of yields), so we
+-- surface the static prose Help / Strategy directly. Text.keyOrNil drops
+-- unresolved keys (e.g. PROCESS_RESEARCH_HELP variants that some installs
+-- ship without rows) so an unresolved key never reaches Tolk and gets
 -- spelled out.
+--
+-- League-project processes additionally carry live status (global percent
+-- complete, the player's contribution, reward tiers): we append the full
+-- GetProjectDetails block after the prose, matching what the engine's
+-- GetHelpTextForProcess shows a sighted player in the same tooltip.
 function ProductionHelpText.processHelp(process)
     if process == nil then
         return ""
     end
     local help = (process.Help ~= nil and process.Help ~= "") and (Text.keyOrNil(process.Help) or "") or ""
-    return applyStrategyFallback(help, process)
+    local body = applyStrategyFallback(help, process)
+    local pLeague, lpID = leagueProjectFor(process)
+    if pLeague ~= nil then
+        local details = pLeague:GetProjectDetails(lpID, Game.GetActivePlayer())
+        if details ~= nil and details ~= "" then
+            body = (body == "") and details or (body .. "[NEWLINE][NEWLINE]" .. details)
+        end
+    end
+    return body
+end
+
+-- Concise league-project status for the city banner ("2" key): the
+-- engine's progress line (global percent complete + the active player's
+-- contribution) without the reward-tier breakdown processHelp surfaces in
+-- full. GetProjectDetails emits the progress line, then a blank line, then
+-- the tiers, so we keep everything up to the first blank line. Returns nil
+-- for ordinary processes and when no project is active.
+function ProductionHelpText.leagueProgressFor(process)
+    local pLeague, lpID = leagueProjectFor(process)
+    if pLeague == nil then
+        return nil
+    end
+    local details = pLeague:GetProjectDetails(lpID, Game.GetActivePlayer())
+    if details == nil or details == "" then
+        return nil
+    end
+    local sep = "[NEWLINE][NEWLINE]"
+    local idx = details:find(sep, 1, true)
+    if idx == nil then
+        return details
+    end
+    return details:sub(1, idx - 1)
 end
 
 -- "Production remaining: N" line for a queued or in-progress item.

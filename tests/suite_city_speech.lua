@@ -41,6 +41,7 @@ local function mkCity(opts)
         _productionTurnsLeft = opts.productionTurnsLeft or 0,
         _isProduction = (opts.isProduction ~= false),
         _isProductionProcess = opts.isProductionProcess or false,
+        _productionProcess = (opts.productionProcess == nil) and -1 or opts.productionProcess,
         _productionDiffTimes100 = opts.productionDiffTimes100 or 1000,
         _yieldRate = opts.yieldRate or { [YieldTypes.YIELD_PRODUCTION] = 10, [YieldTypes.YIELD_FOOD] = 8 },
         _isFoodProduction = opts.isFoodProduction or false,
@@ -134,6 +135,9 @@ local function mkCity(opts)
     function c:IsProductionProcess()
         return self._isProductionProcess
     end
+    function c:GetProductionProcess()
+        return self._productionProcess
+    end
     function c:GetCurrentProductionDifferenceTimes100(_a, _b)
         return self._productionDiffTimes100
     end
@@ -197,6 +201,7 @@ end
 -- The active player is id 0 / team 0; foreign civs live at higher ids.
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_ProductionHelpText.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_CitySpeech.lua")
 
     Game = Game or {}
@@ -261,6 +266,7 @@ local function setup()
 
     GameInfo = GameInfo or {}
     GameInfo.Units = {}
+    GameInfo.Processes = {}
     GameInfo.Religions = {}
     GameInfo.MinorCivilizations = {}
     GameInfo.MinorCivTraits = {}
@@ -802,6 +808,47 @@ function M.test_development_process_omits_turns_and_progress()
     -- turn count appended (the comma is the parts-join separator).
     T.truthy(out:find("producing TXT_KEY_PROCESS_WEALTH,", 1, true), "process name without turns: " .. out)
     T.falsy(out:find("production", 1, true), "no progress fraction for process: " .. out)
+end
+
+function M.test_development_international_project_speaks_progress_not_tiers()
+    -- World's Fair and friends run as processes; the banner appends the
+    -- league's progress line (global percent + this player's contribution)
+    -- but not the verbose reward-tier breakdown.
+    setup()
+    local procRow = { ID = 7, Description = "TXT_KEY_PROCESS_WORLD_FAIR", Help = "TXT_KEY_WF_HELP" }
+    GameInfo.Processes = { [7] = procRow, PROCESS_WORLD_FAIR = procRow }
+    local lpRow = { Type = "LEAGUE_PROJECT_WORLD_FAIR", Process = "PROCESS_WORLD_FAIR", ID = 1 }
+    GameInfo.LeagueProjects = setmetatable({ LEAGUE_PROJECT_WORLD_FAIR = lpRow }, {
+        __call = function()
+            local i = 0
+            return function()
+                i = i + 1
+                return ({ lpRow })[i]
+            end
+        end,
+    })
+    Game.GetActiveLeague = function()
+        return {
+            IsProjectActive = function(_, id)
+                return id == 1
+            end,
+            IsProjectComplete = function()
+                return false
+            end,
+            GetProjectDetails = function()
+                return "World Fair is 40% done. You contributed 12.[NEWLINE][NEWLINE]GOLD TIER[NEWLINE][NEWLINE]SILVER TIER"
+            end,
+        }
+    end
+
+    local city = mkCity({
+        productionKey = "TXT_KEY_PROCESS_WORLD_FAIR",
+        isProductionProcess = true,
+        productionProcess = 7,
+    })
+    local out = CitySpeech.development(city)
+    T.truthy(out:find("World Fair is 40% done. You contributed 12.", 1, true), "progress line expected: " .. out)
+    T.falsy(out:find("GOLD TIER", 1, true), "reward tiers omitted on banner: " .. out)
 end
 
 function M.test_development_stopped_growing_when_food_diff_zero()
