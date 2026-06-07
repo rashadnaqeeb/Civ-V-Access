@@ -465,6 +465,15 @@ Mouse = Mouse or {
     eMClick = 3,
 }
 
+-- Chat target enum read by ChatBuffer / StagingRoomAccess to format a line as
+-- broadcast, team, or whisper. Values are placeholders -- mod code compares by
+-- reference against these names, not by number.
+ChatTargetTypes = ChatTargetTypes or {
+    CHATTARGET_ALL = 0,
+    CHATTARGET_TEAM = 1,
+    CHATTARGET_PLAYER = 2,
+}
+
 -- Civ V's Keys enum: printable ASCII keys are registered under their
 -- literal character. Letters are valid Lua identifiers so `Keys.A` works;
 -- top-row digits aren't, so they require bracket form: `Keys["1"]`.

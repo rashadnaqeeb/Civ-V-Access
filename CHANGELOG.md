@@ -22,6 +22,7 @@ New Features and improvements:
 - Unit movement readouts now appear in the message buffer reviewed with the bracket keys, under a new Movement filter.
 
 Bug fixes:
+- Incoming multiplayer chat is no longer announced and buffered two or three times.
 - The bracket-key message buffer now matches what was spoken: combat and reveal lines you have set not to announce no longer appear in it.
 - The Warn when adjacent to enemy setting now reads its label, not a raw key name, when settings are opened from the main menu.
 

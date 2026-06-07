@@ -86,7 +86,23 @@ end
 -- Test seam.
 ChatBuffer._onChat = onChat
 
+-- Idempotent within one Context lifetime via a file-scope local, matching
+-- StagingRoomAccess. onInGameBoot runs on every LoadScreenClose, which fires
+-- more than once against the same env (multiplayer resyncs, hotseat handoff),
+-- and each run calls installListeners. Without this guard every run adds
+-- another live Events.GameMessageChat listener, so one incoming message
+-- speaks and buffers two or three times. A civvaccess_shared flag would
+-- persist across load-from-game and lock the mod to the dead prior-env
+-- listener (CLAUDE.md's no-install-once-guards rule); the file-scope local
+-- resets when Boot re-includes this chunk on WorldView re-init, so a fresh
+-- env still gets a fresh listener.
+local listenersInstalled = false
+
 function ChatBuffer.installListeners()
+    if listenersInstalled then
+        return
+    end
+    listenersInstalled = true
     civvaccess_shared._inGameChatLog = {}
     Log.installEvent(Events, "GameMessageChat", onChat, "ChatBuffer", "chat receive will not fire")
 end
