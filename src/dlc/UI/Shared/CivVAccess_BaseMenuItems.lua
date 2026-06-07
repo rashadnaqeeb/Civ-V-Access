@@ -540,13 +540,17 @@ local function clampUnit(v)
     return v
 end
 
+-- Returns true only when the captured callback ran cleanly. The adjust
+-- loop uses this to decide whether the spoken label can still update: if
+-- no callback fired (none captured, or it errored), the label is frozen,
+-- so the loop must stop after a single step rather than running to an end.
 local function fireSliderCallback(item, newValue)
     local cb = PullDownProbe.sliderCallbackFor(item._control)
     if cb == nil then
         Log.warn(
             "BaseMenu slider '" .. tostring(item.controlName) .. "': callback not captured, game state will not update"
         )
-        return
+        return false
     end
     local void1
     local okV, v = pcall(function()
@@ -558,7 +562,9 @@ local function fireSliderCallback(item, newValue)
     local ok, err = pcall(cb, newValue, void1)
     if not ok then
         Log.error("BaseMenu slider '" .. tostring(item.controlName) .. "' callback failed: " .. tostring(err))
+        return false
     end
+    return true
 end
 
 function BaseMenuItems.Slider(spec)
@@ -618,7 +624,8 @@ function BaseMenuItems.Slider(spec)
         -- steps. Stepping once would re-announce the unchanged value, so
         -- keep stepping until the label changes or we reach an end. The
         -- spoken value then advances by exactly one per keypress.
-        -- Sliders with no live value label (composite nil) break after a
+        -- Sliders with no live value label (composite nil), or whose
+        -- callback did not fire (so the label can't move), break after a
         -- single step, preserving the continuous behaviour.
         local prevLabel = sliderCompositeLabel(self)
         local cur = c:GetValue()
@@ -628,9 +635,9 @@ function BaseMenuItems.Slider(spec)
                 break
             end
             c:SetValue(next)
-            fireSliderCallback(self, next)
+            local fired = fireSliderCallback(self, next)
             cur = next
-            if prevLabel == nil or sliderCompositeLabel(self) ~= prevLabel then
+            if not fired or prevLabel == nil or sliderCompositeLabel(self) ~= prevLabel then
                 break
             end
         end

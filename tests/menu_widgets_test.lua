@@ -421,8 +421,40 @@ function M.test_slider_callback_missing_logs_warn()
     })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    -- No callback captured, so the label can never move; one keypress must
+    -- still take exactly one step rather than running to the clamp.
     T.eq(slider:GetValue(), 0.51, "value still changes")
     T.truthy(#warns >= 1, "callback-missing warn logged")
+end
+
+function M.test_slider_quantized_label_steps_until_value_changes()
+    -- The city-states slider maps a continuous [0,1] track onto an integer
+    -- count, so several unit steps can share one spoken label. One keypress
+    -- must keep stepping until the label flips to the next distinct value.
+    setup()
+    local slider = Polyfill.makeSlider({ value = 0.50 })
+    -- 5 buckets: a 0.05-wide band shares a count, wider than the 0.01 step.
+    local function bucket(v)
+        return tostring(math.floor(v * 5))
+    end
+    local label = Polyfill.makeLabel(bucket(0.50))
+    populateControls({ Sld = slider, Lbl = label })
+    registerSliderCallback(slider, function(v)
+        label:SetText(bucket(v))
+    end)
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Slider({ controlName = "Sld", labelControlName = "Lbl", textKey = "LBL" }),
+        },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    -- 0.50 is bucket 2; the next bucket (3) starts at 0.60, so one keypress
+    -- advances ten unit steps, not one.
+    T.truthy(math.abs(slider:GetValue() - 0.60) < 1e-6, "stepped to next bucket: " .. slider:GetValue())
+    T.eq(label:GetText(), "3", "spoken label advanced one bucket")
 end
 
 function M.test_slider_left_decrements()
