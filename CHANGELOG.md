@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-08
+
 New Features and improvements:
 - A new pair of settings can widen the scanner and the tile readout to show queued waypoints for every unit, not just the selected one.
 - Custom scanner categories can hold search keywords, each becoming a subcategory of everything whose name matches it.
