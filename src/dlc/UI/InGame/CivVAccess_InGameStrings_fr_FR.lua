@@ -181,6 +181,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "en file d'attente
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "impossible de mettre l'attaque en file d'attente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW"] = "Espace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW"] = "Prévisualiser l'action sur la case cible"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_WAYPOINT_PREVIEW"] = "Maj plus espace"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_WAYPOINT_PREVIEW"] = "Prévisualiser le déplacement depuis le dernier point de passage en file d'attente vers la case cible"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT"] = "Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT"] = "Exécuter l'action sur la case cible"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_QUEUE"] = "Maj plus entrée"
@@ -600,6 +602,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "eau douce"
 -- Numbered step on the head-selected unit's queued path. Speaks on cursor
 -- glance and as the scanner item name for the "waypoints" category.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "point de passage {1_Index} sur {2_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED"] = "point de passage de {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_NAMED"] = "{1_Name} pillé"
 -- Macro-terrain tokens. Spoken inside the cursor glance for plots the engine
 -- does not give a per-terrain TXT key for (hills are a flag on top of base
@@ -843,9 +846,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER"] = "Activer la
 -- Settings overlay strings. Reachable from every Context that routes
 -- through InputRouter, so duplicated in the FrontEnd copy as well.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Paramètres"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI"] = "Paramètres d'interface"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_GENERAL"] = "Paramètres généraux"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_CURSOR"] = "Paramètres du curseur"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON"] = "Paramètres des balises"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_AUDIO"] = "Paramètres audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER"] = "Paramètres du scanner"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS"] = "Notifications"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Icones auditives de terrain"
@@ -881,6 +884,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Le scanner a
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] =
     "Le scanner utilise la direction cardinale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Le scanner joue un bip directionnel"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] = "Afficher uniquement les points de passage de l'unité sélectionnée dans le scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] = "Afficher uniquement les points de passage de l'unité sélectionnée dans la lecture de case"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Lire les sous-titres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] =
     "Annoncer les changements de visibilité pendant le déplacement"
@@ -2638,6 +2643,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_ALL"] = "Tous les messages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_NOTIFICATION"] = "Notifications"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_REVEAL"] = "Découvertes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Combat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_MOVEMENT"] = "Déplacements"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Discussion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "aucun message"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Crochet gauche et crochet droit"

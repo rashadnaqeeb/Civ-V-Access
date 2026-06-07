@@ -105,6 +105,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_QUEUED"] = "eingereiht"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] = "Angriff kann nicht eingereiht werden"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW"] = "Leertaste"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW"] = "Aktion auf dem Zielfeld voranzeigen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_WAYPOINT_PREVIEW"] = "Umschalt plus Leertaste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_WAYPOINT_PREVIEW"] =
+    "Bewegung vom letzten eingereihten Wegpunkt zum Zielfeld voranzeigen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT"] = "Eingabe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT"] = "Aktion auf dem Zielfeld bestätigen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_QUEUE"] = "Umschalt plus Eingabe"
@@ -488,6 +491,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "Süßwasser"
 
 -- ===== Waypoint =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "Wegpunkt {1_Index} von {2_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED"] = "Wegpunkt von {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_NAMED"] = "{1_Name} geplündert"
 
 -- ===== Macro-terrain tokens =====
@@ -697,9 +701,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER"] = "Zelle akti
 -- Settings overlay strings. Reachable from every Context that routes
 -- through InputRouter, so duplicated in the FrontEnd copy as well.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Einstellungen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI"] = "Benutzeroberflächeneinstellungen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_GENERAL"] = "Allgemeine Einstellungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_CURSOR"] = "Cursoreinstellungen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON"] = "Signal-Einstellungen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_AUDIO"] = "Audioeinstellungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER"] = "Scanner-Einstellungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS"] = "Benachrichtigungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Gelände-Earcons"
@@ -732,6 +736,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_ENEMY_ADJACENT_WARN"] = "Bei ben
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner zeigt Koordinaten"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "Scanner verwendet Himmelsrichtung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Scanner spielt Richtungston ab"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
+    "Im Scanner nur Wegpunkte der ausgewählten Einheit anzeigen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
+    "Im Geländefeld-Bericht nur Wegpunkte der ausgewählten Einheit anzeigen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Untertitel vorlesen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Sichtbarkeitsänderungen beim Bewegen ansagen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "KI-Kampfergebnisse ansagen"
@@ -2285,6 +2293,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_ALL"] = "Alle Nachrichten"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_NOTIFICATION"] = "Benachrichtigungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_REVEAL"] = "Entdeckungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Kampf"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_MOVEMENT"] = "Bewegungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Chat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "keine Nachrichten"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Linke und rechte eckige Klammer"

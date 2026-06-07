@@ -190,9 +190,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_OPEN_DISCORD"] = "Entrar no servidor
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Configurações"
 -- Top-level drillable labels. The Settings menu groups individual prefs
 -- into five buckets so the list isn't a flat wall of toggles.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI"] = "Configurações de interface"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_GENERAL"] = "Configurações gerais"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_CURSOR"] = "Configurações do cursor"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON"] = "Configurações da baliza"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_AUDIO"] = "Configurações de áudio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER"] = "Configurações do scanner"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS"] = "Notificações"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Sinais sonoros de terreno"
@@ -227,6 +227,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_ENEMY_ADJACENT_WARN"] = "Avisar 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner exibe coordenadas"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "Scanner usa direção de bússola"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Scanner reproduz bipe direcional"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] = "Exibir apenas pontos de passagem da unidade selecionada no scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] = "Exibir apenas pontos de passagem da unidade selecionada na leitura do hexágono"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Ler legendas"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] = "Anunciar mudanças de visibilidade ao mover"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AI_COMBAT_ANNOUNCE"] = "Anunciar resultado de combate da IA"

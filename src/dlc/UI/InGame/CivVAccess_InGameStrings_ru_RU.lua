@@ -110,6 +110,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_TARGET_NOT_QUEUEABLE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW"] = "Space"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_PREVIEW"] =
     "Предпросмотр действия для выбранной клетки"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_WAYPOINT_PREVIEW"] = "Shift плюс пробел"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_WAYPOINT_PREVIEW"] =
+    "Предпросмотр пути от последней путевой точки в очереди до выбранной клетки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_COMMIT"] = "Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_HELP_DESC_COMMIT"] =
     "Выполнить действие для выбранной клетки"
@@ -543,6 +546,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RIVER_ALL_SIDES"] = "река со все
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FRESH_WATER"] = "пресная вода"
 -- Numbered step on the head-selected unit's queued path.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT"] = "путевая точка {1_Index} из {2_Total}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PLOT_WAYPOINT_NAMED"] = "путевая точка {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PILLAGED_NAMED"] = "{1_Name} разграблено"
 -- Macro-terrain tokens.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HILLS"] = "холмы"
@@ -759,9 +763,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_ENTER"] =
     "Активировать ячейку или сортировать по столбцу"
 -- ===== Settings overlay =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"] = "Настройки"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_UI"] = "Настройки интерфейса"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_GENERAL"] = "Общие настройки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_CURSOR"] = "Настройки курсора"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_BEACON"] = "Настройки маяка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_AUDIO"] = "Звуковые настройки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_SCANNER"] = "Настройки сканера"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_GROUP_NOTIFICATIONS"] = "Уведомления"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Звуковые сигналы местности"
@@ -809,6 +813,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] =
     "Сканер использует компасное направление"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] =
     "Сканер воспроизводит направленный сигнал"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
+    "Показывать только путевые точки выбранного юнита в сканере"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
+    "Показывать только путевые точки выбранного юнита в описании клетки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Читать субтитры"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_REVEAL_ANNOUNCE"] =
     "Объявлять изменения видимости при движении"
@@ -2451,6 +2459,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_ALL"] = "Все сообщ�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_NOTIFICATION"] = "Уведомления"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_REVEAL"] = "Открытия"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_COMBAT"] = "Бой"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_MOVEMENT"] = "Движения"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_FILTER_CHAT"] = "Чат"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_EMPTY"] = "нет сообщений"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MSGBUF_HELP_KEY_NAV"] = "Левая скобка и правая скобка"
