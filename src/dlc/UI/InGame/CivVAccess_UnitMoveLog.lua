@@ -15,7 +15,9 @@
 -- decoupled from speech the same way RevealAnnounce's F7 surface is.
 -- Visibility is filtered per step: only steps whose destination the active
 -- team can see are buffered, so a unit crossing fog reads only the part you
--- could watch, and a move entirely in fog produces nothing.
+-- could watch, and a move entirely in fog produces nothing. Trade units
+-- (caravans, cargo ships) are excluded entirely -- their automatic route
+-- shuttling isn't actionable and would swamp the log.
 --
 -- Lifecycle mirrors CombatLog: the log clears at ActivePlayerTurnEnd and
 -- accumulates through the AI turn and the player's next turn until the
@@ -23,13 +25,13 @@
 -- waited through plus any other-human moves that landed live. Hotseat clears
 -- on GameplaySetActivePlayer so one human's view doesn't bleed to the next.
 --
--- Own-unit moves are included only as queued-move continuations: a unit you
--- sent on a multi-turn path advancing on turn 2+ (turn 1 is the interactive
--- commit, which UnitControlMovement already speaks). Those are filtered out
--- here via UnitControlMovement.hasPendingFor so the commit isn't double-
--- announced, and automated units are skipped. They read as "Your <unit>
--- moves <steps>", share the F7 group, and speak only when the Your-queued-
--- moves toggle is on.
+-- Own-unit moves are included when the unit advances without a fresh command:
+-- a multi-turn queued path continuing on turn 2+ (turn 1 is the interactive
+-- commit, which UnitControlMovement already speaks, filtered out here via
+-- UnitControlMovement.hasPendingFor so it isn't double-announced), and units on
+-- automated orders (auto-explore, auto-worker) moving each turn. They read as
+-- "Your <unit> moves <steps>", share the F7 group, and speak only when the
+-- own-moves toggle is on.
 
 UnitMoveLog = {}
 
@@ -144,17 +146,19 @@ local function classifyOwnerBucket(owner, activeTeam)
 end
 
 -- Classify a move into a (unit, bucket) pair, or nil to drop it. Own units log
--- only as queued continuations: skip the move while the interactive commit is
--- still resolving (UnitControlMovement speaks that) and skip automated units.
--- Non-own units must be alive, visible, and non-invisible, with a visible
--- destination so fogged movement stays silent.
+-- under the "own" bucket as queued-path continuations and automated-order moves
+-- (auto-explore, auto-worker) alike -- both advance without a fresh command, so
+-- they share the toggle. Only the interactive commit is skipped while it's still
+-- resolving (UnitControlMovement speaks that). Non-own units must be alive,
+-- visible, and non-invisible, with a visible destination so fogged movement
+-- stays silent.
 local function classifyMove(ownerId, unitId, toX, toY)
     if ownerId == Game.GetActivePlayer() then
         if UnitControlMovement.hasPendingFor(unitId) then
             return nil
         end
         local unit = Players[ownerId]:GetUnitByID(unitId)
-        if unit == nil or unit:IsAutomated() then
+        if unit == nil then
             return nil
         end
         return unit, "own"
@@ -178,6 +182,12 @@ end
 local function onUnitMoved(ownerId, unitId, fromX, fromY, toX, toY)
     local unit, bucket = classifyMove(ownerId, unitId, toX, toY)
     if unit == nil then
+        return
+    end
+    -- Trade units (caravans, cargo ships) shuttle their routes every turn;
+    -- their movement is automatic and not actionable, so it stays out of both
+    -- speech and the F7 log.
+    if unit:IsTrade() then
         return
     end
     local key = ForeignUnitSnapshot.unitKey(ownerId, unitId)

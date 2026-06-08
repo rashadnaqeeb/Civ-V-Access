@@ -173,6 +173,7 @@ local function foreignUnit(slot, unitId, opts)
         _type = opts.type or 100,
         _invisible = opts.invisible or false,
         _automated = opts.automated or false,
+        _trade = opts.trade or false,
     }
     function unit:GetID()
         return self._id
@@ -185,6 +186,9 @@ local function foreignUnit(slot, unitId, opts)
     end
     function unit:IsAutomated()
         return self._automated
+    end
+    function unit:IsTrade()
+        return self._trade
     end
     Players[slot] = T.fakePlayer({
         adj = opts.adj or "Roman",
@@ -355,14 +359,21 @@ function M.test_own_interactive_commit_skipped()
     T.eq(civvaccess_shared.unitMoveLog, nil, "pending commit not double-logged")
 end
 
--- Automated own units (auto-explore / auto-worker) are dropped to avoid noise.
-function M.test_own_automated_skipped()
+-- Automated own units (auto-explore / auto-worker) advance without a fresh
+-- command, so they share the own bucket with queued continuations: logged to F7
+-- and spoken under the own toggle. The unit is marked automated so this guards
+-- against a unit:IsAutomated() drop being reintroduced into classifyMove --
+-- production no longer reads the flag, but a regression would re-add the read.
+function M.test_own_automated_logged()
     setup()
     civvaccess_shared.unitMoveOwn = true
     foreignUnit(0, 5, { team = 0, automated = true })
     step(0, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
-    T.eq(civvaccess_shared.unitMoveLog, nil, "automated own unit not logged")
+    local log = civvaccess_shared.unitMoveLog
+    T.eq(#log, 1, "automated own unit logged")
+    T.eq(log[1].text, "Your Warrior moves 1e")
+    T.eq(spoken[1], "Your Warrior moves 1e", "automated own move speaks under the own toggle")
 end
 
 -- An invisible-to-team unit (e.g. submarine) on a visible plot is dropped.
@@ -373,6 +384,18 @@ function M.test_invisible_unit_not_logged()
     step(1, 5, 0, 0, 1, 0)
     UnitMoveLog._flush()
     T.eq(civvaccess_shared.unitMoveLog, nil, "invisible unit not logged")
+end
+
+-- Trade units (caravans, cargo ships) are excluded entirely: their automatic
+-- route shuttling neither speaks nor reaches the F7 log.
+function M.test_trade_unit_excluded()
+    setup()
+    civvaccess_shared.unitMoveNeutral = true
+    foreignUnit(1, 5, { trade = true })
+    step(1, 5, 0, 0, 1, 0)
+    UnitMoveLog._flush()
+    T.eq(civvaccess_shared.unitMoveLog, nil, "trade unit not logged to F7")
+    T.eq(#spoken, 0, "trade unit not spoken")
 end
 
 -- A non-adjacent step (teleport / paradrop) can't be a step sequence, so the
