@@ -38,7 +38,7 @@ A spring of impossibly bright turquoise water wells up from a basin atop dark ro
 ## 4. FEATURE_FUJI
 Mt. Fuji
 
-The famous volcano's perfect cone fills the frame, its broad snow cap reaching most of the way down the slopes. The snow is painted in soft white and pale blue against a deep blue sky, and a strip of green brush and misty water lies along the mountain's foot.
+A perfect volcanic cone fills the frame, its broad snow cap reaching most of the way down the slopes. The snow is painted in soft white and pale blue against a deep blue sky, and a strip of green brush and misty water lies along the mountain's foot.
 
 ## 5. FEATURE_GEYSER
 Old Faithful
@@ -48,12 +48,12 @@ A geyser erupts from a craggy pale mound, its white spray fanning out to fill th
 ## 6. FEATURE_GIBRALTAR
 Rock of Gibraltar
 
-The great limestone promontory rises from a flat sea, sheer pale cliffs on its left face and a long slope of dark green vegetation running down its back. The whole scene is washed in gold, the sky and water glowing like late afternoon.
+A great limestone promontory rises from a flat sea, sheer pale cliffs on its left face and a long slope of dark green vegetation running down its back. The whole scene is washed in gold, the sky and water glowing like late afternoon.
 
 ## 7. FEATURE_KILIMANJARO
 Mt. Kilimanjaro
 
-The mountain's huge snow-streaked dome fills the upper half of the frame in icy white and blue, with a ring of small clouds drifting at its base. Below it spreads green savanna where two giraffes stand by a pale waterhole, flat-topped trees at the edges of the scene.
+A huge snow-streaked dome fills the upper half of the frame in icy white and blue, with a ring of small clouds drifting at its base. Below it spreads green savanna where two giraffes stand by a pale waterhole, flat-topped trees at the edges of the scene.
 
 ## 8. FEATURE_LAKE_VICTORIA
 Lake Victoria
@@ -68,7 +68,7 @@ A flat-topped mesa of layered red-orange rock rises alone from a dry plain, band
 ## 10. FEATURE_MT_KAILASH
 Mt. Kailash
 
-The sacred peak's pyramid of banded rock and snow rises against a deep blue sky, its famous striped face lit warm gold on one side. Below it the foreground is all rough snowfield and ice ridges in cold blue shadow.
+A pyramid of banded rock and snow rises against a deep blue sky, its striped face lit warm gold on one side. Below it the foreground is all rough snowfield and ice ridges in cold blue shadow.
 
 ## 11. FEATURE_MT_SINAI
 Mt. Sinai
@@ -83,12 +83,12 @@ A bare reddish-brown mountain whose lower slopes are buried under heaps of grey 
 ## 13. FEATURE_REEF
 The Great Barrier Reef
 
-An underwater scene, the only one among the wonders: coral crowds the left and bottom of the frame in orange, red, purple, and pale blue, with tube sponges standing upright among the branches. Small tropical fish drift through the deep blue water, a bright yellow one at the center, and the light dims into open darkness toward the upper right.
+An underwater scene: coral crowds the left and bottom of the frame in orange, red, purple, and pale blue, with tube sponges standing upright among the branches. Small tropical fish drift through the deep blue water, a bright yellow one at the center, and the light dims into open darkness toward the upper right.
 
 ## 14. FEATURE_SOLOMONS_MINES
 King Solomon's Mines
 
-The legendary mines drawn as a monumental gatehouse: a tall dark fortress wall crowned with gold-tipped battlements, a doorway at its center, flanked by tan stone towers. In front of it the pale rock floor is carved into sweeping curves, as if the ground itself had been quarried smooth.
+A monumental gatehouse standing in for the legendary mines: a tall dark fortress wall crowned with gold-tipped battlements, a doorway at its center, flanked by tan stone towers. In front of it the pale rock floor is carved into sweeping curves, as if the ground itself had been quarried smooth.
 
 ## 15. FEATURE_SRI_PADA
 Sri Pada
@@ -98,7 +98,7 @@ A lush green mountain rises to a rounded peak, jungle covering its slopes except
 ## 16. FEATURE_ULURU
 Uluru
 
-The great red monolith lies across the middle distance, its rounded sandstone mass furrowed with vertical grooves and glowing orange in the light. In front of it stretches flat outback scrub, red earth patched with low green brush and tufts of grass, under a bright blue sky.
+A great red monolith lies across the middle distance, its rounded sandstone mass furrowed with vertical grooves and glowing orange in the light. In front of it stretches flat outback scrub, red earth patched with low green brush and tufts of grass, under a bright blue sky.
 
 ## 17. FEATURE_VOLCANO
 Krakatoa
