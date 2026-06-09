@@ -11,10 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
-New Features and improvements:
-- The "Your queued moves" setting now also announces your units on automated orders like auto-explore.
-
 Bug fixes:
+- The "Your queued moves" setting again announces your units on automated orders like auto-explore.
 - Caravans and cargo ships no longer clutter the moving-units announcements and the F7 Unit Moves log.
 
 ## [1.4.0] - 2026-06-08
