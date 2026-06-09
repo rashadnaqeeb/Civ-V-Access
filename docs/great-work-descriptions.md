@@ -1,0 +1,486 @@
+# Great Works of Art - spoken descriptions
+
+Spoken descriptions for all 94 great works of art in Brave New World, written from
+the actual paintings. Style: medium and tradition first (fame hook only when
+genuinely iconic), then the scene, then the look (composition, color, light).
+About three sentences. Title and artist are not repeated because the great work
+popup already announces them. No dates or museums unless they earn their place.
+For long handscrolls the description covers a representative section, since no
+single image shows the full scroll legibly. Plain punctuation, no em-dashes.
+
+Each entry: in-game GreatWorkType, title, artist, then the description text. The
+type key is the stable identifier for turning these into mod strings; note two
+works share the title "The Kiss" (Klimt and Hayez) and are distinguished by it.
+
+---
+
+## 1. GREAT_WORK_GIRL_WITH_PEARL_EARRING
+Girl with a Pearl Earring, by Jan Vermeer
+
+Dutch Golden Age oil painting, one of the most beloved portraits in Western art. A young woman turns back over her shoulder to meet your eyes out of a plain dark background, lips just parted as if about to speak. She wears a blue and gold turban whose cloth trails down her back, and a single large teardrop pearl catches the light at her ear.
+
+## 2. GREAT_WORK_HENRY_VIII
+Henry VIII, by Hans Holbein the Younger
+
+Tudor court portrait in oil, the image that fixed how the world pictures Henry VIII. The king stands facing you full length, feet planted wide, broad shouldered and heavy, one hand resting on a dagger at his waist. He wears a jeweled silver doublet under a fur-lined crimson coat, a flat feathered hat, and gold chains, standing on a patterned carpet between marble columns.
+
+## 3. GREAT_WORK_HUNTERS_IN_THE_SNOW
+Hunters in the Snow, by Pieter Bruegel
+
+Flemish Renaissance oil painting, a winter landscape seen from a hilltop. Three weary hunters and their pack of dogs trudge through deep snow in the foreground, heads down, with only a single fox to show for the hunt. Below them a village spreads out under a gray-green sky, with tiny skaters playing on frozen ponds and jagged peaks rising in the distance.
+
+## 4. GREAT_WORK_LES_DEMOISELLES
+Les Demoiselles d'Avignon, by Pablo Picasso
+
+Early modernist oil painting, the canvas that launched Cubism. Five nude women stand and sit in a shallow space of jagged pink, white, and blue planes, their bodies broken into sharp angular shapes. The two faces on the right are painted like African masks, striped and distorted, while the others stare straight out with wide almond eyes; a small bowl of fruit sits at the bottom edge.
+
+## 5. GREAT_WORK_LUNCHEON
+Luncheon of the Boating Party, by Pierre-Auguste Renoir
+
+French Impressionist oil painting of friends lingering after a meal. A lively group in summer dress crowds a riverside balcony under a striped orange and white awning, talking, flirting, and leaning on the rail; a young woman in front plays with a small dog. The table is littered with wine bottles, glasses, and fruit, all painted in warm, loose dabs of sunlit color.
+
+## 6. GREAT_WORK_MONA_LISA
+Mona Lisa, by Leonardo da Vinci
+
+Italian Renaissance oil on a wood panel, probably the most famous portrait in the world. A woman sits with her hands folded, turned slightly toward you against a hazy landscape of winding rivers and distant blue mountains, her faint half-smile the focus of the painting. The tones are soft browns and greens with no hard outlines, so her expression seems to shift the longer you look.
+
+## 7. GREAT_WORK_SUNDAY_AFTERNOON
+Sunday Afternoon on the Island of La Grande-Jatte, by George Seurat
+
+Pointillist oil painting, built entirely from tiny dots of pure color. Parisians in their Sunday best relax on a sunny riverside lawn, strolling with parasols, lounging on the grass, and walking little dogs, with sailboats on the water behind them. Everyone is strangely still and formal, like figures in a frieze, the light broken into a shimmer of green, orange, and violet specks.
+
+## 8. GREAT_WORK_VIEW_OF_TOLEDO
+View of Toledo, by El Greco
+
+Spanish Renaissance oil painting, one of the earliest pure landscapes in Western art and an unusually dark one. The Spanish hill city of Toledo rises in the distance under a violent storm sky, its gray spires and walls lit by an eerie silver light. Green hills roll down to a river in the foreground, the whole scene painted in deep greens and blue-blacks that feel more dream than daylight.
+
+## 9. GREAT_WORK_WATER_LILIES
+Water Lilies, by Claude Monet
+
+French Impressionist oil painting from Monet's famous series of his garden pond at Giverny. The whole canvas is the surface of the water, with no horizon or shore: rafts of green lily pads drift across blue and lavender water dotted with pink and red blossoms. Clouds and trees appear only as soft reflections, the brushwork loose enough that everything seems to float.
+
+## 10. GREAT_WORK_STARRY_NIGHT
+Starry Night, by Vincent van Gogh
+
+Post-Impressionist oil painting, one of the most recognized images in modern art. A night sky alive with motion fills most of the canvas: stars blaze inside swirling halos, and the moon burns orange in the corner while a great spiral current rolls across the middle of the sky. Below, a quiet village with a pointed church steeple sleeps among hills, and a dark cypress tree flames up the left edge, all in thick, visible strokes of blue and gold.
+
+## 11. GREAT_WORK_BIRTH_OF_VENUS
+Birth of Venus, by Sandro Botticelli
+
+Italian Renaissance painting of the goddess of love arriving from the sea, among the most famous images of classical myth. Venus stands nude on a giant scallop shell, covering herself with her hands and a sweep of long golden hair. On the left two winged wind gods blow her toward shore through a rain of pink roses, while on the right a woman in a flowered dress rushes to wrap her in a billowing cloak.
+
+## 12. GREAT_WORK_BINDO_ALTOVITI
+Portrait of Bindo Altoviti, by Raffaello Sanzio
+
+Italian High Renaissance oil portrait of a wealthy young Roman banker. A handsome young man with long golden hair and a black cap looks back at you over his bare shoulder, one hand drawn to his chest. He wears a blue mantle over a black garment, and his pale face glows against a deep green background.
+
+## 13. GREAT_WORK_SAINT_GEORGE_DRAGON
+Saint George and the Dragon, by Paolo Uccello
+
+Early Italian Renaissance painting with the stiff, storybook charm of a fairy tale. On the right, an armored knight on a rearing white horse drives his lance into the open jaws of a winged green dragon with spotted moth-like wings. On the left a calm princess in a long pink gown holds the wounded beast on a leash like a pet, in front of its dark cave, while a strange spiral storm gathers behind the knight.
+
+## 14. GREAT_WORK_CREATION_OF_ADAM
+Creation of Adam, by Michelangelo Buonarroti
+
+Italian Renaissance fresco from the Sistine Chapel ceiling, source of one of the most famous gestures in art. A nude Adam reclines on a green hillside at the left, one arm stretched out limply, while God, a gray-bearded figure in a billowing rose-colored shroud full of angels, surges in from the right. Their extended index fingers reach toward each other across a small gap, the instant before the spark of life.
+
+## 15. GREAT_WORK_GALLERY_OF_THE_LOUVRE
+Gallery of the Louvre, by Samuel F. B. Morse
+
+American oil painting of a gallery inside the Louvre, painted by the same Morse who later invented the telegraph code. A grand red-walled salon is covered floor to ceiling with dozens of old master paintings in gold frames, including a tiny Mona Lisa. In the foreground, art students sit copying at easels while their teacher leans over a young woman's shoulder to correct her work, and an arched corridor of further galleries opens in the distance.
+
+## 16. GREAT_WORK_WASHINGTON_CROSSING
+Washington Crossing the Delaware, by Emanuel Leutze
+
+Heroic American history painting in oil, an icon of the Revolutionary War. General Washington stands upright at the bow of a crowded rowboat as his soldiers pole and row through a river choked with slabs of ice, an officer behind him holding the American flag aloft. Dawn light breaks through the cold haze, and more boats full of men and horses follow behind.
+
+## 17. GREAT_WORK_ARRANGEMENT_IN_GREY
+Arrangement in Grey and Black: Portrait of the Artist's Mother, by James Abbott McNeill Whistler
+
+American oil painting universally known as Whistler's Mother. An elderly woman in a long black dress and white lace cap sits in strict profile, facing left, hands folded in her lap and feet on a small footstool. The room is austere and flat: a gray wall, a dark patterned curtain, and a single framed picture, the whole composition balanced like a study in gray and black, exactly as the title says.
+
+## 18. GREAT_WORK_BREEZING_UP
+Breezing Up (A Fair Wind), by Winslow Homer
+
+American realist oil painting of small-boat sailing off the New England coast. A man and three boys lean back in a small catboat named Gloucester as it heels over in a stiff breeze, spray breaking off the bow and the day's catch piled at their feet. The sea is a choppy green under broken clouds, with a two-masted schooner on the horizon.
+
+## 19. GREAT_WORK_A_THOUSAND_LI
+A Thousand Li of Rivers and Mountains, by Wang Ximeng
+
+Chinese blue-green landscape handscroll, painted on silk by a teenage prodigy of the Song court and nearly twelve meters long. Mountains in vivid mineral blue and green rise in ridge after ridge out of a calm golden river, with tiny villages, bridges, and bare trees tucked between the slopes. Columns of brushed calligraphy and red collectors' seals fill the sky above the peaks.
+
+## 20. GREAT_WORK_DWELLING_IN_THE_FUCHUN
+Dwelling in the Fuchun Mountains, by Huang Gongwang
+
+Chinese ink handscroll, a masterpiece of Yuan dynasty literati landscape painting done entirely in shades of black ink on paper. Rounded mountains built from layered, dry brushstrokes rise above a wide calm river, with pines, scattered cottages, and fishing boats along the banks. The mood is unhurried and contemplative, the paper dotted with red collectors' seals accumulated over centuries of admirers.
+
+## 21. GREAT_WORK_ALONG_THE_RIVER
+Along the River During Qingming Festival, by Zhang Zeduan
+
+Chinese Song dynasty handscroll on silk, a famous panorama of daily city life over five meters long. The section shown centers on the capital's great city gate, a massive wooden tower atop a sloping rampart, with streets below teeming with life: market stalls, ox carts, a camel caravan passing through the gate, and porters carrying loads on shoulder poles. Every figure is tiny but precisely drawn in fine ink line with muted earth tones.
+
+## 22. GREAT_WORK_LEAF_2
+Leaf 2 (Paintings of Ladies), by Jiao Bingzhen
+
+Chinese Qing dynasty album leaf, court painting in fine line and delicate color. Elegant ladies in long flowing robes of white, green, and blue gather in a garden pavilion draped with bright blue cloth, one burning incense at a table behind a red railing. Around them are garden rocks, bamboo, and a flowering vine climbing over the pavilion roof.
+
+## 23. GREAT_WORK_EMPEROR_TAIZONG
+Emperor Taizong Receiving the Tibetan Envoy, by Yan Liben
+
+Chinese Tang dynasty handscroll on silk, a court record of a diplomatic meeting. On the right, Emperor Taizong sits on a platform carried by palace ladies who also hold two great fans and a red canopy above him. On the left, three smaller figures approach in respectful poses: a court usher in red, the Tibetan envoy in a patterned robe, and an interpreter in white, all against warm golden silk covered with red seals.
+
+## 24. GREAT_WORK_SPRING_MORNING
+Spring Morning in the Han Palace, by Qiu Ying
+
+Chinese Ming dynasty handscroll on silk, a long panorama of palace women at leisure on a spring morning. Dozens of elegant ladies fill open halls, verandas, and courtyards: making music, painting a portrait, playing with children, and strolling among willows, garden rocks, and even peacocks. The palace architecture runs the length of the scroll in warm reds and greens, every screen, railing, and robe rendered in meticulous fine-lined detail.
+
+## 25. GREAT_WORK_THE_GREAT_WAVE
+Under the Wave off Kanagawa (the Great Wave), by Katsushika Hokusai
+
+Japanese ukiyo-e woodblock print, the single most famous image in Japanese art. An enormous deep-blue wave rears up on the left and curls over the whole scene, its crest breaking into claw-like fingers of white foam. Beneath it, three long open boats full of rowers ride the troughs, and far in the distance, small at the center of it all, sits the snow-capped cone of Mount Fuji.
+
+## 26. GREAT_WORK_EVENING_SHOWER
+Evening Shower at Atake and the Great Bridge, by Utagawa Hiroshige
+
+Japanese ukiyo-e woodblock print, one of the most admired rain scenes ever made. A sudden downpour, drawn as sheets of fine slanting lines, catches people midway across a long wooden bridge; they hurry in both directions under hats and umbrellas, one sheltering beneath a straw mat. The river below is a band of teal with a lone raftsman poling through, and the far bank fades to a dark smudge under the storm.
+
+## 27. GREAT_WORK_L_ABSINTHE
+L'Absinthe, by Edgar Degas
+
+French Impressionist oil painting, an unsparing scene of Parisian cafe life. A woman in a pale dress and hat sits slumped at a marble cafe table, eyes down, a glass of milky green absinthe in front of her; beside her a bearded man in a rumpled coat stares off to the right with a pipe in his mouth. The two sit together yet utterly apart, painted in drab grays and browns that carry the painting's air of loneliness.
+
+## 28. GREAT_WORK_UPAUPA_SCHNEKLUD
+Upaupa Schneklud, by Paul Gauguin
+
+Post-Impressionist oil portrait of a cellist mid-performance. The musician bends over his bright orange-red cello, eyes lowered in concentration, bow arm sweeping across the strings, his dark blue suit framing the instrument's glow. Behind him the background splits into flat zones of brown and mossy green scattered with pale abstract shapes, in Gauguin's bold, simplified color style.
+
+## 29. GREAT_WORK_A_BAR_AT_THE_FOLIES
+A Bar at the Folies-Bergere, by Edouard Manet
+
+French modern-life oil painting, Manet's last great work. A barmaid in a black velvet bodice with a flower at her breast stands behind a marble counter crowded with champagne bottles, a bowl of oranges, and a glass with a rose, gazing out with a tired, faraway expression. Behind her a huge mirror reflects the glittering music hall, its chandeliers and crowd, and, oddly displaced to the right, her own back as she leans toward a man in a top hat.
+
+## 30. GREAT_WORK_BALL_AT_THE_MOULIN
+Ball at the Moulin Rouge, by Henri de Toulouse-Lautrec
+
+Post-Impressionist oil painting of Parisian nightlife at the famous cabaret. A group of men in top hats and women in feathered hats sit around a table with drinks, while a red-haired woman fixes her hair in the green-lit dance hall behind them. A woman's face looms at the right edge, lit a ghostly green from below, and a long diagonal railing slices across the foreground in Lautrec's poster-like style.
+
+## 31. GREAT_WORK_THE_KISS
+The Kiss (Der Kuss), by Gustav Klimt
+
+Viennese Art Nouveau oil painting layered with real gold leaf, Klimt's most famous work. A couple kneels locked in an embrace on a flowered meadow, the man bending to kiss the woman's cheek as she tilts her face up with closed eyes. Their bodies merge into a single golden cloak patterned with rectangles for him and bright circles for her, glowing against a flat shimmering gold background.
+
+## 32. GREAT_WORK_AMERICAN_GOTHIC
+American Gothic, by Grant DeVolson Wood
+
+American Regionalist oil painting, endlessly parodied and instantly recognizable. A stern, balding farmer in round glasses and denim overalls stands holding a three-pronged pitchfork upright, a woman in a dark print apron dress at his side looking off with pursed disapproval. Behind them is the white farmhouse that names the painting, with a pointed-arch Gothic window in its gable.
+
+## 33. GREAT_WORK_SRI_SHANMUKAHA
+Sri Shanmukaha Subramania Swami, by Raja Ravi Varma
+
+Indian devotional painting in the European academic style Ravi Varma made famous across India. The Hindu god Murugan rides his peacock mount with six crowned heads and many arms holding weapons, flanked by his two consorts in bright pink saris. The peacock's tail spreads behind them like a giant fan of green and gold eyes, while the bird pins a cobra under its feet.
+
+## 34. GREAT_WORK_DAUD_RECEIVES_A_ROBE
+Da'ud Receives a Robe of Honor from Mun'im Khan, by Hiranand
+
+Mughal miniature painting from an illustrated imperial chronicle, in opaque watercolor and gold on paper. The detail shown centers on a slender young attendant in a pale robe, red cap, and gold sash, carrying the folded golden robe of honor for the presentation ceremony. He stands against a brilliant blue tent wall covered in delicate flowering vines, every fold and blossom painted with miniature precision.
+
+## 35. GREAT_WORK_YUSEF_AND_ZULEYKHA
+Yusef and Zuleykha, by Kamaleddin Behzad
+
+Persian miniature from an illustrated manuscript, the most celebrated work of the great Herat master Behzad. The page is filled by an intricate palace seen in flattened cross-section, a maze of staircases, balconies, and doorways tiled in blue, orange, and gold. In an upper chamber the prophet Yusef, haloed in flame, flees from Zuleykha's outstretched grasp, while panels of Persian calligraphy frame the architecture.
+
+## 36. GREAT_WORK_THE_ASCENT_OF_MUHAMMAD
+The Ascent of Muhammad to Heaven, by Sultan Muhammad
+
+Persian miniature from a royal manuscript, depicting the Prophet's night journey through the heavens. Muhammad, his face veiled in white and wreathed in golden flame, rides the human-headed steed Buraq across a deep blue sky strewn with curling gold-edged clouds. Angels in robes of red, green, and orange swirl around him on every side bearing gifts and censers, with lines of Persian verse framing the scene.
+
+## 37. GREAT_WORK_LIBERTY_LEADING_THE_PEOPLE
+Liberty Leading the People, by Eugene Delacroix
+
+French Romantic oil painting, the defining image of revolution. Liberty herself, a bare-breasted woman in a yellow dress and red cap, strides over a barricade of rubble and fallen bodies, thrusting the French tricolor flag into the smoky sky. Around her surge armed citizens of every class, a top-hatted gentleman with a musket and a boy waving two pistols among them.
+
+## 38. GREAT_WORK_SAINT_JEROME_IN_HIS_STUDY
+Saint Jerome in his Study, by Antonello da Messina
+
+Early Renaissance oil painting of remarkable miniature precision. Seen through a grand stone archway, Saint Jerome in red robes sits reading at a wooden study built like a stage inside a vaulted cathedral space, surrounded by shelves of books and pots. Light pours in from windows on every side, a peacock and a partridge perch on the threshold in front, and his lion prowls in the shadows to the right.
+
+## 39. GREAT_WORK_PARTHENON_FRIEZE
+Phidias Showing the Frieze of the Parthenon to his Friends, by Lawrence Alma-Tadema
+
+Victorian oil painting imagining ancient Athens; in the game this work comes with the Parthenon wonder. The sculptor Phidias stands on a wooden scaffold beside his freshly painted marble frieze of horsemen, still in its workshop colors, holding back a rope as he presents it. A small group of Athenians in draped robes, Pericles among them, lean in to admire the carving by the warm light inside the temple.
+
+## 40. GREAT_WORK_RUE_DE_PARIS
+Paris Street; Rainy Day, by Gustave Caillebotte
+
+French realist oil painting of modern Paris on a drizzly day, sharp and photographic where his Impressionist friends were loose. A well-dressed couple sharing an umbrella strolls toward you across glistening cobblestones, the man in a top hat, the woman in a long dark dress with an earring catching the light. Around them other umbrella-carrying walkers cross a wide intersection lined by wedge-shaped gray apartment blocks, with a green lamppost splitting the scene down the middle.
+
+## 41. GREAT_WORK_NIGHT_WATCH
+The Night Watch, by Rembrandt van Rijn
+
+Dutch Golden Age oil painting on a huge scale, the most famous group portrait ever made. A city militia company bursts into motion out of deep shadow: the captain in black with a red sash strides forward giving an order to his lieutenant in pale gold, while behind them muskets are loaded, a banner is raised, and a drummer beats time. A small girl in a glowing golden dress shines mysteriously in the crowd, lit like a spotlight in the gloom.
+
+## 42. GREAT_WORK_DEATH_OF_MARAT
+Death of Marat, by Jacques-Louis David
+
+French Neoclassical oil painting, the great martyr image of the French Revolution. The revolutionary journalist Marat lies dead in his bathtub, slumped like a fallen saint, head wrapped in a white turban and one arm hanging to the floor still holding his quill. In his other hand is the letter his assassin used to gain entry; the upper half of the canvas is bare dark wall, and the plain wooden crate beside him bears the painted dedication "A Marat, David."
+
+## 43. GREAT_WORK_ETIENNE_CHEVALIER
+Etienne Chevalier with St. Stephen, by Jean Fouquet
+
+French late-medieval panel painting, one wing of a famous devotional diptych. The royal treasurer Etienne Chevalier kneels in a rich red robe with hands pressed together in prayer, presented by his patron Saint Stephen, who stands beside him in a blue and gold vestment. The saint carries a book topped with a jagged stone, the symbol of his martyrdom, and both stand in a white marble hall with the donor's name carved along the wall.
+
+## 44. GREAT_WORK_SAINT_FRANCIS
+Saint Francis in Meditation, by Francisco de Zurbaran
+
+Spanish Baroque oil painting of stark monastic devotion. Saint Francis stands alone in a plain hooded habit the color of sand, his face half lost in the deep shadow of the cowl, eyes cast down in prayer. He cradles a human skull in his hands as a reminder of death, lit by a single hard light against a nearly black background.
+
+## 45. GREAT_WORK_HATAORI
+Hataori, by Yanagawa Shigenobu
+
+Japanese ukiyo-e woodblock print of a weaver at work. A young woman in a patterned indigo kimono sits barefoot at a large wooden hand loom, glancing up from her work with a shuttle in one hand, threads of red, blue, and white stretched the length of the machine. The colors are soft creams and muted blues, with a column of brushed poetry filling the upper left of the sheet.
+
+## 46. GREAT_WORK_JANE_GREY
+The Execution of Lady Jane Grey, by Paul Delaroche
+
+French academic history painting, theatrical and heartbreaking. The teenage queen, blindfolded and dressed in white satin that glows against the dark stone chamber, kneels and feels blindly for the execution block while an elderly official gently guides her hands toward it. Her ladies collapse in grief against a pillar behind her, and the executioner waits at the right, leaning on his axe with his eyes turned away.
+
+## 47. GREAT_WORK_WANDERER
+The Wanderer Above the Sea of Fog, by Caspar David Friedrich
+
+German Romantic oil painting, the defining image of man alone before nature. A young man in a dark green coat stands with his back to you on a rocky summit, leaning on a walking cane, his hair stirred by wind. Below him an ocean of white fog swallows the valley, with only ridges and crags breaking through like islands and pale mountains fading into the distance.
+
+## 48. GREAT_WORK_BABEL
+Tower of Babel, by Pieter Brueghel the Elder
+
+Flemish Renaissance oil painting of the Bible's doomed tower, swarming with detail. A colossal spiral tower of arches, part white stone and part raw red brick, climbs lopsidedly into the clouds, its top still raw and unfinished. Around its base spreads a port city with ships at anchor, and in the foreground the king inspects a crew of stonemasons who kneel at his feet among their blocks.
+
+## 49. GREAT_WORK_YOUNG_LADY
+Portrait of a Young Girl, by Petrus Christus
+
+Early Netherlandish oil portrait, small, still, and strangely modern. A pale young woman with a porcelain-smooth face looks out at you sidelong from under a tall black velvet headdress trimmed with gold. She wears a blue gown with a white fur collar and a tight necklace of gold and black bands, set against a plain dim wall rather than the usual dark void.
+
+## 50. GREAT_WORK_KINDRED
+Kindred Spirits, by Asher B. Durand
+
+American Hudson River School oil painting, a tribute to friendship between a painter and a poet. Two men in coats stand talking on a rock ledge that juts out over a wooded gorge in the Catskill mountains, one gesturing with a brush toward the view. A stream tumbles over rocks below, framed by an arch of overhanging trees, with hazy peaks dissolving into golden light behind.
+
+## 51. GREAT_WORK_BLUE_BOY
+The Blue Boy, by Thomas Gainsborough
+
+English Grand Manner oil portrait, the artist's most famous work. A boy of about twelve stands full length in a shimmering suit of blue satin with knee breeches and a lace collar, one hand on his hip, the other holding a plumed hat at his side. He looks out with easy confidence from a dark, stormy brown landscape that makes the blue costume blaze.
+
+## 52. GREAT_WORK_SECOND_OF_MAY
+The Third of May 1808, by Francisco de Goya
+
+Spanish oil painting, one of the first and greatest protests against war in art. By lantern light, a French firing squad stands in a faceless row, rifles leveled at a huddle of Spanish captives on a bare hill outside Madrid. At the center a man in a white shirt throws his arms wide before the guns, kneeling among the bodies of those already shot, his pose echoing a crucifixion.
+
+## 53. GREAT_WORK_LAST_CART
+The Last Cartridges, by Alphonse-Marie-Adolphe de Neuville
+
+French military oil painting from the Franco-Prussian War, a famous image of defiant last resistance. A handful of French soldiers defend a shattered village house, firing from a window while the wounded sit slumped against the walls and an officer counts their final rounds of ammunition. The room is wrecked, a door torn off its hinges, plaster falling from the ceiling, daylight flooding through the doorway where comrades fight on.
+
+## 54. GREAT_WORK_EARLY_AUTUMN
+Early Autumn, by Qian Xuan
+
+Chinese handscroll in ink and soft color, a close-up nature study of a fading lotus pond. Dragonflies in red, green, and blue hover over drying reeds and tattered lotus leaves, while grasshoppers, a bee, and small frogs go about their business below. The mood is gentle decay, summer's life carrying on among plants just starting to wither, with red collectors' seals along both edges.
+
+## 55. GREAT_WORK_APPRECIATING_LOTUSES
+Zhou Maoshu Appreciating Lotuses, by Kano Masanobu
+
+Japanese ink-and-color hanging scroll by the founder of the Kano school, painted in the Chinese scholar-landscape manner. A robed Chinese scholar drifts in a small boat at the edge of a lotus pond, gazing at the floating leaves beneath a gnarled willow that leans out from the rocky shore. Most of the tall scroll is mist and open water, with a few pine tops fading into the haze.
+
+## 56. GREAT_WORK_EQUESTRIAN_PORTRAIT
+Equestrian Portrait of Charles V, by Titian
+
+Venetian Renaissance oil painting, the model for centuries of rulers on horseback. The Holy Roman Emperor rides out of a dark wood in full gleaming armor with a red-plumed helmet, lance in hand, commemorating his victory at Muhlberg. His black horse is draped in crimson, and a low evening sun breaks gold and pink under heavy storm clouds.
+
+## 57. GREAT_WORK_THE_ARMADA
+The Armada Portrait of Elizabeth I, by George Gower
+
+Tudor propaganda portrait in oil, painted to celebrate the defeat of the Spanish Armada. Queen Elizabeth sits in an immense gown of pearls and bows, her face framed by a vast white lace ruff, one hand resting possessively on a globe with her fingers on the Americas. Through windows behind her the story unfolds twice: the English fleet in calm seas on one side, Spanish ships wrecked in a storm on the other, with her jeweled crown beside her.
+
+## 58. GREAT_WORK_FRANCIS_I
+Francis I of France, by Jean Clouet
+
+French Renaissance royal portrait in oil. The king faces you from the waist up in spectacular court dress, slashed sleeves of white and gold satin striped with black, a gold chain across his chest and a black cap with a white plume on his head. His sly, long-nosed bearded face stands out against a crimson damask background patterned with crowns.
+
+## 59. GREAT_WORK_SELF_PORTRAIT
+Self portrait, by Bartholomeus Spranger
+
+Northern Mannerist oil self-portrait by the Flemish court painter of Emperor Rudolf II. The artist looks back at you over his shoulder, a sturdy bearded man with curly hair under a soft black cap, wearing a white ruffled collar over a gray-blue doublet. The handling is warm and direct against a plain brown background, his appraising sideways stare doing all the work.
+
+## 60. GREAT_WORK_VERTUMNUS
+Vertumnus, by Giuseppe Arcimboldo
+
+Mannerist oil painting, the most famous of Arcimboldo's fantastical composite heads. It is a portrait of Emperor Rudolf II as the Roman god of the seasons, his entire face and chest assembled from fruit, vegetables, and flowers: pea-pod eyelids, a pear nose, cherry lips, wheat-ear whiskers, and grape hair. Read from a distance it is a dignified ruler; up close it dissolves into a market stall, all against a black background.
+
+## 61. GREAT_WORK_LAST_SUPPER
+The Last Supper, by Tintoretto
+
+Venetian late-Renaissance oil painting that reinvents the familiar scene. Instead of facing you squarely, the supper table plunges away on a steep diagonal into a dark tavern hall, Christ glowing halfway down its length as he offers bread to the apostles. Servants haul food and a cat noses into a basket in the foreground, while a blazing oil lamp fills the smoky air overhead with translucent swirling angels.
+
+## 62. GREAT_WORK_PORTRAIT_OF_A_MAN
+Portrait of a Man in a Turban, by Jan Van Eyck
+
+Early Netherlandish oil painting, possibly the artist's own face and one of the first true self-portraits. A middle-aged man with a lined, sharp-eyed face looks straight out at you from deep shadow, wearing an extravagant red headdress wound and knotted into sculptural folds. The detail is needle-fine, every wrinkle and stubble hair caught, with the figure in a dark fur-trimmed coat against a black background.
+
+## 63. GREAT_WORK_FRONT_OF_THE_MIRROR
+Naked Young Woman in Front of the Mirror, by Giovanni Bellini
+
+Venetian Renaissance oil painting, the elderly Bellini's serene late masterpiece. A nude young woman with auburn hair sits on a red cloth, calmly arranging her hair while holding a small hand mirror, a second round mirror on the wall behind reflecting the back of her patterned headdress. A window beside her opens onto a green countryside with distant blue mountains under a cloudy sky.
+
+## 64. GREAT_WORK_ADORATION
+Adoration of the Magi, by Giotto di Bondone
+
+Early Italian fresco from the Scrovegni Chapel, by the painter credited with bringing natural human feeling back into Western art. Under a wooden canopy, Mary holds the infant Christ as the eldest of the three kings kneels to kiss the child's feet, his crown set aside; camels wait at the left. Above the stable a comet streaks across the deep blue sky in place of the usual star, all in Giotto's solid, simple figures and clear colors.
+
+## 65. GREAT_WORK_RUBENS_AND_ISABELLA
+Rubens and Isabella Brant in the Honeysuckle Bower, by Peter Paul Rubens
+
+Flemish Baroque oil painting, the artist's wedding portrait of himself and his bride. The young couple sit close together under a honeysuckle bush, her right hand resting tenderly on top of his, the painting's quiet center. He sits above her in a black doublet with one leg crossed, she kneels in a violet skirt, gold-embroidered bodice, wide ruff, and tall straw hat, both glancing out with calm contentment.
+
+## 66. GREAT_WORK_CHILDS_BATH
+The Child's Bath, by Mary Cassatt
+
+American Impressionist oil painting of everyday tenderness, influenced by Japanese prints in its high viewpoint and flat patterns. A mother in a boldly striped dress holds a child wrapped in a towel on her lap, washing the little one's feet in a basin of water. Both heads bend together over the task, and the room around them is a quilt of patterns: flowered wallpaper, painted chest, ornate carpet, and a white pitcher.
+
+## 67. GREAT_WORK_THE_CARD_PLAYERS
+The Card Players, by Paul Cezanne
+
+Post-Impressionist oil painting, one of a famous series on this subject. Two peasant men in hats sit facing each other across a small wooden table, absorbed in their cards, a single wine bottle standing between them as the still center of the composition. One smokes a pipe; the paint is built up in patient, blocky strokes of earthy brown, ochre, and muted violet that make the figures feel carved and permanent.
+
+## 68. GREAT_WORK_THE_SWING
+The Swing, by Jean Honore Fragonard
+
+French Rococo oil painting, frivolous, secretive, and the era's most famous image. In a lush overgrown garden, a young woman in a frothy pink dress swings high on a rope swing, kicking one slipper into the air, while a hidden elderly man pulls the ropes from the shadows behind her. Her young lover sprawls in the rose bushes below, perfectly placed to look up her skirts, and a stone cupid statue raises a finger to its lips.
+
+## 69. GREAT_WORK_GIANT_MAGNOLIAS
+Giant Magnolias on a Blue Velvet Cloth, by Martin Johnson Heade
+
+American still-life oil painting, lush and almost tropical in feeling. Two enormous creamy white magnolia blossoms lie cut on a drape of deep blue velvet, surrounded by their glossy dark leaves, with a third bud still closed. The petals glow against the near-black background, painted with waxy, sensuous precision.
+
+## 70. GREAT_WORK_SAINT_GEORGE_KILLING
+Saint George Killing the Dragon, by Bernardo Martorell
+
+Catalan Gothic panel painting in tempera and gold. Saint George, in black armor with a golden halo, leans from his rearing white horse to drive a long lance down into the gaping mouth of a bat-winged dragon, the ground around them littered with bones and skulls. The pink-gowned princess prays on a rocky outcrop behind, and spectators crowd the white castle walls above.
+
+## 71. GREAT_WORK_JACQUES_AND_BERTHE
+Jacques and Berthe Lipchitz, by Amedeo Modigliani
+
+Modernist oil double portrait of the sculptor Lipchitz and his wife, painted in Modigliani's unmistakable style. The husband stands in a dark suit with his hand resting on the shoulder of his seated wife, whose rosy-cheeked face rises from a white lace collar. Both have the artist's trademark elongated faces, long noses, and blank almond eyes, with their names scrawled across the top of the canvas.
+
+## 72. GREAT_WORK_DASH_FOR_TIMBER
+A Dash for the Timber, by Frederic Remington
+
+American Western oil painting, the kind of charging action scene that defined the Old West in the public imagination. Eight cowboys gallop straight at you at full stretch, horses' hooves off the ground, two riders twisting in the saddle to fire back at the band of mounted Apache pursuing in the dust behind. One man slumps wounded against a companion as they race for the trees at the left edge of the dry plain.
+
+## 73. GREAT_WORK_GEORGE_WASHINGTON_PORTRAIT
+George Washington (Landsdowne portrait), by Gilbert Stuart
+
+American state portrait in oil, the official image of the first presidency. Washington stands full length in a plain black velvet suit, one arm extended in a gesture of address, the other holding a dress sword, beside a table with quill and inkstand. The trappings around him are republican grandeur: a gilded chair with the stars and stripes shield, marble columns, and a swag of crimson drapery with a rainbow breaking through storm clouds beyond.
+
+## 74. GREAT_WORK_ATTACK_ON_BEIJING
+An attack on Beijing Castle during the Boxer Rebellion, by Torajiro Kasai
+
+Japanese color print in the style of wartime news illustration, captioned in both Japanese and English. Allied troops storm the walls of Beijing's imperial palace: red-coated British soldiers with a Union Jack charge from the foreground while white-uniformed Japanese infantry advance on the right. Shell bursts hang as white puffs over the green parade ground, with the palace's blue-roofed gate and smoking walls behind.
+
+## 75. GREAT_WORK_SUMO_WRESTLER
+Sumo Wrestler Somagahana Fuchiemon, by Toyokuni Utagawa
+
+Japanese ukiyo-e woodblock print, a celebrity portrait of a star wrestler off duty. The big man stands at full height in a black kimono over patterned robes, swords at his sash, dabbing his brow with a checked cloth as he carries a bundled cloak over one shoulder. His name runs down the right side in bold red calligraphy panels, the figure flat and monumental against plain paper.
+
+## 76. GREAT_WORK_TIGER_IN_TROPICAL_STORM
+Tiger in a Tropical Storm (Surprised!), by Henri Rousseau
+
+Naive-style oil painting by the self-taught French customs clerk who never saw a jungle. A wide-eyed tiger crouches low in long wind-whipped grass, teeth bared, caught in a storm that bends every plant sideways. The jungle is a dense pattern of stylized leaves in greens and reds, with slanting silver streaks of rain drawn across the entire canvas like gauze.
+
+## 77. GREAT_WORK_THE_HOME_GUARD
+The Home Guard, by Jozsef Borsos
+
+Hungarian Biedermeier oil portrait from the 1848 revolution. A bearded citizen-soldier sits in a plain undyed linen jacket, both gloved hands resting on the hilt of his upright saber, the red, white, and green national armband on his sleeve declaring his cause. He gazes off to the side with calm resolve, lit warmly against a dark red curtain, his red-lined coat thrown over the chair.
+
+## 78. GREAT_WORK_CEREMONIAL_SITTING
+Ceremonial Sitting of the State Council on 7 May 1901, by Ilya Repin
+
+Russian realist oil painting on a vast scale, a group portrait of the empire's entire ruling council. Dozens of elderly statesmen in dark uniforms heavy with gold braid and red sashes sit around a great horseshoe of red chairs in a white-columned hall hung with chandeliers and royal portraits. Each of the sixty-odd faces is an individual portrait, painted with Repin's quick, confident realism.
+
+## 79. GREAT_WORK_RUSSIAN_TSAR
+Russian tsar in XVI, by Sergey Vasilyevich Ivanov
+
+Russian historical oil painting recreating a sixteenth-century royal procession. A fur-hatted tsar in a robe of gold brocade rides a white horse through the snow, preceded by guards in brilliant red coats carrying tall curved poleaxes. The crowd kneels and bows to the ground on either side of the trampled snowy road, with the log buildings of an old Russian town under a pale winter sky.
+
+## 80. GREAT_WORK_CRUCIFIXION_OF_SAINT_PETER
+The Crucifixion of Saint Peter, by Caravaggio
+
+Italian Baroque oil painting, brutal and physical in Caravaggio's signature style. Three laborers strain to hoist a wooden cross on which the elderly Saint Peter has been nailed upside down, one hauling on a rope, another crouched under the beam, their faces hidden. The white-bearded saint lifts his head to look at his own nailed hand, his muscular old body blazing out of pitch darkness in a single hard light.
+
+## 81. GREAT_WORK_LANDSCAPE_WITH_ANT_BEAR
+Landscape with an Ant Bear, by Frans Post
+
+Dutch colonial landscape in oil, painted by the first European-trained artist to work in Brazil. A wide sunlit valley with a river opens out under a big sky between two tall palms, with a colonial settlement of white houses on the far hills. A group of Afro-Brazilian figures walks a path in the foreground carrying bundles, and the long-snouted anteater of the title noses through the scrub at the lower right.
+
+## 82. GREAT_WORK_DUTCH_MEN_O_WAR
+Dutch men-o'-war and other shipping in a calm, by Willem van de Velde the Younger
+
+Dutch Golden Age marine oil painting by the era's greatest painter of ships. Tall wooden warships ride at anchor on water as smooth as glass, their sails hanging slack and their hulls mirrored in the sea, every line of rigging exact. Rowboats ferry passengers between the vessels under a vast sky of sunlit cumulus clouds, the whole scene bathed in golden calm.
+
+## 83. GREAT_WORK_HARBOR_IN_BALAKLAVA
+Embarkation of sick persons at the harbor in Balaklava, by William Simpson
+
+Tinted lithograph from the Crimean War, drawn by one of the first war artists to document a campaign on the spot. On a bleak harbor shore, sick and wounded soldiers wrapped in white blankets are helped from mule-borne litters into a waiting rowboat. Bare brown hills rise behind the huddle of figures, with army huts and tents dotting the slope, the colors subdued and documentary.
+
+## 84. GREAT_WORK_PEACEMAKERS
+The Peacemakers, by George Peter Alexander Healy
+
+American historical oil painting of a real Civil War council in its final days. President Lincoln sits in a steamboat cabin listening intently, chin on his hand, as General Sherman gestures mid-argument; General Grant and Admiral Porter complete the circle of four dark-suited figures. Through the cabin windows behind them a rainbow breaks through clearing skies, the painting's quiet sign of coming peace.
+
+## 85. GREAT_WORK_PORTRAIT_OF_CHITASEI
+Portrait of Chitasei Go Yo, by Utagawa Kuniyoshi
+
+Japanese ukiyo-e woodblock print from Kuniyoshi's famous series of the 108 heroes of the Chinese novel The Water Margin. The scholar-strategist Wu Yong stands in a flowing dark robe patterned with dragons, stroking his beard in thought beneath a night sky studded with stars. Beside him sits a large celestial globe on an ornate stand, and panels of Japanese text frame the figure.
+
+## 86. GREAT_WORK_PORTRAIT_OF_LOUIS
+Portrait of Louis Francois Roubiliac, by Adrien Carpentiers
+
+English eighteenth-century oil portrait of a sculptor caught at work. Roubiliac, in a soft cap and open shirt with rolled sleeves, pauses with modeling tool raised, glancing aside as he works on a clay statuette of Shakespeare on a stand. The sculptor points at his own creation with his free hand, warmly lit against a dark studio background.
+
+## 87. GREAT_WORK_PORTRAIT_OF_NASSER
+Portrait of Nasser al-Din Shah Qajar, by Bahram Kirmanshahi
+
+Persian Qajar court portrait in oil, royal splendor laid on thick. The young mustachioed Shah sits stiffly upright in a scarlet uniform encrusted with gold embroidery, ropes of pearls, jeweled epaulettes, and a blue sash, one hand on a gem-studded sword. He wears a tall black hat with a spray of diamonds, his dark-outlined eyes gazing out against a deep olive background stamped with a royal inscription.
+
+## 88. GREAT_WORK_FIELD_WITH_SHEAFS
+Field with sheafs, by August Haake
+
+German Expressionist-leaning landscape in oil, painted in broad, energetic strokes. A harvested wheat field fills the foreground with rows of golden sheaves stacked in leaning bundles, the yellow laid on thick and bright. A line of dark green trees closes off the field, with a pale violet-blue sky of windy clouds above.
+
+## 89. GREAT_WORK_AT_THE_EDGE_OF_THE_BROOK
+At the Edge of the Brook, by William Bouguereau
+
+French academic oil painting, polished to the glassy perfection Bouguereau was famous for. Two barefoot peasant children sit on a stone at the edge of a brook, the younger girl pulling off a stocking while her dark-haired companion hitches up her skirt to wade. They exchange a glance mid-conversation, their skin and tousled hair painted with photographic smoothness against a soft rural landscape.
+
+## 90. GREAT_WORK_THE_KISS_ALT
+The Kiss, by Francesco Hayez
+
+Italian Romantic oil painting, the most famous kiss in Italian art and a hidden patriotic emblem of unification. In a medieval stone hallway, a young man in a plumed hat and brown cloak bends a woman backward in a passionate kiss, one foot already on the stair as if pausing mid-flight. Her pale blue satin dress pours light into the scene, while a shadowy figure approaches through the archway beyond.
+
+## 91. GREAT_WORK_MOVING_HOUSE
+Moving House, by Viktor M. Vasnetsov
+
+Russian realist oil painting of quiet urban poverty. An elderly couple trudges across the frozen river ice of St. Petersburg carrying everything they own in a cloth bundle, the man leaning on a cane, both bundled in worn coats and headscarves against the cold. A small dog trots ahead of them, and the gilded spire of the Peter and Paul fortress rises through the winter haze behind.
+
+## 92. GREAT_WORK_MEXICAN_EXPEDITION
+Scene from the Mexican Expedition in 1838, by Horace Vernet
+
+French naval history painting in oil, reportage-style and crowded with action. A French warship flying the tricolor dominates the left foreground, officers on its deck directing a bombardment of the Mexican fortress of San Juan de Ulua, smoke rising over the water. Shells splash near rowboats ferrying men between ships, with a snow-capped volcano on the hazy horizon.
+
+## 93. GREAT_WORK_LAST_DAY_OF_POMPEII
+The Last Day of Pompeii, by Karl Briullov
+
+Russian Romantic oil painting on an enormous canvas, the disaster epic of its century. The sky above Pompeii burns red and black as Vesuvius erupts, statues topple from a rooftop, and lightning splits the ash cloud. Crowds of townspeople in Roman dress flee through the falling debris, sheltering children and the old under cloaks, while a fallen woman lies sprawled beside an overturned chariot at the center.
+
+## 94. GREAT_WORK_THE_ACCOLADE
+The Accolade, by Edmund Leighton
+
+English Pre-Raphaelite-style oil painting, a storybook vision of chivalry. A golden-haired queen in a flowing white gown touches a sword to the shoulder of a kneeling knight, dubbing him before a small court audience. He bows his head in chainmail and a red surcoat, his helmet on the floor beside him, the stone hall and red dais painted in glowing romantic detail.
+
