@@ -11,8 +11,10 @@ the concrete details alone. Every detail named is visible in the art. Plain
 punctuation, no em-dashes.
 
 Each entry: the Victories table Type, the texture name from its
-VictoryBackground column, then the description text. The Type is the stable
-identifier for turning these into mod strings. Note the mismatched pairs:
+VictoryBackground column, then the description text. The shipped mod strings
+in CivVAccess_VictoryDescStrings_en_US.lua are keyed by Type (DEFEAT for the
+loss art) and sourced from this doc; edit here first, then mirror there.
+Spoken by F2 on the end-of-game screen via CivVAccess_VictoryDescription. Note the mismatched pairs:
 VICTORY_TIME uses Victory_Score.dds, VICTORY_SPACE_RACE uses
 Victory_Scientific.dds, VICTORY_DOMINATION uses Victory_Military.dds. Defeat
 has no Victories row; EndGameMenu.lua hardcodes Victory_Defeat.dds. Companion

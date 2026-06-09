@@ -34,7 +34,9 @@
 -- narrates this line as a voice clip, so silentFirstOpen suppresses the
 -- preamble + first-item speech on fresh show to avoid talking over it; the
 -- ReadSubtitles toggle bypasses the suppression for users who want both.
--- F1 re-reads the preamble on demand on any tab. MainMenuButton's text
+-- F1 re-reads the preamble on demand on any tab. F2 reads a prose
+-- description of the full-screen victory or defeat painting (see
+-- CivVAccess_VictoryDescription). MainMenuButton's text
 -- flips to "Continue" in hotseat alt-player mode; we label it with the
 -- common "Exit to Main Menu" since that's the path that matters on a
 -- finished game.
@@ -50,11 +52,48 @@
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_DemographicsRows")
+include("CivVAccess_VictoryDescStrings_en_US")
+include("CivVAccess_VictoryDescription")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
 local m_handler = nil
+
+-- The vendor's OnDisplay picks the background painting from the
+-- (type, team) pair it receives on Events.EndGameShow, but that choice is
+-- file-local and invisible to this wrapper. Capture the same two fields
+-- off the same event; F2 re-derives the displayed art from them at
+-- keypress time.
+local capturedEndGameType = nil
+local capturedTeam = nil
+Events.EndGameShow.Add(function(endGameType, team)
+    capturedEndGameType = endGameType
+    capturedTeam = team
+end)
+
+-- Returns the description key of the displayed background, else nil
+-- (nothing captured yet). Mirrors the OnDisplay branch that chose the
+-- texture: the defeat art whenever the winning team is not the player's,
+-- the five Victories rows otherwise, and the Score art (the vendor's
+-- VICTORY_TIME fallback) for any win without a recognized type, which is
+-- where tutorial completions land.
+local function displayedArtKey()
+    if capturedEndGameType == nil then
+        return nil
+    end
+    if capturedTeam ~= Game.GetActiveTeam() then
+        return "DEFEAT"
+    end
+    local victoryByEndGameType = {
+        [EndGameTypes.Technology] = "VICTORY_SPACE_RACE",
+        [EndGameTypes.Domination] = "VICTORY_DOMINATION",
+        [EndGameTypes.Culture] = "VICTORY_CULTURAL",
+        [EndGameTypes.Diplomatic] = "VICTORY_DIPLOMATIC",
+        [EndGameTypes.Time] = "VICTORY_TIME",
+    }
+    return victoryByEndGameType[capturedEndGameType] or "VICTORY_TIME"
+end
 
 -- Walk HistoricRankings in DB order and find the first row whose threshold
 -- is <= the player's final score. Mirrors EndGameMenu's vanilla
@@ -244,3 +283,5 @@ m_handler = BaseMenu.install(ContextPtr, {
     end,
     tabs = { infoTab, demographicsTab, rankingTab, replayTab },
 })
+
+VictoryDescription.bindF2(m_handler, displayedArtKey)
