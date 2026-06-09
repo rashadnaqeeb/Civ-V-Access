@@ -42,7 +42,7 @@ French Impressionist oil painting of friends lingering after a meal. A lively gr
 ## 6. GREAT_WORK_MONA_LISA
 Mona Lisa, by Leonardo da Vinci
 
-Italian Renaissance oil on a wood panel, probably the most famous portrait in the world. A woman sits with her hands folded, turned slightly toward you against a hazy landscape of winding rivers and distant blue mountains, her faint half-smile the focus of the painting. The tones are soft browns and greens with no hard outlines, so her expression seems to shift the longer you look.
+Italian Renaissance oil on a wood panel, probably the most famous portrait in the world. A woman sits with her hands folded, turned slightly toward you against a hazy landscape of winding rivers and distant blue mountains, her eyes meeting yours directly, the famous gaze that seems to follow you wherever you stand. Her faint half-smile is the focus of the painting, painted in soft browns and greens with no hard outlines so her expression seems to shift the longer you look.
 
 ## 7. GREAT_WORK_SUNDAY_AFTERNOON
 Sunday Afternoon on the Island of La Grande-Jatte, by George Seurat
