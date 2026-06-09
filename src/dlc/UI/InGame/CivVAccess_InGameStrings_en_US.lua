@@ -1048,6 +1048,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL"] = "Cancel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CLOSE"] = "Close"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_CANCEL_EDIT"] = "Cancel edit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_COMMIT_EDIT"] = "Commit edit"
+-- Shared by every F2 image-description binding (leader portraits, great
+-- works of art, natural wonder portraits).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_IMAGE_DESC"] = "Describe image"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F12"] = "F12"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_SHIFT_F12"] = "Control plus Shift plus F12"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_OPEN_SETTINGS"] = "Open settings"
@@ -2498,7 +2501,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE"] = "religious pressure
 -- the target language's conventional rendering when one exists. The leader's
 -- name and titles at the start of each description follow whatever form is
 -- standard for that historical figure in the target language.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_LEADER_DESC"] = "Describe leader"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_MISSING"] = "No description available for this leader."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_LEADER_WASHINGTON"] =
     "George Washington, first President of the United States, stands in a paneled interior between heavy red curtains drawn back to either side, his hands loose at his hips. He wears the black civilian dress of a late eighteenth-century American gentleman: a dark double-breasted coat cut long over the thighs, with two rows of brass buttons down the front, a matching waistcoat beneath, a ruffled white jabot at the neck, and white cuffs at the wrists. His hair is dressed white with powder, brushed back from a high forehead, curled at the sides above the ears, and gathered behind in a queue tied with a black silk ribbon. To his left a large terrestrial globe sits on a turned wooden stand; on a small table beside the stand, a bound volume lies open with a blue ribbon marker trailing from its pages. To his right a pale stone mantel carries a tall brass candelabrum of unlit tapers, and above it hangs a framed landscape in a gilt frame. Between the parted curtains behind him, a fluted column rises against a daylit sky and a glimpse of rolling green country. The composition restages Gilbert Stuart's Lansdowne portrait of 1796, the ceremonial sword and state papers replaced here by the globe and the book."

@@ -49,7 +49,7 @@ function GreatWorkDescription.bindF2(handler, getTypeFn)
     }
     BaseMenuHelp.addScreenKey(handler, {
         keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_F2",
-        description = "TXT_KEY_CIVVACCESS_HELP_DESC_GW_DESC",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_IMAGE_DESC",
     })
 end
 

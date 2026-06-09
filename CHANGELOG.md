@@ -13,6 +13,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - F2 on the Great Work popup reads a description of the painting for great works of art.
+- F2 on the natural wonder discovery popup reads a description of the wonder's portrait.
+- The help overlay lists every F2 description key as "Describe image", replacing the separate leader and painting labels.
 
 ## [1.4.1] - 2026-06-09
 

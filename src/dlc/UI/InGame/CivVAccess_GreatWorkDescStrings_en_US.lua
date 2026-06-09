@@ -12,7 +12,6 @@
 -- tradition first, then the scene, then the look.
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "No painting description for this great work."
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_GW_DESC"] = "Describe painting"
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Dutch Golden Age oil painting, one of the most beloved portraits in Western art. A young woman turns back over her shoulder to meet your eyes out of a plain dark background, lips just parted as if about to speak. She wears a blue and gold turban whose cloth trails down her back, and a single large teardrop pearl catches the light at her ear."
