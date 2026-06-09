@@ -1,3 +1,23 @@
+# Leaders - spoken descriptions
+
+Spoken descriptions for all 43 leader diplomacy scenes, written from the
+leaders' full scene art. Style: voice the artifact, not the biography. Each
+entry opens with the leader's name and titles, then moves through the scene in
+a fixed order: setting, the person (build, face, hair), dress and regalia,
+props, background, and light. Historical garment and object terms are kept and
+glossed inline in plain language (the agu, the iklwa), and when a scene
+restages a real painting the source is named. One paragraph per leader, far
+longer than the entries in the companion docs because the scenes carry far
+more detail; every detail named is visible in the art. No life facts beyond
+the opening titles. Plain punctuation, no em-dashes.
+
+Each entry is headed by the leader's name and civilization. The shipped mod
+strings in CivVAccess_InGameStrings_*.lua are keyed by leader Type and sourced
+from this doc; edit here first, then propagate. Companion docs:
+great-work-descriptions.md and natural-wonder-descriptions.md.
+
+---
+
 # Washington (America)
 
 George Washington, first President of the United States, stands in a paneled interior between heavy red curtains drawn back to either side, his hands loose at his hips. He wears the black civilian dress of a late eighteenth-century American gentleman: a dark double-breasted coat cut long over the thighs, with two rows of brass buttons down the front, a matching waistcoat beneath, a ruffled white jabot at the neck, and white cuffs at the wrists. His hair is dressed white with powder, brushed back from a high forehead, curled at the sides above the ears, and gathered behind in a queue tied with a black silk ribbon. To his left a large terrestrial globe sits on a turned wooden stand; on a small table beside the stand, a bound volume lies open with a blue ribbon marker trailing from its pages. To his right a pale stone mantel carries a tall brass candelabrum of unlit tapers, and above it hangs a framed landscape in a gilt frame. Between the parted curtains behind him, a fluted column rises against a daylit sky and a glimpse of rolling green country. The composition restages Gilbert Stuart's Lansdowne portrait of 1796, the ceremonial sword and state papers replaced here by the globe and the book.
