@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- F2 on the Great Work popup reads a description of the painting for great works of art.
+
 ## [1.4.1] - 2026-06-09
 
 Bug fixes:

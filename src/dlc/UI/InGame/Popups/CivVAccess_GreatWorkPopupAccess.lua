@@ -12,7 +12,8 @@
 -- so first-open speaks the preamble normally. The work's name (LowerCaption)
 -- is rolled into displayName via onShow so the silent-first-open path still
 -- tells the user which work was completed; F1 reads artist + quote on
--- demand.
+-- demand. F2 reads a prose description of the painting when the work is a
+-- great work of art (see CivVAccess_GreatWorkDescription).
 --
 -- The narration check reads Controls.Quote:IsHidden() live. Base
 -- ShowHideHandler calls Controls.Quote:SetHide(...) before returning, so by
@@ -27,9 +28,46 @@
 -- since each ShowHide rewrites Controls.Quote for that specific popup.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_GreatWorkDescStrings_en_US")
+include("CivVAccess_GreatWorkDescription")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
+
+-- The vendor file resolves the displayed work from g_PopupInfo (Data1 is
+-- the great work index; archaeology previews pass -1 with the type in
+-- Data2), but that state is file-local and invisible to this wrapper.
+-- Capture the same two fields off the same event the vendor's OnPopup
+-- subscribes to, with the same Type filter. The index is a stable handle;
+-- F2 re-queries the engine through it at keypress time.
+local capturedData1 = nil
+local capturedData2 = nil
+Events.SerialEventGameMessagePopup.Add(function(popupInfo)
+    if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_GREAT_WORK_COMPLETED_ACTIVE_PLAYER then
+        return
+    end
+    capturedData1 = popupInfo.Data1
+    capturedData2 = popupInfo.Data2
+end)
+
+-- Returns GreatWorks.Type when the displayed work is a great work of art,
+-- else nil (writing, music, artifacts, or nothing captured yet).
+local function artGreatWorkType()
+    if capturedData1 == nil then
+        return nil
+    end
+    local eGWType
+    if capturedData1 ~= -1 then
+        eGWType = Game.GetGreatWorkType(capturedData1)
+    else
+        eGWType = capturedData2
+    end
+    local row = GameInfo.GreatWorks[eGWType]
+    if row == nil or row.GreatWorkClassType ~= "GREAT_WORK_ART" then
+        return nil
+    end
+    return row.Type
+end
 
 local function labelOf(name)
     local c = Controls[name]
@@ -56,7 +94,7 @@ local function preamble()
     return Text.joinNonEmpty({ labelOf("Title"), labelOf("Quote") })
 end
 
-BaseMenu.install(ContextPtr, {
+local handler = BaseMenu.install(ContextPtr, {
     name = "GreatWorkPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_GREAT_WORK_POPUP"),
     preamble = preamble,
@@ -82,3 +120,5 @@ BaseMenu.install(ContextPtr, {
         end
     end,
 })
+
+GreatWorkDescription.bindF2(handler, artGreatWorkType)
