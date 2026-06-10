@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 Bug fixes:
 - Declarations of friendship in the F4 foreign relations column were missing how many turns they have left.
+- F2 descriptions of wonder splash paintings and victory screens now speak in your language instead of English.
 
 ## [1.4.2] - 2026-06-10
 
