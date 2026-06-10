@@ -96,8 +96,8 @@ __pycache__/
 # Extracted World Congress session and project splashes (Firaxis assets — not redistributable)
 /congress images/
 
-# Extracted social policy branch and ideology art (Firaxis assets — not redistributable)
-/policy images/
+# Extracted Dawn of Man load screen paintings (Firaxis assets — not redistributable)
+/dawn of man images/
 
 # Release artifacts produced by package-release.ps1. The GitHub Release is the
 # source of truth for shipped binaries; the local zips are byproducts.
