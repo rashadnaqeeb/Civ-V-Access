@@ -6,7 +6,10 @@
 -- The contributor list can run all 22 majors in a full game, so each entry
 -- is exposed as its own navigable Text item rather than concatenated into
 -- one preamble. Preamble is the project header + description; items are the
--- contributor entries followed by Close.
+-- contributor entries followed by Close. F2 reads a prose description of
+-- the project's splash painting (see CivVAccess_CongressDescription). The
+-- wonder strings are included because the International Space Station
+-- project resolves to that wonder's description string.
 --
 -- Capture strategy: monkey-patch the base AddPlayerEntry global, which base
 -- UpdateAll calls per major in sorted order. We piggyback on that call so
@@ -16,6 +19,9 @@
 -- fires the captured list is complete.
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_WonderDescStrings_en_US")
+include("CivVAccess_CongressDescStrings_en_US")
+include("CivVAccess_CongressDescription")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -48,6 +54,19 @@ AddPlayerEntry = function(iPlayerID, iScore, iTier, iRank)
         iTier = iTier,
         iRank = iRank,
     }
+end
+
+-- Returns LeagueProjects.Type of the completed project, else nil (nothing
+-- captured yet). Resolved at keypress time through the captured row ID.
+local function projectType()
+    if capturedProject == nil then
+        return nil
+    end
+    local row = GameInfo.LeagueProjects[capturedProject]
+    if row == nil then
+        return nil
+    end
+    return row.Type
 end
 
 local function playerNameFor(iPlayerID)
@@ -139,7 +158,7 @@ local function buildItems()
     return items
 end
 
-BaseMenu.install(ContextPtr, {
+local m_handler = BaseMenu.install(ContextPtr, {
     name = "LeagueProjectPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_LEAGUE_PROJECT"),
     preamble = buildPreamble,
@@ -150,3 +169,5 @@ BaseMenu.install(ContextPtr, {
     end,
     items = {},
 })
+
+CongressDescription.bindF2(m_handler, projectType)

@@ -46,6 +46,7 @@ STEMS = {
     "NaturalWonderDesc": "src/dlc/UI/InGame/CivVAccess_NaturalWonderDescStrings",
     "GreatWorkDesc": "src/dlc/UI/InGame/CivVAccess_GreatWorkDescStrings",
     "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
+    "CongressDesc": "src/dlc/UI/InGame/CivVAccess_CongressDescStrings",
 }
 
 KEY_RE = re.compile(

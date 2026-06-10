@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- F2 on the World Congress session and project popups reads a description of the splash painting.
+
 Bug fixes:
 - Declarations of friendship in the F4 foreign relations column were missing how many turns they have left.
 - F2 descriptions of wonder splash paintings and victory screens now speak in your language instead of English.

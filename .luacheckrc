@@ -133,7 +133,7 @@ globals = {
     "BaseTable", "TabbedShell",
     "CityStats",
     "LeaderDescription", "GreatWorkDescription", "NaturalWonderDescription",
-    "VictoryDescription", "WonderDescription",
+    "VictoryDescription", "WonderDescription", "CongressDescription",
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory",
