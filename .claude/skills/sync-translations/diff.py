@@ -42,6 +42,10 @@ STEMS = {
     "FrontEnd": "src/dlc/UI/FrontEnd/CivVAccess_FrontEndStrings",
     "Scanner":  "src/dlc/UI/InGame/CivVAccess_ScannerStrings",
     "Surveyor": "src/dlc/UI/InGame/CivVAccess_SurveyorStrings",
+    "WonderDesc": "src/dlc/UI/InGame/CivVAccess_WonderDescStrings",
+    "NaturalWonderDesc": "src/dlc/UI/InGame/CivVAccess_NaturalWonderDescStrings",
+    "GreatWorkDesc": "src/dlc/UI/InGame/CivVAccess_GreatWorkDescStrings",
+    "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
 }
 
 KEY_RE = re.compile(

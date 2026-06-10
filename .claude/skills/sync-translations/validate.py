@@ -1,4 +1,4 @@
-"""Validate locale strings files against the en_US baseline, all 4 stems.
+"""Validate locale strings files against the en_US baseline, every stem in STEMS.
 
 Run after a sync (Step 5 of the sync-translations skill). Checks every
 locale strings file, not just the keys this sync touched -- a pre-existing
@@ -36,6 +36,10 @@ STEMS = {
     "FrontEnd": "src/dlc/UI/FrontEnd/CivVAccess_FrontEndStrings",
     "Scanner": "src/dlc/UI/InGame/CivVAccess_ScannerStrings",
     "Surveyor": "src/dlc/UI/InGame/CivVAccess_SurveyorStrings",
+    "WonderDesc": "src/dlc/UI/InGame/CivVAccess_WonderDescStrings",
+    "NaturalWonderDesc": "src/dlc/UI/InGame/CivVAccess_NaturalWonderDescStrings",
+    "GreatWorkDesc": "src/dlc/UI/InGame/CivVAccess_GreatWorkDescStrings",
+    "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
 }
 
 LOCALES = ["fr_FR", "de_DE", "es_ES", "it_IT", "ja_JP",
@@ -134,7 +138,7 @@ def main():
         for f in failures:
             print("  " + f)
         sys.exit(1)
-    print("OK - all 10 locales match en_US across all 4 stems")
+    print(f"OK - all 10 locales match en_US across all {len(STEMS)} stems")
 
 
 if __name__ == "__main__":
