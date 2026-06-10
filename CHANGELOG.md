@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-06-11
+
 New Features and improvements:
 - F2 on the World Congress session and project popups reads a description of the splash painting.
 - F2 on the new era popup reads a description of the era's splash painting.
