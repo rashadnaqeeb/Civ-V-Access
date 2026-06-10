@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Declarations of friendship in the F4 foreign relations column were missing how many turns they have left.
+
 ## [1.4.2] - 2026-06-10
 
 New Features and improvements:

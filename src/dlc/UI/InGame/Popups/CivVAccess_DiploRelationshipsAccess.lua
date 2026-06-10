@@ -355,6 +355,16 @@ local function thirdPartyName(iThird, iUs)
     return Text.key(p:GetCivilizationShortDescription())
 end
 
+-- Turns until pOther's DoF with iThird expires. The engine retires a DoF
+-- when its counter reaches the game speed's RelationshipDuration
+-- (CvDiplomacyAI DoCounters); the sighted Global Relations tab computes
+-- against the flat DOF_EXPIRATION_TIME define instead, which understates
+-- the time left on Epic and Marathon. Speak the number the engine uses.
+local function dofTurnsLeft(pOther, iThird)
+    local duration = GameInfo.GameSpeeds[Game.GetGameSpeedType()].RelationshipDuration
+    return duration - pOther:GetDoFCounter(iThird)
+end
+
 -- Foreign-relations cell: pOther's wars with other met majors, their
 -- DoFs, their denouncements (with backstab variant), and CS alliances.
 -- Distinct from Your-relationship -- this is what they have with
@@ -386,6 +396,8 @@ local function foreignRelationsCell(iOther)
                 local met = pUsTeam:IsHasMet(p:GetTeam()) or i == iUs
                 if met and pOther:IsDoF(i) then
                     out[#out + 1] = Text.format("TXT_KEY_DIPLO_FRIENDS_WITH", thirdPartyName(i, iUs))
+                        .. ", "
+                        .. Text.format("TXT_KEY_DECLARE_WAR_DEALS_TURNS_LEFT", dofTurnsLeft(pOther, i))
                 end
             end
         end
