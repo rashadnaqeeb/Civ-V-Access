@@ -2,8 +2,7 @@
 -- Baseline in CivVAccess_EraDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_MISSING"] =
-    "この時代の説明はありません."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_MISSING"] = "この時代の説明はありません."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_ERA_CLASSICAL"] =
     "段々と連なる丘の頂に, 柱廊を備えた大きな神殿が最も高く建ち, そこから右へ向かって小さな柱廊の建物が降り段を成している. その下の斜面には庭園が広がり, 細い石段がイトスギや花の低木が茂る淡い岩の露頭のそばを縫うように延びている. 大理石のすべてが日差しの中で温かな金色に輝いている."

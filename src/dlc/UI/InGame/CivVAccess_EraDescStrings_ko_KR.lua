@@ -2,8 +2,7 @@
 -- Baseline in CivVAccess_EraDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_MISSING"] =
-    "이 시대에 대한 설명이 없습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_MISSING"] = "이 시대에 대한 설명이 없습니다."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_ERA_CLASSICAL"] =
     "웅장한 열주 신전이 계단식 언덕 꼭대기에서 가장 높이 솟아 있고, 더 작은 열주 전당들이 그 오른쪽으로 단을 이루며 내려옵니다. 아래 비탈에는 정원이 펼쳐지며, 좁은 계단들이 사이프러스 나무와 꽃피는 관목이 빽빽이 들어선 창백한 바위 언덕을 지나 굽이쳐 오릅니다. 대리석 전체가 햇빛 아래 따뜻한 금빛으로 빛납니다."

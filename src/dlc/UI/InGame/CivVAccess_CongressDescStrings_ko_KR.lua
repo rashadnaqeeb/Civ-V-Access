@@ -2,8 +2,7 @@
 -- Baseline in CivVAccess_CongressDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONGRESSDESC_MISSING"] =
-    "이 이미지에 대한 설명이 없습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONGRESSDESC_MISSING"] = "이 이미지에 대한 설명이 없습니다."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONGRESSDESC_LEAGUE_SPECIAL_SESSION_START_WORLD_CONGRESS"] =
     "회의장 뒤편에서 청중의 머리 너머로 바라본 세계 회의의 개회 장면입니다. 앞쪽에는 카펫을 깐 단상 위에 붉은 천을 드리운 긴 탁자를 둘러싸고 대표단이 앉아 있으며, 각 자리마다 흰 서류 한 장이 놓여 있습니다. 흰 로브와 흰 두건을 두른 한 인물이 탁자 상석에 서서 회의장에 연설하고, 그의 옆에는 검은 수염의 남자가 서 있습니다. 청중은 나무 의자가 늘어선 열에 앉아 그들을 마주 보며, 터번과 소모자와 맨머리가 한데 모여 있습니다. 오른쪽 벽을 따라 늘어선 창백한 기둥들 사이에서 더 많은 방청객이 지켜보고 있습니다."

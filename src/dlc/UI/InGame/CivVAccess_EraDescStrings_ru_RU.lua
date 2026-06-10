@@ -2,8 +2,7 @@
 -- Baseline in CivVAccess_EraDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_MISSING"] =
-    "Для этой эры нет описания."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_MISSING"] = "Для этой эры нет описания."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ERADESC_ERA_CLASSICAL"] =
     "Величественный храм с колоннами венчает террасированную вершину холма; меньшие залы с колоннадами ступенями спускаются вправо. Ниже по склону разбиты сады, среди которых вьются узкие лестницы мимо светлого скалистого уступа, поросшего кипарисами и цветущими кустарниками. Весь мрамор светится тёплым золотом в лучах солнца."

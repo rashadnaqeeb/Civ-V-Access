@@ -3,8 +3,7 @@
 -- Baseline in CivVAccess_CongressDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONGRESSDESC_MISSING"] =
-    "この画像の説明はありません."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONGRESSDESC_MISSING"] = "この画像の説明はありません."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CONGRESSDESC_LEAGUE_SPECIAL_SESSION_START_WORLD_CONGRESS"] =
     "会議の後方, 聴衆の頭越しに広間の様子が見渡される. 前方では代表たちが赤い布を掛けた長卓を囲んで絨毯敷きの壇上に座り, 各席には白い紙が一枚置かれている. 白いローブと白い頭飾りをまとった一人の人物が卓の上座に立ち, 黒い顎鬚の男を傍らに従えて議場に呼びかけている. 聴衆は木製の椅子の列に向かい合い, ターバンや白帽や何も被らない頭が並んでいる. 右側の壁に沿って白い柱の間からさらに多くの傍聴者が見守っている."
