@@ -17,6 +17,9 @@ New Features and improvements:
 - F2 on the end-of-game screen reads a description of the victory or defeat painting.
 - The help overlay lists every F2 description key as "Describe image", replacing the separate leader and painting labels.
 
+Bug fixes:
+- Leader scene descriptions read more naturally, with clearer wording and a few corrected details.
+
 ## [1.4.1] - 2026-06-09
 
 Bug fixes:
