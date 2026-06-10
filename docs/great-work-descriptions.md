@@ -11,6 +11,9 @@ single image shows the full scroll legibly. Plain punctuation, no em-dashes.
 Each entry: in-game GreatWorkType, title, artist, then the description text. The
 type key is the stable identifier for turning these into mod strings; note two
 works share the title "The Kiss" (Klimt and Hayez) and are distinguished by it.
+Another Firaxis quirk: GREAT_WORK_SECOND_OF_MAY and its image file are
+misnamed; the game's displayed title and the art are The Third of May 1808,
+and the description follows them.
 
 ---
 
@@ -27,7 +30,7 @@ Tudor court portrait in oil, the image that fixed how the world pictures Henry V
 ## 3. GREAT_WORK_HUNTERS_IN_THE_SNOW
 Hunters in the Snow, by Pieter Bruegel
 
-Flemish Renaissance oil painting, a winter landscape seen from a hilltop. Three weary hunters and their pack of dogs trudge through deep snow in the foreground, heads down, with only a single fox to show for the hunt. Below them a village spreads out under a gray-green sky, with tiny skaters playing on frozen ponds and jagged peaks rising in the distance.
+Flemish Renaissance oil painting, a winter landscape viewed from a hilltop. Three weary hunters and their pack of dogs trudge through deep snow in the foreground, heads down, with only a single fox to show for the hunt. Below them a village spreads out under a gray-green sky, with tiny skaters playing on frozen ponds and jagged peaks rising in the distance.
 
 ## 4. GREAT_WORK_LES_DEMOISELLES
 Les Demoiselles d'Avignon, by Pablo Picasso
@@ -42,7 +45,7 @@ French Impressionist oil painting of friends lingering after a meal. A lively gr
 ## 6. GREAT_WORK_MONA_LISA
 Mona Lisa, by Leonardo da Vinci
 
-Italian Renaissance oil on a wood panel, probably the most famous portrait in the world. A woman sits with her hands folded, turned slightly toward you against a hazy landscape of winding rivers and distant blue mountains, her eyes meeting yours directly, the famous gaze that seems to follow you wherever you stand. Her faint half-smile is the focus of the painting, painted in soft browns and greens with no hard outlines so her expression seems to shift the longer you look.
+Italian Renaissance oil on a wood panel, probably the most famous portrait in the world. A woman sits with her hands folded, turned slightly toward you against a hazy landscape of winding rivers and distant blue mountains. Her eyes meet yours directly, the famous gaze that seems to follow you wherever you stand. Her faint half-smile is the focus of the painting, painted in soft browns and greens with no hard outlines so her expression seems to shift the longer you look.
 
 ## 7. GREAT_WORK_SUNDAY_AFTERNOON
 Sunday Afternoon on the Island of La Grande-Jatte, by George Seurat
@@ -202,7 +205,7 @@ French Romantic oil painting, the defining image of revolution. Liberty herself,
 ## 38. GREAT_WORK_SAINT_JEROME_IN_HIS_STUDY
 Saint Jerome in his Study, by Antonello da Messina
 
-Early Renaissance oil painting of remarkable miniature precision. Seen through a grand stone archway, Saint Jerome in red robes sits reading at a wooden study built like a stage inside a vaulted cathedral space, surrounded by shelves of books and pots. Light pours in from windows on every side, a peacock and a partridge perch on the threshold in front, and his lion prowls in the shadows to the right.
+Early Renaissance oil painting of remarkable miniature precision. Viewed through a grand stone archway, Saint Jerome in red robes sits reading at a wooden study built like a stage inside a vaulted cathedral space, surrounded by shelves of books and pots. Light pours in from windows on every side, a peacock and a partridge perch on the threshold in front, and his lion prowls in the shadows to the right.
 
 ## 39. GREAT_WORK_PARTHENON_FRIEZE
 Phidias Showing the Frieze of the Parthenon to his Friends, by Lawrence Alma-Tadema
@@ -212,7 +215,7 @@ Victorian oil painting imagining ancient Athens; in the game this work comes wit
 ## 40. GREAT_WORK_RUE_DE_PARIS
 Paris Street; Rainy Day, by Gustave Caillebotte
 
-French realist oil painting of modern Paris on a drizzly day, sharp and photographic where his Impressionist friends were loose. A well-dressed couple sharing an umbrella strolls toward you across glistening cobblestones, the man in a top hat, the woman in a long dark dress with an earring catching the light. Around them other umbrella-carrying walkers cross a wide intersection lined by wedge-shaped gray apartment blocks, with a green lamppost splitting the scene down the middle.
+French realist oil painting of modern Paris on a drizzly day, sharp and photographic where his Impressionist friends were loose. A well-dressed couple sharing an umbrella strolls toward you across glistening cobblestones, the man in a top hat and the woman in a long dark dress with an earring catching the light. Around them other umbrella-carrying walkers cross a wide intersection lined by wedge-shaped gray apartment blocks, with a green lamppost splitting the scene down the middle.
 
 ## 41. GREAT_WORK_NIGHT_WATCH
 The Night Watch, by Rembrandt van Rijn
@@ -252,7 +255,7 @@ German Romantic oil painting, the defining image of man alone before nature. A y
 ## 48. GREAT_WORK_BABEL
 Tower of Babel, by Pieter Brueghel the Elder
 
-Flemish Renaissance oil painting of the Bible's doomed tower, swarming with detail. A colossal spiral tower of arches, part white stone and part raw red brick, climbs lopsidedly into the clouds, its top still raw and unfinished. Around its base spreads a port city with ships at anchor, and in the foreground the king inspects a crew of stonemasons who kneel at his feet among their blocks.
+Flemish Renaissance oil painting of the Bible's doomed tower, swarming with detail. A colossal spiral tower of arches, part white stone and part raw red brick, climbs lopsidedly into the clouds, its top still raw and unfinished. Around its base spreads a port city with ships at anchor, and in the foreground a king inspects a crew of stonemasons who kneel at his feet among their blocks.
 
 ## 49. GREAT_WORK_YOUNG_LADY
 Portrait of a Young Girl, by Petrus Christus
@@ -297,7 +300,7 @@ Venetian Renaissance oil painting, the model for centuries of rulers on horsebac
 ## 57. GREAT_WORK_THE_ARMADA
 The Armada Portrait of Elizabeth I, by George Gower
 
-Tudor propaganda portrait in oil, painted to celebrate the defeat of the Spanish Armada. Queen Elizabeth sits in an immense gown of pearls and bows, her face framed by a vast white lace ruff, one hand resting possessively on a globe with her fingers on the Americas. Through windows behind her the story unfolds twice: the English fleet in calm seas on one side, Spanish ships wrecked in a storm on the other, with her jeweled crown beside her.
+Tudor propaganda portrait in oil, painted to celebrate the defeat of the Spanish Armada. Queen Elizabeth sits in an immense gown of pearls and bows, her face framed by a vast white lace ruff, one hand resting possessively on a globe with her fingers on the Americas. Through windows behind her the story unfolds twice: the English fleet in calm seas on one side, Spanish ships wrecked in a storm on the other. Her jeweled crown sits beside her.
 
 ## 58. GREAT_WORK_FRANCIS_I
 Francis I of France, by Jean Clouet
@@ -307,12 +310,12 @@ French Renaissance royal portrait in oil. The king faces you from the waist up i
 ## 59. GREAT_WORK_SELF_PORTRAIT
 Self portrait, by Bartholomeus Spranger
 
-Northern Mannerist oil self-portrait by the Flemish court painter of Emperor Rudolf II. The artist looks back at you over his shoulder, a sturdy bearded man with curly hair under a soft black cap, wearing a white ruffled collar over a gray-blue doublet. The handling is warm and direct against a plain brown background, his appraising sideways stare doing all the work.
+Northern Mannerist oil self-portrait by the Flemish court painter of Emperor Rudolf II. The artist looks back at you over his shoulder, a sturdy bearded man with curly hair under a soft black cap, wearing a white ruffled collar over a gray-blue doublet. The handling is warm and direct against a plain brown background, and his appraising sideways stare holds your eye.
 
 ## 60. GREAT_WORK_VERTUMNUS
 Vertumnus, by Giuseppe Arcimboldo
 
-Mannerist oil painting, the most famous of Arcimboldo's fantastical composite heads. It is a portrait of Emperor Rudolf II as the Roman god of the seasons, his entire face and chest assembled from fruit, vegetables, and flowers: pea-pod eyelids, a pear nose, cherry lips, wheat-ear whiskers, and grape hair. Read from a distance it is a dignified ruler; up close it dissolves into a market stall, all against a black background.
+Mannerist oil painting, the most famous of Arcimboldo's fantastical composite heads. It is a portrait of Emperor Rudolf II as the Roman god of the seasons, his entire face and chest assembled from fruit, vegetables, and flowers: pea-pod eyelids, a pear nose, cherry lips, wheat-ear whiskers, and grape hair. From a distance it is a dignified ruler; up close it dissolves into a market stall, all against a black background.
 
 ## 61. GREAT_WORK_LAST_SUPPER
 The Last Supper, by Tintoretto
@@ -402,7 +405,7 @@ Hungarian Biedermeier oil portrait from the 1848 revolution. A bearded citizen-s
 ## 78. GREAT_WORK_CEREMONIAL_SITTING
 Ceremonial Sitting of the State Council on 7 May 1901, by Ilya Repin
 
-Russian realist oil painting on a vast scale, a group portrait of the empire's entire ruling council. Dozens of elderly statesmen in dark uniforms heavy with gold braid and red sashes sit around a great horseshoe of red chairs in a white-columned hall hung with chandeliers and royal portraits. Each of the sixty-odd faces is an individual portrait, painted with Repin's quick, confident realism.
+Russian realist oil painting on a vast scale, a group portrait of the empire's entire ruling council. Dozens of elderly statesmen in dark uniforms heavy with gold braid and red sashes sit around a great horseshoe of red chairs in a white-columned hall hung with chandeliers and royal portraits. Each of the more than sixty faces is an individual portrait, painted with Repin's quick, confident realism.
 
 ## 79. GREAT_WORK_RUSSIAN_TSAR
 Russian tsar in XVI, by Sergey Vasilyevich Ivanov

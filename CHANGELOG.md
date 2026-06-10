@@ -20,6 +20,7 @@ New Features and improvements:
 Bug fixes:
 - Leader scene descriptions read more naturally, with clearer wording and a few corrected details.
 - Victory and defeat screen descriptions read more naturally, with clearer wording.
+- A few great work descriptions read more naturally, with clearer wording.
 
 ## [1.4.1] - 2026-06-09
 
