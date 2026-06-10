@@ -134,6 +134,7 @@ globals = {
     "CityStats",
     "LeaderDescription", "GreatWorkDescription", "NaturalWonderDescription",
     "VictoryDescription", "WonderDescription", "CongressDescription",
+    "EraDescription",
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory",
