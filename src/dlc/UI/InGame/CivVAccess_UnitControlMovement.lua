@@ -104,18 +104,18 @@ end
 -- At-war defender at plot, used by directMove to gate Alt+QAZEDC into
 -- the melee-attack commit (Game.SelectionListMove) vs. the plain-move
 -- commit (registerPending + GAMEMESSAGE_PUSH_MISSION + MISSION_MOVE_TO).
--- bTestAtWar=true means at-war or barbarian (CvUnit::isEnemy at CvUnit
+-- testAtWar means at-war or barbarian (CvUnit::isEnemy at CvUnit
 -- .cpp:18255 checks atWar; barbarians are always at war with all civs).
--- bTestPotentialEnemy=false so peaceful rivals don't trigger the attack
--- commit: entering a peaceful rival's tile queues BUTTONPOPUP_
+-- testPotentialEnemy stays off so peaceful rivals don't trigger the
+-- attack commit: entering a peaceful rival's tile queues BUTTONPOPUP_
 -- DECLAREWARMOVE, not direct combat, and the popup path freezes pending
--- into a deferred slot. bNoncombatAllowed=false so a civilian-only plot
--- is treated as a move (capture), not an attack.
+-- into a deferred slot. noncombatAllowed stays off so a civilian-only
+-- plot is treated as a move (capture), not an attack.
 function UnitControlMovement.enemyAt(plot)
     if plot == nil then
         return nil
     end
-    return plot:GetBestDefender(-1, Game.GetActivePlayer(), nil, 1, 0, 0, 0)
+    return EngineData.bestDefender(plot, Game.GetActivePlayer(), nil, { testAtWar = true })
 end
 
 -- Enemy city at plot if any, with the same active-team / war gate enemyAt
@@ -639,8 +639,8 @@ end
 -- a now-at-war defender, the CombatResolved hook speaks the result, and
 -- a "moved to X" announcement on top of that would double-speak when the
 -- attacker advances onto the cleared plot. The check uses
--- bTestPotentialEnemy=true because we run BEFORE the engine declares
--- war; bTestAtWar would still see the rival as peaceful and miss them.
+-- testPotentialEnemy because we run BEFORE the engine declares war;
+-- testAtWar would still see the rival as peaceful and miss them.
 function UnitControlMovement.notifyDeferredCommit()
     if _deferred == nil then
         return
@@ -658,7 +658,7 @@ function UnitControlMovement.notifyDeferredCommit()
     local targetPlot = plotAt(snap.targetX, snap.targetY)
     if targetPlot ~= nil then
         local activePlayer = Game.GetActivePlayer()
-        local potentialDefender = targetPlot:GetBestDefender(-1, activePlayer, unit, 0, 1, 0, 0)
+        local potentialDefender = EngineData.bestDefender(targetPlot, activePlayer, unit, { testPotentialEnemy = true })
         local potentialCity
         if targetPlot:IsCity() then
             local city = targetPlot:GetPlotCity()

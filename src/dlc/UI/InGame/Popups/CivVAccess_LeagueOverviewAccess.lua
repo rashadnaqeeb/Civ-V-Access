@@ -184,15 +184,12 @@ end
 -- non-empty for other members but vote-opinion is empty between sessions).
 local function buildMemberDrillItems(pLeague, member, activePlayer)
     local items = {}
-    local delegation =
-        LeagueOverviewRow.formatDelegationBreakdown(pLeague:GetMemberDelegationDetails(member.playerID, activePlayer))
+    local rawDelegation, knowledge, voteOpinion = EngineData.leagueMemberDetails(pLeague, member.playerID, activePlayer)
+    local delegation = LeagueOverviewRow.formatDelegationBreakdown(rawDelegation)
     if delegation ~= "" then
         items[#items + 1] = BaseMenuItems.Text({ labelText = delegation })
     end
-    local laterSections = {
-        pLeague:GetMemberKnowledgeDetails(member.playerID, activePlayer),
-        pLeague:GetMemberVoteOpinionDetails(member.playerID, activePlayer),
-    }
+    local laterSections = { knowledge, voteOpinion }
     for _, raw in ipairs(laterSections) do
         local filtered = LeagueOverviewRow.filterTooltip(raw)
         if filtered ~= "" then

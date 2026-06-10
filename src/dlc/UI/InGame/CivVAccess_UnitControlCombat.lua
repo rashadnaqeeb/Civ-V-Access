@@ -101,19 +101,19 @@ end
 --   - Defender already past the actor's combat limit (CvUnit.cpp:2654).
 --   - ONLY_DEFENSIVE units advancing into an enemy city (CvUnit.cpp:2559).
 --
--- CanMoveOrAttackInto(target, 1, 1) tests both move-without-attack and
+-- EngineData.canMoveOrAttackInto tests both move-without-attack and
 -- attack (engine code at CvUnit.cpp:2760). Callers reach this gate after
 -- they have already established a defender on the plot, so the move
 -- branch is gated by the visibleEnemyUnit check (CvUnit.cpp:2717) and a
--- true result here can only come from the attack branch. The fork's
--- CvLuaUnit.cpp lCanMoveOrAttackInto (line 791) returns the actual
--- result; vanilla discards it and would always read false.
+-- true result here can only come from the attack branch. The seam
+-- degrades to "allow" on a no-fork DLL, so this preflight passes rather
+-- than falsely blocking every attack there.
 --
 -- Drill order is most-specific first so the user hears the
 -- distinguishing fact (this unit only attacks cities; this is a naval
 -- domain mismatch) before the generic fallback.
 function UnitControlCombat.preflightAttackTarget(unit, target)
-    if unit:CanMoveOrAttackInto(target, 1, 1) then
+    if EngineData.canMoveOrAttackInto(unit, target) then
         return nil
     end
     if unit:IsCityAttackOnly() then

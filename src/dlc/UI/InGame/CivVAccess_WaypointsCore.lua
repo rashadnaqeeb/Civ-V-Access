@@ -63,6 +63,18 @@ local function missionKinds()
     }
 end
 
+-- Canonical string for an entry's path intents: sorted names, so two
+-- reads of the same intents always serialize identically (pairs order
+-- is not deterministic).
+local function intentsSig(intents)
+    local names = {}
+    for name in pairs(intents) do
+        names[#names + 1] = name
+    end
+    table.sort(names)
+    return table.concat(names, ",")
+end
+
 -- Build a sig from the queue. Distinct queues hash to distinct strings;
 -- two reads of an unchanged queue hash identically.
 local function computeSig(queue)
@@ -71,7 +83,7 @@ local function computeSig(queue)
     end
     local parts = {}
     for i, entry in ipairs(queue) do
-        parts[i] = entry.mission .. ":" .. entry.data1 .. ":" .. entry.data2 .. ":" .. entry.flags
+        parts[i] = entry.mission .. ":" .. entry.data1 .. ":" .. entry.data2 .. ":" .. intentsSig(entry.intents)
     end
     return table.concat(parts, "|")
 end
@@ -131,8 +143,8 @@ end
 -- Move-like leg: run the movement pathfinder. Returns { nodes, turns }
 -- or nil. nodes[1] is the leg's start (== fromPlot); nodes[2..#nodes]
 -- are the plots the unit will step onto.
-local function computeMovePath(unit, fromPlot, toPlot, flags, freshTurn)
-    local nodes, success, legTurns = EngineData.computePath(unit, fromPlot, toPlot, flags, freshTurn)
+local function computeMovePath(unit, fromPlot, toPlot, intents, freshTurn)
+    local nodes, success, legTurns = EngineData.computePath(unit, fromPlot, toPlot, intents, freshTurn)
     if not success or type(nodes) ~= "table" or #nodes == 0 then
         return nil
     end
@@ -252,7 +264,7 @@ local function compute(unit, queue)
         if kind ~= nil then
             local toPlot = Map.GetPlot(entry.data1, entry.data2)
             if toPlot ~= nil then
-                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags, not firstLeg)
+                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.intents, not firstLeg)
                 if kind == MISSION_KIND_ROUTE then
                     local route = bestRouteForLeg(unit, fromPlot)
                     local path
@@ -604,7 +616,7 @@ function Waypoints.queueTurns(unit)
         if kinds[entry.mission] ~= nil then
             local toPlot = Map.GetPlot(entry.data1, entry.data2)
             if toPlot ~= nil then
-                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.flags, not firstLeg)
+                local moveLeg = computeMovePath(unit, fromPlot, toPlot, entry.intents, not firstLeg)
                 if moveLeg ~= nil then
                     total = total + moveLeg.turns
                     any = true

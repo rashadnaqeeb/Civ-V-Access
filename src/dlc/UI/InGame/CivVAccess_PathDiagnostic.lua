@@ -10,9 +10,9 @@
 -- recovers the path is the one we report.
 --
 --   1. Strict
---   2. MOVE_DECLARE_WAR        -- closed borders / would-declare-war
---   3. MOVE_IGNORE_STACKING    -- your own same-type unit blocking
---   4. MOVE_UNITS_THROUGH_ENEMY -- at-war foreign units in path
+--   2. declareWar     -- closed borders / would-declare-war
+--   3. ignoreStacking -- your own same-type unit blocking
+--   4. throughEnemy   -- at-war foreign units in path
 --   5. None work -> closest-reached fallback via closed list
 --
 -- Once a relaxation recovers the path, we binary-search along the relaxed
@@ -25,22 +25,6 @@
 -- captures.
 
 PathDiagnostic = {}
-
--- Pathfinder flag bits from CvDefines.h. Hardcoded here because the
--- engine doesn't expose them as Lua-side enums and we don't want to
--- shadow them through GameInfo. Keep these in sync with CvAStar.h's
--- PATHFINDER FLAGS section.
-local MOVE_IGNORE_STACKING = 0x00000004
-local MOVE_DECLARE_WAR = 0x00000020
-local MOVE_UNITS_THROUGH_ENEMY = 0x00000010
--- Engine-fork-only flag (CvAStar.h). Forces PathDestValid to accept any
--- destination so the search runs regardless of whether the unit can
--- actually enter that tile. Used in the unreachable branch to populate
--- m_pClosed with the unit's reachable region for the closest-reachable
--- readout when the destination is fundamentally inaccessible (water for
--- non-embarking land unit, water tile with at-war unit a land unit can't
--- melee, deep ocean without Astronomy).
-local MOVE_CIVVACCESS_FORCE_DEST_VALID = 0x20000000
 
 -- Fog-of-war gate for blocker disclosure. The pathfinder runs against
 -- engine-side ground truth and can identify a unit on a tile that's
@@ -323,7 +307,7 @@ function PathDiagnostic.discriminativePath(unit, target)
     -- blocker tile (first tile strict can't reach) names the cause; the
     -- previous tile is the closest reachable.
 
-    if EngineData.generatePath(unit, target, MOVE_DECLARE_WAR) then
+    if EngineData.generatePath(unit, target, { declareWar = true }) then
         local relaxed = snapshotPath(unit)
         local closest, blocker = findReachabilityBoundary(unit, relaxed)
         local blockingTeam = nil
@@ -333,7 +317,7 @@ function PathDiagnostic.discriminativePath(unit, target)
         return applyFogFilter({ ok = "declareWar", blockingTeam = blockingTeam, closest = closest })
     end
 
-    if EngineData.generatePath(unit, target, MOVE_IGNORE_STACKING) then
+    if EngineData.generatePath(unit, target, { ignoreStacking = true }) then
         local relaxed = snapshotPath(unit)
         local closest, blocker = findReachabilityBoundary(unit, relaxed)
         local blockingUnit = nil
@@ -354,7 +338,7 @@ function PathDiagnostic.discriminativePath(unit, target)
         return applyFogFilter({ ok = "stacking", blockingUnit = blockingUnit, closest = closest })
     end
 
-    if EngineData.generatePath(unit, target, MOVE_UNITS_THROUGH_ENEMY) then
+    if EngineData.generatePath(unit, target, { throughEnemy = true }) then
         local relaxed = snapshotPath(unit)
         local closest, blocker = findReachabilityBoundary(unit, relaxed)
         local blockingUnit = nil
@@ -376,18 +360,19 @@ function PathDiagnostic.discriminativePath(unit, target)
     -- search to populate m_pClosed with the unit's reachable region,
     -- then read the closest tile to the original target.
     --
-    -- The flag tells PathDestValid to return TRUE unconditionally, which
-    -- matters because the destination might be one PathDestValid would
-    -- otherwise reject before any search step runs (water target for a
-    -- non-embarking land unit, water tile with an at-war unit a land
-    -- unit can't melee, deep ocean without Astronomy). Without the flag
-    -- the search never starts and m_pClosed is empty, so the closest-
-    -- reachable readout falls back to the unit's start position --
-    -- objectively wrong when there's a coastal tile next to the target.
-    -- With the flag, intermediate PathValid still rejects steps the
-    -- unit can't take, so the search exhausts naturally on unreachable
-    -- destinations and m_pClosed has the reachable region.
-    EngineData.generatePath(unit, target, MOVE_CIVVACCESS_FORCE_DEST_VALID)
+    -- forceDestValid (an engine-fork extension) tells PathDestValid to
+    -- return TRUE unconditionally, which matters because the destination
+    -- might be one PathDestValid would otherwise reject before any
+    -- search step runs (water target for a non-embarking land unit,
+    -- water tile with an at-war unit a land unit can't melee, deep ocean
+    -- without Astronomy). Without it the search never starts and
+    -- m_pClosed is empty, so the closest-reachable readout falls back to
+    -- the unit's start position -- objectively wrong when there's a
+    -- coastal tile next to the target. With it, intermediate PathValid
+    -- still rejects steps the unit can't take, so the search exhausts
+    -- naturally on unreachable destinations and m_pClosed has the
+    -- reachable region.
+    EngineData.generatePath(unit, target, { forceDestValid = true })
     local closest = readClosedListClosest(tx, ty)
     local result = { ok = "unreachable", closest = closest }
     local cause = identifyUnreachableCause(unit, target, closest)
@@ -553,7 +538,7 @@ end
 -- blocker / fog leak.
 --
 -- BuildRouteFinder takes only (player, routeType) flags -- no relaxation
--- surface analogous to MOVE_DECLARE_WAR / MOVE_IGNORE_STACKING. So instead
+-- surface analogous to declareWar / ignoreStacking. So instead
 -- of running retries we get a candidate land path from the unit pathfinder
 -- and binary-search BuildRoutePath along it for the boundary tile. The
 -- boundary tile's properties name the cause (water, mountain, borders).

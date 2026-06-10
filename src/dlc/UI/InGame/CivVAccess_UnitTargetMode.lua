@@ -252,7 +252,7 @@ local function moveFromWaypointPreview(actor, targetPlot)
     if fromPlot:GetPlotIndex() == targetPlot:GetPlotIndex() then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_EMPTY")
     end
-    local nodes, success = EngineData.computePath(actor, fromPlot, targetPlot, 0, true)
+    local nodes, success = EngineData.computePath(actor, fromPlot, targetPlot, nil, true)
     if not success or type(nodes) ~= "table" or #nodes == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MOVE_PATH_UNREACHABLE")
     end
@@ -276,29 +276,27 @@ end
 -- getBestDefender (CvPlot.cpp:2627) -- the same pick the engine uses to
 -- resolve combat -- with the filters the target-mode UI needs.
 --
--- bTestAtWar=true mirrors the engine's airStrikeTarget at
--- CvUnit.cpp:20242. The other engine getBestDefender flag,
--- bTestPotentialEnemy, looks like the right way to also include peaceful
--- rivals but is dead code: it bottoms out in a Firaxis stub at
--- CvGameCoreUtils.cpp:157 (`bool isPotentialEnemy(TeamTypes, TeamTypes)`)
--- that always returns false, so passing 1 makes getBestDefender drop every
--- defender. Community Patch confirmed this is unsalvageable -- they
--- removed every reference to isPotentialEnemy from their engine. We
+-- testAtWar mirrors the engine's airStrikeTarget at CvUnit.cpp:20242.
+-- The other gate, testPotentialEnemy, looks like the right way to also
+-- include peaceful rivals but is dead code: it bottoms out in a Firaxis
+-- stub at CvGameCoreUtils.cpp:157 (`bool isPotentialEnemy(TeamTypes,
+-- TeamTypes)`) that always returns false, so setting it makes the engine
+-- drop every defender. Community Patch confirmed this is unsalvageable --
+-- they removed every reference to isPotentialEnemy from their engine. We
 -- handle the peaceful-rival ranged case below with a manual scan.
 --
--- bNoncombatAllowed: for range previews, civilians are valid strike
+-- noncombatAllowed: for range previews, civilians are valid strike
 -- targets; for melee previews, melee-into-civilian is a capture, not
 -- combat, so the civilian isn't a defender.
 --
--- Passing the actor as pAttacker improves the air-strike damage-cap pick
--- when the attacker is an air unit. NO_PLAYER (-1) leaves the unit-owner
--- filter off so any non-allied unit on the plot is considered.
+-- Passing the actor as the attacker improves the air-strike damage-cap
+-- pick when the attacker is an air unit.
 local function defenderAt(plot, ranged, actor)
     if plot == nil then
         return nil
     end
     local activePlayer = Game.GetActivePlayer()
-    local defender = plot:GetBestDefender(-1, activePlayer, actor, 1, 0, 0, ranged and 1 or 0)
+    local defender = EngineData.bestDefender(plot, activePlayer, actor, { testAtWar = true, noncombatAllowed = ranged })
     if defender ~= nil then
         return defender
     end

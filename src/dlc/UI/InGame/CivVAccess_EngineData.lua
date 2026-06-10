@@ -182,29 +182,125 @@ function EngineData.dealResourceCount(deal, playerId, resType)
     return deal:GetNumResource(playerId, resType)
 end
 
+-- Drift read: the engine's pick for the unit that would defend a plot
+-- (CvPlot::getBestDefender) -- the same pick combat resolution uses.
+-- Options are named because the positional signature drifts: VP inserts a
+-- pIgnoreUnit parameter and repurposes the potential-enemy slot as
+-- bIgnoreVisibility, so a positional vanilla call would silently return
+-- wrong defenders there. opts:
+--   testAtWar          only at-war (or barbarian) defenders count
+--   testPotentialEnemy widen the war test to would-be-at-war rivals. On
+--                      this engine the gate bottoms out in the Firaxis
+--                      isPotentialEnemy stub (always false), so true
+--                      drops every defender; the caller that sets it
+--                      wants that exact engine behavior preserved
+--   noncombatAllowed   civilians count as defenders (engine-fork 7th
+--                      arg; a stock DLL ignores it and misses civilians)
+-- Every mod call site leaves the unit-owner filter off (-1) and
+-- bTestCanMove off, so neither crosses the seam. attacker may be nil.
+function EngineData.bestDefender(plot, attackingPlayer, attacker, opts)
+    return plot:GetBestDefender(
+        -1,
+        attackingPlayer,
+        attacker,
+        opts.testAtWar and 1 or 0,
+        opts.testPotentialEnemy and 1 or 0,
+        0,
+        opts.noncombatAllowed and 1 or 0
+    )
+end
+
+-- Pathfinder intents: the seam vocabulary for path relaxations. Callers
+-- pass named intents ({ declareWar = true }, ...) and the translation to
+-- this engine's flag bits happens here, so no engine bit mask crosses
+-- the seam in either direction. The values mirror CvDefines.h's
+-- PATHFINDER FLAGS plus the fork's force-dest-valid extension
+-- (CvAStar.h); keep in sync with those.
+local MOVE_INTENT_BITS = {
+    noEnemyTerritory = 0x00000002, -- refuse steps through at-war territory
+    ignoreStacking = 0x00000004, -- own same-type unit may block
+    ignoreDanger = 0x00000008, -- path through endangered plots (automation moves)
+    throughEnemy = 0x00000010, -- ignore at-war foreign units in path
+    declareWar = 0x00000020, -- allow steps that would declare war
+    maximizeExplore = 0x00000080, -- bias the route toward unrevealed tiles
+    forceDestValid = 0x20000000, -- fork: accept any destination (exploration search)
+}
+
+-- Intents table -> engine flag bits. A misspelled intent name would
+-- otherwise run a strict search under the guise of a relaxation, so an
+-- unknown name crashes (and reaches Lua.log) instead.
+local function bitsFromIntents(intents)
+    local bits = 0
+    for name, on in pairs(intents) do
+        local bit = MOVE_INTENT_BITS[name]
+        if bit == nil then
+            error("EngineData: unknown path intent '" .. tostring(name) .. "'")
+        end
+        if on then
+            bits = bits + bit
+        end
+    end
+    return bits
+end
+
+-- Engine mission-flags value -> intents table. The vocabulary covers
+-- every flag the engine stores on an active player's queued missions:
+-- manual orders push flags 0 (CvGame::selectionListMove and every other
+-- UI sender), and CvHomelandAI moves automated units with ignoreDanger /
+-- noEnemyTerritory / maximizeExplore. Dropping a stored flag here would
+-- make the waypoint re-pricing diverge from the engine's actual plan --
+-- ignoreDanger in particular gates PathValid for automated units, so
+-- losing it turns a legal queued leg into "no path" and silently drops
+-- it from speech.
+local function intentsFromMoveFlags(flags)
+    local intents = {}
+    for name, bit in pairs(MOVE_INTENT_BITS) do
+        if flags % (bit * 2) >= bit then
+            intents[name] = true
+        end
+    end
+    return intents
+end
+
 -- Extension binding: Unit:GetMissionQueue (the unit's queued missions).
--- Absent on a non-fork DLL, where a bare call throws a method-not-found
--- error the engine swallows per listener -- which is what silenced the
--- whole tile read on a stock engine. Degrades to an empty queue so callers
--- measuring #queue see "no queued missions" and keep going.
+-- Entries carry mission / data1 / data2 / pushTurn straight from the
+-- engine, plus intents -- the entry's movement flags decoded into the
+-- pathfinder-intent vocabulary (the raw engine bit mask does not leave
+-- the seam). Absent on a non-fork DLL, where a bare call throws a
+-- method-not-found error the engine swallows per listener -- which is
+-- what silenced the whole tile read on a stock engine. Degrades to an
+-- empty queue so callers measuring #queue see "no queued missions" and
+-- keep going.
 function EngineData.missionQueue(unit)
     if not EngineData.forkPresent() then
         Log.warn("EngineData.missionQueue: engine fork absent, returning empty queue")
         return {}
     end
-    return unit:GetMissionQueue()
+    local queue = unit:GetMissionQueue()
+    local out = {}
+    for i, entry in ipairs(queue) do
+        out[i] = {
+            mission = entry.mission,
+            data1 = entry.data1,
+            data2 = entry.data2,
+            pushTurn = entry.pushTurn,
+            intents = intentsFromMoveFlags(entry.flags),
+        }
+    end
+    return out
 end
 
 -- Extension binding: Unit:GeneratePath(plot [, flags]) -- runs the engine
--- pathfinder, returning (ok, pathTurns). Degrades to false so callers
--- reading the boolean treat the target as unreachable.
-function EngineData.generatePath(unit, plot, flags)
+-- pathfinder, returning (ok, pathTurns). intents is an optional table of
+-- named path relaxations. Degrades to false so callers reading the
+-- boolean treat the target as unreachable.
+function EngineData.generatePath(unit, plot, intents)
     if not EngineData.forkPresent() then
         Log.warn("EngineData.generatePath: engine fork absent")
         return false
     end
-    if flags ~= nil then
-        return unit:GeneratePath(plot, flags)
+    if intents ~= nil then
+        return unit:GeneratePath(plot, bitsFromIntents(intents))
     end
     return unit:GeneratePath(plot)
 end
@@ -223,14 +319,20 @@ end
 
 -- Extension binding: Unit:ComputePath(fromPlot, toPlot, flags, freshTurn) --
 -- a one-shot path between two plots, returning (nodes, success, legTurns).
--- Folds the pcall WaypointsCore used to guard the stock-DLL case; the
--- caller's `not success` branch falls back to the move dialect. freshTurn
--- seeds the start node with the unit's full move allowance instead of its
+-- intents is an optional table of named path relaxations (a queued
+-- mission entry's decoded intents thread back through here). Folds the
+-- pcall WaypointsCore used to guard the stock-DLL case; the caller's
+-- `not success` branch falls back to the move dialect. freshTurn seeds
+-- the start node with the unit's full move allowance instead of its
 -- current movesLeft, for pricing a leg that begins at a future waypoint.
-function EngineData.computePath(unit, fromPlot, toPlot, flags, freshTurn)
+function EngineData.computePath(unit, fromPlot, toPlot, intents, freshTurn)
     if not EngineData.forkPresent() then
         Log.warn("EngineData.computePath: engine fork absent")
         return nil, false, nil
+    end
+    local flags = 0
+    if intents ~= nil then
+        flags = bitsFromIntents(intents)
     end
     return unit:ComputePath(fromPlot, toPlot, flags, freshTurn)
 end
@@ -278,4 +380,49 @@ function EngineData.hasLineOfSight(plot, targetPlot, team)
         return true
     end
     return plot:HasLineOfSight(targetPlot, team)
+end
+
+-- Extension binding: whether the unit could enter the target plot as a
+-- destination -- by plain move or by attacking what's there -- declaring
+-- war if that's what entry takes (CvUnit::canMoveOrAttackInto with the
+-- declare-war and destination move flags). The binding exists on a stock
+-- DLL but Firaxis discards its result, so a bare call reads false for
+-- every plot; only the fork returns the real answer. Degrades to true,
+-- per the hasLineOfSight rule: when the check can't run, never impose a
+-- false "can't attack" constraint.
+function EngineData.canMoveOrAttackInto(unit, targetPlot)
+    if not EngineData.forkPresent() then
+        Log.warn("EngineData.canMoveOrAttackInto: engine fork absent")
+        return true
+    end
+    return unit:CanMoveOrAttackInto(targetPlot, 1, 1)
+end
+
+-- Extension binding: Game.GetCycleUnits() -- the engine unit cycler's
+-- active-player unit-ID list (CvPlayer::GetUnitCycler) without the
+-- ReadyToSelect filter. Degrades to an empty list, which the Ctrl+. /
+-- Ctrl+, walk speaks as "no units".
+function EngineData.cycleUnits()
+    if not EngineData.forkPresent() then
+        Log.warn("EngineData.cycleUnits: engine fork absent, returning empty list")
+        return {}
+    end
+    return Game.GetCycleUnits()
+end
+
+-- Extension binding: the League member-detail strings for one member as
+-- seen by an observer -- League:GetMemberDelegationDetails /
+-- GetMemberKnowledgeDetails / GetMemberVoteOpinionDetails. Returns
+-- (delegation, knowledge, voteOpinion), each an engine-built localized
+-- breakdown string, empty when the engine has nothing to report.
+-- Degrades to three empty strings, which the League overview drill
+-- already skips as empty sections.
+function EngineData.leagueMemberDetails(league, memberId, observerId)
+    if not EngineData.forkPresent() then
+        Log.warn("EngineData.leagueMemberDetails: engine fork absent")
+        return "", "", ""
+    end
+    return league:GetMemberDelegationDetails(memberId, observerId),
+        league:GetMemberKnowledgeDetails(memberId, observerId),
+        league:GetMemberVoteOpinionDetails(memberId, observerId)
 end

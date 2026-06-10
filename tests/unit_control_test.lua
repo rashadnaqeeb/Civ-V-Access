@@ -221,7 +221,7 @@ function M.test_dispatched_on_start_with_queued_mission_speaks_queued()
         y = 4,
         targetX = 5,
         targetY = 5,
-        missionQueue = { { eMissionType = 1 } },
+        missionQueue = { { mission = 1, data1 = 0, data2 = 0, flags = 0, pushTurn = 0 } },
     })
     -- Unit didn't move -- 0 MP at commit, mission sits in queue under
     -- ACTIVITY_HOLD until next turn.

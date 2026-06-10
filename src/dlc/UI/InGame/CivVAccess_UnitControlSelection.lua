@@ -57,15 +57,15 @@ function UnitControlSelection.cycleAll(forward)
     Game.CycleUnits(true, forward and true or false, false)
 end
 
--- Ctrl+. / Ctrl+, walk Game.GetCycleUnits(), the engine fork's exposure
--- of CvPlayer::GetUnitCycler(). Order is whatever the engine has built;
+-- Ctrl+. / Ctrl+, walk the engine fork's exposure of
+-- CvPlayer::GetUnitCycler(). Order is whatever the engine has built;
 -- it persists across creation/destruction the same way as the engine's
 -- own next-unit binding. We drop the ReadyToSelect filter so every
 -- active-player unit is a target (the whole point of the Ctrl variant
 -- is "show me everyone, including units I've already moved").
 function UnitControlSelection.cycleAllUnits(forward)
     UnitControlSelection.markUserInitiatedSelection()
-    local list = Game.GetCycleUnits()
+    local list = EngineData.cycleUnits()
     local n = #list
     if n == 0 then
         speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_UNIT_NO_UNITS"))

@@ -38,16 +38,14 @@ end
 -- Defender unit on the plot the city would actually strike. Mirrors the
 -- engine's getBestDefender call at CvCity.cpp:14425 (canRangedStrikeTarget):
 -- at-war filter, civilians allowed (cities accept workers / settlers /
--- great people as ranged targets). bTestPotentialEnemy stays off because
+-- great people as ranged targets). testPotentialEnemy stays off because
 -- the gate it triggers routes through isPotentialEnemy, a Firaxis stub
--- that always returns false and would drop every defender. The 7th arg
--- (bNoncombatAllowed) is the engine fork's CvLuaPlot extension; the
--- vanilla binding stops at bTestCanMove and would silently miss civilians.
+-- that always returns false and would drop every defender.
 local function topStrikableTargetAt(plot)
     if plot == nil then
         return nil
     end
-    return plot:GetBestDefender(-1, Game.GetActivePlayer(), nil, 1, 0, 0, 1)
+    return EngineData.bestDefender(plot, Game.GetActivePlayer(), nil, { testAtWar = true, noncombatAllowed = true })
 end
 
 -- Diagnostic walk for a city strike attempt at (tx, ty). Returns nil if

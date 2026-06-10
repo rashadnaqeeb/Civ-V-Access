@@ -72,6 +72,52 @@ function Invoke-Tool {
     }
 }
 
+# Engine-seam guard. Every engine getter whose value or signature drifts
+# across engines (vanilla / Vox Populi), and every fork-added binding, must
+# be called through CivVAccess_EngineData.lua -- a raw call lints clean and
+# runs clean on vanilla but breaks or silently lies on another engine, the
+# failure class the EngineData port exists to prevent. This stage greps
+# mod-authored Lua (CivVAccess_*.lua; vendor copies are exempt because we
+# ship them verbatim) for the known-drifted method names outside
+# EngineData itself and fails on any hit. The name list is the VP port
+# plan's drift audit plus the fork's extension bindings; each VP re-pin's
+# value-audit diff is what keeps it current.
+function Invoke-SeamGuard {
+    $methods = @(
+        # Drift reads (value or signature differs across engines)
+        "GetCombatDamage", "GetMaxDefenseStrength", "DefenseModifier",
+        "GetExcessHappiness", "GetHappinessFromBuildings", "GetHappinessFromPolicies",
+        "GetUnhappinessFromCityCount", "GetUnhappinessFromCapturedCityCount",
+        "GetUnhappinessFromCityPopulation", "GetUnhappinessFromCityForUI",
+        "GetTourism", "GetBaseTourism",
+        "GetBestDefender", "CanMoveOrAttackInto",
+        # Fork extension bindings
+        "GetMissionQueue", "GeneratePath", "GetPath", "ComputePath",
+        "GetBestBuildRoute", "GetBuildRoutePath", "GetClosestSearchedPlot",
+        "HasLineOfSight", "GetCycleUnits",
+        "GetMemberDelegationDetails", "GetMemberKnowledgeDetails", "GetMemberVoteOpinionDetails"
+    )
+    # Deal:GetNumResource (drifted: unregistered in VP) shares its name with
+    # the undrifted zero-arg Plot:GetNumResource(), so it gets its own
+    # alternative requiring at least one argument; the deal getter always
+    # takes (playerId, resourceType).
+    $pattern = "[:.](?:(?:" + ($methods -join "|") + ")\s*\(|GetNumResource\s*\([^)])"
+    $files = Get-ChildItem -Path (Join-Path $root "src\dlc") -Recurse -Filter "CivVAccess_*.lua" |
+        Where-Object { $_.Name -ne "CivVAccess_EngineData.lua" }
+    # Case-sensitive: the EngineData seam functions reuse these names in
+    # camelCase (EngineData.generatePath), and those routed calls are the
+    # goal state, not violations. Comment-only lines are allowed to name
+    # the methods (docs reference engine behavior); code lines are not.
+    $hits = @($files | Select-String -CaseSensitive -Pattern $pattern | Where-Object { $_.Line -notmatch '^\s*--' })
+    foreach ($hit in $hits) {
+        # Windows PowerShell 5.1 has no GetRelativePath; trim the root prefix.
+        $rel = $hit.Path.Substring($root.Length).TrimStart("\")
+        Write-Host ("{0}:{1}: raw engine-seam call; route through EngineData: {2}" -f $rel, $hit.LineNumber, $hit.Line.Trim())
+    }
+    if ($hits.Count -gt 0) { return 1 }
+    return 0
+}
+
 $targets = if ($Paths -and $Paths.Count -gt 0) { $Paths } else { @("src", "tests") }
 
 Write-Host "--- luacheck" -ForegroundColor Cyan
@@ -93,6 +139,12 @@ if ($Fix) {
     $styluaExit = Invoke-Tool -Exe $stylua -ToolArgs (@("--respect-ignores", "--check") + $targets)
 }
 
+# The seam guard always sweeps all of src\dlc regardless of $Paths: it
+# checks a repo invariant, and a violation anywhere should fail even a
+# single-file run.
+Write-Host "--- engine-seam guard" -ForegroundColor Cyan
+$seamExit = Invoke-SeamGuard
+
 # Report in a way the user can act on: tell them which stage failed.
 if ($luacheckExit -ne 0 -and $styluaExit -ne 0) {
     Write-Host "lint + format-check both failed" -ForegroundColor Red
@@ -105,8 +157,13 @@ if ($luacheckExit -ne 0 -and $styluaExit -ne 0) {
         Write-Host "format-check failed (run ./lint.ps1 -Fix to rewrite)" -ForegroundColor Yellow
     }
 }
+if ($seamExit -ne 0) {
+    Write-Host "engine-seam guard failed (route the flagged calls through CivVAccess_EngineData.lua)" -ForegroundColor Red
+}
 
-# Combined exit: nonzero if either failed. Luacheck's exit beats stylua's
-# when both fail so the numeric code still pins one specific tool.
+# Combined exit: nonzero if any stage failed. Luacheck's exit beats the
+# others when several fail so the numeric code still pins one specific
+# tool; the seam guard ranks last.
 if ($luacheckExit -ne 0) { exit $luacheckExit }
-exit $styluaExit
+if ($styluaExit -ne 0) { exit $styluaExit }
+exit $seamExit
