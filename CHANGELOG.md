@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - F2 on the Great Work popup reads a description of the painting for great works of art.
 - F2 on the natural wonder discovery popup reads a description of the wonder's portrait.
+- F2 on the wonder completion popup reads a description of the wonder's splash painting.
 - F2 on the end-of-game screen reads a description of the victory or defeat painting.
 
 Bug fixes:
