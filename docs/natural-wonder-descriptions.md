@@ -23,12 +23,12 @@ The Barringer Crater is FEATURE_CRATER.
 ## 1. FEATURE_CRATER
 The Barringer Crater
 
-A vast impact crater seen from its rim, a ragged bowl punched into pale desert ground. The near slope is covered in green scrub that drops away into the shadowed pit, whose floor lies in deep brown darkness, and the far rim rises in bands of tan and gold under a hazy sky.
+A vast impact crater viewed from its rim, a ragged bowl punched into pale desert ground. The near slope is covered in green scrub that drops away into the shadowed pit, whose floor lies in deep brown darkness, and the far rim rises in bands of tan and gold under a hazy sky.
 
 ## 2. FEATURE_EL_DORADO
 El Dorado
 
-A stepped pyramid of solid gold, with a steep stairway climbing its face to a small shrine at the top. Giant gold ingots are stacked at its base among slender dark trees, and the whole scene glows yellow, the mythical city's treasure made literal. The light rays behind it read as sunrise breaking over the lost city.
+A stepped pyramid of solid gold, with a steep stairway climbing its face to a small shrine at the top. Giant gold ingots are stacked at its base among slender dark trees, and the whole scene glows yellow, the mythical city's treasure made literal. The light rays behind it look like sunrise breaking over the lost city.
 
 ## 3. FEATURE_FOUNTAIN_YOUTH
 Fountain of Youth
@@ -63,7 +63,7 @@ A broad turquoise lake stretches back to pale hills on the horizon, hemmed in by
 ## 9. FEATURE_MESA
 The Grand Mesa
 
-A flat-topped mesa of layered red-orange rock rises alone from a dry plain, banded cliff walls above long talus slopes. Sparse green scrub dots the sandy ground at its foot, and the flat summit cuts a hard line against a bright blue sky.
+A flat-topped mesa of layered red-orange rock rises alone from a dry plain, banded cliff walls above long slopes of fallen rock. Sparse green scrub dots the sandy ground at its foot, and the flat summit cuts a hard line against a bright blue sky.
 
 ## 10. FEATURE_MT_KAILASH
 Mt. Kailash
@@ -83,7 +83,7 @@ A bare reddish-brown mountain whose lower slopes are buried under heaps of grey 
 ## 13. FEATURE_REEF
 The Great Barrier Reef
 
-An underwater scene: coral crowds the left and bottom of the frame in orange, red, purple, and pale blue, with tube sponges standing upright among the branches. Small tropical fish drift through the deep blue water, a bright yellow one at the center, and the light dims into open darkness toward the upper right.
+An underwater scene: coral crowds the left and bottom of the frame in orange, red, purple, and pale blue, with tube sponges standing upright among the branches. Small tropical fish drift through the deep blue water, a bright yellow one at the center. The light dims into open darkness toward the upper right.
 
 ## 14. FEATURE_SOLOMONS_MINES
 King Solomon's Mines
@@ -103,4 +103,4 @@ A great red monolith lies across the middle distance, its rounded sandstone mass
 ## 17. FEATURE_VOLCANO
 Krakatoa
 
-A dark volcanic cone rises from the sea beyond a strip of pale turquoise water, seen from a jungle shore whose broad green leaves frame the scene. The sky above it burns sulfurous yellow, with a faint curl of smoke over the summit hinting at the eruption to come.
+A dark volcanic cone rises from the sea beyond a strip of pale turquoise water, viewed from a jungle shore whose broad green leaves frame the scene. The sky above it burns sulfurous yellow, with a faint curl of smoke over the summit hinting at the eruption to come.

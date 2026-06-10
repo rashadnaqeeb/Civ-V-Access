@@ -14,9 +14,9 @@
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_MISSING"] = "No description for this natural wonder."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_CRATER"] =
-    "A vast impact crater seen from its rim, a ragged bowl punched into pale desert ground. The near slope is covered in green scrub that drops away into the shadowed pit, whose floor lies in deep brown darkness, and the far rim rises in bands of tan and gold under a hazy sky."
+    "A vast impact crater viewed from its rim, a ragged bowl punched into pale desert ground. The near slope is covered in green scrub that drops away into the shadowed pit, whose floor lies in deep brown darkness, and the far rim rises in bands of tan and gold under a hazy sky."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_EL_DORADO"] =
-    "A stepped pyramid of solid gold, with a steep stairway climbing its face to a small shrine at the top. Giant gold ingots are stacked at its base among slender dark trees, and the whole scene glows yellow, the mythical city's treasure made literal. The light rays behind it read as sunrise breaking over the lost city."
+    "A stepped pyramid of solid gold, with a steep stairway climbing its face to a small shrine at the top. Giant gold ingots are stacked at its base among slender dark trees, and the whole scene glows yellow, the mythical city's treasure made literal. The light rays behind it look like sunrise breaking over the lost city."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_FOUNTAIN_YOUTH"] =
     "A spring of impossibly bright turquoise water wells up from a basin atop dark rock cliffs and spills down as a glowing waterfall into the pool below. Tufts of green grass cling to the black rock, palm fronds frame a warm golden sky, and tiny sparkles in the water mark it as magical rather than natural."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_FUJI"] =
@@ -30,7 +30,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_KILIMANJARO"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_LAKE_VICTORIA"] =
     "A broad turquoise lake stretches back to pale hills on the horizon, hemmed in by rocky tan outcrops on either side. In the center foreground a hippopotamus surfaces, its head and back breaking the rippled water, under a white glow of light filling the sky."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_MESA"] =
-    "A flat-topped mesa of layered red-orange rock rises alone from a dry plain, banded cliff walls above long talus slopes. Sparse green scrub dots the sandy ground at its foot, and the flat summit cuts a hard line against a bright blue sky."
+    "A flat-topped mesa of layered red-orange rock rises alone from a dry plain, banded cliff walls above long slopes of fallen rock. Sparse green scrub dots the sandy ground at its foot, and the flat summit cuts a hard line against a bright blue sky."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_MT_KAILASH"] =
     "A pyramid of banded rock and snow rises against a deep blue sky, its striped face lit warm gold on one side. Below it the foreground is all rough snowfield and ice ridges in cold blue shadow."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_MT_SINAI"] =
@@ -38,7 +38,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_MT_SINAI"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_POTOSI"] =
     "A bare reddish-brown mountain whose lower slopes are buried under heaps of grey boulders glinting with silver ore. A trail winds up its flank, rows of dark squared blocks line its base like mine workings, and the dusty summit stands against a blue sky."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_REEF"] =
-    "An underwater scene: coral crowds the left and bottom of the frame in orange, red, purple, and pale blue, with tube sponges standing upright among the branches. Small tropical fish drift through the deep blue water, a bright yellow one at the center, and the light dims into open darkness toward the upper right."
+    "An underwater scene: coral crowds the left and bottom of the frame in orange, red, purple, and pale blue, with tube sponges standing upright among the branches. Small tropical fish drift through the deep blue water, a bright yellow one at the center. The light dims into open darkness toward the upper right."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_SOLOMONS_MINES"] =
     "A monumental gatehouse standing in for the legendary mines: a tall dark fortress wall crowned with gold-tipped battlements, a doorway at its center, flanked by tan stone towers. In front of it the pale rock floor is carved into sweeping curves, as if the ground itself had been quarried smooth."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_SRI_PADA"] =
@@ -46,7 +46,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_SRI_PADA"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_ULURU"] =
     "A great red monolith lies across the middle distance, its rounded sandstone mass furrowed with vertical grooves and glowing orange in the light. In front of it stretches flat outback scrub, red earth patched with low green brush and tufts of grass, under a bright blue sky."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NWDESC_FEATURE_VOLCANO"] =
-    "A dark volcanic cone rises from the sea beyond a strip of pale turquoise water, seen from a jungle shore whose broad green leaves frame the scene. The sky above it burns sulfurous yellow, with a faint curl of smoke over the summit hinting at the eruption to come."
+    "A dark volcanic cone rises from the sea beyond a strip of pale turquoise water, viewed from a jungle shore whose broad green leaves frame the scene. The sky above it burns sulfurous yellow, with a faint curl of smoke over the summit hinting at the eruption to come."
 
 -- Apply the active locale's overlay so every Context that includes this
 -- baseline gets the localized overrides (mirrors CivVAccess_GreatWorkDescStrings).

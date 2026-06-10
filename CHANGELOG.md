@@ -15,12 +15,9 @@ New Features and improvements:
 - F2 on the Great Work popup reads a description of the painting for great works of art.
 - F2 on the natural wonder discovery popup reads a description of the wonder's portrait.
 - F2 on the end-of-game screen reads a description of the victory or defeat painting.
-- The help overlay lists every F2 description key as "Describe image", replacing the separate leader and painting labels.
 
 Bug fixes:
 - Leader scene descriptions read more naturally, with clearer wording and a few corrected details.
-- Victory and defeat screen descriptions read more naturally, with clearer wording.
-- A few great work descriptions read more naturally, with clearer wording.
 
 ## [1.4.1] - 2026-06-09
 
