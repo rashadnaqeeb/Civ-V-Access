@@ -25,7 +25,7 @@ the description text. The type key is the stable identifier for turning these
 into mod strings. Entries are ordered by texture name. Companion docs:
 leader-descriptions.md, great-work-descriptions.md,
 natural-wonder-descriptions.md, victory-screen-descriptions.md,
-congress-descriptions.md.
+congress-descriptions.md, era-descriptions.md.
 
 BUILDING_MOTHERLAND_STATUE (The Motherland Calls) has no entry. Its
 WonderSplashImage (WonderConceptMotherlandStatue.dds) does not exist anywhere
