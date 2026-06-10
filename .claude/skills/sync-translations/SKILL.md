@@ -7,7 +7,7 @@ description: Sync the 10 non-en_US locale strings files to match en_US after en_
 
 ## Goal
 
-The four en_US strings files are the source of truth. The 10 locale overlays (fr_FR, de_DE, es_ES, it_IT, ja_JP, ko_KR, pl_PL, pt_BR, ru_RU, zh_Hant_HK) get updated only by this skill: they should always match the en_US key set, with locale-appropriate translations of every value.
+The en_US strings files are the source of truth. The 10 locale overlays (fr_FR, de_DE, es_ES, it_IT, ja_JP, ko_KR, pl_PL, pt_BR, ru_RU, zh_Hant_HK) get updated only by this skill: they should always match the en_US key set, with locale-appropriate translations of every value.
 
 pt_BR is the Civ5-PTBR community language pack (not a Firaxis-shipped locale); the other 9 are official. The sync treatment is identical -- pt_BR is a full peer of the official locales, not an afterthought.
 
@@ -17,12 +17,9 @@ This skill handles three kinds of drift, computed as a diff between en_US-now an
 - REMOVED keys: present at base, absent in en_US-now. Delete from all 10 locales.
 - CHANGED keys: present in both, value differs. Retranslate in all 10 locales using the new English.
 
-The four en_US source files:
+The en_US source files are the stems registered in the `STEMS` table of `.claude/skills/sync-translations/diff.py` (mirrored in `validate.py`): the four core UI stems (InGame, FrontEnd, Scanner, Surveyor) plus one description-strings stem per F2 describe feature. The scripts' tables are the authoritative list; when a feature adds a new strings stem, it must be registered in both or the sync silently skips it.
 
-- `src/dlc/UI/InGame/CivVAccess_InGameStrings_en_US.lua`
-- `src/dlc/UI/FrontEnd/CivVAccess_FrontEndStrings_en_US.lua`
-- `src/dlc/UI/InGame/CivVAccess_ScannerStrings_en_US.lua`
-- `src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua`
+A newly registered stem has no locale siblings yet. Its entire key set arrives in the diff as ADDED, and the per-locale agents must create the `_<LOCALE>.lua` files rather than edit them -- same directory as the en_US file, mirroring the two-line header-comment shape and the `CivVAccess_Strings = CivVAccess_Strings or {}` opener of any existing overlay (e.g. `CivVAccess_GreatWorkDescStrings_de_DE.lua`). Overlay files never call `StringsLoader.loadOverlay`; only the en_US baseline does.
 
 ## Read first
 
@@ -39,7 +36,7 @@ Run the helper from the repo root:
 
     py .claude/skills/sync-translations/diff.py
 
-It finds the base rev -- the most recent commit at which every locale's key set still matched en_US -- then dumps a JSON diff for each of the 4 stems: added / removed / changed keys, plus the source order at HEAD. The base rev is found by walking history, not by taking the latest commit that touched a locale file: a repo-wide formatting or lint commit rewrites the locale files without changing translation content, and taking it as the base would silently hide every en_US change made before it. Pass `--base <rev>` to override the detection.
+It finds the base rev -- the most recent commit at which every locale's key set still matched en_US -- then dumps a JSON diff for each registered stem: added / removed / changed keys, plus the source order at HEAD. A stem whose locale files don't exist on disk yet (brand-new feature stem) doesn't constrain the base rev; it just diffs as all-added. The base rev is found by walking history, not by taking the latest commit that touched a locale file: a repo-wide formatting or lint commit rewrites the locale files without changing translation content, and taking it as the base would silently hide every en_US change made before it. Pass `--base <rev>` to override the detection.
 
 If it errors with "No prior locale-file commit found", the locales have never been seeded -- hand off to translate-strings instead, this skill is for incremental updates.
 
@@ -68,7 +65,7 @@ For removed keys, no usage check is needed; if they're truly gone from en_US the
 
 ### Step 3: pick inline vs. subagents
 
-Count the total added + changed keys across all 4 stems.
+Count the total added + changed keys across all stems.
 
 **Inline (do it yourself, no subagents)** when:
 - 5 or fewer keys total, AND
@@ -120,11 +117,13 @@ When dispatching, hand each agent a self-contained brief. Fresh agents have zero
     Usage context per key:
     <orchestrator inserts the grep results for each added/changed key>
 
-    Existing locale files to modify (Edit them in place):
-    - src/dlc/UI/InGame/CivVAccess_InGameStrings_<LOCALE>.lua
-    - src/dlc/UI/FrontEnd/CivVAccess_FrontEndStrings_<LOCALE>.lua
-    - src/dlc/UI/InGame/CivVAccess_ScannerStrings_<LOCALE>.lua
-    - src/dlc/UI/InGame/CivVAccess_SurveyorStrings_<LOCALE>.lua
+    Locale files to modify (Edit in place; if a file does not exist yet --
+    brand-new stem -- CREATE it next to its en_US sibling, mirroring the
+    header-comment shape and `CivVAccess_Strings = CivVAccess_Strings or {}`
+    opener of an existing overlay; never add a StringsLoader.loadOverlay
+    call to an overlay file):
+    <orchestrator lists the _<LOCALE>.lua sibling of every stem that has
+    entries in this diff>
 
     For each diff entry:
     - ADDED: insert the translated assignment in source order. Find the en_US-source-order predecessor key (the previous key in head_order that exists in the locale file too) and insert the new line after it. For multiple consecutive new keys, group them.
@@ -149,7 +148,7 @@ After all locale updates land (inline or via agents), run the validator:
 
     py .claude/skills/sync-translations/validate.py
 
-It checks all 4 stems across all 10 locales and reports every problem at once: key set matches en_US (no missing / extra keys), every en_US plural bundle is a bundle in the locale with that locale's required CLDR keywords (and a scalar stays a scalar), `{N_*}` placeholder index sets match en_US per key, and no file carries a UTF-8 BOM. It exits nonzero and lists each failure, or prints OK.
+It checks every registered stem across all 10 locales and reports every problem at once: locale file exists, key set matches en_US (no missing / extra keys), every en_US plural bundle is a bundle in the locale with that locale's required CLDR keywords (and a scalar stays a scalar), `{N_*}` placeholder index sets match en_US per key, and no file carries a UTF-8 BOM. It exits nonzero and lists each failure, or prints OK.
 
 Fix every failure -- edit the locale file directly, or re-dispatch the locale's agent on the broken subset -- and re-run until it prints OK. Strip a BOM by rewriting the file without its first 3 bytes. Do not proceed to deploy while the validator fails.
 
@@ -167,7 +166,7 @@ Engine DLL is untouched; skip the engine deploy for speed. Per the project CLAUD
 
 Tell the user:
 - The base rev the diff was computed against.
-- Counts: added / removed / changed across all 4 stems.
+- Counts: added / removed / changed across all stems.
 - Whether the work was done inline or via subagents.
 - Any pre-existing structural drift the validator surfaced outside the sync diff, and whether you fixed it.
 - That deploy.ps1 -SkipEngine ran successfully (or any error from validation / deploy).
@@ -191,7 +190,7 @@ Don't commit. Don't open a PR. The user reviews first.
 
 - `.claude/skills/sync-translations/diff.py` -- orchestrator that finds the base rev, dumps en_US strings at base and HEAD via Lua, and emits a JSON diff per stem.
 - `.claude/skills/sync-translations/dump_strings.lua` -- the Lua dumper invoked by diff.py and validate.py. Loads a strings file via dofile and emits its CivVAccess_Strings table as JSON.
-- `.claude/skills/sync-translations/validate.py` -- structural validator run in Step 5: key sets, plural-bundle CLDR shape, placeholder indices, and BOM check across all 4 stems and 10 locales.
+- `.claude/skills/sync-translations/validate.py` -- structural validator run in Step 5: file existence, key sets, plural-bundle CLDR shape, placeholder indices, and BOM check across every registered stem and all 10 locales.
 
 ## What NOT to do
 

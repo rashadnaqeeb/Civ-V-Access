@@ -15,7 +15,7 @@ Output (JSON to stdout):
         "added_order": [keys in source order],
         "head_order":  [all keys at HEAD in source order]
       },
-      "FrontEnd": {...}, "Scanner": {...}, "Surveyor": {...}
+      ... one entry per STEMS entry ...
     }
   }
 
@@ -47,6 +47,7 @@ STEMS = {
     "GreatWorkDesc": "src/dlc/UI/InGame/CivVAccess_GreatWorkDescStrings",
     "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
     "CongressDesc": "src/dlc/UI/InGame/CivVAccess_CongressDescStrings",
+    "EraDesc": "src/dlc/UI/InGame/CivVAccess_EraDescStrings",
 }
 
 KEY_RE = re.compile(
@@ -97,13 +98,32 @@ def _keys_at(rev, path):
     return set(extract_order(text))
 
 
-def _locales_synced_at(rev):
-    """True when every locale strings file matches the en_US key set at rev."""
+def _seeded_locales():
+    """Per stem, the locales whose overlay file exists on disk now.
+
+    A brand-new stem (en_US committed, locale siblings not yet seeded)
+    must not constrain base-rev detection: no rev could ever satisfy
+    "locale matches en_US" for it, which would push the base to the
+    oldest locale commit and flood the diff with long-synced keys. Such
+    a stem simply diffs as all-added against whatever base the seeded
+    stems determine.
+    """
+    seeded = {}
     for stem in STEMS.values():
+        locs = [l for l in LOCALES if (REPO / f"{stem}_{l}.lua").exists()]
+        if locs:
+            seeded[stem] = locs
+    return seeded
+
+
+def _locales_synced_at(rev, seeded):
+    """True when every seeded locale strings file matches the en_US key
+    set at rev."""
+    for stem, locs in seeded.items():
         en_keys = _keys_at(rev, f"{stem}_en_US.lua")
         if en_keys is None:
             return False
-        for loc in LOCALES:
+        for loc in locs:
             if _keys_at(rev, f"{stem}_{loc}.lua") != en_keys:
                 return False
     return True
@@ -122,8 +142,9 @@ def find_base_rev():
     fails that test whenever en_US has drifted ahead of the locales.
     """
     candidates = git("log", "--format=%H", "--", *_locale_paths()).split()
+    seeded = _seeded_locales()
     for rev in candidates:
-        if _locales_synced_at(rev):
+        if _locales_synced_at(rev, seeded):
             return rev
     if candidates:
         sys.stderr.write(
@@ -137,7 +158,16 @@ def file_text_at_rev(rev, path):
     if rev is None:
         with open(REPO / path, encoding="utf-8") as f:
             return f.read()
-    return git("show", f"{rev}:{path}")
+    try:
+        return subprocess.check_output(
+            ["git", "show", f"{rev}:{path}"],
+            cwd=str(REPO), text=True, encoding="utf-8",
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError:
+        # The stem's en_US file didn't exist at the base rev (brand-new
+        # stem): every key diffs as added.
+        return ""
 
 
 def dump_strings(text):

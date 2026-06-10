@@ -29,12 +29,7 @@ These are the authoritative conventions; everything below extends them.
 
 ## Deliverables
 
-Four new files (sibling to the en_US originals, same directory, append `_<LOCALE>` before `.lua`):
-
-- `src/dlc/UI/InGame/CivVAccess_InGameStrings_<LOCALE>.lua`
-- `src/dlc/UI/FrontEnd/CivVAccess_FrontEndStrings_<LOCALE>.lua`
-- `src/dlc/UI/InGame/CivVAccess_ScannerStrings_<LOCALE>.lua`
-- `src/dlc/UI/InGame/CivVAccess_SurveyorStrings_<LOCALE>.lua`
+One new `_<LOCALE>.lua` file per en_US strings stem (sibling to the en_US original, same directory, append `_<LOCALE>` before `.lua`). The authoritative stem list is the `STEMS` table in `.claude/skills/sync-translations/diff.py`; it is the four core UI stems (InGame, FrontEnd, Scanner, Surveyor) plus one description-strings stem per F2 describe feature, and it grows as features land. Cross-check with a glob for `src/dlc/UI/**/CivVAccess_*Strings_en_US.lua`; if the glob finds a stem the table lacks, stop and tell the user the registry is stale. Every stem's overlay must ship: once `supportedLocales` flips on for the locale, `StringsLoader.loadOverlay` includes the overlay for every stem that calls it, and a missing file logs a VFS warning at every Context boot.
 
 One edit: `src/dlc/UI/Shared/CivVAccess_StringsLoader.lua`. Uncomment the `<LOCALE> = true,` line in the `supportedLocales` table.
 
@@ -93,7 +88,7 @@ Don't try to ship all of these in a single dispatch wave. The small-files step i
 
 Step 1 of the workflow. Builds the consistency floor that every batch enforces.
 
-1. Scan the four en_US source files for recurring tail tokens: short lowercase phrases that appear standalone or as `, <token>` glue in composed announcements. Likely list (verify by grepping): queued, ready, host, selected, available, locked, blocked, filled, disabled, here, empty, canceled, embarked, razing, paused, resumed, pinned, full, none, all, on, off, ally, neutral, enemy, friendly, hostile, my, mine, theirs.
+1. Scan the core UI en_US source files (InGame, FrontEnd, Scanner, Surveyor; the description stems are prose and carry no tail tokens) for recurring tail tokens: short lowercase phrases that appear standalone or as `, <token>` glue in composed announcements. Likely list (verify by grepping): queued, ready, host, selected, available, locked, blocked, filled, disabled, here, empty, canceled, embarked, razing, paused, resumed, pinned, full, none, all, on, off, ally, neutral, enemy, friendly, hostile, my, mine, theirs.
 2. For each, pick one target-language translation. Cross-check against base-game `<LOCALE>` XMLs where the same concept appears. Many of these have canonical base-game equivalents — search the FrontEndScreens / Civilizations / Diplomacy / WorldView text for matches. Examples to look up rather than guess: ready (lobby), embarked (unit status), raze (city action), ally / neutral / enemy / friendly (relation), turn, era, golden age.
 3. Keep the lock as a flat dictionary `{ english: <LOCALE>-translation }`. Pass it verbatim to every batch subagent.
 

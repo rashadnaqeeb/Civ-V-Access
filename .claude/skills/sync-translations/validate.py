@@ -41,6 +41,7 @@ STEMS = {
     "GreatWorkDesc": "src/dlc/UI/InGame/CivVAccess_GreatWorkDescStrings",
     "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
     "CongressDesc": "src/dlc/UI/InGame/CivVAccess_CongressDescStrings",
+    "EraDesc": "src/dlc/UI/InGame/CivVAccess_EraDescStrings",
 }
 
 LOCALES = ["fr_FR", "de_DE", "es_ES", "it_IT", "ja_JP",
@@ -98,6 +99,9 @@ def main():
         en_keys = set(en)
         for loc in LOCALES:
             path = REPO / f"{stem}_{loc}.lua"
+            if not path.exists():
+                failures.append(f"{label}/{loc}: locale file missing")
+                continue
             if has_bom(path):
                 failures.append(f"{label}/{loc}: file has a UTF-8 BOM")
             loc_data = dump(path)
