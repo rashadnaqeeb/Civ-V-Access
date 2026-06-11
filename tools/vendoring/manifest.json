@@ -10,13 +10,9 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Credits.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CreditsAccess\")\r\n"
     },
-    "FrontEnd/Credits.xml": {},
     "FrontEnd/EULA.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/EULA.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_EULAAccess\")\r\n"
-    },
-    "FrontEnd/EULA.xml": {
-      "owned": true
     },
     "FrontEnd/ExitConfirm.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/ExitConfirm.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
@@ -32,7 +28,6 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/AdvancedSetup.{lua,xml}. Contents\r\n-- below (between ProbeBoot and the bootstrap marker at the bottom) are a\r\n-- verbatim copy of the base-game file.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvancedSetupAccess\")\r\n"
     },
-    "FrontEnd/GameSetup/AdvancedSetup.xml": {},
     "FrontEnd/GameSetup/GameSetupScreen.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/GameSetupScreen.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GameSetupScreenAccess\")\r\n"
@@ -77,7 +72,6 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/LegalScreen.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file. BNW does\r\n-- not override this file; our base copy is what loads under the\r\n-- Expansion2 UISkin.\r\n",
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LegalScreenAccess\")\r\n"
     },
-    "FrontEnd/LegalScreen.xml": {},
     "FrontEnd/LoadMenu.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/LoadMenu.{lua,xml}. The single physical LoadMenu\r\n-- serves both front-end \"Load Game\" (MainMenu -> SinglePlayer -> Load) and\r\n-- in-game pause-menu \"Load Game\" (GameMenu.xml embeds this Context as a\r\n-- hidden child). Our include at the tail runs in whichever sandbox the\r\n-- engine instantiates the Context into; the g_IsInGame flag LoadMenu already\r\n-- sets at line 693 tells downstream code which environment it's running in.\r\n-- Contents between the bootstrap markers are a verbatim copy of the base-game\r\n-- file.\r\n----------------------------------------------------\r\n-- ProbeBoot runs BEFORE the base file so metatable patches are in place\r\n-- before Controls.AutoCheck / Controls.CloudCheck register their CheckHandlers\r\n-- and Controls.SortByPullDown wires its per-entry button callbacks. Without\r\n-- this prepend, keyboard activation of those controls would warn\r\n-- \"callback not captured\" and leave game state unchanged.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n----------------------------------------------------\r\n",
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LoadMenuAccess\")\r\n"
@@ -100,7 +94,6 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/MainMenu.{lua,xml}. Contents above the bootstrap\r\n-- marker are a verbatim copy of the base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MainMenuAccess\")\r\n"
     },
-    "FrontEnd/MainMenu.xml": {},
     "FrontEnd/Modding/CustomMod.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CustomModAccess\")\r\n"
     },
@@ -123,19 +116,14 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsMenu.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsMenuAccess\")\r\n"
     },
-    "FrontEnd/ModsMenu.xml": {
-      "owned": true
-    },
     "FrontEnd/ModsMultiplayer.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsMultiplayer.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsMultiplayerAccess\")\r\n"
     },
-    "FrontEnd/ModsMultiplayer.xml": {},
     "FrontEnd/ModsSinglePlayer.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsSinglePlayer.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsSinglePlayerAccess\")\r\n"
     },
-    "FrontEnd/ModsSinglePlayer.xml": {},
     "FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.{lua,xml}.\r\n-- Contents below (between ProbeBoot and the bootstrap marker at the bottom)\r\n-- are a verbatim copy of the base-game file.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MPGameSetupAccess\")"
@@ -167,12 +155,10 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/MultiplayerSelect.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MultiplayerSelectAccess\")\r\n"
     },
-    "FrontEnd/MultiplayerSelect.xml": {},
     "FrontEnd/OtherMenu.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/OtherMenu.{lua,xml}. Contents above the bootstrap\r\n-- marker are a verbatim copy of the base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OtherMenuAccess\")\r\n"
     },
-    "FrontEnd/OtherMenu.xml": {},
     "FrontEnd/PremiumContentMenu.lua": {
       "suffix": "\r\n\r\ninclude(\"CivVAccess_PremiumContentMenuAccess\")\r\n"
     },
@@ -185,7 +171,6 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/SinglePlayer.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SinglePlayerAccess\")\r\n"
     },
-    "FrontEnd/SinglePlayer.xml": {},
     "FrontEnd/ToolTips.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/ToolTips.{lua,xml} (base game; not overridden by\r\n-- Expansion/Expansion2). Contents above the bootstrap marker are a verbatim\r\n-- copy of the base-game file. Rationale for this target: 15 lines, leaf, always loaded at\r\n-- front-end init (before MainMenu), and very unlikely to be patched.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_FrontendBoot\")\r\n"
@@ -303,18 +288,8 @@
     "InGame/Popups/AdvisorCounselPopup.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorCounselPopupAccess\")\r\n"
     },
-    "InGame/Popups/AdvisorCounselPopup.xml": {
-      "source": {
-        "vanilla": "base:InGame/Popups/AdvisorCounselPopup.xml"
-      }
-    },
     "InGame/Popups/AdvisorInfoPopup.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorInfoPopupAccess\")\r\n"
-    },
-    "InGame/Popups/AdvisorInfoPopup.xml": {
-      "source": {
-        "vanilla": "base:InGame/Popups/AdvisorInfoPopup.xml"
-      }
     },
     "InGame/Popups/AdvisorModal.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorModalAccess\")\r\n"
