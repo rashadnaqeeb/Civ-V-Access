@@ -1,6 +1,7 @@
 -- NotificationLogPopup accessibility. BUTTONPOPUP_NOTIFICATION_LOG lists
 -- every notification the active player has received this game, dismissed
--- or not. Three tabs:
+-- or not. Three tabs everywhere, plus a fourth on Community Patch
+-- engines (see the Options section below):
 --   Active    notifications whose dismissed flag is false (still on the
 --             right-side stack for a sighted player).
 --   Turn Log  mod-authored cross-turn surfaces that don't live on the
@@ -46,15 +47,36 @@ include("CivVAccess_CameraTracker")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
+local mainHandler -- forward declared; assigned by install at the bottom
+
 local function emptyItem()
     return BaseMenuItems.Text({ labelText = Text.key("TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY") })
 end
 
--- Activate a notification: fire the engine's NotificationSelected (which
--- closes the popup and runs UI.ActivateNotification), then ride the camera
--- pan to drop the cursor on whatever plot the engine landed on.
+-- Vanilla names these NotificationSelected / OnClose; Community Patch's
+-- rewrite has GoToEvent / HidePopup (promoted to globals by our vp
+-- vendor recipe).
+local function selectNotification(notificationId)
+    if NotificationSelected ~= nil then
+        NotificationSelected(notificationId)
+    else
+        GoToEvent(notificationId)
+    end
+end
+
+local function closePopup()
+    if OnClose ~= nil then
+        OnClose()
+    else
+        HidePopup()
+    end
+end
+
+-- Activate a notification: fire the engine's selection path (which closes
+-- the popup and runs UI.ActivateNotification), then ride the camera pan
+-- to drop the cursor on whatever plot the engine landed on.
 local function activateAndFollow(notificationId)
-    NotificationSelected(notificationId)
+    selectNotification(notificationId)
     CameraTracker.followAndJumpCursor()
 end
 
@@ -68,7 +90,7 @@ local function jumpToPlot(x, y)
         Log.warn("NotificationLogPopupAccess: Cursor module not published; cannot jump")
         return
     end
-    OnClose()
+    closePopup()
     local text = Cursor.jumpTo(x, y)
     if text ~= nil and text ~= "" then
         SpeechPipeline.speakInterrupt(text)
@@ -297,31 +319,198 @@ local function buildItems()
     return active, turnLog, dismissed
 end
 
+-- ===== Options tab (Community Patch engines only) =====
+--
+-- VP's instant yields (one-off grants from dozens of gameplay triggers)
+-- each post a regular notification; CP adds per-type opt-outs stored on
+-- the player in the game core and saved with the game. Only the
+-- notification is suppressed -- the yield always happens. The sighted
+-- popup manages them in a second view: a category filter, one checkbox
+-- row per type, and turn-on-all / turn-off-all buttons applying to the
+-- filtered rows. Here that becomes a fourth tab: a synthetic filter
+-- dropdown (the MiniMapPanel dropdownItem pattern), the two bulk
+-- actions, then a VirtualToggle per type, checked meaning the
+-- notification fires. Type names and category bucketing come from the
+-- vendor file's own GetInstantYieldText / GetInstantYieldKind (promoted
+-- by our vp recipe), so the rows can't drift from what the screen shows.
+-- The tab only exists when the engine injects the InstantYieldType enum.
+
+local HAS_OPTIONS = InstantYieldType ~= nil
+
+-- CP's category ids (the vendor file's IYK_* constants) and the engine
+-- label keys its own view uses. Kind 6 is the vendor's skip bucket,
+-- excluded from its list and ours alike; 0 means no filter.
+local FILTER_ALL = 0
+local KIND_SKIP = 6
+local KIND_KEYS = {
+    [1] = "TXT_KEY_NOTIFICATION_SETTINGS_CITY_BUTTON",
+    [2] = "TXT_KEY_NOTIFICATION_SETTINGS_MILITARY_BUTTON",
+    [3] = "TXT_KEY_NOTIFICATION_SETTINGS_CIVILIAN_BUTTON",
+    [4] = "TXT_KEY_NOTIFICATION_SETTINGS_SPIES_BUTTON",
+    [5] = "TXT_KEY_NOTIFICATION_SETTINGS_MISC_BUTTON",
+}
+
+-- Session-local view state, the analog of the vendor's filter radios:
+-- which category the rows are narrowed to. UI state, not game state.
+local _optsFilter = FILTER_ALL
+
+local buildOptionsItems -- forward declared: the filter sub rebuilds the tab
+
+local function filterName()
+    if _optsFilter == FILTER_ALL then
+        return Text.key("TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER_ALL")
+    end
+    return Text.key(KIND_KEYS[_optsFilter])
+end
+
+-- The currently filtered rows, in the vendor's own order (category, then
+-- raw name compare -- it sorts the same way).
+local function optionRows()
+    local rows = {}
+    for t = 0, InstantYieldType.NUM_INSTANT_YIELD_TYPES - 1 do
+        local kind = GetInstantYieldKind(t)
+        if kind ~= KIND_SKIP and (_optsFilter == FILTER_ALL or kind == _optsFilter) then
+            rows[#rows + 1] = { type = t, kind = kind, name = GetInstantYieldText(t) }
+        end
+    end
+    table.sort(rows, function(a, b)
+        if a.kind ~= b.kind then
+            return a.kind < b.kind
+        end
+        return a.name < b.name
+    end)
+    return rows
+end
+
+local function typeEnabled(t)
+    return not Players[Game.GetActivePlayer()]:IsInstantYieldNotificationDisabled(t)
+end
+
+local function setTypeEnabled(t, enabled)
+    Players[Game.GetActivePlayer()]:SetInstantYieldNotificationDisabled(t, not enabled)
+end
+
+local function filterDropdownItem()
+    return BaseMenuItems.Choice({
+        labelFn = function()
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_LABEL_STATE",
+                Text.key("TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER"),
+                filterName()
+            )
+        end,
+        activate = function()
+            local subName = "NotificationLogPopup/filter"
+            local function filterChoice(kindId, label)
+                return BaseMenuItems.Choice({
+                    labelText = label,
+                    selectedFn = function()
+                        return _optsFilter == kindId
+                    end,
+                    activate = function()
+                        _optsFilter = kindId
+                        -- Rebuild before the sub pops so the parent
+                        -- reactivates against the narrowed list (focus
+                        -- lands back on this dropdown, first item).
+                        mainHandler.setItems(buildOptionsItems(), 4)
+                        HandlerStack.removeByName(subName, true)
+                    end,
+                })
+            end
+            local choices = {
+                filterChoice(FILTER_ALL, Text.key("TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER_ALL")),
+            }
+            for kindId = 1, 5 do
+                choices[#choices + 1] = filterChoice(kindId, Text.key(KIND_KEYS[kindId]))
+            end
+            HandlerStack.push(BaseMenu.create({
+                name = subName,
+                displayName = Text.key("TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER"),
+                items = choices,
+                escapePops = true,
+            }))
+        end,
+    })
+end
+
+-- Bulk enable / disable over the filtered rows, same scope as the
+-- vendor's buttons (its "all" also means "all currently shown").
+local function bulkItem(textKey, enabled)
+    return BaseMenuItems.Choice({
+        textKey = textKey,
+        activate = function()
+            for _, row in ipairs(optionRows()) do
+                setTypeEnabled(row.type, enabled)
+            end
+        end,
+    })
+end
+
+buildOptionsItems = function()
+    local items = {
+        filterDropdownItem(),
+        bulkItem("TXT_KEY_NOTIFICATION_SETTINGS_TURN_ON_ALL_BUTTON", true),
+        bulkItem("TXT_KEY_NOTIFICATION_SETTINGS_TURN_OFF_ALL_BUTTON", false),
+    }
+    for _, row in ipairs(optionRows()) do
+        local t = row.type
+        local label = row.name
+        -- The category clause repeats the filter verbatim when narrowed;
+        -- speak it only on the unfiltered list.
+        if _optsFilter == FILTER_ALL then
+            label = label .. ", " .. Text.key(KIND_KEYS[row.kind])
+        end
+        items[#items + 1] = BaseMenuItems.VirtualToggle({
+            labelText = label,
+            getValue = function()
+                return typeEnabled(t)
+            end,
+            setValue = function(v)
+                setTypeEnabled(t, v)
+            end,
+        })
+    end
+    return items
+end
+
+-- ===== Install =====
+
 local function onShow(handler)
     local active, turnLog, dismissed = buildItems()
     handler.setItems(active, 1)
     handler.setItems(turnLog, 2)
     handler.setItems(dismissed, 3)
+    if HAS_OPTIONS then
+        handler.setItems(buildOptionsItems(), 4)
+    end
 end
 
-BaseMenu.install(ContextPtr, {
+local tabs = {
+    {
+        name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE",
+        items = { emptyItem() },
+    },
+    {
+        name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG",
+        items = { emptyItem() },
+    },
+    {
+        name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED",
+        items = { emptyItem() },
+    },
+}
+if HAS_OPTIONS then
+    tabs[#tabs + 1] = {
+        name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_OPTIONS",
+        items = { emptyItem() },
+    }
+end
+
+mainHandler = BaseMenu.install(ContextPtr, {
     name = "NotificationLogPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_NOTIFICATION_LOG"),
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     onShow = onShow,
-    tabs = {
-        {
-            name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE",
-            items = { emptyItem() },
-        },
-        {
-            name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG",
-            items = { emptyItem() },
-        },
-        {
-            name = "TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED",
-            items = { emptyItem() },
-        },
-    },
+    tabs = tabs,
 })

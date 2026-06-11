@@ -573,10 +573,35 @@
     "InGame/Popups/NewEraPopup.xml": {},
     "InGame/Popups/NotificationLogPopup.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NotificationLogPopupAccess\")\r\n",
-      "refit": true
-    },
-    "InGame/Popups/NotificationLogPopup.xml": {
-      "refit": true
+      "vp": {
+        "edits": [
+          {
+            "old": "local GetInstantYieldText = (function()\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\nGetInstantYieldText = (function()\r\n"
+          },
+          {
+            "old": "local GetInstantYieldKind = (function()\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\nGetInstantYieldKind = (function()\r\n"
+          },
+          {
+            "old": "local function HidePopup()\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\nfunction HidePopup()\r\n"
+          },
+          {
+            "old": "local function GoToEvent(log_n_id)\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\nfunction GoToEvent(log_n_id)\r\n"
+          },
+          {
+            "old": "ContextPtr:SetInputHandler(function(uiMsg, wParam)\r\n\tif uiMsg ~= KeyEvents.KeyDown then return end\r\n\r\n\tif wParam == Keys.VK_ESCAPE or wParam == Keys.VK_RETURN then\r\n\t\tHidePopup()\r\n\t\treturn true\r\n\tend\r\nend)\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction InputHandler(uiMsg, wParam)\r\n\tif uiMsg ~= KeyEvents.KeyDown then return end\r\n\r\n\tif wParam == Keys.VK_ESCAPE or wParam == Keys.VK_RETURN then\r\n\t\tHidePopup()\r\n\t\treturn true\r\n\tend\r\nend\r\nContextPtr:SetInputHandler(InputHandler)\r\n"
+          },
+          {
+            "old": "ContextPtr:SetShowHideHandler(function(isHide, isInit)\r\n\tif isInit then\r\n\t\tInit()\r\n\t\treturn\r\n\tend\r\n\r\n\tlocal turn = Game.GetGameTurn()\r\n\tlocal player_id = Game.GetActivePlayer()\r\n\r\n\tif player_id ~= m_player_id then\r\n\t\tm_player_id = player_id\r\n\r\n\t\tFreeLogs()\r\n\t\tFillOptsView()\r\n\t\tFillLogsView()\r\n\t\tFillTreatment()\r\n\telseif m_turn ~= turn then\r\n\t\tm_turn = turn\r\n\t\tFillLogsView()\r\n\tend\r\n\r\n\tif isHide then\r\n\t\tUI.decTurnTimerSemaphore()\r\n\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(\r\n\t\t\tButtonPopupTypes.BUTTONPOPUP_NOTIFICATION_LOG,\r\n\t\t\t0\r\n\t\t)\r\n\telse\r\n\t\tUI.incTurnTimerSemaphore()\r\n\t\tEvents.SerialEventGameMessagePopupShown(m_info)\r\n\tend\r\nend)\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction ShowHideHandler(isHide, isInit)\r\n\tif isInit then\r\n\t\tInit()\r\n\t\treturn\r\n\tend\r\n\r\n\tlocal turn = Game.GetGameTurn()\r\n\tlocal player_id = Game.GetActivePlayer()\r\n\r\n\tif player_id ~= m_player_id then\r\n\t\tm_player_id = player_id\r\n\r\n\t\tFreeLogs()\r\n\t\tFillOptsView()\r\n\t\tFillLogsView()\r\n\t\tFillTreatment()\r\n\telseif m_turn ~= turn then\r\n\t\tm_turn = turn\r\n\t\tFillLogsView()\r\n\tend\r\n\r\n\tif isHide then\r\n\t\tUI.decTurnTimerSemaphore()\r\n\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(\r\n\t\t\tButtonPopupTypes.BUTTONPOPUP_NOTIFICATION_LOG,\r\n\t\t\t0\r\n\t\t)\r\n\telse\r\n\t\tUI.incTurnTimerSemaphore()\r\n\t\tEvents.SerialEventGameMessagePopupShown(m_info)\r\n\tend\r\nend\r\nContextPtr:SetShowHideHandler(ShowHideHandler)\r\n"
+          }
+        ],
+        "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NotificationLogPopupAccess\")\r\n"
+      }
     },
     "InGame/Popups/ProductionPopup.lua": {
       "suffix": "\r\ninclude(\"CivVAccess_ChooseProductionPopupAccess\");\r\n",

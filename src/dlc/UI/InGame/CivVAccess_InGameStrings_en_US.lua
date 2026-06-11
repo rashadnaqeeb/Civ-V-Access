@@ -1381,16 +1381,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_WHOS_WINNING_ENTRY_CITY"] = "{1_Rank}. {2
 -- AdvisorInfoPopup that question buttons drill into.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"] = "Tutorial Advisor"
 -- NotificationLogPopup tab labels and item format. The popup itself has
--- its title at SCREEN_NOTIFICATION_LOG; these are its three tabs (Active
--- holds undismissed alerts the user can act on, Turn Log is the read-only
--- per-turn event stream, Dismissed is the archive), the placeholder
--- spoken when a tab has no rows, and the item-row format combining the
--- engine-supplied notification text with the turn it fired on.
+-- its title at SCREEN_NOTIFICATION_LOG; these are its tabs (Active holds
+-- undismissed alerts the user can act on, Turn Log is the read-only
+-- per-turn event stream, Dismissed is the archive, Options manages the
+-- per-type instant-yield notification opt-outs on Community Patch
+-- engines and is absent on vanilla), the placeholder spoken when a tab
+-- has no rows, and the item-row format combining the engine-supplied
+-- notification text with the turn it fired on.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Active"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG"] = "Turn Log"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Dismissed"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_OPTIONS"] = "Options"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "No notifications."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, turn {2_Turn}"
+-- Options tab: the category-filter dropdown narrowing the per-type rows.
+-- Category names themselves come from the engine's own keys.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER"] = "filter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER_ALL"] = "All"
 -- Combat Log group inside the Turn Log tab. Contains one entry per combat
 -- announced to the player while the AI was taking its turn (between End
 -- Turn and the next turn start). Drilled into from the level-0 group label.
