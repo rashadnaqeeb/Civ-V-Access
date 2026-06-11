@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- F1 on the new technology popup now also reads the details of each unit, building, and ability the tech unlocks.
+
 Bug fixes:
 - The advisor popups, EULA screen, and mods menu show the game's stock layouts again.
 
