@@ -138,6 +138,9 @@ function M.test_vp_generate_path_returns_ok_and_one_based_turns()
         GetID = function()
             return 7
         end,
+        GetOwner = function()
+            return 0
+        end,
         GeneratePath = function(_, _plot, maxTurns)
             T.truthy(maxTurns ~= nil and maxTurns > 9000, "maxTurns must be effectively unlimited")
             return vpNodes()
@@ -154,6 +157,9 @@ function M.test_vp_generate_path_reports_unreachable_on_empty_node_table()
         GetID = function()
             return 7
         end,
+        GetOwner = function()
+            return 0
+        end,
         GeneratePath = function()
             return {}
         end,
@@ -168,6 +174,9 @@ function M.test_vp_get_path_reruns_last_generate_target()
     local unit = {
         GetID = function()
             return 7
+        end,
+        GetOwner = function()
+            return 0
         end,
         GetTeam = function()
             return 0
@@ -202,6 +211,52 @@ function M.test_vp_get_path_degrades_without_prior_generate()
     }
     local nodes = vp.getPath(unit)
     T.eq(#nodes, 0)
+    T.truthy(warned, "contract misuse must log")
+end
+
+-- The VP fork binding has no pathfinder state to read the searched unit
+-- back from (the vanilla binding does), so the seam must pass the unit of
+-- its last generatePath as extra args for the fork's reach query. A wrong
+-- unit here silently answers "got as far as X" for some other unit's
+-- mobility.
+function M.test_vp_closest_searched_plot_passes_last_generated_unit()
+    local vp, env = loadVPWithFork()
+    local captured = nil
+    env.Game.GetClosestSearchedPlot = function(tx, ty, owner, unitID)
+        captured = { tx = tx, ty = ty, owner = owner, unitID = unitID }
+        return 4, 5, 6
+    end
+    local unit = {
+        GetID = function()
+            return 7
+        end,
+        GetOwner = function()
+            return 3
+        end,
+        GeneratePath = function()
+            return {}
+        end,
+    }
+    vp.generatePath(unit, "plot")
+    local x, y, dist = vp.closestSearchedPlot(10, 11)
+    T.eq(x, 4)
+    T.eq(y, 5)
+    T.eq(dist, 6)
+    T.eq(captured.tx, 10)
+    T.eq(captured.ty, 11)
+    T.eq(captured.owner, 3, "owner must come from the last generatePath unit")
+    T.eq(captured.unitID, 7, "unit id must come from the last generatePath unit")
+end
+
+function M.test_vp_closest_searched_plot_degrades_without_prior_generate()
+    local vp, env = loadVPWithFork()
+    local warned = false
+    env.Log = {
+        warn = function()
+            warned = true
+        end,
+    }
+    T.eq(vp.closestSearchedPlot(1, 2), nil)
     T.truthy(warned, "contract misuse must log")
 end
 

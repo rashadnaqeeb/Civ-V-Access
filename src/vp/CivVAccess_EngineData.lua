@@ -381,7 +381,7 @@ function EngineData.generatePath(unit, plot, intents)
     if intents ~= nil then
         noteUnappliedIntents("EngineData.generatePath", intents)
     end
-    lastGenerated = { unitID = unit:GetID(), plot = plot }
+    lastGenerated = { unitID = unit:GetID(), owner = unit:GetOwner(), plot = plot }
     local nodes = unit:GeneratePath(plot, UNLIMITED_TURNS)
     if #nodes == 0 then
         return false
@@ -526,17 +526,27 @@ function EngineData.buildRoutePath(fx, fy, tx, ty, owner)
     return Game.GetBuildRoutePath(fx, fy, tx, ty, owner)
 end
 
--- Extension binding: Game.GetClosestSearchedPlot(tx, ty), fork-added under
--- the vanilla name (on VP the fork wraps GetPlotsInReach rather than a
--- closed-list walk, same contract). After an exploration search, the
--- closest reachable tile to the target, returning (x, y, distance).
--- Degrades to nil.
+-- Extension binding: Game.GetClosestSearchedPlot, fork-added under the
+-- vanilla name. After a failed generatePath, the closest reachable tile to
+-- the target, returning (x, y, distance). On VP the fork wraps
+-- GetPlotsInReach rather than a closed-list walk, and a reach query needs
+-- the unit -- the vanilla binding reads it back out of the pathfinder
+-- state, but VP's pathfinder keeps none, so the binding takes it as extra
+-- args. The unit is lastGenerated's: the vanilla contract is "call
+-- immediately after the failed generatePath", and that is exactly the
+-- search lastGenerated records. Degrades to nil; called before any
+-- generatePath is a contract misuse worth a log (the vanilla body would
+-- have answered from pathfinder state).
 function EngineData.closestSearchedPlot(tx, ty)
     if not EngineData.forkPresent() then
         Log.warn("EngineData.closestSearchedPlot: engine fork absent")
         return nil
     end
-    return Game.GetClosestSearchedPlot(tx, ty)
+    if lastGenerated == nil then
+        Log.warn("EngineData.closestSearchedPlot: no prior generatePath")
+        return nil
+    end
+    return Game.GetClosestSearchedPlot(tx, ty, lastGenerated.owner, lastGenerated.unitID)
 end
 
 -- Whether the terrain visibility ray between two plots is unblocked. On VP
