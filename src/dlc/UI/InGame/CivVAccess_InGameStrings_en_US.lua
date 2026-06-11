@@ -933,8 +933,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RESISTANCE"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_OCCUPIED"] = "occupied"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PUPPET"] = "puppet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "blockaded"
+-- Community Patch only: a spy mission's sap replaces the blockade icon
+-- and carries a turn countdown.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SAPPED"] = {
+    one = "sapped {1_Turns} turn",
+    other = "sapped {1_Turns} turns",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} population"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} defense"
+-- Community Patch only: cities have a separate ranged-strike strength,
+-- shown on the defense number's hover.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_STRENGTH"] = "{1_Num} ranged strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} of {2_Max} hp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_GARRISON"] = "garrisoned {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONTROLLED_TILES"] = {
@@ -1509,6 +1518,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Open the a
 -- not "3 food" -- per the concise-announcement rule.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "City"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONNECTED"] = "connected"
+-- Community Patch only: a railroad (industrial) connection to the capital
+-- is distinguished from the ordinary road / harbor connection; the
+-- production bonus is larger. First syllable differs from "connected".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RAIL_CONNECTED"] = "rail connected"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNEMPLOYED"] = "{1_Num} unemployed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD"] = "food {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION"] = "production {1_Num}"
@@ -1541,6 +1554,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HUB_UNEMPLOYED_ACTION"] = "Unemp
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_WONDERS_EMPTY"] = "No wonders built."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GP_EMPTY"] = "No great person generation."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY"] = "{1_Name}, {2_Cur} of {3_Max}"
+-- Community Patch only: appended to GP_ENTRY when the city is generating
+-- points for the class (CP shows the rate next to the meter).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GP_RATE"] = "+{1_Num} per turn"
 -- Focus item label when the current focus matches. Read by labelFn on
 -- every navigate so flipping focus is reflected immediately.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_SELECTED"] = "{1_Label}, selected"
@@ -1570,12 +1586,27 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"] = "empty"
 -- value so each can move independently if a future tense / particle
 -- requires divergent forms in the target language.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_STATE"] = "filled"
+-- Community Patch only: a filled slot the player placed (forced) rather
+-- than the governor. Same "pinned" vocabulary as worked tiles.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_PINNED_STATE"] = "filled, pinned"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED"] = "filled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED"] = "unfilled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_FROM_TILE"] = "filled, worker unassigned from tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_UNFILLED_TO_TILE"] = "unfilled, worker assigned to tile"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_CANNOT_ADD"] = "cannot add specialist"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_MANUAL_SPECIALIST"] = "Manual specialist control, {1_State}"
+-- Vox Populi balance only: urbanization-free specialist slots. First item
+-- in the Specialists group; once exhausted, the per-specialist unhappiness
+-- cost speaks instead (GameDefines.UNHAPPINESS_PER_SPECIALIST / 100).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FREE_SPECIALISTS"] = {
+    one = "{1_Num} free specialist remaining",
+    other = "{1_Num} free specialists remaining",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_FREE_SPECIALISTS"] =
+    "no free specialists, {1_Num} unhappiness per new specialist"
+-- Community Patch only: confirmation after the Reset Specialists action
+-- (the item label reuses the engine's TXT_KEY_CITYVIEW_RESET_SPEC).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_RESET_DONE"] = "specialists reset"
 -- Great works sub-handler (§3.12). One item per great-work slot, grouped by
 -- building in label. Slot-type label is the work category ("art", "writing",
 -- "music"), not the great-person class, because that's what occupies the
@@ -1636,6 +1667,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_TOP"] = "moved to top
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_BOTTOM"] = "moved to bottom"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"] = "removed"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE"] = "Queue mode, {1_State}"
+-- Community Patch only: the AI-pick-production checkbox CP adds to the
+-- production box (hidden for puppets).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_AUTOMATE"] = "Automate production, {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"] = "Choose production"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "Purchase with gold or faith"
 -- Hex map sub-handler (§3.2). Arrow keys walk the cursor across the city's
@@ -2440,6 +2474,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED"] = "tile 
 -- occupied / specialists already folded in by the engine).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LINE"] =
     "local happiness {1_Local}, unhappiness {2_Unhappiness}"
+-- Vox Populi balance only: the one-liner above splits into two drillable
+-- groups whose children are the engine's per-source breakdown lines
+-- (GetCityHappinessBreakdown / GetCityUnhappinessBreakdown).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_HEADLINE"] = "happiness {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_UNHAPPINESS_HEADLINE"] = "unhappiness {1_Num}"
+-- Community Patch only: the city demands a resource whose tech is not yet
+-- researched. The engine shows "??? (Research Required)"; question marks
+-- read poorly, so the spoken form names the state directly.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_DEMAND_UNKNOWN"] = "demanded resource unknown, research required"
 -- Religion group: one row per religion present, holy-city flag inlined
 -- when applicable so the user hears it together with that religion's
 -- numbers rather than as a separate line.

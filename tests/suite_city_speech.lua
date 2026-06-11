@@ -28,6 +28,7 @@ local function mkCity(opts)
         _population = opts.population or 6,
         _strength = opts.strength or 2000,
         _damage = opts.damage or 0,
+        _maxHitPoints = opts.maxHitPoints or 200,
         _religion = (opts.religion == nil) and -1 or opts.religion,
         _followers = opts.followers or {},
         _pressure = opts.pressure or {},
@@ -98,6 +99,9 @@ local function mkCity(opts)
     end
     function c:GetDamage()
         return self._damage
+    end
+    function c:GetMaxHitPoints()
+        return self._maxHitPoints
     end
     function c:GetReligiousMajority()
         return self._religion

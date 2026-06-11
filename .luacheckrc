@@ -123,6 +123,11 @@ globals = {
     -- Proxy-injected cross-Context shared state table (mod-writable)
     "civvaccess_shared",
 
+    -- Community Patch's InfoTooltipInclude adds a border-growth breakdown
+    -- helper; CityStats feature-detects it (nil on vanilla) and the offline
+    -- suite stubs it, so it needs write access, not read_globals.
+    "GetBorderGrowthTooltip",
+
     -- Shared modules (UI/Shared/)
     "HandlerStack", "InputRouter", "KeyLayout", "TickPump", "BaselineHandler",
     "SpeechEngine", "SpeechPipeline", "TextFilter", "Text", "PluralRules",

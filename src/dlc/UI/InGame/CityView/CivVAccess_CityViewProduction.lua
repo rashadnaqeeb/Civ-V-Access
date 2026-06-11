@@ -133,6 +133,11 @@ local function slotOneLabel(city, orderType, data1)
     end
     local needed = city:GetProductionNeeded()
     local stored = city:GetProductionTimes100() / 100
+    -- CP counts banked overflow toward the visible meter; without it the
+    -- spoken percent understates what the screen shows there.
+    if city.GetTotalOverflowProductionTimes100 ~= nil then
+        stored = stored + city:GetTotalOverflowProductionTimes100() / 100
+    end
     local pct = (needed > 0) and math.floor((stored / needed) * 100) or 0
     if isGeneratingProduction(city) then
         local turns = slotTurnsLeft(city, orderType, data1, 0)
@@ -386,6 +391,49 @@ local function buildProductionQueueItems()
     toggle._stableTag = "queue_mode"
     items[#items + 1] = toggle
 
+    -- Automate Production (CP engines; the checkbox only exists in CP's
+    -- XML, which doubles as the probe). CP hides it for puppets -- their
+    -- production is engine-managed -- so the item isn't built there.
+    if Controls.AutomateProduction ~= nil and not city:IsPuppet() then
+        local automate = BaseMenuItems.Text({
+            labelFn = function()
+                local c = UI.GetHeadSelectedCity()
+                local on = (c ~= nil) and c:IsProductionAutomated()
+                local state = Text.key(on and "TXT_KEY_CIVVACCESS_CHECK_ON" or "TXT_KEY_CIVVACCESS_CHECK_OFF")
+                return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_AUTOMATE", state)
+            end,
+            onActivate = function(self, menu)
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return
+                end
+                if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
+                    return
+                end
+                if not isTurnActive() then
+                    return
+                end
+                local newVal = not c:IsProductionAutomated()
+                Game.SelectedCitiesGameNetMessage(
+                    GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                    TaskTypes.TASK_SET_AUTOMATED_PRODUCTION,
+                    -1,
+                    -1,
+                    newVal,
+                    false
+                )
+                Controls.AutomateProduction:SetCheck(newVal)
+                -- Speak the updated label next tick so labelFn reads the
+                -- post-commit state.
+                TickPump.runOnce(function()
+                    SpeechPipeline.speakInterrupt(self:announce(menu))
+                end)
+            end,
+        })
+        automate._stableTag = "automate"
+        items[#items + 1] = automate
+    end
+
     local chooseProd = BaseMenuItems.Text({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"),
         onActivate = function()
@@ -394,6 +442,12 @@ local function buildProductionQueueItems()
                 return
             end
             if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
+                return
+            end
+            -- CP disables both production buttons while the annex / puppet
+            -- / raze choice on a fresh capture is pending. Silent, same as
+            -- the disabled-button viewing-mode convention.
+            if c.IsIgnoreCityForHappiness ~= nil and c:IsIgnoreCityForHappiness() then
                 return
             end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()
@@ -428,6 +482,11 @@ local function buildProductionQueueItems()
             -- hit "puppet" and close from there.
             if isForeign(c) then
                 refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION")
+                return
+            end
+            -- See the choose-production gate: pending annex / puppet /
+            -- raze choice disables purchasing too under CP.
+            if c.IsIgnoreCityForHappiness ~= nil and c:IsIgnoreCityForHappiness() then
                 return
             end
             local queueModeOn = Controls.HideQueueButton ~= nil and Controls.HideQueueButton:IsChecked()

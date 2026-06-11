@@ -197,10 +197,23 @@
     },
     "InGame/CityView/CityView.lua": {
       "suffix": "\r\n-- Civ V Access: accessibility wiring for the CityView screen.\r\ninclude(\"CivVAccess_CityViewAccess\")\r\n",
-      "refit": true
-    },
-    "InGame/CityView/CityView.xml": {
-      "refit": true
+      "vp": {
+        "edits": [
+          {
+            "old": "ContextPtr:SetInputHandler(function (uiMsg, wParam)\r\n\tlocal eInterfaceMode = UI.GetInterfaceMode();\r\n\tlocal currentInterfaceModeHandler = InterfaceModeMessageHandler[eInterfaceMode];\r\n\tif currentInterfaceModeHandler and currentInterfaceModeHandler[uiMsg] then\r\n\t\treturn currentInterfaceModeHandler[uiMsg](wParam);\r\n\telseif DefaultMessageHandler[uiMsg] then\r\n\t\treturn DefaultMessageHandler[uiMsg](wParam);\r\n\tend\r\n\treturn false;\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction InputHandler(uiMsg, wParam)\r\n\tlocal eInterfaceMode = UI.GetInterfaceMode();\r\n\tlocal currentInterfaceModeHandler = InterfaceModeMessageHandler[eInterfaceMode];\r\n\tif currentInterfaceModeHandler and currentInterfaceModeHandler[uiMsg] then\r\n\t\treturn currentInterfaceModeHandler[uiMsg](wParam);\r\n\telseif DefaultMessageHandler[uiMsg] then\r\n\t\treturn DefaultMessageHandler[uiMsg](wParam);\r\n\tend\r\n\treturn false;\r\nend\r\nContextPtr:SetInputHandler(InputHandler);\r\n"
+          },
+          {
+            "old": "Controls.HideQueueButton:RegisterCheckHandler(function (bIsChecked)\r\n\tlocal pCity = UI.GetHeadSelectedCity();\r\n\tassert(pCity, \"Hide queue button: No city selected? How could this happen?\");\r\n\tbProductionQueueOpen = bIsChecked;\r\n\tBuildProductionBox(pCity, pCity:GetOwner());\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can drive it from the keyboard queue toggle.\r\nfunction OnHideQueue(bIsChecked)\r\n\tlocal pCity = UI.GetHeadSelectedCity();\r\n\tassert(pCity, \"Hide queue button: No city selected? How could this happen?\");\r\n\tbProductionQueueOpen = bIsChecked;\r\n\tBuildProductionBox(pCity, pCity:GetOwner());\r\nend\r\nControls.HideQueueButton:RegisterCheckHandler(OnHideQueue);\r\n"
+          },
+          {
+            "old": "local function DoUpdate()\r\n\tContextPtr:ClearUpdate();\r\n",
+            "new": "local function DoUpdate()\r\n\t-- CivVAccess: SetUpdate is replace-semantics, and the accessibility\r\n\t-- layer's tick pump shares this Context's update slot. Re-arm the\r\n\t-- pump instead of clearing so its deferred speech keeps draining.\r\n\t-- TickPump is nil until the accessibility include at the end of\r\n\t-- this file has run.\r\n\tif TickPump ~= nil then\r\n\t\tContextPtr:SetUpdate(TickPump.tick);\r\n\telse\r\n\t\tContextPtr:ClearUpdate();\r\n\tend\r\n"
+          }
+        ],
+        "suffix": "\r\n-- Civ V Access: accessibility wiring for the CityView screen.\r\ninclude(\"CivVAccess_CityViewAccess\")\r\n"
+      }
     },
     "InGame/CivilopediaScreen.lua": {
       "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CivilopediaAccess\")\r\n\r\n",

@@ -212,6 +212,12 @@ local YIELD_DEFS = {
         labelKey = "TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE",
         helperKey = "CULTURE",
         rate = function(c)
+            -- Community Patch makes culture a real city yield and displays
+            -- it with the fraction kept; GetJONSCulturePerTurn truncates.
+            -- Same treatment as the ChooseProduction preamble.
+            if Game.IsCustomModOption ~= nil then
+                return c:GetYieldRateTimes100(YieldTypes.YIELD_CULTURE) / 100
+            end
             return c:GetJONSCulturePerTurn()
         end,
         signed = true,
@@ -240,6 +246,19 @@ function CityStats.yieldRows(city, helperFn)
                     raw = stripFaithReligionSuffix(raw)
                 end
                 breakdown = splitTooltipLines(raw)
+            end
+        end
+        -- Community Patch splits border growth out of culture into its own
+        -- yield with its own tooltip helper; append its lines to the
+        -- culture drill so tile-expansion sources stay audible.
+        if def.helperKey == "CULTURE" and GetBorderGrowthTooltip ~= nil then
+            local ok, raw = pcall(GetBorderGrowthTooltip, city)
+            if not ok then
+                Log.error("CityStats border growth tooltip failed: " .. tostring(raw))
+            else
+                for _, line in ipairs(splitTooltipLines(raw)) do
+                    breakdown[#breakdown + 1] = line
+                end
             end
         end
         groups[#groups + 1] = { label = label, breakdown = breakdown }
@@ -296,6 +315,44 @@ function CityStats.happinessLine(city, player)
     local unhappiness100 = EngineData.unhappinessFromCity(player, city)
     local unhappiness = math.floor(unhappiness100 / 100)
     return Text.format("TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LINE", localValue, unhappiness)
+end
+
+-- Vox Populi balance: the per-city-contribution getter behind
+-- happinessLine is hardcoded 0 there; the citizen-needs surface replaces
+-- it. Two drillable groups mirror the Yields pattern: headline number on
+-- the label, children are the engine's prebuilt per-source breakdown
+-- strings split per [NEWLINE]. The happiness-side per-source getters are
+-- not registered to Lua, so the prebuilt string is the only source -- and
+-- the drift-proof one, since the DLL composes it from the live math.
+function CityStats.happinessBreakdownRows(city)
+    return splitTooltipLines(city:GetCityHappinessBreakdown())
+end
+
+function CityStats.unhappinessBreakdownRows(city)
+    -- bIncludeMedian=true matches the city-screen tooltip's form (the
+    -- banner form omits the median-need context lines).
+    return splitTooltipLines(city:GetCityUnhappinessBreakdown(true))
+end
+
+-- itemsFn + cached=false for the same reason as the Yields group: a
+-- specialist or tile change made on an inline sub-handler doesn't re-fire
+-- the hub's onActivate, so the rows re-query on every drill.
+local function buildHappinessGroup(labelKey, value, rowsFn)
+    return BaseMenuItems.Group({
+        labelText = Text.format(labelKey, value),
+        itemsFn = function()
+            local c = UI.GetHeadSelectedCity()
+            local items = {}
+            if c == nil then
+                return items
+            end
+            for _, line in ipairs(rowsFn(c)) do
+                items[#items + 1] = BaseMenuItems.Text({ labelText = line })
+            end
+            return items
+        end,
+        cached = false,
+    })
 end
 
 -- ===== Religion =====
@@ -463,24 +520,39 @@ end
 
 -- ===== Defense =====
 
--- Defensive building chain in upgrade order. Sequenced rather than
--- alphabetical so the user hears the building tree in the order they
--- would have built it. Wonders that grant strength (Statue of Zeus, Great
--- Wall) reach the player through the Wonders sub-handler instead.
-local DEFENSIVE_BUILDING_TYPES = {
-    "BUILDING_WALLS",
-    "BUILDING_CASTLE",
-    "BUILDING_ARSENAL",
-    "BUILDING_MILITARY_BASE",
-}
+-- Defensive building chain: every non-wonder building in the city with a
+-- Defense value, sorted ascending by Defense so the chain reads in build
+-- order. Schema-driven rather than a name list so unique replacements
+-- (Walls of Babylon) and Community Patch additions (Bastion Fort, Bomb
+-- Shelter, belief buildings) appear without maintenance. Wonders that
+-- grant strength (Statue of Zeus, Red Fort) reach the player through the
+-- Wonders sub-handler instead.
+local function isWonderClass(building)
+    local bclass = GameInfo.BuildingClasses[building.BuildingClass]
+    if bclass == nil then
+        return false
+    end
+    return bclass.MaxGlobalInstances > 0
+        or bclass.MaxTeamInstances > 0
+        or (bclass.MaxPlayerInstances == 1 and (building.SpecialistCount or 0) == 0)
+end
 
 local function defensiveBuildingNames(city)
-    local names = {}
-    for _, btype in ipairs(DEFENSIVE_BUILDING_TYPES) do
-        local row = GameInfo.Buildings[btype]
-        if row ~= nil and city:IsHasBuilding(row.ID) then
-            names[#names + 1] = Text.key(row.Description)
+    local rows = {}
+    for building in GameInfo.Buildings() do
+        if (building.Defense or 0) > 0 and city:IsHasBuilding(building.ID) and not isWonderClass(building) then
+            rows[#rows + 1] = { name = Text.key(building.Description), defense = building.Defense }
         end
+    end
+    table.sort(rows, function(a, b)
+        if a.defense ~= b.defense then
+            return a.defense < b.defense
+        end
+        return Locale.Compare(a.name, b.name) == -1
+    end)
+    local names = {}
+    for _, r in ipairs(rows) do
+        names[#names + 1] = r.name
     end
     return names
 end
@@ -504,10 +576,19 @@ end
 -- elsewhere so the wording stays consistent across screens.
 function CityStats.defenseHeadline(city)
     local strength = math.floor(city:GetStrengthValue() / 100)
-    local maxHP = GameDefines.MAX_CITY_HIT_POINTS
+    -- Per-city accessor, not GameDefines.MAX_CITY_HIT_POINTS: VP buildings
+    -- add hit points, so the define understates max HP there.
+    local maxHP = city:GetMaxHitPoints()
     local strengthPart = Text.format("TXT_KEY_CIVVACCESS_CITY_DEFENSE", strength)
     local hpPart = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - city:GetDamage(), maxHP)
-    return strengthPart .. ", " .. hpPart
+    local headline = strengthPart .. ", " .. hpPart
+    -- Community Patch: cities have a separate ranged-strike strength,
+    -- shown there as the defense number's hover.
+    if Game.IsCustomModOption ~= nil then
+        local rangedStrength = math.floor(city:GetStrengthValue(true) / 100)
+        headline = headline .. ", " .. Text.format("TXT_KEY_CIVVACCESS_CITY_RANGED_STRENGTH", rangedStrength)
+    end
+    return headline
 end
 
 -- Drill-in for the Defense group: chain buildings in upgrade order, then
@@ -527,22 +608,51 @@ end
 
 -- ===== Demand / WLTKD =====
 
--- Same gating as the (now-retired) hub-level resourceDemandLabel: if no
--- demand cycle has started the row is omitted; once started, WLTKD
--- counter wins when active, demanded resource otherwise.
+-- Vanilla gating (same as the now-retired hub-level resourceDemandLabel):
+-- if no demand cycle has started the row is omitted; once started, WLTKD
+-- counter wins when active, demanded resource otherwise. Community Patch
+-- differs two ways, mirrored from its CityView: WLTKD leads regardless of
+-- a visible demand (the Great-Person and Carnival unique abilities run
+-- WLTKD without one, with their own counter texts), and a demanded
+-- resource whose tech is unresearched gets a masked row where vanilla
+-- hides the box.
 function CityStats.demandRow(city)
-    if city:GetResourceDemanded(true) == -1 then
-        return nil
-    end
     local turns = city:GetWeLoveTheKingDayCounter()
+    if Game.IsCustomModOption == nil then
+        if city:GetResourceDemanded(true) == -1 then
+            return nil
+        end
+        if turns > 0 then
+            return Text.format("TXT_KEY_CITYVIEW_WLTKD_COUNTER", turns)
+        end
+        local resourceInfo = GameInfo.Resources[city:GetResourceDemanded()]
+        if resourceInfo == nil then
+            return nil
+        end
+        return Text.format("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", Text.key(resourceInfo.Description))
+    end
     if turns > 0 then
+        local owner = Players[city:GetOwner()]
+        if owner.IsGPWLTKD ~= nil and owner:IsGPWLTKD() then
+            return Text.format("TXT_KEY_CITYVIEW_WLTKD_COUNTER_UA_1", turns)
+        end
+        if owner.IsCarnaval ~= nil and owner:IsCarnaval() then
+            return Text.format("TXT_KEY_CITYVIEW_WLTKD_COUNTER_UA_2", turns)
+        end
         return Text.format("TXT_KEY_CITYVIEW_WLTKD_COUNTER", turns)
     end
-    local resourceInfo = GameInfo.Resources[city:GetResourceDemanded()]
-    if resourceInfo == nil then
-        return nil
+    local demanded = city:GetResourceDemanded(true)
+    if demanded ~= -1 then
+        local resourceInfo = GameInfo.Resources[demanded]
+        if resourceInfo == nil then
+            return nil
+        end
+        return Text.format("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", Text.key(resourceInfo.Description))
     end
-    return Text.format("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", Text.key(resourceInfo.Description))
+    if city:GetResourceDemanded(false) ~= -1 then
+        return Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_DEMAND_UNKNOWN")
+    end
+    return nil
 end
 
 -- ===== Top-level assembly =====
@@ -608,7 +718,24 @@ function CityStats.buildItems(city, player)
     end
     local own = isOwn(city)
     if own then
-        items[#items + 1] = BaseMenuItems.Text({ labelText = CityStats.happinessLine(city, player) })
+        if
+            Game.IsCustomModOption ~= nil
+            and Game.IsCustomModOption("BALANCE_VP")
+            and city.GetCityHappinessBreakdown ~= nil
+        then
+            items[#items + 1] = buildHappinessGroup(
+                "TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_HEADLINE",
+                city:GetLocalHappiness(),
+                CityStats.happinessBreakdownRows
+            )
+            items[#items + 1] = buildHappinessGroup(
+                "TXT_KEY_CIVVACCESS_CITYSTATS_UNHAPPINESS_HEADLINE",
+                city:GetUnhappinessAggregated(),
+                CityStats.unhappinessBreakdownRows
+            )
+        else
+            items[#items + 1] = BaseMenuItems.Text({ labelText = CityStats.happinessLine(city, player) })
+        end
     end
     append(buildSimpleGroup("TXT_KEY_CIVVACCESS_CITYSTATS_GROUP_RELIGION", CityStats.religionRows(city), true))
     if own then

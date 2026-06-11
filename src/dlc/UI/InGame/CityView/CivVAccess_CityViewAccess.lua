@@ -68,7 +68,15 @@ include("CivVAccess_ProductionHelpText")
 include("CivVAccess_CityViewProduction")
 include("CivVAccess_CityViewHexMap")
 
-local priorInput = InputHandler
+-- Community Patch's vendor input handler error()s on interface modes it
+-- doesn't model (anything but selection / purchase-plot). Route the chain
+-- through the logged-call helper so a future mode leak lands in the log
+-- as a located failure instead of silently eating the key.
+local vendorInput = InputHandler
+local function priorInput(msg, wp, lp)
+    local ok, consumed = Log.tryCall("CityView vendor InputHandler", vendorInput, msg, wp, lp)
+    return ok and consumed == true
+end
 
 -- Windows VK codes for ',' / '.'. Civ V's Keys table doesn't expose
 -- VK_OEM_COMMA / VK_OEM_PERIOD; UnitControl uses the same numeric-literal
@@ -328,7 +336,18 @@ end
 -- adoption / policy take that flips a yield surfaces on the next read
 -- without rebuilding the list.
 
+-- Community Patch classifies corporation buildings (HQs, offices,
+-- franchises) into their own section, checked BEFORE the wonder test --
+-- an HQ is world-unique and would otherwise land in Wonders. The column
+-- is CP-database-only; nil on vanilla, so both predicates are inert there.
+local function isCorporationBuilding(building)
+    return building.IsCorporation and true or false
+end
+
 local function isWonderBuilding(building)
+    if isCorporationBuilding(building) then
+        return false
+    end
     local bclass = GameInfo.BuildingClasses[building.BuildingClass]
     if bclass == nil then
         return false
@@ -408,10 +427,22 @@ end
 -- Acceptable: the dominant case is watching an already-progressing
 -- specialist accumulate, and the user can Esc + re-open to refresh.
 
+-- Membership: vanilla shows classes with banked progress; CP additionally
+-- shows classes the city is currently generating points for even at zero
+-- banked progress (its meter filter is progress OR rate). GetSpecialistRate
+-- is CP-only and doubles as the probe; it returns points-per-turn in
+-- hundredths, with an optional per-source tooltip as a second return.
+-- The threshold read is identical on both engines: CP's displayed
+-- GetNextGreatPersonCost is the same GetSpecialistUpgradeThreshold call
+-- under the hood (CvLuaPlayer.cpp lGetNextGreatPersonCost).
 local function buildGreatPeopleGroup(city)
     local items = {}
     for specialistInfo in GameInfo.Specialists() do
-        if city:GetSpecialistGreatPersonProgress(specialistInfo.ID) > 0 then
+        local rate100 = 0
+        if city.GetSpecialistRate ~= nil then
+            rate100 = city:GetSpecialistRate(specialistInfo.ID)
+        end
+        if city:GetSpecialistGreatPersonProgress(specialistInfo.ID) > 0 or rate100 > 0 then
             local unitClass = GameInfo.UnitClasses[specialistInfo.GreatPeopleUnitClass]
             if unitClass ~= nil then
                 local capturedSpecID = specialistInfo.ID
@@ -425,7 +456,27 @@ local function buildGreatPeopleGroup(city)
                         end
                         local prog = c:GetSpecialistGreatPersonProgress(capturedSpecID)
                         local thr = c:GetSpecialistUpgradeThreshold(capturedUnitClassID)
-                        return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, prog, thr)
+                        local label = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_ENTRY", name, prog, thr)
+                        if c.GetSpecialistRate ~= nil then
+                            local r = c:GetSpecialistRate(capturedSpecID)
+                            if r > 0 then
+                                label = label .. ", " .. Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_GP_RATE", r / 100)
+                            end
+                        end
+                        return label
+                    end,
+                    -- CP builds a per-source rate breakdown (specialists,
+                    -- buildings, religion, modifiers) as the meter's hover.
+                    tooltipFn = function()
+                        local c = UI.GetHeadSelectedCity()
+                        if c == nil or c.GetSpecialistRate == nil then
+                            return nil
+                        end
+                        local _, tip = c:GetSpecialistRate(capturedSpecID, true)
+                        if tip == nil or tip == "" then
+                            return nil
+                        end
+                        return tip
                     end,
                     pediaName = name,
                 })
@@ -663,10 +714,10 @@ local function pushSellConfirmSub(buildingID)
     HandlerStack.push(sub)
 end
 
-local function buildBuildingsGroup(city)
+local function buildingListItems(city, filterFn)
     local buildings = {}
     for building in GameInfo.Buildings() do
-        if city:IsHasBuilding(building.ID) and not isWonderBuilding(building) then
+        if city:IsHasBuilding(building.ID) and filterFn(building) then
             buildings[#buildings + 1] = { id = building.ID, name = Text.key(building.Description) }
         end
     end
@@ -704,9 +755,28 @@ local function buildBuildingsGroup(city)
         })
     end
 
+    return items
+end
+
+local function buildBuildingsGroup(city)
+    -- IsDummy rows are VP's internal bookkeeping buildings; CP's screen
+    -- hides them, so the list must too (the column is nil on vanilla).
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"),
-        items = items,
+        items = buildingListItems(city, function(building)
+            return not isWonderBuilding(building) and not isCorporationBuilding(building) and not building.IsDummy
+        end),
+    })
+end
+
+-- Community Patch only (callers gate on the CP DLL probe): corporation
+-- HQs, offices, and franchises get their own drillable, mirroring CP's
+-- section split. Label reuses CP's own section header key; rows keep the
+-- full building treatment (contributions label, pedia, sell flow).
+local function buildCorporationsGroup(city)
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_CITYVIEW_CORPORATIONS_TEXT"),
+        items = buildingListItems(city, isCorporationBuilding),
     })
 end
 
@@ -797,6 +867,35 @@ local function buildSpecialistsGroup(city)
     sortByLocalizedName(specBuildings)
 
     local items = {}
+
+    -- Urbanization budget (VP balance): first item so the free-slot count
+    -- is heard before the slot list. Once exhausted, the per-specialist
+    -- unhappiness cost speaks instead (CP shows the same pair beside the
+    -- section header). Puppets are excluded, matching CP's gate.
+    if
+        Game.IsCustomModOption ~= nil
+        and Game.IsCustomModOption("BALANCE_VP")
+        and city.GetRemainingFreeSpecialists ~= nil
+        and not city:IsPuppet()
+    then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return ""
+                end
+                local free = c:GetRemainingFreeSpecialists()
+                if free > 0 then
+                    return Text.formatPlural("TXT_KEY_CIVVACCESS_CITYVIEW_FREE_SPECIALISTS", free, free)
+                end
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_CITYVIEW_NO_FREE_SPECIALISTS",
+                    GameDefines.UNHAPPINESS_PER_SPECIALIST / 100
+                )
+            end,
+        })
+    end
+
     for _, sb in ipairs(specBuildings) do
         local specialistInfo = GameInfo.Specialists[sb.specialistType]
         if specialistInfo ~= nil then
@@ -812,9 +911,22 @@ local function buildSpecialistsGroup(city)
                             return ""
                         end
                         local count = c:GetNumSpecialistsInBuilding(bID)
-                        local stateKey = (capturedSlot <= count)
-                                and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_STATE"
-                            or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"
+                        local stateKey
+                        if capturedSlot <= count then
+                            -- CP: the first GetNumForcedSpecialistsInBuilding
+                            -- slots are player-pinned, the remaining filled
+                            -- ones governor-placed. Same "pinned" vocabulary
+                            -- as worked tiles; nil getter on vanilla keeps
+                            -- the binary filled/empty read.
+                            local locked = (c.GetNumForcedSpecialistsInBuilding ~= nil)
+                                    and c:GetNumForcedSpecialistsInBuilding(bID)
+                                or 0
+                            stateKey = (capturedSlot <= locked)
+                                    and "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_PINNED_STATE"
+                                or "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_FILLED_STATE"
+                        else
+                            stateKey = "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_EMPTY"
+                        end
                         return Text.format(
                             "TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_SLOT",
                             bName,
@@ -855,12 +967,30 @@ local function buildSpecialistsGroup(city)
                         local unemployedBefore = c:GetSpecialistCount(GameDefines.DEFAULT_SPECIALIST)
                         local isFilled = (capturedSlot <= countBefore)
                         if isFilled then
-                            Game.SelectedCitiesGameNetMessage(
-                                GameMessageTypes.GAMEMESSAGE_DO_TASK,
-                                TaskTypes.TASK_REMOVE_SPECIALIST,
-                                specID,
-                                bID
-                            )
+                            if
+                                TaskTypes.TASK_UNSLOT_SPECIALIST ~= nil
+                                and c.GetNumForcedSpecialistsInBuilding ~= nil
+                            then
+                                -- CP: unslot stops the governor from snapping
+                                -- the citizen straight back into the slot it
+                                -- was pulled from; the flag says whether a
+                                -- pinned or governor-placed specialist leaves.
+                                local wasLocked = capturedSlot <= c:GetNumForcedSpecialistsInBuilding(bID)
+                                Game.SelectedCitiesGameNetMessage(
+                                    GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                                    TaskTypes.TASK_UNSLOT_SPECIALIST,
+                                    specID,
+                                    bID,
+                                    wasLocked
+                                )
+                            else
+                                Game.SelectedCitiesGameNetMessage(
+                                    GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                                    TaskTypes.TASK_REMOVE_SPECIALIST,
+                                    specID,
+                                    bID
+                                )
+                            end
                         else
                             if not c:IsCanAddSpecialistToBuilding(bID) then
                                 SpeechPipeline.speakInterrupt(
@@ -933,6 +1063,43 @@ local function buildSpecialistsGroup(city)
         end,
     })
     items[#items + 1] = manualItem
+
+    -- Community Patch's Reset Specialists button: unpins everything and
+    -- hands the slots back to the governor. Shown only when something is
+    -- pinned, matching CP's own gate. Label reuses CP's button key.
+    if city.GetNumForcedSpecialistsInBuilding ~= nil and TaskTypes.TASK_RESET_SPECIALISTS ~= nil then
+        local anyLocked = false
+        for _, sb in ipairs(specBuildings) do
+            if city:GetNumForcedSpecialistsInBuilding(sb.id) > 0 then
+                anyLocked = true
+                break
+            end
+        end
+        if anyLocked then
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = Text.key("TXT_KEY_CITYVIEW_RESET_SPEC"),
+                onActivate = function()
+                    local c = UI.GetHeadSelectedCity()
+                    if c == nil then
+                        return
+                    end
+                    if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_SPECIALIST") then
+                        return
+                    end
+                    if not isTurnActive() then
+                        return
+                    end
+                    Game.SelectedCitiesGameNetMessage(
+                        GameMessageTypes.GAMEMESSAGE_DO_TASK,
+                        TaskTypes.TASK_RESET_SPECIALISTS,
+                        -1,
+                        -1
+                    )
+                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_RESET_DONE"))
+                end,
+            })
+        end
+    end
 
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_SPECIALISTS"),
@@ -1263,7 +1430,8 @@ end
 -- Rebuilt on every hub activation (initial push + sub-handler pop from
 -- Production / Hex / Worker Focus / SellConfirm). Order: Ranged Strike
 -- / Stats / Production / Hex / Worker Focus / Specialists / Unemployed
--- / Buildings / Wonders / Great works / Great people / Rename / Raze.
+-- / Buildings / Corporations (CP engines) / Wonders / Great works /
+-- Great people / Rename / Raze.
 -- Ranged Strike leads when available so the user can fire without
 -- arrowing past the city's reporting items first; combat is the
 -- time-critical action and the rest of the hub is read-mostly. Stats
@@ -1328,6 +1496,13 @@ local function buildHubItems(city)
     end
     items[#items + 1] = unemployedItem
     items[#items + 1] = buildBuildingsGroup(city)
+    -- CP engines only: the corporations section header key lives in CP's
+    -- text database, so don't even build (and key-lookup) on vanilla,
+    -- where the IsCorporation column is nil and the group would be empty
+    -- anyway.
+    if Game.IsCustomModOption ~= nil then
+        items[#items + 1] = buildCorporationsGroup(city)
+    end
     items[#items + 1] = buildWondersGroup(city)
     items[#items + 1] = buildGreatWorksGroup(city)
     items[#items + 1] = buildGreatPeopleGroup(city)

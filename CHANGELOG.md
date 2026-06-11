@@ -17,6 +17,7 @@ New Features and improvements:
 
 Bug fixes:
 - The advisor popups, EULA screen, and mods menu show the game's stock layouts again.
+- The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
 
 ## [1.4.3] - 2026-06-11
 

@@ -110,7 +110,15 @@ function CitySpeech.statusTokens(city)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_PUPPET")
     end
     if city:IsBlockaded() then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_BLOCKADED")
+        -- Community Patch: a spy-mission sap is a blockade with a turn
+        -- countdown; CP swaps the banner icon, so the spoken token swaps
+        -- the same way.
+        local sappedTurns = (city.GetSappedTurns ~= nil) and city:GetSappedTurns() or 0
+        if sappedTurns > 0 then
+            parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_SAPPED", sappedTurns, sappedTurns)
+        else
+            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_CITY_BLOCKADED")
+        end
     end
     return parts
 end
@@ -121,8 +129,23 @@ end
 -- / blockaded chain. Cursor identity, CityView, and ChooseProduction
 -- preambles all append it after the status tokens.
 function CitySpeech.connectedToken(city)
+    if city:IsCapital() or city:IsBlockaded() then
+        return nil
+    end
+    -- Community Patch exposes the connection state on the city and
+    -- distinguishes the railroad (industrial) tier, which carries a larger
+    -- production bonus; mirror its icon split.
+    if city.IsIndustrialConnectedToCapital ~= nil then
+        if city:IsIndustrialConnectedToCapital() then
+            return Text.key("TXT_KEY_CIVVACCESS_CITY_RAIL_CONNECTED")
+        end
+        if city:IsConnectedToCapital() then
+            return Text.key("TXT_KEY_CIVVACCESS_CITY_CONNECTED")
+        end
+        return nil
+    end
     local owner = Players[city:GetOwner()]
-    if owner ~= nil and not city:IsCapital() and owner:IsCapitalConnectedToCity(city) and not city:IsBlockaded() then
+    if owner ~= nil and owner:IsCapitalConnectedToCity(city) then
         return Text.key("TXT_KEY_CIVVACCESS_CITY_CONNECTED")
     end
     return nil
@@ -149,7 +172,15 @@ end
 -- the stalled marker; the engine hides the visual line entirely in that
 -- state and we surface the situation rather than silence.
 function CitySpeech.borderGrowthToken(city)
-    local perTurn = city:GetJONSCulturePerTurn()
+    -- Community Patch splits border growth into its own yield
+    -- (CULTURE_LOCAL); GetJONSCulturePerTurn is the city's total culture
+    -- output there, the wrong rate for tile-acquisition math.
+    local perTurn
+    if YieldTypes.YIELD_CULTURE_LOCAL ~= nil then
+        perTurn = city:GetYieldRateTimes100(YieldTypes.YIELD_CULTURE_LOCAL) / 100
+    else
+        perTurn = city:GetJONSCulturePerTurn()
+    end
     if perTurn <= 0 then
         return Text.key("TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED")
     end
@@ -185,7 +216,9 @@ end
 -- cuts as UnitFlagManager). Full HP hides the bar in-game; we speak
 -- "full" so the HP slot is always present.
 local function cityHpColorKey(city)
-    local maxHP = GameDefines.MAX_CITY_HIT_POINTS
+    -- Per-city accessor, not GameDefines.MAX_CITY_HIT_POINTS: VP buildings
+    -- add hit points, so the define understates max HP there.
+    local maxHP = city:GetMaxHitPoints()
     local hp = maxHP - city:GetDamage()
     if hp >= maxHP then
         return "TXT_KEY_CIVVACCESS_UNIT_HP_FULL"
@@ -263,7 +296,7 @@ function CitySpeech.identity(city)
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_DEFENSE", math.floor(city:GetStrengthValue() / 100))
 
     if isTeam(city) then
-        local maxHP = GameDefines.MAX_CITY_HIT_POINTS
+        local maxHP = city:GetMaxHitPoints()
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - city:GetDamage(), maxHP)
     else
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_COLOR", Text.key(cityHpColorKey(city)))

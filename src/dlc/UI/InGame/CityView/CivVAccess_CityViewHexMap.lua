@@ -275,8 +275,24 @@ local function activateHexTile()
         -- disables BuyPlotButton in viewing mode; we surface the same
         -- "purchasable" token in the announcer but block the action so the
         -- engine's silent reject doesn't read as success.
-        if refuseIfNotActiveOwn(city, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT") then
+        if isForeign(city) then
+            refuseForeign("TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_BUY_PLOT")
             return
+        end
+        -- CP blocks tile purchase while the annex / puppet / raze choice
+        -- on a fresh capture is pending.
+        if city.IsIgnoreCityForHappiness ~= nil and city:IsIgnoreCityForHappiness() then
+            return
+        end
+        if UI.IsCityScreenViewingMode() then
+            -- CP deliberately enables tile purchase on Venice's puppets,
+            -- which always open in viewing mode; mirror its gate (own city
+            -- that can buy a plot at all). The CP probe keeps vanilla's
+            -- viewing-mode block unchanged.
+            local veniceException = Game.IsCustomModOption ~= nil and city.CanBuyAnyPlot ~= nil and city:CanBuyAnyPlot()
+            if not veniceException then
+                return
+            end
         end
         if not city:CanBuyPlotAt(cx, cy, false) then
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HEX_CANNOT_AFFORD"))

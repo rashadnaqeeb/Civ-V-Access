@@ -46,7 +46,10 @@ local function mkCity(opts)
         _owner = opts.owner or 0,
         _team = opts.team or 0,
         _strength = opts.strength or 2200,
+        _rangedStrength = opts.rangedStrength,
         _damage = opts.damage or 0,
+        _maxHitPoints = opts.maxHitPoints or 200,
+        _yieldRateTimes100 = opts.yieldRateTimes100 or {},
         _foodDifference = opts.foodDifference or 3,
         _foodDifferenceTimes100 = (opts.foodDifferenceTimes100 == nil) and 300 or opts.foodDifferenceTimes100,
         _isFoodProduction = opts.isFoodProduction or false,
@@ -83,11 +86,20 @@ local function mkCity(opts)
     function c:GetTeam()
         return self._team
     end
-    function c:GetStrengthValue()
+    function c:GetStrengthValue(forRangeStrike)
+        if forRangeStrike then
+            return self._rangedStrength or self._strength
+        end
         return self._strength
     end
     function c:GetDamage()
         return self._damage
+    end
+    function c:GetMaxHitPoints()
+        return self._maxHitPoints
+    end
+    function c:GetYieldRateTimes100(yid)
+        return self._yieldRateTimes100[yid] or 0
     end
     function c:FoodDifference()
         return self._foodDifference
@@ -130,6 +142,20 @@ local function mkCity(opts)
     end
     function c:GetLocalHappiness()
         return self._localHappiness
+    end
+    -- Defined only when the test supplies fixture strings so cities in
+    -- vanilla-path tests keep probing as vanilla (the production code
+    -- feature-detects on method presence).
+    if opts.happinessBreakdown ~= nil then
+        function c:GetCityHappinessBreakdown()
+            return opts.happinessBreakdown
+        end
+    end
+    if opts.unhappinessBreakdown ~= nil then
+        function c:GetCityUnhappinessBreakdown(includeMedian)
+            self._unhappinessIncludeMedian = includeMedian
+            return opts.unhappinessBreakdown
+        end
     end
     function c:GetReligiousMajority()
         return self._religiousMajority
@@ -197,6 +223,8 @@ end
 local GAME_KEY_TEMPLATES = {
     TXT_KEY_CITYVIEW_WLTKD_COUNTER = "we love the king day {1_Num} turns",
     TXT_KEY_CITYVIEW_RESOURCE_DEMANDED = "demanded resource {1_Resource}",
+    TXT_KEY_CITYVIEW_WLTKD_COUNTER_UA_1 = "we love the empress day {1_Num} turns",
+    TXT_KEY_CITYVIEW_WLTKD_COUNTER_UA_2 = "carnival {1_Num} turns",
 }
 
 local function setup()
@@ -728,28 +756,13 @@ end
 
 function M.test_defense_drillin_lists_chain_buildings_and_garrison()
     setup()
-    GameInfo.Buildings = makeIterableTable({})
-    setmetatable(GameInfo.Buildings, {
-        __call = function(self)
-            local i = 0
-            return function()
-                i = i + 1
-                return self[i]
-            end
-        end,
-        __index = function(_, key)
-            for _, row in ipairs({
-                { ID = 11, Type = "BUILDING_WALLS", Description = "Walls" },
-                { ID = 12, Type = "BUILDING_CASTLE", Description = "Castle" },
-                { ID = 13, Type = "BUILDING_ARSENAL", Description = "Arsenal" },
-                { ID = 14, Type = "BUILDING_MILITARY_BASE", Description = "Military Base" },
-            }) do
-                if row.ID == key or row.Type == key then
-                    return row
-                end
-            end
-            return nil
-        end,
+    GameInfo.BuildingClasses = {}
+    GameInfo.Buildings = makeIterableTable({
+        { ID = 11, Type = "BUILDING_WALLS", Description = "Walls", Defense = 500 },
+        { ID = 12, Type = "BUILDING_CASTLE", Description = "Castle", Defense = 700 },
+        { ID = 13, Type = "BUILDING_ARSENAL", Description = "Arsenal", Defense = 900 },
+        { ID = 14, Type = "BUILDING_MILITARY_BASE", Description = "Military Base", Defense = 1200 },
+        { ID = 15, Type = "BUILDING_GRANARY", Description = "Granary" },
     })
     GameInfo.Units[100] = { Description = "Pikeman" }
     local garrison = {
@@ -793,6 +806,111 @@ end
 
 -- ===== Demand =====
 
+function M.test_defense_chain_is_schema_driven_and_excludes_wonders()
+    setup()
+    GameInfo.BuildingClasses = {
+        BUILDINGCLASS_REGULAR = { MaxGlobalInstances = 0, MaxTeamInstances = 0, MaxPlayerInstances = 0 },
+        BUILDINGCLASS_WONDER = { MaxGlobalInstances = 1, MaxTeamInstances = 0, MaxPlayerInstances = 0 },
+    }
+    GameInfo.Buildings = makeIterableTable({
+        -- A unique replacement absent from any name list, a CP-style
+        -- addition, and a strength-granting wonder that must stay out.
+        {
+            ID = 21,
+            Type = "BUILDING_WALLS_OF_BABYLON",
+            Description = "Walls of Babylon",
+            Defense = 600,
+            BuildingClass = "BUILDINGCLASS_REGULAR",
+        },
+        {
+            ID = 22,
+            Type = "BUILDING_BASTION_FORT",
+            Description = "Bastion Fort",
+            Defense = 1000,
+            BuildingClass = "BUILDINGCLASS_REGULAR",
+        },
+        {
+            ID = 23,
+            Type = "BUILDING_RED_FORT",
+            Description = "Red Fort",
+            Defense = 600,
+            BuildingClass = "BUILDINGCLASS_WONDER",
+        },
+    })
+    local city = mkCity({ hasBuilding = { [21] = true, [22] = true, [23] = true } })
+    local rows = CityStats.defenseRows(city)
+    T.eq(#rows, 2)
+    T.truthy(rows[1]:find("Walls of Babylon", 1, true), "unique replacement included, lower defense first")
+    T.truthy(rows[2]:find("Bastion Fort", 1, true), "schema addition included")
+    for _, row in ipairs(rows) do
+        T.falsy(row:find("Red Fort", 1, true), "wonders stay in the Wonders group")
+    end
+end
+
+function M.test_defense_headline_appends_ranged_strength_on_cp()
+    setup()
+    local city = mkCity({ strength = 3500, rangedStrength = 4200, damage = 0 })
+    local vanillaHeadline = CityStats.defenseHeadline(city)
+    T.falsy(vanillaHeadline:find("ranged strength", 1, true), "no ranged part on vanilla")
+    Game.IsCustomModOption = function()
+        return false
+    end
+    local ok, cpHeadline = pcall(CityStats.defenseHeadline, city)
+    Game.IsCustomModOption = nil
+    T.truthy(ok, "headline under CP: " .. tostring(cpHeadline))
+    T.truthy(cpHeadline:find("42 ranged strength", 1, true), "ranged strength scaled /100 under CP")
+end
+
+-- ===== Happiness breakdown (VP balance) =====
+
+function M.test_happiness_breakdown_rows_split_engine_string()
+    setup()
+    local city = mkCity({
+        happinessBreakdown = "[ICON_HAPPINESS_1] From buildings: 4[NEWLINE]From policies: 2",
+        unhappinessBreakdown = "Distress: 3[NEWLINE][NEWLINE]Poverty: 1",
+    })
+    local rows = CityStats.happinessBreakdownRows(city)
+    T.eq(#rows, 2)
+    T.truthy(rows[1]:find("From buildings: 4", 1, true), "first source line, icon stripped")
+    T.eq(rows[2], "From policies: 2")
+    local unhappyRows = CityStats.unhappinessBreakdownRows(city)
+    T.eq(#unhappyRows, 2, "empty chunk from double newline dropped")
+    T.eq(unhappyRows[1], "Distress: 3")
+    T.truthy(city._unhappinessIncludeMedian == true, "median context requested, matching CP's city-screen tooltip")
+end
+
+-- ===== Culture under Community Patch =====
+
+function M.test_culture_rate_keeps_fraction_and_border_lines_on_cp()
+    setup()
+    YieldTypes.YIELD_CULTURE_LOCAL = 20
+    Game.IsCustomModOption = function()
+        return false
+    end
+    GetBorderGrowthTooltip = function()
+        return "Border growth from culture: 3[NEWLINE]Border growth from buildings: 2"
+    end
+    local city = mkCity({
+        yieldRateTimes100 = { [YieldTypes.YIELD_CULTURE] = 450, [20] = 200 },
+        cultureStored = 4,
+        cultureThreshold = 30,
+    })
+    local ok, rows = pcall(CityStats.yieldRows, city, function()
+        return nil
+    end)
+    Game.IsCustomModOption = nil
+    GetBorderGrowthTooltip = nil
+    YieldTypes.YIELD_CULTURE_LOCAL = nil
+    T.truthy(ok, "yieldRows under CP: " .. tostring(rows))
+    local culture = rows[#rows]
+    T.truthy(culture.label:find("4.5", 1, true), "culture fraction kept under CP")
+    -- Border growth: (30 - 4) / 2 = 13 turns, from the CULTURE_LOCAL rate,
+    -- not the total culture yield.
+    T.truthy(culture.label:find("13", 1, true), "tile ETA divides by the border-growth yield")
+    T.eq(#culture.breakdown, 2)
+    T.truthy(culture.breakdown[1]:find("Border growth from culture", 1, true), "border tooltip lines appended")
+end
+
 function M.test_demand_omits_when_no_cycle_started()
     setup()
     local city = mkCity({ resourceDemandedTrue = -1 })
@@ -816,6 +934,76 @@ function M.test_demand_speaks_resource_when_no_active_wltkd()
     local row = CityStats.demandRow(city)
     T.truthy(row ~= nil, "demand row expected when resource named")
     T.truthy(row:find("Citrus", 1, true), "demanded resource named")
+end
+
+-- ===== Demand under Community Patch =====
+
+local function withCP(fn)
+    Game.IsCustomModOption = function()
+        return false
+    end
+    local ok, err = pcall(fn)
+    Game.IsCustomModOption = nil
+    if not ok then
+        error(err, 0)
+    end
+end
+
+function M.test_demand_cp_speaks_ua_wltkd_variants()
+    setup()
+    withCP(function()
+        Players = Players or {}
+        Players[0] = {
+            IsGPWLTKD = function()
+                return true
+            end,
+            IsCarnaval = function()
+                return false
+            end,
+        }
+        -- No visible demand: the UA abilities run WLTKD without one, and
+        -- CP still shows the counter.
+        local city = mkCity({ owner = 0, resourceDemandedTrue = -1, wltkdCounter = 5 })
+        local row = CityStats.demandRow(city)
+        T.truthy(row ~= nil, "UA WLTKD row expected without a visible demand")
+        T.truthy(row:find("empress", 1, true), "GP-UA counter text")
+        Players[0].IsGPWLTKD = function()
+            return false
+        end
+        Players[0].IsCarnaval = function()
+            return true
+        end
+        row = CityStats.demandRow(city)
+        T.truthy(row:find("carnival", 1, true), "Carnival counter text")
+        Players[0].IsCarnaval = function()
+            return false
+        end
+        row = CityStats.demandRow(city)
+        T.truthy(row:find("king day", 1, true), "plain counter text without a UA")
+        Players[0] = nil
+    end)
+end
+
+function M.test_demand_cp_speaks_unknown_when_resource_masked()
+    setup()
+    withCP(function()
+        Players = Players or {}
+        Players[0] = {}
+        -- Demanded resource exists (unmasked read) but its tech is
+        -- unresearched (masked read is -1): CP shows a masked row where
+        -- vanilla hides the box entirely.
+        local city = mkCity({ owner = 0, resourceDemandedTrue = -1, resourceDemanded = 9, wltkdCounter = 0 })
+        local row = CityStats.demandRow(city)
+        T.truthy(row ~= nil, "masked demand row expected under CP")
+        T.truthy(row:find("research", 1, true), "masked row names the research gate")
+        Players[0] = nil
+    end)
+end
+
+function M.test_demand_vanilla_still_hides_masked_resource()
+    setup()
+    local city = mkCity({ resourceDemandedTrue = -1, resourceDemanded = 9, wltkdCounter = 0 })
+    T.truthy(CityStats.demandRow(city) == nil, "vanilla hides the box when the demand is masked")
 end
 
 return M
