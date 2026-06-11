@@ -41,12 +41,12 @@ ContextPtr:SetInputHandler(function(uiMsg, wParam, lParam)
 end);
 
 ContextPtr:SetShowHideHandler(function(isHide)
-    --UNCOMMENT THIS BLOCK IF YOU WISH TO ONLY
+    --UNCOMMENT THIS BLOCK IF YOU WISH TO ONLY 
     --SHOW THE EULA ONCE PER APPLICATION RUN
     --if not isHide and g_HasAcceptedEULA then
 	--	NavigateForward();
 	--end
-
+	
 	--if(not isHide and g_QueueEulaToHide) then
 	--	NavigateBack();
 	--end

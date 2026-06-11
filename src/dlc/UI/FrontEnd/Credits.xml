@@ -4,7 +4,7 @@
 	<Instance Name="SpacerInstance">
 		<Box ID="Spacer" Size="50,36" Anchor="C,T" Color="0,0,0,0" />
 	</Instance>
-
+	
     <Instance Name="MajorTitleInstance">
         <Label ID="Text" Size="1024,36" Font="TwCenMT24" Anchor="C,T" />
     </Instance>
@@ -20,7 +20,7 @@
     <Instance Name="EntryInstance">
         <Label ID="Text" Anchor="C,T" Font="TwCenMT14" />
     </Instance>
-
+    
     <Box Style="BGBlock" ID="BGBlock" />
 
     <!-- <SlideAnim Anchor="c,c" End="0,-100" Cycle="Once" Speed=".5" ID="SlideAnim" >
@@ -28,8 +28,8 @@
   </SlideAnim>-->
 
     <GridButton Size="260,36" Anchor="L,B" Offset="10,10" ID="BackButton" Style="BaseButton" String="TXT_KEY_BACK_BUTTON" />
-
-
+	
+	
 	<Box Color="Black.0" Anchor="R,B" Offset="20.20" Size="200.200" Hidden="0" >
 		<Stack Anchor="R,B" >
 			<Image Anchor="L,B" Offset="0,0"  Texture="Assets/UI/Art/Logos/logo_fork.dds" Size="120,37" />

@@ -12,7 +12,7 @@ local m_CurrentPanel = Controls.EconomicGeneralInfo;
 function OnPopup( popupInfo )
 	if( popupInfo.Type == ButtonPopupTypes.BUTTONPOPUP_ECONOMIC_OVERVIEW ) then
 		m_PopupInfo = popupInfo;
-
+		
 		if( m_PopupInfo.Data1 == 1 ) then
         	if( ContextPtr:IsHidden() == false ) then
         	    OnClose();
@@ -56,17 +56,17 @@ function ShowHideHandler( bIsHide, bInitState )
         print( "Could not get player... huh?" );
         return;
     end
-
+    
 	-- Set Civ Icon
 	CivIconHookup( Game.GetActivePlayer(), 64, Controls.CivIcon, Controls.CivIconBG, Controls.CivIconShadow, false, true );
-
+	
     if( not bInitState ) then
         if( not bIsHide ) then
         	UI.incTurnTimerSemaphore();
-
+        	
         	-- trigger the show/hide handler to update state
         	m_CurrentPanel:SetHide( false );
-
+        	
         	Events.SerialEventGameMessagePopupShown(m_PopupInfo);
         else
             UI.decTurnTimerSemaphore();
@@ -83,7 +83,7 @@ function OnGeneralInfoButton()
 	-- Set Tabs
 	Controls.GeneralInfoSelectHighlight:SetHide(false);
 	Controls.HappinessSelectHighlight:SetHide(true);
-
+	
 	-- Set Panels
     Controls.EconomicGeneralInfo:SetHide( false );
     Controls.HappinessInfo:SetHide( true );
@@ -98,7 +98,7 @@ function OnHappinessButton()
 	-- Set Tabs
 	Controls.GeneralInfoSelectHighlight:SetHide(true);
 	Controls.HappinessSelectHighlight:SetHide(false);
-
+	
 	-- Set Panels
     Controls.EconomicGeneralInfo:SetHide( true );
     Controls.HappinessInfo:SetHide( false );

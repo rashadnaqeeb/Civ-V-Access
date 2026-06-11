@@ -350,7 +350,7 @@ function OnTechPanelActivePlayerChanged( iActivePlayer, iPrevActivePlayer )
 end
 Events.GameplaySetActivePlayer.Add(OnTechPanelActivePlayerChanged);
 	
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- one time initialization stuff goes here
 GatherInfoAboutUniqueStuff( civType );
 for tech in GameInfo.Technologies() do

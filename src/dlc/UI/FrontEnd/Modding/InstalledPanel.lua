@@ -768,7 +768,7 @@ function ShowInstalledModDetails(modId, modVersion)
 	SetListingsState("details");
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 function OnDeleteMod(modinfo)
 	--
@@ -804,7 +804,7 @@ function OnDeleteMod(modinfo)
 	end);
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 function OnUnsubscribeMod(modinfo)
 	--
@@ -829,8 +829,8 @@ function OnUnsubscribeMod(modinfo)
 	end);
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------  
+---------------------------------------------------------------- 
 -- BoxButtons currently do not support highlight colors via XML.
 -- In these mouse events, we fake the highlight colors.
 function OnListingMouseEnter(_, _, listing)

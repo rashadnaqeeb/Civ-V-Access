@@ -819,7 +819,7 @@ function InputHandler( uiMsg, wParam, lParam )
 end
 ContextPtr:SetInputHandler( InputHandler );
 
-----------------------------------------------------------------
+---------------------------------------------------------------- 
 -- Deal with a new path from the path finder 
 -- this is a place holder implementation to give an example of how to handle it       
 ----------------------------------------------------------------

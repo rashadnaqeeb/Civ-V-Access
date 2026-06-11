@@ -2611,7 +2611,7 @@ CivilopediaCategory[CategoryUnits].SelectArticle = function( unitID, shouldAddTo
 				costString = tostring(faithCost) .. " [ICON_PEACE]";
 			else
 				costString = Locale.Lookup("TXT_KEY_FREE");
-
+				
 				if(thisUnit.Type == "UNIT_SETTLER") then
 					Controls.CostFrame:SetHide(true);
 				end

@@ -5,9 +5,9 @@ include( "InstanceManager" );
 ----------------------------------------------------------------
 DEFAULT_BACKGROUND = "MapRandom512.dds";
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Global Variables
-----------------------------------------------------------------
+----------------------------------------------------------------     
 g_InstanceManager = InstanceManager:new( "LoadButton", "Button", Controls.LoadFileButtonStack );
 g_ScenarioList = nil;
 g_InstanceList = {};
@@ -23,9 +23,9 @@ function OnBack()
 	UIManager:DequeuePopup( ContextPtr );
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Event Handlers
-----------------------------------------------------------------
+----------------------------------------------------------------        
 Controls.StartButton:RegisterCallback( Mouse.eLClick, function()	
 	local entry = g_ScenarioList[ g_iSelected ];
 	if(entry) then
@@ -52,9 +52,9 @@ Controls.StartButton:RegisterCallback( Mouse.eLClick, function()
 		UIManager:SetUICursor( 0 );
 	end
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------       
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack);
-----------------------------------------------------------------
+----------------------------------------------------------------       
 ContextPtr:SetInputHandler( function(uiMsg, wParam, lParam)
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -63,7 +63,7 @@ ContextPtr:SetInputHandler( function(uiMsg, wParam, lParam)
     end
     return true;
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------   
 ContextPtr:SetShowHideHandler(function(isHide)
     if( not isHide ) then
 		if (not ContextPtr:IsHotLoad()) then
@@ -78,7 +78,7 @@ ContextPtr:SetShowHideHandler(function(isHide)
 		SetupFileButtonList();
 	end
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------     
 function SetSelected( index )
     if(g_iSelected ~= nil) then
         g_InstanceList[ g_iSelected ].SelectHighlight:SetHide( true );

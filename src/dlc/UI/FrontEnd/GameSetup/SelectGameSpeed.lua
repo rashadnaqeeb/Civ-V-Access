@@ -17,9 +17,9 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -31,17 +31,17 @@ end
 ContextPtr:SetInputHandler( InputHandler );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- set the Speed
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function SpeedSelected( id )
     PreGame.SetGameSpeed( id );
     OnBack();
 end
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function ShowHideHandler( bIsHide )
     if( not bIsHide ) then
         Controls.ScrollPanel:SetScrollValue( 0 );
@@ -49,9 +49,9 @@ function ShowHideHandler( bIsHide )
 end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- build the buttons
-----------------------------------------------------------------
+----------------------------------------------------------------  
 local m_sortSpeeds = {}      
 for info in GameInfo.GameSpeeds() do
 	table.insert(m_sortSpeeds, { ID=info.ID, GrowthPercent=info.GrowthPercent, IconAtlas=info.IconAtlas, Description=info.Description, Help=info.Help, PortraitIndex=info.PortraitIndex} );

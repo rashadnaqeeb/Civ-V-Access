@@ -14,12 +14,12 @@ function OnPopup( popupInfo )
 	if( popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_NOTIFICATION_LOG ) then
 		return;
 	end
-
+	
 	-- Set Civ Icon
 	CivIconHookup( Game.GetActivePlayer(), 64, Controls.CivIcon, Controls.CivIconBG, Controls.CivIconShadow, false, true );
-
+	
 	m_PopupInfo = popupInfo;
-
+	
 	g_NotificationInstanceManager:ResetInstances();
 
 	local player = Players[Game.GetActivePlayer()];
@@ -32,11 +32,11 @@ function OnPopup( popupInfo )
 		local dismissed = player:GetNotificationDismissed((numNotifications - 1) - i);
 		AddNotificationButton(index, str, turn, dismissed);
 	end
-
+	
 	Controls.NotificationButtonStack:CalculateSize();
 	Controls.NotificationButtonStack:ReprocessAnchoring();
 	Controls.NotificationScrollPanel:CalculateInternalSize();
-
+	
 	if( m_PopupInfo.Data1 == 1 ) then
     	if( ContextPtr:IsHidden() == false ) then
     	    OnClose();
@@ -52,7 +52,7 @@ Events.SerialEventGameMessagePopup.Add( OnPopup );
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-function AddNotificationButton( id, description, turn, dismissed )
+function AddNotificationButton( id, description, turn, dismissed )	
 
 	local controlTable = g_NotificationInstanceManager:GetInstance();
 	controlTable.NotificationText:SetText(description);
@@ -60,15 +60,15 @@ function AddNotificationButton( id, description, turn, dismissed )
     controlTable.Button:SetVoid1( id ); -- indicates type
     controlTable.Button:SetVoid2( void );
     controlTable.Button:SetDisabled( dismissed );
-
+    
     controlTable.TextStack:CalculateSize();
     controlTable.TextStack:ReprocessAnchoring();
-
+    
     local sizeY = controlTable.TextStack:GetSizeY()
     controlTable.Button:SetSizeY(sizeY);
     controlTable.TextAnim:SetSizeY(sizeY);
     controlTable.TextHL:SetSizeY(sizeY);
-
+    
     controlTable.Button:RegisterCallback( Mouse.eLClick, NotificationSelected );
 end
 

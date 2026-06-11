@@ -262,8 +262,8 @@ function UpdateDisplay()
     
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function SetMapTypeForScript()
 	Controls.AdvancedButton:SetDisabled(false);
 	Controls.MapTypeButton:SetHide(false);
@@ -295,8 +295,8 @@ function SetMapTypeForScript()
 	end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function SetMapSizeForScript()
 	Controls.MapSizeButton:SetHide(false);
 	Controls.MapSizeButton:SetDisabled(false);
@@ -314,8 +314,8 @@ function SetMapSizeForScript()
 	end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function SetDifficulty()
     -- Set Difficulty Slot
     local info = GameInfo.HandicapInfos[ PreGame.GetHandicap( 0 ) ];
@@ -326,8 +326,8 @@ function SetDifficulty()
     end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function SetGamePace()
     -- Set Game Pace Slot
     local info = GameInfo.GameSpeeds[ PreGame.GetGameSpeed() ];
@@ -338,8 +338,8 @@ function SetGamePace()
     end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 bScenarioSettingsLoaded = false;
 function SetMapTypeSizeForMap(mapScriptFileName)
 	local mapInfo = UI.GetMapPreview(mapScriptFileName);
@@ -410,7 +410,7 @@ function SetMapTypeSizeForMap(mapScriptFileName)
 	end
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 function ApplyScenarioSettings(mapFileName)
 	if (PreGame.GetLoadWBScenario() and IsWBMap(mapFileName)) then
@@ -446,8 +446,8 @@ function ApplyScenarioSettings(mapFileName)
 	end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function SetupForScenarioMap(mapScriptFileName)
 	local loadScenarioChecked = PreGame.GetLoadWBScenario();
 	Controls.LoadScenarioBox:SetHide( false );
@@ -456,8 +456,8 @@ function SetupForScenarioMap(mapScriptFileName)
 	Controls.StartButton:SetText(Locale.ConvertTextKey("TXT_KEY_START_SCENARIO"));
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function SetupForNonScenarioMap()
 	Controls.AdvancedButton:SetDisabled(false);
 	Controls.LoadScenarioBox:SetHide( true );
@@ -508,7 +508,7 @@ function SetSelectedCiv()
     else 
     	-------------------------------------------------
 		-- Random Civ Slot Setup
-		---------------------------------------------------
+		---------------------------------------------------           
         SetCivName("TXT_KEY_RANDOM_LEADER", "TXT_KEY_RANDOM_CIV", "TXT_KEY_MISC_RANDOMIZE");
 
 		IconHookup( 22, 128, "LEADER_ATLAS", Controls.Portrait );
@@ -558,13 +558,13 @@ function SetCivName(defaultLeader, defaultCiv, defaultTrait)
 	Controls.Title:SetText(title);
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function IsWBMap(file)
 	return Path.UsesExtension(file,".Civ5Map"); 
 end
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function ShowHideHandler( isHide, isInit )
 	if ( not isInit ) then
 		if( isHide == false ) then 	
@@ -588,9 +588,9 @@ end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

@@ -17,13 +17,13 @@ function OnPopup( popupInfo )
 
     local iUnitType = popupInfo.Data1;
     local pGreatPersonInfo = GameInfo.Units[iUnitType];
-
+    
     local iPlayer = Game.GetActivePlayer();
     local iCityID = popupInfo.Data2;
     local pCity = Players[iPlayer]:GetCityByID(iCityID);
-
+	
 	Controls.DescriptionLabel:SetText(Locale.ConvertTextKey("TXT_KEY_GREAT_PERSON_REWARD", pGreatPersonInfo.Description, pCity:GetNameKey()));
-
+	
 	local portraitOffset, portraitAtlas = UI.GetUnitPortraitIcon(iUnitType, iPlayer);
 	if IconHookup( portraitOffset, 256, portraitAtlas, Controls.Portrait ) then
 		Controls.Portrait:SetHide( false );

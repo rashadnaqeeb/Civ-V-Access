@@ -19,7 +19,7 @@ function InternetButtonClick()
 	PreGame.ResetSlots();
 	Matchmaking.RefreshInternetGameList();
 	UIManager:QueuePopup( Controls.LobbyScreen, PopupPriority.LobbyScreen );
-
+	
 end
 Controls.InternetButton:RegisterCallback( Mouse.eLClick, InternetButtonClick );
 
@@ -42,7 +42,7 @@ Controls.LANButton:RegisterCallback( Mouse.eLClick, LANButtonClick );
 -------------------------------------------------
 function HotSeatButtonClick()
 	PreGame.SetGameType(GameTypes.GAME_HOTSEAT_MULTIPLAYER);
-
+	
 	UIManager:QueuePopup( Controls.MPGameSetupScreen, PopupPriority.MPGameSetupScreen );
 end
 Controls.HotSeatButton:RegisterCallback( Mouse.eLClick, HotSeatButtonClick );
@@ -95,32 +95,32 @@ function ShowHideHandler( bIsHide )
 	end
 
 	if (not bIsHide) then
-
+		
 		if Network.HasReconnectCache() then
 			Controls.ReconnectButton:SetHide( false);
 			Controls.ReconnectButton:SetDisabled( false );
 		else
 			Controls.ReconnectButton:SetHide( true );
 			Controls.ReconnectButton:SetDisabled( true );
-
+			
 			-- To prevent settings getting carried over from scenarios and what not
 			-- reset pregame here.
 			UIManager:SetUICursor( 1 );
 			PreGame.Reset();
 			UIManager:SetUICursor( 0 );
 		end
-
+		
 		g_InstanceManager:ResetInstances();
-
+		
 		local mods = Modding.GetEnabledModsByActivationOrder();
-
+		
 		if(#mods == 0) then
 			Controls.ModsInUseLabel:SetHide(true);
 		else
 			Controls.ModsInUseLabel:SetHide(false);
 			for i,v in ipairs(mods) do
 				local displayName = Modding.GetModProperty(v.ModID, v.Version, "Name");
-				local displayNameVersion = string.format("[ICON_BULLET] %s (v. %i)", displayName, v.Version);
+				local displayNameVersion = string.format("[ICON_BULLET] %s (v. %i)", displayName, v.Version);			
 				local listing = g_InstanceManager:GetInstance();
 				listing.Label:SetText(displayNameVersion);
 				listing.Label:SetToolTipString(displayNameVersion);

@@ -23,8 +23,8 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function ShowHideHandler( bIsHide )
 
 	local isWBMap = IsWBMap(PreGame.GetMapScript());
@@ -43,15 +43,15 @@ function ShowHideHandler( bIsHide )
 end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function IsWBMap(file)
 	return Path.UsesExtension(file,".Civ5Map"); 
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -63,9 +63,9 @@ end
 ContextPtr:SetInputHandler( InputHandler );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- set the Civ
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function CivilizationSelected( civID, scenarioPlayerID )
     PreGame.SetCivilization( 0, civID );
     if g_bIsScenario then

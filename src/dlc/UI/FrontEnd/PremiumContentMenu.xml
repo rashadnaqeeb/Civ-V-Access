@@ -17,7 +17,7 @@
 
 	<!-- Overall Screen Container -->
 	<Grid Size="460,650" Anchor="C,C" Offset="0,39" Padding="0,0" Style="Grid9DetailFive140" >
-
+		
 		<!-- Panel Header Text -->
 		<Label Style="MenuTitleCaption" ID="TitleLabel" String="TXT_KEY_LOAD_MENU_DLC"/>
 
@@ -59,9 +59,9 @@
 
           <Image Anchor="L,B" Offset="0,0" Texture="HorizontalTrim.dds" Size="417.5" />
         </Box>
-      </Stack>
+      </Stack>					
 		</ScrollPanel>
-
+		
 		<!-- Bottom Panel -->
 		<Box Anchor="C,B" AnchorSide="I.I" Offset="0,54"   Size="460,56" Color="255,255,255,0" >
 

@@ -2,3 +2,11 @@
 # stylua.toml). Pin them to LF in the working tree so core.autocrlf=true on
 # Windows checkouts does not smudge them to CRLF and trip the format check.
 *.lua text eol=lf
+
+# The DLC UI tree holds vendor overrides that must stay byte-identical to
+# the engine-shipped sources (mostly CRLF, a few LF) -- the vendoring tool
+# (tools/vendoring/vendor.py) verifies them byte-for-byte. Disable all EOL
+# conversion under it so neither commit nor checkout rewrites line endings.
+# Our CivVAccess_*.lua files there are committed LF and pass through
+# unchanged.
+src/dlc/UI/** -text

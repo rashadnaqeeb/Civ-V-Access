@@ -10,7 +10,7 @@
 --------------------------------------------------------------------------------------
 -- this function call registers the components in ToolTips.xml for use as the simple
 -- tool tip frame.
---
+-- 
 -- RegisterBasicControls( Root, Container, Label, Grid );
 -- Root      - the tool tip itself is anchored to the mouse by this and BranchResetAnimation begins here
 -- Container - this is where dynamically created tool tip definitions will be added

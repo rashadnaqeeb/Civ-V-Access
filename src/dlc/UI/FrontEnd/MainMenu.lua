@@ -112,7 +112,7 @@ end
 Controls.ExitButton:RegisterCallback( Mouse.eLClick, OnExitGame );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 Steam.SetOverlayNotificationPosition( "bottom_left" );
 
@@ -252,7 +252,7 @@ end
 
 DisplayDLCButtons();
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function OnExpansionRulesSwitch()
 	UIManager:QueuePopup( Controls.PremiumContentScreen, PopupPriority.OtherMenu );
 end		

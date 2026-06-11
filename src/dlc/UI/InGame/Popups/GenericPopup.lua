@@ -28,11 +28,11 @@ end
 function HideWindow()
     UIManager:DequeuePopup( ContextPtr );
     Events.SerialEventGameMessagePopupProcessed.CallImmediate( mostRecentPopup, 0 );
-	mostRecentPopup = nil;
+	mostRecentPopup = nil;	
     ClearButtons();
     g_isOpen = false;
 end
-
+ 
 function ResizeWindow()
     Controls.ButtonStack:CalculateSize();
 	Controls.ButtonStackFrame:DoAutoSize();
@@ -66,7 +66,7 @@ function AddButton(buttonText, buttonClickFunc, strToolTip, bPreventClose)
 		if button and button:IsHidden() then
 			local buttonLabel = Controls["Button"..i.."Text"];
 			buttonLabel:SetText( buttonText );
-
+			
 			button:SetToolTipString(strToolTip);
 
 			--By default, button clicks will hide the popup window after
@@ -75,7 +75,7 @@ function AddButton(buttonText, buttonClickFunc, strToolTip, bPreventClose)
 				if buttonClickFunc ~= nil then
 					buttonClickFunc();
 				end
-
+				
 				HideWindow();
 			end
 			local clickHandlerPreventClose = function()
@@ -83,16 +83,16 @@ function AddButton(buttonText, buttonClickFunc, strToolTip, bPreventClose)
 					buttonClickFunc();
 				end
 			end
-
+			
 			-- This is only used in one case, when viewing a captured city (PuppetCityPopup)
 			if (bPreventClose) then
 				button:RegisterCallback(Mouse.eLClick, clickHandlerPreventClose);
 			else
 				button:RegisterCallback(Mouse.eLClick, clickHandler);
 			end
-
+			
 			button:SetHide(false);
-
+			
 			return;
 		end
 		i = i + 1;
@@ -115,7 +115,7 @@ function OnDisplay(popupInfo)
 		if(initialize(popupInfo) ~= false) then
 			ShowWindow(popupInfo);
 			mostRecentPopup = popupInfo.Type;
-			g_isOpen = true;
+			g_isOpen = true;	
 		end
 	end
 end

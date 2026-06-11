@@ -20,9 +20,9 @@ function OnOK()
 end
 Controls.OKButton:RegisterCallback( Mouse.eLClick, OnOK );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -33,7 +33,7 @@ function InputHandler( uiMsg, wParam, lParam )
 end
 ContextPtr:SetInputHandler( InputHandler );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- ShowHideHandler
 ----------------------------------------------------------------
 function ShowHideHandler( bIsHide )

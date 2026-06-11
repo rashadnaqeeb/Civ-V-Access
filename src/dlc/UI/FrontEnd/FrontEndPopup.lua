@@ -7,7 +7,7 @@
 -------------------------------------------------
 function OnFrontEndPopup( string )
     UIManager:PushModal( ContextPtr );
-
+    
     Controls.PopupText:SetText( Locale.ConvertTextKey( string ) );
 end
 Events.FrontEndPopup.Add( OnFrontEndPopup )

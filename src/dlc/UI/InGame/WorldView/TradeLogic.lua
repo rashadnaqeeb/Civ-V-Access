@@ -17,9 +17,9 @@ local g_bAlwaysWar = Game.IsOption( GameOptionTypes.GAMEOPTION_ALWAYS_WAR );
 local g_bAlwaysPeace = Game.IsOption( GameOptionTypes.GAMEOPTION_ALWAYS_PEACE );
 local g_bNoChangeWar = Game.IsOption( GameOptionTypes.GAMEOPTION_NO_CHANGING_WAR_PEACE );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- local storage
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- CivVAccess: the eight g_* below are declared as globals (no `local`)
 -- so CivVAccess_TradeLogicAccess.lua, included into this Context as a
 -- separate chunk, can read them. Lua 5.1 chunk-local scope hides file

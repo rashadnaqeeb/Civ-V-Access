@@ -20,7 +20,7 @@ function NavigateBack()
 	Modding.DeactivateMods();
 	UIManager:DequeuePopup( ContextPtr );
 	UIManager:SetUICursor( 0 );
-
+	
 	Events.SystemUpdateUI( SystemUpdateUIType.RestoreUI, "ModsBrowserReset" );
 end
 
@@ -47,27 +47,27 @@ ContextPtr:SetShowHideHandler(function(isHiding)
 	if(not isHiding) then
 		local supportsSinglePlayer = Modding.AllEnabledModsContainPropertyValue("SupportsSinglePlayer", 1);
 		local supportsMultiplayer = Modding.AllEnabledModsContainPropertyValue("SupportsMultiplayer", 1);
-
+		
 		Controls.SinglePlayerButton:SetDisabled(not supportsSinglePlayer);
 		Controls.MultiPlayerButton:SetDisabled(not supportsMultiplayer);
-
+		
 		--if(supportsSinglePlayer and not supportsMultiplayer) then
 			--OnSinglePlayerClick();
 		--elseif(supportsMultiplayer and not supportsSinglePlayer) then
 			--OnMultiPlayerClick();
 		--end
-
+		
 		g_InstanceManager:ResetInstances();
-
+		
 		local mods = Modding.GetEnabledModsByActivationOrder();
-
+		
 		if(#mods == 0) then
 			Controls.ModsInUseLabel:SetHide(true);
 		else
 			Controls.ModsInUseLabel:SetHide(false);
 			for i,v in ipairs(mods) do
 				local displayName = Modding.GetModProperty(v.ModID, v.Version, "Name");
-				local displayNameVersion = string.format("[ICON_BULLET] %s (v. %i)", displayName, v.Version);
+				local displayNameVersion = string.format("[ICON_BULLET] %s (v. %i)", displayName, v.Version);			
 				local listing = g_InstanceManager:GetInstance();
 				listing.Label:SetText(displayNameVersion);
 				listing.Label:SetToolTipString(displayNameVersion);

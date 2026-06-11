@@ -199,9 +199,9 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, BackButtonClick );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input Handler
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
 	if uiMsg == KeyEvents.KeyDown then
 		if wParam == Keys.VK_ESCAPE then

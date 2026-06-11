@@ -22,18 +22,18 @@ g_bFoundingReligion = true;
 -------------------------------------------------
 -------------------------------------------------
 function OnPopupMessage(popupInfo)
-
+	
 	local popupType = popupInfo.Type;
 	if popupType ~= ButtonPopupTypes.BUTTONPOPUP_FOUND_RELIGION then
 		return;
 	end
-
+	
 	g_PopupInfo = popupInfo;
-
+	
 	g_iCityX = popupInfo.Data1;
 	g_iCityY = popupInfo.Data2;
 	g_bFoundingReligion = popupInfo.Option1;
-
+	
    	UIManager:QueuePopup( ContextPtr, PopupPriority.SocialPolicy );
 end
 Events.SerialEventGameMessagePopup.Add( OnPopupMessage );
@@ -55,12 +55,12 @@ end
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 function InputHandler( uiMsg, wParam, lParam )
-    ----------------------------------------------------------------
+    ----------------------------------------------------------------        
     -- Key Down Processing
-    ----------------------------------------------------------------
+    ----------------------------------------------------------------        
     if uiMsg == KeyEvents.KeyDown then
         if (wParam == Keys.VK_ESCAPE) then
-
+        
 			if(not Controls.ChooseConfirm:IsHidden())then
 	            Controls.ChooseConfirm:SetHide(true);
             elseif(not Controls.ChangeNamePopup:IsHidden()) then
@@ -70,7 +70,7 @@ function InputHandler( uiMsg, wParam, lParam )
 			end
 			return true;
         end
-
+        
         -- Do Nothing.
         if(wParam == Keys.VK_RETURN) then
 			return true;
@@ -93,14 +93,14 @@ function OnPantheonBeliefClick()
 				});
 			end
 		end
-
+		
 		table.sort(availablePantheonBeliefs, function(a,b) return Locale.Compare(a.Name, b.Name) < 0; end);
-
+		
 		SelectFromBeliefs(availablePantheonBeliefs, function(belief)
 			Controls.PantheonBeliefName:SetText(belief.Name);
 			Controls.PantheonBeliefDescription:SetText(belief.Description);
 			g_Beliefs[1] = belief.ID;
-
+			
 			CheckifCanCommit();
 		end);
 	end
@@ -121,14 +121,14 @@ function OnFounderBeliefClick()
 				});
 			end
 		end
-
+		
 		table.sort(availableFounderBeliefs, function(a,b) return Locale.Compare(a.Name, b.Name) < 0; end);
-
+		
 		SelectFromBeliefs(availableFounderBeliefs, function(belief)
 			Controls.FounderBeliefName:SetText(belief.Name);
 			Controls.FounderBeliefDescription:SetText(belief.Description);
 			g_Beliefs[2] = belief.ID;
-
+			
 			CheckifCanCommit();
 		end);
 	end
@@ -149,15 +149,15 @@ function OnFollowerBeliefClick()
 				});
 			end
 		end
-
+		
 		-- Sort by their description.
 		table.sort(availableFollowerBeliefs, function(a,b) return Locale.Compare(a.Name, b.Name) < 0; end);
-
+			
 		SelectFromBeliefs(availableFollowerBeliefs, function(belief)
 			Controls.FollowerBeliefName:SetText(belief.Name);
 			Controls.FollowerBeliefDescription:SetText(belief.Description);
 			g_Beliefs[3] = belief.ID;
-
+			
 			CheckifCanCommit();
 		end);
 	end
@@ -177,15 +177,15 @@ function OnFollowerBelief2Click()
 				});
 			end
 		end
-
+		
 		-- Sort by their description.
 		table.sort(availableFollowerBeliefs, function(a,b) return Locale.Compare(a.Name, b.Name) < 0; end);
-
+			
 		SelectFromBeliefs(availableFollowerBeliefs, function(belief)
 			Controls.FollowerBelief2Name:SetText(belief.Name);
 			Controls.FollowerBelief2Description:SetText(belief.Description);
 			g_Beliefs[4] = belief.ID;
-
+			
 			CheckifCanCommit();
 		end);
 	end
@@ -205,15 +205,15 @@ function OnEnhancerBeliefClick()
 				});
 			end
 		end
-
+		
 		-- Sort by their description.
 		table.sort(availableEnhancerBeliefs, function(a,b) return Locale.Compare(a.Name, b.Name) < 0; end);
-
+			
 		SelectFromBeliefs(availableEnhancerBeliefs, function(belief)
 			Controls.EnhancerBeliefName:SetText(belief.Name);
 			Controls.EnhancerBeliefDescription:SetText(belief.Description);
 			g_Beliefs[5] = belief.ID;
-
+			
 			CheckifCanCommit();
 		end);
 	end
@@ -233,15 +233,15 @@ function OnBonusBeliefClick()
 				});
 			end
 		end
-
+		
 		-- Sort by their description.
 		table.sort(availableBonusBeliefs, function(a,b) return Locale.Compare(a.Name, b.Name) < 0; end);
-
+			
 		SelectFromBeliefs(availableBonusBeliefs, function(belief)
 			Controls.BonusBeliefName:SetText(belief.Name);
 			Controls.BonusBeliefDescription:SetText(belief.Description);
 			g_Beliefs[6] = belief.ID;
-
+				
 			CheckifCanCommit();
 		end);
 	end
@@ -270,19 +270,19 @@ function RefreshReligions()
 	local pActivePlayer = Players[Game.GetActivePlayer()];
 	local pActiveTeam = Teams[Game.GetActiveTeam()];
 	local takenReligions = {};
-
-	for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+	
+	for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do	
 		local pPlayer = Players[iPlayer];
 		if (pPlayer:IsEverAlive() and pPlayer:HasCreatedReligion()) then
 			local eReligion = pPlayer:GetReligionCreatedByPlayer();
 			local iOtherTeam = pPlayer:GetTeam();
-
+			
 			if (pActiveTeam:IsHasMet(iOtherTeam)) then
 				takenReligions[eReligion] = pPlayer:GetName();
 			else
-				takenReligions[eReligion] = Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_UNMET_PLAYER");
+				takenReligions[eReligion] = Locale.ConvertTextKey("TXT_KEY_CHOOSE_RELIGION_UNMET_PLAYER");			
 			end
-
+			
 			if (eReligion > ReligionTypes.RELIGION_PANTHEON) then
 				if (pActivePlayer:GetID() == pPlayer:GetID()) then
 					g_CurrentReligionID = eReligion;
@@ -296,14 +296,14 @@ function RefreshReligions()
 			end
 		end
 	end
-
+	
 	local numReligionButtons = 0;
-
+	
 	local religions = {};
 	-- Refresh Religion Buttons
 	for row in GameInfo.Religions("Type <> 'RELIGION_PANTHEON'") do
-
-		local religion = {
+		
+		local religion = {	
 			ID = row.ID,
 			Description = row.Description,
 			PortraitIndex = row.PortraitIndex,
@@ -311,7 +311,7 @@ function RefreshReligions()
 			ToolTip = Locale.Lookup(row.Description),
 			Disabled = false,
 		}
-
+			
 		if(g_CurrentReligionID == row.ID) then
 			religion.Disabled = true;
 		elseif(takenReligions[row.ID] ~= nil) then
@@ -319,60 +319,60 @@ function RefreshReligions()
 			religion.ToolTip = Locale.Lookup("TXT_KEY_CHOOSE_RELIGION_ALREADY_FOUNDED", row.Description, takenReligions[row.ID]);
 		end
 		table.insert(religions, religion);
-	end
-
+	end	
+	
 	table.sort(religions, function(a,b)
 		return Locale.Compare(a.Description, b.Description) < 0;
 	end);
-
+	
 	-- Refresh Religion Buttons
 	for i, religion in ipairs(religions) do
 		local religionButton = g_ReligionButtonManager:GetInstance();
 		religionButton.Button:SetToolTipString(religion.ToolTip);
 		IconHookup(religion.PortraitIndex, 64, religion.IconAtlas, religionButton.Icon);
-
+		
 		religionButton.Button:SetDisabled(religion.Disabled);
-
+					
 		if (g_bFoundingReligion) then
 			religionButton.Button:RegisterCallback(Mouse.eLClick, function() SelectReligion(religion.ID, religion.Description, religion.IconAtlas, religion.PortraitIndex); end);
 		else
-			religionButton.Button:RegisterCallback(Mouse.eLClick, IgnoreLeftClick);
+			religionButton.Button:RegisterCallback(Mouse.eLClick, IgnoreLeftClick);		
 		end
-
+		
 		numReligionButtons = numReligionButtons + 1;
-	end
-
+	end	
+		
 	if(#religions > 13) then
 		Controls.ReligionStack:SetAnchor("L,T");
 	else
 		Controls.ReligionStack:SetAnchor("C,T");
 	end
-
+	
 
 	Controls.ReligionStack:CalculateSize();
 	Controls.ReligionStack:ReprocessAnchoring();
-	Controls.ReligionScrollPanel:CalculateInternalSize();
+	Controls.ReligionScrollPanel:CalculateInternalSize();	
 end
 
 function RefreshExistingBeliefs()
 	local pPlayer = Players[Game.GetActivePlayer()];
-
+	
 	-- Reset some text, multiple players will come in here with different states
 	Controls.PantheonBeliefName:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_PANTHEON_BELIEF");
-	Controls.PantheonBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_PANTHEON_BELIEF");
-
+	Controls.PantheonBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_PANTHEON_BELIEF");	
+	
 	Controls.FounderBeliefName:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_FOUNDER_BELIEF");
 	Controls.FounderBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_FOUNDER_BELIEF");
-
+		
 	Controls.FollowerBeliefName:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_FOLLOWER_BELIEF");
-	Controls.FollowerBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_FOLLOWER_BELIEF");
-
+	Controls.FollowerBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_FOLLOWER_BELIEF");	
+		
 	Controls.BonusBeliefName:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_BONUS_BELIEF");
-	Controls.BonusBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_BONUS_BELIEF");
-
+	Controls.BonusBeliefDescription:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SELECT_BONUS_BELIEF");	
+	
 	Controls.FollowerBelief2Name:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_FOLLOWER_BELIEF2");
 	Controls.EnhancerBeliefName:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_SPREAD_BELIEF");
-
+	
 	if (pPlayer:HasCreatedReligion()) then
 		local eReligion = pPlayer:GetReligionCreatedByPlayer();
 		for i,v in ipairs(Game.GetBeliefsInReligion(eReligion)) do
@@ -381,21 +381,21 @@ function RefreshExistingBeliefs()
 				if (belief.Reformation == false) then
 					if (i == 1) then
 						Controls.PantheonBeliefName:SetText(Locale.Lookup(belief.ShortDescription));
-						Controls.PantheonBeliefDescription:SetText(Locale.Lookup(belief.Description));
-						g_Beliefs[1] = v;
+						Controls.PantheonBeliefDescription:SetText(Locale.Lookup(belief.Description));	
+						g_Beliefs[1] = v;		
 					elseif (i == 2) then
 						Controls.FounderBeliefName:SetText(Locale.Lookup(belief.ShortDescription));
 						Controls.FounderBeliefDescription:SetText(Locale.Lookup(belief.Description));
-						g_Beliefs[2] = v;
+						g_Beliefs[2] = v;							
 					elseif (i == 3) then
 						Controls.FollowerBeliefName:SetText(Locale.Lookup(belief.ShortDescription));
-						Controls.FollowerBeliefDescription:SetText(Locale.Lookup(belief.Description));
-						g_Beliefs[3] = v;
+						Controls.FollowerBeliefDescription:SetText(Locale.Lookup(belief.Description));	
+						g_Beliefs[3] = v;						
 					elseif (i == 4) then
 						Controls.BonusBeliefName:SetText(Locale.Lookup(belief.ShortDescription));
-						Controls.BonusBeliefDescription:SetText(Locale.Lookup(belief.Description));
+						Controls.BonusBeliefDescription:SetText(Locale.Lookup(belief.Description));	
 						g_Beliefs[6] = v;
-					end
+					end						
 				end
 			end
 		end
@@ -415,14 +415,14 @@ function RefreshExistingBeliefs()
 		Controls.EnhancerBeliefDescription:SetOffsetVal(24,25);
         Controls.AlphaAnimEnhancer:SetHide(false);
         Controls.EnhancerLock:SetHide(true);
-
+	
 	elseif (pPlayer:HasCreatedPantheon()) then
 		local eBelief = pPlayer:GetBeliefInPantheon();
 		local belief = GameInfo.Beliefs[eBelief];
 		Controls.PantheonBeliefName:SetText(Locale.Lookup(belief.ShortDescription));
-		Controls.PantheonBeliefDescription:SetText(Locale.Lookup(belief.Description));
-		g_Beliefs[1] = eBelief;
-
+		Controls.PantheonBeliefDescription:SetText(Locale.Lookup(belief.Description));	
+		g_Beliefs[1] = eBelief;		
+	
 		Controls.PantheonBeliefButton:RegisterCallback(Mouse.eLClick, IgnoreLeftClick);
 		Controls.AlphaAnimPantheon:SetHide(true);
 		Controls.FollowerBeliefButton:RegisterCallback(Mouse.eLClick, OnFollowerBeliefClick);
@@ -439,7 +439,7 @@ function RefreshExistingBeliefs()
 		Controls.EnhancerBeliefDescription:SetOffsetVal(52,30);
         Controls.AlphaAnimEnhancer:SetHide(true);
         Controls.EnhancerLock:SetHide(false);
-
+        
     -- Not even a pantheon
     else
 		Controls.PantheonBeliefButton:RegisterCallback(Mouse.eLClick, OnPantheonBeliefClick);
@@ -488,8 +488,8 @@ function SelectReligion(religionID, name, iconAtlas, portraitIndex)
 
 	g_CurrentReligionID = religionID;
 	RefreshReligions();
-
-	if (g_CurrentReligionID ~= nil) then
+	
+	if (g_CurrentReligionID ~= nil) then		
 		IconHookup(portraitIndex, 80, iconAtlas, Controls.ReligionIcon);
 
 		Controls.LabelPleaseSelectAReligion:SetHide(true);
@@ -505,9 +505,9 @@ function SelectReligion(religionID, name, iconAtlas, portraitIndex)
 			Controls.LabelReligionName:SetText(label);
 			Controls.LabelReligionName:RegisterCallback(Mouse.eLClick, ChangeReligionName);
 			Controls.FoundReligion:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_OK_BUTTON");
-			Controls.FoundReligionHeading:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_TITLE");
+			Controls.FoundReligionHeading:LocalizeAndSetText("TXT_KEY_CHOOSE_RELIGION_TITLE");			
 		end
-
+		
 		local year = Game.GetGameTurnYear();
 		local date;
 		if(year < 0) then
@@ -515,10 +515,10 @@ function SelectReligion(religionID, name, iconAtlas, portraitIndex)
 		else
 			date = Locale.ConvertTextKey("TXT_KEY_TIME_AD", math.abs(year));
 		end
-
+		
 		local foundedIn = Locale.Lookup("TXT_KEY_CHOOSE_RELIGION_FOUNDED_IN", date);
 		Controls.LabelReligionFoundedIn:SetText(foundedIn);
-
+		
 		Controls.ReligionPanel:SetHide(false);
 	end
 end
@@ -532,28 +532,28 @@ end
 
 function SelectFromBeliefs(beliefs, selectFn)
 	g_BeliefItemManager:ResetInstances();
-
+	
 	for i,v in ipairs(beliefs) do
 		local itemInstance = g_BeliefItemManager:GetInstance();
 		itemInstance.Name:SetText(v.Name);
 		itemInstance.Description:SetText(v.Description);
-
+		
 		local gw,gh = itemInstance.AnimGrid:GetSizeVal();
 		local dw,dh = itemInstance.Description:GetSizeVal();
 		local bw,bh = itemInstance.Button:GetSizeVal();
-
-
+		
+		
 		local newHeight = dh + 45;
-
+		
 		itemInstance.Button:SetSizeVal(bw, newHeight);
 		itemInstance.AnimGrid:SetSizeVal(gw, newHeight + 5);
-
-		itemInstance.Button:RegisterCallback(Mouse.eLClick, function()
+		
+		itemInstance.Button:RegisterCallback(Mouse.eLClick, function() 
 			selectFn(v);
 			ToggleBeliefContext(nil);
 		end);
 	end
-
+	
 	Controls.BeliefStack:CalculateSize();
 	Controls.BeliefStack:ReprocessAnchoring();
 	Controls.BeliefScrollPanel:CalculateInternalSize();
@@ -564,7 +564,7 @@ function CheckifCanCommit()
     local pPlayer = Players[Game.GetActivePlayer()];
 
     if(g_bFoundingReligion and g_Beliefs[1] ~= nil and g_Beliefs[2] ~= nil and g_Beliefs[3] ~= nil) then
-
+    
 		if (pPlayer:IsTraitBonusReligiousBelief()) then
 			if (g_Beliefs[6] ~= nil) then
 				Controls.FoundReligion:SetDisabled(false);
@@ -584,23 +584,23 @@ end
 function OnYes( )
 
 	local pPlayer = Players[Game.GetActivePlayer()];
-
+	
 	Controls.ChooseConfirm:SetHide(true);
-
+	
 	local religion = GameInfo.Religions[g_CurrentReligionID];
-
+	
 	local customName = Locale.Lookup(g_CurrentReligionName);
 	if(Locale.Lookup(religion.Description) == customName) then
 		customName = nil;
 	end
-
+	
 	if (g_bFoundingReligion) then
-
+	
 		local beliefsToSend = {};
 		beliefsToSend[3] = BeliefTypes.NO_BELIEF;
 		beliefsToSend[4] = BeliefTypes.NO_BELIEF;
 		local iStoring = 1;
-
+	
 		if (not pPlayer:HasCreatedPantheon()) then
 			beliefsToSend[iStoring] = g_Beliefs[1];
 			iStoring = iStoring + 1;
@@ -616,14 +616,14 @@ function OnYes( )
 			beliefsToSend[iStoring] = g_Beliefs[6];
 			iStoring = iStoring + 1;
 		end
-
+		
 		Network.SendFoundReligion(Game.GetActivePlayer(), g_CurrentReligionID, customName, beliefsToSend[1], beliefsToSend[2], beliefsToSend[3], beliefsToSend[4], g_iCityX, g_iCityY);
 	else
 		Network.SendEnhanceReligion(Game.GetActivePlayer(), g_CurrentReligionID, customName, g_Beliefs[4], g_Beliefs[5], g_iCityX, g_iCityY);
 	end
-	Events.AudioPlay2DSound("AS2D_INTERFACE_POLICY");
-
-	OnClose();
+	Events.AudioPlay2DSound("AS2D_INTERFACE_POLICY");	
+	
+	OnClose();	
 end
 Controls.Yes:RegisterCallback( Mouse.eLClick, OnYes );
 
@@ -641,7 +641,7 @@ function OnChangeNameOK()
 		Controls.ChangeNameError:SetHide(false);
 	else
 		Controls.ChangeNameError:SetHide(true);
-
+		
 		g_CurrentReligionName = name;
 		local label = Locale.Lookup("TXT_KEY_CHOOSE_RELIGION_NAME_LABEL", g_CurrentReligionName);
 		Controls.LabelReligionName:SetText(label);
@@ -684,7 +684,7 @@ function ShowHideHandler( bIsHide, bInitState )
 
         	RefreshReligions();
         	RefreshExistingBeliefs();
-
+        	    	
 			if (g_CurrentReligionID ~= nil) then
 				local religionRow = GameInfo.Religions[g_CurrentReligionID];
 				SelectReligion(g_CurrentReligionID, Game.GetReligionName(g_CurrentReligionID), religionRow.IconAtlas, religionRow.PortraitIndex);
@@ -693,7 +693,7 @@ function ShowHideHandler( bIsHide, bInitState )
 			end
 
         	CheckifCanCommit();
-
+        	
         	ToggleBeliefContext(nil);
         else
 			if(g_PopupInfo ~= nil) then

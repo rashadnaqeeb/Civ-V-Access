@@ -58,6 +58,9 @@ src/dlc/UI/InGame/Popups/*.lua
 !src/dlc/UI/InGame/Popups/CivVAccess_*.lua
 src/dlc/UI/InGame/LeaderHead/LeaderHeadRoot.lua
 src/dlc/UI/InGame/LeaderHead/DiscussionDialog.lua
+src/dlc/UI/InGame/LeaderHead/DiploTrade.lua
+src/dlc/UI/InGame/ChangePassword.lua
+src/dlc/UI/InGame/WorldView/SimpleDiploTrade.lua
 src/dlc/UI/InGame/CityView/CityView.lua
 src/dlc/UI/TechTree/TechTree.lua
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Context>
     <Box Style="BGBlock_ClearTopBar" />
-
+  
     <Grid Size="500,360" Anchor="C,C" Offset="0,0" Padding="30,30" Style="Grid9DetailFive140" ID="ButtonStackFrame">
 
       <!-- Side treatments -->
@@ -12,7 +12,7 @@
           <AlphaAnim Anchor="C,C" Offset="0,0" Size="80,80" Texture="assets\UI\Art\Notification\NotificationGenericGlow.dds" Pause="0" Cycle="Bounce" Speed="1" AlphaStart="1" AlphaEnd=".5"/>
         </Image>
       </Image>
-
+      
         <Stack Anchor="C,T" Offset="0,70" Padding="12" StackGrowth="Bottom" ID="ButtonStack">
 
             <Label Anchor="C,T" Offset="0,0" ColorSet="Beige_Black" Font="TwCenMT22" FontStyle="Shadow" String="BLAH BLAH" ID="PopupText" WrapWidth="450" LeadingOffset="-8"/>

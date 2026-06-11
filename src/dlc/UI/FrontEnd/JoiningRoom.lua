@@ -3,18 +3,18 @@
 -- Flattened to UI/FrontEnd/ because include() resolves by bare filename
 -- stem. Contents above the bootstrap marker are a verbatim copy of the
 -- base-game file.
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Globals
-----------------------------------------------------------------
+----------------------------------------------------------------   
 local g_joinFailed = false;		-- Are we attempting to close this page after a join failure?
-															-- Used to prevent the ActivateAllowedDLC mechanic in ShowHideHander
+															-- Used to prevent the ActivateAllowedDLC mechanic in ShowHideHander 
 															-- from restoring the page after a join failed.  This can occur
 															-- due to the event system frame lag.
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input Handler
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
 
 	if uiMsg == KeyEvents.KeyDown then
@@ -43,7 +43,7 @@ function OnJoinRoomComplete()
 
         UIManager:QueuePopup( Controls.StagingRoomScreen, PopupPriority.StagingScreen );
         UIManager:DequeuePopup( ContextPtr );
-
+        
 	else
 
 		Controls.JoiningLabel:SetText( Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_JOINING_HOST" ));
@@ -60,12 +60,12 @@ function OnJoinRoomFailed( iExtendedError, aExtendedErrorText )
 
 	if iExtendedError == NetErrors.MISSING_REQUIRED_DATA then
 		local szText = Locale.ConvertTextKey("TXT_KEY_MP_JOIN_FAILED_MISSING_RESOURCES");
-
+		
 		-- The aExtendedErrorText will contain an array of the IDs of the resources (DLC/Mods) needed by the game.
 		local count = table.count(aExtendedErrorText);
 		if(count > 0) then
 			szText = szText .. "[NEWLINE]";
-		    for index, value in pairs(aExtendedErrorText) do
+		    for index, value in pairs(aExtendedErrorText) do 		
 				szText = szText .. "[NEWLINE] [ICON_BULLET]" .. Locale.ConvertTextKey(value);
 			end
 		end
@@ -76,7 +76,7 @@ function OnJoinRoomFailed( iExtendedError, aExtendedErrorText )
 		Events.FrontEndPopup.CallImmediate( "TXT_KEY_MP_JOIN_FAILED" );
 	end
 
-	g_joinFailed = true;
+	g_joinFailed = true;	
 	Matchmaking.LeaveMultiplayerGame();
 	UIManager:DequeuePopup( ContextPtr );
 end
@@ -86,12 +86,12 @@ end
 -------------------------------------------------
 function OnMultiplayerConnectionFailed()
 
-	-- We should only get this if we couldn't complete the connection to the host of the room
-	g_joinFailed = true;
+	-- We should only get this if we couldn't complete the connection to the host of the room	
+	g_joinFailed = true;	
   Events.FrontEndPopup.CallImmediate( "TXT_KEY_MP_JOIN_FAILED" );
 	Matchmaking.LeaveMultiplayerGame();
 	UIManager:DequeuePopup( ContextPtr );
-
+	
 end
 
 -------------------------------------------------
@@ -106,17 +106,17 @@ function OnMultiplayerGameAbandoned(eReason)
 	else
 	    Events.FrontEndPopup.CallImmediate( "TXT_KEY_MP_JOIN_FAILED" );
 	end
-	g_joinFailed = true;
+	g_joinFailed = true;	
 	Matchmaking.LeaveMultiplayerGame();
 	UIManager:DequeuePopup( ContextPtr );
-
+	
 end
 
 -------------------------------------------------
 -- Event Handler: ConnectedToNetworkHost
 -------------------------------------------------
 function OnHostConnect()
-	Controls.JoiningLabel:SetText( Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_JOINING_PLAYERS" ));
+	Controls.JoiningLabel:SetText( Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_JOINING_PLAYERS" ));  
 end
 
 -------------------------------------------------
@@ -129,14 +129,14 @@ function OnConnectionCompete()
 		UIManager:QueuePopup( Controls.StagingRoomScreen, PopupPriority.StagingScreen );
         UIManager:DequeuePopup( ContextPtr );
 	end
-
+    
 end
 
 -------------------------------------------------
 -- Event Handler: MultiplayerNetRegistered
 -------------------------------------------------
 function OnNetRegistered()
-	Controls.JoiningLabel:SetText( Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_JOINING_GAMESTATE" ));
+	Controls.JoiningLabel:SetText( Locale.ConvertTextKey("TXT_KEY_MULTIPLAYER_JOINING_GAMESTATE" ));    
 end
 
 -------------------------------------------------
@@ -149,7 +149,7 @@ function OnVersionMismatch( iPlayerID, playerName, bIsHost )
 	else
 		-- we mismatched with the host, exit the game.
 		Events.FrontEndPopup.CallImmediate( Locale.ConvertTextKey( "TXT_KEY_MP_VERSION_MISMATCH_FOR_PLAYER" ) );
-		g_joinFailed = true;
+		g_joinFailed = true;	
 		Matchmaking.LeaveMultiplayerGame();
 		UIManager:DequeuePopup( ContextPtr );
 	end
@@ -165,15 +165,15 @@ function ShowHideHandler( bIsHide, bIsInit )
  			g_joinFailed = false;
 
 			-- Activate only the DLC allowed for this MP game.  Mods will also deactivated/activate too.
-			if (not ContextPtr:IsHotLoad()) then
+			if (not ContextPtr:IsHotLoad()) then 
 				local prevCursor = UIManager:SetUICursor( 1 );
 				Modding.ActivateAllowedDLC();
 				UIManager:SetUICursor( prevCursor );
-
-				-- Send out an event to continue on, as the ActivateDLC may have swapped out the UI
+				
+				-- Send out an event to continue on, as the ActivateDLC may have swapped out the UI	
 				Events.SystemUpdateUI( SystemUpdateUIType.RestoreUI, "JoiningRoom" );
 			end
-
+						
 			Controls.JoiningLabel:LocalizeAndSetText( "TXT_KEY_MULTIPLAYER_JOINING_ROOM" );
 			RegisterEvents();
     else
@@ -191,7 +191,7 @@ function RegisterEvents()
     Events.MultiplayerJoinRoomFailed.Add( OnJoinRoomFailed );
     Events.ConnectedToNetworkHost.Add ( OnHostConnect );
     Events.MultiplayerConnectionComplete.Add( OnConnectionCompete );
-    Events.MultiplayerNetRegistered.Add( OnNetRegistered );
+    Events.MultiplayerNetRegistered.Add( OnNetRegistered );   
     Events.MultiplayerConnectionFailed.Add( OnMultiplayerConnectionFailed );
     Events.MultiplayerGameAbandoned.Add( OnMultiplayerGameAbandoned );
 end
@@ -204,7 +204,7 @@ function UnregisterEvents()
     Events.MultiplayerJoinRoomFailed.Remove( OnJoinRoomFailed );
     Events.ConnectedToNetworkHost.Remove ( OnHostConnect );
     Events.MultiplayerConnectionComplete.Remove( OnConnectionCompete );
-		Events.MultiplayerNetRegistered.Remove( OnNetRegistered );
+		Events.MultiplayerNetRegistered.Remove( OnNetRegistered );   
     Events.MultiplayerConnectionFailed.Remove( OnMultiplayerConnectionFailed );
     Events.MultiplayerGameAbandoned.Remove( OnMultiplayerGameAbandoned );
 end
@@ -229,7 +229,7 @@ function OnUpdateUI( type, tag, iData1, iData2, strData1)
         AdjustScreenSize();
     elseif (not g_joinFailed and type == SystemUpdateUIType.RestoreUI and tag == "JoiningRoom") then
 			if (ContextPtr:IsHidden()) then
-				UIManager:QueuePopup(ContextPtr, PopupPriority.JoiningScreen );
+				UIManager:QueuePopup(ContextPtr, PopupPriority.JoiningScreen );    
 			end
     end
 end

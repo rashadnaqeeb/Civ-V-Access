@@ -89,7 +89,7 @@
             </Image>
 
             <Stack Anchor="L,T" Offset="6,122"  Padding="8" StackGrowth="Bottom" >
-
+                
                 <Box Anchor="C,T" Anchorside="I.O" Offset="0,0" Size="330,24" Color="255,255,200,255" ID="NameBoxFrame" >
                     <Box Anchor="C,C"  Offset="0,0" Size="328,22" Color="0,0,0,255" >
                         <EditBox CallOnChar="1" Size="324,22" Anchor="C,C" Font="TwCenMT20"  ID="NameBox" MaxLength="32" />

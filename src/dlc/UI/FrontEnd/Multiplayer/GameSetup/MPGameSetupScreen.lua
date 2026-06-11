@@ -149,8 +149,8 @@ function UpdateDisplay()
 	end	
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function ShowHideHandler( isHide, bInit )
 	-- Check to make sure we are not launching, this menu can briefly get unhidden as the game launches
 	if not Matchmaking.IsLaunchingGame() and not isHide then 
@@ -184,9 +184,9 @@ end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
 	if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

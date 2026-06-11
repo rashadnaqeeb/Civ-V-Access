@@ -665,7 +665,7 @@ function RefreshAgents()
 			elseif (v.AgentActivity == Locale.Lookup("TXT_KEY_SPY_STATE_MAKING_INTRODUCTIONS")) then
 				strActivityTT = Locale.Lookup("TXT_KEY_SPY_STATE_MAKING_INTRODUCTIONS_TT", v.Rank, v.Name, city:GetName());				
 			elseif (v.AgentActivity == Locale.Lookup("TXT_KEY_SPY_STATE_SCHMOOZING")) then
-				strActivityTT = Locale.Lookup("TXT_KEY_SPY_STATE_SCHMOOZING_TT", v.Rank, v.Name, city:GetName());
+				strActivityTT = Locale.Lookup("TXT_KEY_SPY_STATE_SCHMOOZING_TT", v.Rank, v.Name, city:GetName());				
 			end
 			
 			agentEntry.AgentActivity:SetToolTipString(strActivityTT);

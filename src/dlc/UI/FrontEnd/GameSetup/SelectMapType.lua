@@ -10,7 +10,7 @@ include("InstanceManager");
 
 g_InstanceManager = InstanceManager:new( "ItemInstance", "Root", Controls.Stack );
 
-----------------------------------------------------------------
+---------------------------------------------------------------- 
 function IsWBMap(file)
 	return Path.UsesExtension(file,".Civ5Map"); 
 end
@@ -24,9 +24,9 @@ end
 Controls.CloseButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

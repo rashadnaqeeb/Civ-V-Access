@@ -1,0 +1,672 @@
+{
+  "_comment": "Vendor override manifest; see tools/vendoring/vendor.py. prefix/suffix are literal text around the verbatim engine body; edits are exact-match replacements applied to the body; refit files are hand-maintained per engine.",
+  "files": {
+    "FrontEnd/ContentSwitch.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/ContentSwitch.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ContentSwitchAccess\")\r\n"
+    },
+    "FrontEnd/ContentSwitch.xml": {},
+    "FrontEnd/Credits.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Credits.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CreditsAccess\")\r\n"
+    },
+    "FrontEnd/Credits.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/Credits.xml"
+      }
+    },
+    "FrontEnd/EULA.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/EULA.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_EULAAccess\")\r\n"
+    },
+    "FrontEnd/EULA.xml": {
+      "owned": true
+    },
+    "FrontEnd/ExitConfirm.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/ExitConfirm.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ExitConfirmAccess\")\r\n"
+    },
+    "FrontEnd/ExitConfirm.xml": {},
+    "FrontEnd/FrontEndPopup.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/FrontEndPopup.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_FrontEndPopupAccess\")\r\n"
+    },
+    "FrontEnd/FrontEndPopup.xml": {},
+    "FrontEnd/GameSetup/AdvancedSetup.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/AdvancedSetup.{lua,xml}. Contents\r\n-- below (between ProbeBoot and the bootstrap marker at the bottom) are a\r\n-- verbatim copy of the base-game file.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvancedSetupAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/AdvancedSetup.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/GameSetup/AdvancedSetup.xml"
+      }
+    },
+    "FrontEnd/GameSetup/GameSetupScreen.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/GameSetupScreen.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GameSetupScreenAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/GameSetupScreen.xml": {},
+    "FrontEnd/GameSetup/SelectCivilization.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/SelectCivilization.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SelectCivilizationAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/SelectCivilization.xml": {},
+    "FrontEnd/GameSetup/SelectDifficulty.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/SelectDifficulty.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SelectDifficultyAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/SelectDifficulty.xml": {},
+    "FrontEnd/GameSetup/SelectGameSpeed.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/SelectGameSpeed.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SelectGameSpeedAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/SelectGameSpeed.xml": {},
+    "FrontEnd/GameSetup/SelectMapSize.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/SelectMapSize.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SelectMapSizeAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/SelectMapSize.xml": {},
+    "FrontEnd/GameSetup/SelectMapType.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/SelectMapType.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SelectMapTypeAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/SelectMapType.xml": {},
+    "FrontEnd/GameSetup/SetCivNames.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/GameSetup/SetCivNames.{lua,xml}. Contents\r\n-- above the bootstrap marker are a verbatim copy of the base-game file.\r\n--\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SetCivNamesAccess\")\r\n"
+    },
+    "FrontEnd/GameSetup/SetCivNames.xml": {},
+    "FrontEnd/JoiningRoom.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/JoiningRoom.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_JoiningRoomAccess\")\r\n"
+    },
+    "FrontEnd/JoiningRoom.xml": {},
+    "FrontEnd/LegalScreen.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/LegalScreen.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file. BNW does\r\n-- not override this file; our base copy is what loads under the\r\n-- Expansion2 UISkin.\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LegalScreenAccess\")\r\n"
+    },
+    "FrontEnd/LegalScreen.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/LegalScreen.xml"
+      }
+    },
+    "FrontEnd/LoadMenu.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/LoadMenu.{lua,xml}. The single physical LoadMenu\r\n-- serves both front-end \"Load Game\" (MainMenu -> SinglePlayer -> Load) and\r\n-- in-game pause-menu \"Load Game\" (GameMenu.xml embeds this Context as a\r\n-- hidden child). Our include at the tail runs in whichever sandbox the\r\n-- engine instantiates the Context into; the g_IsInGame flag LoadMenu already\r\n-- sets at line 693 tells downstream code which environment it's running in.\r\n-- Contents between the bootstrap markers are a verbatim copy of the base-game\r\n-- file.\r\n----------------------------------------------------\r\n-- ProbeBoot runs BEFORE the base file so metatable patches are in place\r\n-- before Controls.AutoCheck / Controls.CloudCheck register their CheckHandlers\r\n-- and Controls.SortByPullDown wires its per-entry button callbacks. Without\r\n-- this prepend, keyboard activation of those controls would warn\r\n-- \"callback not captured\" and leave game state unchanged.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n----------------------------------------------------\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LoadMenuAccess\")\r\n"
+    },
+    "FrontEnd/LoadMenu.xml": {},
+    "FrontEnd/LoadReplayMenu.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/LoadReplayMenu.{lua,xml}. Instantiated as a\r\n-- LuaContext child of OtherMenu.xml; OtherMenu's ViewReplays button\r\n-- QueuePopups it. Selecting a replay hands off to the embedded\r\n-- InGame/ReplayViewer via LuaEvents.ReplayViewer_LoadReplay.\r\n-- Contents between the bootstrap markers are a verbatim copy of the\r\n-- base-game file.\r\n----------------------------------------------------\r\n-- ProbeBoot before the base file so SortByPullDown's per-entry\r\n-- RegisterCallback is captured; our Sort-by Group drives those entries.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n----------------------------------------------------\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LoadReplayMenuAccess\")\r\n"
+    },
+    "FrontEnd/LoadReplayMenu.xml": {},
+    "FrontEnd/LoadScreen.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/LoadScreen.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LoadScreenAccess\")\r\n"
+    },
+    "FrontEnd/LoadTutorial.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LoadTutorialAccess\")\r\n"
+    },
+    "FrontEnd/LoadTutorial.xml": {},
+    "FrontEnd/MainMenu.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/MainMenu.{lua,xml}. Contents above the bootstrap\r\n-- marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MainMenuAccess\")\r\n"
+    },
+    "FrontEnd/MainMenu.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/MainMenu.xml"
+      }
+    },
+    "FrontEnd/Modding/CustomMod.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CustomModAccess\")\r\n"
+    },
+    "FrontEnd/Modding/CustomMod.xml": {},
+    "FrontEnd/Modding/InstalledPanel.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/InstalledPanel.{lua,xml}. This Context\r\n-- is a child LuaContext of ModsBrowser (hidden=0, always visible with the\r\n-- parent). Contents between the bootstrap markers are a verbatim copy of\r\n-- the base-game file.\r\n----------------------------------------------------\r\n-- ProbeBoot runs BEFORE the base file so the checkbox metatable patch is\r\n-- in place before Controls.ShowDLCMods registers its CheckHandler. Without\r\n-- this prepend, keyboard activation of the Show DLC Mods checkbox would\r\n-- warn \"callback not captured\" and leave game state unchanged.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n----------------------------------------------------\r\n",
+      "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_InstalledPanelAccess\")\r\n\r\n"
+    },
+    "FrontEnd/Modding/InstalledPanel.xml": {},
+    "FrontEnd/Modding/ModsBrowser.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ModsBrowserAccess\")\n"
+    },
+    "FrontEnd/Modding/ModsBrowser.xml": {},
+    "FrontEnd/ModsError.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsError.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsErrorAccess\")\r\n"
+    },
+    "FrontEnd/ModsError.xml": {},
+    "FrontEnd/ModsMenu.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsMenu.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsMenuAccess\")\r\n"
+    },
+    "FrontEnd/ModsMenu.xml": {
+      "owned": true
+    },
+    "FrontEnd/ModsMultiplayer.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsMultiplayer.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsMultiplayerAccess\")\r\n"
+    },
+    "FrontEnd/ModsMultiplayer.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/Modding/ModsMultiplayer.xml"
+      }
+    },
+    "FrontEnd/ModsSinglePlayer.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsSinglePlayer.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsSinglePlayerAccess\")\r\n"
+    },
+    "FrontEnd/ModsSinglePlayer.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/Modding/ModsSinglePlayer.xml"
+      }
+    },
+    "FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.{lua,xml}.\r\n-- Contents below (between ProbeBoot and the bootstrap marker at the bottom)\r\n-- are a verbatim copy of the base-game file.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MPGameSetupAccess\")"
+    },
+    "FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.xml": {},
+    "FrontEnd/Multiplayer/Lobby.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/Lobby.{lua,xml}.\r\n-- Contents below (up to the bootstrap marker at the bottom) are a verbatim\r\n-- copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LobbyAccess\")"
+    },
+    "FrontEnd/Multiplayer/Lobby.xml": {},
+    "FrontEnd/Multiplayer/StagingRoom.lua": {
+      "suffix": "\r\n-- CivVAccess: expose locals needed for accessibility wiring. Table refs are\r\n-- captured once; later writes by CreateSlots / chat handlers populate the\r\n-- same tables our access layer reads.\r\ncivvaccess_shared._stagingSlotInstances = m_SlotInstances\r\ncivvaccess_shared._stagingChatInstances = g_ChatInstances\r\n\r\ninclude(\"CivVAccess_StagingRoomAccess\")\r\n",
+      "edits": [
+        {
+          "old": "-- Staging Room Screen\r\n-------------------------------------------------\r\n",
+          "new": "-- Staging Room Screen\r\n-------------------------------------------------\r\n-- CivVAccess: widget-metatable probes have to install before this chunk's\r\n-- Register*Callback calls run, so the access layer can capture click /\r\n-- check handlers for keyboard activation. Idempotent per Context via\r\n-- civvaccess_shared flags.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n"
+        }
+      ]
+    },
+    "FrontEnd/Multiplayer/StagingRoom.xml": {
+      "edits": [
+        {
+          "old": "                <EditBox Size=\"825,23\" MaxLength=\"255\" KeepFocus=\"1\" Anchor=\"L,C\" Font=\"TwCenMT18\" ID=\"ChatEntry\" />\r\n",
+          "new": "                <EditBox Size=\"825,23\" MaxLength=\"255\" Anchor=\"L,C\" Font=\"TwCenMT18\" ID=\"ChatEntry\" />\r\n"
+        }
+      ]
+    },
+    "FrontEnd/MultiplayerSelect.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/MultiplayerSelect.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MultiplayerSelectAccess\")\r\n"
+    },
+    "FrontEnd/MultiplayerSelect.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/Multiplayer/MultiplayerSelect.xml"
+      }
+    },
+    "FrontEnd/OtherMenu.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/OtherMenu.{lua,xml}. Contents above the bootstrap\r\n-- marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OtherMenuAccess\")\r\n"
+    },
+    "FrontEnd/OtherMenu.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/OtherMenu.xml"
+      }
+    },
+    "FrontEnd/PremiumContentMenu.lua": {
+      "suffix": "\r\n\r\ninclude(\"CivVAccess_PremiumContentMenuAccess\")\r\n"
+    },
+    "FrontEnd/PremiumContentMenu.xml": {},
+    "FrontEnd/ScenariosMenu.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ScenariosMenuAccess\")\r\n"
+    },
+    "FrontEnd/ScenariosMenu.xml": {},
+    "FrontEnd/SinglePlayer.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/SinglePlayer.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SinglePlayerAccess\")\r\n"
+    },
+    "FrontEnd/SinglePlayer.xml": {
+      "source": {
+        "vanilla": "base:FrontEnd/SinglePlayer.xml"
+      }
+    },
+    "FrontEnd/ToolTips.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/ToolTips.{lua,xml} (base game; not overridden by\r\n-- Expansion/Expansion2). Contents above the bootstrap marker are a verbatim\r\n-- copy of the base-game file. Rationale for this target: 15 lines, leaf, always loaded at\r\n-- front-end init (before MainMenu), and very unlikely to be patched.\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_FrontendBoot\")\r\n"
+    },
+    "FrontEnd/ToolTips.xml": {},
+    "FrontEnd/WaitingForPlayers.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/WaitingForPlayers.{lua,xml}. Contents above\r\n-- the bootstrap marker are a verbatim copy of the base-game file.\r\n",
+      "suffix": "\r\n\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_WaitingForPlayersAccess\")\r\n"
+    },
+    "FrontEnd/WaitingForPlayers.xml": {},
+    "FrontEnd/WorldPicker.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_WorldPickerAccess\")\n"
+    },
+    "FrontEnd/WorldPicker.xml": {},
+    "InGame/ChangePassword.lua": {
+      "hand": true,
+      "edits": [
+        {
+          "old": "        if (bHasPassword) then\r\n       \t\tControls.OldPasswordEditBox:TakeFocus();\r\n       \telse\r\n       \t\tControls.NewPasswordEditBox:TakeFocus();\r\n       \tend\r\n",
+          "new": "        -- CIVVACCESS: stock auto-focuses an EditBox here (Old if password\r\n        -- is set, otherwise New). The focused EditBox traps keyboard\r\n        -- input inside itself, so arrow keys, Esc, and other menu-nav\r\n        -- keys never reach our SetInputHandler wrapper. The user\r\n        -- reaches password fields through normal menu nav (arrow to the\r\n        -- Textfield item, Enter to start editing); BaseMenuEditMode\r\n        -- calls TakeFocus at that point.\r\n"
+        }
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ChangePasswordAccess\")\r\n"
+    },
+    "InGame/CityView/CityView.lua": {
+      "suffix": "\r\n-- Civ V Access: accessibility wiring for the CityView screen.\r\ninclude(\"CivVAccess_CityViewAccess\")\r\n",
+      "refit": true
+    },
+    "InGame/CityView/CityView.xml": {
+      "refit": true
+    },
+    "InGame/CivilopediaScreen.lua": {
+      "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CivilopediaAccess\")\r\n\r\n",
+      "edits": [
+        {
+          "old": "local CivilopediaCategory = {};\r\nlocal currentTopic = 0;\r\nlocal endTopic = 0;\r\nlocal listOfTopicsViewed = {};\r\n",
+          "new": "-- Exposed as globals (dropped `local`) so the CivVAccess accessibility\r\n-- include at the end of this file can read them. CivilopediaCategory and\r\n-- sortedList are set once and mutated in place by PopulateList /\r\n-- SelectArticle; promoting to globals is a no-op for the engine's own\r\n-- code and a prerequisite for our picker to enumerate articles in the\r\n-- game's own left-sidebar order. currentTopic / endTopic /\r\n-- listOfTopicsViewed are the article-history triple maintained by the\r\n-- base pedia's Back / Forward buttons; exposing them lets our Alt+Left\r\n-- / Alt+Right reader-tab bindings read the current article from the\r\n-- history list after stepping the cursor.\r\nCivilopediaCategory = {};\r\ncurrentTopic = 0;\r\nendTopic = 0;\r\nlistOfTopicsViewed = {};\r\n"
+        },
+        {
+          "old": "\r\nlocal sortedList = {};\r\n",
+          "new": "\r\nsortedList = {};\r\n"
+        },
+        {
+          "old": "local searchableTextKeyList = {};\r\nlocal searchableList = {};\r\n",
+          "new": "-- Exposed as globals so the accessibility include can translate the\r\n-- string that Events.SearchForPediaEntry fires with (a localized article\r\n-- name or a TXT_KEY) back to (category, entryID). The base handler\r\n-- already did that lookup once, but drops the result on the floor:\r\n-- SelectArticle is called with addToList=nil, so listOfTopicsViewed\r\n-- isn't updated and we can't read what base just picked. Redoing the\r\n-- lookup on our side is cheaper than wrapping SelectArticle.\r\nsearchableTextKeyList = {};\r\nsearchableList = {};\r\n"
+        },
+        {
+          "old": "local g_ListItemManager = InstanceManager:new( \"ListItemInstance\", \"ListItemButton\", Controls.ListOfArticles );\r\nlocal g_ListHeadingManager = InstanceManager:new( \"ListHeadingInstance\", \"ListHeadingButton\", Controls.ListOfArticles );\r\nlocal g_PrereqTechManager = InstanceManager:new( \"PrereqTechInstance\", \"PrereqTechButton\", Controls.PrereqTechInnerFrame );\r\nlocal g_GreatWorksManager = InstanceManager:new( \"GreatWorksInstance\", \"GreatWorksButton\", Controls.GreatWorksInnerFrame );\r\nlocal g_ObsoleteTechManager = InstanceManager:new( \"ObsoleteTechInstance\", \"ObsoleteTechButton\", Controls.ObsoleteTechInnerFrame );\r\nlocal g_UpgradeManager = InstanceManager:new( \"UpgradeInstance\", \"UpgradeButton\", Controls.UpgradeInnerFrame );\r\nlocal g_LeadsToTechManager = InstanceManager:new( \"LeadsToTechInstance\", \"LeadsToTechButton\", Controls.LeadsToTechInnerFrame );\r\nlocal g_UnlockedUnitsManager = InstanceManager:new( \"UnlockedUnitInstance\", \"UnlockedUnitButton\", Controls.UnlockedUnitsInnerFrame );\r\nlocal g_UnlockedBuildingsManager = InstanceManager:new( \"UnlockedBuildingInstance\", \"UnlockedBuildingButton\", Controls.UnlockedBuildingsInnerFrame );\r\nlocal g_RevealedResourcesManager = InstanceManager:new( \"RevealedResourceInstance\", \"RevealedResourceButton\", Controls.RevealedResourcesInnerFrame );\r\nlocal g_RequiredResourcesManager = InstanceManager:new( \"RequiredResourceInstance\", \"RequiredResourceButton\", Controls.RequiredResourcesInnerFrame );\r\nlocal g_WorkerActionsManager = InstanceManager:new( \"WorkerActionInstance\", \"WorkerActionButton\", Controls.WorkerActionsInnerFrame );\r\nlocal g_UnlockedProjectsManager = InstanceManager:new( \"UnlockedProjectInstance\", \"UnlockedProjectButton\", Controls.UnlockedProjectsInnerFrame );\r\nlocal g_PromotionsManager = InstanceManager:new( \"PromotionInstance\", \"PromotionButton\", Controls.FreePromotionsInnerFrame );\r\nlocal g_SpecialistsManager = InstanceManager:new( \"SpecialistInstance\", \"SpecialistButton\", Controls.SpecialistsInnerFrame );\r\nlocal g_RequiredBuildingsManager = InstanceManager:new( \"RequiredBuildingInstance\", \"RequiredBuildingButton\", Controls.RequiredBuildingsInnerFrame );\r\nlocal g_LocalResourcesManager = InstanceManager:new( \"LocalResourceInstance\", \"LocalResourceButton\", Controls.LocalResourcesInnerFrame );\r\nlocal g_RequiredPromotionsManager = InstanceManager:new( \"RequiredPromotionInstance\", \"RequiredPromotionButton\", Controls.RequiredPromotionsInnerFrame );\r\nlocal g_RequiredPoliciesManager = InstanceManager:new( \"RequiredPolicyInstance\", \"RequiredPolicyButton\", Controls.RequiredPoliciesInnerFrame );\r\nlocal g_FreeFormTextManager = InstanceManager:new( \"FreeFormTextInstance\", \"FFTextFrame\", Controls.FFTextStack );\r\nlocal g_BBTextManager = InstanceManager:new( \"BBTextInstance\", \"BBTextFrame\", Controls.BBTextStack );\r\nlocal g_LeadersManager = InstanceManager:new( \"LeaderInstance\", \"LeaderButton\", Controls.LeadersInnerFrame );\r\nlocal g_UniqueUnitsManager = InstanceManager:new( \"UniqueUnitInstance\", \"UniqueUnitButton\", Controls.UniqueUnitsInnerFrame );\r\nlocal g_UniqueBuildingsManager = InstanceManager:new( \"UniqueBuildingInstance\", \"UniqueBuildingButton\", Controls.UniqueBuildingsInnerFrame );\r\nlocal g_UniqueImprovementsManager = InstanceManager:new( \"UniqueImprovementInstance\", \"UniqueImprovementButton\", Controls.UniqueImprovementsInnerFrame );\r\nlocal g_CivilizationsManager = InstanceManager:new( \"CivilizationInstance\", \"CivilizationButton\", Controls.CivilizationsInnerFrame );\r\nlocal g_TraitsManager = InstanceManager:new( \"TraitInstance\", \"TraitButton\", Controls.TraitsInnerFrame );\r\nlocal g_FeaturesManager = InstanceManager:new( \"FeatureInstance\", \"FeatureButton\", Controls.FeaturesInnerFrame );\r\nlocal g_ResourcesFoundManager = InstanceManager:new( \"ResourceFoundInstance\", \"ResourceFoundButton\", Controls.ResourcesFoundInnerFrame );\r\nlocal g_TerrainsManager = InstanceManager:new( \"TerrainInstance\", \"TerrainButton\", Controls.TerrainsInnerFrame );\r\nlocal g_ReplacesManager = InstanceManager:new( \"ReplaceInstance\", \"ReplaceButton\", Controls.ReplacesInnerFrame );\r\nlocal g_RevealTechsManager = InstanceManager:new( \"RevealTechInstance\", \"RevealTechButton\", Controls.RevealTechsInnerFrame );\r\nlocal g_ImprovementsManager = InstanceManager:new( \"ImprovementInstance\", \"ImprovementButton\", Controls.ImprovementsInnerFrame );\r\n",
+          "new": "-- CivVAccess: `local` stripped from these InstanceManager declarations so the\r\n-- accessibility include at the bottom of this file can iterate their\r\n-- m_AllocatedInstances to scrape the rendered article's relationship links,\r\n-- free-form text, and BB text.\r\ng_ListItemManager = InstanceManager:new( \"ListItemInstance\", \"ListItemButton\", Controls.ListOfArticles );\r\ng_ListHeadingManager = InstanceManager:new( \"ListHeadingInstance\", \"ListHeadingButton\", Controls.ListOfArticles );\r\ng_PrereqTechManager = InstanceManager:new( \"PrereqTechInstance\", \"PrereqTechButton\", Controls.PrereqTechInnerFrame );\r\ng_GreatWorksManager = InstanceManager:new( \"GreatWorksInstance\", \"GreatWorksButton\", Controls.GreatWorksInnerFrame );\r\ng_ObsoleteTechManager = InstanceManager:new( \"ObsoleteTechInstance\", \"ObsoleteTechButton\", Controls.ObsoleteTechInnerFrame );\r\ng_UpgradeManager = InstanceManager:new( \"UpgradeInstance\", \"UpgradeButton\", Controls.UpgradeInnerFrame );\r\ng_LeadsToTechManager = InstanceManager:new( \"LeadsToTechInstance\", \"LeadsToTechButton\", Controls.LeadsToTechInnerFrame );\r\ng_UnlockedUnitsManager = InstanceManager:new( \"UnlockedUnitInstance\", \"UnlockedUnitButton\", Controls.UnlockedUnitsInnerFrame );\r\ng_UnlockedBuildingsManager = InstanceManager:new( \"UnlockedBuildingInstance\", \"UnlockedBuildingButton\", Controls.UnlockedBuildingsInnerFrame );\r\ng_RevealedResourcesManager = InstanceManager:new( \"RevealedResourceInstance\", \"RevealedResourceButton\", Controls.RevealedResourcesInnerFrame );\r\ng_RequiredResourcesManager = InstanceManager:new( \"RequiredResourceInstance\", \"RequiredResourceButton\", Controls.RequiredResourcesInnerFrame );\r\ng_WorkerActionsManager = InstanceManager:new( \"WorkerActionInstance\", \"WorkerActionButton\", Controls.WorkerActionsInnerFrame );\r\ng_UnlockedProjectsManager = InstanceManager:new( \"UnlockedProjectInstance\", \"UnlockedProjectButton\", Controls.UnlockedProjectsInnerFrame );\r\ng_PromotionsManager = InstanceManager:new( \"PromotionInstance\", \"PromotionButton\", Controls.FreePromotionsInnerFrame );\r\ng_SpecialistsManager = InstanceManager:new( \"SpecialistInstance\", \"SpecialistButton\", Controls.SpecialistsInnerFrame );\r\ng_RequiredBuildingsManager = InstanceManager:new( \"RequiredBuildingInstance\", \"RequiredBuildingButton\", Controls.RequiredBuildingsInnerFrame );\r\ng_LocalResourcesManager = InstanceManager:new( \"LocalResourceInstance\", \"LocalResourceButton\", Controls.LocalResourcesInnerFrame );\r\ng_RequiredPromotionsManager = InstanceManager:new( \"RequiredPromotionInstance\", \"RequiredPromotionButton\", Controls.RequiredPromotionsInnerFrame );\r\ng_RequiredPoliciesManager = InstanceManager:new( \"RequiredPolicyInstance\", \"RequiredPolicyButton\", Controls.RequiredPoliciesInnerFrame );\r\ng_FreeFormTextManager = InstanceManager:new( \"FreeFormTextInstance\", \"FFTextFrame\", Controls.FFTextStack );\r\ng_BBTextManager = InstanceManager:new( \"BBTextInstance\", \"BBTextFrame\", Controls.BBTextStack );\r\ng_LeadersManager = InstanceManager:new( \"LeaderInstance\", \"LeaderButton\", Controls.LeadersInnerFrame );\r\ng_UniqueUnitsManager = InstanceManager:new( \"UniqueUnitInstance\", \"UniqueUnitButton\", Controls.UniqueUnitsInnerFrame );\r\ng_UniqueBuildingsManager = InstanceManager:new( \"UniqueBuildingInstance\", \"UniqueBuildingButton\", Controls.UniqueBuildingsInnerFrame );\r\ng_UniqueImprovementsManager = InstanceManager:new( \"UniqueImprovementInstance\", \"UniqueImprovementButton\", Controls.UniqueImprovementsInnerFrame );\r\ng_CivilizationsManager = InstanceManager:new( \"CivilizationInstance\", \"CivilizationButton\", Controls.CivilizationsInnerFrame );\r\ng_TraitsManager = InstanceManager:new( \"TraitInstance\", \"TraitButton\", Controls.TraitsInnerFrame );\r\ng_FeaturesManager = InstanceManager:new( \"FeatureInstance\", \"FeatureButton\", Controls.FeaturesInnerFrame );\r\ng_ResourcesFoundManager = InstanceManager:new( \"ResourceFoundInstance\", \"ResourceFoundButton\", Controls.ResourcesFoundInnerFrame );\r\ng_TerrainsManager = InstanceManager:new( \"TerrainInstance\", \"TerrainButton\", Controls.TerrainsInnerFrame );\r\ng_ReplacesManager = InstanceManager:new( \"ReplaceInstance\", \"ReplaceButton\", Controls.ReplacesInnerFrame );\r\ng_RevealTechsManager = InstanceManager:new( \"RevealTechInstance\", \"RevealTechButton\", Controls.RevealTechsInnerFrame );\r\ng_ImprovementsManager = InstanceManager:new( \"ImprovementInstance\", \"ImprovementButton\", Controls.ImprovementsInnerFrame );\r\n"
+        },
+        {
+          "old": "\t\t\t\r\n\t\telseif(cost > 0 and faithCost > 0) then\r\n\t\t\tcostString = Locale.Lookup(\"TXT_KEY_PEDIA_A_OR_B\", tostring(cost) .. \" [ICON_PRODUCTION]\", tostring(faithCost) .. \" [ICON_PEACE\");\r\n",
+          "new": "\t\t\t\r\n\t\telseif(cost > 0 and faithCost > 0) then\r\n\t\t\t-- CivVAccess: base-game typo fix. Original shipped \" [ICON_PEACE\"\r\n\t\t\t-- (unclosed bracket), leaving the token literal in the rendered\r\n\t\t\t-- label; TextFilter can't substitute an unclosed token so screen\r\n\t\t\t-- readers speak \"[ICON_PEACE\" verbatim.\r\n\t\t\tcostString = Locale.Lookup(\"TXT_KEY_PEDIA_A_OR_B\", tostring(cost) .. \" [ICON_PRODUCTION]\", tostring(faithCost) .. \" [ICON_PEACE]\");\r\n"
+        },
+        {
+          "old": "\t\t\tcostString = tostring(faithCost) .. \" [ICON_PEACE]\";\r\n\t\telseif(cost > 0 and faithCost > 0) then\r\n\t\t\tcostString = Locale.Lookup(\"TXT_KEY_PEDIA_A_OR_B\", tostring(cost) .. \" [ICON_PRODUCTION]\", tostring(faithCost) .. \" [ICON_PEACE\");\r\n",
+          "new": "\t\t\tcostString = tostring(faithCost) .. \" [ICON_PEACE]\";\r\n\t\telseif(cost > 0 and faithCost > 0) then\r\n\t\t\t-- CivVAccess: base-game typo fix (see notes above for the units branch).\r\n\t\t\tcostString = Locale.Lookup(\"TXT_KEY_PEDIA_A_OR_B\", tostring(cost) .. \" [ICON_PRODUCTION]\", tostring(faithCost) .. \" [ICON_PEACE]\");\r\n"
+        }
+      ]
+    },
+    "InGame/CivilopediaScreen.xml": {},
+    "InGame/InGame.lua": {
+      "prefix": "-- Civ V Access: BNW override.\r\n-- Target: Assets/DLC/Expansion2/UI/InGame/InGame.{lua,xml}. Contents above\r\n-- the bootstrap marker are a verbatim copy of BNW's file. Rationale for\r\n-- this target: InGame is the root in-game Lua Context and its ContextPtr\r\n-- InputHandler is in the global keyboard dispatch chain. Appending our\r\n-- InputHandler hook here lets Baseline cursor keys intercept before the\r\n-- engine's unit-mission bindings fire, catching keys that reach InGame\r\n-- after WorldView's own hook declines them.\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod: InGame-Context input hook. Wraps the\r\n-- base-game InputHandler (registered above at SetInputHandler) so our\r\n-- HandlerStack bindings can intercept keys before the engine's own\r\n-- unit-mission / Esc bindings fire. See CivVAccess_InGameKeys.lua.\r\ninclude(\"CivVAccess_InGameKeys\")\r\n"
+    },
+    "InGame/LeaderHead/DiploTrade.lua": {
+      "hand": true,
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DiploTradeAccess\")\r\n"
+    },
+    "InGame/LeaderHead/DiscussionDialog.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_DiscussionDialogAccess\")\n"
+    },
+    "InGame/LeaderHead/LeaderHeadRoot.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LeaderHeadRootAccess\")\r\n"
+    },
+    "InGame/Menus/GameMenu.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility wiring.\r\ninclude(\"CivVAccess_GameMenuAccess\")\r\n"
+    },
+    "InGame/Menus/SaveMenu.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/InGame/Menus/SaveMenu.{lua,xml}. SaveMenu is in-game only\r\n-- (no front-end save flow); opened as a popup from GameMenu via\r\n-- UIManager:QueuePopup( Controls.SaveMenu ). Our include at the tail runs in\r\n-- the SaveMenu sandbox. Contents between the bootstrap markers are a verbatim\r\n-- copy of the base-game file.\r\n----------------------------------------------------\r\n-- Probe install runs BEFORE the base file so the checkbox metatable is\r\n-- patched before Controls.CloudCheck registers its CheckHandler. Without the\r\n-- prepend, keyboard activation of CloudCheck from our picker tab would warn\r\n-- \"callback not captured\" and leave g_ShowCloudSaves unchanged. SaveMenu has\r\n-- only one captured widget (the cloud checkbox); NameBox is an EditBox which\r\n-- BaseMenuEditMode re-registers directly, not through the probe.\r\ninclude(\"CivVAccess_Log\")\r\ninclude(\"CivVAccess_PullDownProbe\")\r\nPullDownProbe.installFromControls({}, {}, {\"CloudCheck\"}, {})\r\n----------------------------------------------------\r\n",
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SaveMenuAccess\")\r\n"
+    },
+    "InGame/Menus/SaveMenu.xml": {},
+    "InGame/PlayerChange.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_PlayerChangeAccess\")\r\n",
+      "edits": [
+        {
+          "old": "   \tControls.EnterPasswordEditBox:TakeFocus();\r\n",
+          "new": "    -- CIVVACCESS: stock auto-focuses EnterPasswordEditBox here. The\r\n    -- focused EditBox traps keyboard input inside itself, so arrow\r\n    -- keys, F1, and other menu-nav keys never reach our SetInputHandler\r\n    -- wrapper -- only Enter / Esc pass through. The user reaches the\r\n    -- password field through normal menu nav (arrow to the Textfield\r\n    -- item, Enter to start editing); BaseMenuEditMode calls TakeFocus\r\n    -- at that point.\r\n"
+        }
+      ]
+    },
+    "InGame/PlayerChange.xml": {},
+    "InGame/Popups/AdvisorCounselPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorCounselPopupAccess\")\r\n"
+    },
+    "InGame/Popups/AdvisorCounselPopup.xml": {
+      "source": {
+        "vanilla": "base:InGame/Popups/AdvisorCounselPopup.xml"
+      }
+    },
+    "InGame/Popups/AdvisorInfoPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorInfoPopupAccess\")\r\n"
+    },
+    "InGame/Popups/AdvisorInfoPopup.xml": {
+      "source": {
+        "vanilla": "base:InGame/Popups/AdvisorInfoPopup.xml"
+      }
+    },
+    "InGame/Popups/AdvisorModal.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorModalAccess\")\r\n"
+    },
+    "InGame/Popups/AdvisorModal.xml": {},
+    "InGame/Popups/BarbarianCampPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_BarbarianCampPopupAccess\")\r\n"
+    },
+    "InGame/Popups/BarbarianCampPopup.xml": {},
+    "InGame/Popups/ChooseAdmiralNewPort.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseAdmiralNewPortAccess\")\n"
+    },
+    "InGame/Popups/ChooseAdmiralNewPort.xml": {},
+    "InGame/Popups/ChooseArchaeologyPopup.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseArchaeologyPopupAccess\")\n"
+    },
+    "InGame/Popups/ChooseArchaeologyPopup.xml": {},
+    "InGame/Popups/ChooseFaithGreatPerson.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseFaithGreatPersonAccess\")\n"
+    },
+    "InGame/Popups/ChooseFaithGreatPerson.xml": {},
+    "InGame/Popups/ChooseFreeItem.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseFreeItemAccess\")\n"
+    },
+    "InGame/Popups/ChooseFreeItem.xml": {},
+    "InGame/Popups/ChooseGoodyHutReward.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseGoodyHutRewardAccess\")\n"
+    },
+    "InGame/Popups/ChooseGoodyHutReward.xml": {},
+    "InGame/Popups/ChooseIdeologyPopup.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseIdeologyPopupAccess\")\n"
+    },
+    "InGame/Popups/ChooseIdeologyPopup.xml": {},
+    "InGame/Popups/ChooseInternationalTradeRoutePopup.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseInternationalTradeRoutePopupAccess\")\n"
+    },
+    "InGame/Popups/ChooseInternationalTradeRoutePopup.xml": {},
+    "InGame/Popups/ChooseMayaBonus.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseMayaBonusAccess\")\n"
+    },
+    "InGame/Popups/ChooseMayaBonus.xml": {},
+    "InGame/Popups/ChoosePantheonPopup.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChoosePantheonPopupAccess\")\n",
+      "refit": true
+    },
+    "InGame/Popups/ChoosePantheonPopup.xml": {
+      "refit": true
+    },
+    "InGame/Popups/ChooseReligionPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ChooseReligionPopupAccess\")\r\n",
+      "refit": true
+    },
+    "InGame/Popups/ChooseTradeUnitNewHome.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseTradeUnitNewHomeAccess\")\n"
+    },
+    "InGame/Popups/ChooseTradeUnitNewHome.xml": {},
+    "InGame/Popups/CityStateDiploPopup.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CityStateDiploPopupAccess\")\r\n"
+    },
+    "InGame/Popups/CityStateDiploPopup.xml": {},
+    "InGame/Popups/CityStateGreetingPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CityStateGreetingPopupAccess\")\r\n"
+    },
+    "InGame/Popups/CityStateGreetingPopup.xml": {},
+    "InGame/Popups/CultureOverview.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_CultureOverviewAccess\")\n"
+    },
+    "InGame/Popups/DeclareWarPopup.lua": {
+      "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DeclareWarPopupAccess\")\r\n"
+    },
+    "InGame/Popups/DeclareWarPopup.xml": {},
+    "InGame/Popups/Demographics.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DemographicsAccess\")\r\n"
+    },
+    "InGame/Popups/DiploCurrentDeals.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DiploCurrentDealsAccess\")\r\n"
+    },
+    "InGame/Popups/DiploGlobalRelationships.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DiploGlobalRelationshipsAccess\")\r\n"
+    },
+    "InGame/Popups/DiploOverview.lua": {
+      "edits": [
+        {
+          "old": "OnRelations();",
+          "new": "-- Base game called OnRelations() here to initialize the Relations tab\r\n-- as selected. OnRelations calls Controls.RelationsPanel:SetHide(false),\r\n-- which fires a non-init ShowHide on the RelationsPanel sub-Context\r\n-- even though Hidden=\"0\" in XML already made it visible -- the engine\r\n-- dispatches ShowHide on every SetHide regardless of state change.\r\n-- That spurious show at module-load time landed our DiploRelationships\r\n-- BaseMenu on HandlerStack before DiploOverview was ever popped up,\r\n-- trapping input for the entire game. Panels already default to the\r\n-- correct state from XML Hidden attributes; only the tab highlight\r\n-- needs priming.\r\nControls.DealsSelectHighlight:SetHide(true);\r\nControls.RelationsSelectHighlight:SetHide(false);\r\nControls.GlobalSelectHighlight:SetHide(true);\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DiploOverviewBridge\")"
+        }
+      ]
+    },
+    "InGame/Popups/DiploRelationships.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_DiploRelationshipsAccess\")"
+    },
+    "InGame/Popups/EconomicOverview.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_EconomicOverviewAccess\")\r\n"
+    },
+    "InGame/Popups/EndGameMenu.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_EndGameMenuAccess\")"
+    },
+    "InGame/Popups/EndGameMenu.xml": {},
+    "InGame/Popups/EspionageOverview.lua": {
+      "suffix": "\r\n\r\n-- CivVAccess: append accessibility wrapper.\r\ninclude(\"CivVAccess_EspionageOverviewAccess\")\r\n",
+      "edits": [
+        {
+          "old": "\telse\r\n\t\tprint(\"falling out\");\r\n\t\tprint(agent.AgentActivity);\r\n",
+          "new": ""
+        },
+        {
+          "old": "\t\t\telse\r\n\t\t\t\tprint(\"falling out\");\r\n\t\t\t\tprint(v.AgentActivity);\r\n",
+          "new": ""
+        },
+        {
+          "old": "\t\t\tlocal OnViewCityClicked = function()\r\n\t\t\t\t\r\n",
+          "new": "\t\t\tlocal OnViewCityClicked = function()\r\n"
+        },
+        {
+          "old": "\t\t\t\t\tprint(\"Attempting to show city screen\");\r\n",
+          "new": ""
+        },
+        {
+          "old": "\t\t\t\telse\r\n\t\t\t\t\tprint(\"city == null\");\r\n",
+          "new": ""
+        },
+        {
+          "old": "\tprint(\"Refreshing My Cities\");\r\n",
+          "new": ""
+        },
+        {
+          "old": "\t\t\tprint(textColor);\r\n\t\t\tprint(agent.State);\r\n",
+          "new": ""
+        },
+        {
+          "old": "\t\t\t\tlocal OnViewCityClicked = function()\r\n\t\t\t\t\t\r\n",
+          "new": "\t\t\t\tlocal OnViewCityClicked = function()\r\n"
+        },
+        {
+          "old": "\t\t\t\t\t\t--print(\"Attempting to show city screen\");\r\n",
+          "new": ""
+        },
+        {
+          "old": "\t\t\t\t\telse\r\n\t\t\t\t\t\tprint(\"city == null\");\r\n",
+          "new": ""
+        }
+      ]
+    },
+    "InGame/Popups/GenericPopup.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/InGame/Popups/GenericPopup.{lua,xml} (base game; not\r\n-- overridden by Expansion/Expansion2). Contents above the bootstrap marker\r\n-- are a verbatim copy of the base-game file. Rationale for this target:\r\n-- this single Context dispatches 16 PopupsGeneric/*Popup.lua layouts\r\n-- through the PopupLayouts table, so one accessibility wiring covers\r\n-- every Annex / Puppet / Liberate / ConfirmCommand / DeclareWar / etc.\r\n-- confirm-choice popup the engine raises.\r\n",
+      "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GenericPopupAccess\")\r\n"
+    },
+    "InGame/Popups/GenericPopup.xml": {},
+    "InGame/Popups/GoldenAgePopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GoldenAgePopupAccess\")\r\n"
+    },
+    "InGame/Popups/GoldenAgePopup.xml": {},
+    "InGame/Popups/GoodyHutPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GoodyHutPopupAccess\")\r\n"
+    },
+    "InGame/Popups/GoodyHutPopup.xml": {},
+    "InGame/Popups/GreatPersonRewardPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GreatPersonRewardPopupAccess\")\r\n"
+    },
+    "InGame/Popups/GreatPersonRewardPopup.xml": {},
+    "InGame/Popups/GreatWorkPopup.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_GreatWorkPopupAccess\")\n"
+    },
+    "InGame/Popups/GreatWorkPopup.xml": {},
+    "InGame/Popups/HallOfFame.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_HallOfFameAccess\")\n"
+    },
+    "InGame/Popups/Leaderboard.lua": {
+      "prefix": "-- Civ V Access: prepended before the base file's top-level code so the\r\n-- shared PullDown metatable is patched before vanilla calls\r\n-- LeaderboardPull:RegisterSelectionCallback. Without this, the access\r\n-- wrapper appended at the tail has no captured callback to fire from\r\n-- keyboard activation. Idempotent across the lua_State.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LeaderboardAccess\")\r\n",
+      "edits": [
+        {
+          "old": "\t\tend\r\n\t\t\t\r\n",
+          "new": "\t\tend\r\n\t\t\t\r\n\t\t-- Civ V Access: vanilla declared `mapScript` as a global without\r\n\t\t-- resetting it per iteration, so a row whose v.MapName has no match\r\n\t\t-- in GameInfo.MapScripts() falls through to the next line indexing\r\n\t\t-- whatever stale value (or nil on the first row) was there. Localize\r\n\t\t-- it and guard the IconIndex read.\r\n\t\tlocal mapScript;\r\n"
+        },
+        {
+          "old": "        IconHookup( mapScript.IconIndex or 0, 32, mapInfo.IconAtlas, controlTable.MapType );        \r\n",
+          "new": "        IconHookup( (mapScript and mapScript.IconIndex) or 0, 32, mapInfo.IconAtlas, controlTable.MapType );\r\n"
+        }
+      ]
+    },
+    "InGame/Popups/LeagueOverview.lua": {
+      "suffix": "\ninclude(\"CivVAccess_LeagueOverviewAccess\");\n"
+    },
+    "InGame/Popups/LeagueOverview.xml": {},
+    "InGame/Popups/LeagueProjectPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LeagueProjectPopupAccess\")\r\n"
+    },
+    "InGame/Popups/LeagueProjectPopup.xml": {},
+    "InGame/Popups/LeagueSplash.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LeagueSplashAccess\")\r\n"
+    },
+    "InGame/Popups/LeagueSplash.xml": {},
+    "InGame/Popups/MilitaryOverview.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MilitaryOverviewAccess\")\r\n"
+    },
+    "InGame/Popups/NaturalWonderPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NaturalWonderPopupAccess\")\r\n"
+    },
+    "InGame/Popups/NaturalWonderPopup.xml": {},
+    "InGame/Popups/NewEraPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NewEraPopupAccess\")\r\n"
+    },
+    "InGame/Popups/NewEraPopup.xml": {},
+    "InGame/Popups/NotificationLogPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NotificationLogPopupAccess\")\r\n",
+      "refit": true
+    },
+    "InGame/Popups/NotificationLogPopup.xml": {
+      "refit": true
+    },
+    "InGame/Popups/ProductionPopup.lua": {
+      "suffix": "\r\ninclude(\"CivVAccess_ChooseProductionPopupAccess\");\r\n",
+      "refit": true
+    },
+    "InGame/Popups/ProductionPopup.xml": {
+      "refit": true
+    },
+    "InGame/Popups/ReligionOverview.lua": {
+      "suffix": "\ninclude(\"CivVAccess_ReligionOverviewAccess\");\n"
+    },
+    "InGame/Popups/ReligionOverview.xml": {},
+    "InGame/Popups/ReplayViewer.lua": {
+      "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ReplayViewerAccess\")\r\n\r\n"
+    },
+    "InGame/Popups/SetCityName.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SetCityNameAccess\")\r\n"
+    },
+    "InGame/Popups/SetCityName.xml": {},
+    "InGame/Popups/SetUnitName.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SetUnitNameAccess\")\r\n"
+    },
+    "InGame/Popups/SetUnitName.xml": {},
+    "InGame/Popups/SocialPolicyPopup.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_SocialPolicyPopupAccess\")\n"
+    },
+    "InGame/Popups/SocialPolicyPopup.xml": {},
+    "InGame/Popups/TechAwardPopup.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_TechAwardPopupAccess\")",
+      "refit": true
+    },
+    "InGame/Popups/TechAwardPopup.xml": {
+      "refit": true
+    },
+    "InGame/Popups/TechPopup.lua": {
+      "suffix": "include(\"CivVAccess_ChooseTechPopupAccess\");\r\n\r\n",
+      "refit": true
+    },
+    "InGame/Popups/TechPopup.xml": {
+      "refit": true
+    },
+    "InGame/Popups/TextPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_TextPopupAccess\")\r\n"
+    },
+    "InGame/Popups/TextPopup.xml": {},
+    "InGame/Popups/TradeRouteOverview.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_TradeRouteOverviewAccess\")"
+    },
+    "InGame/Popups/VictoryProgress.lua": {
+      "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_VictoryProgressAccess\")\n"
+    },
+    "InGame/Popups/VoteResultsPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_VoteResultsPopupAccess\")\r\n"
+    },
+    "InGame/Popups/VoteResultsPopup.xml": {},
+    "InGame/Popups/WhosWinningPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_WhosWinningPopupAccess\")\r\n"
+    },
+    "InGame/Popups/WhosWinningPopup.xml": {},
+    "InGame/Popups/WonderPopup.lua": {
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_WonderPopupAccess\")\r\n"
+    },
+    "InGame/Popups/WonderPopup.xml": {},
+    "InGame/WorldView/Advisors.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_AdvisorsAccess\")\r\n"
+    },
+    "InGame/WorldView/Advisors.xml": {},
+    "InGame/WorldView/DiploCorner.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access: BNW override.\r\n-- Target: Assets/DLC/Expansion2/UI/InGame/WorldView/DiploCorner.lua.\r\n-- Contents above this marker are a verbatim copy of BNW's file.\r\n-- Rationale: ChatAccess wraps Controls.ChatEntry with a Textfield-backed\r\n-- BaseMenu, but Controls is per-Context userdata. Seating the wrapper\r\n-- here puts it in DiploCorner's env where Controls.ChatEntry, OnChatToggle\r\n-- and SendChat are reachable.\r\ninclude(\"CivVAccess_ChatAccess\");\r\n",
+      "edits": [
+        {
+          "old": "-------------------------------------------------\r\n-------------------------------------------------\r\nfunction InputHandler( uiMsg, wParam, lParam )\r\n    if( m_bChatOpen \r\n        and uiMsg == KeyEvents.KeyUp\r\n        and wParam == Keys.VK_TAB ) then\r\n        Controls.ChatEntry:TakeFocus();\r\n        return true;\r\n    end\r\nend\r\nContextPtr:SetInputHandler( InputHandler );\r\n\r\n",
+          "new": "-- Stock InputHandler grabbed Tab on KeyUp and called Controls.ChatEntry:\r\n-- TakeFocus(), trapping the keyboard inside the engine chat edit box --\r\n-- arrows then move the text cursor and never reach our BaseMenu nav.\r\n-- Mod-bound `\\` opens an accessible chat panel via CivVAccess_ChatAccess\r\n-- with proper focus handling, so DiploCorner has no reason to intercept\r\n-- input at all.\r\n"
+        }
+      ]
+    },
+    "InGame/WorldView/MiniMapPanel.lua": {
+      "hand": true,
+      "suffix": "\r\n-- Civ V Access: accessible Map Options menu (Ctrl+M). Seated here so the\r\n-- panel-local GetMapOptions / On*Checked handlers and strategic-view\r\n-- setters are in reach; opened via a LuaEvents bridge from Baseline.\r\ninclude(\"CivVAccess_MiniMapPanelAccess\")\r\n"
+    },
+    "InGame/WorldView/SimpleDiploTrade.lua": {
+      "hand": true,
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SimpleDiploTradeAccess\")\r\n"
+    },
+    "InGame/WorldView/TradeLogic.lua": {
+      "edits": [
+        {
+          "old": "local g_Deal = UI.GetScratchDeal(); \r\nlocal g_iDiploUIState;\r\n",
+          "new": "-- CivVAccess: the eight g_* below are declared as globals (no `local`)\r\n-- so CivVAccess_TradeLogicAccess.lua, included into this Context as a\r\n-- separate chunk, can read them. Lua 5.1 chunk-local scope hides file\r\n-- `local` declarations from the next included chunk; TradeLogic's\r\n-- internal functions close over the old local-as-upvalue pattern, which\r\n-- reads identically once these become globals (same name, same reads\r\n-- and mutations -- just resolved via _ENV instead of an upvalue slot).\r\ng_Deal = UI.GetScratchDeal();\r\ng_iDiploUIState = nil;\r\ng_bTradeReview = false;\r\ng_iUs = -1;\r\ng_iThem = -1;\r\ng_UsTableResources    = {};\r\ng_ThemTableResources  = {};\r\ng_LeagueVoteList\t\t= {};\r\n\r\n"
+        },
+        {
+          "old": "local g_bTradeReview = false;\r\n",
+          "new": ""
+        },
+        {
+          "old": "local g_iUs = -1; --Game.GetActivePlayer();\r\nlocal g_iThem = -1;\r\n",
+          "new": ""
+        },
+        {
+          "old": "local g_UsTableResources    = {};\r\nlocal g_ThemTableResources  = {};\r\n",
+          "new": ""
+        },
+        {
+          "old": "local g_LeagueVoteList\t\t= {};\r\n",
+          "new": ""
+        }
+      ]
+    },
+    "InGame/WorldView/WorldView.lua": {
+      "prefix": "-- Civ V Access: BNW override.\r\n-- Target: Assets/DLC/Expansion2/UI/InGame/WorldView/WorldView.{lua,xml}.\r\n-- Contents above the bootstrap marker are a verbatim copy of BNW's file.\r\n-- Rationale for this target: WorldView is a child Lua Context of InGame\r\n-- and its InputHandler runs before InGame's on every keydown. Its\r\n-- DefaultMessageHandler consumes VK_PRIOR / VK_NEXT (and arrow /\r\n-- OEM_PLUS / OEM_MINUS) by returning true, so the scanner's PageUp /\r\n-- PageDown bindings never bubble to InGame's InputHandler where our\r\n-- HandlerStack dispatch lives. Appending our WorldView-Context input\r\n-- hook here lets HandlerStack intercept first and, on a miss, fall\r\n-- through to the base handler so camera pan and zoom still work for\r\n-- sighted testers.\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod. WorldView is the seat for both our\r\n-- in-game Boot (module loads, LoadScreenClose wiring) and the early\r\n-- key-interception hook. Boot runs first so its modules populate the\r\n-- WorldView Context's env before WorldViewKeys installs its handler.\r\n-- Why WorldView and not TaskList (the original seat): Civ V tears down\r\n-- TaskList's env on load-game-from-game without re-running its include,\r\n-- leaving every closure that referenced TaskList globals dead. WorldView\r\n-- reliably re-inits on both fresh-game and load-from-game, so its env\r\n-- and all closures created in it stay live.\r\ninclude(\"CivVAccess_Boot\")\r\n-- WorldView-Context input hook. Wraps the base-game InputHandler\r\n-- (registered above at SetInputHandler) so our HandlerStack bindings\r\n-- can intercept keys before WorldView's camera pan / zoom\r\n-- DefaultMessageHandler consumes them. See CivVAccess_WorldViewKeys.lua.\r\ninclude(\"CivVAccess_WorldViewKeys\")\r\n"
+    },
+    "InGame/WorldView/WorldView.xml": {
+      "edits": [
+        {
+          "old": "    <LuaContext FileName=\"Assets/UI/InGame/Tutorial\" ID=\"Tutorial\" Hidden=\"1\"/>\r\n\r\n",
+          "new": "    <LuaContext FileName=\"Assets/UI/InGame/Tutorial\" ID=\"Tutorial\" Hidden=\"1\"/>\r\n\r\n    <!-- Off-screen text-entry box for renaming scanner custom categories.\r\n         Seated here because ScannerFavorites runs in WorldView's env, so its\r\n         Textfield resolves Controls against this Context. CallOnChar drives\r\n         the per-keystroke spoken feedback; EditMode enables typing. Not\r\n         Hidden (a hidden EditBox refuses focus); pushed off-screen so sighted\r\n         players never see it. -->\r\n    <EditBox CallOnChar=\"1\" EditMode=\"1\" Size=\"2,2\" Anchor=\"L,T\" Offset=\"-200,-200\" ID=\"CivVAccessScannerRenameEntry\" Font=\"TwCenMT20\" MaxLength=\"32\" FocusStop=\"0\"/>\r\n\r\n    <!-- Off-screen text-entry box for adding scanner custom-category keywords.\r\n         A dedicated box (not the rename one) so the two fields keep separate\r\n         typing buffers; same seating rationale and off-screen treatment. -->\r\n    <EditBox CallOnChar=\"1\" EditMode=\"1\" Size=\"2,2\" Anchor=\"L,T\" Offset=\"-200,-200\" ID=\"CivVAccessScannerKeywordEntry\" Font=\"TwCenMT20\" MaxLength=\"32\" FocusStop=\"0\"/>\r\n\r\n"
+        }
+      ]
+    },
+    "Options/OptionsMenu.lua": {
+      "prefix": "include(\"CivVAccess_ProbeBoot\")\r\n\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OptionsAccess\")\r\n"
+    },
+    "Options/OptionsMenu.xml": {},
+    "TechTree/TechTree.lua": {
+      "suffix": "\r\n\r\ninclude(\"CivVAccess_TechTreeAccess\")"
+    }
+  }
+}

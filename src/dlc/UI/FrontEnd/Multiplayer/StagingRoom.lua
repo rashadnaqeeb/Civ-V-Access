@@ -1,4 +1,4 @@
--------------------------------------------------
+------------------------------------------------- 
 -- Staging Room Screen
 -------------------------------------------------
 -- CivVAccess: widget-metatable probes have to install before this chunk's
@@ -165,7 +165,7 @@ function ShowHideStrategicViewButton()
 	Controls.StrategicViewButton:SetHide( not bShow );
 end
 -------------------------------------------------
--------------------------------------------------
+-------------------------------------------------      
 function OnStrategicView()
 	local bIsObserver = PreGame.GetSlotStatus( Game.GetActivePlayer() ) == SlotStatus.SS_OBSERVER;
 	if (bIsObserver) then
@@ -1225,9 +1225,9 @@ function OnPingTimesChanged()
 end
 Events.MultiplayerPingTimesChanged.Add( OnPingTimesChanged );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input Handler
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
 	if uiMsg == KeyEvents.KeyDown then
 		if wParam == Keys.VK_ESCAPE then

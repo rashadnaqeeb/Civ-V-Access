@@ -44,7 +44,7 @@
 		</Image>
 		<Label ID="AdvisorLabel" Anchor="L,T" AnchorSide="O.I" Offset="0,270" Font="TwCenMT16" FontStyle="Shadow" Hidden="1" ColorSet="Beige_Black_Alpha"/>
 		<Stack Anchor="C,B" StackGrowth="Bottom" Padding="10" Offset="0,60">
-
+			
 			<Stack Anchor="C,B" Padding="4" StackGrowth="Right">
 				<GridButton Size="202,32" Style="SmallButton" Anchor="L,T" AnchorSide="I.I" ID="ConfirmButton" Hidden="0">
 					<Label Anchor="C,C" ColorSet="Beige_Black_Alpha" Font="TwCenMT18" FontStyle="Shadow"/>

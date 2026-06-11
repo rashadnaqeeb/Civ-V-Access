@@ -347,7 +347,7 @@ function LeaderSelected(ePlayer)
 		
 		UI.SetRepeatActionPlayer(ePlayer);
 		UI.ChangeStartDiploRepeatCount(1);
-		Players[ ePlayer ]:DoBeginDiploWithHuman();
+		Players[ ePlayer ]:DoBeginDiploWithHuman();	
 
 	end
 end

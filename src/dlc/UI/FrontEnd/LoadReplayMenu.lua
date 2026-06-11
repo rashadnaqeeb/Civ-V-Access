@@ -30,8 +30,8 @@ g_ReplayModsRequired = nil;	-- The required mods for the currently selected repl
 g_ReplayDLCRequired = nil;	-- The required DLC for the currently selected replay.
 
 g_CurrentSort = nil;	-- The current sorting technique
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnSelectReplay()
 	local replayFile = g_FileList[ g_iSelected ];
 	UIManager:SetUICursor(1);
@@ -44,7 +44,7 @@ function OnSelectReplay()
 end
 Controls.SelectReplayButton:RegisterCallback( Mouse.eLClick, OnSelectReplay );
 
----------------------------------------------------------------
+---------------------------------------------------------------        
 ----------------------------------------------------------------
 function OnDelete( )
 	Controls.DeleteConfirm:SetHide(false);
@@ -62,8 +62,8 @@ function OnNo( )
 	Controls.DeleteConfirm:SetHide(true);
 end
 Controls.No:RegisterCallback( Mouse.eLClick, OnNo );
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnBack()
 
 	UIManager:SetUICursor(1);
@@ -74,9 +74,9 @@ end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------   
 -- Referenced Packages popup     
-----------------------------------------------------------------
+----------------------------------------------------------------   
 Controls.ShowModsButton:RegisterCallback(Mouse.eLClick, function()
 	g_ReferencedPackages:ResetInstances();
 	
@@ -103,7 +103,7 @@ Controls.ShowModsButton:RegisterCallback(Mouse.eLClick, function()
 	Controls.ReferencedPackagesScrollPanel:CalculateInternalSize();
 	Controls.ReferencedPackagesWindow:SetHide(false);
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------  
 Controls.ShowDLCButton:RegisterCallback(Mouse.eLClick, function()
 	g_ReferencedPackages:ResetInstances();
 	
@@ -136,12 +136,12 @@ Controls.ShowDLCButton:RegisterCallback(Mouse.eLClick, function()
 	Controls.ReferencedPackagesScrollPanel:CalculateInternalSize();
 	Controls.ReferencedPackagesWindow:SetHide(false);
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------  
 Controls.CloseReferencedPackagesButton:RegisterCallback(Mouse.eLClick, function()
 	Controls.ReferencedPackagesWindow:SetHide(true);
 end);
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function SetSelected( index )
     if( g_iSelected ~= -1 ) then
         g_InstanceList[ g_iSelected ].SelectHighlight:SetHide( true );
@@ -364,8 +364,8 @@ function SetSaveInfoToNone(isInvalid)
 	local mapTexture="MapRandom512.dds";
 	Controls.LargeMapImage:SetTexture(mapTexture);
 end
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function SetupFileButtonList()
     SetSelected( -1 );
     g_InstanceManager:ResetInstances();
@@ -402,9 +402,9 @@ function SetupFileButtonList()
     Controls.LoadFileButtonStack:ReprocessAnchoring();
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Key Down Processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -419,8 +419,8 @@ function InputHandler( uiMsg, wParam, lParam )
 end
 ContextPtr:SetInputHandler( InputHandler );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function ShowHideHandler(isHide)
     if( not isHide ) then        
         SetupFileButtonList();
@@ -428,11 +428,11 @@ function ShowHideHandler(isHide)
 end
 ContextPtr:SetShowHideHandler( ShowHideHandler );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function SortByName( a, b ) 
     local oa = g_SortTable[ tostring( a ) ];
     local ob = g_SortTable[ tostring( b ) ];

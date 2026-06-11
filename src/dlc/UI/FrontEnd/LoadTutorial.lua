@@ -151,8 +151,8 @@ function OnLoadMap(index)
 	UI.ResetScenarioPlayerSlots();
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function SetSelected( index)
     if( g_iSelected ~= -1 ) then
         g_InstanceList[ g_iSelected ].SelectHighlight:SetHide( true );
@@ -208,9 +208,9 @@ function SetupFileButtonList()
 end
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Key Down Processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then

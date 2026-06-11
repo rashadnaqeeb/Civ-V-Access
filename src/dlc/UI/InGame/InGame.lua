@@ -298,9 +298,9 @@ end
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_GIFT_TILE_IMPROVEMENT][MouseEvents.LButtonUp] = GiftTileImprovement;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_GIFT_TILE_IMPROVEMENT][MouseEvents.RButtonUp] = GiftTileImprovement;
 InterfaceModeMessageHandler[InterfaceModeTypes.INTERFACEMODE_GIFT_TILE_IMPROVEMENT][MouseEvents.PointerUp] = GiftTileImprovement;
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Input handling
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
 	local interfaceMode = UI.GetInterfaceMode();
 	local currentInterfaceModeHandler = InterfaceModeMessageHandler[interfaceMode];
@@ -323,8 +323,8 @@ function SetRecommendationCheck(value)
 end
 LuaEvents.OnRecommendationCheckChanged.Add( SetRecommendationCheck );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function OnGameOptionsChanged()
 	local value = not OptionsManager.IsNoTileRecommendations();
 	g_ShowWorkerRecommendation = value;
@@ -332,8 +332,8 @@ function OnGameOptionsChanged()
 end
 Events.GameOptionsChanged.Add(OnGameOptionsChanged);
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnEnterCityScreen()
 
     Controls.UnitFlagManager:SetHide( true );
@@ -381,8 +381,8 @@ end
 Events.SerialEventEnterCityScreen.Add( OnEnterCityScreen );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnExitCityScreen()
 
 	Controls.UnitFlagManager:SetHide( false );
@@ -436,8 +436,8 @@ function OnExitCityScreen()
 end
 Events.SerialEventExitCityScreen.Add( OnExitCityScreen );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnGameplayAlertMessage( data )
 	local newAlert = {};
 	newAlert.text = data;
@@ -448,9 +448,9 @@ function OnGameplayAlertMessage( data )
 end
 Events.GameplayAlertMessage.Add( OnGameplayAlertMessage );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Allow Lua to do any post and pre-processing of the InterfaceMode change
-----------------------------------------------------------------
+----------------------------------------------------------------       
 
 -- add any functions that you want to have called to the handler table
 local giftUnitColor = Vector4( 1.0, 1.0, 0.0, 0.65 );
@@ -832,8 +832,8 @@ local NewInterfaceModeChangeHandler =
 
 local defaultCursor = GameInfoTypes[GameInfo.InterfaceModes[InterfaceModeTypes.INTERFACEMODE_SELECTION].CursorType];
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnInterfaceModeChanged( oldInterfaceMode, newInterfaceMode)
 	print("OnInterfaceModeChanged");
 	print("oldInterfaceMode: " .. oldInterfaceMode);
@@ -863,8 +863,8 @@ end
 Events.InterfaceModeChanged.Add( OnInterfaceModeChanged );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnActivePlayerTurnEnd()
 	UIManager:SetUICursor(1); -- busy
 end
@@ -894,8 +894,8 @@ function OnActivePlayerChanged(iActivePlayer, iPrevActivePlayer)
 end
 Events.GameplaySetActivePlayer.Add(OnActivePlayerChanged);
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnUnitSelectionChange( p, u, i, j, k, isSelected )
 	local interfaceMode = UI.GetInterfaceMode();
 	if interfaceMode ~= InterfaceModeTypes.INTERFACEMODE_CITY_RANGE_ATTACK then -- this is a bit hacky, but the order of event processing is what it is
@@ -974,8 +974,8 @@ function OnUpdateSelection( isSelected )
 		end
 	end
 end
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnUnitSelectionCleared()
 
     RequestYieldDisplay();	
@@ -1016,8 +1016,8 @@ function OnUnitDestroyed( playerID, unitID )
 end
 Events.SerialEventUnitDestroyed.Add( OnUnitDestroyed );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnUpdate(fDTime)
 
 	if #alertTable > 0 then
@@ -1056,8 +1056,8 @@ end
 ContextPtr:SetUpdate( OnUpdate );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function AddPopupText( worldPosition, text, delay )
     local instance = g_PopupIM:GetInstance();
     instance.Anchor:SetWorldPosition( worldPosition );
@@ -1073,8 +1073,8 @@ end
 Events.AddPopupTextEvent.Add( AddPopupText );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function KillPopupText( control )
 
 	local szKey = tostring( control );
@@ -1089,8 +1089,8 @@ function KillPopupText( control )
     end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function KillAllPopupText( )
 
 	for i, v in pairs(g_InstanceMap) do
@@ -1102,8 +1102,8 @@ function KillAllPopupText( )
 end
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnUnitHexHighlight( i, j, k, bOn, unitId )
 
     --print( "GotEvent " .. unitId );
@@ -1124,8 +1124,8 @@ end
 Events.UnitHexHighlight.Add( OnUnitHexHighlight )
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function RequestYieldDisplay()
 
 	-- Yield icons off by default
@@ -1154,8 +1154,8 @@ function RequestYieldDisplay()
 end
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 local TOP    = 0;
 local BOTTOM = 1;
 local LEFT   = 2;

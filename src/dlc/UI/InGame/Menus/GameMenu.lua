@@ -1,5 +1,5 @@
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 include("IconSupport");
 include("SupportFunctions");
 include("InstanceManager");
@@ -20,8 +20,8 @@ local g_ActivatedModsIM = InstanceManager:new( "ModEntryInstance", "Text", Contr
 local g_bEntered = false;
 m_ExitToMain = true;
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function OnEnter()
 	if (not g_bEntered) then
 		-- Moving between sub-menus causes this screen to be shown and hidden
@@ -33,8 +33,8 @@ function OnEnter()
 	end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------  
 function OnLeave()
 	if (g_bEntered) then
 		-- Leaving the screen (via Return To Game or Exit to Main Menu/Windows).
@@ -43,8 +43,8 @@ function OnLeave()
 	end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnQuickSave()
     OnReturn();
 	UI.QuickSave();
@@ -52,24 +52,24 @@ end
 Controls.QuickSaveButton:RegisterCallback( Mouse.eLClick, OnQuickSave );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnSave()
     UIManager:QueuePopup( Controls.SaveMenu, PopupPriority.SaveMenu );
 end
 Controls.SaveGameButton:RegisterCallback( Mouse.eLClick, OnSave );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnLoad()
     UIManager:QueuePopup( Controls.LoadMenu, PopupPriority.LoadMenu );
 end
 Controls.LoadGameButton:RegisterCallback( Mouse.eLClick, OnLoad );
 
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnExitGame()
     Events.UserRequestClose();
 end
@@ -85,8 +85,8 @@ function OnOptions()
 end
 Controls.OptionsButton:RegisterCallback( Mouse.eLClick, OnOptions );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnMainMenu()
 	m_ExitToMain = true;
 	Controls.Message:SetText( Locale.ConvertTextKey("TXT_KEY_MENU_RETURN_MM_WARN") );
@@ -113,8 +113,8 @@ function OnRetire()
 	end
 end
 Controls.RetireButton:RegisterCallback(Mouse.eLClick, OnRetire);
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnReturn()
 	OnLeave();
 	UIManager:DequeuePopup( ContextPtr );
@@ -135,8 +135,8 @@ function OnGameMods()
 end
 Controls.ModsButton:RegisterCallback( Mouse.eLClick, OnGameMods);
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnShowHide( isHide, isInit )
 
 	local bDisableQuickSave = false;
@@ -191,8 +191,8 @@ function OnShowHide( isHide, isInit )
 end
 ContextPtr:SetShowHideHandler( OnShowHide );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function PopulateGameData()
 
 	local iPlayer = Game.GetActivePlayer();
@@ -268,7 +268,7 @@ function PopulateGameData()
 		Controls.SpeedFrame:SetHide(true);
     end
 end
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 function PopulateGameOptions()
 	g_GameOptionIM:ResetInstances();
@@ -441,9 +441,9 @@ function PopulateModData()
 	Controls.ModsButton:SetHide(#activatedMods == 0);
 end
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Key Down Processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if( uiMsg == KeyEvents.KeyDown )
     then
@@ -460,7 +460,7 @@ function InputHandler( uiMsg, wParam, lParam )
 end
 ContextPtr:SetInputHandler( InputHandler );
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 function OnYes( )
 	OnLeave();
@@ -505,7 +505,7 @@ PopulateGameData();
 PopulateGameOptions();
 PopulateModData();
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 if (UI.IsTouchScreenEnabled()) then
 	function OnTouchHelpButton()
 		Controls.TouchControlsMenu:SetHide( false );

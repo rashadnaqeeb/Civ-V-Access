@@ -254,7 +254,7 @@ function PopulateLeaderboardResults()
 				break;
 			end
 		end
-
+		
 		local mapInfo = MapUtilities.GetBasicInfo(v.MapName);
         IconHookup( (mapScript and mapScript.IconIndex) or 0, 32, mapInfo.IconAtlas, controlTable.MapType );
 		controlTable.MapType:SetToolTipString( Locale.ConvertTextKey( mapInfo.Name ) );

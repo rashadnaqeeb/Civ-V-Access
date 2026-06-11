@@ -42,8 +42,8 @@ g_SavedGameModsRequired = nil;	-- The required mods for the currently selected s
 g_SavedGameDLCRequired = nil;	-- The required DLC for the currently selected save.
 
 g_CurrentSort = nil;	-- The current sorting technique.
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnStartButton()
 	
 	if g_GameType == GameTypes.GAME_SINGLE_PLAYER or g_GameType == GameTypes.GAME_HOTSEAT_MULTIPLAYER then
@@ -103,8 +103,8 @@ function OnStartButton()
 end
 Controls.StartButton:RegisterCallback( Mouse.eLClick, OnStartButton );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 Controls.AutoCheck:RegisterCheckHandler( function(checked)
     g_ShowAutoSaves = checked;
     if(g_ShowAutoSaves) then
@@ -130,7 +130,7 @@ Controls.CloudCheck:RegisterCheckHandler( function(checked)
 	SetupFileButtonList();
 end);
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 ----------------------------------------------------------------
 function OnDelete( )
 	Controls.DeleteConfirm:SetHide(false);
@@ -148,17 +148,17 @@ function OnNo( )
 	Controls.DeleteConfirm:SetHide(true);
 end
 Controls.No:RegisterCallback( Mouse.eLClick, OnNo );
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function OnBack()
     UIManager:DequeuePopup( ContextPtr );
 end
 Controls.BackButton:RegisterCallback( Mouse.eLClick, OnBack );
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------   
 -- Referenced Packages popup     
-----------------------------------------------------------------
+----------------------------------------------------------------   
 Controls.ShowModsButton:RegisterCallback(Mouse.eLClick, function()
 	g_ReferencedPackages:ResetInstances();
 	
@@ -185,7 +185,7 @@ Controls.ShowModsButton:RegisterCallback(Mouse.eLClick, function()
 	Controls.ReferencedPackagesScrollPanel:CalculateInternalSize();
 	Controls.ReferencedPackagesWindow:SetHide(false);
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------  
 Controls.ShowDLCButton:RegisterCallback(Mouse.eLClick, function()
 	g_ReferencedPackages:ResetInstances();
 	
@@ -218,12 +218,12 @@ Controls.ShowDLCButton:RegisterCallback(Mouse.eLClick, function()
 	Controls.ReferencedPackagesScrollPanel:CalculateInternalSize();
 	Controls.ReferencedPackagesWindow:SetHide(false);
 end);
-----------------------------------------------------------------
+----------------------------------------------------------------  
 Controls.CloseReferencedPackagesButton:RegisterCallback(Mouse.eLClick, function()
 	Controls.ReferencedPackagesWindow:SetHide(true);
 end);
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function SetSelected( index )
     if( g_iSelected ~= -1 ) then
         g_InstanceList[ g_iSelected ].SelectHighlight:SetHide( true );
@@ -494,13 +494,13 @@ function SetSaveInfoToNone(isInvalid)
 	local mapTexture="MapRandom512.dds";
 	Controls.LargeMapImage:SetTexture(mapTexture);
 end
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+---------------------------------------------------------------- 
 function GetDisplayName(file)
 	return Path.GetFileNameWithoutExtension(file);
 end
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function SetupFileButtonList()
     SetSelected( -1 );
     g_InstanceManager:ResetInstances();
@@ -599,8 +599,8 @@ function UpdateControlStates()
     end
 end
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function CloudSaveSort( a, b ) 
 
     local aOrder = g_SortTable[ tostring( a ) ];
@@ -664,9 +664,9 @@ function SortByLastModified(a, b)
 end
 
 
-----------------------------------------------------------------
+----------------------------------------------------------------        
 -- Key Down Processing
-----------------------------------------------------------------
+----------------------------------------------------------------        
 function InputHandler( uiMsg, wParam, lParam )
     if uiMsg == KeyEvents.KeyDown then
         if wParam == Keys.VK_ESCAPE then
@@ -681,8 +681,8 @@ function InputHandler( uiMsg, wParam, lParam )
 end
 ContextPtr:SetInputHandler( InputHandler );
 
-----------------------------------------------------------------
-----------------------------------------------------------------
+----------------------------------------------------------------        
+----------------------------------------------------------------        
 function ShowHideHandler(isHide)
     if( not isHide ) then
 		if( g_IsInGame ) then
