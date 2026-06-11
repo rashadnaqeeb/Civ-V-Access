@@ -1077,33 +1077,42 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
     if myStrength <= 0 or theirStrength <= 0 then
         return ""
     end
-    local myDmg, theirDmg
-    if volleyDmg > defender:GetCurrHitPoints() then
-        -- The volley alone kills; no melee follows (the attacker advances
-        -- unharmed). Same short-circuit CP's preview shows.
-        myDmg, theirDmg = volleyDmg, 0
-    else
-        myDmg, theirDmg = EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg, volleyDmg)
-        myDmg = myDmg + volleyDmg
-    end
 
     local name = unitName(defender)
     local myStr = Locale.ToNumber(myStrength / 100, "#.##")
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
     local result = predictionLabel(actor, defender)
 
-    local parts =
-        { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStr, theirStr, result, theirDmg, myDmg) }
-
-    if volleyDmg > 0 then
+    local parts
+    if volleyDmg > defender:GetCurrHitPoints() then
+        -- The volley alone kills; no melee follows, so no counterattack
+        -- (same short-circuit CP's preview shows). The line takes the
+        -- ranged-preview shape -- the established no-counterattack form --
+        -- and the volley clause says why a melee order ends without
+        -- contact. No capture-chance clause: capture rides the melee kill,
+        -- which never happens here. Defensive fire support still resolves
+        -- before everything else, so its incoming damage keeps its clause.
+        parts = { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED", name, myStr, theirStr, result, volleyDmg) }
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_VOLLEY", volleyDmg)
-    end
-    if supportDmg > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE", supportDmg)
-    end
-    local capture = actor:GetCaptureChance(defender)
-    if capture > 0 then
-        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_CAPTURE_CHANCE", capture)
+        if supportDmg > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE", supportDmg)
+        end
+    else
+        local myDmg, theirDmg =
+            EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg, volleyDmg)
+        myDmg = myDmg + volleyDmg
+        parts =
+            { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStr, theirStr, result, theirDmg, myDmg) }
+        if volleyDmg > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_VOLLEY", volleyDmg)
+        end
+        if supportDmg > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE", supportDmg)
+        end
+        local capture = actor:GetCaptureChance(defender)
+        if capture > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_CAPTURE_CHANCE", capture)
+        end
     end
 
     local mine = attackerMods(actor, defender, targetPlot, false)

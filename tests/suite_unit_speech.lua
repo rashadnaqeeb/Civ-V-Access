@@ -1534,7 +1534,10 @@ function M.test_melee_preview_attacker_volley_folds_and_names_component()
     T.truthy(out:find("includes 25 volley", 1, true), "volley clause expected: " .. out)
 end
 
-function M.test_melee_preview_volley_kill_short_circuits_melee()
+-- A volley that kills outright takes the ranged-preview line shape (the
+-- established no-counterattack form) instead of the melee line with a
+-- zero in its damage-to-me slot.
+function M.test_melee_preview_volley_kill_takes_ranged_shape()
     combatSetup()
     local actor = mkCombatUnit({
         owner = 0,
@@ -1546,9 +1549,29 @@ function M.test_melee_preview_volley_kill_short_circuits_melee()
     })
     local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500, currHP = 20 })
     local out = UnitSpeech.meleePreview(actor, defender, mkCombatPlot({}))
-    T.truthy(out:find("25 to them", 1, true), "volley-only damage when it kills outright: " .. out)
-    T.truthy(out:find("0 damage to me", 1, true), "no counterattack from a dead defender: " .. out)
-    T.truthy(out:find("includes 25 volley", 1, true), "volley clause still names the component: " .. out)
+    T.truthy(out:find("25 damage to them", 1, true), "volley-only damage when it kills outright: " .. out)
+    T.truthy(not out:find("damage to me", 1, true), "no damage-to-me slot when no melee follows: " .. out)
+    T.truthy(out:find("includes 25 volley", 1, true), "volley clause says why a melee order ends ranged: " .. out)
+end
+
+-- Defensive fire support resolves before the volley, so the attacker
+-- still takes it even on a volley kill; its clause must survive the
+-- ranged-shape branch.
+function M.test_melee_preview_volley_kill_keeps_incoming_support_fire()
+    combatSetup()
+    local support = mkCombatUnit({ owner = 1, team = 1, unitType = 101, rangeDamage = 7 })
+    local actor = mkCombatUnit({
+        owner = 0,
+        unitType = 100,
+        attackStrength = 1000,
+        rangedSupportFire = true,
+        rangeDamage = 25,
+        fireSupport = support,
+        plot = mkCombatPlot({}),
+    })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500, currHP = 20 })
+    local out = UnitSpeech.meleePreview(actor, defender, mkCombatPlot({}))
+    T.truthy(out:find("support fire 7", 1, true), "incoming support damage still spoken: " .. out)
 end
 
 function M.test_melee_preview_zero_strength_suppressed()
