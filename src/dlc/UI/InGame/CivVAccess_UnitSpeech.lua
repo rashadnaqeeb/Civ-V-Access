@@ -1059,12 +1059,33 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
         supportDmg = support:GetRangeCombatDamage(actor, nil, false)
     end
 
+    -- The attacker's own opening volley (ranged support fire, the Impi
+    -- line): the engine resolves it as a ranged attack against the
+    -- defender before the melee on both engines (the vanilla SDK's "Zulu
+    -- special thrown spear", CvUnitCombat.cpp:2855). CP's preview folds it
+    -- into the displayed numbers; vanilla's screen omits it and simply
+    -- understates the combat that will resolve, so the spoken numbers
+    -- deliberately exceed the vanilla screen here (user decision: speak
+    -- the real outcome on both engines).
+    local volleyDmg = 0
+    if actor:IsRangedSupportFire() then
+        volleyDmg = actor:GetRangeCombatDamage(defender, nil, false)
+    end
+
     local myStrength = actor:GetMaxAttackStrength(actor:GetPlot(), targetPlot, defender)
-    local theirStrength = EngineData.maxDefenseStrength(defender, targetPlot, actor, false)
+    local theirStrength = EngineData.maxDefenseStrength(defender, targetPlot, actor, false, volleyDmg)
     if myStrength <= 0 or theirStrength <= 0 then
         return ""
     end
-    local myDmg, theirDmg = EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg)
+    local myDmg, theirDmg
+    if volleyDmg > defender:GetCurrHitPoints() then
+        -- The volley alone kills; no melee follows (the attacker advances
+        -- unharmed). Same short-circuit CP's preview shows.
+        myDmg, theirDmg = volleyDmg, 0
+    else
+        myDmg, theirDmg = EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg, volleyDmg)
+        myDmg = myDmg + volleyDmg
+    end
 
     local name = unitName(defender)
     local myStr = Locale.ToNumber(myStrength / 100, "#.##")
@@ -1074,6 +1095,9 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
     local parts =
         { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStr, theirStr, result, theirDmg, myDmg) }
 
+    if volleyDmg > 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_VOLLEY", volleyDmg)
+    end
     if supportDmg > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE", supportDmg)
     end

@@ -1347,6 +1347,9 @@ local function mkCombatUnit(opts)
     function u:IsRangedSupportFire()
         return opts.rangedSupportFire or false
     end
+    function u:GetCurrHitPoints()
+        return opts.currHP or 100
+    end
     -- nil-checked handle: a non-nil return would make the preview try to
     -- read a fire-support unit's damage, so this must stay nil unless a
     -- test wants support fire.
@@ -1504,6 +1507,48 @@ function M.test_melee_preview_support_fire_and_capture_chance()
     -- attacker's input damage and onto the defender's output.
     T.truthy(out:find("support fire 7", 1, true), "support fire line expected: " .. out)
     T.truthy(out:find("capture chance 40 percent", 1, true), "capture chance expected: " .. out)
+end
+
+-- The attacker's own opening volley (Impi ranged support fire): folds
+-- into the damage-to-them number, wounds the defender for the counter,
+-- and names its component in the clause. The engine resolves the volley
+-- before the melee on both engines; a preview that drops it understates
+-- the real combat.
+function M.test_melee_preview_attacker_volley_folds_and_names_component()
+    combatSetup()
+    local actor = mkCombatUnit({
+        owner = 0,
+        unitType = 100,
+        attackStrength = 1000,
+        rangedSupportFire = true,
+        rangeDamage = 25,
+        plot = mkCombatPlot({}),
+    })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500, currHP = 100 })
+    local out = UnitSpeech.meleePreview(actor, defender, mkCombatPlot({}))
+    -- volley = 25. Melee to-them: fakeCombatDamage(1000, 500, 0) = 36;
+    -- spoken total 36 + 25 = 61. Counter comes from the wounded defender:
+    -- fakeCombatDamage(500, 1000, 0 + 25) = 9 + 2 = 11.
+    T.truthy(out:find("61 to them", 1, true), "volley folded into damage-to-them: " .. out)
+    T.truthy(out:find("11 damage to me", 1, true), "counter from the volley-wounded defender: " .. out)
+    T.truthy(out:find("includes 25 volley", 1, true), "volley clause expected: " .. out)
+end
+
+function M.test_melee_preview_volley_kill_short_circuits_melee()
+    combatSetup()
+    local actor = mkCombatUnit({
+        owner = 0,
+        unitType = 100,
+        attackStrength = 1000,
+        rangedSupportFire = true,
+        rangeDamage = 25,
+        plot = mkCombatPlot({}),
+    })
+    local defender = mkCombatUnit({ owner = 1, team = 1, unitType = 101, defenseStrength = 500, currHP = 20 })
+    local out = UnitSpeech.meleePreview(actor, defender, mkCombatPlot({}))
+    T.truthy(out:find("25 to them", 1, true), "volley-only damage when it kills outright: " .. out)
+    T.truthy(out:find("0 damage to me", 1, true), "no counterattack from a dead defender: " .. out)
+    T.truthy(out:find("includes 25 volley", 1, true), "volley clause still names the component: " .. out)
 end
 
 function M.test_melee_preview_zero_strength_suppressed()

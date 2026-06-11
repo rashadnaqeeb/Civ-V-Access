@@ -392,6 +392,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE"] = "out of ran
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK"] =
     "{1_Name}, {2_MyStr} vs {3_TheirStr}, {4_Result}, {5_DmgToMe} damage to me, {6_DmgToThem} to them"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE"] = "support fire {1_Dmg}"
+-- The attacker's own opening volley (ranged support fire, the Impi line),
+-- already counted in the damage-to-them number; this clause names the
+-- component. Distinct wording from SUPPORT_FIRE above, which is incoming
+-- damage from the defender's ally.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_VOLLEY"] = "includes {1_Dmg} volley"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_CAPTURE_CHANCE"] = "capture chance {1_Pct} percent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY"] = "my bonuses {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_THEIR"] = "their bonuses {1_List}"

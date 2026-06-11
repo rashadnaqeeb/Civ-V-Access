@@ -51,19 +51,26 @@ function EngineData.forkPresent()
 end
 
 -- Drift read: bidirectional melee damage for a unit-vs-unit attack.
--- Returns (damage to defender, damage to attacker). VP's
--- GetMeleeCombatDamage(strength, opponentStrength, includeRand, otherUnit,
--- extraDefenderDamage) returns both sides in one call. supportDamage is
--- pre-resolved defensive fire support against the ATTACKER (vanilla
--- mechanic); VP disables that mechanic by default (FIRE_SUPPORT_DISABLED=1,
--- GetFireSupportUnit returns nil) so the caller's value is 0 in practice,
--- but a DB re-enable keeps this correct: it lands on the attacker's
--- incoming total, same as the vanilla body. The extraDefenderDamage slot
--- (damage already inflicted on the DEFENDER, used by VP's own preview for
--- attacker-side ranged support fire) stays 0 -- that mechanic is not
--- modeled by this seam's callers yet; see the port plan's phase 2 notes.
-function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage)
-    local toDefender, toAttacker = attacker:GetMeleeCombatDamage(attackStrength, defenseStrength, false, defender, 0)
+-- Returns (damage to defender, damage to attacker), MELEE ONLY -- the
+-- caller adds volleyDamage onto the spoken damage-to-defender itself.
+-- VP's GetMeleeCombatDamage(strength, opponentStrength, includeRand,
+-- otherUnit, extraDefenderDamage) returns both sides in one call.
+--
+-- Two pre-resolved damages, one per direction (see the vanilla file):
+--   supportDamage  defensive fire support already dealt TO THE ATTACKER.
+--                  VP disables that mechanic by default
+--                  (FIRE_SUPPORT_DISABLED=1, GetFireSupportUnit returns
+--                  nil) so the caller's value is 0 in practice, but a DB
+--                  re-enable keeps this correct: it lands on the
+--                  attacker's incoming total.
+--   volleyDamage   the attacker's own opening volley already dealt TO THE
+--                  DEFENDER (ranged support fire). Crosses as
+--                  extraDefenderDamage, the same argument VP's own
+--                  EnemyUnitPanel passes, so the mutual-kill correction
+--                  sees the wounded defender.
+function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage, volleyDamage)
+    local toDefender, toAttacker =
+        attacker:GetMeleeCombatDamage(attackStrength, defenseStrength, false, defender, volleyDamage)
     return toDefender, toAttacker + supportDamage
 end
 
@@ -81,8 +88,20 @@ end
 -- attacker. VP inserted a from-plot parameter at position 3; the attacker's
 -- current plot is the from-plot for every caller (melee and ranged
 -- previews both attack from where the attacker stands).
-function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack)
-    return defender:GetMaxDefenseStrength(toPlot, attacker, attacker:GetPlot(), bFromRangedAttack)
+-- assumeVolleyDamage is the attacker's pre-melee volley: VP's strength
+-- math scales with damage, so the engine takes it as
+-- iAssumeExtraDamage and answers with the strength of the
+-- already-wounded defender the melee will face -- the same fifth
+-- argument VP's own EnemyUnitPanel passes. nil for the ranged caller,
+-- where no volley precedes the strike.
+function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack, assumeVolleyDamage)
+    return defender:GetMaxDefenseStrength(
+        toPlot,
+        attacker,
+        attacker:GetPlot(),
+        bFromRangedAttack,
+        assumeVolleyDamage or 0
+    )
 end
 
 -- Drift read: the defense modifier a plot grants a defender. VP inserted

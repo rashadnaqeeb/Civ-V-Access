@@ -366,7 +366,7 @@ function M.test_vp_mission_queue_decodes_vp_flag_bits()
     T.eq(next(queue[3].intents), nil, "unmapped VP flags must decode to empty intents")
 end
 
-function M.test_vp_melee_damage_dual_return_with_support_on_attacker()
+function M.test_vp_melee_damage_dual_return_support_and_volley()
     local vp, _env = loadVPWithFork()
     local seen
     local attacker = {
@@ -381,14 +381,14 @@ function M.test_vp_melee_damage_dual_return_with_support_on_attacker()
             return 31, 17
         end,
     }
-    local toDefender, toAttacker = vp.meleeDamage(attacker, "defender", 500, 400, 9)
-    T.eq(toDefender, 31)
+    local toDefender, toAttacker = vp.meleeDamage(attacker, "defender", 500, 400, 9, 6)
+    T.eq(toDefender, 31, "melee-only; the caller adds the volley itself")
     T.eq(toAttacker, 26, "support fire damage lands on the attacker's incoming total")
     T.eq(seen.strength, 500)
     T.eq(seen.opponentStrength, 400)
     T.eq(seen.includeRand, false, "previews must be deterministic")
     T.eq(seen.otherUnit, "defender")
-    T.eq(seen.extraDefenderDamage, 0)
+    T.eq(seen.extraDefenderDamage, 6, "the volley crosses as VP's extraDefenderDamage")
 end
 
 function M.test_vp_city_melee_damage_passes_city_not_strength()
@@ -408,12 +408,18 @@ function M.test_vp_city_melee_damage_passes_city_not_strength()
     T.eq(seen.includeRand, false)
 end
 
-function M.test_vp_max_defense_strength_inserts_attacker_from_plot()
+function M.test_vp_max_defense_strength_inserts_from_plot_and_volley()
     local vp, _env = loadVPWithFork()
     local seen
     local defender = {
-        GetMaxDefenseStrength = function(_, toPlot, attacker, fromPlot, fromRanged)
-            seen = { toPlot = toPlot, attacker = attacker, fromPlot = fromPlot, fromRanged = fromRanged }
+        GetMaxDefenseStrength = function(_, toPlot, attacker, fromPlot, fromRanged, assumeExtraDamage)
+            seen = {
+                toPlot = toPlot,
+                attacker = attacker,
+                fromPlot = fromPlot,
+                fromRanged = fromRanged,
+                assumeExtraDamage = assumeExtraDamage,
+            }
             return 999
         end,
     }
@@ -427,6 +433,9 @@ function M.test_vp_max_defense_strength_inserts_attacker_from_plot()
     T.eq(seen.attacker, attacker)
     T.eq(seen.fromPlot, "attacker-plot", "VP's inserted from-plot must be the attacker's plot")
     T.eq(seen.fromRanged, true)
+    T.eq(seen.assumeExtraDamage, 0, "no volley defaults to 0, not nil")
+    vp.maxDefenseStrength(defender, "to-plot", attacker, false, 25)
+    T.eq(seen.assumeExtraDamage, 25, "the volley crosses as VP's assume-extra-damage")
 end
 
 function M.test_vp_plot_defense_modifier_inserts_ignore_feature_false()

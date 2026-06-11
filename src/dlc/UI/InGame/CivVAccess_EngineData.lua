@@ -41,14 +41,29 @@ function EngineData.forkPresent()
 end
 
 -- Drift read: bidirectional melee damage for a unit-vs-unit attack.
--- Returns (damage to defender, damage to attacker). Vanilla has no single
--- call for this, so it synthesizes both sides from two GetCombatDamage
--- calls, folding fire-support damage into the attacker's input and onto the
--- defender's output exactly as EnemyUnitPanel does. VP replaces this with a
--- single GetMeleeCombatDamage that returns both sides at once, which is why
--- the seam is shaped as "give me both numbers for this matchup" rather than
+-- Returns (damage to defender, damage to attacker), MELEE ONLY -- the
+-- caller adds volleyDamage onto the spoken damage-to-defender itself.
+-- Vanilla has no single call for this, so it synthesizes both sides from
+-- two GetCombatDamage calls. VP replaces this with a single
+-- GetMeleeCombatDamage that returns both sides at once, which is why the
+-- seam is shaped as "give me both numbers for this matchup" rather than
 -- exposing GetCombatDamage directly.
-function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage)
+--
+-- Two pre-resolved damages feed the melee math, one per direction:
+--   supportDamage  defensive fire support already dealt TO THE ATTACKER
+--                  (the defender's adjacent ranged ally fires first).
+--                  Folds into the attacker's current-damage input -- on
+--                  this engine wounds scale damage output -- and onto the
+--                  attacker's incoming total, exactly as EnemyUnitPanel
+--                  does.
+--   volleyDamage   the attacker's own opening volley already dealt TO THE
+--                  DEFENDER (ranged support fire, the Impi spear throw;
+--                  the engine resolves it as a ranged attack before the
+--                  melee, CvUnitCombat.cpp:2855). Folds into the
+--                  defender's current-damage input so the counterattack
+--                  comes from the wounded defender the melee will
+--                  actually face.
+function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage, volleyDamage)
     local toDefender = attacker:GetCombatDamage(
         attackStrength,
         defenseStrength,
@@ -60,7 +75,7 @@ function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStren
     local toAttacker = defender:GetCombatDamage(
         defenseStrength,
         attackStrength,
-        defender:GetDamage(),
+        defender:GetDamage() + volleyDamage,
         false,
         false,
         false
@@ -86,8 +101,13 @@ end
 -- attacker. VP inserted a from-plot parameter into the signature, so the
 -- seam carries the attacker (whose plot the VP body passes); the vanilla
 -- body ignores it. bFromRangedAttack distinguishes the melee caller (false)
--- from the ranged caller (true).
-function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack)
+-- from the ranged caller (true). assumeVolleyDamage is the attacker's
+-- pre-melee volley (see meleeDamage): VP's strength math scales with
+-- damage, so its body assumes the volley already landed; on this engine
+-- strength does not scale with wounds (the volley enters the melee math
+-- through meleeDamage's current-damage inputs instead), so the parameter
+-- is correctly unused here.
+function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack, assumeVolleyDamage)
     return defender:GetMaxDefenseStrength(toPlot, attacker, bFromRangedAttack)
 end
 
