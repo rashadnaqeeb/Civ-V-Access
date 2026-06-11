@@ -339,8 +339,13 @@ end
 -- Community Patch classifies corporation buildings (HQs, offices,
 -- franchises) into their own section, checked BEFORE the wonder test --
 -- an HQ is world-unique and would otherwise land in Wonders. The column
--- is CP-database-only; nil on vanilla, so both predicates are inert there.
+-- is CP-database-only, and the engine logs "Cannot find key" on EVERY
+-- read of a column absent from the schema, so the read itself is gated
+-- on the CP probe rather than relying on the nil it returns.
 local function isCorporationBuilding(building)
+    if Game.IsCustomModOption == nil then
+        return false
+    end
     return building.IsCorporation and true or false
 end
 
@@ -760,11 +765,15 @@ end
 
 local function buildBuildingsGroup(city)
     -- IsDummy rows are VP's internal bookkeeping buildings; CP's screen
-    -- hides them, so the list must too (the column is nil on vanilla).
+    -- hides them, so the list must too. The column read is gated on the
+    -- CP probe because the engine logs "Cannot find key" on every read
+    -- of a column absent from the schema (vanilla has no IsDummy).
     return BaseMenuItems.Group({
         labelText = Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_HUB_BUILDINGS"),
         items = buildingListItems(city, function(building)
-            return not isWonderBuilding(building) and not isCorporationBuilding(building) and not building.IsDummy
+            return not isWonderBuilding(building)
+                and not isCorporationBuilding(building)
+                and (Game.IsCustomModOption == nil or not building.IsDummy)
         end),
     })
 end
