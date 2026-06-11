@@ -1332,6 +1332,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_PICKER_SELECTED"] = "religion, {
 -- runs once a religion is selected.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW"] = "name, {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_NAME_FIELD"] = "religion name"
+-- Advisor ranking in the belief pickers (Community Patch / Vox Populi
+-- engines only). The engine scores every offered belief and decorates the
+-- three highest scores with gold / silver / bronze trophy icons; spoken
+-- as a suffix after the belief name. Tier first: it's the part that
+-- differs between the marked beliefs.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_GOLD"] = "gold trophy, advisor recommendation"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_SILVER"] = "silver trophy, advisor recommendation"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_BRONZE"] = "bronze trophy, advisor recommendation"
 -- NotificationLogPopup (BUTTONPOPUP_NOTIFICATION_LOG). Split into Active /
 -- Dismissed tabs by the engine's per-notification dismissed flag. Item
 -- label inlines the turn so the user can place each entry in history

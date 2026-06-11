@@ -333,14 +333,87 @@
     "InGame/Popups/ChooseMayaBonus.xml": {},
     "InGame/Popups/ChoosePantheonPopup.lua": {
       "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChoosePantheonPopupAccess\")\n",
-      "refit": true
-    },
-    "InGame/Popups/ChoosePantheonPopup.xml": {
-      "refit": true
+      "vp": {
+        "edits": [
+          {
+            "old": "local function SelectPantheon(eBelief)\r\n",
+            "new": "-- CivVAccess: SelectPantheon is exposed as a global (dropped `local`)\r\n-- so the accessibility include at the end of this file can drive it.\r\nfunction SelectPantheon(eBelief)\r\n"
+          },
+          {
+            "old": "ContextPtr:SetInputHandler(function (uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_RETURN or wParam == Keys.VK_ESCAPE then\r\n\t\t\tif Controls.ChooseConfirm:IsHidden() then\r\n\t\t\t\tClose();\r\n\t\t\telse\r\n\t\t\t\tHide(Controls.ChooseConfirm);\r\n\t\t\tend\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\n\treturn false;\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction InputHandler(uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_RETURN or wParam == Keys.VK_ESCAPE then\r\n\t\t\tif Controls.ChooseConfirm:IsHidden() then\r\n\t\t\t\tClose();\r\n\t\t\telse\r\n\t\t\t\tHide(Controls.ChooseConfirm);\r\n\t\t\tend\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\n\treturn false;\r\nend\r\nContextPtr:SetInputHandler(InputHandler);\r\n"
+          },
+          {
+            "old": "Controls.Yes:RegisterCallback(Mouse.eLClick, function ()\r\n\tNetwork.SendFoundPantheon(Game.GetActivePlayer(), g_eBelief);\r\n\tEvents.AudioPlay2DSound(\"AS2D_INTERFACE_POLICY\");\r\n\tClose();\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction OnYes()\r\n\tNetwork.SendFoundPantheon(Game.GetActivePlayer(), g_eBelief);\r\n\tEvents.AudioPlay2DSound(\"AS2D_INTERFACE_POLICY\");\r\n\tClose();\r\nend\r\nControls.Yes:RegisterCallback(Mouse.eLClick, OnYes);\r\n"
+          },
+          {
+            "old": "ContextPtr:SetShowHideHandler(function (bIsHide, bInitState)\r\n\tif not bInitState then\r\n\t\tlocal unitPanelContext = ContextPtr:LookUpControl(\"/InGame/WorldView/UnitPanel/Base\");\r\n\t\tlocal infoCornerContext = ContextPtr:LookUpControl(\"/InGame/WorldView/InfoCorner\");\r\n\t\tif not bIsHide then\r\n\t\t\tUI.incTurnTimerSemaphore();\r\n\t\t\tEvents.SerialEventGameMessagePopupShown(g_popupInfo);\r\n\t\t\tRefreshList();\r\n\t\t\tHide(unitPanelContext, infoCornerContext);\r\n\t\telse\r\n\t\t\tShow(unitPanelContext, infoCornerContext);\r\n\t\t\tif g_popupInfo then\r\n\t\t\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(g_popupInfo.Type, 0);\r\n\t\t\tend\r\n\t\t\tUI.decTurnTimerSemaphore();\r\n\t\tend\r\n\tend\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction ShowHideHandler(bIsHide, bInitState)\r\n\tif not bInitState then\r\n\t\tlocal unitPanelContext = ContextPtr:LookUpControl(\"/InGame/WorldView/UnitPanel/Base\");\r\n\t\tlocal infoCornerContext = ContextPtr:LookUpControl(\"/InGame/WorldView/InfoCorner\");\r\n\t\tif not bIsHide then\r\n\t\t\tUI.incTurnTimerSemaphore();\r\n\t\t\tEvents.SerialEventGameMessagePopupShown(g_popupInfo);\r\n\t\t\tRefreshList();\r\n\t\t\tHide(unitPanelContext, infoCornerContext);\r\n\t\telse\r\n\t\t\tShow(unitPanelContext, infoCornerContext);\r\n\t\t\tif g_popupInfo then\r\n\t\t\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(g_popupInfo.Type, 0);\r\n\t\t\tend\r\n\t\t\tUI.decTurnTimerSemaphore();\r\n\t\tend\r\n\tend\r\nend\r\nContextPtr:SetShowHideHandler(ShowHideHandler);\r\n"
+          }
+        ],
+        "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChoosePantheonPopupAccess\")\n"
+      }
     },
     "InGame/Popups/ChooseReligionPopup.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ChooseReligionPopupAccess\")\r\n",
-      "refit": true
+      "vp": {
+        "edits": [
+          {
+            "old": "local g_strCurrentReligionName;\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\ng_strCurrentReligionName = nil;\r\n"
+          },
+          {
+            "old": "local g_bFoundingReligion = true;\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\ng_bFoundingReligion = true;\r\n"
+          },
+          {
+            "old": "local g_tSelectedBeliefs = {};\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\ng_tSelectedBeliefs = {};\r\n"
+          },
+          {
+            "old": "local function ValidateSelection()\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\nfunction ValidateSelection()\r\n"
+          },
+          {
+            "old": "ContextPtr:SetInputHandler(function (uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_ESCAPE then\r\n\t\t\tif not Controls.ChooseConfirm:IsHidden() then\r\n\t\t\t\tHide(Controls.ChooseConfirm);\r\n\t\t\telseif not Controls.ChangeNamePopup:IsHidden() then\r\n\t\t\t\tHide(Controls.ChangeNamePopup);\r\n\t\t\telse\r\n\t\t\t\tClose();\r\n\t\t\tend\r\n\t\t\treturn true;\r\n\t\tend\r\n\r\n\t\t-- Do nothing\r\n\t\tif wParam == Keys.VK_RETURN then\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\n\treturn false;\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction InputHandler(uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_ESCAPE then\r\n\t\t\tif not Controls.ChooseConfirm:IsHidden() then\r\n\t\t\t\tHide(Controls.ChooseConfirm);\r\n\t\t\telseif not Controls.ChangeNamePopup:IsHidden() then\r\n\t\t\t\tHide(Controls.ChangeNamePopup);\r\n\t\t\telse\r\n\t\t\t\tClose();\r\n\t\t\tend\r\n\t\t\treturn true;\r\n\t\tend\r\n\r\n\t\t-- Do nothing\r\n\t\tif wParam == Keys.VK_RETURN then\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\n\treturn false;\r\nend\r\nContextPtr:SetInputHandler(InputHandler);\r\n"
+          },
+          {
+            "old": "--- @type function\r\nlocal SelectReligion;\r\n",
+            "new": "-- CivVAccess: SelectReligion is a global (dropped the local forward\r\n-- declaration) so the accessibility include at the end of this file\r\n-- can drive the religion picker.\r\n"
+          },
+          {
+            "old": "local function ChangeReligionName()\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) for the\r\n-- accessibility include at the end of this file.\r\nfunction ChangeReligionName()\r\n"
+          },
+          {
+            "old": "Controls.Yes:RegisterCallback(Mouse.eLClick, function ()\r\n\tlocal ePlayer = Game.GetActivePlayer();\r\n\tlocal pPlayer = Players[ePlayer];\r\n\tlocal kReligionInfo = GameInfo.Religions[g_eCurrentReligion];\r\n\r\n\tlocal strCustomName;\r\n\tif L(kReligionInfo.Description) ~= g_strCurrentReligionName then\r\n\t\tstrCustomName = g_strCurrentReligionName;\r\n\tend\r\n\r\n\tif g_bFoundingReligion then\r\n\t\tNetwork.SendFoundReligion(ePlayer, g_eCurrentReligion, strCustomName,\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.FOUNDER],\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.FOLLOWER1],\r\n\t\t\tnot pPlayer:HasCreatedPantheon() and g_tSelectedBeliefs[BeliefSlots.PANTHEON] or BeliefTypes.NO_BELIEF,\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.BONUS] or BeliefTypes.NO_BELIEF,\r\n\t\t\tg_popupInfo.Data1, g_popupInfo.Data2);\r\n\telse\r\n\t\tNetwork.SendEnhanceReligion(ePlayer, g_eCurrentReligion, nil,\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.FOLLOWER2],\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.ENHANCER],\r\n\t\t\tg_popupInfo.Data1, g_popupInfo.Data2);\r\n\tend\r\n\tEvents.AudioPlay2DSound(\"AS2D_INTERFACE_POLICY\");\r\n\r\n\tHide(Controls.ChooseConfirm);\r\n\tClose();\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction OnYes()\r\n\tlocal ePlayer = Game.GetActivePlayer();\r\n\tlocal pPlayer = Players[ePlayer];\r\n\tlocal kReligionInfo = GameInfo.Religions[g_eCurrentReligion];\r\n\r\n\tlocal strCustomName;\r\n\tif L(kReligionInfo.Description) ~= g_strCurrentReligionName then\r\n\t\tstrCustomName = g_strCurrentReligionName;\r\n\tend\r\n\r\n\tif g_bFoundingReligion then\r\n\t\tNetwork.SendFoundReligion(ePlayer, g_eCurrentReligion, strCustomName,\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.FOUNDER],\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.FOLLOWER1],\r\n\t\t\tnot pPlayer:HasCreatedPantheon() and g_tSelectedBeliefs[BeliefSlots.PANTHEON] or BeliefTypes.NO_BELIEF,\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.BONUS] or BeliefTypes.NO_BELIEF,\r\n\t\t\tg_popupInfo.Data1, g_popupInfo.Data2);\r\n\telse\r\n\t\tNetwork.SendEnhanceReligion(ePlayer, g_eCurrentReligion, nil,\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.FOLLOWER2],\r\n\t\t\tg_tSelectedBeliefs[BeliefSlots.ENHANCER],\r\n\t\t\tg_popupInfo.Data1, g_popupInfo.Data2);\r\n\tend\r\n\tEvents.AudioPlay2DSound(\"AS2D_INTERFACE_POLICY\");\r\n\r\n\tHide(Controls.ChooseConfirm);\r\n\tClose();\r\nend\r\nControls.Yes:RegisterCallback(Mouse.eLClick, OnYes);\r\n"
+          },
+          {
+            "old": "Controls.ChangeNameOKButton:RegisterCallback(Mouse.eLClick, function ()\r\n\tlocal strReligionName = Controls.NewName:GetText();\r\n\tif Locale.IsNilOrEmpty(strReligionName) then\r\n\t\tShow(Controls.ChangeNameError);\r\n\telse\r\n\t\tg_strCurrentReligionName = strReligionName;\r\n\t\tControls.LabelReligionName:LocalizeAndSetText(\"TXT_KEY_CHOOSE_RELIGION_NAME_LABEL\", g_strCurrentReligionName);\r\n\t\tHide(Controls.ChangeNamePopup);\r\n\tend\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction OnChangeNameOK()\r\n\tlocal strReligionName = Controls.NewName:GetText();\r\n\tif Locale.IsNilOrEmpty(strReligionName) then\r\n\t\tShow(Controls.ChangeNameError);\r\n\telse\r\n\t\tg_strCurrentReligionName = strReligionName;\r\n\t\tControls.LabelReligionName:LocalizeAndSetText(\"TXT_KEY_CHOOSE_RELIGION_NAME_LABEL\", g_strCurrentReligionName);\r\n\t\tHide(Controls.ChangeNamePopup);\r\n\tend\r\nend\r\nControls.ChangeNameOKButton:RegisterCallback(Mouse.eLClick, OnChangeNameOK);\r\n"
+          },
+          {
+            "old": "Controls.ChangeNameDefaultButton:RegisterCallback(Mouse.eLClick, function ()\r\n\tControls.NewName:LocalizeAndSetText(GameInfo.Religions[g_eCurrentReligion].Description);\r\n\tHide(Controls.ChangeNameError);\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction OnChangeNameDefault()\r\n\tControls.NewName:LocalizeAndSetText(GameInfo.Religions[g_eCurrentReligion].Description);\r\n\tHide(Controls.ChangeNameError);\r\nend\r\nControls.ChangeNameDefaultButton:RegisterCallback(Mouse.eLClick, OnChangeNameDefault);\r\n"
+          },
+          {
+            "old": "Controls.ChangeNameCancelButton:RegisterCallback(Mouse.eLClick, function ()\r\n\tHide(Controls.ChangeNamePopup);\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction OnChangeNameCancel()\r\n\tHide(Controls.ChangeNamePopup);\r\nend\r\nControls.ChangeNameCancelButton:RegisterCallback(Mouse.eLClick, OnChangeNameCancel);\r\n"
+          },
+          {
+            "old": "Controls.FoundReligion:RegisterCallback(Mouse.eLClick, function ()\r\n\tif g_bFoundingReligion then\r\n\t\tControls.LabelConfirmFoundReligion:LocalizeAndSetText(\"TXT_KEY_CHOOSE_RELIGION_CONFIRM\", g_strCurrentReligionName);\r\n\telse\r\n\t\tControls.LabelConfirmFoundReligion:LocalizeAndSetText(\"TXT_KEY_CHOOSE_RELIGION_CONFIRM_ENHANCE\", g_strCurrentReligionName);\r\n\tend\r\n\tShow(Controls.ChooseConfirm);\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction FoundReligion()\r\n\tif g_bFoundingReligion then\r\n\t\tControls.LabelConfirmFoundReligion:LocalizeAndSetText(\"TXT_KEY_CHOOSE_RELIGION_CONFIRM\", g_strCurrentReligionName);\r\n\telse\r\n\t\tControls.LabelConfirmFoundReligion:LocalizeAndSetText(\"TXT_KEY_CHOOSE_RELIGION_CONFIRM_ENHANCE\", g_strCurrentReligionName);\r\n\tend\r\n\tShow(Controls.ChooseConfirm);\r\nend\r\nControls.FoundReligion:RegisterCallback(Mouse.eLClick, FoundReligion);\r\n"
+          },
+          {
+            "old": "ContextPtr:SetShowHideHandler(function (bIsHide, bInitState)\r\n\tif not bInitState then\r\n\t\tif not bIsHide then\r\n\t\t\tUI.incTurnTimerSemaphore();\r\n\t\t\tEvents.SerialEventGameMessagePopupShown(g_popupInfo);\r\n\r\n\t\t\tRefreshReligions();\r\n\t\t\tRefreshExistingBeliefs();\r\n\r\n\t\t\tif g_eCurrentReligion ~= ReligionTypes.NO_RELIGION then\r\n\t\t\t\tlocal kReligionInfo = GameInfo.Religions[g_eCurrentReligion];\r\n\t\t\t\tSelectReligion(g_eCurrentReligion, L(Game.GetReligionName(g_eCurrentReligion)), kReligionInfo.IconAtlas, kReligionInfo.PortraitIndex);\r\n\t\t\telse\r\n\t\t\t\tShow(Controls.LabelPleaseSelectAReligion);\r\n\t\t\tend\r\n\r\n\t\t\tValidateSelection();\r\n\r\n\t\t\tToggleBeliefSlot(BeliefSlots.NONE);\r\n\t\telse\r\n\t\t\tif g_popupInfo then\r\n\t\t\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(g_popupInfo.Type, 0);\r\n\t\t\tend\r\n\t\t\tUI.decTurnTimerSemaphore();\r\n\t\tend\r\n\tend\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction ShowHideHandler(bIsHide, bInitState)\r\n\tif not bInitState then\r\n\t\tif not bIsHide then\r\n\t\t\tUI.incTurnTimerSemaphore();\r\n\t\t\tEvents.SerialEventGameMessagePopupShown(g_popupInfo);\r\n\r\n\t\t\tRefreshReligions();\r\n\t\t\tRefreshExistingBeliefs();\r\n\r\n\t\t\tif g_eCurrentReligion ~= ReligionTypes.NO_RELIGION then\r\n\t\t\t\tlocal kReligionInfo = GameInfo.Religions[g_eCurrentReligion];\r\n\t\t\t\tSelectReligion(g_eCurrentReligion, L(Game.GetReligionName(g_eCurrentReligion)), kReligionInfo.IconAtlas, kReligionInfo.PortraitIndex);\r\n\t\t\telse\r\n\t\t\t\tShow(Controls.LabelPleaseSelectAReligion);\r\n\t\t\tend\r\n\r\n\t\t\tValidateSelection();\r\n\r\n\t\t\tToggleBeliefSlot(BeliefSlots.NONE);\r\n\t\telse\r\n\t\t\tif g_popupInfo then\r\n\t\t\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(g_popupInfo.Type, 0);\r\n\t\t\tend\r\n\t\t\tUI.decTurnTimerSemaphore();\r\n\t\tend\r\n\tend\r\nend\r\nContextPtr:SetShowHideHandler(ShowHideHandler);\r\n"
+          }
+        ],
+        "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ChooseReligionPopupAccess\")\r\n"
+      }
     },
     "InGame/Popups/ChooseTradeUnitNewHome.lua": {
       "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChooseTradeUnitNewHomeAccess\")\n"
@@ -553,10 +626,23 @@
     },
     "InGame/Popups/TechPopup.lua": {
       "suffix": "include(\"CivVAccess_ChooseTechPopupAccess\");\r\n\r\n",
-      "refit": true
-    },
-    "InGame/Popups/TechPopup.xml": {
-      "refit": true
+      "vp": {
+        "edits": [
+          {
+            "old": "local function ClosePopup()\r\n",
+            "new": "-- CivVAccess: ClosePopup is exposed as a global (dropped `local`) so\r\n-- the accessibility include at the end of this file can dismiss the\r\n-- popup after a commit.\r\nfunction ClosePopup()\r\n"
+          },
+          {
+            "old": "ContextPtr:SetInputHandler(function (uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_ESCAPE then\r\n\t\t\tClosePopup();\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction InputHandler(uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_ESCAPE then\r\n\t\t\tClosePopup();\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\nend\r\nContextPtr:SetInputHandler(InputHandler);\r\n"
+          },
+          {
+            "old": "Controls.OpenTTButton:RegisterCallback(Mouse.eLClick, function ()\r\n\tClosePopup();\r\n\tEvents.SerialEventGameMessagePopup{Type = ButtonPopupTypes.BUTTONPOPUP_TECH_TREE, Data2 = g_eStealTechTargetPlayer};\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction OpenTechTree()\r\n\tClosePopup();\r\n\tEvents.SerialEventGameMessagePopup{Type = ButtonPopupTypes.BUTTONPOPUP_TECH_TREE, Data2 = g_eStealTechTargetPlayer};\r\nend\r\nControls.OpenTTButton:RegisterCallback(Mouse.eLClick, OpenTechTree);\r\n"
+          }
+        ],
+        "suffix": "include(\"CivVAccess_ChooseTechPopupAccess\");\r\n\r\n"
+      }
     },
     "InGame/Popups/TextPopup.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_TextPopupAccess\")\r\n"

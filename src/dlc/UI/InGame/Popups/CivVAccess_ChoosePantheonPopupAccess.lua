@@ -14,6 +14,7 @@
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_ChooseConfirmSub")
+include("CivVAccess_BeliefAdvisor")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -47,6 +48,7 @@ local function buildItems(popupInfo)
     local available = bPantheons and Game.GetAvailablePantheonBeliefs() or Game.GetAvailableReformationBeliefs()
 
     local rows = {}
+    local offeredIDs = {}
     for _, beliefID in ipairs(available) do
         local belief = GameInfo.Beliefs[beliefID]
         if belief ~= nil then
@@ -55,17 +57,25 @@ local function buildItems(popupInfo)
                 Name = Text.key(belief.ShortDescription),
                 Description = Text.key(belief.Description),
             }
+            offeredIDs[#offeredIDs + 1] = belief.ID
         end
     end
     table.sort(rows, function(a, b)
         return Locale.Compare(a.Name, b.Name) < 0
     end)
 
+    -- Engine advisor ranking (empty map on vanilla).
+    local advisor = BeliefAdvisor.labelSuffixes(offeredIDs)
+
     local items = {}
     for _, row in ipairs(rows) do
         local beliefID = row.ID
+        local label = row.Name
+        if advisor[beliefID] ~= nil then
+            label = label .. ", " .. advisor[beliefID]
+        end
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = row.Name,
+            labelText = label,
             tooltipText = row.Description,
             activate = function()
                 SelectPantheon(beliefID)

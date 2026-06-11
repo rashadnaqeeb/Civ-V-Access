@@ -34,90 +34,187 @@
 -- rejection), we speak the error and stay in the sub; on success the
 -- overlay hides and the sub pops. Cancel / Esc hide the overlay through
 -- the sub's onDeactivate.
+--
+-- Engine awareness: Community Patch rewrites this screen. Our vp vendor
+-- recipe re-exposes everything the wrapper drives (SelectReligion,
+-- ChangeReligionName, OnYes, OnChangeName*, FoundReligion, the handlers,
+-- and the state globals), but four contracts still differ from vanilla
+-- and branch on the IS_CP probe below: the committed-belief table
+-- (g_tSelectedBeliefs with its own slot numbering vs g_Beliefs), the
+-- commit validator (ValidateSelection vs CheckifCanCommit), the current
+-- religion name (g_strCurrentReligionName holds localized text vs
+-- g_CurrentReligionName holding a text key), and "already has a
+-- religion" (OwnsReligion -- religions can change hands under VP -- vs
+-- HasCreatedReligion). CP also scores offered beliefs (BeliefAdvisor
+-- suffixes) and ships a Tooltip column whose text replaces Description
+-- on hover for the faith-building beliefs; we append it when it differs.
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_ChooseConfirmSub")
+include("CivVAccess_BeliefAdvisor")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
+-- Engine probe. The vendor file ran before this include, so under CP the
+-- recipe-promoted g_tSelectedBeliefs global already exists; vanilla
+-- defines g_Beliefs instead.
+local IS_CP = g_tSelectedBeliefs ~= nil
+
 local mainHandler -- forward declared, assigned after install
 
--- Slot metadata. slotIndex matches the g_Beliefs[] key the base script uses;
--- nameKey is the engine TXT_KEY for the slot's short label; picker is the
--- accessor for available-belief IDs; dedup lists slot indices whose
--- already-picked belief this session must be excluded (mirrors the
--- v ~= g_Beliefs[N] guards in base's On*BeliefClick).
+-- The committed-belief table and the slot key for it. Vanilla's g_Beliefs
+-- uses 4=Follower 2, 5=Enhancer, 6=Bonus; CP's g_tSelectedBeliefs uses
+-- 4=Bonus, 5=Follower 2, 6=Enhancer.
+local function beliefsTable()
+    if IS_CP then
+        return g_tSelectedBeliefs
+    end
+    return g_Beliefs
+end
+
+local function slotIdx(slot)
+    if IS_CP then
+        return slot.cpIndex
+    end
+    return slot.slotIndex
+end
+
+-- "Already has a religion" gate. CP's UI gates on ownership because
+-- religions can change hands under VP; OwnsReligion doesn't exist on
+-- vanilla, where founding is the only way to have one.
+local function hasReligion(pPlayer)
+    if pPlayer.OwnsReligion ~= nil then
+        return pPlayer:OwnsReligion()
+    end
+    return pPlayer:HasCreatedReligion()
+end
+
+-- The religion a player holds, or nil. Mirrors each engine's own
+-- religion-list builder (CP filters out pantheon-only ownership).
+local function foundedReligionOf(pPlayer)
+    if pPlayer.OwnsReligion ~= nil then
+        if pPlayer:OwnsReligion() then
+            local eReligion = pPlayer:GetOwnedReligion()
+            if eReligion > ReligionTypes.RELIGION_PANTHEON then
+                return eReligion
+            end
+        end
+        return nil
+    end
+    if pPlayer:HasCreatedReligion() then
+        return pPlayer:GetReligionCreatedByPlayer()
+    end
+    return nil
+end
+
+-- Commit-readiness refresh after a slot pick (drives the FoundReligion
+-- button's disabled state, which our confirm item narrates).
+local function validateCommit()
+    if CheckifCanCommit ~= nil then
+        CheckifCanCommit()
+    else
+        ValidateSelection()
+    end
+end
+
+-- Current religion name for the picker / name rows. Vanilla stores the
+-- religion's text key (custom names pass through Text.key unchanged);
+-- CP stores already-localized text.
+local function currentReligionName()
+    if IS_CP then
+        return g_strCurrentReligionName
+    end
+    if g_CurrentReligionName == nil then
+        return nil
+    end
+    return Text.key(g_CurrentReligionName)
+end
+
+-- Slot metadata. slotIndex matches the g_Beliefs[] key the vanilla base
+-- script uses, cpIndex the g_tSelectedBeliefs key in CP's BeliefSlots
+-- enum; nameKey is the engine TXT_KEY for the slot's short label; picker
+-- is the accessor for available-belief IDs; dedup (assigned below, after
+-- all six exist) lists slots whose already-picked belief this session
+-- must be excluded (mirrors the exclusion guards both engines' belief
+-- click handlers use).
 local SLOT_PANTHEON = {
     slotIndex = 1,
+    cpIndex = 1,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_PANTHEON_BELIEF",
     picker = function()
         return Game.GetAvailablePantheonBeliefs()
     end,
-    dedup = { 6 },
 }
 local SLOT_FOUNDER = {
     slotIndex = 2,
+    cpIndex = 2,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_FOUNDER_BELIEF",
     picker = function()
         return Game.GetAvailableFounderBeliefs()
     end,
-    dedup = { 6 },
 }
 local SLOT_FOLLOWER = {
     slotIndex = 3,
+    cpIndex = 3,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_FOLLOWER_BELIEF",
     picker = function()
         return Game.GetAvailableFollowerBeliefs()
     end,
-    dedup = { 6 },
 }
 local SLOT_FOLLOWER2 = {
     slotIndex = 4,
+    cpIndex = 5,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_FOLLOWER_BELIEF2",
     picker = function()
         return Game.GetAvailableFollowerBeliefs()
     end,
-    dedup = {},
 }
 local SLOT_ENHANCER = {
     slotIndex = 5,
+    cpIndex = 6,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_SPREAD_BELIEF",
     picker = function()
         return Game.GetAvailableEnhancerBeliefs()
     end,
-    dedup = {},
 }
 local SLOT_BONUS = {
     slotIndex = 6,
+    cpIndex = 4,
     nameKey = "TXT_KEY_CHOOSE_RELIGION_BONUS_BELIEF",
     picker = function()
         return Game.GetAvailableBonusBeliefs()
     end,
-    dedup = { 1, 2, 3 },
 }
+SLOT_PANTHEON.dedup = { SLOT_BONUS }
+SLOT_FOUNDER.dedup = { SLOT_BONUS }
+SLOT_FOLLOWER.dedup = { SLOT_BONUS }
+SLOT_FOLLOWER2.dedup = {}
+SLOT_ENHANCER.dedup = {}
+SLOT_BONUS.dedup = { SLOT_PANTHEON, SLOT_FOUNDER, SLOT_FOLLOWER }
 
 -- Slot-state classifier. Returns one of "editable", "committed", "later",
--- "byzantines_only". Replicates the dispatch in base's RefreshExistingBeliefs
--- (HasCreatedReligion / HasCreatedPantheon / Byzantines trait branches).
+-- "byzantines_only". Replicates the dispatch in base's
+-- RefreshExistingBeliefs (already-has-religion / HasCreatedPantheon /
+-- Byzantines trait branches; see hasReligion for the per-engine gate).
 local function slotState(slot, pPlayer)
-    local hasReligion = pPlayer:HasCreatedReligion()
+    local owned = hasReligion(pPlayer)
     local hasPantheon = pPlayer:HasCreatedPantheon()
     local hasByzantine = pPlayer:IsTraitBonusReligiousBelief()
     if slot == SLOT_PANTHEON then
-        if hasReligion or hasPantheon then
+        if owned or hasPantheon then
             return "committed"
         end
         return "editable"
     end
     if slot == SLOT_FOUNDER or slot == SLOT_FOLLOWER then
-        if hasReligion then
+        if owned then
             return "committed"
         end
         return "editable"
     end
     if slot == SLOT_FOLLOWER2 or slot == SLOT_ENHANCER then
-        if hasReligion then
+        if owned then
             return "editable"
         end
         return "later"
@@ -126,7 +223,7 @@ local function slotState(slot, pPlayer)
     if not hasByzantine then
         return "byzantines_only"
     end
-    if hasReligion then
+    if owned then
         return "committed"
     end
     return "editable"
@@ -142,7 +239,7 @@ local function slotLabel(slot)
     if state == "byzantines_only" then
         return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_BYZANTINES_ONLY", slotName)
     end
-    local beliefID = g_Beliefs[slot.slotIndex]
+    local beliefID = beliefsTable()[slotIdx(slot)]
     if beliefID ~= nil then
         local beliefName = Text.key(GameInfo.Beliefs[beliefID].ShortDescription)
         return Text.format("TXT_KEY_CIVVACCESS_RELIGION_SLOT_CHOSEN", slotName, beliefName)
@@ -151,40 +248,62 @@ local function slotLabel(slot)
 end
 
 -- Drill-in children for an editable slot. Rebuilt on every drill
--- (cached=false on the Group) so dedup reflects the latest g_Beliefs state.
+-- (cached=false on the Group) so dedup reflects the latest committed-
+-- belief state.
 local function buildBeliefChoices(slot)
     local dedup = {}
-    for _, idx in ipairs(slot.dedup) do
-        local bid = g_Beliefs[idx]
+    for _, dedupSlot in ipairs(slot.dedup) do
+        local bid = beliefsTable()[slotIdx(dedupSlot)]
         if bid ~= nil then
             dedup[bid] = true
         end
     end
     local rows = {}
+    local offeredIDs = {}
     for _, id in ipairs(slot.picker()) do
         if not dedup[id] then
             local b = GameInfo.Beliefs[id]
+            local description = Text.key(b.Description)
+            local tooltip = description
+            -- CP's Tooltip column replaces the hover text; for the
+            -- faith-building beliefs it carries the building's full
+            -- stats. Append it where it adds anything (the column reads
+            -- nil on vanilla and equals Description for most beliefs).
+            if b.Tooltip ~= nil then
+                local extended = Text.key(b.Tooltip)
+                if extended ~= description then
+                    tooltip = description .. ", " .. extended
+                end
+            end
             rows[#rows + 1] = {
                 id = id,
                 name = Text.key(b.ShortDescription),
-                description = Text.key(b.Description),
+                tooltip = tooltip,
             }
+            offeredIDs[#offeredIDs + 1] = id
         end
     end
     table.sort(rows, function(a, b)
         return Locale.Compare(a.name, b.name) < 0
     end)
+
+    -- Engine advisor ranking (empty map on vanilla).
+    local advisor = BeliefAdvisor.labelSuffixes(offeredIDs)
+
     local items = {}
     for _, row in ipairs(rows) do
         local beliefID = row.id
-        local beliefName = row.name
-        local beliefDesc = row.description
+        local beliefLabel = row.name
+        if advisor[beliefID] ~= nil then
+            beliefLabel = beliefLabel .. ", " .. advisor[beliefID]
+        end
+        local beliefTooltip = row.tooltip
         items[#items + 1] = BaseMenuItems.Choice({
-            labelText = beliefName,
-            tooltipText = beliefDesc,
+            labelText = beliefLabel,
+            tooltipText = beliefTooltip,
             activate = function()
-                g_Beliefs[slot.slotIndex] = beliefID
-                CheckifCanCommit()
+                beliefsTable()[slotIdx(slot)] = beliefID
+                validateCommit()
                 mainHandler._goBackLevel()
             end,
         })
@@ -203,7 +322,7 @@ local function buildSlotItem(slot)
         -- label segments, so slots with belief name inlined in the label
         -- don't re-announce the name twice.
         tooltipFn = function()
-            local beliefID = g_Beliefs[slot.slotIndex]
+            local beliefID = beliefsTable()[slotIdx(slot)]
             if beliefID == nil then
                 return nil
             end
@@ -232,12 +351,14 @@ local function buildReligionChoices()
     local taken = {}
     for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
         local pPlayer = Players[iPlayer]
-        if pPlayer:IsEverAlive() and pPlayer:HasCreatedReligion() then
-            local eReligion = pPlayer:GetReligionCreatedByPlayer()
-            if pActiveTeam:IsHasMet(pPlayer:GetTeam()) then
-                taken[eReligion] = pPlayer:GetName()
-            else
-                taken[eReligion] = Text.key("TXT_KEY_CHOOSE_RELIGION_UNMET_PLAYER")
+        if pPlayer:IsEverAlive() then
+            local eReligion = foundedReligionOf(pPlayer)
+            if eReligion ~= nil then
+                if pActiveTeam:IsHasMet(pPlayer:GetTeam()) then
+                    taken[eReligion] = pPlayer:GetName()
+                else
+                    taken[eReligion] = Text.key("TXT_KEY_CHOOSE_RELIGION_UNMET_PLAYER")
+                end
             end
         end
     end
@@ -267,7 +388,14 @@ local function buildReligionChoices()
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = religionName,
                 activate = function()
-                    SelectReligion(religionID, religionDescKey, iconAtlas, portraitIndex)
+                    -- Vanilla's SelectReligion expects the religion's text
+                    -- key (it localizes when it builds the name label);
+                    -- CP's expects already-localized text.
+                    if IS_CP then
+                        SelectReligion(religionID, religionName, iconAtlas, portraitIndex)
+                    else
+                        SelectReligion(religionID, religionDescKey, iconAtlas, portraitIndex)
+                    end
                     mainHandler._goBackLevel()
                 end,
             })
@@ -290,10 +418,11 @@ local function buildReligionChoices()
 end
 
 local function religionPickerLabel()
-    if g_CurrentReligionName == nil or g_CurrentReligionName == "" then
+    local name = currentReligionName()
+    if name == nil or name == "" then
         return Text.key("TXT_KEY_CIVVACCESS_RELIGION_PICKER_UNSELECTED")
     end
-    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_PICKER_SELECTED", Text.key(g_CurrentReligionName))
+    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_PICKER_SELECTED", name)
 end
 
 local function buildReligionPickerItem(isFounding)
@@ -313,10 +442,10 @@ end
 -- Name row ------------------------------------------------------------------
 
 -- Name row is gated on ReligionPanel visibility, which is only set once
--- SelectReligion has populated g_CurrentReligionName. The labelFn never
+-- SelectReligion has populated the current-name global. The labelFn never
 -- runs before the name is set.
 local function nameRowLabel()
-    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW", Text.key(g_CurrentReligionName))
+    return Text.format("TXT_KEY_CIVVACCESS_RELIGION_NAME_ROW", currentReligionName())
 end
 
 local function pushNameEditSub()

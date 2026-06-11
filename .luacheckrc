@@ -166,6 +166,7 @@ globals = {
     "CityViewHexMap", "CityViewProduction", "CityViewHub",
     "GiftMode",
     "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText",
+    "BeliefAdvisor",
     "NotificationAnnounce",
     "Recommendations",
     "SocialPolicyLogic",
