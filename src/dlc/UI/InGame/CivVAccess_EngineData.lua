@@ -99,29 +99,41 @@ function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHe
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, bHelp)
 end
 
--- Drift read: the player's net happiness surplus. On vanilla this is a
--- signed integer (positive = happy, negative = unhappy). Consumers treat it
--- as a signed surplus: the H-key readout, the golden-age detail, the
--- Culture Overview cell, and the Demographics approval formula
--- (60 + excess*3).
---
--- KNOWN COARSENING CANDIDATE FOR VP. Routing this getter is necessary but
--- not sufficient on Vox Populi: VP redefines GetExcessHappiness as a 0-to-100
--- approval percentage where 50 is neutral, not a signed surplus, so every
--- consumer that interprets the number is wrong for VP no matter how clean
--- the getter call is. When VP is onboarded this seam must coarsen -- return
--- a model (the number plus whether it is an approval or a surplus, plus the
--- breakdown) and have the readouts format from that model. Deferred until VP
--- forces it; flagged here so the VP work does not rediscover it. The same
--- caveat applies to the unhappiness-component reads below, which VP zeroes
--- under its citizen-needs model.
-function EngineData.excessHappiness(player)
-    return player:GetExcessHappiness()
+-- Drift read: the empire happiness headline, returned as a model rather
+-- than a bare number because the headline METRIC differs by engine. Here
+-- the number is a signed surplus; Vox Populi redefines the same getter
+-- (GetExcessHappiness) as a 0-100 approval percentage, so a raw number
+-- would invite the silent-value failure where a consumer formats one
+-- metric as the other. Consumers (the H readout, golden-age detail,
+-- Demographics approval, the Culture Overview cell, the Economic Overview
+-- happiness tab) branch on mode:
+--   mode "surplus": value is the signed happiness surplus.
+--   mode "approval" (VP balance): value is the approval percent, and
+--     happyCitizens / unhappyCitizens carry the empire citizen counts.
+-- state is the spoken empire mood tier from the engine's own state
+-- getters: "happy" / "unhappy" / "veryUnhappy" here (super-unhappy folds
+-- into veryUnhappy, matching what the H readout always spoke); the VP
+-- implementation widens the vocabulary to the six tiers its top panel
+-- color-codes (ecstatic / happy / content / unhappy / veryUnhappy /
+-- superUnhappy).
+function EngineData.happinessSummary(player)
+    local state = "happy"
+    if player:IsEmpireVeryUnhappy() then
+        state = "veryUnhappy"
+    elseif player:IsEmpireUnhappy() then
+        state = "unhappy"
+    end
+    return { mode = "surplus", value = player:GetExcessHappiness(), state = state }
 end
 
+-- The breakdown getters below answer vanilla-model questions (the
+-- per-source buckets of the vanilla happiness system). Consumers reach
+-- them only from a happinessSummary mode "surplus" branch; the VP
+-- implementation errors loudly if one is called under the approval model,
+-- where these buckets do not exist.
+
 -- Drift read: happiness contributed by buildings. VP returns a hardcoded 0
--- (its happiness lives in the citizen-needs model), so this seam is where a
--- VP adapter would source the equivalent value.
+-- (its happiness lives in the citizen-needs model).
 function EngineData.happinessFromBuildings(player)
     return player:GetHappinessFromBuildings()
 end

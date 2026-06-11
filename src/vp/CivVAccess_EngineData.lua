@@ -92,48 +92,98 @@ function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHe
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, false, bHelp)
 end
 
--- ===== Happiness reads: PRE-REBUILD PASSTHROUGHS =====
--- VP guts the vanilla happiness surface: GetExcessHappiness is a 0-100
--- approval percentage (not a signed surplus), and the per-source getters
--- below return hardcoded 0 under MOD_BALANCE_VP (CvPlayer.cpp:20590-22146).
--- These passthroughs return what VP's engine actually answers, which is NOT
--- what the vanilla-shaped consumers (H-key readout, Economic Overview
--- happiness tab, golden-age detail, Culture Overview / Demographics
--- approval) were written to speak. The empire-happiness presentation
--- rebuild -- a pending design session in the VP port plan -- replaces both
--- these seams and their consumers against VP's citizen-needs surface.
--- Until then no VP deploy ships speech from these readouts; the parity
--- suite keeps the function set aligned in the meantime.
-
-function EngineData.excessHappiness(player)
-    return player:GetExcessHappiness()
+-- Is the Vox Populi balance mode on? VP guts the vanilla happiness model
+-- only under MOD_BALANCE_VP; a Community-Patch-only session (balance off)
+-- keeps the vanilla signed-surplus semantics. Same gate the vendor UIs use.
+local function balanceVP()
+    return Game.IsCustomModOption ~= nil and Game.IsCustomModOption("BALANCE_VP")
 end
 
-function EngineData.happinessFromBuildings(player)
+-- Drift read: the empire happiness headline model (see the vanilla file
+-- for the full contract). Under VP balance, GetExcessHappiness is the
+-- approval percentage: happy citizens over unhappy citizens, capped and
+-- halved, 100 when nobody is unhappy, 50 when they balance
+-- (CvPlayer::CalculateNetHappiness). The citizen counts are the sums the
+-- top panel displays next to it. state mirrors the top panel's six color
+-- tiers: the three negative ones come from the engine's own state getters
+-- (engine thresholds: unhappy below 50, very below 35, super below 20),
+-- the three positive cuts (75 / 60) are mirrored from VP's TopPanel.lua,
+-- which hardcodes them for its colors. In a balance-off (CP-only) session
+-- the engine reverts to the signed-surplus model, so the summary does too.
+function EngineData.happinessSummary(player)
+    if not balanceVP() then
+        local state = "happy"
+        if player:IsEmpireVeryUnhappy() then
+            state = "veryUnhappy"
+        elseif player:IsEmpireUnhappy() then
+            state = "unhappy"
+        end
+        return { mode = "surplus", value = player:GetExcessHappiness(), state = state }
+    end
+    local percent = player:GetExcessHappiness()
+    local state
+    if player:IsEmpireSuperUnhappy() then
+        state = "superUnhappy"
+    elseif player:IsEmpireVeryUnhappy() then
+        state = "veryUnhappy"
+    elseif player:IsEmpireUnhappy() then
+        state = "unhappy"
+    elseif percent >= 75 then
+        state = "ecstatic"
+    elseif percent >= 60 then
+        state = "happy"
+    else
+        state = "content"
+    end
+    return {
+        mode = "approval",
+        value = percent,
+        happyCitizens = player:GetHappinessFromCitizenNeeds(),
+        unhappyCitizens = player:GetUnhappinessFromCitizenNeeds(),
+        state = state,
+    }
+end
+
+-- The vanilla-model breakdown getters. Under VP balance these buckets do
+-- not exist (the engine hardcodes them to 0 under MOD_BALANCE_VP), so a
+-- call here is a consumer that failed to branch on happinessSummary().mode
+-- -- a bug, not a data request. Crash with a named breadcrumb (reaches
+-- Lua.log via the engine's per-listener catch) instead of speaking a
+-- fabricated 0. In a balance-off session the engine keeps the vanilla
+-- values and the consumers' surplus branches legitimately land here, so
+-- the bodies pass through.
+local function vanillaModelRead(name, fn)
+    EngineData[name] = function(...)
+        if balanceVP() then
+            error("EngineData." .. name .. ": vanilla-model getter under VP balance; branch on happinessSummary().mode")
+        end
+        return fn(...)
+    end
+end
+
+vanillaModelRead("happinessFromBuildings", function(player)
     return player:GetHappinessFromBuildings()
-end
+end)
 
-function EngineData.happinessFromPolicies(player)
+vanillaModelRead("happinessFromPolicies", function(player)
     return player:GetHappinessFromPolicies()
-end
+end)
 
-function EngineData.unhappinessFromCityCount(player)
+vanillaModelRead("unhappinessFromCityCount", function(player)
     return player:GetUnhappinessFromCityCount()
-end
+end)
 
-function EngineData.unhappinessFromCapturedCityCount(player)
+vanillaModelRead("unhappinessFromCapturedCityCount", function(player)
     return player:GetUnhappinessFromCapturedCityCount()
-end
+end)
 
-function EngineData.unhappinessFromCityPopulation(player)
+vanillaModelRead("unhappinessFromCityPopulation", function(player)
     return player:GetUnhappinessFromCityPopulation()
-end
+end)
 
-function EngineData.unhappinessFromCity(player, city)
+vanillaModelRead("unhappinessFromCity", function(player, city)
     return player:GetUnhappinessFromCityForUI(city)
-end
-
--- ===== End pre-rebuild passthroughs =====
+end)
 
 -- Drift read: the player's tourism output per turn. VP's getter is
 -- times-100; floor /100 mirrors VP's own TopPanel display

@@ -201,3 +201,36 @@ function TextFilter.filter(text)
     s = s:gsub("%s+", " "):gsub("^[%s,]+", ""):gsub("[%s,]+$", "")
     return s
 end
+
+-- Split [NEWLINE]-delimited engine display text into clean per-line
+-- speech rows: each chunk goes through TextFilter.filter (markup strip,
+-- whitespace collapse) and empty chunks (leading newlines, paragraph
+-- gaps) are dropped so a screen reader never lands on a silent item.
+-- This is the row source for drillables built from the engine's prebuilt
+-- breakdown strings (CityView stats, the VP Economic Overview per-city
+-- happiness drills).
+function TextFilter.splitLines(text)
+    if text == nil or text == "" then
+        return {}
+    end
+    local rows = {}
+    local cursor = 1
+    while true do
+        local s, e = string.find(text, "%[NEWLINE%]", cursor, false)
+        local chunk
+        if s == nil then
+            chunk = string.sub(text, cursor)
+        else
+            chunk = string.sub(text, cursor, s - 1)
+        end
+        local filtered = TextFilter.filter(chunk)
+        if filtered ~= nil and filtered ~= "" then
+            rows[#rows + 1] = filtered
+        end
+        if s == nil then
+            break
+        end
+        cursor = e + 1
+    end
+    return rows
+end

@@ -1906,6 +1906,26 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE"] = {
     other = "golden age for {1_Turns} turns",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS"] = "{1_Cur} of {2_Threshold} to golden age"
+-- Per-turn golden-age-point rate, trailing the GA_PROGRESS clause under
+-- the VP balance model (mirrors the rate VP's top panel shows inline).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_RATE"] = "plus {1_Rate} per turn"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_RATE_NEGATIVE"] = "minus {1_Rate} per turn"
+-- VP balance-model bare H headline: the approval percent leads, then a
+-- TIER word (the spoken form of the percent's on-screen color), then the
+-- empire happy / unhappy citizen counts. The bottom three tiers map to
+-- the engine's empire-state getters; the top three mirror VP's top-panel
+-- color cuts (75 and 60).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_APPROVAL"] = "{1_Percent} percent approval"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_CITIZEN_COUNTS"] = {
+    one = "{1_Happy} happy, {2_Unhappy} unhappy citizen",
+    other = "{1_Happy} happy, {2_Unhappy} unhappy citizens",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_ECSTATIC"] = "ecstatic"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_HAPPY"] = "happy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_CONTENT"] = "content"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_UNHAPPY"] = "unhappy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_VERY_UNHAPPY"] = "very unhappy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_SUPER_UNHAPPY"] = "super unhappy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPINESS_OFF"] = "Happiness off"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH"] = "+{1_Rate} faith, {2_Total} total"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_OFF"] = "Religion off"
@@ -2813,6 +2833,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Public opinion, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Per city breakdown"
+-- VP balance-model rows of the happiness tab (the row set mirrors VP's
+-- own overview page; rows shared with vanilla reuse the keys above).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS"] = "Events, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS"] = "Vassals, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS"] = "Wars with major civilizations, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS"] = "War weariness, {1_Value}"
+-- Carries the summed per-city unhappiness the page shows next to its
+-- City Breakdown toggle (it can differ from the empire unhappiness total).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY_TOTAL"] = "Per city breakdown, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Used"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Local"
@@ -2981,6 +3010,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_IDEOLOGY"] = "Ideology"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_OPINION"] = "Public opinion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_UNHAPPY"] = "Public opinion unhappiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY"] = "Excess happiness"
+-- VP balance model: the same column carries the approval percent instead
+-- of a signed surplus, so the header and cell rename to match.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_APPROVAL"] = "Approval"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_APPROVAL_PERCENT"] = "{1_Value} percent"
 -- Tab 4 (Player Influence). BaseTable: row label is the row civ's display
 -- name, columns are the engine's six. Column 1 ("Change perspective") folds
 -- the engine's perspective picker plus the perspective's overall-tourism

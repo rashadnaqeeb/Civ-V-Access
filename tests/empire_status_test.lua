@@ -683,6 +683,104 @@ function M.test_happiness_skips_inventory_when_no_luxuries()
     T.eq(EmpireStatus._happinessLine(), "+5 happiness, 0 of 200 to golden age")
 end
 
+-- VP balance (approval model) happiness line ------------------------------
+-- The model itself is covered by the engine_data_vp suite; here the seam
+-- is patched and the LINE composition is the unit under test: percent
+-- first, tier word, citizen counts, the GA progress clause with the
+-- per-turn GAP rate.
+
+-- Run fn with EngineData.happinessSummary patched to return `summary`,
+-- restoring the real seam afterward even on failure.
+local function withSummary(summary, fn)
+    local saved = EngineData.happinessSummary
+    EngineData.happinessSummary = function()
+        return summary
+    end
+    local ok, err = pcall(fn)
+    EngineData.happinessSummary = saved
+    if not ok then
+        error(err, 0)
+    end
+end
+
+-- Install the VP GAP getters on the scripted player. flat covers the
+-- three whole-point sources; citiesTimes100 is the engine-hundredths city
+-- contribution.
+local function installGAP(flat, citiesTimes100)
+    activePlayer.GetHappinessForGAP = function()
+        return flat
+    end
+    activePlayer.GetGAPFromReligion = function()
+        return 0
+    end
+    activePlayer.GetGAPFromTraits = function()
+        return 0
+    end
+    activePlayer.GetGAPFromCitiesTimes100 = function()
+        return citiesTimes100
+    end
+end
+
+function M.test_happiness_line_approval_speaks_percent_tier_counts_and_rate()
+    setup()
+    goldenAgeData = { turns = 0, meter = 30, threshold = 100 }
+    -- 11 flat plus 1.5 from cities = 12.5, floored to 12 like the panel.
+    installGAP(11, 150)
+    withSummary(
+        { mode = "approval", value = 62, happyCitizens = 40, unhappyCitizens = 13, state = "content" },
+        function()
+            T.eq(
+                EmpireStatus._happinessLine(),
+                "62 percent approval, content, 40 happy, 13 unhappy citizens, 30 of 100 to golden age, plus 12 per turn"
+            )
+        end
+    )
+end
+
+function M.test_happiness_line_approval_tier_word_super_unhappy()
+    setup()
+    goldenAgeData = { turns = 5, meter = 0, threshold = 100 }
+    withSummary(
+        { mode = "approval", value = 15, happyCitizens = 4, unhappyCitizens = 20, state = "superUnhappy" },
+        function()
+            T.eq(
+                EmpireStatus._happinessLine(),
+                "15 percent approval, super unhappy, 4 happy, 20 unhappy citizens, golden age for 5 turns"
+            )
+        end
+    )
+end
+
+function M.test_happiness_line_approval_zero_gap_rate_omits_clause()
+    setup()
+    goldenAgeData = { turns = 0, meter = 0, threshold = 100 }
+    installGAP(0, 0)
+    withSummary(
+        { mode = "approval", value = 100, happyCitizens = 9, unhappyCitizens = 0, state = "ecstatic" },
+        function()
+            T.eq(
+                EmpireStatus._happinessLine(),
+                "100 percent approval, ecstatic, 9 happy, 0 unhappy citizens, 0 of 100 to golden age"
+            )
+        end
+    )
+end
+
+function M.test_happiness_line_approval_negative_gap_rate()
+    setup()
+    goldenAgeData = { turns = 0, meter = 50, threshold = 100 }
+    installGAP(-3, 0)
+    withSummary(
+        { mode = "approval", value = 40, happyCitizens = 10, unhappyCitizens = 25, state = "unhappy" },
+        function()
+            T.eq(
+                EmpireStatus._happinessLine(),
+                "40 percent approval, unhappy, 10 happy, 25 unhappy citizens, 50 of 100 to golden age, minus 3 per turn"
+            )
+        end
+    )
+end
+
 -- Faith line -------------------------------------------------------------
 
 function M.test_faith_speaks_rate_and_total()

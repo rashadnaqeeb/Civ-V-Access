@@ -509,6 +509,104 @@ function M.test_vp_best_defender_positional_args_and_potential_enemy_contract()
     T.eq(seen, nil, "potential-enemy queries must not reach the engine on VP")
 end
 
+-- Player stub for happinessSummary: engine-state getters plus the
+-- citizen-needs surface, all overridable per test.
+local function summaryPlayer(opts)
+    return {
+        GetExcessHappiness = function()
+            return opts.excess or 0
+        end,
+        IsEmpireUnhappy = function()
+            return opts.unhappy or false
+        end,
+        IsEmpireVeryUnhappy = function()
+            return opts.veryUnhappy or false
+        end,
+        IsEmpireSuperUnhappy = function()
+            return opts.superUnhappy or false
+        end,
+        GetHappinessFromCitizenNeeds = function()
+            return opts.happyCitizens or 0
+        end,
+        GetUnhappinessFromCitizenNeeds = function()
+            return opts.unhappyCitizens or 0
+        end,
+    }
+end
+
+-- VP module with the balance mode on, so the approval-model branches run.
+local function loadVPWithBalance()
+    local vp, env = loadVPWithFork()
+    env.Game.IsCustomModOption = function(option)
+        return option == "BALANCE_VP"
+    end
+    return vp, env
+end
+
+function M.test_vp_happiness_summary_approval_model_fields()
+    local vp, _env = loadVPWithBalance()
+    local s = vp.happinessSummary(summaryPlayer({ excess = 62, happyCitizens = 40, unhappyCitizens = 13 }))
+    T.eq(s.mode, "approval")
+    T.eq(s.value, 62)
+    T.eq(s.happyCitizens, 40)
+    T.eq(s.unhappyCitizens, 13)
+    T.eq(s.state, "happy", "62 falls in the 60-75 tier")
+end
+
+-- The tier cuts mirror VP's top-panel colors; a drifted boundary speaks
+-- the wrong mood word with nothing crashing.
+function M.test_vp_happiness_summary_tier_boundaries()
+    local vp, _env = loadVPWithBalance()
+    T.eq(vp.happinessSummary(summaryPlayer({ excess = 75 })).state, "ecstatic")
+    T.eq(vp.happinessSummary(summaryPlayer({ excess = 74 })).state, "happy")
+    T.eq(vp.happinessSummary(summaryPlayer({ excess = 60 })).state, "happy")
+    T.eq(vp.happinessSummary(summaryPlayer({ excess = 59 })).state, "content")
+    -- Below 50 the engine-state getters own the verdict, not the percent.
+    T.eq(vp.happinessSummary(summaryPlayer({ excess = 49, unhappy = true })).state, "unhappy")
+    T.eq(vp.happinessSummary(summaryPlayer({ excess = 30, unhappy = true, veryUnhappy = true })).state, "veryUnhappy")
+    T.eq(
+        vp.happinessSummary(summaryPlayer({ excess = 10, unhappy = true, veryUnhappy = true, superUnhappy = true })).state,
+        "superUnhappy"
+    )
+end
+
+-- A Community-Patch-only session (balance off) keeps the vanilla
+-- signed-surplus model; the summary must report it as such or every
+-- consumer would format a surplus as a percent.
+function M.test_vp_happiness_summary_surplus_shape_when_balance_off()
+    local vp, _env = loadVPWithFork()
+    local s = vp.happinessSummary(summaryPlayer({ excess = -7, unhappy = true }))
+    T.eq(s.mode, "surplus")
+    T.eq(s.value, -7)
+    T.eq(s.state, "unhappy")
+    T.eq(s.happyCitizens, nil, "citizen counts are an approval-model field")
+end
+
+-- The vanilla-model breakdown getters have no VP-balance answer; a call
+-- there is a consumer that failed to branch, and it must crash with a
+-- breadcrumb instead of speaking a fabricated 0.
+function M.test_vp_vanilla_model_getters_error_under_balance()
+    local vp, _env = loadVPWithBalance()
+    local player = {
+        GetHappinessFromBuildings = function()
+            return 0
+        end,
+    }
+    local ok, err = pcall(vp.happinessFromBuildings, player)
+    T.falsy(ok, "vanilla-model getter must raise under VP balance")
+    T.truthy(tostring(err):find("happinessSummary", 1, true), "error must point at the mode branch")
+end
+
+function M.test_vp_vanilla_model_getters_pass_through_when_balance_off()
+    local vp, _env = loadVPWithFork()
+    local player = {
+        GetUnhappinessFromCityCount = function()
+            return 350
+        end,
+    }
+    T.eq(vp.unhappinessFromCityCount(player), 350)
+end
+
 function M.test_vp_has_line_of_sight_defeats_range_and_facing_gates()
     local vp, _env = loadVPWithFork()
     local seen

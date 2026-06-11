@@ -71,6 +71,33 @@ local GAME_TEXT = {
     ["TXT_KEY_TP_UNHAPPINESS_UNITS"] = "{1_Num} from Units",
     ["TXT_KEY_TP_UNHAPPINESS_PUBLIC_OPINION"] = "{1_Num} from Public Opinion",
     ["TXT_KEY_TP_HAPPINESS_EXPLANATION"] = "Happiness powers your empire.",
+    -- VP-balance tooltip keys (the approval-model Shift+H mirrors VP's
+    -- HappinessTipHandler; templates approximate the VP DB text shapes).
+    ["TXT_KEY_TP_UNHAPPINESS_EMPIRE_PENALTIES"] = "Penalties: growth {1_Num}%, settlers {2_Num}%, combat {3_Num}%",
+    ["TXT_KEY_TP_HAPPINESS_RESOURCE_CITY"] = "{1_Num} from Luxuries, {2_Num} average per city",
+    ["TXT_KEY_TP_HAPPINESS_IMPROVEMENTS"] = "{1_Num} from Improvements",
+    ["TXT_KEY_TP_HAPPINESS_STATE_RELIGION_VP"] = "{1_Num} from Religion",
+    ["TXT_KEY_TP_HAPPINESS_EVENT"] = "{1_Num} from Events",
+    ["TXT_KEY_TP_HAPPINESS_MILITARY_UNITS"] = "{1_Num} from Military Units",
+    ["TXT_KEY_TP_HAPPINESS_FROM_ANNEXED_MINORS"] = "{1_Num} from Annexed City-States",
+    ["TXT_KEY_TP_HAPPINESS_VASSALS"] = "{1_Num} from Vassals",
+    ["TXT_KEY_TP_HAPPINESS_WAR_WITH_MAJORS"] = "{1_Num} from Wars with Majors",
+    ["TXT_KEY_TP_HAPPINESS_CITY_LOCAL"] = "{1_Num} from Local City Happiness",
+    ["TXT_KEY_TP_UNHAPPINESS_WAR_WEARINESS"] = "{1_Num} from War Weariness",
+    ["TXT_KEY_TP_UNHAPPINESS_FAMINE"] = "{1_Num} from Famine",
+    ["TXT_KEY_TP_UNHAPPINESS_PILLAGED"] = "{1_Num} from Pillaged Tiles",
+    ["TXT_KEY_TP_UNHAPPINESS_ISOLATION"] = "{1_Num} from Isolation",
+    ["TXT_KEY_TP_UNHAPPINESS_DISTRESS"] = "{1_Num} from Distress",
+    ["TXT_KEY_TP_UNHAPPINESS_POVERTY"] = "{1_Num} from Poverty",
+    ["TXT_KEY_TP_UNHAPPINESS_ILLITERACY"] = "{1_Num} from Illiteracy",
+    ["TXT_KEY_TP_UNHAPPINESS_BOREDOM"] = "{1_Num} from Boredom",
+    ["TXT_KEY_TP_UNHAPPINESS_RELIGIOUS_UNREST"] = "{1_Num} from Religious Unrest",
+    ["TXT_KEY_TP_UNHAPPINESS_PUPPET_CITIES_SPECIALISTS"] = "{1_Num} from Puppet Specialists",
+    ["TXT_KEY_TP_UNHAPPINESS_BUILDINGS"] = "{1_Num} Unhappiness from Buildings",
+    ["TXT_KEY_TOP_PANEL_TURNS_UNTIL_GOLDEN_AGE"] = "Golden Age in {1_Num} turns",
+    ["TXT_KEY_TP_GOLDEN_AGE_ADDITION_RELIGION"] = "{1_Num} from Religion to Golden Age",
+    ["TXT_KEY_TP_GOLDEN_AGE_ADDITION_TRAIT"] = "{1_Num} from Traits to Golden Age",
+    ["TXT_KEY_TP_GOLDEN_AGE_ADDITION_CITIES"] = "{1_Num} from Cities to Golden Age",
     ["TXT_KEY_TP_GOLDEN_AGE_NOW"] = "Golden Age for {1_Turns} turns",
     ["TXT_KEY_TP_GOLDEN_AGE_PROGRESS"] = "{1_Cur} of {2_Threshold} to Golden Age",
     ["TXT_KEY_TP_GOLDEN_AGE_ADDITION"] = "{1_Num} adds to Golden Age",
@@ -828,6 +855,140 @@ function M.test_happiness_detail_folds_in_golden_age_addition_and_effect()
     T.truthy(contains(s, "Golden Age boosts yields"))
 end
 
+-- VP balance happiness detail ---------------------------------------------
+-- The approval-model Shift+H mirrors VP's tooltip; the summary comes from
+-- the patched seam (the model itself is engine_data_vp's coverage) and the
+-- VP-only player getters are installed flat with per-test values.
+
+local VP_DETAIL_GETTERS = {
+    "GetUnhappinessGrowthPenalty",
+    "GetUnhappinessSettlerCostPenalty",
+    "GetUnhappinessCombatStrengthPenalty",
+    "GetBonusHappinessFromLuxuriesFlat",
+    "GetBonusHappinessFromLuxuriesFlatForUI",
+    "GetHappinessFromImprovements",
+    "GetEventHappiness",
+    "GetHappinessFromMilitaryUnits",
+    "GetHappinessFromAnnexedMinors",
+    "GetHappinessFromVassals",
+    "GetHappinessFromWarsWithMajors",
+    "GetHandicapHappiness",
+    "GetEmpireHappinessFromCities",
+    "GetHappinessFromNaturalWonders",
+    "GetHappinessFromReligion",
+    "GetHappinessFromLeagues",
+    "GetHappinessFromTradeRoutes",
+    "GetHappinessFromMinorCivs",
+    "GetUnhappinessFromWarWeariness",
+    "GetUnhappinessFromPublicOpinion",
+    "GetUnhappinessFromOccupiedCities",
+    "GetUnhappinessFromPuppetCityPopulation",
+    "GetUnhappinessFromFamine",
+    "GetUnhappinessFromPillagedTiles",
+    "GetUnhappinessFromIsolation",
+    "GetUnhappinessFromUnits",
+    "GetUnhappinessFromDistress",
+    "GetUnhappinessFromPoverty",
+    "GetUnhappinessFromIlliteracy",
+    "GetUnhappinessFromBoredom",
+    "GetUnhappinessFromReligiousUnrest",
+    "GetUnhappinessFromCitySpecialists",
+    "GetUnhappinessFromPuppetCitySpecialists",
+    "GetUnhappinessFromBuildings",
+    "GetHappinessForGAP",
+    "GetGAPFromReligion",
+    "GetGAPFromTraits",
+    "GetGAPFromCitiesTimes100",
+    "GetGoldenAgeProgressMeterTimes100",
+}
+
+-- Install every VP-only getter on the scripted player (values table keyed
+-- by getter name, default 0), patch the seam to the approval model, run
+-- fn, restore the seam.
+local function withVPDetail(summary, values, fn)
+    for _, name in ipairs(VP_DETAIL_GETTERS) do
+        activePlayer[name] = function()
+            return values[name] or 0
+        end
+    end
+    local saved = EngineData.happinessSummary
+    EngineData.happinessSummary = function()
+        return summary
+    end
+    local ok, err = pcall(fn)
+    EngineData.happinessSummary = saved
+    if not ok then
+        error(err, 0)
+    end
+end
+
+function M.test_happiness_detail_vp_mirrors_vp_tooltip_rows()
+    setup()
+    goldenAgeData.turns = 0
+    goldenAgeData.threshold = 100
+    withVPDetail({ mode = "approval", value = 62, happyCitizens = 30, unhappyCitizens = 12, state = "content" }, {
+        GetBonusHappinessFromLuxuriesFlat = 10,
+        GetBonusHappinessFromLuxuriesFlatForUI = 2,
+        GetHappinessFromImprovements = 3,
+        GetHandicapHappiness = 5,
+        GetUnhappinessFromDistress = 4,
+        GetUnhappinessFromBoredom = 2,
+        GetUnhappinessFromWarWeariness = 1,
+        -- 50.00 of 100 stored, 5 per turn: golden age in 10 turns.
+        GetGoldenAgeProgressMeterTimes100 = 5000,
+        GetHappinessForGAP = 5,
+    }, function()
+        local s = EmpireStatus._happinessDetail()
+        T.truthy(contains(s, "Happiness Sources 30"), "sources total uses the citizen-needs count")
+        T.truthy(contains(s, "10 from Luxuries, 2 average per city"))
+        T.truthy(contains(s, "3 from Improvements"))
+        T.truthy(contains(s, "5 from Difficulty"))
+        T.truthy(contains(s, "Unhappiness Sources 12"))
+        T.truthy(contains(s, "4 from Distress"))
+        T.truthy(contains(s, "2 from Boredom"))
+        T.truthy(contains(s, "1 from War Weariness"))
+        -- Vanilla-model rows must not leak into the approval detail.
+        T.falsy(contains(s, "from City Count"), "vanilla city-count row absent")
+        T.falsy(contains(s, "from Population"), "vanilla population row absent")
+        -- Golden age: turns-until plus the addition line; the meter /
+        -- rate themselves live on bare H and are skipped.
+        T.truthy(contains(s, "Golden Age in 10 turns"))
+        T.truthy(contains(s, "5 adds to Golden Age"))
+        T.falsy(contains(s, "50 of 100"), "GA progress headline skipped")
+        T.truthy(contains(s, "Happiness powers your empire"))
+    end)
+end
+
+function M.test_happiness_detail_vp_penalties_and_warning_when_unhappy()
+    setup()
+    happyData.unhappy = true
+    withVPDetail({ mode = "approval", value = 40, happyCitizens = 10, unhappyCitizens = 25, state = "unhappy" }, {
+        GetUnhappinessGrowthPenalty = -10,
+        GetUnhappinessSettlerCostPenalty = -25,
+        GetUnhappinessCombatStrengthPenalty = -10,
+    }, function()
+        local s = EmpireStatus._happinessDetail()
+        T.truthy(contains(s, "Empire is Unhappy"))
+        T.truthy(contains(s, "Penalties: growth 10%, settlers 25%, combat 10%"))
+    end)
+end
+
+-- The engine tooltip gates its per-source rows on the totals; zero happy
+-- citizens with a nonzero luxury getter would otherwise speak a breakdown
+-- of a total that is not there.
+function M.test_happiness_detail_vp_zero_totals_suppress_source_rows()
+    setup()
+    withVPDetail(
+        { mode = "approval", value = 50, happyCitizens = 0, unhappyCitizens = 0, state = "content" },
+        { GetBonusHappinessFromLuxuriesFlat = 10, GetBonusHappinessFromLuxuriesFlatForUI = 2 },
+        function()
+            local s = EmpireStatus._happinessDetail()
+            T.truthy(contains(s, "Happiness Sources 0"))
+            T.falsy(contains(s, "from Luxuries"), "rows gated on the zero total")
+        end
+    )
+end
+
 -- Engine TXT_KEY_TP_* strings end in "." or ":"; the detail builder must
 -- strip that trailing punctuation before joining items / sections, or the
 -- spoken stream gets ".," and ".." runs that the screen reader pauses on.
@@ -842,12 +1003,29 @@ function M.test_happiness_detail_strips_trailing_engine_punctuation()
     happyData.policies = 0
     happyData.resources_ = 0
     -- Override a couple of templates with their real-engine trailing
-    -- punctuation so the trim is exercised end-to-end.
-    GAME_TEXT["TXT_KEY_TP_HAPPINESS_SOURCES"] = "{1_Num} total Happiness from all sources."
-    GAME_TEXT["TXT_KEY_TP_HAPPINESS_FROM_RESOURCES"] = "{1_Num} from Luxury Resources:"
-    GAME_TEXT["TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL"] = "{1_Num} from Difficulty Level."
-    GAME_TEXT["TXT_KEY_TP_GOLDEN_AGE_ADDITION"] = "{1_Num} adds from excess Happiness."
-    local s = EmpireStatus._happinessDetail()
+    -- punctuation so the trim is exercised end-to-end. GAME_TEXT is the
+    -- suite-wide table every setup() re-installs, so the overrides are
+    -- restored afterward -- a later test (whichever order pairs() walks
+    -- the module) must not inherit the punctuated variants.
+    local overridden = {
+        ["TXT_KEY_TP_HAPPINESS_SOURCES"] = "{1_Num} total Happiness from all sources.",
+        ["TXT_KEY_TP_HAPPINESS_FROM_RESOURCES"] = "{1_Num} from Luxury Resources:",
+        ["TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL"] = "{1_Num} from Difficulty Level.",
+        ["TXT_KEY_TP_GOLDEN_AGE_ADDITION"] = "{1_Num} adds from excess Happiness.",
+    }
+    local saved = {}
+    for key, template in pairs(overridden) do
+        saved[key] = GAME_TEXT[key]
+        GAME_TEXT[key] = template
+    end
+    T.installLocaleStrings(GAME_TEXT)
+    local ok, s = pcall(EmpireStatus._happinessDetail)
+    for key, template in pairs(saved) do
+        GAME_TEXT[key] = template
+    end
+    if not ok then
+        error(s, 0)
+    end
     T.falsy(s:find(".,", 1, true), "no '.,' in joined output: " .. s)
     T.falsy(s:find("..", 1, true), "no '..' in joined output: " .. s)
     T.falsy(s:find(":,", 1, true), "no ':,' in joined output: " .. s)

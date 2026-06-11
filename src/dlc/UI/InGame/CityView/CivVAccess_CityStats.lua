@@ -61,35 +61,13 @@ local function yieldTooltipFn(yieldKey)
     return nil
 end
 
--- Split [NEWLINE]-delimited engine tooltip text into clean per-line speech.
--- TextFilter strips icon / color markup and collapses whitespace; the
--- per-chunk filter pass yields rows the user can arrow through one at a
--- time. Empty chunks (leading newlines, double-newlines) are dropped so
--- a screen-reader doesn't land on a silent item.
+-- Split [NEWLINE]-delimited engine tooltip text into clean per-line speech
+-- rows the user can arrow through one at a time. The mechanics live in
+-- TextFilter.splitLines (shared with the VP Economic Overview's per-city
+-- happiness drills); the wrapper resolves TextFilter at call time so this
+-- module stays include-order independent, like its TextFilter.filter use.
 local function splitTooltipLines(text)
-    if text == nil or text == "" then
-        return {}
-    end
-    local rows = {}
-    local cursor = 1
-    while true do
-        local s, e = string.find(text, "%[NEWLINE%]", cursor, false)
-        local chunk
-        if s == nil then
-            chunk = string.sub(text, cursor)
-        else
-            chunk = string.sub(text, cursor, s - 1)
-        end
-        local filtered = TextFilter.filter(chunk)
-        if filtered ~= nil and filtered ~= "" then
-            rows[#rows + 1] = filtered
-        end
-        if s == nil then
-            break
-        end
-        cursor = e + 1
-    end
-    return rows
+    return TextFilter.splitLines(text)
 end
 
 -- The engine's GetFaithTooltip terminates its per-source bullets with

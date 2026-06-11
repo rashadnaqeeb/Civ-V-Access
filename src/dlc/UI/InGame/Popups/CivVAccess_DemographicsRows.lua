@@ -84,10 +84,19 @@ local function valueArmy(pPlayer)
     return math.sqrt(pPlayer:GetMilitaryMight()) * 2000
 end
 
--- 60 baseline (zero excess happiness) plus 3 points per surplus, clamped
--- to 0..100. Matches Demographics.lua's GetApprovalValue.
+-- Approval demographic, clamped to 0..100 either way. Surplus model: 60
+-- baseline (zero excess happiness) plus 3 points per surplus point
+-- (vanilla Demographics.lua's GetApprovalValue). Approval model: the
+-- percent IS the demographic (VP's Demographics.lua override uses it
+-- directly).
 local function valueApproval(pPlayer)
-    local v = 60 + (EngineData.excessHappiness(pPlayer) * 3)
+    local s = EngineData.happinessSummary(pPlayer)
+    local v
+    if s.mode == "approval" then
+        v = s.value
+    else
+        v = 60 + (s.value * 3)
+    end
     if v < 0 then
         return 0
     end

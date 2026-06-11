@@ -101,6 +101,10 @@ local function setup()
     -- the same code path the cursor / CityView do.
     dofile("src/dlc/UI/InGame/CivVAccess_CitySpeech.lua")
 
+    -- TextFilter feeds the VP per-city breakdown drills (splitLines);
+    -- loaded here so the suite doesn't depend on an earlier suite's global.
+    dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
+
     -- Make sure the install guard skips: ContextPtr is not a table-with-methods.
     ContextPtr = nil
 
@@ -1233,6 +1237,169 @@ function M.test_resourceRowLabel_returns_localized_description()
     -- fallback returns the key verbatim, exercising the same Text.key path
     -- the in-game wrapper hits.
     T.eq(EconomicOverviewAccess.resourceRowLabel({ Description = "TXT_KEY_RESOURCE_WINE" }), "TXT_KEY_RESOURCE_WINE")
+end
+
+-- VP-balance happiness tab items -----------------------------------------
+-- The vp* builders mirror VP's HappinessInfo page. Tests script a player
+-- with the VP getters and cities, then assert the row set, the labels,
+-- and the drill-in-drill per-city breakdown children.
+
+-- City stub for the VP drills. Records the bIncludeMedian argument the
+-- unhappiness breakdown is requested with.
+local function vpStubCity(opts)
+    local c = {}
+    function c:GetName()
+        return opts.name
+    end
+    function c:GetLocalHappiness()
+        return opts.localHappy or 0
+    end
+    function c:GetUnhappinessAggregated()
+        return opts.unhappyAgg or 0
+    end
+    function c:GetCityHappinessBreakdown()
+        return opts.happyBreakdown or ""
+    end
+    function c:GetCityUnhappinessBreakdown(includeMedian)
+        c.medianArg = includeMedian
+        return opts.unhappyBreakdown or ""
+    end
+    return c
+end
+
+local function vpStubPlayer(opts)
+    local p = stubPlayer(opts)
+    function p:Cities()
+        local i = 0
+        return function()
+            i = i + 1
+            return (opts.cities or {})[i]
+        end
+    end
+    function p:GetHandicapHappiness()
+        return opts.handicap or 0
+    end
+    function p:GetBonusHappinessFromLuxuriesFlat()
+        return opts.luxFlat or 0
+    end
+    function p:GetEventHappiness()
+        return opts.events or 0
+    end
+    function p:GetHappinessFromVassals()
+        return opts.vassals or 0
+    end
+    function p:GetHappinessFromWarsWithMajors()
+        return opts.wars or 0
+    end
+    function p:GetUnhappinessFromPublicOpinion()
+        return opts.publicOpinion or 0
+    end
+    function p:GetUnhappinessFromWarWeariness()
+        return opts.warWeariness or 0
+    end
+    return p
+end
+
+local function itemLabel(item)
+    if item.labelFn ~= nil then
+        return item.labelFn()
+    end
+    return item.labelText
+end
+
+local function itemLabels(items)
+    local out = {}
+    for i, item in ipairs(items) do
+        out[i] = itemLabel(item)
+    end
+    return out
+end
+
+function M.test_vpHappySourceItems_mirrors_vp_page_rows_in_order()
+    setup()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.IsOption = function()
+        return false
+    end
+    local cities = {
+        vpStubCity({ name = "Alpha", localHappy = 3, happyBreakdown = "Base 1[NEWLINE]Luxury +2" }),
+        vpStubCity({ name = "Beta", localHappy = 2, happyBreakdown = "" }),
+    }
+    Players[0] = vpStubPlayer({
+        cities = cities,
+        fromTradeRoutes = 2,
+        handicap = 1,
+        luxFlat = 10,
+        fromMinorCivs = 2,
+        events = 4,
+        fromReligion = 1,
+        fromNaturalWonders = 0,
+        fromLeagues = 0,
+        vassals = 2,
+        wars = 0,
+    })
+    local labels = itemLabels(EconomicOverviewAccess.vpHappySourceItems())
+    T.eq(labels[1], "Trade routes, 2")
+    T.eq(labels[2], "City happiness, 5", "local-city header sums GetLocalHappiness")
+    T.eq(labels[3], "Difficulty level, 1")
+    T.eq(labels[4], "Luxuries, 10")
+    T.eq(labels[5], "City-states, 2")
+    T.eq(labels[6], "Events, 4")
+    T.eq(labels[7], "Religion, 1")
+    T.eq(labels[8], "Vassals, 2")
+    T.eq(labels[9], nil, "zero-valued conditional rows (wonders, leagues, wars) absent")
+end
+
+function M.test_vpHappySourceItems_city_rows_drill_into_breakdown_lines()
+    setup()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.IsOption = function()
+        return false
+    end
+    local cities = {
+        vpStubCity({ name = "Alpha", localHappy = 3, happyBreakdown = "Base 1[NEWLINE]Luxury +2" }),
+    }
+    Players[0] = vpStubPlayer({ cities = cities })
+    local items = EconomicOverviewAccess.vpHappySourceItems()
+    -- items[1] is the local-city group (no trade-routes row at zero).
+    local cityRows = items[1]._itemsFn()
+    T.eq(itemLabel(cityRows[1]), "Alpha, 3")
+    T.eq(cityRows[1].kind, "group", "city row is itself drillable")
+    local lines = cityRows[1]._itemsFn()
+    T.eq(itemLabel(lines[1]), "Base 1")
+    T.eq(itemLabel(lines[2]), "Luxury +2")
+end
+
+function M.test_vpUnhappySourceItems_rows_and_median_form()
+    setup()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Game.IsOption = function()
+        return false
+    end
+    local alpha = vpStubCity({ name = "Alpha", unhappyAgg = 4, unhappyBreakdown = "Distress 2[NEWLINE]Poverty 2" })
+    local beta = vpStubCity({ name = "Beta", unhappyAgg = 3, unhappyBreakdown = "Boredom 3" })
+    Players[0] = vpStubPlayer({
+        cities = { alpha, beta },
+        publicOpinion = 3,
+        warWeariness = 2,
+    })
+    local items = EconomicOverviewAccess.vpUnhappySourceItems()
+    local labels = itemLabels(items)
+    T.eq(labels[1], "Public opinion, 3")
+    T.eq(labels[2], "War weariness, 2")
+    T.eq(labels[3], "Per city breakdown, 7", "header carries the summed per-city unhappiness")
+    local cityRows = items[3]._itemsFn()
+    T.eq(itemLabel(cityRows[1]), "Alpha, 4")
+    local lines = cityRows[1]._itemsFn()
+    T.eq(itemLabel(lines[1]), "Distress 2")
+    T.eq(itemLabel(lines[2]), "Poverty 2")
+    T.eq(alpha.medianArg, false, "page form: GetCityUnhappinessBreakdown(false)")
 end
 
 return M

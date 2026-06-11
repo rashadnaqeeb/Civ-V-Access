@@ -1019,11 +1019,27 @@ local function unhappyTooltip(pPlayer)
     return pPlayer:GetPublicOpinionUnhappinessTooltip()
 end
 
--- Excess happiness is a player-wide buffer that's live regardless of
--- ideology (city happiness summed minus unhappiness from all sources).
--- Show in both branches, signed.
+-- Column-header key for the happiness column: "Approval" under the VP
+-- balance model, "Excess happiness" on the surplus model. Falls back to
+-- the surplus header when no active player resolves (pre-game build).
+local function happyColumnNameKey()
+    local p = Players[Game.GetActivePlayer()]
+    if p ~= nil and EngineData.happinessSummary(p).mode == "approval" then
+        return "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_APPROVAL"
+    end
+    return "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY"
+end
+
+-- The empire happiness cell, live regardless of ideology. Surplus model:
+-- the signed excess-happiness buffer. Approval model (VP balance): the
+-- approval percent, spoken with its unit -- a bare "62" next to the other
+-- columns would read as another raw count where the screen shows "62%".
 local function happyCellText(pPlayer)
-    return formatSigned(EngineData.excessHappiness(pPlayer))
+    local s = EngineData.happinessSummary(pPlayer)
+    if s.mode == "approval" then
+        return Text.format("TXT_KEY_CIVVACCESS_CO_APPROVAL_PERCENT", s.value)
+    end
+    return formatSigned(s.value)
 end
 
 local function buildVictoryColumns()
@@ -1071,10 +1087,16 @@ local function buildVictoryColumns()
             getTooltip = unhappyTooltip,
         },
         {
-            name = "TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY",
+            -- Header names the metric the cell carries: the approval
+            -- percent under the VP balance model, the signed surplus
+            -- otherwise. The mode is a fixed property of the session, so
+            -- resolving it at column-build time is safe.
+            name = happyColumnNameKey(),
             getCell = happyCellText,
+            -- Surplus and approval values both sort high-is-happier, so
+            -- the raw summary value works as the key on either engine.
             sortKey = function(p)
-                return EngineData.excessHappiness(p)
+                return EngineData.happinessSummary(p).value
             end,
         },
     }

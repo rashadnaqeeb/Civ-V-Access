@@ -243,17 +243,40 @@ local function goldLine()
     return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_GOLD_POSITIVE", avail, rate, total, used, avail)
 end
 
+-- Golden-age points gained per turn under VP's GAP model, in engine
+-- hundredths: the three flat sources times 100 plus the already-times-100
+-- city GAP, mirroring the composition VP's TopPanel displays next to the
+-- progress meter. Callers floor /100 for display (the panel's
+-- FormatIntegerTimes100) or keep the precision for the turns-until math.
+-- VP-balance branches only; the getters are absent on vanilla.
+local function gapPerTurnTimes100(player)
+    return (player:GetHappinessForGAP() + player:GetGAPFromReligion() + player:GetGAPFromTraits()) * 100
+        + player:GetGAPFromCitiesTimes100()
+end
+
 -- Happiness with golden age always trailing. User asked for fixed ordering
 -- so the player's ear locks onto the same shape every press, regardless of
--- whether a golden age is currently running.
-local function goldenAgeClause(player)
+-- whether a golden age is currently running. Under VP balance
+-- (approvalMode) the progress form carries the per-turn GAP rate inline,
+-- as VP's top panel does; a zero rate adds no clause.
+local function goldenAgeClause(player, approvalMode)
     local turns = player:GetGoldenAgeTurns()
     if turns > 0 then
         return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE", turns, turns)
     end
     local cur = player:GetGoldenAgeProgressMeter()
     local threshold = player:GetGoldenAgeProgressThreshold()
-    return Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS", cur, threshold)
+    local progress = Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS", cur, threshold)
+    if not approvalMode then
+        return progress
+    end
+    local rate = math.floor(gapPerTurnTimes100(player) / 100)
+    if rate > 0 then
+        return joinClauses(progress, Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_RATE", rate))
+    elseif rate < 0 then
+        return joinClauses(progress, Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_RATE_NEGATIVE", -rate))
+    end
+    return progress
 end
 
 -- Per-luxury inventory: name + total copies for every luxury currently
@@ -278,21 +301,49 @@ local function luxuryInventoryClause(player)
     return table.concat(items, ", ")
 end
 
+-- Spoken word per happinessSummary state tier. The bottom three mirror
+-- the engine's empire-state getters; the top three are VP's top-panel
+-- color tiers (the approval model's vocabulary -- vanilla's surplus model
+-- formats through the STATUS_HAPPY / _UNHAPPY keys instead, which carry
+-- the number).
+local TIER_KEYS = {
+    ecstatic = "TXT_KEY_CIVVACCESS_STATUS_TIER_ECSTATIC",
+    happy = "TXT_KEY_CIVVACCESS_STATUS_TIER_HAPPY",
+    content = "TXT_KEY_CIVVACCESS_STATUS_TIER_CONTENT",
+    unhappy = "TXT_KEY_CIVVACCESS_STATUS_TIER_UNHAPPY",
+    veryUnhappy = "TXT_KEY_CIVVACCESS_STATUS_TIER_VERY_UNHAPPY",
+    superUnhappy = "TXT_KEY_CIVVACCESS_STATUS_TIER_SUPER_UNHAPPY",
+}
+
 local function happinessLine()
     if Game.IsOption(GameOptionTypes.GAMEOPTION_NO_HAPPINESS) then
         return Text.key("TXT_KEY_CIVVACCESS_STATUS_HAPPINESS_OFF")
     end
     local player = Players[Game.GetActivePlayer()]
-    local excess = EngineData.excessHappiness(player)
+    local s = EngineData.happinessSummary(player)
     local happinessClause
-    if player:IsEmpireVeryUnhappy() then
-        happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY", -excess)
-    elseif player:IsEmpireUnhappy() then
-        happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_UNHAPPY", -excess)
+    if s.mode == "approval" then
+        -- VP balance: the percent leads (the most-varying number), then
+        -- the tier word the screen encodes as the percent's color, then
+        -- the citizen counts the panel shows beside it.
+        happinessClause = joinClauses(
+            Text.format("TXT_KEY_CIVVACCESS_STATUS_APPROVAL", s.value),
+            Text.key(TIER_KEYS[s.state]),
+            Text.formatPlural(
+                "TXT_KEY_CIVVACCESS_STATUS_CITIZEN_COUNTS",
+                s.unhappyCitizens,
+                s.happyCitizens,
+                s.unhappyCitizens
+            )
+        )
+    elseif s.state == "veryUnhappy" then
+        happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_VERY_UNHAPPY", -s.value)
+    elseif s.state == "unhappy" then
+        happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_UNHAPPY", -s.value)
     else
-        happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_HAPPY", excess)
+        happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_HAPPY", s.value)
     end
-    return joinClauses(happinessClause, goldenAgeClause(player), luxuryInventoryClause(player))
+    return joinClauses(happinessClause, goldenAgeClause(player, s.mode == "approval"), luxuryInventoryClause(player))
 end
 
 local function faithLine()
@@ -595,13 +646,14 @@ end
 -- Golden-age portion of happinessDetail. Mirrors GoldenAgeTipHandler: skip
 -- the headline (NOW or PROGRESS line) and keep the addition / loss line, the
 -- effect description, and the Brazil carnival modifier when active.
-local function goldenAgeDetailSegments(player, d)
+-- surplus is the happinessSummary value (this segment only runs on the
+-- surplus model, where the golden-age meter fills from excess happiness).
+local function goldenAgeDetailSegments(player, d, surplus)
     if player:GetGoldenAgeTurns() <= 0 then
-        local excessHappy = EngineData.excessHappiness(player)
-        if excessHappy >= 0 then
-            d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION", excessHappy))
+        if surplus >= 0 then
+            d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION", surplus))
         else
-            d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_LOSS", -excessHappy))
+            d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_LOSS", -surplus))
         end
     end
     -- The engine renders TXT_KEY_TP_GOLDEN_AGE_EFFECT unconditionally;
@@ -622,17 +674,165 @@ local function goldenAgeDetailSegments(player, d)
     end
 end
 
+-- VP-balance golden-age segments. Bare H already speaks the meter and the
+-- per-turn rate, so the detail adds the estimated turns to the next
+-- golden age (the engine tooltip's math: remaining points over the exact
+-- per-turn rate), the per-source GAP addition lines, then the effect /
+-- carnival texts with the same gating as the vanilla segments.
+local function vpGoldenAgeDetailSegments(player, d)
+    local rateTimes100 = gapPerTurnTimes100(player)
+    if player:GetGoldenAgeTurns() <= 0 and rateTimes100 > 0 then
+        local remaining = player:GetGoldenAgeProgressThreshold() - player:GetGoldenAgeProgressMeterTimes100() / 100
+        local turnsUntil = math.max(0, math.ceil(remaining / (rateTimes100 / 100)))
+        d.add(Text.format("TXT_KEY_TOP_PANEL_TURNS_UNTIL_GOLDEN_AGE", turnsUntil))
+    end
+    local fromHappiness = player:GetHappinessForGAP()
+    if fromHappiness >= 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION", fromHappiness))
+    else
+        d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_LOSS", -fromHappiness))
+    end
+    local fromReligion = player:GetGAPFromReligion()
+    if fromReligion > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION_RELIGION", fromReligion))
+    end
+    local fromTraits = player:GetGAPFromTraits()
+    if fromTraits > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION_TRAIT", fromTraits))
+    end
+    local fromCities = math.floor(player:GetGAPFromCitiesTimes100() / 100)
+    if fromCities > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLDEN_AGE_ADDITION_CITIES", fromCities))
+    end
+    if not noBasicHelp() then
+        d.section()
+        if player:IsGoldenAgeCultureBonusDisabled() then
+            d.add(Text.key("TXT_KEY_TP_GOLDEN_AGE_EFFECT_NO_CULTURE"))
+        else
+            d.add(Text.key("TXT_KEY_TP_GOLDEN_AGE_EFFECT"))
+        end
+    end
+    if player:GetGoldenAgeTurns() > 0 and player:GetGoldenAgeTourismModifier() > 0 then
+        d.section()
+        d.add(Text.key("TXT_KEY_TP_CARNIVAL_EFFECT"))
+    end
+end
+
+-- VP-balance Shift+H. Mirrors VP's TopPanel HappinessTipHandler segment
+-- for segment (engine keys verbatim, conditional rows on the same
+-- predicates), then the VP golden-age tooltip. Skip rules as on vanilla:
+-- the approval headline, citizen counts, and golden-age progress + rate
+-- that bare H already speaks are dropped. Amounts are flat citizen
+-- counts under the citizen-needs model -- no times-100 division, unlike
+-- the vanilla branch's getters.
+local function vpHappinessDetail(player, s)
+    local d = newDetail()
+
+    -- Empire state warning; VP swaps in the NO_REBELS variants when
+    -- barbarians are off (rebel spawns can't happen).
+    local noBarbs = Game.IsOption(GameOptionTypes.GAMEOPTION_NO_BARBARIANS)
+    if player:IsEmpireSuperUnhappy() then
+        d.add(Text.key(noBarbs and "TXT_KEY_TP_EMPIRE_SUPER_UNHAPPY_NO_REBELS" or "TXT_KEY_TP_EMPIRE_SUPER_UNHAPPY"))
+    elseif player:IsEmpireVeryUnhappy() then
+        d.add(Text.key(noBarbs and "TXT_KEY_TP_EMPIRE_VERY_UNHAPPY_NO_REBELS" or "TXT_KEY_TP_EMPIRE_VERY_UNHAPPY"))
+    elseif player:IsEmpireUnhappy() then
+        d.add(Text.key("TXT_KEY_TP_EMPIRE_UNHAPPY"))
+    end
+    -- Active empire penalties (growth, settler production, combat
+    -- strength) -- live whenever approval is below the unhappy threshold;
+    -- same predicate as the engine tooltip.
+    if player:GetUnhappinessGrowthPenalty() ~= 0 then
+        d.add(
+            Text.format(
+                "TXT_KEY_TP_UNHAPPINESS_EMPIRE_PENALTIES",
+                -player:GetUnhappinessGrowthPenalty(),
+                -player:GetUnhappinessSettlerCostPenalty(),
+                -player:GetUnhappinessCombatStrengthPenalty()
+            )
+        )
+    end
+
+    local function addRow(amount, key, extra)
+        if amount ~= 0 then
+            if extra ~= nil then
+                d.add(Text.format(key, amount, extra))
+            else
+                d.add(Text.format(key, amount))
+            end
+        end
+    end
+
+    d.section()
+    d.add(Text.format("TXT_KEY_TP_HAPPINESS_SOURCES", s.happyCitizens))
+    if s.happyCitizens ~= 0 then
+        addRow(
+            player:GetBonusHappinessFromLuxuriesFlat(),
+            "TXT_KEY_TP_HAPPINESS_RESOURCE_CITY",
+            player:GetBonusHappinessFromLuxuriesFlatForUI()
+        )
+        addRow(player:GetHappinessFromNaturalWonders(), "TXT_KEY_TP_HAPPINESS_NATURAL_WONDERS")
+        addRow(player:GetHappinessFromImprovements(), "TXT_KEY_TP_HAPPINESS_IMPROVEMENTS")
+        addRow(player:GetHappinessFromReligion(), "TXT_KEY_TP_HAPPINESS_STATE_RELIGION_VP")
+        addRow(player:GetHappinessFromLeagues(), "TXT_KEY_TP_HAPPINESS_LEAGUES")
+        addRow(player:GetEventHappiness(), "TXT_KEY_TP_HAPPINESS_EVENT")
+        addRow(player:GetHappinessFromMilitaryUnits(), "TXT_KEY_TP_HAPPINESS_MILITARY_UNITS")
+        addRow(player:GetHappinessFromTradeRoutes(), "TXT_KEY_TP_HAPPINESS_CONNECTED_CITIES")
+        addRow(player:GetHappinessFromMinorCivs(), "TXT_KEY_TP_HAPPINESS_CITY_STATE_FRIENDSHIP")
+        addRow(player:GetHappinessFromAnnexedMinors(), "TXT_KEY_TP_HAPPINESS_FROM_ANNEXED_MINORS")
+        addRow(player:GetHappinessFromVassals(), "TXT_KEY_TP_HAPPINESS_VASSALS")
+        addRow(player:GetHappinessFromWarsWithMajors(), "TXT_KEY_TP_HAPPINESS_WAR_WITH_MAJORS")
+        addRow(player:GetHandicapHappiness(), "TXT_KEY_TP_HAPPINESS_DIFFICULTY_LEVEL")
+        addRow(player:GetEmpireHappinessFromCities(), "TXT_KEY_TP_HAPPINESS_CITY_LOCAL")
+    end
+
+    d.section()
+    d.add(Text.format("TXT_KEY_TP_UNHAPPINESS_TOTAL", s.unhappyCitizens))
+    if s.unhappyCitizens ~= 0 then
+        addRow(player:GetUnhappinessFromWarWeariness(), "TXT_KEY_TP_UNHAPPINESS_WAR_WEARINESS")
+        addRow(player:GetUnhappinessFromPublicOpinion(), "TXT_KEY_TP_UNHAPPINESS_PUBLIC_OPINION")
+        addRow(player:GetUnhappinessFromOccupiedCities(), "TXT_KEY_TP_UNHAPPINESS_OCCUPIED_POPULATION")
+        addRow(player:GetUnhappinessFromPuppetCityPopulation(), "TXT_KEY_TP_UNHAPPINESS_PUPPET_CITIES")
+        addRow(player:GetUnhappinessFromFamine(), "TXT_KEY_TP_UNHAPPINESS_FAMINE")
+        addRow(player:GetUnhappinessFromPillagedTiles(), "TXT_KEY_TP_UNHAPPINESS_PILLAGED")
+        addRow(player:GetUnhappinessFromIsolation(), "TXT_KEY_TP_UNHAPPINESS_ISOLATION")
+        addRow(player:GetUnhappinessFromUnits(), "TXT_KEY_TP_UNHAPPINESS_UNITS")
+        addRow(player:GetUnhappinessFromDistress(), "TXT_KEY_TP_UNHAPPINESS_DISTRESS")
+        addRow(player:GetUnhappinessFromPoverty(), "TXT_KEY_TP_UNHAPPINESS_POVERTY")
+        addRow(player:GetUnhappinessFromIlliteracy(), "TXT_KEY_TP_UNHAPPINESS_ILLITERACY")
+        addRow(player:GetUnhappinessFromBoredom(), "TXT_KEY_TP_UNHAPPINESS_BOREDOM")
+        addRow(player:GetUnhappinessFromReligiousUnrest(), "TXT_KEY_TP_UNHAPPINESS_RELIGIOUS_UNREST")
+        addRow(player:GetUnhappinessFromCitySpecialists(), "TXT_KEY_TP_UNHAPPINESS_SPECIALISTS")
+        addRow(player:GetUnhappinessFromPuppetCitySpecialists(), "TXT_KEY_TP_UNHAPPINESS_PUPPET_CITIES_SPECIALISTS")
+        addRow(player:GetUnhappinessFromBuildings(), "TXT_KEY_TP_UNHAPPINESS_BUILDINGS")
+    end
+
+    if not noBasicHelp() then
+        d.section(Text.key(LABEL_HELP))
+        d.add(Text.key("TXT_KEY_TP_HAPPINESS_EXPLANATION"))
+    end
+
+    d.section(Text.key(LABEL_GOLDEN_AGE))
+    vpGoldenAgeDetailSegments(player, d)
+    return d.compose()
+end
+
 -- Happiness detail. Mirrors HappinessTipHandler then folds in
 -- GoldenAgeTipHandler at the end (since bare H reads both happiness and
 -- golden-age headlines, the detail extends both). Skips total happiness /
 -- unhappiness lines and the golden-age NOW / PROGRESS lines; keeps the
 -- VERY_UNHAPPY warning, the source / unhappiness breakdowns, the basic-help
--- trailer, and the golden-age addition / effect / carnival lines.
+-- trailer, and the golden-age addition / effect / carnival lines. The VP
+-- balance model branches to vpHappinessDetail, which mirrors VP's tooltip
+-- instead.
 local function happinessDetail()
     if Game.IsOption(GameOptionTypes.GAMEOPTION_NO_HAPPINESS) then
         return ""
     end
     local player = Players[Game.GetActivePlayer()]
+    local summary = EngineData.happinessSummary(player)
+    if summary.mode == "approval" then
+        return vpHappinessDetail(player, summary)
+    end
     local d = newDetail()
 
     if player:IsEmpireVeryUnhappy() then
@@ -756,7 +956,7 @@ local function happinessDetail()
     -- progress meter); the detail extends with the addition / loss line and
     -- the effect description.
     d.section(Text.key(LABEL_GOLDEN_AGE))
-    goldenAgeDetailSegments(player, d)
+    goldenAgeDetailSegments(player, d, summary.value)
     return d.compose()
 end
 

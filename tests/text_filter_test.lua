@@ -436,6 +436,26 @@ function M.test_composed_color_newline_icon_whitespace()
     T.eq(TextFilter.filter("[COLOR_X]  [ICON_GOLD]\t+5[ENDCOLOR][NEWLINE]next"), "gold +5, next")
 end
 
+-- splitLines --------------------------------------------------------------
+-- Row source for drillables built from the engine's prebuilt breakdown
+-- strings (CityView stats, the VP Economic Overview per-city drills): one
+-- filtered row per [NEWLINE] chunk, silent chunks dropped.
+
+function M.test_splitLines_filters_each_row_and_drops_empties()
+    setup()
+    TextFilter.registerIcon("ICON_GOLD", "gold")
+    local rows = TextFilter.splitLines("[COLOR_X]header[ENDCOLOR][NEWLINE][NEWLINE][ICON_GOLD] +3[NEWLINE]")
+    T.eq(#rows, 2, "blank paragraph gap and trailing newline yield no rows")
+    T.eq(rows[1], "header")
+    T.eq(rows[2], "gold +3")
+end
+
+function M.test_splitLines_nil_and_empty_return_empty_table()
+    setup()
+    T.eq(#TextFilter.splitLines(nil), 0)
+    T.eq(#TextFilter.splitLines(""), 0)
+end
+
 function M.test_composed_all_markup_emdash_control()
     setup()
     TextFilter.registerIcon("ICON_PROD", "production")
