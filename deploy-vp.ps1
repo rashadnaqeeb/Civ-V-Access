@@ -1,57 +1,70 @@
 <#
 .SYNOPSIS
-    Deploy staged proxy stack, DLC payload, and (optionally) the modded
-    engine DLL into the Civilization V install.
+    Deploy the Civ-V-Access stack onto a Vox Populi install: proxy + Tolk,
+    the DLC payload with the VP vendor overrides overlaid, the VP
+    EngineData seam, and the Community-Patch-DLL fork.
 
 .DESCRIPTION
-    Three pieces, each independently skippable:
-      - Proxy stack: dist/proxy/lua51_Win32.dll + the Tolk runtime DLLs from
-        third_party/tolk/dist/x86/.
-      - DLC: src/dlc/ (the fake-DLC payload) into Assets/DLC/DLC_CivVAccess/.
-        Also writes CivVAccess.install.json into the deployed DLC dir, the
-        single source of truth on installed version + profile that the
-        external installer reads on subsequent runs.
-      - Engine DLL: dist/engine/CvGameCore_Expansion2.dll into
-        Assets/DLC/Expansion2/, with the vanilla DLL and the stock BNW
-        cinematics backed up under Assets/DLC/DLC_CivVAccess.backup/ (a
-        sibling of the DLC dir, so it survives the redeploy nuke-and-recreate
-        of the DLC dir itself).
+    The VP variant of deploy.ps1. Same proxy stack, sounds, cinematics, and
+    DLC deployment, with three VP-specific differences:
 
-    The engine DLL is deployed by default; pass -SkipEngine for Lua-only
-    iterations where the (~4 MB) DLL copy isn't worth it.
+      - Vendor overlay: after the src/dlc payload lands, the staged VP
+        overrides from build/vendor/vp/UI are copied on top, replacing the
+        vanilla-derived vendor copies with the ones re-sourced from VP /
+        Community Patch / VPUI. Run
+          py tools/vendoring/vendor.py generate --engine vp
+        first; the script refuses to deploy a stale or missing stage.
 
-    -Uninstall reverses everything: restores the vanilla engine DLL from the
-    backup, restores the original lua51_Win32.dll, removes the DLC and the
-    proxy runtime DLLs, and clears the engine's DLC cache so the next launch
-    forgets DLC_CivVAccess immediately.
+      - EngineData swap: src/vp/CivVAccess_EngineData.lua replaces the
+        vanilla seam implementation in the deployed DLC. Both files share
+        the include stem, so call sites never know which engine they run on.
+
+      - Engine DLL: dist/engine-vp/CvGameCore_Expansion2.dll (our civvaccess
+        branch of LoneGazebo/Community-Patch-DLL) is placed where VP loads
+        its DLL from: MODS\(1) Community Patch\ in the user's Documents.
+        VP's shipped DLL is backed up on first install; -Uninstall restores
+        it (VP's DLL, not Firaxis vanilla -- this script never touches the
+        Assets\DLC\Expansion2 DLL that vanilla sessions load).
+
+    If the game install is missing the non-MODS half of a plain-VP
+    (FullNoEUI) install -- the VPUI fake DLC, the Vox Populi
+    Expansion2.Civ5Pkg replacement, the minor-civ sound table, the loading
+    screen tips -- the script completes it from the Community-Patch-DLL
+    clone (-ClonePath). Each piece is checked separately and copied only
+    when absent, so an install the VP installer already set up is left
+    untouched. -Uninstall deliberately leaves these in place: they make the
+    machine a working plain-VP install, which is not ours to remove.
 
 .PARAMETER GameDir
     Override the auto-detected Civ V install path.
 
+.PARAMETER ClonePath
+    Path to the Community-Patch-DLL clone used to complete a partial VP
+    install. Defaults to the sibling directory next to this repo. Only
+    required when the install is missing VP pieces.
+
 .PARAMETER SkipProxy
-    Skip the proxy stack and the legacy lua51 rename. Useful when only the
-    DLC payload changed.
+    Skip the proxy stack and the legacy lua51 rename.
 
 .PARAMETER SkipDlc
-    Skip the DLC payload copy. Useful for proxy-only iteration (rare).
+    Skip the DLC payload (and with it the vendor overlay and EngineData
+    swap).
 
 .PARAMETER SkipEngine
-    Skip copying dist/engine/CvGameCore_Expansion2.dll. Useful for fast
-    Lua-only iterations.
+    Skip the fork DLL copy into MODS\(1) Community Patch.
 
 .PARAMETER SkipCinematics
-    Skip copying audio-described BNW opening cinematics. Files are large
-    (~80 MB English, ~5 MB per non-English locale) and rarely change, so
-    this is useful for fast Lua-only iterations.
+    Skip the audio-described BNW opening cinematics.
 
 .PARAMETER Uninstall
-    Remove the proxy stack, restore the original lua51, remove the DLC,
-    and (if a backup exists) restore the vanilla engine DLL and stock
-    BNW cinematics.
+    Remove the proxy stack, the DLC, and the cinematics (restoring stock
+    files from backup), and restore VP's shipped DLL into the MODS folder.
+    The VP install itself (VPUI, Civ5Pkg, sounds, tips) stays.
 #>
 [CmdletBinding()]
 param(
     [string]$GameDir,
+    [string]$ClonePath,
     [switch]$SkipProxy,
     [switch]$SkipDlc,
     [switch]$SkipEngine,
@@ -63,41 +76,40 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot         = Split-Path -Parent $MyInvocation.MyCommand.Path
 $proxyDistDir     = Join-Path $repoRoot 'dist\proxy'
-$engineDistDir    = Join-Path $repoRoot 'dist\engine'
+$engineVpDistDir  = Join-Path $repoRoot 'dist\engine-vp'
 $tolkDistDir      = Join-Path $repoRoot 'third_party\tolk\dist\x86'
 $cinematicSrcDir  = Join-Path $repoRoot 'audio described intros'
 $dlcSrcDir        = Join-Path $repoRoot 'src\dlc'
+$vpSeamSrcFile    = Join-Path $repoRoot 'src\vp\CivVAccess_EngineData.lua'
+$vendorStageDir   = Join-Path $repoRoot 'build\vendor\vp'
 $soundsSrcDir     = Join-Path $repoRoot 'sounds'
 $dlcName          = 'DLC_CivVAccess'
-$dlcBackupDirName = "$dlcName.backup"  # sibling to DLC dir; holds vanilla file backups so they survive the dir nuke on redeploy
+$dlcBackupDirName = "$dlcName.backup"  # sibling to DLC dir; holds stock-file backups so they survive the dir nuke on redeploy
 $installManifestName = 'CivVAccess.install.json'
-$legacyDlcDirs    = @('CivVAccess')
-$legacyModDir     = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
 
-# Versions live in versions.json at repo root. The mod's own version is the
-# release tag (and the changelog key); each component (core, engine, runtime,
-# cinematics) carries its own version that bumps only when its source tree
-# changed. The install manifest stamps each separately so the external
-# installer can render per-component diffs and the digest skip can short-
-# circuit unchanged components on update.
+if ([string]::IsNullOrWhiteSpace($ClonePath)) {
+    $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Community-Patch-DLL'
+}
+
+$civ5DocsDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5"
+$vpModsDllDir = Join-Path $civ5DocsDir 'MODS\(1) Community Patch'
+
 $versionsFile = Join-Path $repoRoot 'versions.json'
 if (-not (Test-Path $versionsFile)) { throw "versions.json missing at $versionsFile" }
 $versions    = Get-Content -LiteralPath $versionsFile -Raw | ConvertFrom-Json
 $modVersion  = $versions.mod
 $coreVersion       = $versions.components.core
-$engineVersion     = $versions.components.engine
+$engineVpVersion   = $versions.components.engine_vp
 $runtimeVersion    = $versions.components.runtime
 $cinematicsVersion = $versions.components.cinematics
 
 # Set in the driver after Resolve-CivVInstallDir, before any function uses them.
-$dlcBackupDir    = $null
-$engineBackup    = $null
-$cinematicBackup = $null
+$dlcBackupDir       = $null
+$engineVpBackup     = $null
+$cinematicBackup    = $null
+$expansionPkgBackup = $null
 
-# BNW opening cinematic filenames the engine expects under
-# Assets/DLC/Expansion2/. Only en_US is a full .wmv video; non-English locales
-# are .wma audio dubs the engine layers over the en_US.wmv visual track. Source
-# files in $cinematicSrcDir are pre-named to match these exactly.
+# BNW opening cinematic filenames; see deploy.ps1 for the wmv/wma split.
 $cinematicFiles = @(
     'Civ5XP2_Opening_Movie_en_US.wmv',
     'Civ5XP2_Opening_Movie_de_DE.wma',
@@ -108,10 +120,6 @@ $cinematicFiles = @(
     'Civ5XP2_Opening_Movie_ru_RU.wma'
 )
 
-# Files to copy into the game directory alongside the proxy. lua51_Win32.dll
-# is our build (dist/proxy/); the rest are third-party screen-reader bridges
-# shipped from third_party/tolk/dist/x86/. Both are committed to the repo so
-# contributors can deploy without rebuilding.
 $ourProxyFiles = @('lua51_Win32.dll')
 $tolkFiles     = @(
     'Tolk.dll',
@@ -126,25 +134,17 @@ $tolkFiles     = @(
 
 $engineDllName = 'CvGameCore_Expansion2.dll'
 
-# Generated Lua module that exposes the mod version to the in-game Boot
-# announcement (Text.format key TXT_KEY_CIVVACCESS_BOOT_INGAME). Written here
-# rather than committed under src/dlc/ so versions.json stays the single
-# source of truth -- bumping the mod version in versions.json is the only
-# thing the spoken version reflects. package-release.ps1 writes the same
-# file into the staged core-blind tree before zipping.
+# Generated version module; see deploy.ps1's Write-VersionLua for the BOM
+# rationale.
 function Write-VersionLua {
     param([string]$DlcRoot)
     $dst = Join-Path $DlcRoot 'UI\InGame\CivVAccess_Version.lua'
     $body = @"
--- Generated by deploy.ps1 / package-release.ps1 from versions.json. Do not
--- edit by hand; edits will be overwritten on the next deploy or package run.
+-- Generated by deploy-vp.ps1 from versions.json. Do not edit by hand;
+-- edits will be overwritten on the next deploy.
 civvaccess_shared = civvaccess_shared or {}
 civvaccess_shared.version = "$modVersion"
 "@
-    # WriteAllText with UTF8Encoding(false) writes no BOM; PowerShell's
-    # Set-Content -Encoding UTF8 does, and Civ V's Lua 5.1 loader treats
-    # the BOM as a syntax error on line 1 (silently kills the file's
-    # globals -- the boot speech then says "v unknown").
     [System.IO.File]::WriteAllText($dst, $body, [System.Text.UTF8Encoding]::new($false))
 }
 
@@ -221,10 +221,76 @@ function Resolve-CivVInstallDir {
     throw "Could not find Civilization V install directory. Pass -GameDir or set CIV5_DIR. Searched: $searched"
 }
 
+# Completes a partial plain-VP install from the clone. The MODS folders are
+# the user-visible half the VP installer (or a re-pin sync) manages; this
+# covers the rest: the VPUI fake DLC, the Vox Populi Expansion2.Civ5Pkg (an
+# added AudioGameData line over stock), the minor-civ sound table, and the
+# loading-screen tips file. Each piece deploys only when absent.
+function Complete-VPInstall {
+    param([string]$Game)
+
+    $pieces = @(
+        @{ Name = 'VPUI fake DLC'
+           Src  = Join-Path $ClonePath 'VPUI'
+           Dst  = Join-Path $Game 'Assets\DLC\VPUI'
+           Dir  = $true },
+        @{ Name = 'minor-civ sound table'
+           Src  = Join-Path $ClonePath 'MinorCivSounds_VoxPopuli.xml'
+           Dst  = Join-Path $Game 'Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml'
+           Dir  = $false },
+        @{ Name = 'loading screen tips'
+           Src  = Join-Path $ClonePath 'VPUI Text\VPUI_tips_en_us.xml'
+           Dst  = Join-Path $civ5DocsDir 'Text\VPUI_tips_en_us.xml'
+           Dir  = $false }
+    )
+
+    foreach ($piece in $pieces) {
+        if (Test-Path $piece.Dst) { continue }
+        if (-not (Test-Path $piece.Src)) {
+            throw "VP install is missing the $($piece.Name) and the clone copy is absent: $($piece.Src). Pass -ClonePath or install Vox Populi with its own installer."
+        }
+        Write-Host "Completing VP install: $($piece.Name)"
+        Write-Host "  $($piece.Src) -> $($piece.Dst)"
+        $dstParent = Split-Path -Parent $piece.Dst
+        if (-not (Test-Path $dstParent)) { New-Item -ItemType Directory -Path $dstParent -Force | Out-Null }
+        if ($piece.Dir) {
+            Copy-Item -LiteralPath $piece.Src -Destination $piece.Dst -Recurse -Force
+        } else {
+            Copy-Item -LiteralPath $piece.Src -Destination $piece.Dst -Force
+        }
+    }
+
+    # The Expansion2.Civ5Pkg replacement needs a backup of the stock manifest
+    # (it is overwritten in place, unlike the purely-additive pieces above).
+    # Detect "already replaced" by the MinorCivSounds_VoxPopuli reference VP's
+    # copy adds -- the stock manifest already has AudioGameData elements of
+    # its own, so the element name alone doesn't discriminate.
+    $pkgInstalled = Join-Path $Game 'Assets\DLC\Expansion2\Expansion2.Civ5Pkg'
+    $pkgSrc = Join-Path $ClonePath 'Expansion2_VoxPopuli.Civ5Pkg'
+    if (-not (Test-Path $pkgInstalled)) {
+        throw "BNW package manifest not found at $pkgInstalled. The mod requires BNW; verify the game install."
+    }
+    $pkgIsVP = (Get-Content -LiteralPath $pkgInstalled -Raw) -match 'MinorCivSounds_VoxPopuli'
+    if (-not $pkgIsVP) {
+        if (-not (Test-Path $pkgSrc)) {
+            throw "VP install is missing the Vox Populi Expansion2.Civ5Pkg and the clone copy is absent: $pkgSrc. Pass -ClonePath or install Vox Populi with its own installer."
+        }
+        if (-not (Test-Path $expansionPkgBackup)) {
+            $backupDir = Split-Path -Parent $expansionPkgBackup
+            if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+            Write-Host "Backing up stock Expansion2.Civ5Pkg:"
+            Write-Host "  $pkgInstalled -> $expansionPkgBackup"
+            Copy-Item -LiteralPath $pkgInstalled -Destination $expansionPkgBackup -Force
+        }
+        Write-Host "Completing VP install: Vox Populi Expansion2.Civ5Pkg"
+        Write-Host "  $pkgSrc -> $pkgInstalled"
+        Copy-Item -LiteralPath $pkgSrc -Destination $pkgInstalled -Force
+    }
+}
+
 function Deploy-ProxyStack {
     param([string]$Game)
 
-    # Verify all expected source files before touching anything.
     foreach ($f in $ourProxyFiles) {
         $p = Join-Path $proxyDistDir $f
         if (-not (Test-Path $p)) { throw "Missing built proxy file: $p. Run build-proxy.ps1 first." }
@@ -263,6 +329,17 @@ function Deploy-ProxyStack {
 function Deploy-Dlc {
     param([string]$Game)
 
+    # The staged VP vendor tree is a build artifact (not committed); refuse
+    # to deploy without it rather than silently shipping the vanilla-derived
+    # vendor copies, which would revert VP's UI behavior in-game.
+    $vendorUi = Join-Path $vendorStageDir 'UI'
+    if (-not (Test-Path $vendorUi)) {
+        throw "VP vendor stage missing: $vendorUi. Run: py tools/vendoring/vendor.py generate --engine vp"
+    }
+    if (-not (Test-Path $vpSeamSrcFile)) {
+        throw "VP EngineData seam missing: $vpSeamSrcFile"
+    }
+
     $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
     if (Test-Path $dlcDir) {
         Write-Host "  Removing existing DLC directory: $dlcDir"
@@ -272,6 +349,19 @@ function Deploy-Dlc {
     Write-Host "Deploying DLC payload to:"
     Write-Host "  $dlcDir"
     Copy-Item -Path (Join-Path $dlcSrcDir '*') -Destination $dlcDir -Recurse -Force
+
+    # VP vendor overlay: the staged overrides re-sourced from VP / CP / VPUI
+    # replace the vanilla-derived copies file for file.
+    Write-Host "Overlaying VP vendor overrides from:"
+    Write-Host "  $vendorUi"
+    Copy-Item -Path (Join-Path $vendorUi '*') -Destination (Join-Path $dlcDir 'UI') -Recurse -Force
+
+    # EngineData seam swap: the VP implementation ships under the same
+    # include stem as the vanilla one it replaces.
+    $seamDst = Join-Path $dlcDir 'UI\InGame\CivVAccess_EngineData.lua'
+    Write-Host "Swapping in the VP EngineData seam:"
+    Write-Host "  $vpSeamSrcFile -> $seamDst"
+    Copy-Item -LiteralPath $vpSeamSrcFile -Destination $seamDst -Force
 
     Write-VersionLua -DlcRoot $dlcDir
 
@@ -283,30 +373,8 @@ function Deploy-Dlc {
         Copy-Item -Path (Join-Path $soundsSrcDir '*.wav') -Destination $soundsDst -Force
     }
 
-    if (Test-Path $legacyModDir) {
-        Write-Host "Removing legacy mod directory:"
-        Write-Host "  $legacyModDir"
-        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
-    }
-    $legacyBootstrap = Join-Path $Game 'CivVAccess'
-    if ((Test-Path $legacyBootstrap) -and ($legacyBootstrap -ne $dlcDir)) {
-        Write-Host "Removing legacy bootstrap directory:"
-        Write-Host "  $legacyBootstrap"
-        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
-    }
-    foreach ($legacy in $legacyDlcDirs) {
-        $p = Join-Path $Game "Assets\DLC\$legacy"
-        if ((Test-Path $p) -and ($p -ne $dlcDir)) {
-            Write-Host "Removing legacy DLC directory:"
-            Write-Host "  $p"
-            Remove-Item -LiteralPath $p -Recurse -Force
-        }
-    }
-
-    # Engine re-enumerates DLC list at startup from this cache. Without
-    # clearing, newly-added or renamed DLCs may not appear until the user
-    # forces a refresh.
-    $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
+    # Engine re-enumerates DLC list at startup from this cache.
+    $cacheDir = Join-Path $civ5DocsDir 'cache'
     if (Test-Path $cacheDir) {
         Write-Host "Clearing DLC cache:"
         Write-Host "  $cacheDir"
@@ -317,29 +385,31 @@ function Deploy-Dlc {
 function Deploy-EngineDll {
     param([string]$Game)
 
-    $stagedDll = Join-Path $engineDistDir $engineDllName
+    $stagedDll = Join-Path $engineVpDistDir $engineDllName
     if (-not (Test-Path $stagedDll)) {
-        throw "Built engine DLL missing: $stagedDll. Run build-engine.ps1 first (or commit the built DLL)."
+        throw "Built VP fork DLL missing: $stagedDll. Build it from the clone's civvaccess branch (build_vp_clang_sdk.py) and copy to dist/engine-vp/, or use the committed artifact."
     }
 
-    $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
+    # VP loads its DLL from the (1) Community Patch mod folder (that mod's
+    # SetDllPath), not from Assets\DLC\Expansion2. If the folder is absent,
+    # VP isn't installed -- the fork without VP's database is useless.
+    $installedDll = Join-Path $vpModsDllDir $engineDllName
     if (-not (Test-Path $installedDll)) {
-        throw "Vanilla engine DLL not found at $installedDll. Verify game files in Steam and retry."
+        throw "VP's engine DLL not found at $installedDll. Install Vox Populi first (the MODS folders are managed by VP's installer / the re-pin sync)."
     }
 
-    # First-run backup. Only ever backs up if no backup exists; never
-    # overwrites the backup with a modded DLL.
-    if (-not (Test-Path $engineBackup)) {
-        $backupDir = Split-Path -Parent $engineBackup
+    # First-run backup of VP's shipped DLL. Never overwrites the backup.
+    if (-not (Test-Path $engineVpBackup)) {
+        $backupDir = Split-Path -Parent $engineVpBackup
         if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
-        Write-Host "Backing up vanilla engine DLL:"
-        Write-Host "  $installedDll -> $engineBackup"
-        Copy-Item -LiteralPath $installedDll -Destination $engineBackup -Force
+        Write-Host "Backing up VP's shipped engine DLL:"
+        Write-Host "  $installedDll -> $engineVpBackup"
+        Copy-Item -LiteralPath $installedDll -Destination $engineVpBackup -Force
     } else {
-        Write-Host "  Vanilla engine DLL backup already exists at $engineBackup."
+        Write-Host "  VP engine DLL backup already exists at $engineVpBackup."
     }
 
-    Write-Host "Deploying modded engine DLL:"
+    Write-Host "Deploying VP fork engine DLL:"
     Write-Host "  $stagedDll -> $installedDll"
     Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
 }
@@ -361,9 +431,6 @@ function Deploy-Cinematics {
         if (-not (Test-Path $src)) { throw "Missing cinematic source file: $src" }
     }
 
-    # First-run backup. Copy each stock cinematic into the backup directory
-    # only if no backup file already exists for it - never overwrite a backup
-    # with a modded file.
     if (-not (Test-Path $cinematicBackup)) {
         New-Item -ItemType Directory -Path $cinematicBackup -Force | Out-Null
     }
@@ -387,45 +454,31 @@ function Deploy-Cinematics {
 }
 
 function Write-InstallManifest {
-    param(
-        [string]$Game,
-        [ValidateSet('blind','sighted')]
-        [string]$Profile
-    )
+    param([string]$Game)
 
     $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
     $manifestPath = Join-Path $dlcDir $installManifestName
 
     $backupDirRel = "Assets/DLC/$dlcBackupDirName"
 
-    if ($Profile -eq 'blind') {
-        $components = [ordered]@{
-            core       = [ordered]@{ version = $coreVersion }
-            engine     = [ordered]@{ version = $engineVersion }
-            runtime    = [ordered]@{ version = $runtimeVersion }
-            cinematics = [ordered]@{ version = $cinematicsVersion }
-        }
-        $backups = [ordered]@{
-            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
-            cinematics = "$backupDirRel/cinematics"
-            lua51      = 'lua51_original.dll'
-        }
-    } else {
-        $components = [ordered]@{
-            engine = [ordered]@{ version = $engineVersion }
-        }
-        $backups = [ordered]@{
-            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
-        }
-    }
-
     $manifest = [ordered]@{
         schema_version = 1
         mod_version    = $modVersion
-        profile        = $Profile
+        profile        = 'blind'
+        variant        = 'vp'
         installed_at   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        components     = $components
-        backups        = $backups
+        components     = [ordered]@{
+            core       = [ordered]@{ version = $coreVersion }
+            engine_vp  = [ordered]@{ version = $engineVpVersion }
+            runtime    = [ordered]@{ version = $runtimeVersion }
+            cinematics = [ordered]@{ version = $cinematicsVersion }
+        }
+        backups        = [ordered]@{
+            engine_dll_vp  = "$backupDirRel/CvGameCore_Expansion2.vp-stock.dll"
+            expansion2_pkg = "$backupDirRel/Expansion2.Civ5Pkg.stock"
+            cinematics     = "$backupDirRel/cinematics"
+            lua51          = 'lua51_original.dll'
+        }
     }
 
     $json = $manifest | ConvertTo-Json -Depth 5
@@ -450,7 +503,7 @@ function Invoke-Uninstall {
         Write-Host "  No lua51_original.dll found; skipping proxy restore."
     }
 
-    foreach ($f in @('Tolk.dll','SAAPI32.dll','dolapi32.dll','nvdaControllerClient32.dll','BoyCtrl.dll','boyctrl.ini','ZDSRAPI.dll','ZDSRAPI.ini')) {
+    foreach ($f in $tolkFiles) {
         $p = Join-Path $Game $f
         if (Test-Path $p) {
             Write-Host "  Removing $p"
@@ -458,23 +511,10 @@ function Invoke-Uninstall {
         }
     }
 
-    foreach ($name in @($dlcName) + $legacyDlcDirs) {
-        $p = Join-Path $Game "Assets\DLC\$name"
-        if (Test-Path $p) {
-            Write-Host "  Removing DLC: $p"
-            Remove-Item -LiteralPath $p -Recurse -Force
-        }
-    }
-
-    $legacyBootstrap = Join-Path $Game 'CivVAccess'
-    if (Test-Path $legacyBootstrap) {
-        Write-Host "  Removing legacy bootstrap: $legacyBootstrap"
-        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
-    }
-
-    if (Test-Path $legacyModDir) {
-        Write-Host "  Removing legacy mod directory: $legacyModDir"
-        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    if (Test-Path $dlcDir) {
+        Write-Host "  Removing DLC: $dlcDir"
+        Remove-Item -LiteralPath $dlcDir -Recurse -Force
     }
 
     $proxyLog = Join-Path $Game 'proxy_debug.log'
@@ -482,20 +522,18 @@ function Invoke-Uninstall {
         Remove-Item -LiteralPath $proxyLog -Force
     }
 
-    # Restore vanilla engine DLL if we ever swapped it. Backup is the source
-    # of truth; if missing, the user never deployed the modded engine in the
-    # first place, so nothing to restore.
-    if (Test-Path $engineBackup) {
-        $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
-        Write-Host "  Restoring vanilla engine DLL from backup:"
-        Write-Host "    $engineBackup -> $installedDll"
-        Copy-Item -LiteralPath $engineBackup -Destination $installedDll -Force
+    # Restore VP's shipped DLL into the MODS folder. The backup is the
+    # source of truth; missing backup means the fork was never deployed.
+    if (Test-Path $engineVpBackup) {
+        $installedDll = Join-Path $vpModsDllDir $engineDllName
+        Write-Host "  Restoring VP's shipped engine DLL from backup:"
+        Write-Host "    $engineVpBackup -> $installedDll"
+        Copy-Item -LiteralPath $engineVpBackup -Destination $installedDll -Force
+        Remove-Item -LiteralPath $engineVpBackup -Force
     } else {
-        Write-Host "  No engine DLL backup present; skipping engine restore."
+        Write-Host "  No VP engine DLL backup present; skipping engine restore."
     }
 
-    # Restore stock BNW cinematics from backup. Same logic as engine DLL: backup
-    # is the source of truth, missing backup means we never deployed cinematics.
     if (Test-Path $cinematicBackup) {
         $expansion2Dir = Join-Path $Game 'Assets\DLC\Expansion2'
         foreach ($f in $cinematicFiles) {
@@ -512,21 +550,20 @@ function Invoke-Uninstall {
         Write-Host "  No cinematics backup present; skipping cinematics restore."
     }
 
-    # Remove only this script's consumed backups; deploy-vp.ps1 keeps its own
-    # state (the VP-stock engine DLL, the Expansion2.Civ5Pkg.stock) in the
-    # same directory, so the dir itself goes only when nothing is left.
-    if (Test-Path $engineBackup) {
-        Remove-Item -LiteralPath $engineBackup -Force
-    }
+    # The VP install completion (VPUI, Vox Populi Expansion2.Civ5Pkg, sound
+    # table, tips) stays: it makes this machine a working plain-VP install,
+    # which is not ours to remove. The Expansion2.Civ5Pkg.stock backup stays
+    # with it so a later full VP removal can restore the stock manifest.
+
+    # Remove the backup dir only when nothing else (e.g. the vanilla
+    # deploy's engine backup, or the Civ5Pkg backup above) still lives in
+    # it -- the two deploy scripts share the directory.
     if ((Test-Path $dlcBackupDir) -and ((Get-ChildItem -LiteralPath $dlcBackupDir -Recurse -File | Measure-Object).Count -eq 0)) {
         Write-Host "  Removing empty backup dir: $dlcBackupDir"
         Remove-Item -LiteralPath $dlcBackupDir -Recurse -Force
     }
 
-    # Engine re-enumerates DLC at startup from this cache. Without clearing
-    # it, the engine may keep DLC_CivVAccess as a known-but-missing entry
-    # until the next forced refresh.
-    $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
+    $cacheDir = Join-Path $civ5DocsDir 'cache'
     if (Test-Path $cacheDir) {
         Write-Host "Clearing DLC cache:"
         Write-Host "  $cacheDir"
@@ -540,16 +577,19 @@ $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
 Write-Host "  Game dir: $gameDir"
 
 # Backup paths derived from gameDir. Functions read these from script scope.
-$dlcBackupDir    = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
-$engineBackup    = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
-$cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
+$dlcBackupDir       = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
+$engineVpBackup     = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vp-stock.dll'
+$cinematicBackup    = Join-Path $dlcBackupDir 'cinematics'
+$expansionPkgBackup = Join-Path $dlcBackupDir 'Expansion2.Civ5Pkg.stock'
 
 if ($Uninstall) {
     Invoke-Uninstall -Game $gameDir
     Write-Host ""
-    Write-Host "Uninstall complete."
+    Write-Host "Uninstall complete. The plain-VP install (MODS, VPUI, Civ5Pkg) remains."
     return
 }
+
+Complete-VPInstall -Game $gameDir
 
 if (-not $SkipProxy) {
     Deploy-ProxyStack -Game $gameDir
@@ -575,18 +615,15 @@ if (-not $SkipCinematics) {
     Write-Host "Skipping cinematics (-SkipCinematics)."
 }
 
-# Manifest is written last so it always reflects a complete deploy. Skipping
-# components for fast iteration is a maintainer workflow; the manifest still
-# claims the full mod_version for every component since the rest of the
-# install is up to date with what's in src/.
 if (-not $SkipDlc) {
-    Write-InstallManifest -Game $gameDir -Profile 'blind'
+    Write-InstallManifest -Game $gameDir
 }
 
 Write-Host ""
-Write-Host "Deploy complete."
+Write-Host "VP deploy complete."
 Write-Host "  Game dir: $gameDir"
-Write-Host "  Version : $modVersion"
+Write-Host "  Version : $modVersion (VP variant)"
 Write-Host ""
-Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
-Write-Host "  $env:USERPROFILE\Documents\My Games\Sid Meier's Civilization 5\config.ini"
+Write-Host "Start a game with the (1) Community Patch and (2) Vox Populi mods"
+Write-Host "enabled. For Lua.log output, set LoggingEnabled=1 in:"
+Write-Host "  $civ5DocsDir\config.ini"
