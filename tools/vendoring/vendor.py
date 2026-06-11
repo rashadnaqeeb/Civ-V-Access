@@ -208,12 +208,16 @@ def mod_root(name, mod_dir):
 
 
 def vanilla_roots(game_dir):
+    """The live chain for a BNW-based session is BNW then base. G&K is
+    deliberately absent: a UISkin only layers when its `set` matches the
+    active expansion, and G&K's set=Expansion1 skin is never active when
+    BNW (set=Expansion2) is -- its UI files are dead in every session the
+    mod supports."""
     assets = os.path.join(game_dir, "Assets")
     if not os.path.isdir(assets):
         fail("not a Civ V install (no Assets): " + game_dir)
     return [
         dir_root("BNW", os.path.join(assets, "DLC", "Expansion2", "UI")),
-        dir_root("GK", os.path.join(assets, "DLC", "Expansion", "UI")),
         dir_root("base", os.path.join(assets, "UI")),
     ]
 
