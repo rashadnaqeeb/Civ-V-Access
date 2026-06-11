@@ -26,6 +26,16 @@ local function isEnabled(player, info)
     if not player:CanTrain(info.ID, true, true, true, false) then
         return false
     end
+    -- Vox Populi disables the Great Prophet pick while the player has no
+    -- religion to spend it on; offering it would commit a wasted choice.
+    -- IsProphetValid is a VP-only binding.
+    if
+        player.IsProphetValid ~= nil
+        and info.ID == GameInfo.Units["UNIT_PROPHET"].ID
+        and not player:IsProphetValid()
+    then
+        return false
+    end
     local iEarlierBaktun = player:GetUnitBaktun(info.ID)
     if iEarlierBaktun > 0 and not player:IsFreeMayaGreatPersonChoice() then
         return false

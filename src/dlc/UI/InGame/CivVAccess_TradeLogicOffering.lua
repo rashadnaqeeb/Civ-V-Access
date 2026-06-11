@@ -329,6 +329,35 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
         })
     end
 
+    -- Community Patch tech trading: one placed entry per tech, data1 is
+    -- the tech id. Removal goes through CP's TableTechHandler shape,
+    -- RemoveTechTrade(techId) with no player argument. Unreachable on
+    -- engines that never place TRADE_ITEM_TECHS in a deal.
+    if TradeableItems.TRADE_ITEM_TECHS ~= nil and itemType == TradeableItems.TRADE_ITEM_TECHS then
+        local techInfo = GameInfo.Technologies[data1]
+        local label = techInfo and Text.key(techInfo.Description) or "?"
+        local techID = data1
+        local techTooltipFn = function()
+            if type(GetShortHelpTextForTech) ~= "function" then
+                return nil
+            end
+            return GetShortHelpTextForTech(techID, false)
+        end
+        if readOnly then
+            return BaseMenuItems.Text({ labelText = label, pediaName = label, tooltipFn = techTooltipFn })
+        end
+        return BaseMenuItems.Text({
+            labelText = label,
+            pediaName = label,
+            tooltipFn = techTooltipFn,
+            onActivate = function()
+                g_Deal:RemoveTechTrade(techID)
+                TradeLogicAccess.clearEngineTable()
+                TradeLogicAccess.afterLocalDealChange()
+            end,
+        })
+    end
+
     -- Boolean diplomacy items: AllowEmbassy, OpenBorders, DefensivePact,
     -- ResearchAgreement, DeclarationOfFriendship. Each has the same remove
     -- shape: RemoveByType(type, player). DoF and DP remove from BOTH sides
@@ -366,6 +395,32 @@ offeringItem = function(itemType, data1, data2, data3, flag1, duration, side, re
             pocketSuffix = "PocketDoF",
         },
     }
+    -- Community Patch single-side extras share the boolean remove shape
+    -- (CP's Table*Handler functions are RemoveByType on one side). Added
+    -- outside the constructor because a nil enum constant cannot be a
+    -- table key; the constants exist but go unused on vanilla, where the
+    -- engine never places these item types.
+    if TradeableItems.TRADE_ITEM_MAPS ~= nil then
+        booleanSpecs[TradeableItems.TRADE_ITEM_MAPS] = {
+            key = "TXT_KEY_DIPLO_TRADE_MAP",
+            bothSides = false,
+            pocketSuffix = "PocketTradeMap",
+        }
+    end
+    if TradeableItems.TRADE_ITEM_VASSALAGE ~= nil then
+        booleanSpecs[TradeableItems.TRADE_ITEM_VASSALAGE] = {
+            key = "TXT_KEY_DIPLO_VASSALAGE",
+            bothSides = false,
+            pocketSuffix = "PocketVassalage",
+        }
+    end
+    if TradeableItems.TRADE_ITEM_VASSALAGE_REVOKE ~= nil then
+        booleanSpecs[TradeableItems.TRADE_ITEM_VASSALAGE_REVOKE] = {
+            key = "TXT_KEY_DIPLO_VASSALAGE_REVOKE",
+            bothSides = false,
+            pocketSuffix = "PocketRevokeVassalage",
+        }
+    end
     local bSpec = booleanSpecs[itemType]
     if bSpec ~= nil then
         local label = Text.key(bSpec.key) .. TradeLogicAccess.turnsSuffix(duration)

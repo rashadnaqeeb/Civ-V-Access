@@ -123,10 +123,37 @@ local function civEntryAnnounce(inst)
     return civRichLabelForID(inst.Button:GetVoid2())
 end
 
+-- Mirrors Community Patch's unmet-civ concealment in UpdatePlayer: with
+-- the KEEP_UNMET_PLAYERS_UNKNOWN game option, civs outside the local
+-- player's team are hidden -- in a loaded game until actually met
+-- (HasMetCivInGame is a CP vendor global), in a fresh setup whenever a
+-- human explicitly picked one. Speaking the name would leak what the
+-- screen deliberately hides. Uses the same truthiness on the game option
+-- as CP's own check so concealment always matches the visible UI.
+local function civConcealed(playerID)
+    if HasMetCivInGame == nil then -- CP-only mechanic
+        return false
+    end
+    if not PreGame.GetGameOption("GAMEOPTION_KEEP_UNMET_PLAYERS_UNKNOWN") then
+        return false
+    end
+    local localID = Matchmaking.GetLocalID()
+    if playerID == localID or PreGame.GetTeam(playerID) == PreGame.GetTeam(localID) then
+        return false
+    end
+    if PreGame.GetLoadFileName() ~= "" then
+        return not HasMetCivInGame(playerID)
+    end
+    return PreGame.GetSlotStatus(playerID) == SlotStatus.SS_TAKEN
+end
+
 local function civText(playerID)
     local civType = PreGame.GetCivilization(playerID)
     if civType == nil or civType < 0 then
         return nil
+    end
+    if civConcealed(playerID) then
+        return Text.format("TXT_KEY_UNMET_PLAYER", "", "")
     end
     local row = GameInfo.Civilizations[civType]
     if row == nil then

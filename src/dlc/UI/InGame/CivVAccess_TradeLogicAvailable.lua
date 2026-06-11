@@ -251,6 +251,49 @@ local function availableResourceGroups(side)
     return groups
 end
 
+-- Technologies group (Community Patch tech trading). Mirrors the resource
+-- groups: per-tech legality via IsPossibleToTradeItem, omitted when no
+-- tech is currently tradeable. Per-tech tooltip mirrors RefreshPocketTechs
+-- (GetShortHelpTextForTech, a CP vendor global). Gated on the CP-only
+-- pocket stack control so engines without tech trading never build it.
+local function availableTechsGroup(side)
+    local pfx = TradeLogicAccess.prefix(side)
+    if Controls[pfx .. "PocketTechnologyStack"] == nil or TradeableItems.TRADE_ITEM_TECHS == nil then
+        return nil
+    end
+    local iPlayer = TradeLogicAccess.sidePlayer(side)
+    local otherPlayer = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
+    local items = {}
+    for row in GameInfo.Technologies() do
+        local techID = row.ID
+        if g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_TECHS, techID) then
+            local label = Text.key(row.Description)
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = label,
+                pediaName = label,
+                tooltipFn = function()
+                    if type(GetShortHelpTextForTech) ~= "function" then
+                        return nil
+                    end
+                    return GetShortHelpTextForTech(techID, false)
+                end,
+                onActivate = function()
+                    g_Deal:AddTechTrade(iPlayer, techID)
+                    TradeLogicAccess.afterLocalDealChange()
+                end,
+            })
+        end
+    end
+    if #items == 0 then
+        return nil
+    end
+    return BaseMenuItems.Group({
+        labelText = Text.key("TXT_KEY_DIPLO_ITEMS_TECHNOLOGIES"),
+        tooltipFn = TradeLogicAccess.pocketTooltipFn(pfx .. "PocketTechnology"),
+        items = items,
+    })
+end
+
 -- Votes group: one leaf per (proposal, voter choice, enact/repeal) entry
 -- in g_LeagueVoteList. The list is flattened by UpdateLeagueVotes at
 -- display time; here we re-run it so we see current state, then filter by
@@ -460,6 +503,12 @@ function TradeLogicAvailable.buildAvailableItems(side)
         items[#items + 1] = g
     end
 
+    -- Technologies (Community Patch; nil on engines without tech trading).
+    local techs = availableTechsGroup(side)
+    if techs ~= nil then
+        items[#items + 1] = techs
+    end
+
     -- Boolean diplomatic items, in the plan's order. controlSuffix is the
     -- engine pocket-control name without Us / Them prefix; when the leaf
     -- is disabled we read that control's tooltip live so the user hears
@@ -469,6 +518,14 @@ function TradeLogicAvailable.buildAvailableItems(side)
         if it ~= nil then
             items[#items + 1] = it
         end
+    end
+    -- World map (Community Patch; the control only exists there). Sits
+    -- before Embassy, matching CP's pocket-stack order.
+    local pfx = TradeLogicAccess.prefix(side)
+    if Controls[pfx .. "PocketTradeMap"] ~= nil then
+        addBoolean("TXT_KEY_DIPLO_TRADE_MAP", TradeableItems.TRADE_ITEM_MAPS, "PocketTradeMap", function(p)
+            g_Deal:AddMapTrade(p)
+        end, false, false)
     end
     addBoolean("TXT_KEY_DIPLO_ALLOW_EMBASSY", TradeableItems.TRADE_ITEM_ALLOW_EMBASSY, "PocketAllowEmbassy", function(p)
         g_Deal:AddAllowEmbassy(p)
@@ -489,6 +546,30 @@ function TradeLogicAvailable.buildAvailableItems(side)
         true,
         true
     )
+    -- Vassalage pair (Community Patch; the controls only exist there).
+    -- CP's pocket handlers keep each one-sided: adding for one side clears
+    -- any entry the other side had.
+    if Controls[pfx .. "PocketVassalage"] ~= nil then
+        addBoolean("TXT_KEY_DIPLO_VASSALAGE", TradeableItems.TRADE_ITEM_VASSALAGE, "PocketVassalage", function(p)
+            g_Deal:AddVassalageTrade(p)
+            local other = p == g_iUs and g_iThem or g_iUs
+            g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_VASSALAGE, other)
+        end, false, false)
+    end
+    if Controls[pfx .. "PocketRevokeVassalage"] ~= nil then
+        addBoolean(
+            "TXT_KEY_DIPLO_VASSALAGE_REVOKE",
+            TradeableItems.TRADE_ITEM_VASSALAGE_REVOKE,
+            "PocketRevokeVassalage",
+            function(p)
+                g_Deal:AddRevokeVassalageTrade(p)
+                local other = p == g_iUs and g_iThem or g_iUs
+                g_Deal:RemoveByType(TradeableItems.TRADE_ITEM_VASSALAGE_REVOKE, other)
+            end,
+            false,
+            false
+        )
+    end
     -- Engine TradeLogic.lua only un-hides UsPocketDoF when g_bPVPTrade is
     -- true (AI has its own dedicated DoF interface). IsPossibleToTradeItem
     -- doesn't filter on PvP-ness for us, so gate on both-sides-human.

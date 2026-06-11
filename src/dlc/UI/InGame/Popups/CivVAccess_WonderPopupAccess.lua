@@ -57,9 +57,20 @@ local function labelOf(name)
     return tostring(text)
 end
 
+-- Community Patch wraps the Stats label in a StatsScroll panel and gates
+-- visibility there, leaving the label itself shown with its previous text;
+-- treat Stats as empty whenever its container is hidden. Vanilla has no
+-- StatsScroll control.
+local function statsText()
+    if Controls.StatsScroll ~= nil and Controls.StatsScroll:IsHidden() then
+        return ""
+    end
+    return labelOf("Stats")
+end
+
 -- Title is in displayName, so omit it here to avoid F1 reading it twice.
 local function preamble()
-    return Text.joinNonEmpty({ labelOf("Quote"), labelOf("Stats") })
+    return Text.joinNonEmpty({ labelOf("Quote"), statsText() })
 end
 
 local handler = BaseMenu.install(ContextPtr, {

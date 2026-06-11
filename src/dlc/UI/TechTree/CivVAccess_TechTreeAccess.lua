@@ -422,7 +422,10 @@ local function openPediaForCurrent()
 end
 
 local function closer()
-    OnCloseButtonClicked()
+    -- Community Patch's TechTree names the close handler Close; vanilla
+    -- names it OnCloseButtonClicked.
+    local close = OnCloseButtonClicked or Close
+    close()
 end
 
 local function treeHandleSearchInput(_handler, vk, mods)
