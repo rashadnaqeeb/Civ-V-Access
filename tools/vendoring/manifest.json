@@ -580,10 +580,27 @@
     },
     "InGame/Popups/ProductionPopup.lua": {
       "suffix": "\r\ninclude(\"CivVAccess_ChooseProductionPopupAccess\");\r\n",
-      "refit": true
-    },
-    "InGame/Popups/ProductionPopup.xml": {
-      "refit": true
+      "vp": {
+        "edits": [
+          {
+            "old": "local function Close()\r\n",
+            "new": "-- CivVAccess: Close is exposed as a global (dropped `local`) so the\r\n-- accessibility include at the end of this file can dismiss the popup.\r\nfunction Close()\r\n"
+          },
+          {
+            "old": "local function MayPurchaseOrProduceAnything(pCity)\r\n",
+            "new": "-- CivVAccess: exposed as a global (dropped `local`) so the\r\n-- accessibility include at the end of this file can apply the same\r\n-- puppet gate the engine does.\r\nfunction MayPurchaseOrProduceAnything(pCity)\r\n"
+          },
+          {
+            "old": "ContextPtr:SetInputHandler(function (uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_ESCAPE or wParam == Keys.VK_RETURN then\r\n\t\t\tClose();\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction InputHandler(uiMsg, wParam)\r\n\tif uiMsg == KeyEvents.KeyDown then\r\n\t\tif wParam == Keys.VK_ESCAPE or wParam == Keys.VK_RETURN then\r\n\t\t\tClose();\r\n\t\t\treturn true;\r\n\t\tend\r\n\tend\r\nend\r\nContextPtr:SetInputHandler(InputHandler);\r\n"
+          },
+          {
+            "old": "ContextPtr:SetShowHideHandler(function (bIsHide, bInitState)\r\n\tif not bInitState then\r\n\t\tif not bIsHide then\r\n\t\t\tEvents.SerialEventGameMessagePopupShown(g_popupInfo);\r\n\t\telse\r\n\t\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION, 0);\r\n\t\tend\r\n\t\tg_bHidden = bIsHide;\r\n\r\n\t\t-- Call CityView.lua\r\n\t\tLuaEvents.ProductionPopup(bIsHide);\r\n\tend\r\nend);\r\n",
+            "new": "-- CivVAccess: named (was anonymous) so the accessibility include at\r\n-- the end of this file can capture and chain it.\r\nfunction ShowHideHandler(bIsHide, bInitState)\r\n\tif not bInitState then\r\n\t\tif not bIsHide then\r\n\t\t\tEvents.SerialEventGameMessagePopupShown(g_popupInfo);\r\n\t\telse\r\n\t\t\tEvents.SerialEventGameMessagePopupProcessed.CallImmediate(ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION, 0);\r\n\t\tend\r\n\t\tg_bHidden = bIsHide;\r\n\r\n\t\t-- Call CityView.lua\r\n\t\tLuaEvents.ProductionPopup(bIsHide);\r\n\tend\r\nend\r\nContextPtr:SetShowHideHandler(ShowHideHandler);\r\n"
+          }
+        ],
+        "suffix": "\r\ninclude(\"CivVAccess_ChooseProductionPopupAccess\");\r\n"
+      }
     },
     "InGame/Popups/ReligionOverview.lua": {
       "suffix": "\ninclude(\"CivVAccess_ReligionOverviewAccess\");\n"

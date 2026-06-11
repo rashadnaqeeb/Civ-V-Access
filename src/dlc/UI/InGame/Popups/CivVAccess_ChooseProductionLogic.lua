@@ -16,55 +16,76 @@ ChooseProductionLogic.ADVISORS = {
     { name = "FOREIGN", key = "TXT_KEY_CITY_CONSTRUCTION_ADVISOR_RECOMMENDATION_FOREIGN" },
 }
 
--- Wonder classification matches base's production-mode check at
--- ProductionPopup.lua:536: MaxGlobalInstances > 0 (true world wonders),
--- MaxPlayerInstances == 1 (national wonders), or MaxTeamInstances > 0
--- (team wonders, e.g. Hanging Gardens in some mods).
+-- Wonder classification matches Community Patch's bucket check (a class
+-- with any global / team instance cap, or a per-player cap of one). The
+-- thresholds also hold on vanilla data, where uncapped dimensions are -1.
 function ChooseProductionLogic.isWonderBuilding(building)
     local bclass = GameInfo.BuildingClasses[building.BuildingClass]
     if bclass == nil then
         return false
     end
-    return bclass.MaxGlobalInstances > 0 or bclass.MaxPlayerInstances == 1 or bclass.MaxTeamInstances > 0
+    return bclass.MaxGlobalInstances > -1 or bclass.MaxPlayerInstances == 1 or bclass.MaxTeamInstances > -1
 end
 
--- Era-by-tech mapping used by unit/building sort. +10 per era matches base's
--- GetUnitSortPriority / GetBuildingSortPriority so our sort order tracks the
--- sighted popup's "era by tech, then category offset" layout.
+-- Tech-column mapping used by the sorts. Items order by their prereq
+-- tech's column in the tech tree (GridX), the key Community Patch's
+-- popup uses; both engines' tech tables carry it. No-prereq items use
+-- -1 so they sort ahead of column 0 within their tier.
 function ChooseProductionLogic.buildSortContext()
-    local eraIDs = {}
-    for row in GameInfo.Eras() do
-        eraIDs[row.Type] = row.ID
-    end
-    local erasByTech = {}
+    local columnByTech = {}
     for row in GameInfo.Technologies() do
-        erasByTech[row.Type] = (eraIDs[row.Era] or 0) + 10
+        columnByTech[row.Type] = row.GridX or 0
     end
-    return erasByTech
+    return columnByTech
 end
 
-function ChooseProductionLogic.unitSortKey(unit, erasByTech)
-    local era = 0
+-- Category tiers matching Community Patch's order: civilians (any
+-- domain), then land, sea, air; tech column within each tier. Civilian
+-- means no melee and no ranged combat strength, CP's own definition.
+function ChooseProductionLogic.unitSortKey(unit, columnByTech)
+    local column = -1
     if unit.PrereqTech then
-        era = erasByTech[unit.PrereqTech] or 0
+        column = columnByTech[unit.PrereqTech] or -1
     end
-    if unit.CivilianAttackPriority then
-        if unit.Domain == "DOMAIN_LAND" then
-            return era
-        end
-        return era + 1000
+    if (unit.Combat or 0) == 0 and (unit.RangedCombat or 0) == 0 then
+        return column
     end
     if unit.Domain == "DOMAIN_LAND" then
-        return era + 2000
+        return column + 1000
     end
-    return era + 3000
+    if unit.Domain == "DOMAIN_SEA" then
+        return column + 2000
+    end
+    if unit.Domain == "DOMAIN_AIR" then
+        return column + 3000
+    end
+    return column + 4000
 end
 
-function ChooseProductionLogic.buildingSortKey(building, erasByTech)
+function ChooseProductionLogic.buildingSortKey(building, columnByTech)
     if building.PrereqTech then
-        return erasByTech[building.PrereqTech] or 0
+        return columnByTech[building.PrereqTech] or -1
     end
-    return 0
+    return -1
+end
+
+-- Wonder tiers matching Community Patch's order: national, team, world;
+-- tech column within each tier. Precedence mirrors CP's comparison order
+-- (a class capped per-player counts as national even if also capped
+-- globally).
+function ChooseProductionLogic.wonderSortKey(building, columnByTech)
+    local tier = 3000
+    local bclass = GameInfo.BuildingClasses[building.BuildingClass]
+    if bclass ~= nil then
+        if bclass.MaxPlayerInstances == 1 then
+            tier = 0
+        elseif bclass.MaxTeamInstances > -1 then
+            tier = 1000
+        elseif bclass.MaxGlobalInstances > -1 then
+            tier = 2000
+        end
+    end
+    return tier + ChooseProductionLogic.buildingSortKey(building, columnByTech)
 end
 
 -- Strict disabled check (right-now-ish). Separate from the visibility check
@@ -271,9 +292,9 @@ function ChooseProductionLogic.buildUnitEntries(city, isProduce)
     for _, e in ipairs(entries) do
         e.disabledForSort = ChooseProductionLogic.isEntryDisabled(city, e)
     end
-    local erasByTech = ChooseProductionLogic.buildSortContext()
+    local columnByTech = ChooseProductionLogic.buildSortContext()
     ChooseProductionLogic.sortEntries(entries, function(e)
-        return ChooseProductionLogic.unitSortKey(e.info, erasByTech)
+        return ChooseProductionLogic.unitSortKey(e.info, columnByTech)
     end)
     return entries
 end
@@ -302,12 +323,13 @@ function ChooseProductionLogic.buildBuildingAndWonderEntries(city, isProduce)
     for _, e in ipairs(wonders) do
         e.disabledForSort = ChooseProductionLogic.isEntryDisabled(city, e)
     end
-    local erasByTech = ChooseProductionLogic.buildSortContext()
-    local keyFn = function(e)
-        return ChooseProductionLogic.buildingSortKey(e.info, erasByTech)
-    end
-    ChooseProductionLogic.sortEntries(buildings, keyFn)
-    ChooseProductionLogic.sortEntries(wonders, keyFn)
+    local columnByTech = ChooseProductionLogic.buildSortContext()
+    ChooseProductionLogic.sortEntries(buildings, function(e)
+        return ChooseProductionLogic.buildingSortKey(e.info, columnByTech)
+    end)
+    ChooseProductionLogic.sortEntries(wonders, function(e)
+        return ChooseProductionLogic.wonderSortKey(e.info, columnByTech)
+    end)
     return buildings, wonders
 end
 

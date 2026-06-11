@@ -369,9 +369,10 @@ local function installStandardEras()
         { Type = "ERA_ANCIENT", ID = 0 },
         { Type = "ERA_CLASSICAL", ID = 1 },
     })
+    -- The sort context keys on the tech-tree column (GridX), CP's order.
     installTechnologies({
-        { Type = "TECH_BRONZE_WORKING", Era = "ERA_ANCIENT" },
-        { Type = "TECH_IRON_WORKING", Era = "ERA_CLASSICAL" },
+        { Type = "TECH_BRONZE_WORKING", Era = "ERA_ANCIENT", GridX = 2 },
+        { Type = "TECH_IRON_WORKING", Era = "ERA_CLASSICAL", GridX = 5 },
     })
 end
 
@@ -379,11 +380,13 @@ end
 
 function M.test_is_wonder_building_flags_world_wonder()
     setup()
+    -- Uncapped dimensions are -1 in the real DB; CP's bucket check (which
+    -- both engines now share) treats any value above -1 as capped.
     installBuildingClasses({
-        WONDER = { MaxGlobalInstances = 1, MaxPlayerInstances = 0, MaxTeamInstances = 0 },
-        NATIONAL = { MaxGlobalInstances = 0, MaxPlayerInstances = 1, MaxTeamInstances = 0 },
-        TEAM = { MaxGlobalInstances = 0, MaxPlayerInstances = 0, MaxTeamInstances = 1 },
-        REGULAR = { MaxGlobalInstances = 0, MaxPlayerInstances = 0, MaxTeamInstances = 0 },
+        WONDER = { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = -1 },
+        NATIONAL = { MaxGlobalInstances = -1, MaxPlayerInstances = 1, MaxTeamInstances = -1 },
+        TEAM = { MaxGlobalInstances = -1, MaxPlayerInstances = -1, MaxTeamInstances = 1 },
+        REGULAR = { MaxGlobalInstances = -1, MaxPlayerInstances = -1, MaxTeamInstances = -1 },
     })
     T.truthy(ChooseProductionLogic.isWonderBuilding({ BuildingClass = "WONDER" }))
     T.truthy(ChooseProductionLogic.isWonderBuilding({ BuildingClass = "NATIONAL" }))
@@ -392,31 +395,44 @@ function M.test_is_wonder_building_flags_world_wonder()
     T.falsy(ChooseProductionLogic.isWonderBuilding({ BuildingClass = "MISSING" }))
 end
 
-function M.test_unit_sort_key_category_offsets()
+function M.test_unit_sort_key_category_tiers()
     setup()
-    local eras = { TECH_A = 10, TECH_B = 20 }
-    -- Civilian land at ERA_ANCIENT base 10 -> 10
-    local civLandEarly = { PrereqTech = "TECH_A", Domain = "DOMAIN_LAND", CivilianAttackPriority = 1 }
-    T.eq(ChooseProductionLogic.unitSortKey(civLandEarly, eras), 10)
-    -- Civilian sea -> +1000
-    local civSea = { PrereqTech = "TECH_A", Domain = "DOMAIN_SEA", CivilianAttackPriority = 1 }
-    T.eq(ChooseProductionLogic.unitSortKey(civSea, eras), 1010)
-    -- Military land -> +2000
-    local milLand = { PrereqTech = "TECH_B", Domain = "DOMAIN_LAND" }
-    T.eq(ChooseProductionLogic.unitSortKey(milLand, eras), 2020)
-    -- Military sea -> +3000
-    local milSea = { PrereqTech = "TECH_B", Domain = "DOMAIN_SEA" }
-    T.eq(ChooseProductionLogic.unitSortKey(milSea, eras), 3020)
-    -- No PrereqTech -> era 0
-    local noTech = { Domain = "DOMAIN_LAND" }
-    T.eq(ChooseProductionLogic.unitSortKey(noTech, eras), 2000)
+    local columns = { TECH_A = 3, TECH_B = 7 }
+    -- Civilian (no combat strength), any domain -> tier 0 + tech column.
+    local civLand = { PrereqTech = "TECH_A", Domain = "DOMAIN_LAND" }
+    T.eq(ChooseProductionLogic.unitSortKey(civLand, columns), 3)
+    local civSea = { PrereqTech = "TECH_A", Domain = "DOMAIN_SEA" }
+    T.eq(ChooseProductionLogic.unitSortKey(civSea, columns), 3, "civilians group regardless of domain")
+    -- Military tiers: land, then sea, then air.
+    local milLand = { PrereqTech = "TECH_B", Domain = "DOMAIN_LAND", Combat = 8 }
+    T.eq(ChooseProductionLogic.unitSortKey(milLand, columns), 1007)
+    local milSea = { PrereqTech = "TECH_B", Domain = "DOMAIN_SEA", Combat = 8 }
+    T.eq(ChooseProductionLogic.unitSortKey(milSea, columns), 2007)
+    local milAir = { PrereqTech = "TECH_B", Domain = "DOMAIN_AIR", RangedCombat = 20 }
+    T.eq(ChooseProductionLogic.unitSortKey(milAir, columns), 3007, "ranged-only strength is not civilian")
+    -- No PrereqTech -> column -1, ahead of column 0 within the tier.
+    local noTech = { Domain = "DOMAIN_LAND", Combat = 8 }
+    T.eq(ChooseProductionLogic.unitSortKey(noTech, columns), 999)
 end
 
 function M.test_building_sort_key_via_prereq_tech()
     setup()
-    local eras = { TECH_A = 10, TECH_B = 20 }
-    T.eq(ChooseProductionLogic.buildingSortKey({ PrereqTech = "TECH_B" }, eras), 20)
-    T.eq(ChooseProductionLogic.buildingSortKey({}, eras), 0)
+    local columns = { TECH_A = 3, TECH_B = 7 }
+    T.eq(ChooseProductionLogic.buildingSortKey({ PrereqTech = "TECH_B" }, columns), 7)
+    T.eq(ChooseProductionLogic.buildingSortKey({}, columns), -1)
+end
+
+function M.test_wonder_sort_key_tiers_national_team_world()
+    setup()
+    installBuildingClasses({
+        NATIONAL = { MaxGlobalInstances = -1, MaxPlayerInstances = 1, MaxTeamInstances = -1 },
+        TEAM = { MaxGlobalInstances = -1, MaxPlayerInstances = -1, MaxTeamInstances = 1 },
+        WORLD = { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = -1 },
+    })
+    local columns = { TECH_A = 3 }
+    T.eq(ChooseProductionLogic.wonderSortKey({ BuildingClass = "NATIONAL", PrereqTech = "TECH_A" }, columns), 3)
+    T.eq(ChooseProductionLogic.wonderSortKey({ BuildingClass = "TEAM", PrereqTech = "TECH_A" }, columns), 1003)
+    T.eq(ChooseProductionLogic.wonderSortKey({ BuildingClass = "WORLD", PrereqTech = "TECH_A" }, columns), 2003)
 end
 
 function M.test_sort_entries_puts_enabled_before_disabled()
@@ -456,8 +472,8 @@ function M.test_build_unit_entries_produce_tab_collects_trainable()
     setup()
     installStandardEras()
     installGameInfoUnits({
-        { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", PrereqTech = "TECH_BRONZE_WORKING" },
-        { ID = 2, Description = "Settler", Domain = "DOMAIN_LAND", CivilianAttackPriority = 1 },
+        { ID = 1, Description = "Warrior", Domain = "DOMAIN_LAND", PrereqTech = "TECH_BRONZE_WORKING", Combat = 8 },
+        { ID = 2, Description = "Settler", Domain = "DOMAIN_LAND" },
         { ID = 3, Description = "Hidden", Domain = "DOMAIN_LAND" }, -- not trainable even visible
     })
     local city = mkCityStub({
@@ -466,7 +482,7 @@ function M.test_build_unit_entries_produce_tab_collects_trainable()
     })
     local entries = ChooseProductionLogic.buildUnitEntries(city, true)
     T.eq(#entries, 2)
-    -- Settler (civilian land, era 0, sort 0) before Warrior (military land, era 10, sort 2010)
+    -- Settler (civilian, no prereq, key -1) before Warrior (military land, key 1002)
     T.eq(entries[1].id, 2)
     T.eq(entries[2].id, 1)
     T.eq(entries[1].isProduce, true)
@@ -499,8 +515,8 @@ function M.test_build_building_and_wonder_entries_split_by_class()
     setup()
     installStandardEras()
     installBuildingClasses({
-        BUILDINGCLASS_LIBRARY = { MaxGlobalInstances = 0, MaxPlayerInstances = 0, MaxTeamInstances = 0 },
-        BUILDINGCLASS_PYRAMIDS = { MaxGlobalInstances = 1, MaxPlayerInstances = 0, MaxTeamInstances = 0 },
+        BUILDINGCLASS_LIBRARY = { MaxGlobalInstances = -1, MaxPlayerInstances = -1, MaxTeamInstances = -1 },
+        BUILDINGCLASS_PYRAMIDS = { MaxGlobalInstances = 1, MaxPlayerInstances = -1, MaxTeamInstances = -1 },
     })
     installGameInfoBuildings({
         { ID = 10, Description = "Library", BuildingClass = "BUILDINGCLASS_LIBRARY" },

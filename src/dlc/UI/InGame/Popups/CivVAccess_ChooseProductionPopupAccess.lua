@@ -15,9 +15,9 @@
 -- BaseMenu.install runs onActivate next tick so our setters land before
 -- openInitial reads them.
 --
--- Puppets auto-manage production; we short-circuit with a "puppet"
--- announcement and close the Context (matches base's silent bail at
--- ProductionPopup.lua:788-790).
+-- Puppets auto-manage production; when the engine wouldn't open the
+-- popup for one we short-circuit with a "puppet" announcement and close.
+-- The gate is engine-aware -- see puppetMayOpen.
 --
 -- Append mode (popupInfo.Option1, shift-click entry): each commit announces
 -- "added, slot N in queue" with post-commit queue length; queue-full (6)
@@ -64,6 +64,16 @@ local function getCurrentCity()
     return player:GetCityByID(_cityID)
 end
 
+-- Vanilla names the close handler OnClose; Community Patch's rewrite
+-- names it Close (promoted to a global by our vp vendor recipe).
+local function closePopup()
+    if OnClose ~= nil then
+        OnClose()
+    else
+        Close()
+    end
+end
+
 -- ===== Preamble =====
 --
 -- Re-evaluated on first open and on F1 (readHeader). Turn ticks don't fire
@@ -91,8 +101,29 @@ local function preambleFn()
     parts[#parts + 1] =
         Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE", city:GetYieldRate(YieldTypes.YIELD_SCIENCE))
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLD", city:GetYieldRate(YieldTypes.YIELD_GOLD))
-    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", city:GetJONSCulturePerTurn())
+    -- Community Patch makes culture a real city yield and its popup
+    -- displays it with the fraction kept; GetJONSCulturePerTurn would
+    -- truncate it. Game.IsCustomModOption only exists on the CP DLL, so
+    -- it doubles as the engine probe.
+    local culture
+    if Game.IsCustomModOption ~= nil then
+        culture = city:GetYieldRateTimes100(YieldTypes.YIELD_CULTURE) / 100
+    else
+        culture = city:GetJONSCulturePerTurn()
+    end
+    parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", culture)
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetFaithPerTurn())
+    -- CP's header adds the city's local happiness and aggregated
+    -- unhappiness when the VP balance option is on. Numbers only; the
+    -- hover breakdowns stay visual.
+    if
+        Game.IsCustomModOption ~= nil
+        and Game.IsCustomModOption("BALANCE_VP")
+        and city.GetUnhappinessAggregated ~= nil
+    then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS", city:GetLocalHappiness())
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS", city:GetUnhappinessAggregated())
+    end
     for _, t in ipairs(CitySpeech.statusTokens(city)) do
         parts[#parts + 1] = t
     end
@@ -120,13 +151,13 @@ local function commitProduce(city, entry)
         SpeechPipeline.speakInterrupt(
             Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING", Text.key(entry.info.Description))
         )
-        OnClose()
+        closePopup()
         return
     end
     local qLen = city:GetOrderQueueLength()
     if qLen >= 6 then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"))
-        OnClose()
+        closePopup()
         return
     end
     SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT", qLen))
@@ -164,7 +195,7 @@ local function commitPurchase(city, entry)
     SpeechPipeline.speakInterrupt(
         Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Text.key(entry.info.Description))
     )
-    OnClose()
+    closePopup()
 end
 
 local function entryActivate(entry)
@@ -391,7 +422,7 @@ local function cycleCity(direction)
     end
     local opt1 = _popupInfo and _popupInfo.Option1 or false
     local opt2 = _popupInfo and _popupInfo.Option2 or false
-    OnClose()
+    closePopup()
     Events.SerialEventGameMessagePopup({
         Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPRODUCTION,
         Data1 = newCity:GetID(),
@@ -430,19 +461,25 @@ table.insert(mainHandler.bindings, {
     key = Keys.VK_ESCAPE,
     mods = 0,
     description = "Close",
-    fn = OnClose,
+    fn = closePopup,
 })
 
 -- ===== Popup intercept =====
 
--- Puppet-city gate. Base's handling at ProductionPopup.lua:1067-1073 is: any
--- puppet bails silently, EXCEPT Venice (MayNotAnnex) in Purchase mode, which
--- can still spend gold on a puppet. We match that: Venice-on-puppet with
--- Option2=true opens Purchase-only (the Produce tab will naturally come back
--- empty because CanTrain / CanConstruct / CanMaintain all return false for
--- puppets, and the engine's sighted popup relies on the same filters).
-local function isVenicePuppetEntry(player, city, popupInfo)
-    return city:IsPuppet() and player:MayNotAnnex() and popupInfo.Option2 == true
+-- Puppet-city gate. Vanilla (ProductionPopup.lua:1067-1073): any puppet
+-- bails silently, EXCEPT Venice (MayNotAnnex) in Purchase mode, which can
+-- still spend gold on a puppet. Community Patch widens the exception --
+-- buildings can legalize purchasing in puppets -- and wraps the whole
+-- check in MayPurchaseOrProduceAnything, which our vp vendor recipe
+-- promotes; when present it answers instead (it reads the vendor's
+-- production/purchase mode, already set by the vendor's own listener,
+-- which runs before ours). Allowed puppets open on the Purchase tab; the
+-- Produce list stays empty by engine rule.
+local function puppetMayOpen(player, city, popupInfo)
+    if MayPurchaseOrProduceAnything ~= nil then
+        return MayPurchaseOrProduceAnything(city)
+    end
+    return player:MayNotAnnex() and popupInfo.Option2 == true
 end
 
 Events.SerialEventGameMessagePopup.Add(function(popupInfo)
@@ -457,9 +494,9 @@ Events.SerialEventGameMessagePopup.Add(function(popupInfo)
     if city == nil then
         return
     end
-    if city:IsPuppet() and not isVenicePuppetEntry(player, city, popupInfo) then
+    if city:IsPuppet() and not puppetMayOpen(player, city, popupInfo) then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PUPPET"))
-        OnClose()
+        closePopup()
         return
     end
 
@@ -472,12 +509,10 @@ Events.SerialEventGameMessagePopup.Add(function(popupInfo)
 
     mainHandler.setItems(makeGroups(true), TAB_PRODUCE)
     mainHandler.setItems(makeGroups(false), TAB_PURCHASE)
-    -- Venice on a puppet forces Purchase regardless of Option2 (Produce is
+    -- An allowed puppet forces Purchase regardless of Option2 (Produce is
     -- empty-by-engine-rule there). Otherwise Option2 picks the opening tab.
     local initialTab
-    if isVenicePuppetEntry(player, city, popupInfo) then
-        initialTab = TAB_PURCHASE
-    elseif popupInfo.Option2 == true then
+    if city:IsPuppet() or popupInfo.Option2 == true then
         initialTab = TAB_PURCHASE
     else
         initialTab = TAB_PRODUCE

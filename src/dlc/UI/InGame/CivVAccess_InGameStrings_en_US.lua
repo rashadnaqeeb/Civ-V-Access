@@ -1510,6 +1510,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE"] = "science {1_Nu
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "faith {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "tourism {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "culture {1_Num}"
+-- City-local happiness pair shown in the production chooser's header
+-- under the Vox Populi balance option (no vanilla equivalent).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS"] = "happiness {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS"] = "unhappiness {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "Period"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT_AZERTY"] = "Colon"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT"] = "Next city"
