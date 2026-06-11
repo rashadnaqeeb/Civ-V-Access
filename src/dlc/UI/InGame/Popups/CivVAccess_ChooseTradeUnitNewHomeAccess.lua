@@ -24,6 +24,107 @@ local function preambleText()
     return Text.joinVisibleControls({ "StartingCity", "UnitInfo" })
 end
 
+-- Vox Populi's row decorates each candidate city with trade-building
+-- icons and a tooltip carrying the unhappiness the routes could fight and
+-- every destination reachable from that home. Returns (label suffix,
+-- tooltip) mirroring that; nil on engines without the CP/VP bindings,
+-- whose screen shows the bare city name.
+local function cityDetail(pPlayer, pUnit, city)
+    if city.IsFoodRoutes == nil then
+        return nil, nil
+    end
+
+    -- Trade buildings, named as VP's icon tooltip names them.
+    local buildings = {}
+    if city:IsConnectedToCapital() then
+        buildings[#buildings + 1] = Text.key("TXT_KEY_HARBOR")
+    end
+    if city:IsFoodRoutes() then
+        buildings[#buildings + 1] = Text.key("TXT_KEY_CARAVANSARY")
+    end
+    if city:IsProductionRoutes() then
+        buildings[#buildings + 1] = Text.key("TXT_KEY_WORKSHOP")
+    end
+    if city.HasOffice ~= nil and city:HasOffice() then
+        buildings[#buildings + 1] = Text.key("TXT_KEY_CORPORATE_OFFICE")
+    end
+    local suffix
+    if #buildings > 0 then
+        suffix = table.concat(buildings, ", ")
+    end
+
+    local tip = {}
+    if suffix ~= nil then
+        tip[#tip + 1] = Text.key("TXT_KEY_TRADE_BUILDINGS") .. ", " .. suffix
+    end
+
+    -- Unhappiness in the candidate city that routes from it could fight.
+    if city.GetUnhappinessFromYield ~= nil then
+        local rows = {
+            {
+                city:GetUnhappinessFromYield(YieldTypes.YIELD_GOLD),
+                "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_POVERTY",
+            },
+            {
+                city:GetUnhappinessFromYield(YieldTypes.YIELD_SCIENCE),
+                "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_ILLITERACY",
+            },
+            {
+                city:GetUnhappinessFromYield(YieldTypes.YIELD_CULTURE),
+                "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_BOREDOM",
+            },
+            { city:GetUnhappinessFromIsolation(), "TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_ISOLATION" },
+        }
+        local unhappy = {}
+        for _, r in ipairs(rows) do
+            if r[1] > 0 then
+                unhappy[#unhappy + 1] = Text.format(r[2], r[1])
+            end
+        end
+        if #unhappy > 0 then
+            tip[#tip + 1] = Text.key("TXT_KEY_TRADE_UNIT_HAPPINESS") .. " " .. table.concat(unhappy, ", ")
+        end
+    end
+
+    -- Destinations reachable if this city becomes home.
+    if pPlayer.GetPotentialInternationalTradeRouteDestinationsFrom ~= nil then
+        local dests = {}
+        for _, r in ipairs(pPlayer:GetPotentialInternationalTradeRouteDestinationsFrom(pUnit, city)) do
+            local dPlot = Map.GetPlot(r.X, r.Y)
+            local dCity = dPlot and dPlot:GetPlotCity()
+            if dCity ~= nil then
+                local entry = dCity:GetName()
+                local dPlayer = Players[dCity:GetOwner()]
+                if dPlayer:IsMinorCiv() then
+                    entry = entry .. " (" .. Text.key("TXT_KEY_CIV_MINOR_DESC") .. ")"
+                    if
+                        dPlayer:IsMinorCivActiveQuestForPlayer(
+                            pPlayer:GetID(),
+                            MinorCivQuestTypes.MINOR_CIV_QUEST_TRADE_ROUTE
+                        )
+                    then
+                        entry = entry .. ", " .. Text.key("TXT_KEY_CIVVACCESS_TRADE_DEST_QUEST")
+                    end
+                else
+                    entry = entry .. " (" .. dPlayer:GetCivilizationDescription() .. ")"
+                end
+                dests[#dests + 1] = entry
+            end
+        end
+        if #dests > 0 then
+            tip[#tip + 1] = Text.format("TXT_KEY_CHANGE_TRADE_UNIT_HOME_CITY_ITEM_CITY_TT", city:GetName())
+                .. " "
+                .. table.concat(dests, "; ")
+        end
+    end
+
+    local tooltip
+    if #tip > 0 then
+        tooltip = table.concat(tip, ". ")
+    end
+    return suffix, tooltip
+end
+
 local mainHandler = BaseMenu.install(ContextPtr, {
     name = "ChooseTradeUnitNewHome",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TRADE_UNIT_NEW_HOME"),
@@ -57,9 +158,14 @@ local function buildItems(popupInfo)
             local city = plot:GetPlotCity()
             if city ~= nil then
                 local label = Text.format("TXT_KEY_CHANGE_TRADE_UNIT_HOME_CITY_ITEM_CITY", city:GetName())
+                local suffix, tip = cityDetail(pPlayer, pUnit, city)
+                if suffix ~= nil then
+                    label = label .. ", " .. suffix
+                end
                 local plotX, plotY = v.X, v.Y
                 items[#items + 1] = BaseMenuItems.Choice({
                     labelText = label,
+                    tooltipText = tip,
                     activate = function()
                         SelectNewHome(plotX, plotY)
                         ChooseConfirmSub.push({

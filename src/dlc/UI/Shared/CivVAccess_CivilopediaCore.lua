@@ -46,6 +46,9 @@ Civilopedia.CATEGORY = {
     IMPROVEMENTS = 14,
     BELIEFS = 15,
     WORLD_CONGRESS = 16,
+    -- Vox Populi's rewritten pedia appends Corporations; vanilla stops at
+    -- 16 and CivilopediaCategory[17] is nil there.
+    CORPORATIONS = 17,
 }
 
 -- Reader tab is the second tab installed by CivVAccess_CivilopediaAccess via
@@ -115,6 +118,22 @@ local STAT_FRAMES = {
         headerKey = "TXT_KEY_PEDIA_POLICYBRANCH_LABEL",
     },
     { frame = "TenetLevelFrame", label = "TenetLevelLabel", headerKey = "TXT_KEY_PEDIA_TENET_LEVEL" },
+    -- Vox Populi corporation articles; the frames exist only in VP's XML.
+    {
+        frame = "CorporationResourceBonusFrame",
+        label = "CorporationResourceBonusLabel",
+        headerKey = "TXT_KEY_PEDIA_CORPORATION_RESOURCE_BONUS_LABEL",
+    },
+    {
+        frame = "CorporationOfficeBonusFrame",
+        label = "CorporationOfficeBonusLabel",
+        headerKey = "TXT_KEY_PEDIA_CORPORATION_OFFICE_BONUS_LABEL",
+    },
+    {
+        frame = "CorporationTRBonusFrame",
+        label = "CorporationTRBonusLabel",
+        headerKey = "TXT_KEY_PEDIA_CORPORATION_TRADE_ROUTE_BONUS_LABEL",
+    },
 }
 
 -- Text frames: single-Label frames holding prose. Headers are dropped at
@@ -353,6 +372,50 @@ local RELATIONSHIP_DEFS = {
         button = "GreatWorksButton",
         category = nil,
         headerKey = "TXT_KEY_PEDIA_GREAT_WORKS_LABEL",
+    },
+    -- Vox Populi additions; the managers and frames exist only in VP's
+    -- rewritten pedia, and harvestRelationships skips nil managers.
+    {
+        frame = "LeadsToBuildingsFrame",
+        manager = g_LeadsToBuildingsManager,
+        button = "LeadsToBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_LEADS_TO_BLDG_LABEL",
+    },
+    {
+        frame = "MonopolyResourcesFrame",
+        manager = g_MonopolyResourcesManager,
+        button = "MonopolyResourceButton",
+        category = Civilopedia.CATEGORY.RESOURCES,
+        headerKey = "TXT_KEY_PEDIA_MONOPOLY_RESRC_LABEL",
+    },
+    {
+        frame = "CorporationFrame",
+        manager = g_CorporationsManager,
+        button = "CorporationButton",
+        category = Civilopedia.CATEGORY.CORPORATIONS,
+        headerKey = "TXT_KEY_PEDIA_CORPORATION_LABEL",
+    },
+    {
+        frame = "CorpHeadquartersFrame",
+        manager = g_CorpHeadquartersManager,
+        button = "CorporationBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_CORP_HEADQUARTERS_LABEL",
+    },
+    {
+        frame = "CorpOfficeFrame",
+        manager = g_CorpOfficeManager,
+        button = "CorporationBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_CORP_OFFICE_LABEL",
+    },
+    {
+        frame = "CorpFranchiseFrame",
+        manager = g_CorpFranchiseManager,
+        button = "CorporationBuildingButton",
+        category = Civilopedia.CATEGORY.BUILDINGS,
+        headerKey = "TXT_KEY_PEDIA_CORP_FRANCHISE_LABEL",
     },
 }
 
@@ -1187,6 +1250,11 @@ function Civilopedia.buildPickerItems(entryFactory)
     end
     if hasTable("Resolutions") then
         items[#items + 1] = categoryGroup(CAT.WORLD_CONGRESS, entryFactory)
+    end
+    -- Vox Populi's pedia appends a Corporations category; only the
+    -- rewritten vendor file defines its CivilopediaCategory slot.
+    if CivilopediaCategory ~= nil and CivilopediaCategory[CAT.CORPORATIONS] ~= nil then
+        items[#items + 1] = categoryGroup(CAT.CORPORATIONS, entryFactory)
     end
     return items
 end

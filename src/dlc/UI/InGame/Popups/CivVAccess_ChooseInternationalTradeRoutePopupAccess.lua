@@ -58,15 +58,77 @@ local function destIdentifier(dest, targetPlayer)
     return dest.CityName
 end
 
-local function rowLabel(dest, originCity, targetPlayer)
+-- City-state trait adjective, as VP's row text appends it (vanilla data,
+-- VP-only display; speaking it everywhere is harmless and useful).
+local TRAIT_ADJECTIVE_KEYS = {
+    [MinorCivTraitTypes.MINOR_CIV_TRAIT_CULTURED] = "TXT_KEY_CITY_STATE_CULTURED_ADJECTIVE",
+    [MinorCivTraitTypes.MINOR_CIV_TRAIT_MILITARISTIC] = "TXT_KEY_CITY_STATE_MILITARISTIC_ADJECTIVE",
+    [MinorCivTraitTypes.MINOR_CIV_TRAIT_MARITIME] = "TXT_KEY_CITY_STATE_MARITIME_ADJECTIVE",
+    [MinorCivTraitTypes.MINOR_CIV_TRAIT_MERCANTILE] = "TXT_KEY_CITY_STATE_MERCANTILE_ADJECTIVE",
+    [MinorCivTraitTypes.MINOR_CIV_TRAIT_RELIGIOUS] = "TXT_KEY_CITY_STATE_RELIGIOUS_ADJECTIVE",
+}
+
+-- Corporation franchise status for the row, mirroring VP's CityIcons
+-- column: checkbox icon = this city already holds your franchise, invest
+-- icon = a route here would create one, denounce icon = it can't. Returns
+-- (short status, tooltip with the engine's explanation plus benefit text),
+-- or nil where VP shows no icon. The bindings are VP-only.
+local function franchiseInfo(pPlayer, originCity, targetCity)
+    if targetCity.IsFranchised == nil then
+        return nil, nil
+    end
+    if targetCity:IsFranchised(Game.GetActivePlayer()) then
+        return Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_FRANCHISED"),
+            Text.key("TXT_KEY_HAS_FRANCHISE_TT") .. pPlayer:GetTradeRouteBenefitHelper()
+    end
+    if originCity:HasOffice() then
+        if pPlayer:CanCreateFranchiseInCity(originCity, targetCity) then
+            return Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_CAN_FRANCHISE"),
+                Text.key("TXT_KEY_CAN_FRANCHISE_TT") .. pPlayer:GetCurrentOfficeBenefit()
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_FRANCHISE"), Text.key("TXT_KEY_NO_FRANCHISE_HERE_TT")
+    end
+    return nil, nil
+end
+
+-- Returns (label, tooltip). tooltip is nil unless the row carries
+-- franchise detail.
+local function rowLabel(dest, pPlayer, pUnit, originCity, targetCity, targetPlayer)
     local parts = {}
     if dest.OldTradeRoute then
         parts[#parts + 1] = Text.key("TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_PREV_ROUTE")
     end
     parts[#parts + 1] = destIdentifier(dest, targetPlayer)
 
-    local distance = Map.PlotDistance(originCity:GetX(), originCity:GetY(), dest.X, dest.Y)
+    if targetPlayer:IsMinorCiv() then
+        local traitKey = TRAIT_ADJECTIVE_KEYS[targetPlayer:GetMinorCivTrait()]
+        if traitKey ~= nil then
+            parts[#parts + 1] = Text.key(traitKey)
+        end
+    end
+
+    -- VP computes the actual route path and shows that distance plus
+    -- travel turns; the bindings are VP-only. Vanilla's screen shows no
+    -- distance at all, so straight-line hex distance is the best
+    -- available there.
+    local distance
+    if pPlayer.GetTradeConnectionDistance ~= nil then
+        distance = pPlayer:GetTradeConnectionDistance(originCity, targetCity, pUnit:GetDomainType())
+    else
+        distance = Map.PlotDistance(originCity:GetX(), originCity:GetY(), dest.X, dest.Y)
+    end
     parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE", distance, distance)
+    if pPlayer.GetTradeRouteTurns ~= nil then
+        local turns = pPlayer:GetTradeRouteTurns(originCity, targetCity, pUnit:GetDomainType())
+        if turns > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_DIPLO_TURNS", turns)
+        end
+    end
+
+    local franchise, franchiseTip = franchiseInfo(pPlayer, originCity, targetCity)
+    if franchise ~= nil then
+        parts[#parts + 1] = franchise
+    end
 
     local mine = sideList(dest, true)
     if mine ~= "" then
@@ -77,7 +139,7 @@ local function rowLabel(dest, originCity, targetPlayer)
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET", theirs)
     end
 
-    return table.concat(parts, ". ") .. "."
+    return table.concat(parts, ". ") .. ".", franchiseTip
 end
 
 local mainHandler = BaseMenu.install(ContextPtr, {
@@ -130,9 +192,10 @@ local function buildItems(popupInfo)
                 dest.Category = category
                 dest.CityName = city:GetName()
                 local destX, destY, tradeType = dest.X, dest.Y, dest.TradeConnectionType
-                local label = rowLabel(dest, originCity, targetPlayer)
+                local label, tip = rowLabel(dest, pPlayer, pUnit, originCity, city, targetPlayer)
                 buckets[category][#buckets[category] + 1] = BaseMenuItems.Choice({
                     labelText = label,
+                    tooltipText = tip,
                     activate = function()
                         SelectTradeDestinationChoice(destX, destY, tradeType)
                         ChooseConfirmSub.push({

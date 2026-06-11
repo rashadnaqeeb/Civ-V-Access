@@ -100,24 +100,32 @@ end
 -- (current one marked) that select and close. Built from the engine's label
 -- table (index -> TXT_KEY), a current-index reader, and the panel's
 -- selection handler, all of which we have directly -- no control probe.
-local function dropdownItem(labelKey, labels, currentFn, selectHandler)
-    local function currentValueKey()
-        return labels[currentFn()]
+-- With literal=true, labels hold already-localized strings instead of
+-- TXT_KEYs (Community Patch overlay add-ins supply either form).
+local function dropdownItem(labelKey, labels, currentFn, selectHandler, literal)
+    local function valueText(value)
+        if value == nil then
+            return nil
+        end
+        if literal then
+            return value
+        end
+        return Text.key(value)
     end
     return BaseMenuItems.Choice({
         labelFn = function()
-            local valueKey = currentValueKey()
-            if valueKey ~= nil then
-                return Text.format("TXT_KEY_CIVVACCESS_LABEL_STATE", Text.key(labelKey), Text.key(valueKey))
+            local value = valueText(labels[currentFn()])
+            if value ~= nil then
+                return Text.format("TXT_KEY_CIVVACCESS_LABEL_STATE", Text.key(labelKey), value)
             end
             return Text.key(labelKey)
         end,
         activate = function()
             local subName = MAP_HANDLER .. "/" .. labelKey
             local items = {}
-            for index, valueKey in pairs(labels) do
+            for index, value in pairs(labels) do
                 items[#items + 1] = BaseMenuItems.Choice({
-                    textKey = valueKey,
+                    labelText = valueText(value),
                     selectedFn = function()
                         return currentFn() == index
                     end,
@@ -187,9 +195,32 @@ local function buildItems()
         items[#items + 1] = panelToggle("TXT_KEY_STRAT_FOW", function()
             return mapOptions().SVShowFOW
         end, OnShowFOWChecked, "ShowFogOfWar")
-        items[#items + 1] = dropdownItem("TXT_KEY_STRAT_OVERLAY", GetStrategicViewOverlays(), function()
-            return mapOptions().SVOverlayMode
-        end, OnOverlaySelected)
+        if OnModularOverlay ~= nil and g_OverlayCallbacks ~= nil and #g_OverlayCallbacks > 0 then
+            -- Community Patch's modular overlay system replaces the engine
+            -- list: entries (including mod add-ins) live in the flattened
+            -- g_OverlayCallbacks table the vendoring recipe promotes,
+            -- selection goes through OnModularOverlay, and g_OverlayActive
+            -- holds the current pick (-1 before any, meaning entry 1,
+            -- None). Add-in texts may be TXT_KEYs or already-localized.
+            local labels = {}
+            for i, tab in ipairs(g_OverlayCallbacks) do
+                local s = tostring(tab.text)
+                if s:find("^TXT_KEY_") ~= nil then
+                    s = Text.key(s)
+                end
+                labels[i] = s
+            end
+            items[#items + 1] = dropdownItem("TXT_KEY_STRAT_OVERLAY", labels, function()
+                if g_OverlayActive ~= nil and g_OverlayActive ~= -1 then
+                    return g_OverlayActive
+                end
+                return 1
+            end, OnModularOverlay, true)
+        else
+            items[#items + 1] = dropdownItem("TXT_KEY_STRAT_OVERLAY", GetStrategicViewOverlays(), function()
+                return mapOptions().SVOverlayMode
+            end, OnOverlaySelected)
+        end
         items[#items + 1] = dropdownItem("TXT_KEY_STRAT_ICON_MODE", GetStrategicViewIconSettings(), function()
             return mapOptions().SVIconMode
         end, OnIconModeSelected)

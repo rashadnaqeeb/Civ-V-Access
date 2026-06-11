@@ -2452,6 +2452,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "They get {1_Yie
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS"] = "{1_City} gets {2_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} pressure"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] = "No valid destinations."
+-- Vox Populi corporation franchise status on a destination row; spoken
+-- where VP shows its checkbox / invest / denounce icon. F1 tooltip
+-- carries the engine's explanation and benefit text.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_FRANCHISED"] = "franchised"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CAN_FRANCHISE"] = "would create a franchise"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_FRANCHISE"] = "cannot create a franchise"
+-- VP marks a reachable city-state with an active trade-route quest by an
+-- icon in ChooseTradeUnitNewHome's destination tooltip; this is its
+-- spoken stand-in.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DEST_QUEST"] = "trade route quest"
+-- Religion Overview's Map tab (Community Patch): spoken as religion
+-- groups of known follower cities. The suffix marks the religion's holy
+-- city; redundant religion name dropped because the group already names
+-- it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RO_MAP_HOLY_CITY"] = "holy city"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RO_MAP_EMPTY"] = "No known cities follow a religion."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "No valid home cities."
 -- Trade Route Overview (TRO) screen. Distinct from the per-pick
 -- ChooseInternationalTradeRoutePopup above: TRO is the standalone Ctrl+T

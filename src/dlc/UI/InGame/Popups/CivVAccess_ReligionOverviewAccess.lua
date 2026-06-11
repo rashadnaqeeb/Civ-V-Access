@@ -35,6 +35,7 @@ local priorShowHide = ShowHideHandler
 local m_yourTab
 local m_worldTab
 local m_beliefsTab
+local m_mapTab -- Community Patch religion-spread map tab; nil on vanilla
 
 -- Resolve Cursor module published on civvaccess_shared by the WorldView
 -- boot. The popup only opens in-game so the registry is populated by the
@@ -459,6 +460,57 @@ local function buildBeliefsItems()
     return items
 end
 
+-- Map tab (Community Patch's religion-spread minimap). The visual paints
+-- each city's worked territory in its majority religion's colour with holy
+-- cities marked; the spoken translation is one group per religion listing
+-- the known cities that follow it. Mirrors the map's reveal gating (only
+-- cities on revealed plots) and its majority-only threshold (pantheon-only
+-- cities are not shaded there either).
+local function buildMapItems()
+    local activeTeam = Players[Game.GetActivePlayer()]:GetTeam()
+    local byReligion = {}
+    local order = {}
+    for iPlayer = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+        local p = Players[iPlayer]
+        if p:IsAlive() then
+            for pCity in p:Cities() do
+                local eReligion = pCity:GetReligiousMajority()
+                if eReligion > 0 and pCity:Plot():IsRevealed(activeTeam, false) then
+                    if byReligion[eReligion] == nil then
+                        byReligion[eReligion] = {}
+                        order[#order + 1] = eReligion
+                    end
+                    local entry = pCity:GetName() .. " (" .. Text.key(p:GetCivilizationShortDescriptionKey()) .. ")"
+                    if pCity:IsHolyCityForReligion(eReligion) then
+                        entry = entry .. ", " .. Text.key("TXT_KEY_CIVVACCESS_RO_MAP_HOLY_CITY")
+                    end
+                    local bucket = byReligion[eReligion]
+                    bucket[#bucket + 1] = entry
+                end
+            end
+        end
+    end
+
+    table.sort(order)
+    local items = {}
+    for _, eReligion in ipairs(order) do
+        local rows = {}
+        for _, entry in ipairs(byReligion[eReligion]) do
+            rows[#rows + 1] = BaseMenuItems.Text({ labelText = entry })
+        end
+        items[#items + 1] = BaseMenuItems.Group({
+            labelText = Text.key(Game.GetReligionName(eReligion)),
+            items = rows,
+        })
+    end
+    if #items == 0 then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_RO_MAP_EMPTY"),
+        })
+    end
+    return items
+end
+
 -- Install -----------------------------------------------------------------
 
 if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "function" then
@@ -482,17 +534,27 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     m_yourTab = makeTab("TXT_KEY_RO_TAB_YOUR_RELIGION")
     m_worldTab = makeTab("TXT_KEY_RO_TAB_WORLD_RELIGIONS")
     m_beliefsTab = makeTab("TXT_KEY_RO_TAB_BELIEFS")
+    if Controls.TabButtonMap ~= nil then
+        m_mapTab = makeTab("TXT_KEY_RO_TAB_MAP")
+    end
 
     local function rebuildAllTabs()
         m_yourTab.menu().setItems(buildYourReligionItems())
         m_worldTab.menu().setItems(buildWorldReligionsItems())
         m_beliefsTab.menu().setItems(buildBeliefsItems())
+        if m_mapTab ~= nil then
+            m_mapTab.menu().setItems(buildMapItems())
+        end
     end
 
+    local tabs = { m_yourTab, m_worldTab, m_beliefsTab }
+    if m_mapTab ~= nil then
+        tabs[#tabs + 1] = m_mapTab
+    end
     TabbedShell.install(ContextPtr, {
         name = "ReligionOverview",
         displayName = Text.key("TXT_KEY_RELIGION_OVERVIEW"),
-        tabs = { m_yourTab, m_worldTab, m_beliefsTab },
+        tabs = tabs,
         initialTabIndex = 1,
         priorInput = priorInput,
         priorShowHide = priorShowHide,

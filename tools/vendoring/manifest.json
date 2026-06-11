@@ -643,7 +643,20 @@
     },
     "InGame/WorldView/MiniMapPanel.lua": {
       "hand": true,
-      "suffix": "\r\n-- Civ V Access: accessible Map Options menu (Ctrl+M). Seated here so the\r\n-- panel-local GetMapOptions / On*Checked handlers and strategic-view\r\n-- setters are in reach; opened via a LuaEvents bridge from Baseline.\r\ninclude(\"CivVAccess_MiniMapPanelAccess\")\r\n"
+      "suffix": "\r\n-- Civ V Access: accessible Map Options menu (Ctrl+M). Seated here so the\r\n-- panel-local GetMapOptions / On*Checked handlers and strategic-view\r\n-- setters are in reach; opened via a LuaEvents bridge from Baseline.\r\ninclude(\"CivVAccess_MiniMapPanelAccess\")\r\n",
+      "vp": {
+        "edits": [
+          {
+            "old": "local g_OverlayActive = -1; \r\n",
+            "new": "-- CivVAccess: g_OverlayActive and g_OverlayCallbacks are exposed as\r\n-- globals (dropped `local`) so the accessibility include at the end of\r\n-- this file can list the modular overlay entries and the current pick.\r\ng_OverlayActive = -1; \r\n"
+          },
+          {
+            "old": "local g_OverlayCallbacks = {};\r\n",
+            "new": "g_OverlayCallbacks = {};\r\n"
+          }
+        ],
+        "suffix": "\r\n-- Civ V Access: accessible Map Options menu (Ctrl+M). Seated here so the\r\n-- panel-local GetMapOptions / On*Checked handlers and strategic-view\r\n-- setters are in reach; opened via a LuaEvents bridge from Baseline.\r\ninclude(\"CivVAccess_MiniMapPanelAccess\")\r\n"
+      }
     },
     "InGame/WorldView/SimpleDiploTrade.lua": {
       "hand": true,
