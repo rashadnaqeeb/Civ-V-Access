@@ -26,6 +26,19 @@
         it (VP's DLL, not Firaxis vanilla -- this script never touches the
         Assets\DLC\Expansion2 DLL that vanilla sessions load).
 
+      - MODS overlay: mods beat DLC in the VFS, so for every override whose
+        stem the (1) Community Patch or (2) Vox Populi mod itself ships
+        (build/vendor/vp/provenance.json, written by the vendoring tool),
+        the staged copy is also written into the mod's own folder --
+        otherwise the mod's copy wins and the appended accessibility
+        include never runs. No backups are taken: the pinned clone is the
+        pristine source (the MODS folders are byte-identical to it by the
+        re-pin contract), and the script refuses to overwrite a mod file
+        that matches neither the clone copy nor our staged copy.
+        -Uninstall restores the clone copies. The overlaid files are
+        harmless to vanilla sessions (which never load mods), so flipping
+        to vanilla with deploy.ps1 leaves them in place, like the fork DLL.
+
     If the game install is missing the non-MODS half of a plain-VP
     (FullNoEUI) install -- the VPUI fake DLC, the Vox Populi
     Expansion2.Civ5Pkg replacement, the minor-civ sound table, the loading
@@ -39,16 +52,17 @@
     Override the auto-detected Civ V install path.
 
 .PARAMETER ClonePath
-    Path to the Community-Patch-DLL clone used to complete a partial VP
-    install. Defaults to the sibling directory next to this repo. Only
-    required when the install is missing VP pieces.
+    Path to the Community-Patch-DLL clone. Used to complete a partial VP
+    install, as the pristine reference for the MODS overlay, and as the
+    restore source on -Uninstall. Defaults to the sibling directory next
+    to this repo.
 
 .PARAMETER SkipProxy
     Skip the proxy stack and the legacy lua51 rename.
 
 .PARAMETER SkipDlc
-    Skip the DLC payload (and with it the vendor overlay and EngineData
-    swap).
+    Skip the DLC payload (and with it the vendor overlay, the EngineData
+    swap, and the MODS overlay).
 
 .PARAMETER SkipEngine
     Skip the fork DLL copy into MODS\(1) Community Patch.
@@ -58,8 +72,9 @@
 
 .PARAMETER Uninstall
     Remove the proxy stack, the DLC, and the cinematics (restoring stock
-    files from backup), and restore VP's shipped DLL into the MODS folder.
-    The VP install itself (VPUI, Civ5Pkg, sounds, tips) stays.
+    files from backup), restore VP's shipped DLL into the MODS folder, and
+    restore the MODS-overlaid vendor files from the clone. The VP install
+    itself (VPUI, Civ5Pkg, sounds, tips) stays.
 #>
 [CmdletBinding()]
 param(
@@ -92,7 +107,8 @@ if ([string]::IsNullOrWhiteSpace($ClonePath)) {
 }
 
 $civ5DocsDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5"
-$vpModsDllDir = Join-Path $civ5DocsDir 'MODS\(1) Community Patch'
+$vpModsDir    = Join-Path $civ5DocsDir 'MODS'
+$vpModsDllDir = Join-Path $vpModsDir '(1) Community Patch'
 
 $versionsFile = Join-Path $repoRoot 'versions.json'
 if (-not (Test-Path $versionsFile)) { throw "versions.json missing at $versionsFile" }
@@ -382,6 +398,108 @@ function Deploy-Dlc {
     }
 }
 
+function Test-SameFileBytes {
+    param([string]$A, [string]$B)
+    return (Get-FileHash -LiteralPath $A -Algorithm MD5).Hash -eq
+           (Get-FileHash -LiteralPath $B -Algorithm MD5).Hash
+}
+
+# The staged overrides whose stem the (1) Community Patch or (2) Vox Populi
+# mod itself ships, from the vendoring tool's provenance. These must also be
+# overlaid into the mod folders: mods beat DLC in the VFS, so the DLC copy of
+# a mod-shipped stem never loads and its accessibility include never runs.
+function Get-ModOverlayEntries {
+    $provenancePath = Join-Path $vendorStageDir 'provenance.json'
+    if (-not (Test-Path $provenancePath)) {
+        throw "Vendor provenance missing: $provenancePath. Run: py tools/vendoring/vendor.py generate --engine vp"
+    }
+    $prov = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
+    $entries = @()
+    foreach ($p in $prov.files.PSObject.Properties) {
+        $modFolder = $prov.mod_roots.($p.Value.root)
+        if ($modFolder) {
+            $entries += [pscustomobject]@{
+                Rel       = $p.Name
+                ModFolder = $modFolder
+                SrcRel    = $p.Value.src_rel
+            }
+        }
+    }
+    return $entries
+}
+
+function Deploy-ModOverlay {
+    param($Entries)
+
+    Write-Host "Overlaying mod-shipped vendor overrides into MODS ($($Entries.Count) files):"
+    $copied = 0
+    $current = 0
+    foreach ($e in $Entries) {
+        $staged   = Join-Path $vendorStageDir ('UI\' + ($e.Rel -replace '/', '\'))
+        $target   = Join-Path $vpModsDir (Join-Path $e.ModFolder ($e.SrcRel -replace '/', '\'))
+        $pristine = Join-Path $ClonePath (Join-Path $e.ModFolder ($e.SrcRel -replace '/', '\'))
+        if (-not (Test-Path $staged)) {
+            throw "Staged override missing: $staged. Re-run: py tools/vendoring/vendor.py generate --engine vp"
+        }
+        if (-not (Test-Path $target)) {
+            throw "Mod file missing: $target. The MODS folders do not match the pinned clone; re-sync them (re-pin checklist)."
+        }
+        if (Test-SameFileBytes $target $staged) {
+            $current++
+            continue
+        }
+        # No backups: the pinned clone is the pristine source. Refuse to
+        # touch a file that is neither VP-stock nor an older copy of ours,
+        # rather than silently clobbering unknown local changes.
+        if (-not (Test-Path $pristine)) {
+            throw "Clone copy missing: $pristine. Pass -ClonePath pointing at the pinned Community-Patch-DLL clone."
+        }
+        if (-not (Test-SameFileBytes $target $pristine)) {
+            $stagedHead = Get-Content -LiteralPath $target -TotalCount 1
+            if ($stagedHead -notmatch 'Civ V Access') {
+                throw "Mod file is neither VP-stock nor ours: $target. The MODS folders have drifted from the pinned clone; re-sync them before deploying."
+            }
+        }
+        Copy-Item -LiteralPath $staged -Destination $target -Force
+        $copied++
+    }
+    Write-Host "  $copied file(s) overlaid, $current already current."
+}
+
+# Restores the clone's pristine copies over our overlaid mod files. The file
+# list comes from the install manifest (captured before the DLC dir was
+# removed) or, failing that, the staged provenance.
+function Restore-ModOverlay {
+    param($OverlayList)
+
+    if (-not $OverlayList -or @($OverlayList).Count -eq 0) {
+        Write-Host "  No MODS overlay recorded; skipping mod-file restore."
+        return
+    }
+    $restored = 0
+    $stock = 0
+    $missing = @()
+    foreach ($relPath in $OverlayList) {
+        $target   = Join-Path $vpModsDir ($relPath -replace '/', '\')
+        $pristine = Join-Path $ClonePath ($relPath -replace '/', '\')
+        if (-not (Test-Path $target)) { continue }
+        if (-not (Test-Path $pristine)) {
+            $missing += $relPath
+            continue
+        }
+        if (Test-SameFileBytes $target $pristine) {
+            $stock++
+            continue
+        }
+        Copy-Item -LiteralPath $pristine -Destination $target -Force
+        $restored++
+    }
+    Write-Host "  Restored $restored mod file(s) from the clone ($stock already stock)."
+    if ($missing.Count -gt 0) {
+        Write-Warning ("Clone copies missing for {0} overlaid mod file(s); they keep the accessibility include (inert without the DLC, but re-sync MODS from the clone to fully clean): {1}" -f $missing.Count, ($missing -join ', '))
+    }
+}
+
 function Deploy-EngineDll {
     param([string]$Game)
 
@@ -454,7 +572,7 @@ function Deploy-Cinematics {
 }
 
 function Write-InstallManifest {
-    param([string]$Game)
+    param([string]$Game, $ModOverlayEntries)
 
     $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
     $manifestPath = Join-Path $dlcDir $installManifestName
@@ -479,6 +597,9 @@ function Write-InstallManifest {
             cinematics     = "$backupDirRel/cinematics"
             lua51          = 'lua51_original.dll'
         }
+        # Mod files we overlaid (MODS-relative). Restored from the pinned
+        # clone on -Uninstall; left in place by deploy.ps1's vanilla flip.
+        mods_overlay   = @($ModOverlayEntries | ForEach-Object { "$($_.ModFolder)/$($_.SrcRel)" })
     }
 
     $json = $manifest | ConvertTo-Json -Depth 5
@@ -489,6 +610,26 @@ function Write-InstallManifest {
 
 function Invoke-Uninstall {
     param([string]$Game)
+
+    # Capture the overlay list before the DLC dir (and the manifest in it)
+    # is removed. Fall back to the staged provenance when absent.
+    $overlayList = @()
+    $manifestPath = Join-Path $Game "Assets\DLC\$dlcName\$installManifestName"
+    if (Test-Path $manifestPath) {
+        try {
+            $m = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+            if ($m.mods_overlay) { $overlayList = @($m.mods_overlay) }
+        } catch {
+            Write-Warning "Could not read install manifest at ${manifestPath}: $_"
+        }
+    }
+    if ($overlayList.Count -eq 0 -and (Test-Path (Join-Path $vendorStageDir 'provenance.json'))) {
+        try {
+            $overlayList = @(Get-ModOverlayEntries | ForEach-Object { "$($_.ModFolder)/$($_.SrcRel)" })
+        } catch {
+            Write-Warning "Could not enumerate mod overlay from provenance: $_"
+        }
+    }
 
     $stockDll    = Join-Path $Game 'lua51_Win32.dll'
     $originalDll = Join-Path $Game 'lua51_original.dll'
@@ -533,6 +674,8 @@ function Invoke-Uninstall {
     } else {
         Write-Host "  No VP engine DLL backup present; skipping engine restore."
     }
+
+    Restore-ModOverlay -OverlayList $overlayList
 
     if (Test-Path $cinematicBackup) {
         $expansion2Dir = Join-Path $Game 'Assets\DLC\Expansion2'
@@ -597,8 +740,11 @@ if (-not $SkipProxy) {
     Write-Host "Skipping proxy stack (-SkipProxy)."
 }
 
+$modOverlayEntries = @()
 if (-not $SkipDlc) {
     Deploy-Dlc -Game $gameDir
+    $modOverlayEntries = Get-ModOverlayEntries
+    Deploy-ModOverlay -Entries $modOverlayEntries
 } else {
     Write-Host "Skipping DLC payload (-SkipDlc)."
 }
@@ -616,7 +762,7 @@ if (-not $SkipCinematics) {
 }
 
 if (-not $SkipDlc) {
-    Write-InstallManifest -Game $gameDir
+    Write-InstallManifest -Game $gameDir -ModOverlayEntries $modOverlayEntries
 }
 
 Write-Host ""

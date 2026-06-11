@@ -204,7 +204,9 @@ def mod_root(name, mod_dir):
         attrs, rel = m.group(1), m.group(2).strip()
         if 'import="1"' in attrs and rel.lower().endswith(VENDOR_EXTS):
             files.append(rel.replace("\\", "/"))
-    return Root(name, mod_dir, files)
+    root = Root(name, mod_dir, files)
+    root.is_mod = True
+    return root
 
 
 def vanilla_roots(game_dir):
@@ -552,6 +554,10 @@ def cmd_generate(args):
     refits = []
     needs_recipe = []
     by_root = {}
+    provenance = {}
+    mod_root_dirs = {
+        r.name: os.path.basename(r.base_dir) for r in roots if getattr(r, "is_mod", False)
+    }
     for rel, entry in sorted(manifest["files"].items()):
         if entry.get("bootstrap_unmatched"):
             fail("%s: unmatched bootstrap entry; finish the manifest first" % rel)
@@ -577,6 +583,7 @@ def cmd_generate(args):
             f.write(generated)
         report.append("%-60s %s:%s" % (rel, root_name, src_rel))
         by_root.setdefault(root_name, []).append(rel)
+        provenance[rel] = {"root": root_name, "src_rel": src_rel}
 
     lines = ["drift report -- engine %s, %d files" % (args.engine, len(report))]
     lines.extend(report)
@@ -602,9 +609,24 @@ def cmd_generate(args):
     os.makedirs(out_dir, exist_ok=True)
     with open(report_path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
+
+    # Machine-readable provenance for the deploy script. Mods beat DLC in
+    # the VFS, so any override whose stem a mod ships must additionally be
+    # overlaid into that mod's folder (deploy-vp.ps1 reads mod_roots +
+    # files to know which staged files go where).
+    provenance_path = os.path.join(out_dir, "provenance.json")
+    with open(provenance_path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(
+            {"engine": args.engine, "mod_roots": mod_root_dirs, "files": provenance},
+            f,
+            indent=1,
+            sort_keys=True,
+        )
+        f.write("\n")
     print("\n".join(lines))
     print("\nstaged: %s" % out_dir)
     print("report: %s" % report_path)
+    print("provenance: %s" % provenance_path)
     if needs_recipe:
         sys.exit(1)
 

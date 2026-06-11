@@ -544,10 +544,30 @@ $dlcBackupDir    = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
 $engineBackup    = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
 $cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
 
+# Detect a VP-variant install (deploy-vp.ps1 ran last). Its MODS-side pieces
+# -- the fork engine DLL and the overlaid vendor files inside the VP mod
+# folders -- are not this script's to manage: they are inert in vanilla
+# sessions (which never load mods) and deploy-vp.ps1 -Uninstall restores
+# them. Surface their presence so a flip or uninstall doesn't read as a
+# complete cleanup.
+$priorManifestPath = Join-Path $gameDir "Assets\DLC\$dlcName\$installManifestName"
+$priorVpState = $false
+if (Test-Path $priorManifestPath) {
+    try {
+        $prior = Get-Content -LiteralPath $priorManifestPath -Raw | ConvertFrom-Json
+        $priorVpState = ($prior.variant -eq 'vp')
+    } catch { }
+}
+
 if ($Uninstall) {
     Invoke-Uninstall -Game $gameDir
     Write-Host ""
     Write-Host "Uninstall complete."
+    if ($priorVpState) {
+        Write-Host "NOTE: the install was in VP state. The fork engine DLL and the"
+        Write-Host "overlaid vendor files in the VP MODS folders remain; run"
+        Write-Host "./deploy-vp.ps1 -Uninstall to restore VP-stock files there."
+    }
     return
 }
 
@@ -587,6 +607,13 @@ Write-Host ""
 Write-Host "Deploy complete."
 Write-Host "  Game dir: $gameDir"
 Write-Host "  Version : $modVersion"
+if ($priorVpState) {
+    Write-Host ""
+    Write-Host "Flipped from VP state to vanilla. The fork engine DLL and the"
+    Write-Host "overlaid vendor files in the VP MODS folders remain (inert in"
+    Write-Host "vanilla sessions). Do NOT start a modded VP session from this"
+    Write-Host "state; run ./deploy-vp.ps1 to flip back first."
+}
 Write-Host ""
 Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
 Write-Host "  $env:USERPROFILE\Documents\My Games\Sid Meier's Civilization 5\config.ini"
