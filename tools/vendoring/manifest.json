@@ -264,6 +264,10 @@
           {
             "old": "-- Infixo more categories for promotions\r\nlocal UnitPromotionsPediaTypes = {\r\n",
             "new": "-- Infixo more categories for promotions\r\n-- CivVAccess: `local` dropped from UnitPromotionsPediaTypes so the\r\n-- accessibility include at the end of this file can label the promotion\r\n-- sections in its picker from the same table the sidebar uses.\r\nUnitPromotionsPediaTypes = {\r\n"
+          },
+          {
+            "old": "\t\tend\r\n\t\tControls.SearchEditBox:TakeFocus()\r\n\tend\r\nend\r\nContextPtr:SetShowHideHandler( ShowHideHandler );",
+            "new": "\t\tend\r\n\t\t-- CivVAccess: focus-trap removal. CP auto-focuses the search box on\r\n\t\t-- every show, which routes arrows / Tab / letters into the EditBox\r\n\t\t-- instead of the context input handler until Enter releases it.\r\n\tend\r\nend\r\nContextPtr:SetShowHideHandler( ShowHideHandler );"
           }
         ],
         "suffix": "-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_CivilopediaAccess\")\n\n"
