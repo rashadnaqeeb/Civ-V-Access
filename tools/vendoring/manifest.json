@@ -260,6 +260,10 @@
           {
             "old": "\t\t\tcostString = tostring(faithCost) .. \" [ICON_PEACE]\";\r\n\t\telseif(cost > 0 and faithCost > 0) then\r\n\t\t\tcostString = Locale.Lookup(\"TXT_KEY_PEDIA_A_OR_B\", tostring(cost) .. \" [ICON_PRODUCTION]\", tostring(faithCost) .. \" [ICON_PEACE\");\r\n",
             "new": "\t\t\tcostString = tostring(faithCost) .. \" [ICON_PEACE]\";\r\n\t\telseif(cost > 0 and faithCost > 0) then\r\n\t\t\t-- CivVAccess: base-game typo fix (see notes above for the units branch).\r\n\t\t\tcostString = Locale.Lookup(\"TXT_KEY_PEDIA_A_OR_B\", tostring(cost) .. \" [ICON_PRODUCTION]\", tostring(faithCost) .. \" [ICON_PEACE]\");\r\n"
+          },
+          {
+            "old": "-- Infixo more categories for promotions\r\nlocal UnitPromotionsPediaTypes = {\r\n",
+            "new": "-- Infixo more categories for promotions\r\n-- CivVAccess: `local` dropped from UnitPromotionsPediaTypes so the\r\n-- accessibility include at the end of this file can label the promotion\r\n-- sections in its picker from the same table the sidebar uses.\r\nUnitPromotionsPediaTypes = {\r\n"
           }
         ],
         "suffix": "-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_CivilopediaAccess\")\n\n"

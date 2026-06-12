@@ -60,9 +60,14 @@ local function appendUnique(parts, labelKey, uniqueDesc, replacesDesc)
         return
     end
     local value = name
-    local replaces = Text.key(replacesDesc)
-    if replaces ~= nil and replaces ~= "" and replaces ~= name then
-        value = value .. ", " .. Text.format("TXT_KEY_CIVVACCESS_REPLACES", replaces)
+    -- replacesDesc is nil when the unique's class has no default to stand
+    -- in for (the LEFT JOIN miss documented above; several VP uniques are
+    -- additions rather than replacements).
+    if replacesDesc ~= nil then
+        local replaces = Text.key(replacesDesc)
+        if replaces ~= nil and replaces ~= "" and replaces ~= name then
+            value = value .. ", " .. Text.format("TXT_KEY_CIVVACCESS_REPLACES", replaces)
+        end
     end
     parts[#parts + 1] = Text.key(labelKey) .. ": " .. value
 end

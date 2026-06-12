@@ -607,6 +607,23 @@ local function getSections(cat)
         return sections
     end
 
+    -- CP's pedia groups promotions by its own section-type table (promoted
+    -- to a global by the vp recipe) labeled TXT_KEY_PROMOTIONS_<type>; the
+    -- vanilla sequential SECTION_N keys neither cover its section count nor
+    -- match its order.
+    if cat == CAT.PROMOTIONS and type(UnitPromotionsPediaTypes) == "table" then
+        for key, pediaType in ipairs(UnitPromotionsPediaTypes) do
+            if sl[key] and #sl[key] > 0 then
+                sections[#sections + 1] = {
+                    key = key,
+                    label = Text.key("TXT_KEY_PROMOTIONS_" .. pediaType),
+                    articles = sl[key],
+                }
+            end
+        end
+        return sections
+    end
+
     local prefix = SECTION_TEXT_KEY_PREFIX[cat]
     if prefix then
         -- Sequential 0..N; bounded at 99 as a sanity cap (largest observed

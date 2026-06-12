@@ -455,8 +455,11 @@ function Deploy-ModOverlay {
             throw "Clone copy missing: $pristine. Pass -ClonePath pointing at the pinned Community-Patch-DLL clone."
         }
         if (-not (Test-SameFileBytes $target $pristine)) {
-            $stagedHead = Get-Content -LiteralPath $target -TotalCount 1
-            if ($stagedHead -notmatch 'Civ V Access') {
+            # An older copy of ours is recognized by the appended accessibility
+            # include (every staged override carries one; suffix-only entries
+            # have no header comment, so the first line is vendor code).
+            $targetContent = Get-Content -LiteralPath $target -Raw
+            if ($targetContent -notmatch 'CivVAccess') {
                 throw "Mod file is neither VP-stock nor ours: $target. The MODS folders have drifted from the pinned clone; re-sync them before deploying."
             }
         }
