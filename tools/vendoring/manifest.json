@@ -531,6 +531,12 @@
         "suffix": "\n\n-- CivVAccess: append accessibility wrapper.\ninclude(\"CivVAccess_EspionageOverviewAccess\")\n"
       }
     },
+    "InGame/Popups/EventChoicePopup.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EventChoicePopupAccess\")\r\n"
+    },
     "InGame/Popups/GenericPopup.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/InGame/Popups/GenericPopup.{lua,xml} (base game; not\r\n-- overridden by Expansion/Expansion2). Contents above the bootstrap marker\r\n-- are a verbatim copy of the base-game file. Rationale for this target:\r\n-- this single Context dispatches 16 PopupsGeneric/*Popup.lua layouts\r\n-- through the PopupLayouts table, so one accessibility wiring covers\r\n-- every Annex / Puppet / Liberate / ConfirmCommand / DeclareWar / etc.\r\n-- confirm-choice popup the engine raises.\r\n",
       "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_GenericPopupAccess\")\r\n"

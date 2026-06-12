@@ -1312,6 +1312,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_ARCHAEOLOGY"] = "Choose Arc
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_ADMIRAL_NEW_PORT"] = "Choose Admiral New Port"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TRADE_UNIT_NEW_HOME"] = "Choose Trade Unit New Home"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_INTERNATIONAL_TRADE_ROUTE"] = "Establish Trade Route"
+-- Vox Populi event popups (player / city / espionage choice pickers and
+-- the informational event popups). Install-time placeholder only; the
+-- live event title replaces it before each announcement.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EVENT"] = "Event"
 -- Confirm-overlay sub-handler pushed on top of a Choose* picker when the
 -- player activates an item. Display name only; the actual prompt text
 -- (e.g. "Are you sure you wish to found X?") comes from Controls.ConfirmText

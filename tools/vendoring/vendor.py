@@ -204,6 +204,23 @@ def mod_root(name, mod_dir):
         attrs, rel = m.group(1), m.group(2).strip()
         if 'import="1"' in attrs and rel.lower().endswith(VENDOR_EXTS):
             files.append(rel.replace("\\", "/"))
+    # UI addin entry points are loaded from the mod folder by path, not
+    # through the VFS, so they carry import="0" -- index them too (the
+    # net-new VP/CP screens our vp-only entries override live here),
+    # plus the paired .lua/.xml sibling the engine loads alongside a
+    # context. Other import="0" files stay unindexed: the engine never
+    # serves them, so sourcing an override from one would be wrong.
+    for m in re.finditer(r'<EntryPoint\b[^>]*\bfile="([^"]+)"', text):
+        rel = m.group(1).strip().replace("\\", "/")
+        if not rel.lower().endswith(VENDOR_EXTS):
+            continue
+        stem, ext = os.path.splitext(rel)
+        sibling = stem + (".xml" if ext.lower() == ".lua" else ".lua")
+        for cand in (rel, sibling):
+            if cand not in files and os.path.isfile(
+                os.path.join(mod_dir, cand.replace("/", os.sep))
+            ):
+                files.append(cand)
     root = Root(name, mod_dir, files)
     root.is_mod = True
     return root
@@ -321,6 +338,20 @@ def load_manifest():
     return manifest
 
 
+def entry_engines(entry):
+    """Engines an entry exists on. Default: every engine. An explicit
+    "engines" list marks files with no counterpart elsewhere (net-new mod
+    Contexts like the CP event popups exist only under VP); entries
+    without "vanilla" have no committed file under src/dlc/UI and are
+    skipped by verify/restore."""
+    return entry.get("engines")
+
+
+def on_engine(entry, engine):
+    engines = entry_engines(entry)
+    return engines is None or engine in engines
+
+
 def check_completeness(manifest):
     committed = set(collect_overrides())
     listed = set(manifest["files"].keys())
@@ -328,6 +359,8 @@ def check_completeness(manifest):
     for rel in sorted(committed - listed):
         problems.append("override not in manifest: " + rel)
     for rel in sorted(listed - committed):
+        if not on_engine(manifest["files"][rel], "vanilla"):
+            continue  # engine-specific entry; no committed vanilla copy
         problems.append("manifest entry has no committed file: " + rel)
     return problems
 
@@ -482,7 +515,7 @@ def cmd_restore(args):
     for rel, entry in sorted(manifest["files"].items()):
         if entry.get("bootstrap_unmatched"):
             fail("%s: unmatched bootstrap entry; finish the manifest first" % rel)
-        if entry.get("owned"):
+        if entry.get("owned") or not on_engine(entry, "vanilla"):
             continue
         _root, _src, generated = build_file(entry, rel, roots, "vanilla")
         dest = os.path.join(OVERRIDE_BASE, rel.replace("/", os.sep))
@@ -502,12 +535,16 @@ def cmd_verify(args):
     roots = vanilla_roots(args.game)
     problems = check_completeness(manifest)
 
+    checked = 0
     for rel, entry in sorted(manifest["files"].items()):
         if entry.get("bootstrap_unmatched"):
             problems.append("%s: still unmatched from bootstrap" % rel)
             continue
         if entry.get("owned"):
             continue  # committed bytes ARE the source; nothing to compare
+        if not on_engine(entry, "vanilla"):
+            continue  # engine-specific entry; generate covers it
+        checked += 1
         committed_path = os.path.join(OVERRIDE_BASE, rel.replace("/", os.sep))
         if not os.path.isfile(committed_path):
             continue  # already reported by completeness
@@ -528,7 +565,7 @@ def cmd_verify(args):
         for p in problems:
             print("  " + p)
         sys.exit(1)
-    print("verify OK: %d overrides reproduce byte-for-byte" % len(manifest["files"]))
+    print("verify OK: %d overrides reproduce byte-for-byte" % checked)
 
 
 # ---------------------------------------------------------------- generate
@@ -561,6 +598,8 @@ def cmd_generate(args):
     for rel, entry in sorted(manifest["files"].items()):
         if entry.get("bootstrap_unmatched"):
             fail("%s: unmatched bootstrap entry; finish the manifest first" % rel)
+        if not on_engine(entry, args.engine):
+            continue
         if entry.get("refit") and args.engine != "vanilla":
             root, (src_rel, _) = resolve_source(entry, rel, roots, args.engine)
             refits.append("%-60s %s:%s" % (rel, root.name, src_rel))
