@@ -466,6 +466,12 @@
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CityStateGreetingPopupAccess\")\r\n"
     },
     "InGame/Popups/CityStateGreetingPopup.xml": {},
+    "InGame/Popups/CorporationsOverview.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Vox Populi UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_CorporationsOverviewAccess\")\r\n"
+    },
     "InGame/Popups/CultureOverview.lua": {
       "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_CultureOverviewAccess\")\n"
     },

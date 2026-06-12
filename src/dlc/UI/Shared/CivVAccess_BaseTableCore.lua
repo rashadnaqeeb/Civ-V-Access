@@ -17,7 +17,10 @@
 -- Cursor model: row 0 is the column-header row (cursor lands there on Up
 -- from data row 1; Enter cycles sort on the current column). Rows 1..N are
 -- data rows from rebuildRows(), in iteration order or sorted order if a
--- sort column is active. _col is 1-based into the columns array.
+-- sort column is active. _col is 1-based into the columns array. When the
+-- spec carries a topItem, row -1 is a single control above the headers
+-- (reached by Up from the header row); it has no columns, so Left / Right
+-- are no-ops there and Enter runs its onActivate.
 --
 -- Speech dedupe: only the row label re-speaks when the row changes; only the
 -- column name re-speaks when the column changes. The first announcement on
@@ -56,6 +59,17 @@
 --                  Enter cycles it onward), and the default re-applies on
 --                  every (re)initialization. The referenced column must
 --                  carry a sortKey. Omit for natural rebuildRows order.
+--   topItem        optional control row above the column headers:
+--     labelFn      fn() -> string (required). Re-read on every landing so
+--                  a value embedded in the label stays live.
+--     onActivate   fn() -> nil. Optional. Enter / Space on the row. When
+--                  absent, Enter re-speaks the label (same feedback rule
+--                  as actionless data cells).
+--     helpEntry    {keyLabel, description} | nil. Prepended to the tab's
+--                  help list so the screen-specific control reads before
+--                  the universal nav entries (BaseMenu helpExtras rule).
+--                  The wrapper supplies it; landing on the row is what a
+--                  user can't otherwise discover.
 --
 -- Hidden columns: callers filter columns before passing to BaseTable. F2's
 -- science / faith columns are dropped at create time when the corresponding
@@ -113,6 +127,18 @@ end
 -- last speech. force=true rebuilds the full announcement (used on
 -- activation, sort, and search jump).
 local function buildCellSpeech(self, rows, force)
+    if self._row == -1 then
+        local item = self._topItem
+        if item == nil then
+            return nil
+        end
+        local ok, text = pcall(item.labelFn)
+        if not ok then
+            Log.error("BaseTable '" .. tostring(self.tabName) .. "' topItem labelFn: " .. tostring(text))
+            return nil
+        end
+        return text
+    end
     if self._row == 0 then
         local col = self.columns[self._col]
         if col == nil then
@@ -219,7 +245,14 @@ end
 
 local function onUp(self)
     clearSearch(self)
+    if self._row == -1 then
+        return
+    end
     if self._row == 0 then
+        if self._topItem ~= nil then
+            self._row = -1
+            speakCell(self, true)
+        end
         return
     end
     self._row = self._row - 1
@@ -238,6 +271,10 @@ end
 
 local function onLeft(self)
     clearSearch(self)
+    -- The top control spans the table; there is no column to move to.
+    if self._row == -1 then
+        return
+    end
     local n = #self.columns
     if n == 0 then
         return
@@ -253,6 +290,9 @@ end
 
 local function onRight(self)
     clearSearch(self)
+    if self._row == -1 then
+        return
+    end
     local n = #self.columns
     if n == 0 then
         return
@@ -314,6 +354,18 @@ local function cycleSort(self)
 end
 
 local function onEnter(self)
+    if self._row == -1 then
+        local item = self._topItem
+        if item ~= nil and type(item.onActivate) == "function" then
+            local ok, err = pcall(item.onActivate)
+            if not ok then
+                Log.error("BaseTable '" .. tostring(self.tabName) .. "' topItem onActivate: " .. tostring(err))
+            end
+        else
+            speakCell(self, true)
+        end
+        return
+    end
     if self._row == 0 then
         cycleSort(self)
         return
@@ -336,7 +388,7 @@ local function onEnter(self)
 end
 
 local function onPedia(self)
-    if self._row == 0 then
+    if self._row <= 0 then
         return
     end
     local rows = buildRows(self)
@@ -487,6 +539,18 @@ function BaseTable.create(spec)
     end
     Log.check(type(spec.rebuildRows) == "function", "spec.rebuildRows required")
     Log.check(type(spec.rowLabel) == "function", "spec.rowLabel required")
+    if spec.topItem ~= nil then
+        Log.check(type(spec.topItem) == "table", "spec.topItem must be a table")
+        Log.check(type(spec.topItem.labelFn) == "function", "spec.topItem.labelFn required")
+        Log.check(
+            spec.topItem.onActivate == nil or type(spec.topItem.onActivate) == "function",
+            "spec.topItem.onActivate must be a function if provided"
+        )
+        Log.check(
+            spec.topItem.helpEntry == nil or type(spec.topItem.helpEntry) == "table",
+            "spec.topItem.helpEntry must be a table if provided"
+        )
+    end
 
     local defaultSortColumn = nil
     local defaultSortAscending = false
@@ -516,6 +580,7 @@ function BaseTable.create(spec)
         columns = spec.columns,
         rebuildRows = spec.rebuildRows,
         rowLabel = spec.rowLabel,
+        _topItem = spec.topItem,
         capturesAllInput = spec.capturesAllInput ~= false,
         _row = 1,
         _col = 1,
@@ -616,6 +681,9 @@ function BaseTable.create(spec)
     end
 
     self.helpEntries = buildHelpEntries({ _anyPedia = anyPedia })
+    if spec.topItem ~= nil and spec.topItem.helpEntry ~= nil then
+        table.insert(self.helpEntries, 1, spec.topItem.helpEntry)
+    end
 
     -- Tab-interface methods: TabbedShell calls these on cycle and shell
     -- lifecycle. Function form (not method) so signature matches the

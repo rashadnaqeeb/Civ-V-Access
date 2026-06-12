@@ -210,6 +210,10 @@ if Game ~= nil and Game.IsCustomModOption ~= nil then
         keyLabel = "TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_DESC",
     }
+    FUNCTION_KEY_HELP_ENTRIES[#FUNCTION_KEY_HELP_ENTRIES + 1] = {
+        keyLabel = "TXT_KEY_CIVVACCESS_CORPORATIONS_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_CORPORATIONS_HOTKEY_HELP_DESC",
+    }
 end
 
 local function appendAll(dst, src)
@@ -471,6 +475,21 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open Vassal Overview")
+
+        -- Corporations Overview (Vox Populi only). The screen is a Vox
+        -- Populi UI addin opened via BUTTONPOPUP_MODDER_5; same CP-DLL
+        -- capability gate as the events and vassal chords. Ctrl+C is the
+        -- Culture Overview; Shift joins the two C chords the way Shift
+        -- joined the two E chords. No CIV5 XML binds Ctrl+Shift+C, so the
+        -- chord is free. Data1=1 toggles closed when already visible
+        -- (vendor OnPopup honors it). No game option gates corporations
+        -- under VP, so there is no disabled-state line.
+        bindings[#bindings + 1] = bind(Keys.C, MOD_CTRL + MOD_SHIFT, function()
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_5,
+                Data1 = 1,
+            })
+        end, "Open Corporations Overview")
     end
 
     -- Pull sibling modules' bindings into Baseline's list, and their help

@@ -766,6 +766,135 @@ function M.test_getTooltip_throwing_logs_and_skips()
     T.truthy(errors[1]:find("boom"))
 end
 
+-- Top item (control row above the headers) ----------------------------
+
+local function makeTopItemSpec(onActivate)
+    local spec = makeBasicSpec()
+    spec.topItem = {
+        labelFn = function()
+            return "Select Player, Rome"
+        end,
+        onActivate = onActivate,
+        helpEntry = { keyLabel = "K", description = "D" },
+    }
+    return spec
+end
+
+function M.test_topItem_up_from_header_lands_and_speaks_label()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec())
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)() -- row 1 -> header
+    speaks = {}
+    SpeechPipeline._reset()
+    findBinding(h, Keys.VK_UP)() -- header -> top item
+    T.eq(h._row, -1)
+    T.eq(speaks[#speaks].text, "Select Player, Rome")
+    -- Up again at the top is a no-op.
+    speaks = {}
+    findBinding(h, Keys.VK_UP)()
+    T.eq(h._row, -1)
+    T.eq(#speaks, 0, "Up at the top item is silent")
+end
+
+function M.test_topItem_absent_up_from_header_is_noop()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    speaks = {}
+    findBinding(h, Keys.VK_UP)()
+    T.eq(h._row, 0, "no top item: header stays the top")
+    T.eq(#speaks, 0)
+end
+
+function M.test_topItem_down_returns_to_header()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec())
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_UP)()
+    speaks = {}
+    SpeechPipeline._reset()
+    findBinding(h, Keys.VK_DOWN)()
+    T.eq(h._row, 0)
+    T.eq(speaks[#speaks].text, "Name", "header column name spoken on return")
+end
+
+function M.test_topItem_enter_runs_onActivate()
+    setup()
+    local activated = 0
+    local h = BaseTable.create(makeTopItemSpec(function()
+        activated = activated + 1
+    end))
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_RETURN)()
+    T.eq(activated, 1)
+end
+
+function M.test_topItem_enter_without_onActivate_respeaks_label()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec(nil))
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_UP)()
+    speaks = {}
+    SpeechPipeline._reset()
+    findBinding(h, Keys.VK_RETURN)()
+    T.eq(speaks[#speaks].text, "Select Player, Rome")
+end
+
+function M.test_topItem_onActivate_error_is_logged()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec(function()
+        error("boom")
+    end))
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_RETURN)()
+    T.truthy(#errors >= 1)
+    T.truthy(errors[#errors]:find("boom"))
+end
+
+function M.test_topItem_left_right_are_noops()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec())
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_UP)()
+    speaks = {}
+    wrapPlays = 0
+    findBinding(h, Keys.VK_LEFT)()
+    findBinding(h, Keys.VK_RIGHT)()
+    T.eq(h._row, -1, "cursor stays on the top item")
+    T.eq(h._col, 1, "column cursor untouched")
+    T.eq(#speaks, 0)
+    T.eq(wrapPlays, 0)
+end
+
+function M.test_topItem_help_entry_prepended()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec())
+    T.eq(h.helpEntries[1].keyLabel, "K")
+    T.eq(h.helpEntries[1].description, "D")
+end
+
+function M.test_topItem_home_jumps_to_first_data_row()
+    setup()
+    local h = BaseTable.create(makeTopItemSpec())
+    h.onTabActivated(h, false)
+    findBinding(h, Keys.VK_UP)()
+    findBinding(h, Keys.VK_UP)()
+    speaks = {}
+    SpeechPipeline._reset()
+    findBinding(h, Keys.VK_HOME)()
+    T.eq(h._row, 1)
+    T.truthy(speaks[#speaks].text:find("Rome"))
+end
+
 -- Empty data ----------------------------------------------------------
 
 function M.test_empty_table_lands_on_header_row()
