@@ -3193,6 +3193,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_DESC"] = "Open Espi
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_KEY"] = "Control plus Shift plus E"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_DESC"] = "Open Events Overview"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_DISABLED"] = "Events are disabled in this game"
+-- Vassal Overview (Vox Populi only). Chord and help entry register only
+-- when the CP DLL is present; screen title, stat labels, schedule lines,
+-- tooltips, and action buttons all reuse the Community Patch's TXT_KEY_VO
+-- keys. The two tab names are ours (the vendor's list-pane header flips
+-- between YOUR VASSALS and YOUR MASTERS; a tab name must hold still), as
+-- is the as-vassal preamble line (the vendor has no role sentence).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_KEY"] = "Control plus V"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_DESC"] = "Open Vassal Overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"] = "Vassalage is disabled in this game"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_TAB_CIVS"] = "Civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_TAB_DETAILS"] = "Details"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_VASSAL_OF"] = "You are a vassal of {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_AGENTS"] = "Agents"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_CITIES"] = "Cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_INTRIGUE"] = "Intrigue"

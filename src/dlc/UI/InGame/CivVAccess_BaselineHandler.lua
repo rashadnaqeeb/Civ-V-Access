@@ -206,6 +206,10 @@ if Game ~= nil and Game.IsCustomModOption ~= nil then
         keyLabel = "TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_KEY",
         description = "TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_DESC",
     }
+    FUNCTION_KEY_HELP_ENTRIES[#FUNCTION_KEY_HELP_ENTRIES + 1] = {
+        keyLabel = "TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_DESC",
+    }
 end
 
 local function appendAll(dst, src)
@@ -447,6 +451,26 @@ function BaselineHandler.create()
                 Data1 = 1,
             })
         end, "Open Events Overview")
+
+        -- Vassal Overview (Vox Populi only). The screen is a Community
+        -- Patch UI addin opened via BUTTONPOPUP_MODDER_11; same CP-DLL
+        -- capability gate as the events chord. Bare V is the engine's
+        -- Advisor Counsel binding (already swallowed by Baseline's letter
+        -- wall) and no CIV5 XML binds Ctrl+V, so the chord is free.
+        -- Data1=1 toggles closed when already visible (vendor OnPopup
+        -- honors it). Speaks a disabled line when the vassalage game
+        -- option is off -- the vendor gates its dropdown row on the same
+        -- option.
+        bindings[#bindings + 1] = bind(Keys.V, MOD_CTRL, function()
+            if not Game.IsOption("GAMEOPTION_ENABLE_VASSALAGE") then
+                speak(Text.key("TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"))
+                return
+            end
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_11,
+                Data1 = 1,
+            })
+        end, "Open Vassal Overview")
     end
 
     -- Pull sibling modules' bindings into Baseline's list, and their help

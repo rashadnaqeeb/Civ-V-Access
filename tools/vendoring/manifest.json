@@ -780,6 +780,12 @@
     "InGame/Popups/TradeRouteOverview.lua": {
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_TradeRouteOverviewAccess\")"
     },
+    "InGame/Popups/VassalageOverview.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_VassalageOverviewAccess\")\r\n"
+    },
     "InGame/Popups/VictoryProgress.lua": {
       "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_VictoryProgressAccess\")\n"
     },
