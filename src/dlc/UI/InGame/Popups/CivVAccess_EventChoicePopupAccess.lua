@@ -15,48 +15,12 @@
 -- Items rebuild from the same data path the vendor walks (parent-event
 -- choice rows, GetScaledEventChoiceValue effects, the modmod
 -- override-strings LuaEvents), so spoken text matches the screen.
--- Rebuild is gated on the vendor accepting the popup: its OnPopup calls
--- the global DisplayPopup only when the Context was hidden, so a wrap
--- of that global is the accept signal (our popup listener runs after
--- the vendor's in the same dispatch and cannot see its local gate).
 
 include("CivVAccess_PopupBoot")
+include("CivVAccess_EventPopupCommon")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
-
-local function controlText(control)
-    if control == nil then
-        return nil
-    end
-    local ok, text = pcall(function()
-        return control:GetText()
-    end)
-    if not ok or text == nil then
-        return nil
-    end
-    return tostring(text)
-end
-
-local mainHandler = BaseMenu.install(ContextPtr, {
-    name = "EventChoicePopup",
-    -- Install-time placeholder; onShow writes the live event title (with
-    -- any modmod override applied by the vendor) into displayName.
-    displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_EVENT"),
-    preamble = function()
-        return controlText(Controls.DescriptionLabel)
-    end,
-    priorInput = priorInput,
-    priorShowHide = priorShowHide,
-    deferActivate = true,
-    onShow = function(h)
-        local title = controlText(Controls.TitleLabel)
-        if title ~= nil and title ~= "" then
-            h.displayName = title
-        end
-    end,
-    items = {},
-})
 
 local function buildItems(popupInfo)
     local playerID = popupInfo.Data1
@@ -128,29 +92,12 @@ local function buildItems(popupInfo)
     return items
 end
 
--- Accept signal: the vendor OnPopup calls this global only when it
--- actually displays the popup (Context was hidden). Without the gate, a
--- MODDER_10 popup arriving while the screen is already open would
--- rebuild our items for an event the vendor is not showing.
-local vendorAccepted = false
-local priorDisplayPopup = DisplayPopup
-function DisplayPopup(playerID, classType, numberOfChoices)
-    vendorAccepted = true
-    return priorDisplayPopup(playerID, classType, numberOfChoices)
-end
-
-Events.SerialEventGameMessagePopup.Add(function(popupInfo)
-    if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_MODDER_10 then
-        return
-    end
-    if not vendorAccepted then
-        return
-    end
-    vendorAccepted = false
-    local ok, items = pcall(buildItems, popupInfo)
-    if not ok then
-        Log.error("EventChoicePopupAccess buildItems failed: " .. tostring(items))
-        return
-    end
-    mainHandler.setItems(items)
-end)
+EventPopupCommon.install({
+    contextPtr = ContextPtr,
+    priorInput = priorInput,
+    priorShowHide = priorShowHide,
+    handlerName = "EventChoicePopup",
+    popupType = ButtonPopupTypes.BUTTONPOPUP_MODDER_10,
+    buildItems = buildItems,
+    gateOnDisplayPopup = true,
+})
