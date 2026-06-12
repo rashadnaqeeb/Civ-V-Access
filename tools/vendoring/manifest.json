@@ -482,6 +482,12 @@
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_EndGameMenuAccess\")"
     },
     "InGame/Popups/EndGameMenu.xml": {},
+    "InGame/Popups/EspionageChoicePopup.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EspionageChoicePopupAccess\")\r\n"
+    },
     "InGame/Popups/EspionageOverview.lua": {
       "suffix": "\r\n\r\n-- CivVAccess: append accessibility wrapper.\r\ninclude(\"CivVAccess_EspionageOverviewAccess\")\r\n",
       "edits": [
