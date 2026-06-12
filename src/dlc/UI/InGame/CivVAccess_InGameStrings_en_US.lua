@@ -3187,6 +3187,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
 -- engine TXT_KEY_EO_* keys directly.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY"] = "Control plus E"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_DESC"] = "Open Espionage Overview"
+-- Events Overview (Vox Populi only). The chord and help entry register
+-- only when the CP DLL is present; screen title, tab names, row text,
+-- and sort options all reuse the Community Patch's own TXT keys.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_KEY"] = "Control plus Shift plus E"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_DESC"] = "Open Events Overview"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_DISABLED"] = "Events are disabled in this game"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_AGENTS"] = "Agents"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_CITIES"] = "Cities"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_TAB_INTRIGUE"] = "Intrigue"

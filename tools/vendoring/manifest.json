@@ -446,6 +446,18 @@
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a mod UI addin and does not exist on vanilla\r\n-- installs).\r\ninclude(\"CivVAccess_CityEventPopupAccess\")\r\n"
     },
+    "InGame/Popups/CityEventsInfo.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
+    },
+    "InGame/Popups/CityRecentEventsInfo.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
+    },
     "InGame/Popups/CityStateDiploPopup.lua": {
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_CityStateDiploPopupAccess\")\r\n"
     },
@@ -555,6 +567,12 @@
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EventChoicePopupCityAccess\")\r\n"
     },
+    "InGame/Popups/EventOverview.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EventOverviewAccess\")\r\n"
+    },
     "InGame/Popups/EventPopup.lua": {
       "engines": [
         "vp"
@@ -654,6 +672,12 @@
         "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NotificationLogPopupAccess\")\r\n"
       }
     },
+    "InGame/Popups/PlayerEventsInfo.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
+    },
     "InGame/Popups/ProductionPopup.lua": {
       "suffix": "\r\ninclude(\"CivVAccess_ChooseProductionPopupAccess\");\r\n",
       "vp": {
@@ -683,6 +707,12 @@
         "vp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a mod UI addin and does not exist on vanilla\r\n-- installs).\r\ninclude(\"CivVAccess_RandomVCPopupAccess\")\r\n"
+    },
+    "InGame/Popups/RecentEventsInfo.lua": {
+      "engines": [
+        "vp"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
     },
     "InGame/Popups/ReligionOverview.lua": {
       "suffix": "\ninclude(\"CivVAccess_ReligionOverviewAccess\");\n"

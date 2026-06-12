@@ -198,6 +198,16 @@ local FUNCTION_KEY_HELP_ENTRIES = {
     },
 }
 
+-- Events Overview (Vox Populi only). Appended conditionally on the
+-- CP-DLL capability probe so vanilla's help list doesn't advertise a
+-- dead chord; mirrors the registration gate on the binding itself.
+if Game ~= nil and Game.IsCustomModOption ~= nil then
+    FUNCTION_KEY_HELP_ENTRIES[#FUNCTION_KEY_HELP_ENTRIES + 1] = {
+        keyLabel = "TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_KEY",
+        description = "TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_DESC",
+    }
+end
+
 local function appendAll(dst, src)
     if type(src) ~= "table" then
         return
@@ -408,6 +418,36 @@ function BaselineHandler.create()
             LuaEvents.CivVAccessMapSettingsToggle()
         end, "Open map settings"),
     }
+
+    -- Events Overview (Vox Populi only). The screen is a Community Patch
+    -- UI addin opened via BUTTONPOPUP_MODDER_6; registration is gated on
+    -- the CP-DLL capability probe because the vanilla DLL also registers
+    -- the MODDER_* popup enums, so the enum table is not a discriminator.
+    -- Ctrl+E is the Espionage Overview; Shift joins the two E chords.
+    -- Data1=1 toggles closed when already visible (vendor OnPopup honors
+    -- it, matching the Culture / Religion / Espionage Overview pattern).
+    -- Speaks a disabled line when none of the five VP event game options
+    -- is on -- the vendor gates its dropdown row on the same five.
+    if Game.IsCustomModOption ~= nil then
+        bindings[#bindings + 1] = bind(Keys.E, MOD_CTRL + MOD_SHIFT, function()
+            if
+                not (
+                    Game.IsOption("GAMEOPTION_GOOD_EVENTS")
+                    or Game.IsOption("GAMEOPTION_NEUTRAL_EVENTS")
+                    or Game.IsOption("GAMEOPTION_BAD_EVENTS")
+                    or Game.IsOption("GAMEOPTION_TRADE_EVENTS")
+                    or Game.IsOption("GAMEOPTION_CIV_SPECIFIC_EVENTS")
+                )
+            then
+                speak(Text.key("TXT_KEY_CIVVACCESS_EVENTS_DISABLED"))
+                return
+            end
+            Events.SerialEventGameMessagePopup({
+                Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_6,
+                Data1 = 1,
+            })
+        end, "Open Events Overview")
+    end
 
     -- Pull sibling modules' bindings into Baseline's list, and their help
     -- entries into the correct section of the composed map-mode help.
