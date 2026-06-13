@@ -2197,6 +2197,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_STOLEN"] = "stole {1_Na
 -- composes name, status, queue slot (if queued), turns, and unlocks
 -- prose. Mode preamble reuses CHOOSETECH_PREAMBLE_* keys.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"] = "Tech Tree"
+-- Espionage diplomat read-only view: a spy reveals a rival's tech tree or
+-- social-policy screen. The title carries the rival's civ name; FOREIGN_VIEW_READONLY
+-- is spoken when the user presses Enter on an item the view cannot change.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_FOREIGN_TITLE"] = "{1_Civ} Tech Tree"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_VIEW_READONLY"] = "viewing only, no changes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "All techs"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"] = "Queue"
 -- Per-tech state words. AVAILABLE: pickable now. UNAVAILABLE: prereqs not
@@ -2240,6 +2245,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"] = "Close Tech 
 
 -- Social Policies popup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY"] = "Social Policies"
+-- Espionage diplomat read-only view title (rival's civ name + screen).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_FOREIGN_TITLE"] = "{1_Civ} Social Policies"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_POLICIES"] = "Policies"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_IDEOLOGY"] = "Ideology"
 -- Branch-level status words (top tier of the policy tree). OPENED: at
@@ -2257,6 +2264,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_ERA"] = "locke
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_RELIGION"] = "locked, requires a founded religion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED"] = "locked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_BLOCKED"] = "blocked"
+-- Read-only espionage view collapses every closed-branch reason to a single
+-- "not opened" (the rival's own unlock eligibility is hidden from a spy, as
+-- on the sighted espionage screen).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_NOT_OPENED"] = "not opened"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_BRANCH_COUNT"] = "{1_Num} of {2_Total} adopted"
 -- Individual-policy status words (one tier down, applies to each policy
 -- inside an opened branch). OPENER / FINISHER mark the two automatic
@@ -2268,6 +2279,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_BRANCH_COUNT"] = "{1_Num} of
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_OPENER"] = "opener, granted free when branch opens"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_FINISHER"] = "finisher, awarded when branch is complete"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTED"] = "adopted"
+-- Read-only espionage view collapses every not-held policy to "not adopted".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_NOT_ADOPTED"] = "not adopted"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTABLE"] = "adoptable"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_BLOCKED"] = "blocked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED"] = "locked"
@@ -2303,6 +2316,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_LEVEL_3"] = "Level 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED"] = "slot {1_Num}, {2_Name}, {3_Effect}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED_NAME_ONLY"] = "slot {1_Num}, {2_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_AVAILABLE"] = "slot {1_Num}, empty, available"
+-- Neutral empty slot for the read-only espionage view (no "available" claim,
+-- since the spy cannot fill the rival's slot).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY"] = "slot {1_Num}, empty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_REQ_SLOT"] = "slot {1_Num}, empty, requires slot {2_Req}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_REQ_CROSS"] =
     "slot {1_Num}, empty, requires level {2_Level} slot {3_Req}"

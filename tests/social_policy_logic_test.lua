@@ -771,6 +771,82 @@ function M.test_buildSlotSpeech_crosslevel_names_level_and_slot()
     T.truthy(speech:find("requires level 1 slot 2"), "should name cross-gate: " .. speech)
 end
 
+-- ========== read-only espionage view ==========
+-- The diplomat spy view repoints a screen to a rival and collapses every
+-- eligibility distinction to the held / not-held intel the sighted espionage
+-- screen shows.
+
+function M.test_buildBranchSpeech_readonly_finished()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    local p = fakePlayer({ branchFinished = { [0] = true } })
+    local speech = SocialPolicyLogic.buildBranchSpeech(p, branches[1], true)
+    T.truthy(speech:find("finished"), "finished branch should say finished: " .. speech)
+end
+
+function M.test_buildBranchSpeech_readonly_opened()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    local p = fakePlayer({ branchUnlocked = { [0] = true } })
+    local speech = SocialPolicyLogic.buildBranchSpeech(p, branches[1], true)
+    T.truthy(speech:find("opened"), "unlocked branch should say opened: " .. speech)
+end
+
+function M.test_buildBranchSpeech_readonly_collapses_adoptable_to_not_opened()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    -- canUnlock would read "adoptable" in the own-screen view; the spy view
+    -- hides the rival's unlock eligibility.
+    local p = fakePlayer({ canUnlock = { [0] = true } })
+    local speech = SocialPolicyLogic.buildBranchSpeech(p, branches[1], true)
+    T.truthy(speech:find("not opened"), "should collapse to not opened: " .. speech)
+    T.falsy(speech:find("adoptable"), "should not leak adoptable: " .. speech)
+end
+
+function M.test_buildPolicySpeech_readonly_adopted()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    local p = fakePlayer({ has = { [2] = true } })
+    local speech = SocialPolicyLogic.buildPolicySpeech(p, policies[3], branches[1], true)
+    T.truthy(speech:find("^POL_OLIGARCHY, adopted"), "held policy should say adopted: " .. speech)
+end
+
+function M.test_buildPolicySpeech_readonly_collapses_adoptable_to_not_adopted()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    -- Adoptable in the own-screen view; the spy view shows only held / not-held.
+    local p = fakePlayer({ canAdopt = { [2] = true } })
+    local speech = SocialPolicyLogic.buildPolicySpeech(p, policies[3], branches[1], true)
+    T.truthy(speech:find("not adopted"), "should say not adopted: " .. speech)
+    T.falsy(speech:find("adoptable"), "should not leak adoptable: " .. speech)
+end
+
+function M.test_buildSlotSpeech_readonly_filled_still_speaks_name()
+    setup()
+    local policies = {
+        policyRow({ ID = 100, Type = "TEN_A", Help = "HELP_TEN_A" }),
+    }
+    installDB({}, policies, {})
+    local p = fakePlayer({ tenets = { ["9:1:1"] = 100 } })
+    local speech = SocialPolicyLogic.buildSlotSpeech(p, 9, 1, 1, true)
+    T.eq(speech, "slot 1, TEN_A, HELP_TEN_A")
+end
+
+function M.test_buildSlotSpeech_readonly_collapses_empty()
+    setup()
+    installDB({}, {}, {})
+    -- A sequentially-blocked slot reads "requires slot N" in the own-screen
+    -- view; the spy view shows a bare empty slot.
+    local p = fakePlayer({ freeTenets = 1 })
+    local speech = SocialPolicyLogic.buildSlotSpeech(p, 9, 1, 3, true)
+    T.eq(speech, "slot 3, empty")
+end
+
 -- ========== buildTenetPickerChoice ==========
 
 function M.test_buildTenetPickerChoice_name_and_effect()

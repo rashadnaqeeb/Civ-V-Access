@@ -122,6 +122,14 @@ local MOD_CTRL = 2
 -- given open and re-written on the next open.
 local _stealingTargetID = -1
 
+-- Espionage diplomat read-only view (VP-only). The diplomat panel fires
+-- BUTTONPOPUP_TECH_TREE with Data4>0 and Data5=the rival player, repointing the
+-- tree to that civ's research state (the sighted view does the same, then
+-- disables clicking). Captured by the popup listener; while set, reads use the
+-- rival and commit is suppressed. Reset on every TECH_TREE open.
+local _espionageView = false
+local _viewPlayerID = -1
+
 -- Screen state. Reset on every hide.
 local _graph = nil
 local _cursor = nil
@@ -160,10 +168,18 @@ local _treeHelpEntries = nil
 local _treeTab = nil
 
 local function currentPlayer()
+    if _espionageView and _viewPlayerID >= 0 then
+        return Players[_viewPlayerID]
+    end
     return Players[Game.GetActivePlayer()]
 end
 
 local function currentMode()
+    -- The spy view is read-only; force normal so the preamble never claims the
+    -- rival's free-tech / stealing state (which would read off currentPlayer).
+    if _espionageView then
+        return "normal"
+    end
     local p = currentPlayer()
     if p == nil then
         return "normal"
@@ -203,6 +219,10 @@ end
 -- ===== Tree commit =====
 
 local function commit(shift)
+    if _espionageView then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_FOREIGN_VIEW_READONLY"))
+        return
+    end
     local cur = _cursor and _cursor.current()
     if cur == nil then
         return
@@ -719,6 +739,16 @@ TabbedShell.install(ContextPtr, {
     priorShowHide = wrappedPriorShowHide,
     onShow = function(handler)
         _shellHandler = handler
+        -- Title carries the rival's civ name in the spy view; reset otherwise
+        -- (the field persists across opens).
+        if _espionageView and _viewPlayerID >= 0 then
+            handler.displayName = Text.format(
+                "TXT_KEY_CIVVACCESS_TECHTREE_FOREIGN_TITLE",
+                Text.key(Players[_viewPlayerID]:GetCivilizationShortDescription())
+            )
+        else
+            handler.displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE")
+        end
         setupForShow()
     end,
     onEscape = function(handler)
@@ -747,4 +777,14 @@ Log.installEvent(Events, "SerialEventGameMessagePopup", function(popupInfo)
         return
     end
     _stealingTargetID = popupInfo.Data2 or -1
+    -- VP espionage diplomat view: Data4>0 repoints the tree to the rival in
+    -- Data5. Mutually exclusive with stealing (the diplomat launch sets
+    -- Data2=-1). Reset on every open; Data4 is nil on vanilla.
+    if popupInfo.Data4 ~= nil and popupInfo.Data4 > 0 then
+        _espionageView = true
+        _viewPlayerID = popupInfo.Data5
+    else
+        _espionageView = false
+        _viewPlayerID = -1
+    end
 end, "TechTreeAccess")

@@ -47,10 +47,27 @@ local SUB_CHANGE_IDEOLOGY = "ChangeIdeologyConfirm"
 -- without Data2=2 don't inherit the flag.
 local _openToIdeologyTab = false
 
+-- Espionage diplomat read-only view (VP-only). The diplomat panel fires
+-- BUTTONPOPUP_CHOOSEPOLICY with Data3=1 and Data4=the rival player, repointing
+-- the screen to that civ. Captured by the popup listener; while set, every
+-- read uses the rival player and every commit path is suppressed. Reset on
+-- every CHOOSEPOLICY open (the else branch), so a normal own-screen open never
+-- inherits a stale rival.
+local _espionageView = false
+local _viewPlayerID = -1
+
 local mainHandler
 
 local function currentPlayer()
+    if _espionageView and _viewPlayerID >= 0 then
+        return Players[_viewPlayerID]
+    end
     return Players[Game.GetActivePlayer()]
+end
+
+-- Spoken when the user activates an item the read-only spy view cannot change.
+local function announceReadOnly()
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_FOREIGN_VIEW_READONLY"))
 end
 
 local function currentIdeology()
@@ -334,6 +351,10 @@ end
 -- ========== Activation dispatch ==========
 
 local function activatePolicy(policyRow, branchRow)
+    if _espionageView then
+        announceReadOnly()
+        return
+    end
     local player = currentPlayer()
     if player == nil then
         return
@@ -357,6 +378,10 @@ local function activatePolicy(policyRow, branchRow)
 end
 
 local function activateBranchUnlock(branchRow)
+    if _espionageView then
+        announceReadOnly()
+        return
+    end
     local player = currentPlayer()
     if player == nil then
         return
@@ -374,6 +399,10 @@ local function activateBranchUnlock(branchRow)
 end
 
 local function activateSlot(level, slotIndex)
+    if _espionageView then
+        announceReadOnly()
+        return
+    end
     local player = currentPlayer()
     if player == nil then
         return
@@ -395,6 +424,10 @@ local function activateSlot(level, slotIndex)
 end
 
 local function activateSwitchIdeology()
+    if _espionageView then
+        announceReadOnly()
+        return
+    end
     if Controls.SwitchIdeologyButton == nil or Controls.SwitchIdeologyButton:IsDisabled() then
         return
     end
@@ -414,10 +447,12 @@ local function buildBranchChildren(branchRow)
     local branch = branchRow
 
     -- "Open branch" item when the branch can be unlocked right now. Lives at
-    -- the top of the drill so the user encounters it first on entry.
+    -- the top of the drill so the user encounters it first on entry. Omitted
+    -- in the read-only spy view (no commit).
     local player = currentPlayer()
     if
-        player ~= nil
+        not _espionageView
+        and player ~= nil
         and not player:IsPolicyBranchUnlocked(branch.ID)
         and player:CanUnlockPolicyBranch(branch.ID)
         and not player:IsPolicyBranchBlocked(branch.ID)
@@ -437,7 +472,7 @@ local function buildBranchChildren(branchRow)
         local op = opener
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
-                return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), op, branch)
+                return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), op, branch, _espionageView)
             end,
             pediaName = op.Description,
         })
@@ -447,7 +482,7 @@ local function buildBranchChildren(branchRow)
         local pol = policy
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
-                return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), pol, branch)
+                return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), pol, branch, _espionageView)
             end,
             onActivate = function()
                 activatePolicy(pol, branch)
@@ -460,7 +495,7 @@ local function buildBranchChildren(branchRow)
         local fin = finisher
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
-                return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), fin, branch)
+                return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), fin, branch, _espionageView)
             end,
             pediaName = fin.Description,
         })
@@ -483,7 +518,7 @@ local function buildLevelChildren(level)
                 if ideologyID < 0 then
                     return ""
                 end
-                return SocialPolicyLogic.buildSlotSpeech(currentPlayer(), ideologyID, lvl, idx)
+                return SocialPolicyLogic.buildSlotSpeech(currentPlayer(), ideologyID, lvl, idx, _espionageView)
             end,
             onActivate = function()
                 activateSlot(lvl, idx)
@@ -514,7 +549,7 @@ local function buildPoliciesTabItems()
         local br = branch
         items[#items + 1] = BaseMenuItems.Group({
             labelFn = function()
-                return SocialPolicyLogic.buildBranchSpeech(currentPlayer(), br)
+                return SocialPolicyLogic.buildBranchSpeech(currentPlayer(), br, _espionageView)
             end,
             itemsFn = function()
                 return buildBranchChildren(br)
@@ -594,19 +629,22 @@ local function buildIdeologyTabItems()
         pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
     })
 
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            local disabled = Controls.SwitchIdeologyButton ~= nil and Controls.SwitchIdeologyButton:IsDisabled()
-            if disabled then
-                return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY_DISABLED")
-            end
-            return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY")
-        end,
-        onActivate = function()
-            activateSwitchIdeology()
-        end,
-        pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
-    })
+    -- Switch-ideology is a commit action, omitted in the read-only spy view.
+    if not _espionageView then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                local disabled = Controls.SwitchIdeologyButton ~= nil and Controls.SwitchIdeologyButton:IsDisabled()
+                if disabled then
+                    return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY_DISABLED")
+                end
+                return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY")
+            end,
+            onActivate = function()
+                activateSwitchIdeology()
+            end,
+            pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
+        })
+    end
 
     items[#items + 1] = closeItem()
     return items
@@ -637,6 +675,11 @@ mainHandler = BaseMenu.install(ContextPtr, {
     name = "SocialPolicyPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY"),
     preamble = function()
+        -- The spy view suppresses the culture / cost / turns / free-pick
+        -- preamble, matching the sighted espionage screen which blanks them.
+        if _espionageView then
+            return ""
+        end
         local player = currentPlayer()
         if player == nil then
             return ""
@@ -646,6 +689,16 @@ mainHandler = BaseMenu.install(ContextPtr, {
     priorInput = priorInput,
     priorShowHide = wrappedPriorShowHide,
     onShow = function(handler)
+        -- Title carries the rival's civ name in the spy view; reset to the
+        -- own-screen title otherwise (the field persists across opens).
+        if _espionageView and _viewPlayerID >= 0 then
+            handler.displayName = Text.format(
+                "TXT_KEY_CIVVACCESS_SOCIALPOLICY_FOREIGN_TITLE",
+                Text.key(Players[_viewPlayerID]:GetCivilizationShortDescription())
+            )
+        else
+            handler.displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY")
+        end
         handler.setInitialTabIndex(_openToIdeologyTab and TAB_IDEOLOGY or TAB_POLICIES)
         _openToIdeologyTab = false
         handler.setItems(buildPoliciesTabItems(), TAB_POLICIES)
@@ -675,6 +728,16 @@ Events.SerialEventGameMessagePopup.Add(function(popupInfo)
         return
     end
     _openToIdeologyTab = (popupInfo.Data2 == 2)
+    -- VP espionage diplomat view: Data3>0 repoints the screen to the rival
+    -- player in Data4. Reset on every open so a normal own-screen open clears
+    -- a prior rival. Data3 is nil on vanilla, where this path never fires.
+    if popupInfo.Data3 ~= nil and popupInfo.Data3 > 0 then
+        _espionageView = true
+        _viewPlayerID = popupInfo.Data4
+    else
+        _espionageView = false
+        _viewPlayerID = -1
+    end
 end)
 
 Events.EventPoliciesDirty.Add(function()

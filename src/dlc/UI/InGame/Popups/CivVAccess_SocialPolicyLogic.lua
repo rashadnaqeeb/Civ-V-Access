@@ -267,11 +267,28 @@ local function filterHelp(helpKey, name)
     return stripLeadingName(TextFilter.filter(raw), name)
 end
 
-function SocialPolicyLogic.buildBranchSpeech(player, branchRow)
+-- Read-only espionage view: a spy inspecting a rival's tree sees only what
+-- the sighted espionage screen shows -- held vs not-held -- so every
+-- closed-branch eligibility reason collapses to "not opened".
+local function readOnlyBranchStatus(player, branchRow)
+    if player:IsPolicyBranchFinished(branchRow.ID) then
+        return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_FINISHED")
+    end
+    if player:IsPolicyBranchUnlocked(branchRow.ID) then
+        return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_OPENED")
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_NOT_OPENED")
+end
+
+function SocialPolicyLogic.buildBranchSpeech(player, branchRow, readOnly)
     local name = Text.key(branchRow.Description)
     local parts = { name }
-    local status, payload = SocialPolicyLogic.branchStatus(player, branchRow)
-    parts[#parts + 1] = statusSpeechBranch(status, payload)
+    if readOnly then
+        parts[#parts + 1] = readOnlyBranchStatus(player, branchRow)
+    else
+        local status, payload = SocialPolicyLogic.branchStatus(player, branchRow)
+        parts[#parts + 1] = statusSpeechBranch(status, payload)
+    end
     local adopted, total = SocialPolicyLogic.adoptedCount(player, branchRow)
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_BRANCH_COUNT", adopted, total)
     local flavor = filterHelp(branchRow.Help, name)
@@ -281,9 +298,21 @@ function SocialPolicyLogic.buildBranchSpeech(player, branchRow)
     return table.concat(parts, ", ")
 end
 
-function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow)
+function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow, readOnly)
     local name = Text.key(policyRow.Description)
     local parts = { name }
+    if readOnly then
+        -- Spy view: held vs not-held only, matching the sighted espionage
+        -- screen (which suppresses the rival's own adopt eligibility).
+        local heldKey = player:HasPolicy(policyRow.ID) and "TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTED"
+            or "TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_NOT_ADOPTED"
+        parts[#parts + 1] = Text.key(heldKey)
+        local effect = filterHelp(policyRow.Help, name)
+        if effect ~= "" then
+            parts[#parts + 1] = effect
+        end
+        return table.concat(parts, ", ")
+    end
     local status, missing = SocialPolicyLogic.policyStatus(player, policyRow, branchRow)
     if status == "opener" then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_OPENER")
@@ -339,7 +368,7 @@ function SocialPolicyLogic.buildPreamble(player)
     return table.concat(parts, ", ")
 end
 
-function SocialPolicyLogic.buildSlotSpeech(player, ideologyID, level, slotIndex)
+function SocialPolicyLogic.buildSlotSpeech(player, ideologyID, level, slotIndex, readOnly)
     local status, p1, p2 = SocialPolicyLogic.slotStatus(player, ideologyID, level, slotIndex)
     if status == "filled" then
         local tenetRow = GameInfo.Policies[p1]
@@ -352,6 +381,10 @@ function SocialPolicyLogic.buildSlotSpeech(player, ideologyID, level, slotIndex)
             return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED", slotIndex, name, effect)
         end
         return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED_NAME_ONLY", slotIndex, name)
+    elseif readOnly then
+        -- Spy view: an unfilled rival slot is just "empty"; the can-fill / gated
+        -- reasons describe the rival's own eligibility, hidden from a spy.
+        return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY", slotIndex)
     elseif status == "available" then
         return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY_AVAILABLE", slotIndex)
     elseif status == "blocked-sequential" then
