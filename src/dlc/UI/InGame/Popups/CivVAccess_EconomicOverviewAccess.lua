@@ -223,6 +223,39 @@ local function constPedia(textKey)
     end
 end
 
+-- VP's cities table keeps the fraction on per-city yields
+-- (GetYieldRateTimes100 / 100, shown as a trimmed decimal); vanilla's table
+-- floors. This is the one screen we keep the fraction -- everywhere else
+-- floors, matching VP's own top panel. Game.IsCustomModOption exists only on
+-- the CP DLL, so it doubles as the engine probe (the same gate the
+-- ChooseProduction preamble uses for culture). Gold and science are standard
+-- yields on both engines; culture and faith are real yields only under VP, so
+-- the vanilla branch keeps the bespoke per-turn getters.
+local function isCP()
+    return Game.IsCustomModOption ~= nil
+end
+
+local function cityYield(city, yieldType)
+    if isCP() then
+        return city:GetYieldRateTimes100(yieldType) / 100
+    end
+    return city:GetYieldRate(yieldType)
+end
+
+local function cityCulture(city)
+    if isCP() then
+        return city:GetYieldRateTimes100(YieldTypes.YIELD_CULTURE) / 100
+    end
+    return city:GetJONSCulturePerTurn()
+end
+
+local function cityFaith(city)
+    if isCP() then
+        return city:GetYieldRateTimes100(YieldTypes.YIELD_FAITH) / 100
+    end
+    return city:GetFaithPerTurn()
+end
+
 -- Enter on a stat column with no more specific destination defaults to
 -- focusing the row's city on the world view. Science is the one stat with
 -- a screen of its own (the tech tree); production keeps its own commit
@@ -271,10 +304,10 @@ local function buildCityColumns()
         cols[#cols + 1] = {
             name = "TXT_KEY_CIVVACCESS_EO_COL_SCIENCE",
             getCell = function(c)
-                return formatSigned(c:GetYieldRate(YieldTypes.YIELD_SCIENCE))
+                return formatSigned(cityYield(c, YieldTypes.YIELD_SCIENCE))
             end,
             sortKey = function(c)
-                return c:GetYieldRate(YieldTypes.YIELD_SCIENCE)
+                return cityYield(c, YieldTypes.YIELD_SCIENCE)
             end,
             enterAction = openTechTree,
             pediaName = constPedia("TXT_KEY_TECH_HEADING1_TITLE"),
@@ -283,10 +316,10 @@ local function buildCityColumns()
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_EO_COL_GOLD",
         getCell = function(c)
-            return formatSigned(c:GetYieldRate(YieldTypes.YIELD_GOLD))
+            return formatSigned(cityYield(c, YieldTypes.YIELD_GOLD))
         end,
         sortKey = function(c)
-            return c:GetYieldRate(YieldTypes.YIELD_GOLD)
+            return cityYield(c, YieldTypes.YIELD_GOLD)
         end,
         enterAction = focusCity,
         pediaName = constPedia("TXT_KEY_GOLD_HEADING1_TITLE"),
@@ -296,12 +329,12 @@ local function buildCityColumns()
         getCell = function(c)
             return Text.format(
                 "TXT_KEY_CIVVACCESS_EO_CULTURE_CELL",
-                formatSigned(c:GetJONSCulturePerTurn()),
+                formatSigned(cityCulture(c)),
                 CitySpeech.borderGrowthToken(c)
             )
         end,
         sortKey = function(c)
-            return c:GetJONSCulturePerTurn()
+            return cityCulture(c)
         end,
         enterAction = focusCity,
         pediaName = constPedia("TXT_KEY_CULTURE_HEADING1_TITLE"),
@@ -310,10 +343,10 @@ local function buildCityColumns()
         cols[#cols + 1] = {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FAITH",
             getCell = function(c)
-                return formatSigned(c:GetFaithPerTurn())
+                return formatSigned(cityFaith(c))
             end,
             sortKey = function(c)
-                return c:GetFaithPerTurn()
+                return cityFaith(c)
             end,
             enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION"),

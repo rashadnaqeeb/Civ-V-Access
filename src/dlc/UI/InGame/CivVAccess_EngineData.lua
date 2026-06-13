@@ -204,6 +204,16 @@ function EngineData.baseTourism(city)
     return city:GetBaseTourism()
 end
 
+-- Drift read: a player's per-turn tourism directed at one rival -- the rate
+-- the Culture Overview influence tab speaks. Vanilla exposes only
+-- GetInfluencePerTurn, which already covers per-turn tourism toward that
+-- player; VP's same getter omits instant tourism, so the VP body routes to an
+-- instant-inclusive getter instead. Floored to a whole rate, matching the
+-- screen.
+function EngineData.influenceTourismPerTurn(player, targetID)
+    return math.floor(player:GetInfluencePerTurn(targetID))
+end
+
 -- Drift read: how many of a resource a player can put into a deal. VP does
 -- not register Deal:GetNumResource, so on VP the bare call throws and the
 -- trade Available drawer's resource sub-group silently vanishes. A VP

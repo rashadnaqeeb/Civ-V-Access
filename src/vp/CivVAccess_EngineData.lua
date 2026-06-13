@@ -218,6 +218,15 @@ function EngineData.baseTourism(city)
     return city:GetBaseTourism()
 end
 
+-- Drift read: a player's per-turn tourism directed at one rival. VP's
+-- GetInfluencePerTurn omits instant tourism and reads low; its own influence
+-- screen uses GetTourismPerTurnIncludingInstantTimes100, so we match it. That
+-- getter is VP-only (absent on vanilla) and times-100, so floor /100 to the
+-- displayed rate.
+function EngineData.influenceTourismPerTurn(player, targetID)
+    return math.floor(player:GetTourismPerTurnIncludingInstantTimes100(targetID) / 100)
+end
+
 -- Drift read: how many of a resource a player can put into a deal. VP does
 -- not register Deal:GetNumResource; the count comes from the player's
 -- available stock instead (include-imports true, the same call the

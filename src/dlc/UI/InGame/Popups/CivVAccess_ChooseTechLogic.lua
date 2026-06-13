@@ -206,7 +206,7 @@ function ChooseTechLogic.buildLabel(entry, player)
         parts[#parts + 1] = Text.key(statusKey)
     end
 
-    if player:GetScience() > 0 and entry.mode ~= "stealing" then
+    if player:GetScienceTimes100() > 0 and entry.mode ~= "stealing" then
         local turns = player:GetResearchTurnsLeft(entry.techID, true)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end

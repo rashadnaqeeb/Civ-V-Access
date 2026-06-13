@@ -90,6 +90,7 @@ function Invoke-SeamGuard {
         "GetUnhappinessFromCityCount", "GetUnhappinessFromCapturedCityCount",
         "GetUnhappinessFromCityPopulation", "GetUnhappinessFromCityForUI",
         "GetTourism", "GetBaseTourism",
+        "GetInfluencePerTurn", "GetTourismPerTurnIncludingInstantTimes100",
         "GetBestDefender", "CanMoveOrAttackInto",
         # Fork extension bindings
         "GetMissionQueue", "GeneratePath", "GetPath", "ComputePath",

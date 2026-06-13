@@ -572,7 +572,7 @@ local function buildCityGroup(city)
                 total = total + (b.building.GreatWorkCount or 0)
             end
             local cul = city:GetJONSCulturePerTurn()
-            local tou = EngineData.baseTourism(city)
+            local tou = math.floor(EngineData.baseTourism(city) / 100)
             local damagePct = math.floor((city:GetDamage() / city:GetMaxHitPoints()) * 100 + 0.5)
             if damagePct > 0 then
                 return Text.formatPlural(
@@ -1261,11 +1261,11 @@ local function modifierTooltip(targetID)
 end
 
 local function tourismRateCell(targetID)
-    return formatSigned(math.floor(Players[g_iSelectedPlayerID]:GetInfluencePerTurn(targetID)))
+    return formatSigned(EngineData.influenceTourismPerTurn(Players[g_iSelectedPlayerID], targetID))
 end
 
 local function tourismRateSortKey(targetID)
-    return math.floor(Players[g_iSelectedPlayerID]:GetInfluencePerTurn(targetID))
+    return EngineData.influenceTourismPerTurn(Players[g_iSelectedPlayerID], targetID)
 end
 
 -- Trend cell. The engine special-cases rising-but-unreachable (turns to

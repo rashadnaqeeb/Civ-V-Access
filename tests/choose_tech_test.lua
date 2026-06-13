@@ -134,6 +134,9 @@ local function mkPlayer(opts)
         GetScience = function(self)
             return self._science
         end,
+        GetScienceTimes100 = function(self)
+            return self._science * 100
+        end,
         GetResearchTurnsLeft = function(self, id, _overflow)
             return self._researchTurnsLeft[id] or 0
         end,
@@ -501,6 +504,9 @@ local function mkPlayerWithPreambleOpts(opts)
         end,
         GetScience = function(self)
             return self._science
+        end,
+        GetScienceTimes100 = function(self)
+            return self._science * 100
         end,
         GetCivilizationType = function(self)
             return self._civType

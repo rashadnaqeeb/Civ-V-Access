@@ -519,6 +519,23 @@ function M.test_vp_tourism_floors_times_100()
     T.eq(vp.tourism(player), 12, "times-100 tourism must floor to the displayed rate")
 end
 
+function M.test_vp_influence_tourism_per_turn_includes_instant_and_floors()
+    local vp, _env = loadVPWithFork()
+    local player = {
+        GetInfluencePerTurn = function()
+            error("VP must use the instant-inclusive getter, not GetInfluencePerTurn")
+        end,
+        GetTourismPerTurnIncludingInstantTimes100 = function(_, targetID)
+            return targetID == 5 and 1234 or 0
+        end,
+    }
+    T.eq(
+        vp.influenceTourismPerTurn(player, 5),
+        12,
+        "VP per-turn tourism must include instant tourism and floor the times-100 rate"
+    )
+end
+
 function M.test_vp_deal_resource_count_reads_player_stock()
     local vp, env = loadVPWithFork()
     local seen

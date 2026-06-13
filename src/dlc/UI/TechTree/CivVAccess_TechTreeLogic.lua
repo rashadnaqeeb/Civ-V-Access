@@ -144,7 +144,7 @@ function TechTreeLogic.buildLandingSpeech(techID, player)
     end
 
     local researched = (status == "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_RESEARCHED")
-    if not researched and player:GetScience() > 0 then
+    if not researched and player:GetScienceTimes100() > 0 then
         local turns = player:GetResearchTurnsLeft(techID, true)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end
@@ -186,7 +186,7 @@ function TechTreeLogic.buildQueueRowSpeech(row, player)
     else
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED", row.position - 1)
     end
-    if player:GetScience() > 0 then
+    if player:GetScienceTimes100() > 0 then
         local turns = player:GetResearchTurnsLeft(row.techID, true)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end

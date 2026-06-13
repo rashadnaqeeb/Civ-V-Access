@@ -71,6 +71,9 @@ local function fakePlayer(opts)
     function p:GetScience()
         return self._science
     end
+    function p:GetScienceTimes100()
+        return self._science * 100
+    end
     function p:GetNumFreeTechs()
         return self._numFree
     end
