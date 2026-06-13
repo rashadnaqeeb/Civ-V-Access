@@ -613,6 +613,65 @@ function M.test_purgeDeadEnv_logs_warning_per_eviction()
     T.eq(#warns, 2)
 end
 
+-- dead-env callback guard -----------------------------------------------
+--
+-- A floor handler (Scanner) stranded from a prior game sits buried under
+-- the front-end screens that drive the same cross-Context stack. Mutations
+-- from those screens must never call a dead-env handler's callbacks -- the
+-- closures throw on their first global access in the wiped env.
+
+function M.test_removeByName_skips_onActivate_on_dead_reexposed_top()
+    setup()
+    local dead = makeHandler("dead")
+    dead._envProbe = function()
+        return false
+    end
+    dead.onActivate = function()
+        error("would crash in dead env")
+    end
+    local top = makeHandler("top")
+    HandlerStack.push(dead)
+    HandlerStack.push(top)
+    HandlerStack.removeByName("top")
+    T.eq(HandlerStack.active(), dead)
+    T.eq(#errors, 0, "dead handler onActivate must not run on re-exposure")
+end
+
+function M.test_onMutated_dead_registration_does_not_fire()
+    setup()
+    local called = 0
+    HandlerStack.setOnMutated(function()
+        called = called + 1
+    end, function()
+        return false
+    end)
+    -- Any mutation notifies; the dead probe must short-circuit the call.
+    HandlerStack.push(makeHandler("a"))
+    T.eq(called, 0, "dead-env onMutated must not fire")
+end
+
+function M.test_onMutated_live_registration_fires()
+    setup()
+    local called = 0
+    HandlerStack.setOnMutated(function()
+        called = called + 1
+    end, function()
+        return true
+    end)
+    HandlerStack.push(makeHandler("a"))
+    T.truthy(called > 0, "live onMutated fires on mutation")
+end
+
+function M.test_onMutated_no_probe_fires()
+    setup()
+    local called = 0
+    HandlerStack.setOnMutated(function()
+        called = called + 1
+    end)
+    HandlerStack.push(makeHandler("a"))
+    T.truthy(called > 0, "probe-less onMutated fires (back-compat)")
+end
+
 -- blocksPushAbove gate --------------------------------------------------
 
 local function makeGate(name, permit)
