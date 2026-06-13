@@ -2907,6 +2907,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC"] = "Diplomatic"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL"] = "Cultural"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_LABEL_VALUE"] = "{1_Label}, {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TEAM_SUFFIX"] = "team {1_Num}"
+-- Domination grid vassalage sentences (Vox Populi only). A vassal keeps its
+-- own capital, so the conquest sentences would mislead; these name the
+-- relationship instead.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_YOU_ARE_VASSAL"] = "you are a vassal of {1_Master}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_YOUR_VASSAL"] = "{1_Civ} is your vassal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_VASSAL_OF"] = "{1_Civ} is a vassal of {2_Master}"
 -- Plural driven by {1_Num} (count of boosters built for the spaceship,
 -- vanilla allows up to 3).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS"] = {

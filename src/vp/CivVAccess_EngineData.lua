@@ -696,3 +696,11 @@ function EngineData.vassalInfo(team)
         vassals = vassals,
     }
 end
+
+-- Drift read: the player credited with a city's original capital for
+-- domination victory. VP's GetOwnerForDominationVictory redirects a vassal's
+-- held capital to its master and a city-state's capital to its major ally (or
+-- the ally's master, CvCity.cpp:15535); vanilla credits the current owner.
+function EngineData.dominationController(city)
+    return city:GetOwnerForDominationVictory()
+end

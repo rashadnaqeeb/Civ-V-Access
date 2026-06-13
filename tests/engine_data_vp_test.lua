@@ -902,6 +902,32 @@ function M.test_vp_vassal_info_free_team_has_no_master()
     T.eq(#info.vassals, 0)
 end
 
+-- Domination credit is the canonical control metric: VP redirects a vassal's
+-- or city-state ally's capital to the master/ally, vanilla credits the
+-- current owner. A wrong getter mis-attributes who is winning the game.
+function M.test_vp_domination_controller_uses_redirect_getter()
+    local vp = loadVPWithFork()
+    local city = {
+        GetOwnerForDominationVictory = function()
+            return 5
+        end,
+        GetOwner = function()
+            error("VP must use the domination-redirect getter")
+        end,
+    }
+    T.eq(vp.dominationController(city), 5)
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(
+        vanilla.dominationController({
+            GetOwner = function()
+                return 2
+            end,
+        }),
+        2,
+        "vanilla credits the current owner"
+    )
+end
+
 -- The vanilla body has no vassalage system, so it returns the empty model
 -- regardless of the team handle; every consumer's vassalage branch is inert.
 function M.test_vanilla_vassal_info_is_empty()

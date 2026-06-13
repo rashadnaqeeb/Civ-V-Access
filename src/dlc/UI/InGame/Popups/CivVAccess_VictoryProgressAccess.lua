@@ -151,6 +151,18 @@ local function buildScoreColumns()
             return p:GetScoreFromWonders()
         end),
     }
+    -- Vox Populi adds three score components (city-state alliances, military
+    -- power, and -- when the option is on -- vassals). Without them the
+    -- component columns do not sum to Total under VP. Columns only exist on
+    -- the CP/VP path, so the VP-only getters are never reached on vanilla.
+    if Game.IsCustomModOption ~= nil then
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_CITYSTATES", function(p)
+            return p:GetScoreFromMinorAllies()
+        end)
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_MILITARY", function(p)
+            return p:GetScoreFromMilitarySize()
+        end)
+    end
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_SCIENCE) then
         cols[#cols + 1] = scoreColumn("TXT_KEY_VP_TECH", function(p)
             return p:GetScoreFromTechs()
@@ -170,6 +182,11 @@ local function buildScoreColumns()
     if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
         cols[#cols + 1] = scoreColumn("TXT_KEY_VP_RELIGION", function(p)
             return p:GetScoreFromReligion()
+        end)
+    end
+    if Game.IsCustomModOption ~= nil and Game.IsOption(GameOptionTypes.GAMEOPTION_ENABLE_VASSALAGE) then
+        cols[#cols + 1] = scoreColumn("TXT_KEY_VP_VASSALS", function(p)
+            return p:GetScoreFromVassals()
         end)
     end
     if PreGame.GetLoadWBScenario() then
@@ -210,61 +227,97 @@ end
 
 -- ===== Domination section ==============================================
 
--- Compute the leading team and the "who controls whose original capital"
--- map in a single pass over teams. Mirrors vanilla's two-loop structure:
--- per team count majors and held capitals, then walk all major civs and
--- attribute each original capital to its current owning player. The
--- iLeadingNumCapitals - iLeadingNumPlayersOnTeam comparison rewards solo
--- conquerors over teammates dividing capitals.
+-- Domination state in one pass: who is credited with each major's original
+-- capital, the leading dominator, and whether anyone has lost control of
+-- their capital. Credit comes from EngineData.dominationController -- the
+-- current holder on vanilla, the master / city-state ally on VP (vassal and
+-- city-state-held capitals redirect up). Counting credited capitals is the
+-- canonical control metric, so it absorbs VP's vassal-and-ally attribution
+-- without replicating the engine's per-team aggregation. domWinner (the
+-- capitals needed to win) is computed only under VP, where the leading line
+-- speaks capitals remaining; vanilla speaks capitals held.
 local function dominationState()
-    local aiCapitalOwner = {}
-    local iLeadingTeam = -1
-    local iLeadingNumCapitals = 0
-    local iLeadingNumPlayersOnTeam = 0
-    local iLeadingPlayer = -1
-    local bAnyoneLostCapital = false
+    local capitalOwner = {}
+    local creditedCount = {}
+    local totalCapitals = 0
+    local anyoneLostControl = false
 
-    for iTeam = 0, GameDefines.MAX_CIV_TEAMS - 1 do
-        local iNumCapitals = 0
-        local iNumPlayersOnTeam = 0
-        local iPlayerOnTeam = -1
-        for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
-            local p = Players[iPlayer]
-            if p ~= nil and not p:IsMinorCiv() and p:IsEverAlive() and p:GetTeam() == iTeam then
-                if p:IsHasLostCapital() then
-                    bAnyoneLostCapital = true
-                end
-                iPlayerOnTeam = iPlayer
-                iNumPlayersOnTeam = iNumPlayersOnTeam + 1
-                for pCity in p:Cities() do
-                    if pCity:IsOriginalMajorCapital() then
-                        iNumCapitals = iNumCapitals + 1
-                        aiCapitalOwner[pCity:GetOriginalOwner()] = iPlayer
-                    end
+    for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+        local p = Players[iPlayer]
+        if p ~= nil and not p:IsMinorCiv() and p:IsEverAlive() then
+            totalCapitals = totalCapitals + 1
+            if p:IsHasLostCapital() or EngineData.vassalInfo(Teams[p:GetTeam()]).isVassal then
+                anyoneLostControl = true
+            end
+        end
+    end
+
+    -- Credit each original capital wherever it now sits (a major or, under
+    -- VP, a city-state can hold one) to the player the engine counts as its
+    -- controller.
+    for iHolder = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+        local holder = Players[iHolder]
+        if holder ~= nil and holder:IsAlive() then
+            for pCity in holder:Cities() do
+                if pCity:IsOriginalMajorCapital() then
+                    local credited = EngineData.dominationController(pCity)
+                    capitalOwner[pCity:GetOriginalOwner()] = credited
+                    creditedCount[credited] = (creditedCount[credited] or 0) + 1
                 end
             end
         end
-        if (iNumCapitals - iNumPlayersOnTeam) > (iLeadingNumCapitals - iLeadingNumPlayersOnTeam) then
-            iLeadingTeam = iTeam
-            iLeadingNumCapitals = iNumCapitals
-            iLeadingNumPlayersOnTeam = iNumPlayersOnTeam
-            iLeadingPlayer = iPlayerOnTeam
+    end
+
+    -- Leading team: most credited capitals, biased toward solo conquerors
+    -- (subtract team size) as the engine's own tiebreak does. A team holding
+    -- only its own capital does not lead.
+    local teamCredited, teamMembers, teamAPlayer = {}, {}, {}
+    for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+        local p = Players[iPlayer]
+        if p ~= nil and not p:IsMinorCiv() and p:IsEverAlive() then
+            local t = p:GetTeam()
+            teamMembers[t] = (teamMembers[t] or 0) + 1
+            teamAPlayer[t] = iPlayer
+            teamCredited[t] = (teamCredited[t] or 0) + (creditedCount[iPlayer] or 0)
+        end
+    end
+    local leadingTeam, leadingHeld, leadingMembers, leadingPlayer = -1, 0, 0, -1
+    for t, credited in pairs(teamCredited) do
+        if (credited - teamMembers[t]) > (leadingHeld - leadingMembers) then
+            leadingTeam, leadingHeld, leadingMembers, leadingPlayer = t, credited, teamMembers[t], teamAPlayer[t]
+        end
+    end
+
+    local domWinner = nil
+    if Game.IsCustomModOption ~= nil then
+        local pct = GameDefines.VICTORY_DOMINATION_CONTROL_PERCENT or 100
+        domWinner = math.floor(totalCapitals * pct / 100)
+        if domWinner > totalCapitals then
+            domWinner = totalCapitals
+        end
+        if domWinner < 2 then
+            domWinner = 2
         end
     end
 
     return {
-        capitalOwner = aiCapitalOwner,
-        leadingTeam = iLeadingTeam,
-        leadingNumCapitals = iLeadingNumCapitals,
-        leadingNumPlayersOnTeam = iLeadingNumPlayersOnTeam,
-        leadingPlayer = iLeadingPlayer,
-        anyoneLostCapital = bAnyoneLostCapital,
+        capitalOwner = capitalOwner,
+        creditedCount = creditedCount,
+        leadingTeam = leadingTeam,
+        leadingNumCapitals = leadingHeld,
+        leadingNumPlayersOnTeam = leadingMembers,
+        leadingPlayer = leadingPlayer,
+        anyoneLostCapital = anyoneLostControl,
+        totalCapitals = totalCapitals,
+        domWinner = domWinner,
     }
 end
 
 -- Leading-team summary string. Returns nil for the rare case (vanilla's
 -- "weird circumstance" branch) where someone lost a capital but no team is
--- ahead -- vanilla hides the label there; we omit the row.
+-- ahead -- vanilla hides the label there; we omit the row. The leading keys
+-- read "needs N more capitals" under VP and "controls N capitals" on
+-- vanilla, so the number is remaining-to-win under VP, held on vanilla.
 local function dominationLeadingLine(state)
     if state.leadingTeam == -1 then
         if state.anyoneLostCapital then
@@ -272,21 +325,25 @@ local function dominationLeadingLine(state)
         end
         return Text.key("TXT_KEY_VP_DIPLO_NEW_CAPITALS_REMAINING")
     end
+    local n = state.leadingNumCapitals
+    if state.domWinner ~= nil then
+        n = math.max(state.domWinner - state.leadingNumCapitals, 0)
+    end
     if state.leadingNumPlayersOnTeam > 1 then
-        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING", state.leadingTeam + 1, state.leadingNumCapitals)
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING", state.leadingTeam + 1, n)
     end
     if state.leadingPlayer == activePlayerId() then
-        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING", state.leadingNumCapitals)
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING", n)
     end
     local pLeader = Players[state.leadingPlayer]
     local activeT = Teams[activeTeamId()]
     if pLeader:GetNickName() ~= "" and pLeader:IsHuman() then
-        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING", pLeader:GetNickName(), state.leadingNumCapitals)
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING", pLeader:GetNickName(), n)
     end
     if not activeT:IsHasMet(pLeader:GetTeam()) then
-        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING", state.leadingNumCapitals)
+        return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING", n)
     end
-    return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING", pLeader:GetName(), state.leadingNumCapitals)
+    return Text.format("TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING", pLeader:GetName(), n)
 end
 
 -- Per-civ capital sentence. Picks one of vanilla's TT_* tooltip strings
@@ -297,14 +354,34 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
     local iPlayer = pPlayer:GetID()
     local hasMetSubject = playerHasMet(pPlayer)
 
-    -- Find the original capital city object once for sentences that need
-    -- the city name. May be nil if the civ never founded one or every
-    -- copy was razed without surviving to a new owner; vanilla returns
-    -- "no capital" sentences in that case.
-    local function findOriginalCapital(pHolder)
-        for pCity in pHolder:Cities() do
-            if pCity:IsOriginalMajorCapital() and pCity:GetOriginalOwner() == iPlayer then
-                return pCity
+    -- Vassalage (VP) takes precedence over the conquest sentences: a vassal
+    -- physically keeps its capital, so a "controlled by the master" sentence
+    -- would mislead. The seam reports no vassalage on vanilla, so this is
+    -- inert there. The master is named by its team leader.
+    local vinfo = EngineData.vassalInfo(Teams[pPlayer:GetTeam()])
+    if vinfo.isVassal and vinfo.master ~= nil then
+        local masterPlayer = Players[Teams[vinfo.master]:GetLeaderID()]
+        if iPlayer == activePlayerId() then
+            return Text.format("TXT_KEY_CIVVACCESS_VP_DOM_YOU_ARE_VASSAL", civDisplayName(masterPlayer))
+        end
+        if masterPlayer:GetID() == activePlayerId() then
+            return Text.format("TXT_KEY_CIVVACCESS_VP_DOM_YOUR_VASSAL", civDisplayName(pPlayer))
+        end
+        return Text.format("TXT_KEY_CIVVACCESS_VP_DOM_VASSAL_OF", civDisplayName(pPlayer), civDisplayName(masterPlayer))
+    end
+
+    -- The subject's original capital wherever it now sits -- a conqueror, or
+    -- under VP a city-state holding it for an ally. nil only if every copy
+    -- was razed; vanilla returns "no capital" sentences in that case.
+    local function findOriginalCapital()
+        for iH = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+            local h = Players[iH]
+            if h ~= nil and h:IsAlive() then
+                for pCity in h:Cities() do
+                    if pCity:IsOriginalMajorCapital() and pCity:GetOriginalOwner() == iPlayer then
+                        return pCity
+                    end
+                end
             end
         end
         return nil
@@ -335,7 +412,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
         if not hasMetSubject then
             return Text.key("TXT_KEY_VP_DIPLO_TT_UNMET_CONTROLS_THEIR_CAPITAL")
         end
-        local capital = findOriginalCapital(pPlayer)
+        local capital = findOriginalCapital()
         local capName = capital ~= nil and capital:GetNameKey() or ""
         if iPlayer == activePlayerId() then
             return Text.format("TXT_KEY_VP_DIPLO_TT_YOU_CONTROL_YOUR_CAPITAL", capName)
@@ -350,7 +427,7 @@ local function dominationCivSentence(pPlayer, dominatingPlayerId)
     end
 
     -- Subject's original capital is held by someone else.
-    local capital = findOriginalCapital(pDominator)
+    local capital = findOriginalCapital()
     local capName = capital ~= nil and capital:GetNameKey() or ""
     if hasMetSubject and dominatorMet then
         if iPlayer == activePlayerId() then
@@ -779,6 +856,32 @@ local function influencePercentOf(otherPlayerId)
     return (p:GetInfluenceOn(otherPlayerId) / culture) * 100
 end
 
+-- Public-opinion status line (VP only): the active player's opinion under
+-- their adopted ideology, carrying the cultural-victory framing VP's screen
+-- shows (the _VC string variants). Returns nil pre-ideology, and on vanilla
+-- where this screen surfaces neither the opinion nor those keys.
+local function publicOpinionLine()
+    if Game.IsCustomModOption == nil then
+        return nil
+    end
+    local pActive = Players[activePlayerId()]
+    if pActive:GetLateGamePolicyTree() == PolicyBranchTypes.NO_POLICY_BRANCH_TYPE then
+        return nil
+    end
+    local op = pActive:GetPublicOpinionType()
+    local key = "TXT_KEY_CO_PUBLIC_OPINION_UNKNOWN_VC"
+    if op == PublicOpinionTypes.PUBLIC_OPINION_CONTENT then
+        key = "TXT_KEY_CO_PUBLIC_OPINION_CONTENT_VC"
+    elseif op == PublicOpinionTypes.PUBLIC_OPINION_DISSIDENTS then
+        key = "TXT_KEY_CO_PUBLIC_OPINION_DISSIDENTS_VC"
+    elseif op == PublicOpinionTypes.PUBLIC_OPINION_CIVIL_RESISTANCE then
+        key = "TXT_KEY_CO_PUBLIC_OPINION_CIVIL_RESISTANCE_VC"
+    elseif op == PublicOpinionTypes.PUBLIC_OPINION_REVOLUTIONARY_WAVE then
+        key = "TXT_KEY_CO_PUBLIC_OPINION_REVOLUTIONARY_WAVE_VC"
+    end
+    return Text.key(key)
+end
+
 local function buildCulturalItems()
     local sectionPedia = "TXT_KEY_VICTORY_CULTURAL_HEADING3_TITLE"
     local cultureVictory = GameInfo.Victories["VICTORY_CULTURAL"]
@@ -805,6 +908,12 @@ local function buildCulturalItems()
     end)
 
     local items = {}
+    -- Lead with the active player's public opinion under their ideology
+    -- (VP), then the per-civ influence rows.
+    local opinion = publicOpinionLine()
+    if opinion ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = opinion, pediaName = sectionPedia })
+    end
     for _, id in ipairs(rows) do
         local pOther = Players[id]
         local pct = influencePercentOf(id)

@@ -533,3 +533,13 @@ end
 function EngineData.vassalInfo(team)
     return { isVassal = false, master = nil, tenure = 0, numVassals = 0, vassals = {} }
 end
+
+-- Drift read: the player credited with a city's original capital for
+-- domination-victory accounting (VictoryProgress). Vanilla has no vassalage
+-- or city-state capital redirection, so the current owner is the controller.
+-- VP redirects a vassal's held capital up to its master and a city-state's
+-- capital to its major ally (or the ally's master) via
+-- GetOwnerForDominationVictory.
+function EngineData.dominationController(city)
+    return city:GetOwner()
+end

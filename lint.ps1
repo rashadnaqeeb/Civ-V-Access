@@ -92,6 +92,7 @@ function Invoke-SeamGuard {
         "GetTourism", "GetBaseTourism",
         "GetInfluencePerTurn", "GetTourismPerTurnIncludingInstantTimes100",
         "GetBestDefender", "CanMoveOrAttackInto",
+        "GetOwnerForDominationVictory",
         # Fork extension bindings
         "GetMissionQueue", "GeneratePath", "GetPath", "ComputePath",
         "GetBestBuildRoute", "GetBuildRoutePath", "GetClosestSearchedPlot",
