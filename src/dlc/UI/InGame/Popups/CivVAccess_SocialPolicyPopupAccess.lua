@@ -539,12 +539,29 @@ local function buildIdeologyTabItems()
 
     local ideologyID = currentIdeology()
     if ideologyID < 0 then
-        return {
+        local items = {
             BaseMenuItems.Text({
                 labelText = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_IDEOLOGY_NOT_STARTED"),
             }),
-            closeItem(),
         }
+        -- Vox Populi can gate ideologies on a total policy count; surface the
+        -- countdown when that threshold is configured (CP-only define and
+        -- string; default -1 leaves needed negative, so the guard hides it).
+        if Game.IsCustomModOption ~= nil and GameDefines.IDEOLOGY_UNLOCK_NUM_POLICIES_NEEDED ~= nil then
+            local player = currentPlayer()
+            if player ~= nil then
+                local needed = GameDefines.IDEOLOGY_UNLOCK_NUM_POLICIES_NEEDED - player:GetNumPolicies(true, true)
+                if needed > 0 then
+                    items[#items + 1] = BaseMenuItems.Text({
+                        labelText = TextFilter.filter(
+                            Text.format("TXT_KEY_POLICYSCREEN_POLICIES_NEEDED_UNTIL_IDEOLOGY", needed)
+                        ),
+                    })
+                end
+            end
+        end
+        items[#items + 1] = closeItem()
+        return items
     end
 
     local items = {}

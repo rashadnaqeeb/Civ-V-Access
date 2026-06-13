@@ -131,6 +131,15 @@ function SocialPolicyLogic.branchStatus(player, branchRow)
             end
         end
     end
+    -- Vox Populi: a branch can require a minimum total policy count before it
+    -- unlocks. Surface the shortfall instead of a generic "locked".
+    -- NumPolicyRequirement is a VP-only branch column (nil on vanilla).
+    if branchRow.NumPolicyRequirement ~= nil then
+        local needed = branchRow.NumPolicyRequirement - player:GetNumPolicies(true, true)
+        if needed > 0 then
+            return "locked-need-policies", needed
+        end
+    end
     return "locked"
 end
 
@@ -222,6 +231,10 @@ local function statusSpeechBranch(status, payload)
         return Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_ERA", eraName)
     elseif status == "locked-religion" then
         return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED_RELIGION")
+    elseif status == "locked-need-policies" then
+        -- VP key (carries colour markup), available only on the engine that
+        -- produces this status.
+        return TextFilter.filter(Text.format("TXT_KEY_POLICY_BRANCH_CANNOT_UNLOCK_NEED_MORE", payload))
     end
     return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_LOCKED")
 end

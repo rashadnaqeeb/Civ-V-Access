@@ -432,6 +432,17 @@ function CitySpeech.development(city)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CITY_GROWS_IN", growsInTurns, growsInTurns)
     end
 
+    -- Per-city unhappiness (Community Patch), spoken only when the city is
+    -- actually unhappy -- the banner shows it but the cursor never did. The
+    -- aggregate total, not the full breakdown (that rides the Economic
+    -- Overview tooltip); GetUnhappinessAggregated is a CP-only getter.
+    if Game.IsCustomModOption ~= nil then
+        local unhappy = math.floor(city:GetUnhappinessAggregated())
+        if unhappy > 0 then
+            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITY_UNHAPPINESS", unhappy)
+        end
+    end
+
     return table.concat(parts, ", ")
 end
 

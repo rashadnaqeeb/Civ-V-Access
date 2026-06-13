@@ -982,6 +982,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_STOPPED_GROWING"] = "stopped growing
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PROGRESS"] = "{1_Cur} of {2_Threshold} food"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_PER_TURN"] = "{1_Num} per turn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_FOOD_LOSING"] = "losing {1_Num} per turn"
+-- Community Patch only: a city's own unhappiness contribution, spoken on
+-- key 2 when nonzero.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNHAPPINESS"] = "unhappiness {1_N}"
 -- Spoken when key 2 fires on a met foreign-major city: production and
 -- growth aren't on the banner (and a spy in the city alone doesn't
 -- expose them either), so we point at the Espionage Overview where
