@@ -86,6 +86,14 @@ function ScannerHandler.create()
     local h = {
         name = "Scanner",
         capturesAllInput = false,
+        -- HandlerStack.purgeDeadEnv / invoke probe this to detect a wiped
+        -- owning-Context env. SpeechPipeline reads nil once WorldView's env
+        -- is cleared on a return to the front-end (or load-from-game), so
+        -- onActivate's queued speech is skipped instead of throwing when a
+        -- front-end pop re-exposes this stranded floor handler.
+        _envProbe = function()
+            return SpeechPipeline ~= nil
+        end,
         -- Scanner is the top of the hex-viewer stack on the map. Speaking
         -- "map mode" on activation gives the user an audible landmark when
         -- a popup / sub-handler closes and the map cursor becomes live

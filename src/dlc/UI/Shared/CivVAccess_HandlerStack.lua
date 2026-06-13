@@ -55,6 +55,11 @@ civvaccess_shared = civvaccess_shared or {}
 civvaccess_shared.stack = civvaccess_shared.stack or {}
 local _shared = civvaccess_shared
 
+-- Forward declaration; defined below. Referenced by invoke / fireOnActivate
+-- so a callback whose owning Context env has been wiped is skipped rather
+-- than called (it would throw on its first global access).
+local isDeadEnv
+
 -- Mutation listener for stack-driven side effects (currently Beacons.
 -- refresh, which evaluates the audibility policy). Stored on the shared
 -- table -- not on HandlerStack itself -- because every Context that
@@ -66,18 +71,46 @@ local _shared = civvaccess_shared
 -- Beacons in WorldView. Single-listener slot rather than a registry; if
 -- a second subscriber ever materializes, change to a table and append-
 -- only.
-function HandlerStack.setOnMutated(fn)
+-- envProbe is an optional closure created in the same env as fn (Beacons
+-- registers it from the in-game WorldView env). notifyMutated probes it to
+-- detect a wiped env and drop the dead registration instead of calling fn.
+function HandlerStack.setOnMutated(fn, envProbe)
     _shared.onMutated = fn
+    _shared.onMutatedProbe = envProbe
 end
 
 local function notifyMutated()
     local fn = _shared.onMutated
-    if type(fn) == "function" then
-        Log.tryCall("HandlerStack.onMutated", fn)
+    if type(fn) ~= "function" then
+        return
     end
+    -- The onMutated closure (Beacons.refresh) is captured in the in-game
+    -- WorldView env. After a return to the front-end -- or load-from-game --
+    -- that env is wiped and the closure throws on its first global access
+    -- (civvaccess_shared reads nil). Front-end screens drive their own
+    -- BaseMenu pushes through this same shared stack, so without the probe
+    -- every lobby / staging mutation re-fires the dead closure. Drop a dead
+    -- registration; a fresh in-game boot re-registers through setOnMutated.
+    local probe = _shared.onMutatedProbe
+    if type(probe) == "function" then
+        local ok, alive = pcall(probe)
+        if not (ok and alive) then
+            _shared.onMutated = nil
+            _shared.onMutatedProbe = nil
+            return
+        end
+    end
+    Log.tryCall("HandlerStack.onMutated", fn)
 end
 
 local function invoke(handler, methodName)
+    -- A handler re-exposed by pop / removeByName may be a floor handler
+    -- (Scanner) stranded from a prior game; its onActivate closure throws in
+    -- the wiped env. Skip rather than call -- the dead entry is evicted by
+    -- purgeDeadEnv or the next in-game boot's removeByName.
+    if isDeadEnv(handler) then
+        return
+    end
     local fn = handler[methodName]
     if type(fn) ~= "function" then
         return
@@ -153,7 +186,7 @@ end
 -- handler as dead. Handlers without a probe are assumed alive (subs that
 -- aren't BaseMenu-built, like Help / per-screen pickers, opt out by
 -- omission).
-local function isDeadEnv(handler)
+function isDeadEnv(handler)
     if handler == nil then
         return false
     end
@@ -223,6 +256,9 @@ end
 -- logs) if the callback throws, so the caller can refuse the push and
 -- avoid leaving a half-installed handler on the stack.
 local function fireOnActivate(handler, callerName, abortVerb)
+    if isDeadEnv(handler) then
+        return true
+    end
     local fn = handler.onActivate
     if type(fn) ~= "function" then
         return true

@@ -372,4 +372,9 @@ end
 -- global, so a per-Context onMutated would miss pushes from CityView /
 -- popup Contexts -- which is precisely where most non-Baseline tops come
 -- from).
-HandlerStack.setOnMutated(Beacons.refresh)
+-- The probe closure captures this env; Beacons reads nil once the WorldView
+-- env is wiped (return to front-end / load-from-game), so notifyMutated drops
+-- this dead registration instead of re-firing refresh from lobby mutations.
+HandlerStack.setOnMutated(Beacons.refresh, function()
+    return Beacons ~= nil
+end)
