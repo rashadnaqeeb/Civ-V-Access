@@ -52,6 +52,11 @@ local _handler = nil
 local _drawerHandler = nil
 local _descriptor = nil
 
+-- Last AI deal-valuation string we announced, so the auto-announce on
+-- rebuild fires only when the value actually changed. Seeded (without
+-- speaking) in onShow and cleared on hide so re-entry re-announces.
+local _lastValuation = nil
+
 -- Shared helpers ----------------------------------------------------------
 
 -- TradeLogic's g_iDealDuration / g_iPeaceDuration are file-locals, not
@@ -173,6 +178,51 @@ local function clearEngineTable()
     if not ok then
         Log.error("TradeLogicAccess DoClearTable failed: " .. tostring(err))
     end
+end
+
+-- Live AI deal-valuation readout. CP/VP paint Controls.PeaceValue (and, for
+-- at-war peace deals, Controls.PeaceMax) with the localized running valuation:
+-- "Deal Value for Them: N", "Acceptable", "Impossible!", "Sanctioned by World
+-- Congress", or the peace value plus its max / min cap. Both Labels live only
+-- in DiploTrade.xml (the AI Context) and only get painted in AI-trade states;
+-- they are nil on vanilla, and hidden in PvP / review. DoUpdateButtons (run at
+-- the end of DisplayDeal) repaints them, and afterLocalDealChange and the
+-- engine's own event listeners run DisplayDeal before our rebuild, so the text
+-- is fresh by the time we read it. Returns the combined string, or nil when
+-- the readout is absent or hidden.
+local function dealValuationText()
+    local value = Controls.PeaceValue
+    if value == nil then
+        return nil
+    end
+    local okHidden, hidden = pcall(function()
+        return value:IsHidden()
+    end)
+    if okHidden and hidden then
+        return nil
+    end
+    local okText, text = pcall(function()
+        return value:GetText()
+    end)
+    if not okText or text == nil or text == "" then
+        return nil
+    end
+    local result = tostring(text)
+    local maxControl = Controls.PeaceMax
+    if maxControl ~= nil then
+        local okMaxHidden, maxHidden = pcall(function()
+            return maxControl:IsHidden()
+        end)
+        if not (okMaxHidden and maxHidden) then
+            local okMaxText, maxText = pcall(function()
+                return maxControl:GetText()
+            end)
+            if okMaxText and maxText ~= nil and maxText ~= "" then
+                result = result .. " " .. tostring(maxText)
+            end
+        end
+    end
+    return result
 end
 
 -- Placeholder Text item appended when a drawer tab would otherwise be
@@ -439,6 +489,19 @@ local function buildTopItems(descriptor)
         end
     end
 
+    -- Deal valuation readout (CP/VP, AI trade only). A navigable status leaf
+    -- just before Propose so the user can re-check the AI's running valuation
+    -- before committing; rebuild also auto-announces it when it changes. Gated
+    -- on the live readout being present and shown -- nil on vanilla and in any
+    -- non-AI-trade state, where the controls are absent or hidden. labelFn /
+    -- tooltipFn read live so the leaf re-speaks the current value on activate.
+    if descriptor.kind == "AI" and dealValuationText() ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = dealValuationText,
+            tooltipFn = pocketTooltipFn("PeaceValue"),
+        })
+    end
+
     -- Propose. Base TradeLogic registers OnPropose on ProposeButton and
     -- relies on Void1 (PROPOSE_TYPE / WITHDRAW_TYPE / ACCEPT_TYPE) to pick
     -- the path; DoUpdateButtons sets the right Void1 per state. Read it
@@ -525,6 +588,19 @@ function TradeLogicAccess.rebuild()
     _handler.setItems(effectiveTopItems(_descriptor))
     rebuildDrawer()
     _handler.refresh()
+
+    -- Auto-announce the AI deal valuation when it changes. Queued, so it
+    -- follows the item-placement / AI-response speech that triggered this
+    -- rebuild rather than clobbering it. Deduped against the last announced
+    -- value; _lastValuation is seeded silently in onShow so the first paint
+    -- after opening the screen stays quiet.
+    if _descriptor.kind == "AI" then
+        local current = dealValuationText()
+        if current ~= nil and current ~= _lastValuation then
+            SpeechPipeline.speakQueued(current)
+        end
+        _lastValuation = current
+    end
 end
 
 function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descriptor)
@@ -546,6 +622,9 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
         onShow = function(h)
             _handler = h
             _drawerHandler = nil
+            -- Seed the valuation baseline without speaking so the first deal
+            -- change (not the screen open) is what triggers the announce.
+            _lastValuation = dealValuationText()
             if type(descriptor.displayNameFn) == "function" then
                 local ok, name = pcall(descriptor.displayNameFn)
                 if ok and name ~= nil and name ~= "" then
@@ -567,6 +646,7 @@ function TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, descrip
         end
         _handler = nil
         _drawerHandler = nil
+        _lastValuation = nil
     end
 
     -- Register rebuild listeners. Fresh on every Context include per
