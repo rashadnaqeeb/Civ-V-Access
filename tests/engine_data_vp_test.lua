@@ -827,6 +827,93 @@ function M.test_vp_vanilla_model_getters_pass_through_when_balance_off()
     T.eq(vp.unhappinessFromCityCount(player), 350)
 end
 
+-- Vassalage is VP-only: the vanilla body returns the empty model (no
+-- vassalage system), the VP body reads the Team bindings and scans for the
+-- serving teams. A wrong master/tenure mislabels the Diplomatic Overview;
+-- a wrong scan drops a third-party vassal from the foreign-relations cell.
+function M.test_vp_vassal_info_reads_team_bindings_and_scans_vassals()
+    local vp, env = loadVPWithFork()
+    env.GameDefines = { MAX_CIV_PLAYERS = 4 }
+    -- Teams 0 and 3 serve team 1; the scan must find exactly those.
+    local function teamStub(id)
+        return {
+            GetID = function()
+                return id
+            end,
+            IsVassal = function(_, otherId)
+                return (id == 0 or id == 3) and otherId == 1
+            end,
+        }
+    end
+    env.Teams = { [0] = teamStub(0), [1] = teamStub(1), [2] = teamStub(2), [3] = teamStub(3) }
+    -- Team 1 serves master team 2 for 9 turns and holds two vassals.
+    local team = {
+        GetMaster = function()
+            return 2
+        end,
+        IsVassalOfSomeone = function()
+            return true
+        end,
+        GetNumTurnsIsVassal = function(_, masterId)
+            return masterId == 2 and 9 or 0
+        end,
+        GetNumVassals = function()
+            return 2
+        end,
+        GetID = function()
+            return 1
+        end,
+    }
+    local info = vp.vassalInfo(team)
+    T.truthy(info.isVassal)
+    T.eq(info.master, 2)
+    T.eq(info.tenure, 9, "tenure is keyed on the master team")
+    T.eq(info.numVassals, 2)
+    T.eq(#info.vassals, 2, "the scan must find both serving teams")
+    T.eq(info.vassals[1], 0)
+    T.eq(info.vassals[2], 3)
+end
+
+function M.test_vp_vassal_info_free_team_has_no_master()
+    local vp, env = loadVPWithFork()
+    env.GameDefines = { MAX_CIV_PLAYERS = 4 }
+    env.Teams = {}
+    local freeTeam = {
+        GetMaster = function()
+            return -1
+        end,
+        IsVassalOfSomeone = function()
+            return false
+        end,
+        GetNumTurnsIsVassal = function()
+            error("a free team has no tenure to read")
+        end,
+        GetNumVassals = function()
+            return 0
+        end,
+        GetID = function()
+            return 2
+        end,
+    }
+    local info = vp.vassalInfo(freeTeam)
+    T.falsy(info.isVassal)
+    T.eq(info.master, nil, "GetMaster -1 maps to nil")
+    T.eq(info.tenure, 0)
+    T.eq(#info.vassals, 0)
+end
+
+-- The vanilla body has no vassalage system, so it returns the empty model
+-- regardless of the team handle; every consumer's vassalage branch is inert.
+function M.test_vanilla_vassal_info_is_empty()
+    local vanilla = loadSeam(VANILLA_PATH)
+    local info = vanilla.vassalInfo({})
+    T.falsy(info.isVassal)
+    T.eq(info.master, nil)
+    T.eq(info.tenure, 0)
+    T.eq(info.numVassals, 0)
+    T.eq(#info.vassals, 0)
+end
+
 function M.test_vp_has_line_of_sight_defeats_range_and_facing_gates()
     local vp, _env = loadVPWithFork()
     local seen

@@ -661,3 +661,38 @@ function EngineData.leagueMemberDetails(league, memberId, observerId)
         league:GetMemberKnowledgeDetails(memberId, observerId),
         league:GetMemberVoteOpinionDetails(memberId, observerId)
 end
+
+-- Drift read: a team's vassalage relationships (see the vanilla file for the
+-- model contract). VP exposes the Team bindings vanilla lacks. master is nil
+-- when GetMaster returns the no-master sentinel (-1). tenure is the turns
+-- this team has served its master (GetNumTurnsIsVassal keyed on the master).
+-- vassals is built by scanning every team for one that serves this one;
+-- numVassals comes straight from the engine count. With vassalage disabled
+-- the getters return the empty answer naturally, so no GAMEOPTION check is
+-- needed.
+function EngineData.vassalInfo(team)
+    local masterId = team:GetMaster()
+    if masterId == -1 then
+        masterId = nil
+    end
+    local isVassal = team:IsVassalOfSomeone()
+    local tenure = 0
+    if isVassal and masterId ~= nil then
+        tenure = team:GetNumTurnsIsVassal(masterId)
+    end
+    local thisId = team:GetID()
+    local vassals = {}
+    for iTeam = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
+        local t = Teams[iTeam]
+        if t ~= nil and iTeam ~= thisId and t:IsVassal(thisId) then
+            vassals[#vassals + 1] = iTeam
+        end
+    end
+    return {
+        isVassal = isVassal,
+        master = masterId,
+        tenure = tenure,
+        numVassals = team:GetNumVassals(),
+        vassals = vassals,
+    }
+end

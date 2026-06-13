@@ -518,3 +518,18 @@ function EngineData.leagueMemberDetails(league, memberId, observerId)
         league:GetMemberKnowledgeDetails(memberId, observerId),
         league:GetMemberVoteOpinionDetails(memberId, observerId)
 end
+
+-- Drift read: a team's vassalage relationships (Diplomatic Overview, and
+-- the dedicated Vassal Overview). Returned as a model because the underlying
+-- bindings are VP-only -- vanilla (Brave New World) has no vassalage system,
+-- so a raw call would error; this body returns the no-vassalage answer and
+-- every consumer's vassalage branch is inert. The VP body reads the real
+-- Team bindings.
+--   isVassal    this team serves a master
+--   master      the master's team id (nil when none)
+--   tenure      turns this team has served its master (0 when free)
+--   numVassals  how many teams serve this team
+--   vassals     the serving teams' ids (empty when none)
+function EngineData.vassalInfo(team)
+    return { isVassal = false, master = nil, tenure = 0, numVassals = 0, vassals = {} }
+end

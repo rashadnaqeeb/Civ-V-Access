@@ -283,11 +283,29 @@ local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
     return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN", table.concat(sections, ", "))
 end
 
+-- Vassalage between us and the other civ, with tenure, for the Your-
+-- relationship cell. Driven by the EngineData seam, so it is empty on
+-- vanilla (no vassalage system) and self-gates. The third-party side of
+-- their vassalage lives in the foreign-relations cell.
+local function vassalageWithUs(pUs, pOther)
+    local ourTeamId = pUs:GetTeam()
+    local otherTeamId = pOther:GetTeam()
+    local usInfo = EngineData.vassalInfo(Teams[ourTeamId])
+    if usInfo.isVassal and usInfo.master == otherTeamId then
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_DIPLO_YOU_ARE_VASSAL", usInfo.tenure, usInfo.tenure)
+    end
+    local otherInfo = EngineData.vassalInfo(Teams[otherTeamId])
+    if otherInfo.isVassal and otherInfo.master == ourTeamId then
+        return Text.formatPlural("TXT_KEY_CIVVACCESS_DIPLO_THEY_ARE_VASSAL", otherInfo.tenure, otherInfo.tenure)
+    end
+    return nil
+end
+
 -- Your-relationship cell: stance word first (war / denouncing / hostile /
--- guarded / friendly / etc.), then active treaties, then the opinion
--- breakdown. Stance is non-nil for every reachable branch except
--- same-team-with-NO_SCIENCE; treaties and breakdown can be empty. Empty
--- cell (no stance, treaties, or breakdown) falls back to "none".
+-- guarded / friendly / etc.), then vassalage with us, then active treaties,
+-- then the opinion breakdown. Stance is non-nil for every reachable branch
+-- except same-team-with-NO_SCIENCE; the rest can be empty. Empty cell falls
+-- back to "none".
 local function yourRelationshipCell(iOther)
     local iUs = Game.GetActivePlayer()
     local pUs = Players[iUs]
@@ -295,6 +313,7 @@ local function yourRelationshipCell(iOther)
     local pOther = Players[iOther]
 
     local parts = { stancePhrase(iUs, pUs, pUsTeam, iOther, pOther) }
+    parts[#parts + 1] = vassalageWithUs(pUs, pOther)
     for _, t in ipairs(treatyFragments(iOther)) do
         parts[#parts + 1] = t
     end
@@ -377,10 +396,29 @@ local function dofTurnsLeft(pOther, iThird)
     return duration - pOther:GetDoFCounter(iThird)
 end
 
+-- Display name for a team via a representative member player, for the
+-- third-party vassalage fragments. Returns nil when we haven't met the team
+-- (and it isn't ours), so unmet third-party vassalage stays silent rather
+-- than leaking an unmet civ. Only major teams form vassalage, so the scan
+-- is over majors.
+local function teamDisplayName(teamId, iUs, pUsTeam)
+    if not (teamId == pUsTeam:GetID() or pUsTeam:IsHasMet(teamId)) then
+        return nil
+    end
+    for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+        local p = Players[i]
+        if p ~= nil and p:IsAlive() and p:GetTeam() == teamId then
+            return thirdPartyName(i, iUs)
+        end
+    end
+    return nil
+end
+
 -- Foreign-relations cell: pOther's wars with other met majors, their
--- DoFs, their denouncements (with backstab variant), and CS alliances.
--- Distinct from Your-relationship -- this is what they have with
--- everyone besides us. Empty case: "none".
+-- third-party vassalage, their DoFs, their third-party defensive pacts
+-- (Community Patch / VP only), their denouncements (with backstab variant),
+-- and CS alliances. Distinct from Your-relationship -- this is what they
+-- have with everyone besides us. Empty case: "none".
 local function foreignRelationsCell(iOther)
     local iUs = Game.GetActivePlayer()
     local pUs = Players[iUs]
@@ -400,6 +438,29 @@ local function foreignRelationsCell(iOther)
         end
     end
 
+    -- Third-party vassalage (VP). Their master, and their vassals, both
+    -- excluding us -- the us-vs-them case lives in the Your-relationship
+    -- cell. Empty on vanilla (the seam returns no vassalage).
+    local otherVassalInfo = EngineData.vassalInfo(pOtherTeam)
+    if otherVassalInfo.isVassal and otherVassalInfo.master ~= nil and otherVassalInfo.master ~= pUs:GetTeam() then
+        local name = teamDisplayName(otherVassalInfo.master, iUs, pUsTeam)
+        if name ~= nil then
+            out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_VASSAL_OF", name)
+        end
+    end
+    local vassalNames = {}
+    for _, tid in ipairs(otherVassalInfo.vassals) do
+        if tid ~= pUs:GetTeam() then
+            local name = teamDisplayName(tid, iUs, pUsTeam)
+            if name ~= nil then
+                vassalNames[#vassalNames + 1] = name
+            end
+        end
+    end
+    if #vassalNames > 0 then
+        out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DIPLO_HAS_VASSALS", table.concat(vassalNames, ", "))
+    end
+
     -- DoFs with anyone (incl. us).
     for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
         if i ~= iOther then
@@ -410,6 +471,25 @@ local function foreignRelationsCell(iOther)
                     out[#out + 1] = Text.format("TXT_KEY_DIPLO_FRIENDS_WITH", thirdPartyName(i, iUs))
                         .. ", "
                         .. Text.format("TXT_KEY_DECLARE_WAR_DEALS_TURNS_LEFT", dofTurnsLeft(pOther, i))
+                end
+            end
+        end
+    end
+
+    -- Third-party defensive pacts (Community Patch / VP only -- vanilla's
+    -- Global Relations panel does not surface these). Our own pact with them
+    -- already shows in the Your-relationship cell's treaties.
+    if Game.IsCustomModOption ~= nil then
+        for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+            if i ~= iOther and i ~= iUs then
+                local p = Players[i]
+                if
+                    p ~= nil
+                    and p:IsAlive()
+                    and pUsTeam:IsHasMet(p:GetTeam())
+                    and pOtherTeam:IsDefensivePact(p:GetTeam())
+                then
+                    out[#out + 1] = Text.format("TXT_KEY_DIPLO_DP_WITH_CBP", thirdPartyName(i, iUs))
                 end
             end
         end
@@ -838,6 +918,52 @@ local function alliedWithCell(iOther)
     )
 end
 
+-- The CS's runner-up suitor: the highest-influence major that is not the
+-- current ally. VP surfaces this on its city-state screens (GetContenderInfo);
+-- we re-derive it so the cell carries a clean name and the column sorts on
+-- the raw influence. Returns (influence, playerId), playerId -1 when no major
+-- holds positive influence besides the ally. Mirrors VP's computation (the
+-- 0 floor, the strict >, the ally exclusion).
+local function contenderInfo(iOther)
+    local pOther = Players[iOther]
+    local iAlly = pOther:GetAlly()
+    local best, bestPlayer = 0, -1
+    for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+        if i ~= iAlly then
+            local inf = pOther:GetMinorCivFriendshipWithMajor(i)
+            if inf > best then
+                best = inf
+                bestPlayer = i
+            end
+        end
+    end
+    return best, bestPlayer
+end
+
+-- Contender cell: the runner-up suitor's name and influence. "nobody" when
+-- no major contends, "unmet civilization" when the contender is one we have
+-- not met (the influence is still meaningful), the civ name (or "you")
+-- otherwise.
+local function contenderCell(iOther)
+    local iUs = Game.GetActivePlayer()
+    local inf, iContender = contenderInfo(iOther)
+    if iContender == -1 then
+        return Text.key("TXT_KEY_CIVVACCESS_DIPLO_NOBODY")
+    end
+    if iContender == iUs then
+        return Text.format("TXT_KEY_CIVVACCESS_DIPLO_CONTENDER", Text.key("TXT_KEY_YOU"), tostring(inf))
+    end
+    local pContender = Players[iContender]
+    if not Teams[Players[iUs]:GetTeam()]:IsHasMet(pContender:GetTeam()) then
+        return Text.format("TXT_KEY_CIVVACCESS_DIPLO_CONTENDER_UNMET", tostring(inf))
+    end
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_DIPLO_CONTENDER",
+        Text.key(pContender:GetCivilizationShortDescription()),
+        tostring(inf)
+    )
+end
+
 -- Quests cell: comma-flattened active-quest tooltip plus threatening-
 -- barbarians and proxy-war flags. Suppressed at war (matches base
 -- DiploList.lua:627).
@@ -1082,19 +1208,34 @@ local function buildMinorColumns()
             enterAction = activateMinor,
             pediaName = minorCivPedia,
         },
-        {
-            name = "TXT_KEY_CIVVACCESS_DIPLO_COL_QUESTS",
-            getCell = questsCell,
-            sortKey = questCount,
+    }
+    -- Contender column (VP only -- gated on the helper VP's CityStateStatus
+    -- helper defines; vanilla has no contender concept). Sits after Allied
+    -- with: the contender is the runner-up to the named ally.
+    if GetContenderInfo ~= nil then
+        cols[#cols + 1] = {
+            name = "TXT_KEY_CIVVACCESS_DIPLO_COL_CONTENDER",
+            getCell = contenderCell,
+            sortKey = function(iOther)
+                local inf = contenderInfo(iOther)
+                return inf
+            end,
             enterAction = activateMinor,
             pediaName = minorCivPedia,
-        },
-        {
-            name = "TXT_KEY_CIVVACCESS_DIPLO_COL_NEARBY",
-            getCell = nearbyResourcesCell,
-            enterAction = activateMinor,
-            pediaName = minorCivPedia,
-        },
+        }
+    end
+    cols[#cols + 1] = {
+        name = "TXT_KEY_CIVVACCESS_DIPLO_COL_QUESTS",
+        getCell = questsCell,
+        sortKey = questCount,
+        enterAction = activateMinor,
+        pediaName = minorCivPedia,
+    }
+    cols[#cols + 1] = {
+        name = "TXT_KEY_CIVVACCESS_DIPLO_COL_NEARBY",
+        getCell = nearbyResourcesCell,
+        enterAction = activateMinor,
+        pediaName = minorCivPedia,
     }
     return cols
 end

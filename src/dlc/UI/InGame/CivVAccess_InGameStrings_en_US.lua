@@ -2390,6 +2390,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_DISPLEASED"] = "e
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "policies: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "wonders: {1_List}"
+-- Vassalage fragments (Vox Populi only). The us-vs-them pair carries tenure
+-- and rides the Your-relationship cell; _VASSAL_OF and _HAS_VASSALS carry
+-- their third-party vassalage in the Foreign-relations cell.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_YOU_ARE_VASSAL"] = {
+    one = "you are their vassal, {1_N} turn",
+    other = "you are their vassal, {1_N} turns",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_THEY_ARE_VASSAL"] = {
+    one = "they are your vassal, {1_N} turn",
+    other = "they are your vassal, {1_N} turns",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_VASSAL_OF"] = "vassal of {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_HAS_VASSALS"] = "vassals: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_MAJORS_GROUP"] = "Major civilizations"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_MINORS_GROUP"] = "City-states"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_NO_CIVS_MET"] = "No civilizations met."
@@ -2451,6 +2464,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_RELATIONSHIP"] = "relationship"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_TRAIT_PERSONALITY"] = "trait and personality"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_INFLUENCE"] = "influence"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_ALLIED_WITH"] = "allied with"
+-- Contender column (Vox Populi only): the runner-up suitor to the ally.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_CONTENDER"] = "contender"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_QUESTS"] = "quests"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_NEARBY"] = "nearby resources"
 -- Empty-cell labels. "none" for absent items in a list-shaped cell;
@@ -2478,6 +2493,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_AND_DISPLACE"] = "{1_Civ}, {2_
 -- so the cell distinguishes from "nobody" (the genuine no-ally case)
 -- with a generic civ word.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_ALLY_UNMET_DISPLACE"] = "unmet civilization, {1_N} needed to displace"
+-- Contender cell variants. Named civ (or "you") plus the contender's
+-- influence; the unmet variant drops the name but keeps the influence,
+-- distinct from the "nobody" empty case.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_CONTENDER"] = "{1_Civ}, {2_Inf} influence"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_CONTENDER_UNMET"] = "unmet civilization, {1_Inf} influence"
 -- Trait-and-personality cell. Trait first, personality second, paired
 -- since trait determines what kind of bonus would flow and personality
 -- modifies how easily influence shifts.
