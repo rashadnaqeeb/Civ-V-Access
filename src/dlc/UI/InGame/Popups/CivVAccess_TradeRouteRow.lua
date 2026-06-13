@@ -91,28 +91,59 @@ local function appendIf(list, entry)
     end
 end
 
--- Origin's side: GPT, science, religion pressure that flow back to the
--- origin city. Field names match the engine's GetTradeRoutes shape (see
--- TradeRouteOverview.lua DisplayData).
+-- Origin's side: GPT, science, culture, religion pressure that flow back
+-- to the origin city. Field names match the engine's GetTradeRoutes shape
+-- (see TradeRouteOverview.lua DisplayData). Culture is a Vox Populi trade
+-- yield only; vanilla GetTradeRoutes omits FromCulture, so the entry is
+-- dropped (value 0) on vanilla and the side list is unchanged there.
 function TradeRouteRow.originSideList(route)
     local entries = {}
     appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_GOLD, route.FromGPT or 0))
     appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_SCIENCE, route.FromScience or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_CULTURE, route.FromCulture or 0))
     appendIf(entries, TradeRouteRow.pressureEntry(route.FromReligion or 0, route.FromPressure or 0))
     return table.concat(entries, ", ")
 end
 
--- Destination's side: GPT, science, religion pressure plus food / production
--- (the latter two flow on intra-civ routes and the engine reports them as 0
--- on international routes).
+-- Destination's side: GPT, science, culture, religion pressure plus food /
+-- production (the latter two flow on intra-civ routes and the engine
+-- reports them as 0 on international routes). Culture is VP-only (see
+-- originSideList).
 function TradeRouteRow.destinationSideList(route)
     local entries = {}
     appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_GOLD, route.ToGPT or 0))
     appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_SCIENCE, route.ToScience or 0))
+    appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_CULTURE, route.ToCulture or 0))
     appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_FOOD, route.ToFood or 0))
     appendIf(entries, TradeRouteRow.yieldEntry(YieldTypes.YIELD_PRODUCTION, route.ToProduction or 0))
     appendIf(entries, TradeRouteRow.pressureEntry(route.ToReligion or 0, route.ToPressure or 0))
     return table.concat(entries, ", ")
+end
+
+-- Vox Populi corporation franchise status for a route, mirroring VP's
+-- office / franchise icons in the Trade Route Overview and the route
+-- picker. The origin player (route.FromID) is the one whose corporation
+-- the franchise belongs to -- the active player on outbound routes, a
+-- foreign player on routes that terminate in our cities. Returns a short
+-- spoken word, or nil where VP shows no icon (and on vanilla, where the
+-- IsFranchised binding is absent). isAvailable narrows the can-create
+-- check to the Available tab, matching where VP offers it.
+function TradeRouteRow.franchiseStatus(route, isAvailable)
+    local targetCity = route.ToCity
+    if targetCity == nil or targetCity.IsFranchised == nil then
+        return nil
+    end
+    if targetCity:IsFranchised(route.FromID) then
+        return Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_FRANCHISED")
+    end
+    if isAvailable and route.FromCity ~= nil and route.FromCity:HasOffice() then
+        local pPlayer = Players[route.FromID]
+        if pPlayer ~= nil and pPlayer:CanCreateFranchiseInCity(route.FromCity, targetCity) then
+            return Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_CAN_FRANCHISE")
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_FRANCHISE")
+    end
+    return nil
 end
 
 -- Row label: header, then "you get {yields}" (active player's gain), then

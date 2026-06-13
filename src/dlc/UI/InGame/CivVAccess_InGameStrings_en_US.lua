@@ -2631,6 +2631,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_SCIENCE"] = "science received"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_FOOD"] = "food received"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRODUCTION"] = "production received"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE"] = "religious pressure to destination"
+-- Vox Populi-only Trade Route Overview surfaces. Culture is a VP trade
+-- yield; trip turns and route length come from VP-only path bindings; the
+-- locate / establish / relocate actions and the already-trading flag exist
+-- only on VP's reworked screen. All gate on the Community Patch DLL probe.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_CULTURE"] = "culture received"
+-- "shortest" signals the ascending sort (quickest / nearest routes lead).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_TRIP"] = "shortest trip"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_LENGTH"] = "shortest route"
+-- One-way travel time for the trade unit; "trip" leads to keep it distinct
+-- from the route's "turns left" expiry clause. Plural driven by {1_Num}.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TRIP_TURNS"] = {
+    one = "trip takes {1_Num} turn",
+    other = "trip takes {1_Num} turns",
+}
+-- Available tab: this destination already carries one of your active
+-- international routes (VP shows a red "!"). Not a hard block, just a flag.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ALREADY_TRADING"] = "already trading here"
+-- Row actions inside a route's drill.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_LOCATE_UNIT"] = "Locate trade unit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ESTABLISH"] = "Establish trade route"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_RELOCATE"] = "Relocate trade unit here"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_UNIT_NOT_FOUND"] = "Trade unit not found."
 -- Leader descriptions. Spoken on F2 over LeaderHeadRoot /
 -- DiscussionDialog / DiploTrade, keyed by Leaders.Type (Players[i]:GetLeaderType()
 -- -> GameInfo.Leaders[lt].Type). Sourced from docs/leader-descriptions.md.

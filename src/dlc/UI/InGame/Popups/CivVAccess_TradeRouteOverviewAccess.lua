@@ -199,41 +199,299 @@ local function leaderNamesForRoute(route)
     return names
 end
 
--- A route is drillable only when the engine has a per-source breakdown
--- to show. BuildTradeRouteToolTipString returns nil when the route's
--- international gold total is zero -- domestic food/production routes,
--- routes that haven't been established yet, etc. Those cases collapse to
--- a Text leaf carrying just the row label, so the drillable cue stays
--- silent on rows with nothing behind them. The eager probe is the
--- engine helper itself; the same helper runs again inside itemsFn on
--- each drill so the per-source breakdown reflects current live values
--- without waiting for the per-turn rebuild (cached=false).
-local function buildRouteItem(route, isInbound)
-    local labelFn = function()
-        return TradeRouteRow.rowLabel(route, isInbound)
+-- The CP DLL registers Game.IsCustomModOption (the sanctioned
+-- "Community Patch present" probe). Only then do the VP-only sort keys
+-- and the route metrics / corporation surfaces appear.
+local function isCP()
+    return Game.IsCustomModOption ~= nil
+end
+
+-- Route length (hex path distance) and one-way trip turns, both from
+-- VP-only bindings on the origin player. Used for sorting and for the
+-- per-row metric clauses; nil when the bindings are absent (vanilla) or
+-- the city handles are missing.
+local function routeLength(route)
+    local pPlayer = Players[route.FromID]
+    if pPlayer == nil or pPlayer.GetTradeConnectionDistance == nil then
+        return nil
     end
+    if route.FromCity == nil or route.ToCity == nil then
+        return nil
+    end
+    return pPlayer:GetTradeConnectionDistance(route.FromCity, route.ToCity, route.Domain)
+end
+
+local function routeTripTurns(route)
+    local pPlayer = Players[route.FromID]
+    if pPlayer == nil or pPlayer.GetTradeRouteTurns == nil then
+        return nil
+    end
+    if route.FromCity == nil or route.ToCity == nil then
+        return nil
+    end
+    return pPlayer:GetTradeRouteTurns(route.FromCity, route.ToCity, route.Domain)
+end
+
+-- ===== Vox Populi route extras and actions ============================
+--
+-- Everything below the row's base label (yields / turns-left) is VP-only
+-- and gated by binding / field presence so vanilla rows are unchanged:
+-- vanilla GetTradeRoutes omits UnitID / culture / TradeConnectionType, and
+-- the deployed vanilla TradeRouteOverview.lua defines neither LookAtOrRecall
+-- nor g_CurrentTab.
+
+-- Per-row metric and status clauses appended after the base label:
+-- corporation franchise status (all tabs), the already-trading and
+-- city-state trade-quest flags (Available tab only, mirroring VP's red "!"
+-- and trade-quest icon), then route length and one-way trip turns.
+-- Recomputed on every announce so the values stay live; the engine reads
+-- are cheap and the Available-tab snapshots (ctx) are rebuilt each open.
+local function routeExtras(route, tabKind, ctx)
+    local parts = {}
+
+    local franchise = TradeRouteRow.franchiseStatus(route, tabKind == "AvailableTR")
+    if franchise ~= nil then
+        parts[#parts + 1] = franchise
+    end
+
+    if tabKind == "AvailableTR" and ctx ~= nil then
+        if
+            ctx.blockedSet ~= nil
+            and route.TradeConnectionType == TradeConnectionTypes.TRADE_CONNECTION_INTERNATIONAL
+            and route.ToCityName ~= nil
+            and ctx.blockedSet[route.ToCityName .. "#" .. tostring(route.ToCivilizationType)]
+        then
+            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_TRO_ALREADY_TRADING")
+        end
+        if ctx.questText ~= nil then
+            local quest = ctx.questText(route)
+            if quest ~= nil then
+                parts[#parts + 1] = quest
+            end
+        end
+    end
+
+    local length = routeLength(route)
+    if length ~= nil and length > 0 then
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_TRADE_ROUTE_DISTANCE", length, length)
+    end
+    local trip = routeTripTurns(route)
+    if trip ~= nil and trip > 0 then
+        parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_TRO_TRIP_TURNS", trip, trip)
+    end
+
+    return parts
+end
+
+-- Drop the hex cursor on a Your-routes trade unit and speak the landing.
+-- UI.LookAt / SerialEventUnitFlagSelected mirror VP's own locate (camera
+-- pan plus flag select) for sighted spectators; Cursor.jumpTo supplies the
+-- spoken position a blind player needs.
+local function locateUnit(route)
+    local pPlayer = Players[route.FromID]
+    if pPlayer == nil then
+        return
+    end
+    local pUnit = pPlayer:GetUnitByID(route.UnitID)
+    if pUnit == nil then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_TRO_UNIT_NOT_FOUND"))
+        return
+    end
+    local plot = pUnit:GetPlot()
+    UI.LookAt(plot, 0)
+    Events.SerialEventUnitFlagSelected(route.FromID, route.UnitID)
+    local Cursor = civvaccess_shared.modules and civvaccess_shared.modules.Cursor
+    if Cursor == nil then
+        Log.warn("TradeRouteOverview locate: Cursor module not published")
+        return
+    end
+    local text = Cursor.jumpTo(plot:GetX(), plot:GetY())
+    if text ~= nil and text ~= "" then
+        SpeechPipeline.speakQueued(text)
+    end
+end
+
+-- Establish or relocate by delegating to VP's own LookAtOrRecall, which
+-- owns the mission dispatch (and closes the popup on success). It branches
+-- on the vendor global g_CurrentTab, which our TabbedShell does not track,
+-- so set it for the call and restore it after. We only reach this from
+-- rows where availableAction already confirmed the unit can act, so the
+-- vendor call always fires a mission rather than silently no-opping.
+local function commitAvailableMission(route)
+    if LookAtOrRecall == nil then
+        Log.warn("TradeRouteOverview: LookAtOrRecall absent; cannot establish route")
+        return
+    end
+    local saved = g_CurrentTab
+    g_CurrentTab = "AvailableTR"
+    local ok, err = pcall(LookAtOrRecall, {}, route)
+    g_CurrentTab = saved
+    if not ok then
+        Log.error("TradeRouteOverview establish/relocate failed: " .. tostring(err))
+    end
+end
+
+-- Snapshot the Available tab's per-rebuild context: which destination
+-- cities the player already runs an international route to (the blocked
+-- flag), a closure for the active city-state trade-quest check, and the
+-- selected trade unit's eligibility for establishing / relocating. Rebuilt
+-- on every open and turn start; VP closes the screen on unit-selection
+-- change (its OnDirty), so the eligibility snapshot can't outlive its unit.
+local function buildAvailableContext()
+    local ctx = { blockedSet = {} }
+    local pPlayer = Players[Game.GetActivePlayer()]
+    if pPlayer == nil then
+        return ctx
+    end
+
+    for _, r in ipairs(pPlayer:GetTradeRoutes() or {}) do
+        if r.ToCityName ~= nil then
+            ctx.blockedSet[r.ToCityName .. "#" .. tostring(r.ToCivilizationType)] = true
+        end
+    end
+
+    -- GetActiveQuestText (CityStateStatusHelper) is included by VP's
+    -- TradeRouteOverview.lua; absent on vanilla. Mirror VP's own test: a
+    -- minor-civ destination whose active-quest text carries the
+    -- international-trade icon has a trade-route quest available.
+    if GetActiveQuestText ~= nil then
+        ctx.questText = function(route)
+            local toPlayer = Players[route.ToID]
+            if toPlayer == nil or not toPlayer:IsMinorCiv() then
+                return nil
+            end
+            local txt = GetActiveQuestText(route.FromID, route.ToID)
+            if txt ~= nil and txt:find("ICON_INTERNATIONAL_TRADE", 1, true) then
+                return Text.key("TXT_KEY_CIVVACCESS_TRADE_DEST_QUEST")
+            end
+            return nil
+        end
+    end
+
+    -- Establish / relocate need the selected unit; gate on the VP-only
+    -- LookAtOrRecall (which performs the mission) and IsRecalledTrader.
+    if LookAtOrRecall ~= nil then
+        local sel = UI.GetHeadSelectedUnit()
+        if
+            sel ~= nil
+            and sel.IsTrade ~= nil
+            and sel:IsTrade()
+            and not sel:IsRecalledTrader()
+            and not sel:IsAutomated()
+            and sel:MovesLeft() > 0
+        then
+            ctx.eligible = true
+            ctx.originCity = sel:GetPlot():GetPlotCity()
+            ctx.domain = sel:GetDomainType()
+            ctx.newHomeSet = {}
+            if pPlayer.GetPotentialTradeUnitNewHomeCity ~= nil then
+                for _, h in ipairs(pPlayer:GetPotentialTradeUnitNewHomeCity(sel) or {}) do
+                    ctx.newHomeSet[h.X .. "#" .. h.Y] = true
+                end
+            end
+        end
+    end
+
+    return ctx
+end
+
+-- Decide which Available-tab action a route offers for the selected trade
+-- unit, mirroring VP's send-vs-relocate branch: establish when the unit
+-- sits in this route's origin city with the matching domain; relocate when
+-- the unit is elsewhere and this origin is one of its potential new homes.
+-- Returns "establish" / "relocate" / nil.
+local function availableAction(route, ctx)
+    if ctx == nil or not ctx.eligible then
+        return nil
+    end
+    if route.FromCity == ctx.originCity and route.Domain == ctx.domain then
+        return "establish"
+    end
+    if route.FromCity ~= ctx.originCity and route.FromCity ~= nil then
+        local key = route.FromCity:GetX() .. "#" .. route.FromCity:GetY()
+        if ctx.newHomeSet[key] then
+            return "relocate"
+        end
+    end
+    return nil
+end
+
+-- The action item placed first inside a route's drill. locate is its own
+-- reimplementation (it needs the unit plot for the cursor); establish /
+-- relocate delegate to the vendor mission.
+local function buildActionItem(route, actionKind)
+    if actionKind == "locate" then
+        return BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_TRO_LOCATE_UNIT"),
+            onActivate = function()
+                locateUnit(route)
+            end,
+        })
+    end
+    local labelKey = actionKind == "relocate" and "TXT_KEY_CIVVACCESS_TRO_RELOCATE"
+        or "TXT_KEY_CIVVACCESS_TRO_ESTABLISH"
+    return BaseMenuItems.Text({
+        labelText = Text.key(labelKey),
+        onActivate = function()
+            commitAvailableMission(route)
+        end,
+    })
+end
+
+-- A route is drillable when it has a per-source gold breakdown OR an
+-- action (locate / establish / relocate). BuildTradeRouteToolTipString
+-- returns nil when the international gold total is zero -- domestic
+-- food/production routes, unestablished routes, etc. -- so a route with
+-- neither breakdown nor action collapses to a Text leaf carrying just the
+-- row label, keeping the drillable cue silent on rows with nothing behind
+-- them. The eager probe is the engine helper itself; the same helper runs
+-- again inside itemsFn on each drill so the per-source breakdown reflects
+-- current live values without waiting for the per-turn rebuild
+-- (cached=false). The action item, when present, is the first drill child.
+local function buildRouteItem(route, isInbound, tabKind, ctx)
+    local actionKind
+    if tabKind == "YourTR" and route.UnitID ~= nil then
+        actionKind = "locate"
+    elseif tabKind == "AvailableTR" then
+        actionKind = availableAction(route, ctx)
+    end
+
+    local labelFn = function()
+        local base = TradeRouteRow.rowLabel(route, isInbound)
+        local extras = routeExtras(route, tabKind, ctx)
+        if #extras > 0 then
+            base = base .. " " .. table.concat(extras, ". ") .. "."
+        end
+        return base
+    end
+
     local probe = fetchTooltip(route)
-    if probe == nil or probe == "" then
+    local hasBreakdown = probe ~= nil and probe ~= ""
+    if actionKind == nil and not hasBreakdown then
         return BaseMenuItems.Text({ labelFn = labelFn })
     end
     return BaseMenuItems.Group({
         labelFn = labelFn,
         cached = false,
         itemsFn = function()
+            local items = {}
+            if actionKind ~= nil then
+                items[#items + 1] = buildActionItem(route, actionKind)
+            end
             local tt = fetchTooltip(route)
             local names = leaderNamesForRoute(route)
-            local items = {}
             for _, lines in ipairs(parseSections(tt)) do
                 local item = buildSectionItem(lines, names)
                 if item ~= nil then
                     items[#items + 1] = item
                 end
             end
-            -- Tooltip emptied between probe and drill (helper threw, or
-            -- the international gold total dropped to zero in the same
-            -- turn). Rare; speak something rather than leave the Group
-            -- empty, which BaseMenuItems.Group treats as non-navigable
-            -- and would drop the route from the list mid-screen.
+            -- No action and the tooltip emptied between probe and drill
+            -- (helper threw, or the international gold total dropped to
+            -- zero in the same turn). Rare; speak something rather than
+            -- leave the Group empty, which BaseMenuItems.Group treats as
+            -- non-navigable and would drop the route from the list
+            -- mid-screen.
             if #items == 0 then
                 items[1] = BaseMenuItems.Text({
                     labelText = Text.key("TXT_KEY_CIVVACCESS_TRO_NO_DETAILS"),
@@ -261,7 +519,15 @@ end
 --                      receiving-civ framing.
 -- Sort direction is descending (largest first) so the top-of-list
 -- routes are the ones the player most wants to see.
-local SORT_KEYS = { "GOLD", "SCIENCE", "FOOD", "PRODUCTION", "PRESSURE" }
+-- Culture, trip-turns, and route-length are Vox Populi trade surfaces
+-- (culture is a VP-only trade yield; trip / length come from VP-only
+-- bindings). Gating them on the CP-DLL probe keeps the vanilla picker's
+-- five options unchanged; on VP they extend it. CULTURE sorts descending
+-- like the other yields (most received first); TRIP / LENGTH sort
+-- ascending so the shortest routes lead, which is what the "shortest"
+-- label promises.
+local SORT_KEYS_BASE = { "GOLD", "SCIENCE", "FOOD", "PRODUCTION", "PRESSURE" }
+local SORT_KEYS_VP = { "CULTURE", "TRIP", "LENGTH" }
 
 local SORT_LABEL_KEYS = {
     GOLD = "TXT_KEY_CIVVACCESS_TRO_SORT_GOLD",
@@ -269,7 +535,25 @@ local SORT_LABEL_KEYS = {
     FOOD = "TXT_KEY_CIVVACCESS_TRO_SORT_FOOD",
     PRODUCTION = "TXT_KEY_CIVVACCESS_TRO_SORT_PRODUCTION",
     PRESSURE = "TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE",
+    CULTURE = "TXT_KEY_CIVVACCESS_TRO_SORT_CULTURE",
+    TRIP = "TXT_KEY_CIVVACCESS_TRO_SORT_TRIP",
+    LENGTH = "TXT_KEY_CIVVACCESS_TRO_SORT_LENGTH",
 }
+
+local SORT_ASCENDING = { TRIP = true, LENGTH = true }
+
+local function currentSortKeys()
+    local keys = {}
+    for _, k in ipairs(SORT_KEYS_BASE) do
+        keys[#keys + 1] = k
+    end
+    if isCP() then
+        for _, k in ipairs(SORT_KEYS_VP) do
+            keys[#keys + 1] = k
+        end
+    end
+    return keys
+end
 
 local SORT_SUB_NAME = "TradeRouteOverviewSort"
 
@@ -291,19 +575,31 @@ local function sortValue(route, sortKey, isInbound)
         return isInbound and (route.ToGPT or 0) or (route.FromGPT or 0)
     elseif sortKey == "SCIENCE" then
         return isInbound and (route.ToScience or 0) or (route.FromScience or 0)
+    elseif sortKey == "CULTURE" then
+        return isInbound and (route.ToCulture or 0) or (route.FromCulture or 0)
     elseif sortKey == "FOOD" then
         return route.ToFood or 0
     elseif sortKey == "PRODUCTION" then
         return route.ToProduction or 0
     elseif sortKey == "PRESSURE" then
         return route.ToPressure or 0
+    elseif sortKey == "TRIP" then
+        return routeTripTurns(route) or 0
+    elseif sortKey == "LENGTH" then
+        return routeLength(route) or 0
     end
     return 0
 end
 
 local function sortRoutes(routes, isInbound)
+    local ascending = SORT_ASCENDING[m_currentSort]
     table.sort(routes, function(a, b)
-        return sortValue(a, m_currentSort, isInbound) > sortValue(b, m_currentSort, isInbound)
+        local va = sortValue(a, m_currentSort, isInbound)
+        local vb = sortValue(b, m_currentSort, isInbound)
+        if ascending then
+            return va < vb
+        end
+        return va > vb
     end)
 end
 
@@ -316,7 +612,7 @@ end
 local function pushSortPicker()
     local options = {}
     local initialIndex
-    for i, key in ipairs(SORT_KEYS) do
+    for i, key in ipairs(currentSortKeys()) do
         if key == m_currentSort then
             initialIndex = i
         end
@@ -358,11 +654,14 @@ local function buildSortPulldown()
     })
 end
 
-local function buildItemsFromRoutes(routes, isInbound)
+local function buildItemsFromRoutes(routes, isInbound, tabKind)
     sortRoutes(routes, isInbound)
+    -- Available-tab context (blocked / quest / unit eligibility) is
+    -- snapshotted once per rebuild and shared across this tab's rows.
+    local ctx = (tabKind == "AvailableTR") and buildAvailableContext() or nil
     local items = { buildSortPulldown() }
     for _, route in ipairs(routes) do
-        items[#items + 1] = buildRouteItem(route, isInbound)
+        items[#items + 1] = buildRouteItem(route, isInbound, tabKind, ctx)
     end
     if #routes == 0 then
         items[#items + 1] = BaseMenuItems.Text({
@@ -372,12 +671,12 @@ local function buildItemsFromRoutes(routes, isInbound)
     return items
 end
 
-local function buildItemsViaAccessor(accessor, isInbound)
+local function buildItemsViaAccessor(accessor, isInbound, tabKind)
     local pPlayer = Players[Game.GetActivePlayer()]
     if pPlayer == nil then
         return {}
     end
-    return buildItemsFromRoutes(pPlayer[accessor](pPlayer) or {}, isInbound)
+    return buildItemsFromRoutes(pPlayer[accessor](pPlayer) or {}, isInbound, tabKind)
 end
 
 -- ===== Install =========================================================
@@ -397,9 +696,9 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     m_withYouTab = makeTab("TXT_KEY_CIVVACCESS_TRO_TAB_WITH_YOU")
 
     local function rebuildAllTabs()
-        m_yoursTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutes", false))
-        m_availableTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutesAvailable", false))
-        m_withYouTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutesToYou", true))
+        m_yoursTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutes", false, "YourTR"))
+        m_availableTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutesAvailable", false, "AvailableTR"))
+        m_withYouTab.menu().setItems(buildItemsViaAccessor("GetTradeRoutesToYou", true, "TRWithYou"))
     end
     m_rebuildAllTabs = rebuildAllTabs
 
