@@ -79,12 +79,30 @@ function Invoke-Tool {
 # failure class the EngineData port exists to prevent. This stage greps
 # mod-authored Lua (CivVAccess_*.lua; vendor copies are exempt because we
 # ship them verbatim) for the known-drifted method names outside
-# EngineData itself and fails on any hit. The name list is the VP port
+# EngineData itself and fails on any hit. The name lists are the VP port
 # plan's drift audit plus the fork's extension bindings; each VP re-pin's
-# value-audit diff is what keeps it current.
+# value-audit diff is what keeps them current.
+#
+# Two tiers, because the failure modes differ. DRIFT reads exist on every
+# engine but differ in value / signature; only code that runs on more than
+# one engine can be bitten, so a VP-only screen (gated off vanilla, one
+# engine) opts out of the drift sweep with a `civvaccess-seam-exempt` marker.
+# FORK bindings exist on no stock engine (vanilla or stock VP), so they must
+# never be called raw outside EngineData on ANY file -- EngineData owns the
+# forkPresent() gate that degrades gracefully when the fork is absent, and a
+# raw call crashes the supported no-fork degraded mode. The marker does NOT
+# waive the fork sweep: a VP-only screen still runs fork / no-fork on its own
+# engine, so fork discipline still applies to it.
 function Invoke-SeamGuard {
-    $methods = @(
-        # Drift reads (value or signature differs across engines)
+    # Drift reads: value or signature differs across engines. The vassalage
+    # primitives (VP-only Team bindings, absent on vanilla -- a raw call
+    # crashes there) live here: both-engines callers (DiploRelationships D10,
+    # VictoryProgress D24) route them through EngineData.vassalInfo, while the
+    # VP-only Vassal Overview uses them raw and is marked seam-exempt.
+    # "IsVassal" matches only the exact :IsVassal( call -- "IsVassalOfSomeone"
+    # needs its own entry because the trailing \s*\( anchor stops the shorter
+    # name matching it.
+    $driftMethods = @(
         "GetCombatDamage", "GetMaxDefenseStrength", "DefenseModifier",
         "GetExcessHappiness", "GetHappinessFromBuildings", "GetHappinessFromPolicies",
         "GetUnhappinessFromCityCount", "GetUnhappinessFromCapturedCityCount",
@@ -93,7 +111,13 @@ function Invoke-SeamGuard {
         "GetInfluencePerTurn", "GetTourismPerTurnIncludingInstantTimes100",
         "GetBestDefender", "CanMoveOrAttackInto",
         "GetOwnerForDominationVictory",
-        # Fork extension bindings
+        "IsVassalOfSomeone", "GetMaster", "GetNumVassals", "GetNumTurnsIsVassal",
+        "IsVassal"
+    )
+    # Fork extension bindings: added by our forked DLL, present on no stock
+    # engine. The seam-exempt marker does NOT waive these -- see the function
+    # header. EngineData is the only file allowed to call them raw.
+    $forkMethods = @(
         "GetMissionQueue", "GeneratePath", "GetPath", "ComputePath",
         "GetBestBuildRoute", "GetBuildRoutePath", "GetClosestSearchedPlot",
         "HasLineOfSight", "GetCycleUnits",
@@ -102,18 +126,36 @@ function Invoke-SeamGuard {
     # Deal:GetNumResource (drifted: unregistered in VP) shares its name with
     # the undrifted zero-arg Plot:GetNumResource(), so it gets its own
     # alternative requiring at least one argument; the deal getter always
-    # takes (playerId, resourceType).
-    $pattern = "[:.](?:(?:" + ($methods -join "|") + ")\s*\(|GetNumResource\s*\([^)])"
+    # takes (playerId, resourceType). It is a drift read, so it rides the
+    # drift pattern (waived by the exempt marker).
+    $driftPattern = "[:.](?:(?:" + ($driftMethods -join "|") + ")\s*\(|GetNumResource\s*\([^)])"
+    $forkPattern  = "[:.](?:" + ($forkMethods -join "|") + ")\s*\("
     # src\vp holds per-engine implementation files deploy-vp.ps1 swaps in
     # (currently the VP CivVAccess_EngineData.lua); sweep it with the same
     # rule so any future mod-authored file there can't bypass the seam.
-    $files = Get-ChildItem -Path (Join-Path $root "src\dlc"), (Join-Path $root "src\vp") -Recurse -Filter "CivVAccess_*.lua" |
+    $allFiles = Get-ChildItem -Path (Join-Path $root "src\dlc"), (Join-Path $root "src\vp") -Recurse -Filter "CivVAccess_*.lua" |
         Where-Object { $_.Name -ne "CivVAccess_EngineData.lua" }
+    # File-level opt-out for VP-only screens (see the function header for why
+    # this waives only the drift sweep, never the fork sweep). Apply the marker
+    # ONLY where a drift name is genuinely called raw; a blanket marker on every
+    # VP-only file would mask real violations.
+    $driftFiles = @()
+    foreach ($f in $allFiles) {
+        if (Select-String -LiteralPath $f.FullName -Pattern "civvaccess-seam-exempt" -SimpleMatch -Quiet) {
+            $rel = $f.FullName.Substring($root.Length).TrimStart("\")
+            Write-Host ("seam guard: exempting {0} from the drift sweep (marked seam-exempt; fork bindings still guarded)" -f $rel) -ForegroundColor DarkGray
+        } else {
+            $driftFiles += $f
+        }
+    }
     # Case-sensitive: the EngineData seam functions reuse these names in
     # camelCase (EngineData.generatePath), and those routed calls are the
     # goal state, not violations. Comment-only lines are allowed to name
     # the methods (docs reference engine behavior); code lines are not.
-    $hits = @($files | Select-String -CaseSensitive -Pattern $pattern | Where-Object { $_.Line -notmatch '^\s*--' })
+    # Drift names sweep only non-exempt files; fork names sweep all files.
+    $hits = @()
+    $hits += @($driftFiles | Select-String -CaseSensitive -Pattern $driftPattern | Where-Object { $_.Line -notmatch '^\s*--' })
+    $hits += @($allFiles   | Select-String -CaseSensitive -Pattern $forkPattern  | Where-Object { $_.Line -notmatch '^\s*--' })
     foreach ($hit in $hits) {
         # Windows PowerShell 5.1 has no GetRelativePath; trim the root prefix.
         $rel = $hit.Path.Substring($root.Length).TrimStart("\")

@@ -1,3 +1,12 @@
+-- civvaccess-seam-exempt: VP-only screen, gated off vanilla by a CP
+-- capability probe, so it runs on exactly one engine and calls VP-only
+-- vassalage Team bindings (IsVassalOfSomeone / GetMaster / GetNumVassals /
+-- GetNumTurnsIsVassal / IsVassal) raw. Both-engines callers route those same
+-- bindings through CivVAccess_EngineData.vassalInfo; this marker waives the
+-- lint seam guard's drift sweep for this file so those names can stay in its
+-- list. It does NOT waive the fork-binding sweep (those crash no-fork VP, a
+-- supported mode); fork bindings still route through EngineData. See lint.ps1.
+--
 -- Vassal Overview accessibility (Vox Populi only; Ctrl+V or the
 -- Additional Information dropdown / DiploCorner button). Wraps the
 -- Community Patch VassalageOverview popup (BUTTONPOPUP_MODDER_11) as a
