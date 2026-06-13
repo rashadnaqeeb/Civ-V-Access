@@ -137,6 +137,7 @@ globals = {
     "BaseMenuNumberEntry",
     "BaseTable", "TabbedShell",
     "CityStats",
+    "DealLabel",
     "LeaderDescription", "GreatWorkDescription", "NaturalWonderDescription",
     "VictoryDescription", "WonderDescription", "CongressDescription",
     "EraDescription",
@@ -176,6 +177,7 @@ globals = {
     "Recommendations",
     "SocialPolicyLogic",
     "TechTreeLogic",
+    "EspionageVP",
     "DiploCommon",
     "TradeLogicAccess", "TradeLogicAvailable", "TradeLogicOffering", "TradeRouteRow",
     "LeagueOverviewRow", "LeagueOverviewVote", "LeagueOverviewProposal",
@@ -355,6 +357,9 @@ files["**/CivVAccess_ModListPreamble.lua"] = { ignore = { "113" } }
 files["**/CivVAccess_TradeLogicAvailable.lua"] = { ignore = { "113" } }
 files["**/CivVAccess_TradeLogicOffering.lua"]  = { ignore = { "113" } }
 files["**/CivVAccess_CityViewProduction.lua"]  = { ignore = { "113" } }
+-- VP espionage companion: reaches the EspionageOverview Context's base-game
+-- globals and the VP DLL's espionage bindings / GameInfo tables.
+files["**/CivVAccess_EspionageOverviewVP.lua"] = { ignore = { "113" } }
 
 -- Polyfill's whole job is to create engine globals when ContextPtr is nil.
 -- Every assignment is intentional; suppress the "setting ... global" warnings

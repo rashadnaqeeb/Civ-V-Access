@@ -47,6 +47,17 @@ include("CivVAccess_TabbedShell")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
+-- Vox Populi / Community Patch rebuilt espionage around network points (coup
+-- gone, per-spy mission / counterspy / diplomat panels). The VP body defines
+-- PopulateSelectionList as a global; probe for it (a function-presence check,
+-- reliable at include time, unlike Controls which populate after init) to
+-- route the Agents tab through the VP action builder in the companion include.
+-- The shell, Cities/Intrigue tabs, and relocate flow stay single-source.
+local isVP = type(PopulateSelectionList) == "function"
+if isVP then
+    include("CivVAccess_EspionageOverviewVP")
+end
+
 local m_agentsTab
 local m_citiesTab
 local m_intrigueTab
@@ -176,6 +187,16 @@ local function agentRowLabel(agent)
     local where = (city ~= nil) and Text.key(city:GetName()) or Text.key("TXT_KEY_SPY_LOCATION_UNASSIGNED")
     local activity = Text.key(activityKey(agent))
     local diplomatTail = agent.IsDiplomat and Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_TAIL") or ""
+    -- VP appends the engine's single progress value (turns / mission focus /
+    -- network points, whichever the spy shows) rather than vanilla's turns.
+    if isVP then
+        local base = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE", rank, name, where, activity)
+        local progress = EspionageVP.agentRowProgress(agent)
+        if progress ~= "" then
+            base = base .. ", " .. progress
+        end
+        return base .. diplomatTail
+    end
     if agent.TurnsLeft and agent.TurnsLeft > 0 then
         return Text.formatPlural(
             "TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS",
@@ -365,14 +386,16 @@ local function buildAgentsTabItems()
     for _, agent in ipairs(spies) do
         local city = plotCity(agent.CityX, agent.CityY)
         local label = agentRowLabel(agent)
-        local tooltip = activityTooltip(agent, city)
+        -- VP replaces the vanilla hardcoded counter-intel formula with the
+        -- engine's per-spy mission tooltip.
+        local tooltip = isVP and EspionageVP.activityTooltip(agent, city) or activityTooltip(agent, city)
         if agent.State == "TXT_KEY_SPY_STATE_DEAD" then
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = label,
                 tooltipText = tooltip,
             })
         else
-            local actions = agentActions(agent)
+            local actions = isVP and EspionageVP.agentActions(agent) or agentActions(agent)
             if #actions == 1 then
                 local only = actions[1]
                 items[#items + 1] = BaseMenuItems.Choice({
@@ -532,6 +555,11 @@ local function potentialClause(cityInfo, isCityState, spy)
         end
         return Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_RIG_ELECTION_AVAILABLE")
     end
+    -- VP turned the potential meter into a city-security value; speak that
+    -- instead of the vanilla base/established potential.
+    if isVP then
+        return EspionageVP.cityPotentialClause(cityInfo)
+    end
     if cityInfo.BasePotential <= 0 then
         -- Engine TXT_KEY_EO_UNKNOWN_POTENTIAL is literally "?" -- a glyph
         -- for the visual meter that would speak as the symbol name.
@@ -565,7 +593,9 @@ local function cityRowLabel(cityInfo, isCityState, spy, dropCiv)
         parts[#parts + 1] = spyClause
     end
     parts[#parts + 1] = potentialClause(cityInfo, isCityState, spy)
-    if shouldShowBreakdown(cityInfo, isCityState, spy) then
+    -- The modifier breakdown is a vanilla-potential concept; VP's security
+    -- model has no equivalent, so it's dropped on the VP path.
+    if not isVP and shouldShowBreakdown(cityInfo, isCityState, spy) then
         local breakdown = potentialBreakdownEntries(cityInfo)
         if breakdown ~= "" then
             parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BREAKDOWN", breakdown)
@@ -1030,6 +1060,19 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         m_agentsTab.menu().setItems(buildAgentsTabItems())
         m_citiesTab.menu().setItems(buildCitiesTabItems())
         m_intrigueTab.menu().setItems(buildIntrigueTabItems())
+    end
+
+    -- Hand the VP action builder the shared helpers it leans on: the relocate
+    -- flow, the city-view helper, the active-player / plot-city lookups, and
+    -- the tab rebuild used after a mission/counterspy commit.
+    if isVP then
+        EspionageVP.install({
+            activePlayer = activePlayer,
+            plotCity = plotCity,
+            viewCity = viewCity,
+            pushMoveSub = pushMoveSub,
+            rebuildAllTabs = rebuildAllTabs,
+        })
     end
 
     TabbedShell.install(ContextPtr, {

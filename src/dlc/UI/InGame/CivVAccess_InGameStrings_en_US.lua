@@ -3383,6 +3383,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_UNKNOWN"] = "unkn
 -- Move-agent sub.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY"] = "Move {1_Rank} {2_Name}"
 
+-- Vox Populi espionage (network points). The agent-row progress clause speaks
+-- whichever value VP shows: a turn countdown here, or the active mission focus
+-- / stored network points (those reuse VP's own keys). Security replaces the
+-- vanilla potential meter on the city rows. The bonus tags mark each passive
+-- bonus locked or unlocked in the network-point drillable; the sub display
+-- names title the mission / counterspy / diplomat panels.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_PROGRESS_TURNS"] = {
+    one = "{1_Turns} turn",
+    other = "{1_Turns} turns",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_SECURITY"] = "security {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_BONUS_LOCKED"] = "locked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_BONUS_UNLOCKED"] = "unlocked"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MISSION_SUB"] = "{1_Rank} {2_Name} missions in {3_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_COUNTERSPY_SUB"] = "{1_Rank} {2_Name} counterspy focus"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_SUB"] = "{1_Rank} {2_Name} diplomat in {3_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_UL_STRENGTH"] = "strength"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_UL_RANGED"] = "ranged strength"
+
 -- Bookmarks: per-session digit-keyed cursor positions. Ctrl + 1-0 saves
 -- the cursor cell, Shift + 1-0 jumps there (with scanner backspace return),
 -- Alt + 1-0 speaks distance and direction (and capital-relative coord when
