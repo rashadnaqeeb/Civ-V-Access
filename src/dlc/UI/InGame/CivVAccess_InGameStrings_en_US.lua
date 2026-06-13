@@ -1277,6 +1277,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"] = "Diplomacy"
 -- ally with against us.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_DENOUNCE"] = "Denounce"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_COOP_WAR"] = "Coop war target"
+-- Vox Populi share-approach picker (Discussion button 11): which third party
+-- to share your diplomatic approach toward.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_SHARE_APPROACH"] = "Share approach toward"
 -- Great-work splash (archaeology / wonder / cultural-victory completion).
 -- Title is either the great work's artist or the "written artifact" label;
 -- description and quote come from GameInfo.GreatWorks.

@@ -175,10 +175,22 @@ end
 
 local LEADER_PANEL_SUB_NAME = "DiscussionDialog/LeaderPanel"
 
+-- The LeaderPanel opens in two modes: co-op war (Button10, and vanilla's own
+-- co-op-war button) lists third parties valid to declare war on; share-approach
+-- (Button11, VP only) lists third parties valid to share an approach toward.
+-- The vendor's mode flag is an unreadable upvalue, so the button that opens the
+-- panel sets the mode here before the overlay is detected. War is the default,
+-- correct on vanilla and for Button10.
+local WAR_MODE = {
+    validator = IsWarAgainstThirdPartyPlayerValid,
+    titleKey = "TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_COOP_WAR",
+}
+local leaderPanelMode = WAR_MODE
+
 local function buildLeaderItems()
     local items = {}
     for iPlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
-        if IsWarAgainstThirdPartyPlayerValid(iPlayer) then
+        if leaderPanelMode.validator(iPlayer) then
             local leaderId = iPlayer
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = Players[iPlayer]:GetName(),
@@ -202,7 +214,7 @@ local function pushLeaderPanelSub()
     end
     local sub = BaseMenu.create({
         name = LEADER_PANEL_SUB_NAME,
-        displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_COOP_WAR"),
+        displayName = Text.key(leaderPanelMode.titleKey),
         escapePops = true,
         items = items,
     })
@@ -271,7 +283,24 @@ local buttonFns = {
     OnButton8,
 }
 
-local function makeButtonItem(idx)
+-- Vox Populi adds three response buttons: 9 Move Troops (an immediate diplo
+-- event, no panel), 10 third-party Declare War, and 11 Share Approach (both
+-- open the LeaderPanel). The controls and handlers are absent on vanilla.
+local SHARE_MODE = nil
+if Controls.Button9 ~= nil then
+    buttonFns[9] = OnButton9
+    buttonFns[10] = OnButton10
+    buttonFns[11] = OnButton11
+    SHARE_MODE = {
+        validator = IsShareApproachOnThirdPartyPlayerValid,
+        titleKey = "TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_SHARE_APPROACH",
+    }
+end
+
+-- panelMode is the LeaderPanel mode this button opens (war by default); every
+-- press sets it before afterActivate detects the overlay, so a stale mode from
+-- a prior press can't mislabel or mis-enumerate the panel.
+local function makeButtonItem(idx, panelMode)
     local labelCtrlName = "Button" .. idx .. "Label"
     return BaseMenuItems.Button({
         controlName = "Button" .. idx,
@@ -283,6 +312,7 @@ local function makeButtonItem(idx)
         end,
         tooltipFn = readTooltip,
         activate = function()
+            leaderPanelMode = panelMode or WAR_MODE
             buttonFns[idx]()
             afterActivate()
         end,
@@ -302,18 +332,25 @@ local items = {
     makeButtonItem(6),
     makeButtonItem(7),
     makeButtonItem(8),
-    -- BackButton is the only widget visible in DIPLO_UI_STATE_BLANK_DISCUSSION
-    -- (AI acknowledging an accepted offer with "That deal will work" and the
-    -- like). Without it as a navigable item the menu has zero items in that
-    -- state and the user can only exit via Esc fall-through.
-    BaseMenuItems.Button({
-        controlName = "BackButton",
-        textKey = "TXT_KEY_BACK_BUTTON",
-        activate = function()
-            OnBack()
-        end,
-    }),
 }
+-- VP buttons 9-11 (engine owns per-state visibility, like 1-8). 11 opens the
+-- LeaderPanel in share-approach mode; 9 and 10 default to war mode.
+if Controls.Button9 ~= nil then
+    items[#items + 1] = makeButtonItem(9)
+    items[#items + 1] = makeButtonItem(10)
+    items[#items + 1] = makeButtonItem(11, SHARE_MODE)
+end
+-- BackButton is the only widget visible in DIPLO_UI_STATE_BLANK_DISCUSSION
+-- (AI acknowledging an accepted offer with "That deal will work" and the
+-- like). Without it as a navigable item the menu has zero items in that
+-- state and the user can only exit via Esc fall-through.
+items[#items + 1] = BaseMenuItems.Button({
+    controlName = "BackButton",
+    textKey = "TXT_KEY_BACK_BUTTON",
+    activate = function()
+        OnBack()
+    end,
+})
 
 local handler = BaseMenu.install(ContextPtr, {
     name = "DiscussionDialog",

@@ -246,6 +246,39 @@ buildTakeItems = function()
             pushBullyConfirm()
         end,
     })
+    -- Deny Quest Influence toggle (Vox Populi): flips whether this city-state's
+    -- quest influence award is refused, then closes the take menu back to root.
+    -- Always present under VP (a toggle, never disabled); nil on vanilla.
+    if isVisible("DenyInfluenceButton") then
+        items[#items + 1] = BaseMenuItems.Button({
+            controlName = "DenyInfluenceButton",
+            labelFn = function()
+                return Controls.DenyInfluenceLabel:GetText()
+            end,
+            tooltipFn = function()
+                return Controls.DenyInfluenceButton:GetToolTipString()
+            end,
+            activate = function()
+                OnNoQuestInfluenceButtonClicked()
+                mainHandler.setItems(buildRootItems())
+                mainHandler.refresh()
+            end,
+        })
+    end
+    -- Forced Annex (Vox Populi): a bully escalation that takes the city-state's
+    -- city. Routes through the same BullyConfirm overlay as gold / unit tribute.
+    if isVisible("BullyAnnexButton") then
+        items[#items + 1] = actionRow({
+            button = "BullyAnnexButton",
+            label = "BullyAnnexLabel",
+            anim = "BullyAnnexAnim",
+            activate = function()
+                OnBullyAnnexButtonClicked()
+                mainHandler.setItems(buildRootItems())
+                pushBullyConfirm()
+            end,
+        })
+    end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "ExitTakeButton",
         textKey = "TXT_KEY_BACK_BUTTON",
@@ -262,10 +295,31 @@ buildRootItems = function()
     local items = {}
 
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_STATUS", "StatusInfo", "StatusInfo")
+    -- Married indicator (Vox Populi): a non-interactive status shown only
+    -- while married. Self-describing text ("Married"); no header.
+    if isVisible("MarriedButton") then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                return Controls.MarriedButton:GetText()
+            end,
+            tooltipFn = function()
+                return Controls.MarriedButton:GetToolTipString()
+            end,
+        })
+    end
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_PERSONALITY", "PersonalityInfo", "PersonalityInfo")
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_TRAIT", "TraitInfo", "TraitInfo")
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_QUESTS", "QuestInfo", "QuestInfo", activateQuestInfo)
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_ALLIED_WITH", "AllyText", "AllyText")
+    -- Contender and Protected By (Vox Populi info rows). Contender is the
+    -- runner-up suitor, so it sits next to Allied With. Both self-gate on
+    -- control presence (nil on vanilla).
+    if isVisible("ContenderInfo") then
+        items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_LABEL_CONTENDER", "ContenderInfo", "ContenderInfo")
+    end
+    if isVisible("ProtectInfo") then
+        items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_PROTECTED_BY", "ProtectInfo", "ProtectInfo")
+    end
     if isVisible("ResourcesInfo") then
         items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_RESOURCES", "ResourcesInfo", "ResourcesInfo")
     end
@@ -359,6 +413,18 @@ buildRootItems = function()
             anim = "BuyoutAnim",
             activate = function()
                 OnBuyoutButtonClicked()
+            end,
+        })
+    end
+    -- Marriage (Vox Populi): a permanent-alliance buyout. OnMarriageButtonClicked
+    -- dequeues the popup on success, like Buyout, so no rebuild is needed.
+    if isVisible("MarriageButton") then
+        items[#items + 1] = actionRow({
+            button = "MarriageButton",
+            label = "MarriageLabel",
+            anim = "MarriageAnim",
+            activate = function()
+                OnMarriageButtonClicked()
             end,
         })
     end

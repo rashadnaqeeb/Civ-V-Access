@@ -93,6 +93,67 @@ local function onAILeaderMessage(iPlayer)
 end
 Events.AILeaderMessage.Add(onAILeaderMessage)
 
+local items = {}
+
+-- War score (Vox Populi): a read-only findable line carrying the score and
+-- the engine's peace-treaty-type explanation tooltip. The visibility control
+-- gates navigation to while we are at war (the engine hides WarScore
+-- otherwise); the control is absent on vanilla, so the line never appears
+-- there. It leads the list so it is the first thing reached at war.
+if Controls.WarScore ~= nil then
+    items[#items + 1] = BaseMenuItems.Text({
+        labelFn = function()
+            return Controls.WarScore:GetText()
+        end,
+        tooltipFn = function()
+            return Controls.WarScore:GetToolTipString()
+        end,
+        visibilityControlName = "WarScore",
+    })
+end
+
+-- All four buttons use labelFn so the spoken label matches whatever the
+-- engine has put on the button: live for WarButton (flips between "Declare
+-- War" and "Negotiate Peace" on WarStateChanged), locale-correct for the
+-- others without us having to track each button's TXT_KEY manually.
+items[#items + 1] = BaseMenuItems.Button({
+    controlName = "DiscussButton",
+    labelFn = function(ctrl)
+        return ctrl:GetText()
+    end,
+    activate = function()
+        OnDiscuss()
+    end,
+})
+items[#items + 1] = BaseMenuItems.Button({
+    controlName = "TradeButton",
+    labelFn = function(ctrl)
+        return ctrl:GetText()
+    end,
+    activate = function()
+        OnTrade()
+    end,
+})
+items[#items + 1] = BaseMenuItems.Button({
+    controlName = "DemandButton",
+    labelFn = function(ctrl)
+        return ctrl:GetText()
+    end,
+    activate = function()
+        OnDemand()
+    end,
+})
+items[#items + 1] = BaseMenuItems.Button({
+    controlName = "WarButton",
+    labelFn = function(ctrl)
+        return ctrl:GetText()
+    end,
+    tooltipFn = warButtonTooltip,
+    activate = function()
+        OnWarOrPeace()
+    end,
+})
+
 local handler = BaseMenu.install(ContextPtr, {
     name = "LeaderHeadRoot",
     -- Placeholder; onShow overwrites with the live leader title so each
@@ -111,50 +172,7 @@ local handler = BaseMenu.install(ContextPtr, {
             handler.displayName = tostring(title)
         end
     end,
-    items = {
-        -- All four buttons use labelFn so the spoken label matches whatever
-        -- the engine has put on the button: live for WarButton (flips
-        -- between "Declare War" and "Negotiate Peace" on WarStateChanged),
-        -- locale-correct for the others without us having to track each
-        -- button's TXT_KEY manually.
-        BaseMenuItems.Button({
-            controlName = "DiscussButton",
-            labelFn = function(ctrl)
-                return ctrl:GetText()
-            end,
-            activate = function()
-                OnDiscuss()
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "TradeButton",
-            labelFn = function(ctrl)
-                return ctrl:GetText()
-            end,
-            activate = function()
-                OnTrade()
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "DemandButton",
-            labelFn = function(ctrl)
-                return ctrl:GetText()
-            end,
-            activate = function()
-                OnDemand()
-            end,
-        }),
-        BaseMenuItems.Button({
-            controlName = "WarButton",
-            labelFn = function(ctrl)
-                return ctrl:GetText()
-            end,
-            tooltipFn = warButtonTooltip,
-            activate = function()
-                OnWarOrPeace()
-            end,
-        }),
-    },
+    items = items,
 })
 
 -- Re-read the preamble when a new AILeaderMessage updates mood / speech
