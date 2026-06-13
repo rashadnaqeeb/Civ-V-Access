@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Loading a multiplayer save no longer stalls the turn when units have queued moves.
+
 ## [1.4.3] - 2026-06-11
 
 New Features and improvements:

@@ -15,6 +15,13 @@
 #include "../CvMinorCivAI.h"
 #include "../CvUnitCombat.h"
 
+// CIVVACCESS: scratch buffer holding the most recent Unit:GeneratePath
+// result so Unit:GetPath can read it back, WITHOUT writing the unit's
+// m_kLastPath cache. See lGeneratePath for why touching that cache is
+// unsafe. Single-threaded Lua access: a GeneratePath call fully populates
+// this before the paired GetPath call reads it.
+static CvPathNodeArray s_kCivVAccessPath;
+
 //Utility macro for registering methods
 #define Method(Name)			\
 	lua_pushcclosure(L, l##Name, 0);	\
@@ -569,10 +576,24 @@ int CvLuaUnit::lGetPathEndTurnPlot(lua_State* L)
 //------------------------------------------------------------------------------
 //bool generatePath(CyPlot* pToPlot, int iFlags = 0, bool bReuse = false, int* piPathTurns = NULL);
 //
-// CIVVACCESS: Firaxis shipped the body as luaL_error("NYI"). Engine
-// CvUnit::GeneratePath is fully implemented; callers run the search via
-// this method and read back the populated nodes via Unit:GetPath().
-// Returns (bool reachable, int pathTurns).
+// CIVVACCESS: Firaxis shipped the body as luaL_error("NYI"). Runs the unit
+// pathfinder from the unit's current plot to pkPlot and stashes the result
+// in s_kCivVAccessPath for Unit:GetPath(). Returns (bool reachable, int
+// pathTurns).
+//
+// Critically, this does NOT call CvUnit::GeneratePath, even though that
+// method computes the same path: it also writes the unit's m_kLastPath and
+// m_uiLastPathCacheDest, the very cache the engine's own mission processing
+// reuses (CvUnit::UpdatePathCache reuses a non-empty cache in
+// UNITFLAG_EVALUATING_MISSION mode rather than recomputing). A navigation /
+// preview / surveyor query on a unit that has a queued move would overwrite
+// that cache, and the engine would then resolve the queued move against our
+// query's path -- stranding the unit busy and, in multiplayer, wedging the
+// simultaneous turn (each client corrupts independently, so they desync).
+// We run the search on the shared pathfinder and copy from its last node,
+// exactly as ComputePath does, leaving the unit's cache untouched. No caller
+// reads the per-node fog flags that CvUnit::GeneratePath annotates after the
+// copy; GetPath recomputes `revealed` itself.
 int CvLuaUnit::lGeneratePath(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
@@ -582,8 +603,26 @@ int CvLuaUnit::lGeneratePath(lua_State* L)
 	// Firaxis 0/1 convention rejects booleans with "number expected".
 	const bool bReuse = lua_toboolean(L, 4) != 0;
 
+	CvTwoLayerPathFinder& kPathFinder = GC.getPathFinder();
+	const bool bResult = pkPlot && kPathFinder.GenerateUnitPath(
+		pkUnit,
+		pkUnit->getX(), pkUnit->getY(),
+		pkPlot->getX(), pkPlot->getY(),
+		iFlags, bReuse);
+
+	s_kCivVAccessPath.clear();
 	int iPathTurns = 0;
-	const bool bResult = pkPlot && pkUnit->GeneratePath(pkPlot, iFlags, bReuse, &iPathTurns);
+	if(bResult)
+	{
+		CvAStar::CopyPath(kPathFinder.GetLastNode(), s_kCivVAccessPath);
+		// CopyPath stores destination-first; the destination node's m_iData2
+		// is the leg's total turn count (matches CvUnit::GeneratePath's
+		// piPathTurns assignment), so "turns=1" means it arrives this turn.
+		if(s_kCivVAccessPath.size() > 0)
+		{
+			iPathTurns = s_kCivVAccessPath.front().m_iData2;
+		}
+	}
 
 	lua_pushboolean(L, bResult);
 	lua_pushinteger(L, iPathTurns);
@@ -603,7 +642,9 @@ int CvLuaUnit::lGeneratePath(lua_State* L)
 int CvLuaUnit::lGetPath(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-	const CvPathNodeArray& kNodes = pkUnit->GetPathNodeArray();
+	// CIVVACCESS: read the scratch buffer lGeneratePath filled, not the
+	// unit's m_kLastPath (which we deliberately no longer touch).
+	const CvPathNodeArray& kNodes = s_kCivVAccessPath;
 	const int iCount = (int)kNodes.size();
 	const TeamTypes eTeam = pkUnit->getTeam();
 	const bool bDebug = GC.getGame().isDebugMode();
