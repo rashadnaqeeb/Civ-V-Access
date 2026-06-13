@@ -1,8 +1,9 @@
--- Culture Overview accessibility (Ctrl+C). Wraps the engine popup as a four-tab
--- TabbedShell. Tabs 1 and 2 are flat BaseMenu lists where the per-row data is
--- rich enough that drill-in is the natural shape; tabs 3 and 4 are BaseTables
--- because the engine renders both as multi-column sortable tables and parity
--- is best preserved by mirroring that shape.
+-- Culture Overview accessibility (Ctrl+C). Wraps the engine popup as a
+-- TabbedShell of four tabs (five on Vox Populi). Tabs 1 and 2 are flat
+-- BaseMenu lists where the per-row data is rich enough that drill-in is the
+-- natural shape; tabs 3 through 5 are BaseTables because the engine renders
+-- them as multi-column sortable tables and parity is best preserved by
+-- mirroring that shape.
 --
 --   Your Culture     -- per-city Group: name, culture/turn, tourism/turn, GW
 --                       filled/total, damage. Drills into the city's GW-
@@ -61,6 +62,19 @@
 --                       does not reset g_iSelectedPlayerID on popup
 --                       close, so a sighted player's perspective pick
 --                       persists across reopen and we mirror that.
+--                       On VP a topItem above the columns toggles the
+--                       whole table between the influence the perspective
+--                       exerts on others (default) and the influence
+--                       others exert on the perspective (VP's by/from
+--                       mode); its line folds in the perspective's output
+--                       metric (tourism in the "by" view, culture in the
+--                       "from" view). Absent on vanilla.
+--   Historic Events  -- VP only. BaseTable of the tourism each historic-
+--                       event category has generated, plus one row per
+--                       active trade route; tourism is the sole sortable
+--                       column. Event count and culture / tourism per turn
+--                       are spoken on tab entry. Gated out on vanilla,
+--                       which has no historic-events system.
 --
 -- Initial tab is Your Culture (matches the engine's landing tab).
 --
@@ -104,6 +118,13 @@ local m_gwMoveSource = nil
 local m_swapTheirItem = -1
 local m_swapTradingPartner = -1
 
+-- Tab 4 (Player Influence) direction, VP only. 0 = influence the perspective
+-- exerts on others (the vanilla-equivalent view); 1 = influence others exert
+-- on the perspective (VP's g_CurrentInfluenceMode "from" view). The toggle is
+-- a CP-gated topItem; on vanilla the topItem is absent and the mode stays 0.
+-- Reset to 0 on every open.
+local m_influenceMode = 0
+
 -- Tab handles, set during install. onShow rebuilds each tab's items via
 -- the menu accessor. Module-level so the SerialEvent*Dirty hooks can
 -- refresh tabs mid-screen.
@@ -111,6 +132,8 @@ local m_yourCultureTab
 local m_swapTab
 local m_victoryTab
 local m_influenceTab
+-- VP only; nil on vanilla (gated on EngineData.supportsHistoricEvents).
+local m_historicTab
 
 -- Forward declaration. Tab 2's pulldown onSelected and foreign-offering
 -- activate both rebuild the tab to refresh the trade item's state-aware
@@ -1207,13 +1230,30 @@ local function switchPerspectiveTo(targetID)
     )
 end
 
+-- Resolve the (source player, other player ID, other player) triple for the
+-- current direction. Mode 0 reads the influence the perspective exerts on the
+-- row civ (source = perspective, other = row); mode 1 flips it to the
+-- influence the row civ exerts on the perspective. Every influence getter is
+-- called on the source with the other ID as its argument, so flipping the
+-- direction is just swapping which side each is.
+local function influencePair(targetID)
+    if m_influenceMode == 1 then
+        return Players[targetID], g_iSelectedPlayerID, Players[g_iSelectedPlayerID]
+    end
+    return Players[g_iSelectedPlayerID], targetID, Players[targetID]
+end
+
+local function influenceLevelOf(targetID)
+    local src, otherID = influencePair(targetID)
+    return src:GetInfluenceLevel(otherID)
+end
+
 local function influenceLevelCell(targetID)
-    return influenceLevelText(Players[g_iSelectedPlayerID]:GetInfluenceLevel(targetID))
+    return influenceLevelText(influenceLevelOf(targetID))
 end
 
 local function influenceLevelTooltip(targetID)
-    local level = Players[g_iSelectedPlayerID]:GetInfluenceLevel(targetID)
-    local key = levelBonusKey(level)
+    local key = levelBonusKey(influenceLevelOf(targetID))
     if key == nil then
         return nil
     end
@@ -1221,13 +1261,12 @@ local function influenceLevelTooltip(targetID)
 end
 
 local function influencePercent(targetID)
-    local pSel = Players[g_iSelectedPlayerID]
-    local pTgt = Players[targetID]
-    local culture = pTgt:GetJONSCultureEverGenerated()
+    local src, otherID, other = influencePair(targetID)
+    local culture = other:GetJONSCultureEverGenerated()
     if culture == 0 then
         return 0
     end
-    return pSel:GetInfluenceOn(targetID) / culture
+    return src:GetInfluenceOn(otherID) / culture
 end
 
 local function influencePercentCell(targetID)
@@ -1235,37 +1274,46 @@ local function influencePercentCell(targetID)
     return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_CELL", pct)
 end
 
+-- Decomposition tooltip. The numerator is the source's influence (tourism) on
+-- the other; the denominator is the other's lifetime culture. The "by" view
+-- reads it from the perspective's standpoint (your tourism / their culture);
+-- the "from" view flips the possessives (their tourism / your culture).
 local function influencePercentTooltip(targetID)
-    local pSel = Players[g_iSelectedPlayerID]
-    local pTgt = Players[targetID]
+    local src, otherID, other = influencePair(targetID)
+    local key = m_influenceMode == 1 and "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP_FROM"
+        or "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP"
     return Text.format(
-        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP",
-        formatNumber(pSel:GetInfluenceOn(targetID)),
-        formatNumber(pTgt:GetJONSCultureEverGenerated())
+        key,
+        formatNumber(src:GetInfluenceOn(otherID)),
+        formatNumber(other:GetJONSCultureEverGenerated())
     )
+end
+
+local function modifierValue(targetID)
+    local src, otherID = influencePair(targetID)
+    return src:GetTourismModifierWith(otherID)
 end
 
 local function modifierCell(targetID)
-    return Text.format(
-        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIER_CELL",
-        formatSigned(Players[g_iSelectedPlayerID]:GetTourismModifierWith(targetID))
-    )
+    return Text.format("TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIER_CELL", formatSigned(modifierValue(targetID)))
 end
 
 local function modifierTooltip(targetID)
-    local tt = Players[g_iSelectedPlayerID]:GetTourismModifierWithTooltip(targetID)
+    local src, otherID = influencePair(targetID)
+    local tt = src:GetTourismModifierWithTooltip(otherID)
     if tt == nil or tt == "" then
         return nil
     end
     return tt
 end
 
-local function tourismRateCell(targetID)
-    return formatSigned(EngineData.influenceTourismPerTurn(Players[g_iSelectedPlayerID], targetID))
+local function tourismRateSortKey(targetID)
+    local src, otherID = influencePair(targetID)
+    return EngineData.influenceTourismPerTurn(src, otherID)
 end
 
-local function tourismRateSortKey(targetID)
-    return EngineData.influenceTourismPerTurn(Players[g_iSelectedPlayerID], targetID)
+local function tourismRateCell(targetID)
+    return formatSigned(tourismRateSortKey(targetID))
 end
 
 -- Trend cell. The engine special-cases rising-but-unreachable (turns to
@@ -1273,13 +1321,13 @@ end
 -- as static (a Dominant civ can't gain a level, so the rising trend is
 -- not actionable). We mirror both gates from CultureOverview.lua:2046-2049.
 local function trendCell(targetID)
-    local pSel = Players[g_iSelectedPlayerID]
-    local trend = pSel:GetInfluenceTrend(targetID)
+    local pSel, otherID = influencePair(targetID)
+    local trend = pSel:GetInfluenceTrend(otherID)
     if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING then
-        if pSel:GetTurnsToInfluential(targetID) == 999 then
+        if pSel:GetTurnsToInfluential(otherID) == 999 then
             return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY")
         end
-        if pSel:GetInfluenceLevel(targetID) >= InfluenceLevelTypes.INFLUENCE_LEVEL_DOMINANT then
+        if pSel:GetInfluenceLevel(otherID) >= InfluenceLevelTypes.INFLUENCE_LEVEL_DOMINANT then
             return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_STATIC")
         end
         return Text.key("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING")
@@ -1296,16 +1344,16 @@ end
 -- at Dominant collapses to 0 (the engine treats it as no movement; see
 -- the level cap in the engine's sort-rank assignment at line 2049).
 local function trendSortKey(targetID)
-    local pSel = Players[g_iSelectedPlayerID]
-    local trend = pSel:GetInfluenceTrend(targetID)
+    local pSel, otherID = influencePair(targetID)
+    local trend = pSel:GetInfluenceTrend(otherID)
     if trend == InfluenceLevelTrend.INFLUENCE_TREND_FALLING then
         return -1
     end
     if trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING then
-        if pSel:GetTurnsToInfluential(targetID) == 999 then
+        if pSel:GetTurnsToInfluential(otherID) == 999 then
             return 1
         end
-        if pSel:GetInfluenceLevel(targetID) >= InfluenceLevelTypes.INFLUENCE_LEVEL_DOMINANT then
+        if pSel:GetInfluenceLevel(otherID) >= InfluenceLevelTypes.INFLUENCE_LEVEL_DOMINANT then
             return 0
         end
         return 2
@@ -1316,17 +1364,51 @@ end
 -- Trend tooltip: estimated turns to Influential, gated on the same
 -- conditions the engine uses (rising trend, sub-Influential, reachable).
 local function trendTooltip(targetID)
-    local pSel = Players[g_iSelectedPlayerID]
-    local trend = pSel:GetInfluenceTrend(targetID)
-    local turns = pSel:GetTurnsToInfluential(targetID)
+    local pSel, otherID = influencePair(targetID)
+    local trend = pSel:GetInfluenceTrend(otherID)
+    local turns = pSel:GetTurnsToInfluential(otherID)
     if
         trend == InfluenceLevelTrend.INFLUENCE_TREND_RISING
         and turns ~= 999
-        and pSel:GetInfluenceLevel(targetID) < InfluenceLevelTypes.INFLUENCE_LEVEL_INFLUENTIAL
+        and pSel:GetInfluenceLevel(otherID) < InfluenceLevelTypes.INFLUENCE_LEVEL_INFLUENTIAL
     then
         return Text.formatPlural("TXT_KEY_CIVVACCESS_CO_INFLUENCE_TURNS_TO", turns, turns)
     end
     return nil
+end
+
+-- Direction toggle (VP only). Lives on the tab's topItem: the line states the
+-- current direction and folds in the perspective's own output metric -- the
+-- number VP shows in its header, which is tourism in the "by" view and culture
+-- in the "from" view (incoming influence is measured against your culture).
+-- The perspective can be any met civ, so it is named rather than spoken as
+-- "you". Read live on every landing.
+local function influenceToggleLabel()
+    local persp = civDisplayName(Players[g_iSelectedPlayerID])
+    if m_influenceMode == 1 then
+        return Text.format(
+            "TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_FROM",
+            persp,
+            Players[g_iSelectedPlayerID]:GetTotalJONSCulturePerTurn()
+        )
+    end
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_BY",
+        persp,
+        EngineData.tourism(Players[g_iSelectedPlayerID])
+    )
+end
+
+-- Flip the direction and re-speak the new state. The cell accessors read
+-- m_influenceMode live, so the next nav reflects the flip with no rebuild;
+-- BaseTable re-sorts on the next nav if a sort column is active.
+local function toggleInfluenceMode()
+    if m_influenceMode == 0 then
+        m_influenceMode = 1
+    else
+        m_influenceMode = 0
+    end
+    SpeechPipeline.speakInterrupt(influenceToggleLabel())
 end
 
 local function buildInfluenceColumns()
@@ -1344,9 +1426,7 @@ local function buildInfluenceColumns()
         {
             name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_LEVEL",
             getCell = influenceLevelCell,
-            sortKey = function(targetID)
-                return Players[g_iSelectedPlayerID]:GetInfluenceLevel(targetID)
-            end,
+            sortKey = influenceLevelOf,
             getTooltip = influenceLevelTooltip,
         },
         {
@@ -1358,9 +1438,7 @@ local function buildInfluenceColumns()
         {
             name = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_COL_MODIFIER",
             getCell = modifierCell,
-            sortKey = function(targetID)
-                return Players[g_iSelectedPlayerID]:GetTourismModifierWith(targetID)
-            end,
+            sortKey = modifierValue,
             getTooltip = modifierTooltip,
         },
         {
@@ -1378,11 +1456,104 @@ local function buildInfluenceColumns()
 end
 
 local function buildInfluenceTab()
-    return BaseTable.create({
+    local spec = {
         tabName = "TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE",
         columns = buildInfluenceColumns(),
         rebuildRows = rebuildInfluenceRows,
         rowLabel = influenceRowLabel,
+    }
+    -- The by/from direction toggle is a CP/VP affordance; vanilla's influence
+    -- screen has only the outgoing view, so the topItem is gated on the CP DLL
+    -- being present (the sanctioned inline capability probe). m_influenceMode
+    -- stays 0 on vanilla, so every cell reads the outgoing direction unchanged.
+    if Game.IsCustomModOption ~= nil then
+        spec.topItem = {
+            labelFn = influenceToggleLabel,
+            onActivate = toggleInfluenceMode,
+            helpEntry = {
+                keyLabel = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_KEY",
+                description = "TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_DESC",
+            },
+        }
+    end
+    return BaseTable.create(spec)
+end
+
+-- ===== Tab 5 (Historic Events, VP only) ================================
+
+-- The whole tab rides EngineData.historicEvents, which is nil on vanilla
+-- (the tab is gated out at install via supportsHistoricEvents) and a live
+-- model on VP. Re-queried on every nav / entry per the no-cache rule.
+local function historicModel()
+    return EngineData.historicEvents(activePlayer())
+end
+
+local function rebuildHistoricRows()
+    local model = historicModel()
+    if model == nil then
+        return {}
+    end
+    return model.rows
+end
+
+-- Event-category rows reuse VP's own TXT_KEY_CO_<type> name; trade-route rows
+-- read from city to city, with the domain word distinguishing land from sea
+-- (VP's sea row drops the destination, but we keep it -- more useful spoken).
+local function historicRowLabel(row)
+    if row.kind == "trade" then
+        local key = row.domain == "sea" and "TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_SEA"
+            or "TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_LAND"
+        return Text.format(key, row.fromCity, row.toCity)
+    end
+    return Text.key("TXT_KEY_CO_" .. row.typeKey)
+end
+
+local function historicTourismCell(row)
+    return tostring(row.tourism)
+end
+
+-- Event-category rows carry VP's explanatory tooltip; trade-route rows have
+-- no detail beyond the route already named in the label.
+local function historicTooltip(row)
+    if row.kind == "event" then
+        return Text.key("TXT_KEY_CO_" .. row.typeKey .. "_TT")
+    end
+    return nil
+end
+
+local function historicEntrySummary()
+    local model = historicModel()
+    if model == nil then
+        return nil
+    end
+    return Text.formatPlural(
+        "TXT_KEY_CIVVACCESS_CO_HISTORIC_SUMMARY",
+        model.totalEvents,
+        model.totalEvents,
+        model.culturePerTurn,
+        model.tourismPerTurn
+    )
+end
+
+local function buildHistoricTab()
+    return BaseTable.create({
+        tabName = "TXT_KEY_CIVVACCESS_CO_TAB_HISTORIC",
+        columns = {
+            {
+                name = "TXT_KEY_CIVVACCESS_CO_HISTORIC_COL_TOURISM",
+                getCell = historicTourismCell,
+                sortKey = function(row)
+                    return row.tourism
+                end,
+                getTooltip = historicTooltip,
+            },
+        },
+        rebuildRows = rebuildHistoricRows,
+        rowLabel = historicRowLabel,
+        entrySummaryFn = historicEntrySummary,
+        -- Most-tourism-first is the useful ordering for speech; VP defaults to
+        -- name-ascending, but the single data column is tourism here.
+        defaultSort = { column = 1, ascending = false },
     })
 end
 
@@ -1413,10 +1584,17 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
     m_swapTab = makeTab("TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS")
     m_victoryTab = buildVictoryTab()
     m_influenceTab = buildInfluenceTab()
+    local tabs = { m_yourCultureTab, m_swapTab, m_victoryTab, m_influenceTab }
+    -- Historic Events is a VP-only tab; vanilla has no historic-events system,
+    -- so the tab is appended only when the engine supports it.
+    if EngineData.supportsHistoricEvents() then
+        m_historicTab = buildHistoricTab()
+        tabs[#tabs + 1] = m_historicTab
+    end
     TabbedShell.install(ContextPtr, {
         name = "CultureOverview",
         displayName = Text.key("TXT_KEY_CULTURE_OVERVIEW"),
-        tabs = { m_yourCultureTab, m_swapTab, m_victoryTab, m_influenceTab },
+        tabs = tabs,
         initialTabIndex = 1,
         priorInput = priorInput,
         priorShowHide = priorShowHide,
@@ -1430,6 +1608,7 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
             m_gwMoveSource = nil
             m_swapTheirItem = -1
             m_swapTradingPartner = -1
+            m_influenceMode = 0
             -- Force the engine's per-type swap pulldowns
             -- (YourWriting/Art/Artifact) to populate even when the user
             -- doesn't visually land on the SwapGreatWorks panel. priorShowHide

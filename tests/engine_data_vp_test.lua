@@ -940,6 +940,124 @@ function M.test_vanilla_vassal_info_is_empty()
     T.eq(#info.vassals, 0)
 end
 
+-- Historic Events is a VP-only screen, so the vanilla seam reports no support
+-- and returns nil -- the wrapper never builds the tab on vanilla.
+function M.test_vanilla_historic_events_unsupported()
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.supportsHistoricEvents(), false)
+    T.eq(vanilla.historicEvents({}), nil)
+end
+
+-- The VP body mirrors RefreshHistoricEvents: an event-category row for each
+-- HistoricEventType with positive tourism (zero-tourism categories dropped),
+-- and the two trade pseudo-types fanned out to one row per active trade route
+-- whose destination is a met major, keyed on the origin city. Culture and
+-- tourism per turn floor their times-100 getters.
+function M.test_vp_historic_events_builds_event_and_trade_rows()
+    local vp, env = loadVPWithFork()
+    env.DomainTypes = { DOMAIN_LAND = 0, DOMAIN_SEA = 1 }
+    env.GameInfo = {
+        HistoricEventTypes = function()
+            local rows = {
+                { ID = 1, Type = "HISTORIC_EVENT_WONDER" },
+                { ID = 2, Type = "HISTORIC_EVENT_GOLDEN_AGE" },
+                { ID = 3, Type = "HISTORIC_EVENT_TRADE_LAND" },
+                { ID = 4, Type = "HISTORIC_EVENT_TRADE_SEA" },
+            }
+            local i = 0
+            return function()
+                i = i + 1
+                return rows[i]
+            end
+        end,
+    }
+    -- ToID 1 and 2 are met majors; 3 is a minor (its routes are dropped).
+    env.Players = {
+        [0] = {
+            IsMinorCiv = function()
+                return false
+            end,
+        },
+        [1] = {
+            IsMinorCiv = function()
+                return false
+            end,
+        },
+        [2] = {
+            IsMinorCiv = function()
+                return false
+            end,
+        },
+        [3] = {
+            IsMinorCiv = function()
+                return true
+            end,
+        },
+    }
+    local fromCity = {
+        GetName = function()
+            return "Rome"
+        end,
+        GetID = function()
+            return 100
+        end,
+    }
+    local player = {
+        GetNumHistoricEvents = function()
+            return 9
+        end,
+        GetTotalJONSCulturePerTurnTimes100 = function()
+            return 1234
+        end,
+        GetTourism = function()
+            return 8888
+        end,
+        GetHistoricEventTourism = function(_, id, cityID)
+            if id == 1 then
+                return 50
+            end -- wonder
+            if id == 2 then
+                return 0
+            end -- golden age (dropped)
+            if id == 3 then
+                return cityID == 100 and 12 or 0
+            end -- land trade
+            if id == 4 then
+                return cityID == 100 and 7 or 0
+            end -- sea trade
+            return 0
+        end,
+        GetTradeRoutes = function()
+            return {
+                { FromID = 0, ToID = 1, Domain = 0, FromCity = fromCity, ToCityName = "Berlin" },
+                { FromID = 0, ToID = 2, Domain = 1, FromCity = fromCity, ToCityName = "Tokyo" },
+                { FromID = 0, ToID = 3, Domain = 0, FromCity = fromCity, ToCityName = "Geneva" },
+                { FromID = 0, ToID = 0, Domain = 0, FromCity = fromCity, ToCityName = "Rome" },
+            }
+        end,
+    }
+    local model = vp.historicEvents(player)
+    T.eq(model.totalEvents, 9)
+    T.eq(model.culturePerTurn, 12, "floor(1234/100)")
+    T.eq(model.tourismPerTurn, 88, "floor(8888/100)")
+    T.eq(#model.rows, 3, "wonder + one land route + one sea route; minor and self routes dropped")
+
+    T.eq(model.rows[1].kind, "event")
+    T.eq(model.rows[1].typeKey, "HISTORIC_EVENT_WONDER")
+    T.eq(model.rows[1].tourism, 50)
+
+    T.eq(model.rows[2].kind, "trade")
+    T.eq(model.rows[2].domain, "land")
+    T.eq(model.rows[2].fromCity, "Rome")
+    T.eq(model.rows[2].toCity, "Berlin")
+    T.eq(model.rows[2].tourism, 12)
+
+    T.eq(model.rows[3].kind, "trade")
+    T.eq(model.rows[3].domain, "sea")
+    T.eq(model.rows[3].toCity, "Tokyo")
+    T.eq(model.rows[3].tourism, 7)
+end
+
 function M.test_vp_has_line_of_sight_defeats_range_and_facing_gates()
     local vp, _env = loadVPWithFork()
     local seen

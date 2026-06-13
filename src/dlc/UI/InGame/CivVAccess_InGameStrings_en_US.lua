@@ -3098,6 +3098,30 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_FALLING"] = "falling"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_STATIC"] = "static"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING"] = "rising"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY"] = "rising slowly"
+-- D28 (VP): the by/from direction toggle on the Player Influence tab. The
+-- perspective can be any met civ, so it is named rather than spoken as "you".
+-- The folded output metric is tourism in the outgoing view, culture in the
+-- incoming view (incoming influence is measured against your own culture).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_BY"] =
+    "{1_Civ} influence on others, tourism output {2_N}, enter to flip to incoming"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_FROM"] =
+    "influence on {1_Civ}, culture output {2_N}, enter to flip to outgoing"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP_FROM"] =
+    "their {1_Theirs} tourism over your {2_Yours} lifetime culture"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_KEY"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_DESC"] =
+    "Toggle between outgoing and incoming influence"
+-- D27 (VP): the Historic Events tab. Event-category names reuse VP's own
+-- TXT_KEY_CO_<type> keys; only the tab title, column, summary, and the two
+-- trade-route row formats are mod-authored.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_HISTORIC"] = "Historic Events"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_COL_TOURISM"] = "Tourism generated"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_SUMMARY"] = {
+    one = "{1_N} historic event, {2_Culture} culture per turn, {3_Tourism} tourism per turn",
+    other = "{1_N} historic events, {2_Culture} culture per turn, {3_Tourism} tourism per turn",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_LAND"] = "{1_From} to {2_To}, land trade"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_SEA"] = "{1_From} to {2_To}, sea trade"
 -- Hotkey help (BaselineHandler / map-mode help list).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Open Culture Overview"

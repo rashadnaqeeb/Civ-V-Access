@@ -543,3 +543,25 @@ end
 function EngineData.dominationController(city)
     return city:GetOwner()
 end
+
+-- Capability probe: does this engine track historic events (the Culture
+-- Overview's VP-only Historic Events tab)? Player-independent so the tab can
+-- be gated in at install time before a live player exists. Vanilla (Brave New
+-- World) has no historic-events system.
+function EngineData.supportsHistoricEvents()
+    return false
+end
+
+-- Drift read: the model behind the Culture Overview Historic Events tab. The
+-- getters (GetNumHistoricEvents, GetHistoricEventTourism) are VP-only, so the
+-- vanilla body returns nil -- the tab is never built on vanilla (gated on
+-- supportsHistoricEvents). The VP body assembles the full model. Shape:
+--   totalEvents     count of historic events the player has triggered
+--   culturePerTurn  player culture per turn (floored)
+--   tourismPerTurn  player tourism per turn (floored)
+--   rows            list of { kind = "event" | "trade", ... }:
+--     event  { typeKey = HistoricEventTypes.Type, tourism = int }
+--     trade  { domain = "land" | "sea", fromCity, toCity, tourism = int }
+function EngineData.historicEvents(player)
+    return nil
+end

@@ -704,3 +704,55 @@ end
 function EngineData.dominationController(city)
     return city:GetOwnerForDominationVictory()
 end
+
+-- Capability probe: VP tracks historic events, so the Culture Overview's
+-- Historic Events tab is built. See the vanilla file for the contract.
+function EngineData.supportsHistoricEvents()
+    return true
+end
+
+-- Drift read: the Historic Events tab model (see the vanilla file for the
+-- shape). Mirrors VP's own RefreshHistoricEvents: every HistoricEventType the
+-- player has earned tourism from becomes an event row; the two trade pseudo-
+-- types fan out to one row per active trade route whose destination is a met
+-- major (the FromCity-keyed tourism the engine credits the route). Culture and
+-- tourism per turn are floored from the times-100 getters, matching VP's
+-- header. The bindings (GetNumHistoricEvents, GetHistoricEventTourism) are
+-- VP-only; this body is only reached on the VP path (supportsHistoricEvents).
+function EngineData.historicEvents(player)
+    local out = {
+        totalEvents = player:GetNumHistoricEvents(),
+        culturePerTurn = math.floor(player:GetTotalJONSCulturePerTurnTimes100() / 100),
+        tourismPerTurn = math.floor(player:GetTourism() / 100),
+        rows = {},
+    }
+    for row in GameInfo.HistoricEventTypes() do
+        local isLand = row.Type == "HISTORIC_EVENT_TRADE_LAND"
+        local isSea = row.Type == "HISTORIC_EVENT_TRADE_SEA"
+        if isLand or isSea then
+            local routes = player:GetTradeRoutes()
+            if routes ~= nil then
+                for _, v in ipairs(routes) do
+                    local matchDomain = (isLand and v.Domain == DomainTypes.DOMAIN_LAND)
+                        or (isSea and v.Domain == DomainTypes.DOMAIN_SEA)
+                    if v.FromID ~= v.ToID and not Players[v.ToID]:IsMinorCiv() and matchDomain then
+                        out.rows[#out.rows + 1] = {
+                            kind = "trade",
+                            domain = isLand and "land" or "sea",
+                            fromCity = v.FromCity:GetName(),
+                            toCity = v.ToCityName,
+                            tourism = player:GetHistoricEventTourism(row.ID, v.FromCity:GetID()),
+                        }
+                    end
+                end
+            end
+        elseif player:GetHistoricEventTourism(row.ID) > 0 then
+            out.rows[#out.rows + 1] = {
+                kind = "event",
+                typeKey = row.Type,
+                tourism = player:GetHistoricEventTourism(row.ID),
+            }
+        end
+    end
+    return out
+end

@@ -52,6 +52,10 @@
 --   rebuildRows    fn() -> array of opaque row objects (required). Called
 --                  fresh on every nav event.
 --   rowLabel       fn(row) -> string (required). Row's primary identifier.
+--   entrySummaryFn fn() -> string | nil. Optional. Spoken (queued) on tab
+--                  entry, after the tab name and before the first cell, so a
+--                  screen-level summary line rides the activation announcement
+--                  without being a navigable row. Re-read on every entry.
 --   capturesAllInput  default true.
 --   defaultSort    {column = <1-based index>, ascending = <bool>} | nil.
 --                  Optional. When set, the table opens with that column's
@@ -539,6 +543,10 @@ function BaseTable.create(spec)
     end
     Log.check(type(spec.rebuildRows) == "function", "spec.rebuildRows required")
     Log.check(type(spec.rowLabel) == "function", "spec.rowLabel required")
+    Log.check(
+        spec.entrySummaryFn == nil or type(spec.entrySummaryFn) == "function",
+        "spec.entrySummaryFn must be a function if provided"
+    )
     if spec.topItem ~= nil then
         Log.check(type(spec.topItem) == "table", "spec.topItem must be a table")
         Log.check(type(spec.topItem.labelFn) == "function", "spec.topItem.labelFn required")
@@ -580,6 +588,7 @@ function BaseTable.create(spec)
         columns = spec.columns,
         rebuildRows = spec.rebuildRows,
         rowLabel = spec.rowLabel,
+        _entrySummaryFn = spec.entrySummaryFn,
         _topItem = spec.topItem,
         capturesAllInput = spec.capturesAllInput ~= false,
         _row = 1,
@@ -707,6 +716,14 @@ function BaseTable.create(spec)
         end
         if announce then
             SpeechPipeline.speakInterrupt(Verbosity.appendSuffix(Text.key(self.tabName), self.tabNameVerboseSuffixKey))
+            if self._entrySummaryFn ~= nil then
+                local ok, summary = pcall(self._entrySummaryFn)
+                if not ok then
+                    Log.error("BaseTable '" .. tostring(self.tabName) .. "' entrySummaryFn: " .. tostring(summary))
+                elseif summary ~= nil and summary ~= "" then
+                    SpeechPipeline.speakQueued(summary)
+                end
+            end
         end
         self._chainSpeech = true
         speakCell(self, true)
