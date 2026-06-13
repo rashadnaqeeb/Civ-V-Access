@@ -286,7 +286,7 @@ end
 -- panel's row-anchored promotion indicator.
 local function unitRowLabel(unit)
     local name = unitDisplayName(unit)
-    if unit:CanPromote() then
+    if EngineData.unitPromotionReady(unit) then
         return name .. ", " .. Text.key("TXT_KEY_CIVVACCESS_UNIT_PROMOTION_AVAILABLE")
     end
     return name
@@ -681,7 +681,7 @@ local function supplyPreamble()
     if p == nil then
         return nil
     end
-    return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF", p:GetNumUnits(), p:GetNumUnitsSupplied())
+    return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF", EngineData.supplyUsed(p), p:GetNumUnitsSupplied())
 end
 
 -- ===== Install ========================================================

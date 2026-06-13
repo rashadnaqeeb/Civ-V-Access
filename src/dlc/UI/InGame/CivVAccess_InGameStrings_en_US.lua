@@ -2374,11 +2374,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_BONUS_LIST"] = "bonus: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN"] = "they are {1_List}"
 -- Valence sections of the relationship breakdown, strongest bonus to
 -- strongest penalty. {1_List} is the comma-joined modifiers in that band.
+-- Vox Populi only (its opinion table adds the intense and moderate tiers).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_PLEASED"] = "extremely pleased by: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_PLEASED"] = "very pleased by: {1_List}"
+-- Vox Populi only.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_PLEASED"] = "moderately pleased by: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_PLEASED"] = "slightly pleased by: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_NEUTRAL"] = "neutral about: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_DISPLEASED"] = "slightly displeased about: {1_List}"
+-- Vox Populi only.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_DISPLEASED"] = "moderately displeased about: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_DISPLEASED"] = "very displeased about: {1_List}"
+-- Vox Populi only.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_DISPLEASED"] = "extremely displeased about: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "policies: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "wonders: {1_List}"
@@ -2703,6 +2711,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_TAB_HAPPINESS"] = "Happiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_TAB_RESOURCES"] = "Resources"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_POPULATION"] = "Population"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_STRENGTH"] = "Strength"
+-- Vox Populi only: the Strength column is repurposed to per-city unhappiness.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_UNHAPPINESS"] = "Unhappiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FOOD"] = "Food"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_SCIENCE"] = "Science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "Gold"
@@ -3164,6 +3174,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Open Relig
 -- column heading. {1_Religion} is the religion's localized name (custom
 -- if the founder renamed it).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER"] = "You are the founder of {1_Religion}"
+-- Vox Populi only: religion control transfers with the holy city, so the
+-- player may control a religion they did not found. Speak control, not
+-- founding.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_CONTROLLER"] = "You control the {1_Religion} religion"
 -- Belief type word with " belief" suffix. The engine's TXT_KEY_RO_BELIEF_TYPE_*
 -- ("Founder", "Follower", ...) reads as a noun about the player on its own;
 -- the suffix disambiguates that this row is a belief slot of that type.
@@ -3178,6 +3192,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_BELIEF_TYPE"] = "{1_Type} belief
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
     one = "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} city",
     other = "{1_Religion}, holy city {2_HolyCity}, founded by {3_Founder}, {4_NumCities} cities",
+}
+-- Vox Populi only: the world row attributes the religion to its current
+-- controller (holy-city owner), not its founder; VP shows the controller.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW_CONTROLLED"] = {
+    one = "{1_Religion}, holy city {2_HolyCity}, controlled by {3_Controller}, {4_NumCities} city",
+    other = "{1_Religion}, holy city {2_HolyCity}, controlled by {3_Controller}, {4_NumCities} cities",
 }
 -- Espionage Overview (BNW only). TabbedShell over the engine's
 -- BUTTONPOPUP_ESPIONAGE_OVERVIEW: tab 1 agents (flat list, drill in for

@@ -44,6 +44,14 @@ local function cursorModule()
     return civvaccess_shared.modules and civvaccess_shared.modules.Cursor
 end
 
+-- CP/VP present? Religion control transfers with the holy city under the
+-- Community Patch DLL, so the screen speaks "control" rather than "founder"
+-- wording there (the data side already branches inside EngineData; this
+-- only selects the phrasing). The sanctioned CP-display probe.
+local function isCP()
+    return Game.IsCustomModOption ~= nil
+end
+
 -- Civilopedia lookup target for a religion line. Use the underlying
 -- religion's Description text key (canonical "Christianity") rather than
 -- the custom name the founder picks ("Cult of the Wolf"), so Ctrl+I lands
@@ -89,11 +97,11 @@ local function beliefTypeText(belief)
 end
 
 local function religiousStatusText(player)
-    if player:HasCreatedReligion() then
-        return Text.format(
-            "TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER",
-            Text.key(Game.GetReligionName(player:GetReligionCreatedByPlayer()))
-        )
+    local eReligion = EngineData.ownedReligion(player)
+    if eReligion ~= -1 then
+        local key = isCP() and "TXT_KEY_CIVVACCESS_RELIGION_STATUS_CONTROLLER"
+            or "TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER"
+        return Text.format(key, Text.key(Game.GetReligionName(eReligion)))
     elseif player:HasCreatedPantheon() then
         return Text.key("TXT_KEY_RO_STATUS_CREATED_PANTHEON")
     elseif player:CanCreatePantheon(true) then
@@ -132,15 +140,17 @@ local function buildYourReligionItems()
         labelText = religiousStatusText(player),
         pediaNameFn = function()
             local p = Players[Game.GetActivePlayer()]
-            if p:HasCreatedReligion() then
-                return religionPediaName(p:GetReligionCreatedByPlayer())
+            local eReligion = EngineData.ownedReligion(p)
+            if eReligion ~= -1 then
+                return religionPediaName(eReligion)
             end
             return nil
         end,
     })
 
-    if player:HasCreatedReligion() then
-        for _, v in ipairs(Game.GetBeliefsInReligion(player:GetReligionCreatedByPlayer())) do
+    local eOwned = EngineData.ownedReligion(player)
+    if eOwned ~= -1 then
+        for _, v in ipairs(Game.GetBeliefsInReligion(eOwned)) do
             local belief = GameInfo.Beliefs[v]
             if belief ~= nil then
                 items[#items + 1] = buildBeliefRow(belief)
@@ -317,7 +327,7 @@ end
 
 local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId, activeTeamId)
     local activeTeam = Teams[activeTeamId]
-    local holyCity = Game.GetHolyCityForReligion(eReligion, founderPlayer:GetID())
+    local holyCity = EngineData.holyCityForReligion(eReligion, founderPlayer)
     local holyCityName, founderName
     if activeTeam:IsHasMet(founderPlayer:GetTeam()) then
         holyCityName = holyCity:GetName()
@@ -334,9 +344,11 @@ local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId,
     -- fine -- the count is what a sighted player would see in the engine's
     -- own row, and the drilldown is the navigable subset.
     local numCities = Game.GetNumCitiesFollowing(eReligion)
+    local rowKey = isCP() and "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW_CONTROLLED"
+        or "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"
     local label = TextFilter.filter(
         Text.formatPlural(
-            "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW",
+            rowKey,
             numCities,
             Text.key(Game.GetReligionName(eReligion)),
             Text.key(holyCityName),
@@ -374,9 +386,10 @@ local function buildWorldReligionsItems()
     local found = 0
     for iPlayer = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
         local p = Players[iPlayer]
-        if p:IsEverAlive() and p:HasCreatedReligion() then
+        local eReligion = p:IsEverAlive() and EngineData.ownedReligion(p) or -1
+        if eReligion ~= -1 then
             found = found + 1
-            items[#items + 1] = buildWorldReligionGroup(p:GetReligionCreatedByPlayer(), p, activePlayerId, activeTeamId)
+            items[#items + 1] = buildWorldReligionGroup(eReligion, p, activePlayerId, activeTeamId)
         end
     end
 
@@ -442,8 +455,9 @@ local function buildBeliefsItems()
     for iPlayer = 0, GameDefines.MAX_CIV_PLAYERS - 1 do
         local p = Players[iPlayer]
         if p:IsEverAlive() then
-            if p:HasCreatedReligion() then
-                items[#items + 1] = buildReligionBeliefGroup(p:GetReligionCreatedByPlayer())
+            local eReligion = EngineData.ownedReligion(p)
+            if eReligion ~= -1 then
+                items[#items + 1] = buildReligionBeliefGroup(eReligion)
             elseif p:HasCreatedPantheon() then
                 local row = buildPantheonBeliefRow(p, activeTeam)
                 if row ~= nil then

@@ -77,6 +77,27 @@ local function dropFirstChunk(s)
     return (s:gsub("^[^%[]*%[NEWLINE%]", "", 1))
 end
 
+-- VP / Community Patch present? VP rewrote InfoTooltipInclude with reordered
+-- signatures and a different output shape, so the helpers below branch on
+-- it. Guarded so the module still dofiles offline (Game absent), where the
+-- vanilla path is exercised.
+local function isCP()
+    return Game ~= nil and Game.IsCustomModOption ~= nil
+end
+
+-- Drop VP's leading tooltip section (the header block: name and/or cost and
+-- stat lines), keeping the body. VP joins sections with a dashed separator
+-- line ("[NEWLINE]----------------[NEWLINE]"); the cost-free surfaces want
+-- everything after the first one. A single-section output (no body) is
+-- returned unchanged.
+local function dropHeaderSection(s)
+    local _, sepEnd = s:find("%[NEWLINE%]%-%-%-%-+%[NEWLINE%]")
+    if sepEnd == nil then
+        return s
+    end
+    return s:sub(sepEnd + 1)
+end
+
 -- Per-building maintenance line, synthesized so callers can opt out of
 -- the helper's full cost+maintenance header but still surface the gold
 -- drain. Mirrors the helper's own emission at
@@ -107,9 +128,23 @@ function ProductionHelpText.buildingHelp(city, building, includeCost)
     end
     local body
     if includeCost then
+        -- bExcludeName at arg 2 on both engines; the trailing city is the
+        -- pCity slot on VP (CityView precedent) and an ignored extra on
+        -- vanilla. Full cost + maintenance header is what the chooser wants.
         body = GetHelpTextForBuilding(building.ID, true, false, false, city) or ""
     else
-        body = GetHelpTextForBuilding(building.ID, true, true, false, city) or ""
+        -- Cost-free surfaces (built buildings, queued slots) want maintenance
+        -- without the cost line. Vanilla skips both via bExcludeHeader (arg 3)
+        -- and we re-synthesize maintenance. VP dropped that flag (arg 3 is
+        -- ignored), so the same call would leave cost + maintenance in and
+        -- double the maintenance against the re-synth; use VP's
+        -- bOnlyYieldsAndEffects (arg 8), which returns the effects with no
+        -- cost and no stat lines, then re-synthesize maintenance the same way.
+        if isCP() then
+            body = GetHelpTextForBuilding(building.ID, true, nil, false, city, false, false, true) or ""
+        else
+            body = GetHelpTextForBuilding(building.ID, true, true, false, city) or ""
+        end
         local mLine = maintenanceLine(building)
         if mLine ~= nil then
             body = (body == "") and mLine or (mLine .. "[NEWLINE]" .. body)
@@ -118,24 +153,50 @@ function ProductionHelpText.buildingHelp(city, building, includeCost)
     return applyStrategyFallback(body, building)
 end
 
-function ProductionHelpText.unitHelp(_city, unit, includeCost)
+function ProductionHelpText.unitHelp(city, unit, includeCost)
     if GetHelpTextForUnit == nil or unit == nil then
         return ""
     end
-    local body = stripNamePrefix(GetHelpTextForUnit(unit.ID, false) or "")
-    if not includeCost then
-        body = dropFirstChunk(body)
+    local body
+    if isCP() then
+        -- VP added pCity (arg 3, for the city's live contributions) and
+        -- bExcludeName (arg 4); excluding the name natively avoids the prefix
+        -- strip. The cost-free surface peels VP's leading header section.
+        body = GetHelpTextForUnit(unit.ID, false, city, true) or ""
+        if not includeCost then
+            body = dropHeaderSection(body)
+        end
+    else
+        body = stripNamePrefix(GetHelpTextForUnit(unit.ID, false) or "")
+        if not includeCost then
+            body = dropFirstChunk(body)
+        end
     end
     return applyStrategyFallback(body, unit)
 end
 
-function ProductionHelpText.projectHelp(_city, project, includeCost)
+function ProductionHelpText.projectHelp(city, project, includeCost)
     if GetHelpTextForProject == nil or project == nil then
         return ""
     end
-    local body = stripNamePrefix(GetHelpTextForProject(project.ID, false) or "")
-    if not includeCost then
-        body = dropFirstChunk(body)
+    local body
+    if isCP() then
+        -- VP reordered the signature to (eProject, pCity, bGeneralInfo) and
+        -- has no exclude-name flag, so pass the city for live contributions
+        -- and peel the leading section: the name line for the cost view (cost
+        -- and name share the header section, dropped one line), the whole
+        -- header for the cost-free view.
+        body = GetHelpTextForProject(project.ID, city, false) or ""
+        if includeCost then
+            body = dropFirstChunk(body)
+        else
+            body = dropHeaderSection(body)
+        end
+    else
+        body = stripNamePrefix(GetHelpTextForProject(project.ID, false) or "")
+        if not includeCost then
+            body = dropFirstChunk(body)
+        end
     end
     return applyStrategyFallback(body, project)
 end

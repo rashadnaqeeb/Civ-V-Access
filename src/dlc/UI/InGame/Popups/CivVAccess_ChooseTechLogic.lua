@@ -216,7 +216,14 @@ function ChooseTechLogic.buildLabel(entry, player)
         parts[#parts + 1] = advisors
     end
 
-    local help = ChooseTechLogic.filterHelpText(GetHelpTextForTech(entry.techID), Text.key(entry.info.Description))
+    -- VP's GetHelpTextForTech takes (techId, isShort, playerId); the player
+    -- id tailors the prose to the civ (unique techs, era effects). Vanilla's
+    -- BNW signature is one arg and ignores the extras, so this is safe on
+    -- both. isShort false keeps the full tooltip prose.
+    local help = ChooseTechLogic.filterHelpText(
+        GetHelpTextForTech(entry.techID, false, Game.GetActivePlayer()),
+        Text.key(entry.info.Description)
+    )
     if help ~= "" then
         parts[#parts + 1] = help
     end

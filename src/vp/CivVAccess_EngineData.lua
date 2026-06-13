@@ -204,6 +204,58 @@ vanillaModelRead("unhappinessFromCity", function(player, city)
     return player:GetUnhappinessFromCityForUI(city)
 end)
 
+-- Drift read: the Soldiers demographic value (Demographics screen). VP's
+-- Demographics override scales sqrt(military might) by 5000 where vanilla
+-- uses 2000; the multiplier is hardcoded in the vendor Lua, not gated on
+-- BALANCE_VP, and a VP-state install ships that vendor copy, so the value
+-- is 5000-scaled on both CP-only and full-VP sessions. Rank is unaffected;
+-- only the spoken absolute drifts.
+function EngineData.armyDemographic(player)
+    return math.sqrt(player:GetMilitaryMight()) * 5000
+end
+
+-- Drift read: whether a unit should show the Military Overview's promotion
+-- indicator. VP's panel keys it off the raw XP threshold (its
+-- MilitaryOverview comments out CanPromote in favor of GetExperience >=
+-- ExperienceNeeded), because CanPromote also gates on movement / combat
+-- state and would hide the indicator for a unit that has the XP.
+function EngineData.unitPromotionReady(unit)
+    return unit:GetExperience() >= unit:ExperienceNeeded()
+end
+
+-- Drift read: the "supply used" count the Military Overview speaks against
+-- the supply cap. VP's panel counts only units that draw supply
+-- (GetNumUnitsToSupply), where vanilla counts every unit; the cap getter
+-- (GetNumUnitsSupplied) is shared, so only the use side crosses here.
+function EngineData.supplyUsed(player)
+    return player:GetNumUnitsToSupply()
+end
+
+-- Drift read: the real religion a player controls (Religion Overview), or
+-- -1 for none. VP transfers religion control with the holy city, so the
+-- answer is GetOwnedReligion (holy-city-keyed) rather than the founded
+-- religion: a founded-then-lost religion drops, a conquered one appears.
+-- GetOwnedReligion returns RELIGION_PANTHEON or below when the player owns
+-- no real religion; the consumer handles pantheons on a separate branch,
+-- so collapse those to -1 here.
+function EngineData.ownedReligion(player)
+    local eReligion = player:GetOwnedReligion()
+    if eReligion > ReligionTypes.RELIGION_PANTHEON then
+        return eReligion
+    end
+    return -1
+end
+
+-- Drift read: the holy city of a religion for a controlling player. VP
+-- transfers control with the holy city, so the controller may not be the
+-- founder; a founder-keyed lookup would miss. Pass NO_PLAYER (-1) to match
+-- the religion regardless of founder, as VP's own overview does
+-- (GetHolyCityForReligion(eReligion, -1)). The controller handle is unused
+-- here, kept for the vanilla body's founder-keyed lookup.
+function EngineData.holyCityForReligion(eReligion, controller)
+    return Game.GetHolyCityForReligion(eReligion, -1)
+end
+
 -- Drift read: the player's tourism output per turn. VP's getter is
 -- times-100; floor /100 mirrors VP's own TopPanel display
 -- (FormatIntegerTimes100), so the spoken rate matches the screen.

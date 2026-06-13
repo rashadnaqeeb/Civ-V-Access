@@ -213,21 +213,30 @@ local function treatyFragments(iOther)
 end
 
 -- Valence buckets for opinion modifiers, strongest bonus to strongest
--- penalty. GetOpinionTable returns each modifier already wrapped in one of
--- five [COLOR_*] tags keyed on the modifier's hidden score (the only
+-- penalty. GetOpinionTable returns each modifier already wrapped in a
+-- [COLOR_*] tag keyed on the modifier's hidden score (the only
 -- positive/negative signal the engine exposes; CvLuaPlayer.cpp
 -- lGetOpinionTable), so we bucket on that tag and label each section
--- accordingly. The raw score never reaches Lua, so five buckets is the
--- finest granularity recoverable. The engine inverts sign against valence:
--- a green (positive-text) tag is a relationship bonus, red a penalty.
+-- accordingly. The raw score never reaches Lua, so the colour tiers are
+-- the finest granularity recoverable. The engine inverts sign against
+-- valence: a positive-text tag is a relationship bonus, a negative one a
+-- penalty. VP emits nine tiers (it adds the intense and moderate cuts);
+-- vanilla emits only five of these colours (full positive/negative, fading
+-- positive/negative, grey), which map to the same labels they always had,
+-- so vanilla speech is unchanged. The intense and moderate labels only
+-- surface under VP.
 local OPINION_BUCKETS = {
+    { color = "COLOR_INTENSE_POSITIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_PLEASED" },
     { color = "COLOR_POSITIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_PLEASED" },
+    { color = "COLOR_MODERATE_POSITIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_PLEASED" },
     { color = "COLOR_FADING_POSITIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_PLEASED" },
     { color = "COLOR_GREY", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_NEUTRAL" },
     { color = "COLOR_FADING_NEGATIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_DISPLEASED" },
+    { color = "COLOR_MODERATE_NEGATIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_DISPLEASED" },
     { color = "COLOR_NEGATIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_DISPLEASED" },
+    { color = "COLOR_INTENSE_NEGATIVE_TEXT", label = "TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_DISPLEASED" },
 }
-local OPINION_NEUTRAL_BUCKET = 3
+local OPINION_NEUTRAL_BUCKET = 5
 local OPINION_BUCKET_BY_COLOR = {}
 for i, b in ipairs(OPINION_BUCKETS) do
     OPINION_BUCKET_BY_COLOR[b.color] = i
@@ -253,7 +262,10 @@ local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
         return nil
     end
 
-    local grouped = { {}, {}, {}, {}, {} }
+    local grouped = {}
+    for i = 1, #OPINION_BUCKETS do
+        grouped[i] = {}
+    end
     for _, entry in ipairs(opinions) do
         local color = entry:match("^%[(COLOR_[A-Z_]+)%]")
         local idx = (color and OPINION_BUCKET_BY_COLOR[color]) or OPINION_NEUTRAL_BUCKET

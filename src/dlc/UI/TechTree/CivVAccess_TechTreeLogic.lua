@@ -90,7 +90,10 @@ end
 -- [NEWLINE] section breaks to commas, strips markup, drops the
 -- upper-cased name prefix, and collapses dash-runs.
 local function unlocksProse(techID, techName)
-    return ChooseTechLogic.filterHelpText(GetHelpTextForTech(techID), techName)
+    -- VP's GetHelpTextForTech takes (techId, isShort, playerId); pass the
+    -- active player for civ-tailored prose. Vanilla's BNW one-arg signature
+    -- ignores the extras, so it is safe on both.
+    return ChooseTechLogic.filterHelpText(GetHelpTextForTech(techID, false, Game.GetActivePlayer()), techName)
 end
 
 -- Flat corpus for TypeAheadSearch. Each entry pairs a tech with the

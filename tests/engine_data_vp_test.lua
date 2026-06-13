@@ -509,6 +509,145 @@ function M.test_vp_plot_defense_modifier_inserts_ignore_feature_false()
     T.eq(seen.help, true)
 end
 
+-- The Soldiers demographic multiplier is the drift: VP scales sqrt(might)
+-- by 5000 where vanilla uses 2000. A wrong constant here speaks an absolute
+-- 2.5x off VP's screen (rank unaffected), a silent-value failure.
+function M.test_vp_army_demographic_uses_vp_multiplier()
+    local vp = loadVPWithFork()
+    local player = {
+        GetMilitaryMight = function()
+            return 100
+        end,
+    }
+    T.eq(vp.armyDemographic(player), math.sqrt(100) * 5000)
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.armyDemographic(player), math.sqrt(100) * 2000, "vanilla keeps the 2000 multiplier")
+end
+
+-- VP keys the Military Overview promotion indicator off the raw XP
+-- threshold, not CanPromote (which also gates on move/combat state).
+function M.test_vp_unit_promotion_ready_uses_xp_threshold()
+    local vp = loadVPWithFork()
+    local unit = {
+        CanPromote = function()
+            error("VP must not consult CanPromote for the indicator")
+        end,
+        GetExperience = function()
+            return 30
+        end,
+        ExperienceNeeded = function()
+            return 30
+        end,
+    }
+    T.truthy(vp.unitPromotionReady(unit), "XP at threshold is promotion-ready on VP")
+    local vanilla = loadSeam(VANILLA_PATH)
+    local vanillaUnit = {
+        CanPromote = function()
+            return false
+        end,
+        GetExperience = function()
+            error("vanilla must consult CanPromote, not the XP threshold")
+        end,
+    }
+    T.falsy(vanilla.unitPromotionReady(vanillaUnit), "vanilla keys off CanPromote")
+end
+
+-- VP's Supply Use counts only units that draw supply; vanilla counts all.
+function M.test_vp_supply_used_counts_supply_drawing_units()
+    local vp = loadVPWithFork()
+    local player = {
+        GetNumUnitsToSupply = function()
+            return 18
+        end,
+        GetNumUnits = function()
+            error("VP must use GetNumUnitsToSupply for supply use")
+        end,
+    }
+    T.eq(vp.supplyUsed(player), 18)
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(
+        vanilla.supplyUsed({
+            GetNumUnits = function()
+                return 25
+            end,
+        }),
+        25,
+        "vanilla counts every unit"
+    )
+end
+
+-- VP transfers religion control with the holy city, so the religion a
+-- player "has" for the overview is the owned one (GetOwnedReligion), not
+-- the founded one; pantheon-or-below collapses to -1.
+function M.test_vp_owned_religion_uses_owned_not_founded()
+    local vp, env = loadVPWithFork()
+    env.ReligionTypes = { RELIGION_PANTHEON = 0 }
+    local owner = {
+        GetOwnedReligion = function()
+            return 3
+        end,
+        HasCreatedReligion = function()
+            error("VP must read owned religion, not founded")
+        end,
+    }
+    T.eq(vp.ownedReligion(owner), 3)
+    local pantheonOnly = {
+        GetOwnedReligion = function()
+            return 0
+        end,
+    }
+    T.eq(vp.ownedReligion(pantheonOnly), -1, "pantheon-or-below collapses to none")
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(
+        vanilla.ownedReligion({
+            HasCreatedReligion = function()
+                return true
+            end,
+            GetReligionCreatedByPlayer = function()
+                return 5
+            end,
+        }),
+        5,
+        "vanilla reads the founded religion"
+    )
+    T.eq(
+        vanilla.ownedReligion({
+            HasCreatedReligion = function()
+                return false
+            end,
+        }),
+        -1
+    )
+end
+
+-- The holy-city lookup is founder-keyed on vanilla (controller is founder)
+-- but ownership-agnostic (-1) on VP, where the controller may not be the
+-- founder.
+function M.test_vp_holy_city_lookup_ignores_founder()
+    local vp, env = loadVPWithFork()
+    local seen
+    env.Game.GetHolyCityForReligion = function(eReligion, ePlayer)
+        seen = { eReligion = eReligion, ePlayer = ePlayer }
+        return "holy-city"
+    end
+    local controller = {
+        GetID = function()
+            return 4
+        end,
+    }
+    T.eq(vp.holyCityForReligion(7, controller), "holy-city")
+    T.eq(seen.ePlayer, -1, "VP must look up the religion regardless of founder")
+    local vanilla, venv = loadSeam(VANILLA_PATH)
+    venv.Game = {
+        GetHolyCityForReligion = function(_eReligion, ePlayer)
+            seen = { ePlayer = ePlayer }
+            return "vc"
+        end,
+    }
+    vanilla.holyCityForReligion(7, controller)
+    T.eq(seen.ePlayer, 4, "vanilla keys the lookup on the controlling (founder) player")
+end
+
 function M.test_vp_tourism_floors_times_100()
     local vp, _env = loadVPWithFork()
     local player = {

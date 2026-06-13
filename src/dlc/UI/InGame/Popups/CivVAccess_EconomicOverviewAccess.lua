@@ -256,6 +256,46 @@ local function cityFaith(city)
     return city:GetFaithPerTurn()
 end
 
+-- The third Cities column drifts. Vanilla shows city combat strength plus
+-- HP. VP repurposes it to per-city unhappiness: its EconomicGeneralInfo
+-- comments out the strength line in favour of GetUnhappinessAggregated and
+-- hangs the breakdown (GetCityUnhappinessBreakdown) on the row tooltip,
+-- showing HP only as a separate health bar. User call (2026-06-13): the VP
+-- column carries unhappiness only -- HP stays on the cursor and Military
+-- Overview. Both unhappiness getters are CP-only, reached only on the
+-- isCP() branch.
+local function strengthOrUnhappinessColumn()
+    if isCP() then
+        return {
+            name = "TXT_KEY_CIVVACCESS_EO_COL_UNHAPPINESS",
+            getCell = function(c)
+                return tostring(math.floor(c:GetUnhappinessAggregated()))
+            end,
+            sortKey = function(c)
+                return c:GetUnhappinessAggregated()
+            end,
+            getTooltip = function(c)
+                return c:GetCityUnhappinessBreakdown(false)
+            end,
+            enterAction = focusCity,
+            pediaName = constPedia("TXT_KEY_HAPPINESS_HEADING1_TITLE"),
+        }
+    end
+    return {
+        name = "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH",
+        getCell = function(c)
+            local maxHP = GameDefines.MAX_CITY_HIT_POINTS
+            local hpText = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - c:GetDamage(), maxHP)
+            return Text.format("TXT_KEY_CIVVACCESS_EO_DEF_CELL", math.floor(c:GetStrengthValue() / 100), hpText)
+        end,
+        sortKey = function(c)
+            return c:GetStrengthValue()
+        end,
+        enterAction = focusCity,
+        pediaName = constPedia("TXT_KEY_COMBAT_COMBATSTRENGTH_HEADING3_TITLE"),
+    }
+end
+
 -- Enter on a stat column with no more specific destination defaults to
 -- focusing the row's city on the world view. Science is the one stat with
 -- a screen of its own (the tech tree); production keeps its own commit
@@ -274,19 +314,7 @@ local function buildCityColumns()
             enterAction = focusCity,
             pediaName = constPedia("TXT_KEY_FOOD_CITYGROWTH_HEADING2_TITLE"),
         },
-        {
-            name = "TXT_KEY_CIVVACCESS_EO_COL_STRENGTH",
-            getCell = function(c)
-                local maxHP = GameDefines.MAX_CITY_HIT_POINTS
-                local hpText = Text.format("TXT_KEY_CIVVACCESS_CITY_HP_FRACTION", maxHP - c:GetDamage(), maxHP)
-                return Text.format("TXT_KEY_CIVVACCESS_EO_DEF_CELL", math.floor(c:GetStrengthValue() / 100), hpText)
-            end,
-            sortKey = function(c)
-                return c:GetStrengthValue()
-            end,
-            enterAction = focusCity,
-            pediaName = constPedia("TXT_KEY_COMBAT_COMBATSTRENGTH_HEADING3_TITLE"),
-        },
+        strengthOrUnhappinessColumn(),
         {
             name = "TXT_KEY_CIVVACCESS_EO_COL_FOOD",
             getCell = function(c)
@@ -446,11 +474,31 @@ local function tradeRoutesIncomeTooltip()
     if mod ~= 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_EGI_TRADE_ROUTE_MOD_INFO", mod)
     end
-    parts[#parts + 1] = Text.format(
-        "TXT_KEY_TRADE_ROUTE_INCOME_INFO",
-        GameDefines.TRADE_ROUTE_BASE_GOLD / 100,
-        GameDefines.TRADE_ROUTE_CITY_POP_GOLD_MULTIPLIER / 100
-    )
+    -- VP's gold-from-connections formula adds a capital-population term, so
+    -- its TXT_KEY_TRADE_ROUTE_INCOME_INFO takes four args (base, per-capital-
+    -- pop multiplier, capital pop, per-pop multiplier) where vanilla's takes
+    -- two. Calling the two-arg form against VP's deployed four-slot key would
+    -- leave its {3}/{4} placeholders spoken raw.
+    if isCP() then
+        local capitalPop = 0
+        local capital = p:GetCapitalCity()
+        if capital ~= nil then
+            capitalPop = capital:GetPopulation()
+        end
+        parts[#parts + 1] = Text.format(
+            "TXT_KEY_TRADE_ROUTE_INCOME_INFO",
+            GameDefines.TRADE_ROUTE_BASE_GOLD / 100,
+            GameDefines.TRADE_ROUTE_CAPITAL_POP_GOLD_MULTIPLIER / 100,
+            capitalPop,
+            GameDefines.TRADE_ROUTE_CITY_POP_GOLD_MULTIPLIER / 100
+        )
+    else
+        parts[#parts + 1] = Text.format(
+            "TXT_KEY_TRADE_ROUTE_INCOME_INFO",
+            GameDefines.TRADE_ROUTE_BASE_GOLD / 100,
+            GameDefines.TRADE_ROUTE_CITY_POP_GOLD_MULTIPLIER / 100
+        )
+    end
     return table.concat(parts, "[NEWLINE]")
 end
 
@@ -484,7 +532,14 @@ end
 
 local function improvementsExpenseTooltip()
     local parts = { Text.key("TXT_KEY_EO_EX_IMPROVEMENTS") }
-    local pct = activeHandicap().RouteCostPercent
+    -- The improvements maintenance handicap modifier moved fields: VP reads
+    -- ImprovementCostPercent, vanilla RouteCostPercent.
+    local pct
+    if isCP() then
+        pct = activeHandicap().ImprovementCostPercent
+    else
+        pct = activeHandicap().RouteCostPercent
+    end
     if pct ~= 100 then
         parts[#parts + 1] = Text.format("TXT_KEY_HANDICAP_MAINTENANCE_MOD", pct)
     end

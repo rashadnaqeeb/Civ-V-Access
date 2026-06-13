@@ -137,30 +137,37 @@ local pushBullyConfirm
 
 buildGiveItems = function()
     local items = {}
-    items[#items + 1] = actionRow({
-        button = "SmallGiftButton",
-        label = "SmallGift",
-        anim = "SmallGiftAnim",
-        activate = function()
-            OnSmallGold()
-        end,
-    })
-    items[#items + 1] = actionRow({
-        button = "MediumGiftButton",
-        label = "MediumGift",
-        anim = "MediumGiftAnim",
-        activate = function()
-            OnMediumGold()
-        end,
-    })
-    items[#items + 1] = actionRow({
-        button = "LargeGiftButton",
-        label = "LargeGift",
-        anim = "LargeGiftAnim",
-        activate = function()
-            OnBigGold()
-        end,
-    })
+    -- Vox Populi zeroes the gold-gift amounts (MINOR_GOLD_GIFT_* = 0) and
+    -- routes giving through the unit / tile-improvement set instead; its
+    -- OnGiveButtonClicked shows GiveStackCSD with no gold buttons. Mirror
+    -- the vendor's own gate so the three gold rows -- dead 0-gold gifts on
+    -- VP -- are dropped there while staying intact on vanilla.
+    if GameDefines.MINOR_GOLD_GIFT_LARGE ~= 0 then
+        items[#items + 1] = actionRow({
+            button = "SmallGiftButton",
+            label = "SmallGift",
+            anim = "SmallGiftAnim",
+            activate = function()
+                OnSmallGold()
+            end,
+        })
+        items[#items + 1] = actionRow({
+            button = "MediumGiftButton",
+            label = "MediumGift",
+            anim = "MediumGiftAnim",
+            activate = function()
+                OnMediumGold()
+            end,
+        })
+        items[#items + 1] = actionRow({
+            button = "LargeGiftButton",
+            label = "LargeGift",
+            anim = "LargeGiftAnim",
+            activate = function()
+                OnBigGold()
+            end,
+        })
+    end
     items[#items + 1] = actionRow({
         button = "UnitGiftButton",
         label = "UnitGift",

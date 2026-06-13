@@ -189,6 +189,56 @@ function EngineData.unhappinessFromCity(player, city)
     return player:GetUnhappinessFromCityForUI(city)
 end
 
+-- Drift read: the Soldiers demographic value (Demographics screen). Both
+-- engines scale sqrt(military might) by a flavor constant the screen never
+-- exposes; the multiplier differs (vanilla 2000, VP 5000), so the computed
+-- value crosses the seam rather than the bare constant. Rank is unaffected
+-- by the multiplier; the spoken absolute is what drifts.
+function EngineData.armyDemographic(player)
+    return math.sqrt(player:GetMilitaryMight()) * 2000
+end
+
+-- Drift read: whether a unit should show the Military Overview's promotion
+-- indicator. Vanilla keys it off CanPromote() (the engine panel's own
+-- choice); VP's panel keys it off the raw XP threshold instead, because its
+-- CanPromote also gates on movement / combat state and would hide the
+-- indicator for a unit that has the XP but cannot promote this instant.
+function EngineData.unitPromotionReady(unit)
+    return unit:CanPromote()
+end
+
+-- Drift read: the "supply used" count the Military Overview speaks against
+-- the supply cap. Vanilla counts every unit (GetNumUnits); VP counts only
+-- the units that draw supply (GetNumUnitsToSupply), matching its panel's
+-- Supply Use cell.
+function EngineData.supplyUsed(player)
+    return player:GetNumUnits()
+end
+
+-- Drift read: the real religion a player controls (Religion Overview), or
+-- -1 for none. Vanilla has no religion transfer, so the founder always
+-- controls: founded religion or nothing. VP transfers control with the
+-- holy city, so a founded-then-lost religion drops here and a conquered
+-- one appears -- GetOwnedReligion is the holy-city-keyed answer. Pantheons
+-- are excluded (the consumer handles them on a separate, engine-common
+-- branch); only a real religion id (or -1) crosses.
+function EngineData.ownedReligion(player)
+    if player:HasCreatedReligion() then
+        return player:GetReligionCreatedByPlayer()
+    end
+    return -1
+end
+
+-- Drift read: the holy city of a religion as the Religion Overview looks
+-- it up for a controlling player. Vanilla keys the lookup on the founder
+-- (the controller is the founder), so it passes the controller's id. VP
+-- transfers control, so the controller may not be the founder and a
+-- founder-keyed lookup would miss; its body passes NO_PLAYER (-1) to match
+-- the religion regardless of founder, exactly as VP's own overview does.
+function EngineData.holyCityForReligion(eReligion, controller)
+    return Game.GetHolyCityForReligion(eReligion, controller:GetID())
+end
+
 -- Drift read: the player's tourism output per turn. VP returns a times-100
 -- value where vanilla returns the plain rate, so a VP adapter divides by
 -- 100 here and every consumer keeps reading a plain rate.

@@ -41,6 +41,30 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_ProductionHelpText.lua")
 end
 
+-- Load ProductionHelpText into an isolated environment with VP detected
+-- (Game.IsCustomModOption present) and the given engine-helper stubs, so the
+-- VP-signature branches run without leaking a VP Game into the shared
+-- globals other suites read. Reads fall through to _G for Text / TextFilter
+-- / Locale loaded by setup().
+local function loadVP(stubs)
+    setup()
+    local env = setmetatable({}, { __index = _G })
+    env.Game = {
+        IsCustomModOption = function()
+            return false
+        end,
+        GetActivePlayer = function()
+            return 0
+        end,
+    }
+    for k, v in pairs(stubs or {}) do
+        env[k] = v
+    end
+    local chunk = assert(loadfile("src/dlc/UI/Shared/CivVAccess_ProductionHelpText.lua"))
+    setfenv(chunk, env)
+    return chunk()
+end
+
 -- ---------------------------------------------------------------------
 -- buildingHelp
 -- ---------------------------------------------------------------------
@@ -153,6 +177,90 @@ function M.test_projectHelp_drops_cost_when_excluded()
     end
     local project = { ID = 1, Description = "Manhattan" }
     T.eq(ProductionHelpText.projectHelp({}, project, false), "----------------[NEWLINE]Enables nukes.")
+end
+
+-- ---------------------------------------------------------------------
+-- VP signature branches (Community Patch reordered the helper signatures
+-- and rewrote the output into separator-joined sections)
+-- ---------------------------------------------------------------------
+
+function M.test_vp_buildingHelp_no_cost_uses_only_yields_and_effects()
+    local seen
+    local vp = loadVP({
+        GetHelpTextForBuilding = function(
+            _id,
+            bExcludeName,
+            _arg3,
+            _bNoMaint,
+            pCity,
+            _bGeneral,
+            _bProjected,
+            bOnlyYields
+        )
+            seen = { bExcludeName = bExcludeName, pCity = pCity, bOnlyYields = bOnlyYields }
+            return "Science: +25%"
+        end,
+    })
+    Locale.ConvertTextKey = function(key, val)
+        if key == "TXT_KEY_PRODUCTION_BUILDING_MAINTENANCE" then
+            return "Maintenance: " .. val
+        end
+        return key
+    end
+    local building = { ID = 1, Description = "Library", GoldMaintenance = 1 }
+    local out = vp.buildingHelp("city", building, false)
+    T.eq(seen.bExcludeName, true)
+    T.eq(seen.pCity, "city", "VP passes the city at the pCity slot")
+    T.eq(seen.bOnlyYields, true, "VP no-cost path uses bOnlyYieldsAndEffects, not the dropped header flag")
+    T.eq(out, "Maintenance: 1[NEWLINE]Science: +25%", "maintenance synthesized once -- no doubling")
+end
+
+function M.test_vp_buildingHelp_with_cost_passes_city()
+    local seen
+    local vp = loadVP({
+        GetHelpTextForBuilding = function(_id, bExcludeName, _a3, _bNoMaint, pCity)
+            seen = { pCity = pCity, bExcludeName = bExcludeName }
+            return "Cost: 75[NEWLINE]Science: +25%"
+        end,
+    })
+    local building = { ID = 1, Description = "Library", GoldMaintenance = 1 }
+    T.eq(vp.buildingHelp("city", building, true), "Cost: 75[NEWLINE]Science: +25%")
+    T.eq(seen.pCity, "city")
+    T.eq(seen.bExcludeName, true)
+end
+
+function M.test_vp_unitHelp_passes_city_excludes_name_and_peels_header()
+    local seen
+    local vp = loadVP({
+        GetHelpTextForUnit = function(_id, _bReq, pCity, bExcludeName)
+            seen = { pCity = pCity, bExcludeName = bExcludeName }
+            return "Cost: 40[NEWLINE]----------------[NEWLINE]Strength 8."
+        end,
+    })
+    local unit = { ID = 1, Description = "Warrior" }
+    T.eq(vp.unitHelp("city", unit, true), "Cost: 40[NEWLINE]----------------[NEWLINE]Strength 8.")
+    T.eq(seen.pCity, "city", "VP passes pCity at arg 3")
+    T.eq(seen.bExcludeName, true, "VP excludes the name natively (no prefix strip)")
+    T.eq(vp.unitHelp("city", unit, false), "Strength 8.", "no-cost drops the leading header section")
+end
+
+function M.test_vp_projectHelp_reordered_signature_and_peeling()
+    local seen
+    local vp = loadVP({
+        GetHelpTextForProject = function(_id, pCity, bGeneral)
+            seen = { pCity = pCity, bGeneral = bGeneral }
+            return "MANHATTAN[NEWLINE]Cost: 1500[NEWLINE]----------------[NEWLINE]Enables nukes."
+        end,
+    })
+    local project = { ID = 1, Description = "Manhattan" }
+    T.eq(
+        vp.projectHelp("city", project, true),
+        "Cost: 1500[NEWLINE]----------------[NEWLINE]Enables nukes.",
+        "includeCost drops the name line, keeps cost"
+    )
+    T.eq(seen.pCity, "city", "VP passes the city at arg 2, not a boolean")
+    T.eq(seen.bGeneral, false, "bGeneralInfo at arg 3 is false")
+    T.eq(vp.projectHelp("city", project, false), "Enables nukes.", "no-cost drops the whole header section")
 end
 
 -- ---------------------------------------------------------------------

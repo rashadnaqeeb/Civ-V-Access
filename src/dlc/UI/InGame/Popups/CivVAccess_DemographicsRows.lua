@@ -81,7 +81,7 @@ local function valueLand(pPlayer)
 end
 
 local function valueArmy(pPlayer)
-    return math.sqrt(pPlayer:GetMilitaryMight()) * 2000
+    return EngineData.armyDemographic(pPlayer)
 end
 
 -- Approval demographic, clamped to 0..100 either way. Surplus model: 60
