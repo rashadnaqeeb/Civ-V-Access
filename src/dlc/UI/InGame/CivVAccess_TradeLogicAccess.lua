@@ -107,9 +107,16 @@ local function isReadOnly()
         return false
     end
     local s = g_iDiploUIState
+    -- GENEROUS_OFFER is a Community Patch state (the AI gifting the human);
+    -- its enum is nil on vanilla, so that comparison self-gates (a numeric
+    -- state never equals nil). CP runs DoDemandState(true) for it exactly as
+    -- for DEMAND / REQUEST, hiding UsPanel / ThemPanel -- so without this it
+    -- counts as editable, the panel-gated offer items vanish, and the user
+    -- can't hear what the AI is gifting.
     return s == DiploUIStateTypes.DIPLO_UI_STATE_TRADE_AI_MAKES_DEMAND
         or s == DiploUIStateTypes.DIPLO_UI_STATE_TRADE_AI_MAKES_REQUEST
         or s == DiploUIStateTypes.DIPLO_UI_STATE_TRADE_AI_MAKES_OFFER
+        or s == DiploUIStateTypes.DIPLO_UI_STATE_TRADE_AI_MAKES_GENEROUS_OFFER
 end
 
 -- HUMAN_DEMAND: human demanding from AI. Engine hides UsPanel / UsGlass;
@@ -469,6 +476,26 @@ local function buildTopItems(descriptor)
         if item ~= nil then
             items[#items + 1] = item
         end
+    end
+
+    -- Denounce. A Community Patch addition (control / handler absent on
+    -- vanilla): in human-vs-human trade the engine shows DenounceButton
+    -- while you have not yet denounced the other player and hides it
+    -- everywhere else (AI trade, already denounced). A plain Button whose
+    -- isNavigable tracks the control's hidden flag surfaces it exactly when
+    -- VP does, so no disabled-leaf noise appears in AI trade. OnDenounceButton
+    -- self-guards on g_bPVPTrade.
+    if Controls.DenounceButton ~= nil and type(OnDenounceButton) == "function" then
+        items[#items + 1] = BaseMenuItems.Button({
+            controlName = "DenounceButton",
+            labelFn = function(c)
+                return c:GetText()
+            end,
+            tooltipFn = function(c)
+                return c:GetToolTipString()
+            end,
+            activate = OnDenounceButton,
+        })
     end
 
     return items
