@@ -356,6 +356,31 @@ local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId,
             numCities
         )
     )
+    -- Community Patch surfaces the founding year, total follower count, and
+    -- (in tooltips) the active player's ownership share. Append them as
+    -- spoken clauses; ownership reads as counts against the totals already in
+    -- the row. Inert on vanilla, whose screen has none of these.
+    if isCP() then
+        local extras = {}
+        local year = Game.GetFoundYear(eReligion)
+        if Game.GetTurnYear(year) ~= nil then
+            extras[#extras + 1] = Text.format("TXT_KEY_CIVVACCESS_RELIGION_FOUNDED", Game.GetDateString(year))
+        end
+        local numFollowers = Game.GetNumFollowers(eReligion)
+        extras[#extras + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_RELIGION_FOLLOWERS", numFollowers, numFollowers)
+        local activePlayer = Players[activePlayerId]
+        local ownedCities, ownedFollowers = 0, 0
+        for pCity in activePlayer:Cities() do
+            if pCity:GetReligiousMajority() == eReligion then
+                ownedCities = ownedCities + 1
+            end
+            ownedFollowers = ownedFollowers + pCity:GetNumFollowers(eReligion)
+        end
+        if ownedCities > 0 or ownedFollowers > 0 then
+            extras[#extras + 1] = Text.format("TXT_KEY_CIVVACCESS_RELIGION_YOU_HOLD", ownedCities, ownedFollowers)
+        end
+        label = label .. ", " .. table.concat(extras, ", ")
+    end
     local cities = citiesFollowingReligion(eReligion, activePlayerId, activeTeamId)
     local children = {}
     for _, city in ipairs(cities) do

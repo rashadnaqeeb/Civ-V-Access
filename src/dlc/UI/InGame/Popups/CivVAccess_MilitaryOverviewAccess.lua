@@ -81,6 +81,13 @@ local priorShowHide = ShowHideHandler
 -- in the closure scope.
 local activateUnit
 
+-- Community Patch present? VP's panel adds an XP/level column, the garrison
+-- city name, and the fortify strength modifier; vanilla's shows none of
+-- these, so they are gated on the sanctioned CP-display probe.
+local function isCP()
+    return Game.IsCustomModOption ~= nil
+end
+
 -- ===== Cell formatters ================================================
 
 -- MovesLeft / MaxMoves are 60ths; flooring would lose road / railroad
@@ -141,7 +148,14 @@ local function unitStatusText(unit, withTurns)
         return Text.key("TXT_KEY_UNIT_STATUS_EMBARKED"), STATUS_RANK_ACTIVE
     end
     if unit:IsGarrisoned() then
-        return Text.key("TXT_KEY_MISSION_GARRISON"), STATUS_RANK_ACTIVE
+        local s = Text.key("TXT_KEY_MISSION_GARRISON")
+        if isCP() then
+            local gcity = unit:GetGarrisonedCity()
+            if gcity ~= nil then
+                s = s .. ", " .. gcity:GetName()
+            end
+        end
+        return s, STATUS_RANK_ACTIVE
     end
     if unit:IsAutomated() then
         if unit:IsWork() then
@@ -153,11 +167,22 @@ local function unitStatusText(unit, withTurns)
     if activityType == ActivityTypes.ACTIVITY_HEAL then
         return Text.key("TXT_KEY_MISSION_HEAL"), STATUS_RANK_ACTIVE
     end
+    -- Fortify strength bonus, appended to the alert / fortified states under
+    -- CP (vanilla's panel does not show it). 0 while the bonus ramps up.
+    local function withFortify(base)
+        if isCP() then
+            local fm = unit:FortifyModifier()
+            if fm > 0 then
+                return base .. ", " .. Text.format("TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD", fm)
+            end
+        end
+        return base
+    end
     if activityType == ActivityTypes.ACTIVITY_SENTRY then
-        return Text.key("TXT_KEY_MISSION_ALERT"), STATUS_RANK_ACTIVE
+        return withFortify(Text.key("TXT_KEY_MISSION_ALERT")), STATUS_RANK_ACTIVE
     end
     if unit:GetFortifyTurns() > 0 then
-        return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED"), STATUS_RANK_ACTIVE
+        return withFortify(Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED")), STATUS_RANK_ACTIVE
     end
     if activityType == ActivityTypes.ACTIVITY_SLEEP then
         return Text.key("TXT_KEY_MISSION_SLEEP"), STATUS_RANK_ACTIVE
@@ -356,7 +381,7 @@ local function buildUnitColumns()
         local cx, cy = cursorXY()
         return HexGeom.cubeDistance(cx, cy, unit:GetX(), unit:GetY())
     end
-    return {
+    local cols = {
         {
             name = "TXT_KEY_CIVVACCESS_MO_COL_DISTANCE",
             getCell = distanceCell,
@@ -427,6 +452,22 @@ local function buildUnitColumns()
             pediaName = unitPediaName,
         },
     }
+    -- Experience / level (Community Patch's panel shows it; vanilla's does
+    -- not). Sorts by raw experience.
+    if isCP() then
+        cols[#cols + 1] = {
+            name = "TXT_KEY_CIVVACCESS_MO_COL_XP",
+            getCell = function(unit)
+                return Text.format("TXT_KEY_CIVVACCESS_MO_XP_CELL", unit:GetExperience(), unit:GetLevel())
+            end,
+            sortKey = function(unit)
+                return unit:GetExperience()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        }
+    end
+    return cols
 end
 
 local function buildUnitsTab()

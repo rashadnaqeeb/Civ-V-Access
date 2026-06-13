@@ -1471,6 +1471,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Max moves"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Ranged"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Adjacent enemies"
+-- Community Patch only: experience / level column and the fortify strength
+-- modifier appended to alert / fortified status.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "Experience"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, level {2_Level}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} percent strength"
 -- Great People tab. Mirrors GPList: one subgroup per specialist type
 -- populated with per-city progress rows sorted by turns ascending, plus
 -- flat GG / GA rows reusing TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row
@@ -3225,6 +3230,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW_CONTROLLED"] = {
     one = "{1_Religion}, holy city {2_HolyCity}, controlled by {3_Controller}, {4_NumCities} city",
     other = "{1_Religion}, holy city {2_HolyCity}, controlled by {3_Controller}, {4_NumCities} cities",
 }
+-- Community Patch World Religions extras: founding year, total followers, and
+-- the active player's ownership share (counts against the totals already in
+-- the row).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_FOUNDED"] = "founded {1_Date}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_FOLLOWERS"] = {
+    one = "{1_N} follower",
+    other = "{1_N} followers",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_YOU_HOLD"] = "you hold {1_Cities} cities, {2_Followers} followers"
 -- Espionage Overview (BNW only). TabbedShell over the engine's
 -- BUTTONPOPUP_ESPIONAGE_OVERVIEW: tab 1 agents (flat list, drill in for
 -- actions), tab 2 cities (Your / Their groups, drill in for per-column
