@@ -38,7 +38,9 @@
 .PARAMETER ClonePath
     Path to the Community-Patch-DLL clone, used to complete a partial plain-VP
     install (VPUI, the Vox Populi Expansion2.Civ5Pkg, sounds, tips). Defaults
-    to the sibling directory next to this repo.
+    to the sibling directory next to this repo. Ignored for any asset already
+    staged under build/vp-runtime (the tester bundle), so a tester with the
+    bundle extracted needs no clone.
 
 .PARAMETER SkipProxy
     Skip the proxy stack and the legacy lua51 rename.
@@ -71,6 +73,7 @@ $vpSeamSrcFile    = Join-Path $repoRoot 'src\vp\CivVAccess_EngineData.lua'
 $vendorStageDir   = Join-Path $repoRoot 'build\vendor\vp'
 $soundsSrcDir     = Join-Path $repoRoot 'sounds'
 $modpackBuildDir  = Join-Path $repoRoot 'build\modpack-out'
+$vpRuntimeDir     = Join-Path $repoRoot 'build\vp-runtime'   # tester bundle: VP-completion assets, no clone needed
 $dlcName          = 'DLC_CivVAccess'
 $modpackName      = 'ZCivVAccessVP'   # sorts after Expansion2; priority 300 in its manifest
 $dlcBackupDirName = "$dlcName.backup"
@@ -183,17 +186,27 @@ function Resolve-CivVInstallDir {
     throw "Could not find Civilization V install directory. Pass -GameDir or set CIV5_DIR. Searched: $searched"
 }
 
+function Resolve-VpAsset {
+    # VP-completion assets come from the tester bundle (build/vp-runtime) when
+    # present, else the maintainer's clone. This is what lets a tester run the
+    # modpack deploy with no Community-Patch-DLL clone on disk.
+    param([string]$RuntimeName, [string]$CloneRelative)
+    $rt = Join-Path $vpRuntimeDir $RuntimeName
+    if (Test-Path $rt) { return $rt }
+    return (Join-Path $ClonePath $CloneRelative)
+}
+
 function Complete-VPInstall {
     param([string]$Game)
     $pieces = @(
-        @{ Name = 'VPUI fake DLC'; Src = Join-Path $ClonePath 'VPUI'; Dst = Join-Path $Game 'Assets\DLC\VPUI'; Dir = $true },
-        @{ Name = 'minor-civ sound table'; Src = Join-Path $ClonePath 'MinorCivSounds_VoxPopuli.xml'; Dst = Join-Path $Game 'Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml'; Dir = $false },
-        @{ Name = 'loading screen tips'; Src = Join-Path $ClonePath 'VPUI Text\VPUI_tips_en_us.xml'; Dst = Join-Path $civ5DocsDir 'Text\VPUI_tips_en_us.xml'; Dir = $false }
+        @{ Name = 'VPUI fake DLC'; Src = (Resolve-VpAsset 'VPUI' 'VPUI'); Dst = Join-Path $Game 'Assets\DLC\VPUI'; Dir = $true },
+        @{ Name = 'minor-civ sound table'; Src = (Resolve-VpAsset 'MinorCivSounds_VoxPopuli.xml' 'MinorCivSounds_VoxPopuli.xml'); Dst = Join-Path $Game 'Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml'; Dir = $false },
+        @{ Name = 'loading screen tips'; Src = (Resolve-VpAsset 'VPUI_tips_en_us.xml' 'VPUI Text\VPUI_tips_en_us.xml'); Dst = Join-Path $civ5DocsDir 'Text\VPUI_tips_en_us.xml'; Dir = $false }
     )
     foreach ($piece in $pieces) {
         if (Test-Path $piece.Dst) { continue }
         if (-not (Test-Path $piece.Src)) {
-            throw "VP install is missing the $($piece.Name) and the clone copy is absent: $($piece.Src). Pass -ClonePath or install Vox Populi first."
+            throw "VP install is missing the $($piece.Name) and neither the bundle nor the clone has it: $($piece.Src). Extract the VP tester bundle into build/, or pass -ClonePath."
         }
         Write-Host "Completing VP install: $($piece.Name)"
         $dstParent = Split-Path -Parent $piece.Dst
@@ -201,10 +214,10 @@ function Complete-VPInstall {
         Copy-Item -LiteralPath $piece.Src -Destination $piece.Dst -Recurse:$piece.Dir -Force
     }
     $pkgInstalled = Join-Path $Game 'Assets\DLC\Expansion2\Expansion2.Civ5Pkg'
-    $pkgSrc = Join-Path $ClonePath 'Expansion2_VoxPopuli.Civ5Pkg'
+    $pkgSrc = Resolve-VpAsset 'Expansion2_VoxPopuli.Civ5Pkg' 'Expansion2_VoxPopuli.Civ5Pkg'
     if (-not (Test-Path $pkgInstalled)) { throw "BNW package manifest not found at $pkgInstalled. The mod requires BNW." }
     if (-not ((Get-Content -LiteralPath $pkgInstalled -Raw) -match 'MinorCivSounds_VoxPopuli')) {
-        if (-not (Test-Path $pkgSrc)) { throw "VP install is missing the Vox Populi Expansion2.Civ5Pkg and the clone copy is absent: $pkgSrc." }
+        if (-not (Test-Path $pkgSrc)) { throw "VP install is missing the Vox Populi Expansion2.Civ5Pkg and neither the bundle nor the clone has it: $pkgSrc." }
         if (-not (Test-Path $expansionPkgBackup)) {
             $backupDir = Split-Path -Parent $expansionPkgBackup
             if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
