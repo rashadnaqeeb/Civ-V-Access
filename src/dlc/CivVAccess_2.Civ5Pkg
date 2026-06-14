@@ -11,7 +11,12 @@
     <SteamApp>235580</SteamApp>
     <Version>1</Version>
     <Key>bf6d34a0074b7ad4b1d1716475f7f7fe</Key>
-    <Priority>250</Priority>
+    <!-- 260 to outrank Vox Populi's VPUI fake DLC (priority 250) on the
+         front-end screens both override (ContentSwitch, EULA, LoadScreen);
+         at an equal priority the winner is non-deterministic. Stays below the
+         modpack package (300); deploy-modpack rewrites this to 350 for the
+         modpack flow. -->
+    <Priority>260</Priority>
     <PTags>
         <Tag>Version</Tag>
     </PTags>
