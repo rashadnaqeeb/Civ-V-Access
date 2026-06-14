@@ -316,6 +316,11 @@ function Deploy-Dlc {
         Remove-Item -LiteralPath $modpackDir -Recurse -Force
     }
 
+    # Capture the stock BNW manifest while it is still stock, then tear down any
+    # VP-completion substrate so a flip to vanilla is genuinely vanilla.
+    Backup-StockExpansionPkg -Game $Game
+    Remove-VpSubstrate -Game $Game
+
     # Engine re-enumerates DLC list at startup from this cache. Without
     # clearing, newly-added or renamed DLCs may not appear until the user
     # forces a refresh.
@@ -324,6 +329,68 @@ function Deploy-Dlc {
         Write-Host "Clearing DLC cache:"
         Write-Host "  $cacheDir"
         Get-ChildItem -LiteralPath $cacheDir -File | Remove-Item -Force
+    }
+}
+
+function Backup-StockExpansionPkg {
+    param([string]$Game)
+
+    # The BNW Expansion2.Civ5Pkg is a core, always-active manifest. VP's
+    # installer (and our VP deploys) overwrite it in place to add a minor-civ
+    # sound table. Snapshot it the moment we see it stock, so a later flip out
+    # of VP/modpack state can restore it; without a snapshot taken while it is
+    # still stock there is no way back to vanilla on this install.
+    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
+    if (-not (Test-Path $pkg)) { return }
+    if ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli') { return }  # already VP, not stock
+    if (Test-Path $stockPkgBackup) { return }                                                # already captured
+    if (-not (Test-Path $dlcBackupDir)) { New-Item -ItemType Directory -Path $dlcBackupDir -Force | Out-Null }
+    Write-Host "Capturing stock BNW Expansion2.Civ5Pkg backup:"
+    Write-Host "  $pkg -> $stockPkgBackup"
+    Copy-Item -LiteralPath $pkg -Destination $stockPkgBackup -Force
+}
+
+function Remove-VpSubstrate {
+    param([string]$Game)
+
+    # Make "vanilla" actually vanilla by tearing down the VP-completion
+    # substrate deploy-vp / deploy-modpack lay down. Unlike the inert VP MODS
+    # overlay, these load in a no-mod session: VPUI is a UISkin DLC and the
+    # swapped Expansion2.Civ5Pkg is the always-active BNW manifest. Idempotent
+    # -- a no-op on an install that was never VP-ified.
+    $vpui = Join-Path $Game "Assets\DLC\VPUI"
+    if (Test-Path $vpui) {
+        Write-Host "Removing VPUI fake DLC:"
+        Write-Host "  $vpui"
+        Remove-Item -LiteralPath $vpui -Recurse -Force
+    }
+
+    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
+    if ((Test-Path $pkg) -and ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli')) {
+        if (Test-Path $stockPkgBackup) {
+            Write-Host "Restoring stock BNW Expansion2.Civ5Pkg from backup:"
+            Write-Host "  $stockPkgBackup -> $pkg"
+            Copy-Item -LiteralPath $stockPkgBackup -Destination $pkg -Force
+        } else {
+            Write-Host "WARNING: Expansion2.Civ5Pkg is the VP version but no stock backup"
+            Write-Host "exists to restore. This install cannot be made fully vanilla here;"
+            Write-Host "verify game files in Steam to restore the stock manifest."
+            Write-Host "  (expected backup: $stockPkgBackup)"
+        }
+    }
+
+    $minorSounds = Join-Path $Game "Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml"
+    if (Test-Path $minorSounds) {
+        Write-Host "Removing VP minor-civ sound table:"
+        Write-Host "  $minorSounds"
+        Remove-Item -LiteralPath $minorSounds -Force
+    }
+
+    $tips = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\Text\VPUI_tips_en_us.xml"
+    if (Test-Path $tips) {
+        Write-Host "Removing VP loading-screen tips:"
+        Write-Host "  $tips"
+        Remove-Item -LiteralPath $tips -Force
     }
 }
 
@@ -556,6 +623,7 @@ Write-Host "  Game dir: $gameDir"
 $dlcBackupDir    = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
 $engineBackup    = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
 $cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
+$stockPkgBackup  = Join-Path $dlcBackupDir 'Expansion2.Civ5Pkg.stock'  # shared with deploy-vp / deploy-modpack
 
 # Detect a VP-variant install (deploy-vp.ps1 ran last). Its MODS-side pieces
 # -- the fork engine DLL and the overlaid vendor files inside the VP mod
