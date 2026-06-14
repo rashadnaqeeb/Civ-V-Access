@@ -115,7 +115,8 @@ function Invoke-SeamGuard {
         "GetOwnerForDominationVictory",
         "IsVassalOfSomeone", "GetMaster", "GetNumVassals", "GetNumTurnsIsVassal",
         "IsVassal",
-        "GetNumHistoricEvents", "GetHistoricEventTourism"
+        "GetNumHistoricEvents", "GetHistoricEventTourism",
+        "IsResourceImproveable"
     )
     # Fork extension bindings: added by our forked DLL, present on no stock
     # engine. The seam-exempt marker does NOT waive these -- see the function

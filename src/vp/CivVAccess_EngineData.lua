@@ -120,6 +120,27 @@ function EngineData.capitalDefenseModifier(unit)
     return unit:GetCombatModifierFromCapitalDistance(plot)
 end
 
+-- Drift read: the tech still needed to exploit a tile's resource (see the
+-- vanilla file for the contract). VP replaced vanilla's TechCityTrade +
+-- team-HasTech check with a per-player IsResourceImproveable gate and a
+-- Resources.TechImproveable column (PlotMouseoverInclude), so this body
+-- reads those; vanilla's TechCityTrade column is empty for the gate VP uses.
+function EngineData.resourceUseTech(resourceRow)
+    if Players[Game.GetActivePlayer()]:IsResourceImproveable(resourceRow.ID) then
+        return nil
+    end
+    local techType = resourceRow.TechImproveable
+    if techType == nil then
+        return nil
+    end
+    local techId = GameInfoTypes[techType]
+    if techId == nil or techId < 0 then
+        return nil
+    end
+    local techRow = GameInfo.Technologies[techId]
+    return techRow and techRow.Description or nil
+end
+
 -- Is the Vox Populi balance mode on? VP guts the vanilla happiness model
 -- only under MOD_BALANCE_VP; a Community-Patch-only session (balance off)
 -- keeps the vanilla signed-surplus semantics. Same gate the vendor UIs use.

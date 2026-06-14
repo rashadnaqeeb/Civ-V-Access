@@ -771,6 +771,65 @@ function M.test_vp_culture_from_specialist_returns_zero_to_avoid_double_count()
     )
 end
 
+-- VP gates the resource "requires tech" hint on the per-player
+-- IsResourceImproveable check and names the tech from the VP-only
+-- TechImproveable column, not vanilla's TechCityTrade (empty for this gate
+-- on VP). Already-improveable resources report nil.
+function M.test_vp_resource_use_tech_uses_improveable_gate_and_column()
+    local vp, env = loadVPWithFork()
+    env.Game.GetActivePlayer = function()
+        return 0
+    end
+    env.GameInfoTypes = { TECH_MINING = 5 }
+    env.GameInfo = { Technologies = { [5] = { Description = "TXT_KEY_TECH_MINING" } } }
+    env.Players = {
+        [0] = {
+            IsResourceImproveable = function(_, id)
+                T.eq(id, 9, "VP passes the resource id to the improveable gate")
+                return false
+            end,
+        },
+    }
+    T.eq(
+        vp.resourceUseTech({ ID = 9, TechImproveable = "TECH_MINING", TechCityTrade = "TECH_UNKNOWN" }),
+        "TXT_KEY_TECH_MINING",
+        "VP names the tech from TechImproveable, ignoring TechCityTrade"
+    )
+    env.Players[0].IsResourceImproveable = function()
+        return true
+    end
+    T.eq(vp.resourceUseTech({ ID = 9, TechImproveable = "TECH_MINING" }), nil, "already improveable reports nil")
+end
+
+-- Vanilla keys the hint off TechCityTrade and a team HasTech check.
+function M.test_vanilla_resource_use_tech_reads_city_trade_and_team_tech()
+    local vanilla, env = loadSeam(VANILLA_PATH)
+    env.Game = {
+        GetActiveTeam = function()
+            return 0
+        end,
+    }
+    env.GameInfoTypes = { TECH_TRADE = 5 }
+    env.GameInfo = { Technologies = { [5] = { Description = "TXT_KEY_TECH_TRADE" } } }
+    local hasTech = false
+    env.Teams = {
+        [0] = {
+            GetTeamTechs = function()
+                return {
+                    HasTech = function(_, id)
+                        T.eq(id, 5)
+                        return hasTech
+                    end,
+                }
+            end,
+        },
+    }
+    T.eq(vanilla.resourceUseTech({ ID = 9, TechCityTrade = "TECH_TRADE" }), "TXT_KEY_TECH_TRADE", "team lacks the tech")
+    hasTech = true
+    T.eq(vanilla.resourceUseTech({ ID = 9, TechCityTrade = "TECH_TRADE" }), nil, "team has the tech")
+    T.eq(vanilla.resourceUseTech({ ID = 9 }), nil, "no TechCityTrade column reports nil")
+end
+
 function M.test_vp_influence_tourism_per_turn_includes_instant_and_floors()
     local vp, _env = loadVPWithFork()
     local player = {

@@ -143,6 +143,29 @@ function EngineData.capitalDefenseModifier(unit)
     return capDef
 end
 
+-- Drift read: the tech the active player still needs before a tile's
+-- resource can be exploited, as the tech's Description text-key (the game
+-- key resolves the arg as another text key, so the key is passed, not the
+-- resolved name). Returns nil when the resource is already usable or gates
+-- on no tech. Vanilla keys off Resources.TechCityTrade and a team HasTech
+-- check (PlotMouseoverInclude); VP added a per-player IsResourceImproveable
+-- gate and a Resources.TechImproveable column, so its body reads those.
+function EngineData.resourceUseTech(resourceRow)
+    local techType = resourceRow.TechCityTrade
+    if techType == nil then
+        return nil
+    end
+    local techId = GameInfoTypes[techType]
+    if techId == nil or techId < 0 then
+        return nil
+    end
+    if Teams[Game.GetActiveTeam()]:GetTeamTechs():HasTech(techId) then
+        return nil
+    end
+    local techRow = GameInfo.Technologies[techId]
+    return techRow and techRow.Description or nil
+end
+
 -- Drift read: the empire happiness headline, returned as a model rather
 -- than a bare number because the headline METRIC differs by engine. Here
 -- the number is a signed surplus; Vox Populi redefines the same getter

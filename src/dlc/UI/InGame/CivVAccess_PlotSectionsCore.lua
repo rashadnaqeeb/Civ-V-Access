@@ -173,22 +173,15 @@ PlotSections.resource = {
         else
             out[#out + 1] = name
         end
-        -- Tech-required-to-use note. Game key takes the tech's Description
+        -- Tech-required-to-use note. The game key takes the tech's Description
         -- text-key (not the resolved name) because the engine's format string
         -- uses the {@N_Tag} form that resolves the arg as another text key.
-        -- The BNW tooltip (PlotMouseoverInclude.lua:233) does the same.
-        local techType = row.TechCityTrade
-        if techType ~= nil and GameInfoTypes ~= nil then
-            local techId = GameInfoTypes[techType]
-            if techId ~= nil and techId >= 0 then
-                local pTeam = Teams[team]
-                if pTeam ~= nil and not pTeam:GetTeamTechs():HasTech(techId) then
-                    local techRow = GameInfo.Technologies[techId]
-                    if techRow ~= nil then
-                        out[#out + 1] = Text.format("TXT_KEY_PLOTROLL_REQUIRES_TECH_TO_USE", techRow.Description)
-                    end
-                end
-            end
+        -- The derivation differs by engine (vanilla TechCityTrade + team
+        -- tech, VP IsResourceImproveable + TechImproveable), so it routes
+        -- through the seam, which returns the tech key or nil.
+        local techDesc = EngineData.resourceUseTech(row)
+        if techDesc ~= nil then
+            out[#out + 1] = Text.format("TXT_KEY_PLOTROLL_REQUIRES_TECH_TO_USE", techDesc)
         end
         return out
     end,
