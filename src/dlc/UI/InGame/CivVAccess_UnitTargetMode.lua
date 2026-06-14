@@ -832,7 +832,7 @@ local function commitFailureReason(actor, mode, plot, tx, ty)
                 return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE") }
             end
             local ignoresLoS = actor:GetDomainType() == DomainTypes.DOMAIN_AIR or actor:IsRangeAttackIgnoreLOS()
-            if not ignoresLoS and not EngineData.hasLineOfSight(actor:GetPlot(), plot, actor:GetTeam()) then
+            if not ignoresLoS and not EngineData.hasLineOfSight(actor:GetPlot(), plot, actor:GetTeam(), actor) then
                 return { reason = Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") }
             end
             return { reason = Text.key("TXT_KEY_CIVVACCESS_UNIT_ACTION_FAILED") }

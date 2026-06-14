@@ -1236,8 +1236,8 @@ function M.test_vp_has_line_of_sight_defeats_range_and_facing_gates()
     local vp, _env = loadVPWithFork()
     local seen
     local plot = {
-        CanSeePlot = function(_, target, team, range, facing)
-            seen = { target = target, team = team, range = range, facing = facing }
+        CanSeePlot = function(_, target, team, range, facing, seeThrough)
+            seen = { target = target, team = team, range = range, facing = facing, seeThrough = seeThrough }
             return true
         end,
     }
@@ -1246,6 +1246,28 @@ function M.test_vp_has_line_of_sight_defeats_range_and_facing_gates()
     T.eq(seen.team, 2)
     T.truthy(seen.range > 9000, "range must be generous enough to defeat the distance gate")
     T.eq(seen.facing, -1, "NO_DIRECTION short-circuits the facing gate")
+    T.eq(seen.seeThrough, 0, "no attacker means no see-through")
+end
+
+-- VP gates ranged LoS on the attacker's see-through stat; the prefix must
+-- pass it to canSeePlot or a see-through unit's strikeable tiles read as
+-- "unseen". A nil attacker (city ranged strike) passes 0.
+function M.test_vp_has_line_of_sight_passes_attacker_see_through()
+    local vp, _env = loadVPWithFork()
+    local seen
+    local plot = {
+        CanSeePlot = function(_, _target, _team, _range, _facing, seeThrough)
+            seen = seeThrough
+            return true
+        end,
+    }
+    local attacker = {
+        GetSeeThrough = function()
+            return 2
+        end,
+    }
+    vp.hasLineOfSight(plot, "target", 2, attacker)
+    T.eq(seen, 2, "the attacker's see-through reaches canSeePlot")
 end
 
 return M

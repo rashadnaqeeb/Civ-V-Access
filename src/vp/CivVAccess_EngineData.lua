@@ -655,8 +655,15 @@ end
 -- defeats its distance gate (the binding adds 1 internally;
 -- CvLuaPlot.cpp:2149) and facing NO_DIRECTION (-1) short-circuits its
 -- facing gate -- so it needs no fork and never degrades.
-function EngineData.hasLineOfSight(plot, targetPlot, team)
-    return plot:CanSeePlot(targetPlot, team, 10000, -1)
+--
+-- VP's ranged-strike LoS feeds the attacker's see-through (a promotion stat
+-- that lets a unit fire over blocking terrain) as canSeePlot's iSeeThrough
+-- arg (CvUnit::canEverRangeStrikeAt). The prefix must pass it too, or a
+-- see-through unit's legitimately strikeable tiles read back as "unseen".
+-- Cities (nil attacker) have no see-through.
+function EngineData.hasLineOfSight(plot, targetPlot, team, attacker)
+    local seeThrough = attacker and attacker:GetSeeThrough() or 0
+    return plot:CanSeePlot(targetPlot, team, 10000, -1, seeThrough)
 end
 
 -- Extension binding: whether the unit could enter the target plot as a

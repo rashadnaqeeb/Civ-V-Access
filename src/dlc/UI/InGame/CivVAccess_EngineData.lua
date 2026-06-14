@@ -523,9 +523,11 @@ function EngineData.closestSearchedPlot(tx, ty)
 end
 
 -- Extension binding: Plot:HasLineOfSight(targetPlot, team) -- whether the
--- terrain visibility ray is unblocked. Degrades to true: when the check
--- can't run, do not impose a false "no line of sight" constraint.
-function EngineData.hasLineOfSight(plot, targetPlot, team)
+-- terrain visibility ray is unblocked. attacker is unused here -- vanilla
+-- has no per-unit see-through for ranged line of sight; the VP body consumes
+-- it to feed the unit's see-through into the ray. Degrades to true: when the
+-- check can't run, do not impose a false "no line of sight" constraint.
+function EngineData.hasLineOfSight(plot, targetPlot, team, _attacker)
     if not EngineData.forkPresent() then
         Log.warn("EngineData.hasLineOfSight: engine fork absent")
         return true

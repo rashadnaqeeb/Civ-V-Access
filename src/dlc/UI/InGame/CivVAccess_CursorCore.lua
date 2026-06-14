@@ -107,7 +107,7 @@ end
 -- prefix (distance 0, LoS trivially true).
 local function targetabilityPrefix(plot)
     local mode = UI.GetInterfaceMode()
-    local attackerPlot, team, range, ignoresLoS
+    local attackerPlot, team, range, ignoresLoS, attacker
     if mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE then
         local unit = UI.GetHeadSelectedUnit()
         if unit == nil then
@@ -117,6 +117,7 @@ local function targetabilityPrefix(plot)
             Log.warn("targetabilityPrefix: ranged interface mode " .. tostring(mode) .. " with no head-selected unit")
             return ""
         end
+        attacker = unit
         attackerPlot = unit:GetPlot()
         team = unit:GetTeam()
         range = unit:Range()
@@ -150,7 +151,7 @@ local function targetabilityPrefix(plot)
     if ax == tx and ay == ty then
         return ""
     end
-    if not ignoresLoS and not EngineData.hasLineOfSight(attackerPlot, plot, team) then
+    if not ignoresLoS and not EngineData.hasLineOfSight(attackerPlot, plot, team, attacker) then
         return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") .. ", "
     end
     if Map.PlotDistance(ax, ay, tx, ty) > range then
