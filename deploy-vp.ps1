@@ -99,6 +99,7 @@ $vpSeamSrcFile    = Join-Path $repoRoot 'src\vp\CivVAccess_EngineData.lua'
 $vendorStageDir   = Join-Path $repoRoot 'build\vendor\vp'
 $soundsSrcDir     = Join-Path $repoRoot 'sounds'
 $dlcName          = 'DLC_CivVAccess'
+$modpackName      = 'ZCivVAccessVP'   # VP modpack package (deploy-modpack.ps1); removed when flipping to mod-overlay state
 $dlcBackupDirName = "$dlcName.backup"  # sibling to DLC dir; holds stock-file backups so they survive the dir nuke on redeploy
 $installManifestName = 'CivVAccess.install.json'
 
@@ -361,6 +362,17 @@ function Deploy-Dlc {
         Write-Host "  Removing existing DLC directory: $dlcDir"
         Remove-Item -LiteralPath $dlcDir -Recurse -Force
     }
+
+    # A prior modpack deploy leaves its package at Assets\DLC\$modpackName,
+    # whose Override/ GameData the engine auto-loads for any present DLC. Left
+    # behind, its stale-pin merged database would load alongside this
+    # mod-overlay session. Remove it so the flip out of modpack state is clean.
+    $modpackDir = Join-Path $Game "Assets\DLC\$modpackName"
+    if (Test-Path $modpackDir) {
+        Write-Host "  Removing VP modpack package: $modpackDir"
+        Remove-Item -LiteralPath $modpackDir -Recurse -Force
+    }
+
     New-Item -ItemType Directory -Path $dlcDir -Force | Out-Null
     Write-Host "Deploying DLC payload to:"
     Write-Host "  $dlcDir"
@@ -655,10 +667,12 @@ function Invoke-Uninstall {
         }
     }
 
-    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
-    if (Test-Path $dlcDir) {
-        Write-Host "  Removing DLC: $dlcDir"
-        Remove-Item -LiteralPath $dlcDir -Recurse -Force
+    foreach ($name in @($dlcName, $modpackName)) {
+        $d = Join-Path $Game "Assets\DLC\$name"
+        if (Test-Path $d) {
+            Write-Host "  Removing DLC: $d"
+            Remove-Item -LiteralPath $d -Recurse -Force
+        }
     }
 
     $proxyLog = Join-Path $Game 'proxy_debug.log'
