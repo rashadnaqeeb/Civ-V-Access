@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""Assemble an EUI-free Vox Populi modpack DLC for Civ V Access.
+
+Produces a Gedemon-MPMP-shaped DLC folder, started from the regular Single
+Player menu, that bakes Community Patch + Vox Populi into Assets/DLC. Unlike the
+community packs this bundles no EUI and embeds our engine fork.
+
+Layout produced (mirrors a working VP modpack):
+  <out>/
+    MPModsPack.Civ5Pkg     manifest: Expansion2 UISkin, GameplaySkin = UI + Mods,
+                           BNW SteamApp/Key, unique GUID, priority 300.
+    Override/              merged DB (CIV5Units.xml + CIV5Units_Mongol.xml from
+                           dump_db) plus the base-GameData blanking stubs and the
+                           audio/dialog Override files.
+    Mods/<mod (v N)>/      pristine CP + VP folders from the clone, CP's gamecore
+                           DLL replaced by our fork. The engine loads the fork
+                           from here (proven 2026-06-14); SetDllPath-style.
+    UI/InGame.lua          base InGame plus explicit LoadNewContext calls for the
+                           net-new contexts (the stock activated-mod loop is inert
+                           under DLC). Shadowed when our DLC is present and carries
+                           the appends; active for sighted-partner installs.
+
+The merged database is the engine's own merge (dump_db reads the cache DB); we
+never re-implement it. Run a clean CP+VP session (Squads OFF) first so the cache
+DB the dumper reads is plain VP.
+
+Stubs/audio/dialog Override files are currently sourced from a reference pack via
+--ref-override; deriving them from the base-game GameData inventory is a later
+self-contained step (noted in .planning/vp-port.md).
+"""
+import argparse
+import shutil
+import sqlite3
+from pathlib import Path
+
+import dump_db
+
+
+def check_clean_db(gameplay_db, allow_squads):
+    """Refuse to bake a database that isn't a clean CP+VP merge: VP balance
+    must be on, and Squads (not part of plain VP) must be off. A modpack
+    session's own cache bakes whatever that pack carried, so this also guards
+    against building from a contaminated cache."""
+    con = sqlite3.connect(gameplay_db)
+    try:
+        def opt(name):
+            r = con.execute(
+                "SELECT Value FROM CustomModOptions WHERE Name=?", (name,)
+            ).fetchone()
+            return r[0] if r else None
+        balance, squads = opt("BALANCE_VP"), opt("SQUADS")
+    finally:
+        con.close()
+    print(f"  cache DB options: BALANCE_VP={balance} SQUADS={squads}")
+    if balance != 1:
+        raise SystemExit(
+            f"Database is not a VP merge (BALANCE_VP={balance}). Play a clean "
+            "CP+VP session through the Mods menu first.")
+    if squads == 1 and not allow_squads:
+        raise SystemExit(
+            "Database has Squads enabled (SQUADS=1). Disable/uninstall Squads "
+            "and replay a clean CP+VP session, or pass --allow-squads.")
+
+# Net-new contexts and gameplay/overlay addins, loaded by bare stem. Squads is
+# excluded (not part of plain VP). Kept in the reference pack's order.
+ADDINS = [
+    "CameraView", "EventChoicePopupCity", "CityEventPopup", "Destination",
+    "EspionageChoicePopup", "EventPopup", "EventChoicePopup", "EventOverview",
+    "GlobalCityBombardRange", "CBP_IncaFunctions", "CorporationsOverview",
+    "GlobalArchaeologistDigSites", "OverlayAntiquities_MiniMapOverlayHook",
+    "OverlayAntiquities", "RandomVCPopup", "VassalageOverview",
+]
+
+# Mod folders to embed, in load order. Names match the clone's folders.
+EMBED_MODS = ["(1) Community Patch", "(2) Vox Populi"]
+# The folder whose gamecore DLL we replace with our fork.
+DLL_MOD = "(1) Community Patch"
+
+MANIFEST = """\
+<?xml version="1.0" encoding="utf-8"?>
+<Civ5Package>
+    <GUID>{{{guid}}}</GUID>
+    <SteamApp>235580</SteamApp>
+    <Version>1</Version>
+    <Key>bf6d34a0074b7ad4b1d1716475f7f7fe</Key>
+    <Priority>300</Priority>
+    <PTags>
+        <Tag>Version</Tag>
+    </PTags>
+    <Name>
+        <Value language="en_US">Civ V Access - Vox Populi</Value>
+    </Name>
+    <Description>
+        <Value language="en_US">Vox Populi baked as DLC for Civ V Access (no EUI).</Value>
+    </Description>
+    <UISkin name="Expansion2Primary" set="Expansion2" platform="Common">
+        <GameplaySkin>
+            <Directory>UI</Directory>
+            <Directory>Mods</Directory>
+        </GameplaySkin>
+    </UISkin>
+</Civ5Package>
+"""
+
+# Stable GUID for our modpack package. Distinct from our DLC's and the engine's.
+MODPACK_GUID = "C1FAC355-0000-4D0D-9ACC-E550564F5001"
+
+
+def versioned_name(clone_mod_dir):
+    """Folder name matching the proven pack: the modinfo file's stem."""
+    infos = list(clone_mod_dir.glob("*.modinfo"))
+    if not infos:
+        raise SystemExit(f"No .modinfo in {clone_mod_dir}")
+    return infos[0].stem
+
+
+def build_override(out, gameplay_db, text_db, ref_override):
+    ov = out / "Override"
+    ov.mkdir(parents=True, exist_ok=True)
+    # Blanking stubs + audio/dialog Override files from the reference pack,
+    # everything except the merged-DB files we regenerate.
+    copied = 0
+    for f in Path(ref_override).iterdir():
+        if f.is_file() and f.name not in ("CIV5Units.xml", "CIV5Units_Mongol.xml"):
+            shutil.copy2(f, ov / f.name)
+            copied += 1
+    nt = dump_db.dump_gameplay(gameplay_db, ov / "CIV5Units.xml")
+    ns = dump_db.dump_text(text_db, ov / "CIV5Units_Mongol.xml")
+    print(f"  Override: {copied} stub/aux files + {nt} tables + {ns} strings")
+
+
+def embed_mods(out, clone, fork_dll):
+    mods = out / "Mods"
+    mods.mkdir(parents=True, exist_ok=True)
+    for name in EMBED_MODS:
+        src = Path(clone) / name
+        if not src.is_dir():
+            raise SystemExit(f"Clone mod folder missing: {src}")
+        dst = mods / versioned_name(src)
+        print(f"  embedding {name} -> Mods/{dst.name} ...")
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        if name == DLL_MOD:
+            shutil.copy2(fork_dll, dst / "CvGameCore_Expansion2.dll")
+            print(f"    fork DLL placed in {dst.name}")
+
+
+def build_ui(out, base_ingame):
+    ui = out / "UI"
+    ui.mkdir(parents=True, exist_ok=True)
+    body = Path(base_ingame).read_text(encoding="utf-8", errors="surrogateescape")
+    appends = [
+        "",
+        "-- Civ V Access modpack: net-new VP/CP contexts load via the modinfo",
+        "-- InGameUIAddin path, which is inert under a DLC. The stock loop above",
+        "-- returns nothing, so load them explicitly by stem. (Our DLC's InGame",
+        "-- override carries the same appends and wins by priority when present.)",
+    ]
+    appends += [f'ContextPtr:LoadNewContext("{a}")' for a in ADDINS]
+    out_text = body.rstrip("\n") + "\n" + "\n".join(appends) + "\n"
+    (ui / "InGame.lua").write_text(out_text, encoding="utf-8",
+                                   errors="surrogateescape")
+    print(f"  UI/InGame.lua: base + {len(ADDINS)} addin appends")
+
+
+def write_manifest(out):
+    (out / "MPModsPack.Civ5Pkg").write_text(
+        MANIFEST.format(guid=MODPACK_GUID), encoding="utf-8")
+    print("  MPModsPack.Civ5Pkg written")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--clone", required=True, help="Community-Patch-DLL clone root")
+    ap.add_argument("--fork-dll", required=True, help="dist/engine-vp DLL")
+    ap.add_argument("--gameplay-db", required=True)
+    ap.add_argument("--text-db", required=True)
+    ap.add_argument("--ref-override", required=True,
+                    help="reference pack Override/ for stub + audio/dialog files")
+    ap.add_argument("--base-ingame", required=True,
+                    help="base Expansion2 InGame.lua to append addin loads to")
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--skip-embed", action="store_true",
+                    help="skip the heavy Mods/ copy (iterate on the rest)")
+    ap.add_argument("--allow-squads", action="store_true",
+                    help="bake even if the DB has Squads enabled (not plain VP)")
+    args = ap.parse_args()
+
+    print(f"Building modpack at {args.out}")
+    check_clean_db(args.gameplay_db, args.allow_squads)
+    out = Path(args.out)
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    build_override(out, args.gameplay_db, args.text_db, args.ref_override)
+    if not args.skip_embed:
+        embed_mods(out, args.clone, args.fork_dll)
+    else:
+        print("  (skipped Mods/ embed)")
+    build_ui(out, args.base_ingame)
+    write_manifest(out)
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()
