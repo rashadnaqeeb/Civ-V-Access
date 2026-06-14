@@ -564,13 +564,15 @@ $cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
 # them. Surface their presence so a flip or uninstall doesn't read as a
 # complete cleanup.
 $priorManifestPath = Join-Path $gameDir "Assets\DLC\$dlcName\$installManifestName"
-$priorVpState = $false
+$priorVariant = $null
 if (Test-Path $priorManifestPath) {
     try {
         $prior = Get-Content -LiteralPath $priorManifestPath -Raw | ConvertFrom-Json
-        $priorVpState = ($prior.variant -eq 'vp')
+        $priorVariant = $prior.variant
     } catch { }
 }
+$priorVpState      = ($priorVariant -eq 'vp')
+$priorModpackState = ($priorVariant -eq 'modpack')
 
 if ($Uninstall) {
     Invoke-Uninstall -Game $gameDir
@@ -580,6 +582,9 @@ if ($Uninstall) {
         Write-Host "NOTE: the install was in VP state. The fork engine DLL and the"
         Write-Host "overlaid vendor files in the VP MODS folders remain; run"
         Write-Host "./deploy-vp.ps1 -Uninstall to restore VP-stock files there."
+    } elseif ($priorModpackState) {
+        Write-Host "NOTE: the install was in VP modpack state. The modpack package"
+        Write-Host "(with VP's bundled database and fork engine DLL) has been removed."
     }
     return
 }
@@ -626,6 +631,11 @@ if ($priorVpState) {
     Write-Host "overlaid vendor files in the VP MODS folders remain (inert in"
     Write-Host "vanilla sessions). Do NOT start a modded VP session from this"
     Write-Host "state; run ./deploy-vp.ps1 to flip back first."
+} elseif ($priorModpackState) {
+    Write-Host ""
+    Write-Host "Flipped from VP modpack state to vanilla. The modpack package"
+    Write-Host "(with VP's bundled database and fork engine DLL) has been"
+    Write-Host "removed, so this is a clean vanilla state."
 }
 Write-Host ""
 Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
