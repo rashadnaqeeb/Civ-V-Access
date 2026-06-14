@@ -40,7 +40,6 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot        = Split-Path -Parent $MyInvocation.MyCommand.Path
 $forkDll         = Join-Path $repoRoot 'dist\engine-vp\CvGameCore_Expansion2.dll'
-$refOverride     = Join-Path $repoRoot 'build\vp-modpack-ref\extracted\ZMP_MODSPACK\Override'
 $buildDir        = Join-Path $repoRoot 'build\modpack-build'
 $outDir          = Join-Path $repoRoot 'build\modpack-out'
 $dumperScript    = Join-Path $repoRoot 'tools\modpack\build_modpack.py'
@@ -84,7 +83,7 @@ function Resolve-CivVInstallDir {
 $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
 $baseIngame = Join-Path $gameDir 'Assets\DLC\Expansion2\UI\InGame\InGame.lua'
 
-foreach ($p in @($forkDll, $refOverride, $dumperScript, $baseIngame)) {
+foreach ($p in @($forkDll, $dumperScript, $baseIngame)) {
     if (-not (Test-Path $p)) { throw "Required input missing: $p" }
 }
 
@@ -113,7 +112,6 @@ Write-Host "Building modpack into $outDir ..."
     --fork-dll $forkDll `
     --gameplay-db $gameplayLocal `
     --text-db $textLocal `
-    --ref-override $refOverride `
     --base-ingame $baseIngame `
     --out $outDir
 if ($LASTEXITCODE -ne 0) { throw "build_modpack.py failed (exit $LASTEXITCODE)." }

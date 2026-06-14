@@ -24,9 +24,10 @@ The merged database is the engine's own merge (dump_db reads the cache DB); we
 never re-implement it. Run a clean CP+VP session (Squads OFF) first so the cache
 DB the dumper reads is plain VP.
 
-Stubs/audio/dialog Override files are currently sourced from a reference pack via
---ref-override; deriving them from the base-game GameData inventory is a later
-self-contained step (noted in .planning/vp-port.md).
+Self-contained: the Override blanking stubs and the few non-empty Override files
+ship with this tool (override_stubs.txt + override_aux/), so no reference pack is
+needed. The stub names are base-game GameData files (stable across VP versions);
+the aux files are VP's merged audio scripts/defines and leader-dialog fragments.
 """
 import argparse
 import shutil
@@ -76,6 +77,11 @@ EMBED_MODS = ["(1) Community Patch", "(2) Vox Populi"]
 # The folder whose gamecore DLL we replace with our fork.
 DLL_MOD = "(1) Community Patch"
 
+# Committed Override template (self-contained; no reference-pack dependency).
+SCRIPT_DIR = Path(__file__).resolve().parent
+STUBS_FILE = SCRIPT_DIR / "override_stubs.txt"   # base-GameData blanking-stub names
+AUX_DIR = SCRIPT_DIR / "override_aux"            # the few non-empty Override files VP ships
+
 MANIFEST = """\
 <?xml version="1.0" encoding="utf-8"?>
 <Civ5Package>
@@ -114,19 +120,26 @@ def versioned_name(clone_mod_dir):
     return infos[0].stem
 
 
-def build_override(out, gameplay_db, text_db, ref_override):
+def build_override(out, gameplay_db, text_db):
     ov = out / "Override"
     ov.mkdir(parents=True, exist_ok=True)
-    # Blanking stubs + audio/dialog Override files from the reference pack,
-    # everything except the merged-DB files we regenerate.
-    copied = 0
-    for f in Path(ref_override).iterdir():
-        if f.is_file() and f.name not in ("CIV5Units.xml", "CIV5Units_Mongol.xml"):
+    # Empty blanking stubs null out the base-game GameData files so only the
+    # merged dump loads. The names are committed (base-game files are stable
+    # across VP versions); an empty file replaces the base file by name.
+    stubs = [s.strip() for s in STUBS_FILE.read_text(encoding="utf-8").splitlines()
+             if s.strip()]
+    for name in stubs:
+        (ov / name).write_bytes(b"")
+    # The few non-empty Override files VP ships (merged audio scripts/defines,
+    # leader-dialog blanking fragments), committed under override_aux/.
+    aux = 0
+    for f in sorted(AUX_DIR.iterdir()):
+        if f.is_file():
             shutil.copy2(f, ov / f.name)
-            copied += 1
+            aux += 1
     nt = dump_db.dump_gameplay(gameplay_db, ov / "CIV5Units.xml")
     ns = dump_db.dump_text(text_db, ov / "CIV5Units_Mongol.xml")
-    print(f"  Override: {copied} stub/aux files + {nt} tables + {ns} strings")
+    print(f"  Override: {len(stubs)} stubs + {aux} aux + {nt} tables + {ns} strings")
 
 
 def embed_mods(out, clone, fork_dll):
@@ -174,8 +187,6 @@ def main():
     ap.add_argument("--fork-dll", required=True, help="dist/engine-vp DLL")
     ap.add_argument("--gameplay-db", required=True)
     ap.add_argument("--text-db", required=True)
-    ap.add_argument("--ref-override", required=True,
-                    help="reference pack Override/ for stub + audio/dialog files")
     ap.add_argument("--base-ingame", required=True,
                     help="base Expansion2 InGame.lua to append addin loads to")
     ap.add_argument("--out", required=True)
@@ -191,7 +202,7 @@ def main():
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    build_override(out, args.gameplay_db, args.text_db, args.ref_override)
+    build_override(out, args.gameplay_db, args.text_db)
     if not args.skip_embed:
         embed_mods(out, args.clone, args.fork_dll)
     else:
