@@ -665,8 +665,10 @@ end
 -- Drift read: a team's vassalage relationships (see the vanilla file for the
 -- model contract). VP exposes the Team bindings vanilla lacks. master is nil
 -- when GetMaster returns the no-master sentinel (-1). tenure is the turns
--- this team has served its master (GetNumTurnsIsVassal keyed on the master).
--- vassals is built by scanning every team for one that serves this one;
+-- this team has served its master; GetNumTurnsIsVassal takes no argument and
+-- returns the team's own stored duration (vassalage is 1:1, so the team's
+-- master is unambiguous). vassals is built by scanning every team for one
+-- that serves this one;
 -- numVassals comes straight from the engine count. With vassalage disabled
 -- the getters return the empty answer naturally, so no GAMEOPTION check is
 -- needed.
@@ -678,7 +680,7 @@ function EngineData.vassalInfo(team)
     local isVassal = team:IsVassalOfSomeone()
     local tenure = 0
     if isVassal and masterId ~= nil then
-        tenure = team:GetNumTurnsIsVassal(masterId)
+        tenure = team:GetNumTurnsIsVassal()
     end
     local thisId = team:GetID()
     local vassals = {}

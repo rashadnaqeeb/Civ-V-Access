@@ -854,8 +854,10 @@ function M.test_vp_vassal_info_reads_team_bindings_and_scans_vassals()
         IsVassalOfSomeone = function()
             return true
         end,
-        GetNumTurnsIsVassal = function(_, masterId)
-            return masterId == 2 and 9 or 0
+        -- Zero-arg binding (CvTeam::GetNumTurnsIsVassal); returns the team's
+        -- own stored vassal duration regardless of any passed argument.
+        GetNumTurnsIsVassal = function()
+            return 9
         end,
         GetNumVassals = function()
             return 2
@@ -867,7 +869,7 @@ function M.test_vp_vassal_info_reads_team_bindings_and_scans_vassals()
     local info = vp.vassalInfo(team)
     T.truthy(info.isVassal)
     T.eq(info.master, 2)
-    T.eq(info.tenure, 9, "tenure is keyed on the master team")
+    T.eq(info.tenure, 9, "tenure is the team's own stored vassal duration")
     T.eq(info.numVassals, 2)
     T.eq(#info.vassals, 2, "the scan must find both serving teams")
     T.eq(info.vassals[1], 0)
