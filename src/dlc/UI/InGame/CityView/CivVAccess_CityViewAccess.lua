@@ -836,7 +836,7 @@ local function buildSpecialistTooltip(city, specID, specInfo)
             parts[#parts + 1] = "+" .. amt .. " " .. yieldInfo.IconString
         end
     end
-    local culture = city:GetCultureFromSpecialist(specID)
+    local culture = EngineData.cultureFromSpecialist(city, specID)
     if culture > 0 then
         parts[#parts + 1] = "+" .. culture .. " [ICON_CULTURE]"
     end

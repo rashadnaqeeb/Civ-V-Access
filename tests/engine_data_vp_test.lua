@@ -746,6 +746,31 @@ function M.test_vp_tourism_floors_times_100()
     T.eq(vp.tourism(player), 12, "times-100 tourism must floor to the displayed rate")
 end
 
+-- VP deleted GetCultureFromSpecialist (a nil-call crash in the specialist
+-- tooltip) and folded specialist culture into the YIELD_CULTURE yield the
+-- caller's yield loop already counts; the VP body must return 0 without
+-- touching the removed binding. Vanilla still reads the separate getter.
+function M.test_vp_culture_from_specialist_returns_zero_to_avoid_double_count()
+    local vp, _env = loadVPWithFork()
+    local city = {
+        GetCultureFromSpecialist = function()
+            error("VP must not call the removed GetCultureFromSpecialist binding")
+        end,
+    }
+    T.eq(vp.cultureFromSpecialist(city, 2), 0)
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(
+        vanilla.cultureFromSpecialist({
+            GetCultureFromSpecialist = function(_, specID)
+                T.eq(specID, 2, "vanilla forwards the specialist id")
+                return 3
+            end,
+        }, 2),
+        3,
+        "vanilla reads the separate specialist-culture getter"
+    )
+end
+
 function M.test_vp_influence_tourism_per_turn_includes_instant_and_floors()
     local vp, _env = loadVPWithFork()
     local player = {

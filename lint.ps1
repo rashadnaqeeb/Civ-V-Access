@@ -107,7 +107,7 @@ function Invoke-SeamGuard {
         "GetExcessHappiness", "GetHappinessFromBuildings", "GetHappinessFromPolicies",
         "GetUnhappinessFromCityCount", "GetUnhappinessFromCapturedCityCount",
         "GetUnhappinessFromCityPopulation", "GetUnhappinessFromCityForUI",
-        "GetTourism", "GetBaseTourism",
+        "GetTourism", "GetBaseTourism", "GetCultureFromSpecialist",
         "CapitalDefenseModifier", "CapitalDefenseFalloff",
         "GetCombatModifierFromCapitalDistance",
         "GetInfluencePerTurn", "GetTourismPerTurnIncludingInstantTimes100",

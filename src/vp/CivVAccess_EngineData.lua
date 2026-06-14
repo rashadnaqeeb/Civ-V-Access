@@ -279,6 +279,16 @@ function EngineData.baseTourism(city)
     return city:GetBaseTourism()
 end
 
+-- Drift read: specialist culture (see the vanilla file for the contract).
+-- VP folded specialist culture into the standard yield system as a
+-- YIELD_CULTURE yield-change and deleted GetCultureFromSpecialist, so the
+-- caller's GameInfo.Yields() loop already counts it via
+-- GetSpecialistYield(specID, YIELD_CULTURE). Returning it again here would
+-- double-count, so the VP body contributes nothing.
+function EngineData.cultureFromSpecialist(_city, _specID)
+    return 0
+end
+
 -- Drift read: a player's per-turn tourism directed at one rival. VP's
 -- GetInfluencePerTurn omits instant tourism and reads low; its own influence
 -- screen uses GetTourismPerTurnIncludingInstantTimes100, so we match it. That

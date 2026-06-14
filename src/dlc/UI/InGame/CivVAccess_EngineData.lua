@@ -278,6 +278,18 @@ function EngineData.baseTourism(city)
     return city:GetBaseTourism()
 end
 
+-- Drift read: the culture one specialist of the given type yields in this
+-- city, reported separately from the GameInfo.Yields() loop. Vanilla keeps
+-- specialist culture in its own column (the Specialists.Culture path), so
+-- GetSpecialistYield never returns it and the caller must add it here.
+-- VP migrated specialist culture into the standard yield system, dropping
+-- this getter entirely; there culture is a YIELD_CULTURE yield-change the
+-- caller's yield loop already counts, so the VP body returns 0 to avoid
+-- double-counting.
+function EngineData.cultureFromSpecialist(city, specID)
+    return city:GetCultureFromSpecialist(specID)
+end
+
 -- Drift read: a player's per-turn tourism directed at one rival -- the rate
 -- the Culture Overview influence tab speaks. Vanilla exposes only
 -- GetInfluencePerTurn, which already covers per-turn tourism toward that
