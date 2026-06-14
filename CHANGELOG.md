@@ -20,6 +20,7 @@ Bug fixes:
 - The advisor popups, EULA screen, and mods menu show the game's stock layouts again.
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
 - The Culture Overview no longer reads each city's tourism a hundred times too high.
+- The city-state diplomacy screen now reads the city-state's current quests.
 
 ## [1.4.4] - 2026-06-13
 

@@ -60,11 +60,22 @@ end
 
 local mainHandler
 
-local function infoRow(headerKey, textControl, tooltipControl, onActivate)
+-- valueFromTooltip: read the spoken value from the control's tooltip rather
+-- than its caption. QuestInfo is a TextButton whose caption is bare quest
+-- icons and whose detail lives in the tooltip; TextButton has no GetText, so
+-- a caption read both throws and would speak only icons. Label rows leave it
+-- unset and read GetText as before.
+local function infoRow(headerKey, textControl, tooltipControl, onActivate, valueFromTooltip)
     local tipControl = tooltipControl or textControl
     return BaseMenuItems.Text({
         labelFn = function()
-            local value = Controls[textControl]:GetText() or ""
+            local control = Controls[textControl]
+            local value
+            if valueFromTooltip then
+                value = control:GetToolTipString() or ""
+            else
+                value = control:GetText() or ""
+            end
             local header = Text.key(headerKey)
             if value == "" then
                 return header
@@ -309,7 +320,7 @@ buildRootItems = function()
     end
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_PERSONALITY", "PersonalityInfo", "PersonalityInfo")
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_TRAIT", "TraitInfo", "TraitInfo")
-    items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_QUESTS", "QuestInfo", "QuestInfo", activateQuestInfo)
+    items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_QUESTS", "QuestInfo", "QuestInfo", activateQuestInfo, true)
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_ALLIED_WITH", "AllyText", "AllyText")
     -- Contender and Protected By (Vox Populi info rows). Contender is the
     -- runner-up suitor, so it sits next to Allied With. Both self-gate on
