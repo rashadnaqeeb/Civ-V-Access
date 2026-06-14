@@ -21,6 +21,11 @@ Bug fixes:
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
 - The Culture Overview no longer reads each city's tourism a hundred times too high.
 
+## [1.4.4] - 2026-06-13
+
+Bug fixes:
+- Loading a multiplayer save no longer stalls the turn when units have queued moves.
+
 ## [1.4.3] - 2026-06-11
 
 New Features and improvements:
