@@ -119,6 +119,30 @@ function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHe
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, bHelp)
 end
 
+-- Drift read: the "defends near capital" combat modifier for a unit fighting
+-- at its own plot, distance falloff already folded in. Vanilla exposes the
+-- raw promotion value (CapitalDefenseModifier) plus the per-hex falloff
+-- (CapitalDefenseFalloff) and the caller walks the distance from the
+-- capital; VP dropped both unit bindings and rolled the whole computation
+-- into GetCombatModifierFromCapitalDistance(plot). Returns the modifier (0
+-- when the unit has no capital-defense promotion or no capital).
+function EngineData.capitalDefenseModifier(unit)
+    local capDef = unit:CapitalDefenseModifier()
+    if capDef <= 0 then
+        return 0
+    end
+    local cap = Players[unit:GetOwner()]:GetCapitalCity()
+    if cap == nil then
+        return 0
+    end
+    local dist = Map.PlotDistance(cap:GetX(), cap:GetY(), unit:GetX(), unit:GetY())
+    capDef = capDef + dist * unit:CapitalDefenseFalloff()
+    if capDef <= 0 then
+        return 0
+    end
+    return capDef
+end
+
 -- Drift read: the empire happiness headline, returned as a model rather
 -- than a bare number because the headline METRIC differs by engine. Here
 -- the number is a signed surplus; Vox Populi redefines the same getter

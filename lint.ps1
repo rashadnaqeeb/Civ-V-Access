@@ -108,6 +108,8 @@ function Invoke-SeamGuard {
         "GetUnhappinessFromCityCount", "GetUnhappinessFromCapturedCityCount",
         "GetUnhappinessFromCityPopulation", "GetUnhappinessFromCityForUI",
         "GetTourism", "GetBaseTourism",
+        "CapitalDefenseModifier", "CapitalDefenseFalloff",
+        "GetCombatModifierFromCapitalDistance",
         "GetInfluencePerTurn", "GetTourismPerTurnIncludingInstantTimes100",
         "GetBestDefender", "CanMoveOrAttackInto",
         "GetOwnerForDominationVictory",

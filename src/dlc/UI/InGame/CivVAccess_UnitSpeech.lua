@@ -794,16 +794,9 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
         pushMod(mods, sizeBonus, "TXT_KEY_EUPANEL_TRAIT_SMALL_SIZE_BONUS")
     end
 
-    local capDef = actor:CapitalDefenseModifier()
-    if capDef > 0 then
-        local cap = myPlayer:GetCapitalCity()
-        if cap ~= nil then
-            local dist = Map.PlotDistance(cap:GetX(), cap:GetY(), actor:GetX(), actor:GetY())
-            capDef = capDef + dist * actor:CapitalDefenseFalloff()
-            if capDef > 0 then
-                pushMod(mods, capDef, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS")
-            end
-        end
+    local capDef = EngineData.capitalDefenseModifier(actor)
+    if capDef ~= 0 then
+        pushMod(mods, capDef, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS")
     end
 
     if not targetPlot:IsFriendlyTerritory(myPlayerId) then
@@ -1007,16 +1000,9 @@ local function defenderMods(actor, defender, targetPlot)
         pushMod(mods, sizeBonus, "TXT_KEY_EUPANEL_TRAIT_SMALL_SIZE_BONUS")
     end
 
-    local capDef = defender:CapitalDefenseModifier()
-    if capDef > 0 then
-        local cap = theirPlayer:GetCapitalCity()
-        if cap ~= nil then
-            local dist = Map.PlotDistance(cap:GetX(), cap:GetY(), defender:GetX(), defender:GetY())
-            capDef = capDef + dist * defender:CapitalDefenseFalloff()
-            if capDef > 0 then
-                pushMod(mods, capDef, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS")
-            end
-        end
+    local capDef = EngineData.capitalDefenseModifier(defender)
+    if capDef ~= 0 then
+        pushMod(mods, capDef, "TXT_KEY_EUPANEL_CAPITAL_DEFENSE_BONUS")
     end
 
     local featureType = targetPlot:GetFeatureType()

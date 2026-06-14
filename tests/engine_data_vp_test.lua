@@ -509,6 +509,94 @@ function M.test_vp_plot_defense_modifier_inserts_ignore_feature_false()
     T.eq(seen.help, true)
 end
 
+-- VP dropped the unit-level CapitalDefenseModifier / CapitalDefenseFalloff
+-- bindings (a nil-call crash in the melee preview, killing the whole combat
+-- readout) and rolled the value + distance walk + falloff clamp into one
+-- binding that takes the battle plot.
+function M.test_vp_capital_defense_modifier_uses_combined_binding()
+    local vp, env = loadVPWithFork()
+    local sentinelPlot = {}
+    env.Map = {
+        GetPlot = function(x, y)
+            T.eq(x, 5)
+            T.eq(y, 7)
+            return sentinelPlot
+        end,
+    }
+    local unit = {
+        GetX = function()
+            return 5
+        end,
+        GetY = function()
+            return 7
+        end,
+        GetCombatModifierFromCapitalDistance = function(_, plot)
+            T.eq(plot, sentinelPlot, "VP evaluates at the unit's own plot")
+            return 15
+        end,
+        CapitalDefenseModifier = function()
+            error("VP must not read the dropped unit binding")
+        end,
+    }
+    T.eq(vp.capitalDefenseModifier(unit), 15)
+end
+
+-- Vanilla walks the distance from the capital and applies the per-hex
+-- falloff itself; a negative falloff that drives the bonus to zero or below
+-- yields no modifier (the caller's nonzero guard then skips the line).
+function M.test_vanilla_capital_defense_modifier_walks_distance_falloff()
+    local vanilla, env = loadSeam(VANILLA_PATH)
+    env.Players = {
+        [3] = {
+            GetCapitalCity = function()
+                return {
+                    GetX = function()
+                        return 0
+                    end,
+                    GetY = function()
+                        return 0
+                    end,
+                }
+            end,
+        },
+    }
+    env.Map = {
+        PlotDistance = function()
+            return 4
+        end,
+    }
+    local function unitWith(base, falloff)
+        return {
+            GetOwner = function()
+                return 3
+            end,
+            GetX = function()
+                return 2
+            end,
+            GetY = function()
+                return 2
+            end,
+            CapitalDefenseModifier = function()
+                return base
+            end,
+            CapitalDefenseFalloff = function()
+                return falloff
+            end,
+        }
+    end
+    T.eq(vanilla.capitalDefenseModifier(unitWith(50, -5)), 30, "50 + 4 * -5")
+    T.eq(vanilla.capitalDefenseModifier(unitWith(10, -5)), 0, "falloff drives it non-positive")
+    T.eq(
+        vanilla.capitalDefenseModifier({
+            CapitalDefenseModifier = function()
+                return 0
+            end,
+        }),
+        0,
+        "no capital-defense promotion short-circuits before the capital lookup"
+    )
+end
+
 -- The Soldiers demographic multiplier is the drift: VP scales sqrt(might)
 -- by 5000 where vanilla uses 2000. A wrong constant here speaks an absolute
 -- 2.5x off VP's screen (rank unaffected), a silent-value failure.

@@ -111,6 +111,15 @@ function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHe
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, false, bHelp)
 end
 
+-- Drift read: the "defends near capital" combat modifier (see the vanilla
+-- file for the contract). VP dropped the unit-level CapitalDefenseModifier
+-- and CapitalDefenseFalloff bindings and rolled the value, the distance
+-- walk, and the falloff clamp into one binding that takes the battle plot.
+function EngineData.capitalDefenseModifier(unit)
+    local plot = Map.GetPlot(unit:GetX(), unit:GetY())
+    return unit:GetCombatModifierFromCapitalDistance(plot)
+end
+
 -- Is the Vox Populi balance mode on? VP guts the vanilla happiness model
 -- only under MOD_BALANCE_VP; a Community-Patch-only session (balance off)
 -- keeps the vanilla signed-surplus semantics. Same gate the vendor UIs use.
