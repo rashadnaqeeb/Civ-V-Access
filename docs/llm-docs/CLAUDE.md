@@ -1,6 +1,6 @@
 # llm-docs
 
-Reference material extracted from the local Civ V install (game Lua, XML, SDK) and from community sources, intended to be loaded on demand by future sessions. Nothing here is hand-authored design — these are derived references. When the underlying game files change (patch, DLC, mod activation in the wrong slot), regenerate rather than edit.
+Reference material extracted from the local Civ V install (game Lua, XML, SDK) and from community sources, intended to be loaded on demand by future sessions. Most of it is derived (extracted, regenerate rather than edit when the underlying game files change); a few files are hand-authored canonical reference (the fork-bindings list, the Vox Populi support reference) and are maintained by hand against the code they describe.
 
 ## What's here
 
@@ -36,6 +36,9 @@ Extracted index of UI-label `TXT_KEY_*` entries from every shipped `en_US` text 
 Use this before adding any mod-authored string. The project rule is "search the game's text XML before authoring," and this index is the searchable form of that — Ctrl-F a likely label ("Close", "Cancel", "End Turn") and grab the existing key. The text-key namespace is global, so any key here can be looked up via `Locale.ConvertTextKey` from any mod context.
 
 `txt-keys/_extract.py` is the extractor. Re-run (`py _extract.py` from `llm-docs/txt-keys/`) when DLC changes or the include/exclude heuristics need tuning.
+
+### Vox Populi support — `vox-populi.md`
+Hand-authored, canonical reference for the Vox Populi layer: the support model and the three mutually exclusive install states, the EngineData seam and capability probes, the VP engine facts that constrain work (the approval/happiness model, times-100 reads, path-node differences, nullable DB columns), the patterns to carry forward, the vendoring tool and modpack bake, and the re-sync runbook. Read it before touching VP code, the seam, the vendoring tool, or the deploy/modpack scripts. It holds only durable facts; the current version pin lives in `versions.json` as `supported_vp`, not in the doc.
 
 ### External resources — `external-resources.md`
 URLs for community references that supplement the local files: Civfanatics modiki, Whoward's BNW Lua reference (parsed from DLL C++, more authoritative than the SDK HTML stub), Vox Populi / EUI / IGE source repos.
