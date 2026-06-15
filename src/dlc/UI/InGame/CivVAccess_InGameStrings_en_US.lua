@@ -2104,7 +2104,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ARTIST"] = "great a
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "great engineer points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "great merchant points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "great scientist points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_GPP"] = "gpp"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "great work"
+-- Vox Populi countable yields the engine help builder renders bare
+-- ("+N[icon]"); the primary speaks the full label when standalone, the
+-- _ALT collapses against the shorter written pairing in prose.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH"] = "border growth points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH_ALT"] = "border growth"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE"] = "golden age points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE_ALT"] = "golden age"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL"] = "great general points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL_ALT"] = "great general"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL"] = "great admiral points"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL_ALT"] = "great admiral"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_POPULATION"] = "population"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_POPULATION_ALT"] = "citizen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "combat strength"
 -- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH (en_US
 -- "[ICON_STRENGTH] Strength: N", fr_FR "[ICON_STRENGTH] Puissance : N").
@@ -2118,6 +2132,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = "ranged combat st
 -- combat à distance : N". The alias is dormant in those locales and ""
 -- is fine; the matcher skips empty aliases.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT"] = "ranged strength"
+-- [ICON_RANGE_STRENGTH] also illustrates related labels in ability prose
+-- that "ranged combat strength" / "ranged strength" do not collapse:
+-- "Ranged Strike", "Ranged Attack", "Range", "City Strike Strength".
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_STRIKE"] = "ranged strike"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_ATTACK"] = "ranged attack"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_RANGE"] = "range"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_CITY_STRIKE"] = "city strike strength"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_MOVEMENT"] = "moves"
 -- Dedup-only alias. Engine source: TXT_KEY_TRAIT_VIKING_FURY (Denmark's
 -- Viking Fury, "+1 Movement [ICON_MOVES]"). Base text pairs [ICON_MOVES]

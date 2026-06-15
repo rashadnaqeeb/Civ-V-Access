@@ -238,6 +238,52 @@ function M.test_influence_icon()
     T.eq(TextFilter.filter("5[ICON_INFLUENCE], more"), "5 influence, more")
 end
 
+-- VP countable yields the engine help builder renders bare ("+N[icon]")
+-- in building / unit boost lists, where the icon is the only label. Each
+-- speaks its full label standalone and collapses against its written
+-- pairing (and the shorter _ALT form) in prose.
+function M.test_vp_yield_icons_bare_and_paired()
+    setup()
+    -- Border growth (the Court Chapel -> Shrine boost that surfaced this).
+    T.eq(
+        TextFilter.filter("Court Chapel in any City: +5[ICON_CULTURE_LOCAL]"),
+        "Court Chapel in any City: +5 border growth points"
+    )
+    T.eq(TextFilter.filter("+5 [ICON_CULTURE_LOCAL] Border Growth Points"), "+5 Border Growth Points")
+    T.eq(TextFilter.filter("+3 [ICON_CULTURE_LOCAL] Border Growth"), "+3 Border Growth")
+    -- Golden age points.
+    T.eq(TextFilter.filter("+5[ICON_GOLDEN_AGE]"), "+5 golden age points")
+    T.eq(TextFilter.filter("gain a [ICON_GOLDEN_AGE] Golden Age"), "gain a Golden Age")
+    -- Great general / admiral points.
+    T.eq(TextFilter.filter("+2[ICON_GREAT_GENERAL]"), "+2 great general points")
+    T.eq(TextFilter.filter("+2 [ICON_GREAT_GENERAL] Great General Points"), "+2 Great General Points")
+    T.eq(TextFilter.filter("+2[ICON_GREAT_ADMIRAL]"), "+2 great admiral points")
+    -- Population.
+    T.eq(TextFilter.filter("7[ICON_CITIZEN]"), "7 population")
+    T.eq(TextFilter.filter("requires 2 [ICON_CITIZEN] population"), "requires 2 population")
+    T.eq(TextFilter.filter("loses 1 [ICON_CITIZEN] Citizens"), "loses 1 Citizens")
+end
+
+-- [ICON_RANGE_STRENGTH] illustrates several related labels beyond the
+-- "ranged (combat) strength" stat; each must collapse so the icon's spoken
+-- form does not double against the written label.
+function M.test_range_strength_related_labels_collapse()
+    setup()
+    T.eq(TextFilter.filter("perform a [ICON_RANGE_STRENGTH] Ranged Strike"), "perform a Ranged Strike")
+    T.eq(TextFilter.filter("[ICON_RANGE_STRENGTH] Ranged Attacks are stronger"), "Ranged Attacks are stronger")
+    T.eq(TextFilter.filter("increases [ICON_RANGE_STRENGTH] Range by 1"), "increases Range by 1")
+    T.eq(TextFilter.filter("[ICON_RANGE_STRENGTH] City Strike Strength"), "City Strike Strength")
+    -- The stat pairing still collapses, and the bare token still speaks.
+    T.eq(TextFilter.filter("50 [ICON_RANGE_STRENGTH] Ranged Combat Strength"), "50 Ranged Combat Strength")
+    T.eq(TextFilter.filter("50 [ICON_RANGE_STRENGTH]"), "50 ranged combat strength")
+end
+
+-- [ICON_GREAT_PEOPLE] abbreviates to "GPP" in per-turn rate prose.
+function M.test_great_people_gpp_collapses()
+    setup()
+    T.eq(TextFilter.filter("+5 [ICON_GREAT_PEOPLE] GPP per turn"), "+5 GPP per turn")
+end
+
 -- Composed: unit cost with icon substitution --------------------------------
 
 function M.test_unit_production_cost_speaks_cleanly()

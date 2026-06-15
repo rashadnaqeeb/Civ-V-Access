@@ -56,6 +56,18 @@ local ICON_KEYS = {
     -- as ICON_GREAT_PEOPLE's _ALT.
     ICON_GREAT_WORK = "TXT_KEY_CIVVACCESS_ICON_GREAT_WORK",
 
+    -- Vox Populi countable yields. These are real yield types (Yields
+    -- table) that the engine's help builder renders compactly as
+    -- "+N[ICON_X]" with no trailing label in building / unit boost lists
+    -- (e.g. a Court Chapel's "+5[ICON_CULTURE_LOCAL]" border-growth bonus
+    -- to Shrines), where the icon is the only label for the number. Prose
+    -- pairs each with its written label, which the dedup check collapses.
+    ICON_CULTURE_LOCAL = "TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH",
+    ICON_GOLDEN_AGE = "TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE",
+    ICON_GREAT_GENERAL = "TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL",
+    ICON_GREAT_ADMIRAL = "TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL",
+    ICON_CITIZEN = "TXT_KEY_CIVVACCESS_ICON_POPULATION",
+
     -- Diplomacy / city-states --------------------------------------------
     -- City-state text renders influence as "N[ICON_INFLUENCE]" with no
     -- adjacent word (contender suitor, bully influence-lost), where the
@@ -114,6 +126,10 @@ local ALIAS_KEYS = {
         "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER",
         "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT",
         "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST",
+        -- Per-turn rate prose abbreviates to "GPP" ("[ICON_GREAT_PEOPLE]
+        -- GPP per turn"), which neither the primary nor the singular ALT
+        -- collapses against.
+        "TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_GPP",
     },
     -- The engine's TXT_KEY_PRODUCTION_STRENGTH formats unit strength as
     -- "[ICON_STRENGTH] Strength: N" — adjacent to the icon's spoken form
@@ -124,7 +140,28 @@ local ALIAS_KEYS = {
     -- Same pattern for ranged units: TXT_KEY_PRODUCTION_RANGED_STRENGTH
     -- emits "[ICON_RANGE_STRENGTH] Ranged Strength: N", adjacent to the
     -- icon's "ranged combat strength". Alias collapses on "Ranged Strength".
-    ["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = { "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT" },
+    -- "ranged combat strength" is the stat, but [ICON_RANGE_STRENGTH] also
+    -- illustrates the related but distinct labels "Ranged Strike", "Ranged
+    -- Attack", "Range", and "City Strike Strength" in ability prose, none
+    -- of which the primary or the _ALT "ranged strength" collapse against.
+    -- Each alias drops the icon so the user hears just the written label.
+    ["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH"] = {
+        "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT",
+        "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_STRIKE",
+        "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_ATTACK",
+        "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_RANGE",
+        "TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_CITY_STRIKE",
+    },
+    -- VP countable-yield aliases: the icon stands alone as the label after
+    -- a number, but prose pairs it with the shorter written form ("Border
+    -- Growth" without "Points", "Golden Age" / "Golden Ages", "Great
+    -- General(s)", "Great Admiral(s)", "Citizen(s)"). The primary speaks
+    -- the full label when bare; the alias collapses the shorter pairing.
+    ["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH"] = { "TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE"] = { "TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL"] = { "TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL"] = { "TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL_ALT" },
+    ["TXT_KEY_CIVVACCESS_ICON_POPULATION"] = { "TXT_KEY_CIVVACCESS_ICON_POPULATION_ALT" },
     -- Ability prose pairs [ICON_MOVES] with the noun "Movement" on either
     -- side ("+1 Movement [ICON_MOVES]" in Denmark's Viking Fury, "+1
     -- [ICON_MOVES] Movement" in the BNW scenarios). The icon's "moves"
