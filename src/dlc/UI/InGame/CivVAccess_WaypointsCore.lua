@@ -90,13 +90,14 @@ end
 
 -- Per-tile build cost for a worker laying buildId on plot. Cities and
 -- plots already at-or-above the target route tier are zero-cost. On the
--- worker's start plot the extra-rate goes to zero when the worker is
--- already mid-build of this same build: CvPlot::getBuildTurnsLeft walks
--- the plot's unit list and auto-adds the work rate of every unit whose
--- getBuildType() matches, so feeding it again would double-count.
--- Mirrors the helper in CivVAccess_UnitTargetMode.lua used by the
--- route-to target-mode preview; the math is the engine's, so the two
--- callers want the same answer.
+-- worker's start plot the extra-rate goes to zero when getBuildTurnsLeft
+-- already credits the on-plot worker, since feeding the rate in again would
+-- double-count -- EngineData.onPlotWorkerCounted answers that per engine
+-- (vanilla credits it only for the build the worker is mid-execution on; VP
+-- credits any worker on the plot). Non-start plots carry no worker, so both
+-- engines need the extra rate supplied. Mirrors the helper in
+-- CivVAccess_UnitTargetMode.lua used by the route-to target-mode preview;
+-- the math is the engine's, so the two callers want the same answer.
 local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, isStartPlot)
     if buildId == nil or plot:IsCity() then
         return 0
@@ -109,7 +110,7 @@ local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlready
         end
     end
     local extra = extraRate
-    if isStartPlot and actorAlreadyOnBuild then
+    if isStartPlot and EngineData.onPlotWorkerCounted(actorAlreadyOnBuild) then
         extra = 0
     end
     return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), extra, extra)

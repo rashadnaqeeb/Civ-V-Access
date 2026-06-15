@@ -846,6 +846,19 @@ function M.test_vp_active_build_turns_drops_display_plus_one()
     T.eq(vanilla.activeBuildTurns(plot, 7, 0), 5, "vanilla adds the display +1")
 end
 
+-- The route-path preview drops the supplied extra rate on the worker's start
+-- plot only when getBuildTurnsLeft already credits the on-plot worker. VP
+-- credits any worker on the plot (so always drop it); vanilla credits it only
+-- when the worker is already performing that build.
+function M.test_vp_on_plot_worker_counted_is_unconditional()
+    local vp = loadVPWithFork()
+    T.truthy(vp.onPlotWorkerCounted(false), "VP counts an on-plot worker even when not already on this build")
+    T.truthy(vp.onPlotWorkerCounted(true), "VP counts an on-plot worker that is already on this build")
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.falsy(vanilla.onPlotWorkerCounted(false), "vanilla credits only the build the worker is performing")
+    T.truthy(vanilla.onPlotWorkerCounted(true), "vanilla credits the worker already on this build")
+end
+
 -- VP transfers religion control with the holy city, so the religion a
 -- player "has" for the overview is the owned one (GetOwnedReligion), not
 -- the founded one; pantheon-or-below collapses to -1.

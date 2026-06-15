@@ -290,6 +290,16 @@ function EngineData.activeBuildTurns(plot, buildID, player)
     return plot:GetBuildTurnsLeft(buildID, player, 0, 0) + 1
 end
 
+-- Drift read: whether getBuildTurnsLeft already credits a worker standing on
+-- the plot toward a build, which makes feeding the worker's rate in again --
+-- as the route-path preview does for the worker's start plot -- a
+-- double-count. Vanilla credits the on-plot worker only when it is already
+-- performing that exact build, so the answer is actorAlreadyOnBuild. VP
+-- credits any worker on the plot unconditionally, so its body returns true.
+function EngineData.onPlotWorkerCounted(actorAlreadyOnBuild)
+    return actorAlreadyOnBuild
+end
+
 -- Drift read: the real religion a player controls (Religion Overview), or
 -- -1 for none. Vanilla has no religion transfer, so the founder always
 -- controls: founded religion or nothing. VP transfers control with the

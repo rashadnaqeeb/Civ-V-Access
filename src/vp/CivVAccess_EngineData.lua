@@ -278,6 +278,15 @@ function EngineData.activeBuildTurns(plot, buildID, player)
     return plot:GetBuildTurnsLeft(buildID, player, 0, 0)
 end
 
+-- Drift read: VP's getBuildTurnsLeft credits any worker on the plot toward
+-- any build, so a worker on the plot is always already counted -- feeding its
+-- rate in again (as the route-path preview does for the start plot) would
+-- double-count. Vanilla credits it only for the build the worker is already
+-- performing, so vanilla returns actorAlreadyOnBuild instead.
+function EngineData.onPlotWorkerCounted(_actorAlreadyOnBuild)
+    return true
+end
+
 -- Drift read: the real religion a player controls (Religion Overview), or
 -- -1 for none. VP transfers religion control with the holy city, so the
 -- answer is GetOwnedReligion (holy-city-keyed) rather than the founded
