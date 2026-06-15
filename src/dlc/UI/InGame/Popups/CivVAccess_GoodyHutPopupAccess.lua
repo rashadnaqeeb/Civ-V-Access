@@ -34,6 +34,13 @@ local goodyType, goodyDescKey, goodyValue
 -- Snapshot the payload: the goody's type and description key (to decide
 -- whether the amount needs supplying) and Data2 (the amount itself). The
 -- vendor keeps its own m_PopupInfo local but it is not reachable from here.
+--
+-- This listener is appended after the vendor's OnPopup on the same event, and
+-- OnPopup's QueuePopup shows the Context synchronously, so the open-time
+-- preamble runs before we get here. The install below defers the open push one
+-- tick (deferActivate) so this snapshot lands first; without it the popup opens
+-- speaking the description with no amount, while F1 -- which re-reads after the
+-- dispatch completes -- speaks it correctly.
 Events.SerialEventGameMessagePopup.Add(function(popupInfo)
     if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_GOODY_HUT_REWARD then
         return
@@ -81,6 +88,9 @@ BaseMenu.install(ContextPtr, {
     name = "GoodyHutPopup",
     displayName = Text.key("TXT_KEY_POP_RUINS_EXPLORED"),
     preamble = preamble,
+    -- Open one tick late so the payload snapshot above has landed; see the
+    -- listener comment for why an immediate push would miss the amount.
+    deferActivate = true,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
     items = {
