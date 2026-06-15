@@ -70,6 +70,14 @@
 .PARAMETER SkipCinematics
     Skip the audio-described BNW opening cinematics.
 
+.PARAMETER RepinBuild
+    Required to run an install. The VP mod-overlay this script lays down is a
+    maintainer-only build step (generating the merged database during a
+    re-pin), not a play or test state -- players and testers use the modpack
+    (deploy-modpack.ps1). The overlay produces saves the modpack cannot load
+    and is easy to land in by accident, so an install refuses without this
+    flag. resync-vp.ps1 passes it for you. -Uninstall does not need it.
+
 .PARAMETER Uninstall
     Remove the proxy stack, the DLC, and the cinematics (restoring stock
     files from backup), restore VP's shipped DLL into the MODS folder, and
@@ -84,6 +92,7 @@ param(
     [switch]$SkipDlc,
     [switch]$SkipEngine,
     [switch]$SkipCinematics,
+    [switch]$RepinBuild,
     [switch]$Uninstall
 )
 
@@ -749,6 +758,20 @@ if ($Uninstall) {
     return
 }
 
+if (-not $RepinBuild) {
+    Write-Host ""
+    Write-Host "The VP mod-overlay state is now a maintainer-only build step, not a" -ForegroundColor Yellow
+    Write-Host "play or test state. Players and testers use the modpack:" -ForegroundColor Yellow
+    Write-Host "  ./deploy-modpack.ps1" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "The overlay produces saves the modpack cannot load and is easy to" -ForegroundColor Yellow
+    Write-Host "land in by accident. Pass -RepinBuild only as part of a re-pin, when" -ForegroundColor Yellow
+    Write-Host "you need a mod-flow install to generate the merged database;" -ForegroundColor Yellow
+    Write-Host "resync-vp.ps1 does this for you." -ForegroundColor Yellow
+    Write-Host ""
+    throw "deploy-vp.ps1 refused: pass -RepinBuild to confirm a maintainer re-pin deploy."
+}
+
 Complete-VPInstall -Game $gameDir
 
 if (-not $SkipProxy) {
@@ -783,10 +806,14 @@ if (-not $SkipDlc) {
 }
 
 Write-Host ""
-Write-Host "VP deploy complete."
+Write-Host "VP deploy complete (transient maintainer mod-overlay state)."
 Write-Host "  Game dir: $gameDir"
 Write-Host "  Version : $modVersion (VP variant)"
 Write-Host ""
 Write-Host "Start a game with the (1) Community Patch and (2) Vox Populi mods"
 Write-Host "enabled. For Lua.log output, set LoggingEnabled=1 in:"
 Write-Host "  $civ5DocsDir\config.ini"
+Write-Host ""
+Write-Host "This state cannot load modpack saves. When done generating the"
+Write-Host "merged database / smoke-testing, return to player-facing modpack"
+Write-Host "state with ./build-modpack.ps1 then ./deploy-modpack.ps1."

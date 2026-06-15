@@ -16,6 +16,8 @@ Packaging stays a DLC, as on vanilla. There are two VP delivery shapes: a mod ov
 
 A machine is in exactly one install state at a time: vanilla, VP mod-overlay, or VP modpack. The deploy scripts flip between them. The running session type must match the last deploy. The dangerous direction is a VP-state install run as a vanilla (or wrong-mode) session: the VP-sourced overrides call VP-only bindings and the player hears silent wrong numbers rather than a loud failure. Always re-state which deploy an install last received before trusting its speech.
 
+The VP modpack is the only play/test state for VP. The VP mod-overlay is now a maintainer-only build step, used during a re-pin to generate the merged database and smoke-test the fork; it is not a play state. Its saves cannot be loaded by the modpack (different active DLC and mod set), and a player who lands in it by accident gets a hard crash on loading a modpack save. To enforce this, `deploy-vp.ps1` refuses to install without `-RepinBuild` (`-Uninstall` is exempt); `resync-vp.ps1` passes the flag during a re-pin and ends by flipping back to modpack state via its `modpack` phase. Players and testers only ever run `deploy-modpack.ps1`.
+
 ## The EngineData seam
 
 `CivVAccess_EngineData.lua` is the single chokepoint for engine-divergent data. The vanilla body is at `src/dlc/UI/InGame/CivVAccess_EngineData.lua`; deploy swaps in `src/vp/CivVAccess_EngineData.lua` under the same include stem for VP. Rules:
@@ -76,12 +78,13 @@ Do not hand-edit a generated vendor override. To change a CP-divergent screen, e
 
 ## Re-sync runbook
 
-When VP ships a new stable release, re-pin in one cycle. `resync-vp.ps1` (repo root) orchestrates it in resumable phases (`-Phase engine|mods|vendor|finish`):
+When VP ships a new stable release, re-pin in one cycle. `resync-vp.ps1` (repo root) orchestrates it in resumable phases (`-Phase engine|mods|vendor|finish|modpack`):
 
 1. Engine: rebase the fork's `civvaccess` branch onto the new tag (with a backup snapshot and conflict-abort-and-restore), rebuild with the clang/SDK build script, and run the canary. The canary must report GOOD before the DLL is committed. If upstream bumps its DLL version number, bump our version-immediate to match (the script gates on this).
 2. Mods: mirror the installed MODS folders to the clone byte-identical, handling deletions, so the clone stays the pristine reference.
 3. Vendor: re-run `verify` (vanilla stays green) then `generate`, and read the drift report.
-4. Finish: deploy and record the new pin (requires an explicit review-confirmed flag).
+4. Finish: deploy the VP mod-overlay (passing `-RepinBuild`) and record the new pin (requires an explicit review-confirmed flag). This leaves the install in the transient mod-overlay state, used for the next step.
+5. Modpack (terminal): after playing one clean CP+VP session through the Mods menu to produce a fresh merged database (`build-modpack` refuses a modpack-launch cache), `-Phase modpack` bakes the modpack and deploys it, returning the install to the player-facing modpack state where the play audit runs. This is a separate phase because the merged-DB session is a manual step the script cannot perform.
 
 What actually breaks on a re-pin is rarely the C++ rebase. It is the vendoring drift report (new overlaps, signature drift, anchors moved) and the value audit of the Lua-binding diff between the old and new tags (new balance guards in getters we speak). Newly drifted getters go into the lint seam guard's name list.
 

@@ -33,21 +33,29 @@
               then write the old..new Lua-binding diff for the value audit.
               Stops here for human review.
 
-      finish  (Requires -ReviewConfirmed.) Deploy the VP stack and record the
-              new pin in versions.json. Run only after reviewing the drift
-              report and the binding diff.
+      finish  (Requires -ReviewConfirmed.) Deploy the VP stack (the transient
+              mod-overlay used to generate the merged database and smoke-test
+              the fork) and record the new pin in versions.json. Run only
+              after reviewing the drift report and the binding diff. Leaves
+              the install in mod-overlay state; the modpack phase lands it
+              back in the player-facing state.
+
+      modpack The terminal phase. After a clean CP+VP session has produced a
+              fresh merged database (build-modpack refuses a modpack-launch
+              cache), bake the modpack and deploy it, leaving the install in
+              the player-facing modpack state where the play audit runs.
 
     With no -Phase, the script runs engine, mods, and vendor, then stops with
-    the review checklist and the exact finish command. finish is never part
-    of an unattended run.
+    the review checklist and the exact finish command. finish and modpack are
+    never part of an unattended run.
 
 .PARAMETER NewTag
     The Community-Patch-DLL release tag to pin to (e.g. Release-5.3.3). Pass
     the current pin to dry-run the plumbing as a near no-op smoke test.
 
 .PARAMETER Phase
-    Run a single phase (engine | mods | vendor | finish) instead of the
-    default engine->mods->vendor sequence. Use to resume after fixing a
+    Run a single phase (engine | mods | vendor | finish | modpack) instead of
+    the default engine->mods->vendor sequence. Use to resume after fixing a
     recipe or to re-run a step.
 
 .PARAMETER ClonePath
@@ -71,7 +79,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$NewTag,
-    [ValidateSet('engine', 'mods', 'vendor', 'finish')]
+    [ValidateSet('engine', 'mods', 'vendor', 'finish', 'modpack')]
     [string]$Phase,
     [string]$ClonePath,
     [string]$ModsDir,
@@ -279,8 +287,8 @@ function Invoke-FinishPhase {
     if (-not $ReviewConfirmed) {
         throw "finish requires -ReviewConfirmed. Review the drift report and the Lua-binding diff first (see the vendor phase output)."
     }
-    Write-Step "Deploy VP stack"
-    & (Join-Path $repoRoot 'deploy-vp.ps1') -ClonePath $ClonePath
+    Write-Step "Deploy VP stack (transient mod-overlay for the merged-DB session)"
+    & (Join-Path $repoRoot 'deploy-vp.ps1') -ClonePath $ClonePath -RepinBuild
     if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-vp.ps1 failed (exit $LASTEXITCODE)." }
 
     Write-Step "Record the new pin"
@@ -288,13 +296,32 @@ function Invoke-FinishPhase {
     Write-Host "versions.json supported_vp -> $NewTag" -ForegroundColor Green
     Write-Host @"
 
-Re-pin mechanics done. Still by hand, per the release prerequisites:
+Re-pin mechanics done. The install is in the transient VP mod-overlay state,
+which cannot load modpack saves. Still by hand, per the release prerequisites:
   - bump the engine_vp component version in versions.json if the DLL changed
   - restate the supported VP version in the release notes / CHANGELOG
-  - run a play-audit pass on the re-pinned build
+  - play one clean CP+VP session through the Mods menu (Squads off) to produce
+    the merged database
+  - run ./resync-vp.ps1 -NewTag $NewTag -Phase modpack to bake the modpack and
+    deploy it -- this lands the install back in player-facing modpack state,
+    where the play audit then runs
   - once satisfied, delete the $backupBranch snapshot in the clone
   - commit dist/engine-vp + versions.json + any manifest recipe fixes
 "@
+}
+
+function Invoke-ModpackPhase {
+    Write-Step "Bake the modpack from the merged database"
+    & (Join-Path $repoRoot 'build-modpack.ps1')
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
+        throw "build-modpack.ps1 failed (exit $LASTEXITCODE). It needs a clean CP+VP merged cache DB; play one clean CP+VP session through the Mods menu (Squads off), then re-run -Phase modpack."
+    }
+
+    Write-Step "Deploy the modpack (player-facing end state)"
+    & (Join-Path $repoRoot 'deploy-modpack.ps1')
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-modpack.ps1 failed (exit $LASTEXITCODE)." }
+
+    Write-Host "Install is now in player-facing modpack state. Run the play audit here." -ForegroundColor Green
 }
 
 # ---------------------------------------------------------------- main
@@ -307,10 +334,11 @@ if ([string]::IsNullOrWhiteSpace($oldTag)) {
 Write-Host "Re-sync VP: clone=$ClonePath  old=$oldTag  new=$NewTag" -ForegroundColor Cyan
 
 switch ($Phase) {
-    'engine' { Invoke-EnginePhase -OldTag $oldTag }
-    'mods'   { Invoke-ModsPhase }
-    'vendor' { Invoke-VendorPhase -OldTag $oldTag }
-    'finish' { Invoke-FinishPhase }
+    'engine'  { Invoke-EnginePhase -OldTag $oldTag }
+    'mods'    { Invoke-ModsPhase }
+    'vendor'  { Invoke-VendorPhase -OldTag $oldTag }
+    'finish'  { Invoke-FinishPhase }
+    'modpack' { Invoke-ModpackPhase }
     default {
         Invoke-EnginePhase -OldTag $oldTag
         Invoke-ModsPhase

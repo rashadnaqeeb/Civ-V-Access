@@ -698,7 +698,8 @@ if ($priorVpState) {
     Write-Host "Flipped from VP state to vanilla. The fork engine DLL and the"
     Write-Host "overlaid vendor files in the VP MODS folders remain (inert in"
     Write-Host "vanilla sessions). Do NOT start a modded VP session from this"
-    Write-Host "state; run ./deploy-vp.ps1 to flip back first."
+    Write-Host "state; run ./deploy-modpack.ps1 to play VP. (The mod-overlay,"
+    Write-Host "./deploy-vp.ps1 -RepinBuild, is maintainer-only for re-pins.)"
 } elseif ($priorModpackState) {
     Write-Host ""
     Write-Host "Flipped from VP modpack state to vanilla. The modpack package"
