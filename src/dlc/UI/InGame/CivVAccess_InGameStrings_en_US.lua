@@ -2157,6 +2157,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = "unhappiness"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT"] = "unhappy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_LEFT"] = "left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_RIGHT"] = "right"
+-- Checkmark marking a met condition in a requirement list (the
+-- pledge-to-protect tooltip). Reads as a noun in the instruction ("must
+-- have a checkmark next to it") and as a met-marker on a condition line
+-- ("checkmark Allied with City-State").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CHECKMARK"] = "checkmark"
 -- ChooseProduction popup. Wrapped BaseMenu with two tabs (Produce, Purchase)
 -- and five groups per tab (Units, Buildings, Wonders, Other, Current queue).
 -- Append-mode commit speaks post-commit queue length so the player hears the

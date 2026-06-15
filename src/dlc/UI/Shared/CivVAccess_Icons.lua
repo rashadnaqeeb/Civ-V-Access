@@ -96,6 +96,14 @@ local ICON_KEYS = {
     -- directional meaning themselves. --------------------------------
     ICON_ARROW_LEFT = "TXT_KEY_CIVVACCESS_ICON_ARROW_LEFT",
     ICON_ARROW_RIGHT = "TXT_KEY_CIVVACCESS_ICON_ARROW_RIGHT",
+
+    -- Status markers -----------------------------------------------------
+    -- A checkmark glyph marking a satisfied condition in a requirement
+    -- list (the pledge-to-protect "must have a [ICON_CHECKBOX] next to it"
+    -- tooltip, where met conditions carry it and unmet ones a plain bullet
+    -- that strips silently). Standalone -- the icon is the only signal that
+    -- the adjacent condition is met -- so it has to speak.
+    ICON_CHECKBOX = "TXT_KEY_CIVVACCESS_ICON_CHECKMARK",
 }
 
 -- Dedup-only aliases keyed by the primary TXT_KEY. An icon's spoken form is

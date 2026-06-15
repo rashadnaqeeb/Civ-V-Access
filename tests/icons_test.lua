@@ -284,6 +284,19 @@ function M.test_great_people_gpp_collapses()
     T.eq(TextFilter.filter("+5 [ICON_GREAT_PEOPLE] GPP per turn"), "+5 GPP per turn")
 end
 
+-- [ICON_CHECKBOX] marks a satisfied condition in a requirement list. It
+-- reads as a noun in the instruction line and as a met-marker on a
+-- condition line; the unmet conditions carry a plain bullet that strips.
+function M.test_checkbox_icon_speaks_checkmark()
+    setup()
+    T.eq(filtered("ICON_CHECKBOX"), "checkmark")
+    T.eq(
+        TextFilter.filter("One of these attributes must have a [ICON_CHECKBOX] next to it"),
+        "One of these attributes must have a checkmark next to it"
+    )
+    T.eq(TextFilter.filter("[ICON_CHECKBOX] Allied with City-State"), "checkmark Allied with City-State")
+end
+
 -- Composed: unit cost with icon substitution --------------------------------
 
 function M.test_unit_production_cost_speaks_cleanly()
