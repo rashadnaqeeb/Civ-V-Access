@@ -154,6 +154,24 @@ local function speechEnabled()
     return civvaccess_shared.revealAnnounce == true
 end
 
+-- RevealAnnounce reacts to the active player's own moves: the reveal /
+-- hide / gone lines describe what that player's actions just brought into
+-- or pushed out of view. The design assumes the reveal and fog events
+-- (CivVAccessPlotRevealed, HexFOWStateChanged) only fire from those moves,
+-- i.e. only during the player's own turn. VP breaks that assumption -- its
+-- engine dispatches foreign unit moves and their fog transitions live
+-- during AI processing, so both events fire between ActivePlayerTurnEnd and
+-- the next ActivePlayerTurnStart. Recording them there would schedule a
+-- flush whose global hide diff and now-visible reveal walk duplicate the
+-- turn-start "entered" / "left" diff that ForeignUnitWatch already owns for
+-- the AI window. Dropping the events outside the player's turn restores the
+-- single-owner split and matches vanilla, where nothing fires here. Queried
+-- live -- never cached.
+local function activePlayerTurnActive()
+    local player = Players[Game.GetActivePlayer()]
+    return player ~= nil and player:IsTurnActive()
+end
+
 local function scheduleFlush()
     if _flushTargetFrame >= 0 then
         return
@@ -175,6 +193,9 @@ function RevealAnnounce._maybeFlush()
 end
 
 local function recordFirstReveal(eTeam, iX, iY)
+    if not activePlayerTurnActive() then
+        return
+    end
     if eTeam ~= Game.GetActiveTeam() then
         return
     end
@@ -187,6 +208,9 @@ local function recordFirstReveal(eTeam, iX, iY)
 end
 
 local function recordNowVisible(hexPos, _fowType, bWholeMap)
+    if not activePlayerTurnActive() then
+        return
+    end
     if bWholeMap then
         return
     end

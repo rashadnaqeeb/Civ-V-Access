@@ -414,6 +414,7 @@ function T.fakePlayer(opts)
         _capital = opts.capital,
         _isBarbarian = opts.isBarbarian or opts.barb or false,
         _alive = (opts.alive ~= false),
+        _turnActive = (opts.turnActive ~= false),
         _units = opts.units or {},
         _dofWith = opts.dofWith or {},
         _friendsWith = opts.friendsWith or {},
@@ -447,6 +448,9 @@ function T.fakePlayer(opts)
     end
     function p:IsAlive()
         return self._alive
+    end
+    function p:IsTurnActive()
+        return self._turnActive
     end
     function p:Units()
         local i = 0

@@ -75,6 +75,10 @@ local function setup()
         return 0
     end
     Players = {}
+    -- Active player. The recorders gate on its IsTurnActive() before
+    -- scheduling a flush, so it has to be present and its turn active for
+    -- the recorder-driven tests to reach scheduleFlush.
+    Players[0] = makePlayer({ team = 0 })
     Teams = { [0] = T.fakeTeam() }
     GameInfo = {
         Units = {
@@ -376,6 +380,19 @@ function M.test_disabled_recorder_does_not_schedule()
     RevealAnnounce.installListeners()
     fireFOW(fogPlot())
     T.eq(tickRunOnceCount, 0, "disabled flag must short-circuit the recorder before scheduleFlush")
+end
+
+-- The recorder gates on the active player's turn before scheduling a
+-- flush. VP dispatches foreign moves and their fog events during AI
+-- processing (between the player's turns); firing one then must NOT call
+-- TickPump.runOnce, leaving the AI-window foreign-unit diff to
+-- ForeignUnitWatch / ForeignClearWatch instead of double-speaking it.
+function M.test_recorder_gated_off_when_turn_inactive()
+    setup()
+    Players[0] = makePlayer({ team = 0, turnActive = false })
+    RevealAnnounce.installListeners()
+    fireFOW(fogPlot())
+    T.eq(tickRunOnceCount, 0, "events outside the player's turn must not schedule a flush")
 end
 
 -- Reveal direction collects unit metadata (civ adj + name) and runs it
