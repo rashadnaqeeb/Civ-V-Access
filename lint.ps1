@@ -122,7 +122,7 @@ function Invoke-SeamGuard {
     # engine. The seam-exempt marker does NOT waive these -- see the function
     # header. EngineData is the only file allowed to call them raw.
     $forkMethods = @(
-        "GetMissionQueue", "GeneratePath", "GetPath", "ComputePath",
+        "GetMissionQueue", "GeneratePath", "GeneratePathWithFlags", "GetPath", "ComputePath",
         "GetBestBuildRoute", "GetBuildRoutePath", "GetClosestSearchedPlot",
         "HasLineOfSight", "GetCycleUnits",
         "GetMemberDelegationDetails", "GetMemberKnowledgeDetails", "GetMemberVoteOpinionDetails"

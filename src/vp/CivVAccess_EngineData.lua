@@ -369,10 +369,15 @@ end
 -- pass named intents ({ declareWar = true }, ...) and the translation to
 -- this engine's flag bits happens here, so no engine bit mask crosses the
 -- seam in either direction. The values mirror VP's CvUnit.h MOVEFLAG
--- enum; keep in sync with it. A 0 entry is a name the seam vocabulary
--- carries but VP's pathfinder has no flag for:
---   declareWar      VP has no declare-war pathfinder flag (war legality is
---                   not a path concern there)
+-- enum; keep in sync with it. The fork's GeneratePathWithFlags applies
+-- these (generatePath / computePath head leg); stock VP without the fork
+-- can't, so they degrade to validation-only there. A 0 entry is a name the
+-- vocabulary carries but VP's pathfinder has no flag for:
+--   declareWar      maps to MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE -- VP plans war
+--                   legality at execution, not in the pathfinder, but a
+--                   closed-borders block is the same recovery (pretend we
+--                   can enter everyone's territory), which is the cause the
+--                   diagnostic reports
 --   forceDestValid  the fork replaces the force-valid exploration search
 --                   with the closest-reachable binding (GetPlotsInReach),
 --                   so no flag exists or is needed
@@ -382,16 +387,13 @@ local MOVE_INTENT_BITS = {
     ignoreDanger = 0x0100, -- MOVEFLAG_IGNORE_DANGER
     throughEnemy = 0x2000000, -- MOVEFLAG_IGNORE_ENEMIES
     maximizeExplore = 0x0800, -- MOVEFLAG_MAXIMIZE_EXPLORE
-    declareWar = 0,
+    declareWar = 0x80000, -- MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE
     forceDestValid = 0,
 }
 
 -- Intents table -> engine flag bits. A misspelled intent name would
 -- otherwise run a strict search under the guise of a relaxation, so an
--- unknown name crashes (and reaches Lua.log) instead. VP's stock path
--- bindings accept no flags argument, so the bits are currently
--- validation-only (see generatePath / computePath); the translation stays
--- real so a future binding that does take flags gets correct values.
+-- unknown name crashes (and reaches Lua.log) instead.
 local function bitsFromIntents(intents)
     local bits = 0
     for name, on in pairs(intents) do
@@ -421,15 +423,17 @@ local function intentsFromMoveFlags(flags)
     return intents
 end
 
--- Logs (debug level) when a caller asked for path relaxations this
--- engine's bindings cannot apply. Not a warn: the limitation is a known,
--- accepted property of VP's stock pathfinder surface (the plan's phase 2
--- notes), and the discriminative-retry preview passes intents on every
--- failed path, so warn would drown real warnings. Returns nothing; the
--- value of the call is the name validation inside bitsFromIntents.
+-- Logs (debug level) when a caller asked for path relaxations the path
+-- surface in play cannot apply -- the no-fork fallback (stock VP's bindings
+-- take no flags) and the queued-leg branches of computePath (stock
+-- GeneratePathToNextWaypoint / GetWaypointPath, no flag argument). Not a
+-- warn: the limitation is a known, accepted property of those surfaces, and
+-- the discriminative-retry preview passes intents on every failed path, so
+-- warn would drown real warnings. Returns nothing; the value of the call is
+-- the name validation inside bitsFromIntents.
 local function noteUnappliedIntents(scope, intents)
     if bitsFromIntents(intents) ~= 0 then
-        Log.debug(scope .. ": VP path bindings take no flags; intents not applied")
+        Log.debug(scope .. ": path surface takes no flags; intents not applied")
     end
 end
 
@@ -492,18 +496,34 @@ local UNLIMITED_TURNS = 2147483647
 -- stands in for, and re-running is strictly fresher).
 local lastGenerated = nil
 
+-- Runs the engine pathfinder from the unit's current plot with the given
+-- flag mask, returning the raw VP node array. The fork's
+-- GeneratePathWithFlags applies the flags with no hardcoded stacking
+-- relaxation, so a strict (flags 0) search matches what the engine does
+-- when the unit executes a manual move, and the diagnostics' single
+-- relaxations actually bite. Without the fork, stock GeneratePath ignores
+-- the flags (and hardcodes MOVEFLAG_IGNORE_STACKING_SELF), so the search
+-- still runs but no relaxation applies -- the caller logs that via
+-- noteUnappliedIntents, and strict reads as own-stacking-ignored.
+local function pathFromUnit(unit, plot, flags)
+    if EngineData.forkPresent() then
+        return unit:GeneratePathWithFlags(plot, flags)
+    end
+    return unit:GeneratePath(plot, UNLIMITED_TURNS)
+end
+
 -- Extension binding seam: runs the engine pathfinder from the unit's
--- position, returning (ok, pathTurns). On VP this is the stock
--- Unit:GeneratePath, no fork needed. intents are validated but cannot be
--- applied (no flags argument); note VP's binding hardcodes
--- MOVEFLAG_IGNORE_STACKING_SELF, so own-unit stacking never blocks a
--- preview path here.
+-- position, returning (ok, pathTurns). On a fork deploy the named intents
+-- are applied as real pathfinder flags (strict by default); on stock VP
+-- they degrade to validation-only (the binding takes no flags and hardcodes
+-- own-unit stacking relaxation).
 function EngineData.generatePath(unit, plot, intents)
-    if intents ~= nil then
+    local flags = (intents ~= nil) and bitsFromIntents(intents) or 0
+    if intents ~= nil and not EngineData.forkPresent() then
         noteUnappliedIntents("EngineData.generatePath", intents)
     end
-    lastGenerated = { unitID = unit:GetID(), owner = unit:GetOwner(), plot = plot }
-    local nodes = unit:GeneratePath(plot, UNLIMITED_TURNS)
+    lastGenerated = { unitID = unit:GetID(), owner = unit:GetOwner(), plot = plot, flags = flags }
+    local nodes = pathFromUnit(unit, plot, flags)
     if #nodes == 0 then
         return false
     end
@@ -512,15 +532,16 @@ end
 
 -- Extension binding seam: the node array of the last path generatePath
 -- produced for this unit. VP cannot read a cached path back, so the body
--- re-runs the same search live (see lastGenerated). Empty array when no
--- prior generatePath matches the unit -- a contract misuse worth a log,
--- since the vanilla body would have returned the engine's cached nodes.
+-- re-runs the same search live -- with the same flags (see lastGenerated).
+-- Empty array when no prior generatePath matches the unit -- a contract
+-- misuse worth a log, since the vanilla body would have returned the
+-- engine's cached nodes.
 function EngineData.getPath(unit)
     if lastGenerated == nil or lastGenerated.unitID ~= unit:GetID() then
         Log.warn("EngineData.getPath: no prior generatePath for this unit")
         return {}
     end
-    return convertNodes(unit, unit:GeneratePath(lastGenerated.plot, UNLIMITED_TURNS))
+    return convertNodes(unit, pathFromUnit(unit, lastGenerated.plot, lastGenerated.flags))
 end
 
 -- Splits GetWaypointPath's concatenated node array back into per-leg node
@@ -566,19 +587,27 @@ end
 -- Anything else fails with a log; no stock binding paths between two
 -- arbitrary off-unit plots. freshTurn cannot be honored -- VP prices every
 -- leg from the unit's current moves (the plan's accepted loss; spoken turn
--- counts on later legs may run one high mid-turn). intents are validated
--- but cannot be applied.
+-- counts on later legs may run one high mid-turn). intents apply only on
+-- the head-leg branch (the fork's flag-aware binding); the queued-leg
+-- branches run stock bindings that take no flags.
 function EngineData.computePath(unit, fromPlot, toPlot, intents, freshTurn)
-    if intents ~= nil then
-        noteUnappliedIntents("EngineData.computePath", intents)
-    end
+    local flags = (intents ~= nil) and bitsFromIntents(intents) or 0
     local fx, fy = fromPlot:GetX(), fromPlot:GetY()
     if fx == unit:GetX() and fy == unit:GetY() then
-        local nodes = unit:GeneratePath(toPlot, UNLIMITED_TURNS)
+        if intents ~= nil and not EngineData.forkPresent() then
+            noteUnappliedIntents("EngineData.computePath", intents)
+        end
+        local nodes = pathFromUnit(unit, toPlot, flags)
         if #nodes == 0 then
             return {}, false, 0
         end
         return convertNodes(unit, nodes), true, oneBasedTurn(nodes[#nodes])
+    end
+    -- Queued-leg branches below run stock GeneratePathToNextWaypoint /
+    -- GetWaypointPath, which take no flag argument, so any intents the
+    -- mission carried cannot be applied here.
+    if intents ~= nil then
+        noteUnappliedIntents("EngineData.computePath", intents)
     end
     local lastMission = unit:LastMissionPlot()
     if lastMission ~= nil and lastMission:GetX() == fx and lastMission:GetY() == fy then

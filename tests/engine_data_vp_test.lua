@@ -106,7 +106,7 @@ function M.test_vp_compute_path_converts_nodes_to_canonical_shape()
         GetTeam = function()
             return 0
         end,
-        GeneratePath = function()
+        GeneratePathWithFlags = function()
             return vpNodes()
         end,
     }
@@ -141,8 +141,8 @@ function M.test_vp_generate_path_returns_ok_and_one_based_turns()
         GetOwner = function()
             return 0
         end,
-        GeneratePath = function(_, _plot, maxTurns)
-            T.truthy(maxTurns ~= nil and maxTurns > 9000, "maxTurns must be effectively unlimited")
+        GeneratePathWithFlags = function(_, _plot, flags)
+            T.eq(flags, 0, "a plain generatePath must run a STRICT search (no flags), matching real moves")
             return vpNodes()
         end,
     }
@@ -184,7 +184,7 @@ function M.test_vp_stop_node_destination_arrives_this_turn()
         GetTeam = function()
             return 0
         end,
-        GeneratePath = function()
+        GeneratePathWithFlags = function()
             return stopNodeDestPath()
         end,
     }
@@ -216,11 +216,76 @@ function M.test_vp_generate_path_reports_unreachable_on_empty_node_table()
         GetOwner = function()
             return 0
         end,
-        GeneratePath = function()
+        GeneratePathWithFlags = function()
             return {}
         end,
     }
     T.falsy(vp.generatePath(unit, "plot"), "empty VP path table means unreachable")
+end
+
+-- The whole point of the fork binding: a relaxation intent reaches the
+-- pathfinder as a real flag, so a STRICT search (flags 0, matching a manual
+-- move) and single relaxations are both expressible. ignoreStacking is
+-- MOVEFLAG_IGNORE_STACKING_SELF (0x0010); declareWar maps to
+-- MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE (0x80000), VP's closed-borders recovery;
+-- throughEnemy is MOVEFLAG_IGNORE_ENEMIES (0x2000000).
+function M.test_vp_generate_path_applies_relaxation_flags()
+    local vp, _env = loadVPWithFork()
+    local seenFlags = {}
+    local unit = {
+        GetID = function()
+            return 7
+        end,
+        GetOwner = function()
+            return 0
+        end,
+        GeneratePathWithFlags = function(_, _plot, flags)
+            seenFlags[#seenFlags + 1] = flags
+            return vpNodes()
+        end,
+    }
+    vp.generatePath(unit, "plot")
+    vp.generatePath(unit, "plot", { ignoreStacking = true })
+    vp.generatePath(unit, "plot", { declareWar = true })
+    vp.generatePath(unit, "plot", { throughEnemy = true })
+    T.eq(seenFlags[1], 0, "strict search passes no flags")
+    T.eq(seenFlags[2], 0x0010, "ignoreStacking -> MOVEFLAG_IGNORE_STACKING_SELF")
+    T.eq(seenFlags[3], 0x80000, "declareWar -> MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE")
+    T.eq(seenFlags[4], 0x2000000, "throughEnemy -> MOVEFLAG_IGNORE_ENEMIES")
+end
+
+-- Without the fork DLL there is no flag-aware binding, so generatePath
+-- falls back to stock VP GeneratePath (takes maxTurns, not flags, and
+-- hardcodes own-unit stacking relaxation). It still returns a turn count;
+-- the relaxation simply can't apply, which it logs at debug.
+function M.test_vp_generate_path_without_fork_falls_back_to_stock()
+    local vp, env = loadSeam(VP_PATH)
+    env.Game = {} -- present but missing the fork canaries -> forkPresent() false
+    local stockMaxTurns = nil
+    local noted = false
+    env.Log = {
+        debug = function()
+            noted = true
+        end,
+        warn = function() end,
+    }
+    local unit = {
+        GetID = function()
+            return 7
+        end,
+        GetOwner = function()
+            return 0
+        end,
+        GeneratePath = function(_, _plot, maxTurns)
+            stockMaxTurns = maxTurns
+            return vpNodes()
+        end,
+    }
+    local ok, turns = vp.generatePath(unit, "plot", { ignoreStacking = true })
+    T.truthy(ok)
+    T.eq(turns, 2, "fallback still reports the turn count")
+    T.truthy(stockMaxTurns ~= nil and stockMaxTurns > 9000, "stock fallback passes unlimited maxTurns")
+    T.truthy(noted, "an unappliable relaxation on stock VP is logged")
 end
 
 function M.test_vp_get_path_reruns_last_generate_target()
@@ -237,7 +302,7 @@ function M.test_vp_get_path_reruns_last_generate_target()
         GetTeam = function()
             return 0
         end,
-        GeneratePath = function(_, plot)
+        GeneratePathWithFlags = function(_, plot)
             pathed[#pathed + 1] = plot
             return vpNodes()
         end,
@@ -261,7 +326,7 @@ function M.test_vp_get_path_degrades_without_prior_generate()
         GetID = function()
             return 99
         end,
-        GeneratePath = function()
+        GeneratePathWithFlags = function()
             error("must not path without a prior generatePath target")
         end,
     }
@@ -289,7 +354,7 @@ function M.test_vp_closest_searched_plot_passes_last_generated_unit()
         GetOwner = function()
             return 3
         end,
-        GeneratePath = function()
+        GeneratePathWithFlags = function()
             return {}
         end,
     }
