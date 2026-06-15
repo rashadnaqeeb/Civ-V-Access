@@ -429,12 +429,7 @@ local function buildActionTooltip(unit, action)
     local iActivePlayer = Game.GetActivePlayer()
     local iActiveTeam = Game.GetActiveTeam()
 
-    local iExtraBuildRate = 0
-    local iCurrentBuildID = unit:GetBuildType()
-    if iCurrentBuildID == -1 or iBuildID ~= iCurrentBuildID then
-        iExtraBuildRate = unit:WorkRate(true, iBuildID)
-    end
-    local iBuildTurns = plot:GetBuildTurnsLeft(iBuildID, iActivePlayer, iExtraBuildRate, iExtraBuildRate)
+    local iBuildTurns = EngineData.buildTurnsIfStarted(unit, plot, iBuildID, iActivePlayer)
     if iBuildTurns > 1 then
         parts[#parts + 1] = Text.format("TXT_KEY_BUILD_NUM_TURNS", iBuildTurns)
     end

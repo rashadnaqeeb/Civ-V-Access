@@ -262,6 +262,34 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnits()
 end
 
+-- Drift read: turns for a worker to complete a build it is NOT yet
+-- performing on its current plot -- the "if you start this" estimate the
+-- unit action menu speaks. Vanilla's getBuildTurnsLeft only credits a unit's
+-- work rate to the build it is actually doing, so the prospective estimate
+-- has to feed the worker's own rate in as the extra-rate argument, matching
+-- the engine's UnitPanel build-action tooltip. VP credits any worker on the
+-- plot unconditionally, so feeding the rate again would double-count it and
+-- halve the turns; its body passes no extra and lets the engine count the
+-- on-plot worker, exactly as VP's UnitPanel does.
+function EngineData.buildTurnsIfStarted(unit, plot, buildID, player)
+    local extra = 0
+    local current = unit:GetBuildType()
+    if current == -1 or buildID ~= current then
+        extra = unit:WorkRate(true, buildID)
+    end
+    return plot:GetBuildTurnsLeft(buildID, player, extra, extra)
+end
+
+-- Drift read: turns remaining on the build a worker is currently performing,
+-- spoken in the unit's status line. Vanilla adds 1 to getBuildTurnsLeft so a
+-- build finishing at end of turn reads as 1 rather than 0 (the engine's own
+-- UnitPanel convention). VP's getBuildTurnsLeft rounds up and never reports 0
+-- for an in-progress build, so VP's UnitPanel drops the +1; the VP body
+-- matches and returns the bare count.
+function EngineData.activeBuildTurns(plot, buildID, player)
+    return plot:GetBuildTurnsLeft(buildID, player, 0, 0) + 1
+end
+
 -- Drift read: the real religion a player controls (Religion Overview), or
 -- -1 for none. Vanilla has no religion transfer, so the founder always
 -- controls: founded religion or nothing. VP transfers control with the

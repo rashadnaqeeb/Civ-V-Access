@@ -202,9 +202,10 @@ local function isOutOfAttacks(unit)
 end
 
 -- { turns, description, routeName } for a unit mid-execution on a build
--- mission, or nil when the unit isn't building. Turns adds +1 to the
--- engine's GetBuildTurnsLeft (UnitPanel.lua:392) so a build finishing
--- at end-of-turn reads as 1 rather than 0. routeName is the lowercased
+-- mission, or nil when the unit isn't building. Turns route through
+-- EngineData.activeBuildTurns, which carries the engine's display
+-- convention (vanilla's +1 so an end-of-turn finish reads as 1 rather than
+-- 0; VP rounds up and drops it). routeName is the lowercased
 -- localized name of the route the build lays (e.g. "road" / "railroad")
 -- when the build's GameInfo row has a RouteType, nil otherwise -- the
 -- fold logic in statusToken uses this to decide whether the active
@@ -219,7 +220,7 @@ local function activeBuildInfo(unit)
         Log.warn("UnitSpeech: GetBuildType returned unknown id " .. tostring(buildType))
         return nil
     end
-    local turns = unit:GetPlot():GetBuildTurnsLeft(buildType, Game.GetActivePlayer(), 0, 0) + 1
+    local turns = EngineData.activeBuildTurns(unit:GetPlot(), buildType, Game.GetActivePlayer())
     local routeName = nil
     local routeType = buildRow.RouteType
     if routeType ~= nil and routeType ~= "NULL" then

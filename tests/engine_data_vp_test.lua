@@ -785,6 +785,67 @@ function M.test_vp_supply_used_counts_supply_drawing_units()
     )
 end
 
+-- VP's getBuildTurnsLeft already credits any worker on the plot, so the
+-- prospective "if you start this" estimate must pass no extra rate; vanilla
+-- only credits the build the unit is already doing, so it feeds the worker's
+-- own rate in. Feeding it on VP would double-count and halve the turns.
+function M.test_vp_build_turns_if_started_omits_extra_rate()
+    local vp = loadVPWithFork()
+    local captured
+    local plot = {
+        GetBuildTurnsLeft = function(_self, _build, _player, iNow, iThen)
+            captured = { now = iNow, then_ = iThen }
+            return 4
+        end,
+    }
+    local unit = {
+        GetBuildType = function()
+            return -1
+        end,
+        WorkRate = function()
+            error("VP must not feed the work rate as the extra build rate")
+        end,
+    }
+    T.eq(vp.buildTurnsIfStarted(unit, plot, 7, 0), 4)
+    T.eq(captured.now, 0, "VP passes no extra now-rate")
+    T.eq(captured.then_, 0, "VP passes no extra then-rate")
+
+    local vanilla = loadSeam(VANILLA_PATH)
+    local vCaptured
+    local vPlot = {
+        GetBuildTurnsLeft = function(_self, _build, _player, iNow, iThen)
+            vCaptured = { now = iNow, then_ = iThen }
+            return 4
+        end,
+    }
+    local vUnit = {
+        GetBuildType = function()
+            return -1
+        end,
+        WorkRate = function()
+            return 200
+        end,
+    }
+    vanilla.buildTurnsIfStarted(vUnit, vPlot, 7, 0)
+    T.eq(vCaptured.now, 200, "vanilla feeds the worker's rate as the extra now-rate")
+    T.eq(vCaptured.then_, 200, "vanilla feeds the worker's rate as the extra then-rate")
+end
+
+-- VP's getBuildTurnsLeft rounds up and never reports 0 for an in-progress
+-- build, so VP drops vanilla's display +1 (a build finishing end-of-turn
+-- reads as 1 rather than 0 on vanilla).
+function M.test_vp_active_build_turns_drops_display_plus_one()
+    local vp = loadVPWithFork()
+    local plot = {
+        GetBuildTurnsLeft = function()
+            return 4
+        end,
+    }
+    T.eq(vp.activeBuildTurns(plot, 7, 0), 4, "VP returns the bare engine count")
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.activeBuildTurns(plot, 7, 0), 5, "vanilla adds the display +1")
+end
+
 -- VP transfers religion control with the holy city, so the religion a
 -- player "has" for the overview is the owned one (GetOwnedReligion), not
 -- the founded one; pantheon-or-below collapses to -1.

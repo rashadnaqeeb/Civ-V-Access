@@ -261,6 +261,23 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnitsToSupply()
 end
 
+-- Drift read: prospective turns for a worker to build buildID on its plot.
+-- VP's getBuildTurnsLeft credits any worker standing on the plot, so the
+-- on-plot worker is already counted; feeding its rate as the extra argument
+-- (as vanilla must, since vanilla only credits the build the unit is already
+-- doing) would double-count and halve the turns. Match VP's own UnitPanel
+-- build-action tooltip: bare getBuildTurnsLeft, no extra rate.
+function EngineData.buildTurnsIfStarted(_unit, plot, buildID, player)
+    return plot:GetBuildTurnsLeft(buildID, player, 0, 0)
+end
+
+-- Drift read: turns remaining on the build a worker is currently performing.
+-- VP's getBuildTurnsLeft rounds up and never reports 0 for an in-progress
+-- build, so VP's UnitPanel drops vanilla's display +1. Match it: bare count.
+function EngineData.activeBuildTurns(plot, buildID, player)
+    return plot:GetBuildTurnsLeft(buildID, player, 0, 0)
+end
+
 -- Drift read: the real religion a player controls (Religion Overview), or
 -- -1 for none. VP transfers religion control with the holy city, so the
 -- answer is GetOwnedReligion (holy-city-keyed) rather than the founded
