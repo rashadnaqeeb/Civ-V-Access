@@ -670,6 +670,40 @@ function M.test_economy_reports_working_city_on_fogged_revealed_tile()
     )
 end
 
+-- Build progress is gated on actual accumulated progress, mirroring the
+-- game's PlotHelpManager tooltip. VP's getBuildTurnsLeft returns a real
+-- prospective turn count for EVERY build once any worker stands on the
+-- plot (it dropped vanilla's "this unit is building THIS build" guard), so
+-- a turns-only check would speak the entire build catalogue over a tile
+-- with a worker. Only the build with progress > 0 may be reported.
+function M.test_economy_build_progress_gated_on_actual_progress()
+    setup()
+    T.installLocaleStrings({ TXT_KEY_CIVVACCESS_BUILD_PROGRESS = "{1_Name} {2_Turns} turns" })
+    GameInfo.Builds = function()
+        local list = {
+            { ID = 1, Description = "Farm" },
+            { ID = 2, Description = "Mine" },
+            { ID = 3, Description = "Road" },
+        }
+        local i = 0
+        return function()
+            i = i + 1
+            return list[i]
+        end
+    end
+    -- buildTurns positive for all three (VP reports a turn count for every
+    -- build with a worker present); only the Farm has real progress.
+    local p = T.fakePlot({
+        revealed = true,
+        buildTurns = { [1] = 6, [2] = 7, [3] = 4 },
+        buildProgress = { [1] = 20 },
+    })
+    local out = PlotComposers.economy(p)
+    T.truthy(out:find("Farm", 1, true), "in-progress build must be reported: " .. out)
+    T.truthy(not out:find("Mine", 1, true), "build with no progress must not be reported: " .. out)
+    T.truthy(not out:find("Road", 1, true), "build with no progress must not be reported: " .. out)
+end
+
 function M.test_combat_defense_modifier_announced()
     setup()
     local p = T.fakePlot({ defenseMod = 50 })

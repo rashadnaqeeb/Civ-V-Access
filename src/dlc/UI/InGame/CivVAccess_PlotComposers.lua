@@ -91,13 +91,23 @@ end
 local function readBuildProgress(plot, out)
     local activePlayer = Game.GetActivePlayer()
     for buildInfo in GameInfo.Builds() do
-        local turns = plot:GetBuildTurnsLeft(buildInfo.ID, activePlayer, 0, 0)
-        -- Engine returns a sentinel large value when no build is in progress;
-        -- PlotHelpManager filters with > 0 and < a large constant. Use the
-        -- same shape: a real worker build has a positive small turn count.
-        if turns ~= nil and turns > 0 and turns < 1000 then
-            out[#out + 1] =
-                Text.formatPlural("TXT_KEY_CIVVACCESS_BUILD_PROGRESS", turns, Text.key(buildInfo.Description), turns)
+        -- Gate on actual accumulated progress, exactly as the game's own
+        -- PlotHelpManager tooltip does. GetBuildTurnsLeft alone is not a
+        -- safe "in progress" signal: vanilla returns a large sentinel for a
+        -- build no unit on the plot is performing, but VP's getBuildTurnsLeft
+        -- dropped that unit-is-building-THIS-build guard, so once any worker
+        -- stands on the plot it returns a real prospective turn count for
+        -- every build -- which would speak the entire build catalogue.
+        if plot:GetBuildProgress(buildInfo.ID) > 0 then
+            local turns = plot:GetBuildTurnsLeft(buildInfo.ID, activePlayer, 0, 0)
+            if turns ~= nil and turns > 0 and turns < 1000 then
+                out[#out + 1] = Text.formatPlural(
+                    "TXT_KEY_CIVVACCESS_BUILD_PROGRESS",
+                    turns,
+                    Text.key(buildInfo.Description),
+                    turns
+                )
+            end
         end
     end
 end

@@ -84,6 +84,7 @@ function T.fakePlot(opts)
         _workingCity = opts.workingCity,
         _defenseMod = opts.defenseMod or 0,
         _buildTurns = opts.buildTurns or {},
+        _buildProgress = opts.buildProgress or {},
         _isWater = opts.water or false,
         _plotType = opts.plotType or PlotTypes.PLOT_LAND,
         _hasVisibleEnemy = opts.hasVisibleEnemy or false,
@@ -214,6 +215,9 @@ function T.fakePlot(opts)
     end
     function p:GetBuildTurnsLeft(buildId, _player, _extra1, _extra2)
         return self._buildTurns[buildId] or 0
+    end
+    function p:GetBuildProgress(buildId)
+        return self._buildProgress[buildId] or 0
     end
     function p:IsWater()
         return self._isWater
