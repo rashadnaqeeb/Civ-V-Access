@@ -221,6 +221,23 @@ function M.test_typo_happines_4_collapses_against_unhappy()
     T.eq(TextFilter.filter("[ICON_HAPPINES_4] unhappy"), "unhappy")
 end
 
+-- [ICON_INFLUENCE]: city-state text renders "N[ICON_INFLUENCE]" with no
+-- adjacent word (contender suitor, bully influence-lost), where the icon is
+-- the only label for the number; prose pairs it with "[ICON_INFLUENCE]
+-- Influence", which the primary collapses against.
+function M.test_influence_icon()
+    setup()
+    -- GetContenderInfo with no named contender: bare number + icon.
+    T.eq(TextFilter.filter("0[ICON_INFLUENCE]"), "0 influence")
+    -- GetContenderInfo with a named contender: number, icon, civ name.
+    T.eq(TextFilter.filter("42[ICON_INFLUENCE] Washington"), "42 influence Washington")
+    -- Prose pairing collapses against the following noun.
+    T.eq(TextFilter.filter("gain [ICON_INFLUENCE] Influence with them"), "gain Influence with them")
+    -- A glued icon followed by punctuation gets a leading boundary but no
+    -- space before the punctuation.
+    T.eq(TextFilter.filter("5[ICON_INFLUENCE], more"), "5 influence, more")
+end
+
 -- Composed: unit cost with icon substitution --------------------------------
 
 function M.test_unit_production_cost_speaks_cleanly()

@@ -2086,6 +2086,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_SCIENCE"] = "science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RESEARCH"] = "science"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_FAITH"] = "faith"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_TOURISM"] = "tourism"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_INFLUENCE"] = "influence"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE"] = "great people"
 -- Dedup-only alias. Engine source: the singular pairings in base text such
 -- as TXT_KEY_RELIGION_GREAT_PERSON_FOCUS ("Great Person Focus") and "a

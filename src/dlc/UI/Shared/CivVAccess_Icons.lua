@@ -56,6 +56,14 @@ local ICON_KEYS = {
     -- as ICON_GREAT_PEOPLE's _ALT.
     ICON_GREAT_WORK = "TXT_KEY_CIVVACCESS_ICON_GREAT_WORK",
 
+    -- Diplomacy / city-states --------------------------------------------
+    -- City-state text renders influence as "N[ICON_INFLUENCE]" with no
+    -- adjacent word (contender suitor, bully influence-lost), where the
+    -- icon is the only label for the number. Prose elsewhere pairs it with
+    -- "[ICON_INFLUENCE] Influence", which the dedup adjacency check
+    -- collapses against "Influence".
+    ICON_INFLUENCE = "TXT_KEY_CIVVACCESS_ICON_INFLUENCE",
+
     -- Combat / movement --------------------------------------------------
     ICON_STRENGTH = "TXT_KEY_CIVVACCESS_ICON_STRENGTH",
     ICON_STRENGHT = "TXT_KEY_CIVVACCESS_ICON_STRENGTH",

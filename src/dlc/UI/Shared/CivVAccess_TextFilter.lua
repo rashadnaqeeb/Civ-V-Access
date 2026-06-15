@@ -112,6 +112,22 @@ local function substituteIcons(s)
             end
         end
 
+        -- Game text sometimes glues an icon directly to an adjacent token
+        -- with no separating space ("0[ICON_INFLUENCE]" for a city-state
+        -- contender, "42[ICON_INFLUENCE] Washington"). Substituting the
+        -- spoken word in place would fuse it ("0influence"). Insert a word
+        -- boundary when the substituted form abuts an alphanumeric char on
+        -- either side; the final whitespace collapse normalizes any double
+        -- space. Punctuation neighbours are left alone so no " ." is created.
+        if spoken ~= "" then
+            if s:sub(startIdx - 1, startIdx - 1):match("%w") then
+                spoken = " " .. spoken
+            end
+            if s:sub(endIdx + 1, endIdx + 1):match("%w") then
+                spoken = spoken .. " "
+            end
+        end
+
         out[#out + 1] = spoken
         cursor = endIdx + 1
     end
