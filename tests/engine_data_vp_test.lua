@@ -151,6 +151,62 @@ function M.test_vp_generate_path_returns_ok_and_one_based_turns()
     T.eq(turns, 2, "destination Turn 1 (0-based) must report as 2")
 end
 
+-- A destination the unit reaches by spending all its movement this turn is
+-- a TC_UI stop node: VP's binding already adds the end-of-turn +1, so its
+-- raw Turn is 1 (0-based 0 plus the TC_UI bump) with RemainingMovement 0.
+-- The seam must NOT add a second +1 -- the move arrives THIS turn, so it
+-- reports 1, matching the vanilla fork. A flat +1 would say 2 turns for the
+-- commonest move there is (a unit walking its full distance in open
+-- terrain), which is exactly how the spoken turn counts drift from reality.
+local function stopNodeDestPath()
+    return {
+        { X = 1, Y = 2, RemainingMovement = 60, Turn = 0 },
+        { X = 2, Y = 3, RemainingMovement = 0, Turn = 1 },
+    }
+end
+
+function M.test_vp_stop_node_destination_arrives_this_turn()
+    local vp, env = loadVPWithFork()
+    installMapStub(env)
+    local unit = {
+        GetID = function()
+            return 7
+        end,
+        GetOwner = function()
+            return 0
+        end,
+        GetX = function()
+            return 1
+        end,
+        GetY = function()
+            return 2
+        end,
+        GetTeam = function()
+            return 0
+        end,
+        GeneratePath = function()
+            return stopNodeDestPath()
+        end,
+    }
+    local ok, turns = vp.generatePath(unit, "plot")
+    T.truthy(ok)
+    T.eq(turns, 1, "a move that exhausts movement on arrival still arrives this turn (1, not 2)")
+
+    local fromPlot = {
+        GetX = function()
+            return 1
+        end,
+        GetY = function()
+            return 2
+        end,
+    }
+    local nodes, success, legTurns = vp.computePath(unit, fromPlot, "target", nil, false)
+    T.truthy(success)
+    T.eq(legTurns, 1, "computePath must not double-count the stop-node end-of-turn either")
+    T.eq(nodes[2].turn, 1, "the stop-node destination's per-node turn is 1, not 2")
+    T.eq(nodes[1].turn, 1, "an in-turn node (movement left) still converts 0 -> 1")
+end
+
 function M.test_vp_generate_path_reports_unreachable_on_empty_node_table()
     local vp, _env = loadVPWithFork()
     local unit = {

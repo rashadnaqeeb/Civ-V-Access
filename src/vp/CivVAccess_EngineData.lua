@@ -433,15 +433,35 @@ local function noteUnappliedIntents(scope, intents)
     end
 end
 
+-- A VP path node's TC_UI Turn value -> the seam's canonical 1-based turn
+-- (1 = arrives this turn), matching the vanilla fork's m_iData2 exactly.
+--
+-- VP's pathfinder counts turns 0-based (origin node Turn 0), so converting
+-- to the 1-based convention is normally +1. But every VP path binding
+-- requests TC_UI mode, which already adds the end-of-turn +1 to any STOP
+-- node -- a node the unit reaches with no movement left
+-- (RemainingMovement == 0; CvAStar.cpp GetCurrentPath "if (eMode==TC_UI &&
+-- moves == 0) turns++"). Adding our own +1 on top of that double-counts the
+-- final turn whenever a move ends its turn on arrival -- the very common
+-- "moved my full distance this turn" case, which would then read as 2 turns
+-- instead of 1. So add 1 only when movement remains; a stop node already
+-- carries the increment.
+local function oneBasedTurn(node)
+    if node.RemainingMovement == 0 then
+        return node.Turn
+    end
+    return node.Turn + 1
+end
+
 -- VP node array ({X, Y, RemainingMovement, Turn, ...}) -> the seam's
 -- canonical node shape ({x, y, moves, turn, flags, revealed}). moves is in
--- MOVE_DENOMINATOR 60ths on both engines. turn converts from VP's 0-based
--- arrival turn to the seam's 1-based convention (1 = arrives this turn).
--- flags is 0 (VP's binding has no per-node flags; no consumer reads it).
--- revealed re-queries CvPlot:IsRevealed for the unit's team at conversion
--- time -- the same answer the pathfinder just used for its costs. VP's
--- Invisible field is NOT that answer (it is current visibility; a
--- revealed-but-fogged tile would wrongly read as unexplored and truncate
+-- MOVE_DENOMINATOR 60ths on both engines. turn converts to the seam's
+-- 1-based convention via oneBasedTurn (see there for the TC_UI stop-node
+-- caveat). flags is 0 (VP's binding has no per-node flags; no consumer
+-- reads it). revealed re-queries CvPlot:IsRevealed for the unit's team at
+-- conversion time -- the same answer the pathfinder just used for its
+-- costs. VP's Invisible field is NOT that answer (it is current visibility;
+-- a revealed-but-fogged tile would wrongly read as unexplored and truncate
 -- the spoken route).
 local function convertNodes(unit, vpNodes)
     local team = unit:GetTeam()
@@ -452,7 +472,7 @@ local function convertNodes(unit, vpNodes)
             x = n.X,
             y = n.Y,
             moves = n.RemainingMovement,
-            turn = n.Turn + 1,
+            turn = oneBasedTurn(n),
             flags = 0,
             revealed = Map.GetPlot(n.X, n.Y):IsRevealed(team, debugMode),
         }
@@ -487,7 +507,7 @@ function EngineData.generatePath(unit, plot, intents)
     if #nodes == 0 then
         return false
     end
-    return true, nodes[#nodes].Turn + 1
+    return true, oneBasedTurn(nodes[#nodes])
 end
 
 -- Extension binding seam: the node array of the last path generatePath
@@ -558,7 +578,7 @@ function EngineData.computePath(unit, fromPlot, toPlot, intents, freshTurn)
         if #nodes == 0 then
             return {}, false, 0
         end
-        return convertNodes(unit, nodes), true, nodes[#nodes].Turn + 1
+        return convertNodes(unit, nodes), true, oneBasedTurn(nodes[#nodes])
     end
     local lastMission = unit:LastMissionPlot()
     if lastMission ~= nil and lastMission:GetX() == fx and lastMission:GetY() == fy then
@@ -566,13 +586,13 @@ function EngineData.computePath(unit, fromPlot, toPlot, intents, freshTurn)
         if #nodes == 0 then
             return {}, false, 0
         end
-        return convertNodes(unit, nodes), true, nodes[#nodes].Turn + 1
+        return convertNodes(unit, nodes), true, oneBasedTurn(nodes[#nodes])
     end
     local tx, ty = toPlot:GetX(), toPlot:GetY()
     for _, leg in ipairs(waypointLegs(unit)) do
         local first, last = leg[1], leg[#leg]
         if first.X == fx and first.Y == fy and last.X == tx and last.Y == ty then
-            return convertNodes(unit, leg), true, last.Turn + 1
+            return convertNodes(unit, leg), true, oneBasedTurn(last)
         end
     end
     Log.warn("EngineData.computePath: no VP binding paths from (" .. fx .. "," .. fy .. ") for this unit")
