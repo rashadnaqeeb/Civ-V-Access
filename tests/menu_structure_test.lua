@@ -936,6 +936,46 @@ function M.test_hidden_group_is_skipped_in_navigation()
     T.eq(h._indices[1], 1, "hidden group skipped in wrap")
 end
 
+-- A read-only Text line gated by a hidden visibility control must drop out
+-- of navigation, exactly as the widget-backed items do. Regression: the
+-- leader-screen war-score line (visibilityControlName = "WarScore") leaked
+-- VP's "Warriors" XML placeholder during peace because Text ignored the
+-- gate and was always navigable.
+function M.test_hidden_visibility_control_skips_text_item()
+    setup()
+    setCtrls({ "HIDE_BOX", "C" })
+    ctrlState.HIDE_BOX.hidden = true
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Text({ labelText = "Warriors", visibilityControlName = "HIDE_BOX" }),
+            buttonItem("C", "Leaf"),
+        },
+    })
+    HandlerStack.push(h)
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._indices[1], 2, "hidden Text line skipped; navigation lands on the leaf")
+end
+
+function M.test_visible_visibility_control_allows_text_item()
+    setup()
+    setCtrls({ "SHOW_BOX", "C" })
+    ctrlState.SHOW_BOX.hidden = false
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = {
+            BaseMenuItems.Text({ labelText = "War Score 5", visibilityControlName = "SHOW_BOX" }),
+            buttonItem("C", "Leaf"),
+        },
+    })
+    HandlerStack.push(h)
+    T.eq(h._indices[1], 1, "visible Text line is navigable and leads the list")
+    T.eq(speaks[2].text, "War Score 5")
+end
+
 function M.test_single_sibling_group_wraps_circularly_within_itself()
     setup()
     setCtrls({ "A1", "A2" })

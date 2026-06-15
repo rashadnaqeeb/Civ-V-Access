@@ -300,6 +300,12 @@ end
 -- onActivate re-speak their label on Enter so the user gets keypress
 -- feedback without a misleading click.
 --
+-- visibilityControl / visibilityControlName gate isNavigable the same way
+-- they do on the widget-backed items: the line drops out of the list while
+-- the named control IsHidden. Used for read-only lines that mirror a
+-- control the engine shows only some of the time (e.g. the leader-screen
+-- war score, hidden during peace).
+--
 -- Used by the Help overlay where each entry is "keyLabel, description"
 -- read-only text -- there's no XML control, no disabled state, no tooltip
 -- dedup needed. Reuses composeSpeech would call _control:IsDisabled which
@@ -312,17 +318,27 @@ function BaseMenuItems.Text(spec)
         spec.onActivate == nil or type(spec.onActivate) == "function",
         "Text onActivate must be a function if provided"
     )
-    local item = { kind = "text" }
+    local item = { kind = "text", _visibilityControl = spec.visibilityControl }
+    if item._visibilityControl == nil and spec.visibilityControlName ~= nil then
+        item.visibilityControlName = spec.visibilityControlName
+        item._visibilityControl = Controls[spec.visibilityControlName]
+        if item._visibilityControl == nil then
+            Log.warn("BaseMenuItems Text: missing visibility control '" .. spec.visibilityControlName .. "'")
+        end
+    end
     copyCommonFields(spec, item)
     -- Optional activation hook. Called with (self, menu) under pcall;
     -- errors surface via Log.error so a broken handler can't silently
     -- kill the menu. Click ack fires only on pcall success.
     item._onActivate = spec.onActivate
     function item:isNavigable()
+        if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
+            return false
+        end
         return true
     end
     function item:isActivatable()
-        return true
+        return self:isNavigable()
     end
     function item:announce(menu)
         return appendTooltip(resolveLabel(self), resolveTooltip(self))
