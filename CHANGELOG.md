@@ -17,7 +17,7 @@ New Features and improvements:
 - Melee attack previews count the Impi's opening spear volley in the predicted damage ("includes 9 volley"), which the game's own preview omits.
 
 Bug fixes:
-- The advisor popups, EULA screen, and mods menu show the game's stock layouts again.
+- The advisor popups, EULA screen, and mods menu show the game's stock layouts again. If you ever wondered why the EULA was appearing on every run, this is why. I modified the file a million years ago to trigger it and then forgot to remove the modification.
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
 - The Culture Overview no longer reads each city's tourism a hundred times too high.
 - The city-state diplomacy screen now reads the city-state's current quests.
