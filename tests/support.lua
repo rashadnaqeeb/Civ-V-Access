@@ -396,6 +396,16 @@ function T.fakeUnit(opts)
     function u:IsRangeAttackIgnoreLOS()
         return opts.ignoresLoS or false
     end
+    -- The engine's authoritative strike gate. Defaults false: most test
+    -- tiles hold no enemy, so the engine would report the tile not strikable
+    -- and the cursor prefix drills into the geometric reason. Tests that need
+    -- the strikable (no-prefix) path set opts.canRangeStrike.
+    function u:CanRangeStrikeAt(_x, _y, _needWar, _noncombat)
+        if type(opts.canRangeStrike) == "function" then
+            return opts.canRangeStrike(_x, _y)
+        end
+        return opts.canRangeStrike or false
+    end
     -- Cargo capacity. 0 means "not a carrier" (the common case across tests
     -- that don't care about based-aircraft announcements). Tests that
     -- exercise carrier behavior set opts.cargoSpace explicitly.
@@ -510,6 +520,14 @@ function T.fakeCity(opts)
     end
     function c:IsOriginalCapital()
         return self._isOriginalCapital
+    end
+    -- City strike gate, mirroring the unit fake: defaults false (no enemy on
+    -- the target tile) so the cursor prefix drills into the geometric reason.
+    function c:CanRangeStrikeAt(_x, _y)
+        if type(opts.canRangeStrike) == "function" then
+            return opts.canRangeStrike(_x, _y)
+        end
+        return opts.canRangeStrike or false
     end
     return c
 end

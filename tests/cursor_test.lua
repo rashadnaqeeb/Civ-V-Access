@@ -2343,7 +2343,11 @@ end
 
 local function selectArcher(attackerPlot, opts)
     opts = opts or {}
-    local archer = T.fakeUnit({ range = opts.range or 2, domain = opts.domain or DomainTypes.DOMAIN_LAND })
+    local archer = T.fakeUnit({
+        range = opts.range or 2,
+        domain = opts.domain or DomainTypes.DOMAIN_LAND,
+        canRangeStrike = opts.canRangeStrike,
+    })
     archer._plot = attackerPlot
     UI.GetHeadSelectedUnit = function()
         return archer
@@ -2402,6 +2406,22 @@ function M.test_targetability_air_unit_skips_los_check()
     Cursor.move(DirectionTypes.DIRECTION_EAST)
     local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
     T.truthy(not out:find("unseen", 1, true), "air attacker must not flag LoS-blocked tile as unseen: " .. out)
+end
+
+function M.test_targetability_no_unseen_when_engine_allows_strike_despite_blocked_los()
+    -- The regression: an elevated city sees over an intervening forest, so
+    -- the engine's CanRangeStrikeAt accepts the strike even where a bare LoS
+    -- probe reads "blocked." The prefix must defer to the engine's gate and
+    -- stay silent, never contradict the strike the commit path will fire.
+    local attackerPlot = setupRangedScene({
+        mode = InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK,
+        losBlocked = true, -- bare LoS probe would say "unseen"
+    })
+    selectArcher(attackerPlot, { canRangeStrike = true })
+    Cursor.move(DirectionTypes.DIRECTION_EAST)
+    local out = Cursor.move(DirectionTypes.DIRECTION_EAST)
+    T.truthy(not out:find("unseen", 1, true), "engine-strikable tile must not be tagged unseen: " .. out)
+    T.truthy(not out:find("out of range", 1, true), "engine-strikable tile must not be tagged out of range: " .. out)
 end
 
 function M.test_targetability_no_prefix_when_not_in_ranged_mode()

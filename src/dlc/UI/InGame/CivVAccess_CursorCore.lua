@@ -93,21 +93,24 @@ end
 -- airstrike, city ranged strike), prepend an "unseen" or "out of range" tag
 -- so the user can tell at cursor-move time whether the current tile would
 -- accept a strike. Sighted players read the same answer off the red-overlay
--- and arrow visuals (Bombardment.lua); the engine's CanRangeStrikeAt is
--- their gate, but it requires a valid target on the plot, so we can't use
--- it here -- we want the prefix on every plot, target or not. Geometry
--- check only; no fog-of-war / target-validity reasoning.
+-- and arrow visuals (Bombardment.lua).
 --
--- LoS uses Plot:HasLineOfSight (engine fork binding), which calls
--- CvPlot::canSeePlot with the range and facing gates short-circuited so
--- the answer is "is the visibility ray blocked by terrain" alone -- the
--- range axis we report separately as "out of range" via Map.PlotDistance.
--- Air units / IsRangeAttackIgnoreLOS skip the LoS step (engine does the
--- same in canEverRangeStrikeAt). The attacker's own plot returns no
--- prefix (distance 0, LoS trivially true).
+-- The engine's own CanRangeStrikeAt is the authoritative gate -- the same one
+-- the commit path (CivVAccess_UnitTargetMode) and the sighted target cursor
+-- (WorldView) use. When it accepts the tile we stay silent. A parallel LoS
+-- re-derivation here would (and did) diverge from it: an elevated city
+-- legitimately sees over an intervening forest, where canSeePlot taken in
+-- isolation read "blocked" and the cursor cried "unseen" on a strike the
+-- engine happily committed. CanRangeStrikeAt needs a valid target on the
+-- plot, so it can't itself name the reason an empty or unreachable tile is
+-- not strikable; when it declines we fall back to the geometry the player
+-- can't otherwise perceive -- out of range first, then blocked line of sight
+-- -- matching the engine's drill order in commitFailureReason. Air units /
+-- IsRangeAttackIgnoreLOS skip the LoS step (engine does the same in
+-- canEverRangeStrikeAt). The attacker's own plot returns no prefix.
 local function targetabilityPrefix(plot)
     local mode = UI.GetInterfaceMode()
-    local attackerPlot, team, range, ignoresLoS, attacker
+    local attackerPlot, team, range, ignoresLoS, attacker, headCity
     if mode == InterfaceModeTypes.INTERFACEMODE_RANGE_ATTACK or mode == InterfaceModeTypes.INTERFACEMODE_AIRSTRIKE then
         local unit = UI.GetHeadSelectedUnit()
         if unit == nil then
@@ -128,6 +131,7 @@ local function targetabilityPrefix(plot)
             Log.warn("targetabilityPrefix: CITY_RANGE_ATTACK with no head-selected city")
             return ""
         end
+        headCity = city
         attackerPlot = city:Plot()
         team = Players[city:GetOwner()]:GetTeam()
         range = GameDefines.CITY_ATTACK_RANGE
@@ -151,11 +155,25 @@ local function targetabilityPrefix(plot)
     if ax == tx and ay == ty then
         return ""
     end
-    if not ignoresLoS and not EngineData.hasLineOfSight(attackerPlot, plot, team, attacker) then
-        return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") .. ", "
+    -- Authoritative strike gate. bNeedWar=false: a peaceful-rival tile is
+    -- strikable (the engine queues the war-declare popup on commit);
+    -- bNoncombatAllowed=true: an undefended city / civilian tile counts.
+    local strikable
+    if attacker ~= nil then
+        strikable = attacker:CanRangeStrikeAt(tx, ty, false, true)
+    else
+        strikable = headCity:CanRangeStrikeAt(tx, ty)
     end
+    if strikable then
+        return ""
+    end
+    -- Not strikable: name the geometric reason. Other causes (no enemy on
+    -- the tile, city-on-city) stay silent -- the glance reads what's there.
     if Map.PlotDistance(ax, ay, tx, ty) > range then
         return Text.key("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE") .. ", "
+    end
+    if not ignoresLoS and not EngineData.hasLineOfSight(attackerPlot, plot, team, attacker) then
+        return Text.key("TXT_KEY_CIVVACCESS_TARGET_UNSEEN") .. ", "
     end
     return ""
 end
