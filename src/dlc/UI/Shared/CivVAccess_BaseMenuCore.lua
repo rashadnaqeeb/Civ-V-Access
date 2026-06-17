@@ -1357,6 +1357,23 @@ function BaseMenu.create(spec)
         resetSearch(self)
     end
 
+    -- The leaf item the cursor is on at the current level, or nil. For
+    -- callers that need to read the focused item's data (a pushed picker
+    -- whose dismiss path acts on the highlighted row).
+    function self.currentItem()
+        return currentItems(self)[currentIndex(self)]
+    end
+
+    -- Re-speak the current cursor's item as if the user had just navigated
+    -- onto it. Pairs with setItems (which is silent): a caller that rebuilds
+    -- the list calls this to announce the new landing.
+    function self.announceCurrent()
+        local item = currentItems(self)[currentIndex(self)]
+        if item ~= nil then
+            landingSpeak(self, item)
+        end
+    end
+
     -- Re-speak the displayName + current preamble. Resolves a function
     -- preamble fresh so F1 reads live state, and syncs lastPreambleText so
     -- a later refresh() against an unchanged value stays a no-op.

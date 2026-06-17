@@ -132,6 +132,28 @@ function M.test_search_word_start_match()
     T.eq(s:selectedOriginalIndex(), 1)
 end
 
+function M.test_result_original_indices_full_ranked_order()
+    setup()
+    local s = TypeAheadSearch.new()
+    s:addChar("c")
+    s:search(#SEARCH_ITEMS, labelAt, function() end)
+    -- 'c' ranks Cherry(5,t1) and Blue Cheese(4,t3) ahead of Apricot(2,t4).
+    -- The whole set is returned in cursor order, top match first, so a
+    -- results-menu consumer can list every match at once.
+    local idx = s:resultOriginalIndices()
+    T.eq(#idx, 3)
+    T.eq(idx[1], 5, "top match leads")
+    -- Mutating the returned copy must not disturb the search's own state.
+    idx[1] = 999
+    T.eq(s:selectedOriginalIndex(), 5, "returned array is a detached copy")
+end
+
+function M.test_result_original_indices_empty_before_search()
+    setup()
+    local s = TypeAheadSearch.new()
+    T.eq(#s:resultOriginalIndices(), 0)
+end
+
 function M.test_search_mid_word_match()
     setup()
     local s = TypeAheadSearch.new()

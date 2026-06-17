@@ -184,6 +184,18 @@ function Instance:resultCount()
     return #self._resultIndices
 end
 
+-- Ordered original-list indices of the current result set, top match first.
+-- Returns a fresh array the caller may keep. Empty before any search runs
+-- or when nothing matched. Used by consumers that present the whole result
+-- set at once (a results menu) rather than cycling one match at a time.
+function Instance:resultOriginalIndices()
+    local out = {}
+    for i = 1, #self._resultIndices do
+        out[i] = self._resultIndices[i]
+    end
+    return out
+end
+
 -- 1-based original-list index of the currently selected result, or nil.
 function Instance:selectedOriginalIndex()
     if not self._isSearchActive then

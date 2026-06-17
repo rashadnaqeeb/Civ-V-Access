@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Typing to search the tech tree now opens a list of every matching tech to arrow through, instead of jumping straight to the first match.
 - The scanner in city view has a new Yields category that ranks the city's tiles by each yield, so you can quickly find your best food or production tile.
 - F1 on the new technology popup now also reads the details of each unit, building, and ability the tech unlocks.
 - The production chooser lists civilian units first, then land, sea, and air, and national wonders ahead of world wonders.

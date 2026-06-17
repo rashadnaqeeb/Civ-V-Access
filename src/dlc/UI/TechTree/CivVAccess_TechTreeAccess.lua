@@ -33,10 +33,10 @@
 --           tech in a different era than the previous cursor position,
 --           the era display name prefixes the landing speech ("Classical
 --           Era. Banking, available, ..."). Same-era moves don't repeat
---           it. Skipped on search-driven jumps (the search target is
---           usually far from the prior cursor; the era word adds noise),
---           but _prevEraID is updated silently so the next arrow move
---           compares against the searched-to era.
+--           it. When the search overlay seats the cursor on a match (on
+--           dismiss), _prevEraID is updated silently with no era prefix,
+--           so the next arrow move compares against the seated era rather
+--           than announcing a boundary against the pre-search position.
 --   Queue   TabbedShell.menuTab over a BaseMenu list. Items are rebuilt
 --           on every onTabActivated so the queue reflects post-commit
 --           state when the user Tabs over after queuing a tech. Era
@@ -65,14 +65,20 @@
 -- the engine catches per-listener throws and the current live one still
 -- fires.
 --
--- Search: letters / digits / Space / Backspace feed a TypeAheadSearch
--- instance whose corpus is "name, unlocks prose" per tech. Each keystroke
--- moves the DAG cursor to the top match via TechTreeLogic.seedCursorSiblings
--- (same seed the initial landing uses) and speaks the normal landing
--- speech. Arrow keys clear the buffer silently before tree nav so typing
--- never contaminates a subsequent arrow move. Esc with a buffer clears
--- and speaks "search cleared"; Esc with no buffer falls through to the
--- base TechTree.lua InputHandler which closes the popup.
+-- Search: letters / digits / Space / Backspace on either nav mode feed a
+-- TypeAheadSearch whose corpus is "name, unlocks prose" per tech. The first
+-- matching keystroke pushes a results overlay (a BaseMenu, capturesAllInput)
+-- listing every match in ranked order with the cursor on the top match;
+-- each further keystroke refilters the list in place and relands on the new
+-- top match. Up/Down/Home/End walk the results, Enter researches the focused
+-- match and Shift+Enter queues it (the same commit path the tree tabs use),
+-- Ctrl+I opens its pedia entry. Backspace past the last character, or Esc,
+-- dismisses the overlay: the tree cursor is seated on the focused match (so
+-- the user is left where they were browsing) and "search cleared" is spoken.
+-- Each result row speaks the same landing speech an arrow move produces,
+-- minus the era prefix, so browsing the overlay sounds like browsing the
+-- tree. Arrow keys on the tree tab clear any leftover no-match buffer before
+-- tree nav so a non-matching prefix never contaminates a later arrow move.
 --
 -- F1: TabbedShell owns F1 and reads "Tech Tree" + active tab name. The
 -- mode preamble (free-tech / stealing) is reachable via Tab cycle into
@@ -118,6 +124,11 @@ local MOD_NONE = 0
 local MOD_SHIFT = 1
 local MOD_CTRL = 2
 
+local bind = HandlerStack.bind
+
+-- Stack name of the type-ahead results overlay pushed over the tree tab.
+local SEARCH_MENU_NAME = "TechSearchResults"
+
 -- Populated on BUTTONPOPUP_TECH_TREE fires; stable across Show/Hide for a
 -- given open and re-written on the next open.
 local _stealingTargetID = -1
@@ -135,6 +146,9 @@ local _graph = nil
 local _cursor = nil
 local _corpus = nil
 local _search = nil
+-- Live results-overlay handler while type-ahead is open; nil otherwise.
+-- Cleared by the overlay's own onDeactivate and on screen hide.
+local _searchMenu = nil
 local _grid = nil
 -- "grid" or "tree". Default grid; toggled by Space within the tree tab.
 -- Reset to "grid" on hide so each open starts in the spatial mode.
@@ -202,20 +216,6 @@ local function speakLanding(techID)
     SpeechPipeline.speakInterrupt(prefix .. TechTreeLogic.buildLandingSpeech(techID, p))
 end
 
--- Same as speakLanding but suppresses the era prefix. Used by search-
--- driven landings (per design: search jumps don't announce era boundaries
--- because every search is a jump). _prevEraID still updates to the new
--- tech's era so a subsequent arrow move compares from there rather than
--- falsely announcing a boundary against the pre-search position.
-local function speakLandingNoEra(techID)
-    local p = currentPlayer()
-    if p == nil then
-        return
-    end
-    _prevEraID = TechTreeLogic.eraID(techID) or _prevEraID
-    SpeechPipeline.speakInterrupt(TechTreeLogic.buildLandingSpeech(techID, p))
-end
-
 -- ===== Tree commit =====
 
 local function commit(shift)
@@ -267,35 +267,18 @@ local function commit(shift)
 end
 
 -- ===== Search =====
+--
+-- Typing on either nav mode opens a results overlay (a pushed BaseMenu)
+-- rather than moving the tree cursor directly; the overlay owns browsing
+-- and commit, and seats the cursor on the focused match when it closes.
+-- The menu-building helpers live further down (after `closer`) because
+-- they push HandlerStack bindings; this is just the buffer-clear primitive
+-- the tree-tab arrow handlers call.
 
 local function clearSearch()
     if _search ~= nil then
         _search:clear()
     end
-end
-
-local function buildSearchable()
-    return {
-        itemCount = function()
-            return _corpus and #_corpus or 0
-        end,
-        getLabel = function(i)
-            local entry = _corpus and _corpus[i]
-            if entry == nil then
-                return nil
-            end
-            return entry.label
-        end,
-        moveTo = function(origIndex)
-            local entry = _corpus and _corpus[origIndex]
-            if entry == nil then
-                return
-            end
-            TechTreeLogic.seedCursorSiblings(_cursor, entry.tech, _graph)
-            _intendedGridY = entry.tech.GridY
-            speakLandingNoEra(entry.tech.ID)
-        end,
-    }
 end
 
 -- ===== Tree nav =====
@@ -448,6 +431,185 @@ local function closer()
     close()
 end
 
+-- Seat the tree cursor on `tech` without speaking. Matches the bookkeeping
+-- an arrow landing does (sibling reseed + grid anchor) plus a silent
+-- _prevEraID update, so the next arrow move measures era boundaries from
+-- here instead of announcing one against the pre-search position.
+local function seatCursorSilent(tech)
+    TechTreeLogic.seedCursorSiblings(_cursor, tech, _graph)
+    _intendedGridY = tech.GridY
+    _prevEraID = TechTreeLogic.eraID(tech.ID) or _prevEraID
+end
+
+-- Searchable view of the corpus with a no-op moveTo: the search ranks the
+-- matches but never moves the cursor or speaks (the overlay owns
+-- presentation). buildSearchResultItems reads the result order back.
+local function buildMenuSearchable()
+    return {
+        itemCount = function()
+            return _corpus and #_corpus or 0
+        end,
+        getLabel = function(i)
+            local entry = _corpus and _corpus[i]
+            return entry and entry.label or nil
+        end,
+        moveTo = function() end,
+    }
+end
+
+-- Feed one key to the shared search. Returns (consumed, handled); handled
+-- is false when vk is not a search key, so the caller leaves it for the
+-- binding walk. Shared by the tree-tab opener and the overlay refiner.
+local function feedSearchKey(vk)
+    local s = buildMenuSearchable()
+    if vk >= 0x41 and vk <= 0x5A then
+        return _search:handleChar(string.char(vk + 32), s), true
+    elseif vk >= 0x30 and vk <= 0x39 then
+        return _search:handleChar(string.char(vk), s), true
+    elseif vk == Keys.VK_SPACE and _search:isSearchActive() then
+        return _search:handleKey(Keys.VK_SPACE, false, false, s), true
+    elseif vk == Keys.VK_BACK then
+        return _search:handleKey(Keys.VK_BACK, false, false, s), true
+    end
+    return false, false
+end
+
+-- One Choice per current search result, in ranked order. The label is the
+-- live landing speech (re-read on every announce, no cache); the row
+-- carries its tech so dismiss can seat the cursor and Shift+Enter can queue
+-- it. The Choice's own activate (Enter) seats the cursor and runs the
+-- normal research commit, then drops the overlay -- acting exactly as if
+-- the tree cursor had been parked on the tech and Enter pressed there.
+local function buildSearchResultItems()
+    local items = {}
+    for _, origIndex in ipairs(_search:resultOriginalIndices()) do
+        local entry = _corpus[origIndex]
+        if entry ~= nil then
+            local tech = entry.tech
+            local it = BaseMenuItems.Choice({
+                labelFn = function()
+                    local p = currentPlayer()
+                    if p == nil then
+                        return Text.key(tech.Description)
+                    end
+                    return TechTreeLogic.buildLandingSpeech(tech.ID, p)
+                end,
+                pediaName = Text.key(tech.Description),
+                activate = function()
+                    seatCursorSilent(tech)
+                    commit(false)
+                    HandlerStack.removeByName(SEARCH_MENU_NAME, false)
+                end,
+            })
+            it._techRow = tech
+            items[#items + 1] = it
+        end
+    end
+    return items
+end
+
+-- Esc / backspace-past-the-last-character. Seat the cursor on the focused
+-- match (leaving the user where they were browsing), drop the overlay, and
+-- speak the standard "search cleared". The overlay's onDeactivate clears
+-- the search buffer.
+local function dismissSearchMenu()
+    if _searchMenu ~= nil then
+        local it = _searchMenu.currentItem()
+        if it ~= nil and it._techRow ~= nil then
+            seatCursorSilent(it._techRow)
+        end
+    end
+    HandlerStack.removeByName(SEARCH_MENU_NAME, false)
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+end
+
+-- Keystroke handler installed on the overlay, replacing BaseMenu's built-in
+-- type-ahead so refining feeds the tech search rather than searching within
+-- the result rows. Backspace that would empty the buffer dismisses; other
+-- search keys refilter and reland on the new top match. A no-match
+-- keystroke leaves the prior rows standing (the search speaks "no match")
+-- so the focused row stays valid for Enter / dismiss.
+local function searchMenuHandleInput(_handler, vk, mods)
+    if _search == nil or _corpus == nil then
+        return false
+    end
+    local hasCtrl = math.floor(mods / 2) % 2 == 1
+    local hasAlt = math.floor(mods / 4) % 2 == 1
+    if hasCtrl or hasAlt then
+        return false
+    end
+    if vk == Keys.VK_BACK and #_search:buffer() <= 1 then
+        dismissSearchMenu()
+        return true
+    end
+    local consumed, handled = feedSearchKey(vk)
+    if not handled then
+        return false
+    end
+    if _searchMenu ~= nil and _search:resultCount() > 0 then
+        _searchMenu.setItems(buildSearchResultItems())
+        _searchMenu.announceCurrent()
+    end
+    return consumed
+end
+
+-- Push the results overlay positioned on the top match. Called from the
+-- tree-tab search hook on the first matching keystroke. capturesAllInput
+-- defaults true, so arrows / Tab route to the overlay until it is dismissed.
+--
+-- Opening speaks only the focused result, like landing on it in the tree --
+-- no overlay-name announcement, which no other type-ahead surface does.
+-- silentDisplayName drops the title from the auto-open speech (F1 still
+-- reads it); silentFirstOpen suppresses onActivate's own first-item speech
+-- so the explicit announceCurrent below speaks the landing on interrupt
+-- (matching the refine path) rather than onActivate's queued form.
+local function openSearchMenu()
+    HandlerStack.removeByName(SEARCH_MENU_NAME, false)
+    local menu = BaseMenu.create({
+        name = SEARCH_MENU_NAME,
+        displayName = Text.key("TXT_KEY_CIVVACCESS_TECHTREE_SEARCH_RESULTS"),
+        items = buildSearchResultItems(),
+        silentDisplayName = true,
+        silentFirstOpen = true,
+        helpExtras = {
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_ENTER",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_ENTER",
+            },
+            {
+                keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_SHIFT_ENTER",
+                description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER",
+            },
+        },
+    })
+    menu.handleSearchInput = searchMenuHandleInput
+    menu.onDeactivate = function()
+        _searchMenu = nil
+        clearSearch()
+    end
+    menu.bindings[#menu.bindings + 1] = bind(Keys.VK_RETURN, MOD_SHIFT, function()
+        local it = menu.currentItem()
+        if it == nil or it._techRow == nil then
+            return
+        end
+        seatCursorSilent(it._techRow)
+        commit(true)
+        HandlerStack.removeByName(SEARCH_MENU_NAME, false)
+    end, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_SHIFT_ENTER")
+    menu.bindings[#menu.bindings + 1] =
+        bind(Keys.VK_ESCAPE, MOD_NONE, dismissSearchMenu, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE")
+    menu.bindings[#menu.bindings + 1] = bind(Keys.VK_F6, MOD_NONE, closer, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6")
+    _searchMenu = menu
+    HandlerStack.push(menu)
+    -- onActivate ran silent (silentFirstOpen); speak the focused result now,
+    -- on interrupt, so opening sounds exactly like landing on it.
+    menu.announceCurrent()
+end
+
+-- Tree-tab type-ahead hook. Feeds the keystroke to the shared search; the
+-- first keystroke that yields a match opens the overlay, which then owns
+-- refinement and commit. A non-matching prefix accumulates on the tree tab
+-- (the search speaks "no match"); the arrow handlers clear it before nav.
 local function treeHandleSearchInput(_handler, vk, mods)
     if _search == nil or _corpus == nil then
         return false
@@ -457,25 +619,17 @@ local function treeHandleSearchInput(_handler, vk, mods)
     if hasCtrl or hasAlt then
         return false
     end
-    local s = buildSearchable()
-    if vk >= 0x41 and vk <= 0x5A then
-        return _search:handleChar(string.char(vk + 32), s)
+    local consumed, handled = feedSearchKey(vk)
+    if not handled then
+        return false
     end
-    if vk >= 0x30 and vk <= 0x39 then
-        return _search:handleChar(string.char(vk), s)
+    if _search:resultCount() > 0 then
+        openSearchMenu()
     end
-    if vk == Keys.VK_SPACE and _search:isSearchActive() then
-        return _search:handleKey(Keys.VK_SPACE, false, false, s)
-    end
-    if vk == Keys.VK_BACK then
-        return _search:handleKey(Keys.VK_BACK, false, false, s)
-    end
-    return false
+    return consumed
 end
 
 -- ===== Tree tab =====
-
-local bind = HandlerStack.bind
 
 -- Static help entries shared by both modes (everything except the arrow
 -- description). withModeNav prepends the mode-specific arrow entry to
@@ -707,6 +861,12 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
         return
     end
     if bIsHide then
+        -- Drop the results overlay if the screen closes while it is open
+        -- (F6 from within it, an engine-driven close, load-from-game). Its
+        -- onDeactivate clears the search; reactivate=false so the shell
+        -- underneath doesn't re-announce mid-teardown.
+        HandlerStack.removeByName(SEARCH_MENU_NAME, false)
+        _searchMenu = nil
         _graph = nil
         _grid = nil
         _cursor = nil

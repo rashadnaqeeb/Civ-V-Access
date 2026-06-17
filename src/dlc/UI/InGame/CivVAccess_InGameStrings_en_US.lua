@@ -2231,6 +2231,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_FOREIGN_TITLE"] = "{1_Civ} Tech 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_VIEW_READONLY"] = "viewing only, no changes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_TREE"] = "All techs"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_TAB_QUEUE"] = "Queue"
+-- Title of the results overlay typing opens over the tree tab.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_SEARCH_RESULTS"] = "Search results"
 -- Per-tech state words. AVAILABLE: pickable now. UNAVAILABLE: prereqs not
 -- met by the player's current research state. LOCKED: in the queue but
 -- waiting on an earlier-queued tech to finish (a sequential block, not a
