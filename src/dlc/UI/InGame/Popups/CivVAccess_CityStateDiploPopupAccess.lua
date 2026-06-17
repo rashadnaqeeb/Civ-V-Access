@@ -67,7 +67,7 @@ local mainHandler
 -- unset and read GetText as before.
 local function infoRow(headerKey, textControl, tooltipControl, onActivate, valueFromTooltip)
     local tipControl = tooltipControl or textControl
-    return BaseMenuItems.Text({
+    local spec = {
         labelFn = function()
             local control = Controls[textControl]
             local value
@@ -82,11 +82,19 @@ local function infoRow(headerKey, textControl, tooltipControl, onActivate, value
             end
             return header .. ", " .. value
         end,
-        tooltipFn = function()
-            return Controls[tipControl]:GetToolTipString()
-        end,
         onActivate = onActivate,
-    })
+    }
+    -- When the value is read from the tooltip (QuestInfo's caption is bare
+    -- icons), the label already carries the full tooltip text. Attaching the
+    -- same tooltip as the row tooltip would speak it a second time: the
+    -- spoken-tooltip dedupe is sentence-level and can't match a tooltip
+    -- sentence against the whole-tooltip segment embedded in the label.
+    if not valueFromTooltip then
+        spec.tooltipFn = function()
+            return Controls[tipControl]:GetToolTipString()
+        end
+    end
+    return BaseMenuItems.Text(spec)
 end
 
 local function activateQuestInfo()
