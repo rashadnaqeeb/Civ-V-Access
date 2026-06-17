@@ -560,6 +560,26 @@ local function goldDetail()
     local cityConnectionGold = player:GetCityConnectionGoldTimes100() / 100
     local traitGold = player:GetGoldPerTurnFromTraits()
 
+    -- Community Patch adds income and expense sources vanilla's gold tooltip
+    -- never shows (internal trade routes, City-State and annexed-minor gold,
+    -- vassal income / tax, two-way espionage gold, vassal maintenance). The
+    -- getters exist only on the CP DLL, so the whole set is gated on the CP
+    -- capability probe and stays inert on vanilla. Mirrors VP's GoldTipHandler.
+    local internalRouteGold, minorGold, annexedMinorsGold = 0, 0, 0
+    local vassalsGold, vassalTaxGold, espionageIncoming = 0, 0, 0
+    local vassalMaint, vassalTaxExpense, espionageExpense = 0, 0, 0
+    if Game.IsCustomModOption ~= nil then
+        internalRouteGold = player:GetInternalTradeRouteGoldBonus()
+        minorGold = player:GetGoldPerTurnFromMinorCivs()
+        annexedMinorsGold = player:GetGoldPerTurnFromAnnexedMinors()
+        vassalsGold = player:GetYieldPerTurnFromVassalsTimes100(YieldTypes.YIELD_GOLD) / 100
+        vassalTaxGold = math.floor(player:GetMyShareOfVassalTaxes() / 100)
+        espionageIncoming = player:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_GOLD, true)
+        vassalMaint = player:GetVassalGoldMaintenance()
+        vassalTaxExpense = player:GetExpensePerTurnFromVassalTaxes()
+        espionageExpense = player:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_GOLD, false)
+    end
+
     d.section(Text.key(LABEL_INCOME))
     d.add(Text.format("TXT_KEY_TP_CITY_OUTPUT", fromCities))
     d.add(Text.format("TXT_KEY_TP_GOLD_FROM_CITY_CONNECTIONS", math.floor(cityConnectionGold)))
@@ -567,18 +587,43 @@ local function goldDetail()
     if math.floor(traitGold) > 0 then
         d.add(Text.format("TXT_KEY_TP_GOLD_FROM_TRAITS", math.floor(traitGold)))
     end
+    if internalRouteGold > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_INTERNAL_TRADE", internalRouteGold))
+    end
     if fromOthers > 0 then
         d.add(Text.format("TXT_KEY_TP_GOLD_FROM_OTHERS", fromOthers))
     end
     if fromReligion > 0 then
         d.add(Text.format("TXT_KEY_TP_GOLD_FROM_RELIGION", fromReligion))
     end
+    if vassalsGold > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_VASSALS", vassalsGold))
+    end
+    if vassalTaxGold > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_VASSAL_TAX", vassalTaxGold))
+    end
+    if minorGold > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_MINORS", minorGold))
+    end
+    if annexedMinorsGold > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_ANNEXED_MINORS", annexedMinorsGold))
+    end
+    if espionageIncoming > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_ESPIONAGE_INCOMING", espionageIncoming))
+    end
 
     local unitCost = player:CalculateUnitCost()
     local unitSupply = EngineData.unitSupplyCost(player)
     local buildingMaint = player:GetBuildingGoldMaintenance()
     local improvementMaint = player:GetImprovementGoldMaintenance()
-    local totalExpenses = unitCost + unitSupply + buildingMaint + improvementMaint + toOthers
+    local totalExpenses = unitCost
+        + unitSupply
+        + buildingMaint
+        + improvementMaint
+        + toOthers
+        + vassalMaint
+        + vassalTaxExpense
+        + espionageExpense
 
     d.section()
     d.add(Text.format("TXT_KEY_TP_TOTAL_EXPENSES", totalExpenses))
@@ -597,8 +642,28 @@ local function goldDetail()
     if toOthers > 0 then
         d.add(Text.format("TXT_KEY_TP_GOLD_TO_OTHERS", toOthers))
     end
+    if vassalMaint > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_VASSAL_MAINT", vassalMaint))
+    end
+    if vassalTaxExpense > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_VASSAL_TAX", vassalTaxExpense))
+    end
+    if espionageExpense > 0 then
+        d.add(Text.format("TXT_KEY_TP_GOLD_FROM_ESPIONAGE_OUTGOING", espionageExpense))
+    end
 
-    local fTotalIncome = fromCities + fromOthers + cityConnectionGold + fromReligion + tradeRouteGold + traitGold
+    local fTotalIncome = fromCities
+        + fromOthers
+        + cityConnectionGold
+        + fromReligion
+        + tradeRouteGold
+        + traitGold
+        + internalRouteGold
+        + minorGold
+        + annexedMinorsGold
+        + vassalsGold
+        + vassalTaxGold
+        + espionageIncoming
     if fTotalIncome + player:GetGold() < 0 then
         d.section()
         d.add(Text.key("TXT_KEY_TP_LOSING_SCIENCE_FROM_DEFICIT"))
