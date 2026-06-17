@@ -292,86 +292,66 @@ end
 
 -- ===== Building / great-work data ======================================
 
--- Heritage building list in fixed engine order. Each entry is either a
--- BuildingClass (resolved per-player to honour civ UB overrides like
--- Polynesia's Moai for Amphitheater) or a direct BuildingType (Babylon's
--- Royal Library is the engine's only by-type entry, kept at the tail).
-local HERITAGE_ENTRIES = {
-    { class = "BUILDINGCLASS_AMPHITHEATER" },
-    { class = "BUILDINGCLASS_OPERA_HOUSE" },
-    { class = "BUILDINGCLASS_MUSEUM" },
-    { class = "BUILDINGCLASS_BROADCAST_TOWER" },
-    { class = "BUILDINGCLASS_CATHEDRAL" },
-    { class = "BUILDINGCLASS_PALACE" },
-    { class = "BUILDINGCLASS_NATIONAL_EPIC" },
-    { class = "BUILDINGCLASS_HEROIC_EPIC" },
-    { type = "BUILDING_ROYAL_LIBRARY" },
-}
-
--- Resolve a HERITAGE_ENTRIES row to (building, buildingClass) for the
--- active player, honouring civ-specific BuildingClassOverrides.
-local function resolveHeritageEntry(entry)
-    if entry.type ~= nil then
-        local building = GameInfo.Buildings[entry.type]
-        if building == nil then
-            return nil
-        end
-        return building, GameInfo.BuildingClasses[building.BuildingClass]
-    end
-    local civType = GameInfo.Civilizations[activePlayer():GetCivilizationType()].Type
-    local override = GameInfo.Civilization_BuildingClassOverrides({
-        BuildingClassType = entry.class,
-        CivilizationType = civType,
-    })()
-    local buildingClass = GameInfo.BuildingClasses[entry.class]
-    local building
-    if override ~= nil then
-        building = GameInfo.Buildings[override.BuildingType]
-    else
-        building = GameInfo.Buildings[buildingClass.DefaultBuilding]
-    end
-    return building, buildingClass
+-- A building class with no instance cap is a "regular" building (Monument,
+-- Amphitheater, Museum, ...); a class that caps player, team, or global
+-- instances is a wonder (national or world). The engine's Culture Overview
+-- splits great-work housing the same way: regular buildings first in tech
+-- order, then the city's wonders.
+local function isUnlimitedClass(buildingClass)
+    return buildingClass.MaxPlayerInstances == -1
+        and buildingClass.MaxTeamInstances == -1
+        and buildingClass.MaxGlobalInstances == -1
 end
 
--- World-wonder GW buildings: any building with GreatWorkCount > 0 whose
--- BuildingClass has MaxGlobalInstances > 0, plus Hermitage and Oxford
--- (national wonders that the engine groups into the wonder display).
--- Iteration order matches the engine's WorldWonders construction so the
--- per-city wonder list reads in the same sequence.
-local function gwWonderBuildings()
-    local out = {}
-    for building in GameInfo.Buildings() do
-        local bc = GameInfo.BuildingClasses[building.BuildingClass]
-        if
-            bc ~= nil
-            and (
-                (bc.MaxGlobalInstances > 0 and (building.GreatWorkCount or 0) > 0)
-                or building.Type == "BUILDING_HERMITAGE"
-                or building.Type == "BUILDING_OXFORD_UNIVERSITY"
-            )
-        then
-            out[#out + 1] = { building = building, buildingClass = bc }
-        end
+-- Prereq-tech grid position of a building, matching the engine's regular-
+-- building ordering (tech column, then row). Buildings with no prereq tech
+-- sort last, as the engine's nil-to-99 fallback does.
+local function buildingTechGrid(building)
+    local tech = building.PrereqTech and GameInfo.Technologies[building.PrereqTech]
+    if tech == nil then
+        return 99, 99
     end
-    return out
+    return tech.GridX, tech.GridY
 end
 
--- Every GW-housing building present in `city`, in engine display order:
--- heritage entries first (skipping any the city doesn't own), then any
--- GW-housing wonders the city has built. Each row is { building,
--- buildingClass } pairs ready for buildBuildingGroup.
+-- Every GW-housing building present in `city`, data-driven from the building
+-- table so VP's expanded slot set (Monument, Shrine, Gallery, Grand Temple,
+-- the free-great-work wonders, civ uniques, ...) is covered without a hand-
+-- maintained list. Mirrors the engine display order: regular buildings first
+-- in tech-grid order, then the city's wonders in building-table order. Civ
+-- unique replacements fall out naturally -- a city owns at most one building
+-- per class, so IsHasBuilding selects the right variant. Each row is
+-- { building, buildingClass } ready for buildBuildingGroup.
 local function cityGwBuildings(city)
-    local out = {}
-    for _, entry in ipairs(HERITAGE_ENTRIES) do
-        local b, bc = resolveHeritageEntry(entry)
-        if b ~= nil and city:IsHasBuilding(b.ID) then
-            out[#out + 1] = { building = b, buildingClass = bc }
+    local regular = {}
+    local wonders = {}
+    for building in GameInfo.Buildings() do
+        if (building.GreatWorkCount or 0) > 0 and city:IsHasBuilding(building.ID) then
+            local bc = GameInfo.BuildingClasses[building.BuildingClass]
+            if isUnlimitedClass(bc) then
+                regular[#regular + 1] = { building = building, buildingClass = bc }
+            else
+                wonders[#wonders + 1] = { building = building, buildingClass = bc }
+            end
         end
     end
-    for _, w in ipairs(gwWonderBuildings()) do
-        if city:IsHasBuilding(w.building.ID) then
-            out[#out + 1] = w
+    table.sort(regular, function(a, b)
+        local ax, ay = buildingTechGrid(a.building)
+        local bx, by = buildingTechGrid(b.building)
+        if ax ~= bx then
+            return ax < bx
         end
+        if ay ~= by then
+            return ay < by
+        end
+        return a.building.ID < b.building.ID
+    end)
+    local out = {}
+    for _, r in ipairs(regular) do
+        out[#out + 1] = r
+    end
+    for _, w in ipairs(wonders) do
+        out[#out + 1] = w
     end
     return out
 end
