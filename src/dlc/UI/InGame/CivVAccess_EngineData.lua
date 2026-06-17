@@ -340,10 +340,10 @@ function EngineData.tourism(player)
     return player:GetTourism()
 end
 
--- Drift read: a city's base tourism (engine times-100 on both engines; the
--- consumer divides). VP shares the times-100 convention, so this is a plain
--- passthrough; it lives here because it is on the same drift surface as the
--- player-level tourism getter.
+-- Drift read: a city's base tourism per turn, as a plain rate. Vanilla's
+-- GetBaseTourism is already a plain value (great works times the per-work
+-- define plus modifiers), so this passes through; the VP body floors its
+-- times-100 getter. Same divergence shape as the player-level tourism getter.
 function EngineData.baseTourism(city)
     return city:GetBaseTourism()
 end

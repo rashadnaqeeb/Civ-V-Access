@@ -327,11 +327,12 @@ function EngineData.tourism(player)
     return math.floor(player:GetTourism() / 100)
 end
 
--- Drift read: a city's base tourism (engine times-100 on both engines; the
--- consumer divides). Plain passthrough, kept on the seam because it shares
--- the drift surface with the player-level getter.
+-- Drift read: a city's base tourism per turn, as a plain rate. VP's
+-- GetBaseTourism returns getYieldRateTimes100(YIELD_TOURISM), so floor /100
+-- to the displayed rate; vanilla's same-named getter is already plain. Same
+-- divergence shape as the player-level tourism getter.
 function EngineData.baseTourism(city)
-    return city:GetBaseTourism()
+    return math.floor(city:GetBaseTourism() / 100)
 end
 
 -- Drift read: specialist culture (see the vanilla file for the contract).

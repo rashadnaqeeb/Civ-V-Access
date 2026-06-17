@@ -183,7 +183,7 @@ local YIELD_DEFS = {
         labelKey = "TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM",
         helperKey = "TOURISM",
         rate = function(c)
-            return math.floor(EngineData.baseTourism(c) / 100)
+            return EngineData.baseTourism(c)
         end,
     },
     {

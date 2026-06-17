@@ -966,6 +966,29 @@ function M.test_vp_tourism_floors_times_100()
     T.eq(vp.tourism(player), 12, "times-100 tourism must floor to the displayed rate")
 end
 
+-- VP's GetBaseTourism is times-100 (getYieldRateTimes100) where vanilla's is
+-- already a plain rate. The seam must hide that divergence so both consumers
+-- read a plain rate; a passthrough on both sides reads 100x low on vanilla.
+function M.test_vp_base_tourism_floors_times_100()
+    local vp, _env = loadVPWithFork()
+    local city = {
+        GetBaseTourism = function()
+            return 1234
+        end,
+    }
+    T.eq(vp.baseTourism(city), 12, "VP base tourism must floor the times-100 getter")
+end
+
+function M.test_vanilla_base_tourism_passes_plain_rate()
+    local vanilla = loadSeam(VANILLA_PATH)
+    local city = {
+        GetBaseTourism = function()
+            return 12
+        end,
+    }
+    T.eq(vanilla.baseTourism(city), 12, "vanilla base tourism is already a plain rate")
+end
+
 -- VP deleted GetCultureFromSpecialist (a nil-call crash in the specialist
 -- tooltip) and folded specialist culture into the YIELD_CULTURE yield the
 -- caller's yield loop already counts; the VP body must return 0 without

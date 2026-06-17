@@ -348,7 +348,7 @@ function M.test_yields_speak_per_turn_for_seven_yields()
             [YieldTypes.YIELD_GOLD] = 8,
             [YieldTypes.YIELD_SCIENCE] = 14,
         },
-        baseTourism = 250,
+        baseTourism = 2,
         faithPerTurn = 3,
         cultureStored = 5,
         cultureThreshold = 25,
@@ -367,8 +367,10 @@ function M.test_yields_speak_per_turn_for_seven_yields()
     T.truthy(rows[3].label:find("gold 8", 1, true), "gold per-turn label")
     T.truthy(rows[4].label:find("science 14", 1, true), "science per-turn label")
     T.truthy(rows[5].label:find("faith 3", 1, true), "faith per-turn label")
-    -- Tourism reads /100 to match the banner's integer display.
-    T.truthy(rows[6].label:find("tourism 2", 1, true), "tourism scaled per-turn label")
+    -- Tourism comes from the EngineData seam as a plain rate (the vanilla
+    -- body loaded here passes GetBaseTourism through; the VP body floors its
+    -- times-100 getter, covered in the engine_data parity suite).
+    T.truthy(rows[6].label:find("tourism 2", 1, true), "tourism per-turn label")
     -- Culture row's headline includes the per-turn rate, then storage,
     -- then the next-tile countdown ((25-5)/6 = ~4 turns ceiled).
     T.truthy(rows[7].label:find("culture +6", 1, true), "culture per-turn label, signed for growth")

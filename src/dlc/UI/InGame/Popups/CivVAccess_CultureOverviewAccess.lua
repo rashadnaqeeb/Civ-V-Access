@@ -575,7 +575,7 @@ local function buildCityGroup(city)
                 total = total + (b.building.GreatWorkCount or 0)
             end
             local cul = city:GetJONSCulturePerTurn()
-            local tou = math.floor(EngineData.baseTourism(city) / 100)
+            local tou = EngineData.baseTourism(city)
             local damagePct = math.floor((city:GetDamage() / city:GetMaxHitPoints()) * 100 + 0.5)
             if damagePct > 0 then
                 return Text.formatPlural(
