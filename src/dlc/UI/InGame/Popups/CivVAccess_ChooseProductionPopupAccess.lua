@@ -207,6 +207,20 @@ local function announceInvestment(city, entry)
     TickPump.runOnce(poll)
 end
 
+-- Speak why a blocked entry cannot be acted on, instead of silently
+-- no-oping the activation (which left a player unsure whether anything
+-- happened -- e.g. a building-purchase cooldown or too little gold disables
+-- an invest while it stays visible in the list). The engine tooltip carries
+-- the real blocker; fall back to a bare "disabled" when it has none.
+local function announceDisabled(city, entry)
+    local reason = ChooseProductionLogic.disabledReason(city, entry)
+    if reason ~= nil and reason ~= "" then
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_DISABLED_REASON", reason))
+    else
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"))
+    end
+end
+
 local function commitPurchase(city, entry)
     local canPurchase = false
     if entry.orderType == OrderTypes.ORDER_TRAIN then
@@ -232,6 +246,7 @@ local function commitPurchase(city, entry)
                 .. " yield="
                 .. tostring(entry.yieldType)
         )
+        announceDisabled(city, entry)
         return
     end
     fireBannerDirty(city)
@@ -254,6 +269,7 @@ local function entryActivate(entry)
             return
         end
         if ChooseProductionLogic.isEntryDisabled(city, entry) then
+            announceDisabled(city, entry)
             return
         end
         if entry.isProduce then

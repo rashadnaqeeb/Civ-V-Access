@@ -2191,6 +2191,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED"] = "purchased
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVESTED"] = "invested in {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_REDUCED"] = "production cost reduced by {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_NO_REDUCTION"] = "no production cost reduction"
+-- Spoken when the player activates a blocked produce / purchase / invest
+-- entry, so the action gives a reason instead of silently doing nothing.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_DISABLED_REASON"] = "disabled, {1_Reason}"
 -- Marker on a building you have already invested gold in, spoken next to its
 -- name in the production chooser and queues.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROD_INVESTED"] = "invested"
