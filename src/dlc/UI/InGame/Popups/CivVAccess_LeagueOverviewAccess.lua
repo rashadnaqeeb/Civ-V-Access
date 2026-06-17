@@ -381,6 +381,25 @@ local function rebuildAllTabs() end -- forward decl; real fn defined after insta
 -- meaningful once any vote is allocated / any slot is filled; Vote-mode
 -- Commit is always live; Propose-mode Commit waits until every slot has a
 -- pick (engine canCommit at line 1496-1501).
+--
+-- The footer buttons are bound to the engine's Reset/Commit controls only
+-- for click-ack and the spoken label; the actions themselves are logical
+-- and run through our controllers (commit fires Network.SendLeagueVote* /
+-- SendLeaguePropose* directly, never a click on the engine button). The
+-- engine, however, leaves CommitButton / ResetButton hidden whenever its
+-- last full View() ran in a non-vote mode -- it skips View() on the
+-- in-session dirty refreshes that drive a live vote session (LeagueOverview
+-- line 214, to preserve scratch votes), and an open whose popup Data1 does
+-- not resolve to the active league (e.g. the diplo dropdown, which sets no
+-- Data1) renders the not-founded panel with both hidden. The stock Button
+-- isNavigable returns false for a hidden control, which would announce a
+-- live action as disabled and block a commit that would have worked. Gate
+-- navigability on control existence only; activatability comes from the
+-- per-button controller checks below.
+local function footerNavigable(self)
+    return self._control ~= nil
+end
+
 local function buildVoteFooter(pLeague, activePlayer)
     local resetBtn = BaseMenuItems.Button({
         controlName = "ResetButton",
@@ -394,6 +413,7 @@ local function buildVoteFooter(pLeague, activePlayer)
             SpeechPipeline.speakInterrupt(Text.formatPlural("TXT_KEY_CIVVACCESS_LEAGUE_DELEGATES_REMAINING", n, n))
         end,
     })
+    resetBtn.isNavigable = footerNavigable
     resetBtn.isActivatable = function(self)
         if not self:isNavigable() then
             return false
@@ -413,6 +433,7 @@ local function buildVoteFooter(pLeague, activePlayer)
             end)
         end,
     })
+    commitBtn.isNavigable = footerNavigable
     commitBtn.isActivatable = function(self)
         return self:isNavigable() and m_voteController ~= nil
     end
@@ -431,6 +452,7 @@ local function buildProposeFooter(pLeague, activePlayer)
             rebuildAllTabs()
         end,
     })
+    resetBtn.isNavigable = footerNavigable
     resetBtn.isActivatable = function(self)
         if not self:isNavigable() then
             return false
@@ -450,6 +472,7 @@ local function buildProposeFooter(pLeague, activePlayer)
             end)
         end,
     })
+    commitBtn.isNavigable = footerNavigable
     commitBtn.isActivatable = function(self)
         if not self:isNavigable() then
             return false

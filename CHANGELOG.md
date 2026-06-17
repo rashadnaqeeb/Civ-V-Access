@@ -25,6 +25,7 @@ Bug fixes:
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
 - The Culture Overview no longer reads each city's tourism a hundred times too high.
 - The city-state diplomacy screen now reads the city-state's current quests.
+- The World Congress Commit and Reset buttons no longer read as disabled when you can actually use them.
 
 ## [1.4.4] - 2026-06-13
 
