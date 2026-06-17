@@ -187,9 +187,32 @@ PlotSections.resource = {
     end,
 }
 
+-- An embassy is owned by the major civ that built it, not by the city-state
+-- whose land it sits in, so the tile's owner prefix never names that civ. The
+-- game surfaces the builder only in the plot mouseover ("Embassy of Rome"),
+-- gated on first contact; we mirror that here as a suffix on the improvement
+-- name. Returns nil when the plot holds no embassy (every tile on vanilla,
+-- where embassies don't exist). EngineData.embassyOwner may name a defeated
+-- player (the improvement outlives its builder until a conqueror inherits it),
+-- so a missing Players[id] falls to the unmet form, exactly as the engine
+-- tooltip does.
+local function embassyOwnerSuffix(plot)
+    local ownerId = EngineData.embassyOwner(plot)
+    if ownerId == nil then
+        return nil
+    end
+    local owner = Players[ownerId]
+    if owner ~= nil and Teams[Game.GetActiveTeam()]:IsHasMet(owner:GetTeam()) then
+        return Text.format("TXT_KEY_PLOTROLL_EMBASSY", owner:GetCivilizationShortDescriptionKey())
+    end
+    return Text.key("TXT_KEY_PLOTROLL_EMBASSY_UNMET")
+end
+
 -- Improvement and route share the same shape: revealed-ID lookup against a
--- GameInfo table, negative-id bail, optional pillaged-suffix decoration.
-local function pillagedSection(getRevealedId, infoTable, isPillaged)
+-- GameInfo table, negative-id bail, optional pillaged-suffix decoration. The
+-- optional decorate(plot) callback appends a trailing phrase to the name
+-- (embassy ownership); it does not run on a pillaged improvement.
+local function pillagedSection(getRevealedId, infoTable, isPillaged, decorate)
     return {
         Read = function(plot)
             local team, debug = Game.GetActiveTeam(), Game.IsDebugMode()
@@ -204,6 +227,12 @@ local function pillagedSection(getRevealedId, infoTable, isPillaged)
             if isPillaged(plot) then
                 return { Text.format("TXT_KEY_CIVVACCESS_PILLAGED_NAMED", name) }
             end
+            if decorate ~= nil then
+                local suffix = decorate(plot)
+                if suffix ~= nil then
+                    name = name .. " " .. suffix
+                end
+            end
             return { name }
         end,
     }
@@ -216,7 +245,8 @@ PlotSections.improvement = pillagedSection(
     "Improvements",
     function(p)
         return p:IsImprovementPillaged()
-    end
+    end,
+    embassyOwnerSuffix
 )
 
 PlotSections.route = pillagedSection(

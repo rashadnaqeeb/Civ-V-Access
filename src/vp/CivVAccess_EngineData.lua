@@ -829,6 +829,20 @@ function EngineData.dominationController(city)
     return city:GetOwnerForDominationVictory()
 end
 
+-- Drift read: the major civ that built an embassy on this plot, distinct from
+-- the city-state that owns the land. IsImprovementEmbassy is VP-only; when it
+-- holds, GetPlayerThatBuiltImprovement (the same field vanilla uses for
+-- citadel attribution) names the builder who holds the World Congress vote --
+-- reassigned to a conqueror if the builder is defeated, so this is always the
+-- current owner. Returns the builder id (possibly a defeated player) or nil
+-- when the plot's improvement is not an embassy.
+function EngineData.embassyOwner(plot)
+    if not plot:IsImprovementEmbassy() then
+        return nil
+    end
+    return plot:GetPlayerThatBuiltImprovement()
+end
+
 -- Capability probe: VP tracks historic events, so the Culture Overview's
 -- Historic Events tab is built. See the vanilla file for the contract.
 function EngineData.supportsHistoricEvents()

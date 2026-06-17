@@ -643,6 +643,21 @@ function EngineData.dominationController(city)
     return city:GetOwner()
 end
 
+-- Drift read: who owns an embassy improvement on this plot -- the builder
+-- credited with the World Congress vote, which is distinct from the plot's
+-- owner (the city-state whose land the embassy sits in). Returns the
+-- builder's player id, or nil when the plot's improvement is not an embassy.
+-- The id may name a player no longer in the game: an embassy is permanent and
+-- outlives its builder's defeat until a conqueror inherits it, so callers
+-- treat a missing Players[id] as the unknown-builder case (mirroring
+-- PlotMouseoverInclude's unmet branch). Embassies are a Vox Populi feature --
+-- IsImprovementEmbassy is unbound on the stock engine -- so the vanilla body
+-- always returns nil and the embassy ownership suffix never appears in a
+-- vanilla session.
+function EngineData.embassyOwner(plot)
+    return nil
+end
+
 -- Capability probe: does this engine track historic events (the Culture
 -- Overview's VP-only Historic Events tab)? Player-independent so the tab can
 -- be gated in at install time before a live player exists. Vanilla (Brave New

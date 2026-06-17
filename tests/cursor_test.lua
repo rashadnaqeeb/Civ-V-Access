@@ -395,6 +395,60 @@ function M.test_route_pillaged_suffix()
     T.eq(PlotSections.route.Read(p, {})[1], "Road pillaged")
 end
 
+-- ===== Embassy ownership suffix =====
+
+-- An embassy in city-state land belongs to the major civ that built it, not
+-- the city-state that owns the tile, so the improvement name carries the
+-- builder as a suffix -- mirroring the game's "Embassy of Rome" plot tooltip.
+-- EngineData.embassyOwner is stubbed because the vanilla seam (loaded by the
+-- runner) reports no embassies; the VP body is pinned in engine_data_vp_test.
+local EMBASSY_KEYS = {
+    ["TXT_KEY_PLOTROLL_EMBASSY"] = "of {1_CivName}",
+    ["TXT_KEY_PLOTROLL_EMBASSY_UNMET"] = "of Unmet Player",
+}
+
+function M.test_improvement_embassy_suffix_when_builder_met()
+    setup()
+    GameInfo.Improvements[7] = { Description = "Embassy" }
+    Players[3] = T.fakePlayer({ shortDesc = "Rome", team = 2 })
+    Teams[0] = T.fakeTeam({ hasMet = { [2] = true } })
+    T.installLocaleStrings(EMBASSY_KEYS)
+    local original = EngineData.embassyOwner
+    EngineData.embassyOwner = function()
+        return 3
+    end
+    local p = T.fakePlot({ improvement = 7 })
+    T.eq(PlotSections.improvement.Read(p, {})[1], "Embassy of Rome")
+    EngineData.embassyOwner = original
+end
+
+-- A builder the active player has not met (or one no longer in the game, where
+-- Players[id] is nil) withholds the identity, exactly as the sighted tooltip
+-- does -- a blind player learns who owns it no sooner than a sighted one.
+function M.test_improvement_embassy_suffix_unmet_builder()
+    setup()
+    GameInfo.Improvements[7] = { Description = "Embassy" }
+    Players[3] = T.fakePlayer({ shortDesc = "Rome", team = 2 })
+    Teams[0] = T.fakeTeam({ hasMet = {} })
+    T.installLocaleStrings(EMBASSY_KEYS)
+    local original = EngineData.embassyOwner
+    EngineData.embassyOwner = function()
+        return 3
+    end
+    local p = T.fakePlot({ improvement = 7 })
+    T.eq(PlotSections.improvement.Read(p, {})[1], "Embassy of Unmet Player")
+    EngineData.embassyOwner = original
+end
+
+-- A non-embassy improvement gets no suffix: embassyOwner returns nil and the
+-- name passes through unchanged.
+function M.test_improvement_no_embassy_suffix_when_not_embassy()
+    setup()
+    GameInfo.Improvements[2] = { Description = "Farm" }
+    local p = T.fakePlot({ improvement = 2 })
+    T.eq(PlotSections.improvement.Read(p, {})[1], "Farm")
+end
+
 -- ===== Units section =====
 
 function M.test_units_invisible_filter()

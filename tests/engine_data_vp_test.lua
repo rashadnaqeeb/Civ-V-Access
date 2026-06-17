@@ -1297,6 +1297,42 @@ function M.test_vp_domination_controller_uses_redirect_getter()
     )
 end
 
+-- Embassy ownership: an embassy in city-state land belongs to the major civ
+-- that built it, not the city-state plot owner. The builder field is only
+-- meaningful when the improvement is an embassy, so a non-embassy plot must
+-- return nil (else the consumer would tag every citadel / fort with a builder
+-- suffix). Vanilla has no embassies, so its body returns nil unconditionally.
+function M.test_vp_embassy_owner_returns_builder_when_embassy()
+    local vp = loadSeam(VP_PATH)
+    local plot = {
+        IsImprovementEmbassy = function()
+            return true
+        end,
+        GetPlayerThatBuiltImprovement = function()
+            return 4
+        end,
+    }
+    T.eq(vp.embassyOwner(plot), 4)
+end
+
+function M.test_vp_embassy_owner_nil_when_not_embassy()
+    local vp = loadSeam(VP_PATH)
+    local plot = {
+        IsImprovementEmbassy = function()
+            return false
+        end,
+        GetPlayerThatBuiltImprovement = function()
+            error("must not read the builder when the improvement is not an embassy")
+        end,
+    }
+    T.eq(vp.embassyOwner(plot), nil)
+end
+
+function M.test_vanilla_embassy_owner_always_nil()
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.embassyOwner({}), nil, "vanilla has no embassies")
+end
+
 -- The vanilla body has no vassalage system, so it returns the empty model
 -- regardless of the team handle; every consumer's vassalage branch is inert.
 function M.test_vanilla_vassal_info_is_empty()
