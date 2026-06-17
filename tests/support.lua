@@ -288,6 +288,7 @@ function T.fakeUnit(opts)
         _nameKey = opts.nameKey or "Warrior",
         _nameNoDesc = opts.nameNoDesc or "Genghis",
         _damage = opts.damage or 0,
+        _maxHP = opts.maxHP or 100,
         _isCombatUnit = (opts.combat ~= false),
         _unitType = opts.unitType or -1,
         _maxMoves = opts.maxMoves or 120,
@@ -329,6 +330,12 @@ function T.fakeUnit(opts)
     end
     function u:GetDamage()
         return self._damage
+    end
+    function u:GetMaxHitPoints()
+        return self._maxHP
+    end
+    function u:GetCurrHitPoints()
+        return self._maxHP - self._damage
     end
     function u:IsCombatUnit()
         return self._isCombatUnit

@@ -164,8 +164,7 @@ local function reachToken(unit)
 end
 
 local function hpFraction(unit)
-    local maxHP = GameDefines.MAX_HIT_POINTS
-    return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", maxHP - unit:GetDamage(), maxHP)
+    return Text.format("TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION", unit:GetCurrHitPoints(), unit:GetMaxHitPoints())
 end
 
 local function isFriendly(unit)
@@ -1208,7 +1207,7 @@ function UnitSpeech.cityMeleePreview(actor, city, targetPlot)
     if myDmg > maxCityHP then
         myDmg = maxCityHP
     end
-    local maxUnitHP = GameDefines.MAX_HIT_POINTS
+    local maxUnitHP = actor:GetMaxHitPoints()
     if theirDmg > maxUnitHP then
         theirDmg = maxUnitHP
     end

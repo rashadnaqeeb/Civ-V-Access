@@ -19,6 +19,7 @@ local function mkUnit(opts)
         _unitType = opts.unitType or 100,
         _embarked = opts.embarked or false,
         _damage = opts.damage or 0,
+        _maxHP = opts.maxHP or 100,
         _moves = opts.moves or 60,
         _maxMoves = opts.maxMoves or 120,
         _canPromote = opts.canPromote or false,
@@ -81,6 +82,12 @@ local function mkUnit(opts)
     end
     function u:GetDamage()
         return self._damage
+    end
+    function u:GetMaxHitPoints()
+        return self._maxHP
+    end
+    function u:GetCurrHitPoints()
+        return self._maxHP - self._damage
     end
     function u:MovesLeft()
         return self._moves
@@ -381,6 +388,16 @@ function M.test_selection_hp_below_max_speaks_fraction()
     local u = mkUnit({ damage = 40 })
     local out = UnitSpeech.selection(u, 0, 0)
     T.truthy(out:find("60/100 hp", 1, true), "damaged unit must speak fraction: " .. out)
+end
+
+-- VP gives units a per-type max HP above the 100 default; the fraction
+-- must come from the unit's own GetMaxHitPoints / GetCurrHitPoints, not a
+-- hardcoded 100, or current HP goes negative on high-HP units.
+function M.test_selection_hp_uses_per_unit_max_not_constant()
+    setup()
+    local u = mkUnit({ maxHP = 130, damage = 78 })
+    local out = UnitSpeech.selection(u, 0, 0)
+    T.truthy(out:find("52/130 hp", 1, true), "must use per-unit max HP: " .. out)
 end
 
 -- ===== Selection: moves always =====
@@ -1349,6 +1366,9 @@ local function mkCombatUnit(opts)
     end
     function u:GetCurrHitPoints()
         return opts.currHP or 100
+    end
+    function u:GetMaxHitPoints()
+        return opts.maxHP or 100
     end
     -- nil-checked handle: a non-nil return would make the preview try to
     -- read a fire-support unit's damage, so this must stay nil unless a

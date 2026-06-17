@@ -43,9 +43,8 @@ local function describeUnit(unit, activeTeam, isDebug)
         return nil
     end
     local s = unitDescription(unit)
-    local damage = unit:GetDamage()
-    if damage > 0 then
-        s = s .. ", " .. Text.format("TXT_KEY_CIVVACCESS_HP_FORMAT", GameDefines.MAX_HIT_POINTS - damage)
+    if unit:GetDamage() > 0 then
+        s = s .. ", " .. Text.format("TXT_KEY_CIVVACCESS_HP_FORMAT", unit:GetCurrHitPoints())
     end
     -- Mirror the unit flag's status channel: fortified lights up the
     -- shield flag for any visible unit; the deeper rungs (sleep, alert,
