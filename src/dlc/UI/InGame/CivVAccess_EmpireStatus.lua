@@ -527,6 +527,42 @@ local function researchDetail()
         d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_RESEARCH_AGREEMENTS", fromRAs / 100))
     end
 
+    -- Community Patch adds science sources vanilla's tooltip never shows
+    -- (vassals, minor allies, annexed minors, religion, City-States,
+    -- espionage). CP-only getters, gated on the capability probe; inert on
+    -- vanilla. Mirrors VP's ScienceTipHandler.
+    if Game.IsCustomModOption ~= nil then
+        local fromVassals = player:GetYieldPerTurnFromVassalsTimes100(YieldTypes.YIELD_SCIENCE) / 100
+        if fromVassals ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_SCIENCE_VASSALS", fromVassals))
+        end
+        local fromAllies = player:GetScienceRateFromMinorAllies()
+        if fromAllies ~= 0 then
+            d.add(Text.format("TXT_KEY_MINOR_SCIENCE_FROM_LEAGUE_ALLIES", fromAllies))
+        end
+        local fromAnnexed = player:GetSciencePerTurnFromAnnexedMinors()
+        if fromAnnexed ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_ANNEXED_MINORS", fromAnnexed))
+        end
+        local fromReligion = player:GetYieldPerTurnFromReligion(YieldTypes.YIELD_SCIENCE)
+        if fromReligion ~= 0 then
+            d.add(Text.format("TXT_KEY_SCIENCE_FROM_RELIGION", fromReligion))
+        end
+        local fromMinors = player:GetSciencePerTurnFromMinorCivs()
+        if fromMinors ~= 0 then
+            d.add(Text.format("TXT_KEY_SCIENCE_FROM_MINORS", fromMinors))
+        end
+        local fromEspionage = (
+            player:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_SCIENCE, true)
+            - player:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_SCIENCE, false)
+        ) + player:GetSciencePerTurnFromPassiveSpyBonusesTimes100() / 100
+        if fromEspionage > 0 then
+            d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_ESPIONAGE_POSITIVE", fromEspionage))
+        elseif fromEspionage < 0 then
+            d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_ESPIONAGE_NEGATIVE", fromEspionage))
+        end
+    end
+
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
         -- TXT_KEY_TP_TECH_CITY_COST is a one-sentence explainer that
@@ -1050,6 +1086,27 @@ local function faithDetail()
         d.add(Text.format("TXT_KEY_TP_FAITH_FROM_RELIGION", fromReligion))
     end
 
+    -- Community Patch adds faith sources vanilla's tooltip never shows
+    -- (annexed minors, vassals, espionage). CP-only getters, gated on the
+    -- capability probe; inert on vanilla. Mirrors VP's FaithTipHandler.
+    if Game.IsCustomModOption ~= nil then
+        local fromAnnexed = player:GetFaithPerTurnFromAnnexedMinors()
+        if fromAnnexed ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_FAITH_FROM_ANNEXED_MINORS", fromAnnexed))
+        end
+        local fromVassals = player:GetYieldPerTurnFromVassalsTimes100(YieldTypes.YIELD_FAITH) / 100
+        if fromVassals ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_FAITH_VASSALS", fromVassals))
+        end
+        local fromEspionage = player:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_FAITH, true)
+            - player:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_FAITH, false)
+        if fromEspionage > 0 then
+            d.add(Text.format("TXT_KEY_TP_FAITH_FROM_ESPIONAGE_POSITIVE", fromEspionage))
+        elseif fromEspionage < 0 then
+            d.add(Text.format("TXT_KEY_TP_FAITH_FROM_ESPIONAGE_NEGATIVE", fromEspionage))
+        end
+    end
+
     d.section(Text.key(LABEL_RELIGIONS))
     if player:HasCreatedPantheon() then
         if
@@ -1134,44 +1191,57 @@ local function policyDetail()
     end
 
     d.section()
-    local cultureForFree = player:GetJONSCulturePerTurnForFree()
-    if cultureForFree ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FOR_FREE", cultureForFree))
-    end
-    local fromCities = player:GetJONSCulturePerTurnFromCities()
-    if fromCities ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_CITIES", fromCities))
-    end
-    local fromHappiness = player:GetJONSCulturePerTurnFromExcessHappiness()
-    if fromHappiness ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_HAPPINESS", fromHappiness))
-    end
-    local fromTraits = player:GetJONSCulturePerTurnFromTraits()
-    if fromTraits ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_TRAITS", fromTraits))
-    end
-    local fromMinors = player:GetCulturePerTurnFromMinorCivs()
-    if fromMinors ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_MINORS", fromMinors))
-    end
-    local fromReligion = player:GetCulturePerTurnFromReligion()
-    if fromReligion ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_RELIGION", fromReligion))
-    end
-    local fromBonusTurns = player:GetCulturePerTurnFromBonusTurns()
-    if fromBonusTurns ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_BONUS_TURNS", fromBonusTurns, player:GetCultureBonusTurns()))
-    end
-    local fromGoldenAge = player:GetTotalJONSCulturePerTurn()
-        - cultureForFree
-        - fromCities
-        - fromHappiness
-        - fromMinors
-        - fromReligion
-        - fromTraits
-        - fromBonusTurns
-    if fromGoldenAge ~= 0 then
-        d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_GOLDEN_AGE", fromGoldenAge))
+    if Game.IsCustomModOption ~= nil then
+        -- VP routes culture through sources vanilla lacks (annexed minors,
+        -- espionage, vassals, a religion modifier) and itemizes them via this
+        -- combined tooltip rather than the per-source getters. Mirroring it
+        -- keeps every source labelled instead of folding the extras into the
+        -- golden-age residual the manual breakdown computes. Also surfaces
+        -- VP's techs-to-next-free-policy line.
+        d.add(player:GetTotalCulturePerTurnTooltip())
+        if player:GetTechsToFreePolicy() >= 0 then
+            d.add(Text.format("TXT_KEY_TP_TECHS_NEEDED_FOR_NEXT_FREE_POLICY", player:GetTechsToFreePolicy()))
+        end
+    else
+        local cultureForFree = player:GetJONSCulturePerTurnForFree()
+        if cultureForFree ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FOR_FREE", cultureForFree))
+        end
+        local fromCities = player:GetJONSCulturePerTurnFromCities()
+        if fromCities ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_CITIES", fromCities))
+        end
+        local fromHappiness = player:GetJONSCulturePerTurnFromExcessHappiness()
+        if fromHappiness ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_HAPPINESS", fromHappiness))
+        end
+        local fromTraits = player:GetJONSCulturePerTurnFromTraits()
+        if fromTraits ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_TRAITS", fromTraits))
+        end
+        local fromMinors = player:GetCulturePerTurnFromMinorCivs()
+        if fromMinors ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_MINORS", fromMinors))
+        end
+        local fromReligion = player:GetCulturePerTurnFromReligion()
+        if fromReligion ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_RELIGION", fromReligion))
+        end
+        local fromBonusTurns = player:GetCulturePerTurnFromBonusTurns()
+        if fromBonusTurns ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_BONUS_TURNS", fromBonusTurns, player:GetCultureBonusTurns()))
+        end
+        local fromGoldenAge = player:GetTotalJONSCulturePerTurn()
+            - cultureForFree
+            - fromCities
+            - fromHappiness
+            - fromMinors
+            - fromReligion
+            - fromTraits
+            - fromBonusTurns
+        if fromGoldenAge ~= 0 then
+            d.add(Text.format("TXT_KEY_TP_CULTURE_FROM_GOLDEN_AGE", fromGoldenAge))
+        end
     end
 
     if not noBasicHelp() then
