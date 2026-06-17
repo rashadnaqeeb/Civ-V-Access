@@ -627,6 +627,17 @@ function EngineData.leagueMemberDetails(league, memberId, observerId)
         league:GetMemberVoteOpinionDetails(memberId, observerId)
 end
 
+-- Drift read: a player's war score against another player, for the
+-- Diplomatic Overview's foreign-relations "at war with" line. Vox Populi
+-- tracks a -100..100 war score (positive when `player` is winning) and bakes
+-- it into the TXT_KEY_AT_WAR_WITH text as a second argument; vanilla (Brave
+-- New World) has no war-score concept and its TXT_KEY_AT_WAR_WITH takes only
+-- the enemy name, so this returns nil and the caller passes no score. GetWarScore
+-- is a VP-only binding -- a bare call throws on the stock engine.
+function EngineData.warScore(player, otherPlayerId)
+    return nil
+end
+
 -- Drift read: a team's vassalage relationships (Diplomatic Overview, and
 -- the dedicated Vassal Overview). Returned as a model because the underlying
 -- bindings are VP-only -- vanilla (Brave New World) has no vassalage system,

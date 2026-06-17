@@ -1381,6 +1381,31 @@ function M.test_vanilla_embassy_owner_always_nil()
     T.eq(vanilla.embassyOwner({}), nil, "vanilla has no embassies")
 end
 
+-- War score: VP reads GetWarScore from `player`'s perspective toward
+-- `otherPlayerId` (positive when player is winning) so the foreign-relations
+-- "at war with" line can fill VP's two-argument TXT_KEY_AT_WAR_WITH. The
+-- perspective (player asks about otherPlayerId, not the reverse) is the
+-- silent-failure risk -- a swapped pair would speak the wrong side's score.
+-- Vanilla's key takes only the enemy name, so its body returns nil and the
+-- caller passes no score.
+function M.test_vp_war_score_reads_from_player_perspective()
+    local vp = loadSeam(VP_PATH)
+    local seen = {}
+    local player = {
+        GetWarScore = function(_self, otherId)
+            seen.otherId = otherId
+            return 37
+        end,
+    }
+    T.eq(vp.warScore(player, 3), 37)
+    T.eq(seen.otherId, 3, "VP must query the score against the passed other player")
+end
+
+function M.test_vanilla_war_score_always_nil()
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.warScore({}, 3), nil, "vanilla has no war-score concept")
+end
+
 -- The vanilla body has no vassalage system, so it returns the empty model
 -- regardless of the team handle; every consumer's vassalage branch is inert.
 function M.test_vanilla_vassal_info_is_empty()

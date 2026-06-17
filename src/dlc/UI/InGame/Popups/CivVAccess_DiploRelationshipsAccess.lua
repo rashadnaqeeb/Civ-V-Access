@@ -428,12 +428,19 @@ local function foreignRelationsCell(iOther)
     local out = {}
 
     -- Wars with other majors (excluding us; at-war-with-us already shows
-    -- in the row label's stance).
+    -- in the row label's stance). VP's TXT_KEY_AT_WAR_WITH carries a war-score
+    -- argument vanilla's does not; the seam returns the score under VP and nil
+    -- on vanilla, so the score slot is filled only when the engine wants it.
     for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
         if i ~= iOther and i ~= iUs then
             local p = Players[i]
             if p ~= nil and p:IsAlive() and pUsTeam:IsHasMet(p:GetTeam()) and pOtherTeam:IsAtWar(p:GetTeam()) then
-                out[#out + 1] = Text.format("TXT_KEY_AT_WAR_WITH", thirdPartyName(i, iUs))
+                local score = EngineData.warScore(pOther, i)
+                if score ~= nil then
+                    out[#out + 1] = Text.format("TXT_KEY_AT_WAR_WITH", thirdPartyName(i, iUs), score)
+                else
+                    out[#out + 1] = Text.format("TXT_KEY_AT_WAR_WITH", thirdPartyName(i, iUs))
+                end
             end
         end
     end

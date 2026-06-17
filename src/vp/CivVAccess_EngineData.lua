@@ -793,6 +793,16 @@ function EngineData.leagueMemberDetails(league, memberId, observerId)
         league:GetMemberVoteOpinionDetails(memberId, observerId)
 end
 
+-- Drift read: a player's war score against another player (see the vanilla
+-- file for the contract). VP's GetWarScore returns a -100..100 value, positive
+-- when `player` is winning the war, that the diplo overview bakes into
+-- TXT_KEY_AT_WAR_WITH as a second argument. Returns 0 when the two are not at
+-- war (GetWarScore's own guard), which the caller only reads inside an at-war
+-- branch anyway.
+function EngineData.warScore(player, otherPlayerId)
+    return player:GetWarScore(otherPlayerId)
+end
+
 -- Drift read: a team's vassalage relationships (see the vanilla file for the
 -- model contract). VP exposes the Team bindings vanilla lacks. master is nil
 -- when GetMaster returns the no-master sentinel (-1). tenure is the turns
