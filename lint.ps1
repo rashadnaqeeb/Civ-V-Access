@@ -111,6 +111,7 @@ function Invoke-SeamGuard {
         "CapitalDefenseModifier", "CapitalDefenseFalloff",
         "GetCombatModifierFromCapitalDistance",
         "GetInfluencePerTurn", "GetTourismPerTurnIncludingInstantTimes100",
+        "CalculateUnitSupply",
         "GetBestDefender", "CanMoveOrAttackInto",
         "GetOwnerForDominationVictory",
         "IsVassalOfSomeone", "GetMaster", "GetNumVassals", "GetNumTurnsIsVassal",

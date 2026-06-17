@@ -785,6 +785,31 @@ function M.test_vp_supply_used_counts_supply_drawing_units()
     )
 end
 
+-- Vanilla bills unit supply as its own gold-breakdown line; VP folds it into
+-- unit maintenance and deprecated the getter (a raw call errors), so the VP
+-- body returns 0 without touching it and the supply line drops.
+function M.test_vp_unit_supply_cost_is_zero_and_skips_deprecated_getter()
+    local vp = loadVPWithFork()
+    T.eq(
+        vp.unitSupplyCost({
+            CalculateUnitSupply = function()
+                error("VP deprecated CalculateUnitSupply; the seam must not call it")
+            end,
+        }),
+        0
+    )
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(
+        vanilla.unitSupplyCost({
+            CalculateUnitSupply = function()
+                return 7
+            end,
+        }),
+        7,
+        "vanilla bills supply separately"
+    )
+end
+
 -- VP's getBuildTurnsLeft already credits any worker on the plot, so the
 -- prospective "if you start this" estimate must pass no extra rate; vanilla
 -- only credits the build the unit is already doing, so it feeds the worker's

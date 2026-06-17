@@ -262,6 +262,15 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnits()
 end
 
+-- Drift read: the unit-supply gold expense the gold breakdown speaks as its
+-- own line. Vanilla bills supply separately from unit maintenance, so it is
+-- a distinct expense; VP folds supply into CalculateUnitCost and deprecated
+-- the getter (a raw call errors), so the VP body returns 0 and the supply
+-- line drops, matching VP's top-panel gold breakdown.
+function EngineData.unitSupplyCost(player)
+    return player:CalculateUnitSupply()
+end
+
 -- Drift read: turns for a worker to complete a build it is NOT yet
 -- performing on its current plot -- the "if you start this" estimate the
 -- unit action menu speaks. Vanilla's getBuildTurnsLeft only credits a unit's

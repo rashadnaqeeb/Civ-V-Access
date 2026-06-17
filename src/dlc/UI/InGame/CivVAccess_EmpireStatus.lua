@@ -575,7 +575,7 @@ local function goldDetail()
     end
 
     local unitCost = player:CalculateUnitCost()
-    local unitSupply = player:CalculateUnitSupply()
+    local unitSupply = EngineData.unitSupplyCost(player)
     local buildingMaint = player:GetBuildingGoldMaintenance()
     local improvementMaint = player:GetImprovementGoldMaintenance()
     local totalExpenses = unitCost + unitSupply + buildingMaint + improvementMaint + toOthers

@@ -261,6 +261,14 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnitsToSupply()
 end
 
+-- Drift read: the unit-supply gold expense. VP folds supply into
+-- CalculateUnitCost and deprecated CalculateUnitSupply (a raw call errors),
+-- so there is no separate supply expense -- return 0 and the gold
+-- breakdown's supply line drops, matching VP's own top panel.
+function EngineData.unitSupplyCost(_player)
+    return 0
+end
+
 -- Drift read: prospective turns for a worker to build buildID on its plot.
 -- VP's getBuildTurnsLeft credits any worker standing on the plot, so the
 -- on-plot worker is already counted; feeding its rate as the extra argument
