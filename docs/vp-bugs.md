@@ -167,6 +167,57 @@ Pin at time of writing: Release-5.3.2 (`supported_vp` in `versions.json`).
 - Affects: sighted players too (raw key in the options list).
 - Status: confirmed 2026-06-17.
 
+### City-State Allies/Friends tooltip omits the per-turn influence change
+
+- Location: `(2) Vox Populi/LUA/CityStateStatusHelper.lua:263` (Allies) and
+  `:272` (Friends), inside `GetCityStateStatusToolTip`. The base BNW copy has
+  the same omission at
+  `Assets/DLC/Expansion2/UI/InGame/CityStateStatusHelper.lua:241` / `:250`.
+- Symptom: for an Allied or Friendly city-state, the status tooltip's "Each
+  turn, your Influence with them will change by ." sentence is missing its
+  number. `Localization.log` records `ERR: Missing argument 2` against
+  `TXT_KEY_ALLIES_CSTATE_TT` / `TXT_KEY_FRIENDS_CSTATE_TT` (260 hits in one
+  playtest session).
+- Root cause: the helper computes `iInfluenceChangeThisTurn` (line 252) and
+  then calls `Locale.ConvertTextKey("TXT_KEY_ALLIES_CSTATE_TT", strShortDescKey)`
+  with only the city-state name. The text has two placeholders,
+  `{1_CityStateName}` and `{2_Num}`; the second is never supplied, so it renders
+  empty. The `{2_Num}` placeholder is base BNW text (VP only appended the
+  Pledge-of-Protection sentence), and the base helper drops it the same way, so
+  this is inherited from base rather than VP-introduced. CP/VP is still the
+  right place to land the fix.
+- Suggested fix: pass the computed value,
+  `Locale.ConvertTextKey("TXT_KEY_ALLIES_CSTATE_TT", strShortDescKey, iInfluenceChangeThisTurn)`,
+  and the same for the Friends branch.
+- Affects: sighted players too (blank number in the tooltip). It reaches our
+  speech where we read `GetCityStateStatusToolTip` (the city-state diplo and
+  greeting popups); our own F4 Minors Influence column computes the per-turn
+  rate independently, so the number is not lost there.
+- Status: confirmed 2026-06-17, from a playtest `Localization.log` plus the
+  helper read against the Release-5.3.2 clone and the base BNW copy.
+
+### Global Politics "at war with" line omits the war score
+
+- Location: `(1) Community Patch/Core Files/Overrides/DiploGlobalRelationships.lua:167`,
+  the third-party war loop.
+- Symptom: on the Diplomatic Overview's Global Politics panel, a civ's "At war
+  with X (Warscore: )" entry is missing its war-score number.
+  `Localization.log` records `ERR: Missing argument 2` against
+  `TXT_KEY_AT_WAR_WITH` (9 hits in one playtest session).
+- Root cause: CP/VP redefines `TXT_KEY_AT_WAR_WITH` from vanilla's
+  `At war with {1_enemy}` to `At war with {1_enemy} (Warscore: {2_Num})`
+  (`(2) Vox Populi/Database Changes/Text/en_US/UI/UITextChanges.sql`), but the
+  panel still calls `LocalizeAndSetText("TXT_KEY_AT_WAR_WITH", thirdName)` with
+  only the enemy name. The text gained an argument the caller was never updated
+  to pass, so this is a VP-introduced regression.
+- Suggested fix: pass the war score as the second argument, e.g.
+  `LocalizeAndSetText("TXT_KEY_AT_WAR_WITH", thirdName, pOtherPlayer:GetWarScore(iThirdPlayer))`.
+- Affects: sighted players too (blank war score). We already fixed our own
+  equivalent read in the F4 overview (the EngineData seam's `warScore` intent),
+  so our speech states the value.
+- Status: confirmed 2026-06-17, from the same playtest log; code read against
+  the Release-5.3.2 clone.
+
 ## Investigated, not a bug
 
 Kept here so these are not re-chased.
