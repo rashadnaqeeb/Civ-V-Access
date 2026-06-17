@@ -88,16 +88,22 @@ local function computeSig(queue)
     return table.concat(parts, "|")
 end
 
--- Per-tile build cost for a worker laying buildId on plot. Cities and
--- plots already at-or-above the target route tier are zero-cost. On the
--- worker's start plot the extra-rate goes to zero when getBuildTurnsLeft
--- already credits the on-plot worker, since feeding the rate in again would
--- double-count -- EngineData.onPlotWorkerCounted answers that per engine
--- (vanilla credits it only for the build the worker is mid-execution on; VP
--- credits any worker on the plot). Non-start plots carry no worker, so both
--- engines need the extra rate supplied. Mirrors the helper in
--- CivVAccess_UnitTargetMode.lua used by the route-to target-mode preview;
--- the math is the engine's, so the two callers want the same answer.
+-- Per-tile build cost for a worker laying buildId on plot, supplied as
+-- getBuildTurnsLeft's per-turn (iThenExtra) rate. Cities and plots already
+-- at-or-above the target route tier are zero-cost. On the worker's start plot
+-- that then-rate goes to zero when getBuildTurnsLeft already credits the
+-- on-plot worker, since feeding the rate in again would double-count --
+-- EngineData.onPlotWorkerCounted answers that per engine (vanilla credits it
+-- only for the build the worker is mid-execution on; VP credits any worker on
+-- the plot). Non-start plots carry no worker, so both engines need the rate
+-- supplied.
+--
+-- iNowExtra is always 0: getBuildTurnsLeft subtracts it as work already
+-- applied this turn, but the worker reaches the non-start plots only on
+-- future turns -- crediting a turn of work "now" would shave a whole turn off
+-- every tile it hasn't arrived at. Mirrors the helper in
+-- CivVAccess_UnitTargetMode.lua used by the route-to target-mode preview; the
+-- math is the engine's, so the two callers want the same answer.
 local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, isStartPlot)
     if buildId == nil or plot:IsCity() then
         return 0
@@ -109,11 +115,11 @@ local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlready
             return 0
         end
     end
-    local extra = extraRate
+    local thenRate = extraRate
     if isStartPlot and EngineData.onPlotWorkerCounted(actorAlreadyOnBuild) then
-        extra = 0
+        thenRate = 0
     end
-    return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), extra, extra)
+    return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), 0, thenRate)
 end
 
 -- Resolve the localized lowercase route name for the worker's best
@@ -194,6 +200,12 @@ end
 -- double up. The origin passes isStartPlot=true so the engine's auto-added
 -- work rate for a worker mid-build there isn't double-counted; the
 -- traversed tiles pass false (none of them is where the worker stands).
+--
+-- The caller also withholds includeOrigin when the worker is already
+-- building this route (actorAlreadyOnBuild): UnitSpeech's fold then prepends
+-- the active build's remaining turns as a "N turns here" segment and adds
+-- them to the chunk total, so counting the origin here too would double the
+-- tile the worker currently stands on.
 local function routeBuildStops(path, buildId, routeValue, extraRate, actorAlreadyOnBuild, includeOrigin)
     local stops = {}
     local turns = 0
@@ -287,7 +299,7 @@ local function compute(unit, queue)
                             route.routeValue,
                             extraRate,
                             actorAlreadyOnBuild,
-                            firstLeg
+                            firstLeg and not actorAlreadyOnBuild
                         )
                         if #stops > 0 then
                             local chunk = openChunk(MISSION_KIND_ROUTE, route.name)

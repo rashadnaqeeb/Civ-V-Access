@@ -18,6 +18,7 @@ New Features and improvements:
 
 Bug fixes:
 - The ranged attack target cursor no longer says "unseen" on a tile the unit can actually strike.
+- The turn estimate for building a road or railroad is no longer too low, both in the route preview and when reading a worker building one.
 - The advisor popups, EULA screen, and mods menu show the game's stock layouts again. If you ever wondered why the EULA was appearing on every run, this is why. I modified the file a million years ago to trigger it and then forgot to remove the modification.
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
 - The Culture Overview no longer reads each city's tourism a hundred times too high.

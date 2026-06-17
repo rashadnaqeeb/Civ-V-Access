@@ -123,6 +123,11 @@ end
 -- chunk grouping, route-build path math, and the walked-through tile
 -- direction fold.
 
+-- Records every GetBuildTurnsLeft call's extra-rate args ({ now, then_ })
+-- so a test can assert the seam-call shape (iNowExtra must be 0 for build-
+-- turn estimates). Reset by setupCompute.
+local buildCalls = {}
+
 local function fakePlot(x, y, opts)
     opts = opts or {}
     return {
@@ -144,7 +149,8 @@ local function fakePlot(x, y, opts)
         GetRouteType = function(self)
             return self._routeType
         end,
-        GetBuildTurnsLeft = function(self, _buildId, _owner, _extra1, _extra2)
+        GetBuildTurnsLeft = function(self, _buildId, _owner, nowExtra, thenExtra)
+            buildCalls[#buildCalls + 1] = { x = self._x, y = self._y, now = nowExtra, then_ = thenExtra }
             return self._buildTurnsLeft
         end,
         GetOwner = function(self)
@@ -161,6 +167,7 @@ end
 local function setupCompute(opts)
     civvaccess_shared = civvaccess_shared or {}
     civvaccess_shared.waypointsCache = nil
+    buildCalls = {}
     dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
 
     GameInfoTypes = GameInfoTypes or {}
@@ -386,6 +393,53 @@ function M.test_compute_route_to_produces_route_chunk()
     T.eq(c.turns, 12, "origin (3) plus three traversed tiles (9)")
     T.eq(#c.segments, 3, "three build stops, origin not a segment")
     T.eq(c.segments[1], "1e", "first segment")
+
+    -- Every per-plot estimate must pass iNowExtra=0: the worker reaches a
+    -- future tile only on a later turn, so getBuildTurnsLeft must not credit
+    -- it a turn of work "now" (which would shave a turn off each tile).
+    T.truthy(#buildCalls > 0, "build turns were estimated")
+    for _, call in ipairs(buildCalls) do
+        T.eq(call.now, 0, "iNowExtra is 0 for plot " .. call.x .. "," .. call.y)
+    end
+end
+
+-- When the worker is already building this route on its origin tile, the
+-- chunk must NOT count the origin: UnitSpeech's fold prepends the active
+-- build's remaining turns as a "here" segment and adds them to the chunk
+-- total, so counting the origin in the chunk too would double it. With the
+-- worker building the route (unitBuildType == the route's buildId), the
+-- three traversed tiles contribute 9 and the origin is withheld.
+function M.test_compute_route_to_excludes_origin_when_worker_already_building_route()
+    local plots = {
+        ["0,0"] = fakePlot(0, 0),
+        ["1,0"] = fakePlot(1, 0),
+        ["2,0"] = fakePlot(2, 0),
+        ["3,0"] = fakePlot(3, 0),
+    }
+    setupCompute({
+        plots = plots,
+        unitX = 0,
+        unitY = 0,
+        unitBuildType = 100, -- matches the route's buildId below
+        queue = { { mission = 2, data1 = 3, data2 = 0, flags = 0 } },
+        bestBuildRoute = function()
+            return 0, 100
+        end,
+        getBuildRoutePath = function()
+            return {
+                { x = 0, y = 0 },
+                { x = 1, y = 0 },
+                { x = 2, y = 0 },
+                { x = 3, y = 0 },
+            }
+        end,
+    })
+    local status = Waypoints.queuedActionStatus()
+    T.eq(#status.chunks, 1, "one chunk")
+    local c = status.chunks[1]
+    T.eq(c.kind, "route", "kind")
+    T.eq(c.turns, 9, "three traversed tiles (9), origin withheld for the fold")
+    T.eq(#c.segments, 3, "three build stops")
 end
 
 -- A ROUTE_TO leg whose first build path tile already has a road at the
@@ -716,36 +770,6 @@ function M.test_compute_consecutive_route_legs_count_boundary_once()
     local status = Waypoints.queuedActionStatus()
     T.eq(#status.chunks, 1, "consecutive route legs merge into one chunk")
     T.eq(status.chunks[1].turns, 9, "boundary tile (1,0) counted once, not twice")
-end
-
--- The revived start-plot guard: on the head leg's origin, when the worker
--- is already mid-build of this route, GetBuildTurnsLeft already folds in
--- the worker's own rate, so the extra rate must pass as 0 to avoid
--- under-counting. The traversed tiles, where the worker isn't standing,
--- keep the full extra rate.
-function M.test_compute_route_origin_zeroes_extra_rate_when_already_building()
-    local origin = fakePlot(0, 0)
-    -- Echo whether the extra-rate arg was zeroed so the test can see the
-    -- guard fire: 7 when zeroed (guarded), 99 when the rate was passed.
-    origin.GetBuildTurnsLeft = function(_self, _buildId, _owner, extra1, _extra2)
-        return extra1 == 0 and 7 or 99
-    end
-    local plots = { ["0,0"] = origin, ["1,0"] = fakePlot(1, 0) }
-    setupCompute({
-        plots = plots,
-        unitX = 0,
-        unitY = 0,
-        unitBuildType = 100, -- worker already on this build
-        queue = { { mission = 2, data1 = 1, data2 = 0, flags = 0 } },
-        bestBuildRoute = function()
-            return 0, 100
-        end,
-        getBuildRoutePath = function()
-            return { { x = 0, y = 0 }, { x = 1, y = 0 } }
-        end,
-    })
-    local c = Waypoints.queuedActionStatus().chunks[1]
-    T.eq(c.turns, 10, "origin extra-rate zeroed (7), not double-counted (99), plus the stop (3)")
 end
 
 -- ===== All-units view group =====

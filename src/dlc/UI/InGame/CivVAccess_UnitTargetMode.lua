@@ -367,14 +367,22 @@ end
 -- the path length (tiles excluding the worker's start) and the total
 -- build turns across plots that still need a route built.
 
--- Per-plot build turns under the worker's contribution rate. Cities and
--- plots already at-or-above the target route tier are zero-cost. On the
--- worker's start plot the extra-rate goes to zero when getBuildTurnsLeft
--- already credits the on-plot worker, since feeding the rate in again would
--- double-count -- EngineData.onPlotWorkerCounted answers that per engine
--- (vanilla credits it only for the build the worker is mid-execution on; VP
--- credits any worker on the plot). Non-start plots carry no worker, so both
--- engines need the extra rate supplied.
+-- Per-plot build turns under the worker's contribution rate, supplied as
+-- getBuildTurnsLeft's per-turn (iThenExtra) rate. Cities and plots already
+-- at-or-above the target route tier are zero-cost. On the worker's start plot
+-- that then-rate goes to zero when getBuildTurnsLeft already credits the
+-- on-plot worker, since feeding the rate in again would double-count --
+-- EngineData.onPlotWorkerCounted answers that per engine (vanilla credits it
+-- only for the build the worker is mid-execution on; VP credits any worker on
+-- the plot). Non-start plots carry no worker, so both engines need the rate
+-- supplied.
+--
+-- iNowExtra is always 0: getBuildTurnsLeft subtracts it as work already
+-- applied this turn, but the worker reaches the non-start plots only on
+-- future turns -- crediting a turn of work "now" would shave a whole turn off
+-- every tile the worker hasn't arrived at. The start plot's genuine
+-- this-turn progress is the engine's to credit from the on-plot worker, not
+-- ours to inject.
 local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlreadyOnBuild, isStartPlot)
     if buildId == nil or plot:IsCity() then
         return 0
@@ -386,11 +394,11 @@ local function plotBuildTurns(plot, buildId, routeValue, extraRate, actorAlready
             return 0
         end
     end
-    local extra = extraRate
+    local thenRate = extraRate
     if isStartPlot and EngineData.onPlotWorkerCounted(actorAlreadyOnBuild) then
-        extra = 0
+        thenRate = 0
     end
-    return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), extra, extra)
+    return plot:GetBuildTurnsLeft(buildId, plot:GetOwner(), 0, thenRate)
 end
 
 local function routePathPreview(actor, targetPlot)
