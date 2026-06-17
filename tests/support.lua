@@ -400,9 +400,9 @@ function T.fakeUnit(opts)
     -- tiles hold no enemy, so the engine would report the tile not strikable
     -- and the cursor prefix drills into the geometric reason. Tests that need
     -- the strikable (no-prefix) path set opts.canRangeStrike.
-    function u:CanRangeStrikeAt(_x, _y, _needWar, _noncombat)
+    function u:CanRangeStrikeAt(x, y, _needWar, _noncombat)
         if type(opts.canRangeStrike) == "function" then
-            return opts.canRangeStrike(_x, _y)
+            return opts.canRangeStrike(x, y)
         end
         return opts.canRangeStrike or false
     end
@@ -523,9 +523,9 @@ function T.fakeCity(opts)
     end
     -- City strike gate, mirroring the unit fake: defaults false (no enemy on
     -- the target tile) so the cursor prefix drills into the geometric reason.
-    function c:CanRangeStrikeAt(_x, _y)
+    function c:CanRangeStrikeAt(x, y)
         if type(opts.canRangeStrike) == "function" then
-            return opts.canRangeStrike(_x, _y)
+            return opts.canRangeStrike(x, y)
         end
         return opts.canRangeStrike or false
     end

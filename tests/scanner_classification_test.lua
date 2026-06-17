@@ -1908,6 +1908,208 @@ function M.test_worked_tiles_validate_resolves_by_stored_city_not_head_selected(
     )
 end
 
+-- ===== Yields backend =====
+
+local function setupYields()
+    setup()
+    YieldTypes = {
+        YIELD_FOOD = 1,
+        YIELD_PRODUCTION = 2,
+        YIELD_GOLD = 3,
+        YIELD_SCIENCE = 4,
+        YIELD_CULTURE = 5,
+        YIELD_FAITH = 6,
+    }
+    loadModule("src/dlc/UI/InGame/CivVAccess_ScannerBackendYields.lua")
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.mapScope = function()
+        return true
+    end
+    UI = UI or {}
+end
+
+-- The yields backend lists every ring plot (no IsWorkingPlot gate), so the
+-- city fixture needs GetCityIndexPlot / GetNumCityPlots / coords / owner /
+-- id, plus CanBuyPlotAt for ValidateEntry's purchasable test.
+local function yieldsCity(opts)
+    opts = opts or {}
+    local plots = opts.plots or {}
+    local cityX = opts.cityX or 0
+    local cityY = opts.cityY or 0
+    local c = T.fakeCity({ owner = opts.owner or 0, id = opts.id or 1 })
+    function c:GetX()
+        return cityX
+    end
+    function c:GetY()
+        return cityY
+    end
+    function c:GetNumCityPlots()
+        return #plots
+    end
+    function c:GetCityIndexPlot(i)
+        return plots[i + 1]
+    end
+    function c:CanBuyPlotAt(_x, _y, _ignoreCost)
+        return opts.canBuy == true
+    end
+    return c
+end
+
+-- Subcategory of the entry in `out` whose subcategory key matches `sub`.
+local function entriesBySub(out)
+    local bySub = {}
+    for _, e in ipairs(out) do
+        bySub[e.subcategory] = e
+    end
+    return bySub
+end
+
+function M.test_yields_empty_without_mapscope()
+    setupYields()
+    civvaccess_shared.mapScope = nil
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({ plots = { plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } }) } })
+    end
+    T.eq(#ScannerBackendYields.Scan(0, 0), 0)
+end
+
+function M.test_yields_empty_for_foreign_city()
+    setupYields()
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({
+            owner = 5,
+            plots = { plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } }) },
+        })
+    end
+    T.eq(#ScannerBackendYields.Scan(0, 0), 0)
+end
+
+function M.test_yields_skips_city_center()
+    setupYields()
+    local center = plotWithYields({ x = 0, y = 0, plotIndex = 0, yields = { [1] = 5 } })
+    local ring = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({ plots = { center, ring } })
+    end
+    local out = ScannerBackendYields.Scan(0, 0)
+    for _, e in ipairs(out) do
+        T.eq(e.plotIndex, 1, "no entry may come from the city-center plot")
+    end
+end
+
+function M.test_yields_emits_all_plus_one_entry_per_nonzero_yield()
+    -- A tile with food 3, production 5 must produce a food entry, a
+    -- production entry, and a total `all` entry -- each carrying the right
+    -- subcategory and a sortKey of that yield (the total for `all`).
+    setupYields()
+    local ring = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 3, [2] = 5 } })
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({ plots = { ring } })
+    end
+    local out = ScannerBackendYields.Scan(0, 0)
+    T.eq(#out, 3, "food + production + all")
+    local bySub = entriesBySub(out)
+    T.eq(bySub.food.sortKey, 3, "food entry ranks on its own yield")
+    T.eq(bySub.production.sortKey, 5, "production entry ranks on its own yield")
+    T.eq(bySub.all.sortKey, 8, "all entry ranks on total yield")
+    T.eq(bySub.all.category, "yields")
+end
+
+function M.test_yields_omits_subs_for_zero_yields()
+    -- Only non-zero yields get a named-sub entry; a food-only tile must not
+    -- seed a "0 production" entry under production.
+    setupYields()
+    local ring = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({ plots = { ring } })
+    end
+    local bySub = entriesBySub(ScannerBackendYields.Scan(0, 0))
+    T.truthy(bySub.food ~= nil, "food sub present")
+    T.truthy(bySub.production == nil, "zero-production tile must not emit a production entry")
+    T.truthy(bySub.all ~= nil, "all entry present")
+end
+
+function M.test_yields_skips_tile_with_no_yield()
+    setupYields()
+    local ring = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = {} })
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({ plots = { ring } })
+    end
+    T.eq(#ScannerBackendYields.Scan(0, 0), 0, "an all-zero tile contributes nothing to rank")
+end
+
+function M.test_yields_named_label_leads_with_sub_yield()
+    -- In the production sub the production value heads the label; the rest
+    -- follow in PlotComposers order. (Relies on CivVAccess_Strings carrying
+    -- TXT_KEY_CIVVACCESS_YIELD_COUNT + icon keys, loaded earlier in the run.)
+    setupYields()
+    local ring = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 3, [2] = 5 } })
+    UI.GetHeadSelectedCity = function()
+        return yieldsCity({ plots = { ring } })
+    end
+    local bySub = entriesBySub(ScannerBackendYields.Scan(0, 0))
+    T.eq(bySub.production.itemName, "5 production, 3 food", "sorted yield leads, others follow")
+    T.eq(bySub.all.itemName, "3 food, 5 production", "all uses default yield order")
+end
+
+function M.test_yields_validate_owned_tile_stays()
+    setupYields()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    plot._owner = 0
+    Map.GetPlotByIndex = function(i)
+        return i == 1 and plot or nil
+    end
+    Players[0] = Players[0] or {}
+    Players[0].GetCityByID = function(_self, _id)
+        return yieldsCity({ plots = { plot } })
+    end
+    local entry = { plotIndex = 1, data = { cityOwner = 0, cityID = 1, leadId = 1 } }
+    T.truthy(ScannerBackendYields.ValidateEntry(entry, nil), "a tile still in our borders stays valid")
+end
+
+function M.test_yields_validate_purchasable_tile_stays()
+    setupYields()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    plot._owner = -1
+    Map.GetPlotByIndex = function(i)
+        return i == 1 and plot or nil
+    end
+    Players[0] = Players[0] or {}
+    Players[0].GetCityByID = function(_self, _id)
+        return yieldsCity({ plots = { plot }, canBuy = true })
+    end
+    local entry = { plotIndex = 1, data = { cityOwner = 0, cityID = 1, leadId = 1 } }
+    T.truthy(ScannerBackendYields.ValidateEntry(entry, nil), "an unowned but purchasable tile stays valid")
+end
+
+function M.test_yields_validate_lost_unbuyable_tile_drops()
+    setupYields()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    plot._owner = 7 -- now an enemy's, and not purchasable
+    Map.GetPlotByIndex = function(i)
+        return i == 1 and plot or nil
+    end
+    Players[0] = Players[0] or {}
+    Players[0].GetCityByID = function(_self, _id)
+        return yieldsCity({ plots = { plot }, canBuy = false })
+    end
+    local entry = { plotIndex = 1, data = { cityOwner = 0, cityID = 1, leadId = 1 } }
+    T.falsy(ScannerBackendYields.ValidateEntry(entry, nil), "a tile lost and unbuyable must prune")
+end
+
+function M.test_yields_formatname_requeries_live()
+    -- FormatName must read current yields, not the build-time label: a tile
+    -- whose output changed (worked/unworked, new building) speaks fresh.
+    setupYields()
+    local plot = plotWithYields({ x = 1, y = 0, plotIndex = 1, yields = { [1] = 2 } })
+    Map.GetPlotByIndex = function(i)
+        return i == 1 and plot or nil
+    end
+    local entry = { plotIndex = 1, itemName = "2 food", data = { cityOwner = 0, cityID = 1, leadId = nil } }
+    plot._yields = { [1] = 4, [2] = 1 }
+    T.eq(ScannerBackendYields.FormatName(entry), "4 food, 1 production", "FormatName reflects the live plot")
+end
+
 -- ===== Geography backend =====
 
 local function loadGeographyBackend()

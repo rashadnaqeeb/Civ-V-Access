@@ -40,6 +40,7 @@ function M.test_category_order_fixed()
         "units_enemy",
         "resources",
         "worked_tiles",
+        "yields",
         "special",
         "terrain",
         "geography",
@@ -135,6 +136,29 @@ function M.test_terrain_subs()
     T.eq(subs[2], "features")
     T.eq(subs[3], "freshwater")
     T.eq(subs[4], "elevation")
+end
+
+function M.test_yields_subs_in_yield_order()
+    setup()
+    local subs = subKeys("yields")
+    local expected = { "food", "production", "gold", "science", "culture", "faith" }
+    T.eq(#subs, #expected, "yields must declare exactly the six yield subs")
+    for i, k in ipairs(expected) do
+        T.eq(subs[i], k, "yields position " .. i)
+    end
+end
+
+function M.test_yields_is_a_resort_category()
+    -- The resort flag is load-bearing: ScannerSnap reads it to rank items by
+    -- yield value (not distance) and to suppress the named-sub-to-`all`
+    -- share. No other category sets it.
+    setup()
+    T.truthy(ScannerCore.CATEGORIES_BY_KEY["yields"].resort, "yields must set resort = true")
+    for _, cat in ipairs(ScannerCore.CATEGORIES) do
+        if cat.key ~= "yields" then
+            T.falsy(cat.resort, cat.key .. " must not set resort")
+        end
+    end
 end
 
 function M.test_recommendations_has_no_named_subs()

@@ -166,6 +166,7 @@ globals = {
     "ScannerBackendRecommendations",
     "ScannerBackendResources", "ScannerBackendSpecial", "ScannerBackendTerrain",
     "ScannerBackendUnits", "ScannerBackendWaypoints", "ScannerBackendWorkedTiles",
+    "ScannerBackendYields",
     "SurveyorCore",
     "CitySpeech",
     "CityRangeStrikeMode",

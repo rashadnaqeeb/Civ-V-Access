@@ -236,6 +236,70 @@ function M.test_no_itemkey_still_groups_by_name()
     T.eq(#sub.items[1].instances, 2)
 end
 
+-- ===== Resort categories (yields) =====
+
+function M.test_resort_category_ranks_items_by_sortkey_descending()
+    -- In a resort category the highest-yield tile must lead even when it is
+    -- farther than a lower-yield one -- the opposite of the distance sort
+    -- every other category uses.
+    setup()
+    local close = mkPlot(0, 0, 0)
+    local far = mkPlot(5, 0, 1)
+    T.installMap({ close, far })
+    local entries = {
+        T.mkEntry("yields", "production", "3 production", 0, { sortKey = 3 }),
+        T.mkEntry("yields", "production", "5 production", 1, { sortKey = 5 }),
+    }
+    local snap = ScannerSnap.build(entries, 0, 0)
+    local sub = findSub(findCat(snap, "yields"), "production")
+    T.eq(sub.items[1].name, "5 production", "higher yield ranks first despite greater distance")
+    T.eq(sub.items[2].name, "3 production")
+end
+
+function M.test_resort_category_equal_yield_breaks_ties_by_distance()
+    setup()
+    local close = mkPlot(0, 0, 0)
+    local far = mkPlot(5, 0, 1)
+    T.installMap({ close, far })
+    local entries = {
+        T.mkEntry("yields", "food", "2 food", 1, { sortKey = 2 }), -- far
+        T.mkEntry("yields", "food", "2 food, 1 gold", 0, { sortKey = 2 }), -- close
+    }
+    local snap = ScannerSnap.build(entries, 0, 0)
+    local sub = findSub(findCat(snap, "yields"), "food")
+    T.eq(sub.items[1].name, "2 food, 1 gold", "equal sortKey falls back to nearest first")
+    T.eq(sub.items[2].name, "2 food")
+end
+
+function M.test_resort_category_named_sub_not_shared_into_all()
+    -- A resort category owns `all` directly (its backend emits all-direct
+    -- entries); named-sub items must NOT be shared in, or every tile would
+    -- list once per yield it produces.
+    setup()
+    local p = mkPlot(0, 0, 0)
+    T.installMap({ p })
+    local snap = ScannerSnap.build({ T.mkEntry("yields", "production", "5 production", 0, { sortKey = 5 }) }, 0, 0)
+    local cat = findCat(snap, "yields")
+    T.eq(#findSub(cat, "production").items, 1, "named sub keeps its item")
+    T.eq(#cat.subcategories[1].items, 0, "resort category must not share named items into `all`")
+end
+
+function M.test_resort_category_all_sub_ranks_by_sortkey_descending()
+    setup()
+    local close = mkPlot(0, 0, 0)
+    local far = mkPlot(5, 0, 1)
+    T.installMap({ close, far })
+    local entries = {
+        T.mkEntry("yields", "all", "2 food", 0, { sortKey = 2 }), -- close, low total
+        T.mkEntry("yields", "all", "3 food, 4 production", 1, { sortKey = 7 }), -- far, high total
+    }
+    local snap = ScannerSnap.build(entries, 0, 0)
+    local allSub = findCat(snap, "yields").subcategories[1]
+    T.eq(allSub.key, "all")
+    T.eq(allSub.items[1].name, "3 food, 4 production", "best total yield leads the `all` view")
+    T.eq(allSub.items[2].name, "2 food")
+end
+
 function M.test_unknown_category_logged_and_dropped()
     setup()
     local warned = 0

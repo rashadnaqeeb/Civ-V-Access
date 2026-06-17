@@ -178,6 +178,31 @@ ScannerCore.CATEGORIES = {
         subcategories = {},
     },
     {
+        -- Every candidate tile of the head-selected city (its borders plus
+        -- purchasable plots), ranked by yield so the player can ask "what's
+        -- my best production tile". City-view-only, gated on the same
+        -- civvaccess_shared.mapScope signal as worked_tiles. `resort` flips
+        -- two snapshot rules for this category alone (ScannerSnap): items
+        -- sort by yield value descending instead of nearest-distance, and
+        -- named subs are NOT shared into `all` -- the backend populates
+        -- `all` directly with one total-yield-sorted entry per tile (best
+        -- overall first) while each named sub re-sorts the same tiles by its
+        -- single yield. Sub keys reuse the yield icon labels so no new
+        -- translatable strings are needed; the backend emits a tile into a
+        -- named sub only when that yield is non-zero.
+        key = "yields",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_YIELDS",
+        resort = true,
+        subcategories = {
+            { key = "food", label = "TXT_KEY_CIVVACCESS_ICON_FOOD" },
+            { key = "production", label = "TXT_KEY_CIVVACCESS_ICON_PRODUCTION" },
+            { key = "gold", label = "TXT_KEY_CIVVACCESS_ICON_GOLD" },
+            { key = "science", label = "TXT_KEY_CIVVACCESS_ICON_SCIENCE" },
+            { key = "culture", label = "TXT_KEY_CIVVACCESS_ICON_CULTURE" },
+            { key = "faith", label = "TXT_KEY_CIVVACCESS_ICON_FAITH" },
+        },
+    },
+    {
         key = "special",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_SPECIAL",
         subcategories = {

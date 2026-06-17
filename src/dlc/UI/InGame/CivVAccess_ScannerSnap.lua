@@ -73,6 +73,11 @@ local function newCategory(catDef)
     return {
         key = catDef.key,
         label = catDef.label,
+        -- `resort` categories (yields) rank items by yield value descending
+        -- instead of nearest-distance, and the backend owns `all` directly
+        -- rather than sharing named-sub items into it. Carried through to
+        -- placeEntry (share suppression) and sortSnapshot (sort key).
+        resort = catDef.resort or false,
         subcategories = subs,
         _subsByKey = subsByKey,
     }
@@ -102,7 +107,11 @@ local function placeEntry(cat, sub, entry, px, py, dist)
         item = { name = entry.itemName, instances = {} }
         sub._itemsByName[itemId] = item
         sub.items[#sub.items + 1] = item
-        if sub.key ~= "all" then
+        -- `resort` categories suppress the share: their `all` sub is filled
+        -- directly by the backend's own all-subcategory entries (one per
+        -- tile, total-yield sorted), so sharing the per-yield items in too
+        -- would list every tile once per yield it produces.
+        if sub.key ~= "all" and not cat.resort then
             local all = cat.subcategories[1]
             all.items[#all.items + 1] = item
         end
@@ -214,6 +223,18 @@ local function sortSnapshot(snapshot)
             table.sort(sub.items, function(a, b)
                 -- Both items have at least one instance here because
                 -- items are only created when an entry lands in them.
+                if cat.resort then
+                    -- Rank by yield value descending so the best tile for
+                    -- this sub's yield leads. Every instance of one item
+                    -- shares the same yield label and so the same sortKey;
+                    -- nearest-distance breaks ties between equal-yield items.
+                    local ka = a.instances[1].entry.sortKey or 0
+                    local kb = b.instances[1].entry.sortKey or 0
+                    if ka ~= kb then
+                        return ka > kb
+                    end
+                    return a.instances[1].distance < b.instances[1].distance
+                end
                 return a.instances[1].distance < b.instances[1].distance
             end)
         end
@@ -278,15 +299,22 @@ function ScannerSnap.build(entries, cursorX, cursorY, customDefs)
                     -- selector catches only its own sub; a keyword catches any
                     -- entry whose spoken name matches it (same tiers as Ctrl+F
                     -- search). placeCustom lands the entry in each matched sub.
-                    local lowerName = string.lower(entry.itemName or "")
-                    for _, customCat in ipairs(customCats) do
-                        local matched = {}
-                        for _, ms in ipairs(customCat._matchSubs) do
-                            if ms.matches(entry, lowerName) then
-                                matched[#matched + 1] = ms.sub
+                    -- `resort` categories are excluded: each tile emits one
+                    -- entry per yield it produces, so mirroring would list it
+                    -- several times in a custom view, and a distance-sorted
+                    -- custom sub would also discard the yield ranking that is
+                    -- the whole point of the category.
+                    if not cat.resort then
+                        local lowerName = string.lower(entry.itemName or "")
+                        for _, customCat in ipairs(customCats) do
+                            local matched = {}
+                            for _, ms in ipairs(customCat._matchSubs) do
+                                if ms.matches(entry, lowerName) then
+                                    matched[#matched + 1] = ms.sub
+                                end
                             end
+                            placeCustom(customCat, matched, entry, px, py, dist)
                         end
-                        placeCustom(customCat, matched, entry, px, py, dist)
                     end
                 end
             end
