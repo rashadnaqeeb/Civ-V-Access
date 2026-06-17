@@ -894,3 +894,18 @@ function EngineData.historicEvents(player)
     end
     return out
 end
+
+-- Capability probe: VP's BALANCE_BUILDING_INVESTMENTS makes a Gold building
+-- purchase an investment (a production-cost reduction) instead of an instant
+-- completion. See the vanilla file for the full contract.
+function EngineData.buildingInvestmentsEnabled()
+    return Game.IsCustomModOption ~= nil and Game.IsCustomModOption("BALANCE_BUILDING_INVESTMENTS")
+end
+
+-- Drift read: whether a Gold investment is already applied to this building.
+-- GetBuildingInvestment returns the post-investment production needed (always
+-- positive) once invested and 0 otherwise, so a positive value doubles as the
+-- "is invested" flag. VP-only binding; see the vanilla file for the contract.
+function EngineData.buildingInvested(city, buildingID)
+    return city:GetBuildingInvestment(buildingID) > 0
+end

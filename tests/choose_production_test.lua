@@ -72,6 +72,8 @@ local function setup()
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS"] = "{1_Num} turns"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_GOLD"] = "{1_Num} gold"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_FAITH"] = "{1_Num} faith"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_GOLD"] = "invest, {1_Num} gold"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROD_INVESTED"] = "invested"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT"] = "added, slot {1_Slot} in queue"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"] = "queue full"
     CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_EMPTY"] = "queue is empty"
@@ -192,6 +194,18 @@ local function setup()
             return k
         end
     end
+
+    -- EngineData seam stub. Defaults to the vanilla answers (no building
+    -- investments) so the existing label / cost tests see no invest wording;
+    -- the invest tests override these two functions to exercise the VP path.
+    EngineData = {
+        buildingInvestmentsEnabled = function()
+            return false
+        end,
+        buildingInvested = function()
+            return false
+        end,
+    }
 
     dofile("src/dlc/UI/Shared/CivVAccess_ProductionHelpText.lua")
     dofile("src/dlc/UI/InGame/Popups/CivVAccess_ChooseProductionLogic.lua")
@@ -962,6 +976,72 @@ function M.test_append_slot_and_queue_full_text_templates()
         T.eq(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT", n), "added, slot " .. n .. " in queue")
     end
     T.eq(Text.key("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"), "queue full")
+end
+
+-- Vox Populi investment: a Gold building purchase invests (cuts production
+-- cost) instead of completing the building. isInvestEntry gates the
+-- relabeling; it must stay off on the vanilla seam, and on faith / unit /
+-- produce entries even under VP.
+function M.test_invest_entry_off_on_vanilla_seam()
+    setup()
+    installGameInfoBuildings({ { ID = 1, Description = "Granary" } })
+    local entry = ChooseProductionLogic._mkBuildingEntry(1, GameInfo.Buildings[1], YieldTypes.YIELD_GOLD, false)
+    T.falsy(ChooseProductionLogic.isInvestEntry(entry), "vanilla seam never invests")
+end
+
+function M.test_invest_entry_only_gold_building_under_vp()
+    setup()
+    EngineData.buildingInvestmentsEnabled = function()
+        return true
+    end
+    installGameInfoBuildings({ { ID = 1, Description = "Granary" } })
+    local goldBuilding = ChooseProductionLogic._mkBuildingEntry(1, GameInfo.Buildings[1], YieldTypes.YIELD_GOLD, false)
+    local faithBuilding =
+        ChooseProductionLogic._mkBuildingEntry(1, GameInfo.Buildings[1], YieldTypes.YIELD_FAITH, false)
+    local produceBuilding = ChooseProductionLogic._mkBuildingEntry(1, GameInfo.Buildings[1], YieldTypes.NO_YIELD, true)
+    local goldUnit =
+        ChooseProductionLogic._mkUnitEntry(1, { ID = 1, Description = "Worker" }, YieldTypes.YIELD_GOLD, false)
+    T.truthy(ChooseProductionLogic.isInvestEntry(goldBuilding), "gold building purchase invests")
+    T.falsy(ChooseProductionLogic.isInvestEntry(faithBuilding), "faith building purchase completes")
+    T.falsy(ChooseProductionLogic.isInvestEntry(produceBuilding), "producing is not investing")
+    T.falsy(ChooseProductionLogic.isInvestEntry(goldUnit), "gold unit purchase is not an investment")
+end
+
+function M.test_cost_clause_says_invest_for_gold_building_under_vp()
+    setup()
+    EngineData.buildingInvestmentsEnabled = function()
+        return true
+    end
+    installGameInfoBuildings({ { ID = 1, Description = "Granary" } })
+    local city = mkCityStub({ buildingCost = { [1] = 240 } })
+    local entry = ChooseProductionLogic._mkBuildingEntry(1, GameInfo.Buildings[1], YieldTypes.YIELD_GOLD, false)
+    local clause = ChooseProductionLogic.costClause(city, entry)
+    T.truthy(clause:find("invest", 1, true), "cost clause names the investment")
+    T.truthy(clause:find("240", 1, true), "cost clause keeps the gold cost")
+end
+
+function M.test_label_marks_already_invested_building()
+    setup()
+    EngineData.buildingInvestmentsEnabled = function()
+        return true
+    end
+    EngineData.buildingInvested = function(_, id)
+        return id == 1
+    end
+    installGameInfoBuildings({ { ID = 1, Description = "Pyramids" } })
+    local city = mkCityStub({
+        canConstruct = { [1] = true },
+        canConstructVisible = { [1] = true },
+        buildingTurnsLeft = { [1] = 5 },
+    })
+    M._buildingNeeded[1] = 100
+    local entry = ChooseProductionLogic._mkBuildingEntry(1, GameInfo.Buildings[1], YieldTypes.NO_YIELD, true)
+    local label = ChooseProductionLogic.buildLabel(entry, city)
+    local namePos = label:find("Pyramids", 1, true)
+    local investedPos = label:find("invested", 1, true)
+    local turnsPos = label:find("5 turns", 1, true)
+    T.truthy(investedPos, "label marks the invested building")
+    T.truthy(namePos < investedPos and investedPos < turnsPos, "invested marker leads, right after the name")
 end
 
 return M

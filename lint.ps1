@@ -117,7 +117,7 @@ function Invoke-SeamGuard {
         "IsVassal",
         "GetNumHistoricEvents", "GetHistoricEventTourism",
         "IsResourceImproveable", "GetSeeThrough",
-        "IsImprovementEmbassy"
+        "IsImprovementEmbassy", "GetBuildingInvestment"
     )
     # Fork extension bindings: added by our forked DLL, present on no stock
     # engine. The seam-exempt marker does NOT waive these -- see the function

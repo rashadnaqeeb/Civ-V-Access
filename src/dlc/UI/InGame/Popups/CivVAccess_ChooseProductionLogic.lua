@@ -154,6 +154,22 @@ local function produceCost(city, entry)
     return Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS", turns, turns)
 end
 
+-- True when committing this entry spends Gold to INVEST in a building under
+-- Vox Populi (cutting its production cost) rather than completing it outright.
+-- Gated to Gold + ORDER_CONSTRUCT under BALANCE_BUILDING_INVESTMENTS: faith
+-- building purchases still complete instantly, and units / projects still
+-- purchase outright even under VP. EngineData is guarded so the module dofiles
+-- offline (tests load the vanilla seam, where it is always false).
+function ChooseProductionLogic.isInvestEntry(entry)
+    if entry.isProduce then
+        return false
+    end
+    if entry.orderType ~= OrderTypes.ORDER_CONSTRUCT or entry.yieldType ~= YieldTypes.YIELD_GOLD then
+        return false
+    end
+    return EngineData ~= nil and EngineData.buildingInvestmentsEnabled()
+end
+
 local function purchaseCost(city, entry)
     local cost
     if entry.orderType == OrderTypes.ORDER_TRAIN then
@@ -179,6 +195,9 @@ local function purchaseCost(city, entry)
     end
     if entry.yieldType == YieldTypes.YIELD_FAITH then
         return Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_FAITH", cost)
+    end
+    if ChooseProductionLogic.isInvestEntry(entry) then
+        return Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_GOLD", cost)
     end
     return Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_GOLD", cost)
 end
@@ -444,6 +463,12 @@ end
 -- arrives before the rest of the entry.
 function ChooseProductionLogic.buildLabel(entry, city)
     local parts = { Text.key(entry.info.Description) }
+    if ProductionHelpText ~= nil and ProductionHelpText.investedTag ~= nil then
+        local invested = ProductionHelpText.investedTag(city, entry.orderType, entry.id)
+        if invested ~= "" then
+            parts[#parts + 1] = invested
+        end
+    end
     local cost = ChooseProductionLogic.costClause(city, entry)
     if cost ~= nil then
         parts[#parts + 1] = cost

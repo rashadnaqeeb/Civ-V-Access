@@ -1501,4 +1501,27 @@ function M.test_vp_has_line_of_sight_passes_attacker_see_through()
     T.eq(seen, 2, "the attacker's see-through reaches canSeePlot")
 end
 
+function M.test_vp_building_investments_enabled_reads_custom_mod_option()
+    local vp, env = loadSeam(VP_PATH)
+    env.Game = {
+        IsCustomModOption = function(name)
+            return name == "BALANCE_BUILDING_INVESTMENTS"
+        end,
+    }
+    T.eq(vp.buildingInvestmentsEnabled(), true, "VP reports building investments enabled")
+end
+
+function M.test_vp_building_invested_reads_investment_binding()
+    local vp = loadSeam(VP_PATH)
+    local city = {
+        GetBuildingInvestment = function(_, id)
+            -- VP returns the post-investment production needed (positive) once
+            -- invested, 0 otherwise.
+            return id == 7 and 120 or 0
+        end,
+    }
+    T.eq(vp.buildingInvested(city, 7), true, "positive investment reads as invested")
+    T.eq(vp.buildingInvested(city, 3), false, "zero investment reads as not invested")
+end
+
 return M

@@ -125,8 +125,20 @@ local function isGeneratingProduction(city)
     return city:GetCurrentProductionDifferenceTimes100(false, false) > 0
 end
 
-local function slotOneLabel(city, orderType, data1)
+-- Append the Vox Populi "(invested)" marker to the slot's name when the
+-- building has had Gold invested in it, so it leads the slot's spoken line
+-- (right after the name). Empty on vanilla and on non-building orders.
+local function nameWithInvested(city, orderType, data1)
     local name = orderName(orderType, data1)
+    local invested = ProductionHelpText.investedTag(city, orderType, data1)
+    if invested ~= "" then
+        return name .. ", " .. invested
+    end
+    return name
+end
+
+local function slotOneLabel(city, orderType, data1)
+    local name = nameWithInvested(city, orderType, data1)
     local help = slotHelpText(orderType, data1, city, 0)
     if orderType == OrderTypes.ORDER_MAINTAIN then
         return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT1_PROCESS", name, help)
@@ -147,7 +159,7 @@ local function slotOneLabel(city, orderType, data1)
 end
 
 local function slotNLabel(city, displaySlot, zeroIdx, orderType, data1)
-    local name = orderName(orderType, data1)
+    local name = nameWithInvested(city, orderType, data1)
     if orderType == OrderTypes.ORDER_MAINTAIN then
         return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_SLOT_PROCESS", displaySlot, name)
     end

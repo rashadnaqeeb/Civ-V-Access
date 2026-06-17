@@ -679,3 +679,24 @@ end
 function EngineData.historicEvents(player)
     return nil
 end
+
+-- Capability probe: does this engine treat a Gold purchase of a building as
+-- an INVESTMENT -- a partial production-cost reduction, the building still
+-- has to be produced -- rather than an instant completion? Vox Populi's
+-- BALANCE_BUILDING_INVESTMENTS turns every Gold building/wonder "purchase"
+-- into an investment; vanilla (Brave New World) always completes the building
+-- outright, so this is false and the invest-specific labeling and the
+-- realized-reduction announcement never run in a vanilla session.
+function EngineData.buildingInvestmentsEnabled()
+    return false
+end
+
+-- Drift read: has a Gold investment already been applied to this building in
+-- this city? Drives the "(invested)" marker VP shows on an in-progress build,
+-- and the post-commit poll that waits for the investment to land before
+-- announcing the reduction. GetBuildingInvestment is VP-only -- a bare call
+-- throws on the stock engine -- so the vanilla body returns false and the
+-- marker never appears.
+function EngineData.buildingInvested(city, buildingID)
+    return false
+end

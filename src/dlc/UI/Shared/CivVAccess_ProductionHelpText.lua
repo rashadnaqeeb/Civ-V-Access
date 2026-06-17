@@ -334,6 +334,27 @@ function ProductionHelpText.remainingLine(city, orderType, data1, includeStored)
     return Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMAINING", remaining)
 end
 
+-- "(invested)" marker for a building the player has already invested Gold in
+-- (Vox Populi only). VP attaches its own "(INVESTED)" tag to the building
+-- name in the production tooltip, which we strip with the rest of the header,
+-- so we re-add a concise spoken marker on the surfaces that name an
+-- in-progress or buildable building (the production chooser, both production
+-- queues). Returns "" on vanilla, on non-building orders, and on buildings
+-- with no investment, so callers can append unconditionally. EngineData is
+-- guarded so the module still dofiles offline.
+function ProductionHelpText.investedTag(city, orderType, data1)
+    if orderType ~= OrderTypes.ORDER_CONSTRUCT then
+        return ""
+    end
+    if EngineData == nil or not EngineData.buildingInvestmentsEnabled() then
+        return ""
+    end
+    if not EngineData.buildingInvested(city, data1) then
+        return ""
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_PROD_INVESTED")
+end
+
 -- Dispatch helper for callers that already know the orderType.
 function ProductionHelpText.forOrder(city, orderType, data1, includeCost)
     if orderType == OrderTypes.ORDER_TRAIN then

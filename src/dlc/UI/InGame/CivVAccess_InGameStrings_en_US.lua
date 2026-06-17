@@ -2181,8 +2181,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TURNS"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_GOLD"] = "{1_Num} gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_FAITH"] = "{1_Num} faith"
+-- Vox Populi: spending gold on a building invests in it (cuts its production
+-- cost) rather than completing it, so the cost clause says so up front.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_GOLD"] = "invest, {1_Num} gold"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_BUILDING"] = "building {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED"] = "purchased {1_Name}"
+-- Vox Populi investment confirmation, then a follow-up with the realized
+-- production-cost reduction (read after the engine applies the investment).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVESTED"] = "invested in {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_REDUCED"] = "production cost reduced by {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_NO_REDUCTION"] = "no production cost reduction"
+-- Marker on a building you have already invested gold in, spoken next to its
+-- name in the production chooser and queues.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROD_INVESTED"] = "invested"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT"] = {
     one = "{1_Name}, {2_Turns} turn",
     other = "{1_Name}, {2_Turns} turns",
