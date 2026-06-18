@@ -158,9 +158,9 @@ Then run `./test.ps1` from the repo root; a malformed Lua table surfaces as a pa
 
 ### Step 6: deploy
 
-    ./deploy.ps1 -SkipEngine
+    ./deploy.ps1
 
-Engine DLL is untouched; skip the engine deploy for speed. Per the project CLAUDE.md, deploy is part of the task -- never tell the user to run it; run it yourself.
+Per the project CLAUDE.md, deploy is part of the task -- never tell the user to run it; run it yourself.
 
 ### Step 7: report
 
@@ -169,7 +169,7 @@ Tell the user:
 - Counts: added / removed / changed across all stems.
 - Whether the work was done inline or via subagents.
 - Any pre-existing structural drift the validator surfaced outside the sync diff, and whether you fixed it.
-- That deploy.ps1 -SkipEngine ran successfully (or any error from validation / deploy).
+- That deploy.ps1 ran successfully (or any error from validation / deploy).
 
 Don't commit. Don't open a PR. The user reviews first.
 

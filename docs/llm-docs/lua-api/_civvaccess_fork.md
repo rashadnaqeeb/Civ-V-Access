@@ -4,7 +4,7 @@ Methods and `GameEvents.X` hooks added by our `CvGameCore_Expansion2.dll` fork t
 
 ## Source of truth
 
-`src/engine/CvGameCoreDLL_Expansion2/` -- every fork-added binding or hook has a `// CIVVACCESS:` comment block on its declaration site. Grep that marker for the canonical list and read the C++ for behavior. Additions only resolve when the deployed `CvGameCore_Expansion2.dll` is our build (default behavior of `deploy.ps1`; pass `-SkipEngine` to leave the vanilla DLL in place); on a vanilla deploy `Unit:GeneratePath` raises `luaL_error("NYI")`, the other bindings produce method-not-found errors, the `Plot:GetBestDefender` extra arg is silently ignored (binding still works at vanilla arity), and the `GameEvents.CivVAccess*` hooks just never fire.
+`src/engine/CvGameCoreDLL_Expansion2/` -- every fork-added binding or hook has a `// CIVVACCESS:` comment block on its declaration site. Grep that marker for the canonical list and read the C++ for behavior. Additions only resolve when the deployed `CvGameCore_Expansion2.dll` is our build (`deploy.ps1` always deploys it); on a vanilla deploy `Unit:GeneratePath` raises `luaL_error("NYI")`, the other bindings produce method-not-found errors, the `Plot:GetBestDefender` extra arg is silently ignored (binding still works at vanilla arity), and the `GameEvents.CivVAccess*` hooks just never fire.
 
 ## Current bindings
 

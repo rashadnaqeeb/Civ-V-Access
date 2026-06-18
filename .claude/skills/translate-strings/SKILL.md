@@ -209,7 +209,7 @@ Treat them as their own pipeline. Do not try to fold them into the InGame body b
 
 5. **Validate** again (key count, plural shape, placeholder indices, parse-test under Lua 5.1). Re-run `./test.ps1`.
 
-6. **Redeploy** with `./deploy.ps1 -SkipEngine`.
+6. **Redeploy** with `./deploy.ps1`.
 
 The leader-prose batches typically take 4-9 minutes each on Sonnet (longer than short-string batches). Plan for the longer turnaround when scheduling wakeups between waves.
 
@@ -231,7 +231,7 @@ The leader-prose batches typically take 4-9 minutes each on Sonnet (longer than 
 4. Run `./test.ps1` from the repo root. The new locale has no direct test coverage but a malformed Lua table surfaces as a parse error.
 5. Run luacheck on each new file. Strings files are flat assignments; any warning is real.
 
-If 1-5 pass: edit `src/dlc/UI/Shared/CivVAccess_StringsLoader.lua` to uncomment the `<LOCALE> = true,` line in `supportedLocales`. Then run `./deploy.ps1 -SkipEngine` from the repo root (engine DLL is untouched; skip the engine deploy for speed).
+If 1-5 pass: edit `src/dlc/UI/Shared/CivVAccess_StringsLoader.lua` to uncomment the `<LOCALE> = true,` line in `supportedLocales`. Then run `./deploy.ps1` from the repo root.
 
 ## Smoke-test instructions for the user
 

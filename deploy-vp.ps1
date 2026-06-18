@@ -64,9 +64,6 @@
     Skip the DLC payload (and with it the vendor overlay, the EngineData
     swap, and the MODS overlay).
 
-.PARAMETER SkipEngine
-    Skip the fork DLL copy into MODS\(1) Community Patch.
-
 .PARAMETER SkipCinematics
     Skip the audio-described BNW opening cinematics.
 
@@ -90,7 +87,6 @@ param(
     [string]$ClonePath,
     [switch]$SkipProxy,
     [switch]$SkipDlc,
-    [switch]$SkipEngine,
     [switch]$SkipCinematics,
     [switch]$RepinBuild,
     [switch]$Uninstall
@@ -789,11 +785,7 @@ if (-not $SkipDlc) {
     Write-Host "Skipping DLC payload (-SkipDlc)."
 }
 
-if (-not $SkipEngine) {
-    Deploy-EngineDll -Game $gameDir
-} else {
-    Write-Host "Skipping engine DLL (-SkipEngine)."
-}
+Deploy-EngineDll -Game $gameDir
 
 if (-not $SkipCinematics) {
     Deploy-Cinematics -Game $gameDir

@@ -26,9 +26,6 @@
 .PARAMETER GameDir
     Override the auto-detected Civ V install path.
 
-.PARAMETER SkipEngine
-    Skip the engine DLL copy.
-
 .PARAMETER SkipDlc
     Skip the DLC manifest copy.
 
@@ -39,7 +36,6 @@
 [CmdletBinding()]
 param(
     [string]$GameDir,
-    [switch]$SkipEngine,
     [switch]$SkipDlc,
     [switch]$Uninstall
 )
@@ -295,11 +291,7 @@ if (-not $SkipDlc) {
     Write-Host "Skipping DLC manifest (-SkipDlc)."
 }
 
-if (-not $SkipEngine) {
-    Deploy-EngineDll -Game $gameDir
-} else {
-    Write-Host "Skipping engine DLL (-SkipEngine)."
-}
+Deploy-EngineDll -Game $gameDir
 
 if (-not $SkipDlc) {
     Write-InstallManifest -Game $gameDir

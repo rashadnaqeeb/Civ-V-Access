@@ -17,8 +17,10 @@
         sibling of the DLC dir, so it survives the redeploy nuke-and-recreate
         of the DLC dir itself).
 
-    The engine DLL is deployed by default; pass -SkipEngine for Lua-only
-    iterations where the (~4 MB) DLL copy isn't worth it.
+    The engine DLL is always deployed: the ~4 MB copy is cheap, and skipping
+    it would leave the wrong DLL in place when flipping in from a modpack
+    state (which embeds the fork DLL), so vanilla sessions would silently run
+    on a non-vanilla engine.
 
     -Uninstall reverses everything: restores the vanilla engine DLL from the
     backup, restores the original lua51_Win32.dll, removes the DLC and the
@@ -35,10 +37,6 @@
 .PARAMETER SkipDlc
     Skip the DLC payload copy. Useful for proxy-only iteration (rare).
 
-.PARAMETER SkipEngine
-    Skip copying dist/engine/CvGameCore_Expansion2.dll. Useful for fast
-    Lua-only iterations.
-
 .PARAMETER SkipCinematics
     Skip copying audio-described BNW opening cinematics. Files are large
     (~80 MB English, ~5 MB per non-English locale) and rarely change, so
@@ -54,7 +52,6 @@ param(
     [string]$GameDir,
     [switch]$SkipProxy,
     [switch]$SkipDlc,
-    [switch]$SkipEngine,
     [switch]$SkipCinematics,
     [switch]$Uninstall
 )
@@ -672,11 +669,7 @@ if (-not $SkipDlc) {
     Write-Host "Skipping DLC payload (-SkipDlc)."
 }
 
-if (-not $SkipEngine) {
-    Deploy-EngineDll -Game $gameDir
-} else {
-    Write-Host "Skipping engine DLL (-SkipEngine)."
-}
+Deploy-EngineDll -Game $gameDir
 
 if (-not $SkipCinematics) {
     Deploy-Cinematics -Game $gameDir
