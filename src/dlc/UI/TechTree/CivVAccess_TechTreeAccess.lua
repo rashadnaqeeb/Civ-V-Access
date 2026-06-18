@@ -80,9 +80,11 @@
 -- tree. Arrow keys on the tree tab clear any leftover no-match buffer before
 -- tree nav so a non-matching prefix never contaminates a later arrow move.
 --
--- F1: TabbedShell owns F1 and reads "Tech Tree" + active tab name. The
--- mode preamble (free-tech / stealing) is reachable via Tab cycle into
--- the tree tab, whose onTabActivated re-speaks it.
+-- F1: TabbedShell owns F1 and reads "Tech Tree" + active tab name, plus the
+-- shell preamble when set. In the read-only view that preamble is the viewed
+-- player's current research and turns, so F1 surfaces it. The mode preamble
+-- (free-tech / stealing / science rate) stays in the tree tab's onTabActivated,
+-- reachable on open and Tab cycle.
 
 include("CivVAccess_Polyfill")
 include("CivVAccess_Log")
@@ -743,12 +745,6 @@ local function buildTreeTab()
                 return
             end
             local preamble = ChooseTechLogic.buildPreamble(p, currentMode(), _stealingTargetID)
-            if _espionageView then
-                local research = ChooseTechLogic.buildForeignResearchLine(p)
-                if research ~= "" then
-                    preamble = (preamble ~= "" and (research .. ", " .. preamble)) or research
-                end
-            end
             if preamble ~= "" then
                 SpeechPipeline.speakQueued(preamble)
             end
@@ -919,6 +915,22 @@ end
 TabbedShell.install(ContextPtr, {
     name = "TechTreeScreen",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TECH_TREE"),
+    -- In the read-only view (espionage diplomat / observer) the shell preamble
+    -- carries the viewed player's current research and turns, so F1 re-reads it
+    -- alongside the title and tab name. Empty in normal mode (your own current
+    -- research is found by navigating to its node, and the mode preamble stays
+    -- in the tree tab's onTabActivated). Spoken once on open, between the title
+    -- and the tab name, so it does not double with the onTabActivated preamble.
+    preamble = function()
+        if not _espionageView then
+            return ""
+        end
+        local p = currentPlayer()
+        if p == nil then
+            return ""
+        end
+        return ChooseTechLogic.buildForeignResearchLine(p)
+    end,
     tabs = {
         buildTreeTab(),
         buildQueueTab(),
