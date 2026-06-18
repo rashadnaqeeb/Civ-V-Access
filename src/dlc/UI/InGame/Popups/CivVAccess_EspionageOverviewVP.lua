@@ -433,6 +433,22 @@ local function diplomatViewItem(labelKey, notEnoughKey, threshold, maxNP, openFn
     })
 end
 
+local DIPLOMAT_SUB_NAME = "EspionageOverview/Diplomat"
+
+-- The tech-tree and policy views fire an engine popup for a different Context.
+-- The engine queues that popup BEHIND the still-open espionage overview, so the
+-- screen does not show (and our handler does not push) until the overview
+-- closes -- leaving the user stranded in the diplomat sub. Mirror viewCity: pop
+-- the diplomat sub and dismiss the overview so the read-only screen surfaces at
+-- once on a clean handler stack. The user re-opens espionage (Ctrl+Shift+E) to
+-- return, same as the View City flow. The unit-list / trade-deals views are our
+-- own BaseMenu subs, not engine popups, so they keep the overview open behind.
+local function openForeignScreen(popupArgs)
+    HandlerStack.removeByName(DIPLOMAT_SUB_NAME, false)
+    Events.SerialEventGameMessagePopup(popupArgs)
+    ctx.closeOverview()
+end
+
 local function pushDiplomatSub(agent, city)
     local targetID = city:GetOwner()
     local maxNP = agent.MaxNetworkPointsStored
@@ -446,7 +462,7 @@ local function pushDiplomatSub(agent, city)
         revealThreshold(dt, "RevealTechTree"),
         maxNP,
         function()
-            Events.SerialEventGameMessagePopup({
+            openForeignScreen({
                 Type = ButtonPopupTypes.BUTTONPOPUP_TECH_TREE,
                 Data2 = -1,
                 Data4 = 1,
@@ -464,7 +480,7 @@ local function pushDiplomatSub(agent, city)
         revealThreshold(dt, "RevealPolicyTree"),
         maxNP,
         function()
-            Events.SerialEventGameMessagePopup({
+            openForeignScreen({
                 Type = ButtonPopupTypes.BUTTONPOPUP_CHOOSEPOLICY,
                 Data3 = 1,
                 Data4 = targetID,
@@ -504,7 +520,7 @@ local function pushDiplomatSub(agent, city)
     items[#items + 1] = passiveBonusGroup(agent, true)
 
     HandlerStack.push(BaseMenu.create({
-        name = "EspionageOverview/Diplomat",
+        name = DIPLOMAT_SUB_NAME,
         displayName = Text.format(
             "TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_SUB",
             Text.key(agent.Rank),

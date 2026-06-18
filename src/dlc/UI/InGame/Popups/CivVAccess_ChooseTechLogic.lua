@@ -180,6 +180,27 @@ function ChooseTechLogic.buildPreamble(player, mode, stealingTargetID)
     return table.concat(parts, ", ")
 end
 
+-- Current-research line for the read-only espionage / observer view: the
+-- viewed player's in-progress tech and its turns left. The own-player preamble
+-- omits this (your current research is found by navigating to its node); the
+-- read-only view surfaces it up front since hunting a rival's in-progress tech
+-- in their tree is more work. Empty string when the player is researching
+-- nothing. Turns are gated on a positive science rate (a stalled player has no
+-- finite estimate), matching the per-node turns clause.
+function ChooseTechLogic.buildForeignResearchLine(player)
+    local current = player:GetCurrentResearch()
+    if current == -1 then
+        return ""
+    end
+    local line =
+        Text.format("TXT_KEY_CIVVACCESS_DIPLO_RESEARCHING", Text.key(GameInfo.Technologies[current].Description))
+    if player:GetScience() > 0 then
+        local turns = player:GetResearchTurnsLeft(current, true)
+        line = line .. ", " .. Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
+    end
+    return line
+end
+
 -- Label composition. Order:
 --   1. tech name          (distinguishing info leads)
 --   2. status             (free / currently researching / queued N) when non-default

@@ -1072,6 +1072,12 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
             viewCity = viewCity,
             pushMoveSub = pushMoveSub,
             rebuildAllTabs = rebuildAllTabs,
+            -- Dismiss the overview popup so a read-only foreign screen (tech /
+            -- policy), which the engine queues behind this still-open popup, can
+            -- surface immediately. Same DequeuePopup viewCity uses.
+            closeOverview = function()
+                UIManager:DequeuePopup(ContextPtr)
+            end,
         })
     end
 

@@ -743,6 +743,12 @@ local function buildTreeTab()
                 return
             end
             local preamble = ChooseTechLogic.buildPreamble(p, currentMode(), _stealingTargetID)
+            if _espionageView then
+                local research = ChooseTechLogic.buildForeignResearchLine(p)
+                if research ~= "" then
+                    preamble = (preamble ~= "" and (research .. ", " .. preamble)) or research
+                end
+            end
             if preamble ~= "" then
                 SpeechPipeline.speakQueued(preamble)
             end
