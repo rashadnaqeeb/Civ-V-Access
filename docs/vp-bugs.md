@@ -218,6 +218,40 @@ Pin at time of writing: Release-5.3.2 (`supported_vp` in `versions.json`).
 - Status: confirmed 2026-06-17, from the same playtest log; code read against
   the Release-5.3.2 clone.
 
+## Suspected
+
+### Hard crash re-opening the strategic-resource amount entry on the trade screen
+
+- Location: not yet pinned. The faulting code is in the diplomatic trade /
+  `CvDeal` C++ path (`CvGameCoreDLL_Expansion2/CvGameCoreUtils` / `CvDeal.cpp`
+  and the deal-pocket handling), reached while a strategic resource is being
+  added on the AI trade screen. An exact file and line need a minidump.
+- Symptom: on the AI diplomacy trade screen, open the amount entry for a
+  strategic resource (horses), cancel it, then open it again for the same
+  resource. The game hard-crashes to desktop. Reproduced once in play.
+- Root cause: unknown. It is a C++ CTD, not a Lua error: `Lua.log` truncates
+  mid-line at the second amount-entry open with no `Runtime Error` and no
+  traceback, and no minidump or engine assertion is written. No deal item was
+  ever placed (we never called `g_Deal:AddResourceTrade`; `net_message_debug.log`
+  shows no deal traffic), so the engine's deal state was not mutated by the
+  sequence. The only engine call our side makes on this path is a read
+  (`Players[id]:GetNumResourceAvailable`), which succeeded identically on the
+  first open, so the fault is engine-internal state, not bad data we supplied.
+- Suggested fix: none until root-caused. Next step is enabling minidumps
+  (`Debug.MiniDumpType` in `config.ini`) and reproducing, to confirm the
+  faulting module is `CvGameCore_Expansion2.dll` and get the frame.
+- Affects: likely sighted players too, since the crash is in VP's deal C++ and
+  our layer placed nothing. Severity high (full CTD, loses the session) but the
+  trigger is narrow. Caveat: a sighted player reaches the strategic-amount
+  entry through VP's own pocket popup, not our number-entry handler, so the
+  input path differs and the sighted repro may not match exactly.
+- Status: suspected 2026-06-18, from a single in-game crash. Not in our Lua
+  (the repro path runs only a benign read plus Lua-side handler-stack and
+  speech work) and not in our engine fork's added surface (bindings, gameplay
+  hooks that do not fire while browsing a trade screen, the trade-route unit
+  naming fix, the pathfinder binding -- none touch `CvDeal`). Needs a minidump
+  to pin and a stock-VP repro to confirm it is upstream.
+
 ## Investigated, not a bug
 
 Kept here so these are not re-chased.
