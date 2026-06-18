@@ -95,6 +95,7 @@ local function buildItems(handler)
             controlName = "TurnTimerEdit",
             visibilityControlName = "TurnTimerEditbox",
             textKey = "TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER",
+            unitsFn = MPGameSetupShared.turnTimerUnits,
             priorCallback = OnTurnTimerEditBoxChange,
         }),
         -- Scenario checkbox (ModMultiplayer mode only; ScenarioCheck's

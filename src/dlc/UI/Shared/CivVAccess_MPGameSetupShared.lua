@@ -62,6 +62,26 @@ function MPGameSetupShared.invalidateMapLabels()
     _mpMapSizeLabelsCache = nil
 end
 
+-- Live turn-timer unit ("hours" in pitboss / dedicated-server games,
+-- "seconds" otherwise). MPGameOptions.RefreshTurnTimerUnits writes it into
+-- the TurnTimerUnits label, which sits beside the value box; read it back so
+-- the turn-timer field reads "2 hours" / "90 seconds" instead of a bare
+-- number whose unit silently flips with the game mode. Returns nil when the
+-- label is absent or empty, so the field just reads the number.
+function MPGameSetupShared.turnTimerUnits()
+    local c = Controls.TurnTimerUnits
+    if c == nil then
+        return nil
+    end
+    local ok, t = pcall(function()
+        return c:GetText()
+    end)
+    if ok and t ~= nil and t ~= "" then
+        return tostring(t)
+    end
+    return nil
+end
+
 local function mpMapTypeSizeLabels()
     if _mpMapSizeLabelsCache ~= nil then
         return _mpMapSizeLabelsCache

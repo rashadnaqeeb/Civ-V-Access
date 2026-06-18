@@ -136,6 +136,14 @@ local function sortDirectionTooltip(option)
     return nil
 end
 
+-- Base grays the DLC column (DLCHostedColorName "Gray_Black") when the host
+-- requires DLC the local player does not have -- the row is effectively
+-- unjoinable. The Yes/No caption alone does not convey that, so flag it on
+-- both the picker row and in the server detail.
+local function missingRequiredDLC(listing)
+    return listing.DLCHostedColorName == "Gray_Black"
+end
+
 -- --------------------------------------------------------------------------
 -- Reader builder
 
@@ -176,6 +184,11 @@ function Lobby.buildReader(mainHandler, id)
     -- tokens are stripped / spaced by TextFilter on announce so the list
     -- reads cleanly without a custom parse here.
     addField(leaves, "TXT_KEY_MULTIPLAYER_DLCHOSTED", listing.DLCHostedCaption)
+    if missingRequiredDLC(listing) then
+        leaves[#leaves + 1] = BaseMenuItems.Text({
+            labelText = Text.key("TXT_KEY_CIVVACCESS_LOBBY_MISSING_DLC"),
+        })
+    end
     if listing.DLCHostedToolTip ~= nil and listing.DLCHostedToolTip ~= "" then
         leaves[#leaves + 1] = BaseMenuItems.Text({
             labelText = listing.DLCHostedToolTip,
@@ -199,12 +212,16 @@ end
 -- Picker builder
 
 local function pickerLabel(listing)
-    return Text.format(
+    local label = Text.format(
         "TXT_KEY_CIVVACCESS_LOBBY_PICKER_ROW",
         listing.ServerName or "",
         membersLabel(listing),
         listing.MapTypeCaption or ""
     )
+    if missingRequiredDLC(listing) then
+        label = label .. ", " .. Text.key("TXT_KEY_CIVVACCESS_LOBBY_MISSING_DLC")
+    end
+    return label
 end
 
 function Lobby.buildPickerItems(entryFactory, mainHandlerRef)

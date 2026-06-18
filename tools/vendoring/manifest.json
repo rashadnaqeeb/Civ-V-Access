@@ -124,6 +124,9 @@
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Modding/ModsSinglePlayer.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ModsSinglePlayerAccess\")\r\n"
     },
+    "FrontEnd/Multiplayer/ChangeSmtpPassword.lua": {
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ChangeSmtpPasswordAccess\")\r\n"
+    },
     "FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.{lua,xml}.\r\n-- Contents below (between ProbeBoot and the bootstrap marker at the bottom)\r\n-- are a verbatim copy of the base-game file.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MPGameSetupAccess\")"

@@ -174,9 +174,22 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_TEAM"] = "{1_Name}, {2_Team
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP"] = "{1_Name}, {2_Handicap}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_READY"] = "{1_Name} ready"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"] = "{1_Name} not ready"
+-- Spoken when the host clears YOUR ready flag (by editing a setting); the
+-- player whose own ready toggled off needs telling, since the engine does it
+-- silently. Self-toggles are announced by the checkbox and don't use this.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_UNREADY_SELF"] = "You are no longer ready"
+-- A remote player arriving in a seat (connection came up). Leaves are spoken
+-- by DISCONNECT / KICKED off the engine's disconnect event.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_JOINED"] = "{1_Name} joined"
+-- Connection-state tails on a slot summary. Only the exceptional states
+-- speak; a healthy connected seat stays quiet. "Not connected" is how a
+-- reloaded-save host hears which reserved seats are still empty.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CONN_JOINING"] = "joining"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CONN_NOTCONNECTED"] = "not connected"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} is now the host"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} disconnected"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} was kicked"
 -- Launch countdown. Base runs a 10-second auto-launch timer with a "Game
 -- Starts In: N" banner; we speak the intro once, then integer seconds
 -- 5 down to 1, then let LaunchGame fire. Cancel text plays if the timer
@@ -206,6 +219,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_DETAILS_TAB"] = "Server details"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SERVERS"] = "No servers found."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_MEMBERS"] = "{1_Num} of {2_Max}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_PICKER_ROW"] = "{1_Server}, {2_Members}, {3_Map}"
+-- Appended to a server row (and shown in its detail) when the host requires
+-- DLC you do not have, so you hear the row is unjoinable before pressing Join.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_MISSING_DLC"] = "missing required DLC"
+-- Spoken when a server-list refresh starts and when it finishes; the list
+-- arrives over several seconds, so without these the user cannot tell whether
+-- it is still loading or settled.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_REFRESHING"] = "Refreshing"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_REFRESH_DONE"] = "Refresh complete, {1_Count} games"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_ASC"] = "ascending"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_DESC"] = "descending"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"] =

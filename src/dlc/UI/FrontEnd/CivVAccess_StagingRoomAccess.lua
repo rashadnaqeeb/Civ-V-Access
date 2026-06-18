@@ -21,13 +21,18 @@
 -- on civvaccess_shared, so writes by CreateSlots / RefreshPlayerList reach
 -- us without us reimplementing either function.
 --
--- Remote-delta announcements: on every PreGameDirty we snapshot each major
--- civ slot's (nickname, civ, team, handicap, slot status, ready, connected)
--- and speak the deltas against the previous snapshot. Skip the local player
--- on civ / team / handicap changes (they just heard themselves do it). Chat
--- messages come through Events.GameMessageChat directly; the inline announce
--- is suppressed only while the F2 chat panel is the active handler (so the
--- user's focus there isn't stepped on).
+-- Remote-delta announcements: on every PreGameDirty and every
+-- MultiplayerGamePlayerUpdated we snapshot each major civ slot's (nickname,
+-- civ, team, handicap, slot status, ready, connected) and speak the deltas
+-- against the previous snapshot. A connection coming up (false to true on a
+-- taken / observer seat) is announced as a "joined" line and rides the
+-- connected flag rather than slot status, because a player can arrive into an
+-- already-reserved seat with no status change. Skip the local player on civ /
+-- team / handicap changes (they just heard themselves do it), but DO announce
+-- a host-forced un-ready (you have to be told the host cleared your ready).
+-- Chat messages come through Events.GameMessageChat directly; the inline
+-- announce is suppressed only while the F2 chat panel is the active handler
+-- (so the user's focus there isn't stepped on).
 --
 -- Countdown: base's StartCountdown / StopCountdown are wrapped so the access
 -- layer can announce "launching in ten" at start, a per-second count for the
@@ -39,6 +44,11 @@
 -- civvaccess_shared so late-opened panels show messages received while
 -- closed. Inline chat speech backs off when the panel is the active
 -- handler so the user's context isn't stepped on.
+--
+-- Hot-join panel: when the local player hot-joins a game in progress, base
+-- shows a Cancel-only popup over an unactionable staging room; we mirror it
+-- with a pushed input-capturing handler that announces "joining game in
+-- progress" and keeps Cancel reachable, torn down on join completion or hide.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_CivDetails")
@@ -206,12 +216,38 @@ local function slotStatusText(status)
     return Text.key(key)
 end
 
+-- Connection state for a human / observer slot, mirroring base's
+-- ConnectionStatus icon (hot-joining / connected / not connected). Returns
+-- nil for the normal connected case so a healthy lobby stays quiet; only the
+-- exceptional states (joining, or an unfilled seat the game is waiting on)
+-- speak. This is the signal a host needs after reloading a save: which
+-- reserved seats are filled by a joined player and which are still empty.
+local function connectionText(playerID)
+    if Network.IsPlayerHotJoining(playerID) then
+        return Text.key("TXT_KEY_CIVVACCESS_STAGING_CONN_JOINING")
+    end
+    if not Network.IsPlayerConnected(playerID) then
+        return Text.key("TXT_KEY_CIVVACCESS_STAGING_CONN_NOTCONNECTED")
+    end
+    return nil
+end
+
 -- Compose a one-line summary of a slot's current state. Used as the Group
 -- label; the individual pulldowns live inside as drill-in children. Empty
 -- and closed slots get a short form because there is nothing else to say.
 local function slotSummary(playerID)
     local status = PreGame.GetSlotStatus(playerID)
-    if status == SlotStatus.SS_OPEN or status == SlotStatus.SS_CLOSED then
+    if status == SlotStatus.SS_CLOSED then
+        return slotStatusText(status) or ""
+    end
+    if status == SlotStatus.SS_OPEN then
+        -- A reserved open slot reads as "Human Required" -- a seat the game
+        -- is waiting for a human to claim (host-loaded saves, locked slots),
+        -- not a plain empty slot. GetSlotTypeString (base global) resolves
+        -- the reserved-vs-open distinction the same way the visible UI does.
+        if type(GetSlotTypeString) == "function" then
+            return Text.key(GetSlotTypeString(playerID))
+        end
         return slotStatusText(status) or ""
     end
 
@@ -238,6 +274,15 @@ local function slotSummary(playerID)
     end
     if playerID == Matchmaking.GetHostID() then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_STAGING_HOST")
+    end
+    -- Connection state only for slots a human occupies or is meant to
+    -- (taken / observer). AI and host-empty seats have no meaningful
+    -- connection state.
+    if status == SlotStatus.SS_TAKEN or status == SlotStatus.SS_OBSERVER then
+        local conn = connectionText(playerID)
+        if conn then
+            parts[#parts + 1] = conn
+        end
     end
     -- Safety net: the user reported a blank leading line. If every branch
     -- above declined to add a part (unmapped status, nil nickname, random
@@ -398,6 +443,29 @@ local function playersItems()
     items[#items + 1] = BaseMenuItems.Checkbox({
         controlName = "LocalReadyCheck",
         textKey = "TXT_KEY_MP_READY_CHECK",
+        -- When readying is blocked (a player is using a DLC you don't have),
+        -- toggling does nothing and base only signals it through this tooltip.
+        -- Surface it so the user hears why ready won't take, rather than
+        -- toggling into silence. nil when readying is available, so a normal
+        -- ready checkbox stays terse.
+        tooltipFn = function()
+            if PreGame.CanReadyLocalPlayer() then
+                return nil
+            end
+            return Text.key("TXT_KEY_MP_READY_CHECK_UNAVAILABLE_DATA_HELP")
+        end,
+        -- Drive base's ready handler explicitly. When the user un-readies
+        -- themselves, flag it so the PreGameDirty delta doesn't double-speak
+        -- the "no longer ready" line the checkbox itself already announced;
+        -- a host-forced un-ready leaves the flag clear and is announced.
+        activateCallback = function(checked)
+            if not checked then
+                civvaccess_shared._stagingLocalReadySelfToggle = true
+            end
+            if type(OnReadyCheck) == "function" then
+                OnReadyCheck(checked)
+            end
+        end,
     })
 
     local localID = Matchmaking.GetLocalID()
@@ -408,6 +476,10 @@ local function playersItems()
         end,
         itemsFn = localSeatChildren,
         cached = false,
+        -- After readying up, base hides every editable widget on the seat;
+        -- keep the row reachable so the player can still review their civ /
+        -- team / ready state from the group label.
+        keepWhenShown = true,
     })
 
     for i = 1, MAX_SLOTS do
@@ -423,6 +495,12 @@ local function playersItems()
                     return slotChildren(slotIndex, instance)
                 end,
                 cached = false,
+                -- A populated slot's editable children all hide once the
+                -- local player readies (or for any non-host viewer). The
+                -- slot must stay navigable so the player can poll who is in
+                -- it and whether they are ready -- the summary label carries
+                -- that. Without this the whole roster vanishes after ready.
+                keepWhenShown = true,
             })
         end
     end
@@ -430,9 +508,53 @@ local function playersItems()
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "LaunchButton",
         textKey = "TXT_KEY_MULTIPLAYER_LAUNCH_GAME",
+        -- When the host loads a save, base disables Launch until everyone has
+        -- reconnected. The framework already announces "disabled" and blocks
+        -- the press; this gives the reason ("a player is joining"). nil once
+        -- everyone is connected.
+        tooltipFn = function()
+            if Network.IsEveryoneConnected() then
+                return nil
+            end
+            return Text.key("TXT_KEY_LAUNCH_GAME_BLOCKED_PLAYER_JOINING")
+        end,
         activate = function()
             if type(LaunchGame) == "function" then
                 LaunchGame()
+            end
+        end,
+    })
+    -- Host-only; the control is hidden for non-hosts (so non-navigable) and
+    -- disabled while a launch countdown is running (framework announces it).
+    -- Activating queues the SaveMenu, which has its own access wrapper.
+    items[#items + 1] = BaseMenuItems.Button({
+        controlName = "SaveButton",
+        textKey = "TXT_KEY_ACTION_SAVE_NORMAL",
+        activate = function()
+            if type(OnSaveButton) == "function" then
+                OnSaveButton()
+            end
+        end,
+    })
+    -- Dedicated-server / observer mode only (IsInGameScreen): base swaps Back
+    -- for Exit and adds the Strategic View toggle, gating both via control
+    -- visibility. Our items inherit that gating, so they are non-navigable in
+    -- a normal lobby and appear only in that mode.
+    items[#items + 1] = BaseMenuItems.Button({
+        controlName = "StrategicViewButton",
+        textKey = "TXT_KEY_POP_STRATEGIC_VIEW_TT",
+        activate = function()
+            if type(OnStrategicView) == "function" then
+                OnStrategicView()
+            end
+        end,
+    })
+    items[#items + 1] = BaseMenuItems.Button({
+        controlName = "ExitButton",
+        textKey = "TXT_KEY_EXIT_BUTTON",
+        activate = function()
+            if type(OnExitGame) == "function" then
+                OnExitGame()
             end
         end,
     })
@@ -449,7 +571,34 @@ local function playersItems()
     return items
 end
 
+-- Count the players that occupy an assigned major-civ slot, matching base's
+-- UpdateOptions tally. Drives the unsupported-player-count warning.
+local function assignedPlayerCount()
+    local n = 0
+    for i = 0, MAX_SLOTS - 1 do
+        local st = PreGame.GetSlotStatus(i)
+        if
+            (st == SlotStatus.SS_COMPUTER or st == SlotStatus.SS_TAKEN)
+            and PreGame.GetSlotClaim(i) == SlotClaim.SLOTCLAIM_ASSIGNED
+        then
+            n = n + 1
+        end
+    end
+    return n
+end
+
 local function optionsItems()
+    -- Config warnings base shows in its read-only options summary but that
+    -- have no editable control of their own: a private game, and the
+    -- unsupported >8-player setup. Prepended below so the host hears them
+    -- first on entering the options.
+    local warnings = {}
+    if PreGame.IsPrivateGame() then
+        warnings[#warnings + 1] = BaseMenuItems.Text({ textKey = "TXT_KEY_MULTIPLAYER_PRIVATE_GAME" })
+    end
+    if assignedPlayerCount() > 8 then
+        warnings[#warnings + 1] = BaseMenuItems.Text({ textKey = "TXT_KEY_MULTIPLAYER_UNSUPPORTED_NUMBER_OF_PLAYERS" })
+    end
     local items = {
         BaseMenuItems.Pulldown({
             controlName = "MapTypePullDown",
@@ -501,6 +650,7 @@ local function optionsItems()
             controlName = "TurnTimerEdit",
             visibilityControlName = "TurnTimerEditbox",
             textKey = "TXT_KEY_CIVVACCESS_FIELD_TURN_TIMER",
+            unitsFn = MPGameSetupShared.turnTimerUnits,
             priorCallback = OnTurnTimerEditBoxChange,
         }),
         -- ModMultiplayerSelectScreen-only; LoadScenarioBox gates visibility.
@@ -537,6 +687,9 @@ local function optionsItems()
             end
         end,
     })
+    for i = #warnings, 1, -1 do
+        table.insert(items, 1, warnings[i])
+    end
     return items
 end
 
@@ -553,6 +706,7 @@ local function snapshotFor(playerID)
         handicap = PreGame.GetHandicap(playerID),
         ready = PreGame.IsReady(playerID),
         nick = PreGame.GetNickName(playerID),
+        connected = Network.IsPlayerConnected(playerID),
     }
 end
 
@@ -575,53 +729,87 @@ local function displayName(playerID, snap)
     return n
 end
 
+-- A slot a human occupies (taken) or is connected into (observer). Used to
+-- gate the join announcement: only these transitions to "connected" are a
+-- player arriving in a seat, not an engine bookkeeping flip on an empty slot.
+local function isPresenceSlot(status)
+    return status == SlotStatus.SS_TAKEN or status == SlotStatus.SS_OBSERVER
+end
+
 -- Spoken-friendly delta announcer. Compare new against old, emit one short
--- line per change. Skip the local player on civ / team / handicap / ready
--- changes (they already heard themselves toggle); do announce their
--- slot-status transitions because those can come from host action.
+-- line per change.
+--
+-- Join detection rides the connected flag, not slot status: a player can
+-- arrive into an already-reserved seat (host-loaded save, hot-join,
+-- reconnect) with no status change, which PreGameDirty alone never reports.
+-- A join is announced as a single "joined" line and suppresses that player's
+-- other deltas this pass so a fresh arrival doesn't also read out its
+-- starting civ / team as if the player had just changed them. A leave
+-- (connected true to false) is likewise suppressed here -- the dedicated
+-- disconnect / kicked line off MultiplayerGamePlayerDisconnected speaks it,
+-- and the seat's reverted status would otherwise read as a confusing
+-- second utterance.
+--
+-- The local player is skipped on civ / team / handicap changes (they already
+-- heard themselves act), but NOT on an un-ready: the host changing a setting
+-- silently clears your ready flag, and you have to be told. A user-initiated
+-- un-ready is announced by the checkbox itself, so a one-shot flag suppresses
+-- the duplicate.
 local function announceDeltas(newSnap, oldSnap)
     if oldSnap == nil then
         return
     end
     local localID = Matchmaking.GetLocalID()
+    local selfToggledReady = civvaccess_shared._stagingLocalReadySelfToggle
     for pid = 0, MAX_SLOTS - 1 do
         local o = oldSnap[pid]
         local n = newSnap[pid]
         if o ~= nil and n ~= nil then
             local name = displayName(pid, n)
+            local joined = pid ~= localID and not o.connected and n.connected and isPresenceSlot(n.status)
+            local left = pid ~= localID and o.connected and not n.connected
 
-            if o.status ~= n.status then
-                local ns = slotStatusText(n.status) or ""
-                SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_STATUS", name, ns))
-            end
+            if joined then
+                SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_JOINED", name))
+            elseif not left then -- a leave is spoken by the disconnect / kicked listener
+                if o.status ~= n.status then
+                    local ns = slotStatusText(n.status) or ""
+                    SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_STATUS", name, ns))
+                end
 
-            if pid ~= localID then
-                if o.civ ~= n.civ then
-                    local ct = civText(pid)
-                    if ct ~= nil then
-                        SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_CIV", name, ct))
+                if pid ~= localID then
+                    if o.civ ~= n.civ then
+                        local ct = civText(pid)
+                        if ct ~= nil then
+                            SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_CIV", name, ct))
+                        end
                     end
-                end
-                if o.team ~= n.team then
-                    local tt = teamText(pid)
-                    if tt ~= nil then
-                        SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_TEAM", name, tt))
+                    if o.team ~= n.team then
+                        local tt = teamText(pid)
+                        if tt ~= nil then
+                            SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_TEAM", name, tt))
+                        end
                     end
-                end
-                if o.ready ~= n.ready then
-                    local key = n.ready and "TXT_KEY_CIVVACCESS_STAGING_DELTA_READY"
-                        or "TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"
-                    SpeechPipeline.speakQueued(Text.format(key, name))
-                end
-                if o.handicap ~= n.handicap and n.status == SlotStatus.SS_TAKEN then
-                    local hc = handicapText(pid)
-                    if hc ~= nil then
-                        SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP", name, hc))
+                    if o.ready ~= n.ready then
+                        local key = n.ready and "TXT_KEY_CIVVACCESS_STAGING_DELTA_READY"
+                            or "TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"
+                        SpeechPipeline.speakQueued(Text.format(key, name))
                     end
+                    if o.handicap ~= n.handicap and n.status == SlotStatus.SS_TAKEN then
+                        local hc = handicapText(pid)
+                        if hc ~= nil then
+                            SpeechPipeline.speakQueued(
+                                Text.format("TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP", name, hc)
+                            )
+                        end
+                    end
+                elseif o.ready and not n.ready and not selfToggledReady then
+                    SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_STAGING_UNREADY_SELF"))
                 end
             end
         end
     end
+    civvaccess_shared._stagingLocalReadySelfToggle = nil
 end
 
 -- Countdown announcements ---------------------------------------------
@@ -819,6 +1007,55 @@ local function toggleChatPanel()
     HandlerStack.push(chatHandler)
 end
 
+-- Hot-join panel ------------------------------------------------------
+--
+-- When the local player hot-joins a game already in progress, base shows a
+-- modal HotJoinPopup ("Joining game in progress") with a single Cancel
+-- button, and the staging room underneath is no longer actionable. We mirror
+-- that with a pushed, input-capturing handler so the announcement lands and
+-- the only meaningful action (cancel and back out) stays reachable. The panel
+-- is torn down when the join completes (the game then loads in) or the player
+-- cancels. Both labels are stock engine keys, so no mod strings are added.
+
+local HOTJOIN_HANDLER = "StagingHotJoin"
+
+local function closeHotJoinPanel(reactivate)
+    return HandlerStack.drainAndRemove(HOTJOIN_HANDLER, reactivate)
+end
+
+local function hotJoinPanelPresent()
+    for i = HandlerStack.count(), 1, -1 do
+        local h = HandlerStack.at(i)
+        if h and h.name == HOTJOIN_HANDLER then
+            return true
+        end
+    end
+    return false
+end
+
+local function openHotJoinPanel()
+    if hotJoinPanelPresent() then
+        return
+    end
+    local h = BaseMenu.create({
+        name = HOTJOIN_HANDLER,
+        displayName = Text.key("TXT_KEY_JOINING_GAME_IN_PROGRESS"),
+        capturesAllInput = true,
+        items = {
+            BaseMenuItems.Button({
+                controlName = "HotJoinCancelButton",
+                textKey = "TXT_KEY_CANCEL_BUTTON",
+                activate = function()
+                    if type(BackButtonClick) == "function" then
+                        BackButtonClick()
+                    end
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+end
+
 -- Event listeners -----------------------------------------------------
 
 local handler
@@ -848,7 +1085,14 @@ local function resolveNick(playerID)
     return Text.key("TXT_KEY_PLAYER_TYPE_HUMAN")
 end
 
-local function onPreGameDirty()
+-- Re-snapshot every slot and speak the deltas against the prior snapshot.
+-- Driven by both PreGameDirty (civ / team / ready / option edits) and
+-- MultiplayerGamePlayerUpdated (the engine's catch-all for a player joining,
+-- disconnecting, or swapping slots -- base refreshes the whole roster off
+-- it). A connection coming up does not always dirty pregame, so PreGameDirty
+-- alone misses joins into reserved seats; this event catches them. Both share
+-- one snapshot, so whichever fires first announces and the other is a no-op.
+local function refreshAndAnnounce()
     if ContextPtr:IsHidden() then
         return
     end
@@ -892,7 +1136,33 @@ local function onDisconnect(playerID)
     if playerID == nil then
         return
     end
-    SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_DISCONNECT", resolveNick(playerID)))
+    -- Base distinguishes a host kick from a voluntary drop in its chat log;
+    -- mirror that so the player knows whether the host removed someone.
+    local key = "TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"
+    if Network.IsPlayerKicked(playerID) then
+        key = "TXT_KEY_CIVVACCESS_STAGING_KICKED"
+    end
+    SpeechPipeline.speakQueued(Text.format(key, resolveNick(playerID)))
+end
+
+-- Open the hot-join panel only when it is the LOCAL player joining in
+-- progress; the same event fires for remote hot-joiners (whose arrival is
+-- handled by the join announcement). Mirrors base OnHotJoinStarted's guard.
+local function onHotJoinStarted()
+    if ContextPtr:IsHidden() then
+        return
+    end
+    if not Network.IsPlayerHotJoining(Matchmaking.GetLocalID()) then
+        return
+    end
+    openHotJoinPanel()
+end
+
+local function onHotJoinCompleted()
+    -- Pop without reactivating the staging room: completion leads straight
+    -- into the game load, so re-announcing the screen would step on the
+    -- load-screen narration.
+    closeHotJoinPanel(false)
 end
 
 -- Listener installation is idempotent within one Context lifetime via a
@@ -916,7 +1186,13 @@ local function installListeners()
     Log.installEvent(
         Events,
         "PreGameDirty",
-        Log.safeListener("StagingRoomAccess.onPreGameDirty", onPreGameDirty),
+        Log.safeListener("StagingRoomAccess.onPreGameDirty", refreshAndAnnounce),
+        "StagingRoomAccess"
+    )
+    Log.installEvent(
+        Events,
+        "MultiplayerGamePlayerUpdated",
+        Log.safeListener("StagingRoomAccess.onPlayerUpdated", refreshAndAnnounce),
         "StagingRoomAccess"
     )
     Log.installEvent(
@@ -937,6 +1213,18 @@ local function installListeners()
         Log.safeListener("StagingRoomAccess.onDisconnect", onDisconnect),
         "StagingRoomAccess"
     )
+    Log.installEvent(
+        Events,
+        "MultiplayerHotJoinStarted",
+        Log.safeListener("StagingRoomAccess.onHotJoinStarted", onHotJoinStarted),
+        "StagingRoomAccess"
+    )
+    Log.installEvent(
+        Events,
+        "MultiplayerHotJoinCompleted",
+        Log.safeListener("StagingRoomAccess.onHotJoinCompleted", onHotJoinCompleted),
+        "StagingRoomAccess"
+    )
 end
 
 -- Install -------------------------------------------------------------
@@ -947,9 +1235,10 @@ local function wrappedShowHide(bIsHide, bIsInit)
         Log.error("StagingRoomAccess: priorShowHide failed: " .. tostring(err))
     end
     if bIsHide then
-        -- Auto-close the chat panel (+ any edit sub) so nothing orphans on
-        -- the stack when the user leaves StagingRoom with the panel open.
+        -- Auto-close the chat and hot-join panels so nothing orphans on the
+        -- stack when the user leaves StagingRoom with one of them open.
         closeChatPanel(false)
+        closeHotJoinPanel(false)
         return
     end
     -- Base ShowHideHandler calls StopCountdown() on every show (to clear any

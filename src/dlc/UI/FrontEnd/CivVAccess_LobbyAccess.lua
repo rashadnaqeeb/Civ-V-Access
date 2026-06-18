@@ -59,6 +59,60 @@ local function titlePreamble()
     return Text.controlText(Controls.TitleLabel, "LobbyAccess title")
 end
 
+-- Refresh announcements. The server list arrives asynchronously over several
+-- seconds after a refresh starts; the monkey-patched SortAndDisplayListings
+-- silently rebuilds the picker as servers stream in, but nothing tells the
+-- user when the list is loading or has settled. Speak a "refreshing" cue when
+-- a refresh begins (gated on IsRefreshingGameList so a stop / mode-switch
+-- clear stays quiet) and a "complete, N games" summary when it finishes.
+local listenersInstalled = false
+
+local function onListClear()
+    if ContextPtr:IsHidden() then
+        return
+    end
+    if Matchmaking.IsRefreshingGameList() then
+        SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_LOBBY_REFRESHING"))
+    end
+end
+
+local function onRefreshComplete()
+    if ContextPtr:IsHidden() then
+        return
+    end
+    local count = (type(g_Listings) == "table") and #g_Listings or 0
+    SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_LOBBY_REFRESH_DONE", count))
+end
+
+local function installListeners()
+    if listenersInstalled then
+        return
+    end
+    listenersInstalled = true
+    Log.installEvent(
+        Events,
+        "MultiplayerGameListClear",
+        Log.safeListener("LobbyAccess.onListClear", onListClear),
+        "LobbyAccess"
+    )
+    Log.installEvent(
+        Events,
+        "MultiplayerGameListComplete",
+        Log.safeListener("LobbyAccess.onRefreshComplete", onRefreshComplete),
+        "LobbyAccess"
+    )
+end
+
+local function wrappedShowHide(bIsHide, bIsInit)
+    local ok, err = pcall(priorShowHide, bIsHide, bIsInit)
+    if not ok then
+        Log.error("LobbyAccess: priorShowHide failed: " .. tostring(err))
+    end
+    if not bIsHide then
+        installListeners()
+    end
+end
+
 local pickerItems = Lobby.buildPickerItems(session.Entry, getHandler)
 
 mainHandler = session.install(ContextPtr, {
@@ -68,7 +122,7 @@ mainHandler = session.install(ContextPtr, {
     pickerTabName = "TXT_KEY_CIVVACCESS_LOBBY_SERVERS_TAB",
     readerTabName = "TXT_KEY_CIVVACCESS_LOBBY_DETAILS_TAB",
     emptyReaderText = Text.key("TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"),
-    priorShowHide = priorShowHide,
+    priorShowHide = wrappedShowHide,
     priorInput = priorInput,
     pickerItems = pickerItems,
 })

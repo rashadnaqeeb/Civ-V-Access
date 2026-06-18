@@ -1155,6 +1155,18 @@ end
 --                                    parent's list (screen-wide conditions
 --                                    like random-world-size hiding the
 --                                    slots group)
+--   keepWhenShown                    when true, the group stays navigable
+--                                    whenever its visibility control is
+--                                    shown, even with zero navigable
+--                                    children. For rows whose own label
+--                                    carries essential read-only state
+--                                    (e.g. an MP staging slot: after the
+--                                    host readies up every editable child
+--                                    hides, but the slot must stay reachable
+--                                    so the player can still review who is
+--                                    in it and whether they are ready).
+--                                    Requires a visibility control; ignored
+--                                    without one.
 --
 -- Groups are not leaves: activate drills; adjust is a no-op (Right drilling
 -- is handled by the menu container via kind checks).
@@ -1163,6 +1175,8 @@ end
 -- nav (Up/Down, cross-group jump, search corpus, first-valid-on-open) skips
 -- it so empty drillables don't appear in the list (e.g. a Wonders group on
 -- the production chooser disappears when the city has no wonders to build).
+-- The keepWhenShown opt-out reverses this for rows that must persist as a
+-- read-only label; drilling such an empty group just re-announces its label.
 -- For cached=false groups this re-evaluates each check, so children() may
 -- be invoked once per nav step; cached=true groups pay it once.
 
@@ -1175,6 +1189,7 @@ function BaseMenuItems.Group(spec)
         _items = spec.items,
         _itemsFn = spec.itemsFn,
         _cached = spec.cached ~= false,
+        _keepWhenShown = spec.keepWhenShown == true,
         _cache = nil,
     }
     if spec.visibilityControl ~= nil then
@@ -1190,6 +1205,9 @@ function BaseMenuItems.Group(spec)
     function item:isNavigable()
         if self._visibilityControl ~= nil and self._visibilityControl:IsHidden() then
             return false
+        end
+        if self._keepWhenShown and self._visibilityControl ~= nil then
+            return true
         end
         for _, child in ipairs(self:children()) do
             if child:isNavigable() then
@@ -1309,11 +1327,19 @@ function BaseMenuItems.Textfield(spec)
         spec.valueFn == nil or type(spec.valueFn) == "function",
         "Textfield '" .. tostring(spec.controlName) .. "' valueFn must be a function"
     )
+    Log.check(
+        spec.unitsFn == nil or type(spec.unitsFn) == "function",
+        "Textfield '" .. tostring(spec.controlName) .. "' unitsFn must be a function"
+    )
     local item = {
         kind = "textfield",
         _control = resolveControl(spec, "Textfield"),
         priorCallback = spec.priorCallback,
         valueFn = spec.valueFn,
+        -- Optional units/suffix read live and appended to the value, so a bare
+        -- number reads with its unit ("2 hours" / "90 seconds"). Used by the
+        -- MP turn-timer field, whose unit flips between hours and seconds.
+        _unitsFn = spec.unitsFn,
     }
     copyCommonFields(spec, item)
     if spec.visibilityControlName ~= nil then
@@ -1332,10 +1358,21 @@ function BaseMenuItems.Textfield(spec)
     item.isNavigable = isNavigable
     item.isActivatable = isActivatable
     function item:announce(menu)
+        local value = textfieldCurrentValue(self)
+        if self._unitsFn ~= nil then
+            local ok, units = pcall(self._unitsFn)
+            if not ok then
+                Log.error(
+                    "BaseMenuItems Textfield '" .. tostring(self.controlName) .. "' unitsFn failed: " .. tostring(units)
+                )
+            elseif units ~= nil and units ~= "" then
+                value = value .. " " .. tostring(units)
+            end
+        end
         return composeSpeech(self, {
             resolveLabel(self),
             Text.key("TXT_KEY_CIVVACCESS_TEXTFIELD_EDIT"),
-            textfieldCurrentValue(self),
+            value,
         })
     end
     function item:activate(menu)

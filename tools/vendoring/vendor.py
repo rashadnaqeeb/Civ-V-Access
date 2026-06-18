@@ -238,6 +238,13 @@ def vanilla_roots(game_dir):
     return [
         dir_root("BNW", os.path.join(assets, "DLC", "Expansion2", "UI")),
         dir_root("base", os.path.join(assets, "UI")),
+        # Shared-DLC UI, lowest precedence: consulted only for stems that
+        # exist nowhere in BNW or base (e.g. ChangeSmtpPassword, the pitboss
+        # SMTP-password modal, which ships only under DLC/Shared). Placed last
+        # so it never changes how an existing override resolves -- resolve_source
+        # returns the first root that ships a stem, and every other override's
+        # stem is found in BNW or base before this root is reached.
+        dir_root("shared", os.path.join(assets, "DLC", "Shared", "UI")),
     ]
 
 
