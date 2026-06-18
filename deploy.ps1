@@ -72,7 +72,7 @@ $dlcName          = 'DLC_CivVAccess'
 $dlcBackupDirName = "$dlcName.backup"  # sibling to DLC dir; holds vanilla file backups so they survive the dir nuke on redeploy
 $installManifestName = 'CivVAccess.install.json'
 $legacyDlcDirs    = @('CivVAccess')
-$modpackName      = 'ZCivVAccessVP'   # VP modpack package (deploy-modpack.ps1); removed when flipping to another state
+$modpackNames     = @('ZCivVAccessVP', 'ZCivVAccessCP')   # VP and CP modpack packages (deploy-modpack.ps1); removed when flipping to another state
 $legacyModDir     = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
 
 # Versions live in versions.json at repo root. The mod's own version is the
@@ -304,16 +304,19 @@ function Deploy-Dlc {
         }
     }
 
-    # A prior modpack deploy leaves its package at Assets\DLC\$modpackName.
-    # Unlike the inert VP MODS overlay, that package's Override/ GameData is
-    # auto-loaded by the engine for any DLC present, with no manifest directive
-    # or mod activation -- it would inject VP's full balance database into this
-    # vanilla session. Remove it so the flip out of modpack state is clean.
-    $modpackDir = Join-Path $Game "Assets\DLC\$modpackName"
-    if (Test-Path $modpackDir) {
-        Write-Host "Removing VP modpack package:"
-        Write-Host "  $modpackDir"
-        Remove-Item -LiteralPath $modpackDir -Recurse -Force
+    # A prior modpack deploy leaves its package at Assets\DLC\<modpack name>
+    # (VP or CP). Unlike the inert MODS overlay, that package's Override/
+    # GameData is auto-loaded by the engine for any DLC present, with no
+    # manifest directive or mod activation -- it would inject the modpack's full
+    # database into this vanilla session. Remove either so the flip out of
+    # modpack state is clean.
+    foreach ($name in $modpackNames) {
+        $modpackDir = Join-Path $Game "Assets\DLC\$name"
+        if (Test-Path $modpackDir) {
+            Write-Host "Removing modpack package:"
+            Write-Host "  $modpackDir"
+            Remove-Item -LiteralPath $modpackDir -Recurse -Force
+        }
     }
 
     # Capture the stock BNW manifest while it is still stock, then tear down any
@@ -538,7 +541,7 @@ function Invoke-Uninstall {
         }
     }
 
-    foreach ($name in @($dlcName, $modpackName) + $legacyDlcDirs) {
+    foreach ($name in @($dlcName) + $modpackNames + $legacyDlcDirs) {
         $p = Join-Path $Game "Assets\DLC\$name"
         if (Test-Path $p) {
             Write-Host "  Removing DLC: $p"

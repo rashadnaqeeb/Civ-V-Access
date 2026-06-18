@@ -249,6 +249,17 @@ def vp_roots(game_dir, mods_dir, clone_dir):
     ] + vanilla_roots(game_dir)
 
 
+def cp_roots(game_dir, mods_dir):
+    """The Community-Patch-only chain: CP's mod files over the vanilla
+    BNW/base chain, with no (2) Vox Populi folder and no VPUI. Those ship the
+    balance overhaul and its UI mod and are absent in a CP-only session, so a
+    file VP-but-not-CP overrides falls through to its vanilla body here -- the
+    drift report is then exactly the set of CP-divergent files."""
+    return [
+        mod_root("CP", os.path.join(mods_dir, "(1) Community Patch")),
+    ] + vanilla_roots(game_dir)
+
+
 def collect_overrides():
     """All committed vendor override files, relpaths under src/dlc/UI."""
     out = []
@@ -320,8 +331,15 @@ def build_file(entry, rel, roots, engine):
     """Returns (root, source_relpath, generated_bytes). An engine-named
     sub-object in the entry overrides prefix/suffix/edits for that engine
     (recipes are byte-exact against one engine's source, so another
-    engine's rewritten copy usually needs its own)."""
+    engine's rewritten copy usually needs its own). An engine sub-object of
+    the form {"alias": "<other>"} reuses that other engine's sub-object
+    verbatim -- used where two engines resolve to the identical modded body
+    (e.g. a Community-Patch-shipped file Vox Populi does not override, so the
+    vp recipe is really a CP-body recipe and cp must apply the same edits)."""
     over = entry.get(engine, {})
+    alias = over.get("alias")
+    if alias is not None:
+        over = entry.get(alias, {})
     root, (src_rel, src_abs) = resolve_source(entry, rel, roots, engine)
     body = read_bytes(src_abs)
     body = apply_edits(body, over.get("edits", entry.get("edits", [])), engine, rel)
@@ -581,6 +599,8 @@ def cmd_generate(args):
 
     if args.engine == "vp":
         roots = vp_roots(args.game, args.mods, args.clone)
+    elif args.engine == "cp":
+        roots = cp_roots(args.game, args.mods)
     elif args.engine == "vanilla":
         roots = vanilla_roots(args.game)
     else:
@@ -689,7 +709,7 @@ def main():
     sub.add_parser("verify", help="regenerate from vanilla and byte-compare")
 
     gen = sub.add_parser("generate", help="stage overrides for an engine")
-    gen.add_argument("--engine", required=True, choices=["vanilla", "vp"])
+    gen.add_argument("--engine", required=True, choices=["vanilla", "vp", "cp"])
     gen.add_argument(
         "--out",
         default=os.path.join(REPO_ROOT, "build", "vendor", "vp"),

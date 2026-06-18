@@ -2,9 +2,11 @@
 
 A running log of bugs we hit in Vox Populi's own code and data while building
 and playtesting the accessibility layer. These are defects in VP / Community
-Patch itself, not in our mod: each one affects sighted plain-VP players too.
-We record them here as candidates for a possible upstream pull request to the
-Community Patch Project (LoneGazebo/Community-Patch-DLL).
+Patch itself, not in our mod: each one affects sighted players on the
+configuration it occurs in (plain VP, or, for a few, Community-Patch-only with
+the balance overhaul off). We record them here as candidates for a possible
+upstream pull request to the Community Patch Project
+(LoneGazebo/Community-Patch-DLL).
 
 Scope note. This is about fixing VP's own bugs. It is separate from our engine
 fork's added Lua bindings, which we have deliberately chosen not to upstream
@@ -217,6 +219,43 @@ Pin at time of writing: Release-5.3.2 (`supported_vp` in `versions.json`).
   so our speech states the value.
 - Status: confirmed 2026-06-17, from the same playtest log; code read against
   the Release-5.3.2 clone.
+
+### Community Patch's Event Overview labels are defined only by Vox Populi
+
+- Location: `(1) Community Patch/Core Files/New UI/EventOverview.xml` references
+  the screen title and four tab labels at lines 19 (`Title`), 26
+  (`PlayerEvents`), 36 (`CityEvents`), 46 (`RecentEvents`), and 56
+  (`CityRecentEvents`). The five tags they name are defined only in
+  `(2) Vox Populi/Database Changes/Text/en_US/UI/NewUIText.xml` (rows around
+  line 3001 onward), not anywhere in the Community Patch mod.
+- Symptom: in a Community-Patch-only game (Vox Populi not active), the Events
+  Overview screen's title and its four tab buttons render as the raw keys
+  `TXT_KEY_EVENT_OVERVIEW`, `TXT_KEY_PLAYER_EVENT_INFORMATION`,
+  `TXT_KEY_CITY_EVENT_INFORMATION`, `TXT_KEY_RECENT_EVENT_INFORMATION`, and
+  `TXT_KEY_CITY_RECENT_EVENT_INFORMATION` instead of their labels.
+- Root cause: Community Patch ships the Event Overview itself (it registers the
+  `EventOverview` InGameUIAddin and ships `EventOverview.lua`/`.xml`) but ships
+  none of the text those labels resolve to. The five tags live only in Vox
+  Populi's text database, so with Community Patch loaded and Vox Populi not, the
+  `Locale` lookups miss and the engine renders the bare key. (The same packaging
+  split also leaves `TXT_KEY_RECENT_CHOICE_TT` / `TXT_KEY_RECENT_EVENT_TT`, the
+  tab tooltips, undefined under CP-only.)
+- Suggested fix: define the five label tags (and the two tooltip tags) in a
+  Community Patch text file, since Community Patch ships the screen that uses
+  them. Values, copied from Vox Populi: `TXT_KEY_EVENT_OVERVIEW` = "Events
+  Overview", `TXT_KEY_PLAYER_EVENT_INFORMATION` = "Player Choices",
+  `TXT_KEY_CITY_EVENT_INFORMATION` = "City Choices",
+  `TXT_KEY_RECENT_EVENT_INFORMATION` = "Player Events",
+  `TXT_KEY_CITY_RECENT_EVENT_INFORMATION` = "City Events".
+- Affects: sighted Community-Patch-only players (raw keys on the screen). Plain
+  VP is unaffected, because Vox Populi supplies the text. Low severity and
+  cosmetic: the event data tables (`Events`, `EventChoices`, `CityEvents`,
+  `CityEventChoices`) are also empty under CP-only, so the screen has no content
+  regardless, the labels are the only thing a CP-only player would reach.
+- Status: confirmed 2026-06-18, found while bringing up Community-Patch-only
+  support. The `EventOverview.xml` references were read directly against the
+  Release-5.3.2 clone; the five tags were confirmed absent from a CP-only merged
+  `Localization-Merged.db` and present only in Vox Populi's `NewUIText.xml`.
 
 ## Suspected
 

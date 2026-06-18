@@ -37,8 +37,8 @@ Use this before adding any mod-authored string. The project rule is "search the 
 
 `txt-keys/_extract.py` is the extractor. Re-run (`py _extract.py` from `llm-docs/txt-keys/`) when DLC changes or the include/exclude heuristics need tuning.
 
-### Vox Populi support — `vox-populi.md`
-Hand-authored, canonical reference for the Vox Populi layer: the support model and the three mutually exclusive install states, the EngineData seam and capability probes, the VP engine facts that constrain work (the approval/happiness model, times-100 reads, path-node differences, nullable DB columns), the patterns to carry forward, the vendoring tool and modpack bake, and the re-sync runbook. Read it before touching VP code, the seam, the vendoring tool, or the deploy/modpack scripts. It holds only durable facts; the current version pin lives in `versions.json` as `supported_vp`, not in the doc.
+### Community Patch / Vox Populi support — `cp-vp-support.md`
+Hand-authored, canonical reference for the whole Community-Patch-DLL support layer (Community-Patch-only and Vox Populi): the support model and the four mutually exclusive install states, the EngineData seam and capability probes (including the CP-present-vs-balance-on conflation pattern), the CP/VP engine facts that constrain work (the approval/happiness model, times-100 reads, path-node differences, nullable DB columns), the patterns to carry forward, the vendoring tool (per-engine trees plus the `alias` mechanism) and modpack bake, and the re-sync runbook. Read it before touching CP/VP code, the seam, the vendoring tool, or the deploy/modpack scripts. It holds only durable facts; the current version pin lives in `versions.json` as `supported_vp`, not in the doc.
 
 ### External resources — `external-resources.md`
 URLs for community references that supplement the local files: Civfanatics modiki, Whoward's BNW Lua reference (parsed from DLL C++, more authoritative than the SDK HTML stub), Vox Populi / EUI / IGE source repos.

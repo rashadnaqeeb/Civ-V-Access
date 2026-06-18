@@ -213,6 +213,9 @@
           }
         ],
         "suffix": "\r\n-- Civ V Access: accessibility wiring for the CityView screen.\r\ninclude(\"CivVAccess_CityViewAccess\")\r\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/CivilopediaScreen.lua": {
@@ -374,6 +377,9 @@
           }
         ],
         "suffix": "\n-- Civ V Access accessibility mod bootstrap.\ninclude(\"CivVAccess_ChoosePantheonPopupAccess\")\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/Popups/ChooseReligionPopup.lua": {
@@ -434,6 +440,9 @@
           }
         ],
         "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ChooseReligionPopupAccess\")\r\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/Popups/ChooseTradeUnitNewHome.lua": {
@@ -442,19 +451,22 @@
     "InGame/Popups/ChooseTradeUnitNewHome.xml": {},
     "InGame/Popups/CityEventPopup.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a mod UI addin and does not exist on vanilla\r\n-- installs).\r\ninclude(\"CivVAccess_CityEventPopupAccess\")\r\n"
     },
     "InGame/Popups/CityEventsInfo.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
     },
     "InGame/Popups/CityRecentEventsInfo.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
     },
@@ -508,7 +520,8 @@
     "InGame/Popups/EndGameMenu.xml": {},
     "InGame/Popups/EspionageChoicePopup.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EspionageChoicePopupAccess\")\r\n"
     },
@@ -559,29 +572,36 @@
       "vp": {
         "edits": [],
         "suffix": "\n\n-- CivVAccess: append accessibility wrapper.\ninclude(\"CivVAccess_EspionageOverviewAccess\")\n"
+      },
+      "cp": {
+        "edits": []
       }
     },
     "InGame/Popups/EventChoicePopup.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EventChoicePopupAccess\")\r\n"
     },
     "InGame/Popups/EventChoicePopupCity.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EventChoicePopupCityAccess\")\r\n"
     },
     "InGame/Popups/EventOverview.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a Community Patch UI addin and does not exist on\r\n-- vanilla installs).\r\ninclude(\"CivVAccess_EventOverviewAccess\")\r\n"
     },
     "InGame/Popups/EventPopup.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is a mod UI addin and does not exist on vanilla\r\n-- installs).\r\ninclude(\"CivVAccess_EventPopupAccess\")\r\n"
     },
@@ -676,11 +696,15 @@
           }
         ],
         "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_NotificationLogPopupAccess\")\r\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/Popups/PlayerEventsInfo.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
     },
@@ -706,6 +730,9 @@
           }
         ],
         "suffix": "\r\ninclude(\"CivVAccess_ChooseProductionPopupAccess\");\r\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/Popups/RandomVCPopup.lua": {
@@ -716,7 +743,8 @@
     },
     "InGame/Popups/RecentEventsInfo.lua": {
       "engines": [
-        "vp"
+        "vp",
+        "cp"
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (Vox Populi engine only;\r\n-- this Context is an EventOverview panel from the Community Patch and\r\n-- does not exist on vanilla installs).\r\ninclude(\"CivVAccess_EventPanelProbe\")\r\n"
     },
@@ -757,6 +785,9 @@
           }
         ],
         "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_TechAwardPopupAccess\")"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/Popups/TechPopup.lua": {
@@ -777,6 +808,9 @@
           }
         ],
         "suffix": "include(\"CivVAccess_ChooseTechPopupAccess\");\r\n\r\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/Popups/TextPopup.lua": {
@@ -835,6 +869,9 @@
           }
         ],
         "suffix": "\r\n-- Civ V Access: accessible Map Options menu (Ctrl+M). Seated here so the\r\n-- panel-local GetMapOptions / On*Checked handlers and strategic-view\r\n-- setters are in reach; opened via a LuaEvents bridge from Baseline.\r\ninclude(\"CivVAccess_MiniMapPanelAccess\")\r\n"
+      },
+      "cp": {
+        "alias": "vp"
       }
     },
     "InGame/WorldView/SimpleDiploTrade.lua": {

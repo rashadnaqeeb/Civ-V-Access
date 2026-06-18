@@ -37,11 +37,16 @@ from pathlib import Path
 import dump_db
 
 
-def check_clean_db(gameplay_db, allow_squads):
-    """Refuse to bake a database that isn't a clean CP+VP merge: VP balance
-    must be on, and Squads (not part of plain VP) must be off. A modpack
-    session's own cache bakes whatever that pack carried, so this also guards
-    against building from a contaminated cache."""
+def check_clean_db(gameplay_db, allow_squads, cp_only):
+    """Refuse to bake a database that isn't the expected merge.
+
+    Full VP (default): VP balance must be on (BALANCE_VP=1), Squads off.
+    CP-only (--community-patch-only): the Community Patch DLL must be present
+    (the CustomModOptions table exists, which only the CP/VP DLL creates) but
+    VP balance must be OFF (BALANCE_VP != 1) -- otherwise this is a VP merge
+    mislabelled, or a plain-vanilla cache. A modpack session's own cache bakes
+    whatever that pack carried, so this also guards against a contaminated
+    cache."""
     con = sqlite3.connect(gameplay_db)
     try:
         def opt(name):
@@ -49,10 +54,28 @@ def check_clean_db(gameplay_db, allow_squads):
                 "SELECT Value FROM CustomModOptions WHERE Name=?", (name,)
             ).fetchone()
             return r[0] if r else None
-        balance, squads = opt("BALANCE_VP"), opt("SQUADS")
+        try:
+            cp_present = con.execute(
+                "SELECT count(*) FROM CustomModOptions").fetchone()[0] > 0
+            balance, squads = opt("BALANCE_VP"), opt("SQUADS")
+        except sqlite3.OperationalError:
+            # No CustomModOptions table at all -> plain vanilla cache.
+            cp_present, balance, squads = False, None, None
     finally:
         con.close()
-    print(f"  cache DB options: BALANCE_VP={balance} SQUADS={squads}")
+    print(f"  cache DB options: CP_present={cp_present} BALANCE_VP={balance} "
+          f"SQUADS={squads}")
+    if cp_only:
+        if not cp_present:
+            raise SystemExit(
+                "Database has no Community Patch DLL merge (CustomModOptions "
+                "absent). Play a clean Community-Patch-only session through the "
+                "Mods menu first.")
+        if balance == 1:
+            raise SystemExit(
+                "Database is a Vox Populi merge (BALANCE_VP=1), not Community "
+                "Patch only. Enable ONLY (1) Community Patch and replay.")
+        return
     if balance != 1:
         raise SystemExit(
             f"Database is not a VP merge (BALANCE_VP={balance}). Play a clean "
@@ -63,7 +86,11 @@ def check_clean_db(gameplay_db, allow_squads):
             "and replay a clean CP+VP session, or pass --allow-squads.")
 
 # Net-new contexts and gameplay/overlay addins, loaded by bare stem. Squads is
-# excluded (not part of plain VP). Kept in the reference pack's order.
+# excluded (not part of plain VP). Kept in the reference pack's order. The full
+# (VP) list is the union of Community Patch's InGameUIAddin set and Vox Populi's;
+# CP_ADDINS is exactly the (1) Community Patch InGameUIAddin set, so a CP-only
+# pack loads no Corporations / Vassalage / RandomVC / antiquities-overlay
+# contexts (all registered by Vox Populi, not Community Patch).
 ADDINS = [
     "CameraView", "EventChoicePopupCity", "CityEventPopup", "Destination",
     "EspionageChoicePopup", "EventPopup", "EventChoicePopup", "EventOverview",
@@ -71,9 +98,15 @@ ADDINS = [
     "GlobalArchaeologistDigSites", "OverlayAntiquities_MiniMapOverlayHook",
     "OverlayAntiquities", "RandomVCPopup", "VassalageOverview",
 ]
+CP_ADDINS = [
+    "CameraView", "EventChoicePopupCity", "CityEventPopup", "Destination",
+    "EspionageChoicePopup", "EventPopup", "EventChoicePopup", "EventOverview",
+    "GlobalCityBombardRange",
+]
 
 # Mod folders to embed, in load order. Names match the clone's folders.
 EMBED_MODS = ["(1) Community Patch", "(2) Vox Populi"]
+CP_EMBED_MODS = ["(1) Community Patch"]
 # The folder whose gamecore DLL we replace with our fork.
 DLL_MOD = "(1) Community Patch"
 
@@ -94,10 +127,10 @@ MANIFEST = """\
         <Tag>Version</Tag>
     </PTags>
     <Name>
-        <Value language="en_US">Civ V Access - Vox Populi</Value>
+        <Value language="en_US">{name}</Value>
     </Name>
     <Description>
-        <Value language="en_US">Vox Populi baked as DLC for Civ V Access (no EUI).</Value>
+        <Value language="en_US">{desc}</Value>
     </Description>
     <UISkin name="Expansion2Primary" set="Expansion2" platform="Common">
         <GameplaySkin>
@@ -108,8 +141,16 @@ MANIFEST = """\
 </Civ5Package>
 """
 
-# Stable GUID for our modpack package. Distinct from our DLC's and the engine's.
+# Stable GUIDs for our modpack packages, distinct from our DLC's and the
+# engine's, and distinct from each other (the VP and CP-only packs are separate
+# DLCs and must never collide on the DLC list).
 MODPACK_GUID = "C1FAC355-0000-4D0D-9ACC-E550564F5001"
+CP_MODPACK_GUID = "C1FAC355-0000-4D0D-9ACC-E550564F5002"
+
+PACK_NAME_VP = "Civ V Access - Vox Populi"
+PACK_DESC_VP = "Vox Populi baked as DLC for Civ V Access (no EUI)."
+PACK_NAME_CP = "Civ V Access - Community Patch"
+PACK_DESC_CP = "Community Patch baked as DLC for Civ V Access (no EUI, no balance overhaul)."
 
 
 def versioned_name(clone_mod_dir):
@@ -142,10 +183,10 @@ def build_override(out, gameplay_db, text_db):
     print(f"  Override: {len(stubs)} stubs + {aux} aux + {nt} tables + {ns} strings")
 
 
-def embed_mods(out, clone, fork_dll):
+def embed_mods(out, clone, fork_dll, embed_mods_list):
     mods = out / "Mods"
     mods.mkdir(parents=True, exist_ok=True)
-    for name in EMBED_MODS:
+    for name in embed_mods_list:
         src = Path(clone) / name
         if not src.is_dir():
             raise SystemExit(f"Clone mod folder missing: {src}")
@@ -157,7 +198,20 @@ def embed_mods(out, clone, fork_dll):
             print(f"    fork DLL placed in {dst.name}")
 
 
-def build_ui(out, base_ingame):
+def assert_addins_present(out, addins):
+    """Fail loudly if an addin stem no longer resolves to a file in the embedded
+    Mods tree -- a re-pin that renamed or dropped a context would otherwise bake
+    a LoadNewContext for a stem the VFS can't serve, a silent no-op screen."""
+    mods = out / "Mods"
+    have = {p.stem for p in mods.rglob("*.lua")} | {p.stem for p in mods.rglob("*.xml")}
+    missing = [a for a in addins if a not in have]
+    if missing:
+        raise SystemExit(
+            "Addin stems not found in embedded mods (re-pin drift?): "
+            + ", ".join(missing))
+
+
+def build_ui(out, base_ingame, addins):
     ui = out / "UI"
     ui.mkdir(parents=True, exist_ok=True)
     body = Path(base_ingame).read_text(encoding="utf-8", errors="surrogateescape")
@@ -168,17 +222,17 @@ def build_ui(out, base_ingame):
         "-- returns nothing, so load them explicitly by stem. (Our DLC's InGame",
         "-- override carries the same appends and wins by priority when present.)",
     ]
-    appends += [f'ContextPtr:LoadNewContext("{a}")' for a in ADDINS]
+    appends += [f'ContextPtr:LoadNewContext("{a}")' for a in addins]
     out_text = body.rstrip("\n") + "\n" + "\n".join(appends) + "\n"
     (ui / "InGame.lua").write_text(out_text, encoding="utf-8",
                                    errors="surrogateescape")
-    print(f"  UI/InGame.lua: base + {len(ADDINS)} addin appends")
+    print(f"  UI/InGame.lua: base + {len(addins)} addin appends")
 
 
-def write_manifest(out):
+def write_manifest(out, guid, name, desc):
     (out / "MPModsPack.Civ5Pkg").write_text(
-        MANIFEST.format(guid=MODPACK_GUID), encoding="utf-8")
-    print("  MPModsPack.Civ5Pkg written")
+        MANIFEST.format(guid=guid, name=name, desc=desc), encoding="utf-8")
+    print(f"  MPModsPack.Civ5Pkg written ({name})")
 
 
 def main():
@@ -194,21 +248,33 @@ def main():
                     help="skip the heavy Mods/ copy (iterate on the rest)")
     ap.add_argument("--allow-squads", action="store_true",
                     help="bake even if the DB has Squads enabled (not plain VP)")
+    ap.add_argument("--community-patch-only", action="store_true",
+                    help="bake a Community-Patch-only pack (no Vox Populi mod, "
+                         "CP addin set, CP merged DB) instead of full VP")
     args = ap.parse_args()
 
-    print(f"Building modpack at {args.out}")
-    check_clean_db(args.gameplay_db, args.allow_squads)
+    cp_only = args.community_patch_only
+    addins = CP_ADDINS if cp_only else ADDINS
+    embed = CP_EMBED_MODS if cp_only else EMBED_MODS
+    guid = CP_MODPACK_GUID if cp_only else MODPACK_GUID
+    name = PACK_NAME_CP if cp_only else PACK_NAME_VP
+    desc = PACK_DESC_CP if cp_only else PACK_DESC_VP
+
+    print(f"Building {'Community Patch' if cp_only else 'Vox Populi'} modpack "
+          f"at {args.out}")
+    check_clean_db(args.gameplay_db, args.allow_squads, cp_only)
     out = Path(args.out)
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
     build_override(out, args.gameplay_db, args.text_db)
     if not args.skip_embed:
-        embed_mods(out, args.clone, args.fork_dll)
+        embed_mods(out, args.clone, args.fork_dll, embed)
+        assert_addins_present(out, addins)
     else:
         print("  (skipped Mods/ embed)")
-    build_ui(out, args.base_ingame)
-    write_manifest(out)
+    build_ui(out, args.base_ingame, addins)
+    write_manifest(out, guid, name, desc)
     print("Done.")
 
 

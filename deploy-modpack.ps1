@@ -48,6 +48,15 @@
 .PARAMETER SkipCinematics
     Skip the audio-described BNW opening cinematics.
 
+.PARAMETER CommunityPatchOnly
+    Deploy the Community-Patch-only modpack (no Vox Populi balance overhaul)
+    instead of full VP: the cp vendor stage (build/vendor/cp), the CP-only
+    baked package (build/modpack-cp-out, placed at Assets/DLC/ZCivVAccessCP),
+    and the Community Patch InGameUIAddin set. The EngineData seam body is the
+    same (it feature-detects BALANCE_VP at runtime). No plain-VP base
+    completion is performed. This is a fourth exclusive install state. Build
+    its package first with build-modpack.ps1 -CommunityPatchOnly.
+
 .PARAMETER Uninstall
     Remove the proxy stack, our DLC, the modpack package, and the cinematics
     (restoring stock files from backup). The plain-VP install pieces (VPUI,
@@ -59,6 +68,7 @@ param(
     [string]$ClonePath,
     [switch]$SkipProxy,
     [switch]$SkipCinematics,
+    [switch]$CommunityPatchOnly,
     [switch]$Uninstall
 )
 
@@ -69,13 +79,22 @@ $proxyDistDir     = Join-Path $repoRoot 'dist\proxy'
 $tolkDistDir      = Join-Path $repoRoot 'third_party\tolk\dist\x86'
 $cinematicSrcDir  = Join-Path $repoRoot 'audio described intros'
 $dlcSrcDir        = Join-Path $repoRoot 'src\dlc'
+# CP-only reuses the same EngineData seam body: it feature-detects BALANCE_VP at
+# runtime, so the VP body is numerically correct under Community Patch too.
 $vpSeamSrcFile    = Join-Path $repoRoot 'src\vp\CivVAccess_EngineData.lua'
-$vendorStageDir   = Join-Path $repoRoot 'build\vendor\vp'
+# CP-only and full VP read their own vendor stage and baked package.
+$engineLabel      = if ($CommunityPatchOnly) { 'Community Patch' } else { 'Vox Populi' }
+$vendorStageDir   = Join-Path $repoRoot ($(if ($CommunityPatchOnly) { 'build\vendor\cp' } else { 'build\vendor\vp' }))
+$vendorEngineArg  = if ($CommunityPatchOnly) { 'cp' } else { 'vp' }
 $soundsSrcDir     = Join-Path $repoRoot 'sounds'
-$modpackBuildDir  = Join-Path $repoRoot 'build\modpack-out'
+$modpackBuildDir  = Join-Path $repoRoot ($(if ($CommunityPatchOnly) { 'build\modpack-cp-out' } else { 'build\modpack-out' }))
 $vpRuntimeDir     = Join-Path $repoRoot 'build\vp-runtime'   # tester bundle: VP-completion assets, no clone needed
 $dlcName          = 'DLC_CivVAccess'
-$modpackName      = 'ZCivVAccessVP'   # sorts after Expansion2; priority 300 in its manifest
+# Distinct DLC folders so the CP and VP packages never collide. Only one is
+# installed at a time (the states are exclusive); a deploy removes both before
+# placing the active one, and uninstall removes both.
+$modpackName      = if ($CommunityPatchOnly) { 'ZCivVAccessCP' } else { 'ZCivVAccessVP' }
+$allModpackNames  = @('ZCivVAccessVP', 'ZCivVAccessCP')
 $dlcBackupDirName = "$dlcName.backup"
 $installManifestName = 'CivVAccess.install.json'
 $ourDlcPriority   = 350               # beats the modpack's 300
@@ -112,7 +131,25 @@ $tolkFiles     = @(
 
 # Gated explicit addin loads for the modpack (DLC) flow. Net-new VP/CP contexts
 # (Squads dropped). Appended to our DLC's InGame.lua, which wins at priority 350.
-$ingameAddinBlock = @'
+# The list must match build_modpack.py's ADDINS/CP_ADDINS for the matching mode
+# (the modpack's own UI/InGame.lua uses that copy; ours wins by priority).
+# CP-only loads only Community Patch's InGameUIAddin set -- no Corporations /
+# Vassalage / RandomVC / antiquities-overlay contexts (those are Vox Populi's).
+$vpAddins = @(
+	'CameraView', 'EventChoicePopupCity', 'CityEventPopup', 'Destination',
+	'EspionageChoicePopup', 'EventPopup', 'EventChoicePopup', 'EventOverview',
+	'GlobalCityBombardRange', 'CBP_IncaFunctions', 'CorporationsOverview',
+	'GlobalArchaeologistDigSites', 'OverlayAntiquities_MiniMapOverlayHook',
+	'OverlayAntiquities', 'RandomVCPopup', 'VassalageOverview'
+)
+$cpAddins = @(
+	'CameraView', 'EventChoicePopupCity', 'CityEventPopup', 'Destination',
+	'EspionageChoicePopup', 'EventPopup', 'EventChoicePopup', 'EventOverview',
+	'GlobalCityBombardRange'
+)
+$activeAddins = if ($CommunityPatchOnly) { $cpAddins } else { $vpAddins }
+$addinLuaList = ($activeAddins | ForEach-Object { "`t`t`"$_`"," }) -join "`r`n"
+$ingameAddinBlock = @"
 
 -- Civ V Access modpack: load net-new VP/CP contexts explicitly. Under a DLC
 -- modpack the engine's activated-mod addin loop (above) is inert and loads
@@ -121,17 +158,13 @@ $ingameAddinBlock = @'
 -- not double-load and a vanilla game is untouched.
 if Game and Game.IsCustomModOption ~= nil and (g_uiAddins == nil or #g_uiAddins == 0) then
 	local civvaccess_modpack_addins = {
-		"CameraView", "EventChoicePopupCity", "CityEventPopup", "Destination",
-		"EspionageChoicePopup", "EventPopup", "EventChoicePopup", "EventOverview",
-		"GlobalCityBombardRange", "CBP_IncaFunctions", "CorporationsOverview",
-		"GlobalArchaeologistDigSites", "OverlayAntiquities_MiniMapOverlayHook",
-		"OverlayAntiquities", "RandomVCPopup", "VassalageOverview",
+$addinLuaList
 	}
 	for _, ctx in ipairs(civvaccess_modpack_addins) do
 		ContextPtr:LoadNewContext(ctx)
 	end
 end
-'@
+"@
 
 function Write-VersionLua {
     param([string]$DlcRoot)
@@ -255,8 +288,8 @@ function Deploy-ProxyStack {
 function Deploy-DlcModpack {
     param([string]$Game)
     $vendorUi = Join-Path $vendorStageDir 'UI'
-    if (-not (Test-Path $vendorUi)) { throw "VP vendor stage missing: $vendorUi. Run: py tools/vendoring/vendor.py generate --engine vp" }
-    if (-not (Test-Path $vpSeamSrcFile)) { throw "VP EngineData seam missing: $vpSeamSrcFile" }
+    if (-not (Test-Path $vendorUi)) { throw "$engineLabel vendor stage missing: $vendorUi. Run: py tools/vendoring/vendor.py generate --engine $vendorEngineArg" }
+    if (-not (Test-Path $vpSeamSrcFile)) { throw "EngineData seam missing: $vpSeamSrcFile" }
 
     $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
     if (Test-Path $dlcDir) {
@@ -302,13 +335,19 @@ function Deploy-DlcModpack {
 function Deploy-ModpackPackage {
     param([string]$Game)
     if (-not (Test-Path (Join-Path $modpackBuildDir 'MPModsPack.Civ5Pkg'))) {
-        throw "Built modpack missing at $modpackBuildDir. Run build-modpack.ps1 first."
+        $buildFlag = if ($CommunityPatchOnly) { ' -CommunityPatchOnly' } else { '' }
+        throw "Built modpack missing at $modpackBuildDir. Run build-modpack.ps1$buildFlag first."
+    }
+    # Remove BOTH the CP and VP packages so the states stay exclusive (a prior
+    # deploy of the other mode would otherwise leave its package on the DLC list).
+    foreach ($name in $allModpackNames) {
+        $old = Join-Path $Game "Assets\DLC\$name"
+        if (Test-Path $old) {
+            Write-Host "  Removing existing modpack package: $old"
+            Remove-Item -LiteralPath $old -Recurse -Force
+        }
     }
     $dst = Join-Path $Game "Assets\DLC\$modpackName"
-    if (Test-Path $dst) {
-        Write-Host "  Removing existing modpack package: $dst"
-        Remove-Item -LiteralPath $dst -Recurse -Force
-    }
     Write-Host "Placing modpack package (embeds the fork DLL):"
     Write-Host "  $modpackBuildDir -> $dst"
     Copy-Item -LiteralPath $modpackBuildDir -Destination $dst -Recurse -Force
@@ -337,7 +376,7 @@ function Write-InstallManifest {
         schema_version = 1
         mod_version    = $modVersion
         profile        = 'blind'
-        variant        = 'modpack'
+        variant        = if ($CommunityPatchOnly) { 'modpack-cp' } else { 'modpack' }
         installed_at   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
         modpack        = "Assets/DLC/$modpackName"
     }
@@ -355,7 +394,7 @@ function Invoke-Uninstall {
         Write-Host "  Restored stock lua51_Win32.dll"
     }
     foreach ($f in $tolkFiles) { $p = Join-Path $Game $f; if (Test-Path $p) { Remove-Item -LiteralPath $p -Force } }
-    foreach ($name in @($dlcName, $modpackName)) {
+    foreach ($name in (@($dlcName) + $allModpackNames)) {
         $d = Join-Path $Game "Assets\DLC\$name"
         if (Test-Path $d) { Write-Host "  Removing $d"; Remove-Item -LiteralPath $d -Recurse -Force }
     }
@@ -391,7 +430,12 @@ if ($Uninstall) {
     return
 }
 
-Complete-VPInstall -Game $gameDir
+# A CP-only modpack needs no plain-VP base completion: its package embeds the
+# whole Community Patch mod and the merged DB, and CP uses the stock BNW
+# Expansion2 package and sound tables (Expansion2_Base.Civ5Pkg differs from VP's
+# only by the minor-civ sound table, which CP does not add). VPUI and the VP
+# sound table / tips are Vox Populi assets and are not wanted here.
+if (-not $CommunityPatchOnly) { Complete-VPInstall -Game $gameDir }
 if (-not $SkipProxy) { Deploy-ProxyStack -Game $gameDir } else { Write-Host "Skipping proxy stack (-SkipProxy)." }
 Deploy-DlcModpack -Game $gameDir
 Deploy-ModpackPackage -Game $gameDir
@@ -399,10 +443,10 @@ if (-not $SkipCinematics) { Deploy-Cinematics -Game $gameDir } else { Write-Host
 Write-InstallManifest -Game $gameDir
 
 Write-Host ""
-Write-Host "Modpack deploy complete."
+Write-Host "$engineLabel modpack deploy complete."
 Write-Host "  Game dir: $gameDir"
-Write-Host "  Version : $modVersion (modpack variant)"
+Write-Host "  Version : $modVersion (modpack variant: $engineLabel)"
 Write-Host ""
 Write-Host "Launch from the regular Single Player menu (do NOT enable any mods)."
-Write-Host "This install state is exclusive with deploy.ps1 (vanilla) and"
-Write-Host "deploy-vp.ps1 (VP mod flow)."
+Write-Host "This install state is exclusive with deploy.ps1 (vanilla),"
+Write-Host "deploy-vp.ps1 (VP mod flow), and the other modpack mode."

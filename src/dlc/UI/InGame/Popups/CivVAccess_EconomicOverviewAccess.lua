@@ -262,10 +262,13 @@ end
 -- hangs the breakdown (GetCityUnhappinessBreakdown) on the row tooltip,
 -- showing HP only as a separate health bar. User call (2026-06-13): the VP
 -- column carries unhappiness only -- HP stays on the cursor and Military
--- Overview. Both unhappiness getters are CP-only, reached only on the
--- isCP() branch.
+-- Overview. The unhappiness getters belong to the VP balance happiness model
+-- (per-city aggregated unhappiness); a Community-Patch-only session runs the
+-- vanilla surplus model and its EconomicGeneralInfo shows strength, so gate on
+-- the approval mode (the seam's balance discriminator), not bare CP-DLL
+-- presence.
 local function strengthOrUnhappinessColumn()
-    if isCP() then
+    if Game.IsCustomModOption ~= nil and Game.IsCustomModOption("BALANCE_VP") then
         return {
             name = "TXT_KEY_CIVVACCESS_EO_COL_UNHAPPINESS",
             getCell = function(c)

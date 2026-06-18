@@ -1505,11 +1505,11 @@ local function buildHubItems(city)
     end
     items[#items + 1] = unemployedItem
     items[#items + 1] = buildBuildingsGroup(city)
-    -- CP engines only: the corporations section header key lives in CP's
-    -- text database, so don't even build (and key-lookup) on vanilla,
-    -- where the IsCorporation column is nil and the group would be empty
-    -- anyway.
-    if Game.IsCustomModOption ~= nil then
+    -- Corporations are a Vox Populi balance system; a Community-Patch-only or
+    -- vanilla session has none, so the group would be empty (and on vanilla
+    -- the header key and IsCorporation column are absent entirely). Gate on VP
+    -- balance so the section appears only where corporations can exist.
+    if Game.IsCustomModOption ~= nil and Game.IsCustomModOption("BALANCE_VP") then
         items[#items + 1] = buildCorporationsGroup(city)
     end
     items[#items + 1] = buildWondersGroup(city)

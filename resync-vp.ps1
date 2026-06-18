@@ -40,23 +40,32 @@
               the install in mod-overlay state; the modpack phase lands it
               back in the player-facing state.
 
-      modpack The terminal phase. After a clean CP+VP session has produced a
+      modpack A terminal phase. After a clean CP+VP session has produced a
               fresh merged database (build-modpack refuses a modpack-launch
-              cache), bake the modpack and deploy it, leaving the install in
-              the player-facing modpack state where the play audit runs.
+              cache), bake the VP modpack and deploy it, leaving the install in
+              the player-facing VP modpack state where the play audit runs.
+
+      cp-modpack
+              The other terminal phase, for the Community-Patch-only modpack.
+              It reuses the same re-pinned fork DLL, CP body, and cp vendor
+              stage, but bakes from a DIFFERENT cache -- a CP-only session
+              (BALANCE_VP off), not the CP+VP session the VP modpack uses --
+              so it cannot share the modpack phase's run. Produce a CP-only
+              merged DB first (flip to vanilla, enable ONLY (1) Community Patch
+              through the Mods menu, play to the map, quit), then run this.
 
     With no -Phase, the script runs engine, mods, and vendor, then stops with
-    the review checklist and the exact finish command. finish and modpack are
-    never part of an unattended run.
+    the review checklist and the exact finish command. finish, modpack, and
+    cp-modpack are never part of an unattended run.
 
 .PARAMETER NewTag
     The Community-Patch-DLL release tag to pin to (e.g. Release-5.3.3). Pass
     the current pin to dry-run the plumbing as a near no-op smoke test.
 
 .PARAMETER Phase
-    Run a single phase (engine | mods | vendor | finish | modpack) instead of
-    the default engine->mods->vendor sequence. Use to resume after fixing a
-    recipe or to re-run a step.
+    Run a single phase (engine | mods | vendor | finish | modpack | cp-modpack)
+    instead of the default engine->mods->vendor sequence. Use to resume after
+    fixing a recipe or to re-run a step.
 
 .PARAMETER ClonePath
     Path to the Community-Patch-DLL clone (fork branch civvaccess). Defaults
@@ -79,7 +88,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$NewTag,
-    [ValidateSet('engine', 'mods', 'vendor', 'finish', 'modpack')]
+    [ValidateSet('engine', 'mods', 'vendor', 'finish', 'modpack', 'cp-modpack')]
     [string]$Phase,
     [string]$ClonePath,
     [string]$ModsDir,
@@ -257,6 +266,12 @@ function Invoke-VendorPhase {
         throw "vendor generate exited $LASTEXITCODE -- a recipe no longer applies to the new tag's source. Read $vendorStage\vendor-report.txt (the 'NOT generated' list), author the per-engine recipe fix in the manifest, then re-run -Phase vendor."
     }
 
+    Write-Step "Vendor generate (re-stage Community-Patch-only overlay)"
+    & py $vendorScript generate --engine cp --mods $ClonePath --out (Join-Path $repoRoot 'build\vendor\cp')
+    if ($LASTEXITCODE -ne 0) {
+        throw "vendor generate --engine cp exited $LASTEXITCODE -- a cp recipe no longer applies (or a cp alias-to-vp reuse broke). Read build\vendor\cp\vendor-report.txt, fix the cp/alias manifest entry, then re-run -Phase vendor."
+    }
+
     New-Item -ItemType Directory -Force -Path $reviewDir | Out-Null
     $diffPath = Join-Path $reviewDir 'lua-binding-diff.txt'
     Write-Host "Writing the Lua-binding value audit ($OldTag..$NewTag) to $diffPath"
@@ -302,9 +317,12 @@ which cannot load modpack saves. Still by hand, per the release prerequisites:
   - restate the supported VP version in the release notes / CHANGELOG
   - play one clean CP+VP session through the Mods menu (Squads off) to produce
     the merged database
-  - run ./resync-vp.ps1 -NewTag $NewTag -Phase modpack to bake the modpack and
-    deploy it -- this lands the install back in player-facing modpack state,
-    where the play audit then runs
+  - run ./resync-vp.ps1 -NewTag $NewTag -Phase modpack to bake the VP modpack
+    and deploy it -- this lands the install back in player-facing modpack
+    state, where the VP play audit then runs
+  - to keep the Community-Patch-only modpack current too: flip to vanilla,
+    play one session with ONLY (1) Community Patch enabled to produce a CP-only
+    merged DB, then run ./resync-vp.ps1 -NewTag $NewTag -Phase cp-modpack
   - once satisfied, delete the $backupBranch snapshot in the clone
   - commit dist/engine-vp + versions.json + any manifest recipe fixes
 "@
@@ -324,6 +342,27 @@ function Invoke-ModpackPhase {
     Write-Host "Install is now in player-facing modpack state. Run the play audit here." -ForegroundColor Green
 }
 
+function Invoke-CpModpackPhase {
+    # The Community-Patch-only modpack rides the same re-pinned fork DLL, CP
+    # body, and cp vendor stage, but it bakes from a DIFFERENT cache: a
+    # Community-Patch-only session (BALANCE_VP off), not the CP+VP session the
+    # VP modpack uses. So it is its own terminal phase, run after a separate
+    # manual CP-only merged-DB session (flip to vanilla, enable ONLY (1)
+    # Community Patch through the Mods menu, start a game to the map, quit).
+    # build-modpack-cp refuses any cache that is not a clean CP-only merge.
+    Write-Step "Bake the Community-Patch-only modpack from the CP-only merged database"
+    & (Join-Path $repoRoot 'build-modpack-cp.ps1')
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
+        throw "build-modpack-cp.ps1 failed (exit $LASTEXITCODE). It needs a clean Community-Patch-only cache DB (BALANCE_VP off); flip to vanilla, play one session with ONLY (1) Community Patch enabled through the Mods menu, then re-run -Phase cp-modpack."
+    }
+
+    Write-Step "Deploy the Community-Patch-only modpack (player-facing CP end state)"
+    & (Join-Path $repoRoot 'deploy-modpack-cp.ps1')
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-modpack-cp.ps1 failed (exit $LASTEXITCODE)." }
+
+    Write-Host "Install is now in player-facing CP-only modpack state. Run the CP play audit here." -ForegroundColor Green
+}
+
 # ---------------------------------------------------------------- main
 
 $oldTag = Get-SupportedVp
@@ -339,6 +378,7 @@ switch ($Phase) {
     'vendor'  { Invoke-VendorPhase -OldTag $oldTag }
     'finish'  { Invoke-FinishPhase }
     'modpack' { Invoke-ModpackPhase }
+    'cp-modpack' { Invoke-CpModpackPhase }
     default {
         Invoke-EnginePhase -OldTag $oldTag
         Invoke-ModsPhase

@@ -33,7 +33,8 @@
 param(
     [string]$GameDir,
     [string]$ClonePath,
-    [string]$CacheDir
+    [string]$CacheDir,
+    [switch]$CommunityPatchOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -41,7 +42,9 @@ $ErrorActionPreference = 'Stop'
 $repoRoot        = Split-Path -Parent $MyInvocation.MyCommand.Path
 $forkDll         = Join-Path $repoRoot 'dist\engine-vp\CvGameCore_Expansion2.dll'
 $buildDir        = Join-Path $repoRoot 'build\modpack-build'
-$outDir          = Join-Path $repoRoot 'build\modpack-out'
+# CP-only and full VP bake to distinct output folders so neither clobbers the
+# other; deploy-modpack.ps1 reads the matching one for its mode.
+$outDir          = Join-Path $repoRoot ($(if ($CommunityPatchOnly) { 'build\modpack-cp-out' } else { 'build\modpack-out' }))
 $dumperScript    = Join-Path $repoRoot 'tools\modpack\build_modpack.py'
 
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
@@ -87,11 +90,13 @@ foreach ($p in @($forkDll, $dumperScript, $baseIngame)) {
     if (-not (Test-Path $p)) { throw "Required input missing: $p" }
 }
 
+$sessionDesc = if ($CommunityPatchOnly) { "clean Community-Patch-only session (Vox Populi NOT enabled)" } else { "clean CP+VP session (Squads off)" }
+
 $gameplayDb = Join-Path $CacheDir 'Civ5DebugDatabase.db'
 $textDb     = Join-Path $CacheDir 'Localization-Merged.db'
 foreach ($p in @($gameplayDb, $textDb)) {
     if (-not (Test-Path $p)) {
-        throw "Cache database missing: $p. Play one clean CP+VP session through the Mods menu first (Squads off), then re-run."
+        throw "Cache database missing: $p. Play one $sessionDesc through the Mods menu first, then re-run."
     }
 }
 
@@ -104,18 +109,23 @@ $textLocal     = Join-Path $buildDir 'text.db'
 Copy-Item -LiteralPath $gameplayDb -Destination $gameplayLocal -Force
 Copy-Item -LiteralPath $textDb -Destination $textLocal -Force
 
-# build_modpack.py validates the DB is a clean CP+VP merge (BALANCE_VP on,
-# Squads off) and aborts otherwise.
-Write-Host "Building modpack into $outDir ..."
-& py $dumperScript `
-    --clone $ClonePath `
-    --fork-dll $forkDll `
-    --gameplay-db $gameplayLocal `
-    --text-db $textLocal `
-    --base-ingame $baseIngame `
-    --out $outDir
+# build_modpack.py validates the DB matches the requested mode (full VP:
+# BALANCE_VP on, Squads off; CP-only: CP DLL present, BALANCE_VP off) and aborts
+# otherwise.
+Write-Host "Building $(if ($CommunityPatchOnly) { 'Community Patch' } else { 'Vox Populi' }) modpack into $outDir ..."
+$pyArgs = @(
+    $dumperScript,
+    '--clone', $ClonePath,
+    '--fork-dll', $forkDll,
+    '--gameplay-db', $gameplayLocal,
+    '--text-db', $textLocal,
+    '--base-ingame', $baseIngame,
+    '--out', $outDir
+)
+if ($CommunityPatchOnly) { $pyArgs += '--community-patch-only' }
+& py @pyArgs
 if ($LASTEXITCODE -ne 0) { throw "build_modpack.py failed (exit $LASTEXITCODE)." }
 
 Write-Host ""
 Write-Host "Modpack built at: $outDir"
-Write-Host "Deploy it with: ./deploy-modpack.ps1"
+Write-Host "Deploy it with: ./deploy-modpack.ps1$(if ($CommunityPatchOnly) { ' -CommunityPatchOnly' } else { '' })"

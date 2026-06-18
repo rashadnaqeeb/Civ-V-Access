@@ -456,40 +456,46 @@ function BaselineHandler.create()
             })
         end, "Open Events Overview")
 
-        -- Vassal Overview (Vox Populi only). The screen is a Community
-        -- Patch UI addin opened via BUTTONPOPUP_MODDER_11; same CP-DLL
-        -- capability gate as the events chord. Bare V is the engine's
-        -- Advisor Counsel binding (already swallowed by Baseline's letter
-        -- wall) and no CIV5 XML binds Ctrl+V, so the chord is free.
-        -- Data1=1 toggles closed when already visible (vendor OnPopup
-        -- honors it). Speaks a disabled line when the vassalage game
-        -- option is off -- the vendor gates its dropdown row on the same
-        -- option.
-        bindings[#bindings + 1] = bind(Keys.V, MOD_CTRL, function()
-            if not Game.IsOption("GAMEOPTION_ENABLE_VASSALAGE") then
-                speak(Text.key("TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"))
-                return
-            end
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_11,
-                Data1 = 1,
-            })
-        end, "Open Vassal Overview")
+        -- The Vassal and Corporations overviews ship their UI addins with
+        -- Vox Populi only (registered in VP's modinfo, not Community
+        -- Patch's), so a CP-only install has no screen to open and firing
+        -- the popup would do nothing. Gate both chords on VP balance -- the
+        -- same discriminator the vendor UIs use -- so they are simply absent
+        -- under CP-only rather than dead. The vassalage MECHANIC exists on
+        -- CP-only (it is a CP-DLL game option), but its overview screen does
+        -- not, so the chord follows the screen.
+        if Game.IsCustomModOption("BALANCE_VP") then
+            -- Vassal Overview, opened via BUTTONPOPUP_MODDER_11. Bare V is
+            -- the engine's Advisor Counsel binding (already swallowed by
+            -- Baseline's letter wall) and no CIV5 XML binds Ctrl+V, so the
+            -- chord is free. Data1=1 toggles closed when already visible
+            -- (vendor OnPopup honors it). Speaks a disabled line when the
+            -- vassalage game option is off -- the vendor gates its dropdown
+            -- row on the same option.
+            bindings[#bindings + 1] = bind(Keys.V, MOD_CTRL, function()
+                if not Game.IsOption("GAMEOPTION_ENABLE_VASSALAGE") then
+                    speak(Text.key("TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"))
+                    return
+                end
+                Events.SerialEventGameMessagePopup({
+                    Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_11,
+                    Data1 = 1,
+                })
+            end, "Open Vassal Overview")
 
-        -- Corporations Overview (Vox Populi only). The screen is a Vox
-        -- Populi UI addin opened via BUTTONPOPUP_MODDER_5; same CP-DLL
-        -- capability gate as the events and vassal chords. Ctrl+C is the
-        -- Culture Overview; Shift joins the two C chords the way Shift
-        -- joined the two E chords. No CIV5 XML binds Ctrl+Shift+C, so the
-        -- chord is free. Data1=1 toggles closed when already visible
-        -- (vendor OnPopup honors it). No game option gates corporations
-        -- under VP, so there is no disabled-state line.
-        bindings[#bindings + 1] = bind(Keys.C, MOD_CTRL + MOD_SHIFT, function()
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_5,
-                Data1 = 1,
-            })
-        end, "Open Corporations Overview")
+            -- Corporations Overview, opened via BUTTONPOPUP_MODDER_5. Ctrl+C
+            -- is the Culture Overview; Shift joins the two C chords the way
+            -- Shift joined the two E chords. No CIV5 XML binds Ctrl+Shift+C,
+            -- so the chord is free. Data1=1 toggles closed when already
+            -- visible (vendor OnPopup honors it). No game option gates
+            -- corporations under VP, so there is no disabled-state line.
+            bindings[#bindings + 1] = bind(Keys.C, MOD_CTRL + MOD_SHIFT, function()
+                Events.SerialEventGameMessagePopup({
+                    Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_5,
+                    Data1 = 1,
+                })
+            end, "Open Corporations Overview")
+        end
     end
 
     -- Pull sibling modules' bindings into Baseline's list, and their help
