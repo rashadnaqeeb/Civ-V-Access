@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Alt plus Up or Down in any menu, table, or list reads the current item one section at a time, so long entries with tooltips can be reviewed piece by piece.
 - Typing to search the tech tree now opens a list of every matching tech to arrow through, instead of jumping straight to the first match.
 - The scanner in city view has a new Yields category that ranks the city's tiles by each yield, so you can quickly find your best food or production tile.
 - F1 on the new technology popup now also reads the details of each unit, building, and ability the tech unlocks.

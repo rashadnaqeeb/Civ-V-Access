@@ -327,6 +327,52 @@ function M.test_landing_zero_science_suppresses_turns()
     T.falsy(text:find("4 turns"), "zero science suppresses turns clause")
 end
 
+-- ===== buildLandingSections =====
+
+function M.test_landing_sections_split_status_then_prose_lines()
+    setup()
+    installTechDB(techs3())
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    GetHelpTextForTech = function()
+        return "Cost: 100[NEWLINE]Leads to Pottery[NEWLINE]Allows you to build Granary"
+    end
+    Players = {
+        [0] = fakePlayer({ canResearch = { [1] = true }, science = 3, turnsLeft = { [1] = 4 } }),
+    }
+    Teams = { [0] = fakeTeam() }
+    local s = TechTreeLogic.buildLandingSections(1, Players[0])
+    -- Name, status, turns are each their own section; the prose blob splits
+    -- one section per raw [NEWLINE] line rather than collapsing to commas.
+    T.eq(s[1], "TXT_KEY_TECH_POTTERY")
+    T.eq(s[2], "available")
+    T.eq(s[3], "4 turns")
+    T.eq(s[4], "Cost: 100")
+    T.eq(s[5], "Leads to Pottery")
+    T.eq(s[6], "Allows you to build Granary")
+end
+
+function M.test_landing_sections_empty_help_yields_status_only()
+    setup()
+    installTechDB(techs3())
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    GetHelpTextForTech = function()
+        return ""
+    end
+    Players = {
+        [0] = fakePlayer({ canResearch = { [1] = true }, science = 0 }),
+    }
+    Teams = { [0] = fakeTeam() }
+    local s = TechTreeLogic.buildLandingSections(1, Players[0])
+    -- No prose, zero science (no turns): just name and status.
+    T.eq(#s, 2)
+    T.eq(s[1], "TXT_KEY_TECH_POTTERY")
+    T.eq(s[2], "available")
+end
+
 -- ===== buildQueueRows =====
 
 function M.test_queue_rows_sorted_by_position()

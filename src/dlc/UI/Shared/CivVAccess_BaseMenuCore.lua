@@ -223,7 +223,17 @@ end
 -- caller remembering it.
 local function landingSpeak(menu, item, queued)
     local fn = queued and SpeechPipeline.speakQueued or SpeechPipeline.speakInterrupt
-    local text = item:announce(menu)
+    local text, sections = item:announce(menu)
+    -- Stash the item's content sections for Alt+Up/Down review and reset the
+    -- section cursor. Item kinds that don't return sections (open-dropdown
+    -- entries) fall back to the whole filtered utterance as one section, so
+    -- the chord still does something coherent. The verbose position tag
+    -- appended below is review noise and deliberately stays out of sections.
+    if sections == nil or #sections == 0 then
+        local f = TextFilter.filter(text)
+        sections = (f ~= nil and f ~= "") and { f } or {}
+    end
+    BaseMenuItems.SectionReview.set(menu, sections)
     if Verbosity.isOn() then
         local pos, total = navPosition(menu)
         if pos ~= nil then
@@ -737,6 +747,20 @@ local function onAltRight(self)
     end
 end
 
+-- Section review (Alt+Up / Alt+Down). VP tooltips can make a single item's
+-- announcement a long, hard-to-parse blob; this walks the focused item's
+-- content sections (control parts, then deduped tooltip sentences -- see
+-- BaseMenuItems.buildSections) one at a time. landingSpeak refreshes the
+-- section list on every move via the shared navigator, so the reviewer
+-- always targets the item the cursor is on.
+local function onAltDown(self)
+    BaseMenuItems.SectionReview.next(self)
+end
+
+local function onAltUp(self)
+    BaseMenuItems.SectionReview.prev(self)
+end
+
 -- Search interface / input dispatch ---------------------------------------
 --
 -- Build a searchable view of the menu's current level for TypeAheadSearch.
@@ -1066,6 +1090,22 @@ function BaseMenu.create(spec)
             description = "Tab hook (alt+right)",
             fn = function()
                 onAltRight(self)
+            end,
+        },
+        {
+            key = Keys.VK_DOWN,
+            mods = MOD_ALT,
+            description = "Next section of current item",
+            fn = function()
+                onAltDown(self)
+            end,
+        },
+        {
+            key = Keys.VK_UP,
+            mods = MOD_ALT,
+            description = "Previous section of current item",
+            fn = function()
+                onAltUp(self)
             end,
         },
         {

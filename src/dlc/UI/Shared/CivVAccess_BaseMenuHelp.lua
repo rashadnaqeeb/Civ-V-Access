@@ -17,6 +17,10 @@ BaseMenuHelp.ListNavHelpEntries = {
         description = "TXT_KEY_CIVVACCESS_HELP_DESC_NAV_ITEMS",
     },
     {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN",
+        description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS",
+    },
+    {
         keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
         description = "TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_FIRST_LAST",
     },

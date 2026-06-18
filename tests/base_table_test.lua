@@ -913,4 +913,71 @@ function M.test_empty_table_lands_on_header_row()
     T.eq(speaks[2].interrupt, false)
 end
 
+-- Section review (Alt+Up/Down) -----------------------------------------
+--
+-- The suite stubs BaseMenuItems with only appendTooltip; the section glue
+-- needs the real buildSections + SectionReview, so these two cases swap in
+-- the production module (setup() restores the stub on the next case).
+-- findBinding (defined above) returns the binding's fn.
+
+local function sectionSpec()
+    return {
+        tabName = "TXT_KEY_CIVVACCESS_TBL_TAB",
+        columns = {
+            {
+                name = "TXT_KEY_CIVVACCESS_TBL_COL_POP",
+                getCell = function(r)
+                    return tostring(r.pop)
+                end,
+                getTooltip = function()
+                    return "Grows fast[NEWLINE]Needs food"
+                end,
+            },
+        },
+        rebuildRows = function()
+            return { { name = "Rome", pop = 5 } }
+        end,
+        rowLabel = function(r)
+            return r.name
+        end,
+    }
+end
+
+function M.test_alt_down_walks_cell_sections_then_clamps()
+    setup()
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    local h = BaseTable.create(sectionSpec())
+    h.onTabActivated(h, true)
+    -- Sections: row label, column name, cell value, then each tooltip line.
+    T.eq(h._sections[1], "Rome")
+    T.eq(h._sections[2], "Pop")
+    T.eq(h._sections[3], "5")
+    T.eq(h._sections[4], "Grows fast")
+    T.eq(h._sections[5], "Needs food")
+    local altDown = findBinding(h, Keys.VK_DOWN, 4)
+    T.truthy(altDown ~= nil, "Alt+Down section binding present with real BaseMenuItems")
+    altDown()
+    T.eq(speaks[#speaks].text, "Rome")
+    altDown()
+    T.eq(speaks[#speaks].text, "Pop")
+    altDown()
+    T.eq(speaks[#speaks].text, "5")
+    altDown()
+    T.eq(speaks[#speaks].text, "Grows fast")
+    altDown()
+    T.eq(speaks[#speaks].text, "Needs food")
+    altDown()
+    T.eq(speaks[#speaks].text, "Needs food", "Alt+Down past the last section re-speaks it")
+end
+
+function M.test_alt_up_from_fresh_enters_at_first_section()
+    setup()
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    local h = BaseTable.create(sectionSpec())
+    h.onTabActivated(h, true)
+    local altUp = findBinding(h, Keys.VK_UP, 4)
+    altUp()
+    T.eq(speaks[#speaks].text, "Rome", "Alt+Up from fresh enters at section one")
+end
+
 return M

@@ -160,6 +160,47 @@ function TechTreeLogic.buildLandingSpeech(techID, player)
     return table.concat(parts, ", ")
 end
 
+-- Section list for Alt+Up/Down review of the tree-tab landing. Same content
+-- as buildLandingSpeech (name, status, optional queue slot, optional turns,
+-- then the unlocks prose) but kept as discrete sections: the status fields
+-- are separate, and the prose is split one section per raw [NEWLINE] line
+-- ("Cost: ...", "Leads to: ...", "Allows you to build ...") and cleaned
+-- individually. buildLandingSpeech flattens those lines to commas for the
+-- linear readout; here the engine's section structure becomes the review
+-- boundaries, which is the whole point of the chord on long VP tech prose.
+function TechTreeLogic.buildLandingSections(techID, player)
+    local info = GameInfo.Technologies[techID]
+    local name = Text.key(info.Description)
+    local sections = { name }
+
+    local status = TechTreeLogic.statusKey(player, techID)
+    sections[#sections + 1] = Text.key(status)
+
+    local queuePos = player:GetQueuePosition(techID)
+    local isCurrent = (status == "TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT")
+    if queuePos > 1 and not isCurrent then
+        sections[#sections + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED", queuePos - 1)
+    end
+
+    local researched = (status == "TXT_KEY_CIVVACCESS_TECHTREE_STATUS_RESEARCHED")
+    if not researched and player:GetScienceTimes100() > 0 then
+        local turns = player:GetResearchTurnsLeft(techID, true)
+        sections[#sections + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
+    end
+
+    local raw = GetHelpTextForTech(techID, false, Game.GetActivePlayer())
+    if raw ~= nil and raw ~= "" then
+        for line in (raw .. "[NEWLINE]"):gmatch("(.-)%[NEWLINE%]") do
+            local clean = ChooseTechLogic.filterHelpText(line, name)
+            if clean ~= nil and clean ~= "" then
+                sections[#sections + 1] = clean
+            end
+        end
+    end
+
+    return sections
+end
+
 -- Rows for the queue tab: current research first (position 1), then each
 -- queued item in engine-reported order. Empty when no tech is current and
 -- nothing is queued.

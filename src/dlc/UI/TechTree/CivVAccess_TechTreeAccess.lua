@@ -123,6 +123,7 @@ local priorShowHide = ShowHideHandler
 local MOD_NONE = 0
 local MOD_SHIFT = 1
 local MOD_CTRL = 2
+local MOD_ALT = 4
 
 local bind = HandlerStack.bind
 
@@ -140,6 +141,12 @@ local _stealingTargetID = -1
 -- rival and commit is suppressed. Reset on every TECH_TREE open.
 local _espionageView = false
 local _viewPlayerID = -1
+
+-- Alt+Up/Down section-review holder for the tree/grid tab. speakLanding
+-- refreshes _sections on every cursor move; the chord bindings walk them
+-- through the shared navigator. A plain table (not reset on hide) since
+-- every landing overwrites it.
+local _review = {}
 
 -- Screen state. Reset on every hide.
 local _graph = nil
@@ -214,6 +221,8 @@ local function speakLanding(techID)
     local prefix
     prefix, _prevEraID = TechTreeLogic.eraPrefix(_prevEraID, techID)
     SpeechPipeline.speakInterrupt(prefix .. TechTreeLogic.buildLandingSpeech(techID, p))
+    -- Refresh the Alt+Up/Down review sections for the tech just landed on.
+    BaseMenuItems.SectionReview.set(_review, TechTreeLogic.buildLandingSections(techID, p))
 end
 
 -- ===== Tree commit =====
@@ -637,6 +646,10 @@ end
 local function buildBaseHelpEntries()
     return {
         {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN",
+            description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS",
+        },
+        {
             keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_TOGGLE_MODE",
             description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TOGGLE_MODE",
         },
@@ -695,6 +708,12 @@ local function buildTreeTab()
             bind(Keys.VK_DOWN, MOD_NONE, onDown, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
             bind(Keys.VK_LEFT, MOD_NONE, onLeft, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
             bind(Keys.VK_RIGHT, MOD_NONE, onRight, "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_NAV_GRID"),
+            bind(Keys.VK_DOWN, MOD_ALT, function()
+                BaseMenuItems.SectionReview.next(_review)
+            end, "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"),
+            bind(Keys.VK_UP, MOD_ALT, function()
+                BaseMenuItems.SectionReview.prev(_review)
+            end, "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"),
             -- Space toggle. Search-active Space is consumed by
             -- handleSearchInput first (InputRouter walks search before
             -- bindings), so this only fires when the search buffer is
@@ -732,6 +751,10 @@ local function buildTreeTab()
                 local prefix
                 prefix, _prevEraID = TechTreeLogic.eraPrefix(_prevEraID, cur.ID)
                 SpeechPipeline.speakQueued(prefix .. TechTreeLogic.buildLandingSpeech(cur.ID, p))
+                -- Seat the Alt+Up/Down review sections on first open and tab
+                -- re-entry too, not only on arrow moves -- otherwise the chord
+                -- is silent until the cursor first moves.
+                BaseMenuItems.SectionReview.set(_review, TechTreeLogic.buildLandingSections(cur.ID, p))
             end
         end,
         onTabDeactivated = function()

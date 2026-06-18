@@ -107,21 +107,25 @@ end
 -- abbreviation is not a boundary; trade-route tooltips report fractional
 -- values via the engine's "{1_Num: number #.#}" format and any sentence
 -- splitter that treats every "." as terminal mangles them into "1. 06".
-local function appendTooltip(base, tooltip)
+-- Split a tooltip into the sentences not already present in `base`, with
+-- [NEWLINE] normalized to sentence breaks and decimal-safe period splitting.
+-- Returns an array (possibly empty). The single source of truth for both the
+-- joined announcement (appendTooltip) and the Alt+Up/Down section list
+-- (buildSections), so the sections always match what is actually spoken.
+local function novelTooltipSentences(base, tooltip)
     if tooltip == nil or tooltip == "" then
-        return base
-    end
-    if base == nil or base == "" then
-        return tooltip
+        return {}
     end
 
     tooltip = tooltip:gsub("%[NEWLINE%]", ". ")
 
     local seen = {}
-    for segment in string.gmatch(base, "([^,]+)") do
-        local trimmed = segment:match("^%s*(.-)%s*$")
-        if trimmed ~= "" then
-            seen[trimmed] = true
+    if base ~= nil and base ~= "" then
+        for segment in string.gmatch(base, "([^,]+)") do
+            local trimmed = segment:match("^%s*(.-)%s*$")
+            if trimmed ~= "" then
+                seen[trimmed] = true
+            end
         end
     end
 
@@ -140,7 +144,18 @@ local function appendTooltip(base, tooltip)
             novel[#novel + 1] = trimmed
         end
     end
+    return novel
+end
 
+local function appendTooltip(base, tooltip)
+    if tooltip == nil or tooltip == "" then
+        return base
+    end
+    if base == nil or base == "" then
+        return tooltip
+    end
+
+    local novel = novelTooltipSentences(base, tooltip)
     if #novel == 0 then
         return base
     end
@@ -153,6 +168,112 @@ local function appendTooltip(base, tooltip)
 end
 
 BaseMenuItems.appendTooltip = appendTooltip
+
+-- Split a raw string on the engine's [NEWLINE] token. Section breaks are
+-- taken from the unstripped text (per the design: a line break in the
+-- source text becomes a section boundary), so this runs before TextFilter.
+local function splitOnNewline(s)
+    local parts = {}
+    local cursor = 1
+    while true do
+        local a, b = string.find(s, "%[NEWLINE%]", cursor)
+        if a == nil then
+            parts[#parts + 1] = string.sub(s, cursor)
+            break
+        end
+        parts[#parts + 1] = string.sub(s, cursor, a - 1)
+        cursor = b + 1
+    end
+    return parts
+end
+
+-- Append the filtered, [NEWLINE]-split pieces of `raw` to `out`, dropping
+-- any piece that filters to empty so Alt+Up/Down never lands on silence.
+local function addFilteredSplit(out, raw)
+    if raw == nil or raw == "" then
+        return
+    end
+    for _, piece in ipairs(splitOnNewline(raw)) do
+        local f = TextFilter.filter(piece)
+        if f ~= nil and f ~= "" then
+            out[#out + 1] = f
+        end
+    end
+end
+
+-- Break an item's announcement into reviewable sections for Alt+Up/Down.
+-- The sections, in spoken order: each control part, a disabled marker when
+-- present, then each novel (deduped) tooltip sentence -- every one further
+-- split on raw [NEWLINE] and filtered. The Verbosity additions (position
+-- count, kind tag) are intentionally excluded: they are review noise, not
+-- the content the user is trying to parse. `controlParts` is the same parts
+-- array composeSpeech joins for the spoken string; `disabled` mirrors its
+-- disabled branch so the dedup base matches.
+function BaseMenuItems.buildSections(controlParts, disabled, tooltip)
+    local parts = {}
+    for _, p in ipairs(controlParts) do
+        parts[#parts + 1] = p
+    end
+    if disabled then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
+    end
+    local sections = {}
+    for _, part in ipairs(parts) do
+        addFilteredSplit(sections, part)
+    end
+    local base = table.concat(parts, ", ")
+    for _, sentence in ipairs(novelTooltipSentences(base, tooltip)) do
+        addFilteredSplit(sections, sentence)
+    end
+    return sections
+end
+
+-- Split raw engine text on [NEWLINE] and append each filtered, non-empty
+-- piece to `out`. Exposed so non-menu surfaces (tech tree landing prose)
+-- can section a [NEWLINE]-delimited blob the same way buildSections does.
+function BaseMenuItems.addSections(out, raw)
+    addFilteredSplit(out, raw)
+end
+
+-- Section review navigator (Alt+Up / Alt+Down), shared across every screen
+-- that wants per-section review of the focused item. Each consumer passes a
+-- `holder` table it owns (a BaseMenu/BaseTable handler, or a screen-state
+-- table for the tech tree) that carries _sections / _sectionPos. set()
+-- refreshes the list and rewinds the cursor; next() / prev() walk it,
+-- clamping at the ends by re-speaking the edge section (mirrors the
+-- message-buffer bracket keys). The Verbosity additions are never part of
+-- the section list -- callers build it from content only.
+BaseMenuItems.SectionReview = {}
+
+function BaseMenuItems.SectionReview.set(holder, sections)
+    holder._sections = sections
+    holder._sectionPos = 0
+end
+
+local function speakSectionAt(holder, idx)
+    local sections = holder._sections
+    if sections == nil or #sections == 0 then
+        return
+    end
+    if idx < 1 then
+        idx = 1
+    elseif idx > #sections then
+        idx = #sections
+    end
+    holder._sectionPos = idx
+    SpeechPipeline.speakInterrupt(sections[idx])
+end
+
+function BaseMenuItems.SectionReview.next(holder)
+    speakSectionAt(holder, (holder._sectionPos or 0) + 1)
+end
+
+function BaseMenuItems.SectionReview.prev(holder)
+    local pos = holder._sectionPos or 0
+    -- From the fresh state (cursor before the first section) Alt+Up enters
+    -- at the first section rather than staying silent.
+    speakSectionAt(holder, pos <= 1 and 1 or pos - 1)
+end
 BaseMenuItems.labelOf = resolveLabel
 BaseMenuItems.tooltipOf = resolveTooltip
 
@@ -185,7 +306,16 @@ local function isActivatable(self)
     return not self._control:IsDisabled()
 end
 
+-- Returns (spokenString, sections). The second value feeds the Alt+Up/Down
+-- section reviewer in BaseMenuCore; callers that only want the string
+-- (search corpus, etc.) let Lua drop it.
 local function composeSpeech(item, parts)
+    -- Snapshot the control parts before the verbose/disabled mutations so
+    -- the section list reflects content only, not review metadata.
+    local controlParts = {}
+    for _, p in ipairs(parts) do
+        controlParts[#controlParts + 1] = p
+    end
     -- Verbosity-gated kind tag: appended before disabled/tooltip so the
     -- spoken order is "label, [value,] kind, [disabled,] [tooltip]". Off
     -- by setting -> identical to pre-verbosity speech. A spec-supplied
@@ -201,11 +331,13 @@ local function composeSpeech(item, parts)
     -- Dispatch through the method so item kinds without a _control (Choice,
     -- future drill-in kinds) use their own isActivatable rather than the
     -- shared control-based one which would always return false for them.
-    if not item:isActivatable() then
+    local disabled = not item:isActivatable()
+    if disabled then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED")
     end
     local base = table.concat(parts, ", ")
-    return appendTooltip(base, resolveTooltip(item))
+    local tooltip = resolveTooltip(item)
+    return appendTooltip(base, tooltip), BaseMenuItems.buildSections(controlParts, disabled, tooltip)
 end
 
 -- Resolution helpers ------------------------------------------------------
@@ -341,7 +473,9 @@ function BaseMenuItems.Text(spec)
         return self:isNavigable()
     end
     function item:announce(menu)
-        return appendTooltip(resolveLabel(self), resolveTooltip(self))
+        local label = resolveLabel(self)
+        local tooltip = resolveTooltip(self)
+        return appendTooltip(label, tooltip), BaseMenuItems.buildSections({ label }, false, tooltip)
     end
     function item:activate(menu)
         if self._onActivate == nil then

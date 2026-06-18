@@ -82,6 +82,7 @@
 BaseTable = {}
 
 local MOD_CTRL = 2
+local MOD_ALT = 4
 
 -- Reuse BaseMenu's wrap-sound primitive so column-edge wraps share the
 -- "menu_wrap" cue that lists already use, and the same audio handle cache
@@ -220,6 +221,52 @@ local function buildCellSpeech(self, rows, force)
     return result
 end
 
+-- Full content sections for Alt+Up/Down review of the focused cell. Unlike
+-- buildCellSpeech (which elides an unchanged row/column and appends the
+-- verbose row/column counts), this always carries row label, column name,
+-- and cell value, then the column tooltip split into sentences -- the same
+-- section shape BaseMenuItems builds for a menu item. Header / top rows and
+-- contexts without BaseMenuItems return nil; speakCell then falls back to a
+-- single section from the spoken text.
+local function buildCellSections(self, rows)
+    if BaseMenuItems == nil or type(BaseMenuItems.buildSections) ~= "function" then
+        return nil
+    end
+    if self._row < 1 then
+        return nil
+    end
+    local row = rows[self._row]
+    if row == nil then
+        return nil
+    end
+    local parts = {}
+    local label = self.rowLabel(row)
+    if label ~= nil and label ~= "" then
+        parts[#parts + 1] = label
+    end
+    local tooltip = nil
+    local col = self.columns[self._col]
+    if col ~= nil then
+        local cname = Text.key(col.name)
+        if cname ~= nil and cname ~= "" then
+            parts[#parts + 1] = cname
+        end
+        if type(col.getCell) == "function" then
+            local ok, cell = pcall(col.getCell, row)
+            if ok and cell ~= nil and cell ~= "" then
+                parts[#parts + 1] = cell
+            end
+        end
+        if type(col.getTooltip) == "function" then
+            local ok, tt = pcall(col.getTooltip, row)
+            if ok and tt ~= nil and tt ~= "" then
+                tooltip = tt
+            end
+        end
+    end
+    return BaseMenuItems.buildSections(parts, false, tooltip)
+end
+
 local function speakCell(self, force)
     local rows = buildRows(self)
     -- Clamp _row in case rebuildRows now yields fewer entries than last time.
@@ -235,6 +282,15 @@ local function speakCell(self, force)
     end
     local speak = self._chainSpeech and SpeechPipeline.speakQueued or SpeechPipeline.speakInterrupt
     speak(text)
+    -- Refresh Alt+Up/Down review sections for the focused cell.
+    if BaseMenuItems ~= nil and BaseMenuItems.SectionReview ~= nil then
+        local sections = buildCellSections(self, rows)
+        if sections == nil or #sections == 0 then
+            local f = TextFilter.filter(text)
+            sections = (f ~= nil and f ~= "") and { f } or {}
+        end
+        BaseMenuItems.SectionReview.set(self, sections)
+    end
 end
 
 -- Navigation -----------------------------------------------------------
@@ -496,6 +552,10 @@ local function buildHelpEntries(spec)
             description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_NAV_COLS",
         },
         {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN",
+            description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS",
+        },
+        {
             keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
             description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_HOME_END",
         },
@@ -678,6 +738,24 @@ function BaseTable.create(spec)
             end,
         },
     }
+    if BaseMenuItems ~= nil and BaseMenuItems.SectionReview ~= nil then
+        self.bindings[#self.bindings + 1] = {
+            key = Keys.VK_DOWN,
+            mods = MOD_ALT,
+            description = "Next section of current cell",
+            fn = function()
+                BaseMenuItems.SectionReview.next(self)
+            end,
+        }
+        self.bindings[#self.bindings + 1] = {
+            key = Keys.VK_UP,
+            mods = MOD_ALT,
+            description = "Previous section of current cell",
+            fn = function()
+                BaseMenuItems.SectionReview.prev(self)
+            end,
+        }
+    end
     if anyPedia and Events ~= nil and Events.SearchForPediaEntry ~= nil then
         self.bindings[#self.bindings + 1] = {
             key = Keys.I,

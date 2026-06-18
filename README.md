@@ -34,6 +34,7 @@ Every menu in the game uses the same interface. It's quite straightforward.
 
 - **Up / Down** — previous / next item; wraps with a click sound at the top and bottom
 - **Home / End** — first / last item
+- **Alt+Up / Alt+Down** — read the current item one section at a time, useful when an item and its tooltip are long
 - **Enter** — activate the focused item
 - Sliders: Left/Right to adjust by single increments, Shift+Left/Right to adjust by larger increments
 - Submenus: indicated by a blip sound. Use Right arrow to drill in, and Left arrow to drill out
