@@ -128,6 +128,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_OUT_OF_RANGE"] = "вне д�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK"] =
     "{1_Name}, {2_MyStr} против {3_TheirStr}, {4_Result}, {5_DmgToMe} урона мне, {6_DmgToThem} им"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_SUPPORT_FIRE"] = "огонь поддержки {1_Dmg}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_VOLLEY"] = "включает залп {1_Dmg}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SAPPED"] = {
+    one = "осаждён {1_Turns} ход",
+    few = "осаждён {1_Turns} хода",
+    many = "осаждён {1_Turns} ходов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_STRENGTH"] = "{1_Num} сила дальнего боя города"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNHAPPINESS"] = "недовольство {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_CAPTURE_CHANCE"] =
     "шанс захвата {1_Pct} процентов"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY"] = "мои бонусы {1_List}"
@@ -731,6 +739,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG"] =
     "Изменить значение большими шагами"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP"] =
     "Перейти к предыдущей или следующей группе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN"] = "Alt плюс вверх или вниз"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"] =
+    "Просмотр текущего элемента по разделам"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB"] = "Следующая вкладка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB"] = "Предыдущая вкладка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER"] = "Прочитать заголовок экрана"
@@ -889,6 +900,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_DIPLO"] = "Город-�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"] = "Дипломатия"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_DENOUNCE"] = "Осуждение"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_COOP_WAR"] = "Цель совместной войны"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_SHARE_APPROACH"] = "Поделиться подходом к"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EVENT"] = "Событие"
 -- ===== Great Work popup =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_GREAT_WORK_POPUP"] = "Шедевр"
 
@@ -988,6 +1001,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG"] = "Журна
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Отклонённые"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "Нет уведомлений."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, ход {2_Turn}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_OPTIONS"] = "Параметры"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER"] = "фильтр"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER_ALL"] = "Все"
 
 -- Combat Log group inside the Turn Log tab.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COMBAT_LOG_GROUP"] = "Журнал боя"
@@ -1016,6 +1032,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Максим�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Сила"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Дальний бой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Смежные враги"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "Опыт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, уровень {2_Level}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} процентов силы"
 
 -- Great People tab.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW"] =
@@ -1056,10 +1075,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "Открыть экран демографии"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Открыть совет советников"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_GOLD"] =
+    "золотой кубок, рекомендация советника"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_SILVER"] =
+    "серебряный кубок, рекомендация советника"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_BRONZE"] =
+    "бронзовый кубок, рекомендация советника"
 
 -- CityView hub.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "Город"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONNECTED"] = "подключён"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RAIL_CONNECTED"] = "подключён железной дорогой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNEMPLOYED"] = "{1_Num} безработных"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD"] = "пища {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION"] = "производство {1_Num}"
@@ -1167,6 +1193,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_TOP"] = "переме
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_BOTTOM"] = "перемещён в конец"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_REMOVED"] = "убран"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_QUEUE_MODE"] = "Режим очереди, {1_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS"] = "счастье {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS"] = "недовольство {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GP_RATE"] = "+{1_Num} в ход"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_PINNED_STATE"] = "занято, закреплено"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FREE_SPECIALISTS"] = {
+    one = "остался {1_Num} свободный специалист",
+    few = "осталось {1_Num} свободных специалиста",
+    many = "осталось {1_Num} свободных специалистов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_FREE_SPECIALISTS"] =
+    "нет свободных специалистов, {1_Num} недовольства за каждого нового специалиста"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_RESET_DONE"] = "специалисты сброшены"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_AUTOMATE"] =
+    "Автоматизировать производство, {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_CHOOSE"] = "Выбрать производство"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_PURCHASE"] = "Купить за золото или веру"
 
@@ -1387,6 +1427,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TOURISM_WITHIN_REACH"] = {
     few = "+{1_Rate} туризма, влияние на {2_Count} из {3_Total} цивилизаций",
     many = "+{1_Rate} туризма, влияние на {2_Count} из {3_Total} цивилизаций",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_RATE"] = "плюс {1_Rate} в ход"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_RATE_NEGATIVE"] = "минус {1_Rate} в ход"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_APPROVAL"] = "{1_Percent} процентов одобрения"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_CITIZEN_COUNTS"] = {
+    one = "{1_Happy} счастливых, {2_Unhappy} недовольный житель",
+    few = "{1_Happy} счастливых, {2_Unhappy} недовольных жителя",
+    many = "{1_Happy} счастливых, {2_Unhappy} недовольных жителей",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_ECSTATIC"] = "в экстазе"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_HAPPY"] = "счастливый"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_CONTENT"] = "доволен"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_UNHAPPY"] = "недоволен"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_VERY_UNHAPPY"] = "очень недоволен"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_SUPER_UNHAPPY"] = "крайне недоволен"
 
 -- Help-overlay entries for empire status readout keys
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_KEY_TURN"] = "T"
@@ -1496,6 +1550,29 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_ENGINEER"] = "Оч�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_MERCHANT"] = "Очки вел.торговцев:"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_SCIENTIST"] = "Очки вел.ученых:"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_WORK"] = "шедевр"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_INFLUENCE"] = "влияние"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_GPP"] = "gpp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH"] = "очки роста границ"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH_ALT"] = "border growth"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE"] = "очки золотого века"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE_ALT"] = "golden age"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL"] = "очки великого генерала"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL_ALT"] = "great general"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL"] = "очки великого адмирала"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL_ALT"] = "great admiral"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_POPULATION"] = "население"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_POPULATION_ALT"] = "citizen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_STRIKE"] = "дальний удар"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_ATTACK"] = "дальняя атака"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_RANGE"] = "дальность"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_CITY_STRIKE"] =
+    "сила дальнего удара по городу"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CHECKMARK"] = "галочка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_STRENGTH"] = "боевая мощь"
 -- Dedup-only alias. Engine source: TXT_KEY_PRODUCTION_STRENGTH
 -- ("[ICON_STRENGTH] Сила: {1_Num}" in RU_RU).
@@ -1544,6 +1621,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT"] = {
     many = "{1_Name}, {2_Turns} ходов",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT_PROCESS"] = "{1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_GOLD"] =
+    "инвестировать, {1_Num} золота"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVESTED"] = "инвестировано в {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_REDUCED"] =
+    "стоимость производства снижена на {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_NO_REDUCTION"] =
+    "стоимость производства не снижена"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_DISABLED_REASON"] = "недоступно: {1_Reason}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROD_INVESTED"] = "инвестировано"
 
 -- ChooseTech popup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TECH"] = "Выбор исследования"
@@ -1613,6 +1699,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE"] = "Escape"
 
 -- Tech Tree
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"] = "Закрыть дерево технологий"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_FOREIGN_TITLE"] = "Дерево технологий {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_VIEW_READONLY"] =
+    "только просмотр, изменения недоступны"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_SEARCH_RESULTS"] = "Результаты поиска"
 
 -- Social Policies popup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY"] = "Общественные институты"
@@ -1687,6 +1777,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_OPENED"] = "открыто {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_ADOPTED_TENET"] = "принят догмат {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCHED"] =
     "запрос на смену идеологии отправлен"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_FOREIGN_TITLE"] = "Социальные курсы {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_NOT_OPENED"] = "не открыто"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_NOT_ADOPTED"] = "не принято"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY"] = "ячейка {1_Num}, пуста"
 
 -- Number-entry primitive
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_DIGITS"] = "Цифры"
@@ -1741,6 +1835,29 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_PLEASED"] = "немного
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_NEUTRAL"] = "нейтральны насчёт: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_DISPLEASED"] = "немного недовольны: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_DISPLEASED"] = "очень недовольны: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_PLEASED"] = "очень довольны: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_PLEASED"] =
+    "умеренно довольны: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_DISPLEASED"] =
+    "умеренно недовольны: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_DISPLEASED"] =
+    "крайне недовольны: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_YOU_ARE_VASSAL"] = {
+    one = "вы их вассал, {1_N} ход",
+    few = "вы их вассал, {1_N} хода",
+    many = "вы их вассал, {1_N} ходов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_THEY_ARE_VASSAL"] = {
+    one = "они ваш вассал, {1_N} ход",
+    few = "они ваш вассал, {1_N} хода",
+    many = "они ваш вассал, {1_N} ходов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_VASSAL_OF"] = "вассал {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_HAS_VASSALS"] = "вассалы: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_CONTENDER"] = "претендент"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_CONTENDER"] = "{1_Civ}, {2_Inf} влияния"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_CONTENDER_UNMET"] =
+    "неизвестная цивилизация, {1_Inf} влияния"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "институты: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "чудеса: {1_List}"
@@ -1837,6 +1954,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED"] =
 -- Happiness one-liner.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LINE"] =
     "местное настроение {1_Local}, недовольство {2_Unhappiness}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_HEADLINE"] = "счастье {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_UNHAPPINESS_HEADLINE"] = "недовольство {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_DEMAND_UNKNOWN"] =
+    "требуемый ресурс неизвестен, нужны исследования"
 
 -- Religion group.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_RELIGION_LINE"] = {
@@ -1865,6 +1986,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_YOU_GET"] = "Вы получ�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "Они получают {1_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS"] = "{1_City} получает {2_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} давление"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_FRANCHISED"] = "франшиза открыта"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CAN_FRANCHISE"] = "откроет франшизу"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_FRANCHISE"] =
+    "невозможно открыть франшизу"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DEST_QUEST"] = "задание торгового пути"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RO_MAP_HOLY_CITY"] = "священный город"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RO_MAP_EMPTY"] =
+    "Нет известных городов, исповедующих религию."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] =
     "Нет допустимых направлений."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] =
@@ -1897,6 +2026,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_FOOD"] = "пища получе�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRODUCTION"] = "производство получено"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE"] =
     "религиозное давление до пункта назначения"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_CULTURE"] = "полученная культура"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_TRIP"] = "кратчайшая поездка"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_LENGTH"] = "кратчайший маршрут"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TRIP_TURNS"] = {
+    one = "поездка занимает {1_Num} ход",
+    few = "поездка занимает {1_Num} хода",
+    many = "поездка занимает {1_Num} ходов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ALREADY_TRADING"] = "уже торгует здесь"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_LOCATE_UNIT"] = "Найти торговый юнит"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ESTABLISH"] = "Установить торговый путь"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_RELOCATE"] = "Переместить торговый юнит сюда"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_UNIT_NOT_FOUND"] = "Торговый юнит не найден."
 
 -- Leader descriptions.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_MISSING"] =
@@ -2087,6 +2229,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Общественное мнение, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Разбивка по городам"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_UNHAPPINESS"] = "Недовольство"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS"] = "События, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS"] = "Вассалы, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS"] =
+    "Войны с крупными цивилизациями, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS"] = "Военная усталость, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY_TOTAL"] = "Разбивка по городам, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Доступно"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Использовано"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Местные"
@@ -2106,6 +2255,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DIPLOMATIC"] = "Диплома�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_CULTURAL"] = "Культура"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_LABEL_VALUE"] = "{1_Label}, {2_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TEAM_SUFFIX"] = "команда {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_YOU_ARE_VASSAL"] = "вы вассал {1_Master}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_YOUR_VASSAL"] = "{1_Civ} ваш вассал"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_VASSAL_OF"] = "{1_Civ} вассал {2_Master}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_BOOSTERS"] = {
     one = "{1_Num} ускоритель",
     few = "{1_Num} ускорителя",
@@ -2131,11 +2283,36 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_ROW"] =
     "{1_Metric}, место {2_Rank}, {3_Value}, лучший {4_BestCiv} {5_BestVal}, среднее {6_AvgVal}, худший {7_WorstCiv} {8_WorstVal}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD"] = "Валовой национальный продукт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_SELF"] = "{1_Metric}, ранг {2_Rank}, {3_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_BEST"] = "лучший {1_BestCiv} {2_BestVal}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_AVERAGE"] = "среднее {1_AvgVal}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_WORST"] = "худший {1_WorstCiv} {2_WorstVal}"
 
 -- Culture Overview (Ctrl+C)
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_YOUR_CULTURE"] = "Ваша культура"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_SWAP_WORKS"] = "Обмен шедеврами"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_VICTORY"] = "Культурная победа"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_APPROVAL"] = "Одобрение"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_APPROVAL_PERCENT"] = "{1_Value} процентов"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_BY"] =
+    "влияние {1_Civ} на других, туризм {2_N}, enter для переключения на входящее"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_FROM"] =
+    "влияние на {1_Civ}, культура {2_N}, enter для переключения на исходящее"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP_FROM"] =
+    "их туризм {1_Theirs} к вашей накопленной культуре {2_Yours}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_KEY"] = "Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_DESC"] =
+    "Переключить между исходящим и входящим влиянием"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_HISTORIC"] = "Исторические события"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_COL_TOURISM"] = "Сгенерированный туризм"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_SUMMARY"] = {
+    one = "{1_N} историческое событие, {2_Culture} культуры в ход, {3_Tourism} туризма в ход",
+    few = "{1_N} исторических события, {2_Culture} культуры в ход, {3_Tourism} туризма в ход",
+    many = "{1_N} исторических событий, {2_Culture} культуры в ход, {3_Tourism} туризма в ход",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_LAND"] =
+    "{1_From} до {2_To}, сухопутная торговля"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_SEA"] = "{1_From} до {2_To}, морская торговля"
 
 -- Culture Overview tabs and content (Your Culture tab).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_INFLUENCE"] = "Влияние игрока"
@@ -2359,6 +2536,55 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
     few = "{1_Religion}, священный город {2_HolyCity}, основана {3_Founder}, {4_NumCities} города",
     many = "{1_Religion}, священный город {2_HolyCity}, основана {3_Founder}, {4_NumCities} городов",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_CONTROLLER"] =
+    "Вы контролируете религию {1_Religion}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW_CONTROLLED"] = {
+    one = "{1_Religion}, священный город {2_HolyCity}, под контролем {3_Controller}, {4_NumCities} город",
+    few = "{1_Religion}, священный город {2_HolyCity}, под контролем {3_Controller}, {4_NumCities} города",
+    many = "{1_Religion}, священный город {2_HolyCity}, под контролем {3_Controller}, {4_NumCities} городов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_FOUNDED"] = "основана {1_Date}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_FOLLOWERS"] = {
+    one = "{1_N} последователь",
+    few = "{1_N} последователя",
+    many = "{1_N} последователей",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_YOU_HOLD"] =
+    "у вас {1_Cities} городов, {2_Followers} последователей"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_KEY"] = "Control плюс Shift плюс E"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_DESC"] = "Открыть обзор событий"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_DISABLED"] = "События в этой игре отключены"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_KEY"] = "Control плюс V"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_DESC"] = "Открыть обзор вассалитета"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"] =
+    "Вассалитет в этой игре отключён"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_TAB_CIVS"] = "Цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_TAB_DETAILS"] = "Детали"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_VASSAL_OF"] = "Вы вассал {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORPORATIONS_HOTKEY_HELP_KEY"] = "Control плюс Shift плюс C"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORPORATIONS_HOTKEY_HELP_DESC"] =
+    "Открыть обзор корпораций"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_TAB_WORLD_FRANCHISES"] = "Мировые франшизы"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_STATE_GLOBAL"] = "глобальная монополия"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_STATE_STRATEGIC"] = "стратегическая монополия"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_SHARE_STATE"] =
+    "{1_Num}%, {2_State}, {3_Owned} из {4_Total} на карте"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_SHARE"] = "{1_Num}%, {2_Owned} из {3_Total} на карте"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_FOUNDED_BY"] = "основана {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_CIV_LOCKED"] =
+    "штаб-квартира уникальна для другой цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_RESOURCE_SHARE"] = "{1_Resource}, вы контролируете {2_Num}%"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_NONE"] = "Вы не основали корпорацию"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_OFFICE_ROW"] = {
+    one = "{1_City}, {2_Num} иностранный торговый путь",
+    few = "{1_City}, {2_Num} иностранных торговых пути",
+    many = "{1_City}, {2_Num} иностранных торговых путей",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_FRANCHISE_ROW"] = "{1_City}, {2_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_PERSPECTIVE_HELP_KEY"] =
+    "Вверх от строки заголовков столбцов"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_PERSPECTIVE_HELP_DESC"] =
+    "Выбрать, доли ресурсов какой цивилизации отображает таблица монополий"
 
 -- Espionage Overview (BNW only). TabbedShell over the engine's
 -- BUTTONPOPUP_ESPIONAGE_OVERVIEW: tab 1 agents (flat list, drill in for
@@ -2405,6 +2631,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_UNKNOWN"] = "не
 
 -- Move-agent sub.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MOVE_DISPLAY"] = "Переместить {1_Rank} {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_PROGRESS_TURNS"] = {
+    one = "{1_Turns} ход",
+    few = "{1_Turns} хода",
+    many = "{1_Turns} ходов",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_SECURITY"] = "безопасность {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_BONUS_LOCKED"] = "заблокировано"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_BONUS_UNLOCKED"] = "разблокировано"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MISSION_SUB"] = "задания {1_Rank} {2_Name} в {3_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_COUNTERSPY_SUB"] =
+    "фокус контрразведки {1_Rank} {2_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_SUB"] = "дипломат {1_Rank} {2_Name} в {3_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_UL_STRENGTH"] = "сила"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_UL_RANGED"] = "сила дальнего боя"
 
 -- Bookmarks: per-session digit-keyed cursor positions. Ctrl + 1-0 saves
 -- the cursor cell, Shift + 1-0 jumps there (with scanner backspace return),

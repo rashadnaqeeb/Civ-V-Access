@@ -133,6 +133,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK_CITY"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RANGED_CITY"] =
     "miasto {1_Name}, {2_MyStr} vs {3_TheirStr}, {4_DmgToThem} obrażeń dla nich"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_RETALIATE"] = "{1_Dmg} dla mnie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_VOLLEY"] = "salwa {1_Dmg}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIT_PREVIEW_INTERCEPTORS"] = {
     one = "{1_N} przechwytywacz",
     few = "{1_N} przechwytywacze",
@@ -500,6 +501,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RESISTANCE"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_OCCUPIED"] = "okupowane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_PUPPET"] = "marionetka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_BLOCKADED"] = "zablokowane"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_SAPPED"] = {
+    one = "osaczone {1_Turns} turę",
+    few = "osaczone {1_Turns} tury",
+    many = "osaczone {1_Turns} tur",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RANGED_STRENGTH"] = "{1_Str} siła ostrzału"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNHAPPINESS"] = "niezadowolenie {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_POPULATION"] = "{1_Num} mieszkańców"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_DEFENSE"] = "{1_Num} obrona"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_HP_FRACTION"] = "{1_Cur} z {2_Max} pż"
@@ -566,6 +574,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ENTER_SPACE"] = "Enter lub spacj
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT"] = "Lewo lub prawo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT"] = "Shift plus lewo lub prawo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN"] = "Ctrl plus góra lub dół"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN"] = "Alt plus góra lub dół"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_LEFT_RIGHT"] = "Alt plus lewo lub prawo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_TAB"] = "Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB"] = "Shift plus tab"
@@ -584,6 +593,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ACTIVATE"] = "Aktywuj"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST"] = "Zmień wartość lub wejdź głębiej"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG"] = "Zmień wartość większymi krokami"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP"] = "Przejdź do poprzedniej lub następnej grupy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"] = "Przeglądaj bieżący element według sekcji"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB"] = "Następna karta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB"] = "Poprzednia karta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER"] = "Odczytaj nagłówek ekranu"
@@ -764,6 +774,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DIPLOMACY"] = "Dyplomacja"
 -- ally with against us.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_DENOUNCE"] = "Potępienie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_COOP_WAR"] = "Cel wspólnej wojny"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_DISCUSS_SHARE_APPROACH"] = "Omów podejście do dzielenia"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_EVENT"] = "Zdarzenie"
 
 -- ===== ingame_batch_05.lua =====
 -- Batch 05 (lines 1024-1246): cityview start, popups
@@ -843,6 +855,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_ADVISOR_TUTORIAL"] = "Doradca samo
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_ACTIVE"] = "Aktywne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_TURN_LOG"] = "Dziennik tury"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_DISMISSED"] = "Odrzucone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_TAB_OPTIONS"] = "Opcje powiadomień"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER"] = "filtr"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_FILTER_ALL"] = "Wszystkie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_EMPTY"] = "Brak powiadomień."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NOTIFICATION_ITEM"] = "{1_Text}, tura {2_Turn}"
 -- Combat Log group inside the Turn Log tab.
@@ -868,6 +883,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_MAX_MOVES"] = "Maksymalne ru
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Siła"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Walka na odległość"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Sąsiedni wrogowie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "PD"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP} / {2_Next}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "bonus umocnienia {1_N} procent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_GOLD"] = "Złote trofeum"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_SILVER"] = "Srebrne trofeum"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_BRONZE"] = "Brązowe trofeum"
 -- Great People tab.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW"] =
     "{1_City}: {2_Turns}, {3_Progress} z {4_Threshold}, plus {5_Rate} na turę"
@@ -905,6 +926,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Otwórz ra
 -- CityView hub.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "Miasto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CONNECTED"] = "połączone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RAIL_CONNECTED"] = "połączone koleją"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNEMPLOYED"] = "{1_Num} bezrobotnych"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FOOD"] = "żywność {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_PRODUCTION"] = "produkcja {1_Num}"
@@ -940,6 +962,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_AVOID_GROWTH"] = "Unikaj w
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET"] = "Resetuj przypisania pól"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_CHANGED"] = "{1_Label} wybrane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FOCUS_RESET_DONE"] = "przypisania pól zresetowane"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS"] = "+{1_N} zadowolenia"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS"] = "{1_N} niezadowolenia"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_GP_RATE"] = "{1_N} na turę"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALIST_PINNED_STATE"] = "obsadzone, przypięte"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_FREE_SPECIALISTS"] = {
+    one = "{1_N} wolny specjalista",
+    few = "{1_N} wolnych specjalistów",
+    many = "{1_N} wolnych specjalistów",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_FREE_SPECIALISTS"] =
+    "brak wolnych specjalistów, {1_Num} niezadowolenia na nowego specjalistę"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SPECIALISTS_RESET_DONE"] = "specjaliści zresetowani"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_PROD_AUTOMATE"] = "Automatyzuj produkcję, {1_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_NO_UNEMPLOYED"] = "brak bezrobotnych"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_SLACKER_ASSIGNED"] = "przypisano"
 -- Buildings sub-handler (ss3.7). Drill-in opens on Enter over any building
@@ -1242,6 +1277,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE"] = {
     many = "złota era, {1_Turns} tur",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS"] = "{1_Cur} z {2_Threshold} do złotej ery"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_RATE"] = "+{1_N} punktów złotego wieku"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GA_RATE_NEGATIVE"] = "{1_N} punktów złotego wieku"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_APPROVAL"] = "{1_N} procent aprobaty"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_CITIZEN_COUNTS"] = {
+    one = "{1_Happy} zadowolony, {2_Unhappy} niezadowolony obywatel",
+    few = "{1_Happy} zadowolonych, {2_Unhappy} niezadowolonych obywateli",
+    many = "{1_Happy} zadowolonych, {2_Unhappy} niezadowolonych obywateli",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_ECSTATIC"] = "zachwycone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_HAPPY"] = "szczęśliwe"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_CONTENT"] = "zadowolone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_UNHAPPY"] = "niezadowolone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_VERY_UNHAPPY"] = "bardzo niezadowolone"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_TIER_SUPER_UNHAPPY"] = "skrajnie niezadowolone"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HAPPINESS_OFF"] = "szczęście wyłączone"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH"] = "+{1_Rate} wiary, {2_Total} łącznie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_FAITH_OFF"] = "religia wyłączona"
@@ -1381,6 +1430,28 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY"] = "niezadowolenie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_UNHAPPY_ALT"] = "niezadowolenie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_LEFT"] = "lewo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_ARROW_RIGHT"] = "prawo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_INFLUENCE"] = "wpływ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_PEOPLE_ALT_GPP"] = "pkt. wiel."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH"] = "punkty wzrostu granic"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH_ALT"] = "border growth"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE"] = "punkty złotego wieku"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE_ALT"] = "golden age"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL"] = "pkt. wielkiego generała"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL_ALT"] = "great general"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL"] = "pkt. wielkiego admirała"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL_ALT"] = "great admiral"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_POPULATION"] = "populacja"
+-- Dedup alias copied from the game's localized text, not translated (see en_US). "" means the primary spoken form already collapses.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_POPULATION_ALT"] = "citizen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_STRIKE"] = "ostrzał dystansowy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_ATTACK"] = "atak dystansowy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_RANGE"] = "zasięg"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_RANGE_STRENGTH_ALT_CITY_STRIKE"] = "siła ataku na miasto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ICON_CHECKMARK"] = "znacznik wyboru"
 
 -- ChooseProduction popup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_PRODUCTION"] = "Wybierz produkcję"
@@ -1407,6 +1478,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT"] = {
     many = "{1_Name}, {2_Turns} tur",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_SLOT_PROCESS"] = "{1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_GOLD"] = "zainwestuj, {1_Num} złota"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVESTED"] = "zainwestowano w {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_REDUCED"] = "{1_N} procent redukcji kosztów"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_NO_REDUCTION"] = "brak redukcji na razie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_DISABLED_REASON"] = "wyłączone: {1_Reason}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROD_INVESTED"] = "zainwestowane"
 
 -- ChooseTech popup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CHOOSE_TECH"] = "Wybierz badanie"
@@ -1471,6 +1548,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_F6"] = "Zamknij drzewk
 -- Tech Tree
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_CLOSE"] = "Escape"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_CLOSE"] = "Zamknij drzewo technologii"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_FOREIGN_TITLE"] = "Drzewo technologii {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_FOREIGN_VIEW_READONLY"] = "widok tylko do odczytu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_SEARCH_RESULTS"] = "Wyniki wyszukiwania"
 
 -- Social Policies popup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY"] = "Instytucje społeczne"
@@ -1536,6 +1616,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_ADOPTED"] = "przyjęto {1_Na
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_OPENED"] = "otwarto {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_ADOPTED_TENET"] = "przyjęto dogmat {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCHED"] = "wysłano prośbę o zmianę ideologii"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_FOREIGN_TITLE"] = "Polityki społeczne {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_NOT_OPENED"] = "nieotwarta"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_NOT_ADOPTED"] = "nieprzyjęta"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_EMPTY"] = "slot {1_Num}, pusty"
 
 -- Number-entry primitive
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_DIGITS"] = "Cyfry"
@@ -1590,6 +1674,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_PLEASED"] = "lekko zadowolo
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_NEUTRAL"] = "obojętne wobec: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_DISPLEASED"] = "lekko niezadowolone z: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_VERY_DISPLEASED"] = "bardzo niezadowolone z: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_PLEASED"] = "skrajnie zadowolone z: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_PLEASED"] = "umiarkowanie zadowolone z: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_MODERATELY_DISPLEASED"] = "umiarkowanie niezadowolone z: {1_List}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_OPINION_EXTREMELY_DISPLEASED"] = "skrajnie niezadowolone z: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICY_COUNT"] = "{1_Branch} {2_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_POLICIES_LIST"] = "instytucje: {1_List}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_WONDERS_LIST"] = "cuda świata: {1_List}"
@@ -1601,6 +1689,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PROPOSAL_INCOMING"] = "przychodząc
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_PROPOSAL_OUTGOING"] = "oczekiwanie na odpowiedź"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_TEAM"] = "drużyna {1_N}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_RESEARCHING"] = "bada {1_Tech}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_YOU_ARE_VASSAL"] = {
+    one = "jesteś ich wasalem, {1_N} tura",
+    few = "jesteś ich wasalem, {1_N} tury",
+    many = "jesteś ich wasalem, {1_N} tur",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_THEY_ARE_VASSAL"] = {
+    one = "są twoim wasalem, {1_N} tura",
+    few = "są twoim wasalem, {1_N} tury",
+    many = "są twoim wasalem, {1_N} tur",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_VASSAL_OF"] = "wasal {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_HAS_VASSALS"] = "ma wasali: {1_List}"
 
 -- ===== ingame_batch_10.lua =====
 -- Batch 10 (lines 2008-2196): final pre-leader block
@@ -1644,6 +1744,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_POLICIES"] = "doktryny"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_WONDERS"] = "cuda świata"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_SCORE"] = "punkty"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_DECLARE_WAR"] = "wypowiedz wojnę"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_COL_CONTENDER"] = "pretendent dyplomatyczny"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_CONTENDER"] = "{1_Civ}, {2_Inf} wpływów"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DIPLO_CONTENDER_UNMET"] = "{1_Points} pkt. pretendenta (nieznane cywilizacje)"
 -- Minor civ columns. _RELATIONSHIP carries the bonuses currently flowing
 -- from a Friends / Allies CS (culture, food, science, faith, happiness,
 -- spawn estimate). _TRAIT_PERSONALITY carries trait then personality as a
@@ -1716,6 +1819,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_CULTURE_TILE_STALLED"] = "ekspa
 -- occupied / specialists already folded in by the engine).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_LINE"] =
     "lokalne szczęście {1_Local}, niezadowolenie {2_Unhappiness}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_HAPPINESS_HEADLINE"] = "zadowolenie {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_UNHAPPINESS_HEADLINE"] = "niezadowolenie {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYSTATS_DEMAND_UNKNOWN"] = "żądanie nieznane"
 -- Religion group: one row per religion present, holy-city flag inlined
 -- when applicable so the user hears it together with that religion's
 -- numbers rather than as a separate line.
@@ -1750,6 +1856,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET"] = "Oni otrzymują 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS"] = "{1_City} otrzymuje {2_Yields}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_PRESSURE"] = "{1_Num} {2_Religion} presja"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_DESTINATIONS"] = "Brak prawidłowych celów."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_FRANCHISED"] = "z franczyzą"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_CAN_FRANCHISE"] = "można ustanowić franczyzę"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_FRANCHISE"] = "brak franczyzy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_DEST_QUEST"] = "cel zadania"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRADE_UNIT_NEW_HOME_NO_CITIES"] = "Brak prawidłowych miast bazowych."
 -- Trade Route Overview (TRO) screen. Distinct from the per-pick
 -- ChooseInternationalTradeRoutePopup above: TRO is the standalone Ctrl+T
@@ -1784,6 +1894,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_SCIENCE"] = "otrzymana nauka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_FOOD"] = "otrzymana żywność"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRODUCTION"] = "otrzymana produkcja"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_PRESSURE"] = "presja religijna do celu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_CULTURE"] = "otrzymana kultura"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_TRIP"] = "złoto za przejazd"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_SORT_LENGTH"] = "długość trasy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_TRIP_TURNS"] = {
+    one = "{1_Turns} tura na przejazd",
+    few = "{1_Turns} tury na przejazd",
+    many = "{1_Turns} tur na przejazd",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ALREADY_TRADING"] = "już handluje"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_LOCATE_UNIT"] = "Zlokalizuj jednostkę"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_ESTABLISH"] = "Ustanów"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_RELOCATE"] = "Przenieś"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TRO_UNIT_NOT_FOUND"] = "Jednostka nie znaleziona"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEADER_DESC_MISSING"] = "Brak opisu dla tego przywódcy."
 
 -- ===== ingame_batch_11.lua =====
@@ -1803,6 +1926,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "Złoto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "Kultura"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "Wiara"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "Produkcja"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_UNHAPPINESS"] = "Niezadowolenie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "stolica"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_PUPPET"] = "marionetka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_OCCUPIED"] = "okupowane"
@@ -1860,6 +1984,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_PERCITY_BONUSES_TT"] = "Zadowole
     .. "Mnożone przez liczbę miast."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WORLD_CONGRESS"] = "Kongres Światowy, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_DIFFICULTY"] = "Poziom trudności, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS"] = "Zdarzenia, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS"] = "Wasale, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS"] = "Prowadzenie wojen z wielkimi cywilizacjami, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL"] = "Niezadowolenie łącznie, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_GROUP_UNHAPPY_SOURCES"] = "Źródła niezadowolenia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_NUM_CITIES"] = {
@@ -1883,6 +2010,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
     many = "{1_Count} okupowanych obywateli, {2_Value} niezadowolenia",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Opinia publiczna, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS"] = "Znużenie wojną, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY_TOTAL"] = "Podział według miast, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Podział na miasta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Dostępne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Używane"
@@ -1905,6 +2034,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "Zwycięstwa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "Łącznie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, stolica utracona"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "Dominacja"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_YOU_ARE_VASSAL"] = "jesteś wasalem {1_Master}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_YOUR_VASSAL"] = "{1_Civ} jest twoim wasalem"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_DOM_VASSAL_OF"] = "{1_Civ} jest wasalem {2_Suzerain}"
 
 -- ===== ingame_batch_12.lua =====
 -- Batch 12 (lines 2450-2638): league
@@ -1947,6 +2079,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_ROW"] =
 -- letter-by-letter in TTS and tells a non-economist nothing. Mod-authored
 -- override only -- the engine label stays "GNP" for sighted players.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_LABEL_GOLD"] = "Produkt Narodowy Brutto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_SELF"] = "{1_Metric}, pozycja {2_Rank}, {3_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_BEST"] = "najlepszy {1_BestCiv} {2_BestVal}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_AVERAGE"] = "średnia {1_AvgVal}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_WORST"] = "najgorszy {1_WorstCiv} {2_WorstVal}"
 -- Culture Overview (Ctrl+C). Four-tab popup: Your Culture (per-city GW
 -- management with click-to-move/view toggle), Swap Great Works (designate
 -- swappable + foreign-offerings list + send), Culture Victory (per-civ
@@ -2062,6 +2198,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_IDEOLOGY"] = "Ideologia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_OPINION"] = "Opinia publiczna"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_UNHAPPY"] = "Niezadowolenie z opinii publicznej"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_HAPPY"] = "Nadmiar zadowolenia"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_VICTORY_COL_APPROVAL"] = "aprobata"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_APPROVAL_PERCENT"] = "{1_N} procent aprobaty"
 -- Tab 4 (Player Influence). BaseTable: row label is the row civ's display
 -- name, columns are the engine's six. Column 1 ("Change perspective") folds
 -- the engine's perspective picker plus the perspective's overall-tourism
@@ -2086,6 +2224,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_NOW_VIEWING"] = "teraz oglą
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_CELL"] = "{1_N} procent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP"] =
     "twoja turystyka {1_Yours} wobec ich kultury dorobkowej {2_Theirs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_BY"] =
+    "wpływ {1_Civ} na innych, wynik turystyki {2_N}, Enter, aby przełączyć na przychodzące"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODE_FROM"] =
+    "wpływ na {1_Civ}, wynik kultury {2_N}, Enter, aby przełączyć na wychodzące"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_PERCENT_TOOLTIP_FROM"] =
+    "ich {1_Theirs} turystyki wobec twojej {2_Yours} kultury dorobkowej"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_KEY"] = "B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TOGGLE_HELP_DESC"] = "Przełącz perspektywę między przez i od"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_MODIFIER_CELL"] = "{1_N} procent"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_FALLING"] = "spada"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_STATIC"] = "bez zmian"
@@ -2094,7 +2240,44 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_INFLUENCE_TREND_RISING_SLOWLY"] = "ro�
 -- Hotkey help (BaselineHandler / map-mode help list).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_KEY"] = "Control plus C"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HOTKEY_HELP_DESC"] = "Otwórz Przegląd kultury"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_TAB_HISTORIC"] = "Historyczne"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_COL_TOURISM"] = "Turystyka"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_SUMMARY"] = {
+    one = "{1_N} wydarzenie historyczne, {2_Culture} kultury na turę, {3_Tourism} turystyki na turę",
+    few = "{1_N} wydarzenia historyczne, {2_Culture} kultury na turę, {3_Tourism} turystyki na turę",
+    many = "{1_N} wydarzeń historycznych, {2_Culture} kultury na turę, {3_Tourism} turystyki na turę",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_LAND"] = "{1_From} do {2_To}, handel lądowy"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_HISTORIC_TRADE_SEA"] = "{1_From} do {2_To}, handel morski"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CO_DISABLED"] = "Przegląd kultury jest wyłączony w tej grze"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_KEY"] = "E"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_HOTKEY_HELP_DESC"] = "Otwórz przegląd zdarzeń"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EVENTS_DISABLED"] = "Zdarzenia są wyłączone w tej grze."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_KEY"] = "V"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_HOTKEY_HELP_DESC"] = "Otwórz przegląd wasalstwa"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"] = "Wasalstwo jest wyłączone w tej grze."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_TAB_CIVS"] = "Cywilizacje"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_TAB_DETAILS"] = "Szczegóły"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VO_VASSAL_OF"] = "wasal {1_Suzerain}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORPORATIONS_HOTKEY_HELP_KEY"] = "O"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORPORATIONS_HOTKEY_HELP_DESC"] = "Otwórz przegląd korporacji"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_TAB_WORLD_FRANCHISES"] = "Franczyzy na świecie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_STATE_GLOBAL"] = "globalny monopol"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_STATE_STRATEGIC"] = "strategiczny monopol"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_SHARE_STATE"] = "{1_Num}%, {2_State}, {3_Owned} z {4_Total} na mapie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_SHARE"] = "{1_Num}%, {2_Owned} z {3_Total} na mapie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_FOUNDED_BY"] = "założona przez {1_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_CIV_LOCKED"] = "zablokowane"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_RESOURCE_SHARE"] = "{1_Resource}, {2_N} procent"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_NONE"] = "brak korporacji"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_OFFICE_ROW"] = {
+    one = "{1_City}, {2_Num} zagraniczna trasa handlowa",
+    few = "{1_City}, {2_Num} zagraniczne trasy handlowe",
+    many = "{1_City}, {2_Num} zagranicznych tras handlowych",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_FRANCHISE_ROW"] = "{1_City}, {2_Civ}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_PERSPECTIVE_HELP_KEY"] = "B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CORP_PERSPECTIVE_HELP_DESC"] = "Przełącz perspektywę"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_MAP_SETTINGS"] = "Ustawienia mapy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_KEY"] = "Control plus M"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAP_SETTINGS_HOTKEY_HELP_DESC"] = "Otwórz ustawienia wyświetlania mapy"
@@ -2176,6 +2359,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LEAGUE_PROPOSE_ANGRY_LIST"] = "Cywilizacj
 -- Religion Overview.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_KEY"] = "Control plus R"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_HOTKEY_HELP_DESC"] = "Otwórz przegląd religii"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_CONTROLLER"] = "kontrolujesz religię {1_Religion}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_STATUS_FOUNDER"] = "Jesteś założycielem {1_Religion}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_BELIEF_TYPE"] = "dogmat {1_Type}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
@@ -2183,6 +2367,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"] = {
     few = "{1_Religion}, święte miasto {2_HolyCity}, założono przez {3_Founder}, {4_NumCities} miasta",
     many = "{1_Religion}, święte miasto {2_HolyCity}, założono przez {3_Founder}, {4_NumCities} miast",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW_CONTROLLED"] = {
+    one = "{1_Religion}, święte miasto {2_HolyCity}, kontrolowane przez {3_Controller}, {4_NumCities} miasto",
+    few = "{1_Religion}, święte miasto {2_HolyCity}, kontrolowane przez {3_Controller}, {4_NumCities} miasta",
+    many = "{1_Religion}, święte miasto {2_HolyCity}, kontrolowane przez {3_Controller}, {4_NumCities} miast",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_FOUNDED"] = "założone w turze {1_Turn}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_FOLLOWERS"] = {
+    one = "{1_N} wyznawca",
+    few = "{1_N} wyznawców",
+    many = "{1_N} wyznawców",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RELIGION_YOU_HOLD"] = "posiadasz {1_Cities} miast, {2_Followers} wyznawców"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RO_MAP_HOLY_CITY"] = "święte miasto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_RO_MAP_EMPTY"] = "puste"
 
 -- Espionage Overview (BNW only).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_HOTKEY_HELP_KEY"] = "Control plus E"
@@ -2199,6 +2397,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_LINE_TURNS"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_KIA"] = "{1_Rank} {2_Name} poległ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_TAIL"] = ", dyplomata"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_PROGRESS_TURNS"] = {
+    one = "{1_N} tura",
+    few = "{1_N} tury",
+    many = "{1_N} tur",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_SECURITY"] = "bezpieczeństwo {1_N}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_BONUS_LOCKED"] = "zablokowany"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_BONUS_UNLOCKED"] = "odblokowany"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_MISSION_SUB"] = "{1_Rank} {2_Name} misje w {3_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_COUNTERSPY_SUB"] = "{1_Rank} {2_Name} kontrwywiad"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_DIPLOMAT_SUB"] = "{1_Rank} {2_Name} dyplomata w {3_City}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_UL_STRENGTH"] = "siła"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_UL_RANGED"] = "siła dystansowa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ESPIONAGE_AGENT_ACTIONS_DISPLAY"] = "Działania {1_Rank} {2_Name}"
 
 -- City row pieces.

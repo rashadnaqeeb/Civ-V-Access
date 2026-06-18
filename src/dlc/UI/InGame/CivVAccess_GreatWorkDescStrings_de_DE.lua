@@ -3,6 +3,10 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Keine Bildbeschreibung für dieses große Werk."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "Ein Schreibtisch aus der Nähe, warm und gedämpft im Kerzenlicht. Bogen handgeschriebener Manuskripte in fließender Kursive bedecken die Oberfläche, ein einzelner grauer Federkiel liegt quer darüber. Eine in Rot gebundene Schriftrolle liegt am linken Rand, und ein gläsernes Tintenfass leuchtet oben rechts."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "Ein schwach beleuchteter Konzertsaal, warm im Kerzenlicht. In der Mitte steht ein Dirigent in blauem Rock und weißen Strümpfen mit erhobenem Taktstock, dem sitzenden Orchester aus Musikern mit gepuderten Perücken zugewandt, die von Notenständern ablesen. Eine vergoldete Oberempore mit Reliefschnitzereien zieht sich über die Rückwand, rechts leuchtet ein großer Kerzenleuchter, während die Köpfe des Publikums als dunkle Silhouetten im Vordergrund erscheinen."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Ölgemälde des niederländischen Goldenen Zeitalters, eines der beliebtesten Porträts der westlichen Kunst. Eine junge Frau wendet sich über die Schulter zurück und sucht aus einem schlichten dunklen Hintergrund deinen Blick, die Lippen leicht geöffnet, als wolle sie gleich sprechen. Sie trägt einen blau-goldenen Turban, dessen Tuch ihr über den Rücken fällt, und eine einzelne große tropfenförmige Perle fängt das Licht an ihrem Ohr."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

@@ -2,7 +2,11 @@
 -- Baseline in CivVAccess_GreatWorkDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Aucune description de peinture pour cette oeuvre d'art."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Aucune description d'image pour cette oeuvre d'art."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "Un bureau d'écrivain vu de près, faiblement éclairé par la lumière chaude d'une bougie. Des feuilles de manuscrit couvertes d'une écriture cursive fluide recouvrent la surface, une unique plume d'oie grise posée en travers. Un rouleau noué d'un ruban rouge repose sur le bord gauche, et un encrier de verre luit en haut à droite."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "Une salle de concert sombre éclairée par la lumière chaude des bougies. Au centre, un chef d'orchestre en habit bleu et bas blancs se tient debout, sa baguette levée, face à un orchestre assis de musiciens en perruques poudrées qui lisent sur leurs pupitres. Une galerie supérieure dorée, sculptée de panneaux en relief, court le long du mur du fond, et un grand lustre à bougies flamboie sur la droite, tandis que les têtes du public se découpent en formes sombres au premier plan."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Peinture à l'huile du Siècle d'or néerlandais, l'un des portraits les plus aimés de l'art occidental. Une jeune femme se retourne par-dessus son épaule pour croiser votre regard, surgissant d'un fond sombre et uni, les lèvres juste entrouvertes comme sur le point de parler. Elle porte un turban bleu et or dont l'étoffe retombe dans son dos, et une unique grande perle en forme de larme accroche la lumière à son oreille."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

@@ -3,7 +3,11 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] =
-    "이 위대한 작품에 대한 그림 설명이 없습니다."
+    "이 위대한 작품에 대한 이미지 설명이 없습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "촛불 빛이 낮게 따뜻하게 비추는, 가까이서 담은 작가의 책상입니다. 흘러내리는 필기체로 손으로 쓴 원고 용지들이 책상 위를 덮고 있으며, 회색 깃털 깃펜 하나가 그 위에 가로로 놓여 있습니다. 붉은 실로 묶인 둘둘 만 두루마리가 왼쪽 가장자리에 놓여 있고, 유리 잉크병이 오른쪽 위에서 빛을 발합니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "촛불로 따뜻하게 밝혀진 어두운 연주회장입니다. 중앙에서 파란 코트에 흰 스타킹을 입은 지휘자가 지휘봉을 들어 올린 채 서서, 분을 바른 가발을 쓰고 악보대의 악보를 보며 앉아 있는 오케스트라 단원들을 마주하고 있습니다. 뒷벽을 따라 부조 패널로 장식된 금도금 상층 발코니가 이어져 있고, 오른쪽에서 커다란 촛대 샹들리에가 활활 타오르며, 관객들의 머리는 전경을 가로질러 어두운 실루엣으로 보입니다."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "네덜란드 황금기의 유화로, 서양 미술에서 가장 사랑받는 초상화 중 하나입니다. 젊은 여자가 어깨 너머로 고개를 돌려 단순한 어두운 배경 속에서 보는 이와 눈을 맞추고 있으며, 입술은 막 말을 꺼내려는 듯 살짝 벌어져 있습니다. 그녀는 파란색과 금색의 터번을 두르고 있는데, 그 천이 등 뒤로 흘러내리며, 귀에는 커다란 물방울 모양 진주 하나가 빛을 받고 있습니다."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

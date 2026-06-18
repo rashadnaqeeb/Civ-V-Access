@@ -2,7 +2,11 @@
 -- Baseline in CivVAccess_GreatWorkDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Nessuna descrizione del dipinto per quest'opera d'arte."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Nessuna descrizione dell'immagine per quest'opera d'arte."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "Una scrivania da scrittore vista da vicino, illuminata da una luce fioca e calda di candele. Fogli di manoscritto scritti a mano in corsivo fluente ricoprono la superficie, con una singola penna d'oca grigia posata di traverso su di essi. Un rotolo avvolto e legato con un nastro rosso si trova sul bordo sinistro, e un calamaio di vetro brilla in alto a destra."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "Una sala da concerto fiocamente illuminata dalla luce calda delle candele. Al centro un direttore d'orchestra in abito blu e calze bianche sta con la bacchetta alzata, rivolto a un'orchestra seduta di musicisti in parrucche incipriate che leggono i spartiti sui leggii. Una galleria superiore dorata intagliata con pannelli a rilievo corre sulla parete di fondo e un grande lampadario a candele arde a destra, mentre le teste del pubblico appaiono come forme scure in primo piano."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Dipinto a olio del secolo d'oro olandese, uno dei ritratti più amati dell'arte occidentale. Una giovane donna si volta indietro sopra la spalla per incontrare il tuo sguardo da uno sfondo scuro e spoglio, le labbra appena schiuse come se stesse per parlare. Indossa un turbante blu e oro la cui stoffa le scende lungo la schiena, e un'unica grande perla a goccia coglie la luce all'orecchio."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

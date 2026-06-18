@@ -2,7 +2,11 @@
 -- Baseline in CivVAccess_GreatWorkDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "這件偉大作品沒有畫作描述."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "這件偉大作品沒有圖像描述."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "燭光搖曳的書房中, 一位作家伏案疾書, 羽毛筆在紙上沙沙滑過, 窗外夜色深沉. 蠟燭的暖光映照出他專注低垂的臉龐, 將他與周圍的陰影隔開, 案頭散落著文稿與墨水瓶."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "昏暗的音樂廳中, 觀眾屏息靜候, 舞台上的樂手在微弱燈光下各就其位, 弦樂的低鳴在寂靜中緩緩升起, 將整個廳堂籠罩在音樂帶來的莊嚴氛圍之中."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "荷蘭黃金時代的油畫, 西方藝術中最受喜愛的肖像之一. 一名年輕女子從素淨的深色背景中越過肩頭回望, 與你四目相對, 雙唇微張, 彷彿正要開口. 她戴著一頂藍金兩色的纏頭巾, 布料垂落於背後, 耳畔一顆碩大的淚滴形珍珠映著光."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

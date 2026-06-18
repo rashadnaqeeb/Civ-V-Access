@@ -30,6 +30,17 @@ values come from that pack's XML, fetched from the repo -- the --dump
 mode below reads the local game install and so covers only the ten
 Firaxis locales, not pt_BR.
 
+Vox Populi icons are special the other way: the icon-plus-word pairing
+lives in VP's own mod text, and VP ships en_US text ONLY (no localized
+overlays). So in every locale a VP session renders that label in English,
+and the adjacent word the matcher must collapse against is the English
+label in all ten locales -- not a per-locale word, and not findable by
+--dump (which reads the base-game install, not the VP mod). For these the
+table below carries the same English value across every locale, sourced
+from VP's belief / building / help prose rather than from game XML. The
+Civ5-PTBR pack translates base-game text, not VP mod text, so pt_BR gets
+the English value too.
+
 Adding a new alias key
 ----------------------
 1. Find the engine TXT_KEY whose text pairs the icon with a word.
@@ -106,6 +117,41 @@ ALIASES = {
             "ru_RU": "культуры",     # "...рост [ICON_CULTURE] культуры в городе."
             "zh_Hant_HK": "",        # "...城市[ICON_CULTURE]文化值產出的..."
         },
+    },
+    # Vox Populi countable-yield icons. The icon-plus-label prose lives in
+    # VP's belief / building / trait / help text (e.g. NewBeliefText.xml,
+    # BeliefTextChanges.sql), which VP ships in en_US only. A VP session in
+    # any locale therefore renders these labels in English, so the word
+    # adjacent to the icon is the English label in all ten locales. The
+    # localized primary spoken form never collapses against an English
+    # label, so every locale needs the English alias -- no "" entries and
+    # no per-locale variation. (The "[ICON_CITIZEN] Population" pairing is
+    # collapsed by the en_US primary "population"; the alias here covers the
+    # distinct "[ICON_CITIZEN] Citizen" pairing.)
+    "TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH_ALT": {
+        "primary": "TXT_KEY_CIVVACCESS_ICON_BORDER_GROWTH",
+        "source": "VP prose -- en_US only, e.g. '[ICON_CULTURE_LOCAL] Border Growth'",
+        "values": {loc: "border growth" for loc in LOCALES},
+    },
+    "TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE_ALT": {
+        "primary": "TXT_KEY_CIVVACCESS_ICON_GOLDEN_AGE",
+        "source": "VP prose -- en_US only, e.g. '[ICON_GOLDEN_AGE] Golden Age'",
+        "values": {loc: "golden age" for loc in LOCALES},
+    },
+    "TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL_ALT": {
+        "primary": "TXT_KEY_CIVVACCESS_ICON_GREAT_GENERAL",
+        "source": "VP prose -- en_US only, e.g. '[ICON_GREAT_GENERAL] Great General'",
+        "values": {loc: "great general" for loc in LOCALES},
+    },
+    "TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL_ALT": {
+        "primary": "TXT_KEY_CIVVACCESS_ICON_GREAT_ADMIRAL",
+        "source": "VP prose -- en_US only, e.g. '[ICON_GREAT_ADMIRAL] Great Admiral'",
+        "values": {loc: "great admiral" for loc in LOCALES},
+    },
+    "TXT_KEY_CIVVACCESS_ICON_POPULATION_ALT": {
+        "primary": "TXT_KEY_CIVVACCESS_ICON_POPULATION",
+        "source": "VP prose -- en_US only, e.g. '[ICON_CITIZEN] Citizen loss'",
+        "values": {loc: "citizen" for loc in LOCALES},
     },
 }
 

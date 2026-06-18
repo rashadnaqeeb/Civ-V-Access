@@ -2,7 +2,11 @@
 -- Baseline in CivVAccess_GreatWorkDescStrings_en_US.lua.
 CivVAccess_Strings = CivVAccess_Strings or {}
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Nenhuma descrição de pintura para esta grande obra."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Nenhuma descrição de imagem para esta grande obra."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "Uma mesa de escritor vista de perto, iluminada suavemente por luz de vela. Folhas de manuscrito escrito à mão em cursiva fluida cobrem a superfície, com uma única pena de pluma cinza pousada sobre elas. Um rolo de pergaminho enrolado e amarrado com fita vermelha repousa na borda esquerda, e um tinteiro de vidro brilha no canto superior direito."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "Uma sala de concertos penumbrosa aquecida pela luz de velas. Ao centro, um maestro com casaco azul e meias brancas está de pé com a batuta erguida, de frente para uma orquestra sentada de músicos de peruca empoada lendo partituras em estantes. Uma galeria superior dourada esculpida com painéis em relevo percorre a parede do fundo, e um grande lustre de velas arde à direita, enquanto as cabeças da plateia surgem como formas escuras no primeiro plano."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Pintura a óleo do Século de Ouro holandês, um dos retratos mais amados da arte ocidental. Uma jovem volta o rosto sobre o ombro para encontrar seu olhar, surgindo de um fundo escuro e liso, os lábios apenas entreabertos como se fosse falar. Ela usa um turbante azul e dourado cujo tecido escorre pelas costas, e uma única pérola grande em forma de lágrima capta a luz em sua orelha."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

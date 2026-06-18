@@ -3,7 +3,11 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] =
-    "この偉大な芸術作品には絵の解説がありません."
+    "この偉大な作品には画像の解説がありません."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "暖かなろうそくの灯りに照らされた, 物書きの机を間近にとらえた場面だ. 流れるような筆記体で書かれた原稿の紙が机の面を覆い, 灰色の羽根のペンが1本その上に横たわっている. 左端には赤い紐で結ばれた巻物があり, 右上にはガラスのインク壺が光を宿している."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "ろうそくの灯りに温かく照らされた, 薄暗いコンサートホールだ. 中央では青いコートと白いストッキングを身に着けた指揮者が指揮棒を掲げ, 粉白粉のかつらをかぶって譜面台から楽譜を読む座奏の楽団員たちを前にしている. 奥の壁には浮き彫りパネルを施した金箔張りの上階桟敷が走り, 右の大きなろうそくのシャンデリアが輝いている. 前景には聴衆の頭が暗いシルエットとして並ぶ."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "オランダ黄金時代の油彩画で, 西洋美術で最も愛された肖像の一つだ. 若い女性が無地の暗い背景から肩越しに振り返ってこちらの目を見つめ, 今にも口を開こうとするように唇をわずかに開いている. 青と金のターバンを巻き, その布は背中へ垂れ下がり, 耳元では一粒の大きな涙形の真珠が光を捉えている."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =

@@ -3,6 +3,10 @@
 CivVAccess_Strings = CivVAccess_Strings or {}
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "Brak opisu obrazu dla tego dzieła sztuki."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "Biurko pisarza z bliska, oświetlone nisko i ciepło blaskiem świecy. Powierzchnię pokrywają arkusze odręcznego manuskryptu w płynnym kursywie, a przez nie leży szare gęsie pióro. Na lewym skraju leży zwinięty zwój przewiązany czerwoną wstążką, a w prawym górnym rogu jarzy się szklany kałamarz."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "Przyciemniona sala koncertowa oświetlona ciepłym blaskiem świec. W centrum dyrygent w niebieskim surducie i białych pończochach stoi z uniesioną batutą, zwrócony do siedzących muzyków w upudrowanych perukach czytających nuty. Złocona górna galeria z reliefami biegnie wzdłuż tylnej ściany, a wielki świetlnik ze świecami płonie po prawej stronie; sylwetki głów widzów są widoczne jako ciemne kształty na pierwszym planie."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Obraz olejny z holenderskiego złotego wieku, jeden z najbardziej ukochanych portretów w sztuce Zachodu. Młoda kobieta odwraca się przez ramię, by spojrzeć ci w oczy z jednolitego ciemnego tła, usta lekko rozchylone, jakby miała coś powiedzieć. Nosi niebiesko-złoty turban, którego tkanina opada jej na plecy, a duża perła w kształcie łzy chwyta światło przy jej uchu."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_HENRY_VIII"] =
