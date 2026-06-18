@@ -369,6 +369,7 @@ function Invoke-CpModpackPhase {
     if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-modpack-cp.ps1 failed (exit $LASTEXITCODE)." }
 
     Write-Host "Install is now in player-facing CP-only modpack state. Run the CP play audit here." -ForegroundColor Green
+    Write-Host "If VP is your default target, return to VP modpack state with ./deploy-modpack.ps1 when the CP audit is done." -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------------- main

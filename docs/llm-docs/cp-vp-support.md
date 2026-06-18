@@ -79,6 +79,7 @@ Community-Patch-only specifics (BALANCE_VP off, same DLL):
 - Read the engine copies (CP body, vanilla body, our wrapper) in full before any design decision. Agent fan-out summaries orient; they do not decide, and they have missed load-bearing facts on refit screens.
 - The engine ignores modinfo md5 attributes, so overlaid mod files activate without md5 rewriting.
 - Run the DLL canary (`py tools/vp_dll_canary.py <dll>`) after every engine rebuild; it guards a clang/VC9 varargs miscompile. GOOD or the DLL does not ship.
+- The fork's clang build runs several minutes, dominated by the link step; a long pause at `linking dll...` is expected, not a hang. (This is the `build_vp_clang_sdk.py` clang build, far slower than the vanilla VC9 `build-engine.ps1`.)
 - Known noise, do not chase: the VPUI_loader Runtime Error at context init is stock-VP behavior (the DLL probes for an optional loader no component ships).
 
 ## The vendoring tool
@@ -108,7 +109,7 @@ When a new stable release ships, re-pin in one cycle. `resync-vp.ps1` (repo root
 3. Vendor: re-run `verify` (vanilla stays green) then `generate` for both engines (`--engine vp` and `--engine cp`), and read the drift reports. A cp recipe break here is usually a `{"alias": "vp"}` reuse whose shared body moved.
 4. Finish: deploy the VP mod-overlay (passing `-RepinBuild`) and record the new pin (requires an explicit review-confirmed flag). This leaves the install in the transient mod-overlay state, used for the next step.
 5. Modpack (terminal): after playing one clean CP+VP session through the Mods menu to produce a fresh merged database (`build-modpack` refuses a modpack-launch cache), `-Phase modpack` bakes the VP modpack and deploys it, returning the install to the player-facing VP modpack state where the play audit runs.
-6. CP-modpack (the other terminal): to keep the Community-Patch-only modpack current, produce a CP-only merged database (flip to vanilla, enable ONLY `(1) Community Patch`, play to the map, quit), then `-Phase cp-modpack` bakes and deploys it. Separate from phase 5 because the CP-only database is a distinct manual session.
+6. CP-modpack (the other terminal): to keep the Community-Patch-only modpack current, produce a CP-only merged database (flip to vanilla, enable ONLY `(1) Community Patch`, play to the map, quit), then `-Phase cp-modpack` bakes and deploys it. Separate from phase 5 because the CP-only database is a distinct manual session. This leaves the install in CP-only modpack state; if VP is your default target, finish by running `deploy-modpack.ps1` to return to VP modpack before testing.
 
 Phases 4-6 are never part of an unattended run; the default run stops after vendor with a review checklist. What actually breaks on a re-pin is rarely the C++ rebase. It is the vendoring drift reports (new overlaps, signature drift, anchors moved) and the value audit of the Lua-binding diff between the old and new tags (new balance guards in getters we speak, those can newly conflate CP-only too). Newly drifted getters go into the lint seam guard's name list.
 
