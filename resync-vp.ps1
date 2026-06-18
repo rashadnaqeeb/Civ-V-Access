@@ -126,18 +126,18 @@ function Write-Step { param([string]$Text) Write-Host "`n=== $Text ===" -Foregro
 # this on its own, and a swallowed build / git failure is exactly the silent
 # break this script exists to prevent.
 function Invoke-Native {
-    param([string]$Exe, [string[]]$Args, [string]$What)
-    & $Exe @Args
+    param([string]$Exe, [string[]]$CmdArgs, [string]$What)
+    & $Exe @CmdArgs
     if ($LASTEXITCODE -ne 0) {
-        throw "$What failed (exit $LASTEXITCODE): $Exe $($Args -join ' ')"
+        throw "$What failed (exit $LASTEXITCODE): $Exe $($CmdArgs -join ' ')"
     }
 }
 
 function Get-Git {
-    param([string[]]$Args)
-    $out = & git -C $ClonePath @Args 2>&1
+    param([string[]]$GitArgs)
+    $out = & git -C $ClonePath @GitArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "git $($Args -join ' ') failed: $out"
+        throw "git $($GitArgs -join ' ') failed: $out"
     }
     return ($out | Out-String).Trim()
 }
@@ -194,8 +194,16 @@ function Invoke-EnginePhase {
     Get-Git @('branch', '-f', $backupBranch, 'civvaccess') | Out-Null
 
     Write-Host "Rebasing..."
+    # git streams rebase progress to stderr; under ErrorActionPreference=Stop a
+    # 2>&1 merge would turn the first progress line into a terminating
+    # NativeCommandError before the exit-code check. Drop to Continue across the
+    # call and read $LASTEXITCODE for the real success/conflict signal.
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     & git -C $ClonePath rebase --onto $NewTag $OldTag civvaccess 2>&1 | Write-Host
-    if ($LASTEXITCODE -ne 0) {
+    $rebaseExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+    if ($rebaseExit -ne 0) {
         $stopped = (& git -C $ClonePath log -1 --oneline REBASE_HEAD 2>$null | Out-String).Trim()
         & git -C $ClonePath rebase --abort 2>$null | Out-Null
         Get-Git @('reset', '--hard', $backupBranch) | Out-Null

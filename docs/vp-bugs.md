@@ -20,7 +20,7 @@ bug is confirmed (root-caused, with an exact location) or suspected (observed,
 needs repro). Pin upstream file paths and line numbers to the supported VP
 release in `versions.json` and note that they drift across releases.
 
-Pin at time of writing: Release-5.3.2 (`supported_vp` in `versions.json`).
+Pin at time of writing: Release-5.3.3 (`supported_vp` in `versions.json`).
 
 ## Entry format
 
@@ -198,27 +198,41 @@ Pin at time of writing: Release-5.3.2 (`supported_vp` in `versions.json`).
 - Status: confirmed 2026-06-17, from a playtest `Localization.log` plus the
   helper read against the Release-5.3.2 clone and the base BNW copy.
 
-### Global Politics "at war with" line omits the war score
+### Global Politics "at war with" line omits the war score (mixed-config only)
 
-- Location: `(1) Community Patch/Core Files/Overrides/DiploGlobalRelationships.lua:167`,
-  the third-party war loop.
+- Location: two copies of `Core Files/Overrides/DiploGlobalRelationships.lua`,
+  in the third-party war loop. `(1) Community Patch/...:167` calls
+  `LocalizeAndSetText("TXT_KEY_AT_WAR_WITH", thirdName)` with the enemy name
+  only; `(2) Vox Populi/...:176-177` computes `iWarScore` and passes it. The two
+  copies disagree.
 - Symptom: on the Diplomatic Overview's Global Politics panel, a civ's "At war
   with X (Warscore: )" entry is missing its war-score number.
   `Localization.log` records `ERR: Missing argument 2` against
   `TXT_KEY_AT_WAR_WITH` (9 hits in one playtest session).
-- Root cause: CP/VP redefines `TXT_KEY_AT_WAR_WITH` from vanilla's
+- Root cause: Vox Populi `UPDATE`s `TXT_KEY_AT_WAR_WITH` from the base BNW
   `At war with {1_enemy}` to `At war with {1_enemy} (Warscore: {2_Num})`
-  (`(2) Vox Populi/Database Changes/Text/en_US/UI/UITextChanges.sql`), but the
-  panel still calls `LocalizeAndSetText("TXT_KEY_AT_WAR_WITH", thirdName)` with
-  only the enemy name. The text gained an argument the caller was never updated
-  to pass, so this is a VP-introduced regression.
-- Suggested fix: pass the war score as the second argument, e.g.
-  `LocalizeAndSetText("TXT_KEY_AT_WAR_WITH", thirdName, pOtherPlayer:GetWarScore(iThirdPlayer))`.
-- Affects: sighted players too (blank war score). We already fixed our own
-  equivalent read in the F4 overview (the EngineData seam's `warScore` intent),
-  so our speech states the value.
-- Status: confirmed 2026-06-17, from the same playtest log; code read against
-  the Release-5.3.2 clone.
+  (`(2) Vox Populi/Database Changes/Text/en_US/UI/UITextChanges.sql`); no base
+  file calls the key. Neither clean configuration is broken: full VP runs the
+  two-argument VP copy against the two-placeholder VP text, and
+  Community-Patch-only runs the one-argument CP copy against the unmodified
+  one-placeholder base text (VP's `UPDATE` is not loaded). The missing-argument
+  error needs a mixed state, VP's two-placeholder text active while the
+  one-argument CP copy is the file that executes, which is neither clean config.
+  (An earlier note here called this a VP-introduced regression affecting plain
+  VP; that was wrong, since VP's own override already passes the war score.)
+- Open question: which configuration emitted the logged error. The likely
+  culprit is our own VP packaging loading the CP copy of this file while the
+  merged database carries VP's two-placeholder text. Next step: confirm which
+  `DiploGlobalRelationships.lua` our modpack and mod-overlay actually resolve;
+  if the CP copy wins under VP, the fix is ours (make the VP copy win, or bring
+  the CP copy up to two arguments), not an upstream PR.
+- Affects: neither clean plain VP nor clean Community-Patch-only. Our own F4
+  overview is unaffected (the EngineData seam's `warScore` intent computes the
+  value independently).
+- Status: symptom observed 2026-06-17; root cause corrected 2026-06-18 after
+  reading both copies and the text `UPDATE` against the clone. Both copies are
+  byte-identical between Release-5.3.2 and Release-5.3.3, so 5.3.3 changes
+  nothing here and it is not actionable as an upstream fix.
 
 ### Community Patch's Event Overview labels are defined only by Vox Populi
 
