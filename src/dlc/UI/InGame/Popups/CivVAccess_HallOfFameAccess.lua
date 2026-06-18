@@ -37,8 +37,10 @@ local function leaderCivText(v)
     return GameResultRow.leaderCivFromCivType(v.PlayerCivilizationType)
 end
 
-local function rowLabel(v)
-    return Text.joinNonEmpty({
+-- The row's cells in visual order. Shared by the spoken label (joined) and the
+-- Alt+Up/Down section list (kept discrete) via rowParts.
+local function rowParts(v)
+    return {
         GameResultRow.scoreText(v),
         leaderCivText(v),
         GameResultRow.statusText(v),
@@ -50,7 +52,7 @@ local function rowLabel(v)
         GameResultRow.lookupDescription(GameInfo.GameSpeeds, v.GameSpeedType),
         GameResultRow.eraTurnText(v),
         v.GameEndTime or "",
-    })
+    }
 end
 
 local function buildItems()
@@ -70,8 +72,12 @@ local function buildItems()
     -- back to TXT_KEY_MISC_UNKNOWN, which is preferable to silently
     -- dropping a row from speech with no other surface to communicate it.
     for _, v in pairs(games) do
+        local parts = rowParts(v)
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = rowLabel(v),
+            labelText = Text.joinNonEmpty(parts),
+            sectionsFn = function()
+                return GameResultRow.sectionsOf(parts)
+            end,
         })
     end
     return items

@@ -228,11 +228,21 @@ local function buildCandidateItem(controller, slotIdx, candidate, pLeague, activ
     local detailsText =
         pLeague:GetResolutionDetails(candidate.Type, activePlayer, candidate.ResolutionId, candidate.ProposerDecision)
     local fullLabel = LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.formatResolutionDetails(detailsText))
+    -- The label flattens the resolution name and its reshaped details into
+    -- one ". "-blob; hand the reviewer the name then each detail piece.
+    local sectionsFn = function()
+        local sections = { label }
+        for _, piece in ipairs(LeagueOverviewRow.formatResolutionDetailsList(detailsText)) do
+            sections[#sections + 1] = piece
+        end
+        return sections
+    end
     if not (allowCommit and not candidate.Disabled) then
-        return BaseMenuItems.Text({ labelText = fullLabel })
+        return BaseMenuItems.Text({ labelText = fullLabel, sectionsFn = sectionsFn })
     end
     return BaseMenuItems.Choice({
         labelText = fullLabel,
+        sectionsFn = sectionsFn,
         activate = function()
             if candidate.ProposerChoices ~= nil and #candidate.ProposerChoices > 0 then
                 pushSubDecisionPicker(controller, slotIdx, candidate, pLeague)
@@ -316,25 +326,27 @@ end
 -- Slot item ---------------------------------------------------------------
 
 function LeagueOverviewProposal.slotItem(controller, slotIdx, pLeague, activePlayer)
+    -- The filled slot's "Slot N: <name>" label plus the resolution's reshaped
+    -- details, as discrete fragments. Empty slots are a single short line.
+    local function slotSections()
+        local slot = controller.slots[slotIdx]
+        if slot == nil then
+            return { Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_EMPTY", slotIdx) }
+        end
+        local body =
+            LeagueOverviewRow.formatResolutionName(pLeague, slot.Type, slot.ResolutionId, slot.ChoiceId, slot.Direction)
+        local sections = { Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED", slotIdx, body) }
+        local detailsText = pLeague:GetResolutionDetails(slot.Type, activePlayer, slot.ResolutionId, slot.ChoiceId)
+        for _, piece in ipairs(LeagueOverviewRow.formatResolutionDetailsList(detailsText)) do
+            sections[#sections + 1] = piece
+        end
+        return sections
+    end
     return BaseMenuItems.Text({
         labelFn = function()
-            local slot = controller.slots[slotIdx]
-            if slot == nil then
-                return Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_EMPTY", slotIdx)
-            end
-            local body = LeagueOverviewRow.formatResolutionName(
-                pLeague,
-                slot.Type,
-                slot.ResolutionId,
-                slot.ChoiceId,
-                slot.Direction
-            )
-            local label = Text.format("TXT_KEY_CIVVACCESS_LEAGUE_SLOT_FILLED", slotIdx, body)
-            local details = LeagueOverviewRow.formatResolutionDetails(
-                pLeague:GetResolutionDetails(slot.Type, activePlayer, slot.ResolutionId, slot.ChoiceId)
-            )
-            return LeagueOverviewRow.appendTooltip(label, details)
+            return table.concat(slotSections(), ". ")
         end,
+        sectionsFn = slotSections,
         onActivate = function()
             LeagueOverviewProposal.pushSlotPicker(controller, slotIdx, pLeague)
         end,

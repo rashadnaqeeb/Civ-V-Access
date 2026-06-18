@@ -92,6 +92,13 @@ local function choiceFromEntry(entry)
         end,
         activate = commitCallback(entry.techID),
         pediaName = Text.key(entry.info.Description),
+        sectionsFn = function()
+            local player = currentPlayer()
+            if player == nil then
+                return nil
+            end
+            return ChooseTechLogic.buildLabelSections(entry, player)
+        end,
     })
 end
 

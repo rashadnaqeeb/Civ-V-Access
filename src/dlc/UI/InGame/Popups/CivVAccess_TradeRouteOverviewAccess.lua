@@ -465,13 +465,26 @@ local function buildRouteItem(route, isInbound, tabKind, ctx)
         return base
     end
 
+    -- The label joins the row's clauses and the VP route extras into one
+    -- ". "-blob with no [NEWLINE], so the reviewer would receive it as a
+    -- single section. Hand it the discrete clauses (header, your yields,
+    -- their yields, turns-left) followed by each extra as its own section.
+    local sectionsFn = function()
+        local sections = TradeRouteRow.rowLabelSections(route, isInbound)
+        for _, extra in ipairs(routeExtras(route, tabKind, ctx)) do
+            sections[#sections + 1] = extra
+        end
+        return sections
+    end
+
     local probe = fetchTooltip(route)
     local hasBreakdown = probe ~= nil and probe ~= ""
     if actionKind == nil and not hasBreakdown then
-        return BaseMenuItems.Text({ labelFn = labelFn })
+        return BaseMenuItems.Text({ labelFn = labelFn, sectionsFn = sectionsFn })
     end
     return BaseMenuItems.Group({
         labelFn = labelFn,
+        sectionsFn = sectionsFn,
         cached = false,
         itemsFn = function()
             local items = {}

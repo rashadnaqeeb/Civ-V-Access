@@ -58,6 +58,12 @@ if isVP then
     include("CivVAccess_EspionageOverviewVP")
 end
 
+-- Module table for testability. Exposes the pure label / section builders so
+-- the offline harness can assert the joined label and the Alt+Up/Down section
+-- list stay in lockstep without standing up a real Context (the install at the
+-- bottom is guarded on a real ContextPtr).
+EspionageOverviewAccess = EspionageOverviewAccess or {}
+
 local m_agentsTab
 local m_citiesTab
 local m_intrigueTab
@@ -424,16 +430,17 @@ end
 
 -- ===== Tab 2: Cities =====
 
--- Comma-joined list of non-zero espionage potential modifiers (buildings,
--- wonders, policies) for inclusion in the city row label. Mirrors the
--- engine's BuildPotentialModifierTT (EspionageOverview.lua lines 835-906)
--- but drops the "Change from buildings and wonders:" section titles so the
--- row carries data, not help text.
+-- Array of non-zero espionage potential modifier entries (buildings, wonders,
+-- policies) for the city row. The caller joins them for the label and lists
+-- them one per section for Alt+Up/Down review. Mirrors the engine's
+-- BuildPotentialModifierTT (EspionageOverview.lua lines 835-906) but drops the
+-- "Change from buildings and wonders:" section titles so the row carries data,
+-- not help text. Empty array when the city is gone.
 local function potentialBreakdownEntries(cityInfo)
     local pPlayer = Players[cityInfo.PlayerID]
     local pCity = pPlayer:GetCityByID(cityInfo.CityID)
     if pCity == nil then
-        return ""
+        return {}
     end
     local entries = {}
     for building in GameInfo.Buildings() do
@@ -465,7 +472,7 @@ local function potentialBreakdownEntries(cityInfo)
         i = i + 1
         policyInfo = GameInfo.Policies[i]
     end
-    return table.concat(entries, ", ")
+    return entries
 end
 
 -- Breakdown is meaningful only when the player has the data to compute it:
@@ -574,34 +581,58 @@ local function potentialClause(cityInfo, isCityState, spy)
     return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BASE", cityInfo.BasePotential)
 end
 
--- City row label: [Civ,] City, population, +spy clause, potential, +breakdown.
--- Potential is held to the end so the breakdown (modifier list) follows it
--- naturally as a single trailing detail clause; sighted players read those
--- numbers off the potential-meter tooltip and we surface the same data here
--- since tab 2 has no per-row drill anymore. Civ is dropped when the row sits
--- under a per-civ group (the group label already names the civ).
-local function cityRowLabel(cityInfo, isCityState, spy, dropCiv)
-    local popText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POPULATION", cityInfo.Population)
-    local parts = {}
+-- City row fragments: [Civ,] City, population, +spy clause, potential. Returns
+-- the leading fragment list plus the breakdown modifier entries as a separate
+-- array (empty when none), so the joined label and the Alt+Up/Down section list
+-- share one source and can never drift. Civ is dropped when the row sits under
+-- a per-civ group (the group label already names the civ). The modifier
+-- breakdown is a vanilla-potential concept; VP's security model has no
+-- equivalent, so it stays empty on the VP path.
+local function cityRowFragments(cityInfo, isCityState, spy, dropCiv)
+    local lead = {}
     if not dropCiv then
-        parts[#parts + 1] = cityInfo.CivilizationName
+        lead[#lead + 1] = cityInfo.CivilizationName
     end
-    parts[#parts + 1] = cityInfo.Name
-    parts[#parts + 1] = popText
+    lead[#lead + 1] = cityInfo.Name
+    lead[#lead + 1] = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POPULATION", cityInfo.Population)
     local spyClause = spyPresenceClause(spy)
     if spyClause ~= "" then
-        parts[#parts + 1] = spyClause
+        lead[#lead + 1] = spyClause
     end
-    parts[#parts + 1] = potentialClause(cityInfo, isCityState, spy)
-    -- The modifier breakdown is a vanilla-potential concept; VP's security
-    -- model has no equivalent, so it's dropped on the VP path.
+    lead[#lead + 1] = potentialClause(cityInfo, isCityState, spy)
+
+    local breakdown = {}
     if not isVP and shouldShowBreakdown(cityInfo, isCityState, spy) then
-        local breakdown = potentialBreakdownEntries(cityInfo)
-        if breakdown ~= "" then
-            parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BREAKDOWN", breakdown)
+        for _, entry in ipairs(potentialBreakdownEntries(cityInfo)) do
+            breakdown[#breakdown + 1] = entry
         end
     end
-    return table.concat(parts, ", ")
+    return lead, breakdown
+end
+
+-- City row label: lead fragments comma-joined, then the modifier breakdown as
+-- one trailing detail clause. Potential is held to the end so the breakdown
+-- follows it naturally; sighted players read those numbers off the
+-- potential-meter tooltip and we surface the same data here since tab 2 has no
+-- per-row drill anymore.
+local function cityRowLabel(cityInfo, isCityState, spy, dropCiv)
+    local lead, breakdown = cityRowFragments(cityInfo, isCityState, spy, dropCiv)
+    if #breakdown > 0 then
+        lead[#lead + 1] = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_POTENTIAL_BREAKDOWN", table.concat(breakdown, ", "))
+    end
+    return table.concat(lead, ", ")
+end
+
+-- Alt+Up/Down section list for a city row: each lead fragment is its own
+-- section, then each modifier breakdown entry separately, so a city with a long
+-- building / wonder / policy breakdown can be walked one modifier at a time
+-- instead of as the single comma-joined blob the label folds them into.
+local function cityRowSections(cityInfo, isCityState, spy, dropCiv)
+    local lead, breakdown = cityRowFragments(cityInfo, isCityState, spy, dropCiv)
+    for _, entry in ipairs(breakdown) do
+        lead[#lead + 1] = entry
+    end
+    return lead
 end
 
 -- City row. Eligible for View City (foreign non-city-state with established
@@ -615,20 +646,24 @@ end
 local function buildCityRow(cityInfo, isCityState, spies, dropCiv)
     local spy = agentInCity(cityInfo.PlayerID, cityInfo.CityID, spies)
     local label = cityRowLabel(cityInfo, isCityState, spy, dropCiv)
+    local sectionsFn = function()
+        return cityRowSections(cityInfo, isCityState, spy, dropCiv)
+    end
     local viewable = not isCityState
         and cityInfo.PlayerID ~= Game.GetActivePlayer()
         and spy ~= nil
         and spy.EstablishedSurveillance
     if not viewable then
-        return BaseMenuItems.Text({ labelText = label })
+        return BaseMenuItems.Text({ labelText = label, sectionsFn = sectionsFn })
     end
     local plot = Map.GetPlot(cityInfo.CityX, cityInfo.CityY)
     local pCity = plot and plot:GetPlotCity() or nil
     if pCity == nil then
-        return BaseMenuItems.Text({ labelText = label })
+        return BaseMenuItems.Text({ labelText = label, sectionsFn = sectionsFn })
     end
     return BaseMenuItems.Choice({
         labelText = label,
+        sectionsFn = sectionsFn,
         activate = function()
             viewCity(pCity)
         end,
@@ -715,26 +750,45 @@ end
 
 -- ===== Tab 3: Intrigue =====
 
+-- "Discovered by" fragment: our own spy's name for messages we found, the
+-- discovering leader's name otherwise (nickname in network MP), or the unknown
+-- placeholder when the discovering player no longer resolves.
+local function intrigueFrom(msg)
+    if msg.DiscoveringPlayer == Game.GetActivePlayer() then
+        return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OWN", msg.SpyName or "")
+    end
+    local pPlayer = Players[msg.DiscoveringPlayer]
+    local leader
+    if pPlayer ~= nil then
+        if pPlayer:GetNickName() ~= "" and Game:IsNetworkMultiPlayer() then
+            leader = pPlayer:GetNickName()
+        else
+            leader = pPlayer:GetName()
+        end
+    else
+        leader = Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_UNKNOWN")
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OTHER", leader)
+end
+
 local function intrigueRowLabel(msg)
     local turnText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_TURN", msg.Turn)
-    local fromText
-    if msg.DiscoveringPlayer == Game.GetActivePlayer() then
-        fromText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OWN", msg.SpyName or "")
-    else
-        local pPlayer = Players[msg.DiscoveringPlayer]
-        local leader
-        if pPlayer ~= nil then
-            if pPlayer:GetNickName() ~= "" and Game:IsNetworkMultiPlayer() then
-                leader = pPlayer:GetNickName()
-            else
-                leader = pPlayer:GetName()
-            end
-        else
-            leader = Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_UNKNOWN")
-        end
-        fromText = Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_FROM_OTHER", leader)
+    return table.concat({ turnText, intrigueFrom(msg), msg.String or "" }, ". ")
+end
+
+-- Alt+Up/Down sections for an intrigue message: turn, then discovered-by, then
+-- the message body split one section per line, so a multi-line intrigue report
+-- can be reviewed a line at a time instead of as the single ". "-joined blob
+-- the label folds it into.
+local function intrigueRowSections(msg)
+    local sections = {
+        Text.format("TXT_KEY_CIVVACCESS_ESPIONAGE_INTRIGUE_TURN", msg.Turn),
+        intrigueFrom(msg),
+    }
+    for _, line in ipairs(TextFilter.splitLines(msg.String or "")) do
+        sections[#sections + 1] = line
     end
-    return table.concat({ turnText, fromText, msg.String or "" }, ". ")
+    return sections
 end
 
 local function buildIntrigueTabItems()
@@ -753,7 +807,12 @@ local function buildIntrigueTabItems()
     -- push_backs new entries, so Lua index 1 is the most recent. Iterate forward
     -- to match the engine UI's Turn-desc default.
     for _, msg in ipairs(messages) do
-        items[#items + 1] = BaseMenuItems.Text({ labelText = intrigueRowLabel(msg) })
+        items[#items + 1] = BaseMenuItems.Text({
+            labelText = intrigueRowLabel(msg),
+            sectionsFn = function()
+                return intrigueRowSections(msg)
+            end,
+        })
     end
     return items
 end
@@ -916,8 +975,11 @@ local function buildMoveSubItems(agent)
         local key = ci.PlayerID .. ":" .. ci.CityID
         local spy = agentInCity(ci.PlayerID, ci.CityID, spies)
         local label = cityRowLabel(ci, isCityState, spy, true)
+        local sectionsFn = function()
+            return cityRowSections(ci, isCityState, spy, true)
+        end
         if not availableLookup[key] then
-            return BaseMenuItems.Text({ labelText = label })
+            return BaseMenuItems.Text({ labelText = label, sectionsFn = sectionsFn })
         end
         local plot = Map.GetPlot(ci.CityX, ci.CityY)
         local pCity = plot and plot:GetPlotCity() or nil
@@ -935,6 +997,7 @@ local function buildMoveSubItems(agent)
         end
         return BaseMenuItems.Choice({
             labelText = label,
+            sectionsFn = sectionsFn,
             activate = function()
                 if needsDiplomatChoice then
                     pushDiplomatPicker(agent.AgentID, ci.PlayerID, ci.CityID, function()
@@ -1039,6 +1102,13 @@ pushMoveSub = function(agent)
     })
     HandlerStack.push(sub)
 end
+
+-- ===== Module exports for tests =====
+
+EspionageOverviewAccess.cityRowLabel = cityRowLabel
+EspionageOverviewAccess.cityRowSections = cityRowSections
+EspionageOverviewAccess.intrigueRowLabel = intrigueRowLabel
+EspionageOverviewAccess.intrigueRowSections = intrigueRowSections
 
 -- ===== Install =====
 

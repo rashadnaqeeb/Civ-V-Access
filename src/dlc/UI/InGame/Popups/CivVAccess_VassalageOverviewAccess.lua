@@ -897,24 +897,37 @@ local function masterPlayers()
     return list
 end
 
+-- The picker row's fragments: identity (leader, civ) as one section, then an
+-- optional team marker, the vassal-type word, and the tenure. Shared by the
+-- joined labelFn and the Alt+Up/Down sectionsFn so the spoken row and its
+-- section list can't drift. Re-queried live each call (no cache).
+local function civEntryParts(ePlayer, role)
+    local p = Players[ePlayer]
+    local vassalTeam, masterTeamId
+    if role == "vassal" then
+        vassalTeam = Teams[p:GetTeam()]
+        masterTeamId = activeTeamId()
+    else
+        vassalTeam = activeTeam()
+        masterTeamId = p:GetTeam()
+    end
+    local parts = { playerDisplayName(p) .. ", " .. civShortName(p) }
+    if Teams[p:GetTeam()]:GetNumMembers() > 1 then
+        parts[#parts + 1] = Text.format("TXT_KEY_MULTIPLAYER_DEFAULT_TEAM_NAME", p:GetTeam() + 1)
+    end
+    parts[#parts + 1] = vassalTypeText(vassalTeam, masterTeamId)
+    parts[#parts + 1] = turnsText(vassalTeam)
+    return parts
+end
+
 local function civEntry(pr, ePlayer, role)
     return pr.Entry({
         id = role .. ":" .. tostring(ePlayer),
         labelFn = function()
-            local p = Players[ePlayer]
-            local vassalTeam, masterTeamId
-            if role == "vassal" then
-                vassalTeam = Teams[p:GetTeam()]
-                masterTeamId = activeTeamId()
-            else
-                vassalTeam = activeTeam()
-                masterTeamId = p:GetTeam()
-            end
-            local label = playerDisplayName(p) .. ", " .. civShortName(p)
-            if Teams[p:GetTeam()]:GetNumMembers() > 1 then
-                label = label .. ", " .. Text.format("TXT_KEY_MULTIPLAYER_DEFAULT_TEAM_NAME", p:GetTeam() + 1)
-            end
-            return label .. ", " .. vassalTypeText(vassalTeam, masterTeamId) .. ", " .. turnsText(vassalTeam)
+            return table.concat(civEntryParts(ePlayer, role), ", ")
+        end,
+        sectionsFn = function()
+            return civEntryParts(ePlayer, role)
         end,
         buildReader = function()
             if role == "vassal" then

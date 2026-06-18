@@ -252,4 +252,50 @@ function ChooseTechLogic.buildLabel(entry, player)
     return table.concat(parts, ", ")
 end
 
+-- Discrete section list for Alt+Up/Down review of a tech entry. Same content
+-- and order as buildLabel (name, status, turns, advisors, then the help
+-- prose) but kept as separate sections, with the help text split one section
+-- per raw [NEWLINE] line ("Cost: ...", "Leads to: ...", "Allows you to build
+-- ...") and cleaned individually -- buildLabel flattens those lines to commas
+-- for the linear readout, the same way the tech tree's buildLandingSpeech and
+-- buildLandingSections differ. Returned verbatim to the section reviewer.
+function ChooseTechLogic.buildLabelSections(entry, player)
+    local name = Text.key(entry.info.Description)
+    local sections = { name }
+
+    local statusKey
+    if entry.mode == "free" then
+        statusKey = "TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_FREE"
+    elseif entry.isCurrent then
+        statusKey = "TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_CURRENT"
+    elseif entry.queuePosition ~= nil then
+        sections[#sections + 1] = Text.format("TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED", entry.queuePosition)
+    end
+    if statusKey ~= nil then
+        sections[#sections + 1] = Text.key(statusKey)
+    end
+
+    if player:GetScienceTimes100() > 0 and entry.mode ~= "stealing" then
+        local turns = player:GetResearchTurnsLeft(entry.techID, true)
+        sections[#sections + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
+    end
+
+    local advisors = ChooseTechLogic.advisorSuffix(entry.techID)
+    if advisors ~= "" then
+        sections[#sections + 1] = advisors
+    end
+
+    local raw = GetHelpTextForTech(entry.techID, false, Game.GetActivePlayer())
+    if raw ~= nil and raw ~= "" then
+        for line in (raw .. "[NEWLINE]"):gmatch("(.-)%[NEWLINE%]") do
+            local clean = ChooseTechLogic.filterHelpText(line, name)
+            if clean ~= nil and clean ~= "" then
+                sections[#sections + 1] = clean
+            end
+        end
+    end
+
+    return sections
+end
+
 return ChooseTechLogic

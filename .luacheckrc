@@ -308,10 +308,13 @@ files["tests/"] = {
         "UnitSpeech", "Pathfinder", "RoutePathfinder",
         "ScannerBackendTerrain", "EmpireStatus",
         "LeagueOverviewRow",
-        -- Wrapper module that exposes its functions globally so tests can
-        -- exercise it directly. Other *Access wrappers don't expose globals
-        -- like this; this one is the exception.
+        -- Wrapper modules that expose their pure helpers globally so tests can
+        -- exercise them directly (label / section builders, column specs).
+        -- Most *Access wrappers don't expose globals like this; these are the
+        -- exceptions with offline-testable logic.
         "EconomicOverviewAccess",
+        "VictoryProgressAccess",
+        "EspionageOverviewAccess",
         -- Engine `include` is read-only at the project level, but tests
         -- stub it (function() end) before dofile-ing a wrapper so the
         -- wrapper's own include() calls become no-ops.

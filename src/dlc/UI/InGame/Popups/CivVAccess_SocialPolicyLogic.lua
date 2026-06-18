@@ -267,6 +267,41 @@ local function filterHelp(helpKey, name)
     return stripLeadingName(TextFilter.filter(raw), name)
 end
 
+-- Per-line variant of filterHelp for the Alt+Up/Down section list: the engine
+-- help is a [NEWLINE]-delimited blob whose lines filterHelp flattens to commas
+-- for the linear readout. Section review keeps each line discrete (one section
+-- per raw line), so a long policy / tenet effect can be reviewed a line at a
+-- time -- the same transform ChooseTechLogic.buildLabelSections applies to tech
+-- help. Returns an array (possibly empty); the leading-name strip is applied to
+-- the first line only, since that is where the engine prefixes the name.
+local function filterHelpLines(helpKey, name)
+    if helpKey == nil or helpKey == "" then
+        return {}
+    end
+    local raw = Text.key(helpKey)
+    if raw == nil or raw == "" then
+        return {}
+    end
+    local lines = TextFilter.splitLines(raw)
+    if #lines > 0 then
+        local stripped = stripLeadingName(lines[1], name)
+        if stripped == "" then
+            table.remove(lines, 1)
+        else
+            lines[1] = stripped
+        end
+    end
+    return lines
+end
+
+-- Append every element of `src` to `dst` (both arrays). Shared by the section
+-- builders, which assemble a head-parts array then fold in the split help lines.
+local function appendAll(dst, src)
+    for _, v in ipairs(src) do
+        dst[#dst + 1] = v
+    end
+end
+
 -- Read-only espionage view: a spy inspecting a rival's tree sees only what
 -- the sighted espionage screen shows -- held vs not-held -- so every
 -- closed-branch eligibility reason collapses to "not opened".
@@ -280,7 +315,10 @@ local function readOnlyBranchStatus(player, branchRow)
     return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_STATUS_NOT_OPENED")
 end
 
-function SocialPolicyLogic.buildBranchSpeech(player, branchRow, readOnly)
+-- Branch head sections (name, status, count) shared by the spoken string and
+-- the section list. The help flavor is sourced separately so the two can render
+-- it differently (flattened for speech, one section per line for review).
+local function branchHeadParts(player, branchRow, readOnly)
     local name = Text.key(branchRow.Description)
     local parts = { name }
     if readOnly then
@@ -291,6 +329,11 @@ function SocialPolicyLogic.buildBranchSpeech(player, branchRow, readOnly)
     end
     local adopted, total = SocialPolicyLogic.adoptedCount(player, branchRow)
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_BRANCH_COUNT", adopted, total)
+    return parts, name
+end
+
+function SocialPolicyLogic.buildBranchSpeech(player, branchRow, readOnly)
+    local parts, name = branchHeadParts(player, branchRow, readOnly)
     local flavor = filterHelp(branchRow.Help, name)
     if flavor ~= "" then
         parts[#parts + 1] = flavor
@@ -298,7 +341,14 @@ function SocialPolicyLogic.buildBranchSpeech(player, branchRow, readOnly)
     return table.concat(parts, ", ")
 end
 
-function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow, readOnly)
+function SocialPolicyLogic.buildBranchSections(player, branchRow, readOnly)
+    local sections, name = branchHeadParts(player, branchRow, readOnly)
+    appendAll(sections, filterHelpLines(branchRow.Help, name))
+    return sections
+end
+
+-- Policy head sections (name, status / held marker) without the effect help.
+local function policyHeadParts(player, policyRow, branchRow, readOnly)
     local name = Text.key(policyRow.Description)
     local parts = { name }
     if readOnly then
@@ -307,11 +357,7 @@ function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow, readO
         local heldKey = player:HasPolicy(policyRow.ID) and "TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_ADOPTED"
             or "TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_NOT_ADOPTED"
         parts[#parts + 1] = Text.key(heldKey)
-        local effect = filterHelp(policyRow.Help, name)
-        if effect ~= "" then
-            parts[#parts + 1] = effect
-        end
-        return table.concat(parts, ", ")
+        return parts, name
     end
     local status, missing = SocialPolicyLogic.policyStatus(player, policyRow, branchRow)
     if status == "opener" then
@@ -332,11 +378,22 @@ function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow, readO
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_POLICY_LOCKED")
         end
     end
+    return parts, name
+end
+
+function SocialPolicyLogic.buildPolicySpeech(player, policyRow, branchRow, readOnly)
+    local parts, name = policyHeadParts(player, policyRow, branchRow, readOnly)
     local effect = filterHelp(policyRow.Help, name)
     if effect ~= "" then
         parts[#parts + 1] = effect
     end
     return table.concat(parts, ", ")
+end
+
+function SocialPolicyLogic.buildPolicySections(player, policyRow, branchRow, readOnly)
+    local sections, name = policyHeadParts(player, policyRow, branchRow, readOnly)
+    appendAll(sections, filterHelpLines(policyRow.Help, name))
+    return sections
 end
 
 function SocialPolicyLogic.buildPreamble(player)
@@ -397,6 +454,28 @@ function SocialPolicyLogic.buildSlotSpeech(player, ideologyID, level, slotIndex,
     return ""
 end
 
+-- Section list for a filled tenet slot: the "slot N, name" head followed by one
+-- section per effect line. Empty / blocked / locked slots are single short
+-- strings with no help, so the reviewer falls back to the auto-split (the slot
+-- item passes no sectionsFn for them); this builder is only consulted for the
+-- filled case, where buildSlotSpeech flattens the multi-line effect into one
+-- format string. Returns nil when the slot is not filled so the caller can let
+-- the auto-split handle the short forms.
+function SocialPolicyLogic.buildSlotSections(player, ideologyID, level, slotIndex, readOnly)
+    local status, p1 = SocialPolicyLogic.slotStatus(player, ideologyID, level, slotIndex)
+    if status ~= "filled" then
+        return nil
+    end
+    local tenetRow = GameInfo.Policies[p1]
+    if tenetRow == nil then
+        return nil
+    end
+    local name = Text.key(tenetRow.Description)
+    local sections = { Text.format("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SLOT_FILLED_NAME_ONLY", slotIndex, name) }
+    appendAll(sections, filterHelpLines(tenetRow.Help, name))
+    return sections
+end
+
 function SocialPolicyLogic.buildTenetPickerChoice(policyRow)
     local name = Text.key(policyRow.Description)
     local effect = filterHelp(policyRow.Help, name)
@@ -404,6 +483,15 @@ function SocialPolicyLogic.buildTenetPickerChoice(policyRow)
         return name
     end
     return name .. ", " .. effect
+end
+
+-- Section list for a tenet picker entry: name head plus one section per effect
+-- line, mirroring buildTenetPickerChoice's flattened "name, effect" string.
+function SocialPolicyLogic.buildTenetPickerSections(policyRow)
+    local name = Text.key(policyRow.Description)
+    local sections = { name }
+    appendAll(sections, filterHelpLines(policyRow.Help, name))
+    return sections
 end
 
 function SocialPolicyLogic.buildPublicOpinionSpeech(player)

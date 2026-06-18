@@ -41,9 +41,16 @@ local function buildDealItems(iPlayer, isCurrent, count)
         else
             UI.LoadHistoricDeal(iPlayer, i)
         end
-        local label, pediaName = DealLabel.buildDealLabel(iPlayer, UI.GetScratchDeal(), not isCurrent)
+        -- Snapshot the deal's clauses now, while the scratch slot holds this
+        -- deal: the loop reloads the slot each iteration, so a deferred read
+        -- would see the wrong deal. The list is stable while the popup is
+        -- open (see file header), so a build-time snapshot is current.
+        local parts, pediaName = DealLabel.buildDealParts(iPlayer, UI.GetScratchDeal(), not isCurrent)
         items[#items + 1] = BaseMenuItems.Text({
-            labelText = label,
+            labelText = table.concat(parts, ". "),
+            sectionsFn = function()
+                return parts
+            end,
             pediaName = pediaName,
         })
     end

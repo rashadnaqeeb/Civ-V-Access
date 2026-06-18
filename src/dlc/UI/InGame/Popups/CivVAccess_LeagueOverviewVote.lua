@@ -342,7 +342,13 @@ function LeagueOverviewVote.row(controller, idx, pLeague, activePlayer)
         return true
     end
     function item:announce(menu)
-        return LeagueOverviewRow.formatProposalWithDetails(pLeague, entry.proposal, activePlayer, currentVoteState())
+        local voteState = currentVoteState()
+        local text = LeagueOverviewRow.formatProposalWithDetails(pLeague, entry.proposal, activePlayer, voteState)
+        -- Second return is the Alt+Up/Down section list (landingSpeak reads it);
+        -- the spoken string joins the same clauses + detail pieces into one
+        -- ". "-blob, so hand the reviewer the discrete sections.
+        return text,
+            LeagueOverviewRow.formatProposalWithDetailsSections(pLeague, entry.proposal, activePlayer, voteState)
     end
     function item:activate(menu)
         if isMajorCivProposal(entry.proposal) and entry.choice == nil then

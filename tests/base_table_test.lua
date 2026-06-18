@@ -980,4 +980,46 @@ function M.test_alt_up_from_fresh_enters_at_first_section()
     T.eq(speaks[#speaks].text, "Rome", "Alt+Up from fresh enters at section one")
 end
 
+-- A column may expose getCellSections to break a comma-joined cell value
+-- (no [NEWLINE] for buildSections to split on) into discrete sections. When
+-- present it replaces the single cell value; row label and column name still
+-- lead, and the column tooltip still trails.
+local function cellSectionsSpec()
+    return {
+        tabName = "TXT_KEY_CIVVACCESS_TBL_TAB",
+        columns = {
+            {
+                name = "TXT_KEY_CIVVACCESS_TBL_COL_POP",
+                getCell = function()
+                    return "friendly, their vassal, very pleased by: shared friends"
+                end,
+                getCellSections = function()
+                    return { "friendly", "their vassal", "very pleased by: shared friends" }
+                end,
+            },
+        },
+        rebuildRows = function()
+            return { { name = "Rome" } }
+        end,
+        rowLabel = function(r)
+            return r.name
+        end,
+    }
+end
+
+function M.test_get_cell_sections_replaces_cell_value()
+    setup()
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    local h = BaseTable.create(cellSectionsSpec())
+    h.onTabActivated(h, true)
+    -- Row label, column name, then each getCellSections fragment as its own
+    -- section -- not the joined getCell blob.
+    T.eq(h._sections[1], "Rome")
+    T.eq(h._sections[2], "Pop")
+    T.eq(h._sections[3], "friendly")
+    T.eq(h._sections[4], "their vassal")
+    T.eq(h._sections[5], "very pleased by: shared friends")
+    T.eq(#h._sections, 5)
+end
+
 return M

@@ -207,4 +207,58 @@ function M.test_single_section_item_clamps_on_repeat()
     T.eq(lastSpeak(), "Close", "single-section item just re-speaks on repeat")
 end
 
+-- sectionsFn override -----------------------------------------------------
+
+local function pushButtonWithSpec(spec)
+    setCtrls({ "A" })
+    spec.controlName = "A"
+    spec.activate = spec.activate or function() end
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Button(spec) },
+    })
+    HandlerStack.push(h)
+    return h
+end
+
+function M.test_sectionsfn_supplies_sections_verbatim()
+    setup()
+    -- A label that auto-split would leave as one blob (comma-joined, no
+    -- [NEWLINE]); the explicit sectionsFn hands over the discrete pieces.
+    pushButtonWithSpec({
+        labelText = "Pottery, 10 turns, Cost 60",
+        sectionsFn = function()
+            return { "Pottery", "10 turns", "Cost 60" }
+        end,
+    })
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Pottery")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "10 turns")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Cost 60")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Cost 60", "clamps on the last supplied section")
+end
+
+function M.test_sectionsfn_error_falls_back_to_auto_split()
+    setup()
+    pushButtonWithSpec({
+        labelText = "Library",
+        tooltipFn = function()
+            return "Boosts science"
+        end,
+        sectionsFn = function()
+            error("builder blew up")
+        end,
+    })
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Library", "broken sectionsFn falls back to auto-split section one")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Boosts science", "fallback auto-split still yields the tooltip section")
+end
+
 return M

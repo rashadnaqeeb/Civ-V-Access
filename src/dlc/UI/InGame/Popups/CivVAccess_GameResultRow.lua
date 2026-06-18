@@ -115,4 +115,19 @@ function GameResultRow.scoreText(v)
     return Text.format("TXT_KEY_CIVVACCESS_LABEL_VALUE", Text.key("TXT_KEY_POP_SCORE"), v.Score or 0)
 end
 
+-- The non-empty fragments of a parts array, in order -- exactly the list
+-- Text.joinNonEmpty consumes to build a row's spoken string. Callers pass the
+-- same array to both joinNonEmpty (the label) and this (the Alt+Up/Down
+-- section list) so review walks the row cell by cell instead of receiving the
+-- whole comma-joined blob as one atomic section, and the two can't drift.
+function GameResultRow.sectionsOf(parts)
+    local out = {}
+    for _, p in ipairs(parts) do
+        if p ~= nil and p ~= "" then
+            out[#out + 1] = tostring(p)
+        end
+    end
+    return out
+end
+
 return GameResultRow

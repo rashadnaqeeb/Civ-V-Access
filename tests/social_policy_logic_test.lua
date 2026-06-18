@@ -865,4 +865,130 @@ function M.test_buildTenetPickerChoice_name_only_when_no_effect()
     T.eq(speech, "TEN")
 end
 
+-- ========== section builders (Alt+Up/Down) ==========
+--
+-- The section list keeps discrete the fragments the speech builders flatten to
+-- commas: the name / status head stays one section each, and a multi-line
+-- engine help blob splits one section per [NEWLINE] line. These mirror the
+-- ChooseTechLogic.buildLabelSections cases.
+
+-- Locale override that returns a [NEWLINE]-delimited help string (leading with
+-- the upper-cased policy name, as the engine does) for one key, passthrough
+-- otherwise. Restored by the caller.
+local function withMultilineHelp(helpKey, body, fn)
+    local orig = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(k, ...)
+        if k == helpKey then
+            return body
+        end
+        return orig(k, ...)
+    end
+    local ok, err = pcall(fn)
+    Locale.ConvertTextKey = orig
+    if not ok then
+        error(err)
+    end
+end
+
+function M.test_buildBranchSections_head_then_one_section_per_help_line()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    installTeams()
+    local p = fakePlayer({ branchUnlocked = { [0] = true } })
+    withMultilineHelp("HELP_BRANCH_TRAD", "BRANCH_TRAD Reduces unhappiness[NEWLINE]Free aqueduct in cities", function()
+        local s = SocialPolicyLogic.buildBranchSections(p, branches[1])
+        T.eq(s[1], "BRANCH_TRAD")
+        T.eq(s[2], "opened")
+        T.eq(s[3], "0 of 5 adopted")
+        -- Leading name stripped from the first help line; one section per line.
+        T.eq(s[4], "Reduces unhappiness")
+        T.eq(s[5], "Free aqueduct in cities")
+        T.eq(#s, 5)
+    end)
+end
+
+function M.test_buildBranchSections_head_only_when_no_help()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    installTeams()
+    local p = fakePlayer({ branchUnlocked = { [0] = true } })
+    -- Help key with an empty Locale value yields no help sections.
+    branches[1].Help = ""
+    local s = SocialPolicyLogic.buildBranchSections(p, branches[1])
+    T.eq(s[1], "BRANCH_TRAD")
+    T.eq(s[2], "opened")
+    T.eq(s[3], "0 of 5 adopted")
+    T.eq(#s, 3, "no help sections when help is empty")
+end
+
+function M.test_buildPolicySections_name_status_then_help_lines()
+    setup()
+    local branches, policies, prereqs = tradition()
+    installDB(branches, policies, prereqs)
+    local p = fakePlayer({ canAdopt = { [2] = true } })
+    withMultilineHelp(
+        "HELP_POL_OLIGARCHY",
+        "POL_OLIGARCHY Garrisoned units cost no maintenance[NEWLINE]Plus one happiness per garrison",
+        function()
+            local s = SocialPolicyLogic.buildPolicySections(p, policies[3], branches[1])
+            T.eq(s[1], "POL_OLIGARCHY")
+            T.eq(s[2], "adoptable")
+            T.eq(s[3], "Garrisoned units cost no maintenance")
+            T.eq(s[4], "Plus one happiness per garrison")
+            T.eq(#s, 4)
+        end
+    )
+end
+
+function M.test_buildSlotSections_filled_splits_effect_lines()
+    setup()
+    installDB({ policyRow({ ID = 50, Type = "TEN", Help = "HELP_TEN" }) }, {}, {})
+    -- Re-point GameInfo.Policies[50] to a tenet row with a help key; installDB
+    -- with a single policy gives us that row, but we drive it through slotStatus
+    -- via a fakePlayer whose slot 1 holds tenet 50.
+    GameInfo.Policies = setmetatable({ [50] = { ID = 50, Type = "TEN", Description = "TEN", Help = "HELP_TEN" } }, {})
+    local p = fakePlayer({ ideology = 9, tenets = { ["9:1:1"] = 50 } })
+    withMultilineHelp("HELP_TEN", "TEN Plus two culture[NEWLINE]Plus one tourism", function()
+        local s = SocialPolicyLogic.buildSlotSections(p, 9, 1, 1)
+        T.eq(s[1], "slot 1, TEN")
+        T.eq(s[2], "Plus two culture")
+        T.eq(s[3], "Plus one tourism")
+        T.eq(#s, 3)
+    end)
+end
+
+function M.test_buildSlotSections_nil_for_empty_slot()
+    setup()
+    installDB({}, {}, {})
+    GameInfo.Policies = setmetatable({}, {})
+    -- Empty slot 1 with culture available: slotStatus is "available", not
+    -- "filled", so the section builder defers to the auto-split by returning nil.
+    local p = fakePlayer({ ideology = 9, culture = 100, nextCost = 25 })
+    T.eq(SocialPolicyLogic.buildSlotSections(p, 9, 1, 1), nil)
+end
+
+function M.test_buildTenetPickerSections_name_then_help_lines()
+    setup()
+    installDB({}, {}, {})
+    local row = policyRow({ ID = 50, Type = "TEN", Help = "HELP_TEN" })
+    withMultilineHelp("HELP_TEN", "TEN Plus two culture[NEWLINE]Plus one tourism", function()
+        local s = SocialPolicyLogic.buildTenetPickerSections(row)
+        T.eq(s[1], "TEN")
+        T.eq(s[2], "Plus two culture")
+        T.eq(s[3], "Plus one tourism")
+        T.eq(#s, 3)
+    end)
+end
+
+function M.test_buildTenetPickerSections_name_only_when_no_help()
+    setup()
+    installDB({}, {}, {})
+    local row = policyRow({ ID = 50, Type = "TEN", Help = "" })
+    local s = SocialPolicyLogic.buildTenetPickerSections(row)
+    T.eq(s[1], "TEN")
+    T.eq(#s, 1)
+end
+
 return M

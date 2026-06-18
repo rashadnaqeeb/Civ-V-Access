@@ -555,4 +555,45 @@ function M.test_install_picker_esc_falls_through_regardless_of_quick_close()
     T.eq(priorEscCalls(), 1, "priorInput called from picker Esc")
 end
 
+-- Alt+Up/Down section review: a multi-fragment picker row (Vassalage civ
+-- entry) supplies a sectionsFn; announce returns it as the second value so
+-- the picker tab's BaseMenu landingSpeak seats it. Without sectionsFn the
+-- label auto-splits as before.
+
+function M.test_entry_announce_returns_sectionsfn_list()
+    setup()
+    local session = PickerReader.create()
+    local e = session.Entry({
+        id = "X",
+        labelText = "Napoleon, France, voluntary vassal, 5 turns",
+        sectionsFn = function()
+            return { "Napoleon, France", "voluntary vassal", "5 turns" }
+        end,
+        buildReader = function()
+            return { items = {} }
+        end,
+    })
+    local text, sections = e:announce(nil)
+    T.eq(text, "Napoleon, France, voluntary vassal, 5 turns")
+    T.eq(#sections, 3)
+    T.eq(sections[1], "Napoleon, France")
+    T.eq(sections[2], "voluntary vassal")
+    T.eq(sections[3], "5 turns")
+end
+
+function M.test_entry_announce_without_sectionsfn_autosplits_label()
+    setup()
+    local session = PickerReader.create()
+    local e = session.Entry({
+        id = "Y",
+        labelText = "Solo",
+        buildReader = function()
+            return { items = {} }
+        end,
+    })
+    local _, sections = e:announce(nil)
+    T.eq(#sections, 1, "single-fragment label yields one auto-split section")
+    T.eq(sections[1], "Solo")
+end
+
 return M

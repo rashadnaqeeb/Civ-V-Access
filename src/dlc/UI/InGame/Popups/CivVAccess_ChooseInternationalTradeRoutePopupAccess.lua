@@ -91,8 +91,13 @@ local function franchiseInfo(pPlayer, originCity, targetCity)
     return nil, nil
 end
 
--- Returns (label, tooltip). tooltip is nil unless the row carries
--- franchise detail.
+-- Returns (label, tooltip, parts). The parts array is the per-sentence
+-- fragment list the label is joined from; it doubles as the Alt+Up/Down
+-- section list so review walks the row one clause at a time (destination,
+-- distance, turns, franchise, "you get", "they get") instead of treating the
+-- whole period-joined sentence as one atomic blob. Label and sections share
+-- this one array so they can never drift. tooltip is nil unless the row
+-- carries franchise detail.
 local function rowLabel(dest, pPlayer, pUnit, originCity, targetCity, targetPlayer)
     local parts = {}
     if dest.OldTradeRoute then
@@ -139,7 +144,19 @@ local function rowLabel(dest, pPlayer, pUnit, originCity, targetCity, targetPlay
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET", theirs)
     end
 
-    return table.concat(parts, ". ") .. ".", franchiseTip
+    -- Sections mirror the label's clauses, then the franchise tooltip (the one
+    -- piece the label carries as a real tooltip rather than an inline clause)
+    -- so Alt+Up/Down review still reaches it. Built as a copy so appending the
+    -- tip can't leak into the spoken label.
+    local sections = {}
+    for _, p in ipairs(parts) do
+        sections[#sections + 1] = p
+    end
+    if franchiseTip ~= nil then
+        BaseMenuItems.addSections(sections, franchiseTip)
+    end
+
+    return table.concat(parts, ". ") .. ".", franchiseTip, sections
 end
 
 local mainHandler = BaseMenu.install(ContextPtr, {
@@ -192,10 +209,13 @@ local function buildItems(popupInfo)
                 dest.Category = category
                 dest.CityName = city:GetName()
                 local destX, destY, tradeType = dest.X, dest.Y, dest.TradeConnectionType
-                local label, tip = rowLabel(dest, pPlayer, pUnit, originCity, city, targetPlayer)
+                local label, tip, sections = rowLabel(dest, pPlayer, pUnit, originCity, city, targetPlayer)
                 buckets[category][#buckets[category] + 1] = BaseMenuItems.Choice({
                     labelText = label,
                     tooltipText = tip,
+                    sectionsFn = function()
+                        return sections
+                    end,
                     activate = function()
                         SelectTradeDestinationChoice(destX, destY, tradeType)
                         ChooseConfirmSub.push({

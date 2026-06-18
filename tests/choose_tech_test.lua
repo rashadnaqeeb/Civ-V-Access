@@ -376,6 +376,56 @@ function M.test_buildLabel_filtered_help_trails()
     T.eq(count, 1, "tech name not duplicated after strip: " .. label)
 end
 
+-- ===== buildLabelSections =====
+--
+-- The Alt+Up/Down section list keeps the pieces buildLabel flattens to
+-- commas discrete: name, status/turns, then one section per raw [NEWLINE]
+-- help line, so a long VP tech blob can be reviewed a line at a time.
+
+function M.test_buildLabelSections_name_leads_then_turns()
+    setup()
+    installAdvisorLocale()
+    CivVAccess_Strings["TXT_KEY_TECH_POTTERY"] = "Pottery"
+    GetHelpTextForTech = function()
+        return ""
+    end
+    local entry = { techID = 1, info = { Description = "TXT_KEY_TECH_POTTERY" }, mode = "normal" }
+    local s = ChooseTechLogic.buildLabelSections(entry, mkLabelPlayer(5, { [1] = 10 }))
+    T.eq(s[1], "Pottery")
+    T.eq(s[2], "10 turns")
+    T.eq(#s, 2, "no status section in plain normal mode")
+end
+
+function M.test_buildLabelSections_help_splits_one_section_per_line()
+    setup()
+    installAdvisorLocale()
+    CivVAccess_Strings["TXT_KEY_TECH_POTTERY"] = "Pottery"
+    GetHelpTextForTech = function()
+        return "POTTERY[NEWLINE]Cost: 60[NEWLINE]Leads to: Animal Husbandry[NEWLINE]Allows construction of Granary"
+    end
+    local entry = { techID = 1, info = { Description = "TXT_KEY_TECH_POTTERY" }, mode = "normal" }
+    local s = ChooseTechLogic.buildLabelSections(entry, mkLabelPlayer(0, {}))
+    -- Zero science -> no turns section; the leading uppercased name line of
+    -- the help blob is stripped to empty and dropped.
+    T.eq(s[1], "Pottery")
+    T.eq(s[2], "Cost: 60")
+    T.eq(s[3], "Leads to: Animal Husbandry")
+    T.eq(s[4], "Allows construction of Granary")
+    T.eq(#s, 4)
+end
+
+function M.test_buildLabelSections_free_status_is_a_section()
+    setup()
+    installAdvisorLocale()
+    GetHelpTextForTech = function()
+        return ""
+    end
+    local entry = { techID = 1, info = { Description = "Pottery" }, mode = "free" }
+    local s = ChooseTechLogic.buildLabelSections(entry, mkLabelPlayer(0, {}))
+    T.eq(s[1], "Pottery")
+    T.truthy(s[2]:find("free"), "free status is its own section: " .. s[2])
+end
+
 -- ===== cleanHelpText =====
 
 function M.test_cleanHelpText_strips_leading_name()

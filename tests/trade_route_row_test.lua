@@ -20,6 +20,12 @@ local STRINGS = {
     TXT_KEY_CIVVACCESS_TRADE_ROUTE_FRANCHISED = "franchised",
     TXT_KEY_CIVVACCESS_TRADE_ROUTE_CAN_FRANCHISE = "would create a franchise",
     TXT_KEY_CIVVACCESS_TRADE_ROUTE_NO_FRANCHISE = "cannot create a franchise",
+    TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER = "{1_Domain} route, {2_From} to {3_To}",
+    TXT_KEY_CIVVACCESS_TRO_DOMAIN_LAND = "land",
+    TXT_KEY_CIVVACCESS_TRADE_ROUTE_YOU_GET = "you get {1_Yields}",
+    TXT_KEY_CIVVACCESS_TRADE_ROUTE_THEY_GET = "they get {1_Yields}",
+    TXT_KEY_CIVVACCESS_TRADE_ROUTE_CITY_GETS = "{1_City} gets {2_Yields}",
+    TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT = "{1_Num} turns left",
 }
 
 local origPlayers
@@ -89,6 +95,51 @@ function M.test_destination_side_list_includes_culture_after_science()
     }
     local out = TradeRouteRow.destinationSideList(route)
     T.eq(out, "2 science, 5 culture")
+    teardown()
+end
+
+-- ===== Row-label sections =====
+
+-- A domestic route (FromID == ToID == active player) keeps both city
+-- identifiers as bare names, so the section split is exercised without
+-- stubbing the foreign-civ cityIdentifier branch. DOMAIN_SEA is left
+-- absent so domainLabel resolves to the land key.
+function M.test_row_label_sections_split_clauses()
+    setup()
+    local origGame = Game
+    Game = {
+        GetActivePlayer = function()
+            return 0
+        end,
+    }
+    local route = {
+        Domain = nil,
+        FromID = 0,
+        ToID = 0,
+        FromCityName = "Rome",
+        ToCityName = "Antium",
+        FromGPT = 200,
+        FromScience = 0,
+        FromReligion = 0,
+        FromPressure = 0,
+        ToFood = 200,
+        ToGPT = 0,
+        ToScience = 0,
+        ToProduction = 0,
+        ToReligion = 0,
+        ToPressure = 0,
+        TurnsLeft = 12,
+    }
+    local sections = TradeRouteRow.rowLabelSections(route, false)
+    -- Header, the origin city's gold, the destination city's food, turns.
+    T.eq(#sections, 4)
+    T.eq(sections[1], "land route, Rome to Antium")
+    T.eq(sections[2], "Rome gets 2 gold")
+    T.eq(sections[3], "Antium gets 2 food")
+    T.eq(sections[4], "12 turns left")
+    -- The joined label is the same clauses with ". " separators.
+    T.eq(TradeRouteRow.rowLabel(route, false), table.concat(sections, ". ") .. ".")
+    Game = origGame
     teardown()
 end
 

@@ -273,6 +273,12 @@ function PickerReader.create()
             tooltipKey = spec.tooltipKey,
             tooltipText = spec.tooltipText,
             tooltipFn = spec.tooltipFn,
+            -- Optional explicit Alt+Up/Down section list, same contract as a
+            -- BaseMenu item's sectionsFn: a multi-fragment picker row (the
+            -- Vassalage civ entry) hands the reviewer its discrete pieces so
+            -- the joined label isn't one atomic section. The picker tab is a
+            -- BaseMenu, so landingSpeak seats whatever announce returns.
+            sectionsFn = spec.sectionsFn,
             _buildReader = spec.buildReader,
         }
         if spec.visibilityControl ~= nil then
@@ -287,7 +293,22 @@ function PickerReader.create()
         item.isNavigable = entryIsNavigable
         item.isActivatable = entryIsActivatable
         function item:announce(menu)
-            return BaseMenuItems.appendTooltip(BaseMenuItems.labelOf(self), BaseMenuItems.tooltipOf(self))
+            local label = BaseMenuItems.labelOf(self)
+            local tooltip = BaseMenuItems.tooltipOf(self)
+            local text = BaseMenuItems.appendTooltip(label, tooltip)
+            local sections
+            if self.sectionsFn ~= nil then
+                local ok, s = pcall(self.sectionsFn)
+                if ok and type(s) == "table" then
+                    sections = s
+                elseif not ok then
+                    Log.error("PickerReader.Entry sectionsFn failed: " .. tostring(s))
+                end
+            end
+            if sections == nil then
+                sections = BaseMenuItems.buildSections({ label }, false, tooltip)
+            end
+            return text, sections
         end
         function item:activate(menu)
             activateEntry(self, menu, true)

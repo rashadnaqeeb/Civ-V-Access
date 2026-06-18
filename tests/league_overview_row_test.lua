@@ -781,4 +781,77 @@ function M.test_append_tooltip_returns_label_unchanged_for_empty_tooltip()
     T.eq(LeagueOverviewRow.appendTooltip("just a label", nil), "just a label")
 end
 
+-- ===== Alt+Up/Down section lists ========================================
+--
+-- The joined formatters and their *Sections / *List siblings must stay in
+-- lockstep: the joined string is exactly the section list rejoined with
+-- ". ", so the reviewer never speaks content the linear readout omits or
+-- vice versa.
+
+function M.test_member_sections_match_joined_row()
+    setup()
+    local league = fakeLeague({
+        hostId = 0,
+        members = { [1] = { votes = 5, canPropose = true } },
+    })
+    local member = LeagueOverviewRow.orderedMembers(league)[1]
+    local sections = LeagueOverviewRow.formatMemberSections(league, member, 0)
+    -- Leader-of-civ, then each tag (host here, delegates, can-propose) as its
+    -- own section rather than the single comma-joined blob.
+    T.truthy(#sections >= 3, "member should split into multiple sections: " .. #sections)
+    T.truthy(sections[1]:find("BISMARCK", 1, true), "first section is the leader/civ: " .. sections[1])
+    -- The joined row is the same fragments comma-joined with a trailing period.
+    T.eq(LeagueOverviewRow.formatMember(league, member, 0), table.concat(sections, ", ") .. ".")
+    teardown()
+end
+
+function M.test_resolution_details_list_pieces_match_joined()
+    setup({})
+    local raw = "Description"
+        .. "[NEWLINE][NEWLINE]Civilizations that would be grateful if we proposed this:"
+        .. "[NEWLINE][ICON_BULLET]Germany"
+        .. "[NEWLINE][NEWLINE]Civilizations that would be angry if we proposed this:"
+        .. "[NEWLINE][ICON_BULLET]Russia"
+    local list = LeagueOverviewRow.formatResolutionDetailsList(raw)
+    -- Approve list, oppose list, description -- three discrete pieces.
+    T.eq(#list, 3)
+    T.truthy(list[1]:find("would approve: Germany", 1, true), "approve piece: " .. list[1])
+    T.truthy(list[2]:find("would oppose: Russia", 1, true), "oppose piece: " .. list[2])
+    T.eq(list[3], "Description")
+    -- The joined details string is the list rejoined with ". ".
+    T.eq(LeagueOverviewRow.formatResolutionDetails(raw), table.concat(list, ". "))
+    teardown()
+end
+
+function M.test_resolution_details_list_empty_for_blank_input()
+    setup({})
+    T.eq(#LeagueOverviewRow.formatResolutionDetailsList(nil), 0)
+    T.eq(#LeagueOverviewRow.formatResolutionDetailsList(""), 0)
+    teardown()
+end
+
+function M.test_proposal_with_details_sections_lead_with_clauses()
+    setup({})
+    local league = fakeLeague()
+    function league:GetResolutionDetails(_rType, _ap, _rId, _choice)
+        return "Help text here."
+    end
+    local proposal = {
+        Type = "RES_X",
+        ID = 1,
+        ProposerDecision = -1,
+        Direction = "Enact",
+        ProposalPlayer = 1, -- Bismarck of Germany
+        OnHold = false,
+    }
+    local sections = LeagueOverviewRow.formatProposalWithDetailsSections(league, proposal, 0, "3 Yea")
+    -- Name clause, proposer clause, vote-state clause, then the description.
+    T.truthy(sections[1]:find("Enact:", 1, true), "first section is the resolution name: " .. sections[1])
+    local joined = table.concat(sections, ". ")
+    T.truthy(joined:find("Proposed by", 1, true), "proposer clause present: " .. joined)
+    T.truthy(joined:find("your vote: 3 Yea", 1, true), "vote-state present: " .. joined)
+    T.eq(sections[#sections], "Help text here.")
+    teardown()
+end
+
 return M

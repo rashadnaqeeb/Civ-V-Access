@@ -143,7 +143,15 @@ end
 -- iPlayer is the perspective player: items they contribute read as "we
 -- give", the counterparty's as "they give". The Espionage diplomat view
 -- passes the spied civ as iPlayer so the deal reads from that civ's seat.
-function DealLabel.buildDealLabel(iPlayer, pScratch, isHistoric)
+-- The deal's clauses as discrete strings -- "<other civ>", then the
+-- "we give: ..." and "they give: ..." sides -- plus the Civilopedia search
+-- name. buildDealLabel joins the clauses with ". " for the spoken row;
+-- buildDealSections hands the same clauses to the Alt+Up/Down reviewer so a
+-- many-item deal can be walked one side at a time instead of the whole
+-- ". "-joined blob arriving as a single section. Each side is one clause
+-- (its items are joined with "; " inside the "we give" / "they give"
+-- localized phrase, which the reviewer should keep together).
+function DealLabel.buildDealParts(iPlayer, pScratch, isHistoric)
     local iOther = pScratch:GetOtherPlayer(iPlayer)
     local pOther = Players[iOther]
     local otherName = (pOther and pOther:GetName()) or "?"
@@ -182,6 +190,11 @@ function DealLabel.buildDealLabel(iPlayer, pScratch, isHistoric)
     if #theyGive > 0 then
         parts[#parts + 1] = Text.format(theyKey, table.concat(theyGive, "; "))
     end
+    return parts, pediaName
+end
+
+function DealLabel.buildDealLabel(iPlayer, pScratch, isHistoric)
+    local parts, pediaName = DealLabel.buildDealParts(iPlayer, pScratch, isHistoric)
     return table.concat(parts, ". "), pediaName
 end
 

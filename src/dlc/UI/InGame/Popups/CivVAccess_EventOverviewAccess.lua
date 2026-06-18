@@ -185,30 +185,35 @@ local function jumpToCity(x, y)
     end
 end
 
+-- "Your Choice: <choice>" as one fragment so the choice never splits from
+-- its prefix.
+local function choiceFragment(row)
+    return Text.key("TXT_KEY_EVENT_CHOICE_UI") .. " " .. row.choice
+end
+
+-- Each row's label joins its fragments with ", " into one [NEWLINE]-free
+-- blob, so the section reviewer would receive the whole row as a single
+-- section. sectionsFn hands it the same discrete fragments (the title /
+-- choice / duration pieces); the scaled "Result:" effect rides the tooltip
+-- and the reviewer auto-splits it onto its own sections.
 local function playerChoiceItem(row)
+    local parts = { row.title, choiceFragment(row), choiceDurationText(row.duration) }
     return BaseMenuItems.Text({
-        labelText = row.title
-            .. ", "
-            .. Text.key("TXT_KEY_EVENT_CHOICE_UI")
-            .. " "
-            .. row.choice
-            .. ", "
-            .. choiceDurationText(row.duration),
+        labelText = table.concat(parts, ", "),
+        sectionsFn = function()
+            return parts
+        end,
         tooltipText = resultTooltip(row),
     })
 end
 
 local function cityChoiceItem(row)
+    local parts = { row.city, row.title, choiceFragment(row), choiceDurationText(row.duration) }
     return BaseMenuItems.Text({
-        labelText = row.city
-            .. ", "
-            .. row.title
-            .. ", "
-            .. Text.key("TXT_KEY_EVENT_CHOICE_UI")
-            .. " "
-            .. row.choice
-            .. ", "
-            .. choiceDurationText(row.duration),
+        labelText = table.concat(parts, ", "),
+        sectionsFn = function()
+            return parts
+        end,
         tooltipText = resultTooltip(row),
         onActivate = function()
             jumpToCity(row.cityX, row.cityY)
@@ -217,15 +222,23 @@ local function cityChoiceItem(row)
 end
 
 local function playerInstantItem(row)
+    local parts = { row.title, instantDurationText(row.duration) }
     return BaseMenuItems.Text({
-        labelText = row.title .. ", " .. instantDurationText(row.duration),
+        labelText = table.concat(parts, ", "),
+        sectionsFn = function()
+            return parts
+        end,
         tooltipText = resultTooltip(row),
     })
 end
 
 local function cityInstantItem(row)
+    local parts = { row.city, row.title, cityInstantTagText(row) }
     return BaseMenuItems.Text({
-        labelText = row.city .. ", " .. row.title .. ", " .. cityInstantTagText(row),
+        labelText = table.concat(parts, ", "),
+        sectionsFn = function()
+            return parts
+        end,
         tooltipText = resultTooltip(row),
         onActivate = function()
             jumpToCity(row.cityX, row.cityY)

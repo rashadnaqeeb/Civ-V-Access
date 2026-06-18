@@ -203,36 +203,66 @@ end
 -- 350 million bushels. Population and Land sidestep this because their
 -- digit-grouped numbers (12,345,678 / 1,000,000) read with magnitude
 -- already in the digit count.
+-- Compute the eight DEMO_ROW slot values live (re-queried on every call, no
+-- caching). Shared by the spoken row (labelFn) and the Alt+Up/Down section
+-- list (sectionsFn) so the two can never disagree on what they report.
+local function metricPieces(labelKey, valueFn, formatFn, measureKey, magSuffix)
+    local pSelf = Players[activePlayerId()]
+    local rank = rankOf(valueFn, pSelf)
+    local selfVal = formatFn(valueFn(pSelf))
+    if measureKey ~= nil then
+        selfVal = Text.format("TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT", selfVal, Text.key(measureKey))
+    end
+    local function shortVal(rawVal)
+        local s = formatFn(rawVal)
+        if magSuffix ~= nil then
+            s = s .. magSuffix
+        end
+        return s
+    end
+    local bestRaw, bestP = bestOf(valueFn)
+    local worstRaw, worstP = worstOf(valueFn)
+    local avgRaw = averageOf(valueFn)
+    return {
+        metric = Text.key(labelKey),
+        rank = rank,
+        value = selfVal,
+        bestCiv = civDisplayName(bestP or pSelf),
+        bestVal = shortVal(bestRaw or 0),
+        avgVal = shortVal(avgRaw),
+        worstCiv = civDisplayName(worstP or pSelf),
+        worstVal = shortVal(worstRaw or 0),
+    }
+end
+
 local function metricRow(labelKey, valueFn, formatFn, measureKey, magSuffix)
     return BaseMenuItems.Text({
         labelFn = function()
-            local pSelf = Players[activePlayerId()]
-            local rank = rankOf(valueFn, pSelf)
-            local selfVal = formatFn(valueFn(pSelf))
-            if measureKey ~= nil then
-                selfVal = Text.format("TXT_KEY_CIVVACCESS_DEMO_VALUE_UNIT", selfVal, Text.key(measureKey))
-            end
-            local function shortVal(rawVal)
-                local s = formatFn(rawVal)
-                if magSuffix ~= nil then
-                    s = s .. magSuffix
-                end
-                return s
-            end
-            local bestRaw, bestP = bestOf(valueFn)
-            local worstRaw, worstP = worstOf(valueFn)
-            local avgRaw = averageOf(valueFn)
+            local p = metricPieces(labelKey, valueFn, formatFn, measureKey, magSuffix)
             return Text.format(
                 "TXT_KEY_CIVVACCESS_DEMO_ROW",
-                Text.key(labelKey),
-                rank,
-                selfVal,
-                civDisplayName(bestP or pSelf),
-                shortVal(bestRaw or 0),
-                shortVal(avgRaw),
-                civDisplayName(worstP or pSelf),
-                shortVal(worstRaw or 0)
+                p.metric,
+                p.rank,
+                p.value,
+                p.bestCiv,
+                p.bestVal,
+                p.avgVal,
+                p.worstCiv,
+                p.worstVal
             )
+        end,
+        -- The row's metric / self standing / rival comparisons are slotted into
+        -- one format string with no [NEWLINE] for the auto-split to break on, so
+        -- review walks them via these discrete sections (self, best, average,
+        -- worst), built from the same live pieces as the spoken row.
+        sectionsFn = function()
+            local p = metricPieces(labelKey, valueFn, formatFn, measureKey, magSuffix)
+            return {
+                Text.format("TXT_KEY_CIVVACCESS_DEMO_SECTION_SELF", p.metric, p.rank, p.value),
+                Text.format("TXT_KEY_CIVVACCESS_DEMO_SECTION_BEST", p.bestCiv, p.bestVal),
+                Text.format("TXT_KEY_CIVVACCESS_DEMO_SECTION_AVERAGE", p.avgVal),
+                Text.format("TXT_KEY_CIVVACCESS_DEMO_SECTION_WORST", p.worstCiv, p.worstVal),
+            }
         end,
     })
 end

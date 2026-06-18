@@ -63,8 +63,10 @@ local function rankText(v)
     return Text.format("TXT_KEY_CIVVACCESS_LABEL_VALUE", Text.key("TXT_KEY_DEMOGRAPHICS_RANK"), v.GlobalRank or 0)
 end
 
-local function rowLabel(v)
-    return Text.joinNonEmpty({
+-- The row's cells in visual order. Shared by the spoken label (joined) and the
+-- Alt+Up/Down section list (kept discrete) via rowParts.
+local function rowParts(v)
+    return {
         rankText(v),
         GameResultRow.scoreText(v),
         v.PlayerName or "",
@@ -78,7 +80,7 @@ local function rowLabel(v)
         GameResultRow.lookupDescription(GameInfo.GameSpeeds, v.GameSpeed),
         GameResultRow.eraTurnText(v),
         v.GameEndTime or "",
-    })
+    }
 end
 
 -- The vanilla LeaderboardStatus label is shown over the row list whenever
@@ -166,7 +168,13 @@ local function buildItemsForActiveTab()
         -- the Civ V ipairs (0,t[0]) quirk if the engine ever returns a
         -- 0-indexed table.
         for _, v in pairs(games) do
-            items[#items + 1] = BaseMenuItems.Text({ labelText = rowLabel(v) })
+            local parts = rowParts(v)
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = Text.joinNonEmpty(parts),
+                sectionsFn = function()
+                    return GameResultRow.sectionsOf(parts)
+                end,
+            })
             if firstRowIdx == nil then
                 firstRowIdx = #items
             end

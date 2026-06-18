@@ -306,6 +306,24 @@ local function isActivatable(self)
     return not self._control:IsDisabled()
 end
 
+-- Resolve an item's Alt+Up/Down section list. A spec-supplied sectionsFn
+-- wins and is taken verbatim (final strings); it is pcall-wrapped so a
+-- broken builder logs and falls back to the auto-split rather than killing
+-- the announce. Otherwise the control parts plus tooltip are auto-split via
+-- buildSections.
+local function resolveItemSections(item, controlParts, disabled, tooltip)
+    if item.sectionsFn ~= nil then
+        local ok, sections = pcall(item.sectionsFn)
+        if ok and type(sections) == "table" then
+            return sections
+        end
+        if not ok then
+            Log.error("BaseMenuItems sectionsFn failed: " .. tostring(sections))
+        end
+    end
+    return BaseMenuItems.buildSections(controlParts, disabled, tooltip)
+end
+
 -- Returns (spokenString, sections). The second value feeds the Alt+Up/Down
 -- section reviewer in BaseMenuCore; callers that only want the string
 -- (search corpus, etc.) let Lua drop it.
@@ -337,7 +355,7 @@ local function composeSpeech(item, parts)
     end
     local base = table.concat(parts, ", ")
     local tooltip = resolveTooltip(item)
-    return appendTooltip(base, tooltip), BaseMenuItems.buildSections(controlParts, disabled, tooltip)
+    return appendTooltip(base, tooltip), resolveItemSections(item, controlParts, disabled, tooltip)
 end
 
 -- Resolution helpers ------------------------------------------------------
@@ -378,6 +396,14 @@ local function copyCommonFields(spec, item)
     item.tooltipFn = spec.tooltipFn
     -- Per-item verbosity-tag override; see composeSpeech.
     item.verboseKindKey = spec.verboseKindKey
+    -- Optional explicit Alt+Up/Down section list. When set, announce uses
+    -- its return as the section list verbatim (final, ready-to-speak
+    -- strings) instead of auto-splitting the flattened label/tooltip. For
+    -- items whose spoken string is a long comma-joined blob the engine
+    -- structure is already lost in (e.g. a tech in the choose-tech popup),
+    -- the builder hands the reviewer the discrete pieces it joined. The
+    -- spoken string is unaffected.
+    item.sectionsFn = spec.sectionsFn
     -- Civilopedia search string for the Ctrl+I shortcut in BaseMenu.create.
     -- Items that map to a pediable entity (building, wonder, specialist,
     -- unit, etc.) set pediaName to the entity's already-localized display
@@ -475,7 +501,7 @@ function BaseMenuItems.Text(spec)
     function item:announce(menu)
         local label = resolveLabel(self)
         local tooltip = resolveTooltip(self)
-        return appendTooltip(label, tooltip), BaseMenuItems.buildSections({ label }, false, tooltip)
+        return appendTooltip(label, tooltip), resolveItemSections(self, { label }, false, tooltip)
     end
     function item:activate(menu)
         if self._onActivate == nil then

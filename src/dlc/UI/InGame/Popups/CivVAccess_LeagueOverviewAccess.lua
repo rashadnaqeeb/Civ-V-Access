@@ -221,6 +221,9 @@ local function buildStatusTabItems(pLeague, activePlayer, leagueId)
     for _, member in ipairs(LeagueOverviewRow.orderedMembers(pLeague)) do
         items[#items + 1] = BaseMenuItems.Group({
             labelText = LeagueOverviewRow.formatMember(pLeague, member, activePlayer),
+            sectionsFn = function()
+                return LeagueOverviewRow.formatMemberSections(pLeague, member, activePlayer)
+            end,
             items = buildMemberDrillItems(pLeague, member, activePlayer),
         })
     end
@@ -245,6 +248,13 @@ local function buildViewAllResolutionRow(pLeague, candidate, activePlayer)
             tostring(name or ""),
             LeagueOverviewRow.formatResolutionDetails(detailsText)
         ),
+        sectionsFn = function()
+            local sections = { tostring(name or "") }
+            for _, piece in ipairs(LeagueOverviewRow.formatResolutionDetailsList(detailsText)) do
+                sections[#sections + 1] = piece
+            end
+            return sections
+        end,
     })
 end
 
@@ -335,6 +345,9 @@ end
 local function readOnlyProposalRow(pLeague, proposal, activePlayer)
     return BaseMenuItems.Text({
         labelText = LeagueOverviewRow.formatProposalWithDetails(pLeague, proposal, activePlayer),
+        sectionsFn = function()
+            return LeagueOverviewRow.formatProposalWithDetailsSections(pLeague, proposal, activePlayer)
+        end,
     })
 end
 

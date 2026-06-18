@@ -117,11 +117,34 @@ end
 -- Tab 3's per-religion group). The parent carries religion context, so
 -- the row only needs type / name / description. Ctrl+I jumps to the
 -- belief's pedia entry.
+-- Belief fragments in spoken order: type ("Founder belief"), name, and the
+-- description prose. Shared by the row label (comma-joined) and its
+-- Alt+Up/Down sections so the reviewer walks type, name, then the long
+-- description on its own instead of the joined blob arriving as one section.
+local function beliefFragments(belief)
+    local out = {}
+    -- beliefTypeText is "" for an unrecognized belief slot; skip it so the
+    -- reviewer never lands on a silent section.
+    for _, frag in ipairs({
+        beliefTypeText(belief),
+        Text.key(belief.ShortDescription),
+        Text.key(belief.Description),
+    }) do
+        local f = TextFilter.filter(frag)
+        if f ~= nil and f ~= "" then
+            out[#out + 1] = f
+        end
+    end
+    return out
+end
+
 local function buildBeliefRow(belief)
+    local parts = beliefFragments(belief)
     return BaseMenuItems.Text({
-        labelText = TextFilter.filter(
-            beliefTypeText(belief) .. ", " .. Text.key(belief.ShortDescription) .. ", " .. Text.key(belief.Description)
-        ),
+        labelText = table.concat(parts, ", "),
+        sectionsFn = function()
+            return parts
+        end,
         pediaName = beliefPediaName(belief),
     })
 end
@@ -346,28 +369,31 @@ local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId,
     local numCities = Game.GetNumCitiesFollowing(eReligion)
     local rowKey = isCP() and "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW_CONTROLLED"
         or "TXT_KEY_CIVVACCESS_RELIGION_WORLD_ROW"
-    local label = TextFilter.filter(
-        Text.formatPlural(
-            rowKey,
-            numCities,
-            Text.key(Game.GetReligionName(eReligion)),
-            Text.key(holyCityName),
-            Text.key(founderName),
-            numCities
-        )
-    )
+    -- The base religion row stays one section (its parts are a single
+    -- formatted template), then each Community Patch clause becomes its own.
+    local sections = {
+        TextFilter.filter(
+            Text.formatPlural(
+                rowKey,
+                numCities,
+                Text.key(Game.GetReligionName(eReligion)),
+                Text.key(holyCityName),
+                Text.key(founderName),
+                numCities
+            )
+        ),
+    }
     -- Community Patch surfaces the founding year, total follower count, and
     -- (in tooltips) the active player's ownership share. Append them as
     -- spoken clauses; ownership reads as counts against the totals already in
     -- the row. Inert on vanilla, whose screen has none of these.
     if isCP() then
-        local extras = {}
         local year = Game.GetFoundYear(eReligion)
         if Game.GetTurnYear(year) ~= nil then
-            extras[#extras + 1] = Text.format("TXT_KEY_CIVVACCESS_RELIGION_FOUNDED", Game.GetDateString(year))
+            sections[#sections + 1] = Text.format("TXT_KEY_CIVVACCESS_RELIGION_FOUNDED", Game.GetDateString(year))
         end
         local numFollowers = Game.GetNumFollowers(eReligion)
-        extras[#extras + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_RELIGION_FOLLOWERS", numFollowers, numFollowers)
+        sections[#sections + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_RELIGION_FOLLOWERS", numFollowers, numFollowers)
         local activePlayer = Players[activePlayerId]
         local ownedCities, ownedFollowers = 0, 0
         for pCity in activePlayer:Cities() do
@@ -377,9 +403,12 @@ local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId,
             ownedFollowers = ownedFollowers + pCity:GetNumFollowers(eReligion)
         end
         if ownedCities > 0 or ownedFollowers > 0 then
-            extras[#extras + 1] = Text.format("TXT_KEY_CIVVACCESS_RELIGION_YOU_HOLD", ownedCities, ownedFollowers)
+            sections[#sections + 1] = Text.format("TXT_KEY_CIVVACCESS_RELIGION_YOU_HOLD", ownedCities, ownedFollowers)
         end
-        label = label .. ", " .. table.concat(extras, ", ")
+    end
+    local label = table.concat(sections, ", ")
+    local sectionsFn = function()
+        return sections
     end
     local cities = citiesFollowingReligion(eReligion, activePlayerId, activeTeamId)
     local children = {}
@@ -392,11 +421,13 @@ local function buildWorldReligionGroup(eReligion, founderPlayer, activePlayerId,
     if #children == 0 then
         return BaseMenuItems.Text({
             labelText = label,
+            sectionsFn = sectionsFn,
             pediaName = religionPediaName(eReligion),
         })
     end
     return BaseMenuItems.Group({
         labelText = label,
+        sectionsFn = sectionsFn,
         items = children,
         pediaName = religionPediaName(eReligion),
     })
@@ -458,16 +489,15 @@ local function buildPantheonBeliefRow(player, activeTeam)
     else
         header = Text.key("TXT_KEY_RO_BELIEF_UNKNOWN_PANTHEON")
     end
+    local parts = { TextFilter.filter(header) }
+    for _, frag in ipairs(beliefFragments(belief)) do
+        parts[#parts + 1] = frag
+    end
     return BaseMenuItems.Text({
-        labelText = TextFilter.filter(
-            header
-                .. ", "
-                .. beliefTypeText(belief)
-                .. ", "
-                .. Text.key(belief.ShortDescription)
-                .. ", "
-                .. Text.key(belief.Description)
-        ),
+        labelText = table.concat(parts, ", "),
+        sectionsFn = function()
+            return parts
+        end,
         pediaName = beliefPediaName(belief),
     })
 end

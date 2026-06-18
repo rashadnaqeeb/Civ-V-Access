@@ -3034,6 +3034,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_SCIENCE_PREREQ_PROGRESS"] = {
 -- pure positional substitution.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_ROW"] =
     "{1_Metric}, rank {2_Rank}, {3_Value}, best {4_BestCiv} {5_BestVal}, average {6_AvgVal}, worst {7_WorstCiv} {8_WorstVal}"
+-- Alt+Up/Down review sections for a Demographics row: the same pieces the
+-- flattened DEMO_ROW joins, kept discrete so the listener can step the self
+-- standing, then each rival comparison, one at a time.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_SELF"] = "{1_Metric}, rank {2_Rank}, {3_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_BEST"] = "best {1_BestCiv} {2_BestVal}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_AVERAGE"] = "average {1_AvgVal}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEMO_SECTION_WORST"] = "worst {1_WorstCiv} {2_WorstVal}"
 -- Vanilla's TXT_KEY_DEMOGRAPHICS_GOLD label is "GNP", which spells out
 -- letter-by-letter in TTS and tells a non-economist nothing. Mod-authored
 -- override only -- the engine label stays "GNP" for sighted players.

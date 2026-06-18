@@ -603,11 +603,12 @@ local function teamPartCount(pTeam, projTypeKey)
     return built, threshold
 end
 
--- Produce a comma-joined list of built parts ("2 boosters, cockpit").
--- Returns nil if no parts are built. Booster count is always announced as
--- a number; cockpit / chamber / engine are present-or-absent (their
--- threshold is 1 in vanilla so a count word would be redundant).
-local function partsBuiltSummary(pTeam)
+-- Array of built-spaceship-part fragments ("2 boosters", "cockpit", ...), one
+-- per built component, empty when none. Booster count is always announced as
+-- a number; cockpit / chamber / engine are present-or-absent (their threshold
+-- is 1 in vanilla so a count word would be redundant). The shared source for
+-- the comma-joined summary and the per-part Alt+Up/Down section list.
+local function partsBuiltList(pTeam)
     local parts = {}
     local boosters = teamPartCount(pTeam, "PROJECT_SS_BOOSTER")
     if boosters > 0 then
@@ -625,6 +626,12 @@ local function partsBuiltSummary(pTeam)
     if engine > 0 then
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_VP_SCIENCE_PART_ENGINE")
     end
+    return parts
+end
+
+-- Comma-joined list of built parts ("2 boosters, cockpit"), or nil if none.
+local function partsBuiltSummary(pTeam)
+    local parts = partsBuiltList(pTeam)
     if #parts == 0 then
         return nil
     end
@@ -659,6 +666,28 @@ local function scienceCivLine(pPlayer)
         return Text.format("TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_BARE", name)
     end
     return Text.format("TXT_KEY_CIVVACCESS_VP_SCIENCE_ROW_APOLLO_PARTS", name, parts)
+end
+
+-- Alt+Up/Down sections for a science per-civ row. Only the Apollo-plus-parts
+-- form is multi-fragment, so it splits into the civ name then each built part
+-- on its own section, letting the user walk a long parts list one component at
+-- a time. The no-Apollo and bare-Apollo forms are single short lines, so they
+-- return nil and the reviewer falls back to the spoken string verbatim.
+local function scienceCivSections(pPlayer)
+    local pTeam = Teams[pPlayer:GetTeam()]
+    local apollo = teamApolloAndParts(pTeam)
+    if not apollo then
+        return nil
+    end
+    local parts = partsBuiltList(pTeam)
+    if #parts == 0 then
+        return nil
+    end
+    local sections = { civDisplayName(pPlayer) }
+    for _, part in ipairs(parts) do
+        sections[#sections + 1] = part
+    end
+    return sections
 end
 
 local function buildScienceItems()
@@ -742,6 +771,9 @@ local function buildScienceItems()
         items[#items + 1] = BaseMenuItems.Text({
             labelText = scienceCivLine(pPlayer),
             pediaName = leaderPediaNameFor(pPlayer) or sectionPedia,
+            sectionsFn = function()
+                return scienceCivSections(pPlayer)
+            end,
         })
     end
 
@@ -1012,6 +1044,9 @@ VictoryProgressAccess.dominationState = dominationState
 VictoryProgressAccess.dominationLeadingLine = dominationLeadingLine
 VictoryProgressAccess.dominationCivSentence = dominationCivSentence
 VictoryProgressAccess.partsBuiltSummary = partsBuiltSummary
+VictoryProgressAccess.partsBuiltList = partsBuiltList
+VictoryProgressAccess.scienceCivLine = scienceCivLine
+VictoryProgressAccess.scienceCivSections = scienceCivSections
 VictoryProgressAccess.influencePercentOf = influencePercentOf
 VictoryProgressAccess.remainingTurns = remainingTurns
 VictoryProgressAccess.buildVictoriesItems = buildVictoriesItems

@@ -491,4 +491,42 @@ function ChooseProductionLogic.buildLabel(entry, city)
     return table.concat(parts, ", ")
 end
 
+-- Discrete Alt+Up/Down section list for a production entry. Same content and
+-- order as buildLabel (name, invested tag, cost, disabled + reason,
+-- contributions, advisors), but each piece is its own section and the
+-- contributions blob -- the long, multi-line building/unit help that
+-- motivated the chord -- is split one section per raw [NEWLINE] line and
+-- filtered, so it can be walked stat-line by stat-line. buildLabel flattens
+-- the same pieces (and lets the speech-side filter collapse the [NEWLINE]s);
+-- this keeps them apart. Dash-divider and empty lines filter away, so the
+-- reviewer never lands on silence.
+function ChooseProductionLogic.buildLabelSections(entry, city)
+    local sections = {}
+    local function add(raw)
+        if raw == nil or raw == "" then
+            return
+        end
+        for piece in (raw .. "[NEWLINE]"):gmatch("(.-)%[NEWLINE%]") do
+            local f = TextFilter.filter(piece)
+            if f ~= nil and f ~= "" then
+                sections[#sections + 1] = f
+            end
+        end
+    end
+
+    add(Text.key(entry.info.Description))
+    if ProductionHelpText ~= nil and ProductionHelpText.investedTag ~= nil then
+        add(ProductionHelpText.investedTag(city, entry.orderType, entry.id))
+    end
+    add(ChooseProductionLogic.costClause(city, entry))
+    if ChooseProductionLogic.isEntryDisabled(city, entry) then
+        add(Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"))
+        add(ChooseProductionLogic.disabledReason(city, entry))
+    end
+    add(ChooseProductionLogic.contributionsText(entry, city))
+    add(ChooseProductionLogic.advisorSuffix(entry))
+
+    return sections
+end
+
 return ChooseProductionLogic

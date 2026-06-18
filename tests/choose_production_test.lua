@@ -803,6 +803,36 @@ function M.test_contributions_slot_one_project_includes_help_once()
     T.eq(count, 1, "Help text appears exactly once across the full label")
 end
 
+function M.test_buildLabelSections_splits_name_and_help_lines()
+    -- Alt+Up/Down sections keep the entry name discrete from the multi-line
+    -- contributions blob, which splits one section per [NEWLINE] line so the
+    -- long building/unit help can be walked stat-line by stat-line.
+    setup()
+    installGameInfoProjects({
+        { ID = 1, Description = "Manhattan", Cost = 1500, Help = "Enables nuclear weapons." },
+    })
+    M._projectNeeded[1] = 1500
+    local city = mkCityStub({
+        canCreate = { [1] = true },
+        projectTurnsLeft = { [1] = 5 },
+        queue = { { OrderTypes.ORDER_CREATE, 1 } },
+        productionTimes100 = 30000,
+    })
+    local entry = {
+        orderType = OrderTypes.ORDER_CREATE,
+        id = 1,
+        info = GameInfo.Projects[1],
+        yieldType = YieldTypes.NO_YIELD,
+        isProduce = true,
+    }
+    local s = ChooseProductionLogic.buildLabelSections(entry, city)
+    T.eq(s[1], "Manhattan")
+    T.falsy(s[1]:find("Production"), "name section is discrete from the contributions blob")
+    local joined = table.concat(s, "|")
+    T.truthy(joined:find("Production remaining: 1200", 1, true), "remaining line is its own section: " .. joined)
+    T.truthy(s[#s]:find("Enables nuclear weapons", 1, true), "help prose is its own trailing section: " .. s[#s])
+end
+
 function M.test_contributions_purchase_entry_keeps_full_cost_even_at_slot_one()
     -- Purchase entries don't own the production accumulator (the player
     -- pays gold / faith, not production). Even when an entry's id matches

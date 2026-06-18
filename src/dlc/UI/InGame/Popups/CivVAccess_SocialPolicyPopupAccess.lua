@@ -247,6 +247,9 @@ local function pushTenetPicker(level)
             local name = Text.key(row.Description)
             items[#items + 1] = BaseMenuItems.Choice({
                 labelText = SocialPolicyLogic.buildTenetPickerChoice(row),
+                sectionsFn = function()
+                    return SocialPolicyLogic.buildTenetPickerSections(row)
+                end,
                 activate = function()
                     local ok, err = pcall(ChooseTenet, id, row.Description)
                     if not ok then
@@ -474,6 +477,9 @@ local function buildBranchChildren(branchRow)
             labelFn = function()
                 return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), op, branch, _espionageView)
             end,
+            sectionsFn = function()
+                return SocialPolicyLogic.buildPolicySections(currentPlayer(), op, branch, _espionageView)
+            end,
             pediaName = op.Description,
         })
     end
@@ -483,6 +489,9 @@ local function buildBranchChildren(branchRow)
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
                 return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), pol, branch, _espionageView)
+            end,
+            sectionsFn = function()
+                return SocialPolicyLogic.buildPolicySections(currentPlayer(), pol, branch, _espionageView)
             end,
             onActivate = function()
                 activatePolicy(pol, branch)
@@ -496,6 +505,9 @@ local function buildBranchChildren(branchRow)
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
                 return SocialPolicyLogic.buildPolicySpeech(currentPlayer(), fin, branch, _espionageView)
+            end,
+            sectionsFn = function()
+                return SocialPolicyLogic.buildPolicySections(currentPlayer(), fin, branch, _espionageView)
             end,
             pediaName = fin.Description,
         })
@@ -519,6 +531,17 @@ local function buildLevelChildren(level)
                     return ""
                 end
                 return SocialPolicyLogic.buildSlotSpeech(currentPlayer(), ideologyID, lvl, idx, _espionageView)
+            end,
+            -- Filled slots flatten the tenet's multi-line effect into one
+            -- format string; section review keeps each effect line discrete.
+            -- Returns nil for empty / blocked slots so the auto-split handles
+            -- those short single-line forms.
+            sectionsFn = function()
+                local ideologyID = currentIdeology()
+                if ideologyID < 0 then
+                    return nil
+                end
+                return SocialPolicyLogic.buildSlotSections(currentPlayer(), ideologyID, lvl, idx, _espionageView)
             end,
             onActivate = function()
                 activateSlot(lvl, idx)
@@ -550,6 +573,9 @@ local function buildPoliciesTabItems()
         items[#items + 1] = BaseMenuItems.Group({
             labelFn = function()
                 return SocialPolicyLogic.buildBranchSpeech(currentPlayer(), br, _espionageView)
+            end,
+            sectionsFn = function()
+                return SocialPolicyLogic.buildBranchSections(currentPlayer(), br, _espionageView)
             end,
             itemsFn = function()
                 return buildBranchChildren(br)

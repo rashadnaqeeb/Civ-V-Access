@@ -505,6 +505,16 @@ local function buildSearchResultItems()
                     end
                     return TechTreeLogic.buildLandingSpeech(tech.ID, p)
                 end,
+                -- Alt+Up/Down walks the result the same discrete sections an
+                -- arrow move on the tree builds, so the flattened landing line
+                -- (the label) can be reviewed unlocks-line by unlocks-line.
+                sectionsFn = function()
+                    local p = currentPlayer()
+                    if p == nil then
+                        return nil
+                    end
+                    return TechTreeLogic.buildLandingSections(tech.ID, p)
+                end,
                 pediaName = Text.key(tech.Description),
                 activate = function()
                     seatCursorSilent(tech)

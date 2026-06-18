@@ -250,16 +250,21 @@ end
 -- diplomacy with us) and at war (the engine collapses the table to a lone
 -- "at war" entry the stance word already carries). Empty table (genuinely
 -- neutral AI, no modifiers) adds nothing.
-local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
+-- The per-valence breakdown lines ("very pleased by: ...", "neutral about:
+-- ...", ...), strongest bonus to strongest penalty, empty buckets omitted.
+-- Returns an array (possibly empty). The shared source for both the joined
+-- one-line cell (relationshipBreakdown) and the Alt+Up/Down section list, so
+-- the reviewer walks the same buckets that are spoken.
+local function relationshipBreakdownLines(iUs, pUs, pUsTeam, iOther, pOther)
     if pOther:GetTeam() == pUs:GetTeam() then
-        return nil
+        return {}
     end
     if pUsTeam:IsAtWar(pOther:GetTeam()) then
-        return nil
+        return {}
     end
     local opinions = pOther:GetOpinionTable(iUs)
     if opinions == nil or #opinions == 0 then
-        return nil
+        return {}
     end
 
     local grouped = {}
@@ -273,14 +278,21 @@ local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
         list[#list + 1] = entry
     end
 
-    local sections = {}
+    local lines = {}
     for i, bucket in ipairs(OPINION_BUCKETS) do
         if #grouped[i] > 0 then
-            sections[#sections + 1] = Text.format(bucket.label, table.concat(grouped[i], ", "))
+            lines[#lines + 1] = Text.format(bucket.label, table.concat(grouped[i], ", "))
         end
     end
+    return lines
+end
 
-    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN", table.concat(sections, ", "))
+local function relationshipBreakdown(iUs, pUs, pUsTeam, iOther, pOther)
+    local lines = relationshipBreakdownLines(iUs, pUs, pUsTeam, iOther, pOther)
+    if #lines == 0 then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_DIPLO_RELATIONSHIP_BREAKDOWN", table.concat(lines, ", "))
 end
 
 -- Vassalage between us and the other civ, with tenure, for the Your-
@@ -323,6 +335,37 @@ local function yourRelationshipCell(iOther)
         return noneCell()
     end
     return joined
+end
+
+-- Section list for Alt+Up/Down review of the Your-relationship cell. Same
+-- pieces as yourRelationshipCell, but each treaty and each valence-bucket
+-- line is its own section instead of being comma-joined into one blob, so a
+-- long relationship (treaties plus a full opinion breakdown) can be walked a
+-- bucket at a time. Stance and vassalage lead, matching the spoken order.
+local function yourRelationshipSections(iOther)
+    local iUs = Game.GetActivePlayer()
+    local pUs = Players[iUs]
+    local pUsTeam = Teams[pUs:GetTeam()]
+    local pOther = Players[iOther]
+
+    local out = {}
+    local function add(s)
+        if s ~= nil and s ~= "" then
+            out[#out + 1] = s
+        end
+    end
+    add(stancePhrase(iUs, pUs, pUsTeam, iOther, pOther))
+    add(vassalageWithUs(pUs, pOther))
+    for _, t in ipairs(treatyFragments(iOther)) do
+        add(t)
+    end
+    for _, line in ipairs(relationshipBreakdownLines(iUs, pUs, pUsTeam, iOther, pOther)) do
+        add(line)
+    end
+    if #out == 0 then
+        out[#out + 1] = noneCell()
+    end
+    return out
 end
 
 -- Numeric rank for sorting Your-relationship best-to-worst. Mirrors the
@@ -419,7 +462,7 @@ end
 -- (Community Patch / VP only), their denouncements (with backstab variant),
 -- and CS alliances. Distinct from Your-relationship -- this is what they
 -- have with everyone besides us. Empty case: "none".
-local function foreignRelationsCell(iOther)
+local function foreignRelationsList(iOther)
     local iUs = Game.GetActivePlayer()
     local pUs = Players[iUs]
     local pUsTeam = Teams[pUs:GetTeam()]
@@ -531,10 +574,25 @@ local function foreignRelationsCell(iOther)
         end
     end
 
+    return out
+end
+
+local function foreignRelationsCell(iOther)
+    local out = foreignRelationsList(iOther)
     if #out == 0 then
         return noneCell()
     end
     return table.concat(out, ", ")
+end
+
+-- Each foreign relation (a war, vassalage, DoF, defensive pact, denouncement,
+-- or CS alliance) as its own review section; "none" when there are none.
+local function foreignRelationsSections(iOther)
+    local out = foreignRelationsList(iOther)
+    if #out == 0 then
+        return { noneCell() }
+    end
+    return out
 end
 
 -- Gold cell: gold-on-hand plus per-turn rate. The cell is sortable on
@@ -1112,6 +1170,7 @@ local function buildMajorColumns()
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_YOUR_RELATIONSHIP",
             getCell = yourRelationshipCell,
+            getCellSections = yourRelationshipSections,
             sortKey = yourRelationshipRank,
             enterAction = activateMajor,
             pediaName = leaderPedia,
@@ -1119,6 +1178,7 @@ local function buildMajorColumns()
         {
             name = "TXT_KEY_CIVVACCESS_DIPLO_COL_FOREIGN_RELATIONS",
             getCell = foreignRelationsCell,
+            getCellSections = foreignRelationsSections,
             enterAction = activateMajor,
             pediaName = leaderPedia,
         },

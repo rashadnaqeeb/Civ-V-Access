@@ -291,6 +291,13 @@ local function choiceFromEntry(entry)
             end
             return ChooseProductionLogic.buildLabel(entry, city)
         end,
+        sectionsFn = function()
+            local city = getCurrentCity()
+            if city == nil then
+                return nil
+            end
+            return ChooseProductionLogic.buildLabelSections(entry, city)
+        end,
         activate = entryActivate(entry),
         pediaName = Text.key(entry.info.Description),
     })

@@ -251,7 +251,27 @@ local function buildCellSections(self, rows)
         if cname ~= nil and cname ~= "" then
             parts[#parts + 1] = cname
         end
-        if type(col.getCell) == "function" then
+        -- A column may expose getCellSections to hand the reviewer the
+        -- discrete fragments it joined into the cell value (e.g. the
+        -- diplomacy relationship breakdown's valence buckets), since the
+        -- joined getCell string has no [NEWLINE] for buildSections to split
+        -- on. When present it replaces the single cell value; each fragment
+        -- becomes its own section. Falls back to getCell otherwise.
+        local usedSections = false
+        if type(col.getCellSections) == "function" then
+            local ok, frags = pcall(col.getCellSections, row)
+            if ok and type(frags) == "table" then
+                for _, frag in ipairs(frags) do
+                    if frag ~= nil and frag ~= "" then
+                        parts[#parts + 1] = frag
+                    end
+                end
+                usedSections = true
+            elseif not ok then
+                Log.error("BaseTable getCellSections failed: " .. tostring(frags))
+            end
+        end
+        if not usedSections and type(col.getCell) == "function" then
             local ok, cell = pcall(col.getCell, row)
             if ok and cell ~= nil and cell ~= "" then
                 parts[#parts + 1] = cell

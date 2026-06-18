@@ -146,10 +146,11 @@ function TradeRouteRow.franchiseStatus(route, isAvailable)
     return nil
 end
 
--- Row label: header, then "you get {yields}" (active player's gain), then
--- "they get {yields}" (other party's gain), then turns-left when valid.
--- Joined with ". " and a trailing period so each clause reads as its own
--- sentence.
+-- Discrete row-label clauses: header, then "you get {yields}" (active
+-- player's gain), then "they get {yields}" (other party's gain), then
+-- turns-left when valid. Returned as an array so rowLabel can join them
+-- into one spoken sentence and rowLabelSections can hand them to the
+-- Alt+Up/Down reviewer one clause at a time.
 --
 -- "You" is always the active player, so the side-mapping flips by tab
 -- direction: outbound routes (Yours / Available) put the active player at
@@ -158,7 +159,7 @@ end
 -- (Available tab) and on some transitional states; we mirror the engine's
 -- own >= 0 guard from TradeRouteOverview.lua DisplayData and omit the
 -- clause rather than speak nonsense like "minus 8 turns left."
-function TradeRouteRow.rowLabel(route, isInbound)
+local function rowLabelParts(route, isInbound)
     local parts = {}
     parts[#parts + 1] = Text.format(
         "TXT_KEY_CIVVACCESS_TRO_ROUTE_HEADER",
@@ -203,5 +204,19 @@ function TradeRouteRow.rowLabel(route, isInbound)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_TRO_TURNS_LEFT", turns, turns)
     end
 
-    return table.concat(parts, ". ") .. "."
+    return parts
+end
+
+-- One spoken sentence per clause, joined with ". " and a trailing period.
+function TradeRouteRow.rowLabel(route, isInbound)
+    return table.concat(rowLabelParts(route, isInbound), ". ") .. "."
+end
+
+-- The same clauses as rowLabel, each kept as its own review section so
+-- Alt+Up/Down walks header, your yields, their yields, and turns-left one
+-- at a time instead of the whole ". "-joined blob arriving as a single
+-- atomic section. The caller appends the VP route extras as further
+-- sections.
+function TradeRouteRow.rowLabelSections(route, isInbound)
+    return rowLabelParts(route, isInbound)
 end

@@ -104,14 +104,16 @@ LeagueOverviewRow._delegatesPhrase = delegatesPhrase
 -- Delegate count mirrors GetMemberDelegationDetails: starting votes outside
 -- a session, remaining + spent during one. Lets the parent and the drill's
 -- delegation line agree mid-session if a vote pool shifts.
-function LeagueOverviewRow.formatMember(pLeague, member, activePlayer)
+-- The member row's discrete fragments: leader-of-civ, then each tag in order
+-- ((you), host, delegate count, can-propose). Returned as a list so the row
+-- label can comma-join them and the section reviewer can walk them.
+local function memberFragments(pLeague, member, activePlayer)
     local parts = { leaderOfCiv(member.playerID) }
-    local tags = {}
     if member.playerID == activePlayer then
-        tags[#tags + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_YOU")
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_YOU")
     end
     if member.isHost then
-        tags[#tags + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST")
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_HOST")
     end
     local votes
     if pLeague:IsInSession() then
@@ -119,12 +121,19 @@ function LeagueOverviewRow.formatMember(pLeague, member, activePlayer)
     else
         votes = pLeague:CalculateStartingVotesForMember(member.playerID)
     end
-    tags[#tags + 1] = delegatesPhrase(votes)
+    parts[#parts + 1] = delegatesPhrase(votes)
     if pLeague:CanPropose(member.playerID) then
-        tags[#tags + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_CAN_PROPOSE")
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_MEMBER_CAN_PROPOSE")
     end
-    parts[#parts + 1] = table.concat(tags, ", ")
-    return table.concat(parts, ", ") .. "."
+    return parts
+end
+
+function LeagueOverviewRow.formatMember(pLeague, member, activePlayer)
+    return table.concat(memberFragments(pLeague, member, activePlayer), ", ") .. "."
+end
+
+function LeagueOverviewRow.formatMemberSections(pLeague, member, activePlayer)
+    return memberFragments(pLeague, member, activePlayer)
 end
 
 -- Direction prefix + resolution name. proposerDecision is the kChoiceNone
@@ -156,7 +165,10 @@ LeagueOverviewRow.proposerClause = proposerClause
 -- is votable; nil in View / Propose modes and for on-hold proposals (engine
 -- hides the vote control on those). Trailing period is part of the row
 -- sentence; the on-hold and vote-state clauses each get their own period.
-function LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer, voteState)
+-- The proposal's discrete clauses (resolution name, proposer, on-hold, and
+-- the vote-state when in Vote mode), returned as a list so formatProposal can
+-- join them and the section reviewer can walk them one at a time.
+local function proposalClauses(pLeague, proposal, activePlayer, voteState)
     local clauses = {
         LeagueOverviewRow.formatResolutionName(
             pLeague,
@@ -173,11 +185,18 @@ function LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer, voteS
     if proposal.OnHold then
         clauses[#clauses + 1] = Text.key("TXT_KEY_CIVVACCESS_LEAGUE_ON_HOLD")
     end
-    local row = table.concat(clauses, ". ") .. "."
     if voteState ~= nil and voteState ~= "" then
-        row = row .. " " .. Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_STATE_LABEL", voteState) .. "."
+        clauses[#clauses + 1] = Text.format("TXT_KEY_CIVVACCESS_LEAGUE_VOTE_STATE_LABEL", voteState)
     end
-    return row
+    return clauses
+end
+
+function LeagueOverviewRow.formatProposal(pLeague, proposal, activePlayer, voteState)
+    local clauses = proposalClauses(pLeague, proposal, activePlayer, voteState)
+    -- The vote-state, when present, is the last clause; the original joined it
+    -- with a leading space rather than ". ", but the reviewer wants each clause
+    -- as its own section either way, and ". " reads the same to the ear.
+    return table.concat(clauses, ". ") .. "."
 end
 
 -- formatProposal plus the engine's GetResolutionDetails appended via
@@ -191,6 +210,22 @@ function LeagueOverviewRow.formatProposalWithDetails(pLeague, proposal, activePl
     local detailsText =
         pLeague:GetResolutionDetails(proposal.Type, activePlayer, proposal.ID, proposal.ProposerDecision or kChoiceNone)
     return LeagueOverviewRow.appendTooltip(label, LeagueOverviewRow.formatResolutionDetails(detailsText))
+end
+
+-- The proposal-with-details row broken into review sections: each proposal
+-- clause (name, proposer, on-hold, vote-state) followed by each reshaped
+-- detail piece (vote counts / approve list / oppose list / description). The
+-- spoken row joins all of these into one ". "-blob with no [NEWLINE], so
+-- without this the reviewer would receive the whole resolution as one
+-- section. Used as a sectionsFn by every Tab 2 proposal row.
+function LeagueOverviewRow.formatProposalWithDetailsSections(pLeague, proposal, activePlayer, voteState)
+    local sections = proposalClauses(pLeague, proposal, activePlayer, voteState)
+    local detailsText =
+        pLeague:GetResolutionDetails(proposal.Type, activePlayer, proposal.ID, proposal.ProposerDecision or kChoiceNone)
+    for _, piece in ipairs(LeagueOverviewRow.formatResolutionDetailsList(detailsText)) do
+        sections[#sections + 1] = piece
+    end
+    return sections
 end
 
 -- Vote-state suffix for a yes/no resolution. Sign of `votes` carries the
@@ -251,13 +286,17 @@ end
 -- (each bullet is just a civ name) into a comma-joined list since
 -- "Germany. France. Egypt" reads as three sentences while the same names
 -- in a comma list read as a list.
-function LeagueOverviewRow.formatResolutionDetails(rawText)
+-- The reshaped detail pieces as a list (opinion sections first, description
+-- last), before the ". " join formatResolutionDetails applies. Returned so
+-- the Alt+Up/Down reviewer can walk the vote counts / approve list / oppose
+-- list / description one at a time instead of as one joined blob.
+function LeagueOverviewRow.formatResolutionDetailsList(rawText)
     if rawText == nil then
-        return ""
+        return {}
     end
     local s = tostring(rawText)
     if s == "" then
-        return ""
+        return {}
     end
 
     local voteMarker = Text.key("TXT_KEY_LEAGUE_OVERVIEW_VOTE_OPINIONS")
@@ -288,7 +327,8 @@ function LeagueOverviewRow.formatResolutionDetails(rawText)
     tightest(negPos)
 
     if earliest == nil then
-        return LeagueOverviewRow.filterTooltip(s)
+        local filtered = LeagueOverviewRow.filterTooltip(s)
+        return (filtered ~= "") and { filtered } or {}
     end
 
     local description = s:sub(1, earliest - 1)
@@ -392,7 +432,11 @@ function LeagueOverviewRow.formatResolutionDetails(rawText)
     if descFiltered ~= "" then
         out[#out + 1] = descFiltered
     end
-    return table.concat(out, ". ")
+    return out
+end
+
+function LeagueOverviewRow.formatResolutionDetails(rawText)
+    return table.concat(LeagueOverviewRow.formatResolutionDetailsList(rawText), ". ")
 end
 
 -- Reshape GetMemberDelegationDetails for the drilled delegation sub-line.
