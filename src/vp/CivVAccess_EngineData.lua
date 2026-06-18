@@ -848,6 +848,24 @@ function EngineData.dominationController(city)
     return city:GetOwnerForDominationVictory()
 end
 
+-- The major civ the observer UI is showing, or nil when not in an
+-- observer-override view. Only the active-player-is-observer case applies (a
+-- real active player needs no repoint); within it the UI-override player is the
+-- shown civ. Returns nil in the auto-cycle case (override -1), where the shown
+-- player is per-turn state the TopPanel tracks but no stateless getter exposes
+-- -- the read-only tech view then falls back to its prior behavior, no worse
+-- than before. See the vanilla file for why this exists.
+function EngineData.observerViewPlayer()
+    if not Players[Game.GetActivePlayer()]:IsObserver() then
+        return nil
+    end
+    local override = Game:GetObserverUIOverridePlayer()
+    if override ~= nil and override >= 0 then
+        return override
+    end
+    return nil
+end
+
 -- Drift read: the major civ that built an embassy on this plot, distinct from
 -- the city-state that owns the land. IsImprovementEmbassy is VP-only; when it
 -- holds, GetPlayerThatBuiltImprovement (the same field vanilla uses for

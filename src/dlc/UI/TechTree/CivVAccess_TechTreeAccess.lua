@@ -985,7 +985,18 @@ Log.installEvent(Events, "SerialEventGameMessagePopup", function(popupInfo)
         _espionageView = true
         _viewPlayerID = popupInfo.Data5
     else
-        _espionageView = false
-        _viewPlayerID = -1
+        -- CP-only observer fallback: VP's TopPanel sets Data4/Data5 when an
+        -- observer opens a civ's tech tree, but CP's omits them, so the popup
+        -- carries no viewed-player id. Repoint via the engine's observed player.
+        -- nil outside an observer-override view (and on vanilla), leaving the
+        -- own-tree path unchanged.
+        local observed = EngineData.observerViewPlayer()
+        if observed ~= nil then
+            _espionageView = true
+            _viewPlayerID = observed
+        else
+            _espionageView = false
+            _viewPlayerID = -1
+        end
     end
 end, "TechTreeAccess")

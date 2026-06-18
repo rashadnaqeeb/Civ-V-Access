@@ -663,6 +663,18 @@ function EngineData.dominationController(city)
     return city:GetOwner()
 end
 
+-- The major civ the observer UI is currently showing, or nil when not in an
+-- observer-override view. Used to repoint the read-only tech tree in a
+-- Community-Patch-only observer session: CP's TopPanel tech button omits the
+-- Data4/Data5 that VP's sets, so the popup carries no viewed-player id and the
+-- engine's observer state is the only signal. GetObserverUIOverridePlayer is a
+-- CP/VP binding unbound on the stock engine, so the vanilla body is always nil
+-- (a vanilla observer's tech tree is unaffected; this only matters where CP's
+-- button drops the id).
+function EngineData.observerViewPlayer()
+    return nil
+end
+
 -- Drift read: who owns an embassy improvement on this plot -- the builder
 -- credited with the World Congress vote, which is distinct from the plot's
 -- owner (the city-state whose land the embassy sits in). Returns the

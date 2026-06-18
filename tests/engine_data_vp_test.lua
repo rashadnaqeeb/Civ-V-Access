@@ -1319,6 +1319,56 @@ function M.test_vp_vassal_info_free_team_has_no_master()
     T.eq(#info.vassals, 0)
 end
 
+-- observerViewPlayer repoints the read-only tech view in a CP-only observer
+-- session. The three branches each carry a distinct silent-value failure mode.
+function M.test_vp_observer_view_player_uses_ui_override()
+    local vp, env = loadVPWithFork()
+    env.Game.GetActivePlayer = function()
+        return 7
+    end
+    env.Game.GetObserverUIOverridePlayer = function()
+        return 3
+    end
+    env.Players = { [7] = {
+        IsObserver = function()
+            return true
+        end,
+    } }
+    T.eq(vp.observerViewPlayer(), 3, "observer view repoints to the UI-override player")
+end
+
+function M.test_vp_observer_view_player_nil_when_not_observer()
+    local vp, env = loadVPWithFork()
+    env.Game.GetActivePlayer = function()
+        return 7
+    end
+    env.Game.GetObserverUIOverridePlayer = function()
+        error("must not query the override for a real active player")
+    end
+    env.Players = { [7] = {
+        IsObserver = function()
+            return false
+        end,
+    } }
+    T.eq(vp.observerViewPlayer(), nil, "a real active player needs no repoint")
+end
+
+function M.test_vp_observer_view_player_nil_in_auto_cycle()
+    local vp, env = loadVPWithFork()
+    env.Game.GetActivePlayer = function()
+        return 7
+    end
+    env.Game.GetObserverUIOverridePlayer = function()
+        return -1
+    end
+    env.Players = { [7] = {
+        IsObserver = function()
+            return true
+        end,
+    } }
+    T.eq(vp.observerViewPlayer(), nil, "auto-cycle observer (override -1) has no stateless shown player")
+end
+
 -- Domination credit is the canonical control metric: VP redirects a vassal's
 -- or city-state ally's capital to the master/ally, vanilla credits the
 -- current owner. A wrong getter mis-attributes who is winning the game.
