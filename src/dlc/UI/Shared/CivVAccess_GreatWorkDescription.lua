@@ -1,27 +1,28 @@
--- Spoken painting descriptions for great works of art. The GreatWorkPopup
--- shows the artwork itself; sighted players see the painting, blind
--- players have no visual fallback. F2 on that popup calls
--- GreatWorkDescription.speakForType(gwType) to read a short prose
--- description of the painting, keyed off GreatWorks.Type. String entries
+-- Spoken artwork descriptions for great works. The GreatWorkPopup shows the
+-- artwork itself; sighted players see it, blind players have no visual
+-- fallback. F2 on that popup calls GreatWorkDescription.speakForType(token)
+-- to read a short prose description, where token is GreatWorks.Type for a
+-- great work of art (one description per painting) or the class type for
+-- writing and music (one shared background image per class). String entries
 -- live in CivVAccess_GreatWorkDescStrings_en_US under
--- TXT_KEY_CIVVACCESS_GWDESC_<GREAT_WORK_TYPE>. Only GREAT_WORK_ART class
--- works have descriptions; writing, music, and artifacts speak the
--- fallback so F2 always answers.
+-- TXT_KEY_CIVVACCESS_GWDESC_<token>. Art works plus the GREAT_WORK_LITERATURE
+-- and GREAT_WORK_MUSIC class backgrounds have descriptions; archaeological
+-- artifacts speak the fallback so F2 always answers.
 
 GreatWorkDescription = {}
 
--- Speak the painting description for the GreatWorks row whose Type is
--- gwType. nil means the displayed work is not a great work of art (or the
--- resolver had no popup state); a missing entry for a real art type is a
--- data bug and logs.
-function GreatWorkDescription.speakForType(gwType)
-    if gwType == nil then
+-- Speak the artwork description for the description token (GreatWorks.Type
+-- for art, class type for writing and music). nil means the displayed work
+-- has no dedicated image (an artifact) or the resolver had no popup state;
+-- a missing entry for a real token is a data bug and logs.
+function GreatWorkDescription.speakForType(token)
+    if token == nil then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_GWDESC_MISSING"))
         return
     end
-    local desc = Text.keyOrNil("TXT_KEY_CIVVACCESS_GWDESC_" .. gwType)
+    local desc = Text.keyOrNil("TXT_KEY_CIVVACCESS_GWDESC_" .. token)
     if desc == nil then
-        Log.warn("GreatWorkDescription: no description for " .. tostring(gwType))
+        Log.warn("GreatWorkDescription: no description for " .. tostring(token))
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_GWDESC_MISSING"))
         return
     end
@@ -29,22 +30,22 @@ function GreatWorkDescription.speakForType(gwType)
 end
 
 -- Append an F2 binding + matching help entry to a BaseMenu handler.
--- getTypeFn is called at keypress time so it resolves live state (per
--- CLAUDE.md "Never cache game state"); it returns the GreatWorks.Type
--- string when the displayed work is a great work of art, else nil.
-function GreatWorkDescription.bindF2(handler, getTypeFn)
+-- getTokenFn is called at keypress time so it resolves live state (per
+-- CLAUDE.md "Never cache game state"); it returns the description token
+-- (GreatWorks.Type for art, class type for writing and music) or nil.
+function GreatWorkDescription.bindF2(handler, getTokenFn)
     handler.bindings[#handler.bindings + 1] = {
         key = Keys.VK_F2 or 113,
         mods = 0,
-        description = "Describe painting",
+        description = "Describe image",
         fn = function()
-            local ok, gwType = pcall(getTypeFn)
+            local ok, token = pcall(getTokenFn)
             if not ok then
-                Log.error("GreatWorkDescription: resolver failed: " .. tostring(gwType))
+                Log.error("GreatWorkDescription: resolver failed: " .. tostring(token))
                 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_GWDESC_MISSING"))
                 return
             end
-            GreatWorkDescription.speakForType(gwType)
+            GreatWorkDescription.speakForType(token)
         end,
     }
     BaseMenuHelp.addScreenKey(handler, {

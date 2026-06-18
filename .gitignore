@@ -99,6 +99,9 @@ __pycache__/
 # Extracted Dawn of Man load screen paintings (Firaxis assets — not redistributable)
 /dawn of man images/
 
+# Great work reference images: 94 art paintings plus the writing / music class backgrounds (Firaxis assets — not redistributable)
+/gw-images/
+
 # Release artifacts produced by package-release.ps1. The GitHub Release is the
 # source of truth for shipped binaries; the local zips are byproducts.
 dist/release/

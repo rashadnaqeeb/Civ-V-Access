@@ -1,17 +1,24 @@
--- Mod-authored painting descriptions for great works of art, in-game
--- popup Contexts. Every key is prefixed TXT_KEY_CIVVACCESS_GWDESC_.
+-- Mod-authored artwork descriptions for great works, in-game popup
+-- Contexts. Every key is prefixed TXT_KEY_CIVVACCESS_GWDESC_.
 -- Extends the shared CivVAccess_Strings table already populated by
 -- CivVAccess_InGameStrings_en_US.lua; the GreatWorkPopup wrapper
 -- includes that baseline (via CivVAccess_PopupBoot) before this file.
 --
 -- One entry per GREAT_WORK_ART row in BNW's CIV5GreatWorks_Expansion2.xml
--- (94 works; BNW is frozen, so the set is fixed). Spoken by F2 on the
--- Great Work popup via CivVAccess_GreatWorkDescription. The authoring
+-- (94 works; BNW is frozen, so the set is fixed), plus two class-level
+-- entries (GREAT_WORK_LITERATURE, GREAT_WORK_MUSIC) for the single shared
+-- background image every writing / music work displays. Spoken by F2 on
+-- the Great Work popup via CivVAccess_GreatWorkDescription. The authoring
 -- source is docs/great-work-descriptions.md, written from the actual
--- paintings; edit there first, then mirror here. Style: medium and
+-- artwork; edit there first, then mirror here. Style: medium and
 -- tradition first, then the scene, then the look.
 
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "No painting description for this great work."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_MISSING"] = "No image description for this great work."
+
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"] =
+    "A writer's desk seen up close, lit low and warm by candlelight. Sheets of handwritten manuscript in flowing cursive cover the surface, with a single grey feather quill lying across them. A rolled scroll tied in red sits at the left edge, and a glass inkwell glows in the upper right."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"] =
+    "A dim concert hall lit warm by candlelight. At the center a conductor in a blue coat and white stockings stands with his baton raised, facing a seated orchestra of musicians in powdered wigs reading from music stands. A gilded upper gallery carved with relief panels runs across the back wall and a large candle chandelier blazes at the right, while the heads of the audience show as dark shapes across the foreground."
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_GIRL_WITH_PEARL_EARRING"] =
     "Dutch Golden Age oil painting, one of the most beloved portraits in Western art. A young woman turns back over her shoulder to meet your eyes out of a plain dark background, lips just parted as if about to speak. She wears a blue and gold turban whose cloth trails down her back, and a single large teardrop pearl catches the light at her ear."

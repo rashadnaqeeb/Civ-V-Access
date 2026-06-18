@@ -18,6 +18,7 @@ New Features and improvements:
 - F1 on the new technology popup now also reads the details of each unit, building, and ability the tech unlocks.
 - The production chooser lists civilian units first, then land, sea, and air, and national wonders ahead of world wonders.
 - Melee attack previews count the Impi's opening spear volley in the predicted damage ("includes 9 volley"), which the game's own preview omits.
+- F2 on the Great Work popup now also describes the image for great works of writing and music.
 
 Bug fixes:
 - The ranged attack target cursor no longer says "unseen" on a tile the unit can actually strike.

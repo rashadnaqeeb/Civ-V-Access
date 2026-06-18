@@ -487,3 +487,19 @@ The Accolade, by Edmund Leighton
 
 English Pre-Raphaelite-style oil painting, a storybook vision of chivalry. A golden-haired queen in a flowing white gown touches a sword to the shoulder of a kneeling knight, dubbing him before a small court audience. He bows his head in chainmail and a red surcoat, his helmet on the floor beside him, the stone hall and red dais painted in glowing romantic detail.
 
+---
+
+# Great works of writing and music
+
+Writing and music carry no per-work artwork. The popup shows a single shared
+background image for the whole class, so these two entries are keyed by
+GreatWorkClassType rather than an individual work.
+
+## GREAT_WORK_LITERATURE
+
+A writer's desk seen up close, lit low and warm by candlelight. Sheets of handwritten manuscript in flowing cursive cover the surface, with a single grey feather quill lying across them. A rolled scroll tied in red sits at the left edge, and a glass inkwell glows in the upper right.
+
+## GREAT_WORK_MUSIC
+
+A dim concert hall lit warm by candlelight. At the center a conductor in a blue coat and white stockings stands with his baton raised, facing a seated orchestra of musicians in powdered wigs reading from music stands. A gilded upper gallery carved with relief panels runs across the back wall and a large candle chandelier blazes at the right, while the heads of the audience show as dark shapes across the foreground.
+

@@ -58,10 +58,12 @@ function M.test_unknown_type_falls_back_and_warns()
 end
 
 -- BNW ships exactly 94 GREAT_WORK_ART rows and the expansion is frozen, so
--- the baseline must carry exactly 94 work entries (plus MISSING and the
--- help label, which use non-GREAT_WORK key shapes). Catches an entry lost
--- to a syntax slip or a key prefix typo.
-function M.test_baseline_carries_all_94_paintings()
+-- the baseline must carry exactly 94 painting entries plus the two
+-- class-level backgrounds for writing and music (GREAT_WORK_LITERATURE,
+-- GREAT_WORK_MUSIC), for 96 GWDESC_GREAT_WORK_ keys in all. MISSING and the
+-- help label use non-GREAT_WORK key shapes. Catches an entry lost to a
+-- syntax slip or a key prefix typo.
+function M.test_baseline_carries_all_descriptions()
     setup()
     local count = 0
     for key, text in pairs(CivVAccess_Strings) do
@@ -70,7 +72,9 @@ function M.test_baseline_carries_all_94_paintings()
             T.truthy(type(text) == "string" and #text > 0, key .. " must be nonempty")
         end
     end
-    T.eq(count, 94)
+    T.eq(count, 96)
+    T.truthy(CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_LITERATURE"], "writing class background")
+    T.truthy(CivVAccess_Strings["TXT_KEY_CIVVACCESS_GWDESC_GREAT_WORK_MUSIC"], "music class background")
 end
 
 return M

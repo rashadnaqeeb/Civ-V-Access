@@ -12,8 +12,9 @@
 -- so first-open speaks the preamble normally. The work's name (LowerCaption)
 -- is rolled into displayName via onShow so the silent-first-open path still
 -- tells the user which work was completed; F1 reads artist + quote on
--- demand. F2 reads a prose description of the painting when the work is a
--- great work of art (see CivVAccess_GreatWorkDescription).
+-- demand. F2 reads a prose description of the artwork: the painting for a
+-- great work of art, or the shared class background for writing and music
+-- (see CivVAccess_GreatWorkDescription).
 --
 -- The narration check reads Controls.Quote:IsHidden() live. Base
 -- ShowHideHandler calls Controls.Quote:SetHide(...) before returning, so by
@@ -50,9 +51,13 @@ Events.SerialEventGameMessagePopup.Add(function(popupInfo)
     capturedData2 = popupInfo.Data2
 end)
 
--- Returns GreatWorks.Type when the displayed work is a great work of art,
--- else nil (writing, music, artifacts, or nothing captured yet).
-local function artGreatWorkType()
+-- Returns the description-key suffix for the displayed work: GreatWorks.Type
+-- for a great work of art (one description per painting), or the class type
+-- for writing and music (one shared background image per class, so the
+-- description is class-level). nil for archaeological artifacts (no
+-- dedicated image) or when no popup state is captured yet; F2 then speaks
+-- the fallback.
+local function describedWorkToken()
     if capturedData1 == nil then
         return nil
     end
@@ -63,10 +68,16 @@ local function artGreatWorkType()
         eGWType = capturedData2
     end
     local row = GameInfo.GreatWorks[eGWType]
-    if row == nil or row.GreatWorkClassType ~= "GREAT_WORK_ART" then
+    if row == nil then
         return nil
     end
-    return row.Type
+    local class = row.GreatWorkClassType
+    if class == "GREAT_WORK_ART" then
+        return row.Type
+    elseif class == "GREAT_WORK_LITERATURE" or class == "GREAT_WORK_MUSIC" then
+        return class
+    end
+    return nil
 end
 
 local function labelOf(name)
@@ -121,4 +132,4 @@ local handler = BaseMenu.install(ContextPtr, {
     end,
 })
 
-GreatWorkDescription.bindF2(handler, artGreatWorkType)
+GreatWorkDescription.bindF2(handler, describedWorkToken)
