@@ -89,11 +89,15 @@ end
 -- Unlocks prose via the shared filterHelpText pipeline: converts
 -- [NEWLINE] section breaks to commas, strips markup, drops the
 -- upper-cased name prefix, and collapses dash-runs.
-local function unlocksProse(techID, techName)
-    -- VP's GetHelpTextForTech takes (techId, isShort, playerId); pass the
-    -- active player for civ-tailored prose. Vanilla's BNW one-arg signature
-    -- ignores the extras, so it is safe on both.
-    return ChooseTechLogic.filterHelpText(GetHelpTextForTech(techID, false, Game.GetActivePlayer()), techName)
+local function unlocksProse(techID, techName, playerId)
+    -- VP's GetHelpTextForTech takes (techId, isShort, playerId) and tailors the
+    -- prose to that player: the complete / unstarted / pending wording, cost,
+    -- and progress are all read off Players[playerId]. Pass the viewed player
+    -- so the prose matches the status / turns the caller computed for the same
+    -- player (notably the read-only espionage view, where the cursor points at
+    -- a rival). A nil playerId lets VP default to the active player; vanilla's
+    -- one-arg signature ignores the extra args, so this is safe on both.
+    return ChooseTechLogic.filterHelpText(GetHelpTextForTech(techID, false, playerId), techName)
 end
 
 -- Flat corpus for TypeAheadSearch. Each entry pairs a tech with the
@@ -152,7 +156,7 @@ function TechTreeLogic.buildLandingSpeech(techID, player)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end
 
-    local prose = unlocksProse(techID, name)
+    local prose = unlocksProse(techID, name, player:GetID())
     if prose ~= "" then
         parts[#parts + 1] = prose
     end
@@ -188,7 +192,7 @@ function TechTreeLogic.buildLandingSections(techID, player)
         sections[#sections + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end
 
-    local raw = GetHelpTextForTech(techID, false, Game.GetActivePlayer())
+    local raw = GetHelpTextForTech(techID, false, player:GetID())
     if raw ~= nil and raw ~= "" then
         for line in (raw .. "[NEWLINE]"):gmatch("(.-)%[NEWLINE%]") do
             local clean = ChooseTechLogic.filterHelpText(line, name)

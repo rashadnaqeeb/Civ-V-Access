@@ -61,7 +61,11 @@ local function fakePlayer(opts)
         _canResearchForFree = opts.canResearchForFree or {},
         _turnsLeft = opts.turnsLeft or {},
         _name = opts.name or "Player",
+        _id = opts.id or 0,
     }
+    function p:GetID()
+        return self._id
+    end
     function p:GetTeam()
         return self._team
     end
@@ -371,6 +375,43 @@ function M.test_landing_sections_empty_help_yields_status_only()
     T.eq(#s, 2)
     T.eq(s[1], "TXT_KEY_TECH_POTTERY")
     T.eq(s[2], "available")
+end
+
+function M.test_landing_sections_help_uses_viewed_player_not_active()
+    setup()
+    installTechDB(techs3())
+    -- Active player differs from the player being viewed (espionage view):
+    -- the prose must be fetched for the viewed player so it matches the
+    -- status / turns computed from that same player.
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    local capturedId = nil
+    GetHelpTextForTech = function(_techID, _isShort, playerId)
+        capturedId = playerId
+        return "Cost: 50"
+    end
+    Players = { [7] = fakePlayer({ id = 7, canResearch = { [1] = true }, science = 3, turnsLeft = { [1] = 4 } }) }
+    Teams = { [0] = fakeTeam() }
+    TechTreeLogic.buildLandingSections(1, Players[7])
+    T.eq(capturedId, 7, "help text fetched for the viewed player, not Game.GetActivePlayer()")
+end
+
+function M.test_landing_speech_help_uses_viewed_player_not_active()
+    setup()
+    installTechDB(techs3())
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    local capturedId = nil
+    GetHelpTextForTech = function(_techID, _isShort, playerId)
+        capturedId = playerId
+        return "Cost: 50"
+    end
+    Players = { [7] = fakePlayer({ id = 7, canResearch = { [1] = true }, science = 3, turnsLeft = { [1] = 4 } }) }
+    Teams = { [0] = fakeTeam() }
+    TechTreeLogic.buildLandingSpeech(1, Players[7])
+    T.eq(capturedId, 7, "linear landing prose fetched for the viewed player too")
 end
 
 -- ===== buildQueueRows =====
