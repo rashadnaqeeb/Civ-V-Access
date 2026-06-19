@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+-This update will require you to redownload the installer if you wish to play with any of the newly supported mods.
 -Added full support for the Community Patch and Vox populi mods. The community patch is a community driven effort to fix many outstanding bugs in the game, and to generally make the AI a better player of the game. Vox Populi builds on this project to completely change and rebalance the game, adding countless new features. Please note that the Vox Populi mod only works in English, it is not actively translated into any other languages.
 -added support for Lekmod, the most commonly used multiplayer mod. This mod completely rebalances policies, pantheons and religions as well as adding 60+ new civs. It attempts to reuse localised game strings where possible so theoretically should work in non-English languages, but no promises.
 - Alt plus Up or Down in any menu, table, or list reads the current item one section at a time, so long entries with tooltips can be reviewed piece by piece.
@@ -23,7 +24,6 @@ New Features and improvements:
 - F2 on the Great Work popup now also describes the image for great works of writing and music.
 
 Bug fixes:
-- On Community Patch, viewing another civilization's tech tree as an observer now shows their tree instead of your own.
 - The multiplayer screens got a thorough accessibility pass. In the staging room: players are announced as they join, leave, or are kicked; the roster stays readable after you ready up; you are told when the host clears your ready or when you cannot ready up; empty seats are read when a host reloads a save; hot-joins and a waiting Launch button are explained; the host can save the setup and is warned about private or oversized games; and the dedicated-server, email-password, and Strategic View controls are reachable. The server browser announces when the game list is refreshing and when it settles, and flags servers you cannot join for lack of required DLC. Turn-timer values now read their unit, seconds or hours.
 - The ranged attack target cursor no longer says "unseen" on a tile the unit can actually strike, for example if it has the indirect fire upgrade.
 - The turn estimate for building a road or railroad is no longer sometimes 1 turn too low, both in the route preview and when reading a worker building one.

@@ -132,6 +132,21 @@ shape each zip accordingly (entries are paths relative to that root):
   `docs/Text/VPUI_tips_en_us.xml`. The installer backs up the stock
   Expansion2.Civ5Pkg before this overwrites it.
 
+## Packaging
+
+`package-release.ps1` produces all twelve component zips. The five vanilla
+components are unchanged; the seven mod-state ones are versioned by the
+`vp_overlay` / `cp_overlay` / `lekmod_overlay` / `vp_modpack` / `cp_modpack` /
+`vp_runtime` / `lekmod_dlc` fields in `versions.json` (bump on a re-pin or fork
+rebuild, same as the engine fields). Each overlay is assembled by the shared
+`tools/dlc-assembly.ps1` helper (`New-CivVAccessModdedDlc`, also used by
+`deploy-modpack.ps1` and `deploy-lekmod.ps1` so the three never drift) and then
+reduced to the delta against the vanilla core. The modpack and LekMod inputs are
+the same non-committed build trees the tester bundles use (`build/modpack-out`,
+`build/modpack-cp-out`, `build/vendor/*`, `build/vp-runtime`, and the LekMod
+clone); the bake / vendor / bundle prerequisites are unchanged. `-Only <names>`
+builds a subset for iteration.
+
 ## Source of truth and drift policy
 
 Three independent implementations exist; their currency requirements differ:
