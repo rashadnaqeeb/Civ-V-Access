@@ -72,6 +72,31 @@ local VK_OEM_5 = 220 -- backslash
 -- naturally by the new game's HandlerStack reset in onInGameBoot).
 civvaccess_shared.chatPanelActive = false
 
+-- Reclaim Tab from LekMod's chat shortcut. LekMod binds CONTROL_TOGGLE_CHAT to
+-- KB_TAB and adds an in-game hotkey manager in DiploCorner whose InputHandler
+-- intercepts that hotkey and returns true -- consuming Tab before it reaches
+-- WorldView/InGame, where our Baseline binding (the unit action menu) lives.
+-- DiploCorner also seeds an always-present focusable "Dummy" EditBox
+-- (DummyStack, FocusStop="2") so the engine's Tab focus-traversal toggles chat
+-- as a second path. We expose chat on backslash and need Tab for the action
+-- menu, matching vanilla/VP. So drop the dummy from the focus ring and
+-- re-register the Context InputHandler to one that declines every key so Tab
+-- falls through to our dispatch. Our append runs last in DiploCorner's env, so
+-- this SetInputHandler wins over LekMod's. (LekMod's handler also ran a
+-- GameInfoActions refresh tied to its runtime hotkey-remap manager, which we
+-- do not use -- the engine refreshes actions on selection itself -- so dropping
+-- it is safe.) Re-runs idempotently on every DiploCorner include (load-from-
+-- game rebuilds both, this clears them again). Guarded on the dummy control's
+-- presence, which marks LekMod's reworked DiploCorner; vanilla/VP DiploCorner
+-- has neither and is untouched.
+if Controls.DummyStack ~= nil then
+    Controls.DummyStack:DestroyAllChildren()
+    ContextPtr:SetInputHandler(function()
+        return false
+    end)
+    Log.info("ChatAccess: neutralized LekMod DiploCorner Tab-to-chat so Tab reaches the unit action menu")
+end
+
 -- Forward decl: chatComposeItems' priorCallback closes the panel after
 -- send (send-and-dismiss), and is defined before closeChatPanel below.
 local closeChatPanel
