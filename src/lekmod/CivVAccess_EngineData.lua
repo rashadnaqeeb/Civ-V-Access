@@ -306,26 +306,29 @@ function EngineData.techStealCost(player, targetID, techID)
 end
 
 -- Drift read: why an owned resource cannot currently be traded to the other
--- player, as a localized one-line reason -- or nil when the trade screen
--- should not surface a disabled row for it. LekMod greys owned-but-untradeable
--- resources with a reason (a strategic neither side has the reveal tech for; a
--- luxury the partner already owns, or one under embargo). Vanilla / VP return
--- nil, so those screens keep dropping untradeable resources as before.
+-- player. Returns the reason's text key, plus an optional format argument (the
+-- reveal tech's Description, itself a key) -- or nil when the trade screen
+-- should not surface a disabled row for it. The caller resolves the key through
+-- Text, matching the rest of the seam (raw text never crosses here). LekMod
+-- greys owned-but-untradeable resources with a reason (a strategic neither side
+-- has the reveal tech for; a luxury the partner already owns, or one under
+-- embargo). Vanilla / VP return nil, so those screens keep dropping untradeable
+-- resources as before.
 function EngineData.resourceTradeBlockedReason(deal, fromPlayer, toPlayer, row)
     if row.ResourceUsage == 1 then
         local techRow = row.TechReveal and GameInfo.Technologies[row.TechReveal]
         if techRow ~= nil then
-            return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_BOTH_HAVE_NOT_REASEARCHED_ONE_LINE", techRow.Description)
+            return "TXT_KEY_DIPLO_ITEM_BOTH_HAVE_NOT_REASEARCHED_ONE_LINE", techRow.Description
         end
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE")
+        return "TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE"
     end
     if
         deal.IsLuxuryTradeTargetAlreadyHasResource
         and deal:IsLuxuryTradeTargetAlreadyHasResource(fromPlayer, toPlayer, row.ID)
     then
-        return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_PLAYER_ALREADY_OWNS_ONE_LINE")
+        return "TXT_KEY_DIPLO_ITEM_PLAYER_ALREADY_OWNS_ONE_LINE"
     end
-    return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE")
+    return "TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE"
 end
 
 -- Drift read: the tech the active player still needs before a tile's

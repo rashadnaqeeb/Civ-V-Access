@@ -333,13 +333,11 @@ end
 function M.test_lekmod_resource_trade_blocked_reason()
     local lekmod = loadSeam(LEKMOD_PATH)
     local vanilla = loadSeam(VANILLA_PATH)
-    local prevLocale, prevGameInfo = _G.Locale, _G.GameInfo
-    _G.Locale = {
-        ConvertTextKey = function(key, arg)
-            return arg and (key .. ":" .. tostring(arg)) or key
-        end,
-    }
+    local prevGameInfo = _G.GameInfo
     _G.GameInfo = { Technologies = { [4] = { Description = "TXT_KEY_TECH_X" } } }
+
+    -- The seam returns the reason's text key (plus an optional format arg); the
+    -- caller resolves it through Text, so raw text never crosses the seam.
 
     -- Luxury the partner already owns.
     local deal = {
@@ -361,19 +359,18 @@ function M.test_lekmod_resource_trade_blocked_reason()
         "TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE",
         "luxury embargoed"
     )
-    -- Strategic neither side has researched.
-    T.eq(
-        lekmod.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 1, TechReveal = 4 }),
-        "TXT_KEY_DIPLO_ITEM_BOTH_HAVE_NOT_REASEARCHED_ONE_LINE:TXT_KEY_TECH_X",
-        "strategic not researched names the reveal tech"
-    )
+    -- Strategic neither side has researched: key plus the reveal tech's
+    -- Description as the format arg.
+    local stratKey, stratArg = lekmod.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 1, TechReveal = 4 })
+    T.eq(stratKey, "TXT_KEY_DIPLO_ITEM_BOTH_HAVE_NOT_REASEARCHED_ONE_LINE", "strategic not researched reason key")
+    T.eq(stratArg, "TXT_KEY_TECH_X", "strategic reason names the reveal tech")
     T.eq(
         vanilla.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 2, ID = 9 }),
         nil,
         "vanilla drops untradeable"
     )
 
-    _G.Locale, _G.GameInfo = prevLocale, prevGameInfo
+    _G.GameInfo = prevGameInfo
 end
 
 -- VP-only features stay inert on LekMod, exactly as on vanilla: vassalage,

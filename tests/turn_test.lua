@@ -652,6 +652,35 @@ function M.test_soft_prompt_pending_deal_announces_and_opens()
     T.eq(#doControlCalls, 0)
 end
 
+function M.test_soft_prompt_vote_and_deal_pending_both_ack_then_end()
+    -- Both a pending vote and a pending deal at once: each is announced once
+    -- across presses, then a further press ends the turn. A single remembered
+    -- key would ping-pong between the two prompts and never let the turn end,
+    -- trapping the player.
+    setup()
+    local opened = {}
+    EngineData.pendingVoteProposalId = function()
+        return 5
+    end
+    EngineData.pendingDealSender = function()
+        return 2
+    end
+    EngineData.openVoteProposal = function(id)
+        opened[#opened + 1] = "vote:" .. id
+    end
+    EngineData.openIncomingDeal = function(sender)
+        opened[#opened + 1] = "deal:" .. sender
+    end
+    Turn._endTurnDispatch() -- announces + opens the vote
+    Turn._endTurnDispatch() -- vote acked -> announces + opens the deal
+    T.eq(#doControlCalls, 0, "turn not ended while a prompt is still unacknowledged")
+    Turn._endTurnDispatch() -- both acked -> ends the turn
+    T.eq(opened[1], "vote:5")
+    T.eq(opened[2], "deal:2")
+    T.eq(#doControlCalls, 1, "turn ends once both prompts acknowledged")
+    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_ENDTURN)
+end
+
 -- Bindings surface ------------------------------------------------------
 
 local function findBinding(bindings, key, mods)

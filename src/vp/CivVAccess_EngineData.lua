@@ -138,11 +138,25 @@ function EngineData.rangedDefenseModifier(_unit)
     return 0
 end
 
+-- Is the Vox Populi balance mode on? VP guts the vanilla happiness model
+-- only under MOD_BALANCE_VP; a Community-Patch-only session (balance off)
+-- keeps the vanilla signed-surplus semantics. Same gate the vendor UIs use.
+local function balanceVP()
+    return Game.IsCustomModOption ~= nil and Game.IsCustomModOption("BALANCE_VP")
+end
+
 -- Drift read: the player's golden-age points gained per turn (see the
 -- vanilla file for the contract). VP's TopPanel composes it from the four GAP
 -- sources (three flat plus the times-100 city GAP); floored to a whole rate
 -- for display, matching the panel.
 function EngineData.goldenAgePerTurn(player)
+    -- The GAP sources compose a real golden-age rate only under MOD_BALANCE_VP.
+    -- With VP balance off (Community-Patch-only) GetHappinessForGAP returns
+    -- excess happiness instead (CvPlayer.cpp), so the composed value would be a
+    -- wrong number; surface no rate there, as vanilla and the surplus model do.
+    if not balanceVP() then
+        return nil
+    end
     local times100 = (player:GetHappinessForGAP() + player:GetGAPFromReligion() + player:GetGAPFromTraits()) * 100
         + player:GetGAPFromCitiesTimes100()
     return math.floor(times100 / 100)
@@ -205,13 +219,6 @@ function EngineData.resourceUseTech(resourceRow)
     end
     local techRow = GameInfo.Technologies[techId]
     return techRow and techRow.Description or nil
-end
-
--- Is the Vox Populi balance mode on? VP guts the vanilla happiness model
--- only under MOD_BALANCE_VP; a Community-Patch-only session (balance off)
--- keeps the vanilla signed-surplus semantics. Same gate the vendor UIs use.
-local function balanceVP()
-    return Game.IsCustomModOption ~= nil and Game.IsCustomModOption("BALANCE_VP")
 end
 
 -- Drift read: the empire happiness headline model (see the vanilla file

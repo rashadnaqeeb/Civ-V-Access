@@ -209,9 +209,7 @@ end
 -- leaf with the engine's stated reason -- mirroring the greyed pocket entry
 -- LekMod shows (vanilla / VP drop these instead, gated by a nil reason in the
 -- seam). Label carries the stock count like the enabled leaf.
-local function disabledResourceLeaf(side, resType, row, reason)
-    local iPlayer = TradeLogicAccess.sidePlayer(side)
-    local qty = EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0
+local function disabledResourceLeaf(side, row, reason, qty)
     local label = Text.key(row.Description) .. TradeLogicAccess.stockSuffix(side, qty)
     return BaseMenuItems.Text({
         labelText = Text.format("TXT_KEY_CIVVACCESS_LABEL_DISABLED", label),
@@ -235,13 +233,18 @@ local function availableResourceGroups(side)
             local item
             if g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_RESOURCES, resType, 1) then
                 item = availableResourceLeaf(side, resType, row)
-            elseif (EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0) > 0 then
+            else
                 -- Owned but untradeable: LekMod greys it with a reason (partner
                 -- already owns the luxury, embargo, unresearched strategic).
                 -- nil reason on vanilla / VP keeps the old drop-it behavior.
-                local reason = EngineData.resourceTradeBlockedReason(g_Deal, iPlayer, otherPlayer, row)
-                if reason ~= nil then
-                    item = disabledResourceLeaf(side, resType, row, reason)
+                local qty = EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0
+                if qty > 0 then
+                    local reasonKey, reasonArg =
+                        EngineData.resourceTradeBlockedReason(g_Deal, iPlayer, otherPlayer, row)
+                    if reasonKey ~= nil then
+                        local reason = reasonArg and Text.format(reasonKey, reasonArg) or Text.key(reasonKey)
+                        item = disabledResourceLeaf(side, row, reason, qty)
+                    end
                 end
             end
             if item ~= nil then

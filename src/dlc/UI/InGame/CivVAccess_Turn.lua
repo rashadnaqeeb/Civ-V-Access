@@ -102,13 +102,15 @@ local UNIT_BLOCKERS = {
 
 local speak = SpeechPipeline.speakInterrupt
 
--- Once-per-turn acknowledgement of a LekMod MP soft prompt (a pending
--- proposal vote / incoming deal). The first end-turn press with one pending
--- announces and opens it; pressing end-turn again with the same prompt still
--- pending proceeds to end the turn, so the player is never trapped. Keyed by
--- prompt identity, reset each turn start. Transient runtime state only -- not
--- persisted, so a save/load mid-turn simply re-prompts (harmless).
-local softPromptAck = nil
+-- Once-per-turn acknowledgement of LekMod MP soft prompts (a pending proposal
+-- vote / incoming deal). The first end-turn press announces and opens each
+-- pending prompt; once every pending prompt has been acknowledged a further
+-- press proceeds to end the turn, so the player is never trapped -- including
+-- when a vote and a deal are pending at once. A single remembered key would
+-- ping-pong between the two and never let the turn end, so this is a set of
+-- acknowledged prompt keys, reset each turn start. Transient runtime state
+-- only -- not persisted, so a save/load mid-turn simply re-prompts (harmless).
+local softPromptAck = {}
 
 local function blockerText(player, blockerType)
     if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_ITEMS then
@@ -204,24 +206,29 @@ end
 -- through to actually end the turn. Inert on vanilla / VP (the seam reports
 -- nothing pending). Returns true when it handled the press.
 local function consumeSoftPrompt()
-    local proposalId = EngineData.pendingVoteProposalId()
-    if proposalId >= 0 then
-        local key = "vote:" .. proposalId
-        if softPromptAck ~= key then
-            softPromptAck = key
-            speak(Text.key("TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"))
-            EngineData.openVoteProposal(proposalId)
-            return true
-        end
-    end
-    local dealSender = EngineData.pendingDealSender()
-    if dealSender >= 0 then
-        local key = "deal:" .. dealSender
-        if softPromptAck ~= key then
-            softPromptAck = key
-            speak(Text.key("TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"))
-            EngineData.openIncomingDeal(dealSender)
-            return true
+    local prompts = {
+        {
+            id = EngineData.pendingVoteProposalId(),
+            prefix = "vote:",
+            textKey = "TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING",
+            open = EngineData.openVoteProposal,
+        },
+        {
+            id = EngineData.pendingDealSender(),
+            prefix = "deal:",
+            textKey = "TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING",
+            open = EngineData.openIncomingDeal,
+        },
+    }
+    for _, prompt in ipairs(prompts) do
+        if prompt.id >= 0 then
+            local key = prompt.prefix .. prompt.id
+            if not softPromptAck[key] then
+                softPromptAck[key] = true
+                speak(Text.key(prompt.textKey))
+                prompt.open(prompt.id)
+                return true
+            end
         end
     end
     return false
@@ -266,8 +273,8 @@ local function forceEndTurn()
 end
 
 local function onActivePlayerTurnStart()
-    -- New turn: any prior soft-prompt acknowledgement is stale.
-    softPromptAck = nil
+    -- New turn: any prior soft-prompt acknowledgements are stale.
+    softPromptAck = {}
     local turn = Text.format("TXT_KEY_TP_TURN_COUNTER", Game.GetGameTurn())
     local year = Game.GetGameTurnYear()
     local dateKey

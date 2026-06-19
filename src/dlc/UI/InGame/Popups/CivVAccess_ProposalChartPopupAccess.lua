@@ -35,13 +35,22 @@ local function proposalHeadline(id)
     return Text.key("TXT_KEY_MP_PROPOSAL_SCREEN_SUMMARY_REMAP")
 end
 
+-- A player's display name: the MP nickname when human and set, else the civ /
+-- leader name. Shared by the pending-voter list and the per-player vote rows.
+local function playerDisplayName(player)
+    if player:IsHuman() and player:GetNickName() ~= "" then
+        return player:GetNickName()
+    end
+    return player:GetName()
+end
+
 local function pendingVoterClause(id)
     local names = {}
     for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
         local pVoter = Players[i]
         if pVoter ~= nil and pVoter:IsAlive() and pVoter:IsHuman() then
             if Game.GetProposalVoterEligibility(id, i) and not Game.GetProposalVoterHasVoted(id, i) then
-                names[#names + 1] = pVoter:GetNickName() ~= "" and pVoter:GetNickName() or pVoter:GetName()
+                names[#names + 1] = playerDisplayName(pVoter)
             end
         end
     end
@@ -115,9 +124,7 @@ local function buildItems()
     for i = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
         local pPlayer = Players[i]
         if pPlayer ~= nil and pPlayer:IsAlive() and not pPlayer:IsObserver() then
-            local name = pPlayer:IsHuman()
-                    and (pPlayer:GetNickName() ~= "" and pPlayer:GetNickName() or pPlayer:GetName())
-                or pPlayer:GetName()
+            local name = playerDisplayName(pPlayer)
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = Text.format("TXT_KEY_CIVVACCESS_PROPOSAL_VOTER", name, voterStatus(id, i)),
             })

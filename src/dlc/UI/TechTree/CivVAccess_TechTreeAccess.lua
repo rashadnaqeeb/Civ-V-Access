@@ -512,7 +512,7 @@ local function buildSearchResultItems()
                     if p == nil then
                         return Text.key(tech.Description)
                     end
-                    return TechTreeLogic.buildLandingSpeech(tech.ID, p)
+                    return TechTreeLogic.buildLandingSpeech(tech.ID, p, _stealingTargetID)
                 end,
                 -- Alt+Up/Down walks the result the same discrete sections an
                 -- arrow move on the tree builds, so the flattened landing line
@@ -522,7 +522,7 @@ local function buildSearchResultItems()
                     if p == nil then
                         return nil
                     end
-                    return TechTreeLogic.buildLandingSections(tech.ID, p)
+                    return TechTreeLogic.buildLandingSections(tech.ID, p, _stealingTargetID)
                 end,
                 pediaName = Text.key(tech.Description),
                 activate = function()
@@ -771,11 +771,14 @@ local function buildTreeTab()
             if cur ~= nil then
                 local prefix
                 prefix, _prevEraID = TechTreeLogic.eraPrefix(_prevEraID, cur.ID)
-                SpeechPipeline.speakQueued(prefix .. TechTreeLogic.buildLandingSpeech(cur.ID, p))
+                SpeechPipeline.speakQueued(prefix .. TechTreeLogic.buildLandingSpeech(cur.ID, p, _stealingTargetID))
                 -- Seat the Alt+Up/Down review sections on first open and tab
                 -- re-entry too, not only on arrow moves -- otherwise the chord
                 -- is silent until the cursor first moves.
-                BaseMenuItems.SectionReview.set(_review, TechTreeLogic.buildLandingSections(cur.ID, p))
+                BaseMenuItems.SectionReview.set(
+                    _review,
+                    TechTreeLogic.buildLandingSections(cur.ID, p, _stealingTargetID)
+                )
             end
         end,
         onTabDeactivated = function()

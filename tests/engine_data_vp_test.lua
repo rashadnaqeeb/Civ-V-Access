@@ -65,6 +65,38 @@ function M.test_vanilla_and_vp_define_identical_function_sets()
     T.eq(table.concat(extra, ","), "", "seam functions only in the VP implementation")
 end
 
+function M.test_vp_golden_age_rate_gated_on_balance_mode()
+    -- The GAP getters compose a real rate only under MOD_BALANCE_VP; with VP
+    -- balance off (Community-Patch-only) GetHappinessForGAP returns excess
+    -- happiness instead, so the seam must report no rate there rather than a
+    -- wrong number.
+    local vp, env = loadSeam(VP_PATH)
+    local balanceOn = false
+    env.Game = {
+        IsCustomModOption = function(opt)
+            return opt == "BALANCE_VP" and balanceOn
+        end,
+    }
+    local player = {
+        GetHappinessForGAP = function()
+            return 7
+        end,
+        GetGAPFromReligion = function()
+            return 2
+        end,
+        GetGAPFromTraits = function()
+            return 1
+        end,
+        GetGAPFromCitiesTimes100 = function()
+            return 350
+        end,
+    }
+    T.eq(vp.goldenAgePerTurn(player), nil, "no rate with VP balance off (would be a wrong number)")
+    balanceOn = true
+    -- (7 + 2 + 1) * 100 + 350 = 1350, floored /100 = 13.
+    T.eq(vp.goldenAgePerTurn(player), 13, "floored GAP rate with VP balance on")
+end
+
 -- A VP-shaped pathfinder node array: engine field names, 0-based turns.
 local function vpNodes()
     return {
