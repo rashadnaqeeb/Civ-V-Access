@@ -12,7 +12,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
--Added full support for the Community Patch and Vox populi mods. Please note that the Vox Populi mod only works in English, it is not actively translated into any other languages.
+-Added full support for the Community Patch and Vox populi mods. The community patch is a community driven effort to fix many outstanding bugs in the game, and to generally make the AI a better player of the game. Vox Populi builds on this project to completely change and rebalance the game, adding countless new features. Please note that the Vox Populi mod only works in English, it is not actively translated into any other languages.
+-added support for Lekmod, the most commonly used multiplayer mod. This mod completely rebalances policies, pantheons and religions as well as adding 60+ new civs. It attempts to reuse localised game strings where possible so theoretically should work in non-English languages, but no promises.
 - Alt plus Up or Down in any menu, table, or list reads the current item one section at a time, so long entries with tooltips can be reviewed piece by piece.
 - Typing to search the tech tree now opens a list of every matching tech to arrow through, instead of jumping straight to the first match.
 - The scanner in city view has a new Yields category that ranks the city's tiles by each yield, so you can quickly find your best food or production tile.
