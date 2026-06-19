@@ -316,6 +316,16 @@ function Deploy-Dlc {
         }
     }
 
+    # A prior deploy-lekmod.ps1 leaves LekMod's prebaked DLC at Assets\DLC\LEKMOD*
+    # (its Override/ is auto-loaded for any DLC present, like the modpacks above),
+    # so a flip to vanilla must remove it or this "vanilla" session is still a
+    # LekMod game. deploy-lekmod installs it; removing it here is the flip-back.
+    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "Removing LekMod DLC:"
+        Write-Host "  $($_.FullName)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
+    }
+
     # Capture the stock BNW manifest while it is still stock, then tear down any
     # VP-completion substrate so a flip to vanilla is genuinely vanilla.
     Backup-StockExpansionPkg -Game $Game
@@ -544,6 +554,12 @@ function Invoke-Uninstall {
             Write-Host "  Removing DLC: $p"
             Remove-Item -LiteralPath $p -Recurse -Force
         }
+    }
+
+    # LekMod's prebaked DLC (deploy-lekmod.ps1) lives at Assets\DLC\LEKMOD*.
+    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "  Removing LekMod DLC: $($_.FullName)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
     }
 
     $legacyBootstrap = Join-Path $Game 'CivVAccess'
