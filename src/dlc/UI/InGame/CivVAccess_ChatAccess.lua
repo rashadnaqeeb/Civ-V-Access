@@ -175,7 +175,10 @@ closeChatPanel = function(reactivate)
 end
 
 local function toggleChatPanel()
-    if not Game:IsNetworkMultiPlayer() then
+    -- LekMod wires its reworked DiploCorner chat even in single player
+    -- (Controls.DummyStack marks that body), so the panel is usable there;
+    -- vanilla / VP keep chat multiplayer-only and no-op in single player.
+    if not Game:IsNetworkMultiPlayer() and Controls.DummyStack == nil then
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"))
         return
     end

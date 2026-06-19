@@ -119,7 +119,11 @@ function Invoke-SeamGuard {
         "GetNumHistoricEvents", "GetHistoricEventTourism",
         "IsResourceImproveable", "GetSeeThrough",
         "IsImprovementEmbassy", "GetBuildingInvestment",
-        "GetWarScore", "GetObserverUIOverridePlayer"
+        "GetWarScore", "GetObserverUIOverridePlayer",
+        "GetCombatBonusVsDifferentIdeologyModifier", "GetTourismInfluenceCombatModifier",
+        "RangedDefenseModifier", "ScienceToStealAmount",
+        "GetLastProposalID", "GetPendingIncomingDealSenders",
+        "IsLuxuryTradeTargetAlreadyHasResource"
     )
     # Fork extension bindings: added by our forked DLL, present on no stock
     # engine. The seam-exempt marker does NOT waive these -- see the function

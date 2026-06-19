@@ -10,6 +10,14 @@
 
 VictoryDescription = {}
 
+-- Some victory backgrounds reuse an existing wonder splash rather than a
+-- bespoke painting (LekMod's scrap victory shows the Cristo Redentor art), so
+-- describe them with that wonder's own image description instead of
+-- duplicating the prose. Maps a Victories Type to a WONDERDESC string key.
+local REUSED_WONDER_ART = {
+    VICTORY_SCRAP = "TXT_KEY_CIVVACCESS_WONDERDESC_BUILDING_CRISTO_REDENTOR",
+}
+
 -- Speak the background description for artKey (a Victories Type or
 -- "DEFEAT"). nil means the resolver had no display state; a missing
 -- entry for a real key is a data bug and logs.
@@ -19,6 +27,9 @@ function VictoryDescription.speakForKey(artKey)
         return
     end
     local desc = Text.keyOrNil("TXT_KEY_CIVVACCESS_VICTORYDESC_" .. artKey)
+    if desc == nil and REUSED_WONDER_ART[artKey] ~= nil then
+        desc = Text.keyOrNil(REUSED_WONDER_ART[artKey])
+    end
     if desc == nil then
         Log.warn("VictoryDescription: no description for " .. tostring(artKey))
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_VICTORYDESC_MISSING"))

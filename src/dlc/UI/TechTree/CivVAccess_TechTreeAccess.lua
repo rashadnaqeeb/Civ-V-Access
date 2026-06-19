@@ -231,9 +231,9 @@ local function speakLanding(techID)
     end
     local prefix
     prefix, _prevEraID = TechTreeLogic.eraPrefix(_prevEraID, techID)
-    SpeechPipeline.speakInterrupt(prefix .. TechTreeLogic.buildLandingSpeech(techID, p))
+    SpeechPipeline.speakInterrupt(prefix .. TechTreeLogic.buildLandingSpeech(techID, p, _stealingTargetID))
     -- Refresh the Alt+Up/Down review sections for the tech just landed on.
-    BaseMenuItems.SectionReview.set(_review, TechTreeLogic.buildLandingSections(techID, p))
+    BaseMenuItems.SectionReview.set(_review, TechTreeLogic.buildLandingSections(techID, p, _stealingTargetID))
 end
 
 -- ===== Tree commit =====

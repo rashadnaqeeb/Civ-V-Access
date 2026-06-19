@@ -212,6 +212,45 @@ function M.test_checkbox_probe_captures_handler()
     T.eq(PullDownProbe.checkBoxCallbackFor(cb), fn)
 end
 
+-- A checkbox wired with RegisterCallback(Mouse.eLClick, fn) instead of
+-- RegisterCheckHandler (LekMod's hardcoded MP game options) must still have its
+-- click handler captured, resolvable via buttonCallbackFor, so keyboard
+-- activation can drive LekMod's option toggle.
+function M.test_checkbox_probe_captures_eLClick_callback()
+    setup()
+    local proto = Polyfill.makeCheckBox()
+    local mt = {
+        __index = {
+            IsChecked = proto.IsChecked,
+            SetCheck = proto.SetCheck,
+            RegisterCheckHandler = proto.RegisterCheckHandler,
+            RegisterCallback = function(self, mouseEvent, fn)
+                self._clickCbs = self._clickCbs or {}
+                self._clickCbs[mouseEvent] = fn
+            end,
+        },
+    }
+    local function mkCB()
+        local c = Polyfill.makeCheckBox()
+        c.IsChecked, c.SetCheck, c.RegisterCheckHandler = nil, nil, nil
+        c.IsHidden, c.IsDisabled, c.SetHide, c.SetDisabled = nil, nil, nil, nil
+        return setmetatable(c, mt)
+    end
+
+    local cb = mkCB()
+    T.truthy(PullDownProbe.ensureCheckBoxInstalled(cb))
+    local clickFn = function() end
+    cb:RegisterCallback(Mouse.eLClick, clickFn)
+    T.eq(
+        PullDownProbe.buttonCallbackFor(cb, Mouse.eLClick),
+        clickFn,
+        "checkbox eLClick handler captured into buttonCallbacks"
+    )
+    -- The original RegisterCallback still ran (forwarded), so the engine wiring
+    -- is intact, not shadowed.
+    T.eq(cb._clickCbs[Mouse.eLClick], clickFn, "original RegisterCallback forwarded")
+end
+
 -- Button probe --------------------------------------------------------
 
 local function buttonMt()

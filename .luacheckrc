@@ -128,6 +128,11 @@ globals = {
     -- suite stubs it, so it needs write access, not read_globals.
     "GetBorderGrowthTooltip",
 
+    -- LekMod's InfoTooltipInclude adds a golden-age-points breakdown helper;
+    -- CityStats feature-detects it (nil on vanilla / VP), same shape as the
+    -- border-growth helper above.
+    "GetGoldenAgePointsTooltip",
+
     -- Shared modules (UI/Shared/)
     "HandlerStack", "InputRouter", "KeyLayout", "TickPump", "BaselineHandler",
     "SpeechEngine", "SpeechPipeline", "TextFilter", "Text", "PluralRules",
@@ -174,7 +179,7 @@ globals = {
     "GiftMode",
     "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText",
     "BeliefAdvisor",
-    "NotificationAnnounce",
+    "NotificationAnnounce", "GameplayAlertAnnounce",
     "Recommendations",
     "SocialPolicyLogic",
     "TechTreeLogic",

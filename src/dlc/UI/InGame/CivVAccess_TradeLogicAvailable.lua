@@ -205,6 +205,21 @@ local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix,
     })
 end
 
+-- An owned resource that can't currently be traded, surfaced as a disabled
+-- leaf with the engine's stated reason -- mirroring the greyed pocket entry
+-- LekMod shows (vanilla / VP drop these instead, gated by a nil reason in the
+-- seam). Label carries the stock count like the enabled leaf.
+local function disabledResourceLeaf(side, resType, row, reason)
+    local iPlayer = TradeLogicAccess.sidePlayer(side)
+    local qty = EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0
+    local label = Text.key(row.Description) .. TradeLogicAccess.stockSuffix(side, qty)
+    return BaseMenuItems.Text({
+        labelText = Text.format("TXT_KEY_CIVVACCESS_LABEL_DISABLED", label),
+        tooltipText = reason,
+        pediaName = Text.key(row.Description),
+    })
+end
+
 -- Resources group: Luxury and Strategic as separate sub-groups. Iterate
 -- GameInfo.Resources once, filter by legality, partition into the two
 -- buckets. g_Deal:IsPossibleToTradeItem does the per-resource legality
@@ -217,8 +232,19 @@ local function availableResourceGroups(side)
     for row in GameInfo.Resources() do
         local resType = row.ID
         if row.ResourceUsage == 1 or row.ResourceUsage == 2 then
+            local item
             if g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_RESOURCES, resType, 1) then
-                local item = availableResourceLeaf(side, resType, row)
+                item = availableResourceLeaf(side, resType, row)
+            elseif (EngineData.dealResourceCount(g_Deal, iPlayer, resType) or 0) > 0 then
+                -- Owned but untradeable: LekMod greys it with a reason (partner
+                -- already owns the luxury, embargo, unresearched strategic).
+                -- nil reason on vanilla / VP keeps the old drop-it behavior.
+                local reason = EngineData.resourceTradeBlockedReason(g_Deal, iPlayer, otherPlayer, row)
+                if reason ~= nil then
+                    item = disabledResourceLeaf(side, resType, row, reason)
+                end
+            end
+            if item ~= nil then
                 if row.ResourceUsage == 1 then
                     strategics[#strategics + 1] = item
                 else

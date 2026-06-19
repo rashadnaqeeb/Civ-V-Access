@@ -891,13 +891,22 @@ local function attackerMods(actor, defender, targetPlot, bRanged)
         pushMod(mods, csBonus, "TXT_KEY_EUPANEL_BONUS_CITY_STATE")
     end
 
+    -- LekMod-only combat modifiers (0 on vanilla / VP through the seam).
+    pushMod(mods, EngineData.ideologyCombatModifier(actor, defender), "TXT_KEY_EUPANEL_DIFFERENT_IDEOLOGY_BONUS")
+    pushMod(
+        mods,
+        EngineData.tourismInfluenceCombatModifier(actor, defender),
+        "TXT_KEY_EUPANEL_LEKMOD_TOURISM_INFLUENCE_BONUS"
+    )
+
     return mods
 end
 
 -- Defender-side modifiers. Mirrors EnemyUnitPanel.lua:1281-1639 melee
 -- branch. Only runs when the defender is a combat unit; civilian-only
--- plots have no counter-strength to modify.
-local function defenderMods(actor, defender, targetPlot)
+-- plots have no counter-strength to modify. `bRanged` gates the ranged-only
+-- defender bonuses (LekMod's ranged-defense modifier).
+local function defenderMods(actor, defender, targetPlot, bRanged)
     if not defender:IsCombatUnit() then
         return {}
     end
@@ -1035,6 +1044,17 @@ local function defenderMods(actor, defender, targetPlot)
         pushMod(mods, goldenAge, "TXT_KEY_EUPANEL_BONUS_GOLDEN_AGE")
     end
 
+    -- LekMod-only combat modifiers (0 on vanilla / VP through the seam).
+    pushMod(mods, EngineData.ideologyCombatModifier(defender, actor), "TXT_KEY_EUPANEL_DIFFERENT_IDEOLOGY_BONUS")
+    pushMod(
+        mods,
+        EngineData.tourismInfluenceCombatModifier(defender, actor),
+        "TXT_KEY_EUPANEL_LEKMOD_TOURISM_INFLUENCE_BONUS"
+    )
+    if bRanged then
+        pushMod(mods, EngineData.rangedDefenseModifier(defender), "TXT_KEY_EUPANEL_RANGE_DEFENSE_BONUS")
+    end
+
     return mods
 end
 
@@ -1105,7 +1125,7 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
     if #mine > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY", table.concat(mine, ", "))
     end
-    local theirs = defenderMods(actor, defender, targetPlot)
+    local theirs = defenderMods(actor, defender, targetPlot, false)
     if #theirs > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_THEIR", table.concat(theirs, ", "))
     end
@@ -1171,7 +1191,7 @@ function UnitSpeech.rangedPreview(actor, defender, targetPlot)
     if #mine > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_MY", table.concat(mine, ", "))
     end
-    local theirs = defenderMods(actor, defender, targetPlot)
+    local theirs = defenderMods(actor, defender, targetPlot, true)
     if #theirs > 0 then
         parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_MODS_THEIR", table.concat(theirs, ", "))
     end

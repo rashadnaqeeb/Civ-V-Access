@@ -113,6 +113,12 @@ local function preambleFn()
     end
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE", culture)
     parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH", city:GetFaithPerTurn())
+    -- LekMod surfaces golden-age points as a per-city yield in this header;
+    -- the seam returns nil on vanilla / VP, so the line drops there.
+    local gap = EngineData.cityGoldenAgePerTurn(city)
+    if gap ~= nil then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLDEN_AGE", gap)
+    end
     -- CP's header adds the city's local happiness and aggregated
     -- unhappiness when the VP balance option is on. Numbers only; the
     -- hover breakdowns stay visual.

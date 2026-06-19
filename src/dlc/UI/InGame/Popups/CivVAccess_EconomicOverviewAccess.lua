@@ -383,6 +383,22 @@ local function buildCityColumns()
             pediaName = constPedia("TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION"),
         }
     end
+    -- LekMod adds a golden-age-points column (golden-age points are a real
+    -- city yield there); the yield type exists only on LekMod, so the column
+    -- appears only there. getCell reads through the seam.
+    if YieldTypes.YIELD_GOLDEN_AGE_POINTS ~= nil then
+        cols[#cols + 1] = {
+            name = "TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE",
+            getCell = function(c)
+                return formatSigned(EngineData.cityGoldenAgePerTurn(c) or 0)
+            end,
+            sortKey = function(c)
+                return EngineData.cityGoldenAgePerTurn(c) or 0
+            end,
+            enterAction = focusCity,
+            pediaName = constPedia("TXT_KEY_SPECIALISTSANDGP_GOLDENAGE_HEADING4_TITLE"),
+        }
+    end
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION",
         getCell = productionColumnCell,

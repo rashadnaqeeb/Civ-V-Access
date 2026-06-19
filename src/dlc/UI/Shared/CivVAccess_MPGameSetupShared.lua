@@ -6,7 +6,10 @@
 -- seed, no t[0]). Pulldown index i lines up one-to-one with ipairs i.
 --
 -- Dependencies: BaseMenuItems.Checkbox / Pulldown, Text.key / Text.format,
--- Log.warn. Consumers must include CivVAccess_FrontendCommon first.
+-- Log.warn, and (for the LekMod MP options) PullDownProbe.buttonCallbackFor
+-- plus the engine Mouse table. Consumers include CivVAccess_FrontendCommon and
+-- CivVAccess_ProbeBoot first (ProbeBoot patches the checkbox metatable before
+-- LekMod's RegisterCallback wiring runs, so the eLClick handler is captured).
 --
 -- Cache lifetime: the map-size labels cache is session-sticky across a
 -- screen show/hide but must be invalidated when the underlying pulldown is
@@ -198,6 +201,95 @@ local EXCLUDED_GAME_OPTION_TYPES = {
     GAMEOPTION_DYNAMIC_TURNS = true,
 }
 
+-- LekMod force-shows a block of AI-handicap and rules game options in
+-- multiplayer through hardcoded checkboxes in MPGameSetupScreen / StagingRoom.
+-- They are SupportsMultiplayer=false, so the data-driven loop skips them and
+-- the option manager builds no instance -- a blind host would never reach
+-- them. Each control toggles a GameOption via its own eLClick handler
+-- (registered by MPGameOptions, included in both Contexts), which our
+-- Checkbox.activate fires; label and tooltip come from the option's GameInfo
+-- row. Present only on LekMod (the controls don't exist on vanilla / VP).
+--
+-- Maintained by hand against LekMod's MPGameOptions.lua control->option
+-- wiring. A re-pin that renames a control or option silently drops that one
+-- row (the control probe / GameInfo lookup returns nil) rather than erroring;
+-- re-derive from the On*Checked handlers when re-pinning. Turn-mode options
+-- are intentionally absent (shared with EXCLUDED_GAME_OPTION_TYPES).
+local LEKMOD_MP_OPTION_CONTROLS = {
+    { control = "AIOptionsCheck", option = "GAMEOPTION_AI_OPTIONS" },
+    { control = "AIAlwaysAcceptWhitePeaceCheck", option = "GAMEOPTION_AI_GIMP_ALWAYS_WHITE_PEACE" },
+    { control = "AICannotAccumulateCultureCheck", option = "GAMEOPTION_AI_GIMP_NO_CULTURE" },
+    { control = "AICannotBuildSettlersCheck", option = "GAMEOPTION_AI_GIMP_NO_BUILDING_SETTLERS" },
+    { control = "AICannotBuildWorldWondersCheck", option = "GAMEOPTION_AI_GIMP_NO_WORLD_WONDER" },
+    { control = "AICannotCoupCityStatesCheck", option = "GAMEOPTION_AI_GIMP_NO_COUP" },
+    { control = "AICannotFoundReligionCheck", option = "GAMEOPTION_AI_GIMP_NO_RELIGION_FOUNDING" },
+    { control = "AICannotSpreadReligionCSCheck", option = "GAMEOPTION_AI_GIMP_NO_MINOR_RELIGION_SPREAD" },
+    { control = "AICannotSpreadRelHumansCheck", option = "GAMEOPTION_AI_GIMP_NO_RELIGION_SPREAD" },
+    { control = "AICannotVoteInCongressCheck", option = "GAMEOPTION_AI_NO_VOTE" },
+    { control = "AICannotBeLiberatedCheck", option = "GAMEOPTION_AI_GIMP_NO_LIBERATION" },
+    { control = "AICannotHaveWealsWithHumansCheck", option = "GAMEOPTION_AI_GIMP_NO_DEALS" },
+    { control = "DisableAIDemographicsCheck", option = "GAMEOPTION_AI_GIMP_NO_DEMOGRAPHICS" },
+    { control = "NoAIStartAdvantageCheck", option = "GAMEOPTION_AI_HANDICAP_START" },
+    { control = "NoPenaltyForExpansionCheck", option = "GAMEOPTION_DISABLE_RECKLESS_EXPANDER" },
+    { control = "NoXPFromAICheck", option = "GAMEOPTION_AI_XP_CAP" },
+    { control = "AdditionalOptionsCheck", option = "GAMEOPTION_ADDITIONAL" },
+    { control = "AllowPolicySavingCheck", option = "GAMEOPTION_POLICY_SAVING" },
+    { control = "AllowPromotionSavingCheck", option = "GAMEOPTION_PROMOTION_SAVING" },
+    { control = "AlternateScoreCalculationsCheck", option = "GAMEOPTION_TWEAKED_SCORING" },
+    { control = "CompleteKillsCheck", option = "GAMEOPTION_COMPLETE_KILLS" },
+    { control = "DisableStartBiasCheck", option = "GAMEOPTION_DISABLE_START_BIAS" },
+    { control = "NoAncientRuinsCheck", option = "GAMEOPTION_NO_GOODY_HUTS" },
+    { control = "NoBarbariansCheck", option = "GAMEOPTION_NO_BARBARIANS" },
+    { control = "NoCityRazingCheck", option = "GAMEOPTION_NO_CITY_RAZING" },
+    { control = "NoEspionageCheck", option = "GAMEOPTION_NO_ESPIONAGE" },
+    { control = "OneCityChallengeCheck", option = "GAMEOPTION_ONE_CITY_CHALLENGE" },
+    { control = "RagingBarbariansCheck", option = "GAMEOPTION_RAGING_BARBARIANS" },
+    { control = "RandomPersonalitiesCheck", option = "GAMEOPTION_RANDOM_PERSONALITIES" },
+}
+
+-- LekMod wires these checkboxes with RegisterCallback(Mouse.eLClick, On*Checked)
+-- rather than RegisterCheckHandler, and each handler runs PreGame.SetGameOption
+-- plus LekMod's own network sync (SendGameOptionChanged) -- locals we cannot
+-- call directly -- so the option only commits if we invoke LekMod's captured
+-- handler. BaseMenuItems.Checkbox:activate flips the visual check before this
+-- runs, so the eLClick handler (which reads IsChecked itself) sees the new
+-- state. The checkbox probe captures the eLClick handler into buttonCallbacks.
+local function lekmodMPOptionActivate(control, optionName)
+    return function()
+        local cb = PullDownProbe.buttonCallbackFor(control, Mouse.eLClick)
+        if cb == nil then
+            Log.warn(
+                "MPGameSetupShared LekMod option '"
+                    .. optionName
+                    .. "': eLClick handler not captured, game state will not update"
+            )
+            return
+        end
+        cb()
+    end
+end
+
+-- Checkbox items for LekMod's hardcoded MP options that are present in this
+-- Context (nil on vanilla / VP). Bound to the static control so activation
+-- rides LekMod's own eLClick handler (PreGame set plus network sync); label
+-- from the matching GameInfo.GameOptions row.
+local function lekmodMPOptionItems()
+    local items = {}
+    for _, entry in ipairs(LEKMOD_MP_OPTION_CONTROLS) do
+        local control = Controls[entry.control]
+        local row = GameInfo.GameOptions[entry.option]
+        if control ~= nil and row ~= nil and row.Description ~= nil then
+            items[#items + 1] = BaseMenuItems.Checkbox({
+                control = control,
+                labelText = Text.key(row.Description),
+                tooltipText = row.Help and Text.key(row.Help) or nil,
+                activateCallback = lekmodMPOptionActivate(control, entry.option),
+            })
+        end
+    end
+    return items
+end
+
 -- MP sorts by SortPriority first, then raw string compare on Name (not
 -- Locale.Compare, unlike AdvancedSetup). Mirror exactly so our indices
 -- match the manager's allocated-instance order.
@@ -314,6 +406,11 @@ function MPGameSetupShared.gameOptionsChildren()
                 tooltipText = opt.Help,
             })
         end
+    end
+    -- LekMod's hardcoded MP options (the data-driven loop above can't reach
+    -- them); appended as a block, inert off LekMod.
+    for _, item in ipairs(lekmodMPOptionItems()) do
+        items[#items + 1] = item
     end
     return items
 end

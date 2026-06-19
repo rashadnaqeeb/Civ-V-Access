@@ -164,6 +164,170 @@ function EngineData.capitalDefenseModifier(unit)
     return capDef
 end
 
+-- Drift read: LekMod's "combat bonus versus a different ideology" modifier
+-- for `unit` fighting `otherUnit`. LekMod shows it only when both sides have
+-- adopted a late-game policy tree (ideology) and the two differ; that gate
+-- lives here so the caller stays engine-agnostic. GetLateGamePolicyTree is a
+-- vanilla binding; the ideology-bonus getter is LekMod-only. Returns 0 on
+-- vanilla / VP (the inert bodies), and 0 here when ideologies match.
+function EngineData.ideologyCombatModifier(unit, otherUnit)
+    local mod = unit:GetCombatBonusVsDifferentIdeologyModifier()
+    if mod == 0 then
+        return 0
+    end
+    local myTree = Players[unit:GetOwner()]:GetLateGamePolicyTree()
+    local theirTree = Players[otherUnit:GetOwner()]:GetLateGamePolicyTree()
+    if myTree ~= -1 and theirTree ~= -1 and myTree ~= theirTree then
+        return mod
+    end
+    return 0
+end
+
+-- Drift read: LekMod's tourism-influence combat modifier for `unit` against
+-- `otherUnit` (the DLL's LEKMOD_TOURISM_COMBAT_MOD). LekMod itself nil-guards
+-- the binding -- it may be absent behind a DLL define -- so this mirrors that
+-- guard and returns 0 when unbound. 0 on vanilla / VP.
+function EngineData.tourismInfluenceCombatModifier(unit, otherUnit)
+    if unit.GetTourismInfluenceCombatModifier == nil then
+        return 0
+    end
+    return unit:GetTourismInfluenceCombatModifier(otherUnit)
+end
+
+-- Drift read: LekMod's ranged-defense combat modifier for a unit defending
+-- against a ranged attack. 0 on vanilla / VP, which have no such modifier.
+function EngineData.rangedDefenseModifier(unit)
+    return unit:RangedDefenseModifier()
+end
+
+-- Drift read: the player's golden-age points gained per turn (see the vanilla
+-- file for the contract). LekMod feeds GetTotalGoldenAgePointsInEmpire (excess
+-- happiness plus per-city GAP) into the golden-age progress meter every turn,
+-- so that getter IS the per-turn rate; it can be negative when excess
+-- happiness is negative. nil when the binding is unbound (a stock engine
+-- without our fork), so the rate clause drops rather than erroring.
+function EngineData.goldenAgePerTurn(player)
+    if player.GetTotalGoldenAgePointsInEmpire == nil then
+        return nil
+    end
+    return player:GetTotalGoldenAgePointsInEmpire()
+end
+
+-- Drift read: a single city's golden-age points per turn. LekMod makes
+-- golden-age points a real city yield (YieldTypes.YIELD_GOLDEN_AGE_POINTS), so
+-- the per-city rate reads through the standard yield getter, as LekMod's own
+-- CityView / ProductionPopup do. nil on vanilla / VP, which have no such
+-- yield type, so the city per-turn line drops there.
+function EngineData.cityGoldenAgePerTurn(city)
+    if YieldTypes.YIELD_GOLDEN_AGE_POINTS == nil then
+        return nil
+    end
+    return city:GetYieldRate(YieldTypes.YIELD_GOLDEN_AGE_POINTS)
+end
+
+-- Extension reads for LekMod's MP "soft prompts" -- a pending proposal vote or
+-- an incoming deal that LekMod surfaces on the end-turn button. The engine
+-- raises no end-turn blocker for these, so our Turn module consults the seam
+-- and (on LekMod) announces and opens them before ending the turn; a blind
+-- player driving end-turn by hotkey never sees LekMod's button-side prompt.
+-- All four are inert on vanilla / VP, which have no MP voting system.
+
+-- The proposal id awaiting the active player's vote, or -1. Mirrors LekMod's
+-- ActionInfoPanel scan (the latest 50 proposal ids, newest first) for one that
+-- is still open, the player is eligible for, and has not voted on. The
+-- once-per-turn dismissal lives in our Turn module, not here.
+function EngineData.pendingVoteProposalId()
+    if Game.GetLastProposalID == nil then
+        return -1
+    end
+    local latest = Game.GetLastProposalID()
+    if latest == nil or latest <= 0 then
+        return -1
+    end
+    local me = Game.GetActivePlayer()
+    if me == nil or me < 0 or me >= GameDefines.MAX_MAJOR_CIVS then
+        return -1
+    end
+    local minId = math.max(1, latest - 50)
+    for id = latest, minId, -1 do
+        if
+            Game.GetProposalStatus(id) == 0
+            and Game.GetProposalVoterEligibility(id, me)
+            and not Game.GetProposalVoterHasVoted(id, me)
+        then
+            return id
+        end
+    end
+    return -1
+end
+
+-- The first player with an incoming deal awaiting the active player's
+-- response, or -1.
+function EngineData.pendingDealSender()
+    if Game.GetPendingIncomingDealSenders == nil then
+        return -1
+    end
+    local me = Game.GetActivePlayer()
+    if me == nil or me < 0 or me >= GameDefines.MAX_MAJOR_CIVS then
+        return -1
+    end
+    local senders = Game.GetPendingIncomingDealSenders(me, true)
+    if senders == nil or #senders == 0 then
+        return -1
+    end
+    return senders[1]
+end
+
+-- Open the proposal-vote popup (ProposalChartPopup) for a proposal id, the
+-- same event LekMod's button-side prompt fires.
+function EngineData.openVoteProposal(id)
+    Events.SerialEventGameMessagePopup({
+        Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_0,
+        Data1 = id,
+        Data2 = Game.GetProposalStatus(id),
+    })
+end
+
+-- Open the incoming-deal review screen for a sender.
+function EngineData.openIncomingDeal(sender)
+    Events.OpenPlayerDealScreenEvent(sender)
+end
+
+-- Drift read: the science the active player must accumulate to steal `techID`
+-- from `targetID`, shown in the tech tree's espionage steal mode. LekMod
+-- (NQMod) charges science for tech theft; vanilla / VP steal a tech outright,
+-- so this is nil there and the steal-cost line drops. Feature-detected so a
+-- stock engine without the binding degrades rather than throwing.
+function EngineData.techStealCost(player, targetID, techID)
+    if player.ScienceToStealAmount == nil then
+        return nil
+    end
+    return player:ScienceToStealAmount(targetID, techID)
+end
+
+-- Drift read: why an owned resource cannot currently be traded to the other
+-- player, as a localized one-line reason -- or nil when the trade screen
+-- should not surface a disabled row for it. LekMod greys owned-but-untradeable
+-- resources with a reason (a strategic neither side has the reveal tech for; a
+-- luxury the partner already owns, or one under embargo). Vanilla / VP return
+-- nil, so those screens keep dropping untradeable resources as before.
+function EngineData.resourceTradeBlockedReason(deal, fromPlayer, toPlayer, row)
+    if row.ResourceUsage == 1 then
+        local techRow = row.TechReveal and GameInfo.Technologies[row.TechReveal]
+        if techRow ~= nil then
+            return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_BOTH_HAVE_NOT_REASEARCHED_ONE_LINE", techRow.Description)
+        end
+        return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE")
+    end
+    if
+        deal.IsLuxuryTradeTargetAlreadyHasResource
+        and deal:IsLuxuryTradeTargetAlreadyHasResource(fromPlayer, toPlayer, row.ID)
+    then
+        return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_PLAYER_ALREADY_OWNS_ONE_LINE")
+    end
+    return Locale.ConvertTextKey("TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE")
+end
+
 -- Drift read: the tech the active player still needs before a tile's
 -- resource can be exploited, as the tech's Description text-key (the game
 -- key resolves the arg as another text key, so the key is passed, not the

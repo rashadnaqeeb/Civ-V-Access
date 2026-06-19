@@ -102,6 +102,14 @@ local UNIT_BLOCKERS = {
 
 local speak = SpeechPipeline.speakInterrupt
 
+-- Once-per-turn acknowledgement of a LekMod MP soft prompt (a pending
+-- proposal vote / incoming deal). The first end-turn press with one pending
+-- announces and opens it; pressing end-turn again with the same prompt still
+-- pending proceeds to end the turn, so the player is never trapped. Keyed by
+-- prompt identity, reset each turn start. Transient runtime state only -- not
+-- persisted, so a save/load mid-turn simply re-prompts (harmless).
+local softPromptAck = nil
+
 local function blockerText(player, blockerType)
     if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_FREE_ITEMS then
         local idx = player:GetEndTurnBlockingNotificationIndex()
@@ -189,6 +197,36 @@ local function announceSubmitted()
     end
 end
 
+-- LekMod MP soft prompts: a pending proposal vote or incoming deal that the
+-- engine raises no end-turn blocker for. On the first end-turn press with one
+-- pending, announce and open it (a blind player can't click LekMod's button-
+-- side prompt); a second press with the same prompt still pending falls
+-- through to actually end the turn. Inert on vanilla / VP (the seam reports
+-- nothing pending). Returns true when it handled the press.
+local function consumeSoftPrompt()
+    local proposalId = EngineData.pendingVoteProposalId()
+    if proposalId >= 0 then
+        local key = "vote:" .. proposalId
+        if softPromptAck ~= key then
+            softPromptAck = key
+            speak(Text.key("TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"))
+            EngineData.openVoteProposal(proposalId)
+            return true
+        end
+    end
+    local dealSender = EngineData.pendingDealSender()
+    if dealSender >= 0 then
+        local key = "deal:" .. dealSender
+        if softPromptAck ~= key then
+            softPromptAck = key
+            speak(Text.key("TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"))
+            EngineData.openIncomingDeal(dealSender)
+            return true
+        end
+    end
+    return false
+end
+
 local function endTurnDispatch()
     local player = Players[Game.GetActivePlayer()]
     if not passEndTurnGates(player) then
@@ -196,6 +234,9 @@ local function endTurnDispatch()
     end
     local blockerType = player:GetEndTurnBlockingType()
     if blockerType == EndTurnBlockingTypes.NO_ENDTURN_BLOCKING_TYPE then
+        if consumeSoftPrompt() then
+            return
+        end
         Game.DoControl(GameInfoTypes.CONTROL_ENDTURN)
         announceSubmitted()
         return
@@ -225,6 +266,8 @@ local function forceEndTurn()
 end
 
 local function onActivePlayerTurnStart()
+    -- New turn: any prior soft-prompt acknowledgement is stale.
+    softPromptAck = nil
     local turn = Text.format("TXT_KEY_TP_TURN_COUNTER", Game.GetGameTurn())
     local year = Game.GetGameTurnYear()
     local dateKey

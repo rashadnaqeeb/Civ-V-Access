@@ -241,6 +241,25 @@ function CityStats.yieldRows(city, helperFn)
         end
         groups[#groups + 1] = { label = label, breakdown = breakdown }
     end
+    -- LekMod-only: golden-age points are a real per-city yield there. The
+    -- seam returns nil on vanilla / VP, so this row never appears off-engine.
+    -- LekMod's GetGoldenAgePointsTooltip supplies the source breakdown.
+    local gap = EngineData.cityGoldenAgePerTurn(city)
+    if gap ~= nil then
+        local breakdown = {}
+        if GetGoldenAgePointsTooltip ~= nil then
+            local ok, raw = pcall(GetGoldenAgePointsTooltip, city)
+            if not ok then
+                Log.error("CityStats golden-age points tooltip failed: " .. tostring(raw))
+            elseif raw ~= nil then
+                breakdown = splitTooltipLines(raw)
+            end
+        end
+        groups[#groups + 1] = {
+            label = Text.format("TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLDEN_AGE", gap),
+            breakdown = breakdown,
+        }
+    end
     return groups
 end
 

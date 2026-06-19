@@ -689,46 +689,42 @@ end
 -- first, tier word, citizen counts, the GA progress clause with the
 -- per-turn GAP rate.
 
--- Run fn with EngineData.happinessSummary patched to return `summary`,
--- restoring the real seam afterward even on failure.
+-- Run fn with EngineData.happinessSummary and goldenAgePerTurn patched,
+-- restoring the real seam afterward even on failure. The headline reads the
+-- per-turn GAP rate through the seam, so the rate tests stub it here.
 local function withSummary(summary, fn)
-    local saved = EngineData.happinessSummary
+    local savedSummary = EngineData.happinessSummary
+    local savedGAP = EngineData.goldenAgePerTurn
     EngineData.happinessSummary = function()
         return summary
     end
     local ok, err = pcall(fn)
-    EngineData.happinessSummary = saved
+    EngineData.happinessSummary = savedSummary
+    EngineData.goldenAgePerTurn = savedGAP
     if not ok then
         error(err, 0)
     end
 end
 
--- Install the VP GAP getters on the scripted player. flat covers the
+-- Stub the seam's per-turn GAP rate the headline speaks. flat covers the
 -- three whole-point sources; citiesTimes100 is the engine-hundredths city
--- contribution.
+-- contribution, composed and floored exactly as the VP seam body does.
+-- withSummary restores the seam after the test.
 local function installGAP(flat, citiesTimes100)
-    activePlayer.GetHappinessForGAP = function()
-        return flat
-    end
-    activePlayer.GetGAPFromReligion = function()
-        return 0
-    end
-    activePlayer.GetGAPFromTraits = function()
-        return 0
-    end
-    activePlayer.GetGAPFromCitiesTimes100 = function()
-        return citiesTimes100
+    local rate = math.floor((flat * 100 + citiesTimes100) / 100)
+    EngineData.goldenAgePerTurn = function()
+        return rate
     end
 end
 
 function M.test_happiness_line_approval_speaks_percent_tier_counts_and_rate()
     setup()
     goldenAgeData = { turns = 0, meter = 30, threshold = 100 }
-    -- 11 flat plus 1.5 from cities = 12.5, floored to 12 like the panel.
-    installGAP(11, 150)
     withSummary(
         { mode = "approval", value = 62, happyCitizens = 40, unhappyCitizens = 13, state = "content" },
         function()
+            -- 11 flat plus 1.5 from cities = 12.5, floored to 12 like the panel.
+            installGAP(11, 150)
             T.eq(
                 EmpireStatus._happinessLine(),
                 "62 percent approval, content, 40 happy, 13 unhappy citizens, 30 of 100 to golden age, plus 12 per turn"
@@ -754,10 +750,10 @@ end
 function M.test_happiness_line_approval_zero_gap_rate_omits_clause()
     setup()
     goldenAgeData = { turns = 0, meter = 0, threshold = 100 }
-    installGAP(0, 0)
     withSummary(
         { mode = "approval", value = 100, happyCitizens = 9, unhappyCitizens = 0, state = "ecstatic" },
         function()
+            installGAP(0, 0)
             T.eq(
                 EmpireStatus._happinessLine(),
                 "100 percent approval, ecstatic, 9 happy, 0 unhappy citizens, 0 of 100 to golden age"
@@ -769,10 +765,10 @@ end
 function M.test_happiness_line_approval_negative_gap_rate()
     setup()
     goldenAgeData = { turns = 0, meter = 50, threshold = 100 }
-    installGAP(-3, 0)
     withSummary(
         { mode = "approval", value = 40, happyCitizens = 10, unhappyCitizens = 25, state = "unhappy" },
         function()
+            installGAP(-3, 0)
             T.eq(
                 EmpireStatus._happinessLine(),
                 "40 percent approval, unhappy, 10 happy, 25 unhappy citizens, 50 of 100 to golden age, minus 3 per turn"

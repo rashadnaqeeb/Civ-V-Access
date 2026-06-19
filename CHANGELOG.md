@@ -20,6 +20,7 @@ New Features and improvements:
 - The production chooser lists civilian units first, then land, sea, and air, and national wonders ahead of world wonders.
 - Melee attack previews count the Impi's opening spear volley in the predicted damage ("includes 9 volley"), which the game's own preview omits.
 - F2 on the Great Work popup now also describes the image for great works of writing and music.
+- Floating gameplay alert messages are now read aloud.
 
 Bug fixes:
 - On Community Patch, viewing another civilization's tech tree as an observer now shows their tree instead of your own.

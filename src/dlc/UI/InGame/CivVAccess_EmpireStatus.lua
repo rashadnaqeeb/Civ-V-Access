@@ -256,10 +256,10 @@ end
 
 -- Happiness with golden age always trailing. User asked for fixed ordering
 -- so the player's ear locks onto the same shape every press, regardless of
--- whether a golden age is currently running. Under VP balance
--- (approvalMode) the progress form carries the per-turn GAP rate inline,
--- as VP's top panel does; a zero rate adds no clause.
-local function goldenAgeClause(player, approvalMode)
+-- whether a golden age is currently running. The per-turn GAP rate rides the
+-- progress form on every engine that surfaces one (VP and LekMod, via the
+-- seam); vanilla returns no rate, and a zero rate adds no clause.
+local function goldenAgeClause(player)
     local turns = player:GetGoldenAgeTurns()
     if turns > 0 then
         return Text.formatPlural("TXT_KEY_CIVVACCESS_STATUS_GA_ACTIVE", turns, turns)
@@ -267,16 +267,14 @@ local function goldenAgeClause(player, approvalMode)
     local cur = player:GetGoldenAgeProgressMeter()
     local threshold = player:GetGoldenAgeProgressThreshold()
     local progress = Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_PROGRESS", cur, threshold)
-    if not approvalMode then
+    local rate = EngineData.goldenAgePerTurn(player)
+    if rate == nil or rate == 0 then
         return progress
     end
-    local rate = math.floor(gapPerTurnTimes100(player) / 100)
     if rate > 0 then
         return joinClauses(progress, Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_RATE", rate))
-    elseif rate < 0 then
-        return joinClauses(progress, Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_RATE_NEGATIVE", -rate))
     end
-    return progress
+    return joinClauses(progress, Text.format("TXT_KEY_CIVVACCESS_STATUS_GA_RATE_NEGATIVE", -rate))
 end
 
 -- Per-luxury inventory: name + total copies for every luxury currently
@@ -343,7 +341,7 @@ local function happinessLine()
     else
         happinessClause = Text.format("TXT_KEY_CIVVACCESS_STATUS_HAPPY", s.value)
     end
-    return joinClauses(happinessClause, goldenAgeClause(player, s.mode == "approval"), luxuryInventoryClause(player))
+    return joinClauses(happinessClause, goldenAgeClause(player), luxuryInventoryClause(player))
 end
 
 local function faithLine()

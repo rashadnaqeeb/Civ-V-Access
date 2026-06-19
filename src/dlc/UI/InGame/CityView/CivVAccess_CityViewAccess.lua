@@ -524,6 +524,16 @@ local FOCUS_TYPES = {
     { focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_FAITH, key = "TXT_KEY_CITYVIEW_FOCUS_FAITH_TEXT" },
 }
 
+-- LekMod adds a golden-age-points city focus; append it when the enum value
+-- exists (LekMod only), so the focus is selectable and its live "selected"
+-- marker tracks. Absent on vanilla / VP, where the focus does not exist.
+if CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GOLDEN_AGE_POINTS ~= nil then
+    FOCUS_TYPES[#FOCUS_TYPES + 1] = {
+        focus = CityAIFocusTypes.CITY_AI_FOCUS_TYPE_GOLDEN_AGE_POINTS,
+        key = "TXT_KEY_CITYVIEW_FOCUS_GOLDEN_AGE_TEXT",
+    }
+end
+
 local function pushWorkerFocus()
     local items = {}
     for _, f in ipairs(FOCUS_TYPES) do

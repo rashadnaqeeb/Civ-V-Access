@@ -158,6 +158,224 @@ function M.test_lekmod_best_defender_uses_vanilla_positional_signature()
     T.eq(seen.noncombat, 1, "fork noncombat extension at arg 7")
 end
 
+-- LekMod's extra combat-preview modifiers compute on LekMod and are inert
+-- (0) on vanilla, so the combat-preview enumerator skips them off-engine. A
+-- raw call to any of these on vanilla would throw (the bindings are unbound),
+-- which is exactly why they route through the seam.
+function M.test_lekmod_combat_modifiers_compute_vanilla_inert()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local vanilla = loadSeam(VANILLA_PATH)
+
+    -- Build two units whose owners sit in different ideologies so the
+    -- ideology gate opens. _G.Players is read inside the seam body.
+    local prevPlayers = _G.Players
+    _G.Players = {
+        [0] = {
+            GetLateGamePolicyTree = function()
+                return 1
+            end,
+        },
+        [1] = {
+            GetLateGamePolicyTree = function()
+                return 2
+            end,
+        },
+    }
+    local me = {
+        GetOwner = function()
+            return 0
+        end,
+        GetCombatBonusVsDifferentIdeologyModifier = function()
+            return 25
+        end,
+        GetTourismInfluenceCombatModifier = function()
+            return 10
+        end,
+        RangedDefenseModifier = function()
+            return 33
+        end,
+    }
+    local them = {
+        GetOwner = function()
+            return 1
+        end,
+    }
+
+    T.eq(lekmod.ideologyCombatModifier(me, them), 25, "ideology bonus shows when ideologies differ")
+    T.eq(lekmod.tourismInfluenceCombatModifier(me, them), 10, "tourism-influence modifier passes through")
+    T.eq(lekmod.rangedDefenseModifier(me), 33, "ranged-defense modifier passes through")
+
+    -- Same ideology -> gate closes, no bonus.
+    _G.Players[1].GetLateGamePolicyTree = function()
+        return 1
+    end
+    T.eq(lekmod.ideologyCombatModifier(me, them), 0, "ideology bonus suppressed when ideologies match")
+
+    -- Vanilla bodies are inert regardless of arguments.
+    T.eq(vanilla.ideologyCombatModifier(me, them), 0, "vanilla has no ideology combat modifier")
+    T.eq(vanilla.tourismInfluenceCombatModifier(me, them), 0, "vanilla has no tourism-influence modifier")
+    T.eq(vanilla.rangedDefenseModifier(me), 0, "vanilla has no ranged-defense modifier")
+
+    _G.Players = prevPlayers
+end
+
+-- Golden-age points per turn: LekMod surfaces a rate (its
+-- GetTotalGoldenAgePointsInEmpire feeds the GA meter each turn, and can be
+-- negative); vanilla surfaces no rate, so the headline drops the clause.
+function M.test_lekmod_golden_age_per_turn()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(
+        lekmod.goldenAgePerTurn({
+            GetTotalGoldenAgePointsInEmpire = function()
+                return 14
+            end,
+        }),
+        14,
+        "LekMod GAP per turn is the empire-total getter"
+    )
+    T.eq(
+        lekmod.goldenAgePerTurn({
+            GetTotalGoldenAgePointsInEmpire = function()
+                return -3
+            end,
+        }),
+        -3,
+        "LekMod GAP per turn can be negative"
+    )
+    T.eq(lekmod.goldenAgePerTurn({}), nil, "no binding (stock engine) -> nil, the rate clause drops")
+    T.eq(vanilla.goldenAgePerTurn({}), nil, "vanilla surfaces no GAP rate")
+
+    -- City-level GAP: a real city yield on LekMod (probed via YieldTypes),
+    -- nil on vanilla where the yield type does not exist.
+    local prevYields = _G.YieldTypes
+    _G.YieldTypes = { YIELD_GOLDEN_AGE_POINTS = 99 }
+    local city = {
+        GetYieldRate = function(_, y)
+            return y == 99 and 7 or 0
+        end,
+    }
+    T.eq(lekmod.cityGoldenAgePerTurn(city), 7, "LekMod city GAP reads the golden-age yield rate")
+    _G.YieldTypes = {}
+    T.eq(lekmod.cityGoldenAgePerTurn(city), nil, "no golden-age yield type -> nil")
+    T.eq(vanilla.cityGoldenAgePerTurn(city), nil, "vanilla has no city GAP yield")
+    _G.YieldTypes = prevYields
+end
+
+-- LekMod MP soft-prompt reads: pendingVoteProposalId scans recent proposals
+-- for one the active player can still vote on; pendingDealSender returns the
+-- first incoming-deal sender. Both -1 on vanilla (no MP voting system).
+function M.test_lekmod_soft_prompt_reads()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local vanilla = loadSeam(VANILLA_PATH)
+
+    local prevGame, prevDefines = _G.Game, _G.GameDefines
+    _G.GameDefines = { MAX_MAJOR_CIVS = 22 }
+    -- Proposal 7 is open, the active player is eligible and has not voted.
+    _G.Game = {
+        GetActivePlayer = function()
+            return 0
+        end,
+        GetLastProposalID = function()
+            return 7
+        end,
+        GetProposalStatus = function(id)
+            return id == 7 and 0 or 1
+        end,
+        GetProposalVoterEligibility = function(id, _p)
+            return id == 7
+        end,
+        GetProposalVoterHasVoted = function(_id, _p)
+            return false
+        end,
+        GetPendingIncomingDealSenders = function(_me, _bool)
+            return { 3, 5 }
+        end,
+    }
+    T.eq(lekmod.pendingVoteProposalId(), 7, "finds the open, unvoted, eligible proposal")
+    T.eq(lekmod.pendingDealSender(), 3, "first incoming-deal sender")
+
+    -- Already voted -> nothing pending.
+    _G.Game.GetProposalVoterHasVoted = function()
+        return true
+    end
+    T.eq(lekmod.pendingVoteProposalId(), -1, "voted proposals are not pending")
+
+    _G.Game.GetPendingIncomingDealSenders = function()
+        return {}
+    end
+    T.eq(lekmod.pendingDealSender(), -1, "no senders -> -1")
+
+    T.eq(vanilla.pendingVoteProposalId(), -1, "vanilla has no MP voting system")
+    T.eq(vanilla.pendingDealSender(), -1, "vanilla has no incoming-deal soft prompt")
+
+    _G.Game, _G.GameDefines = prevGame, prevDefines
+end
+
+-- Tech-steal cost: LekMod charges science to steal a tech; vanilla steals
+-- outright (nil, so the steal-cost line drops).
+function M.test_lekmod_tech_steal_cost()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local vanilla = loadSeam(VANILLA_PATH)
+    local player = {
+        ScienceToStealAmount = function(_, target, tech)
+            return target * 100 + tech
+        end,
+    }
+    T.eq(lekmod.techStealCost(player, 2, 5), 205, "LekMod returns the science steal cost")
+    T.eq(lekmod.techStealCost({}, 2, 5), nil, "no binding -> nil")
+    T.eq(vanilla.techStealCost(player, 2, 5), nil, "vanilla steals outright, no cost")
+end
+
+-- Resource-trade blocked reason: LekMod returns a one-line reason for an
+-- owned-but-untradeable resource (luxury the partner owns / embargo /
+-- unresearched strategic); vanilla returns nil so the row stays dropped.
+function M.test_lekmod_resource_trade_blocked_reason()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local vanilla = loadSeam(VANILLA_PATH)
+    local prevLocale, prevGameInfo = _G.Locale, _G.GameInfo
+    _G.Locale = {
+        ConvertTextKey = function(key, arg)
+            return arg and (key .. ":" .. tostring(arg)) or key
+        end,
+    }
+    _G.GameInfo = { Technologies = { [4] = { Description = "TXT_KEY_TECH_X" } } }
+
+    -- Luxury the partner already owns.
+    local deal = {
+        IsLuxuryTradeTargetAlreadyHasResource = function()
+            return true
+        end,
+    }
+    T.eq(
+        lekmod.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 2, ID = 9 }),
+        "TXT_KEY_DIPLO_ITEM_PLAYER_ALREADY_OWNS_ONE_LINE",
+        "luxury partner already owns"
+    )
+    -- Luxury under embargo (binding says not-already-owned).
+    deal.IsLuxuryTradeTargetAlreadyHasResource = function()
+        return false
+    end
+    T.eq(
+        lekmod.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 2, ID = 9 }),
+        "TXT_KEY_DIPLO_ITEM_EMBARGOED_ONE_LINE",
+        "luxury embargoed"
+    )
+    -- Strategic neither side has researched.
+    T.eq(
+        lekmod.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 1, TechReveal = 4 }),
+        "TXT_KEY_DIPLO_ITEM_BOTH_HAVE_NOT_REASEARCHED_ONE_LINE:TXT_KEY_TECH_X",
+        "strategic not researched names the reveal tech"
+    )
+    T.eq(
+        vanilla.resourceTradeBlockedReason(deal, 0, 1, { ResourceUsage = 2, ID = 9 }),
+        nil,
+        "vanilla drops untradeable"
+    )
+
+    _G.Locale, _G.GameInfo = prevLocale, prevGameInfo
+end
+
 -- VP-only features stay inert on LekMod, exactly as on vanilla: vassalage,
 -- war score, embassies, historic events, building investments have no LekMod
 -- equivalent, so their bodies must return the no-support answer.

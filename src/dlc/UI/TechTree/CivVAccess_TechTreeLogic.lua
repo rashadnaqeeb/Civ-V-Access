@@ -136,7 +136,21 @@ end
 -- queue slot (if queued and not current), turns (if researchable and
 -- science > 0), unlocks. Distinguishing info — the tech name — leads so
 -- the user can key-spam past recognized entries.
-function TechTreeLogic.buildLandingSpeech(techID, player)
+-- LekMod espionage steal mode shows the science needed to steal this tech
+-- from the target (nil on vanilla / VP, where theft is instant). Appended to
+-- both the linear landing speech and the section review when stealing.
+local function stealCostClause(player, techID, stealingTargetID)
+    if stealingTargetID == nil or stealingTargetID < 0 then
+        return nil
+    end
+    local cost = EngineData.techStealCost(player, stealingTargetID, techID)
+    if cost == nil or cost <= 0 then
+        return nil
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_TECHTREE_STEAL_COST", cost)
+end
+
+function TechTreeLogic.buildLandingSpeech(techID, player, stealingTargetID)
     local info = GameInfo.Technologies[techID]
     local name = Text.key(info.Description)
     local parts = { name }
@@ -156,6 +170,11 @@ function TechTreeLogic.buildLandingSpeech(techID, player)
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
     end
 
+    local stealCost = stealCostClause(player, techID, stealingTargetID)
+    if stealCost ~= nil then
+        parts[#parts + 1] = stealCost
+    end
+
     local prose = unlocksProse(techID, name, player:GetID())
     if prose ~= "" then
         parts[#parts + 1] = prose
@@ -172,7 +191,7 @@ end
 -- individually. buildLandingSpeech flattens those lines to commas for the
 -- linear readout; here the engine's section structure becomes the review
 -- boundaries, which is the whole point of the chord on long VP tech prose.
-function TechTreeLogic.buildLandingSections(techID, player)
+function TechTreeLogic.buildLandingSections(techID, player, stealingTargetID)
     local info = GameInfo.Technologies[techID]
     local name = Text.key(info.Description)
     local sections = { name }
@@ -190,6 +209,11 @@ function TechTreeLogic.buildLandingSections(techID, player)
     if not researched and player:GetScienceTimes100() > 0 then
         local turns = player:GetResearchTurnsLeft(techID, true)
         sections[#sections + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS", turns, turns)
+    end
+
+    local stealCost = stealCostClause(player, techID, stealingTargetID)
+    if stealCost ~= nil then
+        sections[#sections + 1] = stealCost
     end
 
     local raw = GetHelpTextForTech(techID, false, player:GetID())

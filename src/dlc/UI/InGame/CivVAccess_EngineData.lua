@@ -143,6 +143,70 @@ function EngineData.capitalDefenseModifier(unit)
     return capDef
 end
 
+-- Drift read: LekMod's "combat bonus versus a different ideology" modifier
+-- (see the LekMod file for the contract). Vanilla has no such modifier, so
+-- this is inert; the combat-preview enumerator skips a 0.
+function EngineData.ideologyCombatModifier(_unit, _otherUnit)
+    return 0
+end
+
+-- Drift read: LekMod's tourism-influence combat modifier. Inert on vanilla.
+function EngineData.tourismInfluenceCombatModifier(_unit, _otherUnit)
+    return 0
+end
+
+-- Drift read: LekMod's ranged-defense combat modifier for a defending unit.
+-- Inert on vanilla.
+function EngineData.rangedDefenseModifier(_unit)
+    return 0
+end
+
+-- Drift read: the player's golden-age points gained per turn, for the
+-- empire-status golden-age progress line. Vanilla does not surface a GAP
+-- rate (the progress line speaks the meter only), so this returns nil and the
+-- caller adds no rate clause. VP and LekMod return a whole rate (which the
+-- caller signs and speaks); VP's can be 0, LekMod's can be negative.
+function EngineData.goldenAgePerTurn(_player)
+    return nil
+end
+
+-- Drift read: a single city's golden-age points per turn. Vanilla has no
+-- golden-age-points yield, so this is inert; the city per-turn readout skips
+-- a nil. LekMod surfaces it as a real city yield.
+function EngineData.cityGoldenAgePerTurn(_city)
+    return nil
+end
+
+-- LekMod MP "soft prompt" intents -- a pending proposal vote / incoming deal
+-- on the end-turn button (see the LekMod file). Vanilla has no MP voting
+-- system, so the reads report nothing pending and the opens are no-ops; the
+-- Turn module's soft-prompt branch never fires.
+function EngineData.pendingVoteProposalId()
+    return -1
+end
+
+function EngineData.pendingDealSender()
+    return -1
+end
+
+function EngineData.openVoteProposal(_id) end
+
+function EngineData.openIncomingDeal(_sender) end
+
+-- Drift read: the science needed to steal a tech via espionage (see the
+-- LekMod file). Vanilla steals a tech outright with no science cost, so this
+-- is nil and the tech tree's steal-cost line never appears.
+function EngineData.techStealCost(_player, _targetID, _techID)
+    return nil
+end
+
+-- Drift read: the reason an owned resource can't be traded (see the LekMod
+-- file). Vanilla's trade screen drops untradeable resources rather than
+-- listing them disabled, so this is nil and that behavior is unchanged.
+function EngineData.resourceTradeBlockedReason(_deal, _fromPlayer, _toPlayer, _row)
+    return nil
+end
+
 -- Drift read: the tech the active player still needs before a tile's
 -- resource can be exploited, as the tech's Description text-key (the game
 -- key resolves the arg as another text key, so the key is passed, not the

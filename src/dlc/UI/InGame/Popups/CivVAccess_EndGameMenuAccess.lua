@@ -53,6 +53,9 @@
 include("CivVAccess_PopupBoot")
 include("CivVAccess_DemographicsRows")
 include("CivVAccess_VictoryDescStrings_en_US")
+-- LekMod's scrap victory reuses the Cristo Redentor wonder splash, so the
+-- F2 art description for it reuses that wonder's description (loaded here).
+include("CivVAccess_WonderDescStrings_en_US")
 include("CivVAccess_VictoryDescription")
 
 local priorInput = InputHandler
@@ -84,6 +87,12 @@ local function displayedArtKey()
     end
     if capturedTeam ~= Game.GetActiveTeam() then
         return "DEFEAT"
+    end
+    -- LekMod's scrap victory is not an EndGameType; like LekMod's own
+    -- EndGameMenu, key off the actual victory type. Nil GameInfoTypes entry on
+    -- vanilla / VP, so this branch never fires there.
+    if GameInfoTypes.VICTORY_SCRAP ~= nil and Game.GetVictory() == GameInfoTypes.VICTORY_SCRAP then
+        return "VICTORY_SCRAP"
     end
     local victoryByEndGameType = {
         [EndGameTypes.Technology] = "VICTORY_SPACE_RACE",

@@ -222,13 +222,37 @@ function PullDownProbe.ensureCheckBoxInstalled(sampleCheckBox)
         sampleCheckBox,
         "RegisterCheckHandler",
         "checkBoxCallbacks",
-        function(origReg, callbacks)
-            return {
+        function(origReg, callbacks, mt, sample)
+            local interceptors = {
                 RegisterCheckHandler = function(self, fn)
                     callbacks[self] = fn
                     return origReg(self, fn)
                 end,
             }
+            -- Some screens wire a checkbox with
+            -- Controls.X:RegisterCallback(Mouse.eLClick, fn) instead of
+            -- RegisterCheckHandler (LekMod's hardcoded MP game options do
+            -- this). Capture those onto the checkbox's own metatable -- so it
+            -- does not matter whether checkboxes share the button metatable --
+            -- into the same buttonCallbacks table the button probe uses, so
+            -- buttonCallbackFor resolves a checkbox's click handler uniformly.
+            local origRegCb = resolveMethod(mt.__index, sample, "RegisterCallback")
+            if type(origRegCb) == "function" then
+                civvaccess_shared.buttonCallbacks = civvaccess_shared.buttonCallbacks or {}
+                local clickCallbacks = civvaccess_shared.buttonCallbacks
+                interceptors.RegisterCallback = function(self, mouseEvent, fn)
+                    if type(mouseEvent) == "number" and type(fn) == "function" then
+                        local perButton = clickCallbacks[self]
+                        if perButton == nil then
+                            perButton = {}
+                            clickCallbacks[self] = perButton
+                        end
+                        perButton[mouseEvent] = fn
+                    end
+                    return origRegCb(self, mouseEvent, fn)
+                end
+            end
+            return interceptors
         end
     )
 end

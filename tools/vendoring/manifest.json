@@ -738,6 +738,18 @@
         "alias": "vp"
       }
     },
+    "InGame/Popups/CCVotePopup.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (LekMod engine only; this\r\n-- Context is a LekMod voting-system UI addin and does not exist on\r\n-- vanilla / VP installs).\r\ninclude(\"CivVAccess_CCVotePopupAccess\")\r\n"
+    },
+    "InGame/Popups/ProposalChartPopup.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (LekMod engine only; this\r\n-- Context is a LekMod voting-system UI addin and does not exist on\r\n-- vanilla / VP installs).\r\ninclude(\"CivVAccess_ProposalChartPopupAccess\")\r\n"
+    },
     "InGame/Popups/RandomVCPopup.lua": {
       "engines": [
         "vp"

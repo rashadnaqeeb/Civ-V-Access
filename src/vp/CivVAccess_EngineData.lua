@@ -120,6 +120,72 @@ function EngineData.capitalDefenseModifier(unit)
     return unit:GetCombatModifierFromCapitalDistance(plot)
 end
 
+-- Drift read: LekMod's "combat bonus versus a different ideology" modifier
+-- (see the LekMod file for the contract). VP has no such modifier, so this
+-- is inert; the combat-preview enumerator skips a 0.
+function EngineData.ideologyCombatModifier(_unit, _otherUnit)
+    return 0
+end
+
+-- Drift read: LekMod's tourism-influence combat modifier. Inert on VP.
+function EngineData.tourismInfluenceCombatModifier(_unit, _otherUnit)
+    return 0
+end
+
+-- Drift read: LekMod's ranged-defense combat modifier for a defending unit.
+-- Inert on VP.
+function EngineData.rangedDefenseModifier(_unit)
+    return 0
+end
+
+-- Drift read: the player's golden-age points gained per turn (see the
+-- vanilla file for the contract). VP's TopPanel composes it from the four GAP
+-- sources (three flat plus the times-100 city GAP); floored to a whole rate
+-- for display, matching the panel.
+function EngineData.goldenAgePerTurn(player)
+    local times100 = (player:GetHappinessForGAP() + player:GetGAPFromReligion() + player:GetGAPFromTraits()) * 100
+        + player:GetGAPFromCitiesTimes100()
+    return math.floor(times100 / 100)
+end
+
+-- Drift read: a single city's golden-age points per turn. VP's per-city GAP
+-- feeds the player-level GetGAPFromCitiesTimes100 total and is not a per-city
+-- yield, so there is no per-city rate to surface; inert, matching the empire-
+-- level rate VP already speaks. LekMod surfaces it as a real city yield.
+function EngineData.cityGoldenAgePerTurn(_city)
+    return nil
+end
+
+-- LekMod MP "soft prompt" intents -- a pending proposal vote / incoming deal
+-- on the end-turn button (see the LekMod file). VP has no MP voting system, so
+-- the reads report nothing pending and the opens are no-ops; the Turn module's
+-- soft-prompt branch never fires.
+function EngineData.pendingVoteProposalId()
+    return -1
+end
+
+function EngineData.pendingDealSender()
+    return -1
+end
+
+function EngineData.openVoteProposal(_id) end
+
+function EngineData.openIncomingDeal(_sender) end
+
+-- Drift read: the science needed to steal a tech via espionage (see the
+-- LekMod file). VP steals a tech outright with no science cost, so this is nil
+-- and the tech tree's steal-cost line never appears.
+function EngineData.techStealCost(_player, _targetID, _techID)
+    return nil
+end
+
+-- Drift read: the reason an owned resource can't be traded (see the LekMod
+-- file). VP's trade screen drops untradeable resources rather than listing
+-- them disabled, so this is nil and that behavior is unchanged.
+function EngineData.resourceTradeBlockedReason(_deal, _fromPlayer, _toPlayer, _row)
+    return nil
+end
+
 -- Drift read: the tech still needed to exploit a tile's resource (see the
 -- vanilla file for the contract). VP replaced vanilla's TechCityTrade +
 -- team-HasTech check with a per-player IsResourceImproveable gate and a
