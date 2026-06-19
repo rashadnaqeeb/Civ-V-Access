@@ -339,7 +339,10 @@ function Deploy-ModpackPackage {
         throw "Built modpack missing at $modpackBuildDir. Run build-modpack.ps1$buildFlag first."
     }
     # Remove BOTH the CP and VP packages so the states stay exclusive (a prior
-    # deploy of the other mode would otherwise leave its package on the DLC list).
+    # deploy of the other mode would otherwise leave its package on the DLC
+    # list), plus LekMod's prebaked DLC -- it carries Override/ GameData the
+    # engine auto-loads for any present DLC, so a stale LekMod install would
+    # load alongside this modpack.
     foreach ($name in $allModpackNames) {
         $old = Join-Path $Game "Assets\DLC\$name"
         if (Test-Path $old) {
@@ -347,10 +350,58 @@ function Deploy-ModpackPackage {
             Remove-Item -LiteralPath $old -Recurse -Force
         }
     }
+    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "  Removing LekMod DLC: $($_.FullName)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
+    }
     $dst = Join-Path $Game "Assets\DLC\$modpackName"
     Write-Host "Placing modpack package (embeds the fork DLL):"
     Write-Host "  $modpackBuildDir -> $dst"
     Copy-Item -LiteralPath $modpackBuildDir -Destination $dst -Recurse -Force
+}
+
+function Remove-VpSubstrate {
+    # CP-only flips away from the Vox Populi substrate: VPUI (a UISkin DLC) and
+    # the swapped Expansion2.Civ5Pkg both load in a no-mod session, so a prior
+    # VP modpack/overlay would leak VP's UI and minor-civ sounds into a CP-only
+    # game. Idempotent: a no-op on an install that was never VP-ified. (Full VP
+    # modes keep the substrate -- they call Complete-VPInstall instead.)
+    param([string]$Game)
+
+    $vpui = Join-Path $Game "Assets\DLC\VPUI"
+    if (Test-Path $vpui) {
+        Write-Host "Removing VPUI fake DLC:"
+        Write-Host "  $vpui"
+        Remove-Item -LiteralPath $vpui -Recurse -Force
+    }
+
+    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
+    if ((Test-Path $pkg) -and ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli')) {
+        if (Test-Path $expansionPkgBackup) {
+            Write-Host "Restoring stock BNW Expansion2.Civ5Pkg from backup:"
+            Write-Host "  $expansionPkgBackup -> $pkg"
+            Copy-Item -LiteralPath $expansionPkgBackup -Destination $pkg -Force
+        } else {
+            Write-Host "WARNING: Expansion2.Civ5Pkg is the VP version but no stock backup"
+            Write-Host "exists; verify game files in Steam to restore the stock manifest, or"
+            Write-Host "this CP-only session keeps VP's minor-civ sound table."
+            Write-Host "  (expected backup: $expansionPkgBackup)"
+        }
+    }
+
+    $minorSounds = Join-Path $Game "Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml"
+    if (Test-Path $minorSounds) {
+        Write-Host "Removing VP minor-civ sound table:"
+        Write-Host "  $minorSounds"
+        Remove-Item -LiteralPath $minorSounds -Force
+    }
+
+    $tips = Join-Path $civ5DocsDir "Text\VPUI_tips_en_us.xml"
+    if (Test-Path $tips) {
+        Write-Host "Removing VP loading-screen tips:"
+        Write-Host "  $tips"
+        Remove-Item -LiteralPath $tips -Force
+    }
 }
 
 function Deploy-Cinematics {
@@ -435,7 +486,7 @@ if ($Uninstall) {
 # Expansion2 package and sound tables (Expansion2_Base.Civ5Pkg differs from VP's
 # only by the minor-civ sound table, which CP does not add). VPUI and the VP
 # sound table / tips are Vox Populi assets and are not wanted here.
-if (-not $CommunityPatchOnly) { Complete-VPInstall -Game $gameDir }
+if (-not $CommunityPatchOnly) { Complete-VPInstall -Game $gameDir } else { Remove-VpSubstrate -Game $gameDir }
 if (-not $SkipProxy) { Deploy-ProxyStack -Game $gameDir } else { Write-Host "Skipping proxy stack (-SkipProxy)." }
 Deploy-DlcModpack -Game $gameDir
 Deploy-ModpackPackage -Game $gameDir

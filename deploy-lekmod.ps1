@@ -75,6 +75,7 @@ $forkDllSrc       = Join-Path $repoRoot 'dist\engine-lekmod\CvGameCore_Expansion
 $soundsSrcDir     = Join-Path $repoRoot 'sounds'
 $dlcName          = 'DLC_CivVAccess'
 $lekmodDlcName    = 'LEKMOD'                 # our deployed LekMod DLC folder (fixed name)
+$modpackNames     = @('ZCivVAccessVP', 'ZCivVAccessCP')  # VP/CP modpack packages; removed when flipping to LekMod
 $dlcBackupDirName = "$dlcName.backup"
 $installManifestName = 'CivVAccess.install.json'
 $ourDlcPriority   = 350                      # beats LekMod's 300
@@ -93,6 +94,7 @@ $modVersion  = $versions.mod
 
 $dlcBackupDir    = $null
 $cinematicBackup = $null
+$stockPkgBackup  = $null   # shared backup of the stock BNW Expansion2.Civ5Pkg (deploy.ps1 / deploy-vp capture it)
 
 $cinematicFiles = @(
     'Civ5XP2_Opening_Movie_en_US.wmv',
@@ -208,6 +210,70 @@ function Resolve-LekModStandardUI {
     # tmp/eui, which is out of scope) so the deployed DLC carries no EUI bodies.
     $tmp = Join-Path $LekModDir 'Lua\tmp'
     if (Test-Path $tmp) { Remove-Item -LiteralPath $tmp -Recurse -Force }
+}
+
+function Clear-OtherInstallStates {
+    # Flip away from every other state's artifacts before installing LekMod:
+    # the VP/CP modpack packages and the Vox Populi substrate (VPUI fake DLC,
+    # the swapped Expansion2.Civ5Pkg, minor-civ sound table, loading tips). All
+    # of these auto-load for any DLC present, so leaving them would make a
+    # "LekMod" session a hybrid. The VP MODS overlay (the fork DLL + overlaid
+    # vendor files under Documents\MODS) is left alone: it is inert in any
+    # session that does not enable the VP mod, which LekMod does not.
+    param([string]$Game)
+
+    foreach ($name in $modpackNames) {
+        $modpackDir = Join-Path $Game "Assets\DLC\$name"
+        if (Test-Path $modpackDir) {
+            Write-Host "Removing modpack package:"
+            Write-Host "  $modpackDir"
+            Remove-Item -LiteralPath $modpackDir -Recurse -Force
+        }
+    }
+    Remove-VpSubstrate -Game $Game
+}
+
+function Remove-VpSubstrate {
+    # Tear down the VP-completion substrate (mirrors deploy.ps1). VPUI is a
+    # UISkin DLC and the swapped Expansion2.Civ5Pkg is the always-active BNW
+    # manifest, so both load in a no-mod LekMod session. Idempotent: a no-op on
+    # an install that was never VP-ified.
+    param([string]$Game)
+
+    $vpui = Join-Path $Game "Assets\DLC\VPUI"
+    if (Test-Path $vpui) {
+        Write-Host "Removing VPUI fake DLC:"
+        Write-Host "  $vpui"
+        Remove-Item -LiteralPath $vpui -Recurse -Force
+    }
+
+    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
+    if ((Test-Path $pkg) -and ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli')) {
+        if (Test-Path $stockPkgBackup) {
+            Write-Host "Restoring stock BNW Expansion2.Civ5Pkg from backup:"
+            Write-Host "  $stockPkgBackup -> $pkg"
+            Copy-Item -LiteralPath $stockPkgBackup -Destination $pkg -Force
+        } else {
+            Write-Host "WARNING: Expansion2.Civ5Pkg is the VP version but no stock backup"
+            Write-Host "exists to restore. Verify game files in Steam to restore the stock"
+            Write-Host "manifest, or this LekMod session keeps VP's minor-civ sound table."
+            Write-Host "  (expected backup: $stockPkgBackup)"
+        }
+    }
+
+    $minorSounds = Join-Path $Game "Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml"
+    if (Test-Path $minorSounds) {
+        Write-Host "Removing VP minor-civ sound table:"
+        Write-Host "  $minorSounds"
+        Remove-Item -LiteralPath $minorSounds -Force
+    }
+
+    $tips = Join-Path $civ5DocsDir "Text\VPUI_tips_en_us.xml"
+    if (Test-Path $tips) {
+        Write-Host "Removing VP loading-screen tips:"
+        Write-Host "  $tips"
+        Remove-Item -LiteralPath $tips -Force
+    }
 }
 
 function Deploy-LekModDlc {
@@ -353,6 +419,7 @@ $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
 Write-Host "  Game dir: $gameDir"
 $dlcBackupDir    = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
 $cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
+$stockPkgBackup  = Join-Path $dlcBackupDir 'Expansion2.Civ5Pkg.stock'
 
 if ($Uninstall) {
     Invoke-Uninstall -Game $gameDir
@@ -362,6 +429,7 @@ if ($Uninstall) {
 }
 
 if (-not $SkipProxy) { Deploy-ProxyStack -Game $gameDir } else { Write-Host "Skipping proxy stack (-SkipProxy)." }
+Clear-OtherInstallStates -Game $gameDir
 Deploy-LekModDlc -Game $gameDir
 Deploy-OurDlc -Game $gameDir
 if (-not $SkipCinematics) { Deploy-Cinematics -Game $gameDir } else { Write-Host "Skipping cinematics (-SkipCinematics)." }

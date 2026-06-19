@@ -368,14 +368,21 @@ function Deploy-Dlc {
         Remove-Item -LiteralPath $dlcDir -Recurse -Force
     }
 
-    # A prior modpack deploy leaves its package at Assets\DLC\$modpackName,
-    # whose Override/ GameData the engine auto-loads for any present DLC. Left
-    # behind, its stale-pin merged database would load alongside this
-    # mod-overlay session. Remove it so the flip out of modpack state is clean.
-    $modpackDir = Join-Path $Game "Assets\DLC\$modpackName"
-    if (Test-Path $modpackDir) {
-        Write-Host "  Removing VP modpack package: $modpackDir"
-        Remove-Item -LiteralPath $modpackDir -Recurse -Force
+    # Flip away from every other DLC-package state: the VP and CP modpack
+    # packages and LekMod's prebaked DLC all carry Override/ GameData the engine
+    # auto-loads for any present DLC, so a stale one would load alongside this
+    # mod-overlay session. (The VP substrate -- VPUI, the swapped
+    # Expansion2.Civ5Pkg -- is kept: this IS a VP state.)
+    foreach ($name in @('ZCivVAccessVP', 'ZCivVAccessCP')) {
+        $modpackDir = Join-Path $Game "Assets\DLC\$name"
+        if (Test-Path $modpackDir) {
+            Write-Host "  Removing modpack package: $modpackDir"
+            Remove-Item -LiteralPath $modpackDir -Recurse -Force
+        }
+    }
+    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "  Removing LekMod DLC: $($_.FullName)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
     }
 
     New-Item -ItemType Directory -Path $dlcDir -Force | Out-Null
