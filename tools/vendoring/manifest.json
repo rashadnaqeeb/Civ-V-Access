@@ -855,7 +855,10 @@
           "old": "-------------------------------------------------\r\n-------------------------------------------------\r\nfunction InputHandler( uiMsg, wParam, lParam )\r\n    if( m_bChatOpen \r\n        and uiMsg == KeyEvents.KeyUp\r\n        and wParam == Keys.VK_TAB ) then\r\n        Controls.ChatEntry:TakeFocus();\r\n        return true;\r\n    end\r\nend\r\nContextPtr:SetInputHandler( InputHandler );\r\n\r\n",
           "new": "-- Stock InputHandler grabbed Tab on KeyUp and called Controls.ChatEntry:\r\n-- TakeFocus(), trapping the keyboard inside the engine chat edit box --\r\n-- arrows then move the text cursor and never reach our BaseMenu nav.\r\n-- Mod-bound `\\` opens an accessible chat panel via CivVAccess_ChatAccess\r\n-- with proper focus handling, so DiploCorner has no reason to intercept\r\n-- input at all.\r\n"
         }
-      ]
+      ],
+      "lekmod": {
+        "edits": []
+      }
     },
     "InGame/WorldView/MiniMapPanel.lua": {
       "hand": true,

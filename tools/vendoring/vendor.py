@@ -63,6 +63,10 @@ def default_clone_dir():
     return os.path.join(os.path.dirname(REPO_ROOT), "Community-Patch-DLL")
 
 
+def default_lekmod_dir():
+    return os.path.join(os.path.dirname(REPO_ROOT), "Lekmod")
+
+
 class VendorError(Exception):
     pass
 
@@ -192,6 +196,34 @@ def dir_root(name, base_dir):
     return Root(name, base_dir, files)
 
 
+def ignore_suffix_root(name, base_dir):
+    """A source layer whose UI bodies carry a `.ignore` / `.IGNORE` suffix on
+    top of the real .lua/.xml extension (LekMod's LEKMOD/Lua/tmp/ui, where the
+    suffix keeps the standard-UI copies dormant until its installer picks a UI
+    set -- we take the standard set and skip ui_check.bat). The de-suffixed
+    name is what we index and what resolve_source matches our override stems
+    against; candidates() points back at the real on-disk file with the suffix
+    intact."""
+    if not os.path.isdir(base_dir):
+        fail("source root missing: " + base_dir)
+    abs_for = {}
+    for dirpath, _dirnames, filenames in os.walk(base_dir):
+        for fn in filenames:
+            low = fn.lower()
+            if not low.endswith(".ignore"):
+                continue
+            stripped = fn[: -len(".ignore")]
+            if not stripped.lower().endswith(VENDOR_EXTS):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, stripped), base_dir).replace(os.sep, "/")
+            abs_for[rel] = os.path.join(dirpath, fn)
+    root = Root(name, base_dir, list(abs_for.keys()))
+    root.candidates = lambda basename: [
+        (rel, abs_for[rel]) for rel in root.index.get(basename.lower(), [])
+    ]
+    return root
+
+
 def mod_root(name, mod_dir):
     if not os.path.isdir(mod_dir):
         fail("mod directory missing: " + mod_dir)
@@ -264,6 +296,20 @@ def cp_roots(game_dir, mods_dir):
     drift report is then exactly the set of CP-divergent files."""
     return [
         mod_root("CP", os.path.join(mods_dir, "(1) Community Patch")),
+    ] + vanilla_roots(game_dir)
+
+
+def lekmod_roots(game_dir, lekmod_dir):
+    """The LekMod chain: LekMod's standard-UI bodies over the vanilla
+    BNW/base chain. LekMod ships its UI as a DLC injected into the Expansion2
+    GameplaySkin, but the source bodies live in the clone at LEKMOD/Lua/tmp/ui
+    with a `.ignore` suffix; a file LekMod does not override falls through to
+    its vanilla body, so the drift report is exactly the LekMod-divergent set.
+    EUI (the clone's LEKMOD/Lua/tmp/eui) is deliberately absent -- it is out of
+    scope, which collapses LekMod's two UI sets to the one standard set."""
+    ui = os.path.join(lekmod_dir, "LEKMOD", "Lua", "tmp", "ui")
+    return [
+        ignore_suffix_root("LEKMOD", ui),
     ] + vanilla_roots(game_dir)
 
 
@@ -608,6 +654,8 @@ def cmd_generate(args):
         roots = vp_roots(args.game, args.mods, args.clone)
     elif args.engine == "cp":
         roots = cp_roots(args.game, args.mods)
+    elif args.engine == "lekmod":
+        roots = lekmod_roots(args.game, args.lekmod)
     elif args.engine == "vanilla":
         roots = vanilla_roots(args.game)
     else:
@@ -716,7 +764,7 @@ def main():
     sub.add_parser("verify", help="regenerate from vanilla and byte-compare")
 
     gen = sub.add_parser("generate", help="stage overrides for an engine")
-    gen.add_argument("--engine", required=True, choices=["vanilla", "vp", "cp"])
+    gen.add_argument("--engine", required=True, choices=["vanilla", "vp", "cp", "lekmod"])
     gen.add_argument(
         "--out",
         default=os.path.join(REPO_ROOT, "build", "vendor", "vp"),
@@ -731,6 +779,11 @@ def main():
         "--clone",
         default=os.environ.get("CPDLL_DIR", default_clone_dir()),
         help="Community-Patch-DLL clone (for the VPUI layer)",
+    )
+    gen.add_argument(
+        "--lekmod",
+        default=os.environ.get("LEKMOD_DIR", default_lekmod_dir()),
+        help="LekMod clone (for the LekMod standard-UI bodies)",
     )
 
     args = ap.parse_args()
