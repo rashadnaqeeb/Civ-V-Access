@@ -1,0 +1,91 @@
+# LekMod support reference
+
+Durable reference for the LekMod support layer of Civ V Access. LekMod is a multiplayer-focused content and balance overhaul; supporting it reuses the entire vanilla accessibility layer and swaps the engine fork, the EngineData seam body, and the vendor tree, exactly like Vox Populi but lighter. Read `cp-vp-support.md` first for the shared architecture (the seam, capability probes, the vendoring tool, the re-sync shape) and the patterns this file does not repeat; this file holds only what LekMod does differently.
+
+The two facts that separate LekMod from VP: its DLL is an NQMod-lineage fork (Firaxis SDK plus overlay, not Community Patch), so it builds on the same VC9 / Windows SDK 7.0 toolchain as our vanilla fork and carries none of the CP/VP balance machinery; and there is no CP/VP-style duality and no modpack bake, because LekMod ships as a prebaked DLC the engine loads directly. There is exactly one LekMod install state.
+
+Hand-authored, not extracted; the canonical sources are the code and tooling it points at (grep `CIVVACCESS:` in the fork clone, read `tools/vendoring/manifest.json`, read `deploy-lekmod.ps1`). This file holds facts that stay true across releases. The current pin is `supported_lekmod` in `versions.json` (a commit SHA, since LekMod ships no version tags), not in prose.
+
+## Support model
+
+LekMod support reuses the vanilla proxy, Tolk, DLC payload, wrappers, and speech pipeline, and adds three things:
+
+- A fork of EnormousApplePie/Lekmod's `CvGameCore_Expansion2.dll` in place of our vanilla engine fork. LekMod loads its gameplay DLL from its own DLC folder, so the fork is placed there (over LekMod's stock DLL, keeping LekMod's GUID so the engine loads ours as the Expansion2 core). The fork inherits LekMod's GUID and never changes it.
+- The EngineData seam, with a LekMod body holding the detection probe and the fork-binding gating, plus the LekMod-only intents (voting, combat modifiers, golden-age points, pending vote/deal prompts, trade-block reasons, tech-steal cost).
+- A per-engine vendor-override tree (`--engine lekmod`), generated from the manifest, so the same screen wrappers compile against LekMod's UI bodies.
+
+## Install state
+
+There is one LekMod state, deployed by `deploy-lekmod.ps1`: a DLC overlay. It installs LekMod's prebaked DLC plus our accessibility DLC at `<Priority>350</Priority>` (LekMod's content sits at 300; priority dominates package sort-order, so our overrides win the stems both ship), with our fork DLL dropped over LekMod's. Both DLCs are off the mod-hash list (each carries `<SteamApp>235580</SteamApp>` + BNW's `<Key>`), so a session is MP-lobby-visible.
+
+This is NOT a VP-style mod-overlay: there is no MODS activation, no `-RepinBuild` gate, no transient build-only mode. It is the play / test / MP state directly, because LekMod's data is already flat (see "No bake"). It is a fifth install state, mutually exclusive with vanilla, the VP mod-overlay, and the two modpack states; `deploy-lekmod.ps1` scrubs the other states' artifacts (the VP/CP modpack packages and the VP-completion substrate) on the way in, and `deploy.ps1` flips back to vanilla. The running session must match the last deploy, or the player hears silent wrong numbers. The install manifest records `variant: lekmod`.
+
+Multiplayer: two blind players both run `deploy-lekmod.ps1` (matching DLC set). A blind host versus a sighted partner: the partner installs LekMod normally and gets our empty-shell DLC (GUID match) plus the fork via `deploy-lekmod-sighted-multiplayer.ps1`.
+
+## No bake
+
+LekMod's `Override/` is flat, full-table DLC-override XML with base-game names, the form the engine loads directly when the DLC is active, not mod-update-action XML. LekMod's own install is "copy into `Assets/DLC`, run `ui_check`, launch": no merge, no bake. So the entire modpack-bake machinery the VP layer carries does not apply. VP needs `build_modpack.py` only because CP/VP are MODS-folder mods whose data exists solely as mod-update actions that a session must merge into a cache DB; LekMod is born a DLC with already-flat data, so there is nothing to merge. No merged-DB session, no `tools/modpack` parameterization, no `build-modpack-lekmod.ps1`, no `deploy-modpack-lekmod.ps1`.
+
+## The EngineData seam and detection
+
+`src/lekmod/CivVAccess_EngineData.lua` is the LekMod body, swapped in under the shared include stem by `deploy-lekmod.ps1`. The same seam rules as VP apply: only named intents cross it, fork-only bindings gate on `forkPresent()`, and `tests/engine_data_lekmod_test.lua` pins set parity across all three bodies (vanilla, vp, lekmod) so a missed body fails loudly.
+
+Detection differs from VP. LekMod's NQMod DLL has no `Game.IsCustomModOption`, so the CP/VP balance probe does not exist. The LekMod probe is a signature on a LekMod-only binding (`Game.GetProposalStatus` and the other voting getters). `forkPresent()` still gates our ported bindings; a LekMod session without our fork degrades to vanilla-correct, so the probe gates additions, not correctness.
+
+The lint seam guard's drifted-getter list carries the LekMod getters routed through the seam (combat modifiers, ranged defense, tech-steal cost, the pending-vote/deal getters, the luxury-trade-block check). The voting-popup getters (`GetProposal*`, `GetMaxVotes`, the vote tallies) are intentionally NOT listed: they are called raw only inside the LekMod-exclusive popup wrappers, the same exemption VP's VassalageOverview uses. When a re-pin newly drifts a getter, add its name to the guard's list.
+
+## LekMod engine facts that constrain work
+
+These are properties of LekMod's engine and data; they hold across our releases.
+
+- DLL lineage is NQMod, not Community Patch: forked directly off the Firaxis BNW SDK, zero `MOD_BALANCE_CORE` / `gCustomMods`, no `Game.IsCustomModOption`, with `NQM_*` / `AUI_*` ifdefs (AuI = the AI mod NQMod absorbed). It builds from a VS2008 solution on the existing VC9 / SDK 7.0 toolchain (`build-engine-lekmod.ps1`), not the clang build VP needs.
+- Happiness is unchanged vanilla surplus. The approval-versus-surplus split the VP seam exists to mediate does not exist here; vanilla happiness speakers stay correct with no mode branch.
+- Bare getters return display scale. LekMod added times-100 culture/yield storage, but the bare getters divide and floor as before, so existing yield and culture reads keep working; the times-100 variants are extra precision we ignore.
+- The Lua binding surface is purely additive: across City, Player, Unit, Plot, Game, Team, zero methods removed, roughly a hundred added (detail breakdowns, new gameplay reads, and the voting system on `Game`). Nothing we already call changed.
+- The 3-way engine merge (vanilla base, our `src/engine/`, LekMod) is mostly clean: every Lua binding file merges clean despite LekMod's heavy edits there. The real conflicts concentrate in the `CvAStar` pathfinder, where our move-flag and fresh-turn changes land on the lines NQMod modified with AuI optimizations. A re-pin re-conflicts those same pathfinder sites, so re-test path preview (movement preview is load-bearing) after every rebase.
+- `CvDllVersion.h` is not ported: inherit LekMod's GUID, never rotate it (rotating splits multiplayer compatibility across mod versions). The canary checks the GUID is intact.
+
+## Additive surfaces
+
+What LekMod adds over vanilla that needed accessibility work, and the durable facts about each:
+
+- Voting system. Two net-new accessible popups (a vote-target picker and a proposal chart with headline / tally / expiration / pending voters / per-player votes / result and Yes/No), plus an end-turn soft prompt. A blind player driving end turn by hotkey bypasses LekMod's button-side prompt, so the turn code consults the seam on a no-blocker end turn and announces + opens a pending vote or incoming deal (per-turn ack, so a second press ends the turn). The popups call the voting bindings raw (no seam, hence not in the lint drift list). Known live-refresh gap: a vote arriving while the chart is open does not update the per-voter rows until a re-read.
+- Combat-preview modifiers. Our preview re-enumerates modifiers by explicit named-binding calls, so LekMod's added different-ideology, tourism-influence, and ranged-defense lines do not appear automatically; three feature-detected `pushMod` calls surface them with LekMod's own labels. Final odds stay correct regardless (the damage getter bakes modifiers in). This couples our enumeration to LekMod's modifier set across re-pins, as it already is to vanilla's.
+- Golden-age points per turn. LekMod surfaces a golden-age-points-per-turn rate prominently (TopPanel, a real `YIELD_GOLDEN_AGE_POINTS` city yield, a new city focus type). Our VP-gated GAP line stays silent on LekMod, so the rate routes through the seam against LekMod's own GAP getter, feature-detected, surfaced in empire status, the city yields drill, the production header, and the Economic Overview.
+- `Events.GameplayAlertMessage` listener. This floating-alert channel (NOT the notification system) is the only channel for `prophetreplace` custom-civ ability feedback, and the biggest single content gap found. A listener routes the markup-stripped text through the announcement pipeline. The event is Lua-push-only: nothing in base / G&K / BNW / VP raises it, so the listener is inert on the released builds. Every LekMod fire site is floating-only (no parallel popup or notification), so there is no double-announce risk.
+- MP game options. LekMod force-shows 29 game options in multiplayer via hardcoded static checkboxes (they are `SupportsMultiplayer=false`, so the data-driven loop skips them; single-player setup surfaces them for free). Our manager-instance reader misses the hardcoded controls, so a hand-mapped control-to-option table binds them. See the MP-options pattern below.
+
+## Patterns to carry forward (LekMod-specific)
+
+These supplement the shared patterns in `cp-vp-support.md`.
+
+- Checkbox commit via captured `RegisterCallback`. LekMod's 29 MP-option checkboxes wire their commit through `RegisterCallback(Mouse.eLClick, On*Checked)`, not `RegisterCheckHandler` (which our checkbox probe normally intercepts), and that handler calls file-locals we cannot reach, so reimplementing it is out. The fix: the checkbox probe (`CivVAccess_PullDownProbe.lua`) also captures `RegisterCallback` onto the checkbox's own metatable into `buttonCallbacks`, and the MP-option items pass an `activateCallback` that invokes the captured handler. The shared `Checkbox:activate` is untouched, so vanilla/VP are unaffected. This is offline-uncatchable (no game state), so it verifies only in a live host flow.
+- `onInGameBoot` registrations use a file-local idempotency guard, never a `civvaccess_shared` flag. Boot re-runs against the same live env (MP resync, hotseat), and a shared flag persists while its listener is dead, so an install-once shared guard would stack a duplicate listener and double-announce. A file-local boolean is the correct guard (the gameplay-alert listener follows this, matching ChatBuffer).
+- The MP-options control-to-option table (in `CivVAccess_MPGameSetupShared.lua`) is the one hand-mapped surface a re-pin can silently shrink: a renamed control or option drops its row and never errors, leaving a blind host unable to set that option. Re-derive it from LekMod's `MPGameOptions.lua` `On*Checked` handlers on every re-pin.
+- Text audit. A static diff of every `Language_en_US` row LekMod ships against the vanilla install came back clean: zero repurposed keys. LekMod changes mechanics via data fields (the engine composes help text) and adds content under new keys; it never redefines a vanilla key our code reads. So a re-pin should re-run that static `Language_en_US` diff of the new drop against vanilla rather than assume nothing changed; for the question "did LekMod redefine a vanilla key we read," the static diff is conclusive.
+- When an in-game key "does nothing" with no Lua error, confirm it reaches our wrapper before digging into dispatch. A one-line DEBUG trace at the WorldView/InGame input wrappers logging raw VK / modifiers / dispatch per keydown is the diagnostic. This found the Tab regression: LekMod binds chat toggle to Tab and its DiploCorner adds an `InputHandler` ahead of WorldView that consumed Tab. The fix neutralizes DiploCorner's InputHandler and its focus-grab dummy, guarded on the `Controls.DummyStack` marker (vanilla/VP untouched); we expose chat on backslash, so losing LekMod's Tab-to-chat costs nothing.
+
+## The vendoring tool
+
+`tools/vendoring/vendor.py` gains a `lekmod` engine. `verify` keeps the vanilla tree green as always; `generate --engine lekmod --out build/vendor/lekmod --lekmod "<clone>"` stages the LekMod tree from the clone's standard-UI bodies under `LEKMOD/Lua/tmp/ui` (EUI is out of scope, which collapses LekMod's two override sets to one and drops the install-time `ui_check.bat` resolution). The bare `generate --engine lekmod` defaults `--out` to the VP dir and exits non-zero; always pass the explicit out. There is no `alias` mechanism (single body per file, unlike CP-aliases-VP). The voting popups are net-new manifest entries that generate the LekMod body plus our include.
+
+LekMod's UI bodies are mostly near-vanilla or moderately additive (the in-game HUD and lobby/options screens are the heaviest, additive not redesigned); our inert-on-vanilla wrappers adapt by feature-detection, so each moderate screen needs a per-screen read to confirm `priorInput` / `priorShowHide` capture lands, not a redesign.
+
+## Re-sync runbook
+
+When a new LekMod drop ships, re-pin with `resync-lekmod.ps1` (repo root) in resumable phases (`-Phase engine|mods|vendor|finish`). Lighter than the VP re-pin: no bake / modpack phase. The clone at `~/Documents/Lekmod` is the LekMod repo itself, with upstream content on `main` and our engine additions on a `civvaccess` branch on top, so re-pinning is one rebase of that branch onto the new upstream commit; the new DLC tree comes along in the same tree.
+
+1. Engine: fetch upstream, rebase `civvaccess` from the old pin onto the new upstream commit (backup snapshot, conflict-abort-and-restore; conflicts concentrate in the CvAStar pathfinder), rebuild with `build-engine-lekmod.ps1`, and run `tools/lekmod_dll_canary.py`. The canary (GUID intact, port markers present, valid x86 PE) must report GOOD or the committed DLL is restored from git. No version-immediate check, unlike VP: the VC9 build has no varargs miscompile to guard.
+2. Mods: confirm the rebase pulled a pristine upstream DLC. Our port must touch only `LEKMOD_DLL/` (the engine), never `LEKMOD/` (the content DLC); a non-empty `LEKMOD/` diff against upstream means the port leaked into content. Also confirms the standard-UI staging tree is present.
+3. Vendor: re-run `verify` (vanilla stays green), `generate --engine lekmod`, and write the old..new Lua-binding diff for the value audit. Read the drift report and the binding diff; add any newly drifted getter to the lint guard; re-derive the MP-options table.
+4. Finish (requires an explicit review-confirmed flag): deploy the LekMod stack and record the new pin. Leaves the install in the player-facing LekMod state where the play audit runs.
+
+The default run stops after vendor with the review checklist; finish is never part of an unattended run. What actually breaks on a re-pin is the pathfinder rebase conflicts, the vendoring drift, the Lua-binding value audit, and the MP-options table silently shrinking.
+
+## Reference inventory
+
+- Fork clone: `~/Documents/Lekmod` (the EnormousApplePie/Lekmod repo) on branch `civvaccess` (= upstream `main` plus our port commits). DLL source under `LEKMOD_DLL/CvGameCoreDLL_Expansion2/`; the prebaked DLC under `LEKMOD/`; standard-UI bodies under `LEKMOD/Lua/tmp/ui`. Build with `build-engine-lekmod.ps1` (VC9 / SDK 7.0). Lekmap (map script) and the installer are out of scope. Redistribution of the forked DLL was granted by the LekMod team on Discord (LekMod ships no license; keep the permission on record).
+- Committed artifacts: fork DLL at `dist/engine-lekmod/`; the LekMod seam body at `src/lekmod/CivVAccess_EngineData.lua`; the voting-popup wrappers and the LekMod manifest entries under `tools/vendoring/`; canary at `tools/lekmod_dll_canary.py`. The pin is `supported_lekmod` in `versions.json`; the DLL component version is `engine_lekmod`.
+- Staged, not committed: `build/vendor/lekmod/` (vendor stage plus provenance plus drift report). Regenerate via `generate --engine lekmod`.
+- Deploy / re-sync scripts: `deploy-lekmod.ps1` (the single LekMod state), `deploy-lekmod-sighted-multiplayer.ps1` (sighted partner), `build-engine-lekmod.ps1` (fork build), `resync-lekmod.ps1` (re-pin), `package-lekmod-bundle.ps1` (the no-clone tester bundle: LekMod's DLC tree plus the vendor stage, the only non-committed inputs `deploy-lekmod` needs). `deploy.ps1` flips back to vanilla.
+- Logs: the fork heartbeat in the game log proves the fork booted (FINAL_RELEASE strips the entry-point markers an offline check could look for, so in-game boot is the gate); `Lua.log` carries Lua errors and print output.
