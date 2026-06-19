@@ -22,6 +22,7 @@ New Features and improvements:
 - F2 on the Great Work popup now also describes the image for great works of writing and music.
 
 Bug fixes:
+- On Community Patch, viewing another civilization's tech tree as an observer now shows their tree instead of your own.
 - The multiplayer screens got a thorough accessibility pass. In the staging room: players are announced as they join, leave, or are kicked; the roster stays readable after you ready up; you are told when the host clears your ready or when you cannot ready up; empty seats are read when a host reloads a save; hot-joins and a waiting Launch button are explained; the host can save the setup and is warned about private or oversized games; and the dedicated-server, email-password, and Strategic View controls are reachable. The server browser announces when the game list is refreshing and when it settles, and flags servers you cannot join for lack of required DLC. Turn-timer values now read their unit, seconds or hours.
 - The ranged attack target cursor no longer says "unseen" on a tile the unit can actually strike, for example if it has the indirect fire upgrade.
 - The turn estimate for building a road or railroad is no longer sometimes 1 turn too low, both in the route preview and when reading a worker building one.

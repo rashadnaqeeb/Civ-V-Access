@@ -95,6 +95,15 @@ include("CivVAccess_InGameStrings_en_US")
 include("CivVAccess_PluralRules")
 include("CivVAccess_Text")
 include("CivVAccess_Icons")
+-- EngineData: the observer-repoint path (SerialEventGameMessagePopup handler)
+-- reads EngineData.observerViewPlayer(). The TechTree is its own Context, so
+-- like every other Context-boot wrapper (CityViewAccess, PopupBoot) it must
+-- include the seam itself; without it EngineData is nil here. The repoint path
+-- runs whenever the tech-tree popup carries no viewed-player id (every open on
+-- Community Patch / LekMod, whose TopPanel omits Data4/Data5; harmless on
+-- vanilla, where the engine catches the per-listener error but the read never
+-- needed to succeed).
+include("CivVAccess_EngineData")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
 include("CivVAccess_HandlerStack")
