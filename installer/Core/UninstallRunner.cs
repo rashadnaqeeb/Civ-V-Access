@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 namespace CivVAccess.Installer.Core;
 
 /// <summary>
-/// Mirror of Invoke-Uninstall in deploy.ps1 / deploy-sighted-multiplayer.ps1.
-/// Idempotent: each step checks for the artifact's presence and skips if
-/// absent. The profile question is irrelevant here — we remove anything we
-/// recognize, blind or sighted.
+/// Full uninstall: restore the game to its pre-mod state regardless of which
+/// install state is active, then clear the component cache. Idempotent; each
+/// step is a no-op when its artifact is absent. The profile/variant question is
+/// irrelevant here -- we remove every artifact we recognize.
 /// </summary>
 internal static class UninstallRunner
 {
@@ -23,12 +23,12 @@ internal static class UninstallRunner
             var layout = new GameLayout(gameDir);
 
             ct.ThrowIfCancellationRequested();
+            // Tear down every removable artifact across all states: proxy, both
+            // modpack packages, the VP substrate (restoring the stock
+            // Expansion2.Civ5Pkg), and the LekMod DLC. Runs while the backup dir
+            // is still intact, so the Civ5Pkg restore can find its backup.
             progress.Report(new InstallProgress { Stage = InstallStage.SwappingProxy });
-            RestoreLua51(layout);
-
-            ct.ThrowIfCancellationRequested();
-            progress.Report(new InstallProgress { Stage = InstallStage.RemovingTolk });
-            RemoveRuntimeFiles(layout);
+            ArtifactOps.TearDown(ModArtifact.All, layout);
 
             ct.ThrowIfCancellationRequested();
             progress.Report(new InstallProgress { Stage = InstallStage.RemovingDlc });
@@ -42,7 +42,7 @@ internal static class UninstallRunner
             progress.Report(new InstallProgress { Stage = InstallStage.Restoring, Component = ComponentKind.Cinematics });
             RestoreCinematics(layout);
 
-            // Backup dir is empty of useful state once both restores have run.
+            // Backup dir holds no useful state once the restores have run.
             if (Directory.Exists(layout.BackupDir))
             {
                 Logger.Info($"Removing backup dir: {layout.BackupDir}");
@@ -51,48 +51,11 @@ internal static class UninstallRunner
             }
 
             progress.Report(new InstallProgress { Stage = InstallStage.ClearingCache });
-            ClearDlcCache(layout);
+            ArtifactOps.ClearDlcCache(layout);
+            ComponentCache.ClearAll();
 
             progress.Report(new InstallProgress { Stage = InstallStage.Done });
         }, ct);
-    }
-
-    private static void RestoreLua51(GameLayout layout)
-    {
-        if (!File.Exists(layout.Lua51Original))
-        {
-            Logger.Info("No lua51_original.dll to restore; proxy was never deployed.");
-            return;
-        }
-        if (File.Exists(layout.Lua51Stock))
-        {
-            Logger.Info($"Removing proxy {layout.Lua51Stock}");
-            File.Delete(layout.Lua51Stock);
-        }
-        Logger.Info($"Restoring {layout.Lua51Original} -> {layout.Lua51Stock}");
-        File.Move(layout.Lua51Original, layout.Lua51Stock);
-    }
-
-    private static void RemoveRuntimeFiles(GameLayout layout)
-    {
-        // Skip lua51_Win32.dll here; RestoreLua51 already handles it.
-        foreach (var f in GameLayout.RuntimeFiles)
-        {
-            if (string.Equals(f, "lua51_Win32.dll", StringComparison.OrdinalIgnoreCase)) continue;
-            var p = Path.Combine(layout.Root, f);
-            if (File.Exists(p))
-            {
-                Logger.Info($"Removing {p}");
-                try { File.Delete(p); }
-                catch (Exception ex) { Logger.Warn($"Could not remove {p}: {ex.Message}"); }
-            }
-        }
-
-        if (File.Exists(layout.ProxyDebugLog))
-        {
-            try { File.Delete(layout.ProxyDebugLog); }
-            catch (Exception ex) { Logger.Warn($"Could not remove proxy_debug.log: {ex.Message}"); }
-        }
     }
 
     private static void RemoveDlcAndLegacy(GameLayout layout)
@@ -143,22 +106,4 @@ internal static class UninstallRunner
             }
         }
     }
-
-    private static void ClearDlcCache(GameLayout layout)
-    {
-        if (!Directory.Exists(layout.DlcCacheDir)) return;
-        try
-        {
-            foreach (var file in Directory.EnumerateFiles(layout.DlcCacheDir))
-            {
-                File.Delete(file);
-            }
-            Logger.Info($"Cleared DLC cache: {layout.DlcCacheDir}");
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn($"DLC cache clear failed: {ex.Message}");
-        }
-    }
 }
-

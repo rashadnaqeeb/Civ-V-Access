@@ -7,13 +7,13 @@ namespace CivVAccess.Installer.UI;
 
 /// <summary>
 /// Returning-user dialog. Body text says either "you are up to date" or
-/// "an update is available", and the action buttons reflect that:
-/// up-to-date offers Reinstall / Uninstall / Close, while
-/// update-available adds Update.
+/// "an update is available" for the current state, and the action buttons
+/// reflect that: up-to-date offers Change state / Reinstall / Uninstall /
+/// Close, while update-available adds Update as the primary action.
 /// </summary>
 internal sealed class ActionForm : Form
 {
-    public enum Action { None, Update, Reinstall, Uninstall, Close }
+    public enum Action { None, Update, ChangeState, Reinstall, Uninstall, Close }
 
     public Action Result { get; private set; } = Action.None;
 
@@ -27,13 +27,15 @@ internal sealed class ActionForm : Form
         ShowInTaskbar = true;
         Font = SystemFonts.MessageBoxFont!;
 
+        const int formWidth = 660;
+
         var headingLabel = new Label
         {
             Text = heading,
             Font = new Font(SystemFonts.MessageBoxFont!.FontFamily, 11f, FontStyle.Bold),
             AutoSize = false,
             Location = new Point(12, 12),
-            Size = new Size(516, 26),
+            Size = new Size(formWidth - 24, 26),
         };
 
         var bodyLabel = new Label
@@ -41,80 +43,69 @@ internal sealed class ActionForm : Form
             Text = body,
             AutoSize = false,
             Location = new Point(12, 44),
-            Size = new Size(516, 60),
+            Size = new Size(formWidth - 24, 60),
         };
 
         Controls.Add(headingLabel);
         Controls.Add(bodyLabel);
 
-        // Build the button row from right to left. Close is rightmost
-        // (default keyboard cancel target); the primary action sits leftmost
-        // so it's the natural focus on Enter.
+        // Button row, right to left. Close is rightmost (default cancel
+        // target); the primary action sits leftmost so it's the Enter focus.
         const int buttonRowY = 120;
-        const int buttonWidth = 100;
+        const int buttonWidth = 120;
         const int buttonHeight = 28;
         const int buttonGap = 6;
-        int x = 528 - buttonWidth;
+        int x = formWidth - 12 - buttonWidth;
 
-        var closeBtn = new Button
-        {
-            Text = Strings.Get("confirm.close").Replace("&", ""),
-            Location = new Point(x, buttonRowY),
-            Size = new Size(buttonWidth, buttonHeight),
-            UseVisualStyleBackColor = true,
-            DialogResult = DialogResult.Cancel,
-        };
+        var closeBtn = MakeButton(Strings.Get("confirm.close"), x, buttonRowY, buttonWidth, buttonHeight);
+        closeBtn.DialogResult = DialogResult.Cancel;
         closeBtn.Click += (_, _) => Result = Action.Close;
         Controls.Add(closeBtn);
         CancelButton = closeBtn;
         x -= buttonWidth + buttonGap;
 
-        var uninstallBtn = new Button
-        {
-            Text = Strings.Get("confirm.uninstall").Replace("&", ""),
-            Location = new Point(x, buttonRowY),
-            Size = new Size(buttonWidth, buttonHeight),
-            UseVisualStyleBackColor = true,
-            DialogResult = DialogResult.OK,
-        };
+        var uninstallBtn = MakeButton(Strings.Get("confirm.uninstall"), x, buttonRowY, buttonWidth, buttonHeight);
+        uninstallBtn.DialogResult = DialogResult.OK;
         uninstallBtn.Click += (_, _) => Result = Action.Uninstall;
         Controls.Add(uninstallBtn);
         x -= buttonWidth + buttonGap;
 
-        var reinstallBtn = new Button
-        {
-            Text = Strings.Get("confirm.reinstall").Replace("&", ""),
-            Location = new Point(x, buttonRowY),
-            Size = new Size(buttonWidth, buttonHeight),
-            UseVisualStyleBackColor = true,
-            DialogResult = DialogResult.OK,
-        };
+        var reinstallBtn = MakeButton(Strings.Get("confirm.reinstall"), x, buttonRowY, buttonWidth, buttonHeight);
+        reinstallBtn.DialogResult = DialogResult.OK;
         reinstallBtn.Click += (_, _) => Result = Action.Reinstall;
         Controls.Add(reinstallBtn);
+        x -= buttonWidth + buttonGap;
+
+        var changeStateBtn = MakeButton(Strings.Get("confirm.changeState"), x, buttonRowY, buttonWidth, buttonHeight);
+        changeStateBtn.DialogResult = DialogResult.OK;
+        changeStateBtn.Click += (_, _) => Result = Action.ChangeState;
+        Controls.Add(changeStateBtn);
 
         Button primary;
         if (updateAvailable)
         {
             x -= buttonWidth + buttonGap;
-            var updateBtn = new Button
-            {
-                Text = Strings.Get("confirm.update").Replace("&", ""),
-                Location = new Point(x, buttonRowY),
-                Size = new Size(buttonWidth, buttonHeight),
-                UseVisualStyleBackColor = true,
-                DialogResult = DialogResult.OK,
-            };
+            var updateBtn = MakeButton(Strings.Get("confirm.update"), x, buttonRowY, buttonWidth, buttonHeight);
+            updateBtn.DialogResult = DialogResult.OK;
             updateBtn.Click += (_, _) => Result = Action.Update;
             Controls.Add(updateBtn);
             primary = updateBtn;
         }
         else
         {
-            primary = reinstallBtn;
+            primary = changeStateBtn;
         }
 
-        ClientSize = new Size(540, 162);
+        ClientSize = new Size(formWidth, 162);
         AcceptButton = primary;
         ActiveControl = primary;
     }
+
+    private static Button MakeButton(string text, int x, int y, int w, int h) => new()
+    {
+        Text = text.Replace("&", ""),
+        Location = new Point(x, y),
+        Size = new Size(w, h),
+        UseVisualStyleBackColor = true,
+    };
 }

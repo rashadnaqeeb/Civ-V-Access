@@ -20,6 +20,13 @@ internal sealed class InstallManifest
     public int SchemaVersion { get; set; } = AppVersion.InstallManifestSchemaVersion;
     public string ModVersion { get; set; } = "";
     public InstallProfile Profile { get; set; }
+
+    /// <summary>
+    /// The game state this install targets, from the manifest's "variant"
+    /// field. Absent variant means Vanilla.
+    /// </summary>
+    public InstallState Variant { get; set; } = InstallState.Vanilla;
+
     public DateTime InstalledAt { get; set; } = DateTime.UtcNow;
     public Dictionary<string, ComponentRecord> Components { get; set; } = new();
     public Dictionary<string, string> Backups { get; set; } = new();
@@ -80,6 +87,8 @@ internal sealed class InstallManifest
         manifest.Profile = InstallProfileExtensions.Parse(profileRaw)
             ?? throw new InvalidDataException(
                 $"Install manifest has invalid or missing 'profile' field: '{profileRaw}'.");
+
+        manifest.Variant = InstallStateExtensions.ParseVariant((string?)root["variant"]);
 
         if (root["components"] is JsonObject comps)
         {
@@ -152,6 +161,13 @@ internal sealed class InstallManifest
             ["components"]     = components,
             ["backups"]        = backups,
         };
+
+        // Vanilla omits the variant key entirely, matching deploy.ps1.
+        var variant = Variant.ToManifestVariant();
+        if (variant != null)
+        {
+            root["variant"] = variant;
+        }
 
         var opts = new JsonSerializerOptions { WriteIndented = true };
         File.WriteAllText(path, root.ToJsonString(opts));

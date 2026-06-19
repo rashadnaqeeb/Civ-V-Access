@@ -107,7 +107,16 @@ internal sealed class Flow : IDisposable
                 MessageBoxIcon.Information);
         }
 
-        // Step 6: fetch latest release.
+        // Step 6: game-state choice (vanilla / CP / CP+VP / LekMod).
+        InstallState? state;
+        using (var stateForm = new StateForm(InstallState.Vanilla))
+        {
+            if (stateForm.ShowDialog() != DialogResult.OK) return;
+            state = stateForm.Selected;
+        }
+        if (state == null) return;
+
+        // Step 7: fetch latest release.
         var info = FetchLatestRelease();
         if (info == null) return;
         var release = info.Release;
@@ -121,7 +130,7 @@ internal sealed class Flow : IDisposable
             return;
         }
 
-        var plan = _installer.BuildPlan(gameDir, profile.Value, release, null, forceAll: false);
+        var plan = _installer.BuildPlan(gameDir, state.Value, profile.Value, release, null, forceAll: false);
         // Fresh installs don't get a slice -- there's no "previous version"
         // to slice from. Show the standard MessageBox success.
         RunInstall(plan, changelogSlice: null);
@@ -211,19 +220,22 @@ internal sealed class Flow : IDisposable
             return;
         }
 
-        var plan = _installer.BuildPlan(gameDir, manifest.Profile, release, manifest, forceAll: false);
+        var plan = _installer.BuildPlan(gameDir, manifest.Variant, manifest.Profile, release, manifest, forceAll: false);
+
+        var stateLine = Strings.Format("check.currentState", Strings.Get(manifest.Variant.NameKey()));
 
         string heading;
         string body;
         if (plan.IsUpToDate)
         {
             heading = Strings.Get("check.upToDate.heading");
-            body = Strings.Format("check.upToDate.body", manifest.ModVersion);
+            body = stateLine + "\n\n" + Strings.Format("check.upToDate.body", manifest.ModVersion);
         }
         else
         {
             heading = Strings.Get("check.updateAvailable.heading");
-            body = Strings.Format("check.updateAvailable.body", manifest.ModVersion, release.SemVer.ToString(3));
+            body = stateLine + "\n\n" +
+                Strings.Format("check.updateAvailable.body", manifest.ModVersion, release.SemVer.ToString(3));
         }
 
         ActionForm.Action action;
@@ -245,10 +257,13 @@ internal sealed class Flow : IDisposable
                 RunInstall(plan, slice);
                 break;
             case ActionForm.Action.Reinstall:
-                var forced = _installer.BuildPlan(gameDir, manifest.Profile, release, manifest, forceAll: true);
+                var forced = _installer.BuildPlan(gameDir, manifest.Variant, manifest.Profile, release, manifest, forceAll: true);
                 // Reinstall keeps the same version, so there's no slice to
                 // show -- the player isn't moving versions.
                 RunInstall(forced, changelogSlice: null);
+                break;
+            case ActionForm.Action.ChangeState:
+                RunChangeState(gameDir, manifest, release);
                 break;
             case ActionForm.Action.Uninstall:
                 if (ConfirmUninstall())
@@ -260,6 +275,29 @@ internal sealed class Flow : IDisposable
             case ActionForm.Action.None:
                 return;
         }
+    }
+
+    private void RunChangeState(string gameDir, InstallManifest manifest, GitHubReleases.Release release)
+    {
+        InstallState? target;
+        using (var stateForm = new StateForm(manifest.Variant))
+        {
+            if (stateForm.ShowDialog() != DialogResult.OK) return;
+            target = stateForm.Selected;
+        }
+        if (target == null) return;
+
+        var plan = _installer.BuildPlan(gameDir, target.Value, manifest.Profile, release, manifest, forceAll: false);
+        if (plan.IsUpToDate)
+        {
+            // Already in the chosen state at the current version; nothing to do.
+            ShowSuccess(
+                Strings.Get("check.upToDate.heading"),
+                Strings.Format("check.currentState", Strings.Get(target.Value.NameKey())));
+            return;
+        }
+        // A state switch isn't a version move, so no changelog slice.
+        RunInstall(plan, changelogSlice: null);
     }
 
     private static string? ComputeChangelogSlice(string? changelog, string installedVersionStr, System.Version latest)
@@ -367,12 +405,24 @@ internal sealed class Flow : IDisposable
         }
 
         var version = plan.Release.SemVer.ToString(3);
-        var heading = plan.IsFreshInstall
-            ? Strings.Get("result.installSuccess.heading")
-            : Strings.Get("result.updateSuccess.heading");
-        var body = Strings.Format(
-            plan.IsFreshInstall ? "result.installSuccess.body" : "result.updateSuccess.body",
-            version);
+        string heading;
+        string body;
+        if (plan.IsStateChange && !plan.IsFreshInstall)
+        {
+            // Switched between game states (vanilla / CP / CP+VP / LekMod).
+            heading = Strings.Get("result.stateSwitch.heading");
+            body = Strings.Format("result.stateSwitch.body",
+                Strings.Get(plan.TargetState.NameKey()), version);
+        }
+        else
+        {
+            heading = plan.IsFreshInstall
+                ? Strings.Get("result.installSuccess.heading")
+                : Strings.Get("result.updateSuccess.heading");
+            body = Strings.Format(
+                plan.IsFreshInstall ? "result.installSuccess.body" : "result.updateSuccess.body",
+                version);
+        }
 
         // Updates with a non-empty changelog slice get the dedicated form
         // with a read-only text field. Fresh installs and reinstalls (no

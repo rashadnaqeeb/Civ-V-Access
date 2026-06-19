@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using CivVAccess.Installer.Core;
 using CivVAccess.Installer.Localization;
@@ -176,6 +177,223 @@ internal static class Program
             Strings.SetLocale("en_US");
             Assert(!string.IsNullOrEmpty(Strings.Get("app.title")));
             Assert(Strings.Get("does.not.exist") == "does.not.exist");
+        });
+
+        // ----------------------------------------------------------------
+        // Multi-state: AssetMap, ComponentSet, Footprint, transitions.
+        // ----------------------------------------------------------------
+
+        Run("AssetMap parses hyphenated mod-state prefixes", () =>
+        {
+            Assert(AssetMap.Parse("vp-overlay-1.2.3.zip")!.Value.Kind == ComponentKind.VpOverlay);
+            Assert(AssetMap.Parse("cp-overlay-1.0.0.zip")!.Value.Kind == ComponentKind.CpOverlay);
+            Assert(AssetMap.Parse("lekmod-overlay-1.0.0.zip")!.Value.Kind == ComponentKind.LekmodOverlay);
+            Assert(AssetMap.Parse("vp-modpack-4.5.6.zip")!.Value.Kind == ComponentKind.VpModpack);
+            Assert(AssetMap.Parse("cp-modpack-1.0.0.zip")!.Value.Kind == ComponentKind.CpModpack);
+            Assert(AssetMap.Parse("vp-runtime-1.0.0.zip")!.Value.Kind == ComponentKind.VpRuntime);
+            Assert(AssetMap.Parse("lekmod-dlc-9.9.9.zip")!.Value.Kind == ComponentKind.LekmodDlc);
+            // Version is split off correctly despite the hyphenated prefix.
+            Assert(AssetMap.Parse("vp-modpack-4.5.6.zip")!.Value.Version == "4.5.6");
+        });
+
+        Run("ComponentSet blind sets match the spec", () =>
+        {
+            var van = ComponentSet.For(InstallState.Vanilla, InstallProfile.Blind);
+            Assert(van.SequenceEqual(new[] { ComponentKind.CoreBlind, ComponentKind.Runtime, ComponentKind.Engine, ComponentKind.Cinematics }));
+
+            var vp = ComponentSet.For(InstallState.VoxPopuli, InstallProfile.Blind);
+            Assert(vp.Contains(ComponentKind.VpOverlay) && vp.Contains(ComponentKind.VpModpack) && vp.Contains(ComponentKind.VpRuntime));
+            Assert(!vp.Contains(ComponentKind.Engine)); // mod states layer their own engine
+
+            var cp = ComponentSet.For(InstallState.CommunityPatch, InstallProfile.Blind);
+            Assert(cp.Contains(ComponentKind.CpModpack) && cp.Contains(ComponentKind.CpOverlay));
+            Assert(!cp.Contains(ComponentKind.VpRuntime)); // CP-only never uses the VP substrate
+
+            var lek = ComponentSet.For(InstallState.LekMod, InstallProfile.Blind);
+            Assert(lek.Contains(ComponentKind.LekmodDlc) && lek.Contains(ComponentKind.LekmodOverlay));
+        });
+
+        Run("ComponentSet sighted sets are the host-match minimum", () =>
+        {
+            var van = ComponentSet.For(InstallState.Vanilla, InstallProfile.Sighted);
+            Assert(van.SequenceEqual(new[] { ComponentKind.CoreSighted, ComponentKind.Engine }));
+
+            var vp = ComponentSet.For(InstallState.VoxPopuli, InstallProfile.Sighted);
+            Assert(vp.SequenceEqual(new[] { ComponentKind.CoreSighted, ComponentKind.VpModpack, ComponentKind.VpRuntime }));
+
+            var cp = ComponentSet.For(InstallState.CommunityPatch, InstallProfile.Sighted);
+            Assert(cp.SequenceEqual(new[] { ComponentKind.CoreSighted, ComponentKind.CpModpack }));
+            Assert(!cp.Contains(ComponentKind.VpRuntime));
+
+            var lek = ComponentSet.For(InstallState.LekMod, InstallProfile.Sighted);
+            Assert(lek.SequenceEqual(new[] { ComponentKind.CoreSighted, ComponentKind.LekmodDlc }));
+        });
+
+        Run("Footprint reflects proxy and mod artifacts", () =>
+        {
+            Assert(Footprint.For(InstallState.Vanilla, InstallProfile.Blind) == ModArtifact.Proxy);
+            Assert(Footprint.For(InstallState.Vanilla, InstallProfile.Sighted) == ModArtifact.None);
+            Assert(Footprint.For(InstallState.VoxPopuli, InstallProfile.Blind) ==
+                   (ModArtifact.Proxy | ModArtifact.ModpackVp | ModArtifact.VpSubstrate));
+            Assert(Footprint.For(InstallState.VoxPopuli, InstallProfile.Sighted) ==
+                   (ModArtifact.ModpackVp | ModArtifact.VpSubstrate));
+            Assert(Footprint.For(InstallState.CommunityPatch, InstallProfile.Blind) ==
+                   (ModArtifact.Proxy | ModArtifact.ModpackCp));
+            Assert(Footprint.For(InstallState.LekMod, InstallProfile.Blind) ==
+                   (ModArtifact.Proxy | ModArtifact.LekmodDlc));
+        });
+
+        Run("Transition VP->vanilla tears down VP artifacts, keeps proxy", () =>
+        {
+            var td = TransitionPlanner.ArtifactsToTearDown(
+                InstallState.VoxPopuli, InstallProfile.Blind,
+                InstallState.Vanilla, InstallProfile.Blind);
+            Assert(td == (ModArtifact.ModpackVp | ModArtifact.VpSubstrate));
+            Assert(!td.HasFlag(ModArtifact.Proxy)); // both blind, proxy stays
+        });
+
+        Run("Transition VP->LekMod swaps mod artifacts", () =>
+        {
+            var td = TransitionPlanner.ArtifactsToTearDown(
+                InstallState.VoxPopuli, InstallProfile.Blind,
+                InstallState.LekMod, InstallProfile.Blind);
+            // VP artifacts go; LekMod's DLC is added by apply, not teardown.
+            Assert(td == (ModArtifact.ModpackVp | ModArtifact.VpSubstrate));
+        });
+
+        Run("Transition CP->VP keeps shared, drops CP package", () =>
+        {
+            var td = TransitionPlanner.ArtifactsToTearDown(
+                InstallState.CommunityPatch, InstallProfile.Blind,
+                InstallState.VoxPopuli, InstallProfile.Blind);
+            Assert(td == ModArtifact.ModpackCp);
+        });
+
+        Run("Transition blind->sighted removes proxy", () =>
+        {
+            var td = TransitionPlanner.ArtifactsToTearDown(
+                InstallState.Vanilla, InstallProfile.Blind,
+                InstallState.Vanilla, InstallProfile.Sighted);
+            Assert(td == ModArtifact.Proxy);
+        });
+
+        Run("Transition same state/profile tears down nothing", () =>
+        {
+            var td = TransitionPlanner.ArtifactsToTearDown(
+                InstallState.VoxPopuli, InstallProfile.Blind,
+                InstallState.VoxPopuli, InstallProfile.Blind);
+            Assert(td == ModArtifact.None);
+        });
+
+        Run("Fresh-install worst-case teardown clears foreign states", () =>
+        {
+            // Exercises the production path: a fresh install assumes ALL artifacts
+            // present, then keeps the target's.
+            var td = TransitionPlanner.ArtifactsToTearDownFromUnknown(InstallState.VoxPopuli, InstallProfile.Blind);
+            Assert(td == (ModArtifact.ModpackCp | ModArtifact.LekmodDlc));
+            Assert(!td.HasFlag(ModArtifact.Proxy)); // target blind keeps proxy
+            Assert(!td.HasFlag(ModArtifact.VpSubstrate)); // target wants it
+        });
+
+        Run("InstallState variant strings round-trip", () =>
+        {
+            Assert(InstallState.Vanilla.ToManifestVariant() == null);
+            Assert(InstallState.VoxPopuli.ToManifestVariant() == "modpack");
+            Assert(InstallState.CommunityPatch.ToManifestVariant() == "modpack-cp");
+            Assert(InstallState.LekMod.ToManifestVariant() == "lekmod");
+            Assert(InstallStateExtensions.ParseVariant(null) == InstallState.Vanilla);
+            Assert(InstallStateExtensions.ParseVariant("modpack") == InstallState.VoxPopuli);
+            Assert(InstallStateExtensions.ParseVariant("modpack-cp") == InstallState.CommunityPatch);
+            Assert(InstallStateExtensions.ParseVariant("lekmod") == InstallState.LekMod);
+            Assert(InstallStateExtensions.ParseVariant("vp") == InstallState.VoxPopuli); // dev mod-overlay
+            Assert(InstallStateExtensions.ParseVariant("bogus") == InstallState.Vanilla);
+        });
+
+        Run("InstallManifest omits variant for vanilla, writes it for modpack", () =>
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "civvtest-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var van = new InstallManifest { ModVersion = "1.0.0", Profile = InstallProfile.Blind, Variant = InstallState.Vanilla };
+                van.Components["core"] = new InstallManifest.ComponentRecord { Version = "1.0.0", Sha256 = "aa" };
+                van.Write(dir);
+                var vanJson = File.ReadAllText(InstallManifest.PathFor(dir));
+                Assert(!vanJson.Contains("variant"));
+                Assert(InstallManifest.TryRead(dir)!.Variant == InstallState.Vanilla);
+
+                var vp = new InstallManifest { ModVersion = "1.0.0", Profile = InstallProfile.Blind, Variant = InstallState.VoxPopuli };
+                vp.Components["core"] = new InstallManifest.ComponentRecord { Version = "1.0.0", Sha256 = "aa" };
+                vp.Write(dir);
+                var vpJson = File.ReadAllText(InstallManifest.PathFor(dir));
+                Assert(vpJson.Contains("\"variant\": \"modpack\""));
+                Assert(InstallManifest.TryRead(dir)!.Variant == InstallState.VoxPopuli);
+            }
+            finally
+            {
+                try { Directory.Delete(dir, recursive: true); } catch { /* temp */ }
+            }
+        });
+
+        Run("ComponentCache reports miss for null digest and formats paths", () =>
+        {
+            var cache = new ComponentCache();
+            Assert(!cache.Has(null));
+            Assert(!cache.Has(""));
+            Assert(cache.PathForDigest("ABCDEF").EndsWith("abcdef.zip"));
+        });
+
+        Run("BackupStockCiv5Pkg backs up a stock manifest, skips a VP one", () =>
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "civvtest-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var layout = new GameLayout(dir);
+                Directory.CreateDirectory(Path.GetDirectoryName(layout.Expansion2Civ5Pkg)!);
+
+                // Stock manifest (no VP marker) -> captured.
+                File.WriteAllText(layout.Expansion2Civ5Pkg, "<Mod>stock BNW manifest</Mod>");
+                ArtifactOps.BackupStockCiv5Pkg(layout);
+                Assert(File.Exists(layout.Civ5PkgStockBackup), "stock pkg should be backed up");
+
+                // Backup already exists -> not overwritten by a later VP pkg.
+                File.WriteAllText(layout.Expansion2Civ5Pkg, "<Mod>MinorCivSounds_VoxPopuli</Mod>");
+                ArtifactOps.BackupStockCiv5Pkg(layout);
+                Assert(File.ReadAllText(layout.Civ5PkgStockBackup).Contains("stock BNW"),
+                    "existing stock backup must not be overwritten");
+            }
+            finally { try { Directory.Delete(dir, recursive: true); } catch { /* temp */ } }
+        });
+
+        Run("BackupStockCiv5Pkg does not capture a VP manifest as stock", () =>
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "civvtest-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var layout = new GameLayout(dir);
+                Directory.CreateDirectory(Path.GetDirectoryName(layout.Expansion2Civ5Pkg)!);
+                File.WriteAllText(layout.Expansion2Civ5Pkg, "<Mod>MinorCivSounds_VoxPopuli</Mod>");
+                ArtifactOps.BackupStockCiv5Pkg(layout);
+                Assert(!File.Exists(layout.Civ5PkgStockBackup), "a VP pkg must never be saved as the stock backup");
+            }
+            finally { try { Directory.Delete(dir, recursive: true); } catch { /* temp */ } }
+        });
+
+        Run("Every locale resolves the new state-picker keys", () =>
+        {
+            foreach (var entry in LocaleCatalog.All)
+            {
+                Strings.SetLocale(entry.Code);
+                // A missing key returns the key itself; assert real translations exist.
+                foreach (var key in new[] { "state.vanilla", "state.voxPopuli", "statePicker.heading",
+                                            "confirm.changeState", "component.vpModpack", "result.stateSwitch.heading" })
+                {
+                    Assert(Strings.Get(key) != key, $"{entry.Code} missing {key}");
+                }
+                // Format strings with placeholders must still format cleanly.
+                Assert(Strings.Format("check.currentState", "X").Contains("X"), $"{entry.Code} check.currentState");
+                Assert(Strings.Format("result.stateSwitch.body", "A", "B").Contains("A"), $"{entry.Code} stateSwitch.body");
+            }
+            Strings.SetLocale("en_US");
         });
 
         Console.WriteLine();

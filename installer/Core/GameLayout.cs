@@ -31,6 +31,34 @@ internal sealed class GameLayout
     public string EngineBackup    => Path.Combine(BackupDir, "CvGameCore_Expansion2.vanilla.dll");
     public string CinematicsBackupDir => Path.Combine(BackupDir, "cinematics");
 
+    // Mod-state artifacts under Assets/DLC. The baked modpack packages and the
+    // LekMod DLC tree; one of each is present only in its own state.
+    public string AssetsDlcDir    => Path.Combine(Root, "Assets", "DLC");
+    public string ModpackVpDir    => Path.Combine(AssetsDlcDir, "ZCivVAccessVP");
+    public string ModpackCpDir    => Path.Combine(AssetsDlcDir, "ZCivVAccessCP");
+    public string LekmodDlcDir    => Path.Combine(AssetsDlcDir, "LEKMOD");
+
+    // Vox Populi substrate: the VPUI fake DLC, the swapped always-active BNW
+    // Expansion2.Civ5Pkg (and its stock backup), the minor-civ sound table, and
+    // the loading-screen tips that live under the Documents tree.
+    public string VpuiDir         => Path.Combine(AssetsDlcDir, "VPUI");
+    public string Expansion2Civ5Pkg => Path.Combine(Expansion2Dir, "Expansion2.Civ5Pkg");
+    public string Civ5PkgStockBackup => Path.Combine(BackupDir, "Expansion2.Civ5Pkg.stock");
+    public string MinorCivSoundsXml =>
+        Path.Combine(Expansion2Dir, "Sounds", "XML", "MinorCivSounds_VoxPopuli.xml");
+
+    public string Civ5DocsDir =>
+        Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+            "Documents", "My Games", "Sid Meier's Civilization 5");
+    public string VpuiTipsFile => Path.Combine(Civ5DocsDir, "Text", "VPUI_tips_en_us.xml");
+
+    /// <summary>
+    /// Marker substring identifying a VP-swapped Expansion2.Civ5Pkg (vs the
+    /// stock BNW one). Mirrors the deploy scripts' content probe.
+    /// </summary>
+    public const string VpCiv5PkgMarker = "MinorCivSounds_VoxPopuli";
+
     // Engine's DLC enumeration cache. Cleared on install/uninstall so a
     // newly-added or renamed DLC isn't held back by stale cache state.
     public string DlcCacheDir =>
