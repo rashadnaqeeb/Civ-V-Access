@@ -137,10 +137,11 @@ function Invoke-SeamGuard {
     # drift pattern (waived by the exempt marker).
     $driftPattern = "[:.](?:(?:" + ($driftMethods -join "|") + ")\s*\(|GetNumResource\s*\([^)])"
     $forkPattern  = "[:.](?:" + ($forkMethods -join "|") + ")\s*\("
-    # src\vp holds per-engine implementation files deploy-vp.ps1 swaps in
-    # (currently the VP CivVAccess_EngineData.lua); sweep it with the same
-    # rule so any future mod-authored file there can't bypass the seam.
-    $allFiles = Get-ChildItem -Path (Join-Path $root "src\dlc"), (Join-Path $root "src\vp") -Recurse -Filter "CivVAccess_*.lua" |
+    # src\vp and src\lekmod hold per-engine implementation files the VP /
+    # LekMod deploys swap in (currently each engine's CivVAccess_EngineData.lua);
+    # sweep them with the same rule so any future mod-authored file there can't
+    # bypass the seam.
+    $allFiles = Get-ChildItem -Path (Join-Path $root "src\dlc"), (Join-Path $root "src\vp"), (Join-Path $root "src\lekmod") -Recurse -Filter "CivVAccess_*.lua" |
         Where-Object { $_.Name -ne "CivVAccess_EngineData.lua" }
     # File-level opt-out for VP-only screens (see the function header for why
     # this waives only the drift sweep, never the fork sweep). Apply the marker
