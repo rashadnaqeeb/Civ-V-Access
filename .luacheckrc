@@ -285,6 +285,9 @@ files["tests/"] = {
         "Modding", "UIManager",
         -- Engine enum the suites stub to drive popup dispatch tests.
         "ButtonPopupTypes",
+        -- PopupBoot-provided close hook; proposal_chart_popup_test stubs it so
+        -- the captured Yes / No vote items can be activated without a Context.
+        "OnClose",
         -- Engine enums only the ChooseProduction suite needs; shimmed in
         -- that suite's setup rather than in the polyfill.
         "OrderTypes", "AdvisorTypes",

@@ -126,6 +126,19 @@ local function setup()
         end,
     }
 
+    -- EngineData soft-prompt seam: inert by default (vanilla / VP report
+    -- nothing pending), matching the global vanilla body run.lua loads. Soft-
+    -- prompt tests override these; resetting here keeps each test isolated and
+    -- keeps the existing no-blocker path (which now consults the seam) inert.
+    EngineData.pendingVoteProposalId = function()
+        return -1
+    end
+    EngineData.pendingDealSender = function()
+        return -1
+    end
+    EngineData.openVoteProposal = function() end
+    EngineData.openIncomingDeal = function() end
+
     activePlayer = {
         _turnActive = true,
         IsTurnActive = function(self)
@@ -565,6 +578,77 @@ function M.test_force_end_turn_respects_is_processing_messages()
         return true
     end
     Turn._forceEndTurn()
+    T.eq(#doControlCalls, 0)
+end
+
+-- LekMod end-turn soft prompts -----------------------------------------
+
+function M.test_soft_prompt_pending_vote_announces_opens_and_blocks_end()
+    -- No engine blocker, but the seam reports a proposal awaiting the player's
+    -- vote: announce it, open the proposal popup, and do NOT end the turn, so a
+    -- blind player who drives end-turn by hotkey still reaches the vote.
+    setup()
+    local opened = {}
+    EngineData.pendingVoteProposalId = function()
+        return 5
+    end
+    EngineData.openVoteProposal = function(id)
+        opened[#opened + 1] = id
+    end
+    Turn._endTurnDispatch()
+    T.eq(spoken[1].text, "Proposal awaiting your vote")
+    T.eq(opened[1], 5)
+    T.eq(#doControlCalls, 0, "turn not ended on first press")
+end
+
+function M.test_soft_prompt_second_press_same_proposal_ends_turn()
+    -- Per-turn acknowledgement: a second press with the same proposal still
+    -- pending falls through and actually ends the turn (the player chose not to
+    -- vote). Without this the player would be trapped, unable to end the turn.
+    setup()
+    EngineData.pendingVoteProposalId = function()
+        return 5
+    end
+    Turn._endTurnDispatch()
+    Turn._endTurnDispatch()
+    T.eq(#doControlCalls, 1)
+    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_ENDTURN)
+end
+
+function M.test_soft_prompt_ack_resets_on_new_turn()
+    -- The acknowledgement is per-turn: a new turn re-prompts a still-pending
+    -- proposal rather than silently ending. Guards against an ack leaking
+    -- across turns and swallowing the prompt on the next turn's first press.
+    setup()
+    Turn.installListeners()
+    local opened = {}
+    EngineData.pendingVoteProposalId = function()
+        return 5
+    end
+    EngineData.openVoteProposal = function(id)
+        opened[#opened + 1] = id
+    end
+    Turn._endTurnDispatch() -- ack proposal 5
+    startListeners[1]() -- ActivePlayerTurnStart resets the ack
+    Turn._endTurnDispatch() -- still pending -> re-prompts, does not end
+    T.eq(#opened, 2, "ack reset on turn start re-prompts the still-pending vote")
+    T.eq(#doControlCalls, 0)
+end
+
+function M.test_soft_prompt_pending_deal_announces_and_opens()
+    -- A pending incoming deal (no vote pending) announces and opens the deal,
+    -- landing on the trade reader. Deal player id 0 is valid and must prompt.
+    setup()
+    local opened = {}
+    EngineData.pendingDealSender = function()
+        return 0
+    end
+    EngineData.openIncomingDeal = function(sender)
+        opened[#opened + 1] = sender
+    end
+    Turn._endTurnDispatch()
+    T.eq(spoken[1].text, "Deal awaiting your response")
+    T.eq(opened[1], 0)
     T.eq(#doControlCalls, 0)
 end
 
