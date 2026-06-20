@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Build the EUI-free Vox Populi modpack DLC for Civ V Access into
-    build/modpack-out, ready for deploy-modpack.ps1.
+    build/modpack-out, ready for deploy.ps1 -State vp.
 
 .DESCRIPTION
     Wraps tools/modpack/build_modpack.py. The one input the tool cannot
@@ -43,7 +43,7 @@ $repoRoot        = Split-Path -Parent $MyInvocation.MyCommand.Path
 $forkDll         = Join-Path $repoRoot 'dist\engine-vp\CvGameCore_Expansion2.dll'
 $buildDir        = Join-Path $repoRoot 'build\modpack-build'
 # CP-only and full VP bake to distinct output folders so neither clobbers the
-# other; deploy-modpack.ps1 reads the matching one for its mode.
+# other; deploy.ps1 -State vp / -State cp reads the matching one for its mode.
 $outDir          = Join-Path $repoRoot ($(if ($CommunityPatchOnly) { 'build\modpack-cp-out' } else { 'build\modpack-out' }))
 $dumperScript    = Join-Path $repoRoot 'tools\modpack\build_modpack.py'
 
@@ -128,4 +128,4 @@ if ($LASTEXITCODE -ne 0) { throw "build_modpack.py failed (exit $LASTEXITCODE)."
 
 Write-Host ""
 Write-Host "Modpack built at: $outDir"
-Write-Host "Deploy it with: ./deploy-modpack.ps1$(if ($CommunityPatchOnly) { ' -CommunityPatchOnly' } else { '' })"
+Write-Host "Deploy it with: ./deploy.ps1 -State $(if ($CommunityPatchOnly) { 'cp' } else { 'vp' })"

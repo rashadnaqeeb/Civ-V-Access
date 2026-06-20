@@ -1,55 +1,91 @@
 <#
 .SYNOPSIS
-    Deploy staged proxy stack, DLC payload, and (optionally) the modded
-    engine DLL into the Civilization V install.
+    Deploy (or uninstall) one of the Civ-V-Access install states. One script
+    drives every state and both functional profiles, argument-selected.
 
 .DESCRIPTION
-    Three pieces, each independently skippable:
-      - Proxy stack: dist/proxy/lua51_Win32.dll + the Tolk runtime DLLs from
-        third_party/tolk/dist/x86/.
-      - DLC: src/dlc/ (the fake-DLC payload) into Assets/DLC/DLC_CivVAccess/.
-        Also writes CivVAccess.install.json into the deployed DLC dir, the
-        single source of truth on installed version + profile that the
-        external installer reads on subsequent runs.
-      - Engine DLL: dist/engine/CvGameCore_Expansion2.dll into
-        Assets/DLC/Expansion2/, with the vanilla DLL and the stock BNW
-        cinematics backed up under Assets/DLC/DLC_CivVAccess.backup/ (a
-        sibling of the DLC dir, so it survives the redeploy nuke-and-recreate
-        of the DLC dir itself).
+    An install is in exactly one mutually-exclusive state at a time; this script
+    flips from any prior state into the one -State / -Profile select, and the
+    centralized flip-cleanup that runs first guarantees the states never bleed
+    into each other (a stale package from another state silently loading is, for
+    a blind player, silent wrong numbers).
 
-    The engine DLL is always deployed: the ~4 MB copy is cheap, and skipping
-    it would leave the wrong DLL in place when flipping in from a modpack
-    state (which embeds the fork DLL), so vanilla sessions would silently run
-    on a non-vanilla engine.
+    States (-State):
+      - vanilla : plain BNW plus the accessibility layer. Our fork engine DLL
+                  goes into Assets/DLC/Expansion2 (vanilla DLL backed up); the VP
+                  substrate is torn down so the session is genuinely vanilla.
+      - vp      : the Vox Populi modpack. The baked modpack package (build/
+                  modpack-out) is placed at Assets/DLC/ZCivVAccessVP, embedding
+                  the Community-Patch-DLL fork (so no Expansion2 DLL swap); the
+                  plain-VP substrate is completed from the clone / build/vp-runtime.
+      - cp      : the Community-Patch-only modpack (no Vox Populi balance). Like
+                  vp but build/modpack-cp-out -> Assets/DLC/ZCivVAccessCP, the cp
+                  vendor stage, and the VP substrate removed (CP uses stock BNW).
+      - lekmod  : LekMod (prebaked DLC overlay). LekMod's DLC is installed from
+                  -LekModClone with our fork DLL swapped in (GUID kept); our DLC
+                  overlays it at priority 350.
 
-    -Uninstall reverses everything: restores the vanilla engine DLL from the
-    backup, restores the original lua51_Win32.dll, removes the DLC and the
-    proxy runtime DLLs, and clears the engine's DLC cache so the next launch
-    forgets DLC_CivVAccess immediately.
+    Profiles (-Profile):
+      - blind  : the full accessibility install -- proxy + Tolk runtime, the UI
+                 payload, and the audio-described cinematics, on top of the
+                 state's engine / package / substrate.
+      - sighted: the multiplayer-compatibility minimum for a sighted partner --
+                 the state's MP-hash-relevant pieces (engine DLL, modpack package,
+                 LekMod DLC with our fork, VP substrate) plus the fake-DLC manifest with
+                 empty UI dirs, and nothing local-only (no proxy/Tolk, no
+                 cinematics, no accessibility UI code). A partner's footprint is
+                 the host's minus the local-only accessibility runtime.
+
+    The install manifest (CivVAccess.install.json in the deployed DLC dir) records
+    profile + variant + per-component versions + backup locations; the external
+    installer reads it to drive updates and teardown.
+
+    -Uninstall reverses whatever state the prior manifest records (falling back to
+    -State / -Profile when no manifest is present): restores the proxy, removes
+    our DLC / the packages / the LekMod DLC as appropriate, and restores backed-up
+    engine DLLs and cinematics.
+
+.PARAMETER State
+    Which install state to deploy. Default vanilla.
+
+.PARAMETER Profile
+    blind (full accessibility install) or sighted (MP-partner minimum). Default
+    blind.
 
 .PARAMETER GameDir
     Override the auto-detected Civ V install path.
 
+.PARAMETER ClonePath
+    Community-Patch-DLL clone, used to complete a partial plain-VP install for
+    the vp state. Defaults to the sibling directory next to this repo. Ignored
+    for any asset already staged under build/vp-runtime.
+
+.PARAMETER LekModClone
+    LekMod clone supplying the prebaked DLC for the lekmod state (both profiles
+    install it). Defaults to the sibling directory next to this repo
+    (~/Documents/Lekmod).
+
 .PARAMETER SkipProxy
-    Skip the proxy stack and the legacy lua51 rename. Useful when only the
-    DLC payload changed.
+    Skip the proxy stack and the legacy lua51 rename (blind only).
 
 .PARAMETER SkipDlc
-    Skip the DLC payload copy. Useful for proxy-only iteration (rare).
+    Skip the DLC payload copy and the install-manifest write.
 
 .PARAMETER SkipCinematics
-    Skip copying audio-described BNW opening cinematics. Files are large
-    (~80 MB English, ~5 MB per non-English locale) and rarely change, so
-    this is useful for fast Lua-only iterations.
+    Skip the audio-described BNW opening cinematics (blind only).
 
 .PARAMETER Uninstall
-    Remove the proxy stack, restore the original lua51, remove the DLC,
-    and (if a backup exists) restore the vanilla engine DLL and stock
-    BNW cinematics.
+    Reverse the installed state.
 #>
 [CmdletBinding()]
 param(
+    [ValidateSet('vanilla', 'vp', 'cp', 'lekmod')]
+    [string]$State = 'vanilla',
+    [ValidateSet('blind', 'sighted')]
+    [string]$Profile = 'blind',
     [string]$GameDir,
+    [string]$ClonePath,
+    [string]$LekModClone,
     [switch]$SkipProxy,
     [switch]$SkipDlc,
     [switch]$SkipCinematics,
@@ -59,43 +95,86 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot         = Split-Path -Parent $MyInvocation.MyCommand.Path
-$proxyDistDir     = Join-Path $repoRoot 'dist\proxy'
-$engineDistDir    = Join-Path $repoRoot 'dist\engine'
-$tolkDistDir      = Join-Path $repoRoot 'third_party\tolk\dist\x86'
-$cinematicSrcDir  = Join-Path $repoRoot 'audio described intros'
-$dlcSrcDir        = Join-Path $repoRoot 'src\dlc'
-$soundsSrcDir     = Join-Path $repoRoot 'sounds'
-$dlcName          = 'DLC_CivVAccess'
-$dlcBackupDirName = "$dlcName.backup"  # sibling to DLC dir; holds vanilla file backups so they survive the dir nuke on redeploy
-$installManifestName = 'CivVAccess.install.json'
-$legacyDlcDirs    = @('CivVAccess')
-$modpackNames     = @('ZCivVAccessVP', 'ZCivVAccessCP')   # VP and CP modpack packages (deploy-modpack.ps1); removed when flipping to another state
-$legacyModDir     = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
+. (Join-Path $repoRoot 'tools\dlc-assembly.ps1')
 
-# Versions live in versions.json at repo root. The mod's own version is the
-# release tag (and the changelog key); each component (core, engine, runtime,
-# cinematics) carries its own version that bumps only when its source tree
-# changed. The install manifest stamps each separately so the external
-# installer can render per-component diffs and the digest skip can short-
-# circuit unchanged components on update.
+$proxyDistDir       = Join-Path $repoRoot 'dist\proxy'
+$engineDistDir      = Join-Path $repoRoot 'dist\engine'
+$engineLekmodDist   = Join-Path $repoRoot 'dist\engine-lekmod'
+$tolkDistDir        = Join-Path $repoRoot 'third_party\tolk\dist\x86'
+$cinematicSrcDir    = Join-Path $repoRoot 'audio described intros'
+$dlcSrcDir          = Join-Path $repoRoot 'src\dlc'
+$soundsSrcDir       = Join-Path $repoRoot 'sounds'
+# CP and VP share one EngineData seam body: it feature-detects BALANCE_VP at
+# runtime, so the VP body is numerically correct under Community Patch too.
+$vpSeamSrcFile      = Join-Path $repoRoot 'src\vp\CivVAccess_EngineData.lua'
+$lekmodSeamSrcFile  = Join-Path $repoRoot 'src\lekmod\CivVAccess_EngineData.lua'
+$vpRuntimeDir       = Join-Path $repoRoot 'build\vp-runtime'   # pre-staged VP-completion assets, no clone needed
+
+$dlcName            = 'DLC_CivVAccess'
+$lekmodDlcName      = 'LEKMOD'                              # our deployed LekMod DLC folder (fixed name)
+$modpackNames       = @('ZCivVAccessVP', 'ZCivVAccessCP')  # both modpack packages; removed by the flip-cleanup
+$dlcBackupDirName   = "$dlcName.backup"
+$installManifestName = 'CivVAccess.install.json'
+$manifestFile       = 'CivVAccess_2.Civ5Pkg'               # the functional fake-DLC manifest (sighted ships just this)
+$legacyDlcDirs      = @('CivVAccess')
+$legacyModDir       = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\MODS\Civ-V-Access (v 1)"
+$ourDlcPriority     = 350                                  # beats the modpack / LekMod packages' 300
+$engineDllName      = 'CvGameCore_Expansion2.dll'
+
+if ([string]::IsNullOrWhiteSpace($ClonePath)) {
+    $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Community-Patch-DLL'
+}
+if ([string]::IsNullOrWhiteSpace($LekModClone)) {
+    $LekModClone = Join-Path (Split-Path -Parent $repoRoot) 'Lekmod'
+}
+
+$civ5DocsDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5"
+
 $versionsFile = Join-Path $repoRoot 'versions.json'
 if (-not (Test-Path $versionsFile)) { throw "versions.json missing at $versionsFile" }
-$versions    = Get-Content -LiteralPath $versionsFile -Raw | ConvertFrom-Json
-$modVersion  = $versions.mod
-$coreVersion       = $versions.components.core
-$engineVersion     = $versions.components.engine
-$runtimeVersion    = $versions.components.runtime
-$cinematicsVersion = $versions.components.cinematics
+$versions            = Get-Content -LiteralPath $versionsFile -Raw | ConvertFrom-Json
+$modVersion          = $versions.mod
+$coreVersion         = $versions.components.core
+$engineVersion       = $versions.components.engine
+$runtimeVersion      = $versions.components.runtime
+$cinematicsVersion   = $versions.components.cinematics
+
+# Per-state engine arg / vendor stage / baked package / DLC folder. Computed once.
+$modpackEngineArg = $null
+$vendorStageDir   = $null
+$modpackBuildDir  = $null
+$modpackPkgName   = $null
+$engineLabel      = $null
+switch ($State) {
+    'vp' {
+        $modpackEngineArg = 'vp'
+        $vendorStageDir   = Join-Path $repoRoot 'build\vendor\vp'
+        $modpackBuildDir  = Join-Path $repoRoot 'build\modpack-out'
+        $modpackPkgName   = 'ZCivVAccessVP'
+        $engineLabel      = 'Vox Populi'
+    }
+    'cp' {
+        $modpackEngineArg = 'cp'
+        $vendorStageDir   = Join-Path $repoRoot 'build\vendor\cp'
+        $modpackBuildDir  = Join-Path $repoRoot 'build\modpack-cp-out'
+        $modpackPkgName   = 'ZCivVAccessCP'
+        $engineLabel      = 'Community Patch'
+    }
+    'lekmod' {
+        $vendorStageDir   = Join-Path $repoRoot 'build\vendor\lekmod'
+        $engineLabel      = 'LekMod'
+    }
+}
 
 # Set in the driver after Resolve-CivVInstallDir, before any function uses them.
-$dlcBackupDir    = $null
-$engineBackup    = $null
-$cinematicBackup = $null
+$dlcBackupDir       = $null
+$engineBackup       = $null
+$cinematicBackup    = $null
+$expansionPkgBackup = $null
 
-# BNW opening cinematic filenames the engine expects under
-# Assets/DLC/Expansion2/. Only en_US is a full .wmv video; non-English locales
-# are .wma audio dubs the engine layers over the en_US.wmv visual track. Source
-# files in $cinematicSrcDir are pre-named to match these exactly.
+# BNW opening cinematic filenames the engine expects under Assets/DLC/Expansion2/.
+# Only en_US is a full .wmv video; non-English locales are .wma audio dubs the
+# engine layers over the en_US.wmv visual track.
 $cinematicFiles = @(
     'Civ5XP2_Opening_Movie_en_US.wmv',
     'Civ5XP2_Opening_Movie_de_DE.wma',
@@ -106,10 +185,6 @@ $cinematicFiles = @(
     'Civ5XP2_Opening_Movie_ru_RU.wma'
 )
 
-# Files to copy into the game directory alongside the proxy. lua51_Win32.dll
-# is our build (dist/proxy/); the rest are third-party screen-reader bridges
-# shipped from third_party/tolk/dist/x86/. Both are committed to the repo so
-# contributors can deploy without rebuilding.
 $ourProxyFiles = @('lua51_Win32.dll')
 $tolkFiles     = @(
     'Tolk.dll',
@@ -122,107 +197,18 @@ $tolkFiles     = @(
     'ZDSRAPI.ini'
 )
 
-$engineDllName = 'CvGameCore_Expansion2.dll'
+# Empty directories created under the sighted DLC so the manifest's
+# <UISkin>/<Skin>/<GameplaySkin> directives resolve without dragging in mod code.
+$dlcUiDirs = @('UI\FrontEnd', 'UI\Shared', 'UI\InGame', 'UI\TechTree')
 
-# Generated Lua module that exposes the mod version to the in-game Boot
-# announcement (Text.format key TXT_KEY_CIVVACCESS_BOOT_INGAME). Written here
-# rather than committed under src/dlc/ so versions.json stays the single
-# source of truth -- bumping the mod version in versions.json is the only
-# thing the spoken version reflects. package-release.ps1 writes the same
-# file into the staged core-blind tree before zipping.
-function Write-VersionLua {
-    param([string]$DlcRoot)
-    $dst = Join-Path $DlcRoot 'UI\InGame\CivVAccess_Version.lua'
-    $body = @"
--- Generated by deploy.ps1 / package-release.ps1 from versions.json. Do not
--- edit by hand; edits will be overwritten on the next deploy or package run.
-civvaccess_shared = civvaccess_shared or {}
-civvaccess_shared.version = "$modVersion"
-"@
-    # WriteAllText with UTF8Encoding(false) writes no BOM; PowerShell's
-    # Set-Content -Encoding UTF8 does, and Civ V's Lua 5.1 loader treats
-    # the BOM as a syntax error on line 1 (silently kills the file's
-    # globals -- the boot speech then says "v unknown").
-    [System.IO.File]::WriteAllText($dst, $body, [System.Text.UTF8Encoding]::new($false))
-}
-
-function Add-CandidateGameDir {
-    param(
-        [System.Collections.Generic.List[string]]$List,
-        [string]$Path
-    )
-    if (-not [string]::IsNullOrWhiteSpace($Path)) {
-        $normalized = $Path.Trim().Trim('"')
-        if (-not [string]::IsNullOrWhiteSpace($normalized) -and -not $List.Contains($normalized)) {
-            $List.Add($normalized)
-        }
-    }
-}
-
-function Resolve-CivVInstallDir {
-    param([string]$ExplicitPath)
-
-    $appName = "Sid Meier's Civilization V"
-    $candidates = New-Object 'System.Collections.Generic.List[string]'
-
-    Add-CandidateGameDir -List $candidates -Path $env:CIV5_DIR
-    Add-CandidateGameDir -List $candidates -Path $ExplicitPath
-
-    $uninstallKeys = @(
-        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 8930',
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 8930'
-    )
-    foreach ($key in $uninstallKeys) {
-        try {
-            $props = Get-ItemProperty -Path $key -ErrorAction Stop
-            Add-CandidateGameDir -List $candidates -Path $props.InstallLocation
-        } catch { }
-    }
-
-    try {
-        $steam = Get-ItemProperty -Path 'HKCU:\Software\Valve\Steam' -ErrorAction Stop
-        $steamPath = $steam.SteamPath
-        if (-not [string]::IsNullOrWhiteSpace($steamPath)) {
-            $steamPath = ($steamPath -replace '/', '\').TrimEnd('\')
-            Add-CandidateGameDir -List $candidates -Path (Join-Path $steamPath "steamapps\common\$appName")
-
-            $libraryVdf = Join-Path $steamPath 'steamapps\libraryfolders.vdf'
-            if (Test-Path $libraryVdf) {
-                $raw = Get-Content -Raw $libraryVdf
-                $matches = [regex]::Matches($raw, '"path"\s*"([^"]+)"')
-                foreach ($m in $matches) {
-                    $libPath = $m.Groups[1].Value -replace '\\\\', '\'
-                    Add-CandidateGameDir -List $candidates -Path (Join-Path $libPath "steamapps\common\$appName")
-                }
-            }
-        }
-    } catch { }
-
-    try {
-        $hklmSteam = Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam' -ErrorAction Stop
-        if ($hklmSteam -and -not [string]::IsNullOrWhiteSpace($hklmSteam.InstallPath)) {
-            $p = $hklmSteam.InstallPath.TrimEnd('\')
-            Add-CandidateGameDir -List $candidates -Path (Join-Path $p "steamapps\common\$appName")
-        }
-    } catch { }
-
-    Add-CandidateGameDir -List $candidates -Path (Join-Path ${env:ProgramFiles(x86)} "Steam\steamapps\common\$appName")
-
-    foreach ($candidate in $candidates) {
-        $exe = Join-Path $candidate 'CivilizationV.exe'
-        if (Test-Path $exe) {
-            return (Resolve-Path $candidate).Path
-        }
-    }
-
-    $searched = if ($candidates.Count -gt 0) { $candidates -join '; ' } else { '<none>' }
-    throw "Could not find Civilization V install directory. Pass -GameDir or set CIV5_DIR. Searched: $searched"
-}
+# ---------------------------------------------------------------------------
+# Shared deploy pieces (proxy / cinematics / cache). The install-dir resolver
+# and the VP-substrate helpers live in tools\dlc-assembly.ps1.
+# ---------------------------------------------------------------------------
 
 function Deploy-ProxyStack {
     param([string]$Game)
 
-    # Verify all expected source files before touching anything.
     foreach ($f in $ourProxyFiles) {
         $p = Join-Path $proxyDistDir $f
         if (-not (Test-Path $p)) { throw "Missing built proxy file: $p. Run build-proxy.ps1 first." }
@@ -245,193 +231,13 @@ function Deploy-ProxyStack {
 
     Write-Host "Copying proxy + Tolk runtime to game directory:"
     foreach ($f in $ourProxyFiles) {
-        $src = Join-Path $proxyDistDir $f
-        $dst = Join-Path $Game $f
-        Copy-Item -LiteralPath $src -Destination $dst -Force
-        Write-Host "  $dst"
+        Copy-Item -LiteralPath (Join-Path $proxyDistDir $f) -Destination (Join-Path $Game $f) -Force
+        Write-Host "  $(Join-Path $Game $f)"
     }
     foreach ($f in $tolkFiles) {
-        $src = Join-Path $tolkDistDir $f
-        $dst = Join-Path $Game $f
-        Copy-Item -LiteralPath $src -Destination $dst -Force
-        Write-Host "  $dst"
+        Copy-Item -LiteralPath (Join-Path $tolkDistDir $f) -Destination (Join-Path $Game $f) -Force
+        Write-Host "  $(Join-Path $Game $f)"
     }
-}
-
-function Deploy-Dlc {
-    param([string]$Game)
-
-    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
-    if (Test-Path $dlcDir) {
-        Write-Host "  Removing existing DLC directory: $dlcDir"
-        Remove-Item -LiteralPath $dlcDir -Recurse -Force
-    }
-    New-Item -ItemType Directory -Path $dlcDir -Force | Out-Null
-    Write-Host "Deploying DLC payload to:"
-    Write-Host "  $dlcDir"
-    Copy-Item -Path (Join-Path $dlcSrcDir '*') -Destination $dlcDir -Recurse -Force
-
-    Write-VersionLua -DlcRoot $dlcDir
-
-    if (Test-Path $soundsSrcDir) {
-        $soundsDst = Join-Path $dlcDir 'Sounds'
-        New-Item -ItemType Directory -Path $soundsDst -Force | Out-Null
-        Write-Host "Deploying sound assets to:"
-        Write-Host "  $soundsDst"
-        Copy-Item -Path (Join-Path $soundsSrcDir '*.wav') -Destination $soundsDst -Force
-    }
-
-    if (Test-Path $legacyModDir) {
-        Write-Host "Removing legacy mod directory:"
-        Write-Host "  $legacyModDir"
-        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
-    }
-    $legacyBootstrap = Join-Path $Game 'CivVAccess'
-    if ((Test-Path $legacyBootstrap) -and ($legacyBootstrap -ne $dlcDir)) {
-        Write-Host "Removing legacy bootstrap directory:"
-        Write-Host "  $legacyBootstrap"
-        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
-    }
-    foreach ($legacy in $legacyDlcDirs) {
-        $p = Join-Path $Game "Assets\DLC\$legacy"
-        if ((Test-Path $p) -and ($p -ne $dlcDir)) {
-            Write-Host "Removing legacy DLC directory:"
-            Write-Host "  $p"
-            Remove-Item -LiteralPath $p -Recurse -Force
-        }
-    }
-
-    # A prior modpack deploy leaves its package at Assets\DLC\<modpack name>
-    # (VP or CP). Unlike the inert MODS overlay, that package's Override/
-    # GameData is auto-loaded by the engine for any DLC present, with no
-    # manifest directive or mod activation -- it would inject the modpack's full
-    # database into this vanilla session. Remove either so the flip out of
-    # modpack state is clean.
-    foreach ($name in $modpackNames) {
-        $modpackDir = Join-Path $Game "Assets\DLC\$name"
-        if (Test-Path $modpackDir) {
-            Write-Host "Removing modpack package:"
-            Write-Host "  $modpackDir"
-            Remove-Item -LiteralPath $modpackDir -Recurse -Force
-        }
-    }
-
-    # A prior deploy-lekmod.ps1 leaves LekMod's prebaked DLC at Assets\DLC\LEKMOD*
-    # (its Override/ is auto-loaded for any DLC present, like the modpacks above),
-    # so a flip to vanilla must remove it or this "vanilla" session is still a
-    # LekMod game. deploy-lekmod installs it; removing it here is the flip-back.
-    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
-        Write-Host "Removing LekMod DLC:"
-        Write-Host "  $($_.FullName)"
-        Remove-Item -LiteralPath $_.FullName -Recurse -Force
-    }
-
-    # Capture the stock BNW manifest while it is still stock, then tear down any
-    # VP-completion substrate so a flip to vanilla is genuinely vanilla.
-    Backup-StockExpansionPkg -Game $Game
-    Remove-VpSubstrate -Game $Game
-
-    # Engine re-enumerates DLC list at startup from this cache. Without
-    # clearing, newly-added or renamed DLCs may not appear until the user
-    # forces a refresh.
-    $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
-    if (Test-Path $cacheDir) {
-        Write-Host "Clearing DLC cache:"
-        Write-Host "  $cacheDir"
-        Get-ChildItem -LiteralPath $cacheDir -File | Remove-Item -Force
-    }
-}
-
-function Backup-StockExpansionPkg {
-    param([string]$Game)
-
-    # The BNW Expansion2.Civ5Pkg is a core, always-active manifest. VP's
-    # installer (and our VP deploys) overwrite it in place to add a minor-civ
-    # sound table. Snapshot it the moment we see it stock, so a later flip out
-    # of VP/modpack state can restore it; without a snapshot taken while it is
-    # still stock there is no way back to vanilla on this install.
-    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
-    if (-not (Test-Path $pkg)) { return }
-    if ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli') { return }  # already VP, not stock
-    if (Test-Path $stockPkgBackup) { return }                                                # already captured
-    if (-not (Test-Path $dlcBackupDir)) { New-Item -ItemType Directory -Path $dlcBackupDir -Force | Out-Null }
-    Write-Host "Capturing stock BNW Expansion2.Civ5Pkg backup:"
-    Write-Host "  $pkg -> $stockPkgBackup"
-    Copy-Item -LiteralPath $pkg -Destination $stockPkgBackup -Force
-}
-
-function Remove-VpSubstrate {
-    param([string]$Game)
-
-    # Make "vanilla" actually vanilla by tearing down the VP-completion
-    # substrate deploy-vp / deploy-modpack lay down. Unlike the inert VP MODS
-    # overlay, these load in a no-mod session: VPUI is a UISkin DLC and the
-    # swapped Expansion2.Civ5Pkg is the always-active BNW manifest. Idempotent
-    # -- a no-op on an install that was never VP-ified.
-    $vpui = Join-Path $Game "Assets\DLC\VPUI"
-    if (Test-Path $vpui) {
-        Write-Host "Removing VPUI fake DLC:"
-        Write-Host "  $vpui"
-        Remove-Item -LiteralPath $vpui -Recurse -Force
-    }
-
-    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
-    if ((Test-Path $pkg) -and ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli')) {
-        if (Test-Path $stockPkgBackup) {
-            Write-Host "Restoring stock BNW Expansion2.Civ5Pkg from backup:"
-            Write-Host "  $stockPkgBackup -> $pkg"
-            Copy-Item -LiteralPath $stockPkgBackup -Destination $pkg -Force
-        } else {
-            Write-Host "WARNING: Expansion2.Civ5Pkg is the VP version but no stock backup"
-            Write-Host "exists to restore. This install cannot be made fully vanilla here;"
-            Write-Host "verify game files in Steam to restore the stock manifest."
-            Write-Host "  (expected backup: $stockPkgBackup)"
-        }
-    }
-
-    $minorSounds = Join-Path $Game "Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml"
-    if (Test-Path $minorSounds) {
-        Write-Host "Removing VP minor-civ sound table:"
-        Write-Host "  $minorSounds"
-        Remove-Item -LiteralPath $minorSounds -Force
-    }
-
-    $tips = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\Text\VPUI_tips_en_us.xml"
-    if (Test-Path $tips) {
-        Write-Host "Removing VP loading-screen tips:"
-        Write-Host "  $tips"
-        Remove-Item -LiteralPath $tips -Force
-    }
-}
-
-function Deploy-EngineDll {
-    param([string]$Game)
-
-    $stagedDll = Join-Path $engineDistDir $engineDllName
-    if (-not (Test-Path $stagedDll)) {
-        throw "Built engine DLL missing: $stagedDll. Run build-engine.ps1 first (or commit the built DLL)."
-    }
-
-    $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
-    if (-not (Test-Path $installedDll)) {
-        throw "Vanilla engine DLL not found at $installedDll. Verify game files in Steam and retry."
-    }
-
-    # First-run backup. Only ever backs up if no backup exists; never
-    # overwrites the backup with a modded DLL.
-    if (-not (Test-Path $engineBackup)) {
-        $backupDir = Split-Path -Parent $engineBackup
-        if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
-        Write-Host "Backing up vanilla engine DLL:"
-        Write-Host "  $installedDll -> $engineBackup"
-        Copy-Item -LiteralPath $installedDll -Destination $engineBackup -Force
-    } else {
-        Write-Host "  Vanilla engine DLL backup already exists at $engineBackup."
-    }
-
-    Write-Host "Deploying modded engine DLL:"
-    Write-Host "  $stagedDll -> $installedDll"
-    Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
 }
 
 function Deploy-Cinematics {
@@ -440,20 +246,16 @@ function Deploy-Cinematics {
     if (-not (Test-Path $cinematicSrcDir)) {
         throw "Cinematics source directory missing: $cinematicSrcDir"
     }
-
     $expansion2Dir = Join-Path $Game 'Assets\DLC\Expansion2'
     if (-not (Test-Path $expansion2Dir)) {
         throw "BNW (Expansion2) directory not found at $expansion2Dir. The mod requires BNW; verify the game install."
     }
-
     foreach ($f in $cinematicFiles) {
         $src = Join-Path $cinematicSrcDir $f
         if (-not (Test-Path $src)) { throw "Missing cinematic source file: $src" }
     }
 
-    # First-run backup. Copy each stock cinematic into the backup directory
-    # only if no backup file already exists for it - never overwrite a backup
-    # with a modded file.
+    # First-run backup: copy each stock cinematic only if no backup exists yet.
     if (-not (Test-Path $cinematicBackup)) {
         New-Item -ItemType Directory -Path $cinematicBackup -Force | Out-Null
     }
@@ -476,57 +278,276 @@ function Deploy-Cinematics {
     }
 }
 
+function Clear-DlcCache {
+    # The engine re-enumerates the DLC list at startup from this cache; clear it
+    # so a newly-added / renamed / removed DLC takes immediately.
+    $cacheDir = Join-Path $civ5DocsDir 'cache'
+    if (Test-Path $cacheDir) {
+        Write-Host "Clearing DLC cache:"
+        Write-Host "  $cacheDir"
+        Get-ChildItem -LiteralPath $cacheDir -File | Remove-Item -Force
+    }
+}
+
+# The single flip-cleanup every install runs first: remove both modpack packages,
+# the LekMod DLC (unless we are installing LekMod, whose own branch manages it),
+# and the legacy directories. This is where the "exclusive states" guarantee
+# lives. The VP substrate is state-specific (vp keeps it, the rest tear it down),
+# so it is handled per state, not here.
+function Invoke-FlipCleanup {
+    param([string]$Game, [string]$ForState)
+
+    $dlcRoot = Join-Path $Game 'Assets\DLC'
+
+    foreach ($name in $modpackNames) {
+        $d = Join-Path $dlcRoot $name
+        if (Test-Path $d) {
+            Write-Host "Removing modpack package:"
+            Write-Host "  $d"
+            Remove-Item -LiteralPath $d -Recurse -Force
+        }
+    }
+
+    if ($ForState -ne 'lekmod') {
+        Get-ChildItem -LiteralPath $dlcRoot -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "Removing LekMod DLC:"
+            Write-Host "  $($_.FullName)"
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force
+        }
+    }
+
+    if (Test-Path $legacyModDir) {
+        Write-Host "Removing legacy mod directory:"
+        Write-Host "  $legacyModDir"
+        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
+    }
+    $legacyBootstrap = Join-Path $Game 'CivVAccess'
+    if (Test-Path $legacyBootstrap) {
+        Write-Host "Removing legacy bootstrap directory:"
+        Write-Host "  $legacyBootstrap"
+        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
+    }
+    foreach ($legacy in $legacyDlcDirs) {
+        $p = Join-Path $dlcRoot $legacy
+        if (Test-Path $p) {
+            Write-Host "Removing legacy DLC directory:"
+            Write-Host "  $p"
+            Remove-Item -LiteralPath $p -Recurse -Force
+        }
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Engine / package / DLC placement, per state.
+# ---------------------------------------------------------------------------
+
+function Deploy-VanillaEngineDll {
+    param([string]$Game)
+
+    $stagedDll = Join-Path $engineDistDir $engineDllName
+    if (-not (Test-Path $stagedDll)) {
+        throw "Built engine DLL missing: $stagedDll. Run build-engine.ps1 first (or commit the built DLL)."
+    }
+    $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
+    if (-not (Test-Path $installedDll)) {
+        throw "Vanilla engine DLL not found at $installedDll. Verify game files in Steam and retry."
+    }
+
+    if (-not (Test-Path $engineBackup)) {
+        $backupDir = Split-Path -Parent $engineBackup
+        if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+        Write-Host "Backing up vanilla engine DLL:"
+        Write-Host "  $installedDll -> $engineBackup"
+        Copy-Item -LiteralPath $installedDll -Destination $engineBackup -Force
+    } else {
+        Write-Host "  Vanilla engine DLL backup already exists at $engineBackup."
+    }
+
+    Write-Host "Deploying modded engine DLL:"
+    Write-Host "  $stagedDll -> $installedDll"
+    Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
+}
+
+function Deploy-VanillaBlindDlc {
+    param([string]$Game)
+
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    Write-Host "Deploying DLC payload to:"
+    Write-Host "  $dlcDir"
+    # The vanilla blind payload is exactly the shared core build: src/dlc + the
+    # version lua + the accessibility sounds, recreated from scratch.
+    Copy-CivVAccessCoreDlc -DestDir $dlcDir -DlcSrcDir $dlcSrcDir -ModVersion $modVersion -SoundsSrcDir $soundsSrcDir
+}
+
+function Deploy-ModpackBlindDlc {
+    param([string]$Game)
+
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    Write-Host "Deploying DLC payload (modpack-shaped) to:"
+    Write-Host "  $dlcDir"
+    # Shared assembly: vendor overlay + seam + version lua + sounds + priority 350
+    # + the net-new-context addin block (vp/cp). The VP seam body serves both.
+    New-CivVAccessModdedDlc -DestDir $dlcDir -Engine $modpackEngineArg `
+        -DlcSrcDir $dlcSrcDir -VendorStageDir $vendorStageDir -SeamFile $vpSeamSrcFile `
+        -ModVersion $modVersion -SoundsSrcDir $soundsSrcDir -Priority $ourDlcPriority
+    Write-Host "  Set our DLC priority to $ourDlcPriority"
+    Write-Host "  Appended net-new-context addin loads to InGame.lua"
+}
+
+function Deploy-ModpackPackage {
+    param([string]$Game)
+
+    if (-not (Test-Path (Join-Path $modpackBuildDir 'MPModsPack.Civ5Pkg'))) {
+        $buildFlag = if ($State -eq 'cp') { ' -CommunityPatchOnly' } else { '' }
+        throw "Built modpack missing at $modpackBuildDir. Run build-modpack.ps1$buildFlag first."
+    }
+    # The flip-cleanup already removed both packages and any LekMod DLC; place the
+    # active one. It embeds the fork DLL, so no Expansion2 DLL swap.
+    $dst = Join-Path $Game "Assets\DLC\$modpackPkgName"
+    Write-Host "Placing modpack package (embeds the fork DLL):"
+    Write-Host "  $modpackBuildDir -> $dst"
+    Copy-Item -LiteralPath $modpackBuildDir -Destination $dst -Recurse -Force
+}
+
+function Deploy-LekModDlc {
+    param([string]$Game)
+
+    $cloneLekMod = Join-Path $LekModClone 'LEKMOD'
+    if (-not (Test-Path (Join-Path $cloneLekMod 'MPModsPack.Civ5Pkg'))) {
+        throw "LekMod clone not found at $cloneLekMod (expected its LEKMOD/MPModsPack.Civ5Pkg). Pass -LekModClone."
+    }
+    if (-not (Test-Path $forkLekmodDll)) {
+        throw "LekMod fork engine DLL missing: $forkLekmodDll. Run build-engine-lekmod.ps1 (or commit the built DLL)."
+    }
+
+    # Remove any prior LekMod DLC (ours or a user's) so the state is clean.
+    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "  Removing existing LekMod DLC: $($_.FullName)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
+    }
+
+    $dst = Join-Path $Game "Assets\DLC\$lekmodDlcName"
+    Write-Host "Installing LekMod prebaked DLC:"
+    Write-Host "  $cloneLekMod -> $dst"
+    Copy-Item -LiteralPath $cloneLekMod -Destination $dst -Recurse -Force
+
+    Resolve-CivVAccessLekModStandardUI -LekModDir $dst
+
+    Write-Host "Replacing LekMod engine DLL with our fork:"
+    Write-Host "  $forkLekmodDll -> $dst\$engineDllName"
+    Copy-Item -LiteralPath $forkLekmodDll -Destination (Join-Path $dst $engineDllName) -Force
+}
+
+function Deploy-LekModBlindDlc {
+    param([string]$Game)
+
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    Write-Host "Deploying our DLC payload (LekMod-shaped) to:"
+    Write-Host "  $dlcDir"
+    # Shared assembly: LekMod vendor overlay + LekMod seam + version lua + sounds
+    # + priority 350. No addin block -- LekMod loads its contexts via its own DLC.
+    New-CivVAccessModdedDlc -DestDir $dlcDir -Engine 'lekmod' `
+        -DlcSrcDir $dlcSrcDir -VendorStageDir $vendorStageDir -SeamFile $lekmodSeamSrcFile `
+        -ModVersion $modVersion -SoundsSrcDir $soundsSrcDir -Priority $ourDlcPriority
+    Write-Host "  Set our DLC priority to $ourDlcPriority"
+}
+
+# The sighted fake-DLC manifest: just CivVAccess_2.Civ5Pkg plus empty UI dirs so
+# the manifest's UISkin directives resolve with no mod code shipped. Recreates
+# the DLC dir from scratch.
+function Deploy-EmptyUiManifest {
+    param([string]$Game)
+
+    $manifestSrc = Join-Path $dlcSrcDir $manifestFile
+    if (-not (Test-Path $manifestSrc)) { throw "DLC manifest missing: $manifestSrc" }
+
+    $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
+    if (Test-Path $dlcDir) {
+        Write-Host "  Removing existing DLC directory: $dlcDir"
+        Remove-Item -LiteralPath $dlcDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $dlcDir -Force | Out-Null
+
+    Write-Host "Deploying DLC manifest to:"
+    Write-Host "  $dlcDir\$manifestFile"
+    Copy-Item -LiteralPath $manifestSrc -Destination (Join-Path $dlcDir $manifestFile) -Force
+
+    foreach ($rel in $dlcUiDirs) {
+        New-Item -ItemType Directory -Path (Join-Path $dlcDir $rel) -Force | Out-Null
+    }
+    Write-Host "  Created empty UISkin directories (no mod code shipped)."
+}
+
+# ---------------------------------------------------------------------------
+# Install manifest. Shapes are installer-compatible and preserved per state /
+# profile (InstallState.cs / Profile.cs read profile + variant; the backup
+# filenames feed the installer's backup map and this script's own uninstall).
+# ---------------------------------------------------------------------------
+
 function Write-InstallManifest {
-    param(
-        [string]$Game,
-        [ValidateSet('blind','sighted')]
-        [string]$Profile
-    )
+    param([string]$Game)
 
     $dlcDir = Join-Path $Game "Assets\DLC\$dlcName"
     $manifestPath = Join-Path $dlcDir $installManifestName
-
     $backupDirRel = "Assets/DLC/$dlcBackupDirName"
-
-    if ($Profile -eq 'blind') {
-        $components = [ordered]@{
-            core       = [ordered]@{ version = $coreVersion }
-            engine     = [ordered]@{ version = $engineVersion }
-            runtime    = [ordered]@{ version = $runtimeVersion }
-            cinematics = [ordered]@{ version = $cinematicsVersion }
-        }
-        $backups = [ordered]@{
-            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
-            cinematics = "$backupDirRel/cinematics"
-            lua51      = 'lua51_original.dll'
-        }
-    } else {
-        $components = [ordered]@{
-            engine = [ordered]@{ version = $engineVersion }
-        }
-        $backups = [ordered]@{
-            engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
-        }
-    }
 
     $manifest = [ordered]@{
         schema_version = 1
         mod_version    = $modVersion
         profile        = $Profile
         installed_at   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        components     = $components
-        backups        = $backups
     }
 
-    $json = $manifest | ConvertTo-Json -Depth 5
-    Set-Content -LiteralPath $manifestPath -Value $json -Encoding UTF8
+    switch ($State) {
+        'vanilla' {
+            if ($Profile -eq 'blind') {
+                $manifest.components = [ordered]@{
+                    core       = [ordered]@{ version = $coreVersion }
+                    engine     = [ordered]@{ version = $engineVersion }
+                    runtime    = [ordered]@{ version = $runtimeVersion }
+                    cinematics = [ordered]@{ version = $cinematicsVersion }
+                }
+                $manifest.backups = [ordered]@{
+                    engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
+                    cinematics = "$backupDirRel/cinematics"
+                    lua51      = 'lua51_original.dll'
+                }
+            } else {
+                $manifest.components = [ordered]@{
+                    engine       = [ordered]@{ version = $engineVersion }
+                    core_sighted = [ordered]@{ version = $coreVersion }
+                }
+                $manifest.backups = [ordered]@{
+                    engine_dll = "$backupDirRel/CvGameCore_Expansion2.vanilla.dll"
+                }
+            }
+        }
+        { $_ -eq 'vp' -or $_ -eq 'cp' } {
+            $manifest.variant = if ($State -eq 'cp') { 'modpack-cp' } else { 'modpack' }
+            $manifest.modpack = "Assets/DLC/$modpackPkgName"
+        }
+        'lekmod' {
+            # Both profiles install LekMod's DLC fresh (fork embedded), so there
+            # is no pre-existing DLL to back up; the footprint is the LEKMOD tree
+            # plus our DLC, matching the installer's LekMod component set.
+            $manifest.variant = 'lekmod'
+            $manifest.lekmod_dlc = "Assets/DLC/$lekmodDlcName"
+        }
+    }
+
+    Set-Content -LiteralPath $manifestPath -Value ($manifest | ConvertTo-Json -Depth 5) -Encoding UTF8
     Write-Host "Wrote install manifest:"
     Write-Host "  $manifestPath"
 }
 
-function Invoke-Uninstall {
-    param([string]$Game)
+# ---------------------------------------------------------------------------
+# Uninstall. Reverses whatever state/profile $UninstallState / $UninstallProfile
+# resolve to (from the prior manifest, falling back to the -State / -Profile
+# args). Modular so each state restores exactly what it laid down.
+# ---------------------------------------------------------------------------
 
+function Restore-Proxy {
+    param([string]$Game)
     $stockDll    = Join-Path $Game 'lua51_Win32.dll'
     $originalDll = Join-Path $Game 'lua51_original.dll'
     if (Test-Path $originalDll) {
@@ -539,95 +560,143 @@ function Invoke-Uninstall {
     } else {
         Write-Host "  No lua51_original.dll found; skipping proxy restore."
     }
-
-    foreach ($f in @('Tolk.dll','SAAPI32.dll','dolapi32.dll','nvdaControllerClient32.dll','BoyCtrl.dll','boyctrl.ini','ZDSRAPI.dll','ZDSRAPI.ini')) {
+    foreach ($f in $tolkFiles) {
         $p = Join-Path $Game $f
         if (Test-Path $p) {
             Write-Host "  Removing $p"
             Remove-Item -LiteralPath $p -Force
         }
     }
+    $proxyLog = Join-Path $Game 'proxy_debug.log'
+    if (Test-Path $proxyLog) { Remove-Item -LiteralPath $proxyLog -Force }
+}
 
-    foreach ($name in @($dlcName) + $modpackNames + $legacyDlcDirs) {
-        $p = Join-Path $Game "Assets\DLC\$name"
-        if (Test-Path $p) {
-            Write-Host "  Removing DLC: $p"
-            Remove-Item -LiteralPath $p -Recurse -Force
+function Remove-OurDlc {
+    param([string]$Game)
+    $d = Join-Path $Game "Assets\DLC\$dlcName"
+    if (Test-Path $d) {
+        Write-Host "  Removing DLC: $d"
+        Remove-Item -LiteralPath $d -Recurse -Force
+    }
+}
+
+function Remove-ModpackPackages {
+    param([string]$Game)
+    foreach ($name in $modpackNames) {
+        $d = Join-Path $Game "Assets\DLC\$name"
+        if (Test-Path $d) {
+            Write-Host "  Removing modpack package: $d"
+            Remove-Item -LiteralPath $d -Recurse -Force
         }
     }
+}
 
-    # LekMod's prebaked DLC (deploy-lekmod.ps1) lives at Assets\DLC\LEKMOD*.
-    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
-        Write-Host "  Removing LekMod DLC: $($_.FullName)"
-        Remove-Item -LiteralPath $_.FullName -Recurse -Force
-    }
-
-    $legacyBootstrap = Join-Path $Game 'CivVAccess'
-    if (Test-Path $legacyBootstrap) {
-        Write-Host "  Removing legacy bootstrap: $legacyBootstrap"
-        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
-    }
-
-    if (Test-Path $legacyModDir) {
-        Write-Host "  Removing legacy mod directory: $legacyModDir"
-        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
-    }
-
-    $proxyLog = Join-Path $Game 'proxy_debug.log'
-    if (Test-Path $proxyLog) {
-        Remove-Item -LiteralPath $proxyLog -Force
-    }
-
-    # Restore vanilla engine DLL if we ever swapped it. Backup is the source
-    # of truth; if missing, the user never deployed the modded engine in the
-    # first place, so nothing to restore.
-    if (Test-Path $engineBackup) {
-        $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
-        Write-Host "  Restoring vanilla engine DLL from backup:"
-        Write-Host "    $engineBackup -> $installedDll"
-        Copy-Item -LiteralPath $engineBackup -Destination $installedDll -Force
-    } else {
-        Write-Host "  No engine DLL backup present; skipping engine restore."
-    }
-
-    # Restore stock BNW cinematics from backup. Same logic as engine DLL: backup
-    # is the source of truth, missing backup means we never deployed cinematics.
+function Restore-Cinematics {
+    param([string]$Game)
     if (Test-Path $cinematicBackup) {
         $expansion2Dir = Join-Path $Game 'Assets\DLC\Expansion2'
         foreach ($f in $cinematicFiles) {
-            $backup    = Join-Path $cinematicBackup $f
-            $installed = Join-Path $expansion2Dir $f
+            $backup = Join-Path $cinematicBackup $f
             if (Test-Path $backup) {
-                Write-Host "  Restoring vanilla cinematic:"
-                Write-Host "    $backup -> $installed"
-                Copy-Item -LiteralPath $backup -Destination $installed -Force
+                Write-Host "  Restoring vanilla cinematic: $f"
+                Copy-Item -LiteralPath $backup -Destination (Join-Path $expansion2Dir $f) -Force
             }
         }
         Remove-Item -LiteralPath $cinematicBackup -Recurse -Force
     } else {
         Write-Host "  No cinematics backup present; skipping cinematics restore."
     }
+}
 
-    # Remove only this script's consumed backups; deploy-vp.ps1 keeps its own
-    # state (the VP-stock engine DLL, the Expansion2.Civ5Pkg.stock) in the
-    # same directory, so the dir itself goes only when nothing is left.
-    if (Test-Path $engineBackup) {
-        Remove-Item -LiteralPath $engineBackup -Force
-    }
+function Remove-EmptyBackupDir {
     if ((Test-Path $dlcBackupDir) -and ((Get-ChildItem -LiteralPath $dlcBackupDir -Recurse -File | Measure-Object).Count -eq 0)) {
         Write-Host "  Removing empty backup dir: $dlcBackupDir"
         Remove-Item -LiteralPath $dlcBackupDir -Recurse -Force
     }
+}
 
-    # Engine re-enumerates DLC at startup from this cache. Without clearing
-    # it, the engine may keep DLC_CivVAccess as a known-but-missing entry
-    # until the next forced refresh.
-    $cacheDir = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5\cache"
-    if (Test-Path $cacheDir) {
-        Write-Host "Clearing DLC cache:"
-        Write-Host "  $cacheDir"
-        Get-ChildItem -LiteralPath $cacheDir -File | Remove-Item -Force
+function Invoke-Uninstall {
+    param([string]$Game, [string]$ForState, [string]$ForProfile)
+
+    if ($ForState -eq 'lekmod') {
+        # Both profiles installed the LekMod DLC fresh (we own the LEKMOD tree),
+        # so teardown removes it; there is no partner DLL to restore. blind also
+        # had the proxy and cinematics.
+        if ($ForProfile -eq 'blind') { Restore-Proxy -Game $Game }
+        Remove-OurDlc -Game $Game
+        Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "  Removing LekMod DLC: $($_.FullName)"
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force
+        }
+        if ($ForProfile -eq 'blind') { Restore-Cinematics -Game $Game }
+        Remove-EmptyBackupDir
+        Clear-DlcCache
+        return
     }
+
+    if ($ForProfile -eq 'sighted') {
+        # vanilla / vp / cp sighted partner: only our DLC and the state's package.
+        Remove-OurDlc -Game $Game
+        if ($ForState -eq 'vanilla') {
+            if (Test-Path $engineBackup) {
+                $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
+                Write-Host "  Restoring vanilla engine DLL from backup:"
+                Write-Host "    $engineBackup -> $installedDll"
+                Copy-Item -LiteralPath $engineBackup -Destination $installedDll -Force
+                Remove-Item -LiteralPath $engineBackup -Force
+            } else {
+                Write-Host "  No engine DLL backup present; skipping engine restore."
+            }
+        } else {
+            Remove-ModpackPackages -Game $Game
+        }
+        Remove-EmptyBackupDir
+        Clear-DlcCache
+        return
+    }
+
+    # ---- blind uninstalls ----
+    Restore-Proxy -Game $Game
+    Remove-OurDlc -Game $Game
+    Remove-ModpackPackages -Game $Game
+    foreach ($legacy in $legacyDlcDirs) {
+        $p = Join-Path $Game "Assets\DLC\$legacy"
+        if (Test-Path $p) { Write-Host "  Removing legacy DLC: $p"; Remove-Item -LiteralPath $p -Recurse -Force }
+    }
+    Get-ChildItem -LiteralPath (Join-Path $Game 'Assets\DLC') -Directory -Filter 'LEKMOD*' -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "  Removing LekMod DLC: $($_.FullName)"
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
+    }
+    $legacyBootstrap = Join-Path $Game 'CivVAccess'
+    if (Test-Path $legacyBootstrap) {
+        Write-Host "  Removing legacy bootstrap: $legacyBootstrap"
+        Remove-Item -LiteralPath $legacyBootstrap -Recurse -Force
+    }
+    if (Test-Path $legacyModDir) {
+        Write-Host "  Removing legacy mod directory: $legacyModDir"
+        Remove-Item -LiteralPath $legacyModDir -Recurse -Force
+    }
+
+    # Restore the vanilla engine DLL if a vanilla deploy ever swapped it. The
+    # modpack states never swap Assets/DLC/Expansion2 (their fork is embedded in
+    # the package), so a backup here is from a prior vanilla deploy; restoring it
+    # is correct on the way out either way.
+    if (Test-Path $engineBackup) {
+        $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
+        Write-Host "  Restoring vanilla engine DLL from backup:"
+        Write-Host "    $engineBackup -> $installedDll"
+        Copy-Item -LiteralPath $engineBackup -Destination $installedDll -Force
+        Remove-Item -LiteralPath $engineBackup -Force
+    } else {
+        Write-Host "  No engine DLL backup present; skipping engine restore."
+    }
+
+    Restore-Cinematics -Game $Game
+
+    # Remove only consumed backups; the VP substrate's Expansion2.Civ5Pkg.stock
+    # (if present) stays with the substrate, so the dir goes only when empty.
+    Remove-EmptyBackupDir
+    Clear-DlcCache
 }
 
 # ---- Driver ----
@@ -635,89 +704,116 @@ Write-Host "Locating Civilization V install..."
 $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
 Write-Host "  Game dir: $gameDir"
 
-# Backup paths derived from gameDir. Functions read these from script scope.
-$dlcBackupDir    = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
-$engineBackup    = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
-$cinematicBackup = Join-Path $dlcBackupDir 'cinematics'
-$stockPkgBackup  = Join-Path $dlcBackupDir 'Expansion2.Civ5Pkg.stock'  # shared with deploy-vp / deploy-modpack
+# Backup paths derived from gameDir; the dot-sourced helpers read these by name.
+$dlcBackupDir       = Join-Path $gameDir "Assets\DLC\$dlcBackupDirName"
+$engineBackup       = Join-Path $dlcBackupDir 'CvGameCore_Expansion2.vanilla.dll'
+$cinematicBackup    = Join-Path $dlcBackupDir 'cinematics'
+$expansionPkgBackup = Join-Path $dlcBackupDir 'Expansion2.Civ5Pkg.stock'
+$forkLekmodDll      = Join-Path $engineLekmodDist $engineDllName
 
-# Detect a VP-variant install (deploy-vp.ps1 ran last). Its MODS-side pieces
-# -- the fork engine DLL and the overlaid vendor files inside the VP mod
-# folders -- are not this script's to manage: they are inert in vanilla
-# sessions (which never load mods) and deploy-vp.ps1 -Uninstall restores
-# them. Surface their presence so a flip or uninstall doesn't read as a
-# complete cleanup.
+# Prior state from the install manifest, for uninstall dispatch and flip notes.
 $priorManifestPath = Join-Path $gameDir "Assets\DLC\$dlcName\$installManifestName"
 $priorVariant = $null
+$priorProfile = $null
 if (Test-Path $priorManifestPath) {
     try {
         $prior = Get-Content -LiteralPath $priorManifestPath -Raw | ConvertFrom-Json
         $priorVariant = $prior.variant
+        $priorProfile = $prior.profile
     } catch { }
 }
-$priorVpState      = ($priorVariant -eq 'vp')
-$priorModpackState = ($priorVariant -eq 'modpack')
+$priorState = switch ("$priorVariant") {
+    'modpack'    { 'vp' }
+    'modpack-cp' { 'cp' }
+    'vp'         { 'vp' }     # the retired mod-overlay variant, mapped best-effort
+    'lekmod'     { 'lekmod' }
+    default      { 'vanilla' }
+}
 
 if ($Uninstall) {
-    Invoke-Uninstall -Game $gameDir
+    # Prefer the recorded state/profile; fall back to the passed args.
+    $uState   = if ($null -ne $priorVariant) { $priorState } else { $State }
+    $uProfile = if ($priorProfile) { $priorProfile } else { $Profile }
+    Write-Host "Uninstalling state '$uState' (profile '$uProfile')..."
+    Invoke-Uninstall -Game $gameDir -ForState $uState -ForProfile $uProfile
     Write-Host ""
     Write-Host "Uninstall complete."
-    if ($priorVpState) {
-        Write-Host "NOTE: the install was in VP state. The fork engine DLL and the"
-        Write-Host "overlaid vendor files in the VP MODS folders remain; run"
-        Write-Host "./deploy-vp.ps1 -Uninstall to restore VP-stock files there."
-    } elseif ($priorModpackState) {
-        Write-Host "NOTE: the install was in VP modpack state. The modpack package"
-        Write-Host "(with VP's bundled database and fork engine DLL) has been removed."
+    if ($uState -eq 'vp' -or $uState -eq 'cp') {
+        Write-Host "The plain-VP substrate (VPUI, the swapped Expansion2.Civ5Pkg, sounds)"
+        Write-Host "remains; it is a working plain-VP install, not ours to remove."
     }
     return
 }
 
-if (-not $SkipProxy) {
-    Deploy-ProxyStack -Game $gameDir
-} else {
-    Write-Host "Skipping proxy stack (-SkipProxy)."
+# ---- Install ----
+Invoke-FlipCleanup -Game $gameDir -ForState $State
+
+switch ($State) {
+    'vanilla' {
+        Deploy-VanillaEngineDll -Game $gameDir
+        Backup-StockExpansionPkg -Game $gameDir
+        Remove-VpSubstrate -Game $gameDir
+        if ($Profile -eq 'blind') {
+            if (-not $SkipProxy) { Deploy-ProxyStack -Game $gameDir } else { Write-Host "Skipping proxy stack (-SkipProxy)." }
+            if (-not $SkipDlc)   { Deploy-VanillaBlindDlc -Game $gameDir } else { Write-Host "Skipping DLC payload (-SkipDlc)." }
+            if (-not $SkipCinematics) { Deploy-Cinematics -Game $gameDir } else { Write-Host "Skipping cinematics (-SkipCinematics)." }
+        } else {
+            if (-not $SkipDlc) { Deploy-EmptyUiManifest -Game $gameDir } else { Write-Host "Skipping DLC manifest (-SkipDlc)." }
+        }
+    }
+    { $_ -eq 'vp' -or $_ -eq 'cp' } {
+        if ($State -eq 'vp') { Complete-VPInstall -Game $gameDir } else { Remove-VpSubstrate -Game $gameDir }
+        Deploy-ModpackPackage -Game $gameDir
+        if ($Profile -eq 'blind') {
+            if (-not $SkipProxy) { Deploy-ProxyStack -Game $gameDir } else { Write-Host "Skipping proxy stack (-SkipProxy)." }
+            if (-not $SkipDlc)   { Deploy-ModpackBlindDlc -Game $gameDir } else { Write-Host "Skipping DLC payload (-SkipDlc)." }
+            if (-not $SkipCinematics) { Deploy-Cinematics -Game $gameDir } else { Write-Host "Skipping cinematics (-SkipCinematics)." }
+        } else {
+            if (-not $SkipDlc) { Deploy-EmptyUiManifest -Game $gameDir } else { Write-Host "Skipping DLC manifest (-SkipDlc)." }
+        }
+    }
+    'lekmod' {
+        # Both profiles install LekMod's prebaked DLC from the clone with our fork
+        # swapped in (the MP-hash-relevant piece); they differ only in the
+        # accessibility payload and the local-only runtime.
+        Deploy-LekModDlc -Game $gameDir
+        if ($Profile -eq 'blind') {
+            if (-not $SkipProxy) { Deploy-ProxyStack -Game $gameDir } else { Write-Host "Skipping proxy stack (-SkipProxy)." }
+            if (-not $SkipDlc) { Deploy-LekModBlindDlc -Game $gameDir } else { Write-Host "Skipping DLC payload (-SkipDlc)." }
+            if (-not $SkipCinematics) { Deploy-Cinematics -Game $gameDir } else { Write-Host "Skipping cinematics (-SkipCinematics)." }
+        } else {
+            if (-not $SkipDlc) { Deploy-EmptyUiManifest -Game $gameDir } else { Write-Host "Skipping DLC manifest (-SkipDlc)." }
+        }
+    }
 }
+
+Clear-DlcCache
 
 if (-not $SkipDlc) {
-    Deploy-Dlc -Game $gameDir
-} else {
-    Write-Host "Skipping DLC payload (-SkipDlc)."
-}
-
-Deploy-EngineDll -Game $gameDir
-
-if (-not $SkipCinematics) {
-    Deploy-Cinematics -Game $gameDir
-} else {
-    Write-Host "Skipping cinematics (-SkipCinematics)."
-}
-
-# Manifest is written last so it always reflects a complete deploy. Skipping
-# components for fast iteration is a maintainer workflow; the manifest still
-# claims the full mod_version for every component since the rest of the
-# install is up to date with what's in src/.
-if (-not $SkipDlc) {
-    Write-InstallManifest -Game $gameDir -Profile 'blind'
+    Write-InstallManifest -Game $gameDir
 }
 
 Write-Host ""
-Write-Host "Deploy complete."
+$stateLabel = if ($State -eq 'vanilla') { 'vanilla' } else { $engineLabel }
+Write-Host "Deploy complete: $stateLabel ($Profile)."
 Write-Host "  Game dir: $gameDir"
 Write-Host "  Version : $modVersion"
-if ($priorVpState) {
+
+if ($State -eq 'vanilla' -and ($priorState -eq 'vp' -or $priorState -eq 'cp' -or $priorState -eq 'lekmod')) {
     Write-Host ""
-    Write-Host "Flipped from VP state to vanilla. The fork engine DLL and the"
-    Write-Host "overlaid vendor files in the VP MODS folders remain (inert in"
-    Write-Host "vanilla sessions). Do NOT start a modded VP session from this"
-    Write-Host "state; run ./deploy-modpack.ps1 to play VP. (The mod-overlay,"
-    Write-Host "./deploy-vp.ps1 -RepinBuild, is maintainer-only for re-pins.)"
-} elseif ($priorModpackState) {
-    Write-Host ""
-    Write-Host "Flipped from VP modpack state to vanilla. The modpack package"
-    Write-Host "(with VP's bundled database and fork engine DLL) has been"
-    Write-Host "removed, so this is a clean vanilla state."
+    Write-Host "Flipped from '$priorState' state to vanilla. The mod-state packages have"
+    Write-Host "been removed; this is a clean vanilla state. (The VP substrate, if any,"
+    Write-Host "stays -- it is a working plain-VP install and inert in vanilla sessions.)"
 }
-Write-Host ""
-Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
-Write-Host "  $env:USERPROFILE\Documents\My Games\Sid Meier's Civilization 5\config.ini"
+
+if ($State -ne 'vanilla') {
+    Write-Host ""
+    Write-Host "This install state is exclusive with the other states. Launch from the"
+    Write-Host "regular menus (do NOT enable any mods). ./deploy.ps1 flips back to vanilla."
+}
+
+if ($Profile -eq 'blind') {
+    Write-Host ""
+    Write-Host "Reminder: for Lua.log output, set LoggingEnabled=1 in:"
+    Write-Host "  $civ5DocsDir\config.ini"
+}

@@ -741,10 +741,11 @@ def cmd_generate(args):
     with open(report_path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
 
-    # Machine-readable provenance for the deploy script. Mods beat DLC in
-    # the VFS, so any override whose stem a mod ships must additionally be
-    # overlaid into that mod's folder (deploy-vp.ps1 reads mod_roots +
-    # files to know which staged files go where).
+    # Machine-readable provenance: mod_roots + files record which staged
+    # override stems a mod itself ships (mods beat DLC in the VFS). The retired
+    # mod-overlay deploy used this to overlay those stems into the mod folders;
+    # the modpack flow wins them by DLC priority instead, but the provenance is
+    # still emitted for the vendor report and future consumers.
     provenance_path = os.path.join(out_dir, "provenance.json")
     with open(provenance_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(

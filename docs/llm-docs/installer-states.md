@@ -35,9 +35,11 @@ must not re-pull a 600 MB package).
 Sighted-MP partners of a mod host install the host's heavy component itself
 (`vp-modpack` / `cp-modpack` / `lekmod-dlc`) plus the empty-UI `core-sighted`,
 which guarantees the DLC-list and engine-GUID match. There are no standalone
-fork-DLL components in the installer; the mod-overlay sighted-MP PowerShell
-scripts (which place a bare fork into a partner's existing VP/LekMod install)
-are a separate, may-lag concern and are not part of the player installer.
+fork-DLL components in the installer; the fork rides inside the host component
+(the modpack package embeds it, the LekMod DLC carries it pre-swapped). The
+sighted-MP dev deploy (`deploy.ps1 -State <s> -Profile sighted`) installs the
+same host content the blind deploy does, minus only the local-only accessibility
+runtime; it parallels the installer's sighted sets exactly.
 
 Notes:
 - The EngineData seam and the InGame.lua addin block are folded into the
@@ -140,26 +142,29 @@ components are unchanged; the seven mod-state ones are versioned by the
 `vp_runtime` / `lekmod_dlc` fields in `versions.json` (bump on a re-pin or fork
 rebuild, same as the engine fields). Each overlay is assembled by the shared
 `tools/dlc-assembly.ps1` helper (`New-CivVAccessModdedDlc`, also used by
-`deploy-modpack.ps1` and `deploy-lekmod.ps1` so the three never drift) and then
-reduced to the delta against the vanilla core. The modpack and LekMod inputs are
-the same non-committed build trees the tester bundles use (`build/modpack-out`,
-`build/modpack-cp-out`, `build/vendor/*`, `build/vp-runtime`, and the LekMod
-clone); the bake / vendor / bundle prerequisites are unchanged. `-Only <names>`
-builds a subset for iteration.
+`deploy.ps1` for its `vp` / `cp` / `lekmod` states so the three never drift) and
+then reduced to the delta against the vanilla core. The modpack and LekMod inputs are
+the non-committed build trees (`build/modpack-out`, `build/modpack-cp-out`,
+`build/vendor/*`, `build/vp-runtime`, and the LekMod clone); the bake and vendor
+prerequisites are unchanged, and `package-release.ps1` stages `build/vp-runtime`
+from the Community-Patch-DLL clone on demand. `-Only <names>` builds a subset for
+iteration.
 
 ## Source of truth and drift policy
 
-Three independent implementations exist; their currency requirements differ:
+Two independent implementations exist; their currency requirements differ:
 
-- The four dev deploy scripts (`deploy.ps1`, `deploy-modpack.ps1` and its
-  `-CommunityPatchOnly` form, `deploy-lekmod.ps1`) are the maintainer's daily
-  driver for deploying the local working copy after a mod change. They must stay
-  current and correct; they are not allowed to lag.
+- The dev deploy, one `deploy.ps1` driving every state and profile by argument
+  (`-State vanilla|vp|cp|lekmod`, `-Profile blind|sighted`), is the maintainer's
+  daily driver for deploying the local working copy after a mod change.
+  (`stage-vp-modpack-bake.ps1` is the mode-agnostic VP bake-prep step, not a
+  deploy.) Its blind profiles must stay current and correct; they are not allowed
+  to lag. Its sighted-MP profile (`-Profile sighted`) installs the same host
+  content as the blind deploy minus the local-only accessibility runtime; it is
+  off the player path and may lag.
 - The player installer (C#) is a parallel implementation that deploys from
   release assets instead of the local repo. It conforms to this document's
   transition matrix, enforced by per-cell tests in `installer-tests`.
-- The mod-overlay sighted-MP PowerShell scripts may lag; they are not on the
-  player path and not the maintainer's daily driver.
 
 The dev scripts and the installer cannot share code across the PowerShell/C#
 boundary, so this document is the shared spec both conform to. When a re-pin or a

@@ -302,8 +302,8 @@ function Invoke-FinishPhase {
     $newCommit = Resolve-NewCommit
 
     Write-Step "Deploy the LekMod stack (player-facing end state)"
-    & (Join-Path $repoRoot 'deploy-lekmod.ps1') -LekModClone $ClonePath
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-lekmod.ps1 failed (exit $LASTEXITCODE)." }
+    & (Join-Path $repoRoot 'deploy.ps1') -State lekmod -LekModClone $ClonePath
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy.ps1 -State lekmod failed (exit $LASTEXITCODE)." }
 
     Write-Step "Record the new pin"
     Set-SupportedLekmod $newCommit

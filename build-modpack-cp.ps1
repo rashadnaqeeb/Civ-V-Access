@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Build the EUI-free Community-Patch-only modpack DLC for Civ V Access into
-    build/modpack-cp-out, ready for deploy-modpack-cp.ps1.
+    build/modpack-cp-out, ready for deploy.ps1 -State cp.
 
 .DESCRIPTION
     The Community-Patch-only counterpart of build-modpack.ps1. It is a thin

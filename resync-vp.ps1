@@ -310,17 +310,18 @@ function Invoke-FinishPhase {
     if (-not $ReviewConfirmed) {
         throw "finish requires -ReviewConfirmed. Review the drift report and the Lua-binding diff first (see the vendor phase output)."
     }
-    Write-Step "Deploy VP stack (transient mod-overlay for the merged-DB session)"
-    & (Join-Path $repoRoot 'deploy-vp.ps1') -ClonePath $ClonePath -RepinBuild
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-vp.ps1 failed (exit $LASTEXITCODE)." }
+    Write-Step "Stage the VP modpack bake (fork DLL + ValidateGameDatabase for the merged-DB session)"
+    & (Join-Path $repoRoot 'stage-vp-modpack-bake.ps1') -ClonePath $ClonePath
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "stage-vp-modpack-bake.ps1 failed (exit $LASTEXITCODE)." }
 
     Write-Step "Record the new pin"
     Set-SupportedVp $NewTag
     Write-Host "versions.json supported_vp -> $NewTag" -ForegroundColor Green
     Write-Host @"
 
-Re-pin mechanics done. The install is in the transient VP mod-overlay state,
-which cannot load modpack saves. Still by hand, per the release prerequisites:
+Re-pin mechanics done. The install is staged for the modpack bake (fork DLL in
+MODS, ValidateGameDatabase on); its prior state is otherwise untouched. Still by
+hand, per the release prerequisites:
   - bump the engine_vp component version in versions.json if the DLL changed
   - restate the supported VP version in the release notes / CHANGELOG
   - play one clean CP+VP session through the Mods menu (Squads off) to produce
@@ -344,8 +345,8 @@ function Invoke-ModpackPhase {
     }
 
     Write-Step "Deploy the modpack (player-facing end state)"
-    & (Join-Path $repoRoot 'deploy-modpack.ps1')
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-modpack.ps1 failed (exit $LASTEXITCODE)." }
+    & (Join-Path $repoRoot 'deploy.ps1') -State vp
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy.ps1 -State vp failed (exit $LASTEXITCODE)." }
 
     Write-Host "Install is now in player-facing modpack state. Run the play audit here." -ForegroundColor Green
 }
@@ -365,11 +366,11 @@ function Invoke-CpModpackPhase {
     }
 
     Write-Step "Deploy the Community-Patch-only modpack (player-facing CP end state)"
-    & (Join-Path $repoRoot 'deploy-modpack-cp.ps1')
-    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy-modpack-cp.ps1 failed (exit $LASTEXITCODE)." }
+    & (Join-Path $repoRoot 'deploy.ps1') -State cp
+    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy.ps1 -State cp failed (exit $LASTEXITCODE)." }
 
     Write-Host "Install is now in player-facing CP-only modpack state. Run the CP play audit here." -ForegroundColor Green
-    Write-Host "If VP is your default target, return to VP modpack state with ./deploy-modpack.ps1 when the CP audit is done." -ForegroundColor Yellow
+    Write-Host "If VP is your default target, return to VP modpack state with ./deploy.ps1 -State vp when the CP audit is done." -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------------- main

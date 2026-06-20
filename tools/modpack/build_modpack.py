@@ -62,8 +62,8 @@ def check_clean_db(gameplay_db, allow_squads, cp_only):
                 f"Gameplay database has only {ntables} tables -- it was not "
                 "populated by a real merge. Set ValidateGameDatabase=1 (and "
                 "LoggingEnabled=1) in config.ini, replay a clean CP+VP session "
-                "to the map, quit, and re-run. (deploy-vp.ps1 sets the flag for "
-                "you; the CP-only path on vanilla needs it set by hand.)")
+                "to the map, quit, and re-run. (stage-vp-modpack-bake.ps1 sets "
+                "the flag for you; the CP-only path on vanilla needs it set by hand.)")
         def opt(name):
             r = con.execute(
                 "SELECT Value FROM CustomModOptions WHERE Name=?", (name,)

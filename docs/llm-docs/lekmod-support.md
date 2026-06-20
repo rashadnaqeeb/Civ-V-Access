@@ -4,7 +4,7 @@ Durable reference for the LekMod support layer of Civ V Access. LekMod is a mult
 
 The two facts that separate LekMod from VP: its DLL is an NQMod-lineage fork (Firaxis SDK plus overlay, not Community Patch), so it builds on the same VC9 / Windows SDK 7.0 toolchain as our vanilla fork and carries none of the CP/VP balance machinery; and there is no CP/VP-style duality and no modpack bake, because LekMod ships as a prebaked DLC the engine loads directly. There is exactly one LekMod install state.
 
-Hand-authored, not extracted; the canonical sources are the code and tooling it points at (grep `CIVVACCESS:` in the fork clone, read `tools/vendoring/manifest.json`, read `deploy-lekmod.ps1`). This file holds facts that stay true across releases. The current pin is `supported_lekmod` in `versions.json` (a commit SHA, since LekMod ships no version tags), not in prose.
+Hand-authored, not extracted; the canonical sources are the code and tooling it points at (grep `CIVVACCESS:` in the fork clone, read `tools/vendoring/manifest.json`, read `deploy.ps1` and its `lekmod` state branch). This file holds facts that stay true across releases. The current pin is `supported_lekmod` in `versions.json` (a commit SHA, since LekMod ships no version tags), not in prose.
 
 ## Support model
 
@@ -16,11 +16,11 @@ LekMod support reuses the vanilla proxy, Tolk, DLC payload, wrappers, and speech
 
 ## Install state
 
-There is one LekMod state, deployed by `deploy-lekmod.ps1`: a DLC overlay. It installs LekMod's prebaked DLC plus our accessibility DLC at `<Priority>350</Priority>` (LekMod's content sits at 300; priority dominates package sort-order, so our overrides win the stems both ship), with our fork DLL dropped over LekMod's. Both DLCs are off the mod-hash list (each carries `<SteamApp>235580</SteamApp>` + BNW's `<Key>`), so a session is MP-lobby-visible.
+There is one LekMod state, deployed by `deploy.ps1 -State lekmod`: a DLC overlay. It installs LekMod's prebaked DLC plus our accessibility DLC at `<Priority>350</Priority>` (LekMod's content sits at 300; priority dominates package sort-order, so our overrides win the stems both ship), with our fork DLL dropped over LekMod's. Both DLCs are off the mod-hash list (each carries `<SteamApp>235580</SteamApp>` + BNW's `<Key>`), so a session is MP-lobby-visible.
 
-This is NOT a VP-style mod-overlay: there is no MODS activation, no `-RepinBuild` gate, no transient build-only mode. It is the play / test / MP state directly, because LekMod's data is already flat (see "No bake"). It is a fifth install state, mutually exclusive with vanilla, the VP mod-overlay, and the two modpack states; `deploy-lekmod.ps1` scrubs the other states' artifacts (the VP/CP modpack packages and the VP-completion substrate) on the way in, and `deploy.ps1` flips back to vanilla. The running session must match the last deploy, or the player hears silent wrong numbers. The install manifest records `variant: lekmod`.
+This is NOT a mod-overlay: there is no MODS activation, no gated build-only mode. It is the play / test / MP state directly, because LekMod's data is already flat (see "No bake"). It is one of the mutually exclusive install states alongside vanilla and the two modpack states; `deploy.ps1 -State lekmod` scrubs the other states' artifacts (the VP/CP modpack packages and the VP-completion substrate) on the way in, and `deploy.ps1` flips back to vanilla. LekMod's DLC auto-loads, so the running session is whatever was last deployed. The install manifest records `variant: lekmod`.
 
-Multiplayer: two blind players both run `deploy-lekmod.ps1` (matching DLC set). A blind host versus a sighted partner: the partner installs LekMod normally and gets our empty-shell DLC (GUID match) plus the fork via `deploy-lekmod-sighted-multiplayer.ps1`.
+Multiplayer: two blind players both run `deploy.ps1 -State lekmod` (matching DLC set). A blind host versus a sighted partner: the partner runs `deploy.ps1 -State lekmod -Profile sighted`, which installs LekMod's prebaked DLC with our fork swapped in (the same DLC + fork as the blind state, so the MP hash lines up) plus our empty-shell accessibility DLC (GUID match), omitting only the local-only pieces (proxy / Tolk, cinematics, the full UI payload). The partner does not need LekMod pre-installed — sighted installs it the same way blind does. The manifest records `variant: lekmod`, `profile: sighted`.
 
 ## No bake
 
@@ -28,7 +28,7 @@ LekMod's `Override/` is flat, full-table DLC-override XML with base-game names, 
 
 ## The EngineData seam and detection
 
-`src/lekmod/CivVAccess_EngineData.lua` is the LekMod body, swapped in under the shared include stem by `deploy-lekmod.ps1`. The same seam rules as VP apply: only named intents cross it, fork-only bindings gate on `forkPresent()`, and `tests/engine_data_lekmod_test.lua` pins set parity across all three bodies (vanilla, vp, lekmod) so a missed body fails loudly.
+`src/lekmod/CivVAccess_EngineData.lua` is the LekMod body, swapped in under the shared include stem by `deploy.ps1 -State lekmod`. The same seam rules as VP apply: only named intents cross it, fork-only bindings gate on `forkPresent()`, and `tests/engine_data_lekmod_test.lua` pins set parity across all three bodies (vanilla, vp, lekmod) so a missed body fails loudly.
 
 Detection differs from VP. LekMod's NQMod DLL has no `Game.IsCustomModOption`, so the CP/VP balance probe does not exist. The LekMod probe is a signature on a LekMod-only binding (`Game.GetProposalStatus` and the other voting getters). `forkPresent()` still gates our ported bindings; a LekMod session without our fork degrades to vanilla-correct, so the probe gates additions, not correctness.
 
@@ -87,5 +87,5 @@ The default run stops after vendor with the review checklist; finish is never pa
 - Fork clone: `~/Documents/Lekmod` (the EnormousApplePie/Lekmod repo) on branch `civvaccess` (= upstream `main` plus our port commits). DLL source under `LEKMOD_DLL/CvGameCoreDLL_Expansion2/`; the prebaked DLC under `LEKMOD/`; standard-UI bodies under `LEKMOD/Lua/tmp/ui`. Build with `build-engine-lekmod.ps1` (VC9 / SDK 7.0). Lekmap (map script) and the installer are out of scope. Redistribution of the forked DLL was granted by the LekMod team on Discord (LekMod ships no license; keep the permission on record).
 - Committed artifacts: fork DLL at `dist/engine-lekmod/`; the LekMod seam body at `src/lekmod/CivVAccess_EngineData.lua`; the voting-popup wrappers and the LekMod manifest entries under `tools/vendoring/`; canary at `tools/lekmod_dll_canary.py`. The pin is `supported_lekmod` in `versions.json`; the DLL component version is `engine_lekmod`.
 - Staged, not committed: `build/vendor/lekmod/` (vendor stage plus provenance plus drift report). Regenerate via `generate --engine lekmod`.
-- Deploy / re-sync scripts: `deploy-lekmod.ps1` (the single LekMod state), `deploy-lekmod-sighted-multiplayer.ps1` (sighted partner), `build-engine-lekmod.ps1` (fork build), `resync-lekmod.ps1` (re-pin), `package-lekmod-bundle.ps1` (the no-clone tester bundle: LekMod's DLC tree plus the vendor stage, the only non-committed inputs `deploy-lekmod` needs). `deploy.ps1` flips back to vanilla.
+- Deploy / re-sync scripts: `deploy.ps1 -State lekmod` (the single LekMod state), `deploy.ps1 -State lekmod -Profile sighted` (sighted partner), `build-engine-lekmod.ps1` (fork build, unchanged), `resync-lekmod.ps1` (re-pin, unchanged). `deploy.ps1` flips back to vanilla.
 - Logs: the fork heartbeat in the game log proves the fork booted (FINAL_RELEASE strips the entry-point markers an offline check could look for, so in-game boot is the gate); `Lua.log` carries Lua errors and print output.

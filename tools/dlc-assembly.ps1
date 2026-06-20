@@ -1,11 +1,17 @@
 <#
 .SYNOPSIS
-    Shared assembly of the modded DLC_CivVAccess payload.
+    Shared assembly of the modded DLC_CivVAccess payload, plus the
+    install-dir / Vox Populi substrate helpers the deploy scripts share.
 
 .DESCRIPTION
-    Dot-sourced by deploy-modpack.ps1, deploy-lekmod.ps1, and
-    package-release.ps1 so the three never drift on how the modded accessibility
-    DLC is built. The payload is the vanilla src/dlc tree with:
+    Dot-sourced by deploy.ps1, stage-vp-modpack-bake.ps1, and
+    package-release.ps1 so they never drift on how the modded accessibility
+    DLC is built or how the VP substrate is laid down and torn down. Carries
+    two groups of helpers: the install-dir resolver and VP-substrate set
+    (Resolve-CivVInstallDir, Complete-VPInstall, Remove-VpSubstrate,
+    Backup-StockExpansionPkg, Resolve-VpAsset, the MODS fork DLL place/restore,
+    Enable-DatabaseValidation), and the modded-DLC assembly below. The payload
+    is the vanilla src/dlc tree with:
 
       - the per-engine vendor UI overlay laid on top,
       - the EngineData seam swapped to the engine's body,
@@ -19,6 +25,262 @@
     package-release.ps1 calls it with a staging dir, then derives the release
     overlay from the result.
 #>
+
+# ---------------------------------------------------------------------------
+# Install-dir resolution and the Vox Populi substrate helpers, shared by
+# deploy.ps1 and stage-vp-modpack-bake.ps1. These read a handful of caller
+# script-scope variables (the same pattern the deploy scripts have always
+# used): $ClonePath, $civ5DocsDir, $vpRuntimeDir, $expansionPkgBackup,
+# $engineVpDistDir, $vpModsDllDir, $engineVpBackup, $engineDllName. Each
+# dot-sourcing script defines what it needs before calling.
+# ---------------------------------------------------------------------------
+
+function Add-CandidateGameDir {
+    param(
+        [System.Collections.Generic.List[string]]$List,
+        [string]$Path
+    )
+    if (-not [string]::IsNullOrWhiteSpace($Path)) {
+        $normalized = $Path.Trim().Trim('"')
+        if (-not [string]::IsNullOrWhiteSpace($normalized) -and -not $List.Contains($normalized)) {
+            $List.Add($normalized)
+        }
+    }
+}
+
+function Resolve-CivVInstallDir {
+    param([string]$ExplicitPath)
+
+    $appName = "Sid Meier's Civilization V"
+    $candidates = New-Object 'System.Collections.Generic.List[string]'
+
+    Add-CandidateGameDir -List $candidates -Path $env:CIV5_DIR
+    Add-CandidateGameDir -List $candidates -Path $ExplicitPath
+
+    $uninstallKeys = @(
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 8930',
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 8930'
+    )
+    foreach ($key in $uninstallKeys) {
+        try {
+            $props = Get-ItemProperty -Path $key -ErrorAction Stop
+            Add-CandidateGameDir -List $candidates -Path $props.InstallLocation
+        } catch { }
+    }
+
+    try {
+        $steam = Get-ItemProperty -Path 'HKCU:\Software\Valve\Steam' -ErrorAction Stop
+        $steamPath = $steam.SteamPath
+        if (-not [string]::IsNullOrWhiteSpace($steamPath)) {
+            $steamPath = ($steamPath -replace '/', '\').TrimEnd('\')
+            Add-CandidateGameDir -List $candidates -Path (Join-Path $steamPath "steamapps\common\$appName")
+
+            $libraryVdf = Join-Path $steamPath 'steamapps\libraryfolders.vdf'
+            if (Test-Path $libraryVdf) {
+                $raw = Get-Content -Raw $libraryVdf
+                $vdfMatches = [regex]::Matches($raw, '"path"\s*"([^"]+)"')
+                foreach ($m in $vdfMatches) {
+                    $libPath = $m.Groups[1].Value -replace '\\\\', '\'
+                    Add-CandidateGameDir -List $candidates -Path (Join-Path $libPath "steamapps\common\$appName")
+                }
+            }
+        }
+    } catch { }
+
+    try {
+        $hklmSteam = Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam' -ErrorAction Stop
+        if ($hklmSteam -and -not [string]::IsNullOrWhiteSpace($hklmSteam.InstallPath)) {
+            $p = $hklmSteam.InstallPath.TrimEnd('\')
+            Add-CandidateGameDir -List $candidates -Path (Join-Path $p "steamapps\common\$appName")
+        }
+    } catch { }
+
+    Add-CandidateGameDir -List $candidates -Path (Join-Path ${env:ProgramFiles(x86)} "Steam\steamapps\common\$appName")
+
+    foreach ($candidate in $candidates) {
+        $exe = Join-Path $candidate 'CivilizationV.exe'
+        if (Test-Path $exe) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+
+    $searched = if ($candidates.Count -gt 0) { $candidates -join '; ' } else { '<none>' }
+    throw "Could not find Civilization V install directory. Pass -GameDir or set CIV5_DIR. Searched: $searched"
+}
+
+# VP-completion assets come from build/vp-runtime when pre-staged there, else the
+# maintainer's Community-Patch-DLL clone. The pre-staged path lets a tester run
+# the modpack deploy with no clone on disk.
+function Resolve-VpAsset {
+    param([string]$RuntimeName, [string]$CloneRelative)
+    $rt = Join-Path $vpRuntimeDir $RuntimeName
+    if (Test-Path $rt) { return $rt }
+    return (Join-Path $ClonePath $CloneRelative)
+}
+
+# Completes a partial plain-VP install: the VPUI fake DLC, the Vox Populi
+# Expansion2.Civ5Pkg (an added AudioGameData line over stock), the minor-civ
+# sound table, and the loading-screen tips. Each piece deploys only when absent,
+# so an install the VP installer already set up is left untouched. The Civ5Pkg
+# is overwritten in place (unlike the additive pieces), so its stock form is
+# backed up to $expansionPkgBackup first. Idempotent.
+function Complete-VPInstall {
+    param([string]$Game)
+    $pieces = @(
+        @{ Name = 'VPUI fake DLC'; Src = (Resolve-VpAsset 'VPUI' 'VPUI'); Dst = Join-Path $Game 'Assets\DLC\VPUI'; Dir = $true },
+        @{ Name = 'minor-civ sound table'; Src = (Resolve-VpAsset 'MinorCivSounds_VoxPopuli.xml' 'MinorCivSounds_VoxPopuli.xml'); Dst = Join-Path $Game 'Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml'; Dir = $false },
+        @{ Name = 'loading screen tips'; Src = (Resolve-VpAsset 'VPUI_tips_en_us.xml' 'VPUI Text\VPUI_tips_en_us.xml'); Dst = Join-Path $civ5DocsDir 'Text\VPUI_tips_en_us.xml'; Dir = $false }
+    )
+    foreach ($piece in $pieces) {
+        if (Test-Path $piece.Dst) { continue }
+        if (-not (Test-Path $piece.Src)) {
+            throw "VP install is missing the $($piece.Name) and it is in neither build/vp-runtime nor the clone: $($piece.Src). Pass -ClonePath or put the Community-Patch-DLL clone (on the civvaccess branch) beside the repo."
+        }
+        Write-Host "Completing VP install: $($piece.Name)"
+        $dstParent = Split-Path -Parent $piece.Dst
+        if (-not (Test-Path $dstParent)) { New-Item -ItemType Directory -Path $dstParent -Force | Out-Null }
+        Copy-Item -LiteralPath $piece.Src -Destination $piece.Dst -Recurse:$piece.Dir -Force
+    }
+    $pkgInstalled = Join-Path $Game 'Assets\DLC\Expansion2\Expansion2.Civ5Pkg'
+    $pkgSrc = Resolve-VpAsset 'Expansion2_VoxPopuli.Civ5Pkg' 'Expansion2_VoxPopuli.Civ5Pkg'
+    if (-not (Test-Path $pkgInstalled)) { throw "BNW package manifest not found at $pkgInstalled. The mod requires BNW." }
+    if (-not ((Get-Content -LiteralPath $pkgInstalled -Raw) -match 'MinorCivSounds_VoxPopuli')) {
+        if (-not (Test-Path $pkgSrc)) { throw "VP install is missing the Vox Populi Expansion2.Civ5Pkg and neither the bundle nor the clone has it: $pkgSrc." }
+        if (-not (Test-Path $expansionPkgBackup)) {
+            $backupDir = Split-Path -Parent $expansionPkgBackup
+            if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+            Write-Host "Backing up stock Expansion2.Civ5Pkg -> $expansionPkgBackup"
+            Copy-Item -LiteralPath $pkgInstalled -Destination $expansionPkgBackup -Force
+        }
+        Write-Host "Completing VP install: Vox Populi Expansion2.Civ5Pkg"
+        Copy-Item -LiteralPath $pkgSrc -Destination $pkgInstalled -Force
+    }
+}
+
+# Capture the stock BNW Expansion2.Civ5Pkg the moment we see it stock, so a
+# later flip out of VP/modpack state can restore it. No-op once captured or once
+# the on-disk manifest is already the VP version.
+function Backup-StockExpansionPkg {
+    param([string]$Game)
+    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
+    if (-not (Test-Path $pkg)) { return }
+    if ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli') { return }  # already VP, not stock
+    if (Test-Path $expansionPkgBackup) { return }                                            # already captured
+    $backupDir = Split-Path -Parent $expansionPkgBackup
+    if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+    Write-Host "Capturing stock BNW Expansion2.Civ5Pkg backup:"
+    Write-Host "  $pkg -> $expansionPkgBackup"
+    Copy-Item -LiteralPath $pkg -Destination $expansionPkgBackup -Force
+}
+
+# Tear down the Vox Populi substrate so a no-mod (vanilla / CP-only / LekMod)
+# session is genuinely free of VP. VPUI is a UISkin DLC and the swapped
+# Expansion2.Civ5Pkg is the always-active BNW manifest, so both load even with
+# no mod enabled. Restores the stock Civ5Pkg from $expansionPkgBackup when one
+# exists. Idempotent on an install that was never VP-ified.
+function Remove-VpSubstrate {
+    param([string]$Game)
+
+    $vpui = Join-Path $Game "Assets\DLC\VPUI"
+    if (Test-Path $vpui) {
+        Write-Host "Removing VPUI fake DLC:"
+        Write-Host "  $vpui"
+        Remove-Item -LiteralPath $vpui -Recurse -Force
+    }
+
+    $pkg = Join-Path $Game "Assets\DLC\Expansion2\Expansion2.Civ5Pkg"
+    if ((Test-Path $pkg) -and ((Get-Content -LiteralPath $pkg -Raw) -match 'MinorCivSounds_VoxPopuli')) {
+        if (Test-Path $expansionPkgBackup) {
+            Write-Host "Restoring stock BNW Expansion2.Civ5Pkg from backup:"
+            Write-Host "  $expansionPkgBackup -> $pkg"
+            Copy-Item -LiteralPath $expansionPkgBackup -Destination $pkg -Force
+        } else {
+            Write-Host "WARNING: Expansion2.Civ5Pkg is the VP version but no stock backup"
+            Write-Host "exists to restore. This install cannot be made fully vanilla here;"
+            Write-Host "verify game files in Steam to restore the stock manifest."
+            Write-Host "  (expected backup: $expansionPkgBackup)"
+        }
+    }
+
+    $minorSounds = Join-Path $Game "Assets\DLC\Expansion2\Sounds\XML\MinorCivSounds_VoxPopuli.xml"
+    if (Test-Path $minorSounds) {
+        Write-Host "Removing VP minor-civ sound table:"
+        Write-Host "  $minorSounds"
+        Remove-Item -LiteralPath $minorSounds -Force
+    }
+
+    $tips = Join-Path $civ5DocsDir "Text\VPUI_tips_en_us.xml"
+    if (Test-Path $tips) {
+        Write-Host "Removing VP loading-screen tips:"
+        Write-Host "  $tips"
+        Remove-Item -LiteralPath $tips -Force
+    }
+}
+
+# Place our Community-Patch-DLL fork over VP's shipped DLL in MODS\(1) Community
+# Patch\ (where VP loads its DLL from), backing up VP's DLL to $engineVpBackup on
+# first run. Used by stage-vp-modpack-bake.ps1 for the merged-DB session.
+function Install-VpForkDll {
+    $stagedDll = Join-Path $engineVpDistDir $engineDllName
+    if (-not (Test-Path $stagedDll)) {
+        throw "Built VP fork DLL missing: $stagedDll. Build it from the clone's civvaccess branch (build_vp_clang_sdk.py) and copy to dist/engine-vp/, or use the committed artifact."
+    }
+    $installedDll = Join-Path $vpModsDllDir $engineDllName
+    if (-not (Test-Path $installedDll)) {
+        throw "VP's engine DLL not found at $installedDll. Install Vox Populi first (the MODS folders are managed by VP's installer / the re-pin sync)."
+    }
+    if (-not (Test-Path $engineVpBackup)) {
+        $backupDir = Split-Path -Parent $engineVpBackup
+        if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force | Out-Null }
+        Write-Host "Backing up VP's shipped engine DLL:"
+        Write-Host "  $installedDll -> $engineVpBackup"
+        Copy-Item -LiteralPath $installedDll -Destination $engineVpBackup -Force
+    } else {
+        Write-Host "  VP engine DLL backup already exists at $engineVpBackup."
+    }
+    Write-Host "Deploying VP fork engine DLL:"
+    Write-Host "  $stagedDll -> $installedDll"
+    Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
+}
+
+# Restore VP's shipped DLL into MODS from $engineVpBackup and remove the backup.
+function Restore-VpForkDll {
+    if (Test-Path $engineVpBackup) {
+        $installedDll = Join-Path $vpModsDllDir $engineDllName
+        Write-Host "  Restoring VP's shipped engine DLL from backup:"
+        Write-Host "    $engineVpBackup -> $installedDll"
+        Copy-Item -LiteralPath $engineVpBackup -Destination $installedDll -Force
+        Remove-Item -LiteralPath $engineVpBackup -Force
+    } else {
+        Write-Host "  No VP engine DLL backup present; skipping engine restore."
+    }
+}
+
+# The merged gameplay database the modpack bake consumes (cache\Civ5DebugDatabase.db)
+# is only PERSISTED during the engine's database-validation pass, gated on
+# ValidateGameDatabase=1 in config.ini. With it off, the DB compiles in memory and
+# the session plays fine, but Civ5DebugDatabase.db is left empty and the bake has
+# nothing to read. Turn it on for the merged-DB-generation state.
+function Enable-DatabaseValidation {
+    param([string]$DocsDir)
+    $cfg = Join-Path $DocsDir 'config.ini'
+    if (-not (Test-Path $cfg)) {
+        Write-Host "config.ini not found at $cfg -- set ValidateGameDatabase=1 by hand before the merged-DB session." -ForegroundColor Yellow
+        return
+    }
+    $content = Get-Content -LiteralPath $cfg -Raw
+    if ($content -match '(?m)^\s*ValidateGameDatabase\s*=\s*1\s*$') {
+        Write-Host "config.ini: ValidateGameDatabase already 1 (debug DB will persist)."
+        return
+    }
+    if ($content -match '(?m)^\s*ValidateGameDatabase\s*=') {
+        $content = $content -replace '(?m)^\s*ValidateGameDatabase\s*=.*$', 'ValidateGameDatabase = 1'
+    } else {
+        $content = $content.TrimEnd() + "`r`nValidateGameDatabase = 1`r`n"
+    }
+    [System.IO.File]::WriteAllText($cfg, $content)
+    Write-Host "config.ini: set ValidateGameDatabase = 1 so Civ5DebugDatabase.db persists for the bake."
+}
 
 # Net-new VP / CP contexts the modpack (DLC) flow must load explicitly, because
 # under a baked DLC the engine's activated-mod addin loop is inert. This list

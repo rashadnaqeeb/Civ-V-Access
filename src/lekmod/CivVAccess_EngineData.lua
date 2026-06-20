@@ -1,7 +1,7 @@
 -- The EngineData port: the single place the mod reads engine-sensitive
 -- values and calls engine-extension (fork-added) bindings. This file is the
--- LekMod implementation, swapped in under the shared stem by deploy-lekmod.ps1
--- (the VP file's analog). The rest of the mod is unaffected because it only
+-- LekMod implementation, swapped in under the shared stem by deploy.ps1
+-- -State lekmod (the VP file's analog). The rest of the mod is unaffected because it only
 -- ever sees these function names.
 --
 -- LekMod is an NQMod-lineage fork of the Firaxis BNW engine, NOT Community

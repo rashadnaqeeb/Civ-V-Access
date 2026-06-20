@@ -41,8 +41,12 @@ param(
     # modpack / LekMod components.
     [string[]]$Only,
     # LekMod clone supplying the prebaked LEKMOD tree for the lekmod-dlc
-    # component. Defaults to the sibling directory, like deploy-lekmod.ps1.
-    [string]$LekModClone
+    # component. Defaults to the sibling directory, like deploy.ps1 -State lekmod.
+    [string]$LekModClone,
+    # Community-Patch-DLL clone supplying the VP-completion assets for the
+    # vp-runtime component when build/vp-runtime is not already staged. Defaults
+    # to the sibling directory, like deploy.ps1 -State vp.
+    [string]$ClonePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,9 +60,10 @@ $dlcSrcDir     = Join-Path $repoRoot 'src\dlc'
 $soundsSrcDir  = Join-Path $repoRoot 'sounds'
 $cinematicSrc  = Join-Path $repoRoot 'audio described intros'
 
-# Mod-state component sources (not committed; produced by the modpack bake, the
-# vendor tool, and the bundle staging - see package-modpack-bundle.ps1 /
-# package-lekmod-bundle.ps1 for the prerequisites).
+# Mod-state component sources (not committed; produced by the modpack bake
+# (build-modpack.ps1 / build-modpack-cp.ps1) and the vendor tool
+# (tools/vendoring/vendor.py generate)). The vp-runtime assets are staged from
+# the Community-Patch-DLL clone on demand by Stage-VpRuntime below.
 $vendorVpDir      = Join-Path $repoRoot 'build\vendor\vp'
 $vendorCpDir      = Join-Path $repoRoot 'build\vendor\cp'
 $vendorLekmodDir  = Join-Path $repoRoot 'build\vendor\lekmod'
@@ -71,6 +76,9 @@ $engineLekmodFork = Join-Path $repoRoot 'dist\engine-lekmod\CvGameCore_Expansion
 
 if ([string]::IsNullOrWhiteSpace($LekModClone)) {
     $LekModClone = Join-Path (Split-Path -Parent $repoRoot) 'Lekmod'
+}
+if ([string]::IsNullOrWhiteSpace($ClonePath)) {
+    $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Community-Patch-DLL'
 }
 
 $releaseDir  = Join-Path $repoRoot 'dist\release'
@@ -373,8 +381,23 @@ function Stage-Modpack {
 # docs/ entries under the Civ V Documents tree (matches the installer's routed
 # extraction in ApplyVpRuntime).
 function Stage-VpRuntime {
+    # Populate build/vp-runtime from the Community-Patch-DLL clone when it is not
+    # already staged (flat names match Resolve-VpAsset in tools/dlc-assembly.ps1).
     if (-not (Test-Path (Join-Path $vpRuntimeDir 'VPUI'))) {
-        throw "VP runtime assets missing at $vpRuntimeDir. Stage them with package-modpack-bundle.ps1 (it populates build/vp-runtime from the clone)."
+        $vpAssets = @(
+            @{ Name = 'VPUI';                         Src = Join-Path $ClonePath 'VPUI';                          Dir = $true  },
+            @{ Name = 'MinorCivSounds_VoxPopuli.xml'; Src = Join-Path $ClonePath 'MinorCivSounds_VoxPopuli.xml';  Dir = $false },
+            @{ Name = 'VPUI_tips_en_us.xml';          Src = Join-Path $ClonePath 'VPUI Text\VPUI_tips_en_us.xml'; Dir = $false },
+            @{ Name = 'Expansion2_VoxPopuli.Civ5Pkg'; Src = Join-Path $ClonePath 'Expansion2_VoxPopuli.Civ5Pkg';  Dir = $false }
+        )
+        New-CleanDir $vpRuntimeDir
+        Write-Host "  Staging VP-completion assets from clone: $ClonePath"
+        foreach ($a in $vpAssets) {
+            if (-not (Test-Path $a.Src)) {
+                throw "VP-completion asset missing in clone: $($a.Src). Pass -ClonePath or put the Community-Patch-DLL clone (on the civvaccess branch) beside the repo."
+            }
+            Copy-Item -LiteralPath $a.Src -Destination (Join-Path $vpRuntimeDir $a.Name) -Recurse:$a.Dir -Force
+        }
     }
     $stage = Join-Path $stagingRoot 'vp-runtime'
     New-CleanDir $stage

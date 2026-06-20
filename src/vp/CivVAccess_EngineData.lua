@@ -2,8 +2,9 @@
 -- values and calls engine-extension (fork-added) bindings. This file is the
 -- VOX POPULI implementation -- same function set and contracts as the
 -- vanilla src/dlc/UI/InGame/CivVAccess_EngineData.lua (the parity suite
--- asserts the sets match), with bodies that read VP's getters. deploy-vp.ps1
--- ships this copy in place of the vanilla one; both share the include stem,
+-- asserts the sets match), with bodies that read VP's getters. The CP/VP
+-- deploys (deploy.ps1 -State vp / -State cp) ship this copy in place of the
+-- vanilla one; both share the include stem,
 -- so call sites are identical and never know which engine they run on.
 --
 -- Engine facts the bodies below rely on, verified against the
