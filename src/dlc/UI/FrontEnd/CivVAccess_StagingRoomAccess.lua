@@ -1109,6 +1109,17 @@ local function onChat(fromPlayer, toPlayer, text, eTargetType)
     if ContextPtr:IsHidden() then
         return
     end
+    -- Once the game launches the staging room is dequeued from the front-end
+    -- popup layer (OnGameLaunched's UIManager:DequeuePopup) without its own
+    -- Context being hidden, so IsHidden stays false. This front-end listener
+    -- lives in the same lua_State as the in-game ChatBuffer, so without this
+    -- guard it speaks every chat line a second time on top of ChatBuffer once
+    -- play has started. PreGame.GameStarted() is base's authoritative
+    -- left-the-lobby signal; IsInGameScreen() exempts the dedicated-server
+    -- host-observer who legitimately watches from the staging room post-launch.
+    if PreGame.GameStarted() and not IsInGameScreen() then
+        return
+    end
     if text == nil or text == "" then
         return
     end
