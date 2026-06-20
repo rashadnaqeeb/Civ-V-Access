@@ -1,5 +1,5 @@
 {
-  "mod": "2.0.0",
+  "mod": "2.0.1",
   "supported_vp": "Release-5.3.3",
   "supported_lekmod": "9545382dbb300023503e58f74452845e77e81b53",
   "components": {
@@ -15,6 +15,6 @@
     "vp_modpack":     "0.1.0",
     "cp_modpack":     "0.1.0",
     "vp_runtime":     "0.1.0",
-    "lekmod_dlc":     "0.1.0"
+    "lekmod_dlc":     "0.2.0"
   }
 }
