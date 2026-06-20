@@ -418,9 +418,11 @@ function Stage-VpRuntime {
     return $stage
 }
 
-# LekMod's prebaked DLC, resolved to the standard-UI set with our fork swapped
-# in (matches deploy-lekmod's Deploy-LekModDlc). Zip root is the LEKMOD contents;
-# the installer extracts it to Assets/DLC/LEKMOD.
+# LekMod's prebaked DLC plus its Lekmap map scripts, resolved to the standard-UI
+# set with our fork swapped in (matches deploy.ps1 -State lekmod's
+# Deploy-LekModDlc). Two-rooted, like vp-runtime: "dlc/" entries extract to
+# Assets/DLC/LEKMOD, "maps/" entries to Assets/Maps/Lekmap (the installer's
+# routed extraction in ApplyLekmodDlc).
 function Stage-LekmodDlc {
     $src = Join-Path $LekModClone 'LEKMOD'
     if (-not (Test-Path (Join-Path $src 'MPModsPack.Civ5Pkg'))) {
@@ -429,12 +431,23 @@ function Stage-LekmodDlc {
     if (-not (Test-Path $engineLekmodFork)) {
         throw "LekMod fork DLL missing: $engineLekmodFork. Run build-engine-lekmod.ps1 first."
     }
+    $lekmapSrc = Join-Path $LekModClone 'Lekmap'
+    if (-not (Test-Path $lekmapSrc)) {
+        throw "Lekmap map scripts missing at $lekmapSrc. Expected the Lekmap directory beside LEKMOD in the LekMod clone."
+    }
     $stage = Join-Path $stagingRoot 'lekmod-dlc'
     New-CleanDir $stage
+    $dlcStage = Join-Path $stage 'dlc'
+    $mapsStage = Join-Path $stage 'maps'
+    New-Item -ItemType Directory -Path $dlcStage -Force | Out-Null
+
     Write-Host "  Copying LekMod DLC tree (large)..."
-    Copy-Item -Path (Join-Path $src '*') -Destination $stage -Recurse -Force
-    Resolve-CivVAccessLekModStandardUI -LekModDir $stage
-    Copy-Item -LiteralPath $engineLekmodFork -Destination (Join-Path $stage 'CvGameCore_Expansion2.dll') -Force
+    Copy-Item -Path (Join-Path $src '*') -Destination $dlcStage -Recurse -Force
+    Resolve-CivVAccessLekModStandardUI -LekModDir $dlcStage
+    Copy-Item -LiteralPath $engineLekmodFork -Destination (Join-Path $dlcStage 'CvGameCore_Expansion2.dll') -Force
+
+    Write-Host "  Copying Lekmap map scripts..."
+    Copy-Item -LiteralPath $lekmapSrc -Destination $mapsStage -Recurse -Force
     return $stage
 }
 

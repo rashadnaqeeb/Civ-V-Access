@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- LekMod games now install Lekmap, LekMod's own map scripts, so you can play on the maps LekMod is balanced around.
+
 ## [2.0.0] - 2026-06-20
 
 New Features and improvements:

@@ -19,7 +19,7 @@ Mod-state components (the installer pulls the subset its chosen state needs):
 - `vp-overlay-X.Y.Z.zip` / `cp-overlay-X.Y.Z.zip` / `lekmod-overlay-X.Y.Z.zip` - the per-engine vendor-UI delta over `core-blind`, with the matching EngineData seam and the pre-baked InGame.lua addin block. Versioned by `components.vp_overlay` / `cp_overlay` / `lekmod_overlay`.
 - `vp-modpack-X.Y.Z.zip` / `cp-modpack-X.Y.Z.zip` - the baked `ZCivVAccess*` packages, each embedding the CP-DLL engine fork. Versioned by `components.vp_modpack` / `cp_modpack`. Large.
 - `vp-runtime-X.Y.Z.zip` - the Vox Populi substrate (VPUI DLC, VP `Expansion2.Civ5Pkg`, minor-civ sounds, tips). Two-rooted (game/ and docs/). Versioned by `components.vp_runtime`.
-- `lekmod-dlc-X.Y.Z.zip` - LekMod's prebaked DLC, pre-resolved (UI flattened, our LekMod fork swapped in). Versioned by `components.lekmod_dlc`. Large.
+- `lekmod-dlc-X.Y.Z.zip` - LekMod's prebaked DLC, pre-resolved (UI flattened, our LekMod fork swapped in), plus LekMod's Lekmap map scripts. Two-rooted (`dlc/` to `Assets/DLC/LEKMOD`, `maps/` to `Assets/Maps/Lekmap`). Versioned by `components.lekmod_dlc`. Large.
 
 The fork DLLs are not standalone components - they ride inside their hosts (both modpacks embed the CP-DLL fork; the LekMod DLC carries the LekMod fork pre-swapped). `components.engine_vp` and `components.engine_lekmod` track those forks only so the packager's fork-staleness guard can warn when a fork rebuilt without bumping its embedding component (see Versioning below); they do not map to a release asset.
 
@@ -80,7 +80,7 @@ What touches each component:
 - `vp_overlay` / `cp_overlay` / `lekmod_overlay`: the per-engine vendor delta. Moves when `src/dlc/` changes a vendored file, when the seam (`src/vp/` / `src/lekmod/CivVAccess_EngineData.lua`) changes, or on a re-pin that regenerates `tools/vendoring/`. Note that a `core` change can also shift an overlay (the overlay is the delta against core), so bump the overlays whenever `core` bumps.
 - `vp_modpack` / `cp_modpack`: the baked packages. Move on a re-pin (new merged DB) or a CP-DLL fork rebuild (`engine_vp`). Large.
 - `vp_runtime`: the VP substrate. Moves on a VP re-pin that changes the VPUI / substrate assets.
-- `lekmod_dlc`: the prebaked LekMod DLC. Moves on a LekMod re-pin or a LekMod fork rebuild (`engine_lekmod`). Large.
+- `lekmod_dlc`: the prebaked LekMod DLC plus the bundled Lekmap map scripts. Moves on a LekMod re-pin or a LekMod fork rebuild (`engine_lekmod`), and on any change to how the lekmod-dlc zip is assembled (e.g. the Lekmap maps were added to it). Large.
 - `engine_vp` / `engine_lekmod`: the embedded forks. Move on a fork rebuild; not release assets, but bumping one obliges bumping the component(s) that embed it (see the coupling note above).
 
 Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/` (and the same for each component's source tree) tells you whether that component's version needs to bump. If the diff is empty, leave that component's version alone. The mod-state components also depend on non-committed build trees and upstream pins, so on a re-pin let the `resync-*` scripts set those versions rather than diffing source by hand; a plain mod release that didn't re-pin leaves every mod-state version where it is and the packager re-fetches their prior bytes.

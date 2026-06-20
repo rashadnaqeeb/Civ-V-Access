@@ -152,18 +152,22 @@ internal static class ArtifactOps
     // ------------------------------------------------------------------
 
     /// <summary>
-    /// Remove every LekMod DLC directory (Assets/DLC/LEKMOD*). Public so the
-    /// apply path can clear strays with the same LEKMOD* definition the teardown
-    /// uses, before re-extracting the canonical LEKMOD dir -- keeping apply and
-    /// teardown from disagreeing on what "the LekMod DLC" is.
+    /// Remove every LekMod DLC directory (Assets/DLC/LEKMOD*) and the Lekmap map
+    /// scripts (Assets/Maps/Lekmap). The two ship in one component and travel
+    /// together, so they tear down together. Public so the apply path can clear
+    /// strays with the same definition the teardown uses, before re-extracting --
+    /// keeping apply and teardown from disagreeing on what "the LekMod DLC" is.
     /// </summary>
     public static void RemoveLekmodDlc(GameLayout layout)
     {
-        if (!Directory.Exists(layout.AssetsDlcDir)) return;
-        foreach (var dir in Directory.EnumerateDirectories(layout.AssetsDlcDir, "LEKMOD*"))
+        if (Directory.Exists(layout.AssetsDlcDir))
         {
-            RemoveDir(dir, "LekMod DLC");
+            foreach (var dir in Directory.EnumerateDirectories(layout.AssetsDlcDir, "LEKMOD*"))
+            {
+                RemoveDir(dir, "LekMod DLC");
+            }
         }
+        RemoveDir(layout.LekmapMapsDir, "Lekmap map scripts");
     }
 
     // ------------------------------------------------------------------

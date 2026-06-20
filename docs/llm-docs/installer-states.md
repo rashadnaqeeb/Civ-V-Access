@@ -29,7 +29,7 @@ must not re-pull a 600 MB package).
 | `vp-modpack` | baked `ZCivVAccessVP` package (CP-DLL fork embedded) | `Assets/DLC/ZCivVAccessVP` | none |
 | `cp-modpack` | baked `ZCivVAccessCP` package (CP-DLL fork embedded) | `Assets/DLC/ZCivVAccessCP` | none |
 | `vp-runtime` | VP substrate: VPUI DLC, VP `Expansion2.Civ5Pkg`, `MinorCivSounds_VoxPopuli.xml`, `VPUI_tips_*.xml` | `Assets/DLC/VPUI`; `Assets/DLC/Expansion2/Expansion2.Civ5Pkg`; `.../Sounds/XML/`; `Documents/.../Text/` | stock `Expansion2.Civ5Pkg` to `DLC_CivVAccess.backup/...stock` before overwrite |
-| `lekmod-dlc` | LekMod prebaked DLC, UI resolved by stem, our LekMod fork pre-swapped in (LekMod GUID kept) | `Assets/DLC/LEKMOD` | none (shipped whole; removed on flip) |
+| `lekmod-dlc` | LekMod prebaked DLC (UI resolved by stem, our LekMod fork pre-swapped in, LekMod GUID kept) plus LekMod's Lekmap map scripts | `Assets/DLC/LEKMOD` (`dlc/` root) and `Assets/Maps/Lekmap` (`maps/` root) | none (shipped whole; removed on flip) |
 | `lekmod-overlay` | LekMod vendor overlay + LekMod seam; sets our DLC priority to 350 | overlaid on `core-blind`; our DLC `Priority` raised | none |
 
 Sighted-MP partners of a mod host install the host's heavy component itself
@@ -87,7 +87,7 @@ stock file, then apply the target's components.
 | `ZCivVAccessVP` package | cp+vp-blind, cp+vp-sighted | remove dir |
 | `ZCivVAccessCP` package | cp-only-blind, cp-only-sighted | remove dir |
 | VP substrate (`vp-runtime`) | cp+vp-blind, cp+vp-sighted | remove VPUI; restore stock `Expansion2.Civ5Pkg` from backup; remove minor-civ sounds + tips |
-| `LEKMOD` DLC | lekmod-blind, lekmod-sighted | remove `Assets/DLC/LEKMOD*` |
+| `LEKMOD` DLC + Lekmap maps | lekmod-blind, lekmod-sighted | remove `Assets/DLC/LEKMOD*` and `Assets/Maps/Lekmap` |
 
 The Expansion2 `engine` DLL and `cinematics` are never torn down between states
 (every state wants the same vanilla fork and the intros are harmless); their
@@ -125,8 +125,11 @@ shape each zip accordingly (entries are paths relative to that root):
 - `vp-modpack` / `cp-modpack`: relative to the package dir; the installer nukes
   and extracts into `Assets/DLC/ZCivVAccessVP` / `ZCivVAccessCP`. The fork DLL is
   embedded in the package.
-- `lekmod-dlc`: relative to `Assets/DLC/LEKMOD`, shipped pre-resolved (UI
-  flattened by stem, our LekMod fork already swapped in).
+- `lekmod-dlc`: two-rooted. Entries under `dlc/` extract to `Assets/DLC/LEKMOD`
+  (shipped pre-resolved: UI flattened by stem, our LekMod fork already swapped
+  in); entries under `maps/` extract to `Assets/Maps/Lekmap` (LekMod's Lekmap
+  map scripts, placed where LekMod's own installer puts them so the game's map
+  scanner finds them). Both are torn down together on a flip.
 - `vp-runtime`: two-rooted. Entries under `game/` extract to the game root,
   entries under `docs/` extract to the Civ V Documents dir. So it contains
   `game/Assets/DLC/VPUI/...`, `game/Assets/DLC/Expansion2/Expansion2.Civ5Pkg`,

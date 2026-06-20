@@ -348,11 +348,7 @@ internal sealed class Installer : IDisposable
 
                 case ComponentKind.LekmodDlc:
                     progress.Report(new InstallProgress { Stage = InstallStage.Extracting, Component = kind });
-                    // Clear every LEKMOD* dir (the same set teardown removes),
-                    // then extract into the canonical LEKMOD dir.
-                    ArtifactOps.RemoveLekmodDlc(layout);
-                    Directory.CreateDirectory(layout.LekmodDlcDir);
-                    ExtractZipTo(zip, layout.LekmodDlcDir);
+                    ApplyLekmodDlc(zip, layout);
                     break;
 
                 case ComponentKind.VpRuntime:
@@ -393,7 +389,28 @@ internal sealed class Installer : IDisposable
     private static void ApplyVpRuntime(string zipPath, GameLayout layout)
     {
         ArtifactOps.BackupStockCiv5Pkg(layout);
-        ExtractZipRouted(zipPath, gameRoot: layout.Root, docsRoot: layout.Civ5DocsDir);
+        ExtractZipRouted(zipPath, new Dictionary<string, string>
+        {
+            ["game/"] = layout.Root,
+            ["docs/"] = layout.Civ5DocsDir,
+        });
+    }
+
+    /// <summary>
+    /// Apply the LekMod DLC. The lekmod-dlc zip is split into two roots: "dlc/"
+    /// entries extract to Assets/DLC/LEKMOD (the prebaked DLC with our fork
+    /// swapped in), "maps/" entries to Assets/Maps/Lekmap (LekMod's Lekmap map
+    /// scripts). Both are cleared first (the same set teardown removes) so a
+    /// re-apply can't leave a stray LEKMOD* dir or stale map.
+    /// </summary>
+    private static void ApplyLekmodDlc(string zipPath, GameLayout layout)
+    {
+        ArtifactOps.RemoveLekmodDlc(layout);
+        ExtractZipRouted(zipPath, new Dictionary<string, string>
+        {
+            ["dlc/"]  = layout.LekmodDlcDir,
+            ["maps/"] = layout.LekmapMapsDir,
+        });
     }
 
     private static void BackupEngine(GameLayout layout)
@@ -480,28 +497,29 @@ internal sealed class Installer : IDisposable
     }
 
     /// <summary>
-    /// Extract a zip whose entries are prefixed "game/" or "docs/" to two
-    /// different roots. Entries with neither prefix are ignored (and logged).
+    /// Extract a zip whose entries are prefixed (e.g. "game/", "docs/", "dlc/",
+    /// "maps/") to a different root per prefix. A file entry matching no prefix
+    /// is ignored and logged -- a missing payload is safer surfaced than
+    /// silently extracted to the wrong root.
     /// </summary>
-    private static void ExtractZipRouted(string zipPath, string gameRoot, string docsRoot)
+    private static void ExtractZipRouted(string zipPath, IReadOnlyDictionary<string, string> routes)
     {
+        var fullRoots = routes.ToDictionary(
+            kv => kv.Key, kv => Path.GetFullPath(kv.Value), StringComparer.Ordinal);
+
         using var zip = ZipFile.OpenRead(zipPath);
-        var gameFull = Path.GetFullPath(gameRoot);
-        var docsFull = Path.GetFullPath(docsRoot);
         foreach (var entry in zip.Entries)
         {
             string name = entry.FullName.Replace('\\', '/');
-            if (name.StartsWith("game/", StringComparison.OrdinalIgnoreCase))
+            var route = routes.Keys.FirstOrDefault(
+                p => name.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+            if (route != null)
             {
-                ExtractEntry(entry, gameFull, name.Substring("game/".Length));
-            }
-            else if (name.StartsWith("docs/", StringComparison.OrdinalIgnoreCase))
-            {
-                ExtractEntry(entry, docsFull, name.Substring("docs/".Length));
+                ExtractEntry(entry, fullRoots[route], name.Substring(route.Length));
             }
             else if (!name.EndsWith("/", StringComparison.Ordinal))
             {
-                Logger.Warn($"vp-runtime entry outside game/ or docs/ ignored: {entry.FullName}");
+                Logger.Warn($"Routed-zip entry outside {string.Join("/", routes.Keys)} ignored: {entry.FullName}");
             }
         }
         Logger.Info($"Extracted (routed) {zipPath}");

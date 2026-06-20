@@ -112,6 +112,7 @@ $vpRuntimeDir       = Join-Path $repoRoot 'build\vp-runtime'   # pre-staged VP-c
 
 $dlcName            = 'DLC_CivVAccess'
 $lekmodDlcName      = 'LEKMOD'                              # our deployed LekMod DLC folder (fixed name)
+$lekmapMapsRel      = 'Assets\Maps\Lekmap'                  # LekMod's Lekmap map scripts (installs with the LekMod DLC)
 $modpackNames       = @('ZCivVAccessVP', 'ZCivVAccessCP')  # both modpack packages; removed by the flip-cleanup
 $dlcBackupDirName   = "$dlcName.backup"
 $installManifestName = 'CivVAccess.install.json'
@@ -294,6 +295,17 @@ function Clear-DlcCache {
 # and the legacy directories. This is where the "exclusive states" guarantee
 # lives. The VP substrate is state-specific (vp keeps it, the rest tear it down),
 # so it is handled per state, not here.
+# Remove the Lekmap map scripts (Assets/Maps/Lekmap). Idempotent; they install
+# with the LekMod DLC and tear down with it.
+function Remove-LekmapMaps {
+    param([string]$Game)
+    $d = Join-Path $Game $lekmapMapsRel
+    if (Test-Path $d) {
+        Write-Host "  Removing Lekmap map scripts: $d"
+        Remove-Item -LiteralPath $d -Recurse -Force
+    }
+}
+
 function Invoke-FlipCleanup {
     param([string]$Game, [string]$ForState)
 
@@ -314,6 +326,7 @@ function Invoke-FlipCleanup {
             Write-Host "  $($_.FullName)"
             Remove-Item -LiteralPath $_.FullName -Recurse -Force
         }
+        Remove-LekmapMaps -Game $Game
     }
 
     if (Test-Path $legacyModDir) {
@@ -452,6 +465,19 @@ function Deploy-LekModDlc {
     Write-Host "Replacing LekMod engine DLL with our fork:"
     Write-Host "  $forkLekmodDll -> $dst\$engineDllName"
     Copy-Item -LiteralPath $forkLekmodDll -Destination (Join-Path $dst $engineDllName) -Force
+
+    # LekMod's Lekmap map scripts install to Assets/Maps/Lekmap (LekMod's own
+    # install location), not under the DLC. The game scans Assets/Maps for them.
+    $lekmapSrc = Join-Path $LekModClone 'Lekmap'
+    if (-not (Test-Path $lekmapSrc)) {
+        throw "Lekmap map scripts not found at $lekmapSrc (expected beside LEKMOD in the clone). Pass -LekModClone."
+    }
+    Remove-LekmapMaps -Game $Game
+    $lekmapDst = Join-Path $Game $lekmapMapsRel
+    Write-Host "Installing Lekmap map scripts:"
+    Write-Host "  $lekmapSrc -> $lekmapDst"
+    New-Item -ItemType Directory -Path (Split-Path -Parent $lekmapDst) -Force | Out-Null
+    Copy-Item -LiteralPath $lekmapSrc -Destination $lekmapDst -Recurse -Force
 }
 
 function Deploy-LekModBlindDlc {
@@ -644,6 +670,7 @@ function Invoke-Uninstall {
             Write-Host "  Removing LekMod DLC: $($_.FullName)"
             Remove-Item -LiteralPath $_.FullName -Recurse -Force
         }
+        Remove-LekmapMaps -Game $Game
         if ($ForProfile -eq 'blind') { Restore-Cinematics -Game $Game }
         Remove-EmptyBackupDir
         Clear-DlcCache
@@ -683,6 +710,7 @@ function Invoke-Uninstall {
         Write-Host "  Removing LekMod DLC: $($_.FullName)"
         Remove-Item -LiteralPath $_.FullName -Recurse -Force
     }
+    Remove-LekmapMaps -Game $Game
     $legacyBootstrap = Join-Path $Game 'CivVAccess'
     if (Test-Path $legacyBootstrap) {
         Write-Host "  Removing legacy bootstrap: $legacyBootstrap"

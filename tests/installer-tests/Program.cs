@@ -378,6 +378,31 @@ internal static class Program
             finally { try { Directory.Delete(dir, recursive: true); } catch { /* temp */ } }
         });
 
+        Run("RemoveLekmodDlc clears the LekMod DLC and the Lekmap maps together", () =>
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "civvtest-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var layout = new GameLayout(dir);
+                // A canonical LEKMOD dir, a stray LEKMODv99 dir, and the Lekmap maps.
+                Directory.CreateDirectory(layout.LekmodDlcDir);
+                File.WriteAllText(Path.Combine(layout.LekmodDlcDir, "MPModsPack.Civ5Pkg"), "x");
+                var stray = Path.Combine(layout.AssetsDlcDir, "LEKMODv99");
+                Directory.CreateDirectory(stray);
+                Directory.CreateDirectory(layout.LekmapMapsDir);
+                File.WriteAllText(Path.Combine(layout.LekmapMapsDir, "LekmapPangaea.lua"), "x");
+
+                ArtifactOps.RemoveLekmodDlc(layout);
+
+                Assert(!Directory.Exists(layout.LekmodDlcDir), "LEKMOD dir should be removed");
+                Assert(!Directory.Exists(stray), "stray LEKMOD* dir should be removed");
+                Assert(!Directory.Exists(layout.LekmapMapsDir), "Lekmap maps should be removed");
+                // Assets/Maps itself is not ours to remove.
+                Assert(Directory.Exists(layout.AssetsMapsDir), "Assets/Maps must be left in place");
+            }
+            finally { try { Directory.Delete(dir, recursive: true); } catch { /* temp */ } }
+        });
+
         Run("Every locale resolves the new state-picker keys", () =>
         {
             foreach (var entry in LocaleCatalog.All)

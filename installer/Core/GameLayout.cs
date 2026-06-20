@@ -38,6 +38,13 @@ internal sealed class GameLayout
     public string ModpackCpDir    => Path.Combine(AssetsDlcDir, "ZCivVAccessCP");
     public string LekmodDlcDir    => Path.Combine(AssetsDlcDir, "LEKMOD");
 
+    // LekMod's Lekmap map scripts. Ships in the lekmod-dlc component alongside
+    // the LEKMOD DLC tree, but installs here (not under the DLC) to match
+    // LekMod's own installer, which lays Lekmap under Assets/Maps. Placed and
+    // torn down with the LekMod DLC.
+    public string AssetsMapsDir   => Path.Combine(Root, "Assets", "Maps");
+    public string LekmapMapsDir   => Path.Combine(AssetsMapsDir, "Lekmap");
+
     // Vox Populi substrate: the VPUI fake DLC, the swapped always-active BNW
     // Expansion2.Civ5Pkg (and its stock backup), the minor-civ sound table, and
     // the loading-screen tips that live under the Documents tree.
