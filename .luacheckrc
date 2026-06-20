@@ -179,7 +179,7 @@ globals = {
     "GiftMode",
     "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText",
     "BeliefAdvisor",
-    "NotificationAnnounce", "GameplayAlertAnnounce",
+    "NotificationAnnounce", "LekModAlertAnnounce",
     "Recommendations",
     "SocialPolicyLogic",
     "TechTreeLogic",

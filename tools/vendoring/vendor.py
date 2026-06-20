@@ -308,9 +308,19 @@ def lekmod_roots(game_dir, lekmod_dir):
     EUI (the clone's LEKMOD/Lua/tmp/eui) is deliberately absent -- it is out of
     scope, which collapses LekMod's two UI sets to the one standard set."""
     ui = os.path.join(lekmod_dir, "LEKMOD", "Lua", "tmp", "ui")
-    return [
-        ignore_suffix_root("LEKMOD", ui),
-    ] + vanilla_roots(game_dir)
+    # The per-civ ability scripts (Lekmod_<civ>.lua, loaded by stem via
+    # InGame.lua's LoadNewContext) live outside the staged tmp/ui set, under
+    # Lua/Civilizations, as plain .lua. They are the live home of the custom-civ
+    # feedback the consolidated prophetreplace.lua keeps only as commented-out
+    # originals. Placed LAST (after vanilla), like the "shared" root, so it only
+    # resolves stems found in no earlier root -- it can never change how an
+    # existing override resolves.
+    civ = os.path.join(lekmod_dir, "LEKMOD", "Lua", "Civilizations")
+    return (
+        [ignore_suffix_root("LEKMOD", ui)]
+        + vanilla_roots(game_dir)
+        + [dir_root("LEKMODCIV", civ)]
+    )
 
 
 def collect_overrides():

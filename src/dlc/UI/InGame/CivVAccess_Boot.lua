@@ -141,11 +141,13 @@ include("CivVAccess_MessageBuffer")
 -- installListeners initializes that slot to nil at boot).
 include("CivVAccess_HotseatMessageBufferRestore")
 include("CivVAccess_NotificationAnnounce")
--- GameplayAlertAnnounce listens to the engine's floating-alert channel
--- (Events.GameplayAlertMessage), the only path custom-civ ability feedback
--- takes on LekMod; vanilla / VP fire it rarely. Loads after MessageBuffer
--- (it appends) and NotificationAnnounce (sibling announcer).
-include("CivVAccess_GameplayAlertAnnounce")
+-- LekModAlertAnnounce speaks LekMod custom-civ ability feedback, re-raised at
+-- its push site on LuaEvents.CivVAccessLekModAlert by the vendored per-civ
+-- Lekmod_<civ>.lua shadows (NOT a listener on Events.GameplayAlertMessage,
+-- which the engine floods with already-announced combat / diplo floats). Inert
+-- on vanilla / VP. Loads after MessageBuffer (it appends) and
+-- NotificationAnnounce (sibling announcer).
+include("CivVAccess_LekModAlertAnnounce")
 -- MP-only fallback: networked multiplayer suppresses three reward popups
 -- engine-side, so the standard *PopupAccess wrappers don't fire. This
 -- module routes those three events to speech via engine fork hooks
@@ -316,7 +318,7 @@ local function onInGameBoot()
     MessageBuffer.installListeners()
     HotseatMessageBuffer.installListeners()
     NotificationAnnounce.install()
-    GameplayAlertAnnounce.install()
+    LekModAlertAnnounce.install()
     MultiplayerRewards.installListeners()
     MultiplayerTurnEnd.installListeners()
     RevealAnnounce.installListeners()

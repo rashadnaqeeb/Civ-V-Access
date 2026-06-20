@@ -750,6 +750,36 @@
       ],
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap (LekMod engine only; this\r\n-- Context is a LekMod voting-system UI addin and does not exist on\r\n-- vanilla / VP installs).\r\ninclude(\"CivVAccess_ProposalChartPopupAccess\")\r\n"
     },
+    "InGame/Lekmod_bolivia.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "prefix": "-- Civ V Access (LekMod): this custom-civ ability file pushes its feedback only\r\n-- through Events.GameplayAlertMessage, the one channel a blind player would\r\n-- otherwise miss. We cannot listen to that event directly (the engine floods it\r\n-- with already-announced combat / diplo floats), so a file-local shadow of\r\n-- Events re-raises every Events.GameplayAlertMessage(text) push on\r\n-- LuaEvents.CivVAccessLekModAlert (spoken and buffered by\r\n-- CivVAccess_LekModAlertAnnounce) then forwards to the real engine push,\r\n-- keeping the on-screen float for a sighted partner. All other Events.X access\r\n-- falls through to the real engine table.\r\nlocal _civvaccessRealEvents = Events\r\nlocal Events = setmetatable({\r\n\tGameplayAlertMessage = function(civvaccessAlertText)\r\n\t\tLuaEvents.CivVAccessLekModAlert(civvaccessAlertText)\r\n\t\t_civvaccessRealEvents.GameplayAlertMessage(civvaccessAlertText)\r\n\tend,\r\n}, { __index = _civvaccessRealEvents })\r\n\r\n"
+    },
+    "InGame/Lekmod_italy.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "prefix": "-- Civ V Access (LekMod): this custom-civ ability file pushes its feedback only\r\n-- through Events.GameplayAlertMessage, the one channel a blind player would\r\n-- otherwise miss. We cannot listen to that event directly (the engine floods it\r\n-- with already-announced combat / diplo floats), so a file-local shadow of\r\n-- Events re-raises every Events.GameplayAlertMessage(text) push on\r\n-- LuaEvents.CivVAccessLekModAlert (spoken and buffered by\r\n-- CivVAccess_LekModAlertAnnounce) then forwards to the real engine push,\r\n-- keeping the on-screen float for a sighted partner. All other Events.X access\r\n-- falls through to the real engine table.\r\nlocal _civvaccessRealEvents = Events\r\nlocal Events = setmetatable({\r\n\tGameplayAlertMessage = function(civvaccessAlertText)\r\n\t\tLuaEvents.CivVAccessLekModAlert(civvaccessAlertText)\r\n\t\t_civvaccessRealEvents.GameplayAlertMessage(civvaccessAlertText)\r\n\tend,\r\n}, { __index = _civvaccessRealEvents })\r\n\r\n"
+    },
+    "InGame/Lekmod_nabatea.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "prefix": "-- Civ V Access (LekMod): this custom-civ ability file pushes its feedback only\r\n-- through Events.GameplayAlertMessage, the one channel a blind player would\r\n-- otherwise miss. We cannot listen to that event directly (the engine floods it\r\n-- with already-announced combat / diplo floats), so a file-local shadow of\r\n-- Events re-raises every Events.GameplayAlertMessage(text) push on\r\n-- LuaEvents.CivVAccessLekModAlert (spoken and buffered by\r\n-- CivVAccess_LekModAlertAnnounce) then forwards to the real engine push,\r\n-- keeping the on-screen float for a sighted partner. All other Events.X access\r\n-- falls through to the real engine table.\r\nlocal _civvaccessRealEvents = Events\r\nlocal Events = setmetatable({\r\n\tGameplayAlertMessage = function(civvaccessAlertText)\r\n\t\tLuaEvents.CivVAccessLekModAlert(civvaccessAlertText)\r\n\t\t_civvaccessRealEvents.GameplayAlertMessage(civvaccessAlertText)\r\n\tend,\r\n}, { __index = _civvaccessRealEvents })\r\n\r\n"
+    },
+    "InGame/Lekmod_newzealand.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "prefix": "-- Civ V Access (LekMod): this custom-civ ability file pushes its feedback only\r\n-- through Events.GameplayAlertMessage, the one channel a blind player would\r\n-- otherwise miss. We cannot listen to that event directly (the engine floods it\r\n-- with already-announced combat / diplo floats), so a file-local shadow of\r\n-- Events re-raises every Events.GameplayAlertMessage(text) push on\r\n-- LuaEvents.CivVAccessLekModAlert (spoken and buffered by\r\n-- CivVAccess_LekModAlertAnnounce) then forwards to the real engine push,\r\n-- keeping the on-screen float for a sighted partner. All other Events.X access\r\n-- falls through to the real engine table.\r\nlocal _civvaccessRealEvents = Events\r\nlocal Events = setmetatable({\r\n\tGameplayAlertMessage = function(civvaccessAlertText)\r\n\t\tLuaEvents.CivVAccessLekModAlert(civvaccessAlertText)\r\n\t\t_civvaccessRealEvents.GameplayAlertMessage(civvaccessAlertText)\r\n\tend,\r\n}, { __index = _civvaccessRealEvents })\r\n\r\n"
+    },
+    "InGame/Lekmod_uae.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "prefix": "-- Civ V Access (LekMod): this custom-civ ability file pushes its feedback only\r\n-- through Events.GameplayAlertMessage, the one channel a blind player would\r\n-- otherwise miss. We cannot listen to that event directly (the engine floods it\r\n-- with already-announced combat / diplo floats), so a file-local shadow of\r\n-- Events re-raises every Events.GameplayAlertMessage(text) push on\r\n-- LuaEvents.CivVAccessLekModAlert (spoken and buffered by\r\n-- CivVAccess_LekModAlertAnnounce) then forwards to the real engine push,\r\n-- keeping the on-screen float for a sighted partner. All other Events.X access\r\n-- falls through to the real engine table.\r\nlocal _civvaccessRealEvents = Events\r\nlocal Events = setmetatable({\r\n\tGameplayAlertMessage = function(civvaccessAlertText)\r\n\t\tLuaEvents.CivVAccessLekModAlert(civvaccessAlertText)\r\n\t\t_civvaccessRealEvents.GameplayAlertMessage(civvaccessAlertText)\r\n\tend,\r\n}, { __index = _civvaccessRealEvents })\r\n\r\n"
+    },
     "InGame/Popups/RandomVCPopup.lua": {
       "engines": [
         "vp"
