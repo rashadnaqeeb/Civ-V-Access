@@ -42,6 +42,7 @@ STEMS = {
     "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
     "CongressDesc": "src/dlc/UI/InGame/CivVAccess_CongressDescStrings",
     "EraDesc": "src/dlc/UI/InGame/CivVAccess_EraDescStrings",
+    "Squad": "src/dlc/UI/InGame/CivVAccess_SquadStrings",
 }
 
 LOCALES = ["fr_FR", "de_DE", "es_ES", "it_IT", "ja_JP",

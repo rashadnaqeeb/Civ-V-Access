@@ -48,6 +48,7 @@ STEMS = {
     "VictoryDesc": "src/dlc/UI/InGame/CivVAccess_VictoryDescStrings",
     "CongressDesc": "src/dlc/UI/InGame/CivVAccess_CongressDescStrings",
     "EraDesc": "src/dlc/UI/InGame/CivVAccess_EraDescStrings",
+    "Squad": "src/dlc/UI/InGame/CivVAccess_SquadStrings",
 }
 
 KEY_RE = re.compile(
