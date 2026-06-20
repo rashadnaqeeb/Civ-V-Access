@@ -53,6 +53,13 @@ end
 -- registration for why we can't install-once the listener itself.
 function CameraTracker.install()
     readOriginAndStride()
+    -- Re-establish "no follow in flight" on every fresh in-game seat. A follow
+    -- armed when the prior game ended (or when a save was loaded mid-pan)
+    -- leaves followActive true on the env-surviving civvaccess_shared, and the
+    -- check() closure that would clear it dies with its wiped env. Without this
+    -- reset the stale true would make Cursor.recenterAfterScreen bow out for
+    -- the rest of the session.
+    civvaccess_shared.followActive = nil
     Log.installEvent(Events, "CameraViewChanged", onCameraViewChanged, "CameraTracker")
     Log.info(
         "CameraTracker: installed, origin=("
@@ -149,6 +156,12 @@ end
 function CameraTracker.followNextSettle(callback)
     local gen = (civvaccess_shared.followGeneration or 0) + 1
     civvaccess_shared.followGeneration = gen
+    -- Read by Cursor.recenterAfterScreen: while a follow is armed the camera
+    -- is being deliberately driven to a target, so the map handler's
+    -- regain-focus recenter must stand down. Cleared on both terminal paths
+    -- below; the supersede return leaves it set because the newer generation
+    -- now owns the flag and will clear it on its own completion.
+    civvaccess_shared.followActive = true
     local startFrame = TickPump.frame()
     local function check()
         if civvaccess_shared.followGeneration ~= gen then
@@ -158,6 +171,7 @@ function CameraTracker.followNextSettle(callback)
         local elapsed = TickPump.frame() - startFrame
         local cameraMoved = lastFire >= startFrame
         if cameraMoved and (TickPump.frame() - lastFire >= SETTLE_FRAMES) then
+            civvaccess_shared.followActive = false
             local gx, gy = CameraTracker.getLookAtGrid()
             if gx ~= nil then
                 local ok, err = pcall(callback, gx, gy)
@@ -170,6 +184,7 @@ function CameraTracker.followNextSettle(callback)
             return
         end
         if elapsed >= MAX_WAIT_FRAMES then
+            civvaccess_shared.followActive = false
             return
         end
         TickPump.runOnce(check)
@@ -186,5 +201,6 @@ function CameraTracker._reset()
         civvaccess_shared.cameraStrideX = nil
         civvaccess_shared.cameraStrideY = nil
         civvaccess_shared.followGeneration = nil
+        civvaccess_shared.followActive = nil
     end
 end

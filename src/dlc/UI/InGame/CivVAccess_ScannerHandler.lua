@@ -108,6 +108,10 @@ function ScannerHandler.create()
         -- audibility policy and resumes beacons.
         onActivate = function()
             SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_SCREEN_MAP_MODE"))
+            -- Screens pull the camera off the cursor; pull it back now that
+            -- the map is live again. Defers a tick and bows out mid-follow so
+            -- the notification / advisor / quest camera jumps still land.
+            Cursor.recenterAfterScreen()
         end,
         bindings = {
             -- Category axis (triggers rebuild). Outermost hierarchy level,

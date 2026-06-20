@@ -374,6 +374,31 @@ function Cursor.position()
     return _x, _y
 end
 
+-- Re-pan the camera onto the cursor after a screen that pulled it away
+-- closes and the map handler regains focus. Camera-only: the cursor itself
+-- doesn't move, so we re-pan and leave beacons / highlight (already at the
+-- cursor) alone, and never re-announce.
+--
+-- Deferred one tick, and skipped when a camera follow is in flight, because
+-- the notification / advisor / quest "activate and follow" flows close their
+-- screen (firing the map handler's onActivate) BEFORE arming the follower in
+-- the same frame. Running on the next tick lets that follower set
+-- civvaccess_shared.followActive first; we then bow out and let the follower
+-- land the camera on its target instead of yanking it back to the cursor.
+-- No-op before the cursor is placed.
+function Cursor.recenterAfterScreen()
+    TickPump.runOnce(function()
+        if civvaccess_shared.followActive then
+            return
+        end
+        local plot = plotHere()
+        if plot == nil then
+            return
+        end
+        UI.LookAt(plot, 0)
+    end)
+end
+
 -- Place the cursor at an arbitrary (x, y) that the caller already
 -- resolved (scanner's Home key, auto-move-driven cycle jump).
 -- Returns the same glance text Cursor.move produces, so the caller
