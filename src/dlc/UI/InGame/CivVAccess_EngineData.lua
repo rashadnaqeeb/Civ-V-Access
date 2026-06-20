@@ -796,3 +796,46 @@ end
 function EngineData.buildingInvested(city, buildingID)
     return false
 end
+
+-- ============================================================================
+-- Squads: a Community-Patch-DLL / Vox Populi feature only, absent on this engine.
+-- squadsAvailable() is false here, so the whole Lua squad layer
+-- (src/dlc/UI/InGame/CivVAccess_Squad*) never registers its hotkeys or menu.
+-- These no-ops exist only to keep the function set identical across the engine
+-- bodies (the parity suite asserts it) and to degrade safely if ever reached.
+-- See the VP body for the real contracts.
+-- ============================================================================
+
+function EngineData.squadsAvailable()
+    return false
+end
+
+function EngineData.squadNumber(_unit)
+    return -1
+end
+
+function EngineData.assignToSquad(_unit, _squadNumber) end
+
+function EngineData.removeFromSquad(_unit) end
+
+function EngineData.squadMembers(_player, _squadNumber)
+    return {}
+end
+
+function EngineData.moveSquad(_unit, _destPlot, _escort) end
+
+function EngineData.squadMovePreviewTurns(_unit, _destPlot)
+    return 0
+end
+
+function EngineData.squadIsMoving(_unit)
+    return false
+end
+
+function EngineData.squadTurnsRemaining(_unit)
+    return 0
+end
+
+function EngineData.cancelSquadMove(_unit) end
+
+function EngineData.setSquadEndMovementMode(_unit, _mode) end

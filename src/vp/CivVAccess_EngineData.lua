@@ -1019,3 +1019,85 @@ end
 function EngineData.buildingInvested(city, buildingID)
     return city:GetBuildingInvestment(buildingID) > 0
 end
+
+-- ============================================================================
+-- Squads (Community Patch / Vox Populi only). The squad engine code ships in the
+-- Community-Patch-DLL fork, gated on the SQUADS custom option that our DB layer
+-- enables. State mutations (assign / remove / move / cancel / end-mode) dispatch
+-- through the fork's synced command channel so every client applies them in
+-- lockstep -- the multiplayer-correctness fix that makes the in-DLL reroute and
+-- wake-all deterministic. Reads are live. squadsAvailable() is the capability
+-- gate the whole Lua squad layer keys off; it is false on vanilla and LekMod, so
+-- that layer never registers there. See docs/llm-docs/cp-vp-support.md.
+-- ============================================================================
+
+-- Capability probe: is the squads feature live this session? True only on a
+-- Community-Patch-DLL deploy with the SQUADS option enabled (our DB layer turns
+-- it on). The vanilla and LekMod bodies hardcode this false.
+function EngineData.squadsAvailable()
+    return Game ~= nil and Game.IsCustomModOption ~= nil and Game.IsCustomModOption("SQUADS")
+end
+
+-- Read: the unit's squad number, or -1 if it is in no squad. Live.
+function EngineData.squadNumber(unit)
+    return unit:GetSquadNumber()
+end
+
+-- Mutation (synced): assign the unit to a squad, via the fork command channel.
+function EngineData.assignToSquad(unit, squadNumber)
+    unit:AssignToSquad(squadNumber)
+end
+
+-- Mutation (synced): remove the unit from its squad.
+function EngineData.removeFromSquad(unit)
+    unit:RemoveFromSquad()
+end
+
+-- Read: the live list of unit handles in the given squad for this player.
+-- Re-queried each call, never cached.
+function EngineData.squadMembers(player, squadNumber)
+    local members = {}
+    for unit in player:UnitsInSquad(squadNumber) do
+        members[#members + 1] = unit
+    end
+    return members
+end
+
+-- Mutation (synced): order the unit's squad to move to destPlot, spreading
+-- members into rings around it. escort links non-combat units to a combat unit
+-- on their start plot so they travel protected.
+function EngineData.moveSquad(unit, destPlot, escort)
+    unit:DoSquadMovement(destPlot, escort)
+end
+
+-- Read: turns until every member would finish moving to destPlot (the max over
+-- members of each member's path-turn count to its assigned ring plot). 0 when
+-- the squad is empty or no member can reach. Drives the move preview.
+function EngineData.squadMovePreviewTurns(unit, destPlot)
+    return unit:GetSquadMovementPreviewTurns(destPlot)
+end
+
+-- Read: is the squad currently mid-move (any member has an active move mission)?
+-- The authoritative "is moving" signal -- the stored destination persists after
+-- arrival in the alert/wake-each modes, so it is not a reliable substitute.
+function EngineData.squadIsMoving(unit)
+    return unit:IsSquadMoving()
+end
+
+-- Read: turns left on the in-progress squad move, recomputed live against the
+-- stored destination. 0 when the squad is not moving.
+function EngineData.squadTurnsRemaining(unit)
+    return unit:GetSquadTurnsRemaining()
+end
+
+-- Mutation (synced): cancel the in-progress squad move -- clear the destination
+-- on all members and stop their missions.
+function EngineData.cancelSquadMove(unit)
+    unit:CancelSquadMove()
+end
+
+-- Mutation (synced): set the squad's end-of-move behavior for every member
+-- (0 sentry on arrival, 1 wake on arrival, 2 wake when all arrive).
+function EngineData.setSquadEndMovementMode(unit, mode)
+    unit:SetSquadEndMovementType(mode)
+end

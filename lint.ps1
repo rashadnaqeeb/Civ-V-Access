@@ -132,7 +132,11 @@ function Invoke-SeamGuard {
         "GetMissionQueue", "GeneratePath", "GeneratePathWithFlags", "GetPath", "ComputePath",
         "GetBestBuildRoute", "GetBuildRoutePath", "GetClosestSearchedPlot",
         "HasLineOfSight", "GetCycleUnits",
-        "GetMemberDelegationDetails", "GetMemberKnowledgeDetails", "GetMemberVoteOpinionDetails"
+        "GetMemberDelegationDetails", "GetMemberKnowledgeDetails", "GetMemberVoteOpinionDetails",
+        # Squads (CP-DLL fork only; all routed through the EngineData seam)
+        "GetSquadNumber", "AssignToSquad", "RemoveFromSquad", "DoSquadMovement",
+        "SetSquadEndMovementType", "GetSquadMovementPreviewTurns",
+        "CancelSquadMove", "IsSquadMoving", "GetSquadTurnsRemaining", "UnitsInSquad"
     )
     # Deal:GetNumResource (drifted: unregistered in VP) shares its name with
     # the undrifted zero-arg Plot:GetNumResource(), so it gets its own

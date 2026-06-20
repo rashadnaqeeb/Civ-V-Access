@@ -1679,4 +1679,41 @@ function M.test_vp_building_invested_reads_investment_binding()
     T.eq(vp.buildingInvested(city, 3), false, "zero investment reads as not invested")
 end
 
+function M.test_squads_available_gates_on_squads_option()
+    -- The whole Lua squad layer registers only when squadsAvailable() is true.
+    -- On VP it tracks the SQUADS custom option (our DB layer enables it); on
+    -- vanilla it is hardcoded false so the layer never registers there.
+    local vp, env = loadSeam(VP_PATH)
+    local squadsOn = false
+    env.Game = {
+        IsCustomModOption = function(opt)
+            return opt == "SQUADS" and squadsOn
+        end,
+    }
+    T.eq(vp.squadsAvailable(), false, "squads unavailable with the option off")
+    squadsOn = true
+    T.eq(vp.squadsAvailable(), true, "squads available with the option on")
+
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.squadsAvailable(), false, "squads never available on vanilla")
+end
+
+function M.test_vanilla_squad_intents_degrade_safely()
+    -- The vanilla no-op bodies exist for parity and safe degradation; reads
+    -- return the documented neutral values and mutators do nothing without
+    -- throwing, so an accidental call can never speak a wrong number or crash.
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.squadNumber({}), -1, "no squad on vanilla")
+    T.eq(#vanilla.squadMembers({}, 1), 0, "no members on vanilla")
+    T.eq(vanilla.squadMovePreviewTurns({}, {}), 0, "no preview turns on vanilla")
+    T.eq(vanilla.squadIsMoving({}), false, "never moving on vanilla")
+    T.eq(vanilla.squadTurnsRemaining({}), 0, "no turns remaining on vanilla")
+    -- Mutators must be callable no-ops.
+    vanilla.assignToSquad({}, 1)
+    vanilla.removeFromSquad({})
+    vanilla.moveSquad({}, {}, false)
+    vanilla.cancelSquadMove({})
+    vanilla.setSquadEndMovementMode({}, 0)
+end
+
 return M
