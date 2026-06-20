@@ -1248,6 +1248,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = {
     one = "{1_Rank}, {2_Name} votó por {3_Cast}, recibió {4_Votes} voto",
     other = "{1_Rank}, {2_Name} votó por {3_Cast}, recibió {4_Votes} votos",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CC_VOTE"] = "Elige un jugador"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_PROPOSAL"] = "Propuesta"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_TALLY"] =
+    "{1_Received} de {2_Max} votos recibidos, {3_Missing} pendientes"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_EXPIRES"] = "expira turno {1_Turn}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTER"] = "{1_Name}, {2_Status}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTED"] = "votado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_VOTED"] = "aún sin votar"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_ELIGIBLE"] = "no elegible"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_YES"] = "Votar sí"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_NO"] = "Votar no"
 -- WhosWinningPopup (BUTTONPOPUP_WHOS_WINNING). Engine-fired ranking pop with
 -- a randomly-chosen metric. Player rows mirror the engine's "rank, name,
 -- score" order so the user hears the rank first; the active player's tag
@@ -1400,6 +1411,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE"] = "ciencia {1_Nu
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "fe {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "turismo {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "cultura {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLDEN_AGE"] = "puntos de edad de oro {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS"] = "felicidad {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS"] = "infelicidad {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "Punto"
@@ -1712,6 +1724,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Turno terminado"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Fin de turno cancelado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Propuesta pendiente de tu voto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Acuerdo pendiente de tu respuesta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control más espacio o Control más Intro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "Terminar turno, o anunciar y abrir el primer bloqueo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
@@ -2048,6 +2062,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = {
     one = "{1_Num} turno",
     other = "{1_Num} turnos",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STEAL_COST"] = "coste de robo {1_Num} ciencia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE"] = "Abrir árbol de tecnologías"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT"] = "investigando {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE"] = "obtenido {1_Name}"
@@ -2614,6 +2629,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_SCIENCE"] = "Ciencia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "Oro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "Cultura"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "Fe"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE"] = "Puntos de Edad de Oro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "Producción"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_PUPPET"] = "títere"

@@ -751,6 +751,16 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"] = "투표 결과"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = {
     other = "{1_Rank}, {2_Name}은 {3_Cast}에 투표, {4_Votes}표 획득",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CC_VOTE"] = "플레이어 선택"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_PROPOSAL"] = "결의안"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_TALLY"] = "{1_Received}/{2_Max} 투표 완료, {3_Missing} 미집계"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_EXPIRES"] = "{1_Turn} 턴에 만료"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTER"] = "{1_Name}, {2_Status}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTED"] = "투표 완료"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_VOTED"] = "아직 투표 안 함"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_ELIGIBLE"] = "투표 자격 없음"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_YES"] = "찬성 투표"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_NO"] = "반대 투표"
 
 -- WhosWinningPopup
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"] = "이기고 있는 플레이어"
@@ -847,6 +857,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE"] = "과학 {1_Num
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "신앙 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "관광 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "문화 {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLDEN_AGE"] = "황금기 포인트 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS"] = "행복도 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS"] = "불행도 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "마침표"
@@ -1057,6 +1068,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "턴 종료"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "턴 종료 취소됨"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "투표를 기다리는 결의안이 있습니다"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "응답을 기다리는 거래가 있습니다"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control 플러스 Space 또는 Control 플러스 Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
     "턴 종료, 또는 첫 번째 차단 항목을 알리고 열기"
@@ -1306,6 +1319,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED"] = "대기열 �
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = {
     other = "{1_Num} 턴",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STEAL_COST"] = "훔치기 비용 {1_Num} 과학"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE"] = "기술 트리 열기"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT"] = "{1_Name} 연구 중"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE"] = "{1_Name} 획득"
@@ -1733,6 +1747,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_SCIENCE"] = "과학"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "금"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "문화"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "신앙"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE"] = "황금기 포인트"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "생산"
 
 -- Economy Overview city annotations (tail tokens - no terminal punct)

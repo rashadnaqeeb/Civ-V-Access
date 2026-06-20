@@ -986,6 +986,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = {
     few = "{1_Rank}, {2_Name} проголосовал за {3_Cast}, получил {4_Votes} голоса",
     many = "{1_Rank}, {2_Name} проголосовал за {3_Cast}, получил {4_Votes} голосов",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CC_VOTE"] = "Выбрать игрока"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_PROPOSAL"] = "Предложение"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_TALLY"] =
+    "{1_Received} из {2_Max} голосов, {3_Missing} без ответа"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_EXPIRES"] = "истекает на ходу {1_Turn}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTER"] = "{1_Name}, {2_Status}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTED"] = "проголосовал"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_VOTED"] = "ещё не проголосовал"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_ELIGIBLE"] = "не имеет права голоса"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_YES"] = "Голосовать за"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_NO"] = "Голосовать против"
 
 -- WhosWinningPopup (BUTTONPOPUP_WHOS_WINNING).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"] = "Кто побеждает"
@@ -1094,6 +1105,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE"] = "наука {1
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "вера {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "туризм {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "культура {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLDEN_AGE"] = "очки золотого века {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "Точка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT_AZERTY"] = "Двоеточие"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_DESC_NEXT"] = "Следующий город"
@@ -1340,6 +1352,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Ход завершён"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "завершение хода отменено"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] =
+    "Предложение ожидает вашего голоса"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Сделка ожидает вашего ответа"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] =
     "Control плюс пробел или Control плюс Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
@@ -1650,6 +1665,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = {
     few = "{1_Num} хода",
     many = "{1_Num} ходов",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STEAL_COST"] = "стоимость кражи {1_Num} наук"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE"] = "Открыть дерево технологий"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT"] = "изучается {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE"] = "получено {1_Name}"
@@ -2144,6 +2160,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_SCIENCE"] = "Наука"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "Золото"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "Культура"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "Вера"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE"] = "Очки золотого века"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "Производство"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "столица"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_PUPPET"] = "сателлит"

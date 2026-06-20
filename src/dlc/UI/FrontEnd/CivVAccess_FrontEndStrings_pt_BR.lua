@@ -42,9 +42,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_TEAM"] = "{1_Name}, {2_Team
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_HANDICAP"] = "{1_Name}, {2_Handicap}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_READY"] = "{1_Name} pronto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DELTA_UNREADY"] = "{1_Name} não pronto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_UNREADY_SELF"] = "Você não está mais pronto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_JOINED"] = "{1_Name} entrou"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CONN_JOINING"] = "entrando"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CONN_NOTCONNECTED"] = "não conectado"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} agora é o anfitrião"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} desconectou"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} foi expulso"
 
 -- ===== Launch countdown =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Iniciando em 10 segundos"
@@ -66,6 +71,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_DETAILS_TAB"] = "Detalhes do servid
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SERVERS"] = "Nenhum servidor encontrado."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_MEMBERS"] = "{1_Num} de {2_Max}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_PICKER_ROW"] = "{1_Server}, {2_Members}, {3_Map}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_MISSING_DLC"] = "DLC necessário ausente"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_REFRESHING"] = "Atualizando"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_REFRESH_DONE"] = "Atualização concluída, {1_Count} jogos"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_ASC"] = "crescente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SORT_DESC"] = "decrescente"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_NO_SELECTION"] =

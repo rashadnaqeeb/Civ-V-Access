@@ -804,6 +804,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_VOTE_RESULTS"] = "投票結果"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VOTE_RESULTS_ENTRY"] = {
     other = "{1_Rank}, {2_Name} が {3_Cast} に投票, {4_Votes} 票獲得",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CC_VOTE"] = "プレイヤーを選択"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_PROPOSAL"] = "提案"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_TALLY"] =
+    "{2_Max} 票中 {1_Received} 票集計済み, {3_Missing} 票未着"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_EXPIRES"] = "{1_Turn} ターン後に失効"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTER"] = "{1_Name}, {2_Status}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTED"] = "投票済み"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_VOTED"] = "未投票"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_NOT_ELIGIBLE"] = "資格なし"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_YES"] = "賛成票を投じる"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PROPOSAL_VOTE_NO"] = "反対票を投じる"
 
 -- Who's winning
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_WHOS_WINNING"] = "勝利状況"
@@ -892,6 +903,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_SCIENCE"] = "科学力 {1_
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_FAITH"] = "信仰力 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_TOURISM"] = "観光力 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_CULTURE"] = "文化力 {1_Num}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_YIELD_GOLDEN_AGE"] = "黄金時代ポイント {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HAPPINESS"] = "幸福度 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_UNHAPPINESS"] = "不満度 {1_Num}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITYVIEW_HELP_KEY_NEXT"] = "ピリオド"
@@ -1080,6 +1092,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "ターン終了"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "ターン終了キャンセル"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "投票待ちの提案があります"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "返答待ちの取引があります"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control + Space または Control + Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
     "ターン終了, またはブロッカーを通知して最初のブロッカーを開く"
@@ -1306,6 +1320,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_STATUS_QUEUED"] = "キュー�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_TURNS"] = {
     other = "{1_Num} ターン",
 }
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TECHTREE_STEAL_COST"] = "窃取コスト {1_Num} 科学力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_OPEN_TREE"] = "技術ツリーを開く"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT"] = "{1_Name} 研究開始"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOOSETECH_COMMIT_FREE"] = "{1_Name} を習得"
@@ -1621,6 +1636,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_SCIENCE"] = "科学力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLD"] = "ゴールド"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "文化力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "信仰力"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE"] = "黄金時代ポイント"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "生産力"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "首都"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_PUPPET"] = "傀儡"
