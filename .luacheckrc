@@ -191,6 +191,9 @@ globals = {
     "Turn",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
     "UnitControlCombat", "UnitControlMovement", "UnitControlSelection",
+    -- Squad layer (Community Patch / Vox Populi only).
+    "SquadRoster", "SquadSpeech", "SquadFocusCore",
+    "SquadMapMode", "SquadMoveMode", "SquadMenuCore",
     "Bookmarks", "Waypoints",
     "MessageBuffer", "ChatBuffer", "CombatLog", "UnitMoveLog",
     "RevealAnnounce", "ForeignUnitSnapshot", "ForeignUnitWatch", "ForeignClearWatch",

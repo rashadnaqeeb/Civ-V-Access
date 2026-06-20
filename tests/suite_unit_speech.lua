@@ -2045,4 +2045,58 @@ function M.test_city_combatant_name_returns_empty_when_player_missing()
     T.eq(UnitSpeech.cityCombatantName(42, 1), "")
 end
 
+-- ===== unitBrief (squad layer row) =====
+
+function M.test_unitBrief_omits_hp_at_full()
+    -- A full-HP unit's row carries no HP fraction; the HP format ends in
+    -- " hp", so its absence is the cheapest discriminator.
+    setup()
+    local u = mkUnit({ damage = 0 })
+    local out = UnitSpeech.unitBrief(u, 0, 0)
+    T.truthy(not out:find(" hp", 1, true), "full HP must be omitted from the row: " .. out)
+end
+
+function M.test_unitBrief_includes_hp_when_hurt()
+    setup()
+    local u = mkUnit({ damage = 40, maxHP = 100 })
+    local out = UnitSpeech.unitBrief(u, 0, 0)
+    T.truthy(out:find("60/100 hp", 1, true), "hurt unit must speak its HP fraction: " .. out)
+end
+
+function M.test_unitBrief_leads_with_name()
+    setup()
+    local u = mkUnit({ x = 3, y = 3 })
+    local out = UnitSpeech.unitBrief(u, 3, 3)
+    T.truthy(out:find("^Roman Warrior"), "row must lead with the unit name: " .. out)
+end
+
+function M.test_unitBrief_speaks_here_when_cursor_on_unit()
+    -- Zero delta from the reference cell collapses the direction segment to
+    -- the shared HERE token rather than a bearing.
+    setup()
+    local u = mkUnit({ x = 5, y = 5 })
+    local out = UnitSpeech.unitBrief(u, 5, 5)
+    T.truthy(out:find("here", 1, true), "cursor-on-unit must read here: " .. out)
+end
+
+function M.test_unitBrief_speaks_direction_when_cursor_off_unit()
+    setup()
+    local u = mkUnit({ x = 4, y = 0 })
+    local out = UnitSpeech.unitBrief(u, 0, 0)
+    T.truthy(not out:find("here", 1, true), "non-zero delta must not read here: " .. out)
+    -- compassDirectionString leads its segment with the cube distance; 4
+    -- east is distance 4, so the digit appears in the row.
+    T.truthy(out:find("4", 1, true), "direction segment must carry the distance: " .. out)
+end
+
+function M.test_unitBrief_drops_direction_without_reference_cell()
+    -- Omitting fromX/fromY drops the direction segment entirely (a nil
+    -- cursor must not crash or emit a bogus bearing).
+    setup()
+    local u = mkUnit({ x = 4, y = 0 })
+    local out = UnitSpeech.unitBrief(u)
+    T.truthy(out:find("^Roman Warrior"), "name still leads without a reference cell: " .. out)
+    T.truthy(not out:find("here", 1, true), "no HERE token without a reference cell: " .. out)
+end
+
 return M

@@ -22,6 +22,7 @@ New Features and improvements:
 - The production chooser lists civilian units first, then land, sea, and air, and national wonders ahead of world wonders.
 - Melee attack previews count the Impi's opening spear volley in the predicted damage ("includes 9 volley"), which the game's own preview omits.
 - F2 on the Great Work popup now also describes the image for great works of writing and music.
+- Vox Populi's Squads are now accessible: F11 opens a menu to create and configure squads, and Alt with the arrow keys groups, moves, and reports them from the map.
 
 Bug fixes:
 - The multiplayer screens got a thorough accessibility pass. In the staging room: players are announced as they join, leave, or are kicked; the roster stays readable after you ready up; you are told when the host clears your ready or when you cannot ready up; empty seats are read when a host reloads a save; hot-joins and a waiting Launch button are explained; the host can save the setup and is warned about private or oversized games; and the dedicated-server, email-password, and Strategic View controls are reachable. The server browser announces when the game list is refreshing and when it settles, and flags servers you cannot join for lack of required DLC. Turn-timer values now read their unit, seconds or hours.

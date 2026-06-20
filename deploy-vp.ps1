@@ -743,6 +743,34 @@ function Invoke-Uninstall {
     }
 }
 
+# The merged gameplay database the modpack bake consumes (cache\Civ5DebugDatabase.db)
+# is only PERSISTED during the engine's database-validation pass, which is gated on
+# ValidateGameDatabase=1 in config.ini. With it off, the database still compiles in
+# memory and the session plays fine, but Civ5DebugDatabase.db is left empty and the
+# bake has nothing to read. This is the merged-DB-generation state, so turn it on
+# here rather than relying on the maintainer to remember a config edit. (LoggingEnabled
+# stays a reminder below -- it governs Lua.log, not the debug DB.)
+function Enable-DatabaseValidation {
+    param([string]$DocsDir)
+    $cfg = Join-Path $DocsDir 'config.ini'
+    if (-not (Test-Path $cfg)) {
+        Write-Host "config.ini not found at $cfg -- set ValidateGameDatabase=1 by hand before the merged-DB session." -ForegroundColor Yellow
+        return
+    }
+    $content = Get-Content -LiteralPath $cfg -Raw
+    if ($content -match '(?m)^\s*ValidateGameDatabase\s*=\s*1\s*$') {
+        Write-Host "config.ini: ValidateGameDatabase already 1 (debug DB will persist)."
+        return
+    }
+    if ($content -match '(?m)^\s*ValidateGameDatabase\s*=') {
+        $content = $content -replace '(?m)^\s*ValidateGameDatabase\s*=.*$', 'ValidateGameDatabase = 1'
+    } else {
+        $content = $content.TrimEnd() + "`r`nValidateGameDatabase = 1`r`n"
+    }
+    [System.IO.File]::WriteAllText($cfg, $content)
+    Write-Host "config.ini: set ValidateGameDatabase = 1 so Civ5DebugDatabase.db persists for the bake."
+}
+
 # ---- Driver ----
 Write-Host "Locating Civilization V install..."
 $gameDir = Resolve-CivVInstallDir -ExplicitPath $GameDir
@@ -776,6 +804,7 @@ if (-not $RepinBuild) {
 }
 
 Complete-VPInstall -Game $gameDir
+Enable-DatabaseValidation -DocsDir $civ5DocsDir
 
 if (-not $SkipProxy) {
     Deploy-ProxyStack -Game $gameDir
@@ -810,7 +839,10 @@ Write-Host "  Game dir: $gameDir"
 Write-Host "  Version : $modVersion (VP variant)"
 Write-Host ""
 Write-Host "Start a game with the (1) Community Patch and (2) Vox Populi mods"
-Write-Host "enabled. For Lua.log output, set LoggingEnabled=1 in:"
+Write-Host "enabled (do NOT enable (4a) Squads). Let it load to the map, then"
+Write-Host "quit -- that writes the merged database the bake reads. This deploy"
+Write-Host "set ValidateGameDatabase=1 so the debug DB persists; for Lua.log"
+Write-Host "output also set LoggingEnabled=1 in:"
 Write-Host "  $civ5DocsDir\config.ini"
 Write-Host ""
 Write-Host "This state cannot load modpack saves. When done generating the"

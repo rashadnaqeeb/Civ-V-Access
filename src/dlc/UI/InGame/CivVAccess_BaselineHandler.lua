@@ -516,6 +516,18 @@ function BaselineHandler.create()
     appendAll(bindings, bookmarks.bindings)
     appendAll(bindings, beacons.bindings)
     appendAll(bindings, messageBuffer.bindings)
+    -- Squad map bindings (Up/Down/Left/Right, Alt-arrows, F11). Registered
+    -- only on a CP-DLL deploy with squads enabled; squadsAvailable() is false
+    -- on vanilla and LekMod, so the arrow keys keep their prior (swallowed)
+    -- behavior there and plain F11 stays a quick-save passthrough. Plain F11
+    -- here wins at the bindings loop over the F11 passthrough the way plain
+    -- F10 wins over Ctrl+F10, so the menu opens while Ctrl+F11 quick-load
+    -- still reaches the engine.
+    local squad = nil
+    if EngineData.squadsAvailable() then
+        squad = SquadMapMode.getBindings()
+        appendAll(bindings, squad.bindings)
+    end
 
     -- Help list, one unified map-mode list. Sections, in order:
     -- 1) tile info (cursor cluster, S/W/X tile queries, 1/2/3 city queries,
@@ -554,6 +566,10 @@ function BaselineHandler.create()
     }
     appendAll(helpEntries, beacons.helpEntries)
     appendAll(helpEntries, messageBuffer.helpEntries)
+    -- Squad section, only when the layer is live (same gate as the bindings).
+    if squad ~= nil then
+        appendAll(helpEntries, squad.helpEntries)
+    end
     appendAll(helpEntries, FUNCTION_KEY_HELP_ENTRIES)
 
     -- F12 is intentionally absent: InputRouter's pre-walk hook claims it

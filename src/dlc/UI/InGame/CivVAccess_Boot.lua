@@ -96,6 +96,19 @@ include("CivVAccess_UnitControlCore")
 -- binding surface.
 include("CivVAccess_Turn")
 include("CivVAccess_EmpireStatus")
+-- Squad layer (Community Patch / Vox Populi only; inert on vanilla / LekMod
+-- because squadsAvailable() is false there). Loaded before BaselineHandler
+-- so BaselineHandler.create can pull SquadMapMode.getBindings(). Strings
+-- first so the runtime Text lookups resolve; the modules cross-reference each
+-- other only through call-time closures, so their relative order is free.
+include("CivVAccess_SquadStrings_en_US")
+StringsLoader.loadOverlay("CivVAccess_SquadStrings")
+include("CivVAccess_SquadRoster")
+include("CivVAccess_SquadSpeech")
+include("CivVAccess_SquadFocusCore")
+include("CivVAccess_SquadMoveMode")
+include("CivVAccess_SquadMenuCore")
+include("CivVAccess_SquadMapMode")
 include("CivVAccess_HotseatCursorRestore")
 include("CivVAccess_TaskList")
 include("CivVAccess_BaselineHandler")
@@ -286,6 +299,27 @@ local function onInGameBoot()
     -- without this reset a prior session's unit mode would silently carry
     -- over with no visible cue.
     Bookmarks.resetMode()
+    -- Squad layer (CP/VP only). Hydrate the owner-local roster for this game
+    -- and reset the map-mode focus, then reconcile the roster against the
+    -- live engine squad numbers: a save whose membership survived but whose
+    -- OpenUserData store was lost still surfaces its squads. Gated on
+    -- squadsAvailable() so the whole block is a no-op on vanilla / LekMod.
+    if EngineData.squadsAvailable() then
+        SquadRoster.hydrateForCurrentGame()
+        SquadFocusCore.reset()
+        local player = Players[Game.GetActivePlayer()]
+        if player ~= nil then
+            local seen, nums = {}, {}
+            for unit in player:Units() do
+                local n = EngineData.squadNumber(unit)
+                if n >= 0 and not seen[n] then
+                    seen[n] = true
+                    nums[#nums + 1] = n
+                end
+            end
+            SquadRoster.reconcile(nums)
+        end
+    end
     -- Baseline and Scanner are the floor of the in-game stack: Baseline
     -- owns map / unit / turn keys and is the capturesAllInput barrier;
     -- Scanner sits one above for category cycling. They are not modal

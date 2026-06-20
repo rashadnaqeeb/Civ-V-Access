@@ -653,6 +653,13 @@ def cmd_verify(args):
 
 
 def cmd_generate(args):
+    # Default the staging dir to build/vendor/<engine>, not a fixed build/vendor/vp.
+    # A fixed default let `generate --engine lekmod` (no --out) silently clobber
+    # the vp stage with a LekMod stage -- the exact mislabel that shipped LekMod's
+    # UI (and its lekmodlogo.dds) into VP. Engine-named defaults make that
+    # impossible; explicit --out callers (resync cp/lekmod) are unaffected.
+    if args.out is None:
+        args.out = os.path.join(REPO_ROOT, "build", "vendor", args.engine)
     manifest = load_manifest()
     problems = check_completeness(manifest)
     if problems:
@@ -777,8 +784,8 @@ def main():
     gen.add_argument("--engine", required=True, choices=["vanilla", "vp", "cp", "lekmod"])
     gen.add_argument(
         "--out",
-        default=os.path.join(REPO_ROOT, "build", "vendor", "vp"),
-        help="staging directory (default build/vendor/vp)",
+        default=None,
+        help="staging directory (default build/vendor/<engine>)",
     )
     gen.add_argument(
         "--mods",

@@ -1489,3 +1489,42 @@ UnitSpeech.statusToken = statusToken
 -- (Persian Great General)") around the same civ-tagged base every other
 -- speech path uses.
 UnitSpeech.unitName = unitName
+
+-- Compact one-line unit row for the squad layer: name, then direction and
+-- distance from a reference cell (the hex cursor), HP only when hurt,
+-- movement reach, and the status token. Distinct from selection() (which
+-- leads with the move direction and carries out-of-attacks / promotion /
+-- cargo decorations) and info() (the full dump): a squad row is read while
+-- cycling members, so it answers "which unit, where is it, can it act"
+-- without the standing-capability tail. fromX/fromY is the cursor position;
+-- when supplied, the direction segment reads "<dist><compass>" via
+-- compassDirectionString (the same spatial bearing the surveyor speaks), or
+-- "here" when the unit sits on the cursor. Omit fromX/fromY to drop the
+-- direction segment entirely.
+function UnitSpeech.unitBrief(unit, fromX, fromY)
+    local parts = {}
+    local name = nameWithEmbarked(unit)
+    if name ~= "" then
+        parts[#parts + 1] = name
+    end
+    if fromX ~= nil and fromY ~= nil then
+        local ux, uy = unit:GetX(), unit:GetY()
+        if fromX == ux and fromY == uy then
+            parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+        else
+            local dir = HexGeom.compassDirectionString(fromX, fromY, ux, uy)
+            if dir ~= "" then
+                parts[#parts + 1] = dir
+            end
+        end
+    end
+    if unit:GetDamage() > 0 then
+        parts[#parts + 1] = hpFraction(unit)
+    end
+    parts[#parts + 1] = reachToken(unit)
+    local status = statusToken(unit)
+    if status ~= "" then
+        parts[#parts + 1] = status
+    end
+    return table.concat(parts, ", ")
+end

@@ -43,4 +43,10 @@
          typing buffers; same seating rationale and off-screen treatment. -->
     <EditBox CallOnChar="1" EditMode="1" Size="2,2" Anchor="L,T" Offset="-200,-200" ID="CivVAccessScannerKeywordEntry" Font="TwCenMT20" MaxLength="32" FocusStop="0"/>
 
+    <!-- Off-screen text-entry box for renaming squads (Community Patch / Vox
+         Populi squad layer). SquadMenuCore runs in WorldView's env, so its
+         rename Textfield resolves this Control here; same off-screen treatment
+         as the scanner fields. -->
+    <EditBox CallOnChar="1" EditMode="1" Size="2,2" Anchor="L,T" Offset="-200,-200" ID="CivVAccessSquadRenameEntry" Font="TwCenMT20" MaxLength="32" FocusStop="0"/>
+
 </Context>

@@ -49,6 +49,21 @@ def check_clean_db(gameplay_db, allow_squads, cp_only):
     cache."""
     con = sqlite3.connect(gameplay_db)
     try:
+        # An empty Civ5DebugDatabase.db is the classic "ValidateGameDatabase=0"
+        # trap: the merged database compiles in memory and the session plays
+        # fine, but the debug DB the bake reads is only persisted during the
+        # validation pass. A real CP/VP merge has hundreds of tables; a near-
+        # empty file means no usable merge was captured. Fail here with the fix
+        # rather than bake a hollow modpack.
+        ntables = con.execute(
+            "SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
+        if ntables < 50:
+            raise SystemExit(
+                f"Gameplay database has only {ntables} tables -- it was not "
+                "populated by a real merge. Set ValidateGameDatabase=1 (and "
+                "LoggingEnabled=1) in config.ini, replay a clean CP+VP session "
+                "to the map, quit, and re-run. (deploy-vp.ps1 sets the flag for "
+                "you; the CP-only path on vanilla needs it set by hand.)")
         def opt(name):
             r = con.execute(
                 "SELECT Value FROM CustomModOptions WHERE Name=?", (name,)
@@ -80,10 +95,18 @@ def check_clean_db(gameplay_db, allow_squads, cp_only):
         raise SystemExit(
             f"Database is not a VP merge (BALANCE_VP={balance}). Play a clean "
             "CP+VP session through the Mods menu first.")
+    # The merge session must run with VP's "(4a) Squads for VP" mod OFF -- its
+    # UI collides with our InGame.lua override. The baked pack still enables
+    # squads: dump_db forces CustomModOptions.SQUADS=1 in the Override (the
+    # accessibility squad layer rides our own DLL bindings, not (4a)'s UI). So
+    # a SQUADS=1 cache here means (4a) was loaded by mistake, which is what we
+    # reject; the bake does not depend on the cache value for squads.
     if squads == 1 and not allow_squads:
         raise SystemExit(
-            "Database has Squads enabled (SQUADS=1). Disable/uninstall Squads "
-            "and replay a clean CP+VP session, or pass --allow-squads.")
+            "Database has Squads enabled (SQUADS=1) in the cache, which means "
+            "VP's '(4a) Squads for VP' mod was loaded -- its UI collides with "
+            "ours. Disable it and replay a clean CP+VP session (the bake "
+            "enables squads itself via dump_db), or pass --allow-squads.")
 
 # Net-new contexts and gameplay/overlay addins, loaded by bare stem. Squads is
 # excluded (not part of plain VP). Kept in the reference pack's order. The full
