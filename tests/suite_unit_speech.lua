@@ -191,6 +191,10 @@ local function setup()
     civvaccess_shared = civvaccess_shared or {}
     dofile("src/dlc/UI/InGame/CivVAccess_WaypointsCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_UnitSpeech.lua")
+    -- Squad escort / holding status tokens are mod-authored CivVAccess_SQUAD_*
+    -- strings; load them so the squad-status tests resolve to English. Base-game
+    -- keys stay unresolved as elsewhere in this suite.
+    dofile("src/dlc/UI/InGame/CivVAccess_SquadStrings_en_US.lua")
 
     GameInfo = GameInfo or {}
     GameInfo.Units = {}
@@ -828,6 +832,121 @@ function M.test_selection_status_heal_wins_over_fortify()
     local out = UnitSpeech.selection(u, 0, 0)
     T.truthy(out:find("TXT_KEY_MISSION_HEAL", 1, true), "heal should win over fortified: " .. out)
     T.truthy(not out:find("FORTIFIED", 1, true), "fortified token must not appear: " .. out)
+end
+
+-- ===== Status: squad escort / holding (CP-DLL / VP only) =====
+
+-- Patches the EngineData squad seam and a SquadRoster stub so statusToken's
+-- squad block resolves, runs body, then restores. cfg.linked maps unit id to
+-- the escort-link flag, cfg.squadOf maps unit id to squad number, cfg.wake maps
+-- squad number to wake mode (2 == wake-all), cfg.names maps squad number to a
+-- display name, cfg.moving is the squad's is-moving flag. Restores even when an
+-- assertion in body throws.
+local function withSquads(cfg, body)
+    local saved = {
+        squadsAvailable = EngineData.squadsAvailable,
+        unitIsLinked = EngineData.unitIsLinked,
+        squadNumber = EngineData.squadNumber,
+        squadIsMoving = EngineData.squadIsMoving,
+        squadWaitsForAll = EngineData.squadWaitsForAll,
+        roster = SquadRoster,
+    }
+    EngineData.squadsAvailable = function()
+        return true
+    end
+    EngineData.unitIsLinked = function(u)
+        return (cfg.linked or {})[u:GetID()] or false
+    end
+    EngineData.squadNumber = function(u)
+        return (cfg.squadOf or {})[u:GetID()] or -1
+    end
+    EngineData.squadIsMoving = function()
+        return cfg.moving or false
+    end
+    -- The holding token reads the wake mode from the engine; cfg.wake maps a
+    -- squad number to its mode, so resolve the unit's squad and compare to
+    -- wake-all (2).
+    EngineData.squadWaitsForAll = function(u)
+        return (cfg.wake or {})[(cfg.squadOf or {})[u:GetID()]] == 2
+    end
+    SquadRoster = {
+        getName = function(n)
+            return (cfg.names or {})[n] or ("Squad " .. tostring(n))
+        end,
+    }
+    local ok, err = pcall(body)
+    EngineData.squadsAvailable = saved.squadsAvailable
+    EngineData.unitIsLinked = saved.unitIsLinked
+    EngineData.squadNumber = saved.squadNumber
+    EngineData.squadIsMoving = saved.squadIsMoving
+    EngineData.squadWaitsForAll = saved.squadWaitsForAll
+    SquadRoster = saved.roster
+    if not ok then
+        error(err)
+    end
+end
+
+-- An escorted civilian names the combat unit sharing its tile (found by
+-- co-location, since linked units travel as one stack).
+function M.test_status_escorted_civilian_names_colocated_escort()
+    setup()
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    local civ = mkUnit({ id = 1, isCombat = false, plot = plot })
+    local escort = mkUnit({ id = 2, isCombat = true, unitType = 101, plot = plot })
+    plot._units = { civ, escort }
+    withSquads({ linked = { [1] = true, [2] = true } }, function()
+        local out = UnitSpeech.statusToken(civ)
+        T.eq(out, "escorted by Roman Swordsman", "civilian must name its escort: " .. out)
+    end)
+end
+
+-- A linked civilian with no combat unit co-located falls back to plain
+-- "escorted" rather than naming nothing.
+function M.test_status_escorted_civilian_without_escort_reads_plain()
+    setup()
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    local civ = mkUnit({ id = 1, isCombat = false, plot = plot })
+    local other = mkUnit({ id = 3, isCombat = false, plot = plot })
+    plot._units = { civ, other }
+    withSquads({ linked = { [1] = true, [3] = true } }, function()
+        local out = UnitSpeech.statusToken(civ)
+        T.eq(out, "escorted", "civilian-only link must read plain escorted: " .. out)
+    end)
+end
+
+-- The combat escort itself carries no escort token.
+function M.test_status_combat_escort_gets_no_escort_token()
+    setup()
+    local plot = T.fakePlot({ x = 0, y = 0 })
+    local civ = mkUnit({ id = 1, isCombat = false, plot = plot })
+    local escort = mkUnit({ id = 2, isCombat = true, plot = plot })
+    plot._units = { civ, escort }
+    withSquads({ linked = { [1] = true, [2] = true } }, function()
+        local out = UnitSpeech.statusToken(escort)
+        T.truthy(not out:find("escort", 1, true), "combat escort must speak no escort token: " .. out)
+    end)
+end
+
+-- A wake-all member that has reached its spot (sentried by the engine) while
+-- the squad is still moving reads as holding for the named squad.
+function M.test_status_wake_all_arrived_member_holds_for_named_squad()
+    setup()
+    local u = mkUnit({ id = 5, activity = ActivityTypes.ACTIVITY_SENTRY })
+    withSquads({ squadOf = { [5] = 7 }, wake = { [7] = 2 }, moving = true, names = { [7] = "Alpha" } }, function()
+        local out = UnitSpeech.statusToken(u)
+        T.eq(out, "holding for Alpha", "arrived wake-all member must hold for its named squad: " .. out)
+    end)
+end
+
+-- Sentry-on-arrival mode (wake mode 0) is a plain alert, not a hold.
+function M.test_status_sentry_on_arrival_mode_is_not_holding()
+    setup()
+    local u = mkUnit({ id = 5, activity = ActivityTypes.ACTIVITY_SENTRY })
+    withSquads({ squadOf = { [5] = 7 }, wake = { [7] = 0 }, moving = true }, function()
+        local out = UnitSpeech.statusToken(u)
+        T.truthy(not out:find("holding", 1, true), "sentry-on-arrival must not hold: " .. out)
+        T.truthy(out:find("TXT_KEY_MISSION_ALERT", 1, true), "must read alert instead: " .. out)
+    end)
 end
 
 -- ===== Info dump =====

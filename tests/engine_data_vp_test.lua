@@ -1698,6 +1698,24 @@ function M.test_squads_available_gates_on_squads_option()
     T.eq(vanilla.squadsAvailable(), false, "squads never available on vanilla")
 end
 
+function M.test_vp_squad_waits_for_all_reads_engine_mode()
+    -- The holding token reads the per-member wake mode from the engine, not the
+    -- roster; only WAKE_ON_ALL_ARRIVED (2) is a hold.
+    local vp = loadSeam(VP_PATH)
+    local function mk(mode)
+        return {
+            GetSquadEndMovementType = function()
+                return mode
+            end,
+        }
+    end
+    T.eq(vp.squadWaitsForAll(mk(2)), true, "wake-when-all-arrive holds")
+    T.eq(vp.squadWaitsForAll(mk(0)), false, "alert-on-arrival does not hold")
+    T.eq(vp.squadWaitsForAll(mk(1)), false, "wake-on-each-arrival does not hold")
+    -- A fork DLL predating the binding has no getter; degrade to false, not error.
+    T.eq(vp.squadWaitsForAll({}), false, "missing binding degrades to false")
+end
+
 function M.test_vanilla_squad_intents_degrade_safely()
     -- The vanilla no-op bodies exist for parity and safe degradation; reads
     -- return the documented neutral values and mutators do nothing without
@@ -1708,6 +1726,9 @@ function M.test_vanilla_squad_intents_degrade_safely()
     T.eq(vanilla.squadMovePreviewTurns({}, {}), 0, "no preview turns on vanilla")
     T.eq(vanilla.squadIsMoving({}), false, "never moving on vanilla")
     T.eq(vanilla.squadTurnsRemaining({}), 0, "no turns remaining on vanilla")
+    T.eq(vanilla.unitIsLinked({}), false, "never linked on vanilla")
+    T.eq(vanilla.squadDestination({}), nil, "no squad destination on vanilla")
+    T.eq(vanilla.squadWaitsForAll({}), false, "never wake-all on vanilla")
     -- Mutators must be callable no-ops.
     vanilla.assignToSquad({}, 1)
     vanilla.removeFromSquad({})

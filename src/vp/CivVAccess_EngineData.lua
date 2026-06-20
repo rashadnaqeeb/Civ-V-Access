@@ -1102,3 +1102,37 @@ end
 function EngineData.setSquadEndMovementMode(unit, mode)
     unit:SetSquadEndMovementType(mode)
 end
+
+-- Read: is the unit bound into an escort / linked group, moving as one
+-- protected stack? IsLinked is set on every member of a squad escort move
+-- (combat units and the non-combat units they shield) and cleared on arrival.
+-- Drives the per-unit "escorted" status token.
+function EngineData.unitIsLinked(unit)
+    return unit:IsLinked()
+end
+
+-- Read: the squad's committed move objective plot, or nil when none is set.
+-- The destination is fanned to every member, so it reads off any member.
+-- Drives the destination readout on the squad movement line. Guarded against a
+-- fork DLL predating the GetSquadDestination binding so a stale deploy degrades
+-- to no destination rather than erroring.
+function EngineData.squadDestination(unit)
+    if unit.GetSquadDestination == nil then
+        return nil
+    end
+    return unit:GetSquadDestination()
+end
+
+-- Read: is the unit's squad set to wake only when the whole squad has arrived
+-- (the engine's WAKE_ON_ALL_ARRIVED == 2 end-movement mode)? This is the
+-- per-member value TryEndSquadMovement reads to decide whether an arrived
+-- member holds for stragglers, so the holding token reads it directly instead
+-- of the roster's squad-level intent (which can drift if the user-data store is
+-- lost). Guarded against a fork DLL predating the GetSquadEndMovementType
+-- binding so a stale deploy degrades to no holding token rather than erroring.
+function EngineData.squadWaitsForAll(unit)
+    if unit.GetSquadEndMovementType == nil then
+        return false
+    end
+    return unit:GetSquadEndMovementType() == 2
+end

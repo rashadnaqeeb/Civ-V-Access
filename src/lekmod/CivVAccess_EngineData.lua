@@ -963,3 +963,21 @@ end
 function EngineData.cancelSquadMove(_unit) end
 
 function EngineData.setSquadEndMovementMode(_unit, _mode) end
+
+-- Read: is the unit bound into an escort / linked group? Drives the per-unit
+-- "escorted" status token. False here -- LekMod's NQMod lineage has no squad /
+-- linking layer.
+function EngineData.unitIsLinked(_unit)
+    return false
+end
+
+-- Read: the squad's committed move objective plot, or nil when none. nil here.
+function EngineData.squadDestination(_unit)
+    return nil
+end
+
+-- Read: is the unit's squad set to wake only when the whole squad has arrived?
+-- Drives the "holding for <squad>" status token. False here.
+function EngineData.squadWaitsForAll(_unit)
+    return false
+end

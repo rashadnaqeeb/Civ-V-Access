@@ -13,6 +13,7 @@ local membersByNum
 local moving
 local turnsRemaining
 local previewTurns
+local destPlot
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
@@ -45,6 +46,7 @@ local function setup()
     moving = false
     turnsRemaining = 0
     previewTurns = 0
+    destPlot = nil
     EngineData = {
         squadMembers = function(_p, num)
             return membersByNum[num] or {}
@@ -57,6 +59,9 @@ local function setup()
         end,
         squadMovePreviewTurns = function()
             return previewTurns
+        end,
+        squadDestination = function()
+            return destPlot
         end,
     }
 
@@ -197,6 +202,93 @@ function M.test_unitRow_forwards_live_cursor_cell()
     setup()
     local out = SquadSpeech.unitRow({ _id = 42 })
     T.eq(out, "BRIEF:42:7,8", "unit row must pass the unit and the live cursor cell to unitBrief")
+end
+
+-- ===== destination on the movement line =====
+
+-- A moving squad's status appends the cursor-relative bearing to its
+-- destination (HexGeom.directionString, stubbed here to isolate the composition
+-- from HexGeom's internals).
+function M.test_movementStatus_appends_destination_bearing()
+    setup()
+    squadWithMembers(1)
+    moving = true
+    turnsRemaining = 3
+    destPlot = {
+        GetX = function()
+            return 10
+        end,
+        GetY = function()
+            return 10
+        end,
+    }
+    local origDir = HexGeom.directionString
+    HexGeom.directionString = function()
+        return "2ne"
+    end
+    local out = SquadSpeech.movementStatus(1)
+    HexGeom.directionString = origDir
+    T.truthy(out:find("moving", 1, true), "still says moving: " .. out)
+    T.truthy(out:find("destination 2ne", 1, true), "appends the destination bearing: " .. out)
+end
+
+-- The cursor sitting on the destination tile reads "here" (the scanner key)
+-- instead of a bearing.
+function M.test_movementStatus_destination_here_at_cursor()
+    setup()
+    squadWithMembers(1)
+    moving = true
+    turnsRemaining = 1
+    -- The cursor stub is at (7, 8); a destination on that tile is "here".
+    destPlot = {
+        GetX = function()
+            return 7
+        end,
+        GetY = function()
+            return 8
+        end,
+    }
+    local out = SquadSpeech.movementStatus(1)
+    T.truthy(out:find("destination", 1, true), "labels the destination: " .. out)
+    T.truthy(
+        out:find("TXT_KEY_CIVVACCESS_SCANNER_HERE", 1, true),
+        "uses the scanner here key when the cursor is on the tile: " .. out
+    )
+end
+
+-- No destination plot (binding absent or none set) appends nothing.
+function M.test_movementStatus_omits_destination_when_none()
+    setup()
+    squadWithMembers(1)
+    moving = true
+    turnsRemaining = 3
+    destPlot = nil
+    local out = SquadSpeech.movementStatus(1)
+    T.truthy(out:find("moving", 1, true), "still says moving: " .. out)
+    T.truthy(not out:find("destination", 1, true), "no destination when the squad has none: " .. out)
+end
+
+-- The Alt+Down full status carries the destination too (shared moving phrase).
+function M.test_fullStatus_includes_destination_when_moving()
+    setup()
+    squadWithMembers(2)
+    moving = true
+    turnsRemaining = 2
+    destPlot = {
+        GetX = function()
+            return 10
+        end,
+        GetY = function()
+            return 10
+        end,
+    }
+    local origDir = HexGeom.directionString
+    HexGeom.directionString = function()
+        return "2ne"
+    end
+    local out = SquadSpeech.fullStatus(1)
+    HexGeom.directionString = origDir
+    T.truthy(out:find("destination 2ne", 1, true), "full status carries the destination: " .. out)
 end
 
 return M

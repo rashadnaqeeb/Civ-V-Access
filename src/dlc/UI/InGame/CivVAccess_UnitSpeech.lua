@@ -270,6 +270,59 @@ local function renderChunk(chunk, joiner)
     return Text.formatPlural("TXT_KEY_CIVVACCESS_UNIT_STATUS_QUEUED_MOVE_CHUNK", chunk.turns, body, chunk.turns)
 end
 
+-- The combat unit sharing this civilian's plot in an escort move -- the
+-- unit doing the escorting. Linked units travel as one stack, so the escort
+-- sits on the civilian's plot; identify it by combat status plus the same
+-- link flag. Returns nil for a civilian-only link or an escort that has
+-- separated. Only reached under squadsAvailable(), so unitIsLinked resolves.
+local function colocatedEscort(unit)
+    local plot = unit:GetPlot()
+    if plot == nil then
+        return nil
+    end
+    local id = unit:GetID()
+    local n = plot:GetNumUnits()
+    for i = 0, n - 1 do
+        local u = plot:GetUnit(i)
+        if u ~= nil and u:GetID() ~= id and u:IsCombatUnit() and EngineData.unitIsLinked(u) then
+            return u
+        end
+    end
+    return nil
+end
+
+-- Squad-layer status for a unit (Community Patch / Vox Populi only): the escort
+-- link a civilian is travelling under, and the "holding" wait a wake-all member
+-- sits in after arriving. Returns "" when the unit has no such state. Caller
+-- gates on squadsAvailable() so the bindings below resolve.
+local function squadStatusToken(unit)
+    -- A non-combat unit bound into an escort group reads as escorted, naming the
+    -- combat unit shielding it; the escort itself gets no token. Keyed on combat
+    -- status rather than the engine's linked-leader, which prioritizes a worker
+    -- and so can be the escorted civilian itself.
+    if EngineData.unitIsLinked(unit) and not unit:IsCombatUnit() then
+        local escort = colocatedEscort(unit)
+        if escort ~= nil then
+            return Text.format("TXT_KEY_CIVVACCESS_SQUAD_ESCORTED_BY", unitName(escort))
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_SQUAD_ESCORTED")
+    end
+    -- Wake-when-all-arrive: a member that has reached its spot is sentried or
+    -- slept by the engine while stragglers finish, then woken once everyone is
+    -- in. Report that wait as holding for the named squad rather than a bare
+    -- alert / sleep. The wake mode is read from the engine (the per-member value
+    -- that actually drives the hold); the name comes from the roster, which is
+    -- the only place squad names live.
+    local num = EngineData.squadNumber(unit)
+    if num ~= -1 and EngineData.squadWaitsForAll(unit) and EngineData.squadIsMoving(unit) then
+        local activity = unit:GetActivityType()
+        if activity == ActivityTypes.ACTIVITY_SENTRY or activity == ActivityTypes.ACTIVITY_SLEEP then
+            return Text.format("TXT_KEY_CIVVACCESS_SQUAD_HOLDING", SquadRoster.getName(num))
+        end
+    end
+    return ""
+end
+
 -- Returns the first matching status token (localized string), or "".
 -- Friendly units run the cascade from base UnitList.lua so e.g. a
 -- garrisoned unit sitting on fortify turns speaks "garrison" -- the more
@@ -289,6 +342,15 @@ local function statusToken(unit)
             return Text.key("TXT_KEY_UNIT_STATUS_FORTIFIED")
         end
         return ""
+    end
+    -- Squad escort / holding states (CP-DLL / VP only) lead the friendly
+    -- cascade: an escorted civilian or a member holding for the squad should
+    -- speak its squad state rather than the bare sleep / sentry it sits in.
+    if EngineData.squadsAvailable() then
+        local squad = squadStatusToken(unit)
+        if squad ~= "" then
+            return squad
+        end
     end
     if unit:IsGarrisoned() then
         return Text.key("TXT_KEY_MISSION_GARRISON")

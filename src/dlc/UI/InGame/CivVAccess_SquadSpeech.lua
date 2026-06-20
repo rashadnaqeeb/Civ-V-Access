@@ -74,16 +74,57 @@ function SquadSpeech.unitRow(unit)
     return UnitSpeech.unitBrief(unit, cx, cy)
 end
 
--- Short movement status for Up/Down: "moving, N turns left" when the squad
--- is mid-move, nil when idle or empty so the cycler stays silent (Up/Down is
--- an informational scan, not a navigation announcement -- the action keys
--- speak the name).
-function SquadSpeech.movementStatus(num)
+-- Cursor-relative bearing to the squad's destination ("destination 1ne, 1nw" /
+-- "destination here"), or nil when the squad has no destination (or the engine
+-- binding is absent). Uses HexGeom.directionString and the scanner "here" key --
+-- the same bearing the cursor, bookmark, and surveyor readouts speak -- so the
+-- destination reads like every other location in the mod (the scanner's compass
+-- variant is scanner-scoped; everything else stays on the hex decomposition).
+local function destinationPhrase(num)
+    local m = members(num)
+    if #m == 0 then
+        return nil
+    end
+    local plot = EngineData.squadDestination(m[1])
+    if plot == nil then
+        return nil
+    end
+    local cx, cy = Cursor.position()
+    local dx, dy = plot:GetX(), plot:GetY()
+    local dir
+    if cx == dx and cy == dy then
+        dir = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
+    else
+        dir = HexGeom.directionString(cx, cy, dx, dy)
+        if dir == "" then
+            return nil
+        end
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_SQUAD_DESTINATION", dir)
+end
+
+-- "moving, N turns left, destination <bearing>" for a moving squad, or nil when
+-- idle / empty. Shared by the Up/Down scan and the Alt+Down full status so both
+-- carry the destination.
+local function movingPhrase(num)
     local moving, turns = movementState(num)
     if not moving then
         return nil
     end
-    return Text.formatPlural("TXT_KEY_CIVVACCESS_SQUAD_MOVING", turns, turns)
+    local parts = { Text.formatPlural("TXT_KEY_CIVVACCESS_SQUAD_MOVING", turns, turns) }
+    local dest = destinationPhrase(num)
+    if dest ~= nil then
+        parts[#parts + 1] = dest
+    end
+    return table.concat(parts, ", ")
+end
+
+-- Short movement status for Up/Down: the moving phrase (with destination) when
+-- the squad is mid-move, nil when idle or empty so the cycler stays silent
+-- (Up/Down is an informational scan, not a navigation announcement -- the
+-- action keys speak the name).
+function SquadSpeech.movementStatus(num)
+    return movingPhrase(num)
 end
 
 -- Full status for Alt+Down: name, unit count, movement state, wake mode, and
@@ -97,9 +138,9 @@ function SquadSpeech.fullStatus(num)
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SQUAD_NO_UNITS")
     else
         parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_SQUAD_UNIT_COUNT", count, count)
-        local moving, turns = movementState(num)
-        if moving then
-            parts[#parts + 1] = Text.formatPlural("TXT_KEY_CIVVACCESS_SQUAD_MOVING", turns, turns)
+        local phrase = movingPhrase(num)
+        if phrase ~= nil then
+            parts[#parts + 1] = phrase
         else
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SQUAD_STATUS_IDLE")
         end

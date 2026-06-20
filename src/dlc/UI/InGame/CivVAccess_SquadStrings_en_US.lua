@@ -21,6 +21,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVING"] = {
     other = "moving, {1_N} turns left",
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_STATUS_IDLE"] = "idle"
+-- Appended to the movement line: the cursor-relative bearing to the squad's
+-- destination ({1_Dir} is the hex-decomposition bearing, e.g. "1ne, 1nw", or
+-- "here").
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_DESTINATION"] = "destination {1_Dir}"
 -- Move-preview turn count (Space in the move sub-mode).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_PREVIEW_TURNS"] = {
     one = "{1_N} turn",
@@ -46,6 +50,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_WAKE_LABEL"] = "wake mode, {1_Mode}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORT"] = "escort civilians"
 -- Spoken in the full status only when escort is on.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORT_ON"] = "escorting civilians"
+
+-- ===== Per-unit status tokens =====
+-- Spoken wherever a unit's status is read (selection, info, cursor plot,
+-- squad row), not just in the squad screens.
+-- A non-combat unit currently shielded by a combat unit in an escort move;
+-- {1_Name} is the escorting unit.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED_BY"] = "escorted by {1_Name}"
+-- Same state when the escorting unit can't be identified.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED"] = "escorted"
+-- A "wake when all arrive" member that has reached its spot and is waiting for
+-- the rest of its squad to arrive before waking; {1_Name} is the squad.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "holding for {1_Name}"
 
 -- ===== Map-mode feedback =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NONE"] = "no squads"
