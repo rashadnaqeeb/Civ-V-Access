@@ -10,9 +10,10 @@
 --   bindings       array of {key, mods, fn, description}.
 --   helpEntries    array of {keyLabel, description} for the ? overlay.
 --   onTabActivated(announce)  see TabbedShell contract.
---   onTabDeactivated()        clears type-ahead buffer.
+--   onTabDeactivated()        clears the type-ahead filter.
 --   handleSearchInput(self, vk, mods)
---                  type-ahead column search routed through InputRouter.
+--                  type-ahead filter (narrows rows to label matches) routed
+--                  through InputRouter.
 --
 -- Cursor model: row 0 is the column-header row (cursor lands there on Up
 -- from data row 1; Enter cycles sort on the current column). Rows 1..N are
@@ -96,8 +97,12 @@ local function playWrap()
     end
 end
 
--- Build the live row list, applying sort if a column is active. Called on
--- every nav event so values reflect current game state (no-cache rule).
+-- Build the live row list: rebuildRows, then the active type-ahead filter,
+-- then sort if a column is active. Called on every nav event so both the
+-- values and the filter membership reflect current game state (no-cache
+-- rule). The filter is a live predicate re-run here every time, never a
+-- stored set of row indices: a row that disappears between keystrokes simply
+-- stops matching, and identities never go stale.
 local function buildRows(self)
     local ok, rows = pcall(self.rebuildRows)
     if not ok then
@@ -106,6 +111,19 @@ local function buildRows(self)
     end
     if type(rows) ~= "table" then
         return {}
+    end
+    if self._filterQuery ~= "" then
+        local q = string.lower(self._filterQuery:match("^(.-)%s*$") or self._filterQuery)
+        if q ~= "" then
+            local filtered = {}
+            for i = 1, #rows do
+                local label = TextFilter.filter(self.rowLabel(rows[i]))
+                if label ~= nil and label ~= "" and TypeAheadSearch.matchTier(string.lower(label), q) >= 0 then
+                    filtered[#filtered + 1] = rows[i]
+                end
+            end
+            rows = filtered
+        end
     end
     if self._sortColumn ~= nil then
         local col = self.columns[self._sortColumn]
@@ -314,17 +332,14 @@ local function speakCell(self, force)
 end
 
 -- Navigation -----------------------------------------------------------
-
--- Any user-initiated cursor move drops the type-ahead buffer so the next
--- typed letter starts a fresh search rather than appending to the previous
--- query. Search-driven moves (search:_announceCurrentResult -> moveTo) bypass
--- these handlers and keep the buffer alive so the user can keep refining.
-local function clearSearch(self)
-    self._search:clear()
-end
+--
+-- Arrows / Home / End move within whatever set buildRows currently yields --
+-- the full table, or the filtered subset when a type-ahead filter is active.
+-- They deliberately leave the filter alone: navigating the matches is the
+-- point of the filter, and typing more narrows it further (see the filter
+-- section below).
 
 local function onUp(self)
-    clearSearch(self)
     if self._row == -1 then
         return
     end
@@ -340,7 +355,6 @@ local function onUp(self)
 end
 
 local function onDown(self)
-    clearSearch(self)
     local rows = buildRows(self)
     if self._row >= #rows then
         return
@@ -350,7 +364,6 @@ local function onDown(self)
 end
 
 local function onLeft(self)
-    clearSearch(self)
     -- The top control spans the table; there is no column to move to.
     if self._row == -1 then
         return
@@ -369,7 +382,6 @@ local function onLeft(self)
 end
 
 local function onRight(self)
-    clearSearch(self)
     if self._row == -1 then
         return
     end
@@ -387,7 +399,6 @@ local function onRight(self)
 end
 
 local function onHome(self)
-    clearSearch(self)
     -- First data row, current column. From the header row the user can
     -- press Down to enter data; Home is for jumping among data rows, so
     -- it always lands on row 1.
@@ -400,7 +411,6 @@ local function onHome(self)
 end
 
 local function onEnd(self)
-    clearSearch(self)
     local rows = buildRows(self)
     if #rows == 0 then
         return
@@ -493,35 +503,61 @@ local function onPedia(self)
     end
 end
 
--- Type-ahead row search ------------------------------------------------
+-- Type-ahead filter ----------------------------------------------------
 --
--- Type-ahead matches against the row label (e.g. city name on the F2
--- Cities tab) and jumps the cursor through rows in the currently focused
--- column, leaving _col untouched. Row-name search is the natural fit for
--- city / unit / leader tables: the user knows what they're looking for by
--- name, then arrows left/right along that row's columns to read the
--- remaining stats. rebuildRows is called once per handleSearchInput
--- invocation so a single keystroke sees a consistent snapshot; later
--- moveTo calls (from result-cycling within TypeAheadSearch) still map
--- to the snapshot's indices.
-local function buildSearchable(self)
+-- Typing narrows the table to the rows whose label matches the buffer
+-- (matchTier against rowLabel, the same matcher BaseMenu type-ahead uses);
+-- arrows / Home / End / Enter then operate on that subset exactly as on the
+-- full table, since buildRows applies the filter and every nav handler reads
+-- through buildRows. From the user's side this is indistinguishable from
+-- BaseMenu type-ahead: type to find, navigate the matches, backspace or
+-- Escape to clear. Typing more appends to the buffer and narrows further;
+-- there is no result-count speech, which would re-fire on every keystroke.
+
+-- Re-land after the filter buffer changed: top of the (filtered) set, full
+-- context. An empty result speaks the shared no-match line and parks on the
+-- header row so Up / Down stay valid and Backspace can recover.
+local function applyFilter(self)
     local rows = buildRows(self)
-    return {
-        itemCount = function()
-            return #rows
-        end,
-        getLabel = function(i)
-            local row = rows[i]
-            if row == nil then
-                return nil
+    if #rows == 0 then
+        self._row = 0
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_SEARCH_NO_MATCH", self._filterQuery))
+        return
+    end
+    self._row = 1
+    speakCell(self, true)
+end
+
+-- Clear the filter, keeping the cursor on the same row where it can: the
+-- focused row object is relocated in the now-full list, falling back to its
+-- clamped numeric index when identity can't be matched. Speaks the shared
+-- "search cleared" line and does not re-announce the row -- matching
+-- BaseMenu's clear, which leaves the cursor where it sits.
+local function clearFilter(self)
+    local focused = nil
+    if self._row >= 1 then
+        focused = buildRows(self)[self._row]
+    end
+    self._filterQuery = ""
+    if focused ~= nil then
+        local rows = buildRows(self)
+        for i = 1, #rows do
+            if rows[i] == focused then
+                self._row = i
+                break
             end
-            return TextFilter.filter(self.rowLabel(row))
-        end,
-        moveTo = function(i)
-            self._row = i
-            speakCell(self, false)
-        end,
-    }
+        end
+        if self._row > #rows then
+            self._row = #rows > 0 and #rows or 0
+        end
+    end
+    -- The cursor moved silently (filtered index to full-table index), so the
+    -- speech-dedupe baseline must follow it. Otherwise it still points at the
+    -- filtered position and the next arrow move can elide the row label or
+    -- column name when the new position happens to match the stale baseline.
+    self._lastSpokenRow = self._row
+    self._lastSpokenCol = self._col
+    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
 end
 
 local function handleSearchInput(self, vk, mods)
@@ -530,31 +566,36 @@ local function handleSearchInput(self, vk, mods)
     if hasCtrl or hasAlt then
         return false
     end
-    local search = self._search
-    -- During an active search, Up / Down cycle through matched rows and
-    -- Home / End jump to the first / last match (TypeAheadSearch's
-    -- navigateResults / jumpToFirstResult / jumpToLastResult). Without this
-    -- forwarding the keys would fall through to onUp / onDown / onHome /
-    -- onEnd, whose clearSearch call would drop the buffer and strand the
-    -- user on the first match -- a regression for multi-match queries
-    -- like "M" on a city list with Milan, Memphis, Moscow.
-    if
-        search:isSearchActive()
-        and (vk == Keys.VK_UP or vk == Keys.VK_DOWN or vk == Keys.VK_HOME or vk == Keys.VK_END)
-    then
-        return search:handleKey(vk, false, false, buildSearchable(self))
-    end
+    -- Letters / digits narrow the filter; Space extends a multi-word query;
+    -- Backspace widens it (and clears at empty). Arrows / Home / End / Enter
+    -- are NOT consumed -- they fall through to the normal nav bindings, which
+    -- now walk the filtered subset.
     if vk >= 0x41 and vk <= 0x5A then
-        return search:handleChar(string.char(vk + 32), buildSearchable(self))
+        self._filterQuery = self._filterQuery .. string.char(vk + 32)
+        applyFilter(self)
+        return true
     end
     if vk >= 0x30 and vk <= 0x39 then
-        return search:handleChar(string.char(vk), buildSearchable(self))
+        self._filterQuery = self._filterQuery .. string.char(vk)
+        applyFilter(self)
+        return true
     end
-    if vk == Keys.VK_SPACE and search:isSearchActive() then
-        return search:handleKey(Keys.VK_SPACE, false, false, buildSearchable(self))
+    if vk == Keys.VK_SPACE and self._filterQuery ~= "" then
+        self._filterQuery = self._filterQuery .. " "
+        applyFilter(self)
+        return true
     end
     if vk == Keys.VK_BACK then
-        return search:handleKey(Keys.VK_BACK, false, false, buildSearchable(self))
+        if self._filterQuery == "" then
+            return false
+        end
+        self._filterQuery = string.sub(self._filterQuery, 1, #self._filterQuery - 1)
+        if self._filterQuery == "" then
+            clearFilter(self)
+        else
+            applyFilter(self)
+        end
+        return true
     end
     return false
 end
@@ -680,7 +721,7 @@ function BaseTable.create(spec)
         _sortColumn = defaultSortColumn,
         _sortAscending = defaultSortAscending,
         _initialized = false,
-        _search = TypeAheadSearch.new(),
+        _filterQuery = "",
     }
 
     -- Detect any pediaName columns to gate the Ctrl+I help entry.
@@ -804,7 +845,7 @@ function BaseTable.create(spec)
             self._lastSpokenCol = nil
             self._sortColumn = self._defaultSortColumn
             self._sortAscending = self._defaultSortAscending
-            self._search:clear()
+            self._filterQuery = ""
             -- If rebuildRows yields zero rows on first open, land on row 0
             -- (header) so the user hears something speakable.
             local rows = buildRows(self)
@@ -829,7 +870,7 @@ function BaseTable.create(spec)
     end
 
     function self.onTabDeactivated()
-        self._search:clear()
+        self._filterQuery = ""
     end
 
     function self.handleSearchInput(_me, vk, mods)
@@ -837,9 +878,8 @@ function BaseTable.create(spec)
     end
 
     function self.clearSearchIfActive()
-        if self._search:isSearchActive() or self._search:hasBuffer() then
-            self._search:clear()
-            SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+        if self._filterQuery ~= "" then
+            clearFilter(self)
             return true
         end
         return false

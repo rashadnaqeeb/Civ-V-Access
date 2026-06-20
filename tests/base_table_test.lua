@@ -485,95 +485,12 @@ function M.test_enter_on_data_row_without_action_re_speaks_cell()
     T.truthy(speaks[#speaks].text:find("Rome"))
 end
 
--- Type-ahead search ---------------------------------------------------
+-- Type-ahead filter ---------------------------------------------------
 
-function M.test_search_jumps_to_matching_row_by_label()
-    setup()
-    local h = BaseTable.create(makeBasicSpec())
-    h.onTabActivated(h, false)
-    -- Land cursor in column 2 (Pop) so the search-target column is non-default.
-    findBinding(h, Keys.VK_RIGHT)()
-    speaks = {}
-    SpeechPipeline._reset()
-    -- 'A' matches "Athens" by row label (Rome / Athens / Memphis).
-    local consumed = h.handleSearchInput(h, 0x41, 0)
-    T.eq(consumed, true)
-    -- Cursor moved to Athens; column stays on Pop. Speech includes row name
-    -- and (since column is unchanged from last spoken) the cell value, and
-    -- elides the column name.
-    T.truthy(speaks[#speaks].text:find("Athens"), "row label spoken")
-    T.eq(h._col, 2, "search must not move the column")
-    T.eq(h._row, 2, "cursor lands on the matched row index")
-end
-
-function M.test_search_ignores_ctrl_chord()
-    setup()
-    local h = BaseTable.create(makeBasicSpec())
-    h.onTabActivated(h, false)
-    -- Ctrl+A should NOT route to search.
-    local consumed = h.handleSearchInput(h, 0x41, 2)
-    T.eq(consumed, false)
-end
-
-function M.test_search_buffer_clears_on_left_right_column_nav()
-    setup()
-    local h = BaseTable.create(makeBasicSpec())
-    h.onTabActivated(h, false)
-    -- Type 'a' to start a search (matches Athens).
-    h.handleSearchInput(h, 0x41, 0)
-    T.truthy(h._search:isSearchActive(), "search active after typing")
-    -- Moving across columns is a hard exit from the search session: the
-    -- user is now reading along a row, not refining a query.
-    findBinding(h, Keys.VK_RIGHT)()
-    T.falsy(h._search:hasBuffer(), "Right clears the search buffer")
-    T.falsy(h._search:isSearchActive(), "Right drops search-active state")
-end
-
-function M.test_search_buffer_survives_search_driven_jump()
-    setup()
-    local h = BaseTable.create(makeBasicSpec())
-    h.onTabActivated(h, false)
-    h.handleSearchInput(h, 0x41, 0) -- 'a' -> Athens
-    -- The internal moveTo(i) inside TypeAheadSearch.search must not loop
-    -- back through clearSearch -- otherwise the user can't refine via more
-    -- typed chars or by pressing the same letter again to cycle results.
-    T.truthy(h._search:hasBuffer(), "buffer survives the search-driven move")
-    T.truthy(h._search:isSearchActive(), "search stays active for cycling")
-end
-
-function M.test_clearSearchIfActive_clears_live_buffer()
-    setup()
-    local h = BaseTable.create(makeBasicSpec())
-    h.onTabActivated(h, false)
-    h.handleSearchInput(h, 0x41, 0) -- 'a' -> Athens
-    speaks = {}
-    local consumed = h.clearSearchIfActive()
-    T.eq(consumed, true)
-    T.falsy(h._search:hasBuffer(), "buffer cleared")
-    T.falsy(h._search:isSearchActive(), "search-active dropped")
-    local sawCleared = false
-    for _, s in ipairs(speaks) do
-        if s.text == "search cleared" and s.interrupt then
-            sawCleared = true
-        end
-    end
-    T.truthy(sawCleared, "spoke 'search cleared'")
-end
-
-function M.test_clearSearchIfActive_returns_false_when_empty()
-    setup()
-    local h = BaseTable.create(makeBasicSpec())
-    h.onTabActivated(h, false)
-    speaks = {}
-    local consumed = h.clearSearchIfActive()
-    T.eq(consumed, false)
-    T.eq(#speaks, 0, "no speech on empty-buffer clear")
-end
-
--- Multi-match navigation: spec with three rows whose names share a 'M'
--- prefix so search-result cycling has something to cycle through. (The
--- basic spec's only M-row is Memphis; that's a single match and would
--- never exercise navigateResults.)
+-- Spec with three rows whose names share an 'M' prefix, so a one-letter
+-- filter keeps a multi-row subset to navigate. rebuildRows returns the same
+-- captured table on every call, so object identity holds for the keep-place
+-- assertions below (mirrors a screen whose rebuild yields stable handles).
 local function makeMultiMatchSpec()
     local rows = {
         { name = "Memphis", pop = 7 },
@@ -611,51 +528,166 @@ local function makeMultiMatchSpec()
     }
 end
 
-function M.test_up_down_during_active_search_cycles_results_without_clearing()
+function M.test_filter_narrows_to_matching_rows_and_lands_on_first()
     setup()
     local h = BaseTable.create(makeMultiMatchSpec())
     h.onTabActivated(h, false)
-    -- 'M' matches all three rows. TypeAheadSearch sorts within a tier by
-    -- name length ascending: Milan (5), Moscow (6), Memphis (7). So result
-    -- 1 is Milan (rows[2]), 2 is Moscow (rows[3]), 3 is Memphis (rows[1]).
+    -- Land cursor in column 2 (Pop); the filter must not touch the column.
+    findBinding(h, Keys.VK_RIGHT)()
+    speaks = {}
+    SpeechPipeline._reset()
+    -- 'm' matches all three rows; filter preserves rebuildRows order, so the
+    -- subset is Memphis, Milan, Moscow and the cursor lands on the first.
     local consumed = h.handleSearchInput(h, 0x4D, 0)
     T.eq(consumed, true)
-    T.eq(h._row, 2, "first match is shortest name (Milan)")
-    -- Down forwards to TypeAheadSearch.navigateResults, advancing to Moscow.
-    consumed = h.handleSearchInput(h, Keys.VK_DOWN, 0)
-    T.eq(consumed, true, "Down during active search must be consumed by handleSearchInput")
-    T.eq(h._row, 3, "Down cycles to next match (Moscow)")
-    T.truthy(h._search:hasBuffer(), "buffer survives result cycling")
-    -- Up cycles back to Milan.
-    consumed = h.handleSearchInput(h, Keys.VK_UP, 0)
-    T.eq(consumed, true)
-    T.eq(h._row, 2, "Up cycles to previous match (Milan)")
+    T.truthy(speaks[#speaks].text:find("Memphis"), "first matching row spoken")
+    T.eq(h._col, 2, "filter must not move the column")
+    T.eq(h._row, 1, "cursor lands on the first matching row")
 end
 
-function M.test_home_end_during_active_search_jump_to_first_last_result()
+function M.test_filter_ignores_ctrl_chord()
     setup()
     local h = BaseTable.create(makeMultiMatchSpec())
     h.onTabActivated(h, false)
-    h.handleSearchInput(h, 0x4D, 0) -- lands on Milan (row 2)
-    -- End jumps to last match (Memphis, row 1).
-    local consumed = h.handleSearchInput(h, Keys.VK_END, 0)
-    T.eq(consumed, true, "End during active search must be consumed by handleSearchInput")
-    T.eq(h._row, 1, "End jumps to last match (Memphis)")
-    -- Home jumps to first match (Milan, row 2).
-    consumed = h.handleSearchInput(h, Keys.VK_HOME, 0)
-    T.eq(consumed, true)
-    T.eq(h._row, 2, "Home jumps to first match (Milan)")
-    T.truthy(h._search:hasBuffer(), "buffer survives Home / End within search")
+    -- Ctrl+M should NOT feed the filter.
+    local consumed = h.handleSearchInput(h, 0x4D, 2)
+    T.eq(consumed, false)
+    T.eq(h._filterQuery, "", "Ctrl chord leaves the filter untouched")
 end
 
-function M.test_up_down_when_search_inactive_falls_through_to_nav_handlers()
+function M.test_nav_walks_filtered_subset_without_clearing_filter()
     setup()
     local h = BaseTable.create(makeMultiMatchSpec())
     h.onTabActivated(h, false)
-    -- No search active. Down must NOT be consumed by handleSearchInput so
+    h.handleSearchInput(h, 0x4D, 0) -- 'm' -> {Memphis, Milan, Moscow}, row 1
+    -- Down / Up are NOT consumed by the filter; they fall through to the nav
+    -- bindings, which now walk the filtered subset and leave the filter live.
+    T.eq(h.handleSearchInput(h, Keys.VK_DOWN, 0), false, "Down falls through to onDown")
+    findBinding(h, Keys.VK_DOWN)()
+    T.eq(h._row, 2, "Down moves to the next matching row (Milan)")
+    findBinding(h, Keys.VK_DOWN)()
+    T.eq(h._row, 3, "Down moves to the last matching row (Moscow)")
+    findBinding(h, Keys.VK_DOWN)()
+    T.eq(h._row, 3, "Down at the end of the subset does not advance past it")
+    T.eq(h._filterQuery, "m", "navigation leaves the filter buffer intact")
+end
+
+function M.test_typing_more_narrows_the_filter()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    h.handleSearchInput(h, 0x4D, 0) -- 'm' -> {Memphis, Milan, Moscow}
+    speaks = {}
+    h.handleSearchInput(h, 0x49, 0) -- 'i' -> "mi" narrows to Milan alone
+    T.eq(h._filterQuery, "mi", "letters append to the buffer")
+    T.truthy(speaks[#speaks].text:find("Milan"), "narrowing lands on the sole remaining match")
+    -- Single-match subset: nav can't move off the one row.
+    findBinding(h, Keys.VK_DOWN)()
+    T.eq(h._row, 1, "Down cannot advance past a single-match subset")
+    findBinding(h, Keys.VK_END)()
+    T.eq(h._row, 1, "End stays on the single match")
+end
+
+function M.test_no_match_speaks_no_match_and_parks_on_header()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    speaks = {}
+    local consumed = h.handleSearchInput(h, 0x5A, 0) -- 'z' matches nothing
+    T.eq(consumed, true)
+    T.truthy(speaks[#speaks].text:find("no match"), "speaks the shared no-match line")
+    T.eq(h._row, 0, "parks on the header row so Up / Down stay valid")
+end
+
+function M.test_backspace_to_empty_clears_filter_and_restores_full_table()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    h.handleSearchInput(h, 0x4D, 0) -- 'm'
+    h.handleSearchInput(h, 0x4F, 0) -- 'o' -> "mo" matches only Moscow
+    speaks = {}
+    -- Backspace widens to 'm' (all three match again).
+    h.handleSearchInput(h, Keys.VK_BACK, 0)
+    T.eq(h._filterQuery, "m", "Backspace removes one character")
+    -- Backspace again empties the buffer: filter clears, full table returns.
+    h.handleSearchInput(h, Keys.VK_BACK, 0)
+    T.eq(h._filterQuery, "", "Backspace at one char clears the filter")
+    local sawCleared = false
+    for _, s in ipairs(speaks) do
+        if s.text == "search cleared" and s.interrupt then
+            sawCleared = true
+        end
+    end
+    T.truthy(sawCleared, "spoke 'search cleared' on empty")
+end
+
+function M.test_backspace_with_no_filter_falls_through()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    local consumed = h.handleSearchInput(h, Keys.VK_BACK, 0)
+    T.eq(consumed, false, "Backspace with no active filter is not consumed")
+end
+
+function M.test_clearSearchIfActive_clears_filter_and_keeps_place()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    h.handleSearchInput(h, 0x4D, 0) -- 'm'
+    h.handleSearchInput(h, 0x4F, 0) -- 'o' -> Moscow (filtered row 1)
+    speaks = {}
+    local consumed = h.clearSearchIfActive()
+    T.eq(consumed, true)
+    T.eq(h._filterQuery, "", "filter cleared")
+    -- Moscow is row 3 in the full table; the cursor is relocated onto it.
+    T.eq(h._row, 3, "cursor kept on the same row after clearing")
+    local sawCleared = false
+    for _, s in ipairs(speaks) do
+        if s.text == "search cleared" and s.interrupt then
+            sawCleared = true
+        end
+    end
+    T.truthy(sawCleared, "spoke 'search cleared'")
+end
+
+function M.test_arrow_after_clear_announces_full_row()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    -- Read column 2 (Pop), then filter to Milan (full-table row 2). After
+    -- clearing, the cursor relocates from filtered row 1 to full row 2; an
+    -- Up move then lands on row 1, which equals the stale filtered baseline.
+    -- The dedupe baseline must have followed the silent relocation, so the
+    -- row label still speaks rather than collapsing to a bare cell value.
+    findBinding(h, Keys.VK_RIGHT)()
+    h.handleSearchInput(h, 0x4D, 0) -- 'm'
+    h.handleSearchInput(h, 0x49, 0) -- 'i' -> Milan (full row 2)
+    h.clearSearchIfActive()
+    T.eq(h._row, 2, "cursor relocated to Milan's full-table index")
+    speaks = {}
+    findBinding(h, Keys.VK_UP)()
+    T.eq(h._row, 1, "Up moves to Memphis (full row 1)")
+    T.truthy(speaks[#speaks].text:find("Memphis"), "row label spoken, not elided against the stale baseline")
+end
+
+function M.test_clearSearchIfActive_returns_false_when_no_filter()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    speaks = {}
+    local consumed = h.clearSearchIfActive()
+    T.eq(consumed, false)
+    T.eq(#speaks, 0, "no speech when no filter is active")
+end
+
+function M.test_up_down_when_no_filter_falls_through_to_nav_handlers()
+    setup()
+    local h = BaseTable.create(makeMultiMatchSpec())
+    h.onTabActivated(h, false)
+    -- No filter active. Down must NOT be consumed by handleSearchInput so
     -- InputRouter falls through to the binding walk that fires onDown.
     local consumed = h.handleSearchInput(h, Keys.VK_DOWN, 0)
-    T.eq(consumed, false, "inactive Down falls through to onDown")
+    T.eq(consumed, false, "Down with no filter falls through to onDown")
 end
 
 -- Pedia ---------------------------------------------------------------

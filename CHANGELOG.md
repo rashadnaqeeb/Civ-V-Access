@@ -17,6 +17,7 @@ New Features and improvements:
 -added support for Lekmod, the most commonly used multiplayer mod. This mod completely rebalances policies, pantheons and religions as well as adding 60+ new civs. It attempts to reuse localised game strings where possible so theoretically should work in non-English languages, but no promises.
 - Alt plus Up or Down in any menu, table, or list reads the current item one section at a time, so long entries with tooltips can be reviewed piece by piece.
 - Typing to search the tech tree now opens a list of every matching tech to arrow through, instead of jumping straight to the first match.
+- Typing on a table screen now filters it to the matching rows to arrow through, instead of jumping between matches.
 - The scanner in city view has a new Yields category that ranks the city's tiles by each yield, so you can quickly find your best food or production tile.
 - F1 on the new technology popup now also reads the details of each unit, building, and ability the tech unlocks.
 - The production chooser lists civilian units first, then land, sea, and air, and national wonders ahead of world wonders.
