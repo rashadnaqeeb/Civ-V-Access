@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 -This update will require you to redownload the installer if you wish to play with any of the newly supported mods.
 -Added full support for the Community Patch and Vox populi mods. The community patch is a community driven effort to fix many outstanding bugs in the game, and to generally make the AI a better player of the game. Vox Populi builds on this project to completely change and rebalance the game, adding countless new features. Please note that the Vox Populi mod only works in English, it is not actively translated into any other languages.
+- If playing with Community Patch or Vox Populi, you can now use squads: F11 opens a menu to create and configure squads, and Alt with the arrow keys groups, moves, and reports them from the map. Full information in the read me.
 -added support for Lekmod, the most commonly used multiplayer mod. This mod completely rebalances policies, pantheons and religions as well as adding 60+ new civs. It attempts to reuse localised game strings where possible so theoretically should work in non-English languages, but no promises.
 - Alt plus Up or Down in any menu, table, or list reads the current item one section at a time, so long entries with tooltips can be reviewed piece by piece.
 - Typing to search the tech tree now opens a list of every matching tech to arrow through, instead of jumping straight to the first match.
@@ -23,7 +24,6 @@ New Features and improvements:
 - The production chooser lists civilian units first, then land, sea, and air, and national wonders ahead of world wonders.
 - Melee attack previews count the Impi's opening spear volley in the predicted damage ("includes 9 volley"), which the game's own preview omits.
 - F2 on the Great Work popup now also describes the image for great works of writing and music.
-- Vox Populi's Squads are now accessible: F11 opens a menu to create and configure squads, and Alt with the arrow keys groups, moves, and reports them from the map.
 
 Bug fixes:
 - Multiplayer chat messages no longer read twice once you are in the game.
@@ -31,7 +31,6 @@ Bug fixes:
 - The ranged attack target cursor no longer says "unseen" on a tile the unit can actually strike, for example if it has the indirect fire upgrade.
 - The turn estimate for building a road or railroad is no longer sometimes 1 turn too low, both in the route preview and when reading a worker building one.
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
-- A unit ordered to move while out of movement now announces its queued move instead of staying silent.
 
 ## [1.4.4] - 2026-06-13
 

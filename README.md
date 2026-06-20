@@ -18,15 +18,11 @@ You may wish to disable the Steam overlay, from Steam settings/in game/enable St
 
 **Ctrl+I** opens the Civilopedia (in-game help) entry for whatever is currently focused, when one exists. Use this if you want to look up, for example, what the current unit under the cursor does.
 
-## Keyboard layouts
+## Languages and keyboards
 
-This guide names keys as they sit on a US keyboard. If yours is AZERTY, QWERTZ, or Italian, the mod detects it and adjusts so everything still works; a few keys just aren't where the guide's letters suggest.
+The mod is translated into English, French, German, Spanish, Italian, Japanese, Korean, Polish, Brazilian Portuguese, Russian, and Traditional Chinese.
 
-Keys named after what they do keep their letter. H is still happiness, T still reports the turn, Alt+H still heals. Press the letter you read here.
-
-The movement cluster and the keys around it are the exception. They keep their physical place rather than their letter, so the square holds its shape on any keyboard. The top-left movement key is northwest whether your keycap reads Q or A. Where the guide says Q, reach for the key in that spot, whatever's printed on it.
-
-When you're not sure which key the guide means, **Shift+/** lists every key by the letter printed on your own keyboard. And if the mod ever picks the wrong layout, set **Keyboard layout** under General settings in **F12**.
+This guide names keys as they sit on a US keyboard. Alternate layouts (AZERTY, QWERTZ, Italian) are auto-detected so everything still works, though a few keys won't be where the guide's letters suggest. **Shift+/** lists every active key using the names matching your own layout, so it always reflects which key to actually press.
 
 ## Menus
 
@@ -290,6 +286,44 @@ If a sighted person is playing alongside you, watching you stream, or helping yo
 
 - The tile under your cursor and the scanner's current target are highlighted on the map, so a sighted onlooker can see where you are and what you're tracking. The cursor tile is ringed in cyan and the scanner target in orange. This is on by default; toggle it in **F12** settings.
 - **Ctrl+M** opens a Map settings menu of visual-only options: the hex grid, yield and resource icons, trade routes, tile recommendations, and strategic view. None of these settings have any effect on speech, but they change how the map is displayed for sighted players.
+
+## Mods
+
+Beyond the unmodified game, the mod supports three popular Civilization V overhauls.
+
+- **Community Patch** — a community effort to fix bugs in the base game and strengthen the AI, without altering the game's balance.
+- **Vox Populi** — builds on the Community Patch and reworks nearly every system in the game, a complete rebalance.
+- **LekMod** — the most widely used multiplayer mod, adding dozens of new civilizations.
+
+You install any of these through the installer rather than setting them up separately, and you switch between them, or back to the unmodified game, by running the installer again. Only one can be active at a time. Each is downloaded once and kept, so switching back is fast.
+
+## Squads
+
+Squads let you command several units as one group, or escort a civilian with a military unit without ordering every step yourself. The feature comes from the Community Patch, so it's available only while playing the Community Patch or Vox Populi, not on the unmodified game or LekMod.
+
+**F11** opens the squad menu: a list of your squads plus an entry to add a new one. Open a squad to rename it, delete it, remove members, toggle whether it escorts civilians, or set its wake behavior.
+
+The rest is done from the map, using the arrow keys the map doesn't otherwise use. They act on the focused squad, the one you last cycled to.
+
+- **Up / Down** — cycle through your squads; speaks the name, plus movement status when the squad is on the move
+- **Left / Right** — cycle through the units in the focused squad
+- **Alt+Right** — add the currently selected unit to the focused squad
+- **Alt+Left** — remove the focused unit from its squad
+- **Alt+Up** — move the focused squad. Space previews the turns to the cursor tile, Enter sends the squad there, Escape cancels
+- **Alt+Down** — read the squad's full status; press it again to cancel a move in progress
+
+Two per-squad settings, both in the squad menu, shape how a move plays out:
+
+- **Escort civilians** — with this on, the squad's military units shield its civilians along the route, so a settler or worker travels under guard without separate orders.
+- **Wake mode** — what a unit does on reaching its destination: sentry, wake immediately, or wait until the whole squad has arrived before waking. The last keeps the group together, holding early arrivals until the stragglers catch up.
+
+## Vox Populi screens
+
+Vox Populi adds systems the base game doesn't have, each with its own overview screen and hotkey. These work only while playing Vox Populi.
+
+- **Ctrl+Shift+E** — Events Overview: the random events in play across the world. Only when events are enabled in the game's setup.
+- **Ctrl+V** — Vassal Overview: which civilizations serve which masters. Only when vassalage is enabled in the game's setup.
+- **Ctrl+Shift+C** — Corporations Overview: the corporations founded across the world and their franchises.
 
 ## Tips and tricks
 
