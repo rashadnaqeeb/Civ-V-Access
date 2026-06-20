@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-20
+
 New Features and improvements:
 -This update will require you to redownload the installer if you wish to play with any of the newly supported mods.
 -Added full support for the Community Patch and Vox populi mods. The community patch is a community driven effort to fix many outstanding bugs in the game, and to generally make the AI a better player of the game. Vox Populi builds on this project to completely change and rebalance the game, adding countless new features. Please note that the Vox Populi mod only works in English, it is not actively translated into any other languages.
