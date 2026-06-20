@@ -2099,4 +2099,21 @@ function M.test_unitBrief_drops_direction_without_reference_cell()
     T.truthy(not out:find("here", 1, true), "no HERE token without a reference cell: " .. out)
 end
 
+function M.test_unitBrief_spent_aircraft_signals_out_of_moves()
+    -- An air unit's reach token is strike range, not a move budget, so a spent
+    -- fighter would read like a ready one without this token -- a blind player
+    -- cycling squad members could not tell which aircraft can still act.
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, moves = 0, maxMoves = 60 })
+    local out = UnitSpeech.unitBrief(u, 0, 0)
+    T.truthy(out:find("out of moves", 1, true), "spent friendly aircraft must signal it has acted: " .. out)
+end
+
+function M.test_unitBrief_ready_aircraft_omits_out_of_moves()
+    setup()
+    local u = mkUnit({ domain = DomainTypes.DOMAIN_AIR, range = 8, moves = 60, maxMoves = 60 })
+    local out = UnitSpeech.unitBrief(u, 0, 0)
+    T.truthy(not out:find("out of moves", 1, true), "a ready aircraft must not signal out of moves: " .. out)
+end
+
 return M

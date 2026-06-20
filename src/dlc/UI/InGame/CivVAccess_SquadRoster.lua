@@ -107,7 +107,13 @@ local function deserialize(s)
     end
     for entry in string.gmatch(s, "[^;]+") do
         local num, escort, wake, name = string.match(entry, "([^,]+),([^,]+),([^,]+),(.*)")
-        if num ~= nil then
+        if num == nil then
+            -- The row didn't even split into four fields (an empty field, e.g.
+            -- "1,,0,Name" from a truncated write, fails the one-or-more capture).
+            -- Warn rather than drop it silently -- a lost squad must leave a
+            -- Lua.log trace.
+            Log.warn("SquadRoster: skipped unparseable entry: " .. tostring(entry))
+        else
             local nNum, nEscort, nWake = tonumber(num), tonumber(escort), tonumber(wake)
             if nNum ~= nil and nEscort ~= nil and nWake ~= nil then
                 local decoded = decodeName(name or "")

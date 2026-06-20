@@ -227,6 +227,29 @@ function M.test_deserialize_skips_malformed_entries()
     T.truthy(warned, "Log.warn must fire on a malformed row")
 end
 
+function M.test_deserialize_warns_on_unparseable_entry()
+    -- A row that doesn't even split into four fields (an empty field from a
+    -- truncated write) must warn, not vanish silently -- a lost squad has to
+    -- leave a Lua.log trace.
+    setup()
+    Modding.OpenUserData = function()
+        return {
+            GetValue = function()
+                return "1,,0,Name;2,1,1,Good"
+            end,
+            SetValue = function() end,
+        }
+    end
+    local warned
+    Log.warn = function(msg)
+        warned = msg
+    end
+    SquadRoster.hydrateForCurrentGame()
+    T.eq(SquadRoster.exists(1), false, "empty-field row must be dropped")
+    T.eq(SquadRoster.exists(2), true, "well-formed row survives")
+    T.truthy(warned, "Log.warn must fire on an unparseable entry")
+end
+
 -- ===== reconcile =====
 
 function M.test_reconcile_ensures_entries_for_engine_squads()

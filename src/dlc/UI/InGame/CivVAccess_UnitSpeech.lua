@@ -1522,6 +1522,13 @@ function UnitSpeech.unitBrief(unit, fromX, fromY)
         parts[#parts + 1] = hpFraction(unit)
     end
     parts[#parts + 1] = reachToken(unit)
+    -- An air unit's reach token is its strike range, not a movement budget, so
+    -- it reads the same spent or fresh; this token is the only signal that the
+    -- aircraft has already acted this turn (same reason selection() appends it).
+    local outOfMoves = airOutOfMovesToken(unit)
+    if outOfMoves ~= "" then
+        parts[#parts + 1] = outOfMoves
+    end
     local status = statusToken(unit)
     if status ~= "" then
         parts[#parts + 1] = status

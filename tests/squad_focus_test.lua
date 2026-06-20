@@ -186,6 +186,23 @@ function M.test_focusOnUnit_noop_for_squadless_unit()
     T.eq(SquadFocusCore.currentSquad(), 1, "a unit in no squad must not move focus")
 end
 
+function M.test_focusOnUnit_noop_when_squad_not_in_roster()
+    -- The unit's engine squad number isn't in the roster (an engine squad we
+    -- never tracked). setSquad must report failure and focusOnUnit must leave
+    -- BOTH cursors put -- not point the unit cursor into the untracked squad's
+    -- member list while the squad cursor stays elsewhere.
+    setup()
+    allocate(2)
+    membersByNum[1] = { mkUnit(10, 1) }
+    membersByNum[2] = { mkUnit(20, 2), mkUnit(21, 2) }
+    SquadFocusCore.nextSquad() -- focus squad 2, unit cursor on its first member
+    -- Squad 5 exists in the engine but not the roster; target unit at index 2.
+    membersByNum[5] = { mkUnit(49, 5), mkUnit(50, 5) }
+    SquadFocusCore.focusOnUnit(mkUnit(50, 5))
+    T.eq(SquadFocusCore.currentSquad(), 2, "focus stays on squad 2 (squad 5 untracked)")
+    T.eq(SquadFocusCore.currentUnit():GetID(), 20, "unit cursor stays consistent with squad 2")
+end
+
 function M.test_reset_returns_focus_to_top()
     setup()
     allocate(3)

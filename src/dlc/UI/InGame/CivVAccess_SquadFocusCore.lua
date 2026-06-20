@@ -130,15 +130,18 @@ end
 -- Point focus at a specific squad number (e.g. after Alt+Right adds a unit
 -- and the focus should move to that squad). No-op when the number isn't a
 -- live squad. Resets the unit cursor to the squad's first member.
+-- Returns true when the number was a live squad (and focus moved), false when
+-- it wasn't found (focus left unchanged).
 function SquadFocusCore.setSquad(num)
     local list = SquadRoster.getList()
     for i, n in ipairs(list) do
         if n == num then
             _squadIdx = i
             _unitIdx = 1
-            return
+            return true
         end
     end
+    return false
 end
 
 -- Point focus at a specific unit: select its squad and land the unit cursor
@@ -149,7 +152,12 @@ function SquadFocusCore.focusOnUnit(unit)
     if num < 0 then
         return
     end
-    SquadFocusCore.setSquad(num)
+    -- Only land the unit cursor when the unit's squad is one the roster tracks.
+    -- If setSquad didn't find it, the squad cursor stayed put, and pointing the
+    -- unit cursor into a different squad's member list would desync the two.
+    if not SquadFocusCore.setSquad(num) then
+        return
+    end
     local m = EngineData.squadMembers(activePlayer(), num)
     local id = unit:GetID()
     for i, u in ipairs(m) do
