@@ -13,7 +13,7 @@ internal static class AppVersion
     /// If a fetched release's major exceeds this, the installer refuses
     /// and tells the user to download a newer installer.
     /// </summary>
-    public const int SupportedMaxModMajor = 1;
+    public const int SupportedMaxModMajor = 2;
 
     /// <summary>
     /// Schema version this installer writes into CivVAccess.install.json.
