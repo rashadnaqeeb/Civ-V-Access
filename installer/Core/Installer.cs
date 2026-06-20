@@ -178,6 +178,19 @@ internal sealed class Installer : IDisposable
             ArtifactOps.TearDown(teardown, layout);
         }
 
+        // A modpack / LekMod target runs its fork from the package or LEKMOD tree,
+        // so the base Assets/DLC/Expansion2 DLL must be Firaxis-stock. A prior
+        // vanilla install swapped our fork in there; the teardown above does not
+        // cover it (ModArtifact has no engine entry), so restore it here. Without
+        // this, two installs that reached the same state by different paths (clean
+        // vs flipped-from-vanilla) would differ in a core always-on DLC. Keep the
+        // backup for a later vanilla flip / full uninstall. No-op when absent.
+        if (plan.TargetState != InstallState.Vanilla && File.Exists(layout.EngineBackup))
+        {
+            Logger.Info($"Restoring stock Expansion2 engine DLL (fork rides in the package): {layout.EngineBackup} -> {layout.EngineDll}");
+            File.Copy(layout.EngineBackup, layout.EngineDll, overwrite: true);
+        }
+
         // 3. Apply target components in dependency order.
         ApplyAll(plan, stageMap, layout, progress, ct);
 

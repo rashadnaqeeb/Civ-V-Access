@@ -368,6 +368,22 @@ function Deploy-VanillaEngineDll {
     Copy-Item -LiteralPath $stagedDll -Destination $installedDll -Force
 }
 
+# Flipping into a modpack / LekMod state: the active fork rides in the package
+# (ZCivVAccess*) or the LEKMOD tree, and the base Assets/DLC/Expansion2 DLL must
+# be Firaxis-stock -- so two installs that reached this state by different paths
+# (clean vs flipped-from-vanilla, which left our fork there) are byte-identical,
+# removing a path-dependent difference in a core always-on DLC. Restore stock
+# from the backup a prior vanilla deploy captured; keep the backup for the next
+# vanilla flip. No-op when no backup exists (Expansion2 was never swapped).
+function Restore-StockExpansionDll {
+    param([string]$Game)
+    if (-not (Test-Path $engineBackup)) { return }
+    $installedDll = Join-Path $Game "Assets\DLC\Expansion2\$engineDllName"
+    Write-Host "Restoring stock Expansion2 engine DLL (the fork rides in the package):"
+    Write-Host "  $engineBackup -> $installedDll"
+    Copy-Item -LiteralPath $engineBackup -Destination $installedDll -Force
+}
+
 function Deploy-VanillaBlindDlc {
     param([string]$Game)
 
@@ -747,6 +763,11 @@ if ($Uninstall) {
 
 # ---- Install ----
 Invoke-FlipCleanup -Game $gameDir -ForState $State
+
+# Non-vanilla states run the fork from their package / LEKMOD tree, so the base
+# Expansion2 DLL is normalized back to Firaxis-stock (vanilla swaps its own fork
+# in below). Matches the installer's same normalization on a flip.
+if ($State -ne 'vanilla') { Restore-StockExpansionDll -Game $gameDir }
 
 switch ($State) {
     'vanilla' {
