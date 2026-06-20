@@ -43,22 +43,7 @@ function LekModAlertAnnounce._onAlert(text)
     MessageBuffer.append(text, "notification")
 end
 
--- Idempotent within one Context lifetime via a file-scope local, matching
--- ChatBuffer. onInGameBoot runs on every LoadScreenClose, which fires more
--- than once against the same env (multiplayer resyncs, hotseat handoff);
--- without the guard each run adds another live LuaEvent listener and one alert
--- speaks two or three times. A
--- civvaccess_shared flag would persist across load-from-game and strand the
--- mod on the dead prior-env listener (CLAUDE.md's no-install-once-guards
--- rule); the file-scope local resets when Boot re-includes this chunk on
--- WorldView re-init, so a fresh env still gets a fresh listener.
-local listenersInstalled = false
-
 function LekModAlertAnnounce.install()
-    if listenersInstalled then
-        return
-    end
-    listenersInstalled = true
     Log.installEvent(LuaEvents, "CivVAccessLekModAlert", LekModAlertAnnounce._onAlert, "LekModAlertAnnounce")
     Log.info("LekModAlertAnnounce: installed")
 end

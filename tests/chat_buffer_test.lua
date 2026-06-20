@@ -1,10 +1,7 @@
 -- ChatBuffer: multiplayer chat ingestion. Tests the per-message fan-out
--- (history log + message buffer + speech), the compose-panel speech
--- suppression, and -- the regression this suite exists for -- idempotent
--- listener installation. onInGameBoot runs on every LoadScreenClose, which
--- fires repeatedly against one env (MP resync / hotseat handoff); without a
--- guard each run stacked another GameMessageChat listener, so one incoming
--- message spoke and buffered two or three times.
+-- (history log + message buffer + speech) and the compose-panel speech
+-- suppression. Listener-install de-duplication lives upstream in Boot's
+-- generation guard, not here, so installListeners stays a plain register.
 
 local T = require("support")
 local M = {}
@@ -70,8 +67,6 @@ local function setup()
     -- Real MessageBuffer so the "chat" category routing is exercised, not a
     -- stub that could drift from production.
     dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
-    -- Re-dofile resets ChatBuffer's file-scope install guard, mirroring Boot
-    -- re-including the chunk on a fresh WorldView env.
     dofile("src/dlc/UI/InGame/CivVAccess_ChatBuffer.lua")
 end
 
@@ -101,29 +96,6 @@ function M.test_compose_panel_suppresses_speech_only()
     T.eq(#spoken, 0, "speech suppressed while compose panel is active")
     T.eq(#MessageBuffer._snapshot().entries, 1, "still buffered")
     T.eq(#civvaccess_shared._inGameChatLog, 1, "still logged")
-end
-
--- The regression guard: repeated installListeners in one env (onInGameBoot
--- re-running on a second LoadScreenClose) must wire a single listener, or
--- each message fans out twice / three times.
-function M.test_install_idempotent_within_env()
-    setup()
-    ChatBuffer.installListeners()
-    ChatBuffer.installListeners()
-    ChatBuffer.installListeners()
-    T.eq(#chatListeners, 1, "repeated installs register one listener")
-end
-
--- The guard is a file-scope local, not a civvaccess_shared flag: a fresh env
--- (load-from-game re-includes the chunk) must register a new live listener.
--- A shared-table flag would persist and strand the mod on the dead listener.
-function M.test_reinclude_allows_fresh_registration()
-    setup()
-    ChatBuffer.installListeners()
-    T.eq(#chatListeners, 1)
-    dofile("src/dlc/UI/InGame/CivVAccess_ChatBuffer.lua")
-    ChatBuffer.installListeners()
-    T.eq(#chatListeners, 2, "re-include resets the guard so the new env re-registers")
 end
 
 return M

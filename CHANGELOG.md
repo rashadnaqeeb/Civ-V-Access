@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Announcements such as selecting a unit no longer sometimes read twice until you restart the game.
+
 ## [2.0.1] - 2026-06-20
 
 New Features and improvements:

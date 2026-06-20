@@ -189,6 +189,11 @@ include("CivVAccess_ChatBuffer")
 -- "first install" from "re-init #N" in Lua.log -- helpful when a contributor
 -- is diagnosing why a feature stopped working after a load-from-game.
 civvaccess_shared.bootCount = (civvaccess_shared.bootCount or 0) + 1
+-- This include's generation, captured as an upvalue for the onInGameBoot
+-- guard below. A later WorldView re-create bumps the shared counter past it,
+-- marking this Context's deferred listener stale. Upvalue, not a global, so it
+-- survives the env kill a load-from-game inflicts on the prior generation.
+local myGeneration = civvaccess_shared.bootCount
 local bootSuffix
 if civvaccess_shared.bootCount == 1 then
     bootSuffix = "(install)"
@@ -251,6 +256,20 @@ civvaccess_shared.modules.UnitControl = UnitControl
 -- Events.LoadScreenClose is the reliable "we are actually in a game now"
 -- signal; defer the in-game boot actions to it.
 local function onInGameBoot()
+    -- A single load can create the WorldView Context more than once (the
+    -- engine occasionally re-creates it mid-load -- see "re-init #N" in the
+    -- breadcrumb above). Each creation registers its own live LoadScreenClose
+    -- listener, so without this guard onInGameBoot runs once per creation and
+    -- every installListeners call below stacks a duplicate live listener --
+    -- the intermittent double-speech (a unit selection, a turn change, etc.
+    -- spoken twice for the rest of the session). Only the newest creation
+    -- proceeds: a later include bumped the shared counter past myGeneration.
+    -- Load-from-game still re-runs fully -- the fresh Context bumps the
+    -- counter and its own listener matches.
+    if civvaccess_shared.bootCount ~= myGeneration then
+        Log.debug("in-game boot superseded by a newer WorldView Context, skipping")
+        return
+    end
     Log.info("in-game boot")
     -- Defensive: clear scoped-cursor hooks in case a prior session (same
     -- lua_State, different game via main-menu exit / reload) left them set
