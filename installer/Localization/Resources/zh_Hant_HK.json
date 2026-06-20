@@ -133,9 +133,9 @@
   "statePicker.heading": "你想遊玩哪個版本的遊戲？",
   "statePicker.body": "你可隨時再次執行安裝程式以切換。每個版本只會下載一次並保留，因此切換回去是即時的。",
 
-  "confirm.changeState": "變更遊戲(&C)",
-  "check.currentState": "目前遊戲：{0}。",
-  "result.stateSwitch.heading": "已變更遊戲",
+  "confirm.changeState": "變更使用中的模組(&C)",
+  "check.currentState": "使用中的模組：{0}。",
+  "result.stateSwitch.heading": "已變更使用中的模組",
   "result.stateSwitch.body": "你現在可以遊玩 {0}。Civ V Access {1} 已安裝。你可隨時啟動 Civilization V。",
 
   "size.bytes": "{0} 位元組",

@@ -133,9 +133,9 @@
   "statePicker.heading": "どのバージョンのゲームをプレイしますか？",
   "statePicker.body": "インストーラーを再度実行すれば、いつでも切り替えられます。各バージョンは一度だけダウンロードして保持されるため、元に戻すのは即座に行えます。",
 
-  "confirm.changeState": "ゲームを変更(&C)",
-  "check.currentState": "現在のゲーム: {0}。",
-  "result.stateSwitch.heading": "ゲームを変更しました",
+  "confirm.changeState": "アクティブなモッドを変更(&C)",
+  "check.currentState": "アクティブなモッド: {0}。",
+  "result.stateSwitch.heading": "アクティブなモッドを変更しました",
   "result.stateSwitch.body": "{0} をプレイする準備が整いました。Civ V Access {1} がインストールされています。いつでも Civilization V を起動できます。",
 
   "size.bytes": "{0} バイト",

@@ -133,9 +133,9 @@
   "statePicker.heading": "Welche Version des Spiels möchten Sie spielen?",
   "statePicker.body": "Sie können jederzeit zwischen diesen wechseln, indem Sie das Installationsprogramm erneut ausführen. Jede wird nur einmal heruntergeladen und behalten, sodass der Wechsel zurück sofort erfolgt.",
 
-  "confirm.changeState": "Spiel &wechseln",
-  "check.currentState": "Aktuelles Spiel: {0}.",
-  "result.stateSwitch.heading": "Spiel gewechselt",
+  "confirm.changeState": "Aktiven Mod &wechseln",
+  "check.currentState": "Aktiver Mod: {0}.",
+  "result.stateSwitch.heading": "Aktiver Mod gewechselt",
   "result.stateSwitch.body": "Sie sind jetzt bereit, {0} zu spielen. Civ V Access {1} ist installiert. Sie können Civilization V jederzeit starten.",
 
   "size.bytes": "{0} Bytes",
