@@ -95,6 +95,11 @@ $modVersion = $versions.mod
 # digest skip means the player doesn't redownload it. Maintainer is
 # responsible for bumping the right component versions in versions.json
 # before running this script (RELEASING.md has the bump rules).
+#
+# Exception: core-blind embeds the MOD version (CivVAccess_Version.lua), so its
+# bytes are not a pure function of the core component version. See the
+# $modVersionBearing handling below - it forces a core-blind rebuild when the
+# mod version moves without a core bump.
 $componentVersions = @{
     'core-blind'     = $versions.components.core
     'core-sighted'   = $versions.components.core
@@ -152,6 +157,18 @@ $prevComponentVersions = if ($prevVersions) {
 } else {
     @{}
 }
+
+# core-blind bakes the MOD version into CivVAccess_Version.lua (via
+# Copy-CivVAccessCoreDlc -> Write-CivVAccessVersionLua), so reusing the prior
+# release's core-blind zip on a release that bumped the mod version without
+# bumping core would ship the old version string. The proxy's in-game update
+# check then reads that stale version against the live GitHub tag and warns
+# "out of date" until core next changes. Resolve-Component forces a rebuild of
+# these components when the mod version moved, even if their own version field
+# did not. core-sighted is excluded: it ships only the manifest and empty UI
+# dirs, no version Lua.
+$prevModVersion = if ($prevVersions) { $prevVersions.mod } else { $null }
+$modVersionBearing = @('core-blind')
 
 # Fork-staleness guard. The modpack and LekMod-DLC zips EMBED an engine fork DLL
 # (both modpacks embed engine_vp; lekmod-dlc embeds engine_lekmod). If a fork is
@@ -328,6 +345,13 @@ function Resolve-Component {
     $version = $componentVersions[$Name]
     $prevVersion = $prevComponentVersions[$Name]
     $unchanged = $prevTag -and $prevVersion -and ($prevVersion -eq $version)
+
+    if ($unchanged -and ($Name -in $modVersionBearing) -and `
+            $prevModVersion -and ($prevModVersion -ne $modVersion)) {
+        Write-Host ("  $Name embeds the mod version (mod $prevModVersion -> $modVersion); " +
+            "rebuilding despite unchanged component version $version.")
+        $unchanged = $false
+    }
 
     if ($unchanged) {
         return Copy-PreviousComponent -Name $Name -Tag $prevTag
