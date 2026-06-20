@@ -29,6 +29,7 @@ Bug fixes:
 - The ranged attack target cursor no longer says "unseen" on a tile the unit can actually strike, for example if it has the indirect fire upgrade.
 - The turn estimate for building a road or railroad is no longer sometimes 1 turn too low, both in the route preview and when reading a worker building one.
 - The city screen's Defense list now includes unique defensive buildings like the Walls of Babylon.
+- A unit ordered to move while out of movement now announces its queued move instead of staying silent.
 
 ## [1.4.4] - 2026-06-13
 

@@ -776,6 +776,36 @@ function M.test_selection_status_build_and_queued_side_by_side_when_kinds_differ
     )
 end
 
+-- A unit ordered to move while already out of movement is parked on
+-- ACTIVITY_HOLD with the move still queued (it activates next turn). The queued
+-- path must still render so the unit isn't silent -- this is the common squad
+-- case, where the move is pushed to every member at once regardless of moves.
+function M.test_selection_status_held_queued_move_renders()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_HOLD, x = 0, y = 0 })
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
+        return { chunks = { { kind = "move", segments = { "3e" }, turns = 2 } } }
+    end
+    local out = UnitSpeech.statusToken(u)
+    Waypoints.queuedActionStatusFor = origStatus
+    T.truthy(out:find("queued move, 2 turns: 3e, arrive", 1, true), "held queued move must render: " .. out)
+end
+
+-- A plain skip-turn unit is also ACTIVITY_HOLD but has no queued mission (empty
+-- chunks); it must stay silent, with no false queued-move readout.
+function M.test_selection_status_held_without_mission_is_silent()
+    setup()
+    local u = mkUnit({ activity = ActivityTypes.ACTIVITY_HOLD })
+    local origStatus = Waypoints.queuedActionStatusFor
+    Waypoints.queuedActionStatusFor = function()
+        return { chunks = {} }
+    end
+    local out = UnitSpeech.statusToken(u)
+    Waypoints.queuedActionStatusFor = origStatus
+    T.eq(out, "", "a held unit with no queued mission must stay silent: " .. out)
+end
+
 -- ===== Selection: cascade first-match-wins =====
 
 function M.test_selection_status_garrison_wins_over_fortify()

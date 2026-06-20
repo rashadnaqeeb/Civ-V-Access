@@ -346,7 +346,15 @@ local function statusToken(unit)
         )
     end
     local status = nil
-    if activity == ActivityTypes.ACTIVITY_MISSION then
+    -- Render the queued path for a unit actively executing it (ACTIVITY_MISSION)
+    -- and for one held out of moves (ACTIVITY_HOLD). The engine queues the move
+    -- mission but parks the unit on HOLD when it can't move at order time -- a
+    -- squad move pushes a mission to every member at once, so any member already
+    -- spent lands here and activates next turn. The mission sits in the queue
+    -- either way and queuedActionStatusFor reads the queue, not the activity, so
+    -- the held member announces its destination and ETA instead of going silent.
+    -- A plain skip-turn HOLD unit has an empty queue and renders nothing.
+    if activity == ActivityTypes.ACTIVITY_MISSION or activity == ActivityTypes.ACTIVITY_HOLD then
         -- Full queued-path detail for any of the player's own units, not
         -- just the selected one, so a cursor glance over a moving unit
         -- reads its segments and ETA. queuedActionStatusFor owner-gates
