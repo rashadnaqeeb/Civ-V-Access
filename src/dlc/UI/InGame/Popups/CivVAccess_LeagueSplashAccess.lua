@@ -55,13 +55,19 @@ local function labelOf(name)
     return tostring(text)
 end
 
-local function preamble()
-    return Text.joinNonEmpty({
+-- Shared by the F1 preamble (joined) and the Alt+Up/Down review so the two
+-- cannot drift.
+local function fragments()
+    return {
         labelOf("TitleLabel"),
         labelOf("DescriptionLabel"),
         labelOf("ThisEraLabel"),
         labelOf("NextEraLabel"),
-    })
+    }
+end
+
+local function preamble()
+    return Text.joinNonEmpty(fragments())
 end
 
 local handler = BaseMenu.install(ContextPtr, {
@@ -80,5 +86,7 @@ local handler = BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+RewardReview.install(handler, fragments)
 
 CongressDescription.bindF2(handler, sessionType)

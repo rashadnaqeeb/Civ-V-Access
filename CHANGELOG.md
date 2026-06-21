@@ -12,6 +12,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 Bug fixes:
+- On reward popups such as a researched technology or built wonder, Alt+Up and Alt+Down now step through the details one section at a time.
+- Repeatedly pressing Alt+Up while moving a squad no longer leaves you stuck in stacked move modes.
 - Closing a screen now brings the camera back to the hex cursor.
 - Announcements such as selecting a unit no longer sometimes read twice until you restart the game.
 

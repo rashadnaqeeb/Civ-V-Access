@@ -12,19 +12,18 @@ include("CivVAccess_PopupBoot")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
-local function preamble()
-    local title = Controls.TitleLabel:GetText() or ""
-    local description = Controls.DescriptionLabel:GetText() or ""
-    if title ~= "" and description ~= "" then
-        return title .. ", " .. description
-    end
-    if title ~= "" then
-        return title
-    end
-    return description
+-- City-state name then the flavor / gift line. Shared by the F1 preamble
+-- (joined) and the Alt+Up/Down review so the two cannot drift; joinNonEmpty
+-- drops either when empty, matching the prior branch logic.
+local function fragments()
+    return { Controls.TitleLabel:GetText() or "", Controls.DescriptionLabel:GetText() or "" }
 end
 
-BaseMenu.install(ContextPtr, {
+local function preamble()
+    return Text.joinNonEmpty(fragments())
+end
+
+local handler = BaseMenu.install(ContextPtr, {
     name = "CityStateGreetingPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_CITY_STATE_GREETING"),
     preamble = preamble,
@@ -47,3 +46,5 @@ BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+RewardReview.install(handler, fragments)

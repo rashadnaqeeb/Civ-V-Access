@@ -100,9 +100,14 @@ local function hasNarratedQuote()
 end
 
 -- LowerCaption (work name) is in displayName, so omit it here to avoid F1
--- reading it twice.
+-- reading it twice. Shared by the F1 preamble (joined) and the Alt+Up/Down
+-- review so the two cannot drift.
+local function fragments()
+    return { labelOf("Title"), labelOf("Quote") }
+end
+
 local function preamble()
-    return Text.joinNonEmpty({ labelOf("Title"), labelOf("Quote") })
+    return Text.joinNonEmpty(fragments())
 end
 
 local handler = BaseMenu.install(ContextPtr, {
@@ -131,5 +136,7 @@ local handler = BaseMenu.install(ContextPtr, {
         end
     end,
 })
+
+RewardReview.install(handler, fragments)
 
 GreatWorkDescription.bindF2(handler, describedWorkToken)

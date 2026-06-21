@@ -84,7 +84,7 @@ local function preamble()
     return text .. " " .. Text.format(receivedKey, goodyValue)
 end
 
-BaseMenu.install(ContextPtr, {
+local handler = BaseMenu.install(ContextPtr, {
     name = "GoodyHutPopup",
     displayName = Text.key("TXT_KEY_POP_RUINS_EXPLORED"),
     preamble = preamble,
@@ -103,3 +103,9 @@ BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+-- One reward blurb (with the appended amount when the description omits it);
+-- the review splits it on any newlines.
+RewardReview.install(handler, function()
+    return { preamble() }
+end)

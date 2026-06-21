@@ -41,16 +41,15 @@ local function wonderFeatureType()
     return row.Type
 end
 
+-- Wonder name then description. Shared by the F1 preamble (joined) and the
+-- Alt+Up/Down review so the two cannot drift; joinNonEmpty drops either when
+-- empty, matching the prior branch logic.
+local function fragments()
+    return { Controls.WonderLabel:GetText() or "", Controls.DescriptionLabel:GetText() or "" }
+end
+
 local function preamble()
-    local wonder = Controls.WonderLabel:GetText() or ""
-    local description = Controls.DescriptionLabel:GetText() or ""
-    if wonder ~= "" and description ~= "" then
-        return wonder .. ", " .. description
-    end
-    if wonder ~= "" then
-        return wonder
-    end
-    return description
+    return Text.joinNonEmpty(fragments())
 end
 
 local handler = BaseMenu.install(ContextPtr, {
@@ -69,5 +68,7 @@ local handler = BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+RewardReview.install(handler, fragments)
 
 NaturalWonderDescription.bindF2(handler, wonderFeatureType)

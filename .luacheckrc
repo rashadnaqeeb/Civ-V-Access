@@ -140,7 +140,7 @@ globals = {
     "PickerReader", "PullDownProbe", "TypeAheadSearch",
     "BaseMenu", "BaseMenuItems", "BaseMenuTabs", "BaseMenuHelp", "BaseMenuEditMode",
     "BaseMenuNumberEntry",
-    "BaseTable", "TabbedShell",
+    "BaseTable", "TabbedShell", "RewardReview",
     "CityStats",
     "DealLabel",
     "LeaderDescription", "GreatWorkDescription", "NaturalWonderDescription",

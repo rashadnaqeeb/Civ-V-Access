@@ -8,11 +8,17 @@ include("CivVAccess_PopupBoot")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
-BaseMenu.install(ContextPtr, {
+-- Shared by the F1 preamble and the Alt+Up/Down review, which splits the
+-- text on any newlines.
+local function descriptionFragments()
+    return { Controls.DescriptionLabel:GetText() or "" }
+end
+
+local handler = BaseMenu.install(ContextPtr, {
     name = "GreatPersonRewardPopup",
     displayName = Text.key("TXT_KEY_POP_GREAT_PERSON_BORN"),
     preamble = function()
-        return Controls.DescriptionLabel:GetText()
+        return Text.joinNonEmpty(descriptionFragments())
     end,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
@@ -26,3 +32,5 @@ BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+RewardReview.install(handler, descriptionFragments)

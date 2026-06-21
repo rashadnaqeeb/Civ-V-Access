@@ -57,9 +57,23 @@ Events.SerialEventGameMessagePopup.Add(Log.safeListener("TechAwardPopup tooltip 
     AddSmallButtonsToTechButton(Controls, kTechInfo, NUM_SMALL_BUTTONS, 64, nil, nil, true)
 end))
 
--- TechName is in displayName, so omit it here to avoid F1 reading it twice.
-local function preamble()
-    local parts = { labelOf("TechQuote"), labelOf("TechHelp") }
+-- The award content the sighted player reads off the popup: the flavor
+-- quote, the effect blurb, then one entry per unlock icon (B1-B5, each a
+-- unit / building / ability the tech grants). Read live every call -- the
+-- popup fills these per open and they stay put while it is shown. Shared by
+-- the F1 preamble (joined into one string) and the Alt+Up/Down section
+-- review (RewardReview) so the two never drift. TechName is omitted -- it is
+-- in displayName, spoken on open and read by F1 there.
+local function awardFragments()
+    local parts = {}
+    local quote = labelOf("TechQuote")
+    if quote ~= "" then
+        parts[#parts + 1] = quote
+    end
+    local help = labelOf("TechHelp")
+    if help ~= "" then
+        parts[#parts + 1] = help
+    end
     for i = 1, NUM_SMALL_BUTTONS do
         local b = Controls["B" .. i]
         if b ~= nil and not b:IsHidden() then
@@ -69,7 +83,11 @@ local function preamble()
             end
         end
     end
-    return Text.joinNonEmpty(parts)
+    return parts
+end
+
+local function preamble()
+    return Text.joinNonEmpty(awardFragments())
 end
 
 -- Ctrl+I from either button opens the awarded tech's pedia article. The
@@ -134,3 +152,5 @@ local handler = BaseMenu.install(ContextPtr, {
         end
     end,
 })
+
+RewardReview.install(handler, awardFragments)

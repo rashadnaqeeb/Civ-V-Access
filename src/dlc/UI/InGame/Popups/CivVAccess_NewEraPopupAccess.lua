@@ -36,11 +36,17 @@ local function eraType()
     return row.Type
 end
 
+-- Shared by the F1 preamble and the Alt+Up/Down review, which splits the era
+-- description on any newlines.
+local function descriptionFragments()
+    return { Controls.DescriptionLabel:GetText() or "" }
+end
+
 local handler = BaseMenu.install(ContextPtr, {
     name = "NewEraPopup",
     displayName = Text.key("TXT_KEY_POP_NEW_ERA_TITLE"),
     preamble = function()
-        return Controls.DescriptionLabel:GetText()
+        return Text.joinNonEmpty(descriptionFragments())
     end,
     priorInput = priorInput,
     priorShowHide = priorShowHide,
@@ -54,5 +60,7 @@ local handler = BaseMenu.install(ContextPtr, {
         }),
     },
 })
+
+RewardReview.install(handler, descriptionFragments)
 
 EraDescription.bindF2(handler, eraType)
