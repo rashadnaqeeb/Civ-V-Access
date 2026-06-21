@@ -450,6 +450,15 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnits()
 end
 
+-- LekMod removes the unit supply limit in data: its No Quitters core sets
+-- ProductionFreeUnits=99999 on every handicap, so GetNumUnitsSupplied returns
+-- ~100000 and a use/cap fraction is meaningless. The supply functions are
+-- otherwise byte-identical to vanilla; the cap is just unreachable. Report the
+-- limit as absent so the Military Overview drops the supply preamble entirely.
+function EngineData.supplyLimited()
+    return false
+end
+
 -- Drift read: the unit-supply gold expense the gold breakdown speaks as its
 -- own line. Vanilla bills supply separately from unit maintenance, so it is
 -- a distinct expense; VP folds supply into CalculateUnitCost and deprecated

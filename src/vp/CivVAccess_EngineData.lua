@@ -335,6 +335,13 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnitsToSupply()
 end
 
+-- VP enforces the unit supply limit (its supply cap drives both the production
+-- penalty and the per-unit gold), so the Military Overview keeps its use/cap
+-- preamble. Only LekMod removes the limit; see its body.
+function EngineData.supplyLimited()
+    return true
+end
+
 -- Drift read: the unit-supply gold expense. VP folds supply into
 -- CalculateUnitCost and deprecated CalculateUnitSupply (a raw call errors),
 -- so there is no separate supply expense -- return 0 and the gold

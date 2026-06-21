@@ -717,9 +717,17 @@ end
 -- production-penalty percent and the per-source breakdown (base /
 -- cities / population) the sighted screen shows are dropped in favour
 -- of brevity here.
+--
+-- Dropped entirely when the engine has no supply limit (LekMod removes it
+-- in data, so the cap reads ~100000 and the fraction is meaningless). The
+-- seam reports this so the line falls away rather than speaking a six-digit
+-- cap; the shell then opens straight on the active tab with no preamble.
 local function supplyPreamble()
     local p = Players[Game.GetActivePlayer()]
     if p == nil then
+        return nil
+    end
+    if not EngineData.supplyLimited() then
         return nil
     end
     return Text.format("TXT_KEY_CIVVACCESS_MO_SUPPLY_BRIEF", EngineData.supplyUsed(p), p:GetNumUnitsSupplied())

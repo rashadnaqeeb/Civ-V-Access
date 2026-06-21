@@ -387,4 +387,15 @@ function M.test_lekmod_vp_only_features_are_inert()
     T.eq(#v.vassals, 0)
 end
 
+-- Unit supply limit: vanilla (and VP) enforce it, so the Military Overview
+-- speaks its use/cap preamble; LekMod removes the limit in data
+-- (ProductionFreeUnits=99999 on every handicap), so its body reports the limit
+-- absent and the preamble drops rather than speaking a ~100000 cap.
+function M.test_lekmod_supply_limit_absent()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(lekmod.supplyLimited(), false, "LekMod removes the unit supply limit")
+    T.eq(vanilla.supplyLimited(), true, "vanilla enforces the unit supply limit")
+end
+
 return M

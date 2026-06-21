@@ -326,6 +326,14 @@ function EngineData.supplyUsed(player)
     return player:GetNumUnits()
 end
 
+-- Whether the unit supply limit is a live constraint. Vanilla enforces it
+-- (the cap bounds free-supported units before the production penalty), so the
+-- Military Overview speaks its use/cap preamble. LekMod removes the limit in
+-- data and reports it absent, dropping the preamble; see the LekMod body.
+function EngineData.supplyLimited()
+    return true
+end
+
 -- Drift read: the unit-supply gold expense the gold breakdown speaks as its
 -- own line. Vanilla bills supply separately from unit maintenance, so it is
 -- a distinct expense; VP folds supply into CalculateUnitCost and deprecated
