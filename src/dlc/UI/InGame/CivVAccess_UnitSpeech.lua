@@ -1567,10 +1567,10 @@ UnitSpeech.unitName = unitName
 -- cargo decorations) and info() (the full dump): a squad row is read while
 -- cycling members, so it answers "which unit, where is it, can it act"
 -- without the standing-capability tail. fromX/fromY is the cursor position;
--- when supplied, the direction segment reads "<dist><compass>" via
--- compassDirectionString (the same spatial bearing the surveyor speaks), or
--- "here" when the unit sits on the cursor. Omit fromX/fromY to drop the
--- direction segment entirely.
+-- when supplied, the direction segment reads as the hex decomposition via
+-- directionString (the same spatial bearing the surveyor, cursor, and every
+-- other location readout speak), or "here" when the unit sits on the cursor.
+-- Omit fromX/fromY to drop the direction segment entirely.
 function UnitSpeech.unitBrief(unit, fromX, fromY)
     local parts = {}
     local name = nameWithEmbarked(unit)
@@ -1582,7 +1582,7 @@ function UnitSpeech.unitBrief(unit, fromX, fromY)
         if fromX == ux and fromY == uy then
             parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_SCANNER_HERE")
         else
-            local dir = HexGeom.compassDirectionString(fromX, fromY, ux, uy)
+            local dir = HexGeom.directionString(fromX, fromY, ux, uy)
             if dir ~= "" then
                 parts[#parts + 1] = dir
             end

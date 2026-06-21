@@ -168,6 +168,13 @@ local function addSelectedUnit()
         num = SquadRoster.allocate()
     end
     local prior = EngineData.squadNumber(unit)
+    -- Already a member of the focused squad: reassigning is a no-op, but the
+    -- wake-mode re-push below applies to the whole squad, so skip it too rather
+    -- than flip the rest of the group's state on a do-nothing key.
+    if not created and prior == num then
+        speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_ALREADY_IN", SquadRoster.getName(num)))
+        return
+    end
     EngineData.assignToSquad(unit, num)
     -- The new member inherits the squad's intended wake mode, which lives in
     -- the roster (the engine can't store a per-squad default). setSquadEnd

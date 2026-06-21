@@ -2233,8 +2233,8 @@ function M.test_unitBrief_speaks_direction_when_cursor_off_unit()
     local u = mkUnit({ x = 4, y = 0 })
     local out = UnitSpeech.unitBrief(u, 0, 0)
     T.truthy(not out:find("here", 1, true), "non-zero delta must not read here: " .. out)
-    -- compassDirectionString leads its segment with the cube distance; 4
-    -- east is distance 4, so the digit appears in the row.
+    -- directionString decomposes the delta into per-direction step counts; 4
+    -- due east is "4e", so the count digit appears in the row.
     T.truthy(out:find("4", 1, true), "direction segment must carry the distance: " .. out)
 end
 
