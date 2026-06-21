@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-06-21
+
 New Features and improvements:
 - In Vox Populi, you can now invest Gold in a building from its slot in a city's production queue, not just from the production chooser.
 
