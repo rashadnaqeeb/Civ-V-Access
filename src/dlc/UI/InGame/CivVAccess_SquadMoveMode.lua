@@ -13,9 +13,11 @@
 SquadMoveMode = {}
 
 local MOD_NONE = 0
+local MOD_ALT = 4
 
 local speak = SpeechPipeline.speakInterrupt
 local bind = HandlerStack.bind
+local function noop() end
 
 local function cursorPlot()
     local cx, cy = Cursor.position()
@@ -80,6 +82,16 @@ function SquadMoveMode.enter(num)
             pop()
             speak(Text.key("TXT_KEY_CIVVACCESS_CANCELED"))
         end, "Cancel squad move"),
+        -- capturesAllInput = false lets the cursor keys fall through to
+        -- Baseline, but the squad Alt-arrow family lives on Baseline too
+        -- (SquadMapMode: Alt+Left/Right add/remove, Alt+Up move, Alt+Down
+        -- status). Blocking them keeps the squad-management keys from fighting
+        -- the destination pick; Alt+Up in particular re-runs SquadMoveMode.enter
+        -- and would stack a second copy on every press.
+        bind(Keys.VK_UP, MOD_ALT, noop, "Block squad move re-entry"),
+        bind(Keys.VK_DOWN, MOD_ALT, noop, "Block squad status"),
+        bind(Keys.VK_LEFT, MOD_ALT, noop, "Block squad remove unit"),
+        bind(Keys.VK_RIGHT, MOD_ALT, noop, "Block squad add unit"),
     }
     self.helpEntries = {
         {
