@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- In Vox Populi, you can now invest Gold in a building from its slot in a city's production queue, not just from the production chooser.
+
 Bug fixes:
 - In the city production menu, pressing Tab to switch between Produce and Purchase now keeps your place in the list instead of jumping to the top.
 - On reward popups such as a researched technology or built wonder, Alt+Up and Alt+Down now step through the details one section at a time.

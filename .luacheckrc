@@ -53,7 +53,7 @@ read_globals = {
     "InterfaceModeTypes", "MissionTypes", "GameMessageTypes",
     "ActionSubTypes", "GameInfoActions", "EndTurnBlockingTypes",
     "TaskTypes", "InfluenceLevelTypes",
-    "OrderTypes", "ReligionTypes",
+    "OrderTypes", "ReligionTypes", "CityUpdateTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -177,7 +177,7 @@ globals = {
     "CityRangeStrikeMode",
     "CityViewHexMap", "CityViewProduction", "CityViewHub",
     "GiftMode",
-    "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText",
+    "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText", "BuildingInvest",
     "BeliefAdvisor",
     "NotificationAnnounce", "LekModAlertAnnounce",
     "Recommendations",

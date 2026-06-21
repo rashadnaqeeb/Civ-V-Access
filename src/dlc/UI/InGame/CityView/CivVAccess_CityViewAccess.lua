@@ -58,6 +58,7 @@ include("CivVAccess_Settings")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_CityStats")
 include("CivVAccess_ProductionHelpText")
+include("CivVAccess_BuildingInvest")
 -- The Production and HexMap sub-handlers live in their own files so
 -- this file stays focused on the hub scaffold, the inline drillable
 -- Group builders (Wonders, Buildings, Specialists, Great Works, Great

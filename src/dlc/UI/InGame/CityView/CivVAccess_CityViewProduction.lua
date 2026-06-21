@@ -190,6 +190,7 @@ local function pushQueueSlotActions(zeroIdx, slotName)
         return
     end
     local qLength = city:GetOrderQueueLength()
+    local orderType, data1 = city:GetOrderFromQueue(zeroIdx)
 
     if zeroIdx > 0 then
         items[#items + 1] = BaseMenuItems.Text({
@@ -272,6 +273,46 @@ local function pushQueueSlotActions(zeroIdx, slotName)
                 end
                 SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_CITYVIEW_PROD_MOVED_BOTTOM"))
                 rebuildQueueAfterMutation()
+            end,
+        })
+    end
+
+    -- Invest (Vox Populi): spend Gold to cut this building's production cost.
+    -- Shown only when the engine allows an investment for it right now (VP on,
+    -- a building, not already invested, affordable). Fires standalone -- no
+    -- Choose Production / Purchase popup is opened.
+    if BuildingInvest.canInvest(city, orderType, data1) then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return ""
+                end
+                return BuildingInvest.costLabel(c, data1)
+            end,
+            onActivate = function()
+                local c = UI.GetHeadSelectedCity()
+                if c == nil then
+                    return
+                end
+                if refuseIfNotActiveOwn(c, "TXT_KEY_CIVVACCESS_CITYVIEW_FOREIGN_NO_PRODUCTION") then
+                    return
+                end
+                if not isTurnActive() then
+                    return
+                end
+                -- Gold on hand or a purchase cooldown can change between building
+                -- this item and pressing it; re-check before committing.
+                if not BuildingInvest.canInvest(c, orderType, data1) then
+                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BUTTON_DISABLED"))
+                    return
+                end
+                -- Drop the drill-in silently first: the invest confirmation and
+                -- its cost-reduction follow-up are the feedback. The queue list
+                -- underneath re-reads the slot live, so its "(invested)" marker
+                -- and reduced remaining surface on the next visit.
+                HandlerStack.removeByName("CityView.ProdActions", false)
+                BuildingInvest.perform(c, data1)
             end,
         })
     end

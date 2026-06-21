@@ -31,6 +31,7 @@
 include("CivVAccess_PopupBoot")
 include("CivVAccess_CitySpeech")
 include("CivVAccess_ProductionHelpText")
+include("CivVAccess_BuildingInvest")
 include("CivVAccess_ChooseProductionLogic")
 
 local priorInput = InputHandler
@@ -169,50 +170,6 @@ local function commitProduce(city, entry)
     SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT", qLen))
 end
 
--- Vox Populi applies a Gold building investment asynchronously: Game.City-
--- PurchaseBuilding routes through the network dispatch (CvGame::CityPurchase
--- -> sendPurchase), so the reduced production-needed is not readable on the
--- same frame. Confirm "invested in X" now, then poll for the applied
--- investment and append the realized production-cost reduction as a queued
--- follow-up so it trails -- never clobbers -- the confirmation. preNeeded is
--- captured before the engine applies the reduction; postNeeded once it lands.
--- The poll re-arms each tick up to a cap; a timeout still leaves the player
--- with the confirmation and logs, rather than failing silently.
-local INVEST_POLL_TICKS = 12
-
-local function announceInvestment(city, entry)
-    SpeechPipeline.speakInterrupt(
-        Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVESTED", Text.key(entry.info.Description))
-    )
-    local preNeeded = city:GetBuildingProductionNeeded(entry.id)
-    local ownerID, cityID, buildingID = _cityOwnerID, _cityID, entry.id
-    local ticks = 0
-    local function poll()
-        ticks = ticks + 1
-        local player = Players[ownerID]
-        local c = player ~= nil and player:GetCityByID(cityID) or nil
-        if c == nil then
-            Log.warn("ChooseProductionPopupAccess: invest follow-up lost city " .. tostring(cityID))
-            return
-        end
-        if EngineData.buildingInvested(c, buildingID) then
-            local reduction = preNeeded - c:GetBuildingProductionNeeded(buildingID)
-            if reduction > 0 then
-                SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_REDUCED", reduction))
-            else
-                SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_INVEST_NO_REDUCTION"))
-            end
-            return
-        end
-        if ticks < INVEST_POLL_TICKS then
-            TickPump.runOnce(poll)
-        else
-            Log.warn("ChooseProductionPopupAccess: invest follow-up timed out for building " .. tostring(buildingID))
-        end
-    end
-    TickPump.runOnce(poll)
-end
-
 -- Speak why a blocked entry cannot be acted on, instead of silently
 -- no-oping the activation (which left a player unsure whether anything
 -- happened -- e.g. a building-purchase cooldown or too little gold disables
@@ -228,6 +185,16 @@ local function announceDisabled(city, entry)
 end
 
 local function commitPurchase(city, entry)
+    -- Gold building investment (VP) dispatches and announces through the
+    -- shared module, which owns the asynchronous cost-reduction follow-up.
+    if ChooseProductionLogic.isInvestEntry(entry) then
+        if not BuildingInvest.perform(city, entry.id) then
+            announceDisabled(city, entry)
+            return
+        end
+        closePopup()
+        return
+    end
     local canPurchase = false
     if entry.orderType == OrderTypes.ORDER_TRAIN then
         canPurchase = city:IsCanPurchase(true, true, entry.id, -1, -1, entry.yieldType)
@@ -257,13 +224,9 @@ local function commitPurchase(city, entry)
     end
     fireBannerDirty(city)
     Events.AudioPlay2DSound("AS2D_INTERFACE_CITY_SCREEN_PURCHASE")
-    if ChooseProductionLogic.isInvestEntry(entry) then
-        announceInvestment(city, entry)
-    else
-        SpeechPipeline.speakInterrupt(
-            Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Text.key(entry.info.Description))
-        )
-    end
+    SpeechPipeline.speakInterrupt(
+        Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_PURCHASED", Text.key(entry.info.Description))
+    )
     closePopup()
 end
 
