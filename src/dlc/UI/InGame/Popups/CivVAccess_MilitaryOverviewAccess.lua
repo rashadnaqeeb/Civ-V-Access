@@ -72,6 +72,13 @@ include("CivVAccess_HexGeom")
 -- of its own, so loading it here just defines the table; its plot-glance
 -- composers are never called from this Context.
 include("CivVAccess_PlotComposers")
+-- Squad-membership column (squads feature only). SquadRoster.getName resolves a
+-- squad number to its display name; it reads the cross-Context
+-- civvaccess_shared.squadRoster the InGame Context hydrates, and has no top-level
+-- side effects, so it's safe to load in this sandbox. Its default "Squad N" name
+-- lives in CivVAccess_SquadStrings, which PopupBoot does not bundle.
+include("CivVAccess_SquadRoster")
+include("CivVAccess_SquadStrings_en_US")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -462,6 +469,32 @@ local function buildUnitColumns()
             end,
             sortKey = function(unit)
                 return unit:GetExperience()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        }
+    end
+    -- Squad membership (squads feature only -- CP-DLL / VP with the SQUADS
+    -- option). The cell speaks the squad name, or "none" for an unassigned unit;
+    -- the column header already marks the column, so the cell doesn't repeat it.
+    -- Sort key is the squad number so an ascending sort groups squadmates, with
+    -- unassigned units (number < 0, keyed to +inf) sinking to the bottom.
+    if EngineData.squadsAvailable() then
+        cols[#cols + 1] = {
+            name = "TXT_KEY_CIVVACCESS_MO_COL_SQUAD",
+            getCell = function(unit)
+                local num = EngineData.squadNumber(unit)
+                if num < 0 then
+                    return Text.key("TXT_KEY_CIVVACCESS_MO_SQUAD_NONE")
+                end
+                return SquadRoster.getName(num)
+            end,
+            sortKey = function(unit)
+                local num = EngineData.squadNumber(unit)
+                if num < 0 then
+                    return math.huge
+                end
+                return num
             end,
             enterAction = activateUnit,
             pediaName = unitPediaName,

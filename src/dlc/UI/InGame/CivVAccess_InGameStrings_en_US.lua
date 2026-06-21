@@ -1496,6 +1496,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Adjacent ene
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "Experience"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, level {2_Level}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} percent strength"
+-- Squads feature only (CP-DLL / VP with the SQUADS option): squad-membership
+-- column, far right after Experience. The cell speaks the squad name, or "none"
+-- for an unassigned unit -- the column header already marks it as the squad column.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_SQUAD"] = "Squad"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SQUAD_NONE"] = "none"
 -- Great People tab. Mirrors GPList: one subgroup per specialist type
 -- populated with per-city progress rows sorted by turns ascending, plus
 -- flat GG / GA rows reusing TXT_KEY_CIVVACCESS_MO_GP_PROGRESS. City row
