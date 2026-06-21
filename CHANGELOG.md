@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 Bug fixes:
 - Alt+Right on a unit already in the focused squad now says "already in" instead of falsely reporting another add.
 - Cycling squad units with Left and Right now speaks each unit's direction the same way as the rest of the game.
+- A targeting key pressed while already aiming a unit move, squad move, gift, or city strike no longer opens a second targeting mode on top.
 
 ## [2.0.3] - 2026-06-21
 

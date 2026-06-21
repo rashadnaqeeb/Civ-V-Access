@@ -174,6 +174,22 @@ function HandlerStack.appendAltBlocks(bindings, opts)
     end
 end
 
+-- Append no-op blocks for the squad map-mode keys (the Alt+arrow squad
+-- family and F11). Called by the unit / city pickers so a squad-management
+-- key pressed mid-pick neither opens the squad editor / menu over the picker
+-- nor (for Alt+Up) trips the exclusive-picker refusal with a stray squad
+-- readout from the Baseline handler. Gate the call on
+-- EngineData.squadsAvailable() at the call site: these keys are only
+-- Baseline-bound while squads are live, and blocking them unconditionally
+-- would swallow vanilla engine bindings (e.g. F11) outside squad play.
+function HandlerStack.appendSquadBlocks(bindings)
+    bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_UP, MOD_ALT, noop, "Block squad move")
+    bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_DOWN, MOD_ALT, noop, "Block squad editor")
+    bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_LEFT, MOD_ALT, noop, "Block squad remove unit")
+    bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_RIGHT, MOD_ALT, noop, "Block squad add unit")
+    bindings[#bindings + 1] = HandlerStack.bind(Keys.VK_F11, 0, noop, "Block squad menu")
+end
+
 function HandlerStack._reset()
     _shared.stack = {}
 end
@@ -318,6 +334,30 @@ function HandlerStack.push(handler)
             )
             notifyMutated()
             return true
+        end
+    end
+    -- Mutual exclusion for the map-overlay pickers (UnitTargetMode,
+    -- SquadMoveMode, GiftMode, CityRangeStrike). They all sit above Baseline
+    -- with capturesAllInput = false so cursor / info keys fall through, which
+    -- also means a Baseline key that enters a second picker (Alt+M from a
+    -- squad destination pick, Alt+Up from a unit target pick, a gift from the
+    -- diplo screen, etc.) would stack two half-active pickers. Refuse the
+    -- second one; the caller's enter() unwinds whatever engine interface mode
+    -- it set on the way in. Dead-env pickers stranded from a prior game don't
+    -- count -- they are evicted on the next boot.
+    if handler.exclusivePicker then
+        for i = #_shared.stack, 1, -1 do
+            local existing = _shared.stack[i]
+            if existing.exclusivePicker and not isDeadEnv(existing) then
+                Log.debug(
+                    "HandlerStack.push refused '"
+                        .. tostring(handler.name)
+                        .. "': exclusive picker '"
+                        .. tostring(existing.name)
+                        .. "' already active"
+                )
+                return false
+            end
         end
     end
     if not fireOnActivate(handler, "push", "pushed") then

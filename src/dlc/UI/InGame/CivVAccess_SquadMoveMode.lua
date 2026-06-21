@@ -45,6 +45,9 @@ function SquadMoveMode.enter(num)
     local self = {
         name = "SquadMoveMode",
         capturesAllInput = false,
+        -- Mutually exclusive with the other map pickers; HandlerStack.push
+        -- refuses to stack a second one (see the exclusivePicker guard there).
+        exclusivePicker = true,
         -- Cursor stays live on the world map during the pick; keep beacons
         -- playing under us the way the unit target pickers do.
         beaconsTransparent = true,
@@ -92,7 +95,16 @@ function SquadMoveMode.enter(num)
         bind(Keys.VK_DOWN, MOD_ALT, noop, "Block squad editor"),
         bind(Keys.VK_LEFT, MOD_ALT, noop, "Block squad remove unit"),
         bind(Keys.VK_RIGHT, MOD_ALT, noop, "Block squad add unit"),
+        -- Tab opens the unit action menu on Baseline; block it so the menu
+        -- can't open over the destination pick.
+        bind(Keys.VK_TAB, MOD_NONE, noop, "Block unit action menu"),
     }
+    -- Block Baseline's Alt+QAZEDC direct-move and Alt+letter quick-actions
+    -- (move-to / fortify / pillage / etc.) the same way the unit target picker
+    -- does: a stray Alt+key during the squad pick would commit against the
+    -- head-selected unit and fight the picker, and Alt+M / Alt+R would try to
+    -- enter the unit target picker on top.
+    HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
     self.helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_MOVE_HELP_KEY_PREVIEW",

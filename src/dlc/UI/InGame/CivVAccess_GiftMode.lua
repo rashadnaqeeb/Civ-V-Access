@@ -205,6 +205,9 @@ function GiftMode.enter(toPlayerID, kind)
     local self = {
         name = "GiftMode",
         capturesAllInput = false,
+        -- Mutually exclusive with the other map pickers; HandlerStack.push
+        -- refuses to stack a second one (see the exclusivePicker guard there).
+        exclusivePicker = true,
         -- Cursor stays live on the world map while gift mode is active
         -- (Q/A/Z/E/D/C falls through to Baseline). Pass through to the
         -- cursor-on-map layer below so beacons keep playing during the
@@ -295,6 +298,11 @@ function GiftMode.enter(toPlayerID, kind)
     -- gift interface mode; without the blocks a stray Alt+key commits
     -- against whatever unit is selected and fights the picker.
     HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
+    -- Block the squad map-mode keys too so a squad picker / editor can't open
+    -- over the gift target pick.
+    if EngineData.squadsAvailable() then
+        HandlerStack.appendSquadBlocks(self.bindings)
+    end
     self.helpEntries = {
         {
             keyLabel = "TXT_KEY_CIVVACCESS_TARGET_HELP_KEY_PREVIEW",

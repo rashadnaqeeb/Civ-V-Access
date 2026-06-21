@@ -29,6 +29,7 @@ local function makeHandler(name, opts)
     opts = opts or {}
     local h = { name = name, activate = 0, deactivate = 0, suspend = 0 }
     h.capturesAllInput = opts.capturesAllInput or false
+    h.exclusivePicker = opts.exclusivePicker or nil
     h.bindings = opts.bindings
     h.helpEntries = opts.helpEntries
     h.onActivate = function(self)
@@ -731,6 +732,53 @@ function M.test_gate_predicate_error_falls_through_to_normal_push()
     HandlerStack.push(other)
     T.eq(HandlerStack.active(), other, "a throwing predicate must not strand the push")
     T.eq(#errors, 1, "the failure is logged, not swallowed")
+end
+
+-- Exclusive-picker mutual exclusion -------------------------------------
+
+function M.test_exclusive_picker_refuses_second()
+    setup()
+    local first = makeHandler("first", { exclusivePicker = true })
+    local second = makeHandler("second", { exclusivePicker = true })
+    T.truthy(HandlerStack.push(first))
+    T.truthy(not HandlerStack.push(second), "a second exclusive picker is refused")
+    T.eq(HandlerStack.count(), 1, "the refused picker is not on the stack")
+    T.eq(HandlerStack.active(), first, "the first picker stays active")
+    T.eq(second.activate, 0, "the refused picker never activates")
+end
+
+function M.test_exclusive_picker_allows_nonpicker_above()
+    -- A popup / menu (not an exclusive picker) may still open over a picker.
+    setup()
+    local picker = makeHandler("picker", { exclusivePicker = true })
+    local menu = makeHandler("menu")
+    HandlerStack.push(picker)
+    T.truthy(HandlerStack.push(menu), "a non-picker handler is allowed above a picker")
+    T.eq(HandlerStack.active(), menu)
+end
+
+function M.test_exclusive_picker_allowed_after_first_removed()
+    setup()
+    local first = makeHandler("first", { exclusivePicker = true })
+    local second = makeHandler("second", { exclusivePicker = true })
+    HandlerStack.push(first)
+    HandlerStack.removeByName("first")
+    T.truthy(HandlerStack.push(second), "an exclusive picker opens once the prior one is gone")
+    T.eq(HandlerStack.active(), second)
+end
+
+function M.test_exclusive_picker_ignores_dead_env_holder()
+    -- A picker stranded from a prior game (dead env) must not wedge the stack
+    -- so no new picker can ever open.
+    setup()
+    local dead = makeHandler("dead", { exclusivePicker = true })
+    dead._envProbe = function()
+        return false
+    end
+    local fresh = makeHandler("fresh", { exclusivePicker = true })
+    HandlerStack.push(dead)
+    T.truthy(HandlerStack.push(fresh), "a dead-env picker does not block a fresh one")
+    T.eq(HandlerStack.active(), fresh)
 end
 
 return M

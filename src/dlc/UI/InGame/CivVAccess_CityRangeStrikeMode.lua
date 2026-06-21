@@ -156,6 +156,9 @@ function CityRangeStrikeMode.enter(city)
     local self = {
         name = "CityRangeStrike",
         capturesAllInput = false,
+        -- Mutually exclusive with the other map pickers; HandlerStack.push
+        -- refuses to stack a second one (see the exclusivePicker guard there).
+        exclusivePicker = true,
         -- Cursor stays live on the world map while strike mode is active
         -- (Q/A/Z/E/D/C falls through to Baseline). Pass through to the
         -- cursor-on-map layer below so beacons keep playing during the
@@ -221,6 +224,11 @@ function CityRangeStrikeMode.enter(city)
     -- needed here: the player isn't in a unit-selection flow that those
     -- Alt+letter actions would commit against.
     HandlerStack.appendAltBlocks(self.bindings, { directMove = true })
+    -- Block the squad map-mode keys too so a squad picker / editor can't open
+    -- over the city strike pick.
+    if EngineData.squadsAvailable() then
+        HandlerStack.appendSquadBlocks(self.bindings)
+    end
     -- Movement help is provided by Baseline's cursor entry; we don't
     -- duplicate it here. Listing only the strike-specific keys.
     self.helpEntries = {

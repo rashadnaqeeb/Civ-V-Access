@@ -1149,6 +1149,9 @@ function UnitTargetMode.enter(actor, iAction, mode)
     local self = {
         name = "UnitTargetMode",
         capturesAllInput = false,
+        -- Mutually exclusive with the other map pickers; HandlerStack.push
+        -- refuses to stack a second one (see the exclusivePicker guard there).
+        exclusivePicker = true,
         -- Cursor stays live on the world map while target mode is active
         -- (Q/A/Z/E/D/C falls through to Baseline). Pass through to the
         -- cursor-on-map layer below so beacons keep playing during the
@@ -1228,6 +1231,11 @@ function UnitTargetMode.enter(actor, iAction, mode)
     -- mode; without the blocks a stray Alt+key commits against the actor and
     -- fights the picker the user is in.
     HandlerStack.appendAltBlocks(self.bindings, { directMove = true, quickActions = true })
+    -- Block the squad map-mode keys too while targeting, so Alt+Up / Alt+Down
+    -- / F11 don't open a squad picker or editor over the unit target pick.
+    if EngineData.squadsAvailable() then
+        HandlerStack.appendSquadBlocks(self.bindings)
+    end
     -- Target-mode helpEntries land at the top of the Help overlay's list
     -- because collectHelpEntries walks the stack top-to-bottom and this
     -- handler sits above Baseline; that's the point of authoring them
@@ -1271,5 +1279,11 @@ function UnitTargetMode.enter(actor, iAction, mode)
     end
     if HandlerStack.push(self) then
         _currentActorID = actor:GetID()
+    else
+        -- Refused (another picker is already active). The action-menu commit
+        -- that called us already set the engine into the target interface
+        -- mode; unwind it so the user isn't stranded in an attack / move
+        -- interface mode with no handler driving it.
+        restoreSelection()
     end
 end
