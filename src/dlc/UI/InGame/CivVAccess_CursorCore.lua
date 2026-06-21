@@ -388,6 +388,16 @@ end
 -- No-op before the cursor is placed.
 function Cursor.recenterAfterScreen()
     TickPump.runOnce(function()
+        -- This one-shot can outlive its in-game Context. Exiting to the main
+        -- menu reactivates the Scanner handler underneath the closing GameMenu,
+        -- which queues this callback, then the engine kills the in-game env
+        -- before the next in-game tick drains it. The menu's TickPump then runs
+        -- the callback against that dead env, where every global -- including
+        -- civvaccess_shared -- reads nil. A recenter is meaningless at the menu
+        -- anyway, so bail before indexing nil.
+        if civvaccess_shared == nil then
+            return
+        end
         if civvaccess_shared.followActive then
             return
         end
