@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 Bug fixes:
+- After sending a chat message, keystrokes no longer keep typing into the chat box and Enter no longer re-sends.
 - The Military Overview (F3) no longer reads a supply count under LekMod, which has no unit supply limit.
 - The trade route overview screen now opens under LekMod instead of coming up empty.
 - Alt+Right on a unit already in the focused squad now says "already in" instead of falsely reporting another add.

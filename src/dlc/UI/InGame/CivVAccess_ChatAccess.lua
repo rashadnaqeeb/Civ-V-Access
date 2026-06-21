@@ -166,12 +166,12 @@ local function chatComposeItems()
     }
 end
 
+-- chatPanelActive reset and engine-focus release live in the handler's
+-- onDeactivate (set in toggleChatPanel), so every close path -- send-and-
+-- dismiss, `\`-toggle, and the BaseMenu Esc binding (which pops via
+-- removeByName, not through here) -- runs the same cleanup.
 closeChatPanel = function(reactivate)
-    if HandlerStack.drainAndRemove(CHAT_HANDLER, reactivate) then
-        civvaccess_shared.chatPanelActive = false
-        return true
-    end
-    return false
+    return HandlerStack.drainAndRemove(CHAT_HANDLER, reactivate)
 end
 
 local function toggleChatPanel()
@@ -212,6 +212,26 @@ local function toggleChatPanel()
             },
         },
     })
+    -- Fires on every removal path (send-and-dismiss, `\` toggle, Esc). Resets
+    -- the announce-suppression flag and hands engine keyboard focus back from
+    -- Controls.ChatEntry. Civ V has no focus-release call; the engine drops
+    -- focus only when the focused control is hidden. Unlike the popup EditBoxes
+    -- other BaseMenuEditMode screens wrap (hidden with their Context on close),
+    -- ChatEntry is a persistent always-visible engine EditBox -- without this
+    -- it keeps focus after the panel pops, so every keystroke types into it and
+    -- Enter re-fires its send callback. Hide to drop focus, reshow next tick so
+    -- it stays visible. Guarded: ChatEntry only exists in DiploCorner's env.
+    chatHandler.onDeactivate = function()
+        civvaccess_shared.chatPanelActive = false
+        if Controls.ChatEntry ~= nil then
+            Controls.ChatEntry:SetHide(true)
+            TickPump.runOnce(function()
+                if Controls.ChatEntry ~= nil then
+                    Controls.ChatEntry:SetHide(false)
+                end
+            end)
+        end
+    end
     -- `\` self-toggles like F2 does in StagingRoomAccess.
     chatHandler.bindings[#chatHandler.bindings + 1] = {
         key = VK_OEM_5,
