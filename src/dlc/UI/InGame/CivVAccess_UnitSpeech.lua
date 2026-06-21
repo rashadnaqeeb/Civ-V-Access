@@ -309,18 +309,35 @@ local function squadStatusToken(unit)
     end
     -- Wake-when-all-arrive: a member that has reached its spot is sentried or
     -- slept by the engine while stragglers finish, then woken once everyone is
-    -- in. Report that wait as holding for the named squad rather than a bare
-    -- alert / sleep. The wake mode is read from the engine (the per-member value
-    -- that actually drives the hold); the name comes from the roster, which is
-    -- the only place squad names live.
+    -- in. Report that wait as holding rather than a bare alert / sleep. The wake
+    -- mode is read from the engine (the per-member value that actually drives the
+    -- hold); the squad name comes from the separate membership token, so it isn't
+    -- repeated here.
     local num = EngineData.squadNumber(unit)
     if num ~= -1 and EngineData.squadWaitsForAll(unit) and EngineData.squadIsMoving(unit) then
         local activity = unit:GetActivityType()
         if activity == ActivityTypes.ACTIVITY_SENTRY or activity == ActivityTypes.ACTIVITY_SLEEP then
-            return Text.format("TXT_KEY_CIVVACCESS_SQUAD_HOLDING", SquadRoster.getName(num))
+            return Text.key("TXT_KEY_CIVVACCESS_SQUAD_HOLDING")
         end
     end
     return ""
+end
+
+-- Standing squad membership (Community Patch / Vox Populi only): "in <squad
+-- name>" when the unit belongs to a roster-tracked squad, "" otherwise. Distinct
+-- from squadStatusToken's escort / holding operational states -- membership is an
+-- attribute a unit carries while also fortified, sleeping, etc., so it reads as
+-- its own info token rather than folding into the first-match status cascade. The
+-- squad name lives only here now; the holding status no longer repeats it.
+local function squadMembershipToken(unit)
+    if not EngineData.squadsAvailable() then
+        return ""
+    end
+    local num = EngineData.squadNumber(unit)
+    if num < 0 then
+        return ""
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_SQUAD_MEMBER", SquadRoster.getName(num))
 end
 
 -- Returns the first matching status token (localized string), or "".
@@ -618,7 +635,8 @@ end
 -- cargo cluster -- and trails with standing capability and history.
 -- Friendlies (own or same-team) get the deep dump: embarked-prefixed
 -- name, HP, moves fraction, out-of-attacks (when spent), status, cargo,
--- combat, ranged + range, level / xp, upgrade target + cost, promotions.
+-- squad membership, combat, ranged + range, level / xp, upgrade target +
+-- cost, promotions.
 -- Visible enemies get the subset sighted players can read off a foreign
 -- flag / EnemyUnitPanel: embarked-prefixed name, HP, moves fraction,
 -- fortified only, combat, ranged (no range), promotions. HP is the same
@@ -659,6 +677,12 @@ function UnitSpeech.info(unit)
     local cargo = UnitSpeech.cargoAircraftToken(unit)
     if cargo ~= "" then
         parts[#parts + 1] = cargo
+    end
+    if friendly then
+        local squad = squadMembershipToken(unit)
+        if squad ~= "" then
+            parts[#parts + 1] = squad
+        end
     end
     local combat = unit:GetBaseCombatStrength()
     if combat > 0 then

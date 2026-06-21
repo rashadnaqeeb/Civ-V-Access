@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Unit info (/) now names the squad the selected unit belongs to.
+
 Bug fixes:
 - After sending a chat message, keystrokes no longer keep typing into the chat box and Enter no longer re-sends.
 - The Military Overview (F3) no longer reads a supply count under LekMod, which has no unit supply limit.

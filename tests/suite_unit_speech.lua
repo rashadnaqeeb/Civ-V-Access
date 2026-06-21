@@ -928,13 +928,15 @@ function M.test_status_combat_escort_gets_no_escort_token()
 end
 
 -- A wake-all member that has reached its spot (sentried by the engine) while
--- the squad is still moving reads as holding for the named squad.
-function M.test_status_wake_all_arrived_member_holds_for_named_squad()
+-- the squad is still moving reads as holding. The squad name is carried by the
+-- separate membership token, so the status itself doesn't repeat it.
+function M.test_status_wake_all_arrived_member_holds()
     setup()
     local u = mkUnit({ id = 5, activity = ActivityTypes.ACTIVITY_SENTRY })
     withSquads({ squadOf = { [5] = 7 }, wake = { [7] = 2 }, moving = true, names = { [7] = "Alpha" } }, function()
         local out = UnitSpeech.statusToken(u)
-        T.eq(out, "holding for Alpha", "arrived wake-all member must hold for its named squad: " .. out)
+        T.eq(out, "holding for squad", "arrived wake-all member must read holding: " .. out)
+        T.truthy(not out:find("Alpha", 1, true), "holding status must not name the squad: " .. out)
     end)
 end
 
@@ -946,6 +948,40 @@ function M.test_status_sentry_on_arrival_mode_is_not_holding()
         local out = UnitSpeech.statusToken(u)
         T.truthy(not out:find("holding", 1, true), "sentry-on-arrival must not hold: " .. out)
         T.truthy(out:find("TXT_KEY_MISSION_ALERT", 1, true), "must read alert instead: " .. out)
+    end)
+end
+
+-- ===== Info dump: squad membership (CP-DLL / VP only) =====
+
+-- A friendly unit in a roster-tracked squad speaks its membership in the info
+-- dump -- a standing attribute alongside any escort / holding status.
+function M.test_info_friendly_speaks_squad_membership()
+    setup()
+    local u = mkUnit({ id = 5 })
+    withSquads({ squadOf = { [5] = 7 }, names = { [7] = "Alpha" } }, function()
+        local out = UnitSpeech.info(u)
+        T.truthy(out:find("in Alpha", 1, true), "squad membership expected: " .. out)
+    end)
+end
+
+-- The squadNumber < 0 gate: a unit in no squad carries no membership token.
+function M.test_info_no_squad_omits_membership()
+    setup()
+    local u = mkUnit({ id = 5 })
+    withSquads({ squadOf = {}, names = { [7] = "Alpha" } }, function()
+        local out = UnitSpeech.info(u)
+        T.truthy(not out:find("in Alpha", 1, true), "no-squad unit must omit membership: " .. out)
+    end)
+end
+
+-- The friendly gate: squad membership is the active player's own grouping, so a
+-- visible enemy unit never leaks it even when the engine reports a squad number.
+function M.test_info_enemy_omits_squad_membership()
+    setup()
+    local u = mkUnit({ id = 5, team = 1 })
+    withSquads({ squadOf = { [5] = 7 }, names = { [7] = "Alpha" } }, function()
+        local out = UnitSpeech.info(u)
+        T.truthy(not out:find("Alpha", 1, true), "enemy must not leak squad membership: " .. out)
     end)
 end
 

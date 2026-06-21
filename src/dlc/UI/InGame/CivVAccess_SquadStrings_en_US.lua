@@ -60,8 +60,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED_BY"] = "escorted by {1_Nam
 -- Same state when the escorting unit can't be identified.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED"] = "escorted"
 -- A "wake when all arrive" member that has reached its spot and is waiting for
--- the rest of its squad to arrive before waking; {1_Name} is the squad.
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "holding for {1_Name}"
+-- the rest of its squad to arrive before waking. The squad name is carried by
+-- the separate membership token, so this status no longer repeats it.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "holding for squad"
+-- Standing squad membership, read in the unit info dump; {1_Name} is the squad.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MEMBER"] = "in {1_Name}"
 
 -- ===== Map-mode feedback =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NONE"] = "no squads"
