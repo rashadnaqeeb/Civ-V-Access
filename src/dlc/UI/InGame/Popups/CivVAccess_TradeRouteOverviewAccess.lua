@@ -255,8 +255,12 @@ local function routeExtras(route, tabKind, ctx)
     end
 
     if tabKind == "AvailableTR" and ctx ~= nil then
+        -- TradeConnectionTypes is an engine-registered global the BNW DLL
+        -- exposes but LekMod's NQMod-lineage DLL does not; indexing it
+        -- there throws. Gate on its presence (the active engine has the
+        -- enum) rather than on ctx.blockedSet, which is always a table.
         if
-            ctx.blockedSet ~= nil
+            TradeConnectionTypes ~= nil
             and route.TradeConnectionType == TradeConnectionTypes.TRADE_CONNECTION_INTERNATIONAL
             and route.ToCityName ~= nil
             and ctx.blockedSet[route.ToCityName .. "#" .. tostring(route.ToCivilizationType)]
