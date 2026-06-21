@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-06-21
+
 New Features and improvements:
 - In a squad, Alt+/ now selects the focused member so you can give it orders directly.
 - Alt+Down on a squad now opens its menu (rename, delete, settings) directly from the map.
