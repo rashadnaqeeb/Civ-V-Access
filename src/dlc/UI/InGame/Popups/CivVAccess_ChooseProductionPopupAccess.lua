@@ -289,7 +289,7 @@ end
 -- ===== Entry -> Choice item =====
 
 local function choiceFromEntry(entry)
-    return BaseMenuItems.Choice({
+    local item = BaseMenuItems.Choice({
         labelFn = function()
             local city = getCurrentCity()
             if city == nil then
@@ -307,6 +307,11 @@ local function choiceFromEntry(entry)
         activate = entryActivate(entry),
         pediaName = Text.key(entry.info.Description),
     })
+    -- Content identity for cross-tab cursor restore (Tab between Produce and
+    -- Purchase). orderType + id identify the same unit / building / project
+    -- regardless of which tab built it; restoreTabCursor matches on these.
+    item.prodEntry = entry
+    return item
 end
 
 local function entriesToItems(entries)
@@ -419,6 +424,78 @@ local function makeGroups(isProduce)
     }
 end
 
+-- ===== Cross-tab cursor restore =====
+--
+-- On Tab between Produce and Purchase, land the cursor where the player was
+-- instead of resetting to the first group. Both tabs carry the identical five
+-- groups in the same order, so the group index maps one-to-one; the items
+-- inside a group differ (a producible wonder may not be purchasable; Purchase
+-- can list a unit twice, gold and faith), so an item-level restore matches by
+-- content identity, not by index.
+--
+-- Set as onActivate on both tabs; BaseMenuTabs.switch stages the outgoing
+-- cursor on handler._tabSwitchFrom before it resets, and runs this between the
+-- reset and the announcement, so writing _level / _indices here lands the
+-- announce on the restored item.
+--
+-- Restore rules:
+--   * On a group header (level 1): land on the same group header.
+--   * On an item (level 2) with content identity: re-find that orderType + id
+--     in the destination group; the first match wins (gold before faith).
+--   * On the Queue group's read-only slots (no content identity, identical
+--     list in both tabs): preserve the slot index.
+--   * No counterpart (producible-only wonder, purchase-only entry, empty
+--     group in the target tab): fall back to the containing group header, or
+--     to the switch default (first item) when even the group is unavailable.
+local function restoreTabCursor(handler)
+    local from = handler._tabSwitchFrom
+    if from == nil or from.indices == nil then
+        return
+    end
+    local groupIdx = from.indices[1]
+    if groupIdx == nil then
+        return
+    end
+    local tab = handler.tabs[handler._tabIndex]
+    local topItems = tab and tab._items
+    if topItems == nil then
+        return
+    end
+    local group = topItems[groupIdx]
+    if group == nil or group.kind ~= "group" or not group:isNavigable() then
+        return
+    end
+    -- Land on the group header first: this is both the drillable-restore case
+    -- and the fallback when the focused item has no counterpart in this tab.
+    handler._level = 1
+    handler._indices = { groupIdx }
+    if from.level < 2 then
+        return
+    end
+    local children = group:children()
+    local fromEntry = from.item and from.item.prodEntry
+    local matchIdx
+    if fromEntry ~= nil then
+        for i, child in ipairs(children) do
+            local e = child.prodEntry
+            if e ~= nil and e.orderType == fromEntry.orderType and e.id == fromEntry.id and child:isNavigable() then
+                matchIdx = i
+                break
+            end
+        end
+    else
+        local childIdx = from.indices[2]
+        local child = childIdx ~= nil and children[childIdx] or nil
+        if child ~= nil and child:isNavigable() then
+            matchIdx = childIdx
+        end
+    end
+    if matchIdx ~= nil then
+        handler._level = 2
+        handler._indices = { groupIdx, matchIdx }
+    end
+end
+
 -- ===== BaseMenu install =====
 
 local mainHandler = BaseMenu.install(ContextPtr, {
@@ -429,8 +506,8 @@ local mainHandler = BaseMenu.install(ContextPtr, {
     priorShowHide = priorShowHide,
     deferActivate = true,
     tabs = {
-        { name = "TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TAB_PRODUCE", items = {} },
-        { name = "TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TAB_PURCHASE", items = {} },
+        { name = "TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TAB_PRODUCE", items = {}, onActivate = restoreTabCursor },
+        { name = "TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_TAB_PURCHASE", items = {}, onActivate = restoreTabCursor },
     },
 })
 

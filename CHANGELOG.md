@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 Bug fixes:
+- In the city production menu, pressing Tab to switch between Produce and Purchase now keeps your place in the list instead of jumping to the top.
 - On reward popups such as a researched technology or built wonder, Alt+Up and Alt+Down now step through the details one section at a time.
 - Repeatedly pressing Alt+Up while moving a squad no longer leaves you stuck in stacked move modes.
 - Closing a screen now brings the camera back to the hex cursor.

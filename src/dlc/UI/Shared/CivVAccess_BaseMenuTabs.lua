@@ -154,6 +154,22 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     if newTabIndex == self._tabIndex and not force then
         return
     end
+    -- Snapshot the outgoing cursor so the destination tab's onActivate can
+    -- restore an equivalent position (ChooseProductionPopup keeps the player
+    -- on the same group / item across a Produce/Purchase toggle). Captured
+    -- from the current tab before _tabIndex flips; lives only for the span of
+    -- this switch and is cleared once the hook has consumed it. Carries the
+    -- focused item object (so a content-identity match can run) plus the full
+    -- index path (so an identity-less list can preserve position by index).
+    local fromIndices = {}
+    for i = 1, self._level do
+        fromIndices[i] = self._indices[i]
+    end
+    self._tabSwitchFrom = {
+        level = self._level,
+        indices = fromIndices,
+        item = nav.currentItems(self)[nav.currentIndex(self)],
+    }
     self._tabIndex = newTabIndex
     local tab = self.tabs[newTabIndex]
     if type(tab.showPanel) == "function" then
@@ -169,7 +185,7 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
     -- (PickerReader's picker tab after a cross-tab return; reader tab on
     -- fresh selection) can swap items, restore a saved cursor, or set
     -- _level/_indices directly; the final announcement below speaks the
-    -- item the callback landed on.
+    -- item the callback landed on. _tabSwitchFrom is live for this call.
     if type(tab.onActivate) == "function" then
         Log.tryCall(
             "BaseMenu '" .. self.name .. "' onActivate for tab '" .. tostring(tab.name) .. "'",
@@ -177,6 +193,7 @@ function BaseMenuTabs.switch(self, newTabIndex, force, nav)
             self
         )
     end
+    self._tabSwitchFrom = nil
     if type(tab.autoDrillToLevel) == "number" then
         autoDrillTo(self, tab.autoDrillToLevel, nav)
     end
@@ -215,6 +232,10 @@ function BaseMenuTabs.openInitial(self, nav)
         idx = 1
     end
     self._tabIndex = idx
+    -- A fresh open never restores a saved cursor; clear any residue a prior
+    -- switch left so the restoring onActivate (if the tab has one) no-ops and
+    -- lands on the first item.
+    self._tabSwitchFrom = nil
     local tab = self.tabs[idx]
     if type(tab.showPanel) == "function" then
         Log.tryCall("BaseMenu '" .. self.name .. "' initial showPanel", tab.showPanel)

@@ -114,6 +114,61 @@ function M.test_tab_position_preserved_across_pulldown_sub()
     T.eq(h._indices[1], 1, "item index preserved")
 end
 
+-- Cross-tab cursor restore seam. BaseMenuTabs.switch stages the outgoing
+-- cursor on _tabSwitchFrom for the destination tab's onActivate, then clears
+-- it. ChooseProductionPopup's restoreTabCursor reads it to keep the player on
+-- the same item across a Produce/Purchase toggle; this exercises the framework
+-- contract that restore depends on (snapshot contents + honored cursor write).
+function M.test_tab_switch_stages_outgoing_cursor_for_onActivate()
+    setup()
+    local captured
+    local function probe(self)
+        -- Observe the staged snapshot, then restore a level-2 position the
+        -- same way restoreTabCursor does (writing _level / _indices).
+        captured = self._tabSwitchFrom
+        self._level = 2
+        self._indices = { 1, 2 }
+    end
+    local function choiceItem(label)
+        return BaseMenuItems.Choice({ labelText = label, activate = function() end })
+    end
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        tabs = {
+            {
+                name = "TAB_A",
+                items = { BaseMenuItems.Group({ textKey = "G", items = { choiceItem("A1"), choiceItem("A2") } }) },
+            },
+            {
+                name = "TAB_B",
+                onActivate = probe,
+                items = { BaseMenuItems.Group({ textKey = "G", items = { choiceItem("B1"), choiceItem("B2") } }) },
+            },
+        },
+    })
+    HandlerStack.push(h)
+    -- Drill into tab A's group and move onto its second child.
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, 0, WM_KEYDOWN)
+    T.eq(h._level, 2)
+    T.eq(h._indices[2], 2)
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_TAB, 0, WM_KEYDOWN)
+    -- onActivate saw the outgoing cursor: level, full index path, focused item.
+    T.eq(captured.level, 2, "snapshot carries outgoing level")
+    T.eq(captured.indices[1], 1)
+    T.eq(captured.indices[2], 2, "snapshot carries full index path")
+    T.eq(captured.item.labelText, "A2", "snapshot carries the focused item object")
+    -- Snapshot cleared once the switch consumed it.
+    T.truthy(h._tabSwitchFrom == nil, "snapshot cleared after switch")
+    -- The cursor write inside onActivate is honored by the post-switch announce.
+    T.eq(h._tabIndex, 2)
+    T.eq(h._level, 2)
+    T.eq(h._indices[2], 2)
+    T.eq(speaks[#speaks].text, "B2", "announce lands on the restored child, not the first item")
+end
+
 -- Install --------------------------------------------------------------
 
 function M.test_install_push_on_show_pop_on_hide()
