@@ -4,6 +4,10 @@
 -- category menus -- same pushed-editor idiom, same cached=false / setItems
 -- liveness, same shared-EditBox rename field.
 --
+-- The per-squad editor (SquadMenuCore.openSquad) has a second entry point: the
+-- map layer's Alt+Down opens it straight onto the focused squad, bypassing the
+-- orchestrator. It stands alone there -- see the openSquad header.
+--
 -- Liveness. The editor's member rows are rebuilt via menu.setItems on every
 -- removal so a removed unit's row disappears at once. The orchestrator's
 -- squad list is rebuilt via setItems on add / delete (the structural changes
@@ -41,6 +45,13 @@ local function repMember(num)
     return members(num)[1]
 end
 
+-- A squad is moving when any live member is mid-move; the engine carries the
+-- move on the unit, so it is read through a representative member.
+local function squadIsMoving(num)
+    local rep = repMember(num)
+    return rep ~= nil and EngineData.squadIsMoving(rep)
+end
+
 -- Wipe the shared rename EditBox so the field announces the squad's current
 -- name via valueFn rather than a name typed for a prior squad (the box keeps
 -- a typing buffer GetText reads from). Mirrors ScannerFavorites.openEditor.
@@ -69,6 +80,33 @@ local function buildSquadItems(num)
                 EngineData.removeFromSquad(unit)
                 menu.setItems(buildSquadItems(num))
                 speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_REMOVED", SquadRoster.getName(num)))
+            end,
+        })
+    end
+
+    -- Move: hand off to the map destination picker. The picker needs the
+    -- cursor on the world map, so the menus (this editor and the orchestrator
+    -- when open) are popped first; SquadMoveMode.enter then announces the
+    -- squad and "choose destination", so no confirmation is spoken here.
+    items[#items + 1] = BaseMenuItems.Text({
+        textKey = "TXT_KEY_CIVVACCESS_SQUAD_MOVE_BUTTON",
+        onActivate = function()
+            HandlerStack.removeByName("SquadEditor", false)
+            HandlerStack.removeByName("SquadMenu", false)
+            SquadMoveMode.enter(num)
+        end,
+    })
+
+    -- Cancel move: only present while the squad is actually moving. Cancels
+    -- the engine move, then rebuilds the list so this row disappears (the
+    -- squad is no longer moving) the moment the cancel lands.
+    if squadIsMoving(num) then
+        items[#items + 1] = BaseMenuItems.Text({
+            textKey = "TXT_KEY_CIVVACCESS_SQUAD_CANCEL_MOVE",
+            onActivate = function(_, menu)
+                EngineData.cancelSquadMove(repMember(num))
+                menu.setItems(buildSquadItems(num))
+                speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_MOVE_CANCELED", SquadRoster.getName(num)))
             end,
         })
     end
@@ -144,7 +182,11 @@ local function buildSquadItems(num)
     return items
 end
 
-local function openSquad(num)
+-- Open one squad's editor. Reached two ways: Enter on an orchestrator row
+-- (F11), and the map layer's Alt+Down straight onto the focused squad. The
+-- editor stands alone -- its delete path guards the orchestrator refresh on
+-- _orch ~= nil -- so opening it without the orchestrator on the stack is safe.
+function SquadMenuCore.openSquad(num)
     clearRenameBox()
     local handler = BaseMenu.create({
         name = "SquadEditor",
@@ -165,12 +207,16 @@ buildTopItems = function()
     local items = {}
     for _, num in ipairs(SquadRoster.getList()) do
         local squadNum = num
+        -- The row reads the full status (name first, then unit count, movement
+        -- with destination, wake mode, escort); fullStatus leads with the name,
+        -- so the row is the name followed by its status. Re-read live on
+        -- re-exposure, so a move finishing or a member dying updates the row.
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
-                return SquadRoster.getName(squadNum)
+                return SquadSpeech.fullStatus(squadNum)
             end,
             onActivate = function()
-                openSquad(squadNum)
+                SquadMenuCore.openSquad(squadNum)
             end,
         })
     end

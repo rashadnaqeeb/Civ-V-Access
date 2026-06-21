@@ -11,6 +11,13 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- In a squad, Alt+/ now selects the focused member so you can give it orders directly.
+- Alt+Down on a squad now opens its menu (rename, delete, settings) directly from the map.
+- Alt+Left now deletes the focused squad when it is already empty.
+- With no squads yet, Alt+Right now creates one, adds the selected unit, and opens its menu to set it up.
+- Alt+Up now reads a squad's move in progress; press again to cancel that move and pick a new destination.
+
 ## [2.0.2] - 2026-06-21
 
 New Features and improvements:

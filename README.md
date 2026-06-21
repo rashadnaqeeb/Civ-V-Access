@@ -307,10 +307,11 @@ The rest is done from the map, using the arrow keys the map doesn't otherwise us
 
 - **Up / Down** — cycle through your squads; speaks the name, plus movement status when the squad is on the move
 - **Left / Right** — cycle through the units in the focused squad
-- **Alt+Right** — add the currently selected unit to the focused squad
-- **Alt+Left** — remove the focused unit from its squad
-- **Alt+Up** — move the focused squad. Space previews the turns to the cursor tile, Enter sends the squad there, Escape cancels
-- **Alt+Down** — read the squad's full status; press it again to cancel a move in progress
+- **Alt+/** — select the focused unit as your active selection, so you can give it orders directly
+- **Alt+Right** — add the currently selected unit to the focused squad. When you have no squads yet, this creates one, adds the unit, and drops you into its menu to set it up
+- **Alt+Left** — remove the focused unit from its squad. On a squad that's already empty, this deletes the squad instead
+- **Alt+Up** — move the focused squad. Space previews the turns to the cursor tile, Enter sends the squad there, Escape cancels. If the squad is already moving, Alt+Up reads the move; press it again to cancel that move and pick a new destination
+- **Alt+Down** — open the focused squad's menu (rename, delete, settings) directly, without going through the F11 list
 
 Two per-squad settings, both in the squad menu, shape how a move plays out:
 

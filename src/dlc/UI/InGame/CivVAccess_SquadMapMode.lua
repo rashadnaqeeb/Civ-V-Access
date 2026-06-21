@@ -7,12 +7,17 @@
 --   Up / Down      cycle the focused squad; speak its name, plus the
 --                  movement status when it is mid-move.
 --   Left / Right   cycle the focused member; speak its row.
---   Alt+Left       remove the focused member from its squad.
+--   Alt+/          select the focused member as the engine head selection so
+--                  the player can command it; speak the selection.
+--   Alt+Left       remove the focused member from its squad, or delete the
+--                  squad outright once it is empty.
 --   Alt+Right      add the head-selected unit to the focused squad and move
---                  focus onto it.
---   Alt+Up         enter the move sub-mode for the focused squad.
---   Alt+Down       report the focused squad's full status; a second Alt+Down
---                  while a move is pending cancels it (armed two-press).
+--                  focus onto it; with no squads yet, create one, add the
+--                  unit, and open the new squad's editor.
+--   Alt+Up         open the move sub-mode for the focused squad; on a squad
+--                  that is mid-move, read the move, then press again to
+--                  cancel it and reopen the sub-mode to reissue.
+--   Alt+Down       open the focused squad's editor (rename, delete, settings).
 --   F11            open the squad menu.
 --
 -- Arrow keys reach here through the WorldView input hook, which dispatches
@@ -25,6 +30,7 @@ SquadMapMode = {}
 
 local MOD_NONE = 0
 local MOD_ALT = 4
+local VK_OEM_2 = 191 -- the "/" key; rides the unit-info key slot on every layout
 
 local speak = SpeechPipeline.speakInterrupt
 local bind = HandlerStack.bind
@@ -44,16 +50,16 @@ local function squadIsMoving(num)
     return rep ~= nil and EngineData.squadIsMoving(rep)
 end
 
--- Armed-cancel state for the Alt+Down two-press. Holds the squad number a
--- prior Alt+Down armed; a second Alt+Down on the same still-moving squad
--- consumes it and cancels the move. Any other squad binding clears it, so a
--- focus change or a different action disarms the cancel (the player can't
--- accidentally cancel a squad they've navigated away from). No timer: like
--- the combat-confirm latch, the identity key is the guard.
-local _pendingCancel = nil
+-- Armed-reissue state for the Alt+Up two-press over a moving squad. Holds the
+-- squad number a prior Alt+Up read; a second Alt+Up on that same still-moving
+-- squad cancels the move and reopens the picker to reissue. Any other squad
+-- binding clears it (see the clearArm() calls), so navigating away disarms the
+-- reissue and the player can't cancel a squad they've moved focus off of. No
+-- timer: like the combat-confirm latch, the squad identity is the guard.
+local _pendingReissue = nil
 
 local function clearArm()
-    _pendingCancel = nil
+    _pendingReissue = nil
 end
 
 -- ===== Squad cycling (Up / Down) =====
@@ -97,6 +103,33 @@ local function cycleUnit(stepFn)
     end
 end
 
+-- ===== Select focused member (Alt+/) =====
+
+-- Bridge the mod-side focus to the engine selection: make the focused member
+-- (the unit Left/Right lands on, and Alt+Left would remove) the head selection
+-- so the player can issue normal unit commands to it. Mirrors the bookmark /
+-- Military Advisor jump: markUserInitiatedSelection lets the selection
+-- announcement interrupt, and selectAndReveal speaks via the selection
+-- listener; an already-selected unit only re-centers (no listener fire), so we
+-- speak its info to confirm the keystroke.
+local function selectFocusedUnit()
+    clearArm()
+    local num = SquadFocusCore.currentSquad()
+    if num == nil then
+        speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NONE"))
+        return
+    end
+    local unit = SquadFocusCore.currentUnit()
+    if unit == nil then
+        speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NO_UNITS"))
+        return
+    end
+    UnitControl.markUserInitiatedSelection()
+    if not UnitControl.selectAndReveal(unit) then
+        speak(UnitSpeech.info(unit))
+    end
+end
+
 -- ===== Membership edits (Alt+Left / Alt+Right) =====
 
 local function removeFocusedUnit()
@@ -108,7 +141,12 @@ local function removeFocusedUnit()
     end
     local unit = SquadFocusCore.currentUnit()
     if unit == nil then
-        speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NO_UNITS"))
+        -- An empty squad has no member to remove, so the per-unit Alt+Left
+        -- becomes the structural delete (the mirror of Alt+Right creating a
+        -- squad when none exist). Name first, the entry is gone after delete.
+        local name = SquadRoster.getName(num)
+        SquadRoster.delete(num)
+        speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_DELETED", name))
         return
     end
     EngineData.removeFromSquad(unit)
@@ -123,9 +161,11 @@ local function addSelectedUnit()
         return
     end
     local num = SquadFocusCore.currentSquad()
-    if num == nil then
-        speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NONE"))
-        return
+    -- No squads yet: create one to add into, then drop the player into its
+    -- editor below to set escort / wake mode / name on the new squad.
+    local created = num == nil
+    if created then
+        num = SquadRoster.allocate()
     end
     local prior = EngineData.squadNumber(unit)
     EngineData.assignToSquad(unit, num)
@@ -136,6 +176,12 @@ local function addSelectedUnit()
     EngineData.setSquadEndMovementMode(unit, SquadRoster.getWakeMode(num))
     -- Move focus onto the added unit so an immediate Alt+Left removes it.
     SquadFocusCore.focusOnUnit(unit)
+    if created then
+        -- A brand-new squad has settings worth tuning right away; drop the
+        -- player into its editor, which announces the squad and its new member.
+        SquadMenuCore.openSquad(num)
+        return
+    end
     if prior >= 0 and prior ~= num then
         speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_MOVED_TO", SquadRoster.getName(num)))
     else
@@ -143,41 +189,49 @@ local function addSelectedUnit()
     end
 end
 
--- ===== Move sub-mode (Alt+Up) =====
+-- ===== Move / read / reissue (Alt+Up) =====
 
-local function enterMoveMode()
+-- Alt+Up is the move key with a built-in two-press over an in-progress move.
+-- Idle squad: open the destination picker straight away (the common case).
+-- Moving squad: the first press reads the move; a second press on the same
+-- still-moving squad cancels the move and reopens the picker so the
+-- player can reissue. The arm keys on the squad number and clears on any other
+-- squad action, so a focus change can't leave a stray reissue primed; a move
+-- that finishes between presses falls back to the idle path (straight picker).
+local function moveAction()
+    local num = SquadFocusCore.currentSquad()
+    if num == nil then
+        clearArm()
+        speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NONE"))
+        return
+    end
+    if not squadIsMoving(num) then
+        clearArm()
+        SquadMoveMode.enter(num)
+        return
+    end
+    if _pendingReissue == num then
+        clearArm()
+        EngineData.cancelSquadMove(repMember(num))
+        SquadMoveMode.enter(num)
+        return
+    end
+    speak(SquadSpeech.movementStatus(num))
+    _pendingReissue = num
+end
+
+-- ===== Editor (Alt+Down) =====
+
+-- Open the focused squad's editor (rename, delete, escort, wake mode, member
+-- removal) straight from the map, skipping the F11 orchestrator list.
+local function openEditor()
     clearArm()
     local num = SquadFocusCore.currentSquad()
     if num == nil then
         speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NONE"))
         return
     end
-    SquadMoveMode.enter(num)
-end
-
--- ===== Status + armed cancel (Alt+Down) =====
-
-local function reportOrCancel()
-    local num = SquadFocusCore.currentSquad()
-    if num == nil then
-        clearArm()
-        speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NONE"))
-        return
-    end
-    -- Second press on the armed, still-moving squad cancels the move.
-    if _pendingCancel == num and squadIsMoving(num) then
-        clearArm()
-        EngineData.cancelSquadMove(repMember(num))
-        speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_MOVE_CANCELED", SquadRoster.getName(num)))
-        return
-    end
-    speak(SquadSpeech.fullStatus(num))
-    -- Arm the cancel only when there is actually a move to cancel.
-    if squadIsMoving(num) then
-        _pendingCancel = num
-    else
-        clearArm()
-    end
+    SquadMenuCore.openSquad(num)
 end
 
 -- ===== Menu (F11) =====
@@ -193,10 +247,11 @@ function SquadMapMode.getBindings()
         bind(Keys.VK_DOWN, MOD_NONE, cycleSquad(SquadFocusCore.prevSquad), "Previous squad"),
         bind(Keys.VK_RIGHT, MOD_NONE, cycleUnit(SquadFocusCore.nextUnit), "Next squad unit"),
         bind(Keys.VK_LEFT, MOD_NONE, cycleUnit(SquadFocusCore.prevUnit), "Previous squad unit"),
+        bind(VK_OEM_2, MOD_ALT, selectFocusedUnit, "Select focused squad unit"),
         bind(Keys.VK_LEFT, MOD_ALT, removeFocusedUnit, "Remove unit from squad"),
         bind(Keys.VK_RIGHT, MOD_ALT, addSelectedUnit, "Add unit to squad"),
-        bind(Keys.VK_UP, MOD_ALT, enterMoveMode, "Move squad"),
-        bind(Keys.VK_DOWN, MOD_ALT, reportOrCancel, "Squad status, twice to cancel move"),
+        bind(Keys.VK_UP, MOD_ALT, moveAction, "Move squad, or read and reissue a move in progress"),
+        bind(Keys.VK_DOWN, MOD_ALT, openEditor, "Open squad editor"),
         bind(Keys.VK_F11, MOD_NONE, openMenu, "Open squad menu"),
     }
     local helpEntries = {
@@ -207,6 +262,10 @@ function SquadMapMode.getBindings()
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_CYCLE_UNIT",
             description = "TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_CYCLE_UNIT",
+        },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_SELECT",
+            description = "TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_SELECT",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_REMOVE",
@@ -221,8 +280,8 @@ function SquadMapMode.getBindings()
             description = "TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_MOVE",
         },
         {
-            keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_STATUS",
-            description = "TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_STATUS",
+            keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_EDITOR",
+            description = "TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_EDITOR",
         },
         {
             keyLabel = "TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_MENU",
