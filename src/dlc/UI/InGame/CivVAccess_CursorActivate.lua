@@ -17,7 +17,8 @@
 -- is a puppet and the player may annex), a met minor opens the read-only
 -- city screen, a met major opens diplomacy (or the deal screen for human
 -- opponents) with the same turn-active guard LeaderSelected uses, and
--- unmet foreigners silent no-op. The unit action is just UI.SelectUnit.
+-- barbarian-held cities and unmet foreigners silent no-op. The unit action
+-- is just UI.SelectUnit.
 
 CursorActivate = {}
 
@@ -63,6 +64,15 @@ local function activateCity(plot)
     local activeTeam = Teams[Game.GetActiveTeam()]
     local other = Players[ownerID]
     if not activeTeam:IsHasMet(other:GetTeam()) then
+        return
+    end
+    -- A barbarian-held city (city-state or major captured by barbarians) is
+    -- met but not a minor, so it would fall through to the major-civ branch
+    -- and open a leaderhead diplomacy screen for a player with no leader,
+    -- which crashes the game. Barbarians have no diplomacy and the city
+    -- can't be entered, so there's nothing to activate -- the cursor number
+    -- keys already read it. Silent no-op, like an unmet foreigner.
+    if other:IsBarbarian() then
         return
     end
     if other:IsMinorCiv() then

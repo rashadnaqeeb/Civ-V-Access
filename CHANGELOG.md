@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Pressing Enter on a city held by barbarians no longer crashes the game.
+
 ## [2.0.5] - 2026-06-22
 
 Bug fixes:
