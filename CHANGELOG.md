@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- A trade item already in the deal no longer reappears in the available list, preventing duplicate offers and a crash from adding a second luxury.
+
 ## [2.0.4] - 2026-06-22
 
 New Features and improvements:

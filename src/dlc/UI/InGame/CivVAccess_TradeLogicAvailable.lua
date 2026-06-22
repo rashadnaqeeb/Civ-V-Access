@@ -16,6 +16,105 @@
 
 TradeLogicAvailable = {}
 
+-- Already-placed suppression -------------------------------------------------
+--
+-- The base / VP mouse UI hides a pocket control the moment its item lands on
+-- the deal table (DisplayDeal: gold / GPT / resources / booleans / cities /
+-- votes all SetHide(true) their pocket on placement), so a sighted player can
+-- never place the same item twice. Our Available list is rebuilt from
+-- g_Deal:IsPossibleToTradeItem instead, and that engine gate does NOT consider
+-- pending deal contents -- it reports an item tradeable even after it's already
+-- on the table. Without mirroring the pocket-hide, an already-placed item stays
+-- offered, and re-activating it makes the engine push a duplicate entry: every
+-- boolean (e.g. Allow Embassy) gets scored again by the AI valuation, and a
+-- duplicate resource entry collides in DisplayDeal's per-resource table render
+-- and crashes the game. collectPlacedKeys walks g_Deal once per side and the
+-- Available builders skip any item whose key is already placed.
+
+-- Normalize a vote "repeal" flag to "1" / "0". The placed-side value comes
+-- from g_Deal:GetNextItem (flag1) and the available-side value from
+-- g_LeagueVoteList (tVote.Repeal); one may be a boolean and the other a 0/1
+-- number, and Lua treats numeric 0 as truthy, so a bare `x and 1 or 0` would
+-- collapse both to 1. Compare against the true tokens explicitly so both
+-- representations key the same way.
+local function repealFlag(x)
+    return (x == true or x == 1) and "1" or "0"
+end
+
+-- True iff `itemType` equals the engine constant named `name`, guarding the
+-- nil constants that don't exist on the active engine (MAPS / TECHS /
+-- VASSALAGE are Community Patch additions, absent on vanilla).
+local function isType(itemType, name)
+    local constant = TradeableItems[name]
+    return constant ~= nil and itemType == constant
+end
+
+-- Map a placed deal entry to a stable key the matching Available builder can
+-- reproduce. Multi-instance types (resources, techs, cities, third-party,
+-- votes) key by their distinguishing data so only the exact placed entry is
+-- suppressed; single-flag booleans key by the item constant. Returns nil for
+-- types we don't surface in Available (e.g. peace treaty), which never match.
+local function placedKey(itemType, data1, data2, flag1)
+    if isType(itemType, "TRADE_ITEM_GOLD") then
+        return "gold"
+    elseif isType(itemType, "TRADE_ITEM_GOLD_PER_TURN") then
+        return "gpt"
+    elseif isType(itemType, "TRADE_ITEM_RESOURCES") then
+        return "res:" .. tostring(data1)
+    elseif isType(itemType, "TRADE_ITEM_TECHS") then
+        return "tech:" .. tostring(data1)
+    elseif isType(itemType, "TRADE_ITEM_CITIES") then
+        return "city:" .. tostring(data1) .. "," .. tostring(data2)
+    elseif isType(itemType, "TRADE_ITEM_THIRD_PARTY_PEACE") then
+        return "tpp:" .. tostring(data1)
+    elseif isType(itemType, "TRADE_ITEM_THIRD_PARTY_WAR") then
+        return "tpw:" .. tostring(data1)
+    elseif isType(itemType, "TRADE_ITEM_VOTE_COMMITMENT") then
+        return "vote:" .. tostring(data1) .. ":" .. tostring(data2) .. ":" .. repealFlag(flag1)
+    end
+    local booleans = {
+        "TRADE_ITEM_ALLOW_EMBASSY",
+        "TRADE_ITEM_OPEN_BORDERS",
+        "TRADE_ITEM_DEFENSIVE_PACT",
+        "TRADE_ITEM_RESEARCH_AGREEMENT",
+        "TRADE_ITEM_DECLARATION_OF_FRIENDSHIP",
+        "TRADE_ITEM_TRADE_AGREEMENT",
+        "TRADE_ITEM_MAPS",
+        "TRADE_ITEM_VASSALAGE",
+        "TRADE_ITEM_VASSALAGE_REVOKE",
+    }
+    for _, name in ipairs(booleans) do
+        if isType(itemType, name) then
+            return "type:" .. tostring(itemType)
+        end
+    end
+    return nil
+end
+
+-- Set of placed-item keys contributed by `side` (mirrors the side filter the
+-- Offering builder uses: an entry belongs to us when its fromPlayer is the
+-- active player). Re-iterates g_Deal live every build; no caching.
+local function collectPlacedKeys(side)
+    local placed = {}
+    if g_Deal == nil or TradeableItems == nil then
+        return placed
+    end
+    local bFromUs = TradeLogicAccess.sideIsUs(side)
+    local active = Game and Game.GetActivePlayer and Game.GetActivePlayer() or 0
+    g_Deal:ResetIterator()
+    local itemType, _, _, data1, data2, _, flag1, fromPlayer = g_Deal:GetNextItem()
+    while itemType ~= nil do
+        if (fromPlayer == active) == bFromUs then
+            local key = placedKey(itemType, data1, data2, flag1)
+            if key ~= nil then
+                placed[key] = true
+            end
+        end
+        itemType, _, _, data1, data2, _, flag1, fromPlayer = g_Deal:GetNextItem()
+    end
+    return placed
+end
+
 -- Build a "<label>, disabled" pocket leaf whose announcement appends the
 -- engine's live tooltip on the corresponding base-game control. Mirrors
 -- what sighted players see: the base UI greys the pocket control and
@@ -36,7 +135,10 @@ end
 -- the two civs (peace deals exempt); the base UI sets
 -- TXT_KEY_DIPLO_NEED_DOF_TT_ONE_LINE on the pocket-gold control's tooltip
 -- in that state, which disabledPocketLeaf reads live.
-local function availableGoldLeaf(side)
+local function availableGoldLeaf(side, placed)
+    if placed["gold"] then
+        return nil
+    end
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local other = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local pocketControlName = TradeLogicAccess.prefix(side) .. "PocketGold"
@@ -71,7 +173,10 @@ end
 -- IsPossibleToTradeItem check on TRADE_ITEM_GOLD_PER_TURN). The base UI
 -- greys the control without setting a tooltip; disabledPocketLeaf handles
 -- that path with a silent no-op on Enter.
-local function availableGoldPerTurnLeaf(side)
+local function availableGoldPerTurnLeaf(side, placed)
+    if placed["gpt"] then
+        return nil
+    end
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local other = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local dealDur = TradeLogicAccess.dealDuration()
@@ -167,8 +272,11 @@ end
 -- contextual tooltip in TradeLogic.lua, e.g. "no tech" / "they already
 -- have one"). controlSuffix is the base-control name without the Us /
 -- Them prefix (e.g. "PocketAllowEmbassy").
-local function availableBooleanLeaf(side, labelKey, itemConstant, controlSuffix, addFn, bothSides, turnTimed)
+local function availableBooleanLeaf(side, placed, labelKey, itemConstant, controlSuffix, addFn, bothSides, turnTimed)
     if itemConstant == nil then
+        return nil
+    end
+    if placed["type:" .. itemConstant] then
         return nil
     end
     local iPlayer = TradeLogicAccess.sidePlayer(side)
@@ -222,14 +330,14 @@ end
 -- GameInfo.Resources once, filter by legality, partition into the two
 -- buckets. g_Deal:IsPossibleToTradeItem does the per-resource legality
 -- check the engine uses in RefreshPocketResources.
-local function availableResourceGroups(side)
+local function availableResourceGroups(side, placed)
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local otherPlayer = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local luxuries = {}
     local strategics = {}
     for row in GameInfo.Resources() do
         local resType = row.ID
-        if row.ResourceUsage == 1 or row.ResourceUsage == 2 then
+        if (row.ResourceUsage == 1 or row.ResourceUsage == 2) and not placed["res:" .. resType] then
             local item
             if g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_RESOURCES, resType, 1) then
                 item = availableResourceLeaf(side, resType, row)
@@ -285,7 +393,7 @@ end
 -- tech is currently tradeable. Per-tech tooltip mirrors RefreshPocketTechs
 -- (GetShortHelpTextForTech, a CP vendor global). Gated on the CP-only
 -- pocket stack control so engines without tech trading never build it.
-local function availableTechsGroup(side)
+local function availableTechsGroup(side, placed)
     local pfx = TradeLogicAccess.prefix(side)
     if Controls[pfx .. "PocketTechnologyStack"] == nil or TradeableItems.TRADE_ITEM_TECHS == nil then
         return nil
@@ -295,7 +403,10 @@ local function availableTechsGroup(side)
     local items = {}
     for row in GameInfo.Technologies() do
         local techID = row.ID
-        if g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_TECHS, techID) then
+        if
+            not placed["tech:" .. techID]
+            and g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_TECHS, techID)
+        then
             local label = Text.key(row.Description)
             items[#items + 1] = BaseMenuItems.Text({
                 labelText = label,
@@ -327,7 +438,7 @@ end
 -- in g_LeagueVoteList. The list is flattened by UpdateLeagueVotes at
 -- display time; here we re-run it so we see current state, then filter by
 -- legality.
-local function availableVotesGroup(side)
+local function availableVotesGroup(side, placed)
     if type(UpdateLeagueVotes) == "function" then
         local ok, err = pcall(UpdateLeagueVotes)
         if not ok then
@@ -351,6 +462,7 @@ local function availableVotesGroup(side)
         local iNumVotes = pLeague:GetCoreVotesForMember(iPlayer)
         if
             iNumVotes > 0
+            and not placed["vote:" .. tVote.ID .. ":" .. tVote.VoteChoice .. ":" .. repealFlag(tVote.Repeal)]
             and g_Deal:IsPossibleToTradeItem(
                 iPlayer,
                 otherPlayer,
@@ -401,7 +513,7 @@ local function availableVotesGroup(side)
 end
 
 -- Cities group: enumerate this side's cities, filter by legality.
-local function availableCitiesGroup(side)
+local function availableCitiesGroup(side, placed)
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local otherPlayer = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local pPlayer = Players[iPlayer]
@@ -411,7 +523,8 @@ local function availableCitiesGroup(side)
     local items = {}
     for pCity in pPlayer:Cities() do
         if
-            g_Deal:IsPossibleToTradeItem(
+            not placed["city:" .. pCity:GetX() .. "," .. pCity:GetY()]
+            and g_Deal:IsPossibleToTradeItem(
                 iPlayer,
                 otherPlayer,
                 TradeableItems.TRADE_ITEM_CITIES,
@@ -449,7 +562,7 @@ end
 -- and the engine's own peace/war chooser only earns its keep visually -- a
 -- list-only reader gains nothing from a long list of "disabled, not at
 -- war" entries.
-local function availableOtherPlayersGroup(side)
+local function availableOtherPlayersGroup(side, placed)
     local iPlayer = TradeLogicAccess.sidePlayer(side)
     local otherPlayer = TradeLogicAccess.sideIsUs(side) and g_iThem or g_iUs
     local makePeace = {}
@@ -463,7 +576,8 @@ local function availableOtherPlayersGroup(side)
             local leaderInfo = GameInfo.Leaders[pl:GetLeaderType()]
             local pediaName = leaderInfo and Text.key(leaderInfo.Description) or nil
             if
-                g_Deal:IsPossibleToTradeItem(
+                not placed["tpp:" .. theirTeam]
+                and g_Deal:IsPossibleToTradeItem(
                     iPlayer,
                     otherPlayer,
                     TradeableItems.TRADE_ITEM_THIRD_PARTY_PEACE,
@@ -481,7 +595,13 @@ local function availableOtherPlayersGroup(side)
                 })
             end
             if
-                g_Deal:IsPossibleToTradeItem(iPlayer, otherPlayer, TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR, theirTeam)
+                not placed["tpw:" .. theirTeam]
+                and g_Deal:IsPossibleToTradeItem(
+                    iPlayer,
+                    otherPlayer,
+                    TradeableItems.TRADE_ITEM_THIRD_PARTY_WAR,
+                    theirTeam
+                )
             then
                 local capturedTeam = theirTeam
                 declareWar[#declareWar + 1] = BaseMenuItems.Text({
@@ -522,18 +642,27 @@ function TradeLogicAvailable.buildAvailableItems(side)
     if g_Deal == nil or TradeableItems == nil then
         return { TradeLogicAccess.emptyPlaceholder("TXT_KEY_CIVVACCESS_TRADE_NONE_AVAILABLE") }
     end
+    -- Items already on the deal table for this side are hidden from Available,
+    -- mirroring the base UI's pocket-hide on placement. See collectPlacedKeys.
+    local placed = collectPlacedKeys(side)
     local items = {}
     -- Gold + GPT as flat leaves at the top of the list.
-    items[#items + 1] = availableGoldLeaf(side)
-    items[#items + 1] = availableGoldPerTurnLeaf(side)
+    local gold = availableGoldLeaf(side, placed)
+    if gold ~= nil then
+        items[#items + 1] = gold
+    end
+    local gpt = availableGoldPerTurnLeaf(side, placed)
+    if gpt ~= nil then
+        items[#items + 1] = gpt
+    end
 
     -- Resources group (luxury / strategic sub-groups).
-    for _, g in ipairs(availableResourceGroups(side)) do
+    for _, g in ipairs(availableResourceGroups(side, placed)) do
         items[#items + 1] = g
     end
 
     -- Technologies (Community Patch; nil on engines without tech trading).
-    local techs = availableTechsGroup(side)
+    local techs = availableTechsGroup(side, placed)
     if techs ~= nil then
         items[#items + 1] = techs
     end
@@ -543,7 +672,7 @@ function TradeLogicAvailable.buildAvailableItems(side)
     -- is disabled we read that control's tooltip live so the user hears
     -- the engine's stated reason.
     local function addBoolean(key, constant, controlSuffix, addFn, bothSides, turnTimed)
-        local it = availableBooleanLeaf(side, key, constant, controlSuffix, addFn, bothSides, turnTimed)
+        local it = availableBooleanLeaf(side, placed, key, constant, controlSuffix, addFn, bothSides, turnTimed)
         if it ~= nil then
             items[#items + 1] = it
         end
@@ -616,19 +745,19 @@ function TradeLogicAvailable.buildAvailableItems(side)
     end
 
     -- Cities.
-    local cities = availableCitiesGroup(side)
+    local cities = availableCitiesGroup(side, placed)
     if cities ~= nil then
         items[#items + 1] = cities
     end
 
     -- Other Players (Make Peace / Declare War).
-    local others = availableOtherPlayersGroup(side)
+    local others = availableOtherPlayersGroup(side, placed)
     if others ~= nil then
         items[#items + 1] = others
     end
 
     -- Votes.
-    local votes = availableVotesGroup(side)
+    local votes = availableVotesGroup(side, placed)
     if votes ~= nil then
         items[#items + 1] = votes
     end
