@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.0.5] - 2026-06-22
+
 Bug fixes:
 - City-state quests now read one at a time instead of as a single block.
 - A trade item already in the deal no longer reappears in the available list, preventing duplicate offers and a crash from adding a second luxury.
