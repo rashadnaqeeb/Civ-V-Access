@@ -21,6 +21,10 @@
 -- None of the names are in the lint seam-guard lists.
 
 include("CivVAccess_DealLabelShared")
+-- The diplomat unit-list view renders through BaseTable, which the popup
+-- include bundle does not carry; pull it in here since this VP-only file is
+-- its sole consumer in the EspionageOverview Context.
+include("CivVAccess_BaseTableCore")
 
 EspionageVP = {}
 

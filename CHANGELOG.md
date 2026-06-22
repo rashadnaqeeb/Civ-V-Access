@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 Bug fixes:
 - A trade item already in the deal no longer reappears in the available list, preventing duplicate offers and a crash from adding a second luxury.
+- The diplomat's military unit list in the espionage view now opens under Vox Populi instead of doing nothing.
 
 ## [2.0.4] - 2026-06-22
 
