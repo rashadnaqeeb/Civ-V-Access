@@ -75,7 +75,12 @@ Run these now if needed. Run them sequentially - they each write under `dist/` a
 
 Any mod-state component that will build from source this release (step 2 bumped it, or it's new this release) needs its non-committed build inputs staged first, or `package-release.ps1` throws partway naming the missing one:
 
-- Overlays (`vp-overlay` / `cp-overlay` / `lekmod-overlay`): `build/vendor/{vp,cp,lekmod}` from `py tools/vendoring/vendor.py generate --engine vp` (and `cp`, `lekmod`).
+- Overlays (`vp-overlay` / `cp-overlay` / `lekmod-overlay`): `build/vendor/{vp,cp,lekmod}`. Generate them exactly as `resync-*.ps1` does, with the source flags — `--mods` defaults to the player's `Documents` MODS folder, which a modpack-deployed install does NOT populate with the VP/CP mod, so a bare `generate --engine vp` reads empty source and ~11 recipes fail with a "NOT generated" list and exit 1. Point `--mods`/`--clone`/`--lekmod` at the sibling clones the re-sync mirrors into:
+  - `py tools/vendoring/vendor.py generate --engine vp --mods ../Community-Patch-DLL --clone ../Community-Patch-DLL`
+  - `py tools/vendoring/vendor.py generate --engine cp --mods ../Community-Patch-DLL --out build/vendor/cp`
+  - `py tools/vendoring/vendor.py generate --engine lekmod --lekmod ../Lekmod --out build/vendor/lekmod`
+
+  Each must exit 0. A nonzero exit means a recipe no longer matches the pinned source — that is a re-sync concern, not a plain release; stop and surface it rather than shipping a tree with missing override files. On a plain release these trees already exist from the last re-sync, so regenerate only if you suspect they were clobbered (e.g. a prior bare-command attempt this session). Do not chain the three with `&&` — a failure short-circuits the rest and leaves you unsure which trees are stale.
 - `vp-modpack`: `build/modpack-out` from `./build-modpack.ps1`. `cp-modpack`: `build/modpack-cp-out` from `./build-modpack-cp.ps1`. Both bakes require a prior manual merged-DB session (see `docs/llm-docs/cp-vp-support.md`) - they are NOT one-button. If step 2 left these versions unbumped, the packager re-fetches the prior zips and you skip the bake; only stage them when the version actually moved.
 - `lekmod-dlc`: the sibling LekMod clone plus `dist/engine-lekmod/CvGameCore_Expansion2.dll` from `./build-engine-lekmod.ps1`.
 - `vp-runtime`: `build/vp-runtime`, which the packager stages on demand from the sibling Community-Patch-DLL clone (pass `-ClonePath` to `package-release.ps1` if it isn't beside the repo).
