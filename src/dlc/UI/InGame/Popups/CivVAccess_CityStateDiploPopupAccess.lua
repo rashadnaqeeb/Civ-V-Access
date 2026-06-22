@@ -60,21 +60,41 @@ end
 
 local mainHandler
 
-local function infoRow(headerKey, textControl, tooltipControl)
+-- valueFromTooltip: read the spoken value from the control's tooltip rather
+-- than its caption. QuestInfo is a TextButton whose caption is bare quest
+-- icons and whose detail lives in the tooltip; TextButton has no GetText, so
+-- a caption read both throws and would speak only icons. Label rows leave it
+-- unset and read GetText as before.
+local function infoRow(headerKey, textControl, tooltipControl, onActivate, valueFromTooltip)
     local tipControl = tooltipControl or textControl
-    return BaseMenuItems.Text({
+    local spec = {
         labelFn = function()
-            local value = Controls[textControl]:GetText() or ""
+            local control = Controls[textControl]
+            local value
+            if valueFromTooltip then
+                value = control:GetToolTipString() or ""
+            else
+                value = control:GetText() or ""
+            end
             local header = Text.key(headerKey)
             if value == "" then
                 return header
             end
             return header .. ", " .. value
         end,
-        tooltipFn = function()
+        onActivate = onActivate,
+    }
+    -- When the value is read from the tooltip (QuestInfo's caption is bare
+    -- icons), the label already carries the full tooltip text. Attaching the
+    -- same tooltip as the row tooltip would speak it a second time: the
+    -- spoken-tooltip dedupe is sentence-level and can't match a tooltip
+    -- sentence against the whole-tooltip segment embedded in the label.
+    if not valueFromTooltip then
+        spec.tooltipFn = function()
             return Controls[tipControl]:GetToolTipString()
-        end,
-    })
+        end
+    end
+    return BaseMenuItems.Text(spec)
 end
 
 local function activateQuestInfo()
@@ -99,55 +119,6 @@ local function activateQuestInfo()
     end
     OnQuestInfoClicked()
     CameraTracker.followAndJumpCursor()
-end
-
--- Quests arrive as a [NEWLINE]-joined block in QuestInfo's tooltip: one
--- bullet per quest, each with its own turns-remaining tail. Split it into
--- one navigable row per quest so Alt+Up/Down steps through them one at a
--- time instead of reading the whole block as a single item. The first row
--- carries the "Quests" header; the rest are bare quest text, each already
--- self-describing. The no-quests case is a single "none" line, which
--- becomes the lone headed row.
---
--- Camp jump: base wires UI.LookAt only for KILL_CAMP, so only the camp row
--- is activatable -- Enter follows the cursor to the encampment via
--- activateQuestInfo (which re-checks the quest at press time). The camp row
--- is located by prefix-matching its formal quest text against the split
--- lines.
-local function buildQuestRows()
-    local lines = TextFilter.splitLines(Controls.QuestInfo:GetToolTipString() or "")
-
-    local campPrefix
-    if minorCivID >= 0 then
-        local minor = Players[minorCivID]
-        if
-            minor ~= nil
-            and minor:IsMinorCivDisplayedQuestForPlayer(
-                Game.GetActivePlayer(),
-                MinorCivQuestTypes.MINOR_CIV_QUEST_KILL_CAMP
-            )
-        then
-            campPrefix = TextFilter.filter(Text.key("TXT_KEY_CITY_STATE_QUEST_KILL_CAMP_FORMAL"))
-        end
-    end
-
-    local items = {}
-    local campMatched = false
-    for index, line in ipairs(lines) do
-        local spec = { labelText = line }
-        if index == 1 then
-            spec.labelText = Text.key("TXT_KEY_POP_CSTATE_QUESTS") .. ", " .. line
-        end
-        if campPrefix ~= nil and not campMatched and line:find(campPrefix, 1, true) == 1 then
-            spec.onActivate = activateQuestInfo
-            campMatched = true
-        end
-        items[#items + 1] = BaseMenuItems.Text(spec)
-    end
-    if campPrefix ~= nil and not campMatched then
-        Log.warn("CityStateDiploPopup: KILL_CAMP quest displayed but no matching quest line for camp jump")
-    end
-    return items
 end
 
 local function actionRow(spec)
@@ -357,9 +328,7 @@ buildRootItems = function()
     end
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_PERSONALITY", "PersonalityInfo", "PersonalityInfo")
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_TRAIT", "TraitInfo", "TraitInfo")
-    for _, row in ipairs(buildQuestRows()) do
-        items[#items + 1] = row
-    end
+    items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_QUESTS", "QuestInfo", "QuestInfo", activateQuestInfo, true)
     items[#items + 1] = infoRow("TXT_KEY_POP_CSTATE_ALLIED_WITH", "AllyText", "AllyText")
     -- Contender and Protected By (Vox Populi info rows). Contender is the
     -- runner-up suitor, so it sits next to Allied With. Both self-gate on

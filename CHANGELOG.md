@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 Bug fixes:
+- City-state quests are one Quests entry; step through each quest's description and reward with Alt+Up/Down.
 - Pressing Enter on a city held by barbarians no longer crashes the game.
 
 ## [2.0.5] - 2026-06-22
