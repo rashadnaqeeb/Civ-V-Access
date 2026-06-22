@@ -16,12 +16,12 @@ New Features and improvements:
 - The Military Overview (F3) Units tab now has a Squad column; sort it to group squadmates together.
 
 Bug fixes:
-- After sending a chat message, keystrokes no longer keep typing into the chat box and Enter no longer re-sends.
+- After sending a chat message in LekMod, keystrokes no longer keep typing into the chat box and Enter no longer re-sends.
 - The Military Overview (F3) no longer reads a supply count under LekMod, which has no unit supply limit.
 - The trade route overview screen now opens under LekMod instead of coming up empty.
-- Alt+Right on a unit already in the focused squad now says "already in" instead of falsely reporting another add.
 - Cycling squad units with Left and Right now speaks each unit's direction the same way as the rest of the game.
 - A targeting key pressed while already aiming a unit move, squad move, gift, or city strike no longer opens a second targeting mode on top.
+- Alt+Right on a unit already in the focused squad now says "already in" instead of falsely reporting another add and disrupting the squad.
 
 ## [2.0.3] - 2026-06-21
 
