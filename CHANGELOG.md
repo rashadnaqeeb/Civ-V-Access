@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-06-22
+
 New Features and improvements:
 - Unit info (/) now names the squad the selected unit belongs to.
 - The Military Overview (F3) Units tab now has a Squad column; sort it to group squadmates together.
