@@ -808,6 +808,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "전투력"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "원거리 전투력"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "인접한 적"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "경험치"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_SQUAD"] = "분대"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SQUAD_NONE"] = "없음"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, 레벨 {2_Level}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} 퍼센트 전투력"
 

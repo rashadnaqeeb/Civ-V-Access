@@ -1343,6 +1343,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Fuerza"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "A distancia"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Enemigos adyacentes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "Experiencia"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_SQUAD"] = "Escuadra"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SQUAD_NONE"] = "ninguna"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, nivel {2_Level}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} por ciento de fuerza"
 -- Great People tab. Mirrors GPList: one subgroup per specialist type

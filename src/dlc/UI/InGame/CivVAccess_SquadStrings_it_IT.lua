@@ -34,7 +34,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORT_ON"] = "scortando civili"
 -- ===== Per-unit status tokens =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED_BY"] = "scortato da {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED"] = "scortato"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "in attesa di {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "in attesa della squadra"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MEMBER"] = "in {1_Name}"
 
 -- ===== Map-mode feedback =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NONE"] = "nessuna squadra"
@@ -42,6 +43,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NO_UNITS"] = "nessuna unità"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NO_UNIT_SELECTED"] = "nessuna unità selezionata"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_REMOVED"] = "rimossa da {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ADDED_TO"] = "aggiunta a {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ALREADY_IN"] = "già in {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVED_TO"] = "spostata a {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVE_ORDERED"] = "{1_Name} in movimento"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVE_CANCELED"] = "{1_Name} movimento annullato"

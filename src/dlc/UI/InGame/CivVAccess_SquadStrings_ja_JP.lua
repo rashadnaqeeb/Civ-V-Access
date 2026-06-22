@@ -25,7 +25,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORT_ON"] = "民間ユニット�
 -- ===== Per-unit status tokens =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED_BY"] = "{1_Name}に護衛されている"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ESCORTED"] = "護衛されている"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "{1_Name}を待機中"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HOLDING"] = "分隊を待機中"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MEMBER"] = "{1_Name}に所属中"
 
 -- ===== Map-mode feedback =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NONE"] = "分隊なし"
@@ -33,6 +34,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NO_UNITS"] = "ユニットなし"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_NO_UNIT_SELECTED"] = "ユニット未選択"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_REMOVED"] = "{1_Name}から除外"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ADDED_TO"] = "{1_Name}に追加"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_ALREADY_IN"] = "すでに{1_Name}に所属"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVED_TO"] = "{1_Name}に移動"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVE_ORDERED"] = "{1_Name} 移動中"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_MOVE_CANCELED"] = "{1_Name} 移動キャンセル"
@@ -55,8 +57,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_CYCLE_UNIT"] = "左また�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_CYCLE_UNIT"] =
     "フォーカスの当たった分隊内のユニットを切り替える"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_SELECT"] = "Alt + Slash"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_SELECT_AZERTY"] =
-    "Alt + エクスクラメーションマーク"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_SELECT_AZERTY"] = "Alt + エクスクラメーションマーク"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_SELECT_QWERTZ"] = "Alt + ハイフン"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_KEY_SELECT_ITALIAN"] = "Alt + ハイフン"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SQUAD_HELP_DESC_SELECT"] =

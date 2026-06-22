@@ -1044,6 +1044,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_STRENGTH"] = "Сила"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SORT_MODE_RANGED"] = "Дальний бой"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Смежные враги"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "Опыт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_SQUAD"] = "Отряд"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SQUAD_NONE"] = "нет"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, уровень {2_Level}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} процентов силы"
 

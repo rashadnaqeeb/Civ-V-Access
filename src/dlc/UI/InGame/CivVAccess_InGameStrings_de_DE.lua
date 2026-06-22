@@ -984,6 +984,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_ENEMIES_ADJACENT"] = "Benachbarte 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_XP"] = "Erfahrung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_XP_CELL"] = "{1_XP}, Level {2_Level}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_FORTIFY_MOD"] = "{1_Pct} Prozent Stärke"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_COL_SQUAD"] = "Trupp"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_SQUAD_NONE"] = "keiner"
 -- Great People tab.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MO_GP_CITY_ROW"] =
     "{1_City}: {2_Turns}, {3_Progress} von {4_Threshold}, plus {5_Rate} pro Runde"
