@@ -74,38 +74,46 @@ end
 function M.test_currentSquad_nil_when_no_squads()
     setup()
     T.eq(SquadFocusCore.currentSquad(), nil)
+    T.eq(SquadFocusCore.onCreateNew(), true, "the lone slot with no squads is create-new")
 end
 
-function M.test_nextSquad_advances_then_wraps()
+function M.test_nextSquad_advances_then_reaches_create_new_then_wraps()
     setup()
     allocate(3)
     T.eq(SquadFocusCore.currentSquad(), 1, "focus starts on the first squad")
     T.eq(SquadFocusCore.nextSquad(), 2)
     T.eq(SquadFocusCore.nextSquad(), 3)
-    T.eq(SquadFocusCore.nextSquad(), 1, "next past the end wraps to the first")
+    T.eq(SquadFocusCore.nextSquad(), nil, "next past the last squad lands on the create-new slot")
+    T.eq(SquadFocusCore.onCreateNew(), true)
+    T.eq(SquadFocusCore.nextSquad(), 1, "next past the create-new slot wraps to the first squad")
 end
 
-function M.test_prevSquad_wraps_backward()
+function M.test_prevSquad_wraps_to_create_new_then_last()
     setup()
     allocate(3)
-    T.eq(SquadFocusCore.prevSquad(), 3, "prev from the first wraps to the last")
-    T.eq(SquadFocusCore.prevSquad(), 2)
+    T.eq(SquadFocusCore.prevSquad(), nil, "prev from the first squad lands on the create-new slot")
+    T.eq(SquadFocusCore.onCreateNew(), true)
+    T.eq(SquadFocusCore.prevSquad(), 3, "prev again reaches the last squad")
 end
 
 function M.test_nextSquad_nil_when_no_squads()
     setup()
     T.eq(SquadFocusCore.nextSquad(), nil)
+    T.eq(SquadFocusCore.onCreateNew(), true)
 end
 
 function M.test_focus_revalidates_when_list_shrinks()
     -- Focus is on the last squad; deleting it must clamp the cursor back into
-    -- range on the next access rather than dangling past the end.
+    -- range on the next access rather than dangling past the end. The former
+    -- last index is now the trailing create-new slot, which is a valid landing
+    -- spot, so the cursor settles there rather than on a squad.
     setup()
     allocate(3)
     SquadFocusCore.nextSquad() -- 2
     SquadFocusCore.nextSquad() -- 3
     SquadRoster.delete(3)
-    T.eq(SquadFocusCore.currentSquad(), 2, "deleting the focused squad clamps to the new last")
+    T.eq(SquadFocusCore.currentSquad(), nil, "deleting the focused last squad lands on the create-new slot")
+    T.eq(SquadFocusCore.onCreateNew(), true)
 end
 
 -- ===== unit cycling =====

@@ -4,16 +4,18 @@
 --
 -- The bindings drive the mod-side focus (SquadFocusCore), never the engine
 -- selection or the cursor:
---   Up / Down      cycle the focused squad; speak its name, plus the
---                  movement status when it is mid-move.
+--   Up / Down      cycle the focused squad, plus a trailing "create new" slot;
+--                  speak the squad name (and movement status when mid-move),
+--                  or the create-new label on that slot.
 --   Left / Right   cycle the focused member; speak its row.
 --   Alt+/          select the focused member as the engine head selection so
 --                  the player can command it; speak the selection.
 --   Alt+Left       remove the focused member from its squad, or delete the
 --                  squad outright once it is empty.
 --   Alt+Right      add the head-selected unit to the focused squad and move
---                  focus onto it; with no squads yet, create one, add the
---                  unit, and open the new squad's editor.
+--                  focus onto it; on the create-new slot (the only position
+--                  when no squads exist yet), create one, add the unit, and
+--                  open the new squad's editor.
 --   Alt+Up         open the move sub-mode for the focused squad; on a squad
 --                  that is mid-move, read the move, then press again to
 --                  cancel it and reopen the sub-mode to reissue.
@@ -69,7 +71,10 @@ local function cycleSquad(stepFn)
         clearArm()
         local num = stepFn()
         if num == nil then
-            speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_NONE"))
+            -- Landed on the trailing create-new slot, where Alt+Right makes a
+            -- fresh squad. The slot is always present, so this is also the
+            -- no-squads case.
+            speak(Text.key("TXT_KEY_CIVVACCESS_SQUAD_ADD_NEW"))
             return
         end
         -- Announce the squad name so the player knows which squad they landed
@@ -161,8 +166,10 @@ local function addSelectedUnit()
         return
     end
     local num = SquadFocusCore.currentSquad()
-    -- No squads yet: create one to add into, then drop the player into its
-    -- editor below to set escort / wake mode / name on the new squad.
+    -- On the create-new slot (nil squad): create one to add into, then drop the
+    -- player into its editor below to set escort / wake mode / name on it. This
+    -- is the no-squads case and, with squads present, the trailing slot the
+    -- Up/Down cycle reaches past the last squad.
     local created = num == nil
     if created then
         num = SquadRoster.allocate()

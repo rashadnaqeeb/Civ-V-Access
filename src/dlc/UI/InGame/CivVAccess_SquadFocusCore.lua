@@ -33,38 +33,47 @@ local function activePlayer()
     return Players[Game.GetActivePlayer()]
 end
 
--- Clamp the squad cursor into the current list and return the list. An empty
--- list leaves the index at 1 (harmless; callers check the list length).
+-- The squad cursor ranges over the live squads plus a trailing virtual
+-- "create new" slot (index #list + 1), so the cycle always has at least one
+-- position and the player can navigate to creating a squad even when some
+-- already exist. Clamp the cursor into [1, #list + 1] and return the list.
 local function squadList()
     local list = SquadRoster.getList()
-    if #list == 0 then
-        _squadIdx = 1
-    elseif _squadIdx > #list then
-        _squadIdx = #list
+    local maxIdx = #list + 1
+    if _squadIdx > maxIdx then
+        _squadIdx = maxIdx
     elseif _squadIdx < 1 then
         _squadIdx = 1
     end
     return list
 end
 
--- The focused squad number, or nil when no squads exist.
+-- True when the cursor is on the trailing create-new slot rather than a live
+-- squad (the slot where Alt+Right creates a fresh squad). Always true when no
+-- squads exist, since that slot is then the only position.
+function SquadFocusCore.onCreateNew()
+    local list = squadList()
+    return _squadIdx > #list
+end
+
+-- The focused squad number, or nil on the create-new slot (which includes the
+-- no-squads case).
 function SquadFocusCore.currentSquad()
     local list = squadList()
-    if #list == 0 then
+    if _squadIdx > #list then
         return nil
     end
     return list[_squadIdx]
 end
 
--- Advance the squad cursor by dir (+1 next, -1 prev), wrapping. Resets the
--- unit cursor to the new squad's first member. Returns the new squad number,
--- or nil when no squads exist.
+-- Advance the squad cursor by dir (+1 next, -1 prev), wrapping over the squads
+-- plus the create-new slot. Resets the unit cursor to the new squad's first
+-- member. Returns the new squad number, or nil when the cursor lands on the
+-- create-new slot.
 local function stepSquad(dir)
     local list = squadList()
-    if #list == 0 then
-        return nil
-    end
-    _squadIdx = ((_squadIdx - 1 + dir) % #list) + 1
+    local count = #list + 1
+    _squadIdx = ((_squadIdx - 1 + dir) % count) + 1
     _unitIdx = 1
     return list[_squadIdx]
 end

@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Cycling squads with Up and Down now reaches an add-new-squad option; Alt+Right there creates a squad with the selected unit.
+
 Bug fixes:
 - City-state quests are one Quests entry; step through each quest's description and reward with Alt+Up/Down.
 - Pressing Enter on a city held by barbarians no longer crashes the game.
