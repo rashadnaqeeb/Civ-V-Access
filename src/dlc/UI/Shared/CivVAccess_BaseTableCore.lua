@@ -61,9 +61,13 @@
 --   defaultSort    {column = <1-based index>, ascending = <bool>} | nil.
 --                  Optional. When set, the table opens with that column's
 --                  sort active (so the header row honestly reports it and
---                  Enter cycles it onward), and the default re-applies on
---                  every (re)initialization. The referenced column must
---                  carry a sortKey. Omit for natural rebuildRows order.
+--                  Enter cycles it onward). Seeds the sort once at create
+--                  time only; a sort the player changes afterward persists
+--                  across closes/reopens for the life of the instance (until
+--                  the screen's Context is rebuilt on a game reload), so the
+--                  default does NOT re-apply on every open. The referenced
+--                  column must carry a sortKey. Omit for natural rebuildRows
+--                  order.
 --   topItem        optional control row above the column headers:
 --     labelFn      fn() -> string (required). Re-read on every landing so
 --                  a value embedded in the label stays live.
@@ -716,8 +720,6 @@ function BaseTable.create(spec)
         _col = 1,
         _lastSpokenRow = nil,
         _lastSpokenCol = nil,
-        _defaultSortColumn = defaultSortColumn,
-        _defaultSortAscending = defaultSortAscending,
         _sortColumn = defaultSortColumn,
         _sortAscending = defaultSortAscending,
         _initialized = false,
@@ -843,9 +845,12 @@ function BaseTable.create(spec)
             self._col = 1
             self._lastSpokenRow = nil
             self._lastSpokenCol = nil
-            self._sortColumn = self._defaultSortColumn
-            self._sortAscending = self._defaultSortAscending
             self._filterQuery = ""
+            -- Sort (_sortColumn / _sortAscending) is deliberately NOT reset
+            -- here: the instance is long-lived across opens within a session,
+            -- so a sort the player set on a prior open survives until the
+            -- screen's Context is rebuilt (a game reload). The default sort is
+            -- seeded once at create time and only re-seeds on that rebuild.
             -- If rebuildRows yields zero rows on first open, land on row 0
             -- (header) so the user hears something speakable.
             local rows = buildRows(self)

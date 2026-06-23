@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- A sort set on a table screen now stays in effect when you reopen that screen later in the session.
 - Cycling squads with Up and Down now reaches an add-new-squad option; Alt+Right there creates a squad with the selected unit.
 
 Bug fixes:

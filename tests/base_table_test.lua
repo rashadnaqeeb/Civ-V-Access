@@ -420,7 +420,7 @@ function M.test_default_sort_header_reports_active_sort_and_enter_cycles_onward(
     T.eq(speaks[#speaks].text, "Pop, sort cleared", "Enter advances past the default ascending state")
 end
 
-function M.test_default_sort_reapplies_after_reinitialization()
+function M.test_user_cleared_sort_persists_across_reopen()
     setup()
     local spec = makeBasicSpec()
     spec.defaultSort = { column = 2, ascending = true }
@@ -435,9 +435,30 @@ function M.test_default_sort_reapplies_after_reinitialization()
     speaks = {}
     SpeechPipeline._reset()
     h.onTabActivated(h, false)
-    T.eq(h._sortColumn, 2, "default sort restored on reinit")
-    T.eq(h._sortAscending, true)
-    T.truthy(speaks[#speaks].text:find("Athens"), "rows sorted nearest-first again on reopen")
+    -- The default does NOT re-apply: the player's cleared sort persists for
+    -- the life of the instance, only the row/column/filter reset.
+    T.eq(h._sortColumn, nil, "cleared sort persists across reopen")
+end
+
+function M.test_user_changed_sort_persists_across_reopen()
+    setup()
+    local spec = makeBasicSpec()
+    -- No defaultSort: natural order on open.
+    local h = BaseTable.create(spec)
+    h.onTabActivated(h, false)
+    -- Sort descending on Pop (col 2): Memphis(7), Rome(5), Athens(3).
+    findBinding(h, Keys.VK_UP)() -- to header, col 1
+    findBinding(h, Keys.VK_RIGHT)() -- to col 2 (Pop)
+    findBinding(h, Keys.VK_RETURN)() -- none -> descending
+    T.eq(h._sortColumn, 2, "sorted on Pop")
+    T.eq(h._sortAscending, false, "descending")
+    h.resetForNextOpen()
+    speaks = {}
+    SpeechPipeline._reset()
+    h.onTabActivated(h, false)
+    T.eq(h._sortColumn, 2, "player's sort column persists across reopen")
+    T.eq(h._sortAscending, false, "player's sort direction persists across reopen")
+    T.truthy(speaks[#speaks].text:find("Memphis"), "highest pop appears first on reopen")
 end
 
 function M.test_default_sort_rejects_unsortable_column()
