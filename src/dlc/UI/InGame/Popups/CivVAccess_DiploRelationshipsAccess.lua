@@ -1029,26 +1029,49 @@ local function contenderCell(iOther)
     )
 end
 
--- Quests cell: comma-flattened active-quest tooltip plus threatening-
--- barbarians and proxy-war flags. Suppressed at war (matches base
--- DiploList.lua:627).
-local function questsCell(iOther)
+-- Raw active-quest tooltip (the [NEWLINE]-delimited block of threatening-
+-- barbarians, proxy-war, and per-quest description / reward lines), or nil
+-- when there is nothing to show. Suppressed at war (matches base
+-- DiploList.lua:627). Shared by the flattened cell and its section review.
+local function questsRaw(iOther)
     local iUs = Game.GetActivePlayer()
     local pOther = Players[iOther]
     if Teams[Players[iUs]:GetTeam()]:IsAtWar(pOther:GetTeam()) then
-        return noneCell()
+        return nil
     end
     local hasQuests = pOther:GetMinorCivNumDisplayedQuestsForPlayer(iUs) > 0
     local hasBarbs = pOther:IsThreateningBarbariansEventActiveForPlayer(iUs)
     local hasProxy = pOther:IsProxyWarActiveForMajor(iUs)
     if not hasQuests and not hasBarbs and not hasProxy then
-        return noneCell()
+        return nil
     end
     local raw = GetActiveQuestToolTip(iUs, iOther)
     if raw == nil or raw == "" then
+        return nil
+    end
+    return raw
+end
+
+-- Quests cell: comma-flattened active-quest tooltip.
+local function questsCell(iOther)
+    local raw = questsRaw(iOther)
+    if raw == nil then
         return noneCell()
     end
     return (raw:gsub("%[NEWLINE%]", ", "))
+end
+
+-- Alt+Up/Down review of the quests cell: one section per quest description /
+-- reward line. The flattened getCell joins the lines with commas and so has
+-- no [NEWLINE] for buildSections to split on; hand back the discrete lines.
+-- Mirrors the city-state diplo popup's Quests row, where the same per-quest
+-- split falls out of the [NEWLINE]-delimited label for free.
+local function questsSections(iOther)
+    local raw = questsRaw(iOther)
+    if raw == nil then
+        return { noneCell() }
+    end
+    return TextFilter.splitLines(raw)
 end
 
 local function questCount(iOther)
@@ -1294,6 +1317,7 @@ local function buildMinorColumns()
     cols[#cols + 1] = {
         name = "TXT_KEY_CIVVACCESS_DIPLO_COL_QUESTS",
         getCell = questsCell,
+        getCellSections = questsSections,
         sortKey = questCount,
         enterAction = activateMinor,
         pediaName = minorCivPedia,

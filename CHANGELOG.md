@@ -15,7 +15,8 @@ New Features and improvements:
 - Cycling squads with Up and Down now reaches an add-new-squad option; Alt+Right there creates a squad with the selected unit.
 
 Bug fixes:
-- City-state quests are one Quests entry; step through each quest's description and reward with Alt+Up/Down.
+- City-state quests are back to being a single line  entry; step through each quest's description and reward with Alt+Up/Down.
+- On the diplomacy overview's city-states tab, Alt+Up and Down step through each quest in the Quests column one at a time.
 - Pressing Enter on a city held by barbarians no longer crashes the game.
 
 ## [2.0.5] - 2026-06-22
