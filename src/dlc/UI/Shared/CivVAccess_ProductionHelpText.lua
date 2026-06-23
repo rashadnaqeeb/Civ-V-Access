@@ -122,7 +122,14 @@ end
 -- buildings / wonders surface (cost is moot for an already-built
 -- building) and by the queue (the queue surfaces production remaining
 -- separately, computed against the slot's accumulated production).
-function ProductionHelpText.buildingHelp(city, building, includeCost)
+--
+-- showProjected (VP arg 7, bShowProjectedYields): when set, VP appends a
+-- resolved-yield line reflecting what the building actually yields in this
+-- city once all conditional effects are applied, shown only when it differs
+-- from the defined yield. The production chooser opts in (matching VP's own
+-- OrderItemTooltip for ORDER_CONSTRUCT); the built-buildings list leaves it
+-- off, matching VP's BuildingToolTip. Ignored on vanilla (no such arg).
+function ProductionHelpText.buildingHelp(city, building, includeCost, showProjected)
     if GetHelpTextForBuilding == nil or building == nil then
         return ""
     end
@@ -131,7 +138,7 @@ function ProductionHelpText.buildingHelp(city, building, includeCost)
         -- bExcludeName at arg 2 on both engines; the trailing city is the
         -- pCity slot on VP (CityView precedent) and an ignored extra on
         -- vanilla. Full cost + maintenance header is what the chooser wants.
-        body = GetHelpTextForBuilding(building.ID, true, false, false, city) or ""
+        body = GetHelpTextForBuilding(building.ID, true, false, false, city, false, showProjected) or ""
     else
         -- Cost-free surfaces (built buildings, queued slots) want maintenance
         -- without the cost line. Vanilla skips both via bExcludeHeader (arg 3)
@@ -141,7 +148,7 @@ function ProductionHelpText.buildingHelp(city, building, includeCost)
         -- bOnlyYieldsAndEffects (arg 8), which returns the effects with no
         -- cost and no stat lines, then re-synthesize maintenance the same way.
         if isCP() then
-            body = GetHelpTextForBuilding(building.ID, true, nil, false, city, false, false, true) or ""
+            body = GetHelpTextForBuilding(building.ID, true, nil, false, city, false, showProjected, true) or ""
         else
             body = GetHelpTextForBuilding(building.ID, true, true, false, city) or ""
         end
@@ -355,12 +362,14 @@ function ProductionHelpText.investedTag(city, orderType, data1)
     return Text.key("TXT_KEY_CIVVACCESS_PROD_INVESTED")
 end
 
--- Dispatch helper for callers that already know the orderType.
-function ProductionHelpText.forOrder(city, orderType, data1, includeCost)
+-- Dispatch helper for callers that already know the orderType. showProjected
+-- forwards to buildingHelp's bShowProjectedYields (building entries only; the
+-- production chooser opts in, other surfaces leave it off).
+function ProductionHelpText.forOrder(city, orderType, data1, includeCost, showProjected)
     if orderType == OrderTypes.ORDER_TRAIN then
         return ProductionHelpText.unitHelp(city, GameInfo.Units[data1], includeCost)
     elseif orderType == OrderTypes.ORDER_CONSTRUCT then
-        return ProductionHelpText.buildingHelp(city, GameInfo.Buildings[data1], includeCost)
+        return ProductionHelpText.buildingHelp(city, GameInfo.Buildings[data1], includeCost, showProjected)
     elseif orderType == OrderTypes.ORDER_CREATE then
         return ProductionHelpText.projectHelp(city, GameInfo.Projects[data1], includeCost)
     elseif orderType == OrderTypes.ORDER_MAINTAIN then

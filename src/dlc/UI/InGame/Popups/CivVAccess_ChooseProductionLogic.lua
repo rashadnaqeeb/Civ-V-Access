@@ -441,7 +441,11 @@ function ChooseProductionLogic.contributionsText(entry, city)
         return ""
     end
     local slotOne = isCurrentSlotOne(city, entry)
-    local body = ProductionHelpText.forOrder(city, entry.orderType, entry.id, not slotOne) or ""
+    -- showProjected = true: the chooser is where the player decides what to
+    -- build, so surface VP's resolved per-city yields (matching sighted VP's
+    -- OrderItemTooltip), the all-conditionals-applied figure the defined
+    -- yield line alone can't convey.
+    local body = ProductionHelpText.forOrder(city, entry.orderType, entry.id, not slotOne, true) or ""
     if not slotOne then
         return body
     end

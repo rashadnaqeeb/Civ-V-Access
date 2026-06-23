@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- When choosing production, building entries now speak Vox Populi's projected per-city yields, not just the base yields.
+
 ## [2.0.6] - 2026-06-23
 
 New Features and improvements:
