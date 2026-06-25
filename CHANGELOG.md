@@ -14,6 +14,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - When choosing production, building entries now speak Vox Populi's projected per-city yields, not just the base yields.
 
+Bug fixes:
+- Moving a squad with escort in multiplayer no longer desyncs the game.
+
 ## [2.0.6] - 2026-06-23
 
 New Features and improvements:
