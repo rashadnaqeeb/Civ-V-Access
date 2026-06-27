@@ -308,6 +308,47 @@ local function slotSummary(playerID)
     return table.concat(parts, ", ")
 end
 
+-- Kick confirmation ---------------------------------------------------
+--
+-- The stock kick flow runs OnKickPlayer, which pushes the engine's
+-- ConfirmKick modal (Assets/DLC/Shared/UI/InGame/Popups/ConfirmKick). That
+-- modal speaks nothing, and on either accept or cancel it calls
+-- ContextPtr:CallParentShowHideHandler(true), which the access layer cannot
+-- voice and which would strand the still-visible staging room. Instead we
+-- drive the kick through a pushed, input-capturing confirm the user hears and
+-- operates with normal menu nav; Yes runs the same engine call
+-- (Matchmaking.KickPlayer) the modal's Accept would. Esc / No cancel.
+
+local KICK_CONFIRM_HANDLER = "StagingKickConfirm"
+
+local function openKickConfirm(playerID, name)
+    local h = BaseMenu.create({
+        name = KICK_CONFIRM_HANDLER,
+        displayName = Text.format("TXT_KEY_CONFIRM_KICK_PLAYER_DESC", name),
+        capturesAllInput = true,
+        escapePops = true,
+        items = {
+            BaseMenuItems.Text({
+                textKey = "TXT_KEY_YES_BUTTON",
+                -- reactivate=false: the kick fires MultiplayerGamePlayerDisconnected,
+                -- whose listener speaks the "<name> kicked" line; re-announcing
+                -- the roster here would step on it.
+                onActivate = function()
+                    HandlerStack.removeByName(KICK_CONFIRM_HANDLER, false)
+                    Matchmaking.KickPlayer(playerID)
+                end,
+            }),
+            BaseMenuItems.Text({
+                textKey = "TXT_KEY_NO_BUTTON",
+                onActivate = function()
+                    HandlerStack.removeByName(KICK_CONFIRM_HANDLER, true)
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+end
+
 -- Group children ------------------------------------------------------
 
 -- Per-slot drill-in children. For each editable field we include both the
@@ -357,9 +398,7 @@ local function slotChildren(slotIndex, instance)
             control = instance.KickButton,
             labelText = Text.key("TXT_KEY_MP_KICK_PLAYER"),
             activate = function()
-                if type(OnKickPlayer) == "function" then
-                    OnKickPlayer(slotIndex)
-                end
+                openKickConfirm(instance.playerID, nickName(instance.playerID) or Text.key("TXT_KEY_PLAYER_TYPE_HUMAN"))
             end,
         }),
         BaseMenuItems.Button({

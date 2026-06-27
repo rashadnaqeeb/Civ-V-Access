@@ -1044,6 +1044,43 @@ function M.test_level_reset_on_hide_then_reopen()
     T.eq(handler._level, 1, "level reset to 1 on reopen")
 end
 
+-- A child modal that closes via ContextPtr:CallParentShowHideHandler(false)
+-- (SetCivNames, opened from the hotseat staging room) fires the parent's
+-- ShowHide with bIsHide=false WITHOUT the parent ever being hidden. The
+-- parent was never hidden, so _initialized stays true and onActivate must
+-- take the re-activation branch, preserving the drill level / cursor the
+-- user was on when they opened the editor -- not bounce them to the top.
+function M.test_reshow_without_hide_preserves_level()
+    setup()
+    setCtrls({ "CHILD" })
+    local ctx = {
+        SetShowHideHandler = function(self, fn)
+            self._sh = fn
+        end,
+        SetInputHandler = function(self, fn)
+            self._in = fn
+        end,
+        _hidden = false,
+        IsHidden = function(self)
+            return self._hidden
+        end,
+        SetUpdate = function(self, fn)
+            self._update = fn
+        end,
+    }
+    local handler = BaseMenu.install(
+        ctx,
+        { name = "T", displayName = "Screen", items = { groupItem("P", { buttonItem("CHILD", "C") }) } }
+    )
+    ctx._sh(false, false)
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(handler._level, 2)
+    -- No hide between: the editor modal overlays the parent, then its close
+    -- re-shows the parent in place.
+    ctx._sh(false, false)
+    T.eq(handler._level, 2, "drill level preserved on re-show without a hide")
+end
+
 -- Pedia round-trip: when an underlying screen's Ctrl+I queues the pedia
 -- the engine fires our hide before the pedia's own show, so a synchronous
 -- IsHidden check on the pedia at hide-time always reads "still hidden."

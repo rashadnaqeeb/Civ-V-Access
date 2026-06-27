@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Kicking a player from the multiplayer staging room now asks for confirmation and no longer leaves the screen silent and unresponsive.
+
 ## [2.0.7] - 2026-06-25
 
 New Features and improvements:
