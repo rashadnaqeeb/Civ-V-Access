@@ -1,11 +1,12 @@
 -- MultiplayerRewards tests. Real production modules dofiled and reset:
 -- SpeechPipeline (with the _speakAction seam capturing sink),
 -- TextFilter, Text, MessageBuffer, MultiplayerRewards. Seams substituted:
--- Game.IsNetworkMultiPlayer (controllable), GameEvents.CivVAccessGoody-
--- HutReceived / CivVAccessBarbarianCampCleared and Events.NaturalWonder-
--- Revealed (capture listeners so tests can drive synthetic events),
--- GameInfo / Locale / Map (per-suite stubs to drive the goody / wonder
--- text composition).
+-- Game.IsNetworkMultiPlayer / Game.GetActiveTeam (controllable),
+-- GameEvents.CivVAccessGoodyHutReceived / CivVAccessBarbarianCampCleared /
+-- NaturalWonderDiscovered / TeamMeet / CivVAccessCityStateGreeting (capture
+-- listeners so tests can drive synthetic events), GameInfo / Locale /
+-- Players / Teams (per-suite stubs to drive the goody / wonder / gift /
+-- first-contact text composition).
 --
 -- Routing through real Text.format / Text.key (rather than stubbing
 -- Locale.ConvertTextKey behind the module's Text-wrapper boundary) keeps
@@ -19,7 +20,9 @@ local M = {}
 local spoken
 local goodyListeners
 local barbListeners
-local naturalWonderListeners
+local wonderListeners
+local greetingListeners
+local teamMeetListeners
 local isMP
 
 local function fireGoody(playerID, eGoody, iSpecialValue)
@@ -34,9 +37,21 @@ local function fireBarb(playerID, x, y, iNumGold)
     end
 end
 
-local function fireWonder(x, y)
-    for _, fn in ipairs(naturalWonderListeners) do
-        fn(x, y)
+local function fireWonder(eTeam, eFeature, x, y, bFirst)
+    for _, fn in ipairs(wonderListeners) do
+        fn(eTeam, eFeature, x, y, bFirst)
+    end
+end
+
+local function fireGreeting(minorCivID, iData2, iData3, iFirst, szSuffix)
+    for _, fn in ipairs(greetingListeners) do
+        fn(minorCivID, iData2, iData3, iFirst, szSuffix)
+    end
+end
+
+local function fireTeamMeet(eTeamMet, eTeamMoving)
+    for _, fn in ipairs(teamMeetListeners) do
+        fn(eTeamMet, eTeamMoving)
     end
 end
 
@@ -55,6 +70,9 @@ local function setup()
     Game.GetActivePlayer = function()
         return 0
     end
+    Game.GetActiveTeam = function()
+        return 0
+    end
 
     -- Locale stub: a tiny formatter that recognizes the keys this module
     -- and our fixtures actually produce. Production builds yieldString as
@@ -65,7 +83,7 @@ local function setup()
     -- resolves nested TXT_KEY_* tokens passed as substitution args (so a
     -- caller can pass info.Description -- a key string -- and have it
     -- render as the human-readable name). Mirroring that here lets the
-    -- natural-wonder test pass the same shape production passes.
+    -- natural-wonder and gift tests pass the same shape production passes.
     local strings = {
         TXT_KEY_GOODY_GOLD = "+%s Gold from a ruin",
         TXT_KEY_GOODY_BARE = "Found ancient ruins",
@@ -77,6 +95,25 @@ local function setup()
         TXT_KEY_POP_NATURAL_WONDER_FOUND_HAPPY = ", %s happiness",
         TXT_KEY_POP_NATURAL_WONDER_FOUND_PROMOTE = ", grants %s",
         TXT_KEY_PROMOTION_FAITH_HEALER = "Faith Healer",
+        -- Vanilla / LekMod gift keys (empty-suffix path).
+        TXT_KEY_CITY_STATE_GIFT_FIRST = "%s Gold, first to meet",
+        TXT_KEY_CITY_STATE_GIFT_OTHER = "%s Gold",
+        TXT_KEY_CITY_STATE_GIFT_FAITH_FIRST = "%s Faith, first to meet",
+        TXT_KEY_CITY_STATE_GIFT_FAITH_OTHER = "%s Faith",
+        -- Community Patch / Vox Populi gift keys (suffix path).
+        TXT_KEY_MINOR_CIV_CONTACT_BONUS_NOTHING = "nothing gained",
+        TXT_KEY_MINOR_CIV_CONTACT_BONUS_FRIENDSHIP = "%s influence with this %s city-state",
+        TXT_KEY_MINOR_CIV_FIRST_CONTACT_BONUS_GOLD = "%s Gold from this %s city-state",
+        TXT_KEY_MINOR_CIV_CONTACT_BONUS_GOLD = "%s Gold from this %s city-state",
+        TXT_KEY_MINOR_CIV_FIRST_CONTACT_BONUS_UNIT = "a %s from this %s city-state",
+        TXT_KEY_UNIT_WARRIOR = "Warrior",
+        TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY = "friendly",
+        TXT_KEY_CITY_STATE_PERSONALITY_HOSTILE = "hostile",
+        TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL = "neutral",
+        TXT_KEY_CITY_STATE_PERSONALITY_IRRATIONAL = "irrational",
+        -- Major-civ first contact.
+        TXT_KEY_NOTIFICATION_SUMMARY_MET_MINOR_CIV = "You have met %s",
+        TXT_KEY_LEADER_NAPOLEON = "Napoleon",
     }
     Locale.ConvertTextKey = function(key, ...)
         local fmt = strings[key]
@@ -116,10 +153,6 @@ local function setup()
                 NaturalWonder = true,
                 InBorderHappiness = 0,
             },
-            [12] = {
-                Type = "FEATURE_FOREST",
-                NaturalWonder = false,
-            },
         },
         Yields = {
             [0] = { IconString = "[ICON_FOOD]" },
@@ -127,6 +160,9 @@ local function setup()
         },
         UnitPromotions = {
             PROMOTION_FAITH_HEALER = { Description = "TXT_KEY_PROMOTION_FAITH_HEALER" },
+        },
+        Units = {
+            [3] = { Description = "TXT_KEY_UNIT_WARRIOR" },
         },
     }
     -- Feature_YieldChanges is a query callable returning an iterator over
@@ -147,46 +183,75 @@ local function setup()
         end
     end
 
-    -- Production calls ToGridFromHex on the NaturalWonderRevealed args
-    -- before Map.GetPlot (the engine dispatches hex coords through
-    -- gDLL->GameplayNaturalWonderRevealed). The passthrough stub matches
-    -- the reveal_announce_test convention: fixture coords are already
-    -- the value Map.GetPlot's stub keys on, so the conversion is a no-op.
-    ToGridFromHex = function(hx, hy)
-        return hx, hy
-    end
+    -- Minor-civ personality lookup for the CP/VP gift path. Keyed by the
+    -- minor civ player id the greeting hook carries.
+    MinorCivPersonalityTypes = {
+        MINOR_CIV_PERSONALITY_FRIENDLY = 0,
+        MINOR_CIV_PERSONALITY_NEUTRAL = 1,
+        MINOR_CIV_PERSONALITY_HOSTILE = 2,
+        MINOR_CIV_PERSONALITY_IRRATIONAL = 3,
+    }
+    -- Minor civ 22 is the only city-state the gift tests meet; make it
+    -- friendly so the CP/VP gift text exercises the personality clause.
+    -- Player 7 is the major-civ leader the TeamMeet tests greet.
+    Players = {
+        [7] = {
+            GetNameKey = function()
+                return "TXT_KEY_LEADER_NAPOLEON"
+            end,
+        },
+        [22] = {
+            GetPersonality = function()
+                return MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_FRIENDLY
+            end,
+        },
+    }
 
-    Map = Map or {}
-    Map.GetPlot = function(x, _y)
-        if x == 5 then
-            return {
-                GetFeatureType = function()
-                    return 10
-                end,
-            }
-        end
-        if x == 6 then
-            return {
-                GetFeatureType = function()
-                    return 11
-                end,
-            }
-        end
-        if x == 7 then
-            return {
-                GetFeatureType = function()
-                    return 12
-                end,
-            }
-        end
-        return nil
-    end
+    -- TeamMeet fixtures. Active team is 0; team 5 is a major civ led by
+    -- player 7, team 8 a minor civ, team 9 barbarians.
+    Teams = {
+        [5] = {
+            IsMinorCiv = function()
+                return false
+            end,
+            IsBarbarian = function()
+                return false
+            end,
+            GetLeaderID = function()
+                return 7
+            end,
+        },
+        [8] = {
+            IsMinorCiv = function()
+                return true
+            end,
+            IsBarbarian = function()
+                return false
+            end,
+            GetLeaderID = function()
+                return 0
+            end,
+        },
+        [9] = {
+            IsMinorCiv = function()
+                return false
+            end,
+            IsBarbarian = function()
+                return true
+            end,
+            GetLeaderID = function()
+                return 0
+            end,
+        },
+    }
 
     -- Capture listeners. GameEvents needs to be reset per-test because
     -- installListeners pushes onto whatever is registered.
     goodyListeners = {}
     barbListeners = {}
-    naturalWonderListeners = {}
+    wonderListeners = {}
+    greetingListeners = {}
+    teamMeetListeners = {}
 
     GameEvents = {
         CivVAccessGoodyHutReceived = {
@@ -199,12 +264,21 @@ local function setup()
                 barbListeners[#barbListeners + 1] = fn
             end,
         },
-    }
-    Events = Events or {}
-    Events.NaturalWonderRevealed = {
-        Add = function(fn)
-            naturalWonderListeners[#naturalWonderListeners + 1] = fn
-        end,
+        NaturalWonderDiscovered = {
+            Add = function(fn)
+                wonderListeners[#wonderListeners + 1] = fn
+            end,
+        },
+        TeamMeet = {
+            Add = function(fn)
+                teamMeetListeners[#teamMeetListeners + 1] = fn
+            end,
+        },
+        CivVAccessCityStateGreeting = {
+            Add = function(fn)
+                greetingListeners[#greetingListeners + 1] = fn
+            end,
+        },
     }
 
     -- Fresh civvaccess_shared wipes any MessageBuffer state from a prior
@@ -309,7 +383,7 @@ end
 
 function M.test_natural_wonder_in_mp_full_payload()
     setup()
-    fireWonder(5, 0)
+    fireWonder(0, 10, 5, 4, true) -- active team, Galapagos
     T.eq(#spoken, 1)
     -- Galapagos in our fixture: yields { Yield=2, YieldType=2 }, happiness
     -- 2, promotion PROMOTION_FAITH_HEALER. Substring presence over the
@@ -326,7 +400,7 @@ end
 
 function M.test_natural_wonder_no_yield_falls_back_to_no_yield_marker()
     setup()
-    fireWonder(6, 0) -- FEATURE_PLAIN: no yields, no happiness, no promotion
+    fireWonder(0, 11, 6, 4, false) -- FEATURE_PLAIN: no yields, no happiness, no promotion
     T.eq(#spoken, 1)
     T.truthy(spoken[1].text:find("no yield", 1, true), "empty yield list emits the no-yield marker")
 end
@@ -334,16 +408,125 @@ end
 function M.test_natural_wonder_in_sp_is_silent()
     setup()
     isMP = false
-    fireWonder(5, 0)
+    fireWonder(0, 10, 5, 4, true)
     T.eq(#spoken, 0)
 end
--- No coverage for non-wonder features or nil plots: the engine fires
--- NaturalWonderRevealed only inside the IsNaturalWonder() branch of
--- CvPlot::setRevealed and always packs the originating plot, so both
--- scenarios are impossible. The handler intentionally has no defensive
--- branches for them -- a future engine drift would surface as a Lua.log
--- crash, which is preferable to a silent skip per the no-silent-failures
--- rule.
+
+function M.test_natural_wonder_for_other_team_is_silent()
+    setup()
+    -- NaturalWonderDiscovered fires for every team that reveals a wonder;
+    -- only the active team's own discovery should announce, matching the
+    -- suppressed popup's active-team gate.
+    fireWonder(1, 10, 5, 4, true)
+    T.eq(#spoken, 0)
+end
+
+-- City-state meeting gift ------------------------------------------------
+
+function M.test_city_state_gift_vanilla_gold_only()
+    setup()
+    fireGreeting(22, 30, 0, 0, "") -- 30 gold, not first, no faith, empty suffix
+    T.eq(#spoken, 1)
+    T.eq(spoken[1].mode, "queued")
+    T.eq(spoken[1].text, "30 Gold")
+    local snap = MessageBuffer._snapshot()
+    T.eq(snap.entries[1].category, "notification")
+end
+
+function M.test_city_state_gift_vanilla_first_gold_and_faith()
+    setup()
+    fireGreeting(22, 60, 8, 1, "") -- 60 gold + 8 faith, first to meet
+    T.eq(#spoken, 1)
+    local s = spoken[1].text
+    T.truthy(s:find("60 Gold, first to meet", 1, true), "gold gift, first-to-meet form")
+    T.truthy(s:find("8 Faith, first to meet", 1, true), "faith gift, first-to-meet form")
+end
+
+function M.test_city_state_gift_aggressor_empty_suffix_is_silent()
+    setup()
+    fireGreeting(22, 0, 0, 0, "") -- no gold, no faith (aggressor) -> nothing to say
+    T.eq(#spoken, 0)
+end
+
+function M.test_city_state_gift_in_sp_is_silent()
+    setup()
+    isMP = false
+    fireGreeting(22, 30, 0, 0, "")
+    T.eq(#spoken, 0)
+end
+
+function M.test_city_state_gift_cp_gold_with_personality()
+    setup()
+    -- CP/VP rich path: GOLD suffix, value in iData2, friendly personality
+    -- (minor 22). The gift key resolves with the personality clause.
+    fireGreeting(22, 25, 5, 1, "GOLD")
+    T.eq(#spoken, 1)
+    local s = spoken[1].text
+    T.truthy(s:find("25 Gold from this friendly city-state", 1, true), "value + personality clause")
+end
+
+function M.test_city_state_gift_cp_unit_resolves_unit_name()
+    setup()
+    -- UNIT suffix: iData2 is a unit type id, resolved to the unit name.
+    fireGreeting(22, 3, 5, 1, "UNIT")
+    T.eq(#spoken, 1)
+    T.truthy(spoken[1].text:find("Warrior", 1, true), "unit gift names the unit")
+end
+
+function M.test_city_state_gift_cp_friendship_only()
+    setup()
+    -- No primary gift value but a friendship boost: the friendship-only
+    -- fallback branch.
+    fireGreeting(22, 0, 5, 0, "GOLD")
+    T.eq(#spoken, 1)
+    T.truthy(spoken[1].text:find("influence", 1, true), "friendship-only fallback")
+end
+
+function M.test_city_state_gift_cp_nothing_is_announced()
+    setup()
+    -- Aggressor under the gifts model: value 0, friendship 0, suffix still
+    -- set. Mirrors the modded popup's "nothing" line.
+    fireGreeting(22, 0, 0, 1, "UNKNOWN")
+    T.eq(#spoken, 1)
+    T.truthy(spoken[1].text:find("nothing gained", 1, true), "nothing-gained line")
+end
+
+-- Major-civ first contact ------------------------------------------------
+
+function M.test_team_meet_major_civ_in_mp_speaks()
+    setup()
+    fireTeamMeet(0, 5) -- active team 0 meets major civ team 5
+    T.eq(#spoken, 1)
+    T.truthy(spoken[1].text:find("Napoleon", 1, true), "major civ leader named")
+end
+
+function M.test_team_meet_in_sp_is_silent()
+    setup()
+    isMP = false
+    fireTeamMeet(0, 5)
+    T.eq(#spoken, 0)
+end
+
+function M.test_team_meet_minor_civ_is_silent()
+    setup()
+    -- City-states ride NOTIFICATION_MET_MINOR; this handler must not
+    -- double-announce them.
+    fireTeamMeet(0, 8)
+    T.eq(#spoken, 0)
+end
+
+function M.test_team_meet_barbarian_is_silent()
+    setup()
+    fireTeamMeet(9, 0) -- active team is eTeamMoving; other team 9 is barbarians
+    T.eq(#spoken, 0)
+end
+
+function M.test_team_meet_other_teams_is_silent()
+    setup()
+    -- Neither team is the active team: a meeting between two other civs.
+    fireTeamMeet(5, 8)
+    T.eq(#spoken, 0)
+end
 
 -- installListeners resilience -------------------------------------------
 
@@ -357,13 +540,6 @@ function M.test_install_warns_when_engine_fork_hooks_missing()
         warned[#warned + 1] = msg
     end
     GameEvents = nil
-    Events = Events or {}
-    naturalWonderListeners = {}
-    Events.NaturalWonderRevealed = {
-        Add = function(fn)
-            naturalWonderListeners[#naturalWonderListeners + 1] = fn
-        end,
-    }
 
     civvaccess_shared = {}
     MultiplayerRewards = nil
@@ -372,9 +548,10 @@ function M.test_install_warns_when_engine_fork_hooks_missing()
     dofile("src/dlc/UI/InGame/CivVAccess_MultiplayerRewards.lua")
     MultiplayerRewards.installListeners()
 
-    -- Goody, barb, and TeamMeet hooks should warn; natural wonder still wires.
-    T.eq(#warned, 3, "three missing GameEvents hooks expected to warn")
-    T.eq(#naturalWonderListeners, 1, "the vanilla event still wires up")
+    -- All five signals route through GameEvents now (goody, barb, natural
+    -- wonder, TeamMeet, city-state greeting), so a nil registry warns once
+    -- per signal.
+    T.eq(#warned, 5, "five missing GameEvents hooks expected to warn")
 end
 
 return M

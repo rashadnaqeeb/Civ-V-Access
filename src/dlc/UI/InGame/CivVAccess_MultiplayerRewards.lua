@@ -1,18 +1,19 @@
 -- !!! MULTIPLAYER-ONLY MODULE !!!
 --
--- Civ V's engine suppresses three reward popups and the major-civ first-
--- contact path in networked multiplayer (the !isNetworkMultiPlayer guards
--- in CvPlayer.cpp / CvUnit.cpp / CvPlot.cpp around BUTTONPOPUP_GOODY_HUT_-
+-- Civ V's engine suppresses several reward / first-contact popups in
+-- networked multiplayer (the !isNetworkMultiPlayer guards in CvPlayer.cpp /
+-- CvUnit.cpp / CvPlot.cpp / CvMinorCivAI.cpp around BUTTONPOPUP_GOODY_HUT_-
 -- REWARD, BUTTONPOPUP_BARBARIAN_CAMP_REWARD, BUTTONPOPUP_NATURAL_WONDER_-
--- REWARD, plus CvDiplomacyAI.cpp's DoFirstContact which gates both the AI
--- leader-greet popup and the human-to-human notification fallback). In
--- single-player the standard *PopupAccess wrappers (GoodyHutPopup /
--- BarbarianCampPopup / NaturalWonderPopup) plus the leader-popup speech
+-- REWARD, BUTTONPOPUP_CITY_STATE_GREETING, plus CvDiplomacyAI.cpp's
+-- DoFirstContact which gates both the AI leader-greet popup and the human-
+-- to-human notification fallback). In single-player the standard
+-- *PopupAccess wrappers (GoodyHutPopup / BarbarianCampPopup /
+-- NaturalWonderPopup / CityStateGreetingPopup) plus the leader-popup speech
 -- cover these. In MP those paths never fire, so a blind player would
 -- silently miss every ruin reward, every barbarian-camp reward, every
--- natural-wonder discovery, and every first contact with a major civ.
--- This module is the MP fallback that closes those gaps and only those
--- gaps.
+-- natural-wonder discovery, every city-state meeting gift, and every first
+-- contact with a major civ. This module is the MP fallback that closes
+-- those gaps and only those gaps.
 --
 -- Hot seat is unaffected: the engine gate is on isNetworkMultiPlayer (not
 -- isGameMultiPlayer), so hot seat sees the popups normally and rides the
@@ -30,14 +31,24 @@
 -- * Barbarian camp: GameEvents.CivVAccessBarbarianCampCleared (engine
 --   fork hook, CvUnit.cpp, marked CIVVACCESS:). Args (playerID, iX, iY,
 --   iNumGold).
--- * Natural wonder: Events.NaturalWonderRevealed (vanilla, fired
---   unconditionally for the active team via gDLL->GameplayNaturalWonder-
---   Revealed). Args (iX, iY). No engine change needed for this one.
+-- * Natural wonder: GameEvents.NaturalWonderDiscovered (stock engine
+--   CallHook in CvPlot::setRevealed, fired in the deterministic simulation
+--   for every team that reveals a wonder). Args (eTeam, eFeature, iX, iY,
+--   bFirst). Stock, so no engine change needed -- but note we deliberately
+--   do NOT use Events.NaturalWonderRevealed (the gDLL presentation
+--   callback): that visual signal does not cross the MP network boundary
+--   reliably, so the active player's own reveal can leave only the generic
+--   notification summary, with no wonder name.
+-- * City-state meeting gift: GameEvents.CivVAccessCityStateGreeting (engine
+--   fork hook, CvMinorCivAI::DoFirstContactWithMajor, marked CIVVACCESS:,
+--   fired for the active player after the MP-gated greeting popup). Args
+--   (minorCivID, iData2, iData3, bFirst, szSuffix) mirror the popup's data
+--   fields; see the handler. The city-state's identity still reaches the
+--   player through NOTIFICATION_MET_MINOR (NotificationAnnounce speaks it);
+--   only the gift is suppressed in MP, so this handler announces the gift.
 -- * Major-civ first contact: GameEvents.TeamMeet (vanilla, fired
 --   unconditionally from CvTeam::meet via LuaSupport::CallHook). Args
---   (eTeamMet, eTeamMoving). City-state first contact is not handled here
---   because NOTIFICATION_MET_MINOR fires unconditionally in CvTeam::make-
---   HasMet and our existing NotificationAnnounce already speaks it.
+--   (eTeamMet, eTeamMoving).
 --
 -- Speech path: speakQueued + MessageBuffer.append("notification") for
 -- every announcement. Queueing matches NotificationAnnounce: these
@@ -101,25 +112,32 @@ end
 -- Feature_YieldChanges, then the in-border-happiness tail, then the
 -- adjacent-unit free-promotion tail.
 --
--- The finder-gold tail (which the popup adds when iFinderGold > 0, varying
--- by first vs subsequent finder) is skipped: the vanilla event doesn't
--- carry iFinderGold or bFirstFinder. The popup version reads them from a
--- popupInfo struct the engine builds, and in MP that struct is never built
--- (the popup is the thing that gets suppressed). The finder gold still
--- lands in the player's treasury (the engine grants it before the popup
--- gate); the player will hear it through the next gold-change cue.
+-- Driven by GameEvents.NaturalWonderDiscovered, a stock engine CallHook
+-- fired in the deterministic simulation for every team that reveals a
+-- wonder -- NOT Events.NaturalWonderRevealed, the gDLL presentation
+-- callback. The presentation callback does not cross the MP network
+-- boundary reliably: in a networked game the active player's own reveal can
+-- fail to raise it, leaving only the generic NOTIFICATION summary, which the
+-- user hears as a bare "natural wonder discovered" with no name. The
+-- CallHook fires on every client for the revealing team, so gating on
+-- Game.GetActiveTeam() announces the local player's discoveries exactly as
+-- the suppressed popup would. Args (eTeam, eFeature, iX, iY, bFirst) carry
+-- the feature type directly, so no plot read is needed; iX, iY (grid coords)
+-- are unused.
 --
--- Args are hex coords, not grid coords -- the engine dispatches this event
--- via gDLL->GameplayNaturalWonderRevealed(pPlot) which packs the plot's
--- hex position. Tutorial/lua/TutorialChecks.lua DiscoveredNaturalWonder
--- does the same ToGridFromHex translation before Map.GetPlot.
-function MultiplayerRewards._onNaturalWonderRevealed(hexX, hexY)
+-- The finder-gold tail (which the popup adds when iFinderGold > 0, varying
+-- by first vs subsequent finder) is skipped: the hook doesn't carry the
+-- gold amount. The finder gold still lands in the player's treasury (the
+-- engine grants it regardless); the player will hear it through the next
+-- gold-change cue.
+function MultiplayerRewards._onNaturalWonderDiscovered(eTeam, eFeature, _iX, _iY, _bFirst)
     if not Game:IsNetworkMultiPlayer() then
         return
     end
-    local iX, iY = ToGridFromHex(hexX, hexY)
-    local plot = Map.GetPlot(iX, iY)
-    local info = GameInfo.Features[plot:GetFeatureType()]
+    if eTeam ~= Game.GetActiveTeam() then
+        return
+    end
+    local info = GameInfo.Features[eFeature]
 
     local condition = "FeatureType = '" .. info.Type .. "'"
     local yieldString = Text.format("TXT_KEY_POP_NATURAL_WONDER_FOUND_TT", info.Description)
@@ -181,6 +199,72 @@ function MultiplayerRewards._onTeamMeet(eTeamMet, eTeamMoving)
     emit(Text.format("TXT_KEY_NOTIFICATION_SUMMARY_MET_MINOR_CIV", leader:GetNameKey()))
 end
 
+-- City-state meeting gift. The city-state's name already reaches the player
+-- through NOTIFICATION_MET_MINOR; this announces only the first-contact
+-- gift, which the suppressed BUTTONPOPUP_CITY_STATE_GREETING would have
+-- shown. szSuffix selects the gift shape, matching whichever popup the
+-- active engine ships:
+--   * empty -- vanilla / LekMod / Community-Patch-with-gifts-off: iData2 is
+--     the gold gift, iData3 the faith gift. Formatted with the same
+--     TXT_KEY_CITY_STATE_GIFT_* keys the vanilla CityStateGreetingPopup uses.
+--   * non-empty -- the Community Patch's richer gift model (GLOBAL_CS_GIFTS,
+--     which Vox Populi enables): szSuffix is the trait key (GOLD / FAITH /
+--     CULTURE / FOOD / UNIT), iData2 the gift value (or unit type for UNIT),
+--     iData3 the friendship boost. Reproduces the modded popup's
+--     strGiftString composition, including the friendship-only and
+--     nothing-gained fallbacks.
+local function minorPersonalityKey(minorCivID)
+    local p = Players[minorCivID]:GetPersonality()
+    if p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_FRIENDLY then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY"
+    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_HOSTILE then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_HOSTILE"
+    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_IRRATIONAL then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_IRRATIONAL"
+    end
+    return "TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL"
+end
+
+local function cityStateGiftString(minorCivID, iData2, iData3, bFirst, szSuffix)
+    if szSuffix == nil or szSuffix == "" then
+        local parts = {}
+        if iData2 > 0 then
+            parts[#parts + 1] =
+                Text.format(bFirst and "TXT_KEY_CITY_STATE_GIFT_FIRST" or "TXT_KEY_CITY_STATE_GIFT_OTHER", iData2)
+        end
+        if iData3 > 0 then
+            parts[#parts + 1] = Text.format(
+                bFirst and "TXT_KEY_CITY_STATE_GIFT_FAITH_FIRST" or "TXT_KEY_CITY_STATE_GIFT_FAITH_OTHER",
+                iData3
+            )
+        end
+        return Text.joinNonEmpty(parts)
+    end
+
+    local pkey = minorPersonalityKey(minorCivID)
+    if iData2 == 0 then
+        if iData3 == 0 then
+            return Text.key("TXT_KEY_MINOR_CIV_CONTACT_BONUS_NOTHING")
+        end
+        return Text.format("TXT_KEY_MINOR_CIV_CONTACT_BONUS_FRIENDSHIP", iData3, pkey)
+    end
+    local giftKey = "TXT_KEY_MINOR_CIV_" .. (bFirst and "FIRST_" or "") .. "CONTACT_BONUS_" .. szSuffix
+    if szSuffix == "UNIT" then
+        return Text.format(giftKey, GameInfo.Units[iData2].Description, pkey)
+    end
+    return Text.format(giftKey, iData2, pkey)
+end
+
+function MultiplayerRewards._onCityStateGreeting(minorCivID, iData2, iData3, iFirstMajorCiv, szSuffix)
+    if not Game:IsNetworkMultiPlayer() then
+        return
+    end
+    -- The engine pushes the first-contact flag as 1/0 (project hook
+    -- convention), and 0 is truthy in Lua, so normalize before the formatter
+    -- branches on it.
+    emit(cityStateGiftString(minorCivID, iData2, iData3, iFirstMajorCiv == 1, szSuffix))
+end
+
 -- Registers fresh listeners on every call (onInGameBoot invokes this once
 -- per game load). Even though MP-only feature, the boot wiring runs in SP
 -- too -- the gates inside each handler reject the events. Cheap to be
@@ -201,6 +285,18 @@ function MultiplayerRewards.installListeners()
         "MultiplayerRewards",
         "barb-camp announces disabled in MP (engine fork not deployed?)"
     )
-    Log.installEvent(Events, "NaturalWonderRevealed", MultiplayerRewards._onNaturalWonderRevealed, "MultiplayerRewards")
+    Log.installEvent(
+        GameEvents,
+        "NaturalWonderDiscovered",
+        MultiplayerRewards._onNaturalWonderDiscovered,
+        "MultiplayerRewards"
+    )
     Log.installEvent(GameEvents, "TeamMeet", MultiplayerRewards._onTeamMeet, "MultiplayerRewards")
+    Log.installEvent(
+        GameEvents,
+        "CivVAccessCityStateGreeting",
+        MultiplayerRewards._onCityStateGreeting,
+        "MultiplayerRewards",
+        "city-state gift announces disabled in MP (engine fork not deployed?)"
+    )
 end

@@ -11,7 +11,11 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- In multiplayer, meeting a city-state now speaks the first-contact gift you received.
+
 Bug fixes:
+- In multiplayer, discovering a natural wonder now names it instead of only announcing that a wonder was found.
 - Kicking a player from the multiplayer staging room now asks for confirmation and no longer leaves the screen silent and unresponsive.
 
 ## [2.0.7] - 2026-06-25

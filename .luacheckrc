@@ -54,6 +54,7 @@ read_globals = {
     "ActionSubTypes", "GameInfoActions", "EndTurnBlockingTypes",
     "TaskTypes", "InfluenceLevelTypes",
     "OrderTypes", "ReligionTypes", "CityUpdateTypes",
+    "MinorCivPersonalityTypes",
 
     -- Platform / session / content
     "Modding", "Matchmaking", "Network", "Steam", "SaveFileList",
@@ -288,6 +289,9 @@ files["tests/"] = {
         "Modding", "UIManager",
         -- Engine enum the suites stub to drive popup dispatch tests.
         "ButtonPopupTypes",
+        -- Minor-civ personality enum the multiplayer-rewards suite stubs to
+        -- drive the city-state gift personality clause.
+        "MinorCivPersonalityTypes",
         -- PopupBoot-provided close hook; proposal_chart_popup_test stubs it so
         -- the captured Yes / No vote items can be activated without a Context.
         "OnClose",
