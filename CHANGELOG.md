@@ -15,6 +15,7 @@ New Features and improvements:
 - In multiplayer, meeting a city-state now speaks the first-contact gift you received.
 - The turn key (T) now reports the time left when a multiplayer turn timer is running.
 - A tick sounds each second during the last 15 seconds of your turn timer.
+- Pressing Escape in the multiplayer staging room now asks to confirm before leaving the game.
 
 Bug fixes:
 - In multiplayer, discovering a natural wonder now names it instead of only announcing that a wonder was found.

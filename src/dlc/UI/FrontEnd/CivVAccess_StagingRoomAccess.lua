@@ -349,6 +349,74 @@ local function openKickConfirm(playerID, name)
     HandlerStack.push(h)
 end
 
+-- Leave-game confirmation ---------------------------------------------
+--
+-- Base maps Escape straight to HandleExitRequest (leave the multiplayer
+-- game) with no confirm. Users habituated to Escape backing out of a sub-
+-- menu elsewhere in the mod hit it by reflex and drop the whole game. The
+-- onEscape install hook routes Escape through this pushed confirm instead;
+-- Yes runs the same HandleExitRequest the Back button does, Esc / No cancel.
+-- The Back button itself stays direct -- reaching it is a deliberate choice.
+
+local LEAVE_CONFIRM_HANDLER = "StagingLeaveConfirm"
+
+local function closeLeaveConfirm(reactivate)
+    return HandlerStack.drainAndRemove(LEAVE_CONFIRM_HANDLER, reactivate)
+end
+
+local function leaveConfirmPresent()
+    for i = HandlerStack.count(), 1, -1 do
+        local h = HandlerStack.at(i)
+        if h and h.name == LEAVE_CONFIRM_HANDLER then
+            return true
+        end
+    end
+    return false
+end
+
+local function openLeaveConfirm()
+    if leaveConfirmPresent() then
+        return
+    end
+    local h = BaseMenu.create({
+        name = LEAVE_CONFIRM_HANDLER,
+        displayName = Text.key("TXT_KEY_CIVVACCESS_STAGING_LEAVE_CONFIRM"),
+        capturesAllInput = true,
+        escapePops = true,
+        items = {
+            BaseMenuItems.Text({
+                textKey = "TXT_KEY_YES_BUTTON",
+                onActivate = function()
+                    -- reactivate=false: the staging room is about to hide, so
+                    -- re-announcing it would step on the transition out.
+                    HandlerStack.removeByName(LEAVE_CONFIRM_HANDLER, false)
+                    if type(HandleExitRequest) == "function" then
+                        HandleExitRequest()
+                    end
+                end,
+            }),
+            BaseMenuItems.Text({
+                textKey = "TXT_KEY_NO_BUTTON",
+                onActivate = function()
+                    HandlerStack.removeByName(LEAVE_CONFIRM_HANDLER, true)
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+end
+
+-- Escape hook for the staging-room install. Mirrors base's launch guard
+-- (Escape is inert while a launch is in flight), otherwise shows the confirm
+-- and consumes the key so it never reaches base's leave-the-game handler.
+local function onStagingEscape()
+    if Matchmaking.IsLaunchingGame() then
+        return true
+    end
+    openLeaveConfirm()
+    return true
+end
+
 -- Group children ------------------------------------------------------
 
 -- Per-slot drill-in children. For each editable field we include both the
@@ -1285,10 +1353,11 @@ local function wrappedShowHide(bIsHide, bIsInit)
         Log.error("StagingRoomAccess: priorShowHide failed: " .. tostring(err))
     end
     if bIsHide then
-        -- Auto-close the chat and hot-join panels so nothing orphans on the
-        -- stack when the user leaves StagingRoom with one of them open.
+        -- Auto-close the chat, hot-join, and leave-confirm panels so nothing
+        -- orphans on the stack when the user leaves StagingRoom with one open.
         closeChatPanel(false)
         closeHotJoinPanel(false)
+        closeLeaveConfirm(false)
         return
     end
     -- Base ShowHideHandler calls StopCountdown() on every show (to clear any
@@ -1323,6 +1392,7 @@ handler = BaseMenu.install(ContextPtr, {
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
     priorShowHide = wrappedShowHide,
     priorInput = priorInput,
+    onEscape = onStagingEscape,
     tabs = {
         {
             name = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",

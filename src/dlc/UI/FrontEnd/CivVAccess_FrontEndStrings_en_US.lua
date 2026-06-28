@@ -197,6 +197,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} was kicked"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Launching in 10 seconds"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Countdown cancelled"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
+-- Escape in the staging room leaves the multiplayer game outright. Users
+-- habituated to Escape backing out of a sub-menu hit it by reflex, so it is
+-- gated behind this confirm; the Back button still leaves directly.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_LEAVE_CONFIRM"] = "Leave the game?"
 -- Chat panel: title, tab labels, compose field label, empty-history
 -- placeholder, the help-overlay line for the open chord, and the close
 -- key-label (Backslash or Escape, mirroring the in-game chat panel since
