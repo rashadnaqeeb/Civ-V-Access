@@ -1075,4 +1075,40 @@ function M.test_get_cell_sections_replaces_cell_value()
     T.eq(#h._sections, 5)
 end
 
+-- refreshColumns: live column-set swap (host-only kick column tracking a
+-- mid-game host migration).
+
+function M.test_refreshColumns_swaps_the_column_set()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, true)
+    T.eq(#h.columns, 3)
+    local cols = h.columns
+    h.refreshColumns({
+        cols[1],
+        cols[2],
+        cols[3],
+        {
+            name = "TXT_KEY_CIVVACCESS_TBL_COL_EXTRA",
+            getCell = function()
+                return "x"
+            end,
+        },
+    })
+    T.eq(#h.columns, 4)
+end
+
+function M.test_refreshColumns_clamps_focused_column_when_dropped()
+    setup()
+    local h = BaseTable.create(makeBasicSpec())
+    h.onTabActivated(h, true)
+    h.bindings[4].fn() -- VK_RIGHT -> column 2
+    h.bindings[4].fn() -- VK_RIGHT -> column 3
+    T.eq(h._col, 3)
+    -- Dropping the trailing column must pull the focused column back in range
+    -- rather than strand _col past the end.
+    h.refreshColumns({ h.columns[1], h.columns[2] })
+    T.eq(h._col, 2)
+end
+
 return M

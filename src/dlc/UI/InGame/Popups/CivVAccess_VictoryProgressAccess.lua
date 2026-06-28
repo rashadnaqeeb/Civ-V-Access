@@ -133,6 +133,62 @@ local function scoreColumn(nameKey, scoreFn)
     }
 end
 
+-- ===== Host kick column (network MP only) =============================
+--
+-- Far-right host-action column, mirroring DiploRelationships' MP declare-war
+-- column. Present only when the local player is the multiplayer host; the
+-- cell offers "kick" only against a connected human who isn't the local
+-- player, and activation hits Matchmaking.KickPlayer -- the same call the
+-- engine's own ConfirmKick modal makes on Accept. A two-press confirm guards
+-- the destructive action: the first Enter on a kick cell arms that player and
+-- speaks the prompt, a second Enter on the same player commits the kick. The
+-- armed target is a single slot, reset on every screen open, so arming a
+-- different row (or reopening the screen) clears any prior arm.
+local m_armedKickId = nil
+
+local function noneCell()
+    return Text.key("TXT_KEY_CIVVACCESS_DIPLO_NONE")
+end
+
+-- Host may kick a connected human other than themselves. Mirrors MPList's
+-- allowKick = IsHost and not local and IsActiveHuman, where IsActiveHuman is
+-- "connected, or a non-observer human" -- the latter catches a human whose
+-- connection record briefly lags.
+local function canKick(pPlayer)
+    if not Game.IsNetworkMultiPlayer() or not Matchmaking.IsHost() then
+        return false
+    end
+    local id = pPlayer:GetID()
+    if id == activePlayerId() then
+        return false
+    end
+    return Network.IsPlayerConnected(id) or (pPlayer:IsHuman() and not pPlayer:IsObserver())
+end
+
+local function kickCell(pPlayer)
+    if not canKick(pPlayer) then
+        return noneCell()
+    end
+    return Text.key("TXT_KEY_CIVVACCESS_VP_COL_KICK")
+end
+
+local function kickActivate(pPlayer)
+    if not canKick(pPlayer) then
+        m_armedKickId = nil
+        return
+    end
+    local id = pPlayer:GetID()
+    local name = civDisplayName(pPlayer)
+    if m_armedKickId == id then
+        m_armedKickId = nil
+        Matchmaking.KickPlayer(id)
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_VP_KICK_DONE", name))
+    else
+        m_armedKickId = id
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_VP_KICK_CONFIRM", name))
+    end
+end
+
 local function buildScoreColumns()
     local cols = {
         scoreColumn("TXT_KEY_CIVVACCESS_VP_COL_TOTAL", function(p)
@@ -202,6 +258,18 @@ local function buildScoreColumns()
         cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO4", function(p)
             return p:GetScoreFromScenario4()
         end)
+    end
+    -- Far-right host action: kick, network-MP host only. Re-evaluated on each
+    -- screen open (see the install onShow), so a mid-game host migration adds
+    -- or drops the column correctly. Per-cell canKick re-checks live so AI /
+    -- self / disconnected rows read "none".
+    if Game.IsNetworkMultiPlayer() and Matchmaking.IsHost() then
+        cols[#cols + 1] = {
+            name = "TXT_KEY_CIVVACCESS_VP_COL_KICK",
+            getCell = kickCell,
+            enterAction = kickActivate,
+            pediaName = leaderPediaNameFor,
+        }
     end
     return cols
 end
@@ -1038,6 +1106,11 @@ end
 
 VictoryProgressAccess.scoreRowLabel = scoreRowLabel
 VictoryProgressAccess.buildScoreColumns = buildScoreColumns
+VictoryProgressAccess.canKick = canKick
+VictoryProgressAccess.kickActivate = kickActivate
+VictoryProgressAccess.resetKickArm = function()
+    m_armedKickId = nil
+end
 VictoryProgressAccess.rebuildScoreRows = rebuildScoreRows
 VictoryProgressAccess.civDisplayName = civDisplayName
 VictoryProgressAccess.dominationState = dominationState
@@ -1088,6 +1161,12 @@ if type(ContextPtr) == "table" and type(ContextPtr.SetShowHideHandler) == "funct
         -- the items would freeze at install state. Tab 1 (BaseTable) self-
         -- refreshes via rebuildRows on every nav event.
         onShow = function()
+            -- Clear any armed kick so a stale first-press from a prior open
+            -- can never commit on the next Enter.
+            m_armedKickId = nil
+            -- Re-evaluate the host-only kick column each open so a mid-game
+            -- host migration is reflected without waiting for a Context reload.
+            scoreTab.refreshColumns(buildScoreColumns())
             if m_victoriesTab ~= nil then
                 m_victoriesTab.menu().setItems(buildVictoriesItems())
             end

@@ -16,6 +16,7 @@ New Features and improvements:
 - The turn key (T) now reports the time left when a multiplayer turn timer is running.
 - A tick sounds each second during the last 15 seconds of your turn timer.
 - Pressing Escape in the multiplayer staging room now asks to confirm before leaving the game.
+- The multiplayer host can kick a player from the far-right column of the F8 score list; Enter twice to confirm.
 
 Bug fixes:
 - In multiplayer, discovering a natural wonder now names it instead of only announcing that a wonder was found.

@@ -283,6 +283,9 @@ files["tests/"] = {
         -- paths (e.g. turn_test flips PreGame.IsMultiplayerGame to cover
         -- both SP and MP endturn dispatch).
         "PreGame", "Network", "OptionsManager",
+        -- victory_progress_test replaces Matchmaking wholesale to drive the
+        -- host kick column (IsHost / KickPlayer).
+        "Matchmaking",
         -- Modding.OpenUserData stubbed by bookmarks_test to control the
         -- per-mod user-data path; UIManager.DequeuePopup stubbed by
         -- economic_overview_test to capture popup-close calls.

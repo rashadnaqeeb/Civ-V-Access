@@ -3046,6 +3046,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/a"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_SCORE"] = "Score"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "Victories"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "Total"
+-- Far-right host-action column on the Score tab, network-MP host only. Cell
+-- and header share the action label; activation is a two-press confirm.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_KICK"] = "kick"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_CONFIRM"] = "kick {1_Name}? Enter again to confirm"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_DONE"] = "kicked {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, capital lost"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "Domination"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE"] = "Science"

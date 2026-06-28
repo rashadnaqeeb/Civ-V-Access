@@ -878,6 +878,19 @@ function BaseTable.create(spec)
         self._filterQuery = ""
     end
 
+    -- Replace the column set on the fly. For a column whose presence depends
+    -- on live game state (e.g. the host-only kick column, which must track a
+    -- mid-game host migration), the caller rebuilds columns on each screen
+    -- open and hands them here. Clamps the focused column so dropping a
+    -- trailing column can't strand _col past the end; existing-column indices
+    -- are assumed stable, so the active sort column survives.
+    function self.refreshColumns(newColumns)
+        self.columns = newColumns
+        if self._col > #newColumns then
+            self._col = #newColumns
+        end
+    end
+
     function self.handleSearchInput(_me, vk, mods)
         return handleSearchInput(self, vk, mods)
     end

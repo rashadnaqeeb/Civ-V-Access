@@ -199,4 +199,188 @@ function M.test_science_sections_nil_for_bare_apollo()
     T.eq(VictoryProgressAccess.scienceCivSections(p), nil)
 end
 
+-- ===== Host kick column =====
+--
+-- Network-MP host-only far-right column. canKick gates which rows offer the
+-- action; kickActivate is a two-press confirm whose second press is the only
+-- path to Matchmaking.KickPlayer. Both are speech / destructive boundaries.
+
+-- Re-run setup() into a network-MP host session, with a kick-recording
+-- Matchmaking and a connection table. `connected` maps playerId -> bool.
+-- Installs three players: the active player (99), a connected human (0), and
+-- an AI (1). Returns the recorder table { kicked = <playerId or nil> }.
+local function setupKick(connected)
+    setup()
+    Game.IsNetworkMultiPlayer = function()
+        return true
+    end
+    local recorder = { kicked = nil }
+    Matchmaking = {
+        IsHost = function()
+            return true
+        end,
+        KickPlayer = function(id)
+            recorder.kicked = id
+        end,
+    }
+    Network = {
+        IsPlayerConnected = function(id)
+            return connected[id] == true
+        end,
+    }
+
+    local function installPlayer(id, opts)
+        Teams[id] = {
+            IsHasMet = function()
+                return true
+            end,
+        }
+        local p = {}
+        function p:GetID()
+            return id
+        end
+        function p:GetTeam()
+            return id
+        end
+        function p:GetCivilizationType()
+            return 0
+        end
+        function p:GetNickName()
+            return opts.nick or ""
+        end
+        function p:GetNameKey()
+            return "Caesar"
+        end
+        function p:IsHuman()
+            return opts.human == true
+        end
+        function p:IsObserver()
+            return opts.observer == true
+        end
+        Players[id] = p
+        return p
+    end
+
+    installPlayer(99, { human = true, nick = "Me" }) -- active player (self)
+    installPlayer(0, { human = true, nick = "Bob" }) -- kickable human
+    installPlayer(1, { human = false }) -- AI
+    return recorder
+end
+
+function M.test_canKick_true_for_connected_human_opponent()
+    setupKick({ [0] = true })
+    T.eq(VictoryProgressAccess.canKick(Players[0]), true)
+end
+
+function M.test_canKick_false_for_self()
+    setupKick({ [99] = true })
+    T.eq(VictoryProgressAccess.canKick(Players[99]), false)
+end
+
+function M.test_canKick_false_for_ai()
+    setupKick({})
+    -- AI: not connected and not human -> not an active human.
+    T.eq(VictoryProgressAccess.canKick(Players[1]), false)
+end
+
+function M.test_canKick_false_when_not_host()
+    setupKick({ [0] = true })
+    Matchmaking.IsHost = function()
+        return false
+    end
+    T.eq(VictoryProgressAccess.canKick(Players[0]), false)
+end
+
+function M.test_canKick_false_outside_network_mp()
+    setupKick({ [0] = true })
+    Game.IsNetworkMultiPlayer = function()
+        return false
+    end
+    T.eq(VictoryProgressAccess.canKick(Players[0]), false)
+end
+
+function M.test_kick_requires_two_presses()
+    local recorder = setupKick({ [0] = true })
+    VictoryProgressAccess.resetKickArm()
+    local spoken = T.captureSpeech()
+
+    -- First press arms only: no kick yet, a confirm prompt naming the player.
+    VictoryProgressAccess.kickActivate(Players[0])
+    T.eq(recorder.kicked, nil)
+    T.eq(spoken[1].text, "kick Bob of Rome? Enter again to confirm")
+
+    -- Second press on the same player commits the kick.
+    VictoryProgressAccess.kickActivate(Players[0])
+    T.eq(recorder.kicked, 0)
+    T.eq(spoken[2].text, "kicked Bob of Rome")
+end
+
+function M.test_kick_arm_does_not_carry_to_other_player()
+    local recorder = setupKick({ [0] = true, [2] = true })
+    -- A second kickable human.
+    Teams[2] = {
+        IsHasMet = function()
+            return true
+        end,
+    }
+    local p2 = {}
+    function p2:GetID()
+        return 2
+    end
+    function p2:GetTeam()
+        return 2
+    end
+    function p2:GetCivilizationType()
+        return 0
+    end
+    function p2:GetNickName()
+        return "Eve"
+    end
+    function p2:GetNameKey()
+        return "Caesar"
+    end
+    function p2:IsHuman()
+        return true
+    end
+    function p2:IsObserver()
+        return false
+    end
+    Players[2] = p2
+
+    VictoryProgressAccess.resetKickArm()
+    -- Arm player 0, then press on player 2: player 2 only arms (no kick), and
+    -- player 0 is no longer armed.
+    VictoryProgressAccess.kickActivate(Players[0])
+    VictoryProgressAccess.kickActivate(Players[2])
+    T.eq(recorder.kicked, nil)
+end
+
+function M.test_resetKickArm_clears_pending_confirm()
+    local recorder = setupKick({ [0] = true })
+    VictoryProgressAccess.resetKickArm()
+    -- Arm, then a screen-open reset; the next press must re-confirm, not kick.
+    VictoryProgressAccess.kickActivate(Players[0])
+    VictoryProgressAccess.resetKickArm()
+    VictoryProgressAccess.kickActivate(Players[0])
+    T.eq(recorder.kicked, nil)
+end
+
+function M.test_score_columns_append_kick_for_host()
+    setupKick({ [0] = true })
+    local cols = VictoryProgressAccess.buildScoreColumns()
+    -- Kick is the far-right column when host in network MP.
+    T.eq(cols[#cols].name, "TXT_KEY_CIVVACCESS_VP_COL_KICK")
+end
+
+function M.test_score_columns_omit_kick_when_not_host()
+    setupKick({ [0] = true })
+    Matchmaking.IsHost = function()
+        return false
+    end
+    local cols = VictoryProgressAccess.buildScoreColumns()
+    for _, c in ipairs(cols) do
+        T.eq(c.name ~= "TXT_KEY_CIVVACCESS_VP_COL_KICK", true)
+    end
+end
+
 return M
