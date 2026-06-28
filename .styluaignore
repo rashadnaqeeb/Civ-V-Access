@@ -48,6 +48,7 @@ src/dlc/UI/InGame/WorldView/Advisors.lua
 src/dlc/UI/InGame/WorldView/TradeLogic.lua
 src/dlc/UI/InGame/WorldView/DiploCorner.lua
 src/dlc/UI/InGame/WorldView/MiniMapPanel.lua
+src/dlc/UI/InGame/WorldView/MPTurnPanel.lua
 src/dlc/UI/InGame/Menus/GameMenu.lua
 src/dlc/UI/InGame/Menus/SaveMenu.lua
 # Popups holds both vendor base files and our CivVAccess_* wrappers. Ignore

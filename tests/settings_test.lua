@@ -423,11 +423,15 @@ function M.test_notifications_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(NOTIFICATIONS_GROUP)
-    T.eq(#children, 6, "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound + unit-moves")
-    for i = 1, 5 do
+    T.eq(
+        #children,
+        7,
+        "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound + turn-timer-tick + unit-moves"
+    )
+    for i = 1, 6 do
         T.eq(children[i].kind, "checkbox", "notification toggle " .. i)
     end
-    T.eq(children[6].kind, "group", "unit-moves tri-state group")
+    T.eq(children[7].kind, "group", "unit-moves tri-state group")
 end
 
 function M.test_ai_combat_announce_default_on_and_flip()
@@ -458,6 +462,17 @@ function M.test_turn_start_sound_default_off_and_flip()
     groupChildren(NOTIFICATIONS_GROUP)[5]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.turnStartSound, true)
     T.eq(prefsStore["TurnStartSound"], true)
+end
+
+function M.test_turn_timer_tick_default_on_and_flip()
+    -- Default on: the last-15-seconds cue warns of an imminent auto-end.
+    -- MPTurnPanelAccess reads civvaccess_shared.turnTimerTick live.
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.turnTimerTick, true, "default on")
+    groupChildren(NOTIFICATIONS_GROUP)[6]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.turnTimerTick, false)
+    T.eq(prefsStore["TurnTimerTick"], false)
 end
 
 return M

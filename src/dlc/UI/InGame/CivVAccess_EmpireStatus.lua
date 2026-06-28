@@ -162,6 +162,59 @@ local function stillPlayingClause()
     return Text.format("TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING", table.concat(names, ", "))
 end
 
+-- Multiplayer end-turn timer remaining time. Present only when the
+-- end-turn-timer game option is on; the value is mirrored live from
+-- Events.EndTurnTimerUpdate by CivVAccess_MPTurnPanelAccess (the engine
+-- exposes no pull API for it), so reading civvaccess_shared here reads the
+-- freshest pushed frame, not a cached snapshot. The mirror is nil unless it
+-- is the local player's own active turn (the wrapper gates it there, so the
+-- T-line never reports another player's sequential-turn countdown), the
+-- option is off, or the timer is paused at a turn boundary.
+--
+-- Spoken as the largest two non-zero units (hours/minutes, minutes/seconds,
+-- or just seconds), mirroring base MPTurnPanel's h/m/s ladder. Each unit
+-- fragment is pluralized on its own count; a zero lower unit collapses to the
+-- one-unit form so the line never speaks a "0 seconds" slot.
+local function timerUnit(count, key)
+    return Text.formatPlural(key, count, count)
+end
+
+local function timerClause()
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED) then
+        return nil
+    end
+    local secs = civvaccess_shared.turnTimerSeconds
+    if secs == nil then
+        return nil
+    end
+    if secs >= 3600 then
+        local hours = math.floor(secs / 3600)
+        local mins = math.floor((secs % 3600) / 60)
+        local h = timerUnit(hours, "TXT_KEY_CIVVACCESS_TURN_TIMER_HOURS")
+        if mins == 0 then
+            return Text.format("TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT", h)
+        end
+        return Text.format(
+            "TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO",
+            h,
+            timerUnit(mins, "TXT_KEY_CIVVACCESS_TURN_TIMER_MINUTES")
+        )
+    elseif secs >= 60 then
+        local mins = math.floor(secs / 60)
+        local rem = secs % 60
+        local m = timerUnit(mins, "TXT_KEY_CIVVACCESS_TURN_TIMER_MINUTES")
+        if rem == 0 then
+            return Text.format("TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT", m)
+        end
+        return Text.format(
+            "TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO",
+            m,
+            timerUnit(rem, "TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS")
+        )
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT", timerUnit(secs, "TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"))
+end
+
 -- Turn and date. Reuses the Turn-module path (TXT_KEY_TP_TURN_COUNTER plus
 -- TXT_KEY_TIME_BC / TXT_KEY_TIME_AD) so the spoken format matches what
 -- Turn.lua emits at ActivePlayerTurnStart - one consistent calendar shape
@@ -183,9 +236,17 @@ local function turnLine()
     -- spoken-out long form of the date.
     if player:IsUsingMayaCalendar() then
         local maya = player:GetMayaCalendarString()
-        return joinClauses(turn, date, maya, supplyClause(player), shortageClause(player), stillPlayingClause())
+        return joinClauses(
+            turn,
+            date,
+            maya,
+            supplyClause(player),
+            shortageClause(player),
+            stillPlayingClause(),
+            timerClause()
+        )
     end
-    return joinClauses(turn, date, supplyClause(player), shortageClause(player), stillPlayingClause())
+    return joinClauses(turn, date, supplyClause(player), shortageClause(player), stillPlayingClause(), timerClause())
 end
 
 -- Player's current era as its localized display name (engine TXT_KEY_ERA_*

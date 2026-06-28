@@ -922,6 +922,10 @@
         "alias": "vp"
       }
     },
+    "InGame/WorldView/MPTurnPanel.lua": {
+      "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/InGame/WorldView/MPTurnPanel.{lua,xml}. Contents above\r\n-- the bootstrap marker are a verbatim copy of the base-game file. BNW does\r\n-- not override this file; our base copy is what loads under the Expansion2\r\n-- UISkin.\r\n",
+      "suffix": "-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MPTurnPanelAccess\")\r\n"
+    },
     "InGame/WorldView/SimpleDiploTrade.lua": {
       "hand": true,
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SimpleDiploTradeAccess\")\r\n"

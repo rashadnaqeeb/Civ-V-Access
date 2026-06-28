@@ -1147,6 +1147,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Announce camps and ruins others claimed in view"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Play turn-start sound in single player"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK"] =
+    "Tick each second in the last 15 seconds of the turn timer"
 -- Per-owner unit-movement announcement toggles, under one drillable. Each
 -- gates speech for its owner bucket only; the F7 Unit Moves log populates
 -- regardless.
@@ -1928,6 +1930,27 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "no {1_Resource}
 -- the remote humans we are still waiting on this cycle (active turn, not
 -- yet ended). Quiet in single-player, hot seat, and once everyone is done.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "still playing: {1_Names}"
+-- Multiplayer end-turn timer remaining time, a trailing clause on the bare
+-- T turn line. Present only when the end-turn-timer game option is on.
+-- Composed from independently-pluralized unit fragments (hour / minute /
+-- second) plus a combiner so each unit agrees in number and the order can be
+-- reordered per locale; the timer is read as the largest two non-zero units,
+-- mirroring the base panel's h/m/s ladder, so a whole-minute remainder never
+-- speaks a "0 seconds" slot.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_HOURS"] = {
+    one = "{1_Hours} hour",
+    other = "{1_Hours} hours",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_MINUTES"] = {
+    one = "{1_Minutes} minute",
+    other = "{1_Minutes} minutes",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
+    one = "{1_Seconds} second",
+    other = "{1_Seconds} seconds",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "{1_Time} left"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "{1_Large} {2_Small} left"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 -- Section labels for Shift+letter detail readouts. Inserted as
 -- "{Label}: " between sections by newDetail.compose() at transitions

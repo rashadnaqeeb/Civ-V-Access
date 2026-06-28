@@ -105,6 +105,7 @@ local function setup()
         GAMEOPTION_NO_HAPPINESS = 2,
         GAMEOPTION_NO_RELIGION = 3,
         GAMEOPTION_NO_POLICIES = 4,
+        GAMEOPTION_END_TURN_TIMER_ENABLED = 5,
     }
     ResourceUsageTypes = {
         RESOURCEUSAGE_BONUS = 0,
@@ -360,6 +361,89 @@ function M.test_turn_appends_strategic_shortages()
     resourceUsage[3] = ResourceUsageTypes.RESOURCEUSAGE_BONUS
     resourceUsage[4] = ResourceUsageTypes.RESOURCEUSAGE_STRATEGIC
     T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, no iron, no horses")
+end
+
+-- Multiplayer end-turn timer clause. Present only when the option is on and
+-- a remaining value has been mirrored from EndTurnTimerUpdate.
+function M.test_turn_appends_timer_seconds()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 12
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 12 seconds left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+function M.test_turn_timer_minutes_and_seconds()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 125
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 2 minutes 5 seconds left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+function M.test_turn_timer_singular_second()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 1
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 1 second left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+-- Whole-minute remainder collapses to a one-unit form (no "0 seconds" slot).
+function M.test_turn_timer_whole_minute_singular()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 60
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 1 minute left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+function M.test_turn_timer_whole_minutes_plural()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 120
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 2 minutes left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+-- Long lobby timer reports an hours/minutes pair, not a large minute count.
+function M.test_turn_timer_hours_and_minutes()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 3661
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 1 hour 1 minute left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+function M.test_turn_timer_whole_hours()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 7200
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 2 hours left")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+function M.test_turn_no_timer_when_option_off()
+    setup()
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = 12
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD")
+    civvaccess_shared.turnTimerSeconds = nil
+end
+
+function M.test_turn_no_timer_when_value_absent()
+    setup()
+    options[GameOptionTypes.GAMEOPTION_END_TURN_TIMER_ENABLED] = true
+    civvaccess_shared = civvaccess_shared or {}
+    civvaccess_shared.turnTimerSeconds = nil
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD")
 end
 
 -- Multiplayer "still playing" clause -------------------------------------

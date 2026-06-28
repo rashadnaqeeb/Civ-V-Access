@@ -237,6 +237,13 @@ local getForeignClearWatchAnnounce, setForeignClearWatchAnnounce =
 -- double-play.
 local getTurnStartSound, setTurnStartSound = defineBoolPref("turnStartSound", "TurnStartSound", false)
 
+-- Multiplayer end-turn timer tick. On by default: the last-15-seconds cue
+-- warns the player their turn is about to auto-end. Read live as
+-- civvaccess_shared.turnTimerTick by CivVAccess_MPTurnPanelAccess, which
+-- also seeds the field, so toggling here takes effect on the next timer
+-- update without a notification path.
+local getTurnTimerTick, setTurnTimerTick = defineBoolPref("turnTimerTick", "TurnTimerTick", true)
+
 -- Per-owner unit-movement announcements. Each owner bucket has its own toggle,
 -- all off by default: a move speaks only when its bucket's toggle is on, while
 -- the F7 Unit Moves log populates regardless. UnitMoveLog reads these
@@ -504,6 +511,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND",
                 getValue = getTurnStartSound,
                 setValue = setTurnStartSound,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK",
+                getValue = getTurnTimerTick,
+                setValue = setTurnTimerTick,
             }),
             BaseMenuItems.Group({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES",
