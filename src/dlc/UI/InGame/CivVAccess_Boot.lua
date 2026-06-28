@@ -168,6 +168,10 @@ include("CivVAccess_LekModAlertAnnounce")
 -- and hot seat, where the popup path covers it.
 include("CivVAccess_MultiplayerRewards")
 include("CivVAccess_MultiplayerTurnEnd")
+-- Simultaneous-turns MP: alerts when the engine quietly pulls your submitted
+-- turn back while the game is waiting on you alone. Polls via a TickPump
+-- subscriber so it keeps watching while you are off in a screen.
+include("CivVAccess_MPEndTurnReminder")
 include("CivVAccess_ForeignUnitSnapshot")
 include("CivVAccess_RevealAnnounce")
 include("CivVAccess_ForeignUnitWatch")
@@ -374,6 +378,7 @@ local function onInGameBoot()
     LekModAlertAnnounce.install()
     MultiplayerRewards.installListeners()
     MultiplayerTurnEnd.installListeners()
+    MPEndTurnReminder.installListeners()
     RevealAnnounce.installListeners()
     ForeignUnitWatch.installListeners()
     ForeignClearWatch.installListeners()

@@ -244,6 +244,12 @@ local getTurnStartSound, setTurnStartSound = defineBoolPref("turnStartSound", "T
 -- update without a notification path.
 local getTurnTimerTick, setTurnTimerTick = defineBoolPref("turnTimerTick", "TurnTimerTick", true)
 
+-- Simultaneous-MP end-turn cancellation reminder. On by default: warns when
+-- the engine pulled the player's submitted turn back and the game is waiting
+-- on them alone. Read live as civvaccess_shared.mpTurnReminder by
+-- CivVAccess_MPEndTurnReminder, which also seeds the field at boot.
+local getMPTurnReminder, setMPTurnReminder = defineBoolPref("mpTurnReminder", "MPTurnReminder", true)
+
 -- Per-owner unit-movement announcements. Each owner bucket has its own toggle,
 -- all off by default: a move speaks only when its bucket's toggle is on, while
 -- the F7 Unit Moves log populates regardless. UnitMoveLog reads these
@@ -516,6 +522,11 @@ local function buildItems()
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK",
                 getValue = getTurnTimerTick,
                 setValue = setTurnTimerTick,
+            }),
+            BaseMenuItems.VirtualToggle({
+                textKey = "TXT_KEY_CIVVACCESS_SETTINGS_MP_TURN_REMINDER",
+                getValue = getMPTurnReminder,
+                setValue = setMPTurnReminder,
             }),
             BaseMenuItems.Group({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES",

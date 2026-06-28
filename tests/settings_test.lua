@@ -425,13 +425,13 @@ function M.test_notifications_group_layout()
     local children = groupChildren(NOTIFICATIONS_GROUP)
     T.eq(
         #children,
-        7,
-        "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound + turn-timer-tick + unit-moves"
+        8,
+        "reveal + ai-combat + foreign-unit + foreign-clear + turn-start-sound + turn-timer-tick + mp-turn-reminder + unit-moves"
     )
-    for i = 1, 6 do
+    for i = 1, 7 do
         T.eq(children[i].kind, "checkbox", "notification toggle " .. i)
     end
-    T.eq(children[7].kind, "group", "unit-moves tri-state group")
+    T.eq(children[8].kind, "group", "unit-moves tri-state group")
 end
 
 function M.test_ai_combat_announce_default_on_and_flip()
@@ -473,6 +473,17 @@ function M.test_turn_timer_tick_default_on_and_flip()
     groupChildren(NOTIFICATIONS_GROUP)[6]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.turnTimerTick, false)
     T.eq(prefsStore["TurnTimerTick"], false)
+end
+
+function M.test_mp_turn_reminder_default_on_and_flip()
+    -- Default on: the simultaneous-MP cancellation reminder is a safety cue.
+    -- MPEndTurnReminder reads civvaccess_shared.mpTurnReminder live.
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.mpTurnReminder, true, "default on")
+    groupChildren(NOTIFICATIONS_GROUP)[7]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.mpTurnReminder, false)
+    T.eq(prefsStore["MPTurnReminder"], false)
 end
 
 return M

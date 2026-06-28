@@ -121,4 +121,64 @@ function M.test_runOnce_callback_error_caught_and_logged()
     T.truthy(#errors >= 1)
 end
 
+-- subscribers --------------------------------------------------------------
+
+function M.test_subscriber_runs_every_tick()
+    setup()
+    local fires = 0
+    TickPump.subscribe("a", function()
+        fires = fires + 1
+    end)
+    TickPump.tick()
+    TickPump.tick()
+    T.eq(fires, 2, "subscriber runs on every tick, unlike a one-shot")
+end
+
+function M.test_subscriber_runs_without_active_handler()
+    setup()
+    -- The whole point of a subscriber: it fires even when no HandlerStack
+    -- handler is active (e.g. the user is off in a screen Context).
+    local fires = 0
+    TickPump.subscribe("bg", function()
+        fires = fires + 1
+    end)
+    TickPump.tick()
+    T.eq(fires, 1)
+end
+
+function M.test_subscribe_replaces_by_name()
+    setup()
+    local a, b = 0, 0
+    TickPump.subscribe("x", function()
+        a = a + 1
+    end)
+    TickPump.subscribe("x", function()
+        b = b + 1
+    end)
+    TickPump.tick()
+    T.eq(a, 0, "first registration under a name is replaced, not stacked")
+    T.eq(b, 1)
+end
+
+function M.test_unsubscribe_stops_subscriber()
+    setup()
+    local fires = 0
+    TickPump.subscribe("y", function()
+        fires = fires + 1
+    end)
+    TickPump.tick()
+    TickPump.unsubscribe("y")
+    TickPump.tick()
+    T.eq(fires, 1, "no further fires after unsubscribe")
+end
+
+function M.test_subscriber_error_caught_and_logged()
+    setup()
+    TickPump.subscribe("boom", function()
+        error("crash")
+    end)
+    TickPump.tick()
+    T.truthy(#errors >= 1)
+end
+
 return M

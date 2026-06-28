@@ -1149,6 +1149,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Play turn-start sound in single player"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK"] =
     "Tick each second in the last 15 seconds of the turn timer"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MP_TURN_REMINDER"] =
+    "Remind me if my turn end is canceled in multiplayer"
 -- Per-owner unit-movement announcement toggles, under one drillable. Each
 -- gates speech for its owner bucket only; the F7 Unit Moves log populates
 -- regardless.
@@ -1893,6 +1895,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Turn ended"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "End turn canceled"
+-- Repeating simultaneous-MP alert when the engine pulled your submitted turn
+-- back and the whole game is now waiting on you alone.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Everyone is waiting on you. End your turn."
 -- LekMod MP soft prompts at end turn: a proposal awaiting your vote / an
 -- incoming deal awaiting your response. End turn again to proceed past either.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Proposal awaiting your vote"

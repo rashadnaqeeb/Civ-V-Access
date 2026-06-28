@@ -17,6 +17,7 @@ New Features and improvements:
 - A tick sounds each second during the last 15 seconds of your turn timer.
 - Pressing Escape in the multiplayer staging room now asks to confirm before leaving the game.
 - The multiplayer host can kick a player from the far-right column of the F8 score list; Enter twice to confirm.
+- In simultaneous multiplayer, a reminder repeats each minute if your turn end gets canceled while everyone is waiting on you.
 
 Bug fixes:
 - In multiplayer, discovering a natural wonder now names it instead of only announcing that a wonder was found.

@@ -199,7 +199,7 @@ globals = {
     "MessageBuffer", "ChatBuffer", "CombatLog", "UnitMoveLog",
     "RevealAnnounce", "ForeignUnitSnapshot", "ForeignUnitWatch", "ForeignClearWatch",
     "HotseatCursor", "HotseatMessageBuffer", "MultiplayerTurnEnd",
-    "MultiplayerRewards",
+    "MultiplayerRewards", "MPEndTurnReminder",
 
     -- Base-game helpers pulled in by TechTree's include chain
     -- (TechHelpInclude.lua defines GetHelpTextForTech). Our TechTreeLogic
