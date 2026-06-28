@@ -53,6 +53,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} wurde rausge
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Start in 10 Sekunden"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Countdown abgebrochen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_LEAVE_CONFIRM"] = "Spiel verlassen?"
 
 -- Chat panel.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_PANEL"] = "Chat"

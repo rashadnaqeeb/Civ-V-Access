@@ -48,6 +48,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} è stato esp
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Avvio tra 10 secondi"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Conto alla rovescia annullato"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_LEAVE_CONFIRM"] = "Uscire dalla partita?"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_PANEL"] = "Chat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MESSAGES_TAB"] = "Messaggi"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE_TAB"] = "Scrivi"

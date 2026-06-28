@@ -675,6 +675,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "視界内で他文明が制圧した野営地と遺跡を通知"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "シングルプレイでターン開始時に音を再生"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK"] = "ターンタイマーの残り15秒を毎秒通知"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MP_TURN_REMINDER"] =
+    "マルチプレイでターン終了がキャンセルされた場合に通知"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "ユニットの移動を通知"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "自分の予約済み移動"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "敵対文明"
@@ -1094,6 +1097,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "ターン終了"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "ターン終了キャンセル"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] =
+    "全員があなたを待っています. ターンを終了してください."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "投票待ちの提案があります"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "返答待ちの取引があります"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control + Space または Control + Enter"
@@ -1118,6 +1123,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "{1_Resource}不足"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "プレイ中: {1_Names}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_HOURS"] = {
+    other = "{1_Hours}時間",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_MINUTES"] = {
+    other = "{1_Minutes}分",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
+    other = "{1_Seconds}秒",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "残り{1_Time}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "残り{1_Large}{2_Small}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_GOLDEN_AGE"] = "黄金時代"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"] = "宗教"
@@ -1734,6 +1750,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/a"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_SCORE"] = "スコア"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "勝利"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "合計"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_KICK"] = "キック"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_CONFIRM"] =
+    "{1_Name} をキックしますか? Enter をもう一度押して確認"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_DONE"] = "{1_Name} をキックした"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, 首都陥落"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "征服"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE"] = "科学"

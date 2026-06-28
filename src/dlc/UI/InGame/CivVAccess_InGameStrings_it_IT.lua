@@ -652,6 +652,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Annuncia accampamenti e rovine reclamati da altri nella vista"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
     "Riproduci suono all'inizio del turno in giocatore singolo"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK"] =
+    "Riproduci un segnale ogni secondo negli ultimi 15 secondi del timer del turno"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MP_TURN_REMINDER"] =
+    "Avvisami se la fine del mio turno è annullata in multiplayer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Annuncia i movimenti delle unità"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Le tue mosse in coda"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Civiltà ostili"
@@ -1300,6 +1304,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "Turno terminato"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Fine turno annullata"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Tutti ti stanno aspettando. Termina il tuo turno."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Proposta in attesa del tuo voto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Accordo in attesa della tua risposta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control più spazio o Control più Enter"
@@ -1338,6 +1343,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "nessuna {1_Resource}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "ancora in gioco: {1_Names}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_HOURS"] = {
+    one = "{1_Hours} ora",
+    other = "{1_Hours} ore",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_MINUTES"] = {
+    one = "{1_Minutes} minuto",
+    other = "{1_Minutes} minuti",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
+    one = "{1_Seconds} secondo",
+    other = "{1_Seconds} secondi",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "{1_Time} rimanenti"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "{1_Large} e {2_Small} rimanenti"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 -- Section labels for Shift+letter detail readouts. Inserted as
 -- "{Label}: " between sections by newDetail.compose() at transitions
@@ -2238,6 +2257,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/d"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_SCORE"] = "Punteggio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "Vittorie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "Totale"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_KICK"] = "espelli"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_CONFIRM"] = "espelli {1_Name}? Invio di nuovo per confermare"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_DONE"] = "espulso {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, capitale persa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "Dominazione"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE"] = "Scienza"

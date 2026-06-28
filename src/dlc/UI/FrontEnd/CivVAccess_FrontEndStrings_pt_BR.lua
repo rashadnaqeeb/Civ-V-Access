@@ -55,6 +55,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} foi expulso"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Iniciando em 10 segundos"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Contagem regressiva cancelada"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_LEAVE_CONFIRM"] = "Sair do jogo?"
 
 -- ===== Chat panel =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_PANEL"] = "Chat"

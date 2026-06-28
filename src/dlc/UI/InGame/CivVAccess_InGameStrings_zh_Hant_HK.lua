@@ -597,6 +597,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_UNIT_WATCH_ANNOUNCE"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "播報視野內其他文明佔領的營地和遺址"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "在單人遊戲中播放回合開始音效"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK"] = "在回合計時器最後15秒每秒滴答提示"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MP_TURN_REMINDER"] =
+    "在多人遊戲中若結束回合被取消則提醒"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "播報單位移動"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "您的已排程移動"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "敵對文明"
@@ -1040,6 +1043,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_GONE_RUIN_PART"] = {
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_START"] = "{1_Turn}, {2_Date}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_ENDED"] = "回合結束"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "已取消結束回合"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "所有人都在等您. 請結束回合."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "提議等待您投票"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "交易等待您回覆"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control 加 Space 或 Control 加 Enter"
@@ -1065,6 +1069,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_GOLD_NEGATIVE"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SHORTAGE_ITEM"] = "缺少 {1_Resource}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_STILL_PLAYING"] = "回合進行中: {1_Names}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_HOURS"] = {
+    other = "{1_Hours}小時",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_MINUTES"] = {
+    other = "{1_Minutes}分鐘",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
+    other = "{1_Seconds}秒",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "{1_Time}剩餘"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "{1_Large}{2_Small}剩餘"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 
 -- ===== Section labels =====
@@ -1957,6 +1972,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_NA"] = "n/a"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_SCORE"] = "分數"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_TAB_VICTORIES"] = "勝利"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_TOTAL"] = "總計"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_COL_KICK"] = "踢出"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_CONFIRM"] = "踢出 {1_Name}? 再按Enter確認"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_KICK_DONE"] = "已踢出 {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_ROW_LOST"] = "{1_Name}, 首都已失守"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_DOMINATION"] = "統治"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_VP_BUTTON_SCIENCE"] = "科技"

@@ -54,6 +54,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} a été excl
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Lancement dans 10 secondes"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Compte à rebours annulé"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_LEAVE_CONFIRM"] = "Quitter la partie ?"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_PANEL"] = "Discussion"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MESSAGES_TAB"] = "Messages"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE_TAB"] = "Rediger"
