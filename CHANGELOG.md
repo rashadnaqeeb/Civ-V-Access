@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-29
+
 New Features and improvements:
 - The turn key (T) now reports the time left when a multiplayer turn timer is running.
 - A tick sounds each second during the last 15 seconds of your turn timer.
