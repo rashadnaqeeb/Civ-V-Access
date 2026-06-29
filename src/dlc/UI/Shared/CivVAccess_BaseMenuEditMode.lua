@@ -46,13 +46,21 @@ function BaseMenuEditMode.push(menu, textfieldItem)
         editBox:SetText("")
     end)
 
-    -- Wrapping callback chains every character to the screen's validator so
-    -- typing keeps driving the screen's own state (e.g. SetMaxTurns). Does
-    -- not own the Enter-pop: that is the edit-mode Esc/Enter bindings.
+    -- Wrapping callback chains every typed character to the screen's
+    -- validator so typing keeps driving the screen's own state (e.g.
+    -- SetMaxTurns). It deliberately drops the Enter commit: a focused Civ V
+    -- EditBox fires its registered callback natively on Enter (with a truthy
+    -- enter flag) on top of our VK_RETURN binding, so forwarding it here
+    -- would run priorCallback twice per Enter. For an idempotent setter that
+    -- double is invisible; for a non-idempotent one (chat's SendChat) it
+    -- sends the message twice. exit() owns the single Enter commit.
     local function wrappingCallback(t, control, bIsEnter)
+        if bIsEnter then
+            return
+        end
         if priorCallback then
             safe("prior callback", function()
-                priorCallback(t, control, bIsEnter)
+                priorCallback(t, control, false)
             end)
         end
     end
@@ -91,11 +99,13 @@ function BaseMenuEditMode.push(menu, textfieldItem)
                 end)
             end)
         elseif priorCallback ~= nil then
-            -- Non-CallOnChar EditBoxes only fire priorCallback on Enter, and
-            -- our Enter binding just intercepted that Enter. Invoke prior
-            -- manually with bIsEnter=true so the screen commits the value
-            -- the same way a native Enter would. Safe for CallOnChar boxes
-            -- too (the setter/validator is idempotent).
+            -- Single Enter commit. The focused EditBox also fires its
+            -- registered callback natively on Enter, but that trailing fire
+            -- is dropped (wrappingCallback ignores Enter, and the raw
+            -- priorCallback is not re-armed until next tick), so this manual
+            -- call is the only one that reaches the screen. Invoke with
+            -- bIsEnter=true so the screen commits the value the way a native
+            -- Enter would.
             local okG, typed = safe("commit GetText", function()
                 return editBox:GetText()
             end)
@@ -110,9 +120,29 @@ function BaseMenuEditMode.push(menu, textfieldItem)
             -- callback we installed earlier stays bound but no-ops when
             -- priorCallback is nil, and the next edit-mode push replaces
             -- it anyway.
-            safe("restore RegisterCallback", function()
-                editBox:RegisterCallback(priorCallback)
-            end)
+            --
+            -- On the commit path, defer the restore one tick. The Enter that
+            -- triggered this exit also reaches the focused EditBox at the
+            -- engine level and fires its registered callback. Re-arming the
+            -- raw priorCallback synchronously would let that trailing native
+            -- Enter run it a second time -- the double (a second SendChat for
+            -- chat). Leaving wrappingCallback bound until next tick means the
+            -- trailing Enter lands on it and is dropped, so our manual commit
+            -- above stays the only one. By next tick the Enter sequence is
+            -- over, and the restore re-arms the screen's own callback for a
+            -- later direct Enter (a sighted user typing into the box outside
+            -- edit mode). Esc has no trailing commit, so it restores at once.
+            if restore then
+                safe("restore RegisterCallback", function()
+                    editBox:RegisterCallback(priorCallback)
+                end)
+            else
+                TickPump.runOnce(function()
+                    safe("restore RegisterCallback", function()
+                        editBox:RegisterCallback(priorCallback)
+                    end)
+                end)
+            end
         end
         HandlerStack.removeByName(subName, true)
         if restore then

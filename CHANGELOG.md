@@ -12,7 +12,6 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
-- In multiplayer, meeting a city-state now speaks the first-contact gift you received.
 - The turn key (T) now reports the time left when a multiplayer turn timer is running.
 - A tick sounds each second during the last 15 seconds of your turn timer.
 - Pressing Escape in the multiplayer staging room now asks to confirm before leaving the game.
@@ -20,8 +19,10 @@ New Features and improvements:
 - In simultaneous multiplayer, a reminder repeats each minute if your turn end gets canceled while everyone is waiting on you.
 
 Bug fixes:
+- Sending a multiplayer chat message no longer delivers it twice.
 - In multiplayer, discovering a natural wonder now names it instead of only announcing that a wonder was found.
 - Kicking a player from the multiplayer staging room now asks for confirmation and no longer leaves the screen silent and unresponsive.
+- In multiplayer, meeting a city-state now speaks the first-contact gift you received.
 
 ## [2.0.7] - 2026-06-25
 

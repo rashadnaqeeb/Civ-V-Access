@@ -524,6 +524,45 @@ function M.test_commit_fires_priorCallback_with_final_text()
     T.eq(received[1].bIsEnter, true, "bIsEnter=true so priorCallback mimics native Enter-triggered call")
 end
 
+-- A focused Civ V EditBox fires its registered callback natively on Enter,
+-- on top of our VK_RETURN binding's manual commit. With a non-idempotent
+-- priorCallback (chat's SendChat) that double-fires the send. The harness
+-- never simulated the native fire, so the bug slipped tests; this drives
+-- eb._cb directly (the polyfill stores the last RegisterCallback) the way
+-- the engine would and asserts the commit reaches the screen only once.
+function M.test_native_enter_callback_does_not_double_commit()
+    setup()
+    local eb = Polyfill.makeEditBox({ text = "old" })
+    populateControls({ E = eb })
+    local sends = {}
+    local function prior(text, _control, bIsEnter)
+        if bIsEnter then
+            sends[#sends + 1] = text
+        end
+    end
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.Textfield({ controlName = "E", textKey = "LBL", priorCallback = prior }) },
+    })
+    HandlerStack.push(h)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    eb:SetText("hello")
+    sends = {}
+    -- Enter KEYDOWN: our binding commits manually (the one real send).
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    -- Trailing native EditBox commit for the same Enter -- whatever callback
+    -- is bound right now, with a truthy enter flag.
+    eb._cb(eb:GetText(), eb, true)
+    T.eq(#sends, 1, "Enter commits exactly once despite the native EditBox fire")
+    T.eq(sends[1], "hello")
+    -- Next tick re-arms the screen's own callback for later direct typing.
+    TickPump.tick()
+    T.eq(eb._cb, prior, "raw priorCallback restored after the Enter sequence")
+    eb._cb("again", eb, true)
+    T.eq(#sends, 2, "a later direct native Enter commits through the restored callback")
+end
+
 function M.test_commit_announces_committed_value()
     setup()
     local eb = Polyfill.makeEditBox({ text = "old" })
@@ -637,8 +676,12 @@ function M.test_reenter_edit_installs_fresh_wrapping_callback()
     })
     HandlerStack.push(h)
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- enter edit
-    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- commit (reinstates prior)
-    T.eq(eb._cb, prior, "prior reinstated on exit")
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- commit
+    -- The raw callback is re-armed on the tick after commit (deferred so the
+    -- trailing native Enter for this same keypress lands on the Enter-ignoring
+    -- wrapper, not the restored prior -- otherwise the commit double-fires).
+    TickPump.tick()
+    T.eq(eb._cb, prior, "prior reinstated on the tick after exit")
     priorCalls = 0
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN) -- re-enter edit
     T.truthy(eb._cb ~= prior, "new wrapping callback installed")
