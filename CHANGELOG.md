@@ -23,6 +23,7 @@ Bug fixes:
 - In multiplayer, discovering a natural wonder now names it instead of only announcing that a wonder was found.
 - Kicking a player from the multiplayer staging room now asks for confirmation and no longer leaves the screen silent and unresponsive.
 - In multiplayer, meeting a city-state now speaks the first-contact gift you received.
+- Opening a trade with a player from the F4 list no longer reads the previous trade partner's name first.
 
 ## [2.0.7] - 2026-06-25
 

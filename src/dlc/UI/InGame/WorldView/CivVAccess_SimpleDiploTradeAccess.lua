@@ -59,4 +59,12 @@ TradeLogicAccess.install(ContextPtr, priorInput, priorShowHide, {
     preambleFn = nil,
     silentFirstOpen = false,
     fallbackDisplayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_TRADE"),
+    -- TradeLogic.OnOpenPlayerDealScreen calls ContextPtr:SetHide(false) --
+    -- which fires our ShowHide synchronously -- *before* DisplayDeal sets
+    -- Controls.ThemName. So at onShow time ThemName still holds the previous
+    -- trade partner's name, which is what produced the stale name on open.
+    -- Defer the push one tick so onActivate (and titleFn) runs after the
+    -- engine's synchronous open path has finished writing the fresh name;
+    -- F1 already re-read correctly because it fires after that completes.
+    deferActivate = true,
 })
