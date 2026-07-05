@@ -189,7 +189,7 @@ function M.test_general_group_has_verbose_keep_focus_subtitles_map_highlight_lon
     T.eq(children[6].kind, "group", "keyboard layout choice group")
 end
 
-function M.test_keep_focus_default_on_flip_writes_shared_prefs_and_proxy()
+function M.test_keep_focus_default_off_flip_writes_shared_prefs_and_proxy()
     setup()
     local pushed = {}
     civvaccess_shared.set_keep_focus = function(b)
@@ -199,13 +199,13 @@ function M.test_keep_focus_default_on_flip_writes_shared_prefs_and_proxy()
     -- recording stub (setup's dofile ran before the stub existed and its
     -- push no-ops when the proxy binding is absent).
     dofile("src/dlc/UI/Shared/CivVAccess_Settings.lua")
-    T.eq(pushed[1], true, "include-time push carries the on-by-default value")
+    T.eq(pushed[1], false, "include-time push carries the off-by-default value")
     Settings.open()
     -- Second child of the General group is the keep-focus toggle.
     groupChildren(GENERAL_GROUP)[2]:activate(HandlerStack.active())
-    T.eq(civvaccess_shared.keepFocus, false, "on by default, so the first flip turns it off")
-    T.eq(prefsStore["KeepFocus"], false)
-    T.eq(pushed[#pushed], false, "flip reached the proxy binding")
+    T.eq(civvaccess_shared.keepFocus, true, "off by default, so the first flip turns it on")
+    T.eq(prefsStore["KeepFocus"], true)
+    T.eq(pushed[#pushed], true, "flip reached the proxy binding")
 end
 
 function M.test_keyboard_layout_default_auto_and_override_flip()

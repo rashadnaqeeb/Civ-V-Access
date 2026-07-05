@@ -733,12 +733,12 @@ static HWINEVENTHOOK    g_focusHook        = NULL;
 /* Keep-focus mode: when set, the game window's deactivation messages are
    swallowed so the engine keeps running and playing audio in the
    background, and the mod's own focus mute below is bypassed to match.
-   Default on; the Settings "Keep game running in background" toggle
+   Default off; the Settings "Keep game running in background" toggle
    drives it at runtime through civvaccess_shared.set_keep_focus, whose
    Lua-side default must mirror this one. Only effective while
    g_keepFocusUsable says the window is a candidate (see
    keepfocus_try_install). */
-static int              g_keepFocusSpoof   = 1;
+static int              g_keepFocusSpoof   = 0;
 static int              g_keepFocusUsable  = 0;
 
 static int our_window_foreground(void) {

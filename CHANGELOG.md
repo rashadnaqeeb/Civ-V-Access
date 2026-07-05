@@ -12,7 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
-- The game now keeps running, with audio, while you're in another window; needs windowed mode, toggle in Settings under General.
+- The game now keeps running while you're in another window; needs the game set to windowed mode from video options and the relevant mod setting turned on under f12.
 
 ## [2.1.0] - 2026-06-29
 

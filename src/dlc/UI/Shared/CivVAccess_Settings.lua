@@ -41,16 +41,17 @@ end
 -- otherwise.
 local getScannerAutoMove, setScannerAutoMove = defineBoolPref("scannerAutoMove", "ScannerAutoMove", false)
 
--- Keep-focus toggle. On by default: the proxy hides window deactivation
--- from the engine, so the game keeps simulating and playing audio while
--- the player works in another window (stock Civ V goes silent, which for
--- a blind player is indistinguishable from a freeze), and the proxy's own
--- focus mute for mod audio is bypassed to match. The consumer is the
--- proxy, reached through civvaccess_shared.set_keep_focus; the nil check
--- keeps an old proxy paired with newer Lua limping along. The default
--- here must mirror the proxy's g_keepFocusSpoof static, which carries
--- until the include-time push below reaches it.
-local getKeepFocus, setKeepFocusPref = defineBoolPref("keepFocus", "KeepFocus", true)
+-- Keep-focus toggle. Off by default (opt-in): when on, the proxy hides
+-- window deactivation from the engine, so the game keeps simulating and
+-- playing audio while the player works in another window (stock Civ V
+-- goes silent, which for a blind player is indistinguishable from a
+-- freeze), and the proxy's own focus mute for mod audio is bypassed to
+-- match. The consumer is the proxy, reached through
+-- civvaccess_shared.set_keep_focus; the nil check keeps an old proxy
+-- paired with newer Lua limping along. The default here must mirror the
+-- proxy's g_keepFocusSpoof static, which carries until the include-time
+-- push below reaches it.
+local getKeepFocus, setKeepFocusPref = defineBoolPref("keepFocus", "KeepFocus", false)
 local function pushKeepFocus(b)
     if civvaccess_shared.set_keep_focus ~= nil then
         civvaccess_shared.set_keep_focus(b)
@@ -61,9 +62,9 @@ local function setKeepFocus(v)
     pushKeepFocus(v and true or false)
 end
 -- Push the persisted value at include time (this file loads in both the
--- front-end and in-game boot chains), so a player who turned the mode off
--- gets stock alt-tab behavior from boot, not from their first Settings
--- visit. Re-includes after load-from-game re-push harmlessly.
+-- front-end and in-game boot chains), so a player who turned the mode on
+-- gets background-running behavior from boot, not from their first
+-- Settings visit. Re-includes after load-from-game re-push harmlessly.
 pushKeepFocus(getKeepFocus())
 
 -- Read-subtitles toggle. On by default: several screens (LoadScreen
