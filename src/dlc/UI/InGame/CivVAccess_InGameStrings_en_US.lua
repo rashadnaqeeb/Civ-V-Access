@@ -1109,6 +1109,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Terrain audi
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Speech only"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Speech and audio cues"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Verbose UI"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEEP_FOCUS"] = "Keep game running in background"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Highlight cursor and scanner on screen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Long compass directions"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Keyboard layout"

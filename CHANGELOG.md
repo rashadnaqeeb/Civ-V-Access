@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- The game now keeps running, with audio, while you're in another window; needs windowed mode, toggle in Settings under General.
+
 ## [2.1.0] - 2026-06-29
 
 New Features and improvements:

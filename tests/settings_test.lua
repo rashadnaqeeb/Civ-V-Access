@@ -178,23 +178,41 @@ end
 
 -- General group ----------------------------------------------------
 
-function M.test_general_group_has_verbose_ui_read_subtitles_map_highlight_long_form_keyboard()
+function M.test_general_group_has_verbose_keep_focus_subtitles_map_highlight_long_form_keyboard()
     setup()
     Settings.open()
     local children = groupChildren(GENERAL_GROUP)
-    T.eq(#children, 5, "verbose UI + read subtitles + map highlight + long-form + keyboard layout")
-    T.eq(children[1].kind, "checkbox")
-    T.eq(children[2].kind, "checkbox")
-    T.eq(children[3].kind, "checkbox")
-    T.eq(children[4].kind, "checkbox")
-    T.eq(children[5].kind, "group", "keyboard layout choice group")
+    T.eq(#children, 6, "verbose UI + keep focus + read subtitles + map highlight + long-form + keyboard layout")
+    for i = 1, 5 do
+        T.eq(children[i].kind, "checkbox", "child " .. i .. " is a toggle")
+    end
+    T.eq(children[6].kind, "group", "keyboard layout choice group")
+end
+
+function M.test_keep_focus_default_on_flip_writes_shared_prefs_and_proxy()
+    setup()
+    local pushed = {}
+    civvaccess_shared.set_keep_focus = function(b)
+        pushed[#pushed + 1] = b
+    end
+    -- Re-dofile Settings so its include-time push runs against the
+    -- recording stub (setup's dofile ran before the stub existed and its
+    -- push no-ops when the proxy binding is absent).
+    dofile("src/dlc/UI/Shared/CivVAccess_Settings.lua")
+    T.eq(pushed[1], true, "include-time push carries the on-by-default value")
+    Settings.open()
+    -- Second child of the General group is the keep-focus toggle.
+    groupChildren(GENERAL_GROUP)[2]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.keepFocus, false, "on by default, so the first flip turns it off")
+    T.eq(prefsStore["KeepFocus"], false)
+    T.eq(pushed[#pushed], false, "flip reached the proxy binding")
 end
 
 function M.test_keyboard_layout_default_auto_and_override_flip()
     setup()
     Settings.open()
-    -- Fifth child of the General group is the keyboard-layout choice group.
-    local choices = groupChildren(GENERAL_GROUP)[5]:children()
+    -- Sixth child of the General group is the keyboard-layout choice group.
+    local choices = groupChildren(GENERAL_GROUP)[6]:children()
     T.eq(#choices, 5, "auto / qwerty / azerty / qwertz / italian")
     -- Default override is auto; activating AZERTY (the third choice) writes
     -- the shared cache and Prefs.
@@ -209,7 +227,7 @@ function M.test_keyboard_layout_italian_choice_writes()
     setup()
     Settings.open()
     -- Fifth choice is Italian; it persists as int 4.
-    local choices = groupChildren(GENERAL_GROUP)[5]:children()
+    local choices = groupChildren(GENERAL_GROUP)[6]:children()
     choices[5]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.keyboardProfileOverride, "italian")
     T.eq(prefsStore["KeyboardProfileOverride"], 4)
@@ -219,8 +237,8 @@ function M.test_direction_long_form_default_off_and_flip()
     setup()
     Settings.open()
     T.eq(civvaccess_shared.directionLongForm, false, "opt-in: defaults off")
-    -- Fourth child of the General group is the long-form direction toggle.
-    groupChildren(GENERAL_GROUP)[4]:activate(HandlerStack.active())
+    -- Fifth child of the General group is the long-form direction toggle.
+    groupChildren(GENERAL_GROUP)[5]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.directionLongForm, true)
     T.eq(prefsStore["DirectionLongForm"], true)
 end
@@ -229,10 +247,10 @@ function M.test_map_highlight_toggle_flip_writes_shared_and_prefs()
     setup()
     civvaccess_shared.mapHighlightEnabled = false
     Settings.open()
-    -- Third child of the General group is the map-highlight toggle. MapHighlight
+    -- Fourth child of the General group is the map-highlight toggle. MapHighlight
     -- itself is absent in this suite, so the setter's applyEnabled hop is a
     -- no-op and only the pref/cache write is observable here.
-    groupChildren(GENERAL_GROUP)[3]:activate(HandlerStack.active())
+    groupChildren(GENERAL_GROUP)[4]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.mapHighlightEnabled, true)
     T.eq(prefsStore["MapHighlight"], true)
 end
@@ -241,8 +259,8 @@ function M.test_read_subtitles_toggle_flip_writes_shared_and_prefs()
     setup()
     civvaccess_shared.readSubtitles = false
     Settings.open()
-    -- Second child of the General group is the read-subtitles toggle.
-    groupChildren(GENERAL_GROUP)[2]:activate(HandlerStack.active())
+    -- Third child of the General group is the read-subtitles toggle.
+    groupChildren(GENERAL_GROUP)[3]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.readSubtitles, true)
     T.eq(prefsStore["ReadSubtitles"], true)
 end

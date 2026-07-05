@@ -585,6 +585,10 @@ static void detect_keyboard_profile(void) {
     }
 }
 
+/* Defined with the rest of keep-focus mode, below the audio section it
+   reaches into; registered on civvaccess_shared here. */
+static int lp_set_keep_focus(lua_State *L);
+
 static void register_civvaccess_shared(lua_State *L) {
     int top = ORIG_lua_gettop(L);
     ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
@@ -596,6 +600,8 @@ static void register_civvaccess_shared(lua_State *L) {
     ORIG_lua_createtable(L, 0, 5);
     ORIG_lua_pushcclosure(L, lp_get_latest_version, 0);
     ORIG_lua_setfield(L, -2, "get_latest_version");
+    ORIG_lua_pushcclosure(L, lp_set_keep_focus, 0);
+    ORIG_lua_setfield(L, -2, "set_keep_focus");
     ORIG_lua_pushstring(L, g_keyboardProfile);
     ORIG_lua_setfield(L, -2, "keyboard_profile");
     ORIG_lua_setfield(L, LUA_GLOBALSINDEX, "civvaccess_shared");
@@ -724,6 +730,16 @@ static float            g_userMainVolume   = 0.1f;
 static float            g_userBeaconVolume = 0.1f;
 static int              g_isFocused        = 1;
 static HWINEVENTHOOK    g_focusHook        = NULL;
+/* Keep-focus mode: when set, the game window's deactivation messages are
+   swallowed so the engine keeps running and playing audio in the
+   background, and the mod's own focus mute below is bypassed to match.
+   Default on; the Settings "Keep game running in background" toggle
+   drives it at runtime through civvaccess_shared.set_keep_focus, whose
+   Lua-side default must mirror this one. Only effective while
+   g_keepFocusUsable says the window is a candidate (see
+   keepfocus_try_install). */
+static int              g_keepFocusSpoof   = 1;
+static int              g_keepFocusUsable  = 0;
 
 static int our_window_foreground(void) {
     HWND fg = GetForegroundWindow();
@@ -738,8 +754,12 @@ static void apply_focus_volume(void) {
     /* Engine master is 0/1 only -- it's the global mute. The user-set
        per-hex master lives on g_mainGroup; the user-set beacon master
        lives on g_beaconGroup. Both groups keep their volumes across the
-       gate so a focus regain restores instantly without recomputing. */
-    ma_engine_set_volume(&g_audioEngine, g_isFocused ? 1.0f : 0.0f);
+       gate so a focus regain restores instantly without recomputing.
+       Keep-focus mode bypasses the mute entirely: the whole point of that
+       mode is a game that stays alive and audible in the background. */
+    ma_engine_set_volume(&g_audioEngine,
+                         (g_isFocused || (g_keepFocusSpoof && g_keepFocusUsable))
+                             ? 1.0f : 0.0f);
 }
 
 static void CALLBACK focus_event_proc(HWINEVENTHOOK hook, DWORD event,
@@ -1205,6 +1225,133 @@ static void register_browser(lua_State *L) {
     proxy_log("register_browser: L=%p done\n", (void*)L);
 }
 
+/* === Keep-focus mode ===
+   Civ V mutes its audio (and, in exclusive fullscreen, pauses outright)
+   when its window deactivates. For a blind player total silence is
+   indistinguishable from a frozen game, and it defeats working in another
+   window while an AI turn runs. Keep-focus mode subclasses the game's
+   top-level window and swallows the deactivation messages (WM_ACTIVATE
+   inactive, WM_ACTIVATEAPP false, WM_KILLFOCUS), so the engine believes
+   it is still foreground: it keeps simulating and keeps its audio up.
+   Activation messages always pass through untouched.
+
+   Input safety: the OS only routes keyboard messages to the window that
+   really has focus, so a spoofed-but-background game gets no keystrokes
+   from Windows. Mouse messages route by cursor position, not focus, so
+   those CAN still arrive; g_isFocused (maintained by the
+   EVENT_SYSTEM_FOREGROUND hook, which tracks real focus independently of
+   the spoof) gates a swallow of all keyboard and mouse input messages
+   while the window is not truly foreground.
+
+   Only windowed mode qualifies (g_keepFocusUsable): in DX9 exclusive
+   fullscreen the device is lost on alt-tab regardless of what the window
+   believes, and hiding the deactivation would fight the engine's
+   minimize-and-reset path. The style check keys on WS_CAPTION, which the
+   game's windowed mode has and its exclusive fullscreen lacks.
+
+   The subclass installs from the lua_setfenv hook -- the engine's main
+   thread, the window's own thread -- and re-installs if the engine
+   recreates the window (graphics-mode change), re-evaluating the style
+   gate each time. */
+
+static WNDPROC g_origWndProc = NULL;
+static HWND    g_gameWnd = NULL;
+static int     g_wndUnicode = 0;
+
+static LRESULT CALLBACK keepfocus_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    if (g_keepFocusSpoof && g_keepFocusUsable) {
+        if (msg == WM_ACTIVATEAPP) {
+            proxy_log("keepfocus: WM_ACTIVATEAPP(%d)%s\n", (int)wp,
+                      wp == 0 ? " swallowed" : "");
+            if (wp == 0) return 0;
+        }
+        if (msg == WM_ACTIVATE && LOWORD(wp) == WA_INACTIVE) return 0;
+        if (msg == WM_KILLFOCUS) return 0;
+        if (msg == WM_NCACTIVATE && wp == 0) wp = 1;
+        /* Input guard: while the window is not truly foreground, drop all
+           keyboard and mouse messages so the "believes it is focused"
+           engine cannot react to stray input. Keyboard should never
+           arrive in this state anyway; mouse hover/wheel can. */
+        if (!g_isFocused &&
+            ((msg >= WM_KEYFIRST && msg <= WM_KEYLAST) ||
+             (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))) {
+            return 0;
+        }
+    }
+    return g_wndUnicode ? CallWindowProcW(g_origWndProc, hwnd, msg, wp, lp)
+                        : CallWindowProcA(g_origWndProc, hwnd, msg, wp, lp);
+}
+
+/* Runtime toggle for the Settings "Keep game running in background"
+   switch, exposed as civvaccess_shared.set_keep_focus(bool). The volume
+   gate is re-applied so flipping the toggle also flips the mod-audio
+   focus mute without waiting for the next focus transition. */
+static int lp_set_keep_focus(lua_State *L) {
+    int enabled = ORIG_lua_toboolean(L, 1) ? 1 : 0;
+    if (enabled != g_keepFocusSpoof) {
+        g_keepFocusSpoof = enabled;
+        apply_focus_volume();
+        proxy_log("lp_set_keep_focus: %d\n", enabled);
+    }
+    return 0;
+}
+
+typedef struct { HWND best; int bestArea; } keepfocus_find_wnd_t;
+
+static BOOL CALLBACK keepfocus_find_wnd_cb(HWND hwnd, LPARAM lp) {
+    keepfocus_find_wnd_t *f = (keepfocus_find_wnd_t *)lp;
+    DWORD pid = 0;
+    RECT rc;
+    int area;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid != GetCurrentProcessId()) return TRUE;
+    if (!IsWindowVisible(hwnd)) return TRUE;
+    if (GetWindow(hwnd, GW_OWNER) != NULL) return TRUE;
+    if (!GetClientRect(hwnd, &rc)) return TRUE;
+    area = (int)(rc.right - rc.left) * (int)(rc.bottom - rc.top);
+    if (area > f->bestArea) { f->best = hwnd; f->bestArea = area; }
+    return TRUE;
+}
+
+static void keepfocus_try_install(void) {
+    keepfocus_find_wnd_t f;
+    LONG style;
+    char cls[64];
+    if (g_origWndProc != NULL) return;
+    f.best = NULL;
+    f.bestArea = 0;
+    EnumWindows(keepfocus_find_wnd_cb, (LPARAM)&f);
+    /* Size floor keeps us off splash/utility windows; the game window is
+       at least the configured resolution. */
+    if (f.best == NULL || f.bestArea < 640 * 480) return;
+    g_gameWnd = f.best;
+    g_wndUnicode = IsWindowUnicode(g_gameWnd) ? 1 : 0;
+    style = (LONG)GetWindowLongPtrA(g_gameWnd, GWL_STYLE);
+    g_keepFocusUsable = (style & WS_CAPTION) == WS_CAPTION ? 1 : 0;
+    if (g_wndUnicode) {
+        g_origWndProc = (WNDPROC)SetWindowLongPtrW(g_gameWnd, GWLP_WNDPROC,
+                                                   (LONG_PTR)keepfocus_wndproc);
+    } else {
+        g_origWndProc = (WNDPROC)SetWindowLongPtrA(g_gameWnd, GWLP_WNDPROC,
+                                                   (LONG_PTR)keepfocus_wndproc);
+    }
+    if (g_origWndProc == NULL) {
+        proxy_log("keepfocus_try_install: SetWindowLongPtr FAILED hwnd=%p err=%lu\n",
+                  (void*)g_gameWnd, GetLastError());
+        g_gameWnd = NULL;
+        return;
+    }
+    /* The input guard reads g_isFocused, which the foreground event hook
+       maintains; normally ensure_audio installs it, but install it here
+       too so keep-focus never runs with a stale focus flag. Idempotent. */
+    install_focus_hook();
+    cls[0] = 0;
+    GetClassNameA(g_gameWnd, cls, sizeof(cls));
+    proxy_log("keepfocus_try_install: hwnd=%p class=%s unicode=%d style=0x%08lX usable=%d enabled=%d\n",
+              (void*)g_gameWnd, cls, g_wndUnicode, (unsigned long)style,
+              g_keepFocusUsable, g_keepFocusSpoof);
+}
+
 /* === Hooked exports === */
 
 __declspec(dllexport) lua_State * __cdecl luaL_newstate(void) {
@@ -1237,6 +1384,19 @@ __declspec(dllexport) void __cdecl luaL_openlibs(lua_State *L) {
 
 __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
     typedef int (__cdecl *fn)(lua_State *, int);
+
+    /* Keep-focus subclass seat: this hook runs on the engine's main
+       thread throughout boot and on every later Context creation, the
+       right thread to subclass the game window from. Retries until the
+       window exists, and re-installs if the engine recreated the window
+       (graphics-mode change destroys the old one, taking the subclass
+       with it). */
+    if (g_gameWnd != NULL && !IsWindow(g_gameWnd)) {
+        proxy_log("lua_setfenv: game window recreated, resubclassing\n");
+        g_gameWnd = NULL;
+        g_origWndProc = NULL;
+    }
+    if (g_origWndProc == NULL) keepfocus_try_install();
 
     /* The env table is at the top of the stack, about to be set.
        Inject our tolk table into it so sandboxed scripts can see it. */
