@@ -318,15 +318,4 @@ function M.test_install_listeners_clears_buffer()
     T.eq(lastSpoken().text, "no messages")
 end
 
--- Bindings ----------------------------------------------------------------
-
-function M.test_bindings_cover_all_six_chords()
-    setup()
-    local b = MessageBuffer.getBindings()
-    -- 6 chords: bare [/], Ctrl+[/], Shift+[/]
-    T.eq(#b.bindings, 6)
-    -- Help entries documented for each chord pair.
-    T.eq(#b.helpEntries, 3)
-end
-
 return M

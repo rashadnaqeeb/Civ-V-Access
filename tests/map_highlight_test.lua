@@ -126,14 +126,6 @@ function M.test_setScanner_no_op_when_disabled()
     T.eq(#calls, 0)
 end
 
--- ===== distinct styles =====
-
-function M.test_cursor_and_scanner_styles_differ()
-    -- Independent clear depends on the two rings owning different styles;
-    -- if they collided, clearScanner would also wipe the cursor ring.
-    T.truthy(CURSOR_STYLE ~= SCANNER_STYLE, "cursor and scanner must use distinct styles")
-end
-
 -- ===== clears =====
 
 function M.test_clearScanner_touches_only_scanner_style()

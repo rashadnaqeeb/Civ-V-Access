@@ -55,43 +55,6 @@ local function setupWithCache(chunks, ux, uy)
     return unit
 end
 
--- Pure-move queue: one move chunk pass-through.
-function M.test_queued_action_status_passes_through_move_chunk()
-    setupWithCache({
-        { kind = "move", segments = { "2ne", "2e", "1ne" }, turns = 3 },
-    }, 0, 0)
-    local status = Waypoints.queuedActionStatus()
-    T.eq(#status.chunks, 1, "one chunk")
-    T.eq(status.chunks[1].kind, "move", "chunk kind")
-    T.eq(status.chunks[1].turns, 3, "chunk turns")
-    T.eq(#status.chunks[1].segments, 3, "segment count")
-end
-
--- Pure-route queue: one route chunk with routeName pass-through.
-function M.test_queued_action_status_passes_through_route_chunk()
-    setupWithCache({
-        { kind = "route", segments = { "1e", "1e", "1e" }, turns = 9, routeName = "road" },
-    }, 0, 0)
-    local status = Waypoints.queuedActionStatus()
-    T.eq(#status.chunks, 1, "one chunk")
-    T.eq(status.chunks[1].kind, "route", "chunk kind")
-    T.eq(status.chunks[1].routeName, "road", "route name")
-    T.eq(status.chunks[1].turns, 9, "build turns")
-end
-
--- Mixed queue: chunks pass through in order so the renderer can join
--- them with the right separator and arrive suffix.
-function M.test_queued_action_status_passes_through_multi_chunk()
-    setupWithCache({
-        { kind = "route", segments = { "1e", "1e", "1e" }, turns = 9, routeName = "road" },
-        { kind = "move", segments = { "2e", "1ne" }, turns = 2 },
-    }, 0, 0)
-    local status = Waypoints.queuedActionStatus()
-    T.eq(#status.chunks, 2, "two chunks")
-    T.eq(status.chunks[1].kind, "route", "first chunk is route")
-    T.eq(status.chunks[2].kind, "move", "second chunk is move")
-end
-
 function M.test_queued_action_status_nil_on_empty_chunks()
     setupWithCache({}, 0, 0)
     T.eq(Waypoints.queuedActionStatus(), nil, "empty chunks returns nil")

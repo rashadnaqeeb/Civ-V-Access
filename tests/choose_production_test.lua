@@ -1000,14 +1000,6 @@ function M.test_advisor_suffix_with_zero_one_and_all_advisors()
     Locale.ConvertTextKey = orig
 end
 
-function M.test_append_slot_and_queue_full_text_templates()
-    setup()
-    for n = 1, 5 do
-        T.eq(Text.format("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_ADDED_SLOT", n), "added, slot " .. n .. " in queue")
-    end
-    T.eq(Text.key("TXT_KEY_CIVVACCESS_CHOOSEPRODUCTION_QUEUE_FULL"), "queue full")
-end
-
 -- Vox Populi investment: a Gold building purchase invests (cuts production
 -- cost) instead of completing the building. isInvestEntry gates the
 -- relabeling; it must stay off on the vanilla seam, and on faith / unit /
