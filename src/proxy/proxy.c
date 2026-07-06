@@ -4,7 +4,7 @@
  * Replaces lua51_Win32.dll. Forwards all calls to lua51_original.dll,
  * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua
  * state, and hooks lua_setfenv to propagate the tolk, civvaccess_shared,
- * civvaccess_keys, audio, and browser tables into every sandboxed
+ * civvaccess_keys, audio, browser, and rpc tables into every sandboxed
  * environment. The
  * accessibility payload itself ships as a DLC at Assets/DLC/DLC_CivVAccess/
  * and is ingested natively by the engine at boot; the proxy does not
@@ -18,6 +18,7 @@
 #include <windows.h>
 #include <winhttp.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -221,6 +222,7 @@ typedef void (__cdecl *pfn_lua_pushinteger)(lua_State *, lua_Integer);
 typedef lua_Integer (__cdecl *pfn_lua_tointeger)(lua_State *, int);
 typedef double (__cdecl *pfn_lua_tonumber)(lua_State *, int);
 typedef void (__cdecl *pfn_lua_pushcclosure)(lua_State *, lua_CFunction, int);
+typedef void (__cdecl *pfn_lua_pushlstring)(lua_State *, const char *, size_t);
 
 #define ORIG_luaL_register  ((pfn_luaL_register)orig[I_luaL_register])
 #define ORIG_luaL_checklstring ((pfn_luaL_checklstring)orig[I_luaL_checklstring])
@@ -238,6 +240,7 @@ typedef void (__cdecl *pfn_lua_pushcclosure)(lua_State *, lua_CFunction, int);
 #define ORIG_lua_tointeger   ((pfn_lua_tointeger)orig[I_lua_tointeger])
 #define ORIG_lua_tonumber    ((pfn_lua_tonumber)orig[I_lua_tonumber])
 #define ORIG_lua_pushcclosure ((pfn_lua_pushcclosure)orig[I_lua_pushcclosure])
+#define ORIG_lua_pushlstring ((pfn_lua_pushlstring)orig[I_lua_pushlstring])
 
 /* === Tolk === */
 static HMODULE hTolk = NULL;
@@ -1225,6 +1228,139 @@ static void register_browser(lua_State *L) {
     proxy_log("register_browser: L=%p done\n", (void*)L);
 }
 
+/* === MCP bridge mailbox ===
+   File-RPC endpoint for the external MCP server (tools/mcp/). The server
+   writes <dir>\request.txt (atomically: temp then rename); the DLC's
+   CivVAccess_Rpc.lua calls rpc.poll() once per frame on the game thread,
+   runs the whitelisted query, and hands the JSON reply to rpc.respond(),
+   which lands atomically at <dir>\response.json. Both paths are hardwired
+   here -- Lua supplies file contents only, never a path -- so a sandboxed
+   script can at most talk to our own mailbox, not the filesystem. */
+
+#define RPC_MAX_REQUEST (1024 * 1024)
+
+static wchar_t g_rpcDir[MAX_PATH];
+static int g_rpcDirState = 0; /* 0 = untried, 1 = usable, -1 = failed */
+
+static int rpc_dir_ok(void) {
+    wchar_t docs[MAX_PATH];
+    int r;
+    char *u;
+    if (g_rpcDirState != 0) return g_rpcDirState == 1;
+    if (FAILED(SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL,
+                                SHGFP_TYPE_CURRENT, docs))) {
+        proxy_log("rpc_dir_ok: SHGetFolderPathW(CSIDL_PERSONAL) failed\n");
+        g_rpcDirState = -1;
+        return 0;
+    }
+    _snwprintf(g_rpcDir, MAX_PATH - 1,
+               L"%s\\My Games\\Sid Meier's Civilization 5\\CivVAccess\\rpc",
+               docs);
+    g_rpcDir[MAX_PATH - 1] = 0;
+    r = SHCreateDirectoryExW(NULL, g_rpcDir, NULL);
+    if (r != ERROR_SUCCESS && r != ERROR_ALREADY_EXISTS && r != ERROR_FILE_EXISTS) {
+        proxy_log("rpc_dir_ok: SHCreateDirectoryExW failed (%d)\n", r);
+        g_rpcDirState = -1;
+        return 0;
+    }
+    g_rpcDirState = 1;
+    u = wide_to_utf8(g_rpcDir);
+    if (u) { proxy_log("rpc_dir_ok: mailbox at %s\n", u); free(u); }
+    return 1;
+}
+
+/* rpc.poll() -> request string | nil. Consumes the request file. */
+static int lr_poll(lua_State *L) {
+    wchar_t reqPath[MAX_PATH];
+    HANDLE h;
+    DWORD size, got;
+    char *buf;
+
+    if (!rpc_dir_ok()) return 0;
+    _snwprintf(reqPath, MAX_PATH - 1, L"%s\\request.txt", g_rpcDir);
+    reqPath[MAX_PATH - 1] = 0;
+    /* Cheap per-frame check: bail before opening when no request is
+       pending, which is the overwhelmingly common case. */
+    if (GetFileAttributesW(reqPath) == INVALID_FILE_ATTRIBUTES) return 0;
+    /* Exclusive open: if the server is mid-rename we miss this frame and
+       pick the request up on the next. */
+    h = CreateFileW(reqPath, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    size = GetFileSize(h, NULL);
+    if (size == INVALID_FILE_SIZE || size > RPC_MAX_REQUEST) {
+        proxy_log("lr_poll: bad request size %lu\n", (unsigned long)size);
+        CloseHandle(h);
+        DeleteFileW(reqPath);
+        return 0;
+    }
+    buf = (char *)malloc(size + 1);
+    if (!buf) {
+        proxy_log("lr_poll: malloc(%lu) failed\n", (unsigned long)size);
+        CloseHandle(h);
+        return 0;
+    }
+    got = 0;
+    if (!ReadFile(h, buf, size, &got, NULL) || got != size) {
+        proxy_log("lr_poll: ReadFile failed (%lu of %lu, err=%lu)\n",
+                  (unsigned long)got, (unsigned long)size, GetLastError());
+        CloseHandle(h);
+        free(buf);
+        DeleteFileW(reqPath);
+        return 0;
+    }
+    CloseHandle(h);
+    DeleteFileW(reqPath);
+    ORIG_lua_pushlstring(L, buf, (size_t)got);
+    free(buf);
+    return 1;
+}
+
+/* rpc.respond(text) -> bool. Atomic write via temp + rename so the MCP
+   server never observes a half-written response. */
+static int lr_respond(lua_State *L) {
+    size_t len;
+    const char *s = ORIG_luaL_checklstring(L, 1, &len);
+    wchar_t tmpPath[MAX_PATH], outPath[MAX_PATH];
+    HANDLE h;
+    DWORD wrote;
+    int ok = 0;
+
+    if (rpc_dir_ok() && s) {
+        _snwprintf(tmpPath, MAX_PATH - 1, L"%s\\response.tmp", g_rpcDir);
+        tmpPath[MAX_PATH - 1] = 0;
+        _snwprintf(outPath, MAX_PATH - 1, L"%s\\response.json", g_rpcDir);
+        outPath[MAX_PATH - 1] = 0;
+        h = CreateFileW(tmpPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                        FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h != INVALID_HANDLE_VALUE) {
+            wrote = 0;
+            ok = WriteFile(h, s, (DWORD)len, &wrote, NULL) && wrote == (DWORD)len;
+            CloseHandle(h);
+            if (ok) ok = MoveFileExW(tmpPath, outPath, MOVEFILE_REPLACE_EXISTING) != 0;
+        }
+        if (!ok) {
+            proxy_log("lr_respond: write failed (len=%lu err=%lu)\n",
+                      (unsigned long)len, GetLastError());
+        }
+    }
+    ORIG_lua_pushboolean(L, ok);
+    return 1;
+}
+
+static const luaL_Reg rpc_funcs[] = {
+    {"poll",    lr_poll},
+    {"respond", lr_respond},
+    {NULL, NULL}
+};
+
+static void register_rpc(lua_State *L) {
+    int top = ORIG_lua_gettop(L);
+    ORIG_luaL_register(L, "rpc", rpc_funcs);
+    ORIG_lua_settop(L, top);
+    proxy_log("register_rpc: L=%p done\n", (void*)L);
+}
+
 /* === Keep-focus mode ===
    Civ V mutes its audio (and, in exclusive fullscreen, pauses outright)
    when its window deactivates. For a blind player total silence is
@@ -1379,7 +1515,8 @@ __declspec(dllexport) void __cdecl luaL_openlibs(lua_State *L) {
     register_civvaccess_keys(L);
     register_audio(L);
     register_browser(L);
-    proxy_log("luaL_openlibs: tolk + civvaccess_shared + civvaccess_keys + audio + browser registered in globals\n");
+    register_rpc(L);
+    proxy_log("luaL_openlibs: tolk + civvaccess_shared + civvaccess_keys + audio + browser + rpc registered in globals\n");
 }
 
 __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
@@ -1462,6 +1599,19 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
     }
     if (ORIG_lua_type(L, -1) != LUA_TNIL) {
         ORIG_lua_setfield(L, -2, "browser");
+    } else {
+        ORIG_lua_settop(L, -2);
+    }
+
+    /* === rpc injection (mirrors tolk) === */
+    ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "rpc");
+    if (ORIG_lua_type(L, -1) == LUA_TNIL) {
+        ORIG_lua_settop(L, -2);
+        register_rpc(L);
+        ORIG_lua_getfield(L, LUA_GLOBALSINDEX, "rpc");
+    }
+    if (ORIG_lua_type(L, -1) != LUA_TNIL) {
+        ORIG_lua_setfield(L, -2, "rpc");
     } else {
         ORIG_lua_settop(L, -2);
     }

@@ -78,6 +78,12 @@ read_globals = {
     -- Help links. Read-only from mod code.
     "browser",
 
+    -- MCP-bridge mailbox binding: proxy-injected. rpc.poll() / rpc.respond()
+    -- move request / response files for the external MCP server; only
+    -- CivVAccess_Rpc.lua should touch it. Read-only from mod code; the
+    -- offline suite stubs it (see the tests-section entry).
+    "rpc",
+
     -- Proxy-injected modifier-key probe (GetAsyncKeyState-backed). Read-only
     -- from mod code; tests monkey-patch it (see the tests-section entry).
     "civvaccess_keys",
@@ -200,6 +206,7 @@ globals = {
     "RevealAnnounce", "ForeignUnitSnapshot", "ForeignUnitWatch", "ForeignClearWatch",
     "HotseatCursor", "HotseatMessageBuffer", "MultiplayerTurnEnd",
     "MultiplayerRewards", "MPEndTurnReminder",
+    "Rpc",
 
     -- Base-game helpers pulled in by TechTree's include chain
     -- (TechHelpInclude.lua defines GetHelpTextForTech). Our TechTreeLogic
@@ -322,6 +329,9 @@ files["tests/"] = {
         -- Proxy-injected modifier-key probe. input_router_test installs
         -- a stub table to drive Shift/Ctrl/Alt branches deterministically.
         "civvaccess_keys",
+        -- Proxy-injected MCP-bridge mailbox. rpc_test installs a capture
+        -- stub to feed requests in and inspect the JSON replies.
+        "rpc",
         -- Mod modules the test suites exercise directly.
         "UnitSpeech", "Pathfinder", "RoutePathfinder",
         "ScannerBackendTerrain", "EmpireStatus",

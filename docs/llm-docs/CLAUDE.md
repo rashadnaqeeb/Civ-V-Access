@@ -43,6 +43,9 @@ Hand-authored, canonical reference for the whole Community-Patch-DLL support lay
 ### LekMod support — `lekmod-support.md`
 Hand-authored, canonical reference for the LekMod support layer. LekMod reuses the VP architecture (read `cp-vp-support.md` first) but differs in two durable ways: an NQMod-lineage DLL fork that builds on the VC9 / SDK 7.0 toolchain (not the CP/VP clang build) and carries none of the balance machinery, and a single install state with no modpack bake (LekMod ships a prebaked DLC the engine loads directly). Covers the detection probe (`Game.GetProposalStatus` signature, no `Game.IsCustomModOption`), the LekMod engine facts (unchanged surplus happiness, additive bindings, CvAStar pathfinder re-conflicts), the additive surfaces (voting system, combat modifiers, golden-age points, the GameplayAlertMessage channel, MP options), the LekMod-specific patterns (the checkbox `RegisterCallback` capture, the `onInGameBoot` file-local idempotency rule, the clean text audit, the MP-options table re-derivation, the Tab-chat diagnostic), and the `resync-lekmod.ps1` runbook. The pin is `supported_lekmod` in `versions.json`, not in the doc.
 
+### MCP bridge agent guide — `mcp-agent-guide.md`
+Hand-authored guide for the AI agent consuming the MCP bridge (`tools/mcp/`): tool catalog and call order, the anchor convention, the fog-honesty rules the narration must preserve, and phrasing rules for the blind listener. The condensed copy is served through the MCP `initialize` handshake (`INSTRUCTIONS` in `tools/mcp/civ5_access_mcp.py`); keep the two in sync.
+
 ### External resources — `external-resources.md`
 URLs for community references that supplement the local files: Civfanatics modiki, Whoward's BNW Lua reference (parsed from DLL C++, more authoritative than the SDK HTML stub), Vox Populi / EUI / IGE source repos.
 

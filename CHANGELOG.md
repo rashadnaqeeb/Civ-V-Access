@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - The game now keeps running while you're in another window; needs the game set to windowed mode from video options and the relevant mod setting turned on under f12.
+- AI assistants like Claude can now query your live game through a new MCP bridge: map overviews, continent tours by region, civilization positions and politics, war reports, expansion scans, resource finding, local tile detail, and pointing your map cursor at what they describe.
 
 ## [2.1.0] - 2026-06-29
 

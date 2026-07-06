@@ -184,6 +184,9 @@ include("CivVAccess_CameraTracker")
 -- re-init behavior. ChatAccess (in DiploCorner's env) handles the panel
 -- UI; both share state via civvaccess_shared._inGameChatLog.
 include("CivVAccess_ChatBuffer")
+-- MCP bridge: answers file-RPC queries from the external MCP server via a
+-- TickPump subscriber. Read-only; inert unless a request file appears.
+include("CivVAccess_Rpc")
 
 -- Track the WorldView Context include count across the session. The first
 -- include happens during pre-game setup (before LoadScreenClose); subsequent
@@ -386,6 +389,7 @@ local function onInGameBoot()
     UnitMoveLog.installListeners()
     CameraTracker.install()
     ChatBuffer.installListeners()
+    Rpc.installListeners()
     SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_BOOT_INGAME"))
 end
 

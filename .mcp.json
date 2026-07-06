@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "civ5-access": {
+      "command": "py",
+      "args": ["tools/mcp/civ5_access_mcp.py"]
+    }
+  }
+}
