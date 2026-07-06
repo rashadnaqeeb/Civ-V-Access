@@ -414,6 +414,12 @@ function queries.dump_map()
                             name = Text.key(rrow.Description),
                             -- 0 bonus, 1 luxury, 2 strategic
                             usage = rrow.ResourceUsage,
+                            -- Copies the player already counts: total
+                            -- available (imports included) and the
+                            -- own-supply share, so "new luxury for you"
+                            -- is a verified claim, not a guess.
+                            youHave = p:GetNumResourceAvailable(rid, true),
+                            youOwn = p:GetNumResourceAvailable(rid, false),
                         }
                     end
                     resources[#resources + 1] = { x = x, y = y, t = rrow.Type }
@@ -504,6 +510,25 @@ function queries.dump_map()
         end
     end
 
+    -- Foreign settlers the player can see right now: expansion pressure a
+    -- sighted player reads off the map. Majors only (city-states never
+    -- build settlers); visible-now, so the list changes between calls.
+    local foreignSettlers = {}
+    for id = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+        local pl = Players[id]
+        if pl ~= nil and id ~= me and pl:IsAlive() and Teams[myTeam]:IsHasMet(pl:GetTeam()) then
+            for unit in pl:Units() do
+                if unit:IsFound() and unit:GetPlot():IsVisible(myTeam, false) then
+                    foreignSettlers[#foreignSettlers + 1] = {
+                        x = unit:GetX(),
+                        y = unit:GetY(),
+                        owner = id,
+                    }
+                end
+            end
+        end
+    end
+
     -- The mod's map cursor, read live. Unset until Cursor.init has run
     -- (LoadScreenClose), and meaningful to the player as "the tile I was
     -- last looking at" -- the natural anchor for "describe from here".
@@ -538,7 +563,55 @@ function queries.dump_map()
         resourceTypes = resourceTypes,
         naturalWonders = naturalWonders,
         players = players,
+        foreignSettlers = foreignSettlers,
     }
+end
+
+-- === Settle-spot facts ===
+-- Live engine reads the map dump can't answer: founding legality (the
+-- engine's own rule, min city distance included), fresh water, coast,
+-- river adjacency, and settler travel turns via the fork pathfinder.
+-- The MCP server merges these with its dump-side ring analysis.
+
+function queries.evaluate_settle(xs, ys)
+    local x, y = tonumber(xs), tonumber(ys)
+    if x == nil or y == nil then
+        error("evaluate_settle needs numeric x and y")
+    end
+    local plot = Map.GetPlot(x, y)
+    if plot == nil then
+        error("no plot at (" .. tostring(xs) .. ", " .. tostring(ys) .. ")")
+    end
+    local me = Game.GetActivePlayer()
+    local p = Players[me]
+    local data = {
+        canFound = p:CanFound(x, y),
+        freshWater = plot:IsFreshWater(),
+        coastal = plot:IsCoastalLand(),
+        riverAdjacent = plot:IsRiver(),
+    }
+    -- Travel turns per settler the player owns, priced by the engine
+    -- pathfinder through the seam. Omitted entirely without the fork --
+    -- an absent field reads as "unknown", never as "unreachable".
+    if EngineData.forkPresent() then
+        local settlers = {}
+        for unit in p:Units() do
+            if unit:IsFound() then
+                local _, ok, turns = EngineData.computePath(unit, unit:GetPlot(), plot)
+                local entry = {
+                    x = unit:GetX(),
+                    y = unit:GetY(),
+                    reachable = ok == true,
+                }
+                if ok then
+                    entry.turns = turns
+                end
+                settlers[#settlers + 1] = entry
+            end
+        end
+        data.yourSettlers = settlers
+    end
+    return data
 end
 
 -- === War report data ===

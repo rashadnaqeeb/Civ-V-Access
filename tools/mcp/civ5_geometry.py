@@ -155,6 +155,7 @@ class MapData:
         self.resource_types = _as_dict(dump.get("resourceTypes"))
         self.natural_wonders = dump.get("naturalWonders") or []
         self.players = dump.get("players") or []
+        self.foreign_settlers = dump.get("foreignSettlers") or []
         self.capital = dump.get("capital")  # {x, y} or None
         self.cursor = dump.get("cursor")  # {x, y} or None
 
@@ -358,6 +359,28 @@ def _rel(m, anchor, x, y):
     if word:
         out["directionFromAnchor"] = word
     return out
+
+
+_USAGE_WORDS = {0: "bonus", 1: "strategic", 2: "luxury"}
+
+
+def _resource_entry(m, rtype):
+    """Base payload fields for one resource type: display name, usage
+    class, and -- when the dump carries the counts -- how many copies the
+    player already has. youHave counts imports too; ofWhichImported splits
+    out the share that lapses with the trade deal."""
+    info = m.resource_types.get(rtype, {})
+    entry = {
+        "resource": info.get("name", rtype),
+        "usage": _USAGE_WORDS.get(info.get("usage"), "unknown"),
+    }
+    have = info.get("youHave")
+    if have is not None:
+        entry["youHave"] = have
+        own = info.get("youOwn")
+        if own is not None and have > own:
+            entry["ofWhichImported"] = have - own
+    return entry
 
 
 def _nearest_own_city(m, x, y):
@@ -1043,13 +1066,9 @@ def borders_report(m, radius=5):
         pid = m.owner_id(x, y)
         res = m.resource_at.get((x, y))
         if res and pid is None:
-            info = m.resource_types.get(res["t"], {})
             resources.append(
                 {
-                    "resource": info.get("name", res["t"]),
-                    "usage": {0: "bonus", 1: "strategic", 2: "luxury"}.get(
-                        info.get("usage"), "unknown"
-                    ),
+                    **_resource_entry(m, res["t"]),
                     "x": x,
                     "y": y,
                     "tilesBeyondBorder": d,
@@ -1116,6 +1135,66 @@ def borders_report(m, radius=5):
 
 # === Settleable land ===
 
+# A new city must sit at least this far (hex steps) from any existing
+# city center -- the engine's MIN_CITY_RANGE of 3 means distance 4+.
+_MIN_CITY_SPACING = 4
+
+
+def _candidate_spots(m, cluster, lakes, big_water, max_spots=3):
+    """Up to max_spots concrete tiles inside one settleable area, picked
+    for the features a settling player weighs (nearby resources weighted
+    by usage, fresh water, coast, a hill start) and spaced at least a
+    city's footprint apart so they read as alternatives, not a gradient.
+    Descriptive shortlist only -- founding legality is the engine's call,
+    via the evaluate tool's canFound."""
+    known_cities = [(c["x"], c["y"]) for c in m.cities]
+    scored = []
+    for x, y in cluster:
+        if any(
+            m.hex.distance(x, y, cx, cy) < _MIN_CITY_SPACING
+            for cx, cy in known_cities
+        ):
+            continue
+        coastal = any(n in big_water for n in m.hex.neighbors(x, y))
+        river = m.river[y][x] not in "0?"
+        fresh = river or any(n in lakes for n in m.hex.neighbors(x, y))
+        hill = m.plot[y][x] == "H"
+        near_res = Counter()
+        weight = 0.0
+        for (rx, ry), r in m.resource_at.items():
+            if m.hex.distance(x, y, rx, ry) <= 2:
+                near_res[r["t"]] += 1
+                usage = m.resource_types.get(r["t"], {}).get("usage")
+                weight += {2: 3.0, 1: 1.5}.get(usage, 1.0)
+        score = weight + (2.0 if fresh else 0.0) + (1.0 if coastal else 0.0)
+        score += 0.5 if hill else 0.0
+        spot = {
+            "x": x,
+            "y": y,
+            "hill": hill,
+            "coastal": coastal,
+            "freshWater": fresh,
+            "riverAdjacent": river,
+            "resourcesWithin2": [
+                {**_resource_entry(m, t), "tiles": n}
+                for t, n in near_res.most_common()
+            ],
+            **_nearest_own_city(m, x, y),
+        }
+        scored.append((score, spot))
+    scored.sort(key=lambda s: -s[0])
+    picked = []
+    for _, spot in scored:
+        if len(picked) >= max_spots:
+            break
+        if all(
+            m.hex.distance(spot["x"], spot["y"], p["x"], p["y"])
+            >= _MIN_CITY_SPACING
+            for p in picked
+        ):
+            picked.append(spot)
+    return picked
+
 
 def settle_scan(m, anchor=None, max_areas=12):
     """Unowned habitable land clusters: where the empire could still
@@ -1160,31 +1239,50 @@ def settle_scan(m, anchor=None, max_areas=12):
         for x, y in cluster:
             r = m.resource_at.get((x, y))
             if r:
-                info = m.resource_types.get(r["t"], {})
-                usage = {0: "bonus", 1: "strategic", 2: "luxury"}.get(
-                    info.get("usage"), "unknown"
-                )
-                res_counts[(info.get("name", r["t"]), usage)] += 1
+                res_counts[r["t"]] += 1
         entry["resources"] = [
-            {"resource": name, "usage": usage, "tiles": n}
-            for (name, usage), n in res_counts.most_common()
+            {**_resource_entry(m, t), "tiles": n}
+            for t, n in res_counts.most_common()
         ]
+        entry["candidateSpots"] = _candidate_spots(m, cluster, lakes, big_water)
         walk = [my_dist[t] for t in cluster if t in my_dist]
         if walk:
             entry["walkingDistanceFromYourBorder"] = min(walk)
         elif mine:
             entry["noLandRouteFromYourTerritory"] = True
-        if foreign_tiles:
-            best_civ, best_d = None, None
-            for t, pid in foreign_tiles:
-                for c in cluster:
-                    d = m.hex.distance(t[0], t[1], c[0], c[1])
-                    if best_d is None or d < best_d:
-                        best_civ, best_d = pid, d
-            entry["closestRival"] = {
-                "civ": m.civ_name(best_civ),
-                "distance": best_d,
+        # Majors and city-states separately: only majors compete for the
+        # land with settlers of their own; a city-state is just a border.
+        best = {}
+        for t, pid in foreign_tiles:
+            kind = "cityState" if m.player_by_id.get(pid, {}).get("minor") else "major"
+            for c in cluster:
+                d = m.hex.distance(t[0], t[1], c[0], c[1])
+                if kind not in best or d < best[kind][1]:
+                    best[kind] = (pid, d)
+        if "major" in best:
+            entry["closestMajorRival"] = {
+                "civ": m.civ_name(best["major"][0]),
+                "distance": best["major"][1],
             }
+        if "cityState" in best:
+            entry["closestCityState"] = {
+                "civ": m.civ_name(best["cityState"][0]),
+                "distance": best["cityState"][1],
+            }
+        # Expansion pressure you can see right now: foreign settlers
+        # within reach of this area. Visible-now, stale next turn.
+        settlers_near = []
+        for s in m.foreign_settlers:
+            d = min(
+                m.hex.distance(s["x"], s["y"], cx, cy) for cx, cy in cluster
+            )
+            if d <= 8:
+                settlers_near.append(
+                    {"civ": m.civ_name(s["owner"]), "distance": d}
+                )
+        if settlers_near:
+            settlers_near.sort(key=lambda s: s["distance"])
+            entry["visibleForeignSettlers"] = settlers_near
         areas.append(entry)
 
     areas.sort(
@@ -1197,6 +1295,134 @@ def settle_scan(m, anchor=None, max_areas=12):
     if dropped > 0:
         result["smallerAreasOmitted"] = dropped
     return result
+
+
+_PLOT_WORDS = {"M": "mountain", "H": "hills", "F": "flat", "W": "water"}
+
+
+def evaluate_settle(m, x, y, live, anchor=None):
+    """One settle spot judged: the engine facts the live query read
+    (founding legality, fresh water, coast, river, settler travel) merged
+    with dump-side analysis of what a city there would actually work --
+    ring-by-ring resources, terrain, ownership already carved out of the
+    rings, overlap with the player's existing cities, and the nearest
+    neighbors. Fog honesty: fogged and unrevealed workable tiles are
+    counted, never guessed at."""
+    out = {"spot": {"x": x, "y": y}, **_rel(m, anchor, x, y)}
+    if not m.revealed(x, y):
+        out["spot"]["revealed"] = False
+    else:
+        out["spot"]["plot"] = _PLOT_WORDS.get(m.plot[y][x], "unknown")
+        terr = m.terrain_legend.get(m.terrain[y][x])
+        if terr:
+            out["spot"]["terrain"] = terr["name"]
+        feat = m.feature_legend.get(m.feature[y][x])
+        if feat:
+            out["spot"]["feature"] = feat["name"]
+    out.update(live)
+
+    rings = [
+        {
+            "ring": d,
+            "resources": [],
+            "hills": 0,
+            "mountains": 0,
+            "water": 0,
+            "ownedByOthers": 0,
+            "fogged": 0,
+            "unrevealedTiles": 0,
+        }
+        for d in (1, 2, 3)
+    ]
+    ring_res = Counter()
+    terrain_counts = Counter()
+    wonders = []
+    land_tiles = 0
+    for tx, ty in m.tiles():
+        d = m.hex.distance(x, y, tx, ty)
+        if d == 0 or d > 3:
+            continue
+        ring = rings[d - 1]
+        if not m.revealed(tx, ty):
+            ring["unrevealedTiles"] += 1
+            continue
+        if m.vis[ty][tx] == "0":
+            ring["fogged"] += 1
+        plot_c = m.plot[ty][tx]
+        if plot_c == "H":
+            ring["hills"] += 1
+        elif plot_c == "M":
+            ring["mountains"] += 1
+        elif plot_c == "W":
+            ring["water"] += 1
+        if plot_c in LAND_CHARS and plot_c != "M":
+            land_tiles += 1
+            terr = m.terrain_legend.get(m.terrain[ty][tx])
+            if terr:
+                terrain_counts[terr["name"]] += 1
+        owner = m.owner_id(tx, ty)
+        if owner is not None and owner != m.me:
+            ring["ownedByOthers"] += 1
+        r = m.resource_at.get((tx, ty))
+        if r:
+            ring_res[(d, r["t"])] += 1
+        w = m.wonder_at.get((tx, ty))
+        if w:
+            wonders.append({"name": w["name"], "distance": d})
+    for (d, rtype), n in sorted(ring_res.items()):
+        rings[d - 1]["resources"].append(
+            {**_resource_entry(m, rtype), "tiles": n}
+        )
+    out["workableRings"] = rings
+    out["workableTerrain"] = [
+        {"terrain": name, "percent": round(100 * n / land_tiles)}
+        for name, n in terrain_counts.most_common(3)
+    ]
+    if wonders:
+        out["naturalWonders"] = wonders
+
+    # Existing cities this spot would crowd: shared tiles inside both
+    # workable ranges (3 rings each).
+    overlaps = []
+    for c in m.my_cities:
+        d = m.hex.distance(c["x"], c["y"], x, y)
+        if d <= 6:
+            shared = sum(
+                1
+                for tx, ty in m.tiles()
+                if m.hex.distance(x, y, tx, ty) <= 3
+                and m.hex.distance(c["x"], c["y"], tx, ty) <= 3
+            )
+            overlaps.append(
+                {
+                    "city": c["name"],
+                    "distance": d,
+                    "sharedWorkableTiles": shared,
+                }
+            )
+    if overlaps:
+        overlaps.sort(key=lambda o: o["distance"])
+        out["overlapsYourCities"] = overlaps
+    out.update(_nearest_own_city(m, x, y))
+
+    best, best_d = None, None
+    for c in m.cities:
+        if c["owner"] == m.me:
+            continue
+        d = m.hex.distance(c["x"], c["y"], x, y)
+        if best_d is None or d < best_d:
+            best, best_d = c, d
+    if best is not None:
+        foreign = {
+            "name": best["name"],
+            "civ": m.civ_name(best["owner"]),
+            "distance": best_d,
+        }
+        word = m.hex.compass(x, y, best["x"], best["y"])
+        if word:
+            foreign["direction"] = word
+        out["nearestForeignCity"] = foreign
+    return out
 
 
 # === Structural segmentation (the landmass tour) ===

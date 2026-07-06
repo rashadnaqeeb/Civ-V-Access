@@ -279,6 +279,116 @@ function M.test_point_cursor_empty_glance_stays_silent()
     Map, Cursor, SpeechPipeline = origMap, origCursor, origSpeech
 end
 
+-- evaluate_settle -------------------------------------------------------------
+
+local function installSettlePlot()
+    local plot = {
+        IsFreshWater = function()
+            return true
+        end,
+        IsCoastalLand = function()
+            return false
+        end,
+        IsRiver = function()
+            return true
+        end,
+    }
+    Map = {
+        GetPlot = function()
+            return plot
+        end,
+    }
+    return plot
+end
+
+local function installSettlePlayer(units)
+    Players[0] = {
+        CanFound = function(_, _x, _y)
+            return true
+        end,
+        Cities = function()
+            return function() end
+        end,
+        Units = function()
+            local i = 0
+            return function()
+                i = i + 1
+                return units[i]
+            end
+        end,
+    }
+end
+
+function M.test_evaluate_settle_validates_args()
+    setup()
+    pending = "req13\tevaluate_settle\tfive\tsix"
+    Rpc._poll()
+    T.eq(#sent, 1)
+    T.truthy(sent[1]:find('"ok":false', 1, true))
+    T.truthy(sent[1]:find("numeric x and y", 1, true), sent[1])
+end
+
+function M.test_evaluate_settle_reads_live_facts_and_settler_turns()
+    setup()
+    local origMap, origEngineData = Map, EngineData
+    installSettlePlot()
+    local settlerPlot = {}
+    local settler = {
+        IsFound = function()
+            return true
+        end,
+        GetPlot = function()
+            return settlerPlot
+        end,
+        GetX = function()
+            return 2
+        end,
+        GetY = function()
+            return 3
+        end,
+    }
+    installSettlePlayer({ settler })
+    EngineData = {
+        forkPresent = function()
+            return true
+        end,
+        computePath = function(_unit, _from, _to)
+            return {}, true, 4
+        end,
+    }
+    pending = "req14\tevaluate_settle\t5\t6"
+    Rpc._poll()
+    T.eq(#sent, 1)
+    T.truthy(sent[1]:find('"ok":true', 1, true), sent[1])
+    T.truthy(sent[1]:find('"canFound":true', 1, true), sent[1])
+    T.truthy(sent[1]:find('"freshWater":true', 1, true), sent[1])
+    T.truthy(sent[1]:find('"coastal":false', 1, true), sent[1])
+    T.truthy(sent[1]:find('"riverAdjacent":true', 1, true), sent[1])
+    T.truthy(sent[1]:find('"reachable":true', 1, true), sent[1])
+    T.truthy(sent[1]:find('"turns":4', 1, true), sent[1])
+    Map, EngineData = origMap, origEngineData
+    Players[0] = nil
+end
+
+function M.test_evaluate_settle_omits_settlers_without_fork()
+    setup()
+    local origMap, origEngineData = Map, EngineData
+    installSettlePlot()
+    installSettlePlayer({})
+    EngineData = {
+        forkPresent = function()
+            return false
+        end,
+    }
+    pending = "req15\tevaluate_settle\t5\t6"
+    Rpc._poll()
+    T.eq(#sent, 1)
+    T.truthy(sent[1]:find('"ok":true', 1, true), sent[1])
+    T.eq(sent[1]:find('"yourSettlers"', 1, true), nil, "no fork: settler travel must be absent, not zero-filled")
+    Map, EngineData = origMap, origEngineData
+    Players[0] = nil
+end
+
 function M.test_install_without_proxy_rpc_warns_and_skips()
     setup()
     rpc = nil

@@ -73,7 +73,15 @@ evidence supports: flag thin ones, don't hedge strong ones.
   wars, friendships, pacts, city-state allies.
 - `civ5_borders_report` — what lies just beyond the player's borders.
 - `civ5_settle_scan` — unowned habitable land, sized and placed, with
-  fresh water / coast flags and the closest rival per area.
+  fresh water / coast flags, resources (with you-already-have counts), up
+  to three concrete candidate spots per area, the closest rival major and
+  city-state separately, and any foreign settlers visible nearby.
+- `civ5_evaluate_settle` — one settle spot judged in depth: founding
+  legality by the engine's own rule, fresh water / coast / river, the
+  three workable rings (resources, hills, mountains, already-owned tiles,
+  fog), overlap with the player's existing cities, nearest neighbors, and
+  travel turns for each settler the player owns. The natural follow-up to
+  a settle-scan candidate or "what about settling here?" from the cursor.
 - `civ5_war_report` — visible hostile units clustered into forces, each
   with composition and what the player has nearby. Refetch rather than
   reuse; it is a snapshot of a moving situation.

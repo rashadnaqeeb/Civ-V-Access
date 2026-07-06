@@ -69,7 +69,9 @@ Call order: civ5_ping first to confirm the game is reachable. For "tell me
 about the map" start with civ5_map_overview, then drill down: civ5_landmass_tour
 for the structure of one continent, civ5_civ_positions for neighbors and
 politics, civ5_borders_report for what is just beyond the borders,
-civ5_settle_scan for expansion room, civ5_war_report during wars,
+civ5_settle_scan for expansion room (each area lists concrete candidate
+spots), civ5_evaluate_settle to judge one settle spot in depth (founding
+legality, rings, overlaps, settler travel), civ5_war_report during wars,
 civ5_describe_region for tile-level detail. civ5_point_cursor moves the
 player's in-game map cursor to a location and announces it -- use it to
 physically point at what you are describing, but only when the player asks
@@ -376,12 +378,45 @@ TOOLS = [
             "Revealed land nobody owns, clustered into settleable areas: size, "
             "position from the anchor and the player's nearest city, walking "
             "distance from the player's border, fresh water and coast flags, "
-            "terrain mix, resources inside, and which rival is closest to each "
-            "area. Sorted by how reachable each area is."
+            "terrain mix, resources inside (with you-already-have counts), up "
+            "to three concrete candidate spots per area (coast / river / hill "
+            "anchors with the resources within working range of each), the "
+            "closest rival major and city-state separately, and any foreign "
+            "settlers visible near the area. Sorted by how reachable each "
+            "area is. Judge a specific spot with civ5_evaluate_settle."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {**_ANCHOR_PROPERTY},
+            "required": [],
+        },
+    },
+    {
+        "name": "civ5_evaluate_settle",
+        "description": (
+            "Judge one settle spot: whether a city can legally be founded "
+            "there (the engine's own rule), fresh water, coast, river "
+            "adjacency, what the three workable rings hold (resources with "
+            "you-already-have counts, hills, mountains, tiles other civs "
+            "already own, fog), terrain mix, natural wonders in range, "
+            "overlap with your existing cities' workable tiles, nearest own "
+            "and foreign cities, and travel turns for each settler you own. "
+            "Target by place name, 'cursor', or coordinates."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "place": {
+                    "type": "string",
+                    "description": (
+                        "The spot: 'cursor', a known city or natural wonder "
+                        "name, or 'x,y'. Alternative to x/y."
+                    ),
+                },
+                "x": _COORD_ARG,
+                "y": _COORD_ARG,
+                **_ANCHOR_PROPERTY,
+            },
             "required": [],
         },
     },
@@ -503,6 +538,7 @@ GEOMETRY_TOOLS = {
     "civ5_civ_positions",
     "civ5_borders_report",
     "civ5_settle_scan",
+    "civ5_evaluate_settle",
     "civ5_war_report",
     "civ5_describe_region",
     "civ5_point_cursor",
@@ -567,6 +603,23 @@ def call_geometry_tool(name, arguments):
             result = geometry.borders_report(m, radius)
         elif name == "civ5_settle_scan":
             result = geometry.settle_scan(m, anchor)
+            result["anchor"] = anchor
+        elif name == "civ5_evaluate_settle":
+            x, y = _target_from_args(m, arguments)
+            live = game_query("evaluate_settle", x, y)
+            if live is None:
+                return NO_GAME_MESSAGE.format(timeout=RESPONSE_TIMEOUT_SECONDS), True
+            live.pop("coordOrigin", None)
+            if not live.get("ok"):
+                return (
+                    json.dumps(
+                        geometry.convert_payload(live, origin),
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                    True,
+                )
+            result = geometry.evaluate_settle(m, x, y, live["data"], anchor)
             result["anchor"] = anchor
         elif name == "civ5_war_report":
             hostiles = game_query("list_hostiles")

@@ -34,7 +34,7 @@ TERRAIN_LEGEND = {
 
 def make_dump(picture, owners=None, wrap_x=False, capital=None, cities=None,
               resources=None, players=None, fogged=None, cursor=None,
-              rivers=None):
+              rivers=None, foreign_settlers=None):
     height = len(picture)
     width = len(picture[0])
     fogged = fogged or set()
@@ -86,12 +86,16 @@ def make_dump(picture, owners=None, wrap_x=False, capital=None, cities=None,
         "resources": resources or [],
         "resourceTypes": {
             # 2 = RESOURCEUSAGE_LUXURY, 1 = STRATEGIC (enum: bonus,
-            # strategic, luxury -- CvEnums.h).
-            "RESOURCE_WINE": {"name": "Wine", "usage": 2},
-            "RESOURCE_IRON": {"name": "Iron", "usage": 1},
+            # strategic, luxury -- CvEnums.h). youHave counts imports;
+            # youOwn is the own-supply share (wine: 2 total, 1 imported).
+            "RESOURCE_WINE": {"name": "Wine", "usage": 2, "youHave": 2,
+                              "youOwn": 1},
+            "RESOURCE_IRON": {"name": "Iron", "usage": 1, "youHave": 0,
+                              "youOwn": 0},
         },
         "naturalWonders": [],
         "players": players,
+        "foreignSettlers": foreign_settlers or [],
     }
 
 
@@ -374,35 +378,64 @@ def test_overland_routes():
 
 
 def test_settle_scan():
+    # Water column at x=9 keeps Rivalia's strip off the main cluster;
+    # Sydney (a city-state) sits right against it. The rival fields must
+    # separate the two: only the major competes for the land.
     picture = [
         "cccccccccccc",
-        "gggggggggggg",
-        "gggggggggggg",
+        "ggggggggg.gg",
+        "ggggggggg.gg",
     ]
     owners = [
         "------------",
-        "00--------11",
-        "00--------11",
+        "00---------1",
+        "00-----22--1",
     ]
-    players = [major(0, "Testia", you=True), major(1, "Rivalia")]
+    players = [
+        major(0, "Testia", you=True),
+        major(1, "Rivalia"),
+        minor(2, "Sydney"),
+    ]
     m = geo.MapData(make_dump(
         picture, owners=owners, players=players, capital={"x": 0, "y": 1},
         cities=[city(0, 1, "Home", capital=True)],
         rivers={(6, 1)},
         resources=[{"x": 5, "y": 2, "t": "RESOURCE_WINE"}],
+        foreign_settlers=[{"x": 10, "y": 1, "owner": 1}],
     ))
     anchor = geo.resolve_anchor(m)
     result = geo.settle_scan(m, anchor)
     areas = result["settleableAreas"]
     assert len(areas) == 1, areas
     area = areas[0]
-    assert area["tiles"] == 16
+    assert area["tiles"] == 12, area["tiles"]
     assert area["freshWater"] is True
     assert area["coastal"] is True
     assert area["walkingDistanceFromYourBorder"] == 1
-    assert area["closestRival"] == {"civ": "Rivalia", "distance": 1}
-    assert area["resources"][0]["resource"] == "Wine"
-    assert area["resources"][0]["usage"] == "luxury"
+    assert area["closestMajorRival"] == {"civ": "Rivalia", "distance": 3}, area
+    assert area["closestCityState"] == {"civ": "Sydney", "distance": 1}, area
+    wine = area["resources"][0]
+    assert wine["resource"] == "Wine" and wine["usage"] == "luxury"
+    assert wine["youHave"] == 2 and wine["ofWhichImported"] == 1, wine
+    settlers = area["visibleForeignSettlers"]
+    assert settlers == [{"civ": "Rivalia", "distance": 2}], settlers
+
+    spots = area["candidateSpots"]
+    assert spots, "an area must offer concrete candidate spots"
+    for spot in spots:
+        assert m.hex.distance(spot["x"], spot["y"], 0, 1) >= 4, (
+            "spots must respect min city spacing from known cities"
+        )
+    for a in spots:
+        for b in spots:
+            if a is not b:
+                assert m.hex.distance(a["x"], a["y"], b["x"], b["y"]) >= 4, (
+                    "spots must be alternatives, not a gradient"
+                )
+    top = spots[0]
+    assert top["freshWater"] is True and top["riverAdjacent"] is True, top
+    near = {r["resource"] for r in top["resourcesWithin2"]}
+    assert "Wine" in near, top
 
 
 def test_tour_lobes():
@@ -658,6 +691,65 @@ def test_overview_islet_collapse():
     assert len(islets["notable"]) == 1
     assert islets["notable"][0]["naturalWonders"] == ["Krakatoa"]
     assert "id" in islets["notable"][0]
+
+
+def test_evaluate_settle():
+    # Spot at (5, 2): wine one ring out, iron two rings out, a hill and
+    # the capital's overlap three rings out, one fogged and one
+    # unrevealed workable tile, and a foreign city to the east.
+    picture = [
+        "cccccccc",
+        "gggggg?g",
+        "gghggggg",
+        "gggggggg",
+    ]
+    players = [major(0, "Testia", you=True), major(1, "Rivalia")]
+    m = geo.MapData(make_dump(
+        picture, players=players, capital={"x": 1, "y": 2},
+        cities=[city(1, 2, "Home", capital=True),
+                city(7, 3, "Riva", owner=1)],
+        resources=[{"x": 5, "y": 1, "t": "RESOURCE_WINE"},
+                   {"x": 3, "y": 2, "t": "RESOURCE_IRON"}],
+        fogged={(5, 3)},
+    ))
+    live = {
+        "canFound": True,
+        "freshWater": True,
+        "coastal": False,
+        "riverAdjacent": False,
+        "yourSettlers": [{"x": 1, "y": 2, "reachable": True, "turns": 3}],
+    }
+    out = geo.evaluate_settle(m, 5, 2, live)
+    assert out["spot"] == {"x": 5, "y": 2, "plot": "flat",
+                           "terrain": "Grassland"}, out["spot"]
+    assert out["canFound"] is True and out["freshWater"] is True
+    assert out["yourSettlers"][0]["turns"] == 3
+
+    rings = out["workableRings"]
+    assert [r["ring"] for r in rings] == [1, 2, 3]
+    ring1 = rings[0]
+    wine = next(r for r in ring1["resources"] if r["resource"] == "Wine")
+    assert wine["tiles"] == 1 and wine["youHave"] == 2
+    assert ring1["fogged"] == 1, ring1
+    assert rings[1]["unrevealedTiles"] == 1, rings[1]
+    iron = next(
+        r
+        for ring in rings
+        for r in ring["resources"]
+        if r["resource"] == "Iron"
+    )
+    assert iron["youHave"] == 0 and "ofWhichImported" not in iron
+    assert sum(r["hills"] for r in rings) == 1, rings
+    assert sum(r["water"] for r in rings) > 0, "coast row is in range"
+
+    assert out["workableTerrain"][0]["terrain"] == "Grassland"
+    assert out["nearestYourCity"] == "Home"
+    assert out["distanceFromThatCity"] == 4
+    overlap = out["overlapsYourCities"][0]
+    assert overlap["city"] == "Home" and overlap["distance"] == 4
+    assert overlap["sharedWorkableTiles"] > 0
+    foreign = out["nearestForeignCity"]
+    assert foreign["name"] == "Riva" and foreign["civ"] == "Rivalia"
 
 
 def test_player_coords_match_ingame_speech():
