@@ -20,6 +20,8 @@ import math
 
 from PIL import Image, ImageDraw, ImageFont
 
+import civ5_geometry as geometry
+
 SQRT3 = math.sqrt(3)
 
 TERRAIN_COLORS = {
@@ -312,21 +314,34 @@ def render_png(m, center=None, radius=None):
             draw.line([(px - dx, py - dy), (px + dx, py + dy)],
                       fill=CURSOR_COLOR, width=max(2, round(s / 7)))
 
-    # Axis labels: map coordinates so the image and the payloads line up.
+    # Axis labels: the player's capital-relative coordinates so the image
+    # and the payloads line up (raw grid before a capital exists). An x
+    # label is exact on rows with the capital's parity; the other rows sit
+    # half a hex off, same as the hex stagger itself.
+    origin = m.coord_origin
+
+    def x_label(x):
+        if origin is None:
+            return x
+        return geometry.player_coords(origin, x, origin["y"])[0]
+
+    def y_label(y):
+        return y if origin is None else y - origin["y"]
+
     step = 2 if len(cols) <= 24 else 5
     axis_font = _font(10)
     for vx in cols:
         x = fold_x(vx)
-        if x % step:
+        if x_label(x) % step:
             continue
         px = margin_l + SQRT3 * s * ((vx - cols[0]) + 0.5)
-        draw.text((px, img_h - margin_b / 2), str(x), fill=(170, 170, 170),
-                  font=axis_font, anchor="mm")
+        draw.text((px, img_h - margin_b / 2), str(x_label(x)),
+                  fill=(170, 170, 170), font=axis_font, anchor="mm")
     for y in rows:
-        if y % step:
+        if y_label(y) % step:
             continue
         _, py = pixel_center(cols[0], y)
-        draw.text((margin_l / 2, py), str(y), fill=(170, 170, 170),
+        draw.text((margin_l / 2, py), str(y_label(y)), fill=(170, 170, 170),
                   font=axis_font, anchor="mm")
 
     buf = io.BytesIO()
@@ -334,10 +349,10 @@ def render_png(m, center=None, radius=None):
 
     meta = {
         "view": {
-            "xFrom": fold_x(cols[0]),
-            "xTo": fold_x(cols[-1]),
-            "yFrom": rows[0],
-            "yTo": rows[-1],
+            "xFrom": x_label(fold_x(cols[0])),
+            "xTo": x_label(fold_x(cols[-1])),
+            "yFrom": y_label(rows[0]),
+            "yTo": y_label(rows[-1]),
             "crossesWrapSeam": crosses_seam,
             "wholeMap": center is None,
         },
@@ -355,7 +370,8 @@ def render_png(m, center=None, radius=None):
             "are rivers, white-outlined peaks are mountains, dark round "
             "glyphs are forest or jungle, magenta triangles are natural "
             "wonders, a red crosshair is the player's cursor. Axis "
-            "numbers are map coordinates for follow-up data calls. Use "
+            "numbers are the player's capital-relative coordinates, the "
+            "same system the data tools speak, for follow-up calls. Use "
             "the image only for shapes and layout; every number, "
             "distance, or direction spoken must come from the data tools."
         ),

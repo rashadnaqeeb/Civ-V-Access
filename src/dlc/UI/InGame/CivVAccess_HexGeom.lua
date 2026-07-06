@@ -390,6 +390,14 @@ function HexGeom.coordinateString(x, y)
     return Text.format("TXT_KEY_CIVVACCESS_COORDINATE", dx, dy)
 end
 
+-- The origin of the player-facing coordinate system: the active player's
+-- original capital plot, or nil before the first city exists. The MCP
+-- bridge stamps this on every reply so the external server can express
+-- tiles in the same coordinates coordinateString speaks.
+function HexGeom.originCapital()
+    return activeOriginalCapital()
+end
+
 -- Direction decomposition from (x, y) to the active player's original
 -- capital -- which way and how far home sits from the cursor, so a cursor
 -- 2nw of the capital reads "2se". Same "<n><token>, ..." form

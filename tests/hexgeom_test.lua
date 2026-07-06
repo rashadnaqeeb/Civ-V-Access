@@ -330,6 +330,25 @@ function M.test_coordinateString_no_wrap_keeps_far_east_positive()
     T.eq(HexGeom.coordinateString(78, 0), "68, 0")
 end
 
+-- ===== originCapital =====
+-- The MCP bridge stamps this on every reply so external coordinates can
+-- match coordinateString. Same scan, raw plot coords instead of a string.
+
+function M.test_originCapital_returns_capital_plot()
+    coordSetup()
+    T.installOriginalCapital(7, 3)
+    local x, y = HexGeom.originCapital()
+    T.eq(x, 7)
+    T.eq(y, 3)
+end
+
+function M.test_originCapital_nil_before_first_city()
+    coordSetup()
+    local x, y = HexGeom.originCapital()
+    T.eq(x, nil)
+    T.eq(y, nil)
+end
+
 -- ===== Cube wrap fold =====
 -- directionString / cubeDistance / directionRank all share the same
 -- nearestWrappedTo helper. Without it, a target one tile across the seam

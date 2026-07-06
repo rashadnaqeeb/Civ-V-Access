@@ -110,6 +110,23 @@ Every spatial tool takes an optional `anchor`: `"capital"` (default),
 anchor used. Distances are tiles (hex steps); directions are the same
 8-point compass the in-game scanner speaks.
 
+## Coordinates
+
+Every x/y in payloads, in tool arguments, and on rendered axis labels is
+the player's own coordinate system — relative to their original capital,
+exactly what the in-game cursor's coordinate readout speaks. `y` counts
+rows north of the capital (negative = south); `x` counts columns east
+(negative = west) and ends in `.5` on rows whose parity differs from the
+capital's row (the hex stagger). The conversion happens at the payload
+boundary: the Lua bridge stamps a `coordOrigin` on every reply and the
+server converts both directions, so a coordinate the player speaks can be
+passed straight into any tool and a coordinate you read out of a payload
+matches what their cursor would say on that tile.
+
+Before the first city exists there is no capital to measure from; payloads
+then carry raw map-grid coordinates and say so in a `coordinateSystem`
+field.
+
 ## Honesty rules (non-negotiable)
 
 The data already respects fog of war; your narration must not undo that.
@@ -131,9 +148,11 @@ The data already respects fog of war; your narration must not undo that.
 
 ## Phrasing for the player
 
-- Relational, never coordinates: "iron two tiles southeast of Helsinki",
-  not "iron at 54, 34". Coordinates exist in payloads for your follow-up
-  calls, not for speech.
+- Prefer relational descriptions ("iron two tiles southeast of Helsinki")
+  — a place's relation to somewhere the player knows carries more meaning
+  than a number pair. But coordinates are the player's own, so speak them
+  when they help: pinning down an exact tile, or answering a player who
+  navigates by them.
 - Pick a reference point the player knows (their capital, one of their
   cities, the cursor) and describe from it consistently.
 - Lead with the distinguishing fact; the sooner the varying word arrives,

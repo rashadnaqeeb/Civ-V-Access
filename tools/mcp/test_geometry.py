@@ -660,6 +660,102 @@ def test_overview_islet_collapse():
     assert "id" in islets["notable"][0]
 
 
+def test_player_coords_match_ingame_speech():
+    # Mirrors hexgeom_test.lua's coordinateString cases: same origin, same
+    # spoken numbers.
+    origin = {"x": 0, "y": 0, "mapWidth": 80, "mapHeight": 40, "wrapX": False}
+    assert geo.player_coords(origin, 0, 0) == (0, 0)
+    assert geo.player_coords(origin, 1, 0) == (1, 0)
+    # NE step lands on the odd (half-shifted) row: x gains the 0.5 parity
+    # correction, exactly the "0.5, 1" the player hears.
+    assert geo.player_coords(origin, 0, 1) == (0.5, 1)
+    odd = {"x": 3, "y": 1, "mapWidth": 80, "mapHeight": 40, "wrapX": False}
+    assert geo.player_coords(odd, 3, 0) == (-0.5, -1)
+    wrap = {"x": 10, "y": 0, "mapWidth": 80, "mapHeight": 40, "wrapX": True}
+    assert geo.player_coords(wrap, 78, 0) == (-12, 0)
+    assert geo.player_coords(wrap, 40, 0) == (30, 0)
+
+
+def test_engine_coords_inverts_player_coords():
+    for origin in (
+        {"x": 10, "y": 4, "mapWidth": 80, "mapHeight": 40, "wrapX": True},
+        {"x": 3, "y": 1, "mapWidth": 80, "mapHeight": 40, "wrapX": False},
+    ):
+        for x in (0, 1, 39, 78):
+            for y in (0, 1, 4, 39):
+                px, py = geo.player_coords(origin, x, y)
+                assert geo.engine_coords(origin, px, py) == (x, y), (
+                    f"round trip failed at ({x}, {y}) via ({px}, {py})"
+                )
+
+
+def test_engine_coords_rejects_wrong_parity_and_off_map():
+    origin = {"x": 10, "y": 4, "mapWidth": 80, "mapHeight": 40, "wrapX": False}
+    # Row 5 differs in parity from the capital's row 4, so x must end in .5.
+    try:
+        geo.engine_coords(origin, 3, 1)
+        raise AssertionError("wrong-parity x must raise")
+    except geo.PlaceError as e:
+        assert "end in .5" in str(e) and "2.5" in str(e) and "3.5" in str(e)
+    try:
+        geo.engine_coords(origin, 0, 100)
+        raise AssertionError("off-map y must raise")
+    except geo.PlaceError as e:
+        assert "off the map" in str(e)
+    try:
+        geo.engine_coords(origin, 0, 0.5)
+        raise AssertionError("fractional y must raise")
+    except geo.PlaceError as e:
+        assert "whole row" in str(e)
+
+
+def test_convert_payload_rewrites_all_xy_pairs():
+    origin = {"x": 10, "y": 4, "mapWidth": 80, "mapHeight": 40, "wrapX": False}
+    payload = {
+        "ok": True,
+        "data": {
+            "center": {"x": 12, "y": 4, "name": "spot"},
+            "tiles": [{"x": 10, "y": 5, "terrain": "Grassland"}],
+            "count": 3,
+        },
+    }
+    out = geo.convert_payload(payload, origin)
+    assert out["data"]["center"] == {"x": 2, "y": 0, "name": "spot"}
+    assert out["data"]["tiles"][0]["x"] == 0.5
+    assert out["data"]["tiles"][0]["y"] == 1
+    assert out["data"]["tiles"][0]["terrain"] == "Grassland"
+    assert out["data"]["count"] == 3
+    # The original must be untouched (deep copy).
+    assert payload["data"]["center"]["x"] == 12
+    # No origin: identity.
+    assert geo.convert_payload(payload, None) is payload
+
+
+def test_resolve_place_parses_player_coordinates():
+    picture = [
+        "gggggg",
+        "gggggg",
+        "gggggg",
+        "gggggg",
+    ]
+    dump = make_dump(picture, capital={"x": 2, "y": 2},
+                     cities=[city(2, 2, "Home", capital=True)])
+    origin = {"x": 2, "y": 2, "mapWidth": 6, "mapHeight": 4, "wrapX": False}
+    m = geo.MapData(dump, origin)
+    # One NE step from the capital: the player says "0.5, 1".
+    x, y, label = geo.resolve_place(m, "0.5, 1")
+    assert (x, y) == (2, 3), (x, y)
+    assert label == "(0.5, 1)"
+    # Without an origin the same string is raw grid; halves are invalid.
+    m_raw = geo.MapData(dump)
+    assert geo.resolve_place(m_raw, "2, 3")[:2] == (2, 3)
+    try:
+        geo.resolve_place(m_raw, "0.5, 1")
+        raise AssertionError("half coordinate without an origin must raise")
+    except geo.PlaceError:
+        pass
+
+
 TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
 
 

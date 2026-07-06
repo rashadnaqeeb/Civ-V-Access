@@ -32,6 +32,12 @@ local function setup()
             return true
         end,
     }
+    -- Envelope construction stamps coordOrigin from HexGeom's original-
+    -- capital scan over Players; wipe leftovers from earlier suites so
+    -- tests control whether an origin exists.
+    for i = 0, 63 do
+        Players[i] = nil
+    end
     dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
     TickPump._reset()
     dofile("src/dlc/UI/InGame/CivVAccess_Rpc.lua")
@@ -98,6 +104,42 @@ function M.test_dispatch_success_envelope()
     T.truthy(sent[1]:find('"first":"foo"', 1, true))
     T.truthy(sent[1]:find('"second":"bar"', 1, true))
     T.truthy(sent[1]:find('"turn":', 1, true), "envelope carries the turn stamp")
+end
+
+function M.test_envelope_carries_coord_origin_with_capital()
+    setup()
+    T.installOriginalCapital(7, 3)
+    local origGridSize, origWrap = Map.GetGridSize, Map.IsWrapX
+    Map.GetGridSize = function()
+        return 80, 52
+    end
+    Map.IsWrapX = function()
+        return true
+    end
+    Rpc._queries.echo = function()
+        return {}
+    end
+    pending = "req11\techo"
+    Rpc._poll()
+    T.eq(#sent, 1)
+    T.truthy(sent[1]:find('"coordOrigin":', 1, true), sent[1])
+    T.truthy(sent[1]:find('"x":7', 1, true), sent[1])
+    T.truthy(sent[1]:find('"y":3', 1, true), sent[1])
+    T.truthy(sent[1]:find('"mapWidth":80', 1, true), sent[1])
+    T.truthy(sent[1]:find('"mapHeight":52', 1, true), sent[1])
+    T.truthy(sent[1]:find('"wrapX":true', 1, true), sent[1])
+    Map.GetGridSize, Map.IsWrapX = origGridSize, origWrap
+end
+
+function M.test_envelope_omits_coord_origin_before_first_city()
+    setup()
+    Rpc._queries.echo = function()
+        return {}
+    end
+    pending = "req12\techo"
+    Rpc._poll()
+    T.eq(#sent, 1)
+    T.eq(sent[1]:find('"coordOrigin"', 1, true), nil, sent[1])
 end
 
 function M.test_dispatch_consumes_request_once()

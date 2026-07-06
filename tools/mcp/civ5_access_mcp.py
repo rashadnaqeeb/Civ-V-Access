@@ -94,6 +94,17 @@ name, or "x,y". All distanceFromAnchor / directionFromAnchor fields are
 relative to it. Distances are in tiles (hex steps); directions are 8-point
 compass words matching what the in-game scanner speaks.
 
+Coordinates: every x/y in payloads, in tool arguments, and on rendered
+axis labels is the PLAYER's coordinate system -- relative to their
+original capital, exactly what the in-game cursor's coordinate readout
+speaks. y counts rows north of the capital (negative = south); x counts
+columns east (negative = west) and ends in .5 on rows whose parity
+differs from the capital's row. These numbers are safe to speak: they
+mean the same thing to the player, and coordinates the player gives you
+can be passed straight back in. Before the first city exists there is no
+capital to measure from; payloads then carry raw map-grid coordinates and
+say so in a coordinateSystem field.
+
 Honesty rules, non-negotiable: the data already respects fog of war, and
 your narration must too. surveyedCompletely=false means "at least this many
 tiles, it continues into unexplored territory" -- never state its size as
@@ -106,10 +117,12 @@ fields (the mod's exact hex math) -- don't derive or sharpen them
 yourself: "two tiles southeast" must actually be two tiles southeast, not
 one east and one southeast eyeballed together.
 
-Phrasing: relational, never raw coordinates ("iron two tiles southeast of
-Helsinki", not "iron at 54, 34" -- coordinates exist in payloads for your
-follow-up calls, not for speech). Pick a reference point the player knows
-and describe from it consistently. Lead with the distinguishing fact. Keep
+Phrasing: prefer relational descriptions ("iron two tiles southeast of
+Helsinki") -- a place's relation to somewhere the player knows carries
+more meaning than a number pair -- but coordinates are the player's own,
+so speak them when they help: pinning down an exact tile, or answering a
+player who navigates by them. Pick a reference point the player knows and
+describe from it consistently. Lead with the distinguishing fact. Keep
 every gameplay-relevant number (distances, unit counts, city health,
 resource quantities); drop filler and meta-commentary.
 """
@@ -206,9 +219,18 @@ _ANCHOR_PROPERTY = {
         "description": (
             "Reference point for all distances/directions: 'capital' "
             "(default), 'cursor' (the player's in-game map cursor), a known "
-            "city name, or 'x,y'."
+            "city name, or 'x,y' in the player's capital-relative "
+            "coordinates."
         ),
     }
+}
+
+_COORD_ARG = {
+    "type": "number",
+    "description": (
+        "Player coordinate (capital-relative, as spoken in game; x may "
+        "end in .5 depending on the row)."
+    ),
 }
 
 TOOLS = [
@@ -399,8 +421,8 @@ TOOLS = [
                         "wonder name, or 'x,y'. Alternative to x/y."
                     ),
                 },
-                "x": {"type": "integer"},
-                "y": {"type": "integer"},
+                "x": _COORD_ARG,
+                "y": _COORD_ARG,
                 "radius": {
                     "type": "integer",
                     "description": "Ring radius in tiles (default 3, max 8).",
@@ -429,8 +451,8 @@ TOOLS = [
                         "name, or 'x,y'. Alternative to x/y."
                     ),
                 },
-                "x": {"type": "integer"},
-                "y": {"type": "integer"},
+                "x": _COORD_ARG,
+                "y": _COORD_ARG,
             },
             "required": [],
         },
@@ -460,8 +482,8 @@ TOOLS = [
                         "whole map."
                     ),
                 },
-                "x": {"type": "integer"},
-                "y": {"type": "integer"},
+                "x": _COORD_ARG,
+                "y": _COORD_ARG,
                 "radius": {
                     "type": "integer",
                     "description": (
@@ -499,12 +521,17 @@ def _fresh_map():
 
 
 def _target_from_args(m, arguments, default=None):
-    """(x, y) from a `place` string or explicit x/y args."""
+    """Engine (x, y) from a `place` string or explicit x/y args; explicit
+    args arrive in the player's capital-relative coordinates (raw grid
+    only before a capital exists)."""
     if arguments.get("place") is not None:
         x, y, _label = geometry.resolve_place(m, arguments["place"])
         return x, y
     if arguments.get("x") is not None and arguments.get("y") is not None:
-        return int(arguments["x"]), int(arguments["y"])
+        px, py = float(arguments["x"]), float(arguments["y"])
+        if m.coord_origin is not None:
+            return geometry.engine_coords(m.coord_origin, px, py)
+        return int(px), int(py)
     if default is not None:
         return default
     raise geometry.PlaceError("pass either place or x and y")
@@ -514,7 +541,8 @@ def call_geometry_tool(name, arguments):
     envelope, err = _fresh_map()
     if err:
         return err
-    m = geometry.MapData(envelope["data"])
+    origin = envelope.get("coordOrigin")
+    m = geometry.MapData(envelope["data"], origin)
     try:
         anchor = geometry.resolve_anchor(m, arguments.get("anchor"))
     except geometry.PlaceError as e:
@@ -557,8 +585,13 @@ def call_geometry_tool(name, arguments):
             point = game_query("point_cursor", x, y)
             if point is None:
                 return NO_GAME_MESSAGE.format(timeout=RESPONSE_TIMEOUT_SECONDS), True
+            point.pop("coordOrigin", None)
             return (
-                json.dumps(point, ensure_ascii=False, indent=2),
+                json.dumps(
+                    geometry.convert_payload(point, origin),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
                 not point.get("ok"),
             )
     except geometry.PlaceError as e:
@@ -570,7 +603,14 @@ def call_geometry_tool(name, arguments):
         "ok": True,
         "data": result,
     }
-    return json.dumps(out, ensure_ascii=False, indent=2), False
+    if origin is None:
+        out["coordinateSystem"] = (
+            "raw map grid: no capital exists yet, so the capital-relative "
+            "coordinates the player hears in game are unavailable"
+        )
+    return json.dumps(
+        geometry.convert_payload(out, origin), ensure_ascii=False, indent=2
+    ), False
 
 
 def call_render_tool(arguments):
@@ -585,7 +625,8 @@ def call_render_tool(arguments):
     envelope, err = _fresh_map()
     if err:
         return err
-    m = geometry.MapData(envelope["data"])
+    origin = envelope.get("coordOrigin")
+    m = geometry.MapData(envelope["data"], origin)
     center = None
     try:
         if any(arguments.get(k) is not None for k in ("place", "x", "y")):
@@ -627,6 +668,8 @@ def call_tool(name, arguments):
 
     if envelope is None:
         return NO_GAME_MESSAGE.format(timeout=RESPONSE_TIMEOUT_SECONDS), True
+    origin = envelope.pop("coordOrigin", None)
+    envelope = geometry.convert_payload(envelope, origin)
     return json.dumps(envelope, ensure_ascii=False, indent=2), not envelope.get("ok")
 
 

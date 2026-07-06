@@ -680,6 +680,21 @@ function Rpc._poll()
         turn = Game.GetGameTurn(),
         activePlayer = Game.GetActivePlayer(),
     }
+    -- The origin of the coordinates the player hears in game (original
+    -- capital, per HexGeom.coordinateString). The MCP server uses it to
+    -- express every x/y it emits or accepts in that same system; absent
+    -- before the first city exists.
+    local originX, originY = HexGeom.originCapital()
+    if originX ~= nil then
+        local gridW, gridH = Map.GetGridSize()
+        envelope.coordOrigin = {
+            x = originX,
+            y = originY,
+            mapWidth = gridW,
+            mapHeight = gridH,
+            wrapX = Map.IsWrapX(),
+        }
+    end
     local fn = queries[name]
     if fn == nil then
         envelope.ok = false

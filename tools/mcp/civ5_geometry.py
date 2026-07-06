@@ -11,9 +11,18 @@ scanner speaks.
 
 Everything is described relationally: each result carries an `anchor`
 (the player's capital by default; the mod's cursor, any known city, or a
-raw coordinate on request) and items carry distanceFromAnchor /
+coordinate on request) and items carry distanceFromAnchor /
 directionFromAnchor plus, where useful, the player's nearest own city.
-Raw x/y stay in payloads only so follow-up calls can target them.
+
+Coordinates in payloads are the PLAYER's coordinates -- capital-relative,
+exactly what the in-game cursor speaks (CivVAccess_HexGeom.lua
+coordinateString): y is the row delta from the original capital, x the
+parity-corrected column delta, so x ends in .5 on rows whose parity
+differs from the capital's. All internal math runs on raw engine offsets;
+player_coords / engine_coords convert at the payload boundary using the
+coordOrigin the Lua bridge stamps on every reply. Before the first city
+exists there is no origin and payloads fall back to raw grid coordinates,
+flagged via a coordinateSystem note.
 
 Fog honesty: "?" cells (unrevealed) are never analyzed. Components that
 touch unrevealed cells are flagged, so a landmass reads "at least N tiles,
@@ -122,7 +131,8 @@ def _as_list(value):
 class MapData:
     """Decoded dump_map reply plus derived lookup tables."""
 
-    def __init__(self, dump):
+    def __init__(self, dump, coord_origin=None):
+        self.coord_origin = coord_origin
         self.hex = HexMap(dump["width"], dump["height"], dump["wrapX"])
         self.width = dump["width"]
         self.height = dump["height"]
@@ -194,10 +204,92 @@ class PlaceError(ValueError):
     is written for the calling agent."""
 
 
+# === Player-facing coordinates ===
+# The mod speaks capital-relative coordinates (HexGeom.coordinateString):
+# y = row delta from the original capital, x = column delta with a 0.5
+# row-parity correction, X-wrap folded to the shortest delta. These
+# helpers convert between that system and raw engine offsets using the
+# coordOrigin dict the Lua bridge stamps on every reply:
+# {x, y, mapWidth, mapHeight, wrapX}.
+
+
+def _coord_num(v):
+    """Collapse float-typed whole numbers to int so JSON shows 3, not 3.0;
+    genuine half-coordinates stay floats."""
+    i = int(round(v))
+    return i if abs(v - i) < 1e-9 else v
+
+
+def player_coords(origin, x, y):
+    """Engine offset (x, y) -> the (x, y) the player hears in game."""
+    dy = y - origin["y"]
+    dx = (x + 0.5 * (y % 2)) - (origin["x"] + 0.5 * (origin["y"] % 2))
+    if origin.get("wrapX"):
+        w = origin["mapWidth"]
+        if dx > w / 2:
+            dx -= w
+        elif dx < -w / 2:
+            dx += w
+    return _coord_num(dx), dy
+
+
+def engine_coords(origin, px, py):
+    """Player-spoken (x, y) -> engine offsets, exact inverse of
+    player_coords. Raises PlaceError on a fractional row, an x whose
+    half/whole form doesn't match the row's parity, or a tile off the
+    map -- messages speak player coordinates only."""
+    if py != int(py):
+        raise PlaceError(
+            f"no tile at ({_coord_num(px)}, {_coord_num(py)}): "
+            f"y is a whole row number"
+        )
+    y = origin["y"] + int(py)
+    x = px + origin["x"] + 0.5 * (origin["y"] % 2) - 0.5 * (y % 2)
+    if origin.get("wrapX"):
+        x %= origin["mapWidth"]
+    xi = round(x)
+    if abs(x - xi) > 1e-9:
+        near = _coord_num(px - 0.5), _coord_num(px + 0.5)
+        form = "end in .5" if (y % 2) != (origin["y"] % 2) else "are whole numbers"
+        raise PlaceError(
+            f"no tile at ({_coord_num(px)}, {_coord_num(py)}): x coordinates "
+            f"on row {_coord_num(py)} {form} (nearest are {near[0]} and {near[1]})"
+        )
+    xi = int(xi)
+    off_map = y < 0 or y >= origin["mapHeight"] or (
+        not origin.get("wrapX") and (xi < 0 or xi >= origin["mapWidth"])
+    )
+    if off_map:
+        raise PlaceError(f"({_coord_num(px)}, {_coord_num(py)}) is off the map")
+    return xi, y
+
+
+def convert_payload(node, origin):
+    """Deep-copy a payload, rewriting every dict that carries a numeric
+    x/y pair (always a tile position in our payloads) into player
+    coordinates. Identity when there is no origin yet."""
+    if origin is None:
+        return node
+    if isinstance(node, list):
+        return [convert_payload(item, origin) for item in node]
+    if isinstance(node, dict):
+        out = {k: convert_payload(v, origin) for k, v in node.items()}
+        x, y = out.get("x"), out.get("y")
+        if (
+            isinstance(x, (int, float)) and not isinstance(x, bool)
+            and isinstance(y, (int, float)) and not isinstance(y, bool)
+        ):
+            out["x"], out["y"] = player_coords(origin, x, y)
+        return out
+    return node
+
+
 def resolve_place(m, spec):
-    """Resolve a place spec into (x, y, label). Accepts "capital",
+    """Resolve a place spec into engine (x, y, label). Accepts "capital",
     "cursor", any known city name, any known natural wonder name, or an
-    "x,y" coordinate string / (x, y) pair."""
+    "x,y" coordinate string in the player's capital-relative system
+    (raw grid only before a capital exists). A (x, y) tuple/list is an
+    internal engine-offset form."""
     if isinstance(spec, (tuple, list)) and len(spec) == 2:
         return int(spec[0]), int(spec[1]), f"({spec[0]}, {spec[1]})"
     s = str(spec).strip()
@@ -224,9 +316,21 @@ def resolve_place(m, spec):
     if "," in s:
         parts = s.split(",")
         try:
-            return int(parts[0]), int(parts[1]), f"({int(parts[0])}, {int(parts[1])})"
+            px, py = float(parts[0]), float(parts[1])
         except ValueError:
             pass
+        else:
+            label = f"({_coord_num(px)}, {_coord_num(py)})"
+            if m.coord_origin is not None:
+                x, y = engine_coords(m.coord_origin, px, py)
+            elif px == int(px) and py == int(py):
+                x, y = int(px), int(py)
+            else:
+                raise PlaceError(
+                    f"no tile at {label}: before a capital exists, "
+                    f"coordinates are raw grid and whole numbers"
+                )
+            return x, y, label
     known = sorted({c["name"] for c in m.cities})
     raise PlaceError(
         f"unknown place: {spec!r}. Known: 'capital', 'cursor', an x,y "
