@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-07-08
+
 New Features and improvements:
 - The game now keeps running while you're in another window; needs the game set to windowed mode from video options and the relevant mod setting turned on under f12. This sometimes breaks, especially if for example your computer goes to sleep, so use at your own risk. It is however very helpful for multiplayer, meaning not everyone has to be stranded in the window at all times.
 - AI coding assistants like Claude code or Codex can now query your live game through a new MCP bridge. Clone the repo and have your agent of choice explain how to set this up. As with all LLM output, don't trust it entirely, but it can do things like explain the map to you and give you high level strategic info.
