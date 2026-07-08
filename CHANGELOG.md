@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Unavailable Vox Populi spy missions now say "disabled" right after the mission name, before the reason.
+
 ## [2.1.1] - 2026-07-08
 
 New Features and improvements:

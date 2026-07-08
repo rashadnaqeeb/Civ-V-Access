@@ -137,6 +137,93 @@ function M.test_choice_activate_throw_suppresses_click()
     T.truthy(#errors >= 1, "error logged")
 end
 
+function M.test_choice_disabledFn_blocks_activate_and_speaks_marker_before_tooltip()
+    setup()
+    populateControls({})
+    local fired = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Choice({
+                labelText = "Mission",
+                tooltipText = "Needs more network points",
+                disabledFn = function()
+                    return true
+                end,
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    clearArr(sounds)
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(fired, 0, "disabled Choice never activates")
+    T.eq(#sounds, 0, "no click on disabled Choice")
+    T.eq(#speaks, 1, "announcement re-spoken on Enter")
+    local text = speaks[1].text
+    local dPos = text:find("disabled", 1, true)
+    local rPos = text:find("Needs more network points", 1, true)
+    T.truthy(dPos, "disabled marker spoken")
+    T.truthy(rPos, "reason tooltip spoken")
+    T.truthy(dPos < rPos, "disabled marker precedes the reason")
+end
+
+function M.test_choice_disabledFn_false_activates_normally()
+    setup()
+    populateControls({})
+    local fired = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Choice({
+                labelText = "Mission",
+                disabledFn = function()
+                    return false
+                end,
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    clearArr(sounds)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(fired, 1, "enabled Choice activates")
+    T.eq(#sounds, 1, "click plays on successful activate")
+end
+
+function M.test_choice_disabledFn_throw_logs_and_stays_enabled()
+    setup()
+    populateControls({})
+    local fired = 0
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Test",
+        items = {
+            BaseMenuItems.Choice({
+                labelText = "Mission",
+                disabledFn = function()
+                    error("probe blew up")
+                end,
+                activate = function()
+                    fired = fired + 1
+                end,
+            }),
+        },
+    })
+    HandlerStack.push(h)
+    clearArr(errors)
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(fired, 1, "thrown disabledFn does not block activation")
+    T.truthy(#errors >= 1, "disabledFn error logged")
+end
+
 function M.test_checkbox_no_captured_callback_suppresses_click()
     setup()
     local cb = Polyfill.makeCheckBox({ checked = false })

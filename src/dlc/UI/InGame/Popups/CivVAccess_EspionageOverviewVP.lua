@@ -191,8 +191,10 @@ end
 
 -- Build a single mission/counterspy choice item. Valid choices commit on
 -- activate (no select-then-confirm step, matching our event pickers); invalid
--- choices stay listed as inert rows with the engine's disabled reason on the
--- tooltip so the user hears what exists and why it is closed.
+-- choices stay listed as disabled rows so the marker is spoken right after
+-- the label, with the engine's reason on the tooltip. disabledFn re-queries
+-- validity live, and BaseMenu gates activate on it, so a choice that stops
+-- being valid can never commit.
 local function buildChoiceItem(info, event, agent, city, isCounterspy, displayName)
     local activeID = Game.GetActivePlayer()
     local cityName = city:GetName()
@@ -209,8 +211,7 @@ local function buildChoiceItem(info, event, agent, city, isCounterspy, displayNa
         tooltip = tooltip .. ". " .. Text.format("TXT_KEY_EO_ID_KILL_CHANCE", info.SpyIDChance, info.SpyKillChance)
     end
 
-    local valid = city:IsCityEventChoiceValidEspionage(info.ID, event.ID, agent.AgentID, activeID)
-    if not valid then
+    if not city:IsCityEventChoiceValidEspionage(info.ID, event.ID, agent.AgentID, activeID) then
         local reason
         if isCounterspy then
             reason = Text.key("TXT_KEY_EO_COUNTERSPY_CANNOT_CHANGE_ACTIVE_FOCUS_TT")
@@ -220,12 +221,14 @@ local function buildChoiceItem(info, event, agent, city, isCounterspy, displayNa
         if reason ~= nil and reason ~= "" then
             tooltip = tooltip .. ". " .. reason
         end
-        return BaseMenuItems.Text({ labelText = label, tooltipText = tooltip })
     end
 
     return BaseMenuItems.Choice({
         labelText = label,
         tooltipText = tooltip,
+        disabledFn = function()
+            return not city:IsCityEventChoiceValidEspionage(info.ID, event.ID, agent.AgentID, activeID)
+        end,
         activate = function()
             city:DoCityEventChoice(info.ID, agent.AgentID, activeID)
             ctx.rebuildAllTabs()
@@ -264,19 +267,18 @@ local function pushChoiceSub(agent, city, isCounterspy)
         local spy = agent
         local viewThreshold = revealThreshold(GameInfo.SpyPassiveBonuses, "RevealCityScreen")
         if viewThreshold ~= 999999 then
-            if spy.MaxNetworkPointsStored >= viewThreshold then
-                items[#items + 1] = BaseMenuItems.Choice({
-                    labelText = Text.key("TXT_KEY_POPUP_VIEW_CITY"),
-                    activate = function()
-                        ctx.viewCity(city)
-                    end,
-                })
-            else
-                items[#items + 1] = BaseMenuItems.Text({
-                    labelText = Text.key("TXT_KEY_POPUP_VIEW_CITY"),
-                    tooltipText = Text.format("TXT_KEY_EO_CITY_SCREEN_NOT_ENOUGH_NP", viewThreshold),
-                })
-            end
+            local belowThreshold = spy.MaxNetworkPointsStored < viewThreshold
+            items[#items + 1] = BaseMenuItems.Choice({
+                labelText = Text.key("TXT_KEY_POPUP_VIEW_CITY"),
+                tooltipText = belowThreshold and Text.format("TXT_KEY_EO_CITY_SCREEN_NOT_ENOUGH_NP", viewThreshold)
+                    or nil,
+                disabledFn = function()
+                    return belowThreshold
+                end,
+                activate = function()
+                    ctx.viewCity(city)
+                end,
+            })
         end
         items[#items + 1] = passiveBonusGroup(spy, false)
     end

@@ -614,6 +614,15 @@ end
 --                                    a separate Start commits). Leave nil
 --                                    for select-and-close screens where
 --                                    activation pops the handler anyway.
+--   disabledFn                       optional fn() -> bool. When truthy,
+--                                    isActivatable returns false, so the
+--                                    announcement carries the standard
+--                                    disabled marker after the label and
+--                                    Enter re-speaks instead of activating.
+--                                    For rows the screen keeps listed while
+--                                    the engine rejects them (espionage
+--                                    missions short on network points);
+--                                    put the reason on the tooltip.
 --   visibilityControl                optional live userdata; isNavigable
 --                                    returns false while it IsHidden
 --   visibilityControlName            alternative: look up Controls.X
@@ -631,10 +640,15 @@ function BaseMenuItems.Choice(spec)
         spec.selectedFn == nil or type(spec.selectedFn) == "function",
         "Choice.selectedFn must be a function if provided"
     )
+    Log.check(
+        spec.disabledFn == nil or type(spec.disabledFn) == "function",
+        "Choice.disabledFn must be a function if provided"
+    )
     local item = {
         kind = "choice",
         _activate = spec.activate,
         _selectedFn = spec.selectedFn,
+        _disabledFn = spec.disabledFn,
         _visibilityControl = spec.visibilityControl,
     }
     if item._visibilityControl == nil and spec.visibilityControlName ~= nil then
@@ -652,7 +666,18 @@ function BaseMenuItems.Choice(spec)
         return true
     end
     function item:isActivatable()
-        return self:isNavigable()
+        if not self:isNavigable() then
+            return false
+        end
+        if self._disabledFn ~= nil then
+            local ok, dis = pcall(self._disabledFn)
+            if not ok then
+                Log.error("BaseMenuItems Choice disabledFn failed: " .. tostring(dis))
+            elseif dis then
+                return false
+            end
+        end
+        return true
     end
     function item:announce(menu)
         local parts = {}
