@@ -687,6 +687,23 @@ static int             g_audioBankInUse[AUDIO_BANK_SIZE];
 static char            g_audioBankName[AUDIO_BANK_SIZE][AUDIO_BANK_NAME_MAX];
 static char            g_soundsDir[MAX_PATH];
 
+/* Per-slot shadow of every runtime parameter Lua has pushed onto a bank
+   sound since load. The ma_sound objects die with the engine on a
+   device-loss rebuild (see audio_recover below); these shadows are what
+   lets the rebuild recreate each slot at the same index with the same
+   state, so the integer handles Lua stashed in civvaccess_shared stay
+   valid and beacons keep their loop marker (their shield against
+   cancel_all) and pan (their entire directional meaning). WasPlaying is
+   captured at teardown and consumed at restore so looping voices that
+   were audible resume; it lives in a static rather than a rebuild local
+   so a failed rebuild retried later still knows. */
+static int             g_audioBankBeacon[AUDIO_BANK_SIZE];
+static int             g_audioBankLoop[AUDIO_BANK_SIZE];
+static float           g_audioBankPan[AUDIO_BANK_SIZE];
+static float           g_audioBankPitch[AUDIO_BANK_SIZE];
+static float           g_audioBankVolume[AUDIO_BANK_SIZE];
+static int             g_audioBankWasPlaying[AUDIO_BANK_SIZE];
+
 /* Two-group mixer split.
    g_mainGroup holds non-beacon sounds (PlotAudio's per-hex cues, menu cues,
    ScannerBeep). g_beaconGroup holds the beacon voices. Each group has its
@@ -797,6 +814,44 @@ static void install_focus_hook(void) {
               (void*)g_focusHook, g_isFocused);
 }
 
+/* === Device-loss recovery ===
+   miniaudio's WASAPI backend auto-reroutes when the default output
+   device changes, but when the stream dies before the reroute lands
+   (device suspended or invalidated -- audio service restart, device
+   removed mid-switch), the audio thread exits and the device sits in
+   the stopped state forever while ma_sound_start keeps "succeeding"
+   against it: every mod cue and beacon goes silent with no error
+   anywhere. The notification callback flags that state -- it runs on
+   the audio thread, where miniaudio forbids restarting the device --
+   and audio_recover, called at the top of every Lua audio entry point
+   on the game main thread, repairs it: a plain ma_device_start when
+   the device object is still usable, otherwise a full engine rebuild
+   that recreates every bank slot in place from the shadows above. */
+static volatile int    g_audioDeviceLost = 0;
+/* GetTickCount cooldown between failed rebuild attempts, so a device
+   that is mid-switch (or genuinely absent) isn't hammered with engine
+   reinits on every cursor move. 0 means no cooldown armed. */
+static DWORD           g_audioRecoverNotBefore = 0;
+
+static void audio_notification_proc(const ma_device_notification *pNotification) {
+    switch (pNotification->type) {
+        case ma_device_notification_type_stopped:
+            /* We never stop the device ourselves (focus mute is a volume
+               gate, not a stop), so any stop means the device is lost. */
+            g_audioDeviceLost = 1;
+            proxy_log("audio_notification: device stopped, recovery armed\n");
+            break;
+        case ma_device_notification_type_rerouted:
+            proxy_log("audio_notification: device rerouted\n");
+            break;
+        case ma_device_notification_type_started:
+            proxy_log("audio_notification: device started\n");
+            break;
+        default:
+            break;
+    }
+}
+
 static int ensure_audio(void) {
     ma_engine_config engineConfig;
     ma_result r;
@@ -816,6 +871,10 @@ static int ensure_audio(void) {
        ma_sound_set_pan reliable across audio device configurations. */
     engineConfig = ma_engine_config_init();
     engineConfig.channels = 2;
+    /* Forwarded to the engine's device so device stoppage is observable;
+       without it a lost device is a silent failure (see the device-loss
+       recovery block above). */
+    engineConfig.notificationCallback = audio_notification_proc;
     r = ma_engine_init(&engineConfig, &g_audioEngine);
     if (r != MA_SUCCESS) {
         proxy_log("ensure_audio: ma_engine_init FAILED r=%d\n", (int)r);
@@ -864,6 +923,148 @@ static int ensure_audio(void) {
     return 1;
 }
 
+/* Decode <name>.wav into a specific bank slot, parenting the ma_sound
+   under pGroup. Shared by fresh allocation (audio_alloc_slot) and the
+   device-loss rebuild, which must land each sound back at its original
+   index. Returns 0 on success, -1 on failure (path overflow, decode
+   failure).
+
+   MA_SOUND_FLAG_NO_SPATIALIZATION is required for ma_sound_set_pan
+   to take effect: miniaudio's 3D spatializer is on by default, and
+   since both source and listener default to the origin, the
+   spatializer washes ma_sound_set_pan's value to zero (the sound
+   and listener are co-located). PlotAudio sounds run with pan=0
+   (no API caller writes to them), so the only behavioural change
+   there is that the same default routing now flows through the
+   panner stage instead of the spatializer -- both centered, both
+   2D. Beacons need this flag for the pan API to work at all. */
+static int audio_init_sound_in_slot(int slot, const char *name, ma_sound_group *pGroup) {
+    int n;
+    char path[MAX_PATH];
+    ma_result r;
+
+    n = _snprintf(path, MAX_PATH - 1, "%s\\%s.wav", g_soundsDir, name);
+    if (n < 0 || n >= MAX_PATH) {
+        proxy_log("audio_init_sound_in_slot: path overflow name=%s\n", name);
+        return -1;
+    }
+    path[MAX_PATH - 1] = '\0';
+
+    r = ma_sound_init_from_file(&g_audioEngine, path,
+                                MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION,
+                                pGroup, NULL,
+                                &g_audioBank[slot]);
+    if (r != MA_SUCCESS) {
+        proxy_log("audio_init_sound_in_slot: ma_sound_init_from_file FAILED name=%s path=%s r=%d\n",
+                  name, path, (int)r);
+        return -1;
+    }
+    return 0;
+}
+
+/* Tear down the dead engine and rebuild it, recreating every in-use bank
+   slot at the same index from its shadows. Only called from audio_recover
+   (game main thread) after a device loss that a plain restart couldn't
+   fix. On engine-reinit failure the bank stays flagged in-use with dead
+   sound objects; that is safe because nothing touches g_audioBank while
+   g_audioInit is 0, and the next recover attempt re-enters here. */
+static void audio_rebuild(void) {
+    int i, restored = 0, lost = 0;
+
+    if (g_audioInit) {
+        /* Remember which looping voices were audible so they resume after
+           the rebuild (transient cues are over in under a second and are
+           not worth replaying). ma_sound playback state is engine-side,
+           so it reads fine even with the device dead. */
+        for (i = 0; i < AUDIO_BANK_SIZE; i++) {
+            if (g_audioBankInUse[i]) {
+                if (ma_sound_is_looping(&g_audioBank[i]) && ma_sound_is_playing(&g_audioBank[i])) {
+                    g_audioBankWasPlaying[i] = 1;
+                }
+                ma_sound_uninit(&g_audioBank[i]);
+            }
+        }
+        ma_sound_group_uninit(&g_beaconGroup);
+        ma_sound_group_uninit(&g_mainGroup);
+        ma_engine_uninit(&g_audioEngine);
+        g_audioInit = 0;
+    }
+
+    /* ensure_audio re-seeds the group volumes from g_userMainVolume /
+       g_userBeaconVolume and re-applies the focus gate, so only per-sound
+       state needs restoring below. The teardown above fires a stopped
+       notification of its own; harmless, since g_audioDeviceLost is
+       cleared by our caller only after this succeeds. */
+    if (!ensure_audio()) {
+        proxy_log("audio_rebuild: engine reinit failed, will retry\n");
+        return;
+    }
+
+    for (i = 0; i < AUDIO_BANK_SIZE; i++) {
+        if (!g_audioBankInUse[i]) continue;
+        if (audio_init_sound_in_slot(i, g_audioBankName[i],
+                g_audioBankBeacon[i] ? &g_beaconGroup : &g_mainGroup) < 0) {
+            /* Unrecoverable slot: free it so la_play logs invalid-slot
+               instead of touching an uninitialized sound. */
+            g_audioBankInUse[i] = 0;
+            lost++;
+            continue;
+        }
+        ma_sound_set_volume(&g_audioBank[i], g_audioBankVolume[i]);
+        ma_sound_set_pan(&g_audioBank[i], g_audioBankPan[i]);
+        ma_sound_set_pitch(&g_audioBank[i], g_audioBankPitch[i]);
+        ma_sound_set_looping(&g_audioBank[i], g_audioBankLoop[i] ? MA_TRUE : MA_FALSE);
+        if (g_audioBankWasPlaying[i]) {
+            ma_sound_start(&g_audioBank[i]);
+            g_audioBankWasPlaying[i] = 0;
+        }
+        restored++;
+    }
+    proxy_log("audio_rebuild: restored=%d lost=%d\n", restored, lost);
+}
+
+/* The repair entry point, called at the top of every Lua audio function
+   so recovery happens on the next thing the player does that makes
+   sound. Single-branch no-op in normal operation. Escalates: device
+   already running again (WASAPI rerouted it behind our back) -> just
+   clear the flag; device object still usable -> restart it in place,
+   keeping all sounds and handles; otherwise full rebuild. Runs on the
+   game main thread only. */
+static void audio_recover(void) {
+    ma_device *pDevice;
+    DWORD now;
+
+    if (!g_audioDeviceLost) return;
+    now = GetTickCount();
+    if (g_audioRecoverNotBefore != 0 && (LONG)(now - g_audioRecoverNotBefore) < 0) return;
+
+    if (g_audioInit) {
+        pDevice = ma_engine_get_device(&g_audioEngine);
+        if (ma_device_get_state(pDevice) == ma_device_state_started) {
+            g_audioDeviceLost = 0;
+            g_audioRecoverNotBefore = 0;
+            proxy_log("audio_recover: device running again on its own\n");
+            return;
+        }
+        if (ma_device_start(pDevice) == MA_SUCCESS) {
+            g_audioDeviceLost = 0;
+            g_audioRecoverNotBefore = 0;
+            proxy_log("audio_recover: device restarted\n");
+            return;
+        }
+        proxy_log("audio_recover: restart failed, rebuilding engine\n");
+    }
+
+    audio_rebuild();
+    if (g_audioInit) {
+        g_audioDeviceLost = 0;
+        g_audioRecoverNotBefore = 0;
+    } else {
+        g_audioRecoverNotBefore = now + 3000;
+        if (g_audioRecoverNotBefore == 0) g_audioRecoverNotBefore = 1;
+    }
+}
+
 /* Allocate a fresh bank slot and decode <name>.wav into it, parenting
    the ma_sound under pGroup. Returns the slot index on success or -1 on
    failure (bank full, path overflow, decode failure). Caller is
@@ -873,9 +1074,7 @@ static int ensure_audio(void) {
    pGroup picks the mixer fader the sound feeds into: g_mainGroup for the
    per-hex / menu / scanner cues, g_beaconGroup for the beacon voices. */
 static int audio_alloc_slot(const char *name, ma_sound_group *pGroup) {
-    int i, slot = -1, n;
-    char path[MAX_PATH];
-    ma_result r;
+    int i, slot = -1;
 
     for (i = 0; i < AUDIO_BANK_SIZE; i++) {
         if (!g_audioBankInUse[i]) { slot = i; break; }
@@ -885,36 +1084,20 @@ static int audio_alloc_slot(const char *name, ma_sound_group *pGroup) {
         return -1;
     }
 
-    n = _snprintf(path, MAX_PATH - 1, "%s\\%s.wav", g_soundsDir, name);
-    if (n < 0 || n >= MAX_PATH) {
-        proxy_log("audio_alloc_slot: path overflow name=%s\n", name);
-        return -1;
-    }
-    path[MAX_PATH - 1] = '\0';
-
-    /* MA_SOUND_FLAG_NO_SPATIALIZATION is required for ma_sound_set_pan
-       to take effect: miniaudio's 3D spatializer is on by default, and
-       since both source and listener default to the origin, the
-       spatializer washes ma_sound_set_pan's value to zero (the sound
-       and listener are co-located). PlotAudio sounds run with pan=0
-       (no API caller writes to them), so the only behavioural change
-       there is that the same default routing now flows through the
-       panner stage instead of the spatializer -- both centered, both
-       2D. Beacons need this flag for the pan API to work at all. */
-    r = ma_sound_init_from_file(&g_audioEngine, path,
-                                MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION,
-                                pGroup, NULL,
-                                &g_audioBank[slot]);
-    if (r != MA_SUCCESS) {
-        proxy_log("audio_alloc_slot: ma_sound_init_from_file FAILED name=%s path=%s r=%d\n",
-                  name, path, (int)r);
+    if (audio_init_sound_in_slot(slot, name, pGroup) < 0) {
         return -1;
     }
     g_audioBankInUse[slot] = 1;
     strncpy(g_audioBankName[slot], name, AUDIO_BANK_NAME_MAX - 1);
     g_audioBankName[slot][AUDIO_BANK_NAME_MAX - 1] = '\0';
-    proxy_log("audio_alloc_slot: name=%s slot=%d group=%s path=%s\n",
-              name, slot, (pGroup == &g_beaconGroup) ? "beacon" : "main", path);
+    g_audioBankBeacon[slot] = (pGroup == &g_beaconGroup) ? 1 : 0;
+    g_audioBankLoop[slot] = 0;
+    g_audioBankPan[slot] = 0.0f;
+    g_audioBankPitch[slot] = 1.0f;
+    g_audioBankVolume[slot] = 1.0f;
+    g_audioBankWasPlaying[slot] = 0;
+    proxy_log("audio_alloc_slot: name=%s slot=%d group=%s\n",
+              name, slot, g_audioBankBeacon[slot] ? "beacon" : "main");
     return slot;
 }
 
@@ -922,6 +1105,11 @@ static int la_load(lua_State *L) {
     const char *name = ORIG_luaL_checklstring(L, 1, NULL);
     int i, slot;
 
+    /* Recover before ensure_audio: after a failed rebuild g_audioInit is
+       0 while dead slots remain flagged in-use, and letting ensure_audio
+       init a fresh engine here would let dedup hand out handles to
+       uninitialized sounds. Recovery restores those slots first. */
+    audio_recover();
     if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
 
     /* Dedup: repeated loads of the same name return the existing slot so
@@ -956,6 +1144,7 @@ static int la_load(lua_State *L) {
 static int la_load_voice(lua_State *L) {
     const char *name = ORIG_luaL_checklstring(L, 1, NULL);
     int slot;
+    audio_recover();
     if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
     slot = audio_alloc_slot(name, &g_mainGroup);
     if (slot < 0) {
@@ -974,6 +1163,7 @@ static int la_load_voice(lua_State *L) {
 static int la_load_voice_in_beacon_group(lua_State *L) {
     const char *name = ORIG_luaL_checklstring(L, 1, NULL);
     int slot;
+    audio_recover();
     if (!ensure_audio()) { ORIG_lua_pushnil(L); return 1; }
     slot = audio_alloc_slot(name, &g_beaconGroup);
     if (slot < 0) {
@@ -999,6 +1189,7 @@ static int la_play(lua_State *L) {
     lua_Integer slot = ORIG_lua_tointeger(L, 1);
     ma_result r;
 
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_play: invalid slot=%d\n", (int)slot);
@@ -1019,6 +1210,7 @@ static int la_play_delayed(lua_State *L) {
     ma_uint64 now;
     ma_result r;
 
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_play_delayed: invalid slot=%d\n", (int)slot);
@@ -1046,6 +1238,7 @@ static int la_play_delayed(lua_State *L) {
 static int la_cancel_all(lua_State *L) {
     int i;
     (void)L;
+    audio_recover();
     if (!g_audioInit) return 0;
     for (i = 0; i < AUDIO_BANK_SIZE; i++) {
         if (g_audioBankInUse[i] && !ma_sound_is_looping(&g_audioBank[i])) {
@@ -1057,6 +1250,7 @@ static int la_cancel_all(lua_State *L) {
 
 static int la_stop(lua_State *L) {
     lua_Integer slot = ORIG_lua_tointeger(L, 1);
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_stop: invalid slot=%d\n", (int)slot);
@@ -1069,11 +1263,13 @@ static int la_stop(lua_State *L) {
 static int la_set_loop(lua_State *L) {
     lua_Integer slot = ORIG_lua_tointeger(L, 1);
     int loop = ORIG_lua_toboolean(L, 2);
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_set_loop: invalid slot=%d\n", (int)slot);
         return 0;
     }
+    g_audioBankLoop[slot] = loop ? 1 : 0;
     ma_sound_set_looping(&g_audioBank[slot], loop ? MA_TRUE : MA_FALSE);
     return 0;
 }
@@ -1086,6 +1282,7 @@ static int la_set_loop(lua_State *L) {
 static int la_set_pan(lua_State *L) {
     lua_Integer slot = ORIG_lua_tointeger(L, 1);
     double v = ORIG_lua_tonumber(L, 2);
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_set_pan: invalid slot=%d\n", (int)slot);
@@ -1093,6 +1290,7 @@ static int la_set_pan(lua_State *L) {
     }
     if (v < -1.0) v = -1.0;
     if (v > 1.0) v = 1.0;
+    g_audioBankPan[slot] = (float)v;
     ma_sound_set_pan(&g_audioBank[slot], (float)v);
     return 0;
 }
@@ -1105,6 +1303,7 @@ static int la_set_pan(lua_State *L) {
 static int la_set_pitch(lua_State *L) {
     lua_Integer slot = ORIG_lua_tointeger(L, 1);
     double v = ORIG_lua_tonumber(L, 2);
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_set_pitch: invalid slot=%d\n", (int)slot);
@@ -1112,6 +1311,7 @@ static int la_set_pitch(lua_State *L) {
     }
     if (v < 0.0625) v = 0.0625;
     if (v > 16.0) v = 16.0;
+    g_audioBankPitch[slot] = (float)v;
     ma_sound_set_pitch(&g_audioBank[slot], (float)v);
     return 0;
 }
@@ -1150,6 +1350,7 @@ static int la_set_beacon_master_volume(lua_State *L) {
 static int la_set_volume(lua_State *L) {
     lua_Integer slot = ORIG_lua_tointeger(L, 1);
     double v = ORIG_lua_tonumber(L, 2);
+    audio_recover();
     if (!g_audioInit) return 0;
     if (slot < 0 || slot >= AUDIO_BANK_SIZE || !g_audioBankInUse[slot]) {
         proxy_log("la_set_volume: invalid slot=%d\n", (int)slot);
@@ -1162,6 +1363,7 @@ static int la_set_volume(lua_State *L) {
        than the rest of the palette without rebalancing every other sound;
        4.0 is a generous +12 dB ceiling, kept to bound the API. */
     if (v > 4.0) v = 4.0;
+    g_audioBankVolume[slot] = (float)v;
     ma_sound_set_volume(&g_audioBank[slot], (float)v);
     return 0;
 }
