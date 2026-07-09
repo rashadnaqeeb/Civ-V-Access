@@ -1276,6 +1276,89 @@ function Civilopedia.buildPickerItems(entryFactory)
     return items
 end
 
+-- Filtered variant of buildPickerItems for the Ctrl+F body search: the
+-- same category Groups in the same order, pruned to the articles present
+-- in matchSet (keyed by article table identity -- the sortedList article
+-- tables, which are the same refs PediaSearch resolves out of
+-- searchableTextKeyList). Categories and sections with no matching
+-- articles are omitted; Intro entries are too (they aren't articles the
+-- corpus can match). Section structure is preserved: a category whose
+-- matches span eras / branches keeps those subgroup layers, and the
+-- single-unlabeled-section flattening mirrors categoryChildren. Returns
+-- (items, count) where count is the number of article Entries placed --
+-- the number the caller announces.
+function Civilopedia.buildFilteredPickerItems(entryFactory, matchSet)
+    if type(entryFactory) ~= "function" then
+        error("Civilopedia.buildFilteredPickerItems requires an Entry factory", 2)
+    end
+    local items = {}
+    local total = 0
+    -- Home Page (category 1) is skipped: its "articles" are the category
+    -- labels themselves, never corpus matches. 2..CORPORATIONS covers
+    -- every real category; getSections returns empty for categories the
+    -- running ruleset lacks (Beliefs without religion, Corporations
+    -- outside Vox Populi), which prunes them here like buildPickerItems'
+    -- explicit gates do.
+    for cat = 2, Civilopedia.CATEGORY.CORPORATIONS do
+        local filteredSections = {}
+        local catCount = 0
+        for _, sec in ipairs(getSections(cat)) do
+            local kept = {}
+            for _, article in ipairs(sec.articles) do
+                if matchSet[article] then
+                    kept[#kept + 1] = article
+                end
+            end
+            if #kept > 0 then
+                filteredSections[#filteredSections + 1] = { label = sec.label, articles = kept }
+                catCount = catCount + #kept
+            end
+        end
+        if catCount > 0 then
+            total = total + catCount
+            local capturedCat = cat
+            local group = BaseMenuItems.Group({
+                textKey = categoryLabelKey(cat),
+                cached = false,
+                itemsFn = function()
+                    local children = {}
+                    local soloUnlabeled = (
+                        #filteredSections == 1
+                        and (filteredSections[1].label == nil or filteredSections[1].label == "")
+                    )
+                    if soloUnlabeled then
+                        for _, article in ipairs(filteredSections[1].articles) do
+                            children[#children + 1] = entryFromArticle(entryFactory, capturedCat, article)
+                        end
+                        return children
+                    end
+                    for _, sec in ipairs(filteredSections) do
+                        local articles = sec.articles
+                        children[#children + 1] = BaseMenuItems.Group({
+                            labelText = sec.label,
+                            cached = false,
+                            itemsFn = function()
+                                local entries = {}
+                                for i, article in ipairs(articles) do
+                                    entries[i] = entryFromArticle(entryFactory, capturedCat, article)
+                                end
+                                return entries
+                            end,
+                        })
+                    end
+                    return children
+                end,
+            })
+            -- Same category tag buildPickerItems' groups carry, so
+            -- openCategory / stageCategoryForShow keep resolving while a
+            -- filter is up.
+            group.category = cat
+            items[#items + 1] = group
+        end
+    end
+    return items, total
+end
+
 -- buildReader(handler, category, entryID) - activates the article via the
 -- pedia's own SelectArticle, then harvests leaves from the rendered
 -- controls. Flat list, autoDrillToLevel = 1.

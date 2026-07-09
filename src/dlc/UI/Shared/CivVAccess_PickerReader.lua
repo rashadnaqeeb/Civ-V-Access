@@ -419,6 +419,17 @@ function PickerReader.create()
                     handler.switchToTab(state.pickerTabIdx)
                     return true
                 end
+                -- Optional pickerEscape hook: consulted for Esc on the picker
+                -- tab before the screen-close fallthrough. Return true to
+                -- consume (screen stays open). Civilopedia uses this to clear
+                -- an active search filter instead of closing the pedia.
+                if type(config.pickerEscape) == "function" then
+                    local ok, consumed =
+                        Log.tryCall("PickerReader '" .. handler.name .. "' pickerEscape", config.pickerEscape, handler)
+                    if ok and consumed then
+                        return true
+                    end
+                end
                 return false
             end,
         }

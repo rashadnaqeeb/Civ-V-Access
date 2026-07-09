@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Search Civilopedia article text with Ctrl+F: type a query, press Enter, and browse the matches in their usual categories; Escape restores the full Civilopedia.
 - Unavailable Vox Populi spy missions now say "disabled" right after the mission name, before the reason.
 
 Bug fixes:

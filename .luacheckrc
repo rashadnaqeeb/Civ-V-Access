@@ -155,7 +155,7 @@ globals = {
     "EraDescription",
     "MPGameSetupShared", "SavedGameShared",
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
-    "CivDetails", "Civilopedia", "CivilopediaCategory",
+    "CivDetails", "Civilopedia", "CivilopediaCategory", "PediaSearch",
     "AudioCueMode", "VolumeControl", "Settings", "Verbosity",
     "CameraTracker", "NavigableGraph",
 

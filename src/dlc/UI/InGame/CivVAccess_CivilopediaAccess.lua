@@ -42,9 +42,12 @@ include("CivVAccess_BeaconVolume")
 include("CivVAccess_Settings")
 include("CivVAccess_PickerReader")
 include("CivVAccess_CivilopediaCore")
+include("CivVAccess_PediaSearchCore")
 
 local priorShowHide = ShowHideHandler
 local priorInput = InputHandler
+
+local MOD_CTRL = 2
 
 Log.info("CivilopediaAccess: wiring PickerReader over base pedia")
 
@@ -72,6 +75,99 @@ local pendingTarget = nil
 -- shown on entry.
 local quickCloseArmed = false
 
+-- Ctrl+F body-search filter over the picker tab. While active, the
+-- picker holds the filtered category tree from
+-- Civilopedia.buildFilteredPickerItems and savedLevel / savedIndices
+-- remember the pre-search cursor in the full tree. Esc on the picker tab
+-- (via the pickerEscape hook) clears the filter and restores both.
+local pickerFilter = { active = false, savedLevel = nil, savedIndices = nil }
+
+local function copyIndices(indices)
+    local copy = {}
+    for i, v in ipairs(indices) do
+        copy[i] = v
+    end
+    return copy
+end
+
+local function clearSearchFilter(h, silent)
+    if not pickerFilter.active then
+        return
+    end
+    pickerFilter.active = false
+    h.setItems(pickerItems, 1)
+    if Controls.SearchEditBox ~= nil then
+        Controls.SearchEditBox:SetText("")
+    end
+    -- Reseat the pre-search cursor. setItems reset the cursor to the
+    -- top; the saved path came from this same full tree, so walking it
+    -- back down resolves. Intermediate Groups are materialized on the
+    -- way (cached=false children rebuild lazily) so subsequent arrow
+    -- nav sees the same child set, mirroring the flat-search teleport.
+    if pickerFilter.savedIndices ~= nil and h._tabIndex == 1 then
+        local cursor = pickerItems
+        local pathOk = true
+        for depth = 1, #pickerFilter.savedIndices - 1 do
+            local parent = cursor[pickerFilter.savedIndices[depth]]
+            if parent == nil or type(parent.children) ~= "function" then
+                pathOk = false
+                break
+            end
+            cursor = parent:children()
+        end
+        if pathOk then
+            h._level = pickerFilter.savedLevel
+            h._indices = copyIndices(pickerFilter.savedIndices)
+        end
+    end
+    pickerFilter.savedLevel = nil
+    pickerFilter.savedIndices = nil
+    if not silent then
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SEARCH_CLEARED"))
+    end
+end
+
+-- Commit path for a typed query: match against the body corpus, swap
+-- the picker to the filtered category tree, and speak only the result
+-- count. The transient tab / item announcements switchToTab and
+-- setItems produce are cut by the final speakInterrupt (the
+-- openCategory pattern). A search while already filtered re-filters
+-- from the full tree but keeps the original pre-search cursor for the
+-- eventual restore.
+local function applySearchQuery(h, query)
+    local matchSet, matchCount = PediaSearch.match(query)
+    if matchCount == 0 then
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH", query))
+        return
+    end
+    local filteredItems, shownCount = Civilopedia.buildFilteredPickerItems(session.Entry, matchSet)
+    if shownCount == 0 then
+        Log.warn(
+            "CivilopediaAccess: query '"
+                .. tostring(query)
+                .. "' matched "
+                .. tostring(matchCount)
+                .. " articles but none placed in the picker tree"
+        )
+        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH", query))
+        return
+    end
+    if not pickerFilter.active then
+        pickerFilter.active = true
+        if h._tabIndex == 1 then
+            pickerFilter.savedLevel = h._level
+            pickerFilter.savedIndices = copyIndices(h._indices)
+        end
+    end
+    h.setItems(filteredItems, 1)
+    if h._tabIndex ~= 1 then
+        h.switchToTab(1)
+    end
+    h._level = 1
+    h._indices = { 1 }
+    SpeechPipeline.speakInterrupt(Text.formatPlural("TXT_KEY_CIVVACCESS_PEDIA_SEARCH_RESULTS", shownCount, shownCount))
+end
+
 local handler = session.install(ContextPtr, {
     name = "CivilopediaScreen",
     displayName = Text.key("TXT_KEY_CIVILOPEDIA"),
@@ -90,6 +186,9 @@ local handler = session.install(ContextPtr, {
         -- then pedia-show), and onShow is the natural lower bound on
         -- "pedia is up now."
         civvaccess_shared.pediaTransitArmed = nil
+        -- A filter left up when the pedia was closed would silently
+        -- reopen onto a pruned tree; every show starts unfiltered.
+        clearSearchFilter(h, true)
         -- Default to disarmed. Article-target opens normally arrive
         -- through the SearchForPediaEntry listener's openArticle branch
         -- (because the base pedia's listener queues QueuePopup
@@ -115,6 +214,17 @@ local handler = session.install(ContextPtr, {
     readerEscapeQuickClose = function()
         return quickCloseArmed
     end,
+    -- Esc on the picker tab while a Ctrl+F filter is up clears the
+    -- filter (restoring the full tree and pre-search cursor) instead of
+    -- closing the pedia; unfiltered Esc falls through and closes as
+    -- before.
+    pickerEscape = function(h)
+        if pickerFilter.active then
+            clearSearchFilter(h, false)
+            return true
+        end
+        return false
+    end,
     -- Alt+Left/Right is reader-tab-scoped (see PickerReader install) but
     -- the help list is handler-level, so the entry surfaces in help from
     -- either tab. Description is worded as "article history" so the user
@@ -124,8 +234,33 @@ local handler = session.install(ContextPtr, {
             keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_LEFT_RIGHT",
             description = "TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY",
         },
+        {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_F",
+            description = "TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_SEARCH",
+        },
     },
 })
+
+-- Ctrl+F: open the body search. Clears the game's search box, pushes the
+-- modal query capture above the menu, and speaks the prompt. The commit
+-- callback owns everything after Enter.
+handler.bindings[#handler.bindings + 1] = {
+    key = Keys.F,
+    mods = MOD_CTRL,
+    description = "Search article text",
+    fn = function()
+        if Controls.SearchEditBox ~= nil then
+            Controls.SearchEditBox:SetText("")
+        end
+        HandlerStack.push(PediaSearch.createInput({
+            echoControl = Controls.SearchEditBox,
+            onCommit = function(query)
+                applySearchQuery(handler, query)
+            end,
+        }))
+        SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_SEARCH_PROMPT"))
+    end,
+}
 
 -- Wrap switchToTab so any tab change disarms quick-close. Covers Tab /
 -- Shift+Tab cycling, Entry activation from the picker, follow-link from
@@ -191,6 +326,9 @@ Log.installEvent(Events, "GoToPediaHomePage", function(iHomePage)
     if ContextPtr:IsHidden() then
         pendingTarget = { kind = "category", cat = iHomePage }
     else
+        -- The target category may be pruned from a filtered tree; drop
+        -- the filter so the teleport always lands.
+        clearSearchFilter(handler, true)
         Civilopedia.openCategory(handler, iHomePage)
     end
 end, "CivilopediaAccess")
