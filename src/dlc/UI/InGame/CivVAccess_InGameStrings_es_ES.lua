@@ -989,6 +989,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Iconos de au
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Solo voz"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Voz y señales de audio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Anuncios detallados"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEEP_FOCUS"] = "Mantener el juego en ejecución en segundo plano"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Resaltar cursor y escáner en pantalla"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Direcciones cardinales completas"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Disposición del teclado"
@@ -1043,6 +1044,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Civiliza
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Ciudades-estado"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Bárbaros"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Aliados"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "Restablecer todos los ajustes a los valores predeterminados"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] =
+    "Restablecer todos los ajustes a los valores predeterminados?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "Ajustes restablecidos."
 
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
@@ -1918,6 +1923,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "Fin del histor
 -- Batch 8 (lines 1672-1854): HELP_DESC_PEDIA_HISTORY through TECHTREE_HELP_KEY_CLOSE.
 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY"] = "Artículo anterior o siguiente del historial"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_PROMPT"] = "búsqueda"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_RESULTS"] = {
+    one = "{1_N} resultado",
+    other = "{1_N} resultados",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH"] = "sin coincidencias para {1_Query}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_F"] = "Control más F"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_SEARCH"] = "Buscar texto de artículo"
 -- AdvisorInfoPopup (BUTTONPOPUP_ADVISOR_INFO). Concept drill-down reachable
 -- from the tutorial advisor question buttons and from any related concept
 -- link within the popup itself. The boundary announcements reuse

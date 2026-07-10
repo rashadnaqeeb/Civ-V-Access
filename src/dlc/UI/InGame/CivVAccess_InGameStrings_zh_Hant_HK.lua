@@ -559,6 +559,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "地形音效
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "僅語音"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "語音和音效提示"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "詳細語音說明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEEP_FOCUS"] = "在背景中持續執行遊戲"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUES_ONLY"] = "僅音效提示"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MASTER_VOLUME"] = "地形音效音量"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VOLUME_VALUE"] = "地形音效音量, {1_Num} 百分比"
@@ -607,6 +608,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "中立�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "城邦"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "野蠻人"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "隊友"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "重設所有設定為預設值"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] = "重設所有設定為預設值?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "設定已重設."
 
 -- ===== Widget-generic strings =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "已選取"
@@ -1187,6 +1191,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "已到達歷�
 
 -- Batch 08 (lines 1672-1854): 100 keys
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY"] = "歷史記錄中的上一篇或下一篇文章"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_PROMPT"] = "搜尋"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_RESULTS"] = {
+    other = "{1_N} 個結果",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH"] = "找不到 {1_Query}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_F"] = "Control 加 F"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_SEARCH"] = "搜尋文章內容"
 -- AdvisorInfoPopup (BUTTONPOPUP_ADVISOR_INFO). Concept drill-down reachable
 -- from the tutorial advisor question buttons and from any related concept
 -- link within the popup itself. The boundary announcements reuse

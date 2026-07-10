@@ -633,6 +633,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "地形音声
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "音声のみ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "音声と音声キュー"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "詳細な読み上げ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEEP_FOCUS"] = "バックグラウンドでもゲームを実行"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] =
     "画面上のカーソルとスキャナーをハイライト"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "長い方位表示"
@@ -685,6 +686,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "中立�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "都市国家"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "蛮族"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "チームメイト"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "すべての設定を初期値にリセット"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] =
+    "すべての設定を初期値にリセットしますか?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "設定をリセットした."
 
 -- Generic widget vocabulary
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CHOICE_SELECTED"] = "選択済み"
@@ -1229,6 +1234,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_INTRO"] = "イントロ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"] = "履歴の先頭."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "履歴の末尾."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY"] = "履歴内の前または次の記事"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_PROMPT"] = "検索"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_RESULTS"] = {
+    other = "{1_N} 件",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH"] = "{1_Query} に一致なし"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_F"] = "Control + F"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_SEARCH"] = "記事テキストを検索"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADVISOR_INFO_HISTORY"] =
     "履歴内の前または次のコンセプト"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SAVE_SAVES_TAB"] = "セーブ"

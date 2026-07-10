@@ -726,6 +726,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_CUE_MODE"] = "Gelände-Ear
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_ONLY"] = "Nur Sprache"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_AUDIO_SPEECH_PLUS_CUES"] = "Sprache und Audiohilfen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_VERBOSE_UI"] = "Ausführliche Ansagen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEEP_FOCUS"] = "Spiel im Hintergrund weiterlaufen lassen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MAP_HIGHLIGHT"] = "Cursor und Scanner auf dem Bildschirm hervorheben"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_DIRECTION_LONG_FORM"] = "Lange Himmelsrichtungen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_KEYBOARD_LAYOUT"] = "Tastaturbelegung"
@@ -775,6 +776,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Neutrale
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Stadtstaaten"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbaren"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Verbündete"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "Alle Einstellungen auf Standardwerte zurücksetzen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] = "Alle Einstellungen auf Standardwerte zurücksetzen?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "Einstellungen zurückgesetzt."
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds
@@ -1460,6 +1464,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_PREV_HISTORY"] = "Beginn der His
 -- Civilopedia (end of history/advisor boundaries)
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_NO_NEXT_HISTORY"] = "Ende des Verlaufs."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_HISTORY"] = "Vorheriger oder nächster Artikel im Verlauf"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_PROMPT"] = "Suche"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_RESULTS"] = {
+    one = "{1_N} Ergebnis",
+    other = "{1_N} Ergebnisse",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH"] = "kein Treffer für {1_Query}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_F"] = "Strg plus F"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PEDIA_SEARCH"] = "Artikeltext durchsuchen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADVISOR_INFO_HISTORY"] = "Vorheriges oder nächstes Konzept im Verlauf"
 
 -- SaveMenu
