@@ -1029,6 +1029,66 @@ function EngineData.buildingInvested(city, buildingID)
 end
 
 -- ============================================================================
+-- Civilopedia effects text. Vox Populi blanks the static help columns
+-- (TXT_KEY_WONDER_BIG_BEN_HELP is literally the empty string) and composes the
+-- article's effects block at render time from the live ruleset, so the Ctrl+F
+-- body-search corpus cannot source it from the database the way the vanilla
+-- body does. These call the exact builders VP's own CivilopediaScreen renders
+-- with, at the same argument positions, so the corpus stores what the reader
+-- speaks -- most visibly the "+1 Delegate in the World Congress" lines, which
+-- exist in no text key at all.
+--
+-- The builders are globals from VP's InfoTooltipInclude / TechHelpInclude.
+-- Both are included by VP's pedia, which is the only Context that calls these;
+-- EngineData also loads into Contexts that include neither, so a missing
+-- builder is an expected state and degrades to nil (that article's effects
+-- block is then absent from the corpus, not the article).
+-- ============================================================================
+
+-- Composed effects text for a building, as GetHelpTextForBuilding(eBuilding,
+-- bExcludeName, _, bNoMaintenance, pCity, bGeneralInfo). Name excluded (the
+-- corpus is body-only), maintenance included, no city context, general info on
+-- -- the pedia's own call.
+function EngineData.buildingEffectsText(buildingID)
+    if GetHelpTextForBuilding == nil then
+        Log.warn("EngineData.buildingEffectsText: GetHelpTextForBuilding absent in this Context")
+        return nil
+    end
+    return GetHelpTextForBuilding(buildingID, true, nil, false, nil, true)
+end
+
+-- Composed effects text for a unit, as GetHelpTextForUnit(eUnit,
+-- bIncludeRequirementsInfo, pCity, bExcludeName, bGeneralInfo). Covers great
+-- people, which the pedia renders through this same builder.
+function EngineData.unitEffectsText(unitID)
+    if GetHelpTextForUnit == nil then
+        Log.warn("EngineData.unitEffectsText: GetHelpTextForUnit absent in this Context")
+        return nil
+    end
+    return GetHelpTextForUnit(unitID, true, nil, true, true)
+end
+
+-- Composed effects text for a project, as GetHelpTextForProject(eProject,
+-- pCity, bGeneralInfo).
+function EngineData.projectEffectsText(projectID)
+    if GetHelpTextForProject == nil then
+        Log.warn("EngineData.projectEffectsText: GetHelpTextForProject absent in this Context")
+        return nil
+    end
+    return GetHelpTextForProject(projectID, nil, true)
+end
+
+-- Composed effects text for a technology, as GetHelpTextForTech(techId,
+-- isShort). The long form, matching the pedia's tech article.
+function EngineData.techEffectsText(techID)
+    if GetHelpTextForTech == nil then
+        Log.warn("EngineData.techEffectsText: GetHelpTextForTech absent in this Context")
+        return nil
+    end
+    return GetHelpTextForTech(techID, false)
+end
+
+-- ============================================================================
 -- Squads (Community Patch / Vox Populi only). The squad engine code ships in the
 -- Community-Patch-DLL fork, gated on the SQUADS custom option that our DB layer
 -- enables. State mutations (assign / remove / move / cancel / end-mode) dispatch

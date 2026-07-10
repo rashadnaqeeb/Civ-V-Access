@@ -931,6 +931,29 @@ function EngineData.buildingInvested(city, buildingID)
 end
 
 -- ============================================================================
+-- Civilopedia effects text. LekMod keeps the vanilla pedia, which renders the
+-- article's effects block from the static help columns, so the Ctrl+F corpus
+-- reads those columns directly and these return nil. See the vanilla body for
+-- the contract and the VP body for the engine that needs them.
+-- ============================================================================
+
+function EngineData.buildingEffectsText(_buildingID)
+    return nil
+end
+
+function EngineData.unitEffectsText(_unitID)
+    return nil
+end
+
+function EngineData.projectEffectsText(_projectID)
+    return nil
+end
+
+function EngineData.techEffectsText(_techID)
+    return nil
+end
+
+-- ============================================================================
 -- Squads: a Community-Patch-DLL / Vox Populi feature only, absent on LekMod.
 -- squadsAvailable() is false here, so the whole Lua squad layer
 -- (src/dlc/UI/InGame/CivVAccess_Squad*) never registers its hotkeys or menu.

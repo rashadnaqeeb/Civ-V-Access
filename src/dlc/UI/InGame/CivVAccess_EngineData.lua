@@ -806,6 +806,39 @@ function EngineData.buildingInvested(city, buildingID)
 end
 
 -- ============================================================================
+-- Civilopedia effects text. The pedia article's effects block -- the paragraph
+-- listing yields, empire-wide effects, prereqs -- is a plain text column here
+-- (Buildings.Help and its siblings), which the pedia renders verbatim and the
+-- Ctrl+F body-search corpus reads straight out of the database. Vox Populi
+-- blanks those columns and composes the block at render time from the live
+-- ruleset instead, so its corpus has to call the same builders the renderer
+-- calls or the entire effects paragraph is unsearchable (the Palace of
+-- Westminster's delegate line lives nowhere else).
+--
+-- These return nil on the engines whose column already carries the text: the
+-- corpus reads the column, and appending the same prose twice would only slow
+-- the build. The VP body returns the composed string. The builders it calls are
+-- globals defined by that engine's tooltip includes, absent from this engine's
+-- pedia Context entirely.
+-- ============================================================================
+
+function EngineData.buildingEffectsText(_buildingID)
+    return nil
+end
+
+function EngineData.unitEffectsText(_unitID)
+    return nil
+end
+
+function EngineData.projectEffectsText(_projectID)
+    return nil
+end
+
+function EngineData.techEffectsText(_techID)
+    return nil
+end
+
+-- ============================================================================
 -- Squads: a Community-Patch-DLL / Vox Populi feature only, absent on this engine.
 -- squadsAvailable() is false here, so the whole Lua squad layer
 -- (src/dlc/UI/InGame/CivVAccess_Squad*) never registers its hotkeys or menu.

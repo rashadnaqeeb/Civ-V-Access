@@ -18,11 +18,20 @@
 -- substring find over that text; titles are deliberately not part of the
 -- corpus -- the picker's type-ahead already covers them.
 --
+-- Columns alone are not the whole body on every engine. Where an article's
+-- effects block is composed at render time rather than stored (Vox Populi
+-- blanks Buildings.Help and friends), the column read finds an empty string
+-- and the block -- the mechanical effects players actually search for --
+-- would be invisible. EngineData.*EffectsText is the seam that returns that
+-- composed text, nil on engines whose column already carries it.
+--
 -- The corpus is built lazily on first search and kept for the session.
--- This does not violate the never-cache rule: localized article prose is
--- static game data (it cannot change within a session), not game state.
--- Load-from-game kills this Context's env, which drops the cache
--- naturally along with everything else.
+-- This does not violate the never-cache rule: article prose is static game
+-- data (it cannot change within a session), not game state. The composed
+-- effects text is ruleset-general for the same reason -- the seam asks for
+-- it with no city and no player context, exactly as the pedia's own
+-- renderer does. Load-from-game kills this Context's env, which drops the
+-- cache naturally along with everything else.
 
 PediaSearch = {}
 
@@ -40,16 +49,43 @@ local VK_OEM_APOSTROPHE = 0xDE
 -- renderer localizes into the article body. tagCol marks the civ/leader
 -- pattern where prose lives under sequential keys derived from
 -- CivilopediaTag rather than in row columns. bodyFn handles one-off
--- shapes (league project rewards). Tables absent from the running
--- ruleset (Corporations outside Vox Populi) are skipped by the
--- GameInfo[name] guard in buildCorpus.
+-- shapes (league project rewards). effectsFn names an EngineData seam call
+-- that composes the article's effects block for engines that build it at
+-- render time instead of storing it in a column (see below). Tables absent
+-- from the running ruleset (Corporations outside Vox Populi) are skipped by
+-- the GameInfo[name] guard in buildCorpus.
+--
+-- Every name in cols must be a column the table actually has. A GameInfo row
+-- indexed by an unknown column yields the column NAME, so a wrong entry does
+-- not error -- it seeds the corpus with that word and makes every row of the
+-- table a hit for it (Routes has no Help column: both routes matched "help").
 local SOURCES = {
     { table = "Concepts", keyCol = "Description", cols = { "Summary", "Extended", "DesignNotes" } },
-    { table = "Technologies", keyCol = "Description", cols = { "Help", "Quote", "Civilopedia" } },
-    { table = "Units", keyCol = "Description", cols = { "Help", "Strategy", "Civilopedia" } },
+    {
+        table = "Technologies",
+        keyCol = "Description",
+        cols = { "Help", "Quote", "Civilopedia" },
+        effectsFn = "techEffectsText",
+    },
+    {
+        table = "Units",
+        keyCol = "Description",
+        cols = { "Help", "Strategy", "Civilopedia" },
+        effectsFn = "unitEffectsText",
+    },
     { table = "UnitPromotions", keyCol = "Description", cols = { "Help" } },
-    { table = "Buildings", keyCol = "Description", cols = { "Help", "Strategy", "Civilopedia", "Quote" } },
-    { table = "Projects", keyCol = "Description", cols = { "Help", "Strategy", "Civilopedia" } },
+    {
+        table = "Buildings",
+        keyCol = "Description",
+        cols = { "Help", "Strategy", "Civilopedia", "Quote" },
+        effectsFn = "buildingEffectsText",
+    },
+    {
+        table = "Projects",
+        keyCol = "Description",
+        cols = { "Help", "Strategy", "Civilopedia" },
+        effectsFn = "projectEffectsText",
+    },
     { table = "Policies", keyCol = "Description", cols = { "Help", "Civilopedia" } },
     { table = "Specialists", keyCol = "Description", cols = { "Help", "Strategy", "Civilopedia" } },
     { table = "Civilizations", keyCol = "ShortDescription", tagCol = "CivilopediaTag" },
@@ -59,7 +95,7 @@ local SOURCES = {
     { table = "Features", keyCol = "Description", cols = { "Help", "Civilopedia" } },
     { table = "Resources", keyCol = "Description", cols = { "Help", "Civilopedia" } },
     { table = "Improvements", keyCol = "Description", cols = { "Help", "Civilopedia" } },
-    { table = "Routes", keyCol = "Description", cols = { "Help", "Civilopedia" } },
+    { table = "Routes", keyCol = "Description", cols = { "Civilopedia" } },
     { table = "Religions", keyCol = "Description", cols = { "Civilopedia" } },
     { table = "Beliefs", keyCol = "ShortDescription", cols = { "Description" } },
     { table = "Resolutions", keyCol = "Description", cols = { "Help" } },
@@ -118,6 +154,10 @@ local BODY_FNS = {
 
 local function buildCorpus()
     local entries = {}
+    -- How many entries the effects seam contributed to. Zero on vanilla and
+    -- LekMod by design; zero on VP means the seam silently returned nothing
+    -- and every composed effects block is missing from the corpus.
+    local withEffects = 0
     for _, src in ipairs(SOURCES) do
         if GameInfo[src.table] ~= nil then
             local ok, err = pcall(function()
@@ -139,6 +179,13 @@ local function buildCorpus()
                         if src.bodyFn ~= nil then
                             BODY_FNS[src.bodyFn](parts, row)
                         end
+                        if src.effectsFn ~= nil then
+                            local effects = EngineData[src.effectsFn](row.ID)
+                            if effects ~= nil and effects ~= "" then
+                                parts[#parts + 1] = effects
+                                withEffects = withEffects + 1
+                            end
+                        end
                         if #parts > 0 then
                             entries[#entries + 1] = {
                                 keyTag = keyTag,
@@ -153,7 +200,7 @@ local function buildCorpus()
             end
         end
     end
-    return entries
+    return entries, withEffects
 end
 
 -- Substring-match query against every corpus body and resolve hits
@@ -166,8 +213,24 @@ end
 -- set dedupes by article identity and count tracks distinct articles.
 function PediaSearch.match(query)
     if corpus == nil then
-        corpus = buildCorpus()
-        Log.info("PediaSearch: corpus built, " .. tostring(#corpus) .. " entries")
+        -- Timed and logged: the build runs inside the Enter keypress, and on
+        -- an engine that composes effects text it costs seconds rather than
+        -- milliseconds (a text-composition call per building, unit, tech and
+        -- project). The number is what tells a maintainer whether a re-pin
+        -- made that cost worse.
+        local startedAt = os.clock()
+        local withEffects
+        corpus, withEffects = buildCorpus()
+        local elapsedMs = math.floor((os.clock() - startedAt) * 1000)
+        Log.info(
+            "PediaSearch: corpus built, "
+                .. tostring(#corpus)
+                .. " entries ("
+                .. tostring(withEffects)
+                .. " with composed effects text) in "
+                .. tostring(elapsedMs)
+                .. " ms"
+        )
     end
     local matchSet = {}
     local count = 0

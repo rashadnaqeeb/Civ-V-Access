@@ -42,6 +42,11 @@ include("CivVAccess_BeaconVolume")
 include("CivVAccess_Settings")
 include("CivVAccess_PickerReader")
 include("CivVAccess_CivilopediaCore")
+-- Seated in this Context rather than reached through
+-- civvaccess_shared.modules: the effects-text bodies call builder globals
+-- (VP's InfoTooltipInclude / TechHelpInclude) that resolve in the pedia's env
+-- and not in InGame's, and a function carries the env it was loaded under.
+include("CivVAccess_EngineData")
 include("CivVAccess_PediaSearchCore")
 
 local priorShowHide = ShowHideHandler
@@ -136,6 +141,7 @@ end
 -- eventual restore.
 local function applySearchQuery(h, query)
     local matchSet, matchCount = PediaSearch.match(query)
+    Log.info("CivilopediaAccess: query '" .. tostring(query) .. "' matched " .. tostring(matchCount) .. " articles")
     if matchCount == 0 then
         SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_PEDIA_SEARCH_NO_MATCH", query))
         return

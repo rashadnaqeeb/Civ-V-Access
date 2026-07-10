@@ -11,6 +11,10 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Searching the Civilopedia with Ctrl+F now finds Vox Populi's effects text, such as which wonders grant Delegates.
+- Searching the Civilopedia with Ctrl+F no longer matches Roads and Railroads for the word "help".
+
 ## [2.1.2] - 2026-07-10
 
 New Features and improvements:
