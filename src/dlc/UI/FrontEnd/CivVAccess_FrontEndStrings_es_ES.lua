@@ -270,12 +270,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] =
 -- Tri-state unit-movement announcement (off / simultaneous-MP-only / on).
 -- Gates speech only; the F7 Unit Moves log populates regardless.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Anunciar movimientos de unidades"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Tus movimientos en cola"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Civilizaciones hostiles"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Civilizaciones neutrales"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Ciudades-estado"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Bárbaros"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Aliados"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_MILITARY"] = "Tus movimientos militares en cola"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_CIVILIAN"] = "Tus movimientos civiles en cola"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_MILITARY"] = "Unidades militares hostiles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_CIVILIAN"] = "Unidades civiles hostiles"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_MILITARY"] = "Unidades militares neutrales"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_CIVILIAN"] = "Unidades civiles neutrales"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_MILITARY"] =
+    "Unidades militares de ciudades-estado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_CIVILIAN"] = "Unidades civiles de ciudades-estado"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_MILITARY"] = "Unidades militares bárbaras"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_CIVILIAN"] =
+    "Unidades civiles capturadas por bárbaros"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_MILITARY"] = "Unidades militares aliadas"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_CIVILIAN"] = "Unidades civiles aliadas"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "Restablecer todos los ajustes a los valores predeterminados"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] =
     "Restablecer todos los ajustes a los valores predeterminados?"

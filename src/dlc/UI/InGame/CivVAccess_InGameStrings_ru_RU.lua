@@ -849,12 +849,30 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_TIMER_TICK"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_MP_TURN_REMINDER"] =
     "Напоминать, если завершение хода отменено в многопользовательской игре"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Объявлять движения юнитов"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Ваши движения в очереди"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Враждебные цивилизации"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Нейтральные цивилизации"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "Города-государства"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Варвары"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Союзники"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_MILITARY"] =
+    "Ваши военные движения в очереди"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_CIVILIAN"] =
+    "Ваши гражданские движения в очереди"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_MILITARY"] =
+    "Враждебные военные юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_CIVILIAN"] =
+    "Враждебные гражданские юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_MILITARY"] =
+    "Нейтральные военные юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_CIVILIAN"] =
+    "Нейтральные гражданские юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_MILITARY"] =
+    "Военные юниты городов-государств"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_CIVILIAN"] =
+    "Гражданские юниты городов-государств"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_MILITARY"] =
+    "Варварские военные юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_CIVILIAN"] =
+    "Захваченные варварами гражданские юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_MILITARY"] =
+    "Союзнические военные юниты"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_CIVILIAN"] =
+    "Союзнические гражданские юниты"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] =
     "Сбросить все настройки до значений по умолчанию"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] =
