@@ -1,8 +1,10 @@
 -- Settings overlay. Opens via the F12 pre-walk hook in InputRouter and
 -- gives the user a single place to flip mod-wide preferences. Built as a
 -- BaseMenu handler with five top-level drillable groups: General, Cursor,
--- Audio, Scanner, Notifications. New settings drop into the group whose
--- feature they belong to.
+-- Audio, Scanner, Notifications, followed by a reset-to-defaults action.
+-- New settings drop into the group whose feature they belong to, and get
+-- their default restored by registering a reset closure (defineBoolPref
+-- does this for you).
 --
 -- The handler is reachable from every Context that routes through
 -- InputRouter (front-end and in-game both), so its items must not assume
@@ -14,13 +16,36 @@
 
 Settings = {}
 
+-- Reset-to-defaults registry. Every preference this screen exposes appends a
+-- closure that drives its own canonical setter with the shipped default, so a
+-- reset carries the same side effects an explicit toggle would (the proxy
+-- volume push, the map-highlight redraw). Nothing here writes Prefs behind a
+-- setter's back, and nothing here touches player-authored content: custom
+-- scanner categories are not a preference and survive a reset.
+local resetters = {}
+
+local function registerReset(fn)
+    resetters[#resetters + 1] = fn
+end
+
+local function resetAll()
+    for _, fn in ipairs(resetters) do
+        local ok, err = pcall(fn)
+        if not ok then
+            Log.error("Settings.resetAll: a pref reset failed: " .. tostring(err))
+        end
+    end
+end
+
 -- Standard bool-pref helper. Initializes civvaccess_shared[field] from
 -- Prefs once (idempotent if a sibling module already seeded it), then
 -- returns get/set closures that read the live cache and persist writes
 -- back to Prefs. The shared cache survives the load-from-game env wipe
 -- so toggling here takes effect immediately for any consumer reading
--- civvaccess_shared[field] live.
-local function defineBoolPref(field, prefKey, default)
+-- civvaccess_shared[field] live. `onSet` is an optional side effect run
+-- after each successful write (and after a reset) for prefs whose consumer
+-- needs a push rather than a live read.
+local function defineBoolPref(field, prefKey, default, onSet)
     if civvaccess_shared[field] == nil then
         civvaccess_shared[field] = Prefs.getBool(prefKey, default)
     end
@@ -31,7 +56,13 @@ local function defineBoolPref(field, prefKey, default)
         local b = v and true or false
         civvaccess_shared[field] = b
         Prefs.setBool(prefKey, b)
+        if onSet ~= nil then
+            onSet(b)
+        end
     end
+    registerReset(function()
+        set(default)
+    end)
     return get, set
 end
 
@@ -51,16 +82,12 @@ local getScannerAutoMove, setScannerAutoMove = defineBoolPref("scannerAutoMove",
 -- paired with newer Lua limping along. The default here must mirror the
 -- proxy's g_keepFocusSpoof static, which carries until the include-time
 -- push below reaches it.
-local getKeepFocus, setKeepFocusPref = defineBoolPref("keepFocus", "KeepFocus", false)
 local function pushKeepFocus(b)
     if civvaccess_shared.set_keep_focus ~= nil then
         civvaccess_shared.set_keep_focus(b)
     end
 end
-local function setKeepFocus(v)
-    setKeepFocusPref(v)
-    pushKeepFocus(v and true or false)
-end
+local getKeepFocus, setKeepFocus = defineBoolPref("keepFocus", "KeepFocus", false, pushKeepFocus)
 -- Push the persisted value at include time (this file loads in both the
 -- front-end and in-game boot chains), so a player who turned the mode on
 -- gets background-running behavior from boot, not from their first
@@ -80,13 +107,11 @@ local getReadSubtitles, setReadSubtitles = defineBoolPref("readSubtitles", "Read
 -- player nothing. The setter persists the pref, then asks MapHighlight to
 -- redraw or clear the rings immediately -- MapHighlight is nil in the
 -- front-end Settings Context, where only the pref write matters.
-local getMapHighlight, setMapHighlightPref = defineBoolPref("mapHighlightEnabled", "MapHighlight", true)
-local function setMapHighlight(v)
-    setMapHighlightPref(v)
+local getMapHighlight, setMapHighlight = defineBoolPref("mapHighlightEnabled", "MapHighlight", true, function()
     if MapHighlight ~= nil then
         MapHighlight.applyEnabled()
     end
-end
+end)
 
 -- Long-form direction toggle. Off by default: the short tokens (ne, se) are
 -- the established default and existing users orient by them. When on, every
@@ -115,9 +140,10 @@ local getCursorFollowsSelection, setCursorFollowsSelection =
 -- int (0/1/2) since the prefs file has no string type.
 local CURSOR_COORD_BY_INT = { [0] = "off", [1] = "prepend", [2] = "append" }
 local CURSOR_COORD_BY_NAME = { off = 0, prepend = 1, append = 2 }
+local CURSOR_COORD_DEFAULT = "off"
 if civvaccess_shared.cursorCoordMode == nil then
-    local stored = Prefs.getInt("CursorCoordMode", 0)
-    civvaccess_shared.cursorCoordMode = CURSOR_COORD_BY_INT[stored] or "off"
+    local stored = Prefs.getInt("CursorCoordMode", CURSOR_COORD_BY_NAME[CURSOR_COORD_DEFAULT])
+    civvaccess_shared.cursorCoordMode = CURSOR_COORD_BY_INT[stored] or CURSOR_COORD_DEFAULT
 end
 
 -- Keyboard-layout override. "auto" (default) defers to the proxy-detected
@@ -127,13 +153,14 @@ end
 -- live, so a change takes effect on the next keypress.
 local KB_PROFILE_BY_INT = { [0] = "auto", [1] = "qwerty", [2] = "azerty", [3] = "qwertz", [4] = "italian" }
 local KB_PROFILE_BY_NAME = { auto = 0, qwerty = 1, azerty = 2, qwertz = 3, italian = 4 }
+local KB_PROFILE_DEFAULT = "auto"
 if civvaccess_shared.keyboardProfileOverride == nil then
-    local stored = Prefs.getInt("KeyboardProfileOverride", 0)
-    civvaccess_shared.keyboardProfileOverride = KB_PROFILE_BY_INT[stored] or "auto"
+    local stored = Prefs.getInt("KeyboardProfileOverride", KB_PROFILE_BY_NAME[KB_PROFILE_DEFAULT])
+    civvaccess_shared.keyboardProfileOverride = KB_PROFILE_BY_INT[stored] or KB_PROFILE_DEFAULT
 end
 
 local function getKeyboardProfileOverride()
-    return civvaccess_shared.keyboardProfileOverride or "auto"
+    return civvaccess_shared.keyboardProfileOverride or KB_PROFILE_DEFAULT
 end
 
 local function setKeyboardProfileOverride(name)
@@ -146,7 +173,7 @@ local function setKeyboardProfileOverride(name)
 end
 
 local function getCursorCoordMode()
-    return civvaccess_shared.cursorCoordMode or "off"
+    return civvaccess_shared.cursorCoordMode or CURSOR_COORD_DEFAULT
 end
 
 local function setCursorCoordMode(name)
@@ -157,6 +184,32 @@ local function setCursorCoordMode(name)
     civvaccess_shared.cursorCoordMode = name
     Prefs.setInt("CursorCoordMode", CURSOR_COORD_BY_NAME[name])
 end
+
+registerReset(function()
+    setCursorCoordMode(CURSOR_COORD_DEFAULT)
+end)
+registerReset(function()
+    setKeyboardProfileOverride(KB_PROFILE_DEFAULT)
+end)
+
+-- Prefs owned by their own module rather than by defineBoolPref. Each one
+-- publishes its shipped default alongside its setter, so the reset reads the
+-- default from the module that defines the behavior instead of restating it.
+registerReset(function()
+    Verbosity.setOn(Verbosity.DEFAULT_ON)
+end)
+registerReset(function()
+    AudioCueMode.setMode(AudioCueMode.DEFAULT_MODE)
+end)
+registerReset(function()
+    VolumeControl.set(VolumeControl.DEFAULT)
+end)
+registerReset(function()
+    BeaconVolume.set(BeaconVolume.DEFAULT)
+end)
+registerReset(function()
+    BeaconRange.set(BeaconRange.DEFAULT)
+end)
 
 -- Adjacent-enemy warning toggle. Off by default: prepends a short "enemy
 -- near" tag to every cursor-move announcement on any revealed tile with
@@ -323,6 +376,38 @@ local function keyboardProfileChoice(name, textKey)
             setKeyboardProfileOverride(name)
         end,
     })
+end
+
+local MENU_NAME = "Settings"
+
+-- Reset-to-defaults confirm. "No" first, so a stray Enter on the freshly
+-- pushed sub cancels rather than wiping every preference; mirrors the
+-- delete-confirm pattern in SaveMenuCore. Popping before resetting lets the
+-- Settings menu re-announce the item under the cursor, which the completion
+-- line then interrupts.
+local function pushResetConfirm()
+    local subName = MENU_NAME .. "/ResetConfirm"
+    HandlerStack.push(BaseMenu.create({
+        name = subName,
+        displayName = Text.key("TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"),
+        items = {
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_NO_BUTTON",
+                activate = function()
+                    HandlerStack.removeByName(subName, true)
+                end,
+            }),
+            BaseMenuItems.Choice({
+                textKey = "TXT_KEY_YES_BUTTON",
+                activate = function()
+                    HandlerStack.removeByName(subName, true)
+                    resetAll()
+                    SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"))
+                end,
+            }),
+        },
+        escapePops = true,
+    }))
 end
 
 local function buildItems()
@@ -596,7 +681,15 @@ local function buildItems()
             }),
         },
     })
-    return { generalGroup, cursorGroup, audioGroup, scannerGroup, notificationsGroup }
+    -- Reset sits last, past every group, so nobody arrows onto it while
+    -- browsing. Choice rather than Button because it has no XML widget; the
+    -- kind override makes verbose mode announce it as a button.
+    local resetItem = BaseMenuItems.Choice({
+        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_RESET",
+        verboseKindKey = "TXT_KEY_CIVVACCESS_KIND_BUTTON",
+        activate = pushResetConfirm,
+    })
+    return { generalGroup, cursorGroup, audioGroup, scannerGroup, notificationsGroup, resetItem }
 end
 
 -- F12 binding spec. Help-list entry uses the curated label so the help
@@ -610,7 +703,7 @@ local SETTINGS_HELP_EXTRAS = {
 
 function Settings.open()
     local handler = BaseMenu.create({
-        name = "Settings",
+        name = MENU_NAME,
         displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SETTINGS"),
         items = buildItems(),
         capturesAllInput = true,

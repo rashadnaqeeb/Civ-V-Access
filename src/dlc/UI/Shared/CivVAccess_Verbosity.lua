@@ -13,7 +13,10 @@
 Verbosity = Verbosity or {}
 
 local PREF_KEY = "Verbosity"
-local DEFAULT_ON = true
+
+-- Exposed so the Settings screen's reset-to-defaults can restore it without
+-- duplicating the value.
+Verbosity.DEFAULT_ON = true
 
 function Verbosity.isOn()
     if civvaccess_shared.verbosity == nil then
@@ -23,9 +26,9 @@ function Verbosity.isOn()
         -- cache; the cross-Context cache then carries the read value to
         -- every subsequent caller.
         if Prefs == nil or type(Prefs.getInt) ~= "function" then
-            return DEFAULT_ON
+            return Verbosity.DEFAULT_ON
         end
-        civvaccess_shared.verbosity = Prefs.getInt(PREF_KEY, DEFAULT_ON and 1 or 0) ~= 0
+        civvaccess_shared.verbosity = Prefs.getInt(PREF_KEY, Verbosity.DEFAULT_ON and 1 or 0) ~= 0
     end
     return civvaccess_shared.verbosity
 end

@@ -300,10 +300,13 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
 
     -- Settings overlay hotkey. Same shape as the Help hook above. Skips
     -- when Settings is already on top so the menu's own F12-close binding
-    -- can fire and toggle the overlay off.
+    -- can fire and toggle the overlay off, and when one of its sub-handlers
+    -- ("Settings/ResetConfirm") is on top, where re-opening would stack a
+    -- second overlay above a prompt the user hasn't answered.
     if keyCode == VK_F12 and modMask == 0 then
         local top = HandlerStack.active()
-        if top == nil or top.name ~= "Settings" then
+        local inSettings = top ~= nil and (top.name == "Settings" or top.name:find("^Settings/") ~= nil)
+        if not inSettings then
             if Settings ~= nil and type(Settings.open) == "function" then
                 local ok, err = pcall(Settings.open)
                 if not ok then

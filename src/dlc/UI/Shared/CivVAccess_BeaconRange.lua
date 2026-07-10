@@ -21,8 +21,8 @@ BeaconRange = BeaconRange or {}
 local PREF_KEY = "BeaconAudibleHexDistance"
 -- Default mirrors the previous hard-coded VOL_MAX_DIST so users who never
 -- touched the setting hear the same falloff they had before the slider
--- existed.
-local DEFAULT = 30
+-- existed. Exposed so the Settings screen's reset-to-defaults can restore it.
+BeaconRange.DEFAULT = 30
 -- Range bounds. MIN at 5 keeps the falloff a meaningful gradient (anything
 -- smaller and the beacon is just a here / not-here ping). MAX at 100
 -- comfortably covers Civ V's standard map sizes (huge is 128x80, but hex
@@ -37,7 +37,7 @@ local BIG_STEP = 20
 
 local function clamp(v)
     if type(v) ~= "number" then
-        return DEFAULT
+        return BeaconRange.DEFAULT
     end
     v = math.floor(v + 0.5)
     if v < MIN then
@@ -51,7 +51,7 @@ end
 
 function BeaconRange.get()
     if civvaccess_shared.beaconAudibleHexes == nil then
-        civvaccess_shared.beaconAudibleHexes = clamp(Prefs.getInt(PREF_KEY, DEFAULT))
+        civvaccess_shared.beaconAudibleHexes = clamp(Prefs.getInt(PREF_KEY, BeaconRange.DEFAULT))
     end
     return civvaccess_shared.beaconAudibleHexes
 end
@@ -71,7 +71,7 @@ end
 
 function BeaconRange.fromUnit(t)
     if type(t) ~= "number" then
-        return DEFAULT
+        return BeaconRange.DEFAULT
     end
     if t < 0 then
         t = 0

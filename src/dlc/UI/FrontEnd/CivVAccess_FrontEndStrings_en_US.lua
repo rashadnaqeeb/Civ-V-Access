@@ -495,6 +495,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Neutral 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "City-States"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbarians"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Teammates"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "Reset all settings to defaults"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] = "Reset all settings to defaults?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "Settings reset."
 -- LoadMenu (PickerReader over the save picker). Saves-tab label, details-tab
 -- label, empty-list placeholder, delete confirmation (format key takes the
 -- save's display name), post-delete acknowledgement. The two PICKER_READER_

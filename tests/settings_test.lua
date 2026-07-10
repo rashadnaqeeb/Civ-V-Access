@@ -109,6 +109,7 @@ local CURSOR_GROUP = 2
 local AUDIO_GROUP = 3
 local SCANNER_GROUP = 4
 local NOTIFICATIONS_GROUP = 5
+local RESET_ITEM = 6
 
 -- Helpers ---------------------------------------------------------------
 
@@ -135,14 +136,15 @@ function M.test_open_announces_screen_name()
     T.eq(speaks[1].text, "Settings", "first speech is the screen name")
 end
 
-function M.test_top_level_has_five_drillable_groups()
+function M.test_top_level_has_five_drillable_groups_then_reset()
     setup()
     Settings.open()
     local items = topItems()
-    T.eq(#items, 5, "five top-level groups: general / cursor / audio / scanner / notifications")
+    T.eq(#items, 6, "five groups: general / cursor / audio / scanner / notifications, plus reset")
     for i = 1, 5 do
         T.eq(items[i].kind, "group", "top-level item " .. i .. " is a drillable group")
     end
+    T.eq(items[RESET_ITEM].kind, "choice", "reset is a leaf action, last so browsing never lands on it")
 end
 
 -- F12 hook --------------------------------------------------------------
@@ -502,6 +504,107 @@ function M.test_mp_turn_reminder_default_on_and_flip()
     groupChildren(NOTIFICATIONS_GROUP)[7]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.mpTurnReminder, false)
     T.eq(prefsStore["MPTurnReminder"], false)
+end
+
+-- Reset to defaults -----------------------------------------------------
+
+-- Drive the top-level reset item and return the confirm sub's items.
+local function openResetConfirm()
+    topItems()[RESET_ITEM]:activate(HandlerStack.active())
+    return HandlerStack.active()._items
+end
+
+-- Move a representative setting of each storage shape off its default: a
+-- bool pref, an int-backed mode pref, and a module-owned float.
+local function departFromDefaults()
+    groupChildren(GENERAL_GROUP)[2]:activate(HandlerStack.active()) -- keep focus on
+    groupChildren(GENERAL_GROUP)[6]:children()[3]:activate(HandlerStack.active()) -- azerty
+    VolumeControl.set(0.5)
+end
+
+function M.test_reset_prompts_before_touching_anything()
+    setup()
+    Settings.open()
+    departFromDefaults()
+    local items = openResetConfirm()
+    T.eq(HandlerStack.active().name, "Settings/ResetConfirm")
+    T.eq(#items, 2)
+    T.eq(items[1].textKey, "TXT_KEY_NO_BUTTON", "No is first so a stray Enter cancels")
+    T.eq(items[2].textKey, "TXT_KEY_YES_BUTTON")
+    T.eq(civvaccess_shared.keepFocus, true, "nothing is reset until the prompt is answered")
+end
+
+function M.test_reset_confirm_no_pops_and_keeps_settings()
+    setup()
+    Settings.open()
+    departFromDefaults()
+    openResetConfirm()[1]:activate(HandlerStack.active())
+    T.eq(HandlerStack.active().name, "Settings", "No returns to the settings menu")
+    T.eq(civvaccess_shared.keepFocus, true)
+    T.eq(civvaccess_shared.keyboardProfileOverride, "azerty")
+    T.eq(VolumeControl.get(), 0.5)
+end
+
+function M.test_reset_confirm_yes_restores_every_storage_shape()
+    setup()
+    Settings.open()
+    departFromDefaults()
+    civvaccess_shared.verbosity = false
+    civvaccess_shared.cursorCoordMode = "append"
+    openResetConfirm()[2]:activate(HandlerStack.active())
+
+    T.eq(HandlerStack.active().name, "Settings", "Yes returns to the settings menu")
+    T.eq(civvaccess_shared.keepFocus, false, "bool pref back to its default")
+    T.eq(prefsStore["KeepFocus"], false, "and persisted, not just cached")
+    T.eq(civvaccess_shared.keyboardProfileOverride, "auto", "int-backed mode pref back to its default")
+    T.eq(prefsStore["KeyboardProfileOverride"], 0)
+    T.eq(civvaccess_shared.cursorCoordMode, "off")
+    T.eq(VolumeControl.get(), VolumeControl.DEFAULT, "module-owned float back to its default")
+    T.eq(BeaconRange.get(), BeaconRange.DEFAULT)
+    T.eq(AudioCueMode.getMode(), AudioCueMode.DEFAULT_MODE)
+    T.eq(civvaccess_shared.verbosity, Verbosity.DEFAULT_ON, "verbosity is owned by its own module")
+end
+
+function M.test_reset_announces_completion()
+    setup()
+    Settings.open()
+    speaks = {}
+    openResetConfirm()[2]:activate(HandlerStack.active())
+    T.eq(speaks[#speaks].text, "Settings reset.")
+end
+
+function M.test_reset_runs_side_effects_not_just_pref_writes()
+    setup()
+    local pushed = {}
+    civvaccess_shared.set_keep_focus = function(b)
+        pushed[#pushed + 1] = b
+    end
+    dofile("src/dlc/UI/Shared/CivVAccess_Settings.lua")
+    Settings.open()
+    groupChildren(GENERAL_GROUP)[2]:activate(HandlerStack.active())
+    T.eq(pushed[#pushed], true, "flip reached the proxy binding")
+
+    VolumeControl.set(0.5)
+    local before = #audio._calls
+    openResetConfirm()[2]:activate(HandlerStack.active())
+    T.eq(pushed[#pushed], false, "reset drives the same setter, so the proxy learns of it too")
+
+    local volumePushed
+    for i = before + 1, #audio._calls do
+        if audio._calls[i].op == "set_master_volume" then
+            volumePushed = audio._calls[i].v
+        end
+    end
+    T.eq(volumePushed, VolumeControl.DEFAULT, "and the volume default reaches the mixer")
+end
+
+function M.test_f12_over_reset_confirm_does_not_stack_a_second_settings()
+    setup()
+    HandlerStack.push({ name = "base", helpEntries = {} })
+    Settings.open()
+    openResetConfirm()
+    InputRouter.dispatch(VK_F12, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.active().name, "Settings/ResetConfirm", "the unanswered prompt keeps the top")
 end
 
 return M

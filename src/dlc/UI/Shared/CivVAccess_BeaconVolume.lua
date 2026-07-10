@@ -33,10 +33,11 @@ BeaconVolume = BeaconVolume or {}
 local PREF_KEY = "BeaconGroupVolume"
 local OLD_PREF_KEY = "BeaconMaxVolume"
 
--- Match VolumeControl's DEFAULT_VOLUME so a fresh install with neither
--- pref persisted plays beacons at the same effective level as the old
--- build's defaults (multiplier 1.0 * engine master 0.1 = 0.1).
-local DEFAULT = 0.1
+-- Match VolumeControl's DEFAULT so a fresh install with neither pref
+-- persisted plays beacons at the same effective level as the old build's
+-- defaults (multiplier 1.0 * engine master 0.1 = 0.1). Exposed so the
+-- Settings screen's reset-to-defaults can restore it.
+BeaconVolume.DEFAULT = 0.1
 
 -- Slider top. The proxy clamps group volume to [0, 1] and the Settings
 -- UI maps slider position [0, 1] to volume [0, MAX], so exposing this
@@ -46,7 +47,7 @@ BeaconVolume.MAX = 1.0
 
 local function clamp(v)
     if type(v) ~= "number" then
-        return DEFAULT
+        return BeaconVolume.DEFAULT
     end
     if v < 0 then
         return 0
@@ -94,7 +95,7 @@ function BeaconVolume.get()
         if migrated ~= nil then
             civvaccess_shared.beaconGroupVolume = migrated
         else
-            civvaccess_shared.beaconGroupVolume = clamp(Prefs.getFloat(PREF_KEY, DEFAULT))
+            civvaccess_shared.beaconGroupVolume = clamp(Prefs.getFloat(PREF_KEY, BeaconVolume.DEFAULT))
         end
     end
     return civvaccess_shared.beaconGroupVolume

@@ -1162,6 +1162,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Neutral 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "City-States"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbarians"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Teammates"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "Reset all settings to defaults"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] = "Reset all settings to defaults?"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "Settings reset."
 -- Widget-generic strings spoken by BaseMenuItems Choice / Checkbox /
 -- Textfield and BaseMenuEditMode. Mirrored from the FrontEnd copy because
 -- Contexts are sandboxed: an in-game screen that uses these item kinds

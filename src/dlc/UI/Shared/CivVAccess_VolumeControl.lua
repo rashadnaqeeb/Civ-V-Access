@@ -21,11 +21,12 @@ local PREF_KEY = "MasterVolume"
 -- Mirrors the proxy's ensure_audio default. If we change one, change both,
 -- otherwise restore() at boot will silently re-set the volume to a different
 -- value than the proxy chose for users who have never opened Settings.
-local DEFAULT_VOLUME = 0.1
+-- Exposed so the Settings screen's reset-to-defaults can restore it.
+VolumeControl.DEFAULT = 0.1
 
 local function clampUnit(v)
     if type(v) ~= "number" then
-        return DEFAULT_VOLUME
+        return VolumeControl.DEFAULT
     end
     if v < 0 then
         return 0
@@ -38,7 +39,7 @@ end
 
 function VolumeControl.get()
     if civvaccess_shared.masterVolume == nil then
-        civvaccess_shared.masterVolume = clampUnit(Prefs.getFloat(PREF_KEY, DEFAULT_VOLUME))
+        civvaccess_shared.masterVolume = clampUnit(Prefs.getFloat(PREF_KEY, VolumeControl.DEFAULT))
     end
     return civvaccess_shared.masterVolume
 end

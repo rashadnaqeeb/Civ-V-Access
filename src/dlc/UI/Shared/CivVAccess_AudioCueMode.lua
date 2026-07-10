@@ -21,11 +21,14 @@ AudioCueMode.MODE_SPEECH_PLUS_CUE = 1
 AudioCueMode.MODE_CUE_ONLY = 2
 
 local PREF_KEY = "AudioCueMode"
-local DEFAULT_MODE = AudioCueMode.MODE_SPEECH_PLUS_CUE
+
+-- Exposed so the Settings screen's reset-to-defaults can restore it without
+-- duplicating the value.
+AudioCueMode.DEFAULT_MODE = AudioCueMode.MODE_SPEECH_PLUS_CUE
 
 function AudioCueMode.getMode()
     if civvaccess_shared.audioCueMode == nil then
-        civvaccess_shared.audioCueMode = Prefs.getInt(PREF_KEY, DEFAULT_MODE)
+        civvaccess_shared.audioCueMode = Prefs.getInt(PREF_KEY, AudioCueMode.DEFAULT_MODE)
     end
     return civvaccess_shared.audioCueMode
 end
