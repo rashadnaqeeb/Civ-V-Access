@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-07-10
+
 New Features and improvements:
 - Unit movement announcement toggles now split each category into military units and civilians; a category you had on stays fully on.
 
