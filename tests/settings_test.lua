@@ -506,6 +506,21 @@ function M.test_mp_turn_reminder_default_on_and_flip()
     T.eq(prefsStore["MPTurnReminder"], false)
 end
 
+-- The split military / civilian unit-move prefs inherit a saved pre-split
+-- per-owner value on first run, so an owner bucket the user had on keeps
+-- speaking in full after the upgrade; buckets without a legacy value seed
+-- the off default.
+function M.test_unit_move_split_inherits_legacy_pref()
+    setup()
+    prefsStore = { UnitMoveHostile = true }
+    civvaccess_shared = {}
+    civvaccess_shared.verbosity = false
+    dofile("src/dlc/UI/Shared/CivVAccess_Settings.lua")
+    T.eq(civvaccess_shared.unitMoveHostileMilitary, true, "military half inherits the legacy value")
+    T.eq(civvaccess_shared.unitMoveHostileCivilian, true, "civilian half inherits the legacy value")
+    T.eq(civvaccess_shared.unitMoveNeutralMilitary, false, "bucket without a legacy value stays off")
+end
+
 -- Reset to defaults -----------------------------------------------------
 
 -- Drive the top-level reset item and return the confirm sub's items.

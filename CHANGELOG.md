@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- Unit movement announcement toggles now split each category into military units and civilians; a category you had on stays fully on.
+
 Bug fixes:
 - Searching the Civilopedia with Ctrl+F now finds Vox Populi's effects text, such as which wonders grant Delegates.
 - Searching the Civilopedia with Ctrl+F no longer matches Roads and Railroads for the word "help".

@@ -329,18 +329,115 @@ local getTurnTimerTick, setTurnTimerTick = defineBoolPref("turnTimerTick", "Turn
 -- CivVAccess_MPEndTurnReminder, which also seeds the field at boot.
 local getMPTurnReminder, setMPTurnReminder = defineBoolPref("mpTurnReminder", "MPTurnReminder", true)
 
--- Per-owner unit-movement announcements. Each owner bucket has its own toggle,
--- all off by default: a move speaks only when its bucket's toggle is on, while
--- the F7 Unit Moves log populates regardless. UnitMoveLog reads these
--- civvaccess_shared fields live, so a toggle takes effect on the next move.
--- Defined here (not in UnitMoveLog, which is in-game only) because the Settings
--- screen renders in the front-end Context too.
-local getUnitMoveOwn, setUnitMoveOwn = defineBoolPref("unitMoveOwn", "UnitMoveOwn", false)
-local getUnitMoveHostile, setUnitMoveHostile = defineBoolPref("unitMoveHostile", "UnitMoveHostile", false)
-local getUnitMoveNeutral, setUnitMoveNeutral = defineBoolPref("unitMoveNeutral", "UnitMoveNeutral", false)
-local getUnitMoveCityState, setUnitMoveCityState = defineBoolPref("unitMoveCityState", "UnitMoveCityState", false)
-local getUnitMoveBarbarian, setUnitMoveBarbarian = defineBoolPref("unitMoveBarbarian", "UnitMoveBarbarian", false)
-local getUnitMoveTeammate, setUnitMoveTeammate = defineBoolPref("unitMoveTeammate", "UnitMoveTeammate", false)
+-- Per-owner unit-movement announcements. Each owner bucket has a military
+-- and a civilian toggle (the engine's IsCombatUnit split), all off by
+-- default: a move speaks only when its toggle is on, while the F7 Unit
+-- Moves log populates regardless. UnitMoveLog reads these civvaccess_shared
+-- fields live, so a toggle takes effect on the next move. Defined here (not
+-- in UnitMoveLog, which is in-game only) because the Settings screen renders
+-- in the front-end Context too.
+--
+-- The split toggles replaced a single per-owner toggle (pref keys
+-- UnitMoveOwn / UnitMoveHostile / ...). On first run after the upgrade both
+-- halves inherit the old key's saved value, so a bucket the user had on
+-- keeps speaking in full; reset-to-defaults still restores false.
+--
+-- The pairs live in one spec table (menu order) rather than 24 named locals:
+-- Lua 5.1 caps a function at 60 upvalues, and buildItems captures every
+-- getter/setter it references, so per-toggle locals would blow the cap.
+local unitMoveToggleSpecs = {}
+local function defineUnitMovePref(field, prefKey, legacyPrefKey, textKey)
+    if Prefs.getBool(prefKey, nil) == nil then
+        Prefs.setBool(prefKey, Prefs.getBool(legacyPrefKey, false))
+    end
+    local get, set = defineBoolPref(field, prefKey, false)
+    unitMoveToggleSpecs[#unitMoveToggleSpecs + 1] = { textKey = textKey, getValue = get, setValue = set }
+end
+
+defineUnitMovePref(
+    "unitMoveOwnMilitary",
+    "UnitMoveOwnMilitary",
+    "UnitMoveOwn",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_MILITARY"
+)
+defineUnitMovePref(
+    "unitMoveOwnCivilian",
+    "UnitMoveOwnCivilian",
+    "UnitMoveOwn",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_CIVILIAN"
+)
+defineUnitMovePref(
+    "unitMoveHostileMilitary",
+    "UnitMoveHostileMilitary",
+    "UnitMoveHostile",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_MILITARY"
+)
+defineUnitMovePref(
+    "unitMoveHostileCivilian",
+    "UnitMoveHostileCivilian",
+    "UnitMoveHostile",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_CIVILIAN"
+)
+defineUnitMovePref(
+    "unitMoveNeutralMilitary",
+    "UnitMoveNeutralMilitary",
+    "UnitMoveNeutral",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_MILITARY"
+)
+defineUnitMovePref(
+    "unitMoveNeutralCivilian",
+    "UnitMoveNeutralCivilian",
+    "UnitMoveNeutral",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_CIVILIAN"
+)
+defineUnitMovePref(
+    "unitMoveCityStateMilitary",
+    "UnitMoveCityStateMilitary",
+    "UnitMoveCityState",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_MILITARY"
+)
+defineUnitMovePref(
+    "unitMoveCityStateCivilian",
+    "UnitMoveCityStateCivilian",
+    "UnitMoveCityState",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_CIVILIAN"
+)
+defineUnitMovePref(
+    "unitMoveBarbarianMilitary",
+    "UnitMoveBarbarianMilitary",
+    "UnitMoveBarbarian",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_MILITARY"
+)
+defineUnitMovePref(
+    "unitMoveBarbarianCivilian",
+    "UnitMoveBarbarianCivilian",
+    "UnitMoveBarbarian",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_CIVILIAN"
+)
+defineUnitMovePref(
+    "unitMoveTeammateMilitary",
+    "UnitMoveTeammateMilitary",
+    "UnitMoveTeammate",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_MILITARY"
+)
+defineUnitMovePref(
+    "unitMoveTeammateCivilian",
+    "UnitMoveTeammateCivilian",
+    "UnitMoveTeammate",
+    "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_CIVILIAN"
+)
+
+local function buildUnitMoveToggles()
+    local items = {}
+    for _, spec in ipairs(unitMoveToggleSpecs) do
+        items[#items + 1] = BaseMenuItems.VirtualToggle({
+            textKey = spec.textKey,
+            getValue = spec.getValue,
+            setValue = spec.setValue,
+        })
+    end
+    return items
+end
 
 local function audioCueModeChoice(modeConst, textKey)
     return BaseMenuItems.Choice({
@@ -646,38 +743,7 @@ local function buildItems()
             }),
             BaseMenuItems.Group({
                 textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES",
-                items = {
-                    BaseMenuItems.VirtualToggle({
-                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN",
-                        getValue = getUnitMoveOwn,
-                        setValue = setUnitMoveOwn,
-                    }),
-                    BaseMenuItems.VirtualToggle({
-                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE",
-                        getValue = getUnitMoveHostile,
-                        setValue = setUnitMoveHostile,
-                    }),
-                    BaseMenuItems.VirtualToggle({
-                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL",
-                        getValue = getUnitMoveNeutral,
-                        setValue = setUnitMoveNeutral,
-                    }),
-                    BaseMenuItems.VirtualToggle({
-                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE",
-                        getValue = getUnitMoveCityState,
-                        setValue = setUnitMoveCityState,
-                    }),
-                    BaseMenuItems.VirtualToggle({
-                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN",
-                        getValue = getUnitMoveBarbarian,
-                        setValue = setUnitMoveBarbarian,
-                    }),
-                    BaseMenuItems.VirtualToggle({
-                        textKey = "TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE",
-                        getValue = getUnitMoveTeammate,
-                        setValue = setUnitMoveTeammate,
-                    }),
-                },
+                items = buildUnitMoveToggles(),
             }),
         },
     })

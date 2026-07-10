@@ -10,9 +10,12 @@
 --
 -- Speech is gated per owner bucket: each move is classified (your queued
 -- continuations, teammates, hostile civs, neutral civs, city-states,
--- barbarians) and speaks only when that bucket's toggle is on. The F7 Unit
--- Moves log (civvaccess_shared.unitMoveLog) is populated regardless,
--- decoupled from speech the same way RevealAnnounce's F7 surface is.
+-- barbarians), every bucket further splits military from civilian by the
+-- engine's IsCombatUnit definition (Great Generals, missionaries and the
+-- like count as civilians), and a move speaks only when its toggle is on.
+-- The F7 Unit Moves log (civvaccess_shared.unitMoveLog) is populated
+-- regardless, decoupled from speech the same way RevealAnnounce's F7
+-- surface is.
 -- Visibility is filtered per step: only steps whose destination the active
 -- team can see are buffered, so a unit crossing fog reads only the part you
 -- could watch, and a move entirely in fog produces nothing. Trade units
@@ -37,29 +40,28 @@ UnitMoveLog = {}
 
 -- Per-unit step buffer keyed "<ownerId>:<unitId>", with _order preserving
 -- first-appearance order so a multi-unit flush speaks deterministically.
--- Entry: { ownerId, unitId, bucket, civAdjKey, unitDescKey, startX, startY,
--- lastX, lastY, dirs = { DirectionTypes... }, netOnly }. Module-local so a
--- Context re-entry drops any in-flight buffer; installListeners re-arms.
+-- Entry: { ownerId, unitId, bucket, kind, civAdjKey, unitDescKey, startX,
+-- startY, lastX, lastY, dirs = { DirectionTypes... }, netOnly }. Module-local
+-- so a Context re-entry drops any in-flight buffer; installListeners re-arms.
 local _pending = {}
 local _order = {}
 local _flushScheduled = false
 
--- civvaccess_shared field gating speech for each owner bucket. Seeded by
--- Settings (defineBoolPref) in both the front-end and in-game Contexts, read
--- live here so a toggle takes effect on the next move. The F7 log populates
--- regardless of these; only speech is gated.
+-- civvaccess_shared field gating speech for each (owner bucket, unit kind)
+-- pair. Seeded by Settings (defineBoolPref) in both the front-end and
+-- in-game Contexts, read live here so a toggle takes effect on the next
+-- move. The F7 log populates regardless of these; only speech is gated.
 local BUCKET_FIELD = {
-    own = "unitMoveOwn",
-    teammate = "unitMoveTeammate",
-    hostile = "unitMoveHostile",
-    neutral = "unitMoveNeutral",
-    cityState = "unitMoveCityState",
-    barbarian = "unitMoveBarbarian",
+    own = { military = "unitMoveOwnMilitary", civilian = "unitMoveOwnCivilian" },
+    teammate = { military = "unitMoveTeammateMilitary", civilian = "unitMoveTeammateCivilian" },
+    hostile = { military = "unitMoveHostileMilitary", civilian = "unitMoveHostileCivilian" },
+    neutral = { military = "unitMoveNeutralMilitary", civilian = "unitMoveNeutralCivilian" },
+    cityState = { military = "unitMoveCityStateMilitary", civilian = "unitMoveCityStateCivilian" },
+    barbarian = { military = "unitMoveBarbarianMilitary", civilian = "unitMoveBarbarianCivilian" },
 }
 
-local function shouldSpeak(bucket)
-    local field = BUCKET_FIELD[bucket]
-    return field ~= nil and civvaccess_shared[field] == true
+local function shouldSpeak(bucket, kind)
+    return civvaccess_shared[BUCKET_FIELD[bucket][kind]] == true
 end
 
 function UnitMoveLog._flushBody()
@@ -100,7 +102,7 @@ function UnitMoveLog._flushBody()
                 x = entry.lastX,
                 y = entry.lastY,
             }
-            if shouldSpeak(entry.bucket) then
+            if shouldSpeak(entry.bucket, entry.kind) then
                 SpeechPipeline.speakQueued(text)
                 MessageBuffer.append(text, "movement")
             end
@@ -203,6 +205,7 @@ local function onUnitMoved(ownerId, unitId, fromX, fromY, toX, toY)
             ownerId = ownerId,
             unitId = unitId,
             bucket = bucket,
+            kind = unit:IsCombatUnit() and "military" or "civilian",
             civAdjKey = meta.civAdjKey,
             unitDescKey = meta.unitDescKey,
             startX = fromX,

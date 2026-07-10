@@ -486,15 +486,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_FOREIGN_CLEAR_ANNOUNCE"] =
     "Announce camps and ruins others claimed in view"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_TURN_START_SOUND"] = "Play turn-start sound in single player"
 -- Per-owner unit-movement announcement toggles, under one drillable. Each
--- gates speech for its owner bucket only; the F7 Unit Moves log populates
--- regardless.
+-- gates speech for its owner bucket only, split military / civilian; the
+-- F7 Unit Moves log populates regardless.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES"] = "Announce unit movements"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN"] = "Your queued moves"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE"] = "Hostile civilizations"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL"] = "Neutral civilizations"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE"] = "City-States"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN"] = "Barbarians"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE"] = "Teammates"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_MILITARY"] = "Your queued military moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_OWN_CIVILIAN"] = "Your queued civilian moves"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_MILITARY"] = "Hostile military units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_HOSTILE_CIVILIAN"] = "Hostile civilians"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_MILITARY"] = "Neutral military units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_NEUTRAL_CIVILIAN"] = "Neutral civilians"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_MILITARY"] = "City-State military units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_CITY_STATE_CIVILIAN"] = "City-State civilians"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_MILITARY"] = "Barbarian military units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_BARBARIAN_CIVILIAN"] = "Barbarian-held civilians"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_MILITARY"] = "Teammate military units"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_UNIT_MOVES_TEAMMATE_CIVILIAN"] = "Teammate civilians"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET"] = "Reset all settings to defaults"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_CONFIRM"] = "Reset all settings to defaults?"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_RESET_DONE"] = "Settings reset."
