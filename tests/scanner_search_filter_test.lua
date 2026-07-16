@@ -154,6 +154,37 @@ function M.test_same_name_shared_across_subs_produces_separate_items()
     T.eq(#subs[2].items, 1, "one item in resources sub")
 end
 
+function M.test_instance_name_alias_matches_query()
+    -- A civ-grouped city entry carries the city name as instanceName;
+    -- searching the city name must still find it even though itemName is
+    -- now the civ.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0) })
+    local entries = {
+        T.mkEntry("cities", "my", "Rome", 0, { itemKey = "civ:1", instanceName = "Antium" }),
+    }
+    local snap = ScannerSearch.build(entries, "antium", 0, 0)
+    T.truthy(snap ~= nil, "query matching only the instanceName alias must produce a snapshot")
+    local subs = namedSubs(snap)
+    T.eq(subs[1].items[1].name, "Rome", "the result item keeps the grouping itemName")
+end
+
+function M.test_item_key_groups_matches_into_one_item()
+    -- Two grouped cities of the same civ matched by the civ name must
+    -- collapse into one item with two instances, mirroring ScannerSnap's
+    -- identity-keyed grouping.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
+    local entries = {
+        T.mkEntry("cities", "my", "Rome", 0, { itemKey = "civ:1", instanceName = "Antium" }),
+        T.mkEntry("cities", "my", "Rome", 1, { itemKey = "civ:1", instanceName = "Cumae" }),
+    }
+    local snap = ScannerSearch.build(entries, "rome", 0, 0)
+    local subs = namedSubs(snap)
+    T.eq(#subs[1].items, 1, "same itemKey must collapse into one item")
+    T.eq(#subs[1].items[1].instances, 2)
+end
+
 function M.test_multiple_instances_of_same_name_collapse_into_one_item()
     setup()
     T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1), mkPlot(2, 0, 2) })

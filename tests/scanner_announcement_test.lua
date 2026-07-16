@@ -89,7 +89,9 @@ local function setup()
             return true
         end,
         FormatName = function(e)
-            return e.itemName
+            -- Mirrors the grouped-entry contract (ScannerBackendCities):
+            -- instanceName is the per-entity spoken name when present.
+            return e.instanceName or e.itemName
         end,
     })
     _entries = {}
@@ -106,6 +108,18 @@ end
 
 local function mkEntry(cat, sub, name, plotIndex)
     return T.mkEntry(cat, sub, name, plotIndex, { backend = ScannerCore.BACKENDS[1] })
+end
+
+-- A civ-grouped city entry: itemName carries the civ, instanceName the
+-- city, itemKey the owner identity, matching ScannerBackendCities'
+-- group-by-civ emission.
+local function mkGroupedEntry(civ, cityName, plotIndex)
+    return T.mkEntry("cities", "my", civ, plotIndex, {
+        backend = ScannerCore.BACKENDS[1],
+        itemKey = "civ:" .. civ,
+        instanceName = cityName,
+        key = "test:" .. tostring(plotIndex) .. ":" .. cityName,
+    })
 end
 
 function M.test_cycle_item_announces_name_distance_and_count()
@@ -153,6 +167,53 @@ function M.test_zero_distance_speaks_here_token()
     ScannerNav.cycleSubcategory(1)
     local out = ScannerNav.cycleItem(0)
     T.truthy(out:find("here", 1, true), "at-entry-plot must speak 'here' in the distance slot: " .. out)
+end
+
+function M.test_item_landing_prefixes_group_name_on_grouped_item()
+    -- A grouped item (a civ's cities) speaks "<civ>. <city>. <dir>.
+    -- <N> of <M>" on landings that change which item is current, so the
+    -- user hears which civ they've reached before its nearest city.
+    setup()
+    T.installMap({ mkPlot(3, 0, 0), mkPlot(5, 0, 1) })
+    installStubBackend({
+        mkGroupedEntry("Rome", "Antium", 0),
+        mkGroupedEntry("Rome", "Cumae", 1),
+    })
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1) -- into "my"
+    local out = ScannerNav.cycleItem(0)
+    T.truthy(out:find("Rome. Antium", 1, true), "item landing must lead with the civ then the nearest city: " .. out)
+    T.truthy(out:find("1 of 2", 1, true), "both cities must count as instances of the one item: " .. out)
+end
+
+function M.test_instance_cycle_skips_group_prefix()
+    -- Stepping instances stays within the item, so the group name is
+    -- known and the city name must lead as the distinguishing word.
+    setup()
+    T.installMap({ mkPlot(3, 0, 0), mkPlot(5, 0, 1) })
+    installStubBackend({
+        mkGroupedEntry("Rome", "Antium", 0),
+        mkGroupedEntry("Rome", "Cumae", 1),
+    })
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1)
+    ScannerNav.cycleItem(0)
+    local out = ScannerNav.cycleInstance(1)
+    T.truthy(out:find("Cumae", 1, true), "instance step must speak the city name: " .. out)
+    T.truthy(not out:find("Rome", 1, true), "instance step must not repeat the group name: " .. out)
+end
+
+function M.test_ungrouped_item_landing_speaks_name_once()
+    -- The prefix only fires when the item name and the instance's spoken
+    -- name differ; an ordinary per-city item must not double-speak.
+    setup()
+    T.installMap({ mkPlot(3, 0, 0) })
+    installStubBackend({ mkEntry("cities", "my", "Rome", 0) })
+    ScannerNav.cycleCategory(0)
+    ScannerNav.cycleSubcategory(1)
+    local out = ScannerNav.cycleItem(0)
+    T.truthy(out:find("Rome", 1, true), "item landing must speak the name: " .. out)
+    T.truthy(not out:find("Rome. Rome", 1, true), "equal item and instance names must not double-speak: " .. out)
 end
 
 function M.test_empty_item_falls_through_to_empty_token()

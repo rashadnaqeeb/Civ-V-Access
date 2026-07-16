@@ -421,6 +421,12 @@ end
 
 -- ===== Speech assembly =====
 -- `<item name>. <distance/direction from origin>. <N> of <M>.`
+-- When the current item groups differently-named entities (a civ's
+-- cities under the civ-name item), landings that change which item is
+-- current additionally lead with the item name: `<item name>. <instance
+-- name>. <dir>. <N> of <M>.` Instance steps within the item skip the
+-- prefix -- the group is already known and the city name is the
+-- distinguishing word.
 -- The concise-announcement rule forbids "N of M" for menus ("Play, 1 of 8"
 -- adds no information because the name already disambiguates). It is
 -- actionable here: "Swordsman, 1 of 8" tells the player there are eight
@@ -456,7 +462,7 @@ local function readoutOrigin()
     return cx, cy
 end
 
-local function formatInstance(instance, instIdx, instCount)
+local function formatInstance(instance, instIdx, instCount, groupName)
     local cx, cy = readoutOrigin()
     local dir
     if cx == instance.plotX and cy == instance.plotY then
@@ -469,6 +475,12 @@ local function formatInstance(instance, instIdx, instCount)
     -- FormatName is the live-query seam per design section 4; item.name
     -- is only the grouping key captured at build time.
     local name = entry.backend.FormatName(entry)
+    -- Grouped items speak both names on landings: the item name says
+    -- which group was reached, the instance name says which member leads.
+    -- groupName is nil on instance steps within an item.
+    if groupName ~= nil and groupName ~= name then
+        name = groupName .. ". " .. name
+    end
     -- Optional capital-relative coord segment, opt-in via Settings. Sits
     -- between dir and count so the user hears the entry, then where to
     -- walk, then where it sits, then which-of-N. HexGeom returns "" when
@@ -509,7 +521,13 @@ local function fireScannerHighlight(targetX, targetY)
     MapHighlight.setScanner(targetX, targetY)
 end
 
-local function announceCurrent()
+-- withGroupName: landings that change which item is current (category /
+-- subcategory / item cycles, search commit, direction set) pass true so
+-- a grouped item leads with its item name. Instance steps pass false --
+-- the group is already known there. formatInstance drops the prefix
+-- whenever it matches the instance's own spoken name, so ungrouped items
+-- are unaffected either way.
+local function announceCurrent(withGroupName)
     local item = currentItem()
     if item == nil then
         if MapHighlight ~= nil then
@@ -526,7 +544,7 @@ local function announceCurrent()
     end
     fireDirectionBeep(inst.plotX, inst.plotY)
     fireScannerHighlight(inst.plotX, inst.plotY)
-    return formatInstance(inst, _instIdx, #item.instances)
+    return formatInstance(inst, _instIdx, #item.instances, withGroupName and item.name or nil)
 end
 
 -- Resolve a category / subcategory node's spoken label. Synthetic custom
@@ -542,7 +560,7 @@ end
 -- Compose a "<label>. <current item announcement>" string for the
 -- subcategory / category cycle entries, per design section 7.
 local function announceWithLabel(node)
-    return nodeLabel(node) .. ". " .. announceCurrent()
+    return nodeLabel(node) .. ". " .. announceCurrent(true)
 end
 
 -- Auto-move side-effect shared by every cycle. Jumps the cursor to the
@@ -702,7 +720,7 @@ function ScannerNav.cycleItem(dir)
     _instIdx = (item ~= nil and #item.instances > 0) and 1 or 0
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
-    return announceCurrent()
+    return announceCurrent(true)
 end
 
 function ScannerNav.cycleInstance(dir)
@@ -878,7 +896,7 @@ function ScannerNav.setDirection(dirCode)
     return Text.format(
         "TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_SET",
         HexGeom.dirText("TXT_KEY_CIVVACCESS_DIR_" .. dirCode)
-    ) .. ". " .. announceCurrent()
+    ) .. ". " .. announceCurrent(true)
 end
 
 -- Test seam: exercise the rebuild + prune + announce pipeline without
@@ -891,7 +909,7 @@ function ScannerNav._refresh()
     rebuildAndLocate(true)
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
-    return announceCurrent()
+    return announceCurrent(true)
 end
 
 -- Test seam (module has persistent upvalues; production never calls it).

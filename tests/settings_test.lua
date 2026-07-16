@@ -393,12 +393,13 @@ function M.test_scanner_group_layout()
     setup()
     Settings.open()
     local children = groupChildren(SCANNER_GROUP)
-    T.eq(#children, 5, "auto-move + coords + compass direction + direction beep + waypoints scope")
+    T.eq(#children, 6, "auto-move + coords + compass direction + group cities + direction beep + waypoints scope")
     T.eq(children[1].kind, "checkbox", "auto-move")
     T.eq(children[2].kind, "checkbox", "coords")
     T.eq(children[3].kind, "checkbox", "compass direction")
-    T.eq(children[4].kind, "checkbox", "direction beep")
-    T.eq(children[5].kind, "checkbox", "waypoints selected only")
+    T.eq(children[4].kind, "checkbox", "group cities by civ")
+    T.eq(children[5].kind, "checkbox", "direction beep")
+    T.eq(children[6].kind, "checkbox", "waypoints selected only")
 end
 
 function M.test_scanner_auto_move_flip_writes_shared_and_prefs()
@@ -428,11 +429,20 @@ function M.test_scanner_compass_direction_default_off_and_flip()
     T.eq(prefsStore["ScannerCompassDirection"], true)
 end
 
+function M.test_scanner_group_cities_default_off_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.scannerGroupCitiesByCiv, false, "opt-in: defaults off")
+    groupChildren(SCANNER_GROUP)[4]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.scannerGroupCitiesByCiv, true)
+    T.eq(prefsStore["ScannerGroupCitiesByCiv"], true)
+end
+
 function M.test_scanner_direction_beep_default_off_and_flip()
     setup()
     Settings.open()
     T.eq(civvaccess_shared.scannerDirectionBeep, false, "opt-in: defaults off")
-    groupChildren(SCANNER_GROUP)[4]:activate(HandlerStack.active())
+    groupChildren(SCANNER_GROUP)[5]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.scannerDirectionBeep, true)
     T.eq(prefsStore["ScannerDirectionBeep"], true)
 end

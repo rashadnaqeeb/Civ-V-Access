@@ -51,16 +51,31 @@ end
 -- surfaces a foreign city before any unit-adjacency meeting has happened
 -- -- setRevealed alone does not call kTeam.meet, see CvPlayer.cpp goody
 -- map branch). Per-plot IsRevealed is the only visibility gate needed.
+--
+-- With the F12 group-by-civ toggle on, every major civ's cities collapse
+-- into one item (itemKey per owner, so identically-named duplicate civs
+-- in MP stay apart; itemName is the civ's short description) and the
+-- individual cities become that item's instances, each speaking its own
+-- name via instanceName. City-states keep one item per city: they are
+-- one-city civs, and grouping would announce their only city as
+-- "<state>. <same state's city>" noise.
 local function scanCities(activePlayer, activeTeam, out)
+    local groupByCiv = civvaccess_shared.scannerGroupCitiesByCiv == true
     for playerId = 0, MAX_PLAYERS - 1 do
         local player = Players[playerId]
         if player ~= nil and player:IsAlive() and not player:IsBarbarian() then
             local sub = citySubcategory(playerId, activePlayer, activeTeam)
             if sub ~= nil then
+                local civName, civItemKey
+                if groupByCiv and not player:IsMinorCiv() then
+                    civName = Text.key(player:GetCivilizationShortDescriptionKey())
+                    civItemKey = "civ:" .. playerId
+                end
                 for city in player:Cities() do
                     local plot = city:Plot()
                     if plot ~= nil and plot:IsRevealed(activeTeam) then
                         local cityId = city:GetID()
+                        local cityName = Text.key(city:GetNameKey())
                         out[#out + 1] = {
                             plotIndex = plot:GetPlotIndex(),
                             backend = ScannerBackendCities,
@@ -71,7 +86,9 @@ local function scanCities(activePlayer, activeTeam, out)
                             },
                             category = "cities",
                             subcategory = sub,
-                            itemName = Text.key(city:GetNameKey()),
+                            itemName = civName or cityName,
+                            itemKey = civItemKey,
+                            instanceName = civName and cityName or nil,
                             key = "cities:city:" .. playerId .. ":" .. cityId,
                             sortKey = 0,
                         }
@@ -147,8 +164,12 @@ function ScannerBackendCities.ValidateEntry(entry, _cursorPlotIndex)
     return city:GetOwner() == entry.data.ownerId and city:GetID() == entry.data.cityId
 end
 
+-- instanceName is the per-city spoken name of a civ-grouped entry;
+-- ungrouped entries (toggle off, city-states, camps) speak itemName.
+-- Both are captured at Scan time, which is fresh enough: every scanner
+-- keystroke rebuilds the snapshot from a new Scan.
 function ScannerBackendCities.FormatName(entry)
-    return entry.itemName
+    return entry.instanceName or entry.itemName
 end
 
 ScannerCore.registerBackend(ScannerBackendCities)

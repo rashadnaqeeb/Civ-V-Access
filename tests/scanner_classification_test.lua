@@ -44,6 +44,9 @@ local function setup()
     end
     GameInfo = {}
     GameInfoTypes = {}
+    -- Session-scoped toggle read by the cities backend; clear it so a
+    -- grouping test can't leak its flag into later tests.
+    civvaccess_shared.scannerGroupCitiesByCiv = nil
     Text = Text or {}
     Text.key = function(k)
         return k
@@ -692,6 +695,88 @@ function M.test_city_unmet_civ_with_revealed_plot_still_surfaces()
     local out = ScannerBackendCities.Scan(0, 0)
     T.eq(#out, 1, "unmet civ's revealed city must still surface in the scanner")
     T.eq(out[1].subcategory, "neutral")
+end
+
+function M.test_city_grouping_collapses_major_cities_under_civ_item()
+    -- With the group-by-civ toggle on, a major's cities share one item
+    -- identity: itemName is the civ short description, itemKey is per
+    -- owner (so duplicate-named civs in MP stay apart), and each entry
+    -- carries its own city name as instanceName for FormatName / search.
+    setup()
+    loadCitiesBackend()
+    civvaccess_shared.scannerGroupCitiesByCiv = true
+    Teams[0] = T.fakeTeam()
+    local p1 = makePlotAt(0, 0, 0, { isCity = true })
+    local p2 = makePlotAt(1, 0, 1, { isCity = true })
+    local c1 = makeCity({ owner = 1, id = 1, plot = p1, nameKey = "TXT_KEY_CITY_ANTIUM" })
+    local c2 = makeCity({ owner = 1, id = 2, plot = p2, nameKey = "TXT_KEY_CITY_CUMAE" })
+    p1._city = c1
+    p2._city = c2
+    Players[1] = T.fakePlayer({ team = 1, cities = { c1, c2 }, shortDesc = "TXT_KEY_CIV_ROME_SHORT" })
+    mapFromPlots({ p1, p2 })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 2)
+    for _, e in ipairs(out) do
+        T.eq(e.itemName, "TXT_KEY_CIV_ROME_SHORT", "grouped city must carry the civ name as itemName")
+        T.eq(e.itemKey, "civ:1", "grouped city must carry the per-owner itemKey")
+    end
+    T.eq(out[1].instanceName, "TXT_KEY_CITY_ANTIUM", "each grouped city keeps its own name as instanceName")
+    T.eq(out[2].instanceName, "TXT_KEY_CITY_CUMAE")
+end
+
+function M.test_city_grouping_includes_own_cities()
+    setup()
+    loadCitiesBackend()
+    civvaccess_shared.scannerGroupCitiesByCiv = true
+    Teams[0] = T.fakeTeam()
+    local p1 = makePlotAt(0, 0, 0, { isCity = true })
+    local c1 = makeCity({ owner = 0, id = 1, plot = p1, nameKey = "TXT_KEY_CITY_ROME" })
+    p1._city = c1
+    Players[0] = T.fakePlayer({ team = 0, cities = { c1 }, shortDesc = "TXT_KEY_CIV_ROME_SHORT" })
+    mapFromPlots({ p1 })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "my")
+    T.eq(out[1].itemName, "TXT_KEY_CIV_ROME_SHORT", "own cities group under the player's civ like any other")
+    T.eq(out[1].itemKey, "civ:0")
+end
+
+function M.test_city_grouping_keeps_city_states_per_city()
+    -- City-states are one-city civs; grouping them would announce
+    -- "<state>. <same state's city>" noise, so they keep one item per
+    -- city even with the toggle on.
+    setup()
+    loadCitiesBackend()
+    civvaccess_shared.scannerGroupCitiesByCiv = true
+    Teams[0] = T.fakeTeam()
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 22, id = 1, plot = plot, nameKey = "TXT_KEY_CITY_GENEVA" })
+    plot._city = city
+    installCityOwner(22, { city = city, team = 22, minor = true })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].itemName, "TXT_KEY_CITY_GENEVA", "city-state city must keep its city name as itemName")
+    T.eq(out[1].itemKey, nil, "city-state city must not carry a grouping itemKey")
+    T.eq(out[1].instanceName, nil)
+end
+
+function M.test_city_grouping_off_keeps_per_city_items()
+    -- Default (toggle off) shape is the shipped one: each city is its own
+    -- item named after itself, no grouping fields.
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam()
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 1, id = 1, plot = plot, nameKey = "TXT_KEY_CITY_ANTIUM" })
+    plot._city = city
+    installCityOwner(1, { city = city, team = 1, minor = false })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].itemName, "TXT_KEY_CITY_ANTIUM")
+    T.eq(out[1].itemKey, nil)
+    T.eq(out[1].instanceName, nil)
 end
 
 -- ===== Resources backend =====

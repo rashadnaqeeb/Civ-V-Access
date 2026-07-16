@@ -170,6 +170,22 @@ function M.test_keyword_matches_item_name_and_excludes_others()
     T.eq(sub.items[1].name, "Warrior", "the matching unit, not the Archer")
 end
 
+function M.test_keyword_matches_instance_name_alias()
+    -- A civ-grouped city carries the city name as instanceName; a keyword
+    -- sub built from the city name must still catch it after the
+    -- group-by-civ toggle renames itemName to the civ.
+    setup()
+    T.installMap({ mkPlot(0, 0, 0), mkPlot(1, 0, 1) })
+    local entries = {
+        T.mkEntry("cities", "my", "Rome", 0, { itemKey = "civ:1", instanceName = "Antium" }),
+        T.mkEntry("cities", "my", "Rome", 1, { itemKey = "civ:1", instanceName = "Cumae" }),
+    }
+    local snap = ScannerSnap.build(entries, 0, 0, { keywordDef({ "antium" }) })
+    local sub = findSub(findCat(snap, "custom:1"), "kw:antium")
+    T.eq(#sub.items, 1, "keyword sub must hold the alias-matching entry only")
+    T.eq(#sub.items[1].instances, 1, "only the matching city, not its grouped sibling")
+end
+
 function M.test_keyword_sub_label_is_the_keyword_text()
     setup()
     T.installMap({ mkPlot(0, 0, 0) })

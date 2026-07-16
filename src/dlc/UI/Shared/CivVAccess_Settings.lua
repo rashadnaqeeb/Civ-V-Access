@@ -249,6 +249,16 @@ local getScannerCoords, setScannerCoords = defineBoolPref("scannerCoords", "Scan
 local getScannerCompassDirection, setScannerCompassDirection =
     defineBoolPref("scannerCompassDirection", "ScannerCompassDirection", false)
 
+-- Scanner group-cities-by-civ toggle. Off by default. When on, the
+-- scanner's Cities category collapses each civilization's cities (the
+-- player's own included) into one item named for the civ, and
+-- Alt+PageUp/Down steps through that civ's individual cities
+-- nearest-first. City-states keep one item per city. The backend reads
+-- the cache at Scan time, so toggling takes effect on the next scanner
+-- keystroke.
+local getScannerGroupCities, setScannerGroupCities =
+    defineBoolPref("scannerGroupCitiesByCiv", "ScannerGroupCitiesByCiv", false)
+
 -- Scanner directional-beep toggle. Off by default. When on, every scanner
 -- cycle (item, instance, subcategory, category, search land, End-key
 -- distance probe) fires a short beep whose pan / pitch / volume encode
@@ -681,6 +691,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION",
             getValue = getScannerCompassDirection,
             setValue = setScannerCompassDirection,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_CITIES",
+            getValue = getScannerGroupCities,
+            setValue = setScannerGroupCities,
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP",

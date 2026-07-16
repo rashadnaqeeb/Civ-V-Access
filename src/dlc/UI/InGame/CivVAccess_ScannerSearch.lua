@@ -1,4 +1,5 @@
--- Scanner search filter. Runs every backend entry's itemName through
+-- Scanner search filter. Runs every backend entry's itemName (and its
+-- instanceName alias, when grouped entries carry one) through
 -- TypeAheadSearch.matchTier against a user query and emits a synthetic
 -- snapshot: one category ("search"), with subcategories keyed by the
 -- entries' original category. Items sort by (match tier ascending, then
@@ -46,6 +47,16 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
     local matchCount = 0
     for _, entry in ipairs(entries) do
         local tier = TypeAheadSearch.matchTier(string.lower(entry.itemName or ""), lowerQuery)
+        -- instanceName is the per-entity alias of a grouped entry (the
+        -- city under a civ-name item). The better of the two tiers drives
+        -- the match, so searching a city name still finds the city when
+        -- the group-by-civ toggle has moved it under its civ's item.
+        if entry.instanceName ~= nil then
+            local aliasTier = TypeAheadSearch.matchTier(string.lower(entry.instanceName), lowerQuery)
+            if aliasTier >= 0 and (tier < 0 or aliasTier < tier) then
+                tier = aliasTier
+            end
+        end
         if tier >= 0 then
             local plot = Map.GetPlotByIndex(entry.plotIndex)
             if plot == nil then
@@ -64,14 +75,19 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
                         plotY = py,
                         distance = dist,
                     }
-                    local item = sub._itemsByName[entry.itemName]
+                    -- Identity-keyed grouping, matching ScannerSnap's
+                    -- placeEntry: itemKey separates same-named entries and
+                    -- collapses grouped ones; the displayed name stays
+                    -- itemName.
+                    local itemId = entry.itemKey or entry.itemName
+                    local item = sub._itemsByName[itemId]
                     if item == nil then
                         item = {
                             name = entry.itemName,
                             instances = {},
                             _tier = tier,
                         }
-                        sub._itemsByName[entry.itemName] = item
+                        sub._itemsByName[itemId] = item
                         sub.items[#sub.items + 1] = item
                     elseif tier < item._tier then
                         -- Multiple entries can share a name across different

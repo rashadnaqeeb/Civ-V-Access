@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - The F2 city table has a new Demand column: the resource the city demands, or the We Love the King Day turns remaining.
+- New setting groups the scanner's cities by civilization: each civ becomes one entry and Alt+PageUp/Down steps through its cities; searching a city name still finds it.
 
 ## [2.1.3] - 2026-07-10
 

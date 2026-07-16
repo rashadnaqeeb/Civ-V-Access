@@ -698,6 +698,7 @@ function T.mkEntry(cat, sub, name, plotIndex, opts)
         subcategory = sub,
         itemName = name,
         itemKey = opts.itemKey,
+        instanceName = opts.instanceName,
         key = opts.key or ("test:" .. tostring(plotIndex) .. ":" .. tostring(name)),
         sortKey = opts.sortKey or 0,
     }

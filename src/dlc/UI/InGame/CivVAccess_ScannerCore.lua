@@ -29,6 +29,18 @@
 --                           `all` is never emitted; Snap assembles it.
 --   itemName    string      Already-localised label; the "collapse by
 --                           name" key for grouping instances into items.
+--   itemKey     string      Optional grouping-identity override: when
+--                           present, items collapse by itemKey instead of
+--                           itemName, so a backend can keep identically-
+--                           named items apart (or collapse differently-
+--                           named entries into one item). itemName stays
+--                           the spoken label either way.
+--   instanceName string     Optional per-entity spoken name for entries
+--                           grouped under a shared itemName. FormatName
+--                           returns it, Nav prefixes the item name on
+--                           landings when the two differ, and search /
+--                           custom keyword subs match it as an alias
+--                           alongside itemName.
 --   key         string      Stable identifier for the underlying entity
 --                           (unit ID, city ID, plot + kind, ...) that
 --                           survives rebuilds. Nav uses it to re-find

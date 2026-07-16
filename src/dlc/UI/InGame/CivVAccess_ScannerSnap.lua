@@ -122,9 +122,11 @@ end
 -- Build a synthetic custom category from a customCategoryDefs() def. Its
 -- subcategories are the user's selectors then the user's keywords (plus the
 -- implicit `all` at index 1). Both kinds are unified into _matchSubs, a list
--- of { sub, matches = function(entry, lowerName) -> bool } the placement loop
--- walks once per entry: a selector matches by category/subcategory equality,
--- a keyword by TypeAheadSearch tier against the lowercased name. A keyword
+-- of { sub, matches = function(entry, lowerName, lowerAlias) -> bool } the
+-- placement loop walks once per entry: a selector matches by category/
+-- subcategory equality, a keyword by TypeAheadSearch tier against the
+-- lowercased name or the lowercased instanceName alias (the per-entity
+-- name of a grouped entry, e.g. a city under a civ item). A keyword
 -- sub's label is the keyword text itself (labelText, no key). labelText
 -- overrides the missing category label key -- the spoken name is "Custom N".
 local function newCustomCategory(def)
@@ -148,8 +150,11 @@ local function newCustomCategory(def)
         local lowerKeyword = string.lower(keyword)
         matchSubs[#matchSubs + 1] = {
             sub = sub,
-            matches = function(_, lowerName)
-                return TypeAheadSearch.matchTier(lowerName, lowerKeyword) >= 0
+            matches = function(_, lowerName, lowerAlias)
+                if TypeAheadSearch.matchTier(lowerName, lowerKeyword) >= 0 then
+                    return true
+                end
+                return lowerAlias ~= nil and TypeAheadSearch.matchTier(lowerAlias, lowerKeyword) >= 0
             end,
         }
     end
@@ -306,10 +311,11 @@ function ScannerSnap.build(entries, cursorX, cursorY, customDefs)
                     -- the whole point of the category.
                     if not cat.resort then
                         local lowerName = string.lower(entry.itemName or "")
+                        local lowerAlias = entry.instanceName ~= nil and string.lower(entry.instanceName) or nil
                         for _, customCat in ipairs(customCats) do
                             local matched = {}
                             for _, ms in ipairs(customCat._matchSubs) do
-                                if ms.matches(entry, lowerName) then
+                                if ms.matches(entry, lowerName, lowerAlias) then
                                     matched[#matched + 1] = ms.sub
                                 end
                             end
