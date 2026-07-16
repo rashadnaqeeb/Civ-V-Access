@@ -598,6 +598,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_BORDER_ALWAYS_ANNOUNCE"] = "타�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_ENEMY_ADJACENT_WARN"] = "적과 인접 시 경고"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "스캐너에 좌표 표시"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "스캐너 나침반 방향 사용"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_CITIES"] = "스캐너 도시 문명별 그룹화"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "스캐너 방향 신호음 재생"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "스캐너에서 선택된 유닛의 경유지만 표시"
@@ -1787,6 +1788,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_CULTURE"] = "문화"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "신앙"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE"] = "황금기 포인트"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "생산"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_DEMAND"] = "요구"
 
 -- Economy Overview city annotations (tail tokens - no terminal punct)
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "수도"
