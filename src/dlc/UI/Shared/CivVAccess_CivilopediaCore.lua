@@ -658,11 +658,18 @@ end
 
 -- Entry factory ---------------------------------------------------------
 
-local function entryFromArticle(entryFactory, cat, article)
+-- detailText, when given (the Ctrl+F filtered picker passes the matched
+-- sentence), is spoken after the article name; TextFilter handles any
+-- markup it carries at speech time.
+local function entryFromArticle(entryFactory, cat, article, detailText)
     local entryID = article.entryID
+    local label = tostring(article.entryName or "")
+    if type(detailText) == "string" and detailText ~= "" then
+        label = label .. ", " .. detailText
+    end
     return entryFactory({
         id = makeEntryID(cat, entryID),
-        labelText = tostring(article.entryName or ""),
+        labelText = label,
         buildReader = function(handler, id)
             return Civilopedia.buildReader(handler, cat, entryID)
         end,
@@ -1280,8 +1287,9 @@ end
 -- same category Groups in the same order, pruned to the articles present
 -- in matchSet (keyed by article table identity -- the sortedList article
 -- tables, which are the same refs PediaSearch resolves out of
--- searchableTextKeyList). Categories and sections with no matching
--- articles are omitted; Intro entries are too (they aren't articles the
+-- searchableTextKeyList; a key's value, when a string, is the matched
+-- sentence spoken after that entry's name). Categories and sections with
+-- no matching articles are omitted; Intro entries are too (they aren't articles the
 -- corpus can match). Section structure is preserved: a category whose
 -- matches span eras / branches keeps those subgroup layers, and the
 -- single-unlabeled-section flattening mirrors categoryChildren. Returns
@@ -1328,7 +1336,8 @@ function Civilopedia.buildFilteredPickerItems(entryFactory, matchSet)
                     )
                     if soloUnlabeled then
                         for _, article in ipairs(filteredSections[1].articles) do
-                            children[#children + 1] = entryFromArticle(entryFactory, capturedCat, article)
+                            children[#children + 1] =
+                                entryFromArticle(entryFactory, capturedCat, article, matchSet[article])
                         end
                         return children
                     end
@@ -1340,7 +1349,7 @@ function Civilopedia.buildFilteredPickerItems(entryFactory, matchSet)
                             itemsFn = function()
                                 local entries = {}
                                 for i, article in ipairs(articles) do
-                                    entries[i] = entryFromArticle(entryFactory, capturedCat, article)
+                                    entries[i] = entryFromArticle(entryFactory, capturedCat, article, matchSet[article])
                                 end
                                 return entries
                             end,

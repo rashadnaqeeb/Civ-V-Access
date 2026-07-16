@@ -15,6 +15,7 @@ New Features and improvements:
 - The F2 city table has a new Demand column: the resource the city demands, or the We Love the King Day turns remaining.
 - New setting groups the scanner's cities by civilization: each civ becomes one entry and Alt+PageUp/Down steps through its cities; searching a city name still finds it.
 - The F3 unit list has a new Hit Points column next to Strength; sort it ascending to bring the most wounded units to the top.
+- Civilopedia Ctrl+F results now speak the sentence containing the match after each article's name.
 
 ## [2.1.3] - 2026-07-10
 

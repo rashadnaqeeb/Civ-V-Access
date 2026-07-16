@@ -1,10 +1,15 @@
--- Civilopedia article-body search. Two public fns:
+-- Civilopedia article-body search. Public fns:
 --   PediaSearch.match(query) -> matchSet, count
 --     matchSet is keyed by article table identity -- the same article
 --     tables the pedia's PopulateList functions insert into both
 --     sortedList and searchableTextKeyList -- so callers can test
 --     membership against the articles they walk out of sortedList
---     without any per-category entryID arithmetic.
+--     without any per-category entryID arithmetic. Each key's value is
+--     the sentence of body text containing the match (for the caller to
+--     speak after the article name), or true when no sentence could be
+--     sliced -- test with truthiness, speak only strings.
+--   PediaSearch.sentenceAround(entry, qStart, qEnd) -> sentence or nil
+--     the slicer behind those values; public for the offline tests.
 --   PediaSearch.createInput(opts) -> handler
 --     modal text-capture handler (the ScannerInput pattern) pushed above
 --     the pedia menu on Ctrl+F. opts.echoControl mirrors the buffer into
@@ -187,9 +192,16 @@ local function buildCorpus()
                             end
                         end
                         if #parts > 0 then
+                            -- raw keeps the original case so a sentence
+                            -- sliced out of it still carries the uppercase
+                            -- markup tokens ([NEWLINE], [ICON_*]) TextFilter
+                            -- strips at speech time; body is what match()
+                            -- scans.
+                            local raw = table.concat(parts, " ")
                             entries[#entries + 1] = {
                                 keyTag = keyTag,
-                                body = Locale.ToLower(table.concat(parts, " ")),
+                                raw = raw,
+                                body = Locale.ToLower(raw),
                             }
                         end
                     end
@@ -203,6 +215,59 @@ local function buildCorpus()
     return entries, withEffects
 end
 
+-- Sentence terminators bounding the snippet sliced around a match. Found
+-- on the lowered body (where the match offsets live), hence the lowercase
+-- newline token; the full-width enders cover Japanese / Chinese prose,
+-- which ToLower leaves byte-identical. Colons and decimal points inside a
+-- sentence over-split occasionally ("+2.5" loses its "+2"); the cost is a
+-- slightly short snippet, never a wrong one.
+local BOUNDARY_TOKENS = { ".", "!", "?", "[newline]", "。", "！", "？" }
+
+-- Slice the sentence containing the match at [qStart, qEnd] out of a
+-- corpus entry: the text between the boundary token preceding qStart and
+-- the one following qEnd, keeping a punctuation terminator (natural
+-- speech pause) but not a newline token. Boundary positions come from
+-- entry.body but the slice is taken from entry.raw, whose original-case
+-- markup TextFilter recognizes at speech time -- valid only while the two
+-- agree byte-for-byte in length, which every shipped locale's ToLower
+-- preserves; on a mismatch return nil and the caller degrades to a plain
+-- title label. Boundary tokens inside the match itself never split it.
+function PediaSearch.sentenceAround(entry, qStart, qEnd)
+    local body = entry.body
+    if #entry.raw ~= #body then
+        return nil
+    end
+    local sStart = 1
+    local sEnd = #body
+    for _, tok in ipairs(BOUNDARY_TOKENS) do
+        local init = 1
+        while true do
+            local bs, be = string.find(body, tok, init, true)
+            if bs == nil then
+                break
+            end
+            if be < qStart then
+                if be + 1 > sStart then
+                    sStart = be + 1
+                end
+            elseif bs > qEnd then
+                local candidate = (tok == "[newline]") and bs - 1 or be
+                if candidate < sEnd then
+                    sEnd = candidate
+                end
+                -- Later occurrences of this token are further right still.
+                break
+            end
+            init = be + 1
+        end
+    end
+    local sentence = string.sub(entry.raw, sStart, sEnd):gsub("^%s+", ""):gsub("%s+$", "")
+    if sentence == "" then
+        return nil
+    end
+    return sentence
+end
+
 -- Substring-match query against every corpus body and resolve hits
 -- through the pedia's searchableTextKeyList (the promoted global keyed
 -- by the same keyCol tags SOURCES uses). Corpus rows whose tag misses
@@ -210,7 +275,8 @@ end
 -- isn't an article in the running ruleset (minor-civ leaders, concepts
 -- without a pedia header, content the active mods removed). Multiple
 -- corpus rows can resolve to one article (a leader and its civ), so the
--- set dedupes by article identity and count tracks distinct articles.
+-- set dedupes by article identity -- the first matching row supplies the
+-- spoken sentence -- and count tracks distinct articles.
 function PediaSearch.match(query)
     if corpus == nil then
         -- Timed and logged: the build runs inside the Enter keypress, and on
@@ -239,10 +305,11 @@ function PediaSearch.match(query)
         return matchSet, 0
     end
     for _, entry in ipairs(corpus) do
-        if string.find(entry.body, q, 1, true) ~= nil then
+        local qStart, qEnd = string.find(entry.body, q, 1, true)
+        if qStart ~= nil then
             local article = searchableTextKeyList[entry.keyTag]
             if article ~= nil and matchSet[article] == nil then
-                matchSet[article] = true
+                matchSet[article] = PediaSearch.sentenceAround(entry, qStart, qEnd) or true
                 count = count + 1
             end
         end
