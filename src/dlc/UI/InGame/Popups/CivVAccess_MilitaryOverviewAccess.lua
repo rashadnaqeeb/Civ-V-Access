@@ -4,8 +4,8 @@
 -- every open and on F1):
 --
 --   Units         BaseTable. One row per owned unit. Columns: Distance,
---                 Status, Moves left, Max moves, Strength, Ranged,
---                 Adjacent enemies. The unit name lives on the row label
+--                 Status, Moves left, Max moves, Hit points, Strength,
+--                 Ranged, Adjacent enemies. The unit name lives on the row label
 --                 rather than in a column so the user hears it once on
 --                 row change instead of repeating it in a Name cell.
 --
@@ -423,6 +423,28 @@ local function buildUnitColumns()
             end,
             sortKey = function(unit)
                 return unit:MaxMoves()
+            end,
+            enterAction = activateUnit,
+            pediaName = unitPediaName,
+        },
+        {
+            -- Cell reuses the cursor's hp-fraction shape (UnitSpeech
+            -- hpFraction) so the column sounds like HP everywhere else.
+            -- Full-health units still show the fraction -- an empty cell
+            -- in speech reads as a cut-off. Sort key is the cur/max ratio,
+            -- not raw current HP: CP promotions can raise max HP, and a
+            -- 100/150 unit is more wounded than an 80/80 one. Ascending
+            -- sort lifts the most-wounded units to the top.
+            name = "TXT_KEY_COMBAT_HITPOINTS_HEADING3_TITLE",
+            getCell = function(unit)
+                return Text.format(
+                    "TXT_KEY_CIVVACCESS_UNIT_HP_FRACTION",
+                    unit:GetCurrHitPoints(),
+                    unit:GetMaxHitPoints()
+                )
+            end,
+            sortKey = function(unit)
+                return unit:GetCurrHitPoints() / unit:GetMaxHitPoints()
             end,
             enterAction = activateUnit,
             pediaName = unitPediaName,
