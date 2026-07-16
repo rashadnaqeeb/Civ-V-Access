@@ -100,6 +100,10 @@ local function setup()
     -- Real CitySpeech so growthToken in the population cell test exercises
     -- the same code path the cursor / CityView do.
     dofile("src/dlc/UI/InGame/CivVAccess_CitySpeech.lua")
+    -- Real CityStats so the demand column exercises the same demandRow
+    -- path CityView speaks (its text composition is covered by the
+    -- city-stats suite; here only the column wiring is under test).
+    dofile("src/dlc/UI/InGame/CityView/CivVAccess_CityStats.lua")
 
     -- TextFilter feeds the VP per-city breakdown drills (splitLines);
     -- loaded here so the suite doesn't depend on an earlier suite's global.
@@ -201,6 +205,12 @@ local function stubCity(opts)
     end
     function c:Plot()
         return opts.plot or {}
+    end
+    function c:GetWeLoveTheKingDayCounter()
+        return opts.wltkdTurns or 0
+    end
+    function c:GetResourceDemanded()
+        return opts.demanded or -1
     end
     return c
 end
@@ -597,6 +607,67 @@ function M.test_population_column_sortKey_uses_bare_population()
     -- a player wants the column to sort by population size, not turns-to-grow.
     local pop = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_POPULATION")
     T.eq(pop.sortKey(stubCity({ pop = 7, growsIn = 1 })), 7)
+end
+
+-- Demand column ---------------------------------------------------------
+--
+-- demandRow's text composition (vanilla vs CP branches, UA counters,
+-- masked demand) is covered by the city-stats suite; these tests cover
+-- only what the EO column adds: placement, the empty-cell contract, the
+-- routing into demandRow, the sort ordering, and the pedia target.
+
+function M.test_demand_column_is_last_and_speaks_na_without_cycle()
+    setup()
+    Game.IsCustomModOption = nil -- vanilla branch in demandRow
+    local cols = EconomicOverviewAccess.buildCityColumns()
+    T.eq(cols[#cols].name, "TXT_KEY_CIVVACCESS_EO_COL_DEMAND", "demand column sits last")
+    -- Reuses the Resources tab's Used-column sentinel; the harness loads
+    -- the en_US strings file, so the key resolves to the localized value.
+    T.eq(cols[#cols].getCell(stubCity({})), "n/a")
+end
+
+function M.test_demand_column_cell_routes_through_demandRow()
+    setup()
+    Game.IsCustomModOption = nil
+    GameInfo = GameInfo or {}
+    GameInfo.Resources = { [7] = { ID = 7, Description = "TXT_KEY_RESOURCE_CITRUS" } }
+    local col = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_DEMAND")
+    T.truthy(col)
+    -- The runner's missing-key fallback echoes engine keys verbatim, so the
+    -- cell carrying the engine TXT_KEY proves the branch demandRow took.
+    T.truthy(
+        col.getCell(stubCity({ demanded = 7 })):find("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", 1, true),
+        "pending demand speaks the demanded-resource line"
+    )
+    T.truthy(
+        col.getCell(stubCity({ demanded = 7, wltkdTurns = 9 })):find("TXT_KEY_CITYVIEW_WLTKD_COUNTER", 1, true),
+        "active celebration speaks the WLTKD counter line"
+    )
+end
+
+function M.test_demand_sortKey_orders_celebrating_above_demanding_above_none()
+    setup()
+    Game.IsCustomModOption = nil
+    GameInfo = GameInfo or {}
+    GameInfo.Resources = { [7] = { ID = 7, Description = "TXT_KEY_RESOURCE_CITRUS" } }
+    local col = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_DEMAND")
+    T.eq(col.sortKey(stubCity({ demanded = 7, wltkdTurns = 9 })), 9, "celebrating sorts by turns remaining")
+    T.eq(col.sortKey(stubCity({ demanded = 7 })), 0, "pending demand sits between")
+    T.eq(col.sortKey(stubCity({})), -1, "no cycle sinks on descending sort")
+end
+
+function M.test_demand_column_pedia_targets_resource_or_wltkd_concept()
+    setup()
+    Game.IsCustomModOption = nil
+    GameInfo = GameInfo or {}
+    GameInfo.Resources = { [7] = { ID = 7, Description = "TXT_KEY_RESOURCE_CITRUS" } }
+    local col = findColumn(EconomicOverviewAccess.buildCityColumns(), "TXT_KEY_CIVVACCESS_EO_COL_DEMAND")
+    T.eq(col.pediaName(stubCity({ demanded = 7 })), "TXT_KEY_RESOURCE_CITRUS", "demanded resource's article")
+    T.eq(
+        col.pediaName(stubCity({})),
+        "TXT_KEY_RESOURCES_CITYREQUESTS_HEADING3_TITLE",
+        "WLTKD concept without a visible demand"
+    )
 end
 
 -- productionColumnCell -------------------------------------------------

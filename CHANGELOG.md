@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- The F2 city table has a new Demand column: the resource the city demands, or the We Love the King Day turns remaining.
+
 ## [2.1.3] - 2026-07-10
 
 New Features and improvements:

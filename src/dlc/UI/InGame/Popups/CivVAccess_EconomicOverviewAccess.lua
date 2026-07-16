@@ -3,9 +3,10 @@
 --
 --   Cities    -- BaseTable, one row per owned city (city name read as the
 --                 row label), columns for population, defensive strength,
---                 food, science, gold, culture, faith, production. Sortable
---                 on every column. Enter on the Production cell opens the
---                 city's Choose Production popup.
+--                 food, science, gold, culture, faith, production, demand
+--                 (demanded resource / WLTKD counter; "n/a" before any
+--                 cycle). Sortable on every column. Enter on the Production
+--                 cell opens the city's Choose Production popup.
 --   Gold      -- BaseMenu list, treasury / income / expense breakdown with
 --                 expandable per-city sub-lists for cities, trade routes,
 --                 and building maintenance.
@@ -37,6 +38,11 @@ include("CivVAccess_BaseTableCore")
 -- EO row reuses the same starving / stopped / "grows in N turns" wording the
 -- cursor / CityView already speak.
 include("CivVAccess_CitySpeech")
+-- CityStats.demandRow supplies the demand column's cell so the EO row
+-- reuses the demanded-resource / WLTKD wording (including the CP/VP
+-- unique-ability counters and the masked-demand form) that CityView's
+-- Stats list speaks.
+include("CivVAccess_CityStats")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -413,6 +419,43 @@ local function buildCityColumns()
                 return nil
             end
             return Text.key(key)
+        end,
+    }
+    -- Demand column: "n/a" before any demand cycle (the same sentinel the
+    -- Resources tab's Used column speaks), the demanded resource while one
+    -- is pending, the WLTKD turns remaining while the celebration runs.
+    -- Cell text comes from CityStats.demandRow so the wording (and its
+    -- CP/VP handling) matches CityView. The sort key derives from the same
+    -- visibility rule so it can never disagree with the cell: descending
+    -- sort leads with celebrating cities (by turns remaining), then
+    -- demanding cities, then the n/a rest.
+    cols[#cols + 1] = {
+        name = "TXT_KEY_CIVVACCESS_EO_COL_DEMAND",
+        getCell = function(c)
+            return CityStats.demandRow(c) or Text.key("TXT_KEY_CIVVACCESS_EO_RES_NA")
+        end,
+        sortKey = function(c)
+            if CityStats.demandRow(c) == nil then
+                return -1
+            end
+            local turns = c:GetWeLoveTheKingDayCounter()
+            if turns > 0 then
+                return turns
+            end
+            return 0
+        end,
+        enterAction = focusCity,
+        -- Ctrl+I: the demanded resource's article when one is visible,
+        -- the WLTKD concept otherwise.
+        pediaName = function(c)
+            local demanded = c:GetResourceDemanded(true)
+            if demanded ~= -1 then
+                local info = GameInfo.Resources[demanded]
+                if info ~= nil then
+                    return Text.key(info.Description)
+                end
+            end
+            return "TXT_KEY_RESOURCES_CITYREQUESTS_HEADING3_TITLE"
         end,
     }
     return cols

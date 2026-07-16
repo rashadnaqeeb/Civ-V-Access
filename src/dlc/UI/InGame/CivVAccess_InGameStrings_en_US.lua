@@ -2912,6 +2912,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_FAITH"] = "Faith"
 -- LekMod golden-age-points column (appears only on LekMod).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_GOLDEN_AGE"] = "Golden Age Points"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION"] = "Production"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_DEMAND"] = "Demand"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_CAPITAL"] = "capital"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_PUPPET"] = "puppet"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_ANNOT_OCCUPIED"] = "occupied"
