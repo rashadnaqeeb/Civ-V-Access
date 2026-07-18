@@ -3047,15 +3047,35 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Public opinion, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Per city breakdown"
--- VP balance-model rows of the happiness tab (the row set mirrors VP's
--- own overview page; rows shared with vanilla reuse the keys above).
+-- VP balance-model rows of the happiness tab (the row set mirrors the
+-- top panel's happiness tooltip; rows shared with vanilla reuse the
+-- keys above).
+-- Headline totals under the citizen-needs model: happy citizens over
+-- unhappy citizens is what the panel and the H key report; the vanilla
+-- "Total happiness / unhappiness" keys above serve the surplus model.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITIZENS"] = "Happy citizens, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_CITIZENS"] = "Unhappy citizens, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS"] = "Events, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS"] = "Vassals, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS"] = "Wars with major civilizations, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_IMPROVEMENTS"] = "Improvements, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_MILITARY_UNITS"] = "Military units, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_ANNEXED_CITY_STATES"] = "Annexed city-states, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS"] = "War weariness, {1_Value}"
--- Carries the summed per-city unhappiness the page shows next to its
--- City Breakdown toggle (it can differ from the empire unhappiness total).
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY_TOTAL"] = "Per city breakdown, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POPULATION"] = "Occupied city population, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUPPET_POPULATION"] = "Puppet city population, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_FAMINE"] = "Famine, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PILLAGED"] = "Pillaged tiles, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_ISOLATION"] = "Isolation, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_UNITS"] = "Units, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_DISTRESS"] = "Distress, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POVERTY"] = "Poverty, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_ILLITERACY"] = "Illiteracy, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_BOREDOM"] = "Boredom, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_RELIGIOUS_UNREST"] = "Religious unrest, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_SPECIALISTS"] = "Specialists, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUPPET_SPECIALISTS"] = "Puppet city specialists, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_BUILDINGS"] = "Buildings, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Available"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Used"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Local"

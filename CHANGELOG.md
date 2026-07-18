@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- The F2 Happiness tab under Vox Populi now reads the real happiness totals and source breakdowns instead of junk numbers.
+
 ## [2.2.0] - 2026-07-17
 
 New Features and improvements:

@@ -1311,18 +1311,24 @@ function M.test_resourceRowLabel_returns_localized_description()
 end
 
 -- VP-balance happiness tab items -----------------------------------------
--- The vp* builders mirror VP's HappinessInfo page. Tests script a player
--- with the VP getters and cities, then assert the row set, the labels,
--- and the drill-in-drill per-city breakdown children.
+-- The vp* builders mirror the top panel's happiness tooltip (the H key's
+-- row set). Tests script a player with the VP getters and cities, then
+-- assert the row set, the labels, and the drill-in-drill per-city
+-- breakdown children.
 
 -- City stub for the VP drills. Records the bIncludeMedian argument the
--- unhappiness breakdown is requested with.
+-- unhappiness breakdown is requested with, and serves a distinct
+-- local-only happiness value when the exclude-empire form
+-- GetLocalHappiness(0, true) is used.
 local function vpStubCity(opts)
     local c = {}
     function c:GetName()
         return opts.name
     end
-    function c:GetLocalHappiness()
+    function c:GetLocalHappiness(_popMod, excludeEmpire)
+        if excludeEmpire then
+            return opts.localOnly or 0
+        end
         return opts.localHappy or 0
     end
     function c:GetUnhappinessAggregated()
@@ -1356,6 +1362,18 @@ local function vpStubPlayer(opts)
     function p:GetEventHappiness()
         return opts.events or 0
     end
+    function p:GetHappinessFromImprovements()
+        return opts.improvements or 0
+    end
+    function p:GetHappinessFromMilitaryUnits()
+        return opts.militaryUnits or 0
+    end
+    function p:GetHappinessFromAnnexedMinors()
+        return opts.annexedMinors or 0
+    end
+    function p:GetEmpireHappinessFromCities()
+        return opts.empireFromCities or 0
+    end
     function p:GetHappinessFromVassals()
         return opts.vassals or 0
     end
@@ -1367,6 +1385,48 @@ local function vpStubPlayer(opts)
     end
     function p:GetUnhappinessFromWarWeariness()
         return opts.warWeariness or 0
+    end
+    function p:GetUnhappinessFromOccupiedCities()
+        return opts.occupiedPop or 0
+    end
+    function p:GetUnhappinessFromPuppetCityPopulation()
+        return opts.puppetPop or 0
+    end
+    function p:GetUnhappinessFromFamine()
+        return opts.famine or 0
+    end
+    function p:GetUnhappinessFromPillagedTiles()
+        return opts.pillaged or 0
+    end
+    function p:GetUnhappinessFromIsolation()
+        return opts.isolation or 0
+    end
+    function p:GetUnhappinessFromUnits()
+        return opts.unitUnhappy or 0
+    end
+    function p:GetUnhappinessFromDistress()
+        return opts.distress or 0
+    end
+    function p:GetUnhappinessFromPoverty()
+        return opts.poverty or 0
+    end
+    function p:GetUnhappinessFromIlliteracy()
+        return opts.illiteracy or 0
+    end
+    function p:GetUnhappinessFromBoredom()
+        return opts.boredom or 0
+    end
+    function p:GetUnhappinessFromReligiousUnrest()
+        return opts.religiousUnrest or 0
+    end
+    function p:GetUnhappinessFromCitySpecialists()
+        return opts.specialists or 0
+    end
+    function p:GetUnhappinessFromPuppetCitySpecialists()
+        return opts.puppetSpecialists or 0
+    end
+    function p:GetUnhappinessFromBuildings()
+        return opts.buildingUnhappy or 0
     end
     return p
 end
@@ -1386,7 +1446,7 @@ local function itemLabels(items)
     return out
 end
 
-function M.test_vpHappySourceItems_mirrors_vp_page_rows_in_order()
+function M.test_vpHappySourceItems_mirrors_top_panel_rows_in_order()
     setup()
     Game.GetActivePlayer = function()
         return 0
@@ -1395,32 +1455,39 @@ function M.test_vpHappySourceItems_mirrors_vp_page_rows_in_order()
         return false
     end
     local cities = {
-        vpStubCity({ name = "Alpha", localHappy = 3, happyBreakdown = "Base 1[NEWLINE]Luxury +2" }),
-        vpStubCity({ name = "Beta", localHappy = 2, happyBreakdown = "" }),
+        vpStubCity({ name = "Alpha", localOnly = 4 }),
+        vpStubCity({ name = "Beta", localOnly = 2 }),
     }
     Players[0] = vpStubPlayer({
         cities = cities,
-        fromTradeRoutes = 2,
-        handicap = 1,
         luxFlat = 10,
-        fromMinorCivs = 2,
-        events = 4,
-        fromReligion = 1,
-        fromNaturalWonders = 0,
+        fromNaturalWonders = 1,
+        improvements = 5,
+        fromReligion = 2,
         fromLeagues = 0,
+        events = 4,
+        militaryUnits = 3,
+        fromTradeRoutes = 2,
+        fromMinorCivs = 2,
+        annexedMinors = 0,
         vassals = 2,
         wars = 0,
+        handicap = 1,
+        empireFromCities = 6,
     })
     local labels = itemLabels(EconomicOverviewAccess.vpHappySourceItems())
-    T.eq(labels[1], "Trade routes, 2")
-    T.eq(labels[2], "City happiness, 5", "local-city header sums GetLocalHappiness")
-    T.eq(labels[3], "Difficulty level, 1")
-    T.eq(labels[4], "Luxuries, 10")
-    T.eq(labels[5], "City-states, 2")
-    T.eq(labels[6], "Events, 4")
-    T.eq(labels[7], "Religion, 1")
-    T.eq(labels[8], "Vassals, 2")
-    T.eq(labels[9], nil, "zero-valued conditional rows (wonders, leagues, wars) absent")
+    T.eq(labels[1], "Luxuries, 10")
+    T.eq(labels[2], "Natural wonders, 1")
+    T.eq(labels[3], "Improvements, 5")
+    T.eq(labels[4], "Religion, 2")
+    T.eq(labels[5], "Events, 4")
+    T.eq(labels[6], "Military units, 3")
+    T.eq(labels[7], "Trade routes, 2")
+    T.eq(labels[8], "City-states, 2")
+    T.eq(labels[9], "Vassals, 2")
+    T.eq(labels[10], "Difficulty level, 1")
+    T.eq(labels[11], "City happiness, 6", "local-city header reads GetEmpireHappinessFromCities")
+    T.eq(labels[12], nil, "zero-valued rows (leagues, annexed minors, wars) absent")
 end
 
 function M.test_vpHappySourceItems_city_rows_drill_into_breakdown_lines()
@@ -1432,13 +1499,13 @@ function M.test_vpHappySourceItems_city_rows_drill_into_breakdown_lines()
         return false
     end
     local cities = {
-        vpStubCity({ name = "Alpha", localHappy = 3, happyBreakdown = "Base 1[NEWLINE]Luxury +2" }),
+        vpStubCity({ name = "Alpha", localHappy = 9, localOnly = 3, happyBreakdown = "Base 1[NEWLINE]Luxury +2" }),
     }
-    Players[0] = vpStubPlayer({ cities = cities })
+    Players[0] = vpStubPlayer({ cities = cities, empireFromCities = 3 })
     local items = EconomicOverviewAccess.vpHappySourceItems()
-    -- items[1] is the local-city group (no trade-routes row at zero).
+    -- items[1] is the local-city group (every flat row is zero).
     local cityRows = items[1]._itemsFn()
-    T.eq(itemLabel(cityRows[1]), "Alpha, 3")
+    T.eq(itemLabel(cityRows[1]), "Alpha, 3", "city row shows the local-only amount, not the distributed total")
     T.eq(cityRows[1].kind, "group", "city row is itself drillable")
     local lines = cityRows[1]._itemsFn()
     T.eq(itemLabel(lines[1]), "Base 1")
@@ -1457,20 +1524,80 @@ function M.test_vpUnhappySourceItems_rows_and_median_form()
     local beta = vpStubCity({ name = "Beta", unhappyAgg = 3, unhappyBreakdown = "Boredom 3" })
     Players[0] = vpStubPlayer({
         cities = { alpha, beta },
-        publicOpinion = 3,
         warWeariness = 2,
+        publicOpinion = 3,
+        famine = 1,
+        distress = 4,
+        poverty = 1,
+        boredom = 3,
+        specialists = 2,
     })
     local items = EconomicOverviewAccess.vpUnhappySourceItems()
     local labels = itemLabels(items)
-    T.eq(labels[1], "Public opinion, 3")
-    T.eq(labels[2], "War weariness, 2")
-    T.eq(labels[3], "Per city breakdown, 7", "header carries the summed per-city unhappiness")
-    local cityRows = items[3]._itemsFn()
+    T.eq(labels[1], "War weariness, 2")
+    T.eq(labels[2], "Public opinion, 3")
+    T.eq(labels[3], "Famine, 1")
+    T.eq(labels[4], "Distress, 4")
+    T.eq(labels[5], "Poverty, 1")
+    T.eq(labels[6], "Boredom, 3")
+    T.eq(labels[7], "Specialists, 2")
+    T.eq(labels[8], "Per city breakdown")
+    T.eq(labels[9], nil, "zero-valued rows (occupied, puppets, isolation, etc.) absent")
+    local cityRows = items[8]._itemsFn()
     T.eq(itemLabel(cityRows[1]), "Alpha, 4")
     local lines = cityRows[1]._itemsFn()
     T.eq(itemLabel(lines[1]), "Distress 2")
     T.eq(itemLabel(lines[2]), "Poverty 2")
-    T.eq(alpha.medianArg, false, "page form: GetCityUnhappinessBreakdown(false)")
+    T.eq(alpha.medianArg, false, "panel form: GetCityUnhappinessBreakdown(false)")
+end
+
+-- Headline totals ---------------------------------------------------------
+-- Under VP balance the engine's GetHappiness / GetUnhappiness are internal
+-- buckets (the pre-distribution empire pool; public opinion plus war
+-- weariness); the headline pair is the citizen-needs sums from the seam's
+-- happinessSummary. The surplus model keeps the vanilla getters.
+
+-- Monkey-patch seam shared with the empire-status suite: run.lua loads
+-- the real vanilla EngineData once; tests swap happinessSummary and
+-- restore so later suites keep the genuine module.
+local function withHappinessSummary(summary, fn)
+    local saved = EngineData.happinessSummary
+    EngineData.happinessSummary = function()
+        return summary
+    end
+    local ok, err = pcall(fn)
+    EngineData.happinessSummary = saved
+    if not ok then
+        error(err, 0)
+    end
+end
+
+function M.test_happiness_totals_read_citizen_needs_under_approval()
+    setup()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    Players[0] = vpStubPlayer({ happiness = 99 })
+    withHappinessSummary({ mode = "approval", value = 61, happyCitizens = 40, unhappyCitizens = 25 }, function()
+        T.eq(EconomicOverviewAccess.happinessTotalLabel(), "Happy citizens, 40")
+        T.eq(EconomicOverviewAccess.unhappinessTotalLabel(), "Unhappy citizens, 25")
+    end)
+end
+
+function M.test_happiness_totals_keep_vanilla_getters_under_surplus()
+    setup()
+    Game.GetActivePlayer = function()
+        return 0
+    end
+    local p = vpStubPlayer({ happiness = 9 })
+    function p:GetUnhappiness()
+        return 4
+    end
+    Players[0] = p
+    withHappinessSummary({ mode = "surplus", value = 5, state = "happy" }, function()
+        T.eq(EconomicOverviewAccess.happinessTotalLabel(), "Total happiness, 9")
+        T.eq(EconomicOverviewAccess.unhappinessTotalLabel(), "Total unhappiness, 4")
+    end)
 end
 
 return M

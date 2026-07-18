@@ -1087,12 +1087,15 @@ local function occupiedCitizensUnhappinessTooltip()
 end
 
 -- ===== VP-balance happiness tab =====
--- Under the VP balance model the tab mirrors VP's own HappinessInfo page:
--- its row set, its visibility rules, and its per-city expandables. The
--- per-city rows are drillables whose children are the engine's prebuilt
--- per-city breakdown strings split per line (the same strings CityView's
--- Stats drillables use) -- the page shows them as hover tooltips, our
--- pattern is drill-in.
+-- Under the VP balance model the source groups mirror the top panel's
+-- happiness tooltip -- the same row set and order the H key detail
+-- speaks -- not VP's own HappinessInfo page, whose headline getters are
+-- internal buckets under the citizen-needs model (see the totals-label
+-- helpers below). Every empire-wide per-source sum shows when non-zero,
+-- matching the tooltip's hide rule. The per-city drillables reuse the
+-- engine's prebuilt per-city breakdown strings split per line (the same
+-- strings CityView's Stats drillables use) -- the panel shows them as
+-- hover tooltips, our pattern is drill-in.
 
 -- One drillable per owned city: label "name, amount", children the city's
 -- breakdown lines. City handles are held live and re-read per announce.
@@ -1137,18 +1140,40 @@ local function vpAmountRow(labelKey, amountFn, pediaName)
     })
 end
 
+-- Append a vpAmountRow gated on the tooltip's hide rule (zero rows are
+-- hidden). The gate reads once at group-open; the row value re-queries
+-- at announce time.
+local function vpAppendAmountRow(items, p, amountFn, labelKey, pediaName)
+    if amountFn(p) ~= 0 then
+        items[#items + 1] = vpAmountRow(labelKey, amountFn, pediaName)
+    end
+end
+
 local function vpHappySourceItems()
     local p = activePlayer()
-    -- Visibility predicates mirror the page's hide rules; row values are
-    -- re-queried inside each labelFn at announce time.
-    local tradeRoutes = p:GetHappinessFromTradeRoutes()
-    local naturalWonders = p:GetHappinessFromNaturalWonders()
-    local leagues = p:GetHappinessFromLeagues()
-    local vassals = p:GetHappinessFromVassals()
-    local wars = p:GetHappinessFromWarsWithMajors()
-
     local items = {}
-    if tradeRoutes ~= 0 then
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetBonusHappinessFromLuxuriesFlat()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURIES", "TXT_KEY_RESOURCES_LUXURY_HEADING2_TITLE")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromNaturalWonders()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromImprovements()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_IMPROVEMENTS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromReligion()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_RELIGION", "TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromLeagues()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_WORLD_CONGRESS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetEventHappiness()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromMilitaryUnits()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_MILITARY_UNITS")
+    if p:GetHappinessFromTradeRoutes() ~= 0 then
         items[#items + 1] = BaseMenuItems.Group({
             labelFn = function()
                 return Text.format(
@@ -1167,94 +1192,107 @@ local function vpHappySourceItems()
             end,
         })
     end
-    -- Local city happiness: the citizen-needs happy total, one drillable
-    -- city row each, drilling again into the city's breakdown lines.
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromMinorCivs()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES", "TXT_KEY_CITYSTATE_HEADING1_TITLE")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromAnnexedMinors()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_ANNEXED_CITY_STATES", "TXT_KEY_CITYSTATE_HEADING1_TITLE")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromVassals()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHappinessFromWarsWithMajors()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetHandicapHappiness()
+    end, "TXT_KEY_CIVVACCESS_EO_HAPPY_DIFFICULTY")
+    -- Local city happiness bucket, last as in the tooltip. The header is
+    -- the empire sum of city-local sources only (buildings, policies,
+    -- religion, capital handicap) -- the empire happiness distributed
+    -- into cities is excluded, since the sibling rows above already
+    -- attribute it; including it would double-count every luxury and
+    -- wonder inside this bucket. Per-city rows show the same local-only
+    -- amount; their breakdown children are the engine's per-city lines,
+    -- which carry the distributed empire share as an explicitly labeled
+    -- line of their own.
     items[#items + 1] = BaseMenuItems.Group({
         labelFn = function()
-            local sum = 0
-            for c in activePlayer():Cities() do
-                sum = sum + c:GetLocalHappiness()
-            end
-            return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES", sum)
+            return Text.format(
+                "TXT_KEY_CIVVACCESS_EO_HAPPY_GROUP_CITIES",
+                activePlayer():GetEmpireHappinessFromCities()
+            )
         end,
         cached = false,
         pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         itemsFn = function()
             return vpCityBreakdownEntries(function(c)
-                return c:GetLocalHappiness()
+                return c:GetLocalHappiness(0, true)
             end, function(c)
                 return c:GetCityHappinessBreakdown()
             end)
         end,
     })
-    items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_DIFFICULTY", function(pl)
-        return pl:GetHandicapHappiness()
-    end)
-    items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_LUXURIES", function(pl)
-        return pl:GetBonusHappinessFromLuxuriesFlat()
-    end, "TXT_KEY_RESOURCES_LUXURY_HEADING2_TITLE")
-    items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_CITY_STATES", function(pl)
-        return pl:GetHappinessFromMinorCivs()
-    end, "TXT_KEY_CITYSTATE_HEADING1_TITLE")
-    items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS", function(pl)
-        return pl:GetEventHappiness()
-    end)
-    if not Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_RELIGION", function(pl)
-            return pl:GetHappinessFromReligion()
-        end, "TXT_KEY_CONCEPT_RELIGION_FAITH_EARNING_DESCRIPTION")
-    end
-    if naturalWonders > 0 then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_NATURAL_WONDERS", function(pl)
-            return pl:GetHappinessFromNaturalWonders()
-        end)
-    end
-    if leagues ~= 0 then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_WORLD_CONGRESS", function(pl)
-            return pl:GetHappinessFromLeagues()
-        end)
-    end
-    if vassals ~= 0 then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS", function(pl)
-            return pl:GetHappinessFromVassals()
-        end)
-    end
-    if wars ~= 0 then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS", function(pl)
-            return pl:GetHappinessFromWarsWithMajors()
-        end)
-    end
     return items
 end
 
 local function vpUnhappySourceItems()
     local p = activePlayer()
-    local publicOpinion = p:GetUnhappinessFromPublicOpinion()
-    local warWeariness = p:GetUnhappinessFromWarWeariness()
-
     local items = {}
-    if publicOpinion ~= 0 then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION", function(pl)
-            return pl:GetUnhappinessFromPublicOpinion()
-        end, "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE")
-    end
-    if warWeariness ~= 0 then
-        items[#items + 1] = vpAmountRow("TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS", function(pl)
-            return pl:GetUnhappinessFromWarWeariness()
-        end)
-    end
-    -- Per-city breakdown: header carries the citizen-needs unhappy total
-    -- (the page shows it next to its City Breakdown toggle; it can differ
-    -- from the empire unhappiness row above). Children drill per city into
-    -- the breakdown lines; bIncludeMedian=false is the page's form.
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromWarWeariness()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromPublicOpinion()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION", "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromOccupiedCities()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POPULATION")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromPuppetCityPopulation()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUPPET_POPULATION")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromFamine()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_FAMINE")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromPillagedTiles()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_PILLAGED")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromIsolation()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_ISOLATION")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromUnits()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_UNITS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromDistress()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_DISTRESS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromPoverty()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_POVERTY")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromIlliteracy()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_ILLITERACY")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromBoredom()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_BOREDOM")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromReligiousUnrest()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_RELIGIOUS_UNREST")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromCitySpecialists()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_SPECIALISTS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromPuppetCitySpecialists()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUPPET_SPECIALISTS")
+    vpAppendAmountRow(items, p, function(pl)
+        return pl:GetUnhappinessFromBuildings()
+    end, "TXT_KEY_CIVVACCESS_EO_UNHAPPY_BUILDINGS")
+    -- Per-city breakdown last: one drillable row per city carrying its
+    -- aggregated unhappiness (the rows sum to the unhappy-citizens
+    -- headline), children the engine's breakdown lines;
+    -- bIncludeMedian=false is the panel's form.
     items[#items + 1] = BaseMenuItems.Group({
-        labelFn = function()
-            local sum = 0
-            for c in activePlayer():Cities() do
-                sum = sum + c:GetUnhappinessAggregated()
-            end
-            return Text.format("TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY_TOTAL", sum)
-        end,
+        labelText = Text.key("TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"),
         cached = false,
         itemsFn = function()
             return vpCityBreakdownEntries(function(c)
@@ -1267,19 +1305,42 @@ local function vpUnhappySourceItems()
     return items
 end
 
+-- Headline totals. Under VP balance the engine's GetHappiness /
+-- GetUnhappiness are internal buckets, not the headline pair: the first
+-- is the empire happiness pool before it is distributed into cities,
+-- the second only public opinion plus war weariness. The numbers the
+-- panel (and the H key) headline are the citizen-needs sums, surfaced
+-- through the seam's happinessSummary. The surplus model keeps the
+-- vanilla getters.
+local function happinessTotalLabel()
+    local p = activePlayer()
+    local s = EngineData.happinessSummary(p)
+    if s.mode == "approval" then
+        return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_CITIZENS", s.happyCitizens)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL", p:GetHappiness())
+end
+
+local function unhappinessTotalLabel()
+    local p = activePlayer()
+    local s = EngineData.happinessSummary(p)
+    if s.mode == "approval" then
+        return Text.format("TXT_KEY_CIVVACCESS_EO_UNHAPPY_CITIZENS", s.unhappyCitizens)
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL", p:GetUnhappiness())
+end
+
 -- Order mirrors HappinessInfo.lua: Luxuries (drillable, base sum at
 -- header) and its three sibling sub-rows (variety / per-luxury bonus /
 -- misc), then Local Cities / Buildings / Trade Routes drillables, then
 -- the flat sources ending with Difficulty Level. Each conditional row's
 -- visibility predicate matches the engine's hide rule for that row.
--- The VP balance model branches both source groups to the vp* builders
--- above (the totals rows read the same getters on both engines).
+-- The VP balance model branches the totals rows and both source groups
+-- to the vp* builders above.
 local function buildHappinessItems()
     return {
         BaseMenuItems.Text({
-            labelFn = function()
-                return Text.format("TXT_KEY_CIVVACCESS_EO_HAPPY_TOTAL", activePlayer():GetHappiness())
-            end,
+            labelFn = happinessTotalLabel,
             pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         }),
         BaseMenuItems.Group({
@@ -1515,9 +1576,7 @@ local function buildHappinessItems()
             end,
         }),
         BaseMenuItems.Text({
-            labelFn = function()
-                return Text.format("TXT_KEY_CIVVACCESS_EO_UNHAPPY_TOTAL", activePlayer():GetUnhappiness())
-            end,
+            labelFn = unhappinessTotalLabel,
             pediaName = "TXT_KEY_HAPPINESS_HEADING1_TITLE",
         }),
         BaseMenuItems.Group({
@@ -1838,6 +1897,8 @@ EconomicOverviewAccess.citizensUnhappinessTooltip = citizensUnhappinessTooltip
 EconomicOverviewAccess.occupiedCitizensUnhappinessTooltip = occupiedCitizensUnhappinessTooltip
 EconomicOverviewAccess.vpHappySourceItems = vpHappySourceItems
 EconomicOverviewAccess.vpUnhappySourceItems = vpUnhappySourceItems
+EconomicOverviewAccess.happinessTotalLabel = happinessTotalLabel
+EconomicOverviewAccess.unhappinessTotalLabel = unhappinessTotalLabel
 EconomicOverviewAccess.isStrategic = isStrategic
 EconomicOverviewAccess.isLuxOrStrategic = isLuxOrStrategic
 EconomicOverviewAccess.resourceLocal = resourceLocal
