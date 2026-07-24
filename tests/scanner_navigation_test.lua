@@ -804,4 +804,150 @@ function M.test_end_keeps_held_entry_out_of_arc()
     T.eq(#citiesAllItems(ScannerNav._snapshot()), 1, "the held entry survives a read-only probe")
 end
 
+-- ===== J/K/L flattened custom-category cycle =====
+
+-- Stub ScannerFavorites with a fixed def list (the shape
+-- customCategoryDefs returns); the model's own selector logic is covered
+-- in scanner_favorites_test.lua.
+local function customFlatSetup(defs)
+    setup()
+    ScannerFavorites = {
+        customCategoryDefs = function()
+            return defs
+        end,
+    }
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_EMPTY"] = "empty"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_NO_CUSTOM"] = "no custom category {1_Num}"
+    CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_INSTANCE_COUNT"] = "{1_Index} of {2_Total}"
+end
+
+local function unitsDef()
+    return {
+        key = "custom:1",
+        labelText = "Alpha",
+        selectors = { { cat = "units_my", sub = "all", label = "My Units" } },
+    }
+end
+
+local function currentInstancePlotX()
+    local ci, si, ii, ini = ScannerNav._indices()
+    return ScannerNav._snapshot().categories[ci].subcategories[si].items[ii].instances[ini].plotX
+end
+
+function M.test_custom_flat_entry_press_lands_on_closest_without_label()
+    customFlatSetup({ unitsDef() })
+    T.installMap({ mkPlot(1, 0, 0), mkPlot(2, 0, 1) })
+    _entries = {
+        mkEntry("units_my", "ranged", "Archer", 0, { key = "stub:archer" }),
+        mkEntry("units_my", "melee", "Warrior", 1, { key = "stub:warrior" }),
+    }
+    local out = ScannerNav.cycleCustomFlat(1, 1)
+    T.eq(out, "Archer. 1e. 1 of 2", "entry press lands on the closest entry, no category-name prefix, flat count")
+    local catIdx, subIdx = ScannerNav._indices()
+    T.eq(catIdx, 1, "custom category sorts first in the snapshot")
+    T.eq(subIdx, 1, "entry press lands on the `all` sub")
+end
+
+function M.test_custom_flat_steps_interleave_across_item_grouping()
+    -- Two Warriors (d=1 and d=3) grouped under one item, an Archer (d=2)
+    -- between them. The flat walk must visit W1, Archer, W2 -- an item
+    -- cycle would skip W2, an instance cycle would skip the Archer. The
+    -- spoken X of Y counts the flat walk, not the within-item instances.
+    customFlatSetup({ unitsDef() })
+    T.installMap({ mkPlot(1, 0, 0), mkPlot(2, 0, 1), mkPlot(3, 0, 2) })
+    _entries = {
+        mkEntry("units_my", "melee", "Warrior", 0, { key = "stub:w1" }),
+        mkEntry("units_my", "ranged", "Archer", 1, { key = "stub:a" }),
+        mkEntry("units_my", "melee", "Warrior", 2, { key = "stub:w2" }),
+    }
+    local out = ScannerNav.cycleCustomFlat(1, 1) -- entry press: W1 (closest)
+    T.eq(currentInstancePlotX(), 1, "entry press lands on W1")
+    T.truthy(out:find("1 of 3", 1, true), "flat numbering: W1 is walk position 1 of 3, got " .. out)
+    out = ScannerNav.cycleCustomFlat(1, 1)
+    T.eq(currentInstancePlotX(), 2, "first step reaches the Archer")
+    T.truthy(out:find("2 of 3", 1, true), "flat numbering: Archer is walk position 2 of 3, got " .. out)
+    out = ScannerNav.cycleCustomFlat(1, 1)
+    T.eq(currentInstancePlotX(), 3, "second step reaches the second Warrior, not a wrap to W1")
+    T.truthy(out:find("3 of 3", 1, true), "flat numbering: W2 is walk position 3, not instance 2 of 2, got " .. out)
+    ScannerNav.cycleCustomFlat(1, 1)
+    T.eq(currentInstancePlotX(), 1, "walk wraps from the last flat entry to the first")
+    ScannerNav.cycleCustomFlat(1, -1)
+    T.eq(currentInstancePlotX(), 3, "Shift steps backward, wrapping from first to last")
+end
+
+function M.test_custom_flat_cursor_move_restarts_at_nearest()
+    -- Once the cursor leaves the snapshot origin, the next press starts a
+    -- fresh sweep from the cursor rather than continuing the stale walk.
+    customFlatSetup({ unitsDef() })
+    T.installMap({ mkPlot(1, 0, 0), mkPlot(2, 0, 1), mkPlot(3, 0, 2) })
+    _entries = {
+        mkEntry("units_my", "melee", "Warrior", 0, { key = "stub:w1" }),
+        mkEntry("units_my", "ranged", "Archer", 1, { key = "stub:a" }),
+        mkEntry("units_my", "melee", "Warrior", 2, { key = "stub:w2" }),
+    }
+    ScannerNav.cycleCustomFlat(1, 1) -- W1
+    ScannerNav.cycleCustomFlat(1, 1) -- Archer
+    Cursor.position = function()
+        return 3, 0
+    end
+    local out = ScannerNav.cycleCustomFlat(1, 1)
+    T.eq(currentInstancePlotX(), 3, "restart lands on the entry nearest the moved cursor")
+    T.truthy(out:find("1 of 3", 1, true), "and the walk renumbers from the new origin, got " .. out)
+end
+
+function M.test_custom_flat_on_current_entry_hops_to_next_nearest()
+    -- Cursor parked on the current entry (Home / auto-move): the nearest
+    -- entry from there is the entry itself, so the press steps once in
+    -- the pressed direction instead of re-landing where the user already
+    -- is -- the nearest-neighbor hop.
+    customFlatSetup({ unitsDef() })
+    T.installMap({ mkPlot(1, 0, 0), mkPlot(2, 0, 1), mkPlot(3, 0, 2) })
+    _entries = {
+        mkEntry("units_my", "melee", "Warrior", 0, { key = "stub:w1" }),
+        mkEntry("units_my", "ranged", "Archer", 1, { key = "stub:a" }),
+        mkEntry("units_my", "melee", "Warrior", 2, { key = "stub:w2" }),
+    }
+    ScannerNav.cycleCustomFlat(1, 1) -- W1 at (1,0)
+    Cursor.position = function()
+        return 1, 0
+    end
+    local out = ScannerNav.cycleCustomFlat(1, 1)
+    T.eq(currentInstancePlotX(), 2, "hop skips the parked-on entry and lands on the next nearest")
+    T.truthy(out:find("2 of 3", 1, true), "spoken as walk position 2 in the re-anchored order, got " .. out)
+end
+
+function M.test_custom_flat_missing_slot_speaks_no_custom()
+    customFlatSetup({ unitsDef() })
+    T.installMap({ mkPlot(1, 0, 0) })
+    _entries = { mkEntry("units_my", "melee", "Warrior", 0, { key = "stub:w" }) }
+    T.eq(ScannerNav.cycleCustomFlat(2, 1), "no custom category 2")
+end
+
+function M.test_custom_flat_empty_category_speaks_empty()
+    customFlatSetup({ { key = "custom:1", labelText = "Alpha", selectors = {} } })
+    T.installMap({ mkPlot(1, 0, 0) })
+    _entries = { mkEntry("units_my", "melee", "Warrior", 0, { key = "stub:w" }) }
+    T.eq(ScannerNav.cycleCustomFlat(1, 1), "empty")
+end
+
+function M.test_custom_flat_from_named_sub_reenters_at_all_front()
+    -- The flat walk owns the `all` sub only. From a named sub of the same
+    -- category (reached via Shift+PageDown), a press is an entry press:
+    -- back to the front of `all`, not a flat walk of the named sub.
+    customFlatSetup({ unitsDef() })
+    T.installMap({ mkPlot(1, 0, 0), mkPlot(2, 0, 1) })
+    _entries = {
+        mkEntry("units_my", "ranged", "Archer", 0, { key = "stub:archer" }),
+        mkEntry("units_my", "melee", "Warrior", 1, { key = "stub:warrior" }),
+    }
+    ScannerNav.cycleCustomFlat(1, 1)
+    ScannerNav.cycleSubcategory(1) -- into the first named sub
+    local _, subIdx = ScannerNav._indices()
+    T.truthy(subIdx > 1, "precondition: on a named sub")
+    local out = ScannerNav.cycleCustomFlat(1, 1)
+    local _, subIdxAfter = ScannerNav._indices()
+    T.eq(subIdxAfter, 1, "press from a named sub re-enters the `all` sub")
+    T.truthy(out:find("1 of 2", 1, true), "and lands at the front of the flat walk, got " .. out)
+end
+
 return M

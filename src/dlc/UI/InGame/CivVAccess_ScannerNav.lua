@@ -739,6 +739,168 @@ function ScannerNav.cycleInstance(dir)
     return announceCurrent()
 end
 
+-- Flat traversal order for a sub: every instance of every item, sorted
+-- by distance from the snapshot origin, then sortKey, then plotIndex --
+-- the same comparator ScannerSnap sorts instances by within an item, so
+-- a flat walk visits entries in the exact order a per-item walk would if
+-- the item boundaries were erased. Returns { itemIdx, instIdx, inst }
+-- triples in that order.
+local function flattenSub(sub)
+    local flat = {}
+    for ii, item in ipairs(sub.items) do
+        for ini, inst in ipairs(item.instances) do
+            flat[#flat + 1] = { itemIdx = ii, instIdx = ini, inst = inst }
+        end
+    end
+    table.sort(flat, function(a, b)
+        if a.inst.distance ~= b.inst.distance then
+            return a.inst.distance < b.inst.distance
+        end
+        local ka = a.inst.entry.sortKey or 0
+        local kb = b.inst.entry.sortKey or 0
+        if ka ~= kb then
+            return ka < kb
+        end
+        return a.inst.entry.plotIndex < b.inst.entry.plotIndex
+    end)
+    return flat
+end
+
+-- Announce the current instance with flat numbering: its position in the
+-- flattened walk over `flat` and the walk's total, in place of the
+-- instance-within-item count the PageUp/Down cycles speak. The walk is
+-- what the user is stepping with the key, so the count follows the walk.
+local function announceFlat(flat, withGroupName)
+    local item = currentItem()
+    local inst = currentInstance()
+    if item == nil or inst == nil then
+        if MapHighlight ~= nil then
+            MapHighlight.clearScanner()
+        end
+        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
+    end
+    local pos = 0
+    for i, cell in ipairs(flat) do
+        if cell.inst == inst then
+            pos = i
+            break
+        end
+    end
+    fireDirectionBeep(inst.plotX, inst.plotY)
+    fireScannerHighlight(inst.plotX, inst.plotY)
+    return formatInstance(inst, pos, #flat, withGroupName and item.name or nil)
+end
+
+-- J / K / L: one-key cycle through the slot-th custom category (1-based,
+-- in the same name-sorted order the category cycle and the F12 settings
+-- list use). Each press steps through the category's `all` sub as one
+-- flattened instance list, nearest first, ignoring item grouping: a
+-- single key has no Alt-instance axis, so grouping two warriors under
+-- one item stop would strand the second one. A cursor away from the
+-- snapshot origin forces a restart -- the walk answers "nearest first
+-- from where I am", so once the cursor has moved (by hand, Home, or
+-- auto-move) the press re-anchors and begins a fresh sweep from the
+-- cursor. When the nearest entry is the one the user is already parked
+-- on, the restart steps once in the pressed direction instead -- the
+-- press asked for movement, and this is what turns an auto-move walk
+-- into a nearest-neighbor hop. Everything downstream (Home / End /
+-- Backspace, beep, auto-move, the announcement shape) is the shared
+-- scanner machinery; only the X of Y counts the flat walk.
+function ScannerNav.cycleCustomFlat(slot, dir)
+    local defs = ScannerFavorites ~= nil and ScannerFavorites.customCategoryDefs() or {}
+    local def = defs[slot]
+    if def == nil then
+        return Text.format("TXT_KEY_CIVVACCESS_SCANNER_NO_CUSTOM", slot)
+    end
+    -- Same escape hatch as cycleCategory: leave a frozen search snapshot
+    -- before navigating the real category list.
+    if isSearchSnapshot() then
+        _catIdx = _preSearchCatIdx or 1
+        _snapshot = nil
+    end
+    local atOrigin = false
+    if _snapshot ~= nil then
+        local cx, cy = Cursor.position()
+        atOrigin = cx == nil or (cx == _snapshot.cursorX and cy == _snapshot.cursorY)
+    end
+    local cat = currentCategory()
+    local continuing = atOrigin and cat ~= nil and cat.key == def.key and _subIdx == 1 and currentInstance() ~= nil
+    if continuing then
+        -- Identity-preserving rebuild, like the item / instance cycles.
+        rebuildAndLocate(true)
+        cat = currentCategory()
+        continuing = cat ~= nil and cat.key == def.key and _subIdx == 1
+    end
+    local prevItemIdx = _itemIdx
+    if continuing then
+        local flat = flattenSub(currentSub())
+        if #flat == 0 then
+            return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
+        end
+        local cur = currentInstance()
+        local pos = 0
+        for i, cell in ipairs(flat) do
+            if cell.inst == cur then
+                pos = i
+                break
+            end
+        end
+        -- pos 0 means the identity died across the rebuild
+        -- (rebuildAndLocate zeroed the indices): land on the flat
+        -- endpoint, same sentinel semantics as the item / instance cycles.
+        if pos == 0 then
+            pos = stepFromZero(dir, #flat)
+        else
+            pos = wrapIndex(pos, #flat, dir)
+        end
+        _itemIdx, _instIdx = flat[pos].itemIdx, flat[pos].instIdx
+    else
+        -- Entry press (scanner elsewhere or on a named sub) or restart
+        -- press (cursor left the origin): re-anchor to the live cursor
+        -- and land on the nearest entry.
+        local prevKey
+        local inst = currentInstance()
+        if inst ~= nil and cat ~= nil and cat.key == def.key then
+            prevKey = inst.key
+        end
+        rebuildFromCursor()
+        local idx = categoryIndexByKey(def.key)
+        if idx == nil then
+            Log.warn("ScannerNav.cycleCustomFlat: def '" .. tostring(def.key) .. "' missing from snapshot")
+            return Text.format("TXT_KEY_CIVVACCESS_SCANNER_NO_CUSTOM", slot)
+        end
+        _catIdx = idx
+        _subIdx = 1
+        prevItemIdx = 0
+        local flat = flattenSub(currentSub())
+        if #flat == 0 then
+            _itemIdx, _instIdx = 0, 0
+            return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
+        end
+        local pos = 1
+        -- Nearest is the entry the user is already on with the cursor
+        -- parked on it (distance 0 from the fresh origin, i.e. Home or
+        -- auto-move put the cursor there): step once in the pressed
+        -- direction instead of re-landing where the user already is.
+        if prevKey ~= nil and flat[1].inst.key == prevKey and flat[1].inst.distance == 0 and #flat > 1 then
+            pos = wrapIndex(1, #flat, dir)
+        end
+        _itemIdx, _instIdx = flat[pos].itemIdx, flat[pos].instIdx
+    end
+    ensureCurrentInstanceValid()
+    autoMoveIfEnabled()
+    -- Recompute the flat order after validation (a prune may have
+    -- reshaped the sub) so the spoken X of Y matches what the walk will
+    -- actually do next. Lead with the item name only when the press
+    -- crossed into a different item, matching the landing-vs-instance-
+    -- step convention.
+    local sub = currentSub()
+    if sub == nil then
+        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
+    end
+    return announceFlat(flattenSub(sub), _itemIdx ~= prevItemIdx)
+end
+
 -- Home: jump the cursor to the current entry's plot and speak the
 -- glance (same text Cursor.move produces after a directional step), or
 -- SCANNER_HERE when the cursor is already on the entry's plot. The

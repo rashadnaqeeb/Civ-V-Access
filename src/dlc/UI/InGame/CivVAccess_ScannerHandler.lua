@@ -43,6 +43,12 @@ local function call(entryPoint)
     end
 end
 
+local function customFlat(slot, dir)
+    return function()
+        speak(ScannerNav.cycleCustomFlat(slot, dir))
+    end
+end
+
 ScannerHandler.HELP_ENTRIES = {
     {
         keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_CATEGORY",
@@ -59,6 +65,10 @@ ScannerHandler.HELP_ENTRIES = {
     {
         keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_INSTANCE",
         description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_INSTANCE",
+    },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_CUSTOM_FLAT",
+        description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_CUSTOM_FLAT",
     },
     {
         keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_JUMP",
@@ -128,6 +138,17 @@ function ScannerHandler.create()
             -- Instance axis (innermost hierarchy level).
             bind(Keys.VK_NEXT, MOD_ALT, cycle(ScannerNav.cycleInstance, 1), "Next instance"),
             bind(Keys.VK_PRIOR, MOD_ALT, cycle(ScannerNav.cycleInstance, -1), "Previous instance"),
+            -- One-key flattened cycle through the first / second / third
+            -- custom category (Shift reverses). Engine K (embark mode /
+            -- Kasbah build) and L (build hotkeys) never fire in map mode
+            -- because Baseline's capturesAllInput wall sits below this
+            -- handler; J is unbound in every engine XML.
+            bind(Keys.J, MOD_NONE, customFlat(1, 1), "Next entry in custom category 1"),
+            bind(Keys.J, MOD_SHIFT, customFlat(1, -1), "Previous entry in custom category 1"),
+            bind(Keys.K, MOD_NONE, customFlat(2, 1), "Next entry in custom category 2"),
+            bind(Keys.K, MOD_SHIFT, customFlat(2, -1), "Previous entry in custom category 2"),
+            bind(Keys.L, MOD_NONE, customFlat(3, 1), "Next entry in custom category 3"),
+            bind(Keys.L, MOD_SHIFT, customFlat(3, -1), "Previous entry in custom category 3"),
             -- Single-purpose keys.
             bind(Keys.VK_HOME, MOD_NONE, call(ScannerNav.jumpToEntry), "Jump cursor to entry"),
             bind(Keys.VK_END, MOD_NONE, call(ScannerNav.distanceFromCursor), "Distance from cursor to entry"),
