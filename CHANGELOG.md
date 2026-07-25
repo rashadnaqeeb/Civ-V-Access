@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - Ctrl+N names the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
 - When exploration shows two named masses were one all along, the older name wins and the merge is announced once.
+- In the F2 city table, Production is now the last column, after Resource Demanded.
 
 ## [2.2.1] - 2026-07-25
 

@@ -616,14 +616,15 @@ end
 -- only what the EO column adds: placement, the empty-cell contract, the
 -- routing into demandRow, the sort ordering, and the pedia target.
 
-function M.test_demand_column_is_last_and_speaks_na_without_cycle()
+function M.test_demand_column_precedes_production_and_speaks_na_without_cycle()
     setup()
     Game.IsCustomModOption = nil -- vanilla branch in demandRow
     local cols = EconomicOverviewAccess.buildCityColumns()
-    T.eq(cols[#cols].name, "TXT_KEY_CIVVACCESS_EO_COL_DEMAND", "demand column sits last")
+    T.eq(cols[#cols].name, "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION", "production column sits last")
+    T.eq(cols[#cols - 1].name, "TXT_KEY_CIVVACCESS_EO_COL_DEMAND", "demand column sits second to last")
     -- Reuses the Resources tab's Used-column sentinel; the harness loads
     -- the en_US strings file, so the key resolves to the localized value.
-    T.eq(cols[#cols].getCell(stubCity({})), "n/a")
+    T.eq(cols[#cols - 1].getCell(stubCity({})), "n/a")
 end
 
 function M.test_demand_column_cell_routes_through_demandRow()

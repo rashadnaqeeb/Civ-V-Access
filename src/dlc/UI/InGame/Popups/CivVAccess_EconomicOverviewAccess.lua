@@ -3,10 +3,10 @@
 --
 --   Cities    -- BaseTable, one row per owned city (city name read as the
 --                 row label), columns for population, defensive strength,
---                 food, science, gold, culture, faith, production, demand
---                 (demanded resource / WLTKD counter; "n/a" before any
---                 cycle). Sortable on every column. Enter on the Production
---                 cell opens the city's Choose Production popup.
+--                 food, science, gold, culture, faith, demand (demanded
+--                 resource / WLTKD counter; "n/a" before any cycle), and
+--                 production. Sortable on every column. Enter on the
+--                 Production cell opens the city's Choose Production popup.
 --   Gold      -- BaseMenu list, treasury / income / expense breakdown with
 --                 expandable per-city sub-lists for cities, trade routes,
 --                 and building maintenance.
@@ -405,22 +405,6 @@ local function buildCityColumns()
             pediaName = constPedia("TXT_KEY_SPECIALISTSANDGP_GOLDENAGE_HEADING4_TITLE"),
         }
     end
-    cols[#cols + 1] = {
-        name = "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION",
-        getCell = productionColumnCell,
-        sortKey = cityProductionPerTurn,
-        enterAction = openChooseProduction,
-        -- Ctrl+I jumps to the queued building / unit / process article. The
-        -- production name key is what GetProductionNameKey returns directly;
-        -- localize for the lowercase pedia search index.
-        pediaName = function(c)
-            local key = c:GetProductionNameKey()
-            if key == nil or key == "" then
-                return nil
-            end
-            return Text.key(key)
-        end,
-    }
     -- Demand column: "n/a" before any demand cycle (the same sentinel the
     -- Resources tab's Used column speaks), the demanded resource while one
     -- is pending, the WLTKD turns remaining while the celebration runs.
@@ -456,6 +440,22 @@ local function buildCityColumns()
                 end
             end
             return "TXT_KEY_RESOURCES_CITYREQUESTS_HEADING3_TITLE"
+        end,
+    }
+    cols[#cols + 1] = {
+        name = "TXT_KEY_CIVVACCESS_EO_COL_PRODUCTION",
+        getCell = productionColumnCell,
+        sortKey = cityProductionPerTurn,
+        enterAction = openChooseProduction,
+        -- Ctrl+I jumps to the queued building / unit / process article. The
+        -- production name key is what GetProductionNameKey returns directly;
+        -- localize for the lowercase pedia search index.
+        pediaName = function(c)
+            local key = c:GetProductionNameKey()
+            if key == nil or key == "" then
+                return nil
+            end
+            return Text.key(key)
         end,
     }
     return cols
