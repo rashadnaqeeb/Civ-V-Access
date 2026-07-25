@@ -149,8 +149,12 @@ function ScannerHandler.create()
             bind(Keys.K, MOD_SHIFT, customFlat(2, -1), "Previous entry in custom category 2"),
             bind(Keys.L, MOD_NONE, customFlat(3, 1), "Next entry in custom category 3"),
             bind(Keys.L, MOD_SHIFT, customFlat(3, -1), "Previous entry in custom category 3"),
-            -- Single-purpose keys.
+            -- Single-purpose keys. M mirrors Home so the jump sits on the
+            -- home row next to the J/K/L custom cycle; engine M (Move mode,
+            -- Manufactory build) never fires in map mode behind Baseline's
+            -- wall, and the mod's Ctrl+M / Alt+M live on other chords.
             bind(Keys.VK_HOME, MOD_NONE, call(ScannerNav.jumpToEntry), "Jump cursor to entry"),
+            bind(Keys.M, MOD_NONE, call(ScannerNav.jumpToEntry), "Jump cursor to entry"),
             bind(Keys.VK_END, MOD_NONE, call(ScannerNav.distanceFromCursor), "Distance from cursor to entry"),
             bind(Keys.F, MOD_CTRL, call(ScannerNav.openSearch), "Search scanner entries"),
             bind(Keys.VK_BACK, MOD_NONE, call(ScannerNav.returnToPreJump), "Return to pre-jump cell"),
