@@ -12,9 +12,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
-- J, K, and L cycle through the first, second, and third custom scanner categories as one nearest-first list; Shift cycles backwards.
-- M jumps the cursor to the current scanner entry, same as Home.
-- New setting groups named units with unnamed units of their type in the scanner; Alt+PageUp/Down steps speak each one's name.
+- J, K, and L cycle through the first, second, and third custom scanner categories as one nearest-first list; Shift cycles backwards. Custom scanner categories are sorted alphabetically, which should help you properly place what you want on each key.
+- M jumps the cursor to the current scanner entry, same as Home, to allow working these new keys with one hand.
+- A new setting groups named units with unnamed units of their type in the scanner; for example a warrior named bob can be grouped with all other warriors rather than kept separate as it is today.
 
 Bug fixes:
 - The F2 Happiness tab under Vox Populi now reads the real happiness totals and source breakdowns instead of junk numbers.
