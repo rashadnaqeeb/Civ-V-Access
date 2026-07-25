@@ -16,6 +16,9 @@ New Features and improvements:
 - When exploration shows two named masses were one all along, the older name wins and the merge is announced once.
 - In the F2 city table, Production is now the last column, after Resource Demanded.
 
+Bug fixes:
+- The staging room player list now updates as soon as a player is kicked or disconnects.
+
 ## [2.2.1] - 2026-07-25
 
 New Features and improvements:

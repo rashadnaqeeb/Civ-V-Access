@@ -1261,6 +1261,18 @@ local function onDisconnect(playerID)
         key = "TXT_KEY_CIVVACCESS_STAGING_KICKED"
     end
     SpeechPipeline.speakQueued(Text.format(key, resolveNick(playerID)))
+    -- The engine does not reliably fire MultiplayerGamePlayerUpdated for a
+    -- kick / disconnect, and base's own disconnect handler refreshes only
+    -- its chat log and invite button -- so RefreshPlayerList may never run,
+    -- leaving the slot-instance playerID mapping and row visibility pre-kick
+    -- and the roster reading the departed player until the next unrelated
+    -- lobby event. MPList binds this same event to its full refresh; drive
+    -- base's update chain the same way, then resync the delta snapshot
+    -- (the leaver's own deltas are suppressed as usual).
+    if type(OnDisconnectOrPossiblyUpdate) == "function" then
+        OnDisconnectOrPossiblyUpdate()
+    end
+    refreshAndAnnounce()
 end
 
 -- Open the hot-join panel only when it is the LOCAL player joining in
