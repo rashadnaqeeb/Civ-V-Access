@@ -76,6 +76,26 @@ function BaseMenuEditMode.push(menu, textfieldItem)
         _editMode = true,
     }
 
+    -- Release engine keyboard focus on every removal path (commit, Esc,
+    -- drain, dead-env purge). Civ V drops focus only when the focused
+    -- control is hidden; popup-seated boxes hide with their Context, but
+    -- persistent boxes (ChatEntry, the off-screen WorldView rename fields)
+    -- otherwise keep focus after the sub pops -- later keystrokes keep
+    -- filling the typing buffer and a later native Enter re-fires the
+    -- screen's restored callback with that garbage. Hide to drop focus,
+    -- reshow next tick so visible boxes stay visible (the ChatAccess
+    -- pattern, seated here so every EditMode screen gets it).
+    sub.onDeactivate = function()
+        safe("focus release SetHide", function()
+            editBox:SetHide(true)
+        end)
+        TickPump.runOnce(function()
+            safe("focus release reshow", function()
+                editBox:SetHide(false)
+            end)
+        end)
+    end
+
     local function exit(restore)
         if restore then
             -- Restore via ClearString + SetText, deferred one tick. The
