@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-07-25
+
 New Features and improvements:
 - J, K, and L cycle through the first, second, and third custom scanner categories as one nearest-first list; Shift cycles backwards. Custom scanner categories are sorted alphabetically, which should help you properly place what you want on each key.
 - M jumps the cursor to the current scanner entry, same as Home, to allow working these new keys with one hand.
