@@ -148,7 +148,15 @@ end
 -- two same-type named units don't merge instances. GetNameKey returns
 -- only the type's text key regardless of m_strName (CvUnit.cpp:16758),
 -- so the personal name is read separately via HasName + GetNameNoDesc.
-local function unitItemName(unit, category)
+--
+-- With the F12 group-named-units toggle on, a named unit instead joins
+-- the same item as unnamed units of its type (itemName is the plain
+-- type form) and carries the personal name as instanceName, the second
+-- return value: three Warriors stay one item even when one is renamed,
+-- and instance steps speak the personal name where there is one. The
+-- personal name still matches Ctrl+F search and custom keywords via the
+-- generic instanceName alias.
+local function unitItemName(unit, category, groupNamed)
     local unitType = unit:GetUnitType()
     local row = GameInfo.Units[unitType]
     if row == nil or row.Description == nil then
@@ -180,6 +188,9 @@ local function unitItemName(unit, category)
             if typeForm == nil or typeForm == "" then
                 return personal
             end
+            if groupNamed then
+                return typeForm, personal
+            end
             return personal .. " (" .. typeForm .. ")"
         end
     end
@@ -209,6 +220,7 @@ end
 function ScannerBackendUnits.Scan(activePlayer, activeTeam)
     local out = {}
     local isDebug = Game.IsDebugMode()
+    local groupNamed = civvaccess_shared.scannerGroupNamedUnits == true
     for playerId = 0, MAX_PLAYER_INDEX do
         local player = Players[playerId]
         if player ~= nil and player:IsAlive() then
@@ -224,7 +236,7 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
                         else
                             subcategory = roleSubcategory(unit)
                         end
-                        local name = unitItemName(unit, category)
+                        local name, instanceName = unitItemName(unit, category, groupNamed)
                         if subcategory ~= nil and name ~= nil then
                             local unitId = unit:GetID()
                             out[#out + 1] = {
@@ -237,6 +249,7 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
                                 category = category,
                                 subcategory = subcategory,
                                 itemName = name,
+                                instanceName = instanceName,
                                 key = "units:" .. playerId .. ":" .. unitId,
                                 sortKey = 0,
                             }
@@ -274,8 +287,12 @@ function ScannerBackendUnits.ValidateEntry(entry, _cursorPlotIndex)
     return true
 end
 
+-- instanceName is the personal name of a named unit grouped under its
+-- type item (F12 toggle); ungrouped entries (toggle off, unnamed units)
+-- speak itemName. Both are captured at Scan time, which is fresh
+-- enough: every scanner keystroke rebuilds the snapshot from a new Scan.
 function ScannerBackendUnits.FormatName(entry)
-    return entry.itemName
+    return entry.instanceName or entry.itemName
 end
 
 ScannerCore.registerBackend(ScannerBackendUnits)

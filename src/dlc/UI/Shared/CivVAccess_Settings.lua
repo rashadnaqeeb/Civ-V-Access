@@ -259,6 +259,15 @@ local getScannerCompassDirection, setScannerCompassDirection =
 local getScannerGroupCities, setScannerGroupCities =
     defineBoolPref("scannerGroupCitiesByCiv", "ScannerGroupCitiesByCiv", false)
 
+-- Scanner group-named-units toggle. Off by default. When on, a named
+-- unit (Alt+N rename or a great-person pool name) collapses into the
+-- same scanner item as unnamed units of its type, and Alt+PageUp/Down
+-- steps reach it by its personal name. Off keeps each named unit as its
+-- own item. The backend reads the cache at Scan time, so toggling takes
+-- effect on the next scanner keystroke.
+local getScannerGroupNamedUnits, setScannerGroupNamedUnits =
+    defineBoolPref("scannerGroupNamedUnits", "ScannerGroupNamedUnits", false)
+
 -- Scanner directional-beep toggle. Off by default. When on, every scanner
 -- cycle (item, instance, subcategory, category, search land, End-key
 -- distance probe) fires a short beep whose pan / pitch / volume encode
@@ -696,6 +705,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_CITIES",
             getValue = getScannerGroupCities,
             setValue = setScannerGroupCities,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS",
+            getValue = getScannerGroupNamedUnits,
+            setValue = setScannerGroupNamedUnits,
         }),
         BaseMenuItems.VirtualToggle({
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP",

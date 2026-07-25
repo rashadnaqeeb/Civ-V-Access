@@ -1136,6 +1136,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_ENEMY_ADJACENT_WARN"] = "Warn wh
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COORDS"] = "Scanner shows coordinates"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] = "Scanner uses compass direction"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_CITIES"] = "Scanner groups cities by civilization"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS"] =
+    "Scanner groups named units with their type"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Scanner plays directional beep"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "Show only selected unit waypoints in scanner"

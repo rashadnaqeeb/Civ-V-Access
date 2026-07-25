@@ -44,9 +44,10 @@ local function setup()
     end
     GameInfo = {}
     GameInfoTypes = {}
-    -- Session-scoped toggle read by the cities backend; clear it so a
-    -- grouping test can't leak its flag into later tests.
+    -- Session-scoped toggles read by the cities / units backends; clear
+    -- them so a grouping test can't leak its flag into later tests.
     civvaccess_shared.scannerGroupCitiesByCiv = nil
+    civvaccess_shared.scannerGroupNamedUnits = nil
     Text = Text or {}
     Text.key = function(k)
         return k
@@ -395,6 +396,7 @@ function M.test_unit_named_unit_wraps_type_form_in_parens_for_own()
     local out = runUnitsScan()
     T.eq(#out, 1)
     T.eq(out[1].itemName, "Beowulf (Great General)", "personal name leads with type form in parens for own units")
+    T.eq(out[1].instanceName, nil, "toggle off: named unit is its own item, no grouping field")
 end
 
 function M.test_unit_named_unit_wraps_civ_typed_form_for_foreign()
@@ -430,6 +432,67 @@ function M.test_unit_named_unit_wraps_civ_typed_form_for_foreign()
         "Tomyris (Persian Great General)",
         "foreign named unit must wrap civ-prefixed type form in parens after the personal name"
     )
+end
+
+function M.test_unit_grouping_collapses_named_unit_into_type_item()
+    -- With the group-named-units toggle on, a named unit shares its
+    -- type's item identity (itemName is the plain type form, so it
+    -- merges with unnamed units of the type) and carries the personal
+    -- name as instanceName, which FormatName prefers so instance steps
+    -- speak "Beowulf" while unnamed siblings speak the type.
+    setup()
+    loadUnitsBackend()
+    civvaccess_shared.scannerGroupNamedUnits = true
+    GameInfo.UnitCombatInfos = {}
+    GameInfo.Units = { [42] = { Description = "Great General" } }
+    GameInfoTypes.SPECIALUNIT_PEOPLE = 1
+    local p1 = makePlotAt(0, 0, 0)
+    local p2 = makePlotAt(1, 0, 1)
+    local named = makeUnit({ id = 1, owner = 0, combat = false, specialUnit = 1, plot = p1, personalName = "Beowulf" })
+    local unnamed = makeUnit({ id = 2, owner = 0, combat = false, specialUnit = 1, plot = p2 })
+    installPlayer(0, { named, unnamed }, { team = 0 })
+    mapFromPlots({ p1, p2 })
+    local out = runUnitsScan()
+    T.eq(#out, 2)
+    T.eq(out[1].itemName, "Great General", "named unit takes the plain type form so it merges with unnamed units")
+    T.eq(out[2].itemName, "Great General")
+    T.eq(out[1].instanceName, "Beowulf", "named unit keeps its personal name as instanceName")
+    T.eq(out[2].instanceName, nil, "unnamed unit carries no instanceName")
+    T.eq(ScannerBackendUnits.FormatName(out[1]), "Beowulf", "instance step speaks the personal name")
+    T.eq(ScannerBackendUnits.FormatName(out[2]), "Great General")
+end
+
+function M.test_unit_grouping_keeps_civ_typed_form_for_foreign_named()
+    -- Foreign named units group under the civ-prefixed type form, so
+    -- Persian Great Generals still stay apart from other civs' while the
+    -- personal name moves to instanceName.
+    setup()
+    loadUnitsBackend()
+    civvaccess_shared.scannerGroupNamedUnits = true
+    GameInfo.UnitCombatInfos = {}
+    GameInfo.Units = { [42] = { Description = "Great General" } }
+    GameInfoTypes.SPECIALUNIT_PEOPLE = 1
+    Teams[0] = T.fakeTeam({ atWar = { [1] = true } })
+    local plot = makePlotAt(0, 0, 0)
+    installPlayer(0, {}, { team = 0 })
+    installPlayer(
+        1,
+        { makeUnit({ id = 1, owner = 1, combat = false, specialUnit = 1, plot = plot, personalName = "Tomyris" }) },
+        { team = 1, adjKey = "TXT_KEY_CIV_PERSIA_ADJECTIVE" }
+    )
+    mapFromPlots({ plot })
+    local origConvert = Locale.ConvertTextKey
+    Locale.ConvertTextKey = function(key)
+        if key == "TXT_KEY_CIV_PERSIA_ADJECTIVE" then
+            return "Persian"
+        end
+        return origConvert and origConvert(key) or key
+    end
+    local out = runUnitsScan()
+    Locale.ConvertTextKey = origConvert
+    T.eq(#out, 1)
+    T.eq(out[1].itemName, "Persian Great General", "foreign named unit groups under the civ-prefixed type form")
+    T.eq(out[1].instanceName, "Tomyris")
 end
 
 function M.test_unit_no_religion_keeps_bare_form()
