@@ -333,8 +333,12 @@ function PediaSearch.openInput(opts)
         control = opts.control,
         onChar = onChar,
         onCommit = function(query)
-            if query ~= "" then
-                onCommit(query)
+            -- Trim: the engine box accepts leading/trailing spaces the old
+            -- key capture never buffered, and an all-space query would
+            -- substring-match nearly every article.
+            local q = Text.trim(query)
+            if q ~= "" then
+                onCommit(q)
             end
         end,
     })
