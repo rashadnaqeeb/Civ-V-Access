@@ -277,13 +277,21 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
         return false
     end
 
+    -- Text-entry suspension for the overlay hooks below. While an edit
+    -- capture or BaseMenuEditMode sub is on top, Shift+? is the ? the user
+    -- is typing into the focused EditBox and F12 is just a key -- opening
+    -- an overlay mid-entry would stack it over the capture. The mute
+    -- toggle above stays live (it is a safety valve, not typeable text).
+    local editTop = HandlerStack.active()
+    local editing = editTop ~= nil and editTop._editMode == true
+
     -- Help overlay hotkey. Fires before the binding walk so every screen
     -- that routes through InputRouter gets ? help uniformly, without each
     -- handler having to bind it. Skips when Help is already on top. The VK
     -- that means '?' depends on the keyboard layout, so ask KeyLayout rather
     -- than hardcoding the US '/?' key. Matched on the raw keyCode (not the
     -- cluster remap) because '?' is a character, not a cluster position.
-    if keyCode == KeyLayout.questionKey() and modMask == MOD_SHIFT then
+    if not editing and keyCode == KeyLayout.questionKey() and modMask == MOD_SHIFT then
         local top = HandlerStack.active()
         if top == nil or top.name ~= "Help" then
             if Help ~= nil and type(Help.open) == "function" then
@@ -303,7 +311,7 @@ function InputRouter.dispatch(keyCode, modMask, msg, lp)
     -- can fire and toggle the overlay off, and when one of its sub-handlers
     -- ("Settings/ResetConfirm") is on top, where re-opening would stack a
     -- second overlay above a prompt the user hasn't answered.
-    if keyCode == VK_F12 and modMask == 0 then
+    if not editing and keyCode == VK_F12 and modMask == 0 then
         local top = HandlerStack.active()
         local inSettings = top ~= nil and (top.name == "Settings" or top.name:find("^Settings/") ~= nil)
         if not inSettings then

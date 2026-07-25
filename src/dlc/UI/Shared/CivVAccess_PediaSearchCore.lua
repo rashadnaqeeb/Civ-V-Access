@@ -10,10 +10,11 @@
 --     sliced -- test with truthiness, speak only strings.
 --   PediaSearch.sentenceAround(entry, qStart, qEnd) -> sentence or nil
 --     the slicer behind those values; public for the offline tests.
---   PediaSearch.createInput(opts) -> handler
---     modal text-capture handler (the ScannerInput pattern) pushed above
---     the pedia menu on Ctrl+F. opts.echoControl mirrors the buffer into
---     the pedia's visible search box; opts.onCommit(query) fires on Enter.
+--   PediaSearch.openInput(opts)
+--     modal text capture (EditCapture over the pedia Context's dedicated
+--     off-screen EditBox) pushed above the pedia menu on Ctrl+F.
+--     opts.echoControl mirrors the typed text into the pedia's visible
+--     search box; opts.onCommit(query) fires on Enter.
 --
 -- The engine's own pedia search is title-only, so body search has to
 -- source its corpus from the localization layer: for each article we
@@ -41,12 +42,6 @@
 PediaSearch = {}
 
 local corpus = nil
-
--- Non-letter typeable keys. Virtual-key codes because the Keys enum only
--- carries VK_ names for non-printable keys; hyphen and apostrophe appear
--- often enough in pedia prose ("city-state") to be worth accepting.
-local VK_OEM_MINUS = 0xBD
-local VK_OEM_APOSTROPHE = 0xDE
 
 -- One entry per GameInfo table the pedia draws articles from. keyCol is
 -- the column PopulateList indexes searchableTextKeyList by (the article's
@@ -317,98 +312,32 @@ function PediaSearch.match(query)
     return matchSet, count
 end
 
--- Modal query capture, pushed above the pedia menu on Ctrl+F. Printable
--- keystrokes append to an internal buffer silently (the user's screen
--- reader provides typing echo) and are mirrored into opts.echoControl so
--- a sighted partner watches the query land in the game's own search box.
--- Enter commits through opts.onCommit (which owns all result speech);
--- Enter on an empty buffer and Escape both just cancel. capturesAllInput
--- stops unconsumed keys from falling into the pedia menu's bindings
--- mid-query.
-function PediaSearch.createInput(opts)
+-- Modal query capture, pushed above the pedia menu on Ctrl+F: EditCapture
+-- over the pedia Context's dedicated off-screen EditBox (opts.control), so
+-- typed queries follow the player's keyboard layout; the screen reader
+-- provides typing echo. Each keystroke is mirrored into opts.echoControl
+-- so a sighted partner watches the query land in the game's own search
+-- box. Enter commits through opts.onCommit (which owns all result
+-- speech); Enter on an empty box and Escape both just cancel.
+function PediaSearch.openInput(opts)
     local echoControl = opts.echoControl
     local onCommit = opts.onCommit
-
-    local self = {
-        name = "PediaSearchInput",
-        capturesAllInput = true,
-        -- No bindings table: every key routes through handleSearchInput
-        -- so the modal capture is all in one place.
-        bindings = {},
-        helpEntries = {},
-        _buffer = "",
-    }
-
-    local function pop()
-        HandlerStack.removeByName("PediaSearchInput")
-    end
-
-    local function setBuffer(me, text)
-        me._buffer = text
-        if echoControl ~= nil then
+    local onChar = nil
+    if echoControl ~= nil then
+        onChar = function(text)
             echoControl:SetText(text)
         end
     end
-
-    local function charForVk(vk)
-        if vk >= 0x41 and vk <= 0x5A then
-            return string.char(vk + 32)
-        end
-        if vk >= 0x30 and vk <= 0x39 then
-            return string.char(vk)
-        end
-        if vk == VK_OEM_MINUS then
-            return "-"
-        end
-        if vk == VK_OEM_APOSTROPHE then
-            return "'"
-        end
-        return nil
-    end
-
-    function self.handleSearchInput(me, vk, mods)
-        -- Ctrl / Alt chords are hotkey territory, not typing. Falling
-        -- through lands them in the binding walk, where our empty
-        -- bindings table plus capturesAllInput swallows them.
-        local hasCtrl = math.floor(mods / 2) % 2 == 1
-        local hasAlt = math.floor(mods / 4) % 2 == 1
-        if hasCtrl or hasAlt then
-            return false
-        end
-        if vk == Keys.VK_RETURN then
-            local query = me._buffer
-            pop()
+    EditCapture.open({
+        name = "PediaSearchInput",
+        control = opts.control,
+        onChar = onChar,
+        onCommit = function(query)
             if query ~= "" then
                 onCommit(query)
             end
-            return true
-        end
-        if vk == Keys.VK_ESCAPE then
-            setBuffer(me, "")
-            pop()
-            return true
-        end
-        if vk == Keys.VK_BACK then
-            if #me._buffer > 0 then
-                setBuffer(me, string.sub(me._buffer, 1, -2))
-            end
-            return true
-        end
-        if vk == Keys.VK_SPACE then
-            if #me._buffer > 0 then
-                setBuffer(me, me._buffer .. " ")
-            end
-            return true
-        end
-        local ch = charForVk(vk)
-        if ch ~= nil then
-            setBuffer(me, me._buffer .. ch)
-            return true
-        end
-        return false
-    end
-
-    return self
+        end,
+    })
 end
 
 return PediaSearch

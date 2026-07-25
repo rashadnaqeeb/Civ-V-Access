@@ -57,7 +57,7 @@ local function setup()
     -- global another suite may have left set so rebuildSnapshot's guarded
     -- customCategoryDefs call short-circuits, regardless of suite order.
     ScannerFavorites = nil
-    -- Stubs for cursor and HandlerStack (Nav pushes ScannerInput in openSearch).
+    -- Stubs for cursor and HandlerStack (Nav opens ScannerInput in openSearch).
     Cursor = {
         _x = 0,
         _y = 0,
@@ -70,9 +70,7 @@ local function setup()
     }
     HandlerStack = { push = function() end, removeByName = function() end }
     ScannerInput = {
-        create = function()
-            return { name = "ScannerInput" }
-        end,
+        open = function() end,
     }
     Game.GetActivePlayer = function()
         return 0

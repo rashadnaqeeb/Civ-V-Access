@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by Anton Strenger (Firaxis Games) -->
 <Context>
+	<!-- Off-screen text-entry box for typed article search queries
+	     (Ctrl+F). The engine box is the character source so input
+	     follows the keyboard layout. Not Hidden (a hidden EditBox
+	     refuses focus); pushed off-screen so sighted players never
+	     see it. -->
+	<EditBox CallOnChar="1" EditMode="1" Size="2,2" Anchor="L,T" Offset="-200,-200" ID="CivVAccessPediaSearchEntry" Font="TwCenMT20" MaxLength="32" FocusStop="0"/>
 	<!--=======================================================================================================================-->
 	<!--    Instance of a list item  -->
 	<!--=======================================================================================================================-->

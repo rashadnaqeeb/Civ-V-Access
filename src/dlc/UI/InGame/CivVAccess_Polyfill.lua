@@ -43,6 +43,10 @@ Locale = Locale
         GetCurrentSpokenLanguage = function()
             return { Type = "en_US", DisplayName = "English (US)" }
         end,
+        -- ASCII-only stand-in for the engine's locale-aware lowering.
+        ToLower = function(s)
+            return string.lower(s or "")
+        end,
     }
 if Locale.Lookup == nil then
     Locale.Lookup = function(key)
@@ -57,6 +61,11 @@ end
 if Locale.GetCurrentSpokenLanguage == nil then
     Locale.GetCurrentSpokenLanguage = function()
         return { Type = "en_US", DisplayName = "English (US)" }
+    end
+end
+if Locale.ToLower == nil then
+    Locale.ToLower = function(s)
+        return string.lower(s or "")
     end
 end
 

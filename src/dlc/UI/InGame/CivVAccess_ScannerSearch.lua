@@ -32,7 +32,11 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
     if #trimmed == 0 then
         return nil
     end
-    local lowerQuery = string.lower(trimmed)
+    -- Locale.ToLower, not string.lower: queries arrive from an engine
+    -- EditBox in whatever case and script the keyboard layout produced,
+    -- and only the engine's lowering folds non-ASCII (Cyrillic, accented
+    -- Latin) so those match case-insensitively like ASCII does.
+    local lowerQuery = Locale.ToLower(trimmed)
 
     -- Build per-original-category buckets in taxonomy order so the sub
     -- order in the synthetic snapshot mirrors the normal scanner ordering
@@ -46,13 +50,13 @@ function ScannerSearch.build(entries, query, cursorX, cursorY)
 
     local matchCount = 0
     for _, entry in ipairs(entries) do
-        local tier = TypeAheadSearch.matchTier(string.lower(entry.itemName or ""), lowerQuery)
+        local tier = TypeAheadSearch.matchTier(Locale.ToLower(entry.itemName or ""), lowerQuery)
         -- instanceName is the per-entity alias of a grouped entry (the
         -- city under a civ-name item). The better of the two tiers drives
         -- the match, so searching a city name still finds the city when
         -- the group-by-civ toggle has moved it under its civ's item.
         if entry.instanceName ~= nil then
-            local aliasTier = TypeAheadSearch.matchTier(string.lower(entry.instanceName), lowerQuery)
+            local aliasTier = TypeAheadSearch.matchTier(Locale.ToLower(entry.instanceName), lowerQuery)
             if aliasTier >= 0 and (tier < 0 or aliasTier < tier) then
                 tier = aliasTier
             end

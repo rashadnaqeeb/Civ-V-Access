@@ -35,6 +35,7 @@ include("CivVAccess_BaseMenuTabs")
 include("CivVAccess_BaseMenuCore")
 include("CivVAccess_BaseMenuInstall")
 include("CivVAccess_BaseMenuEditMode")
+include("CivVAccess_EditCapture")
 include("CivVAccess_Help")
 include("CivVAccess_VolumeControl")
 include("CivVAccess_BeaconRange")
@@ -258,12 +259,13 @@ handler.bindings[#handler.bindings + 1] = {
         if Controls.SearchEditBox ~= nil then
             Controls.SearchEditBox:SetText("")
         end
-        HandlerStack.push(PediaSearch.createInput({
+        PediaSearch.openInput({
+            control = Controls.CivVAccessPediaSearchEntry,
             echoControl = Controls.SearchEditBox,
             onCommit = function(query)
                 applySearchQuery(handler, query)
             end,
-        }))
+        })
         SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_PEDIA_SEARCH_PROMPT"))
     end,
 }

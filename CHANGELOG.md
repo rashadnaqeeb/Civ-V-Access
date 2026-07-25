@@ -18,6 +18,8 @@ New Features and improvements:
 
 Bug fixes:
 - The staging room player list now updates as soon as a player is kicked or disconnects.
+- Typed search in the scanner and the Civilopedia with Ctrl+F now follows the keyboard layout, so accented and non-Latin characters work.
+- Typing into a text field no longer triggers the help or settings overlays.
 
 ## [2.2.1] - 2026-07-25
 

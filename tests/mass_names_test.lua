@@ -8,6 +8,9 @@ local T = require("support")
 local M = {}
 
 local spoken
+-- The off-screen entry box Ctrl+N focuses (a polyfill EditBox standing in
+-- for WorldView.xml's CivVAccessMassNameEntry).
+local massNameBox
 
 local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
@@ -18,6 +21,11 @@ local function setup()
     spoken = T.captureSpeech()
     dofile("src/dlc/UI/Shared/CivVAccess_HandlerStack.lua")
     HandlerStack._reset()
+    dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
+    TickPump._reset()
+    dofile("src/dlc/UI/Shared/CivVAccess_EditCapture.lua")
+    massNameBox = Polyfill.makeEditBox()
+    Controls = { CivVAccessMassNameEntry = massNameBox }
     dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     civvaccess_shared.messageBuffer = nil
     -- Reinstall a fresh in-memory user-data store on every setup (the
@@ -277,6 +285,18 @@ function M.test_open_rename_refuses_unexplored_and_lake_tiles()
     T.eq(HandlerStack.count(), 0, "no input handler pushed on refusal")
 end
 
+-- Run the capture handler's binding for a key (Enter commit / Escape
+-- cancel) the way InputRouter's binding walk would.
+local function press(handler, key)
+    for _, b in ipairs(handler.bindings) do
+        if b.key == key and (b.mods or 0) == 0 then
+            b.fn()
+            return
+        end
+    end
+    error("no binding for key " .. tostring(key))
+end
+
 function M.test_open_rename_prompts_captures_typing_and_commits()
     setup()
     world({ { x = 0, y = 0 }, { x = 1, y = 0 } })
@@ -286,25 +306,28 @@ function M.test_open_rename_prompts_captures_typing_and_commits()
             return 0, 0
         end,
     }
+    massNameBox:SetText("stale text from a prior capture")
     T.eq(MassNames.openRename(), "Name landmass, type and press Enter")
     local handler = HandlerStack.at(HandlerStack.count())
     T.eq(handler.name, "MassNameInput")
-    -- Type "hi 2" then Enter. Letters arrive as uppercase VKs and buffer
-    -- lowercase; leading space on an empty buffer is dropped.
-    handler.handleSearchInput(handler, Keys.VK_SPACE, 0)
-    handler.handleSearchInput(handler, Keys.H, 0)
-    handler.handleSearchInput(handler, Keys.I, 0)
-    handler.handleSearchInput(handler, Keys.VK_SPACE, 0)
-    handler.handleSearchInput(handler, Keys["2"], 0)
-    handler.handleSearchInput(handler, Keys.VK_RETURN, 0)
+    T.eq(massNameBox:GetText(), "", "open wipes the entry box")
+    TickPump.tick()
+    T.eq(massNameBox._hasFocus, true, "deferred TakeFocus ran")
+    -- The engine box carries whatever the keyboard layout produced;
+    -- surrounding whitespace is trimmed at commit.
+    massNameBox:SetText(" hi 2 ")
+    press(handler, Keys.VK_RETURN)
     T.eq(HandlerStack.count(), 0, "commit pops the input handler")
     T.eq(spoken[#spoken].text, "Named hi 2")
     T.eq(MassNames.resolve(1).name, "hi 2")
+    T.eq(massNameBox:IsHidden(), true, "close hides the box to drop engine focus")
+    TickPump.tick()
+    T.eq(massNameBox:IsHidden(), false, "box reshows one tick later")
     -- Re-open on the named mass: rename prompt, then Escape cancels.
     T.eq(MassNames.openRename(), "Rename hi 2, type and press Enter")
     handler = HandlerStack.at(HandlerStack.count())
-    handler.handleSearchInput(handler, Keys.X, 0)
-    handler.handleSearchInput(handler, Keys.VK_ESCAPE, 0)
+    massNameBox:SetText("x")
+    press(handler, Keys.VK_ESCAPE)
     T.eq(HandlerStack.count(), 0, "escape pops the input handler")
     T.eq(MassNames.resolve(1).name, "hi 2", "escape discards the typed text")
 end

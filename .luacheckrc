@@ -146,7 +146,7 @@ globals = {
     "Log", "Help", "Nav", "Icons", "StringsLoader",
     "PickerReader", "PullDownProbe", "TypeAheadSearch",
     "BaseMenu", "BaseMenuItems", "BaseMenuTabs", "BaseMenuHelp", "BaseMenuEditMode",
-    "BaseMenuNumberEntry",
+    "BaseMenuNumberEntry", "EditCapture",
     "BaseTable", "TabbedShell", "RewardReview",
     "CityStats",
     "DealLabel",

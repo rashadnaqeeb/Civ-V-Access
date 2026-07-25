@@ -377,71 +377,12 @@ function MassNames.setName(plotIndex, rawText)
     return Text.format("TXT_KEY_CIVVACCESS_MASS_NAMED", text)
 end
 
--- ===== Ctrl+N input capture =====
--- Modeled on ScannerInput: printable keystrokes buffer silently (the
--- screen reader provides typing echo), Enter commits, Escape cancels,
--- and an empty commit cancels like Escape. capturesAllInput keeps typed
--- letters out of Baseline's bindings for the duration.
-
-local function charForKey(vk)
-    if vk >= 0x41 and vk <= 0x5A then
-        return string.char(vk + 32)
-    end
-    if vk >= 0x30 and vk <= 0x39 then
-        return string.char(vk)
-    end
-    return nil
-end
-
-local function createInput(plotIndex)
-    local self = {
-        name = "MassNameInput",
-        capturesAllInput = true,
-        bindings = {},
-        helpEntries = {},
-        _buffer = "",
-    }
-
-    local function pop()
-        HandlerStack.removeByName("MassNameInput")
-    end
-
-    function self.handleSearchInput(me, vk, _mods)
-        if vk == Keys.VK_RETURN then
-            local text = me._buffer
-            pop()
-            local msg = MassNames.setName(plotIndex, text)
-            if msg ~= nil then
-                SpeechPipeline.speakInterrupt(msg)
-            end
-            return true
-        end
-        if vk == Keys.VK_ESCAPE then
-            pop()
-            return true
-        end
-        if vk == Keys.VK_BACK then
-            if #me._buffer > 0 then
-                me._buffer = string.sub(me._buffer, 1, -2)
-            end
-            return true
-        end
-        if vk == Keys.VK_SPACE then
-            if #me._buffer > 0 then
-                me._buffer = me._buffer .. " "
-            end
-            return true
-        end
-        local ch = charForKey(vk)
-        if ch ~= nil then
-            me._buffer = me._buffer .. ch
-            return true
-        end
-        return false
-    end
-
-    return self
-end
+-- ===== Ctrl+N text entry =====
+-- EditCapture over the dedicated off-screen WorldView EditBox
+-- (CivVAccessMassNameEntry), so typed names follow the player's keyboard
+-- layout. The screen reader provides typing echo; Enter commits, Escape
+-- cancels, and an empty commit cancels like Escape (setName returns nil
+-- on blank text, so nothing is spoken or saved).
 
 -- Ctrl+N entry point. Speaks the reason when the cursor tile has no
 -- nameable mass (unexplored, or a lake); otherwise pushes the input
@@ -462,7 +403,13 @@ function MassNames.openRename()
     end
     local idx = plot:GetPlotIndex()
     local rec = MassNames.resolve(idx)
-    HandlerStack.push(createInput(idx))
+    EditCapture.open({
+        name = "MassNameInput",
+        control = Controls.CivVAccessMassNameEntry,
+        onCommit = function(text)
+            return MassNames.setName(idx, text)
+        end,
+    })
     if rec ~= nil then
         return Text.format("TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT", rec.name)
     end

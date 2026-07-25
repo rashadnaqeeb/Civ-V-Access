@@ -44,9 +44,7 @@ local function setup()
     }
     HandlerStack = { push = function() end, removeByName = function() end }
     ScannerInput = {
-        create = function()
-            return {}
-        end,
+        open = function() end,
     }
     Game.GetActivePlayer = function()
         return 0

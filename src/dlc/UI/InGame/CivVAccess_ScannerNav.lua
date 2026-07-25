@@ -997,7 +997,7 @@ end
 -- commit time so an Escape (which never installs a search snapshot)
 -- leaves the anchor untouched.
 function ScannerNav.openSearch()
-    HandlerStack.push(ScannerInput.create())
+    ScannerInput.open()
     return Text.key("TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT")
 end
 
