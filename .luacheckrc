@@ -201,7 +201,7 @@ globals = {
     -- Squad layer (Community Patch / Vox Populi only).
     "SquadRoster", "SquadSpeech", "SquadFocusCore",
     "SquadMapMode", "SquadMoveMode", "SquadMenuCore",
-    "Bookmarks", "Waypoints",
+    "Bookmarks", "Waypoints", "MassNames",
     "MessageBuffer", "ChatBuffer", "CombatLog", "UnitMoveLog",
     "RevealAnnounce", "ForeignUnitSnapshot", "ForeignUnitWatch", "ForeignClearWatch",
     "HotseatCursor", "HotseatMessageBuffer", "MultiplayerTurnEnd",

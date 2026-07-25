@@ -299,5 +299,9 @@ T.register("trade_route_row", require("trade_route_row_test"))
 T.register("squad_roster", require("squad_roster_test"))
 T.register("squad_focus", require("squad_focus_test"))
 T.register("squad_speech", require("squad_speech_test"))
+-- Registered last: MassNames leaves module-level state (names, membership)
+-- behind, and the scanner / cursor suites that consult the MassNames global
+-- must see either the fresh copies their own setups dofile or nil.
+T.register("mass_names", require("mass_names_test"))
 
 os.exit(T.run() and 0 or 1)

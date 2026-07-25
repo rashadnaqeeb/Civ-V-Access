@@ -174,6 +174,11 @@ include("CivVAccess_MultiplayerTurnEnd")
 include("CivVAccess_MPEndTurnReminder")
 include("CivVAccess_ForeignUnitSnapshot")
 include("CivVAccess_RevealAnnounce")
+-- MassNames (player-named landmasses / oceans) rides the same fork reveal
+-- hook as RevealAnnounce and appends merge lines to MessageBuffer, so it
+-- loads after both. CursorCore and the geography backend reach it at
+-- speech time via the global.
+include("CivVAccess_MassNames")
 include("CivVAccess_ForeignUnitWatch")
 include("CivVAccess_ForeignClearWatch")
 include("CivVAccess_CombatLog")
@@ -383,6 +388,11 @@ local function onInGameBoot()
     MultiplayerTurnEnd.installListeners()
     MPEndTurnReminder.installListeners()
     RevealAnnounce.installListeners()
+    -- Hydrates this game's names and rebuilds the mass membership map from
+    -- the revealed set -- every load boundary invalidates the prior map
+    -- (an earlier save has fewer tiles revealed, another game a different
+    -- map), so this must run fresh here rather than trust survived state.
+    MassNames.installListeners()
     ForeignUnitWatch.installListeners()
     ForeignClearWatch.installListeners()
     CombatLog.installListeners()

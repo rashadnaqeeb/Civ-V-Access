@@ -26,6 +26,10 @@
 -- not the list order: the snapshot still sorts items by proximity to the
 -- cursor like every other scanner category.
 --
+-- Player-given names (CivVAccess_MassNames, Ctrl+N) replace the ordinal
+-- in the item label and readout for masses the player has named; the
+-- ordinal remains the label for unnamed masses and the stable fallback.
+--
 -- "Fully revealed": appended to a mass's readout when the player has
 -- charted every tile of the underlying engine area (revealed == total for
 -- the active team). This can only be true when nothing is hidden, so it
@@ -45,6 +49,23 @@ local MASS_FULLY_REVEALED_KEY = "TXT_KEY_CIVVACCESS_SCANNER_MASS_FULLY_REVEALED"
 -- kind -> (name key, subcategory). Iterated to emit both domains and read
 -- by FormatName to rebuild the localized name from the stored ordinal.
 local NAME_KEY = { landmass = LANDMASS_KEY, ocean = OCEAN_KEY }
+
+-- Player-given name for the mass containing plot index `idx`, or nil for
+-- an unnamed mass. MassNames maintains its own persistent clustering over
+-- the same revealed set with the same domain split, so any cell of one of
+-- this backend's clusters resolves to the same record. Nil-guarded for
+-- the offline harness's bare polyfill (suites that don't load MassNames
+-- keep the ordinal labels).
+local function userName(idx)
+    if MassNames == nil then
+        return nil
+    end
+    local rec = MassNames.resolve(idx)
+    if rec == nil then
+        return nil
+    end
+    return rec.name
+end
 
 local HEX_NEIGHBOR_DIRS = {
     DirectionTypes.DIRECTION_NORTHEAST,
@@ -211,7 +232,9 @@ local function emitClusters(out, uf, kind, subcategory, capX, capY, curX, curY)
             data = { kind = kind, cells = cluster.cells, ordinal = ordinal },
             category = "geography",
             subcategory = subcategory,
-            itemName = Text.format(NAME_KEY[kind], ordinal),
+            -- A player-named mass is listed under its name; the ordinal
+            -- label covers the unnamed rest.
+            itemName = userName(cluster.repIndex) or Text.format(NAME_KEY[kind], ordinal),
             key = "geography:" .. kind .. ":" .. cluster.minIndex,
             sortKey = 0,
         }
@@ -295,7 +318,7 @@ end
 
 function ScannerBackendGeography.FormatName(entry)
     local data = entry.data
-    local name = Text.format(NAME_KEY[data.kind], data.ordinal)
+    local name = userName(data.cells[1]) or Text.format(NAME_KEY[data.kind], data.ordinal)
     local count = #data.cells
     local body = Text.formatPlural(MASS_HEXES_KEY, count, name, count)
     if isFullyRevealed(data.cells) then

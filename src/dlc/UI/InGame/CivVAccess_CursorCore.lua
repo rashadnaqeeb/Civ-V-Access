@@ -18,6 +18,9 @@ local _x, _y = nil, nil
 -- announced identity rather than against a freshly-read (and now-changed)
 -- value that would match the new tile and silently suppress the prefix.
 local _lastOwnerIdentity = nil
+-- Same contract for the named-mass prefix: the retained value is "what
+-- the user last heard", which has no live source to re-query.
+local _lastMassIdentity = nil
 
 local function plotHere()
     if _x == nil then
@@ -86,6 +89,7 @@ function Cursor.init()
     end
     setCursor(target)
     _lastOwnerIdentity = nil
+    _lastMassIdentity = nil
 end
 
 -- ===== Targetability prefix =====
@@ -223,6 +227,25 @@ local function announceForMove(plot, prevPlot)
         _lastOwnerIdentity = identity
         ownerPrefix = spoken .. ". "
     end
+    -- Named-mass prefix: the same crossing diff for the player's own
+    -- landmass / ocean names (MassNames), separate from civ borders.
+    -- Every unnamed mass (and every lake) shares the one silent identity,
+    -- so nothing fires until the player has named something; leaving a
+    -- named mass is silent, and re-entering it re-fires the name. Like
+    -- the owner diff, untouched while unexplored (the early return above).
+    local massPrefix = ""
+    local massRec = MassNames.resolve(plot:GetPlotIndex())
+    local massIdentity = "none"
+    if massRec ~= nil then
+        massIdentity = "mass:" .. massRec.seq
+    end
+    if massIdentity ~= _lastMassIdentity then
+        _lastMassIdentity = massIdentity
+        if massRec ~= nil then
+            massPrefix = massRec.name .. ". "
+        end
+    end
+    ownerPrefix = ownerPrefix .. massPrefix
     -- Targetability tag fires every move while a ranged interface mode is
     -- active (no diff suppression -- the user needs to know where each tile
     -- stands, not just on changes). Composed before the owner-identity
@@ -566,4 +589,5 @@ end
 function Cursor._reset()
     _x, _y = nil, nil
     _lastOwnerIdentity = nil
+    _lastMassIdentity = nil
 end

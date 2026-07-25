@@ -126,6 +126,10 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA",
         description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA",
     },
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME",
+        description = "TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME",
+    },
 }
 
 local FUNCTION_KEY_HELP_ENTRIES = {
@@ -425,6 +429,16 @@ function BaselineHandler.create()
         bind(Keys.M, MOD_CTRL, function()
             LuaEvents.CivVAccessMapSettingsToggle()
         end, "Open map settings"),
+        -- Name the landmass / ocean under the cursor (MassNames). Engine's
+        -- plain N is Mine (worker build) and Nuke (interface mode); no
+        -- engine XML binds Ctrl+N, and Baseline's letter wall swallows the
+        -- chord regardless. Sits next to Alt+N (rename unit) so the two
+        -- rename chords share a mnemonic. openRename speaks the refusal
+        -- itself (unexplored tile, lake) or pushes the typed-input handler
+        -- and returns the prompt.
+        bind(Keys.N, MOD_CTRL, function()
+            speak(MassNames.openRename())
+        end, "Name landmass or ocean"),
     }
 
     -- Events Overview (Vox Populi only). The screen is a Community Patch

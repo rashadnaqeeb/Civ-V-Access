@@ -10,6 +10,8 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionUnits.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotSectionRiver.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
+    -- MassNames backs the glance's named-mass prefix (see cursor_test).
+    dofile("src/dlc/UI/InGame/CivVAccess_MassNames.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_CursorCore.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_SurveyorStrings_en_US.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_SurveyorCore.lua")

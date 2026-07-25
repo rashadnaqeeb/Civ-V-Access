@@ -803,6 +803,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "no capital"
 -- Modified-offset coordinate, capital-relative. {1_X} can be a half-integer
 -- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] = "Name landmass, type and press Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "Name ocean, type and press Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "Rename {1_Name}, type and press Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "Named {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "no landmass or ocean here"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired} is part of {2_Kept}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     one = "{1_Moves} move",
     other = "{1_Moves} moves",
@@ -903,6 +916,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Control plus I
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Open Civilopedia for everything at the cursor's tile (units, world wonders, improvement, resource, feature, river, lake, terrain, hills, mountain, route)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articles at tile"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Control plus N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "Name the landmass or ocean at the cursor's tile; the name is spoken when the cursor crosses onto the mass and in the scanner's geography category"
 -- City-info speech tokens. Four keys (1 identity + combat, 2 development
 -- or city-state influence, 3 religion breakdown, 4 diplomatic notes);
 -- shape mirrors the BNW CityBannerManager per-ownership tier. Unmet

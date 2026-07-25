@@ -22,6 +22,10 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_PlotComposers.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_AudioCueMode.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_PlotAudio.lua")
+    -- MassNames is referenced by the glance's named-mass prefix. Loaded
+    -- fresh (empty membership, no names) so the prefix stays silent in
+    -- glance tests; the mass_names suite owns the named cases.
+    dofile("src/dlc/UI/InGame/CivVAccess_MassNames.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_CursorCore.lua")
     -- Cursor.activate delegates through CursorActivate.run; without the
     -- module loaded the activate-branch tests would hit a nil global.
