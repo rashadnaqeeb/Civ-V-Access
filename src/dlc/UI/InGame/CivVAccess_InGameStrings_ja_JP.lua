@@ -405,6 +405,21 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "見えない"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "首都"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "首都なし"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] =
+    "陸塊に名前を付ける。入力してEnterで確定"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] =
+    "海域に名前を付ける。入力してEnterで確定"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "{1_Name}の名前を変更。入力してEnterで確定"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "{1_Name}と命名"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "ここに陸塊も海域もなし"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired}は{2_Kept}の一部"
 
 -- Move cost
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
@@ -478,6 +493,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Control + I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "カーソルのマスにある全項目のシビロペディアを開く (ユニット, 世界遺産, 改善, 資源, 地物, 川, 湖, 地形, 丘陵, 山岳, 道路)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "マスの記事"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Control + N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "カーソルのマスにある陸塊または海域に名前を付ける。名前はカーソルがその陸塊・海域に入ったときと、スキャナーの地形カテゴリで読み上げられる"
 
 -- City identity tokens
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "未接触"

@@ -406,6 +406,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "niewidoczne"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "stolica"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "brak stolicy"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] = "Nazwij obszar lądowy, wpisz i naciśnij Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "Nazwij ocean, wpisz i naciśnij Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "Zmień nazwę {1_Name}, wpisz i naciśnij Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "Nazwano: {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "brak obszaru lądowego lub oceanu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired} to część {2_Kept}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     one = "{1_Moves} ruch",
     few = "{1_Moves} ruchy",
@@ -474,6 +487,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Control plus I
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Otwórz Cywilipedię dla wszystkich elementów na polu kursora (jednostki, cuda świata, ulepszenia, zasoby, cechy terenu, rzeka, jezioro, teren, wzgórza, góra, szlak)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Artykuły na polu"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Control plus N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "Nazwij obszar lądowy lub ocean na polu kursora; nazwa jest odczytywana, gdy kursor wchodzi na ten obszar, oraz w kategorii Geografia skanera"
 -- City-info speech tokens.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "nieznane"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAN_ATTACK"] = "można atakować"

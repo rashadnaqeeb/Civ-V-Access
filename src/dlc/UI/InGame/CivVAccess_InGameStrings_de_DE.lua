@@ -480,6 +480,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "keine Hauptstadt"
 
 -- ===== Coordinate and movement =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] = "Landmasse benennen, tippen und Eingabetaste drücken"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "Ozean benennen, tippen und Eingabetaste drücken"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "{1_Name} umbenennen, tippen und Eingabetaste drücken"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "Benannt: {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "weder Landmasse noch Ozean hier"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired} ist Teil von {2_Kept}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     one = "{1_Moves} Bewegungspunkt",
     other = "{1_Moves} Bewegungspunkte",
@@ -560,6 +573,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Strg plus I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Civilopedia für alles auf dem Geländefeld des Cursors öffnen (Einheiten, Weltwunder, Modernisierung, Ressource, Geländemerkmal, Fluss, See, Gelände, Hügel, Berg, Route)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Artikel zum Geländefeld"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Strg plus N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "Landmasse oder Ozean auf dem Cursorfeld benennen; der Name wird angesagt, wenn der Cursor die Masse betritt, und in der Kategorie Geographie des Scanners"
 
 -- ===== City info tokens =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "unbekannt"

@@ -590,6 +590,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "pas de capitale"
 -- Modified-offset coordinate, capital-relative. {1_X} can be a half-integer
 -- (NE / NW / SE / SW steps land on .5); {2_Y} is always an integer.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] =
+    "Nommer la masse terrestre, tapez puis appuyez sur Entrée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "Nommer l'océan, tapez puis appuyez sur Entrée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "Renommer {1_Name}, tapez puis appuyez sur Entrée"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "Nom enregistré : {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "pas de masse terrestre ni d'océan ici"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired} fait partie de {2_Kept}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     one = "{1_Moves} mouvement",
     other = "{1_Moves} mouvements",
@@ -677,6 +691,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Contrôle plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Ouvrir la Civilopédia pour tout ce qui se trouve sur la case du curseur (unités, merveilles du monde, amélioration, ressource, caractéristique, fleuve, lac, terrain, collines, montagne, route)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articles sur la case"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Contrôle plus N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "Nommer la masse terrestre ou l'océan sur la case du curseur ; le nom est annoncé quand le curseur entre sur la masse et dans la catégorie Géographie du scanner"
 -- City-info speech tokens. Four keys (1 identity + combat, 2 development
 -- or city-state influence, 3 religion breakdown, 4 diplomatic notes);
 -- shape mirrors the BNW CityBannerManager per-ownership tier. Unmet

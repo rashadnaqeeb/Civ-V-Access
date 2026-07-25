@@ -365,6 +365,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "시야 밖"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "수도"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "수도 없음"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] = "육지 이름 지정, 입력 후 Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "바다 이름 지정, 입력 후 Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "{1_Name} 이름 변경, 입력 후 Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "이름 지정됨: {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "육지나 바다 없음"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired}, {2_Kept}의 일부"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     other = "{1_Moves} 이동력",
 }
@@ -429,6 +442,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Ctrl+I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "커서 위치의 항목 문명 백과 열기 (유닛, 불가사의, 개선, 자원, 특징, 강, 호수, 지형, 구릉, 산, 경로)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "타일 항목"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Ctrl+N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "커서 타일의 육지 또는 바다에 이름을 지정합니다. 이름은 커서가 해당 지역에 들어갈 때와 스캐너 지리 카테고리에서 읽어 줍니다"
 -- City-info speech tokens.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "미접촉"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAN_ATTACK"] = "공격 가능"

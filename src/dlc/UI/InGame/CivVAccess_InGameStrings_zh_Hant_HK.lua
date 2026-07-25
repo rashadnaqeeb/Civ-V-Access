@@ -350,6 +350,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "未看見"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "首都"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "無首都"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] = "命名陸塊，輸入後按Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "命名海洋，輸入後按Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "重新命名{1_Name}，輸入後按Enter"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "已命名為{1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "此處無陸塊或海洋"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired}是{2_Kept}的一部分"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     other = "{1_Moves} 行動力",
 }
@@ -415,6 +428,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Control 加 I"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "開啟游標所在格上所有項目的百科全書 (單位, 世界奇蹟, 改良設施, 資源, 地貌, 河流, 湖泊, 地形, 丘陵, 山脈, 道路)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "此格文章"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Control 加 N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "為游標所在格的陸塊或海洋命名；游標進入該陸塊或海洋時會讀出名稱，掃描器的地理類別中也會使用"
 -- City-info speech tokens
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "未接觸"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAN_ATTACK"] = "可攻擊"

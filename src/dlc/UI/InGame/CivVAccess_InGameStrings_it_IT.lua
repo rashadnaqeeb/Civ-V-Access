@@ -394,6 +394,19 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TARGET_UNSEEN"] = "fuori visuale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_AT_CAPITAL"] = "capitale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NO_CAPITAL"] = "nessuna capitale"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_COORDINATE"] = "{1_X}, {2_Y}"
+-- Mass naming (Ctrl+N). The prompt names what is being named so the user
+-- knows which mass the typed text will land on; the rename prompt leads
+-- with the current name for the same reason. MASS_NONE covers the one
+-- tile state with no nameable mass (a lake -- lakes read as terrain, not
+-- as bodies of water). MASS_MERGED is the one-time line when revealing a
+-- connector shows two named masses were one all along; the older name
+-- wins, so the retired name leads and the kept name follows.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_LAND"] = "Nomina la massa terrestre, digita e premi Invio"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAME_PROMPT_OCEAN"] = "Nomina l'oceano, digita e premi Invio"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_RENAME_PROMPT"] = "Rinomina {1_Name}, digita e premi Invio"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NAMED"] = "Nome salvato: {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_NONE"] = "nessuna massa terrestre o oceano qui"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MASS_MERGED"] = "{1_Retired} fa parte di {2_Kept}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MOVES_COST"] = {
     one = "{1_Moves} mossa",
     other = "{1_Moves} mosse",
@@ -459,6 +472,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_PEDIA"] = "Control più I
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_PEDIA"] =
     "Apre la Civilopedia per tutto nella casella del cursore (unità, meraviglie del mondo, miglioria, risorsa, caratteristica, fiume, lago, terreno, colline, montagna, percorso)"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_PEDIA_MENU_NAME"] = "Articoli nella casella"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_KEY_MASS_NAME"] = "Control più N"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_CURSOR_HELP_DESC_MASS_NAME"] =
+    "Nomina la massa terrestre o l'oceano sulla casella del cursore; il nome viene annunciato quando il cursore entra nella massa e nella categoria Geografia dello scanner"
 -- ===== City info tokens =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_UNMET"] = "non incontrata"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_CAN_ATTACK"] = "attaccabile"
