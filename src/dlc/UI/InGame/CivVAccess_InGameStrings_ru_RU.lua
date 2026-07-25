@@ -829,6 +829,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_COMPASS_DIRECTION"] =
     "Сканер использует компасное направление"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_CITIES"] =
     "Сканер группирует города по цивилизациям"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS"] =
+    "Сканер группирует именованные юниты с их типом"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] =
     "Сканер воспроизводит направленный сигнал"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
@@ -2307,13 +2309,36 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POP"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUBLIC_OPINION"] = "Общественное мнение, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY"] = "Разбивка по городам"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_CITIZENS"] = "Счастливые жители, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_CITIZENS"] = "Недовольные жители, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_COL_UNHAPPINESS"] = "Недовольство"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_EVENTS"] = "События, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_VASSALS"] = "Вассалы, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_WARS_MAJORS"] =
     "Войны с крупными цивилизациями, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_IMPROVEMENTS"] = "Улучшения, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_MILITARY_UNITS"] = "Военные юниты, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_HAPPY_ANNEXED_CITY_STATES"] =
+    "Аннексированные города-государства, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_WAR_WEARINESS"] = "Военная усталость, {1_Value}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PER_CITY_TOTAL"] = "Разбивка по городам, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_OCCUPIED_POPULATION"] =
+    "Население оккупированных городов, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUPPET_POPULATION"] =
+    "Население городов-сателлитов, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_FAMINE"] = "Голод, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PILLAGED"] = "Разграбленные клетки, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_ISOLATION"] = "Изоляция, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_UNITS"] = "Юниты, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_DISTRESS"] = "Бедствие, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_POVERTY"] = "Бедность, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_ILLITERACY"] = "Неграмотность, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_BOREDOM"] = "Скука, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_RELIGIOUS_UNREST"] =
+    "Религиозные волнения, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_SPECIALISTS"] = "Специалисты, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_PUPPET_SPECIALISTS"] =
+    "Специалисты городов-сателлитов, {1_Value}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_UNHAPPY_BUILDINGS"] = "Здания, {1_Value}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_AVAILABLE"] = "Доступно"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_USED"] = "Использовано"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_EO_RES_LOCAL"] = "Местные"
