@@ -12,11 +12,13 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Vox Populi and Community Patch support now tracks Vox Populi 5.4.2.
 - Ctrl+N names the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
 - When exploration shows two named masses were one all along, the older name wins and the merge is announced once.
 - In the F2 city table, Production is now the last column, after Resource Demanded.
 
 Bug fixes:
+- Shift+R no longer lists a City-State science bonus that was a percentage, not per-turn science.
 - The staging room player list now updates as soon as a player is kicked or disconnects.
 - Typed search in the scanner and the Civilopedia with Ctrl+F now follows the keyboard layout, so accented and non-Latin characters work.
 - Typing into a text field no longer triggers the help or settings overlays.

@@ -12,7 +12,7 @@ Two checks, both must pass:
 
   1. va_start: find the DllMain startup CUSTOMLOG format string in .rdata,
      locate the code referencing it, and report whether the call site pushes
-     the real variadic arguments (the version number 150 / 0x96 is the
+     the real variadic arguments (the version number 151 / 0x97 is the
      telltale) or synthesizes a bogus va_list.
   2. Port markers: distinctive string literals our overlay bakes in (CivVAccess
      LuaEvent hook names plus our added Lua method names) must be present, so a
@@ -25,7 +25,7 @@ the DLL to dist/engine-vp:
 
     py tools/vp_dll_canary.py <path-to-CvGameCore_Expansion2.dll>
 
-Needs the pefile package and llvm-objdump. The mod-version immediate (0x96)
+Needs the pefile package and llvm-objdump. The mod-version immediate (0x97)
 tracks upstream's MOD_DLL_VERSION_NUMBER; if a re-pin changes that number,
 update VERSION_IMM below.
 """
@@ -33,7 +33,7 @@ import subprocess, sys
 import pefile
 
 OBJDUMP = r'C:\Program Files\LLVM\bin\llvm-objdump.exe'
-VERSION_IMM = '$0x96'  # MOD_DLL_VERSION_NUMBER (150) as it appears in the disassembly
+VERSION_IMM = '$0x97'  # MOD_DLL_VERSION_NUMBER (151) as it appears in the disassembly
 
 # Distinctive string literals our fork bakes in: CivVAccess LuaEvent hook names
 # and the Lua method names our bindings register (Method(X) emits "X"). A few

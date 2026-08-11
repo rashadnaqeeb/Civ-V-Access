@@ -1028,6 +1028,19 @@ function EngineData.buildingInvested(city, buildingID)
     return city:GetBuildingInvestment(buildingID) > 0
 end
 
+-- Drift reads: the percent each city adds to the running tech / policy cost.
+-- The bindings already divide the times-100 world data and already fold in the
+-- active player's per-city tech modifier / policy-cost discount, so the value
+-- is returned as-is -- fractional where the world data is (3.75 on Large).
+-- See the vanilla file for the contract.
+function EngineData.techCostPerCityPercent()
+    return Game.GetNumCitiesTechCostMod()
+end
+
+function EngineData.policyCostPerCityPercent()
+    return Game.GetNumCitiesPolicyCostMod()
+end
+
 -- ============================================================================
 -- Civilopedia effects text. Vox Populi blanks the static help columns
 -- (TXT_KEY_WONDER_BIG_BEN_HELP is literally the empty string) and composes the

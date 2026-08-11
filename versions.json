@@ -1,11 +1,11 @@
 {
   "mod": "2.2.1",
-  "supported_vp": "Release-5.3.3",
+  "supported_vp": "Release-5.4.2",
   "supported_lekmod": "9545382dbb300023503e58f74452845e77e81b53",
   "components": {
     "core":           "1.30.0",
     "engine":         "1.4.0",
-    "engine_vp":      "0.2.0",
+    "engine_vp":      "0.3.0",
     "engine_lekmod":  "0.2.0",
     "runtime":        "1.5.1",
     "cinematics":     "1.0.0",

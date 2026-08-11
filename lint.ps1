@@ -123,7 +123,8 @@ function Invoke-SeamGuard {
         "GetCombatBonusVsDifferentIdeologyModifier", "GetTourismInfluenceCombatModifier",
         "RangedDefenseModifier", "ScienceToStealAmount",
         "GetLastProposalID", "GetPendingIncomingDealSenders",
-        "IsLuxuryTradeTargetAlreadyHasResource"
+        "IsLuxuryTradeTargetAlreadyHasResource",
+        "GetNumCitiesTechCostMod", "GetNumCitiesPolicyCostMod"
     )
     # Fork extension bindings: added by our forked DLL, present on no stock
     # engine. The seam-exempt marker does NOT waive these -- see the function

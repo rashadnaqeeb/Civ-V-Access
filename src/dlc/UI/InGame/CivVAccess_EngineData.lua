@@ -805,6 +805,23 @@ function EngineData.buildingInvested(city, buildingID)
     return false
 end
 
+-- Drift reads: the percent each city adds to the running tech / policy cost,
+-- for the active player. Both cross the seam because the Community Patch DLL
+-- diverges on scale and on meaning. Scale: the CP world data stores these
+-- times-100, and the CP binding divides, so the value there is fractional on
+-- some world sizes (3.75 on Large) where vanilla's is always a whole number.
+-- Meaning: the CP bindings fold in the player's own per-city tech modifier /
+-- policy-cost discount, so the number answers "what an extra city costs me"
+-- rather than vanilla's flat world-size constant. Consumers speak the result
+-- and must not assume an integer.
+function EngineData.techCostPerCityPercent()
+    return Game.GetNumCitiesTechCostMod()
+end
+
+function EngineData.policyCostPerCityPercent()
+    return Game.GetNumCitiesPolicyCostMod()
+end
+
 -- ============================================================================
 -- Civilopedia effects text. The pedia article's effects block -- the paragraph
 -- listing yields, empire-wide effects, prereqs -- is a plain text column here

@@ -540,6 +540,22 @@ local function noBasicHelp()
     return OptionsManager ~= nil and OptionsManager.IsNoBasicHelp ~= nil and OptionsManager.IsNoBasicHelp()
 end
 
+-- Per-city cost percent, as text. The Community Patch engines carry these to
+-- hundredths, so the raw number can be 3.75; mirroring their own
+-- FormatCityCostPercentHundredths keeps the spoken value at the tooltip's
+-- precision -- whole numbers bare, tenths to one decimal, finer to two --
+-- rather than letting float noise reach the screen reader.
+local function cityCostPercentText(percent)
+    local hundredths = math.floor(percent * 100 + 0.5)
+    if hundredths % 100 == 0 then
+        return tostring(math.floor(hundredths / 100))
+    end
+    if hundredths % 10 == 0 then
+        return string.format("%.1f", hundredths / 100)
+    end
+    return string.format("%.2f", hundredths / 100)
+end
+
 -- Anarchy prefix. Engine handlers prepend this above the headline; bare keys
 -- never speak it, so it is purely additive on Shift readouts.
 local function anarchyPrefix(player)
@@ -586,18 +602,14 @@ local function researchDetail()
         d.add(Text.format("TXT_KEY_TP_SCIENCE_FROM_RESEARCH_AGREEMENTS", fromRAs / 100))
     end
 
-    -- Community Patch adds science sources vanilla's tooltip never shows
-    -- (vassals, minor allies, annexed minors, religion, City-States,
-    -- espionage). CP-only getters, gated on the capability probe; inert on
-    -- vanilla. Mirrors VP's ScienceTipHandler.
+    -- Community Patch adds per-turn science sources vanilla's tooltip never
+    -- shows. CP-only getters, gated on the capability probe; inert on vanilla.
+    -- Mirrors VP's ScienceTipHandler, which lists only flat per-turn amounts
+    -- here -- rate modifiers belong to the tech-cost breakdown, not this list.
     if Game.IsCustomModOption ~= nil then
         local fromVassals = player:GetYieldPerTurnFromVassalsTimes100(YieldTypes.YIELD_SCIENCE) / 100
         if fromVassals ~= 0 then
             d.add(Text.format("TXT_KEY_TP_SCIENCE_VASSALS", fromVassals))
-        end
-        local fromAllies = player:GetScienceRateFromMinorAllies()
-        if fromAllies ~= 0 then
-            d.add(Text.format("TXT_KEY_MINOR_SCIENCE_FROM_LEAGUE_ALLIES", fromAllies))
         end
         local fromAnnexed = player:GetSciencePerTurnFromAnnexedMinors()
         if fromAnnexed ~= 0 then
@@ -627,7 +639,12 @@ local function researchDetail()
         -- TXT_KEY_TP_TECH_CITY_COST is a one-sentence explainer that
         -- carries one data value (the percent). Short mod-authored form
         -- delivers the data without the rules wrapper.
-        d.add(Text.format("TXT_KEY_CIVVACCESS_STATUS_TECH_CITY_COST", Game.GetNumCitiesTechCostMod()))
+        d.add(
+            Text.format(
+                "TXT_KEY_CIVVACCESS_STATUS_TECH_CITY_COST",
+                cityCostPercentText(EngineData.techCostPerCityPercent())
+            )
+        )
     end
     return d.compose()
 end
@@ -1308,7 +1325,12 @@ local function policyDetail()
         -- TXT_KEY_TP_CULTURE_CITY_COST adds a "don't expand too much!"
         -- exclamation alongside the data percent. Mirror the tech-cost
         -- short form: data only, no rules nudge.
-        d.add(Text.format("TXT_KEY_CIVVACCESS_STATUS_POLICY_CITY_COST", Game.GetNumCitiesPolicyCostMod()))
+        d.add(
+            Text.format(
+                "TXT_KEY_CIVVACCESS_STATUS_POLICY_CITY_COST",
+                cityCostPercentText(EngineData.policyCostPerCityPercent())
+            )
+        )
     end
     return d.compose()
 end

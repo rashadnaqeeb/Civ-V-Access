@@ -930,6 +930,18 @@ function EngineData.buildingInvested(city, buildingID)
     return false
 end
 
+-- Drift reads: the percent each city adds to the running tech / policy cost.
+-- LekMod keeps the vanilla bindings -- a whole-number world-size constant with
+-- no player-side modifier folded in -- so these read straight through. See the
+-- vanilla file for the contract.
+function EngineData.techCostPerCityPercent()
+    return Game.GetNumCitiesTechCostMod()
+end
+
+function EngineData.policyCostPerCityPercent()
+    return Game.GetNumCitiesPolicyCostMod()
+end
+
 -- ============================================================================
 -- Civilopedia effects text. LekMod keeps the vanilla pedia, which renders the
 -- article's effects block from the static help columns, so the Ctrl+F corpus
