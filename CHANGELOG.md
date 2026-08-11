@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - Vox Populi and Community Patch support now tracks Vox Populi 5.4.2.
+- Under Vox Populi, Shift+R and Shift+P read the tech and policy cost breakdowns, including what one more city would add.
 - Ctrl+N names the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
 - When exploration shows two named masses were one all along, the older name wins and the merge is announced once.
 - In the F2 city table, Production is now the last column, after Resource Demanded.

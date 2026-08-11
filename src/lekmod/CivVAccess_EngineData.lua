@@ -942,6 +942,26 @@ function EngineData.policyCostPerCityPercent()
     return Game.GetNumCitiesPolicyCostMod()
 end
 
+-- Drift reads: the Community Patch cost breakdowns. LekMod's NQMod-lineage DLL
+-- binds none of them and has no equivalent cost model, so these return nil and
+-- the tooltip blocks they feed are absent, exactly as on vanilla. See the
+-- vanilla file for the shapes.
+function EngineData.techCityCost(_player, _techID)
+    return nil
+end
+
+function EngineData.techDiscounts(_player, _techID)
+    return nil
+end
+
+function EngineData.policyCityCost(_player)
+    return nil
+end
+
+function EngineData.policyCostChanges(_player)
+    return nil
+end
+
 -- ============================================================================
 -- Civilopedia effects text. LekMod keeps the vanilla pedia, which renders the
 -- article's effects block from the static help columns, so the Ctrl+F corpus

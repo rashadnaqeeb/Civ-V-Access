@@ -62,6 +62,11 @@ local LABEL_RELIGIONS = "TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"
 local LABEL_GREAT_PEOPLE = "TXT_KEY_CIVVACCESS_SECTION_GREAT_PEOPLE"
 local LABEL_INFLUENCE = "TXT_KEY_CIVVACCESS_SECTION_INFLUENCE"
 
+-- Policies adopted before the ideology-tenet cost tiers are worth explaining.
+-- Mirrors the threshold the Community Patch culture tooltip uses to start
+-- showing its own tier explainer.
+local TENET_EXPLAINER_POLICIES = 17
+
 local speak = SpeechPipeline.speakInterrupt
 
 -- Concatenate non-empty trailing clauses with ", ". Used by every readout
@@ -636,6 +641,47 @@ local function researchDetail()
 
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
+        local techID = player:GetCurrentResearch()
+
+        -- The Community Patch tooltip's cost-divisor block: what is making the
+        -- current tech cheaper, and by how much. Absent on engines without the
+        -- breakdown bindings, and skipped whole when nothing is discounting.
+        -- The header carries no data of its own, so it leads as a plain item
+        -- and the reductions follow.
+        local discounts = EngineData.techDiscounts(player, techID)
+        if discounts ~= nil then
+            local reductions = {}
+            if discounts.catchupPercent > 0 then
+                reductions[#reductions + 1] = Text.format(
+                    "TXT_KEY_TP_TECH_CATCHUP_DISCOUNT",
+                    cityCostPercentText(discounts.catchupPercent),
+                    discounts.knownWithTech,
+                    discounts.totalKnown
+                )
+            end
+            if discounts.prereqPercent > 0 then
+                reductions[#reductions + 1] =
+                    Text.format("TXT_KEY_TP_TECH_PREREQ_DISCOUNT", cityCostPercentText(discounts.prereqPercent))
+            end
+            if discounts.scholarPercent > 0 then
+                reductions[#reductions + 1] =
+                    Text.format("TXT_KEY_TP_TECH_SCHOLAR_DISCOUNT", cityCostPercentText(discounts.scholarPercent))
+            end
+            if discounts.alliesPercent > 0 then
+                reductions[#reductions + 1] = Text.format(
+                    "TXT_KEY_TP_TECH_ALLIES_DISCOUNT",
+                    cityCostPercentText(discounts.alliesPercent),
+                    discounts.alliedCityStates
+                )
+            end
+            if #reductions > 0 then
+                d.add(Text.key("TXT_KEY_TP_TECH_DISCOUNT_HEADER"))
+                for _, line in ipairs(reductions) do
+                    d.add(line)
+                end
+            end
+        end
+
         -- TXT_KEY_TP_TECH_CITY_COST is a one-sentence explainer that
         -- carries one data value (the percent). Short mod-authored form
         -- delivers the data without the rules wrapper.
@@ -645,6 +691,24 @@ local function researchDetail()
                 cityCostPercentText(EngineData.techCostPerCityPercent())
             )
         )
+        -- What the empire's size is actually costing on the current tech, and
+        -- what one more city would add. The engine's own detail line; the
+        -- next-city figure is what makes an expansion decision answerable.
+        local cityCost = EngineData.techCityCost(player, techID)
+        if cityCost ~= nil and cityCost.totalCost ~= nil then
+            d.add(
+                Text.format(
+                    "TXT_KEY_TP_TECH_CITY_COST_DETAIL",
+                    cityCost.totalCost,
+                    cityCost.baseCost,
+                    cityCost.cityCost,
+                    cityCost.nextCityDelta,
+                    cityCostPercentText(cityCost.cityPercent),
+                    cityCostPercentText(cityCost.nextCityPercent),
+                    cityCost.cityCount
+                )
+            )
+        end
     end
     return d.compose()
 end
@@ -1322,6 +1386,48 @@ local function policyDetail()
 
     if not noBasicHelp() then
         d.section(Text.key(LABEL_HELP))
+
+        -- The Community Patch tooltip's policy-cost block: the reductions and
+        -- the tenet surcharge moving the next policy away from its base cost.
+        -- The tier explainer appears once the ideology tiers can be reached,
+        -- matching the engine's own threshold.
+        local changes = EngineData.policyCostChanges(player)
+        if changes ~= nil then
+            if changes.policiesAdopted >= TENET_EXPLAINER_POLICIES then
+                d.add(
+                    Text.format(
+                        "TXT_KEY_TP_POLICY_TENET_PENALTY_EXPLAINER",
+                        changes.tier1Penalty,
+                        changes.tier2Penalty,
+                        changes.tier3Penalty
+                    )
+                )
+            end
+            local moves = {}
+            if changes.fromPolicies > 0 then
+                moves[#moves + 1] = Text.format("TXT_KEY_TP_POLICY_DISCOUNT_FROM_POLICIES", changes.fromPolicies)
+            end
+            if changes.fromBuildings > 0 then
+                moves[#moves + 1] = Text.format("TXT_KEY_TP_POLICY_DISCOUNT_FROM_BUILDINGS", changes.fromBuildings)
+            end
+            if changes.fromMinorCivs > 0 then
+                moves[#moves + 1] = Text.format("TXT_KEY_TP_POLICY_DISCOUNT_FROM_MINOR_CIVS", changes.fromMinorCivs)
+            end
+            if changes.fromTraits > 0 then
+                moves[#moves + 1] = Text.format("TXT_KEY_TP_POLICY_DISCOUNT_FROM_TRAITS", changes.fromTraits)
+            end
+            if changes.tenetPenalty > 0 and changes.tenetsAdopted > 0 then
+                moves[#moves + 1] =
+                    Text.format("TXT_KEY_TP_POLICY_TENET_PENALTY", changes.tenetPenalty, changes.tenetsAdopted)
+            end
+            if #moves > 0 then
+                d.add(Text.key("TXT_KEY_TP_POLICY_DISCOUNT_HEADER"))
+                for _, line in ipairs(moves) do
+                    d.add(line)
+                end
+            end
+        end
+
         -- TXT_KEY_TP_CULTURE_CITY_COST adds a "don't expand too much!"
         -- exclamation alongside the data percent. Mirror the tech-cost
         -- short form: data only, no rules nudge.
@@ -1331,6 +1437,23 @@ local function policyDetail()
                 cityCostPercentText(EngineData.policyCostPerCityPercent())
             )
         )
+        -- The culture analog of the tech city-cost detail: what the empire's
+        -- size adds to the next policy, and what one more city would add.
+        local cityCost = EngineData.policyCityCost(player)
+        if cityCost ~= nil then
+            d.add(
+                Text.format(
+                    "TXT_KEY_TP_CULTURE_CITY_COST_DETAIL",
+                    cityCost.totalCost,
+                    cityCost.baseCost,
+                    cityCost.cityCost,
+                    cityCost.nextCityDelta,
+                    cityCostPercentText(cityCost.cityPercent),
+                    cityCostPercentText(cityCost.nextCityPercent),
+                    cityCost.cityCount
+                )
+            )
+        end
     end
     return d.compose()
 end

@@ -427,6 +427,13 @@ local function setup()
             return goldData.improvementMaint
         end,
 
+        -- The research detail asks which tech is active so the cost-breakdown
+        -- seams can be scoped to it. -1 is the no-research case, which is what
+        -- these fixtures exercise.
+        GetCurrentResearch = function()
+            return -1
+        end,
+
         GetScienceFromBudgetDeficitTimes100 = function()
             return sciData.budgetDeficitTimes100
         end,

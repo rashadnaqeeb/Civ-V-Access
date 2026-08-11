@@ -822,6 +822,52 @@ function EngineData.policyCostPerCityPercent()
     return Game.GetNumCitiesPolicyCostMod()
 end
 
+-- Drift reads: the four cost breakdowns behind the Community Patch research
+-- and culture tooltips. The bindings exist only on the Community Patch DLL --
+-- a bare call throws on the stock engine -- so every vanilla body returns nil
+-- and the corresponding spoken block is simply absent. Percent fields may be
+-- fractional; cost fields are whole research points / culture.
+--
+-- techCityCost(player, techID): what the empire's size adds to the tech being
+-- researched. techID of -1 (nothing being researched) still reports the
+-- per-city model, with the four cost fields nil. Shape:
+--   totalCost, baseCost, cityCost, nextCityDelta  nil when no tech is active
+--   cityPercent      percent the current cities add
+--   nextCityPercent  percent one more city would add, against base
+--   cityCount        cities actually charged
+function EngineData.techCityCost(_player, _techID)
+    return nil
+end
+
+-- techDiscounts(player, techID): the tooltip's "technology cost divisors" --
+-- the reductions applied before the empire-size surcharge. Returns nil when no
+-- tech is active. Every percent is a reduction, reported as a positive number.
+-- Shape:
+--   catchupPercent, prereqPercent, scholarPercent, alliesPercent
+--   knownWithTech, totalKnown   civs known to have the tech, of civs known
+--   alliedCityStates            City-States allied, behind alliesPercent
+function EngineData.techDiscounts(_player, _techID)
+    return nil
+end
+
+-- policyCityCost(player): the culture analog of techCityCost, for the next
+-- social policy. Same shape minus the nil case -- a next-policy cost always
+-- exists.
+function EngineData.policyCityCost(_player)
+    return nil
+end
+
+-- policyCostChanges(player): what moves the next policy's cost away from base,
+-- before the empire-size surcharge. Discounts are positive magnitudes; the
+-- tenet penalty is a positive surcharge. Shape:
+--   fromPolicies, fromBuildings, fromMinorCivs, fromTraits  discount percents
+--   tenetPenalty, tenetsAdopted     surcharge percent and the count behind it
+--   tier1Penalty, tier2Penalty, tier3Penalty  per-tier tenet surcharges
+--   policiesAdopted                 policies adopted, for the tier explainer
+function EngineData.policyCostChanges(_player)
+    return nil
+end
+
 -- ============================================================================
 -- Civilopedia effects text. The pedia article's effects block -- the paragraph
 -- listing yields, empire-wide effects, prereqs -- is a plain text column here

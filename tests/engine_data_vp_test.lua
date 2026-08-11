@@ -1737,4 +1737,118 @@ function M.test_vanilla_squad_intents_degrade_safely()
     vanilla.setSquadEndMovementMode({}, 0)
 end
 
+-- The four cost-breakdown seams read positional return lists from the
+-- Community Patch bindings, so a wrong slot is a silently wrong spoken number
+-- rather than an error. These pin the slot mapping and the times-100 division.
+
+-- Return lists in the exact order the bindings push them.
+local function costPlayer()
+    return {
+        GetResearchCityCostBreakdown = function(_, techID)
+            if techID < 0 then
+                -- No active research: the engine reports -1 costs but still
+                -- fills in the per-city model.
+                return -1, -1, 0, 0, 1250, 375, 5, 500, 375
+            end
+            return 900, 700, 200, 60, 1250, 375, 5, 500, 375
+        end,
+        GetResearchTechDiscountBreakdown = function()
+            -- known, totalKnown, catchup, scholar, allies, baseTeamCost,
+            -- prereq, preScholarMod, scholarMod, finalResearchMod
+            return 3, 5, 1000, 500, 250, 800, 725, 10, 20, 30
+        end,
+        GetNumCSAllies = function()
+            return 4
+        end,
+        GetNextPolicyCostBreakdown = function()
+            -- ...through cityCount, then base/scaling, baseBeforeDiscount,
+            -- multiplier, tenetPenalty, tenetsAdopted, tier1..3
+            return 1600, 1200, 400, 150, 2500, 900, 4, 1000, 900, 1300, 90, 15, 3, 5, 10, 20
+        end,
+        GetPolicyCostModifierBreakdown = function()
+            -- total, policies, buildings, minorCivs, traits, uncapped, cap
+            return -35, -10, -20, -5, 0, -35, -50
+        end,
+        GetNumPolicies = function()
+            return 18
+        end,
+    }
+end
+
+function M.test_vp_tech_city_cost_maps_slots_and_divides_percents()
+    local vp = loadSeam(VP_PATH)
+    local out = vp.techCityCost(costPlayer(), 12)
+    T.eq(out.totalCost, 900, "total cost")
+    T.eq(out.baseCost, 700, "base cost")
+    T.eq(out.cityCost, 200, "city surcharge")
+    T.eq(out.nextCityDelta, 60, "one more city")
+    T.eq(out.cityPercent, 12.5, "current percent divides from times-100")
+    T.eq(out.nextCityPercent, 3.75, "next-city percent divides from times-100")
+    T.eq(out.cityCount, 5, "cities charged")
+end
+
+function M.test_vp_tech_city_cost_reports_no_cost_without_research()
+    -- techID -1 means nothing is being researched. The per-city model still
+    -- applies, but the cost fields must come back nil so the speaker drops the
+    -- detail line instead of speaking -1 science.
+    local vp = loadSeam(VP_PATH)
+    local out = vp.techCityCost(costPlayer(), -1)
+    T.eq(out.totalCost, nil, "no total cost without research")
+    T.eq(out.baseCost, nil, "no base cost without research")
+    T.eq(out.cityPercent, 12.5, "per-city model still reported")
+end
+
+function M.test_vp_tech_discounts_map_slots()
+    local vp = loadSeam(VP_PATH)
+    local out = vp.techDiscounts(costPlayer(), 12)
+    T.eq(out.catchupPercent, 10, "catch-up discount")
+    T.eq(out.scholarPercent, 5, "scholar discount")
+    T.eq(out.alliesPercent, 2.5, "allies discount")
+    T.eq(out.prereqPercent, 7.25, "prereq discount comes from the seventh slot")
+    T.eq(out.knownWithTech, 3, "civs known to have the tech")
+    T.eq(out.totalKnown, 5, "civs known")
+    T.eq(out.alliedCityStates, 4, "allied City-States")
+    T.eq(vp.techDiscounts(costPlayer(), -1), nil, "no discounts without research")
+end
+
+function M.test_vp_policy_city_cost_maps_slots()
+    local vp = loadSeam(VP_PATH)
+    local out = vp.policyCityCost(costPlayer())
+    T.eq(out.totalCost, 1600, "total cost")
+    T.eq(out.baseCost, 1200, "base cost")
+    T.eq(out.cityCost, 400, "city surcharge")
+    T.eq(out.nextCityDelta, 150, "one more city")
+    T.eq(out.cityPercent, 25, "current percent divides from times-100")
+    T.eq(out.nextCityPercent, 9, "next-city percent divides from times-100")
+    T.eq(out.cityCount, 4, "cities charged")
+end
+
+function M.test_vp_policy_cost_changes_normalize_discount_sign()
+    -- The engine carries reductions as negative modifiers; the seam hands out
+    -- positive magnitudes so no speaker has to know the sign convention. The
+    -- tenet penalty is already positive and must stay positive.
+    local vp = loadSeam(VP_PATH)
+    local out = vp.policyCostChanges(costPlayer())
+    T.eq(out.fromPolicies, 10, "policy discount reported positive")
+    T.eq(out.fromBuildings, 20, "building discount reported positive")
+    T.eq(out.fromMinorCivs, 5, "City-State discount reported positive")
+    T.eq(out.fromTraits, 0, "no trait discount")
+    T.eq(out.tenetPenalty, 15, "tenet surcharge stays positive")
+    T.eq(out.tenetsAdopted, 3, "tenets adopted")
+    T.eq(out.tier1Penalty, 5, "tier 1 surcharge")
+    T.eq(out.tier2Penalty, 10, "tier 2 surcharge")
+    T.eq(out.tier3Penalty, 20, "tier 3 surcharge")
+    T.eq(out.policiesAdopted, 18, "policies adopted")
+end
+
+function M.test_cost_breakdowns_absent_on_engines_without_the_bindings()
+    -- Vanilla and LekMod bind none of these, so every one degrades to nil and
+    -- the tooltip blocks they feed never speak.
+    local vanilla = loadSeam(VANILLA_PATH)
+    T.eq(vanilla.techCityCost({}, 12), nil, "no tech city cost on vanilla")
+    T.eq(vanilla.techDiscounts({}, 12), nil, "no tech discounts on vanilla")
+    T.eq(vanilla.policyCityCost({}), nil, "no policy city cost on vanilla")
+    T.eq(vanilla.policyCostChanges({}), nil, "no policy cost changes on vanilla")
+end
+
 return M

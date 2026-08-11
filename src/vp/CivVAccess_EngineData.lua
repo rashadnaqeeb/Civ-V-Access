@@ -1041,6 +1041,87 @@ function EngineData.policyCostPerCityPercent()
     return Game.GetNumCitiesPolicyCostMod()
 end
 
+-- Drift reads: the four cost breakdowns behind the research and culture
+-- tooltips. See the vanilla file for the shapes. The bindings return their
+-- percent fields times-100, so each is divided here; the cost fields are
+-- already whole. Positional order matches the bindings, which is why these sit
+-- in the seam rather than at the call sites -- a re-pin that reorders a return
+-- list breaks one file, not every speaker.
+--
+-- All four are Community Patch DLL bindings, present under Community-Patch-only
+-- as well as full Vox Populi. The balance-only sources inside them (Scholars in
+-- Residence, tenet penalties) simply read zero when the balance overhaul is
+-- off, and the consumer's per-source guards drop them, so no BALANCE_VP gate is
+-- needed here.
+function EngineData.techCityCost(player, techID)
+    local totalCost, baseCost, cityCost, nextCityDelta, cityModTimes100, nextCityModTimes100, cityCount =
+        player:GetResearchCityCostBreakdown(techID)
+    local hasTech = totalCost >= 0
+    return {
+        totalCost = hasTech and totalCost or nil,
+        baseCost = hasTech and baseCost or nil,
+        cityCost = hasTech and cityCost or nil,
+        nextCityDelta = hasTech and nextCityDelta or nil,
+        cityPercent = cityModTimes100 / 100,
+        nextCityPercent = nextCityModTimes100 / 100,
+        cityCount = cityCount,
+    }
+end
+
+function EngineData.techDiscounts(player, techID)
+    if techID < 0 then
+        return nil
+    end
+    local knownWithTech, totalKnown, catchupTimes100, scholarTimes100, alliesTimes100, _baseTeamCost, prereqTimes100 =
+        player:GetResearchTechDiscountBreakdown(techID)
+    return {
+        catchupPercent = catchupTimes100 / 100,
+        prereqPercent = prereqTimes100 / 100,
+        scholarPercent = scholarTimes100 / 100,
+        alliesPercent = alliesTimes100 / 100,
+        knownWithTech = knownWithTech,
+        totalKnown = totalKnown,
+        alliedCityStates = player:GetNumCSAllies(),
+    }
+end
+
+function EngineData.policyCityCost(player)
+    local totalCost, baseCost, cityCost, nextCityDelta, cityModTimes100, nextCityModTimes100, cityCount =
+        player:GetNextPolicyCostBreakdown()
+    return {
+        totalCost = totalCost,
+        baseCost = baseCost,
+        cityCost = cityCost,
+        nextCityDelta = nextCityDelta,
+        cityPercent = cityModTimes100 / 100,
+        nextCityPercent = nextCityModTimes100 / 100,
+        cityCount = cityCount,
+    }
+end
+
+function EngineData.policyCostChanges(player)
+    local tenetPenalty, tenetsAdopted, tier1, tier2, tier3 = select(12, player:GetNextPolicyCostBreakdown())
+    local _total, policiesMod, buildingsMod, minorCivsMod, traitsMod = player:GetPolicyCostModifierBreakdown()
+    -- The engine carries cost reductions as negative modifiers; the tooltip
+    -- prints their magnitudes. Cross the seam already normalized so no consumer
+    -- has to know the sign convention.
+    local function discount(mod)
+        return math.max(0, -mod)
+    end
+    return {
+        fromPolicies = discount(policiesMod),
+        fromBuildings = discount(buildingsMod),
+        fromMinorCivs = discount(minorCivsMod),
+        fromTraits = discount(traitsMod),
+        tenetPenalty = tenetPenalty,
+        tenetsAdopted = tenetsAdopted,
+        tier1Penalty = tier1,
+        tier2Penalty = tier2,
+        tier3Penalty = tier3,
+        policiesAdopted = player:GetNumPolicies(true, false),
+    }
+end
+
 -- ============================================================================
 -- Civilopedia effects text. Vox Populi blanks the static help columns
 -- (TXT_KEY_WONDER_BIG_BEN_HELP is literally the empty string) and composes the
