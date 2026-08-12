@@ -68,6 +68,20 @@ if Locale.ToLower == nil then
         return string.lower(s or "")
     end
 end
+-- Byte-order stand-in for the engine's collation. Returns the engine's
+-- -1 / 0 / 1 so table.sort comparators built on it behave the same; only
+-- the ordering of accented or non-Latin strings differs from the game.
+if Locale.Compare == nil then
+    Locale.Compare = function(a, b)
+        if a == b then
+            return 0
+        end
+        if a < b then
+            return -1
+        end
+        return 1
+    end
+end
 
 UI = UI
     or {

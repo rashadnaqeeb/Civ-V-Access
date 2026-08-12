@@ -193,6 +193,7 @@ globals = {
     "EspionageVP",
     "DiploCommon",
     "TradeLogicAccess", "TradeLogicAvailable", "TradeLogicOffering", "TradeRouteRow",
+    "ReplayGraphRows",
     "LeagueOverviewRow", "LeagueOverviewVote", "LeagueOverviewProposal",
     "TaskList",
     "Turn", "TurnTimer",

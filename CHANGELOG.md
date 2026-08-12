@@ -19,6 +19,7 @@ New Features and improvements:
 - Ctrl+N names the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
 - When exploration shows two named masses were one all along, the older name wins and the merge is announced once.
 - In the F2 city table, Production is now the last column, after Resource Demanded.
+- The end-game screen and the replay viewer now read the graph data: pick a civ, then a turn, then hear every recorded figure for it.
 
 Bug fixes:
 - Ctrl+I now opens the Civilopedia on Vox Populi's unique units, buildings and wonders instead of Game Concepts.

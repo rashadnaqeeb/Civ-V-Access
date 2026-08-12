@@ -11,16 +11,14 @@
 -- Game.GetReplayMessages() rather than g_ReplayInfo).
 --
 -- Layout: a panel pulldown wrapping vanilla's ReplayInfoPulldown
--- (Messages / Graphs / Map), per-turn drillable groups of messages when
--- the pulldown is on Messages, then the Back button. Each group's label
--- is "Turn N" and its children are the non-empty Text entries that
--- emitted on that turn, with the turn prefix dropped since the group
--- label provides it. Mirrors EndGameMenu's Replay tab. Graphs and Map
--- render blank for now; the visual graph and animated culture map don't
--- reduce to readable text in any obvious way and are deferred. The
--- pulldown itself stays so the user sees the same panel-selection
--- affordance sighted players have, and so the structure is in place
--- when Graphs gets a summarizer.
+-- (Messages / Graphs / Map), the selected panel's body, then the Back
+-- button. On Messages the body is per-turn drillable groups labeled
+-- "Turn N" whose children are the non-empty Text entries that emitted on
+-- that turn, with the turn prefix dropped since the group label provides
+-- it. On Graphs it is the civ / turn / dataset tree built by
+-- CivVAccess_ReplayGraphRows, the same tree the end-game screen's Graphs
+-- tab shows. Both mirror EndGameMenu. Map renders blank; the animated
+-- culture map doesn't reduce to readable text and is deferred.
 --
 -- Items rebuild from g_ReplayInfo.Messages, populated by vanilla's
 -- LuaEvents.ReplayViewer_LoadReplay listener. We register an additional
@@ -38,6 +36,7 @@ if g_bIsEndGame then
 end
 
 include("CivVAccess_FrontendCommon")
+include("CivVAccess_ReplayGraphRows")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -60,10 +59,10 @@ local function buildItems()
         }),
     }
     -- CurrentPanelIndex: 1 = Messages, 2 = Graphs, 3 = Map (the order
-    -- vanilla iterates Panels[]). Only Messages gets a populated body;
-    -- Graphs and Map are intentionally blank. Messages are grouped by
-    -- turn into drillables; engine emission order is chronological so a
-    -- single forward pass with flush-on-turn-change builds the groups.
+    -- vanilla iterates Panels[]). Map is intentionally blank. Messages are
+    -- grouped by turn into drillables; engine emission order is
+    -- chronological so a single forward pass with flush-on-turn-change
+    -- builds the groups.
     if CurrentPanelIndex == 1 and g_ReplayInfo ~= nil and g_ReplayInfo.Messages ~= nil then
         local currentTurn = nil
         local currentTexts = nil
@@ -91,6 +90,12 @@ local function buildItems()
             end
         end
         flush()
+    end
+    if CurrentPanelIndex == 2 then
+        local graphItems = ReplayGraphRows.buildItems(ReplayGraphRows.playersFromReplayInfo(g_ReplayInfo))
+        for _, item in ipairs(graphItems) do
+            items[#items + 1] = item
+        end
     end
     items[#items + 1] = BaseMenuItems.Button({
         controlName = "BackButton",

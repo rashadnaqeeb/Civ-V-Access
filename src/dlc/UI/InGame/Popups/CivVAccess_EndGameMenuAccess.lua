@@ -2,7 +2,8 @@
 -- switcher (GameOver / Demographics / Ranking / Replay) and a bottom-row
 -- action stack (MainMenu exit, Back for extended play, Beyond Earth store).
 --
--- Four tabs map onto the top-row visual switcher in left-to-right order:
+-- The first four tabs map onto the top-row visual switcher in left-to-right
+-- order:
 --   "Info" — the GameOver panel. Items are the action stack
 --   (MainMenuButton, BackButton, BeyondButton).
 --   "Demographics" — the embedded Demographics child Context (XML id
@@ -22,13 +23,19 @@
 --   "Replay" — the per-turn replay log. Top-level items are per-turn
 --   Group drillables ("Turn 50", "Turn 51", ...), each containing the
 --   non-empty Text entries Game.GetReplayMessages() emitted on that turn.
---   Children drop the turn prefix since the group label provides it. No
---   panel-mode pulldown here: the engine's ReplayInfoPulldown lives in
---   the EndGameReplay child Context which we can't reach from the
---   EndGameMenu env, and Graphs / Map don't have summarizers yet. When
---   they do, this tab grows a synthetic mode toggle. End-game pulls
---   messages directly from Game.GetReplayMessages() rather than the
---   child Context's g_ReplayInfo to avoid a cross-Context env reach.
+--   Children drop the turn prefix since the group label provides it.
+--   End-game pulls messages directly from Game.GetReplayMessages() rather
+--   than the child Context's g_ReplayInfo to avoid a cross-Context env
+--   reach.
+--
+-- A fifth tab, "Graphs", carries the numbers behind the replay line chart
+-- (civ, then turn, then the datasets recorded that turn) via the builder
+-- shared with the front-end replay viewer. It has no switcher button of
+-- its own: vanilla nests the chart inside the Replay panel behind that
+-- Context's own ReplayInfoPulldown, which the EndGameMenu env can't reach,
+-- so showPanel puts the visual on the Replay panel and the tab supplies
+-- the mode selection the pulldown would have. The pulldown's third mode,
+-- the animated culture map, has no text reduction and is not surfaced.
 --
 -- EndGameText carries the victory flavor line set by OnDisplay. The engine
 -- narrates this line as a voice clip, so silentFirstOpen suppresses the
@@ -52,6 +59,7 @@
 
 include("CivVAccess_PopupBoot")
 include("CivVAccess_DemographicsRows")
+include("CivVAccess_ReplayGraphRows")
 include("CivVAccess_VictoryDescStrings_en_US")
 -- LekMod's scrap victory reuses the Cristo Redentor wonder splash, so the
 -- F2 art description for it reuses that wonder's description (loaded here).
@@ -278,6 +286,19 @@ local replayTab = {
     end,
 }
 
+-- Placeholder items as on the other data tabs; extended play keeps
+-- recording, so the tree is rebuilt from the live game on every visit.
+local graphsTab = {
+    name = "TXT_KEY_REPLAY_VIEWER_GRAPHS_TITLE",
+    showPanel = function()
+        OnReplay()
+    end,
+    items = { BaseMenuItems.Text({ labelText = "" }) },
+    onActivate = function(self)
+        m_handler.setItems(ReplayGraphRows.buildItems(ReplayGraphRows.playersFromGame()), 5)
+    end,
+}
+
 m_handler = BaseMenu.install(ContextPtr, {
     name = "EndGameMenu",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_END_GAME"),
@@ -290,7 +311,7 @@ m_handler = BaseMenu.install(ContextPtr, {
     onEscape = function()
         return true
     end,
-    tabs = { infoTab, demographicsTab, rankingTab, replayTab },
+    tabs = { infoTab, demographicsTab, rankingTab, replayTab, graphsTab },
 })
 
 VictoryDescription.bindF2(m_handler, displayedArtKey)
