@@ -699,7 +699,12 @@ function UnitSpeech.info(unit)
             parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_UNIT_RANGED_STRENGTH_ONLY", ranged)
         end
     end
-    if friendly and unit:IsCombatUnit() then
+    -- IsCombatUnit is base melee combat > 0, which every air unit fails
+    -- on RangedCombat-only stats. Aircraft do earn XP and promote --
+    -- ResolveAirUnitVsCombat awards experience and calls
+    -- testPromotionReady on the striking unit -- so the level line
+    -- belongs on them too.
+    if friendly and (unit:IsCombatUnit() or isAir(unit)) then
         parts[#parts + 1] = Text.format(
             "TXT_KEY_CIVVACCESS_UNIT_LEVEL_XP",
             unit:GetLevel(),

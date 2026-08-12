@@ -125,8 +125,10 @@ function M.test_air_unit_included_under_military()
     -- and air-over-land noise would distract), but the Enter picker is
     -- the one surface where the user is choosing a unit to command and
     -- air units are legitimate targets. Verify they're listed.
+    -- combat = false mirrors the engine: IsCombatUnit is base melee
+    -- combat > 0 and aircraft carry RangedCombat only.
     setup()
-    local bomber = T.fakeUnit({ nameKey = "Bomber", combat = true, domain = DomainTypes.DOMAIN_AIR })
+    local bomber = T.fakeUnit({ nameKey = "Bomber", combat = false, domain = DomainTypes.DOMAIN_AIR })
     local p = T.fakePlot({ units = { bomber } })
     local entries = CursorActivate._buildEntries(p)
     T.eq(#entries, 1)
@@ -149,7 +151,7 @@ function M.test_cargo_aircraft_included()
     -- Vanilla / BNW have no non-air cargo, so IsCargo always implies
     -- DOMAIN_AIR and dropping the IsCargo filter is safe.
     setup()
-    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = true, cargo = true, domain = DomainTypes.DOMAIN_AIR })
+    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = false, cargo = true, domain = DomainTypes.DOMAIN_AIR })
     local p = T.fakePlot({ units = { fighter } })
     local entries = CursorActivate._buildEntries(p)
     T.eq(#entries, 1)
@@ -157,16 +159,32 @@ function M.test_cargo_aircraft_included()
     T.eq(entries[1].label, "unit:Fighter")
 end
 
+function M.test_air_unit_sorts_with_military_not_civilian()
+    -- The regression guard for the grouping: with a civilian also on
+    -- the plot, an aircraft must lead it. Ordering is the only thing
+    -- the military / civilian split controls, so this is the one case
+    -- where getting the bucket wrong is audible.
+    setup()
+    local worker = T.fakeUnit({ nameKey = "Worker", combat = false })
+    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = false, domain = DomainTypes.DOMAIN_AIR })
+    local p = T.fakePlot({ units = { worker, fighter } })
+    local entries = CursorActivate._buildEntries(p)
+    T.eq(#entries, 2)
+    T.eq(entries[1].label, "unit:Fighter", "aircraft group with the military, ahead of civilians")
+    T.eq(entries[2].label, "unit:Worker")
+end
+
 function M.test_carrier_with_cargo_lists_both()
     -- Realistic carrier-tile scenario: the carrier itself plus loaded
     -- aircraft. Both should appear in the picker. Carrier is sea +
-    -- combat (military bucket); fighter is air + combat (also military).
+    -- combat (military bucket); the fighter reaches the same bucket on
+    -- its domain, since aircraft fail IsCombatUnit.
     -- Plot order doesn't fix entry order; the buildEntries pass walks
     -- military first then civilian, in plot iteration order within each
     -- bucket. Carrier comes first in the plot units, so it leads.
     setup()
     local carrier = T.fakeUnit({ nameKey = "Carrier", combat = true, domain = DomainTypes.DOMAIN_SEA })
-    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = true, cargo = true, domain = DomainTypes.DOMAIN_AIR })
+    local fighter = T.fakeUnit({ nameKey = "Fighter", combat = false, cargo = true, domain = DomainTypes.DOMAIN_AIR })
     local p = T.fakePlot({ units = { carrier, fighter } })
     local entries = CursorActivate._buildEntries(p)
     T.eq(#entries, 2)

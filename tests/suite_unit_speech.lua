@@ -1002,6 +1002,32 @@ function M.test_info_ranged_unit_speaks_range_and_strength()
     T.truthy(out:find("9 ranged, range 2", 1, true), "ranged strength + range expected: " .. out)
 end
 
+function M.test_info_air_unit_speaks_level_and_xp()
+    -- Aircraft carry RangedCombat and no base melee combat, so the
+    -- engine's IsCombatUnit answers false for them. They still earn XP
+    -- and promote (ResolveAirUnitVsCombat awards experience and calls
+    -- testPromotionReady), so the level line must not be gated away.
+    setup()
+    local u = mkUnit({
+        combat = 0,
+        ranged = 60,
+        isCombat = false,
+        domain = DomainTypes.DOMAIN_AIR,
+        level = 3,
+        xp = 12,
+        xpNeeded = 30,
+    })
+    local out = UnitSpeech.info(u)
+    T.truthy(out:find("level 3, 12/30 xp", 1, true), "air units earn XP and must speak it: " .. out)
+end
+
+function M.test_info_civilian_omits_level_and_xp()
+    setup()
+    local u = mkUnit({ combat = 0, isCombat = false, level = 1, xp = 0 })
+    local out = UnitSpeech.info(u)
+    T.truthy(not out:find("xp", 1, true), "a Settler has no level to speak: " .. out)
+end
+
 function M.test_info_hp_leads_after_name()
     setup()
     local u = mkUnit({ damage = 30, combat = 10, ranged = 9, range = 2, upgradeType = 101, upgradePrice = 120 })

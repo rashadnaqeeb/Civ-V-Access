@@ -20,6 +20,8 @@ New Features and improvements:
 
 Bug fixes:
 - Fighters, bombers, missiles and nukes now appear under Air in the scanner instead of Civilian.
+- Reading one of your aircraft now includes its level and experience.
+- Enter on a carrier or an air-stocked city lists aircraft with your military units instead of after your civilians.
 - In LekMod, chariot archers, keshiks, war elephants, camel archers, paratroopers and XCOM squads now appear in the scanner's unit categories.
 - Shift+R no longer lists a City-State science bonus that was a percentage, not per-turn science.
 - The staging room player list now updates as soon as a player is kicked or disconnects.

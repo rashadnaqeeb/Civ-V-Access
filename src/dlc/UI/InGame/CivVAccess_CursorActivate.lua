@@ -31,7 +31,12 @@ local function collectSelfUnits(plot)
     for i = 0, n - 1 do
         local u = plot:GetLayerUnit(i, -1)
         if u ~= nil and u:GetOwner() == activeID and not u:IsInvisible(team, isDebug) then
-            if u:IsCombatUnit() then
+            -- Aircraft group with the military. IsCombatUnit is base
+            -- melee combat > 0, so they answer false and would sort
+            -- below workers and settlers -- worst on exactly the plots
+            -- this list exists to open up, where a carrier or an
+            -- air-stocked city holds the fighters the user came for.
+            if u:IsCombatUnit() or u:GetDomainType() == DomainTypes.DOMAIN_AIR then
                 military[#military + 1] = u
             else
                 civilian[#civilian + 1] = u
