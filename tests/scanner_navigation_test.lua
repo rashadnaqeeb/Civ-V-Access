@@ -667,12 +667,10 @@ function M.test_category_cycle_anchors_after_custom_added_midsession()
     T.eq(ScannerNav._snapshot().categories[ci].key, "custom:1", "next category lands on the other non-empty category")
 end
 
--- ===== Directional scope (Ctrl+arrow) =====
--- setDirection scopes the scanner to a 90-degree arc fanning out from the
--- live cursor. The arc apex is re-anchored to the cursor on every
--- navigation-key rebuild (cycleItem here), so an item that falls behind the
--- roaming cursor is pruned on the next nav read; read-only probes (End)
--- keep the focused item by skipping the arc filter.
+-- ===== mapScope filter =====
+-- CityView's hex sub-handler narrows the world to one city's reachable
+-- tiles by installing civvaccess_shared.mapScope; gatherEntries drops
+-- every entry whose plot falls outside it.
 
 -- Find the "all" sub on the cities cat -- where every in-category item
 -- lives regardless of owner sub.
@@ -680,126 +678,21 @@ local function citiesAllItems(snap)
     return snap.categories[1].subcategories[1].items
 end
 
-local function dirSetup()
+function M.test_mapscope_filters_entries_outside_the_scope()
     setup()
-    Map.IsWrapX = function()
-        return false
-    end
-    Map.IsWrapY = function()
-        return false
-    end
-end
-
-function M.test_set_direction_scopes_to_in_arc_entries()
-    dirSetup()
-    -- Cursor at origin; one city west, one east. Direction W keeps only
-    -- the western city and lands on it.
-    T.installMap({ mkPlot(-5, 0, 0), mkPlot(5, 0, 1) })
+    T.installMap({ mkPlot(-5, 0, 0), mkPlot(-7, 0, 1) })
     _entries = {
-        mkEntry("cities", "my", "West", 0, { key = "stub:west" }),
-        mkEntry("cities", "my", "East", 1, { key = "stub:east" }),
-    }
-    local out = ScannerNav.setDirection("W")
-    T.truthy(out:find("West", 1, true), "set-direction must land on the western city, got " .. tostring(out))
-    T.falsy(out:find("East", 1, true), "the eastern city must be out of the W arc")
-    local items = citiesAllItems(ScannerNav._snapshot())
-    T.eq(#items, 1, "only the in-arc city survives the W scope")
-    T.eq(items[1].name, "West")
-end
-
-function M.test_switching_direction_rescopes()
-    dirSetup()
-    T.installMap({ mkPlot(-5, 0, 0), mkPlot(5, 0, 1) })
-    _entries = {
-        mkEntry("cities", "my", "West", 0, { key = "stub:west" }),
-        mkEntry("cities", "my", "East", 1, { key = "stub:east" }),
-    }
-    ScannerNav.setDirection("W")
-    local out = ScannerNav.setDirection("E")
-    T.truthy(out:find("East", 1, true), "switching to E must re-scope to the eastern city, got " .. tostring(out))
-    local items = citiesAllItems(ScannerNav._snapshot())
-    T.eq(#items, 1, "the E scope keeps only the eastern city")
-    T.eq(items[1].name, "East")
-    T.eq(civvaccess_shared.scannerDirection, "E")
-end
-
-function M.test_pressing_same_direction_clears_and_restores_full_list()
-    dirSetup()
-    T.installMap({ mkPlot(-5, 0, 0), mkPlot(5, 0, 1) })
-    _entries = {
-        mkEntry("cities", "my", "West", 0, { key = "stub:west" }),
-        mkEntry("cities", "my", "East", 1, { key = "stub:east" }),
-    }
-    ScannerNav.setDirection("W")
-    T.eq(#citiesAllItems(ScannerNav._snapshot()), 1, "precondition: scoped to one city")
-    local out = ScannerNav.setDirection("W")
-    T.eq(out, Text.key("TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_CLEARED"))
-    T.eq(civvaccess_shared.scannerDirection, nil, "pressing the active direction clears the scope")
-    T.eq(#citiesAllItems(ScannerNav._snapshot()), 2, "clearing restores the full unscoped list")
-end
-
-function M.test_prune_on_nav_drops_entry_and_lands_at_front()
-    dirSetup()
-    -- A near city one west and a far city ten west; both in the W arc from
-    -- the origin, so set-direction lands on the near one.
-    T.installMap({ mkPlot(-1, 0, 0), mkPlot(-10, 0, 1) })
-    _entries = {
-        mkEntry("cities", "my", "Near", 0, { key = "stub:near" }),
-        mkEntry("cities", "my", "Far", 1, { key = "stub:far" }),
-    }
-    ScannerNav.setDirection("W")
-    local _, _, itemIdx = ScannerNav._indices()
-    T.eq(citiesAllItems(ScannerNav._snapshot())[itemIdx].name, "Near", "precondition: focused on the near city")
-    -- Drive the cursor two west: Near (-1,0) is now EAST of the cursor and
-    -- falls out of the W arc; Far (-10,0) stays west.
-    Cursor.position = function()
-        return -2, 0
-    end
-    local out = ScannerNav.cycleItem(1)
-    local items = citiesAllItems(ScannerNav._snapshot())
-    T.eq(#items, 1, "Near must be pruned now that it sits east of the cursor")
-    T.eq(items[1].name, "Far")
-    local _, _, itemAfter = ScannerNav._indices()
-    T.eq(itemAfter, 1, "pruning the focused item lands navigation at the front of the list")
-    T.truthy(out:find("Far", 1, true), "the cycle announces the surviving entry, got " .. tostring(out))
-end
-
-function M.test_direction_and_mapscope_both_filter()
-    dirSetup()
-    -- mapScope (city-view style) keeps x >= -6; direction W keeps the western
-    -- arc. Only an entry passing BOTH survives, proving the fused filter ANDs
-    -- them rather than letting either alone decide.
-    T.installMap({ mkPlot(-5, 0, 0), mkPlot(-7, 0, 1), mkPlot(5, 0, 2) })
-    _entries = {
-        mkEntry("cities", "my", "InBoth", 0, { key = "stub:both" }),
-        mkEntry("cities", "my", "WestButOutOfScope", 1, { key = "stub:oos" }),
-        mkEntry("cities", "my", "InScopeButEast", 2, { key = "stub:east" }),
+        mkEntry("cities", "my", "InScope", 0, { key = "stub:in" }),
+        mkEntry("cities", "my", "OutOfScope", 1, { key = "stub:out" }),
     }
     civvaccess_shared.mapScope = function(x, _y)
         return x >= -6
     end
-    ScannerNav.setDirection("W")
+    local out = ScannerNav.cycleItem(1)
     local items = citiesAllItems(ScannerNav._snapshot())
-    T.eq(#items, 1, "only the entry passing both mapScope and the W arc survives")
-    T.eq(items[1].name, "InBoth")
-end
-
-function M.test_end_keeps_held_entry_out_of_arc()
-    dirSetup()
-    -- One city one west; direction W lands on it.
-    T.installMap({ mkPlot(-1, 0, 0) })
-    _entries = { mkEntry("cities", "my", "Near", 0, { key = "stub:near" }) }
-    ScannerNav.setDirection("W")
-    -- Drive the cursor two west so the held city is now one east of it.
-    Cursor.position = function()
-        return -2, 0
-    end
-    -- End is a read-only probe: it must NOT prune the held entry even
-    -- though the city has fallen behind the cursor and out of the W arc.
-    -- It reports the entry's live bearing (one east) rather than EMPTY.
-    local out = ScannerNav.distanceFromCursor()
-    T.eq(out, "1e", "End keeps the held entry and reports its live bearing, got " .. tostring(out))
-    T.eq(#citiesAllItems(ScannerNav._snapshot()), 1, "the held entry survives a read-only probe")
+    T.eq(#items, 1, "only the in-scope city survives the mapScope filter")
+    T.eq(items[1].name, "InScope")
+    T.truthy(out:find("InScope", 1, true), "the cycle announces the surviving entry, got " .. tostring(out))
 end
 
 -- ===== J/K/L flattened custom-category cycle =====

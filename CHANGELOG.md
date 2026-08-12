@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Removed the scanner's Ctrl+arrow direction scope.
 - Vox Populi and Community Patch support now tracks Vox Populi 5.4.2.
 - Under Vox Populi, Shift+R and Shift+P read the tech and policy cost breakdowns, including what one more city would add.
 - Ctrl+N names the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
