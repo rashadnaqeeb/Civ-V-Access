@@ -1,7 +1,8 @@
 -- Scanner backend: units. Partitioned into My / Teammate / Neutral / Enemy
 -- by the scanning player's team stance, plus the Barbarians subcategory
--- under Enemy. Role subcategory is derived from Domain + UnitCombat per
--- the table in docs/scanner-design.md section 2.
+-- under Enemy. Role subcategory is derived from Domain + UnitCombat by
+-- roleSubcategory below, which documents the ordering the derivation
+-- depends on.
 
 ScannerBackendUnits = {
     name = "units",
@@ -18,23 +19,57 @@ local MAX_PLAYER_INDEX = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 63
 -- (scouts are frontline skirmishers; splitting out inflates the sub
 -- list). MOUNTED and HELICOPTER share the Mounted sub because the
 -- Helicopter Gunship is DOMAIN_LAND with fast-attack behaviour.
+-- PARADROPPER is LekMod's split of the Paratrooper / XCOM Squad line
+-- out of GUN; they still fight as gun infantry, so they stay in Melee
+-- with the rest of that line.
 local MELEE_COMBATS = {
     UNITCOMBAT_MELEE = true,
     UNITCOMBAT_GUN = true,
     UNITCOMBAT_ARMOR = true,
     UNITCOMBAT_RECON = true,
+    UNITCOMBAT_PARADROPPER = true,
 }
 local MOUNTED_COMBATS = {
     UNITCOMBAT_MOUNTED = true,
     UNITCOMBAT_HELICOPTER = true,
 }
+-- MOUNTED_RANGED is LekMod's split of the horse-archer line (Chariot
+-- Archer, Keshik, the war elephants, several unique cavalry) out of
+-- ARCHER. Their job is still shooting, and vanilla files the same
+-- units under Ranged, so Ranged is where a player carries their
+-- expectation across install states.
+local RANGED_COMBATS = {
+    UNITCOMBAT_ARCHER = true,
+    UNITCOMBAT_MOUNTED_RANGED = true,
+}
+
+-- An overhaul can invent a UnitCombat we have never seen -- LekMod adds
+-- three. Filing the unit under Melee keeps it reachable: a land combat
+-- unit in a slightly wrong sub is a nuisance, one that emits no entry
+-- at all is invisible, and the scanner is how a player finds their own
+-- army. Warn once per unrecognized type so a re-pin surfaces the
+-- divergence instead of quietly degrading.
+local warnedCombats = {}
+local function unknownLandCombat(combatType)
+    if not warnedCombats[combatType] then
+        warnedCombats[combatType] = true
+        Log.warn("ScannerBackendUnits: unrecognized UnitCombat " .. combatType .. ", filing under Melee")
+    end
+    return "melee"
+end
 
 -- Resolve the Domain / UnitCombat pair into one of the fixed role
--- subcategory keys in ScannerCore.CATEGORIES. Great People MUST be
--- checked before Civilian -- both match on IsCombatUnit == false, and
--- Great People is the more specific bucket. Returns nil only if a
--- category doesn't apply (e.g. trade units without a UnitCombat row);
--- callers drop such entries rather than misbucketing them.
+-- subcategory keys in ScannerCore.CATEGORIES. Always returns a key.
+--
+-- Great People MUST be checked before Civilian -- both match on
+-- IsCombatUnit == false, and Great People is the more specific bucket.
+--
+-- Air MUST be checked before Civilian too. The engine's IsCombatUnit is
+-- base melee combat > 0 (CvUnit.h), and air units carry RangedCombat
+-- only, so every fighter, bomber, missile and nuke answers false and
+-- would file under Civilian while the Air sub sat permanently empty. No
+-- air-domain civilian exists, so the check is safe ahead of it; Sea
+-- stays behind it because work boats and cargo ships are civilians.
 local function roleSubcategory(unit)
     local specialId = unit:GetSpecialUnitType()
     if specialId ~= nil and specialId >= 0 and GameInfoTypes ~= nil then
@@ -43,26 +78,26 @@ local function roleSubcategory(unit)
             return "great_people"
         end
     end
-    if not unit:IsCombatUnit() then
-        return "civilian"
-    end
     local domain = unit:GetDomainType()
     if domain == DomainTypes.DOMAIN_AIR then
         return "air"
+    end
+    if not unit:IsCombatUnit() then
+        return "civilian"
     end
     if domain == DomainTypes.DOMAIN_SEA then
         return "naval"
     end
     local combatId = unit:GetUnitCombatType()
     if combatId == nil or combatId < 0 then
-        return nil
+        return unknownLandCombat("<none>")
     end
     local combatRow = GameInfo.UnitCombatInfos and GameInfo.UnitCombatInfos[combatId]
     local combatType = combatRow and combatRow.Type
     if combatType == nil then
-        return nil
+        return unknownLandCombat("id " .. combatId)
     end
-    if combatType == "UNITCOMBAT_ARCHER" then
+    if RANGED_COMBATS[combatType] then
         return "ranged"
     end
     if combatType == "UNITCOMBAT_SIEGE" then
@@ -74,7 +109,7 @@ local function roleSubcategory(unit)
     if MELEE_COMBATS[combatType] then
         return "melee"
     end
-    return nil
+    return unknownLandCombat(combatType)
 end
 
 -- From the active team's perspective, which top-level Units category
@@ -237,7 +272,7 @@ function ScannerBackendUnits.Scan(activePlayer, activeTeam)
                             subcategory = roleSubcategory(unit)
                         end
                         local name, instanceName = unitItemName(unit, category, groupNamed)
-                        if subcategory ~= nil and name ~= nil then
+                        if name ~= nil then
                             local unitId = unit:GetID()
                             out[#out + 1] = {
                                 plotIndex = plot:GetPlotIndex(),

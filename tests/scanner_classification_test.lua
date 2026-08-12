@@ -186,6 +186,54 @@ function M.test_unit_role_siege()
     T.eq(classifyLandCombat("UNITCOMBAT_SIEGE", 6), "siege")
 end
 
+function M.test_unit_role_lekmod_combat_classes()
+    -- LekMod moves its horse-archer line onto MOUNTED_RANGED and the
+    -- Paratrooper / XCOM line onto PARADROPPER. Both are absent from
+    -- vanilla, and before they were mapped the units emitted no entry
+    -- at all rather than landing in a wrong sub.
+    setup()
+    loadUnitsBackend()
+    T.eq(classifyLandCombat("UNITCOMBAT_MOUNTED_RANGED", 9), "ranged")
+    setup()
+    loadUnitsBackend()
+    T.eq(classifyLandCombat("UNITCOMBAT_PARADROPPER", 10), "melee")
+end
+
+function M.test_unit_role_unknown_combat_falls_back_to_melee()
+    -- The next overhaul that invents a UnitCombat must still produce a
+    -- reachable entry; a unit missing from the scanner is one a blind
+    -- player has no other way to find.
+    setup()
+    loadUnitsBackend()
+    -- Text.key warns about the fixture's placeholder TXT_KEY on the same
+    -- wrapper, so count only the backend's own line.
+    local warned = 0
+    Log.warn = function(msg)
+        if msg:find("ScannerBackendUnits", 1, true) then
+            warned = warned + 1
+        end
+    end
+    T.eq(classifyLandCombat("UNITCOMBAT_INVENTED_BY_SOME_OVERHAUL", 11), "melee")
+    T.eq(warned, 1, "an unrecognized UnitCombat must be logged, not swallowed")
+end
+
+function M.test_unit_role_land_combat_without_combat_class_falls_back()
+    -- A land combat unit whose CombatClass column is empty resolves to
+    -- combat id -1, which used to drop the entry outright.
+    setup()
+    loadUnitsBackend()
+    Log.warn = function() end
+    GameInfo.UnitCombatInfos = {}
+    GameInfo.Units = { [42] = { Description = "TXT_KEY_UNIT_ODDITY" } }
+    local plot = makePlotAt(0, 0, 0)
+    local u = makeUnit({ combatId = -1, domain = DomainTypes.DOMAIN_LAND, plot = plot })
+    installPlayer(0, { u })
+    mapFromPlots({ plot })
+    local out = runUnitsScan()
+    T.eq(#out, 1, "the unit must still reach the scanner")
+    T.eq(out[1].subcategory, "melee")
+end
+
 function M.test_unit_role_mounted_and_helicopter_share_sub()
     setup()
     loadUnitsBackend()
@@ -210,12 +258,16 @@ function M.test_unit_role_naval_from_domain_not_combat()
     T.eq(out[1].subcategory, "naval")
 end
 
-function M.test_unit_role_air_from_domain()
+function M.test_unit_role_air_beats_civilian()
+    -- Air units carry RangedCombat and no base melee combat, so the
+    -- engine's IsCombatUnit answers false for every one of them. The
+    -- fixture mirrors that: testing Civilian first would file the whole
+    -- air arm under Civilian and leave the Air sub permanently empty.
     setup()
     loadUnitsBackend()
     GameInfo.Units = { [42] = { Description = "TXT_KEY_UNIT_FIGHTER" } }
     local plot = makePlotAt(0, 0, 0)
-    local u = makeUnit({ domain = DomainTypes.DOMAIN_AIR, plot = plot })
+    local u = makeUnit({ domain = DomainTypes.DOMAIN_AIR, combat = false, plot = plot })
     installPlayer(0, { u })
     mapFromPlots({ plot })
     T.eq(runUnitsScan()[1].subcategory, "air")

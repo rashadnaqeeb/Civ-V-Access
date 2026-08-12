@@ -19,6 +19,8 @@ New Features and improvements:
 - In the F2 city table, Production is now the last column, after Resource Demanded.
 
 Bug fixes:
+- Fighters, bombers, missiles and nukes now appear under Air in the scanner instead of Civilian.
+- In LekMod, chariot archers, keshiks, war elephants, camel archers, paratroopers and XCOM squads now appear in the scanner's unit categories.
 - Shift+R no longer lists a City-State science bonus that was a percentage, not per-turn science.
 - The staging room player list now updates as soon as a player is kicked or disconnects.
 - Typed search in the scanner and the Civilopedia with Ctrl+F now follows the keyboard layout, so accented and non-Latin characters work.
