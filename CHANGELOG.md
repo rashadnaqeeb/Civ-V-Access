@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-12
+
 New Features and improvements:
 - Alt+Home and Alt+End jump to the first or last section when reviewing an item with Alt+Up and Alt+Down.
 - Removed the scanner's Ctrl+arrow direction feature. It was not particularly useful and generated many false bug reports.
