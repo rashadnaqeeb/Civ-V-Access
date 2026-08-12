@@ -621,6 +621,10 @@ local function buildHelpEntries(spec)
             description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS",
         },
         {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_HOME_END",
+            description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST",
+        },
+        {
             keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_HOME_END",
             description = "TXT_KEY_CIVVACCESS_BASETABLE_HELP_DESC_HOME_END",
         },
@@ -816,6 +820,22 @@ function BaseTable.create(spec)
             description = "Previous section of current cell",
             fn = function()
                 BaseMenuItems.SectionReview.prev(self)
+            end,
+        }
+        self.bindings[#self.bindings + 1] = {
+            key = Keys.VK_HOME,
+            mods = MOD_ALT,
+            description = "First section of current cell",
+            fn = function()
+                BaseMenuItems.SectionReview.first(self)
+            end,
+        }
+        self.bindings[#self.bindings + 1] = {
+            key = Keys.VK_END,
+            mods = MOD_ALT,
+            description = "Last section of current cell",
+            fn = function()
+                BaseMenuItems.SectionReview.last(self)
             end,
         }
     end

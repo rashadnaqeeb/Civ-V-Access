@@ -1033,6 +1033,20 @@ function M.test_alt_up_from_fresh_enters_at_first_section()
     T.eq(speaks[#speaks].text, "Rome", "Alt+Up from fresh enters at section one")
 end
 
+function M.test_alt_home_end_jump_to_the_edge_sections()
+    setup()
+    dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    local h = BaseTable.create(sectionSpec())
+    h.onTabActivated(h, true)
+    local altEnd = findBinding(h, Keys.VK_END, 4)
+    local altHome = findBinding(h, Keys.VK_HOME, 4)
+    T.truthy(altEnd ~= nil and altHome ~= nil, "Alt+Home/End section bindings present alongside plain Home/End")
+    altEnd()
+    T.eq(speaks[#speaks].text, "Needs food", "Alt+End jumps to the cell's last section")
+    altHome()
+    T.eq(speaks[#speaks].text, "Rome", "Alt+Home jumps back to the cell's first section")
+end
+
 -- A column may expose getCellSections to break a comma-joined cell value
 -- (no [NEWLINE] for buildSections to split on) into discrete sections. When
 -- present it replaces the single cell value; row label and column name still

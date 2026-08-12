@@ -235,14 +235,15 @@ function BaseMenuItems.addSections(out, raw)
     addFilteredSplit(out, raw)
 end
 
--- Section review navigator (Alt+Up / Alt+Down), shared across every screen
--- that wants per-section review of the focused item. Each consumer passes a
--- `holder` table it owns (a BaseMenu/BaseTable handler, or a screen-state
--- table for the tech tree) that carries _sections / _sectionPos. set()
--- refreshes the list and rewinds the cursor; next() / prev() walk it,
+-- Section review navigator (Alt+Up / Alt+Down / Alt+Home / Alt+End), shared
+-- across every screen that wants per-section review of the focused item. Each
+-- consumer passes a `holder` table it owns (a BaseMenu/BaseTable handler, or a
+-- screen-state table for the tech tree) that carries _sections / _sectionPos.
+-- set() refreshes the list and rewinds the cursor; next() / prev() walk it,
 -- clamping at the ends by re-speaking the edge section (mirrors the
--- message-buffer bracket keys). The Verbosity additions are never part of
--- the section list -- callers build it from content only.
+-- message-buffer bracket keys); first() / last() jump to either end. The
+-- Verbosity additions are never part of the section list -- callers build it
+-- from content only.
 BaseMenuItems.SectionReview = {}
 
 function BaseMenuItems.SectionReview.set(holder, sections)
@@ -273,6 +274,15 @@ function BaseMenuItems.SectionReview.prev(holder)
     -- From the fresh state (cursor before the first section) Alt+Up enters
     -- at the first section rather than staying silent.
     speakSectionAt(holder, pos <= 1 and 1 or pos - 1)
+end
+
+function BaseMenuItems.SectionReview.first(holder)
+    speakSectionAt(holder, 1)
+end
+
+function BaseMenuItems.SectionReview.last(holder)
+    local sections = holder._sections
+    speakSectionAt(holder, sections ~= nil and #sections or 1)
 end
 BaseMenuItems.labelOf = resolveLabel
 BaseMenuItems.tooltipOf = resolveTooltip

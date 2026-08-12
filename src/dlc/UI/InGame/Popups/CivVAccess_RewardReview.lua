@@ -57,15 +57,16 @@ local function liveSections(fragmentsFn)
     return out
 end
 
--- Repoint handler's built-in Alt+Up/Down (which walk the empty per-item
--- section list on these dismiss-only popups) at the reward content. Swapping
--- the existing bindings' fns rather than appending is required: InputRouter
--- walks bindings in order and the built-ins would shadow any appended
--- duplicate.
+-- Repoint handler's built-in section-review chords (Alt+Up/Down to walk,
+-- Alt+Home/End to jump to either end), which otherwise walk the empty
+-- per-item section list on these dismiss-only popups, at the reward content.
+-- Swapping the existing bindings' fns rather than appending is required:
+-- InputRouter walks bindings in order and the built-ins would shadow any
+-- appended duplicate.
 function RewardReview.install(handler, fragmentsFn)
     local holder = {}
     local lastKey = nil
-    local function step(delta)
+    local function step(move)
         local secs = liveSections(fragmentsFn)
         -- Filtered sections never contain \1 (TextFilter strips control
         -- bytes), so it is a safe join sentinel for the change check.
@@ -74,20 +75,19 @@ function RewardReview.install(handler, fragmentsFn)
             lastKey = key
             BaseMenuItems.SectionReview.set(holder, secs)
         end
-        if delta > 0 then
-            BaseMenuItems.SectionReview.next(holder)
-        else
-            BaseMenuItems.SectionReview.prev(holder)
-        end
+        move(holder)
     end
+    local moves = {
+        [Keys.VK_DOWN] = BaseMenuItems.SectionReview.next,
+        [Keys.VK_UP] = BaseMenuItems.SectionReview.prev,
+        [Keys.VK_HOME] = BaseMenuItems.SectionReview.first,
+        [Keys.VK_END] = BaseMenuItems.SectionReview.last,
+    }
     for _, b in ipairs(handler.bindings) do
-        if b.mods == MOD_ALT and b.key == Keys.VK_DOWN then
+        local move = b.mods == MOD_ALT and moves[b.key] or nil
+        if move ~= nil then
             b.fn = function()
-                step(1)
-            end
-        elseif b.mods == MOD_ALT and b.key == Keys.VK_UP then
-            b.fn = function()
-                step(-1)
+                step(move)
             end
         end
     end

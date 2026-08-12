@@ -12,6 +12,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
+- Alt+Home and Alt+End jump to the first or last section when reviewing an item with Alt+Up and Alt+Down.
 - Removed the scanner's Ctrl+arrow direction scope.
 - Vox Populi and Community Patch support now tracks Vox Populi 5.4.2.
 - Under Vox Populi, Shift+R and Shift+P read the tech and policy cost breakdowns, including what one more city would add.

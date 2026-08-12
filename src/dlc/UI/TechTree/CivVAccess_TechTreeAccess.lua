@@ -671,6 +671,10 @@ local function buildBaseHelpEntries()
             description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS",
         },
         {
+            keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_ALT_HOME_END",
+            description = "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST",
+        },
+        {
             keyLabel = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_KEY_TOGGLE_MODE",
             description = "TXT_KEY_CIVVACCESS_TECHTREE_HELP_DESC_TOGGLE_MODE",
         },
@@ -735,6 +739,12 @@ local function buildTreeTab()
             bind(Keys.VK_UP, MOD_ALT, function()
                 BaseMenuItems.SectionReview.prev(_review)
             end, "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"),
+            bind(Keys.VK_HOME, MOD_ALT, function()
+                BaseMenuItems.SectionReview.first(_review)
+            end, "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST"),
+            bind(Keys.VK_END, MOD_ALT, function()
+                BaseMenuItems.SectionReview.last(_review)
+            end, "TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST"),
             -- Space toggle. Search-active Space is consumed by
             -- handleSearchInput first (InputRouter walks search before
             -- bindings), so this only fires when the search buffer is

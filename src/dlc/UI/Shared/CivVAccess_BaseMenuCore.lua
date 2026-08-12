@@ -747,10 +747,11 @@ local function onAltRight(self)
     end
 end
 
--- Section review (Alt+Up / Alt+Down). VP tooltips can make a single item's
--- announcement a long, hard-to-parse blob; this walks the focused item's
--- content sections (control parts, then deduped tooltip sentences -- see
--- BaseMenuItems.buildSections) one at a time. landingSpeak refreshes the
+-- Section review (Alt+Up / Alt+Down, Alt+Home / Alt+End). VP tooltips can
+-- make a single item's announcement a long, hard-to-parse blob; this walks
+-- the focused item's content sections (control parts, then deduped tooltip
+-- sentences -- see BaseMenuItems.buildSections) one at a time, with the Home
+-- / End pair jumping straight to either end. landingSpeak refreshes the
 -- section list on every move via the shared navigator, so the reviewer
 -- always targets the item the cursor is on.
 local function onAltDown(self)
@@ -759,6 +760,14 @@ end
 
 local function onAltUp(self)
     BaseMenuItems.SectionReview.prev(self)
+end
+
+local function onAltHome(self)
+    BaseMenuItems.SectionReview.first(self)
+end
+
+local function onAltEnd(self)
+    BaseMenuItems.SectionReview.last(self)
 end
 
 -- Search interface / input dispatch ---------------------------------------
@@ -1106,6 +1115,22 @@ function BaseMenu.create(spec)
             description = "Previous section of current item",
             fn = function()
                 onAltUp(self)
+            end,
+        },
+        {
+            key = Keys.VK_HOME,
+            mods = MOD_ALT,
+            description = "First section of current item",
+            fn = function()
+                onAltHome(self)
+            end,
+        },
+        {
+            key = Keys.VK_END,
+            mods = MOD_ALT,
+            description = "Last section of current item",
+            fn = function()
+                onAltEnd(self)
             end,
         },
         {

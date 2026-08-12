@@ -93,6 +93,18 @@ function M.test_alt_up_from_fresh_enters_at_first_section()
     T.eq(lastSpeak(), "Section one", "Alt+Up from fresh enters at section one, not silence")
 end
 
+function M.test_alt_home_end_jump_to_the_edge_sections()
+    setup()
+    pushReward(function()
+        return { "Quote line", "Effect one", "Effect two" }
+    end)
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_END, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Effect two", "Alt+End reviews the reward's last section")
+    InputRouter.dispatch(Keys.VK_HOME, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Quote line", "Alt+Home returns to the reward's first section")
+end
+
 function M.test_new_reward_restarts_cursor()
     setup()
     -- Mutable content: the first reward's fragments, then a different reward's.

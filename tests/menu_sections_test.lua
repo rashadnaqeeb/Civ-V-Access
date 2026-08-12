@@ -163,6 +163,31 @@ function M.test_alt_up_from_fresh_enters_at_first_section()
     T.eq(lastSpeak(), "Library", "Alt+Up from the fresh state enters at section one, not silence")
 end
 
+function M.test_alt_end_jumps_to_last_section()
+    setup()
+    pushButton("Library", function()
+        return "Boosts science[NEWLINE]Costs 5 gold"
+    end)
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_END, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Costs 5 gold", "Alt+End jumps straight to the last section")
+    InputRouter.dispatch(Keys.VK_UP, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Boosts science", "Alt+Up resumes from where Alt+End seated the cursor")
+end
+
+function M.test_alt_home_jumps_to_first_section()
+    setup()
+    pushButton("Library", function()
+        return "Boosts science[NEWLINE]Costs 5 gold"
+    end)
+    InputRouter.dispatch(Keys.VK_END, MOD_ALT, WM_KEYDOWN)
+    clearArr(speaks)
+    InputRouter.dispatch(Keys.VK_HOME, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Library", "Alt+Home jumps back to the first section")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(lastSpeak(), "Boosts science", "Alt+Down resumes from the seated first section")
+end
+
 function M.test_moving_to_new_item_resets_sections()
     setup()
     setCtrls({ "A", "B" })
