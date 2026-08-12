@@ -351,6 +351,11 @@ files["tests/"] = {
         -- per-test setups (GameInfo.Religions = makeIterableTable({...}))
         -- can build engine-shaped iterable tables.
         "makeIterableTable",
+        -- The base pedia's two article indexes, promoted to globals in our
+        -- CivilopediaScreen override. The find-article suite builds them
+        -- the way PopulateList does so Civilopedia.findArticle has a corpus
+        -- to resolve against.
+        "searchableList", "searchableTextKeyList",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
     -- setup helpers and per-test locals are often declared but only used

@@ -917,6 +917,117 @@ function Civilopedia._harvestInto(leaves, handler, currentCat)
     harvestRelationships(leaves, handler, currentCat)
 end
 
+-- Drive the pedia's own per-category renderer for one article. addToList
+-- 1 pushes the article onto the Back / Forward history the base pedia
+-- maintains; 0 skips it (the history walk itself must not re-record what
+-- it is walking). A renderer that throws leaves the Controls holding the
+-- previous article, which the harvest would then read as this one's text,
+-- so the failure is logged with the target that produced it.
+local function selectArticle(cat, entryID, addToList, label)
+    if CivilopediaCategory == nil or CivilopediaCategory[cat] == nil then
+        return
+    end
+    if type(CivilopediaCategory[cat].SelectArticle) ~= "function" then
+        return
+    end
+    local ok, err = pcall(CivilopediaCategory[cat].SelectArticle, entryID, addToList)
+    if not ok then
+        Log.warn(
+            label .. " SelectArticle(" .. tostring(cat) .. ", " .. tostring(entryID) .. ") failed: " .. tostring(err)
+        )
+    end
+end
+
+-- Search-string resolution ----------------------------------------------
+--
+-- The base pedia indexes every article twice: under the TXT_KEY its row
+-- was built from, and under the lowercased localized name it displays.
+-- Vox Populi's pedia decorates that displayed name with leading colored
+-- qualifiers -- the owning civilization's adjective on unique units,
+-- buildings and wonders, the granting policy branch, the reformation and
+-- tenet-level markers -- and indexes the decorated form. A caller holding
+-- only the plain name (a unit's localized Description, a production-queue
+-- slot label, a build action's label -- most of what Ctrl+I passes) misses
+-- both indexes, and the base handler drops the player on Game Concepts.
+-- Stripping the qualifiers back off the indexed names recovers the
+-- article.
+
+local QUALIFIER_TAG = "^%s*%[COLOR[^%]]*%]%b()%[ENDCOLOR%]%s*"
+
+-- Qualifiers stack (a policy-granted unique wonder carries both a branch
+-- and a civilization tag), so strip until the name stops shrinking.
+local function stripQualifiers(name)
+    local prev
+    repeat
+        prev = name
+        name = string.gsub(name, QUALIFIER_TAG, "", 1)
+    until name == prev
+    return name
+end
+
+-- Scan the name index for a decorated entry whose bare name is the query.
+-- Undecorated entries are skipped -- the caller already missed those on
+-- the direct lookup. Two decorated articles sharing a bare name are
+-- articles a player cannot tell apart by name, so the collision is logged
+-- and resolved toward the earlier category rather than left to table
+-- order.
+local function findByBareName(searchString)
+    local target = Locale.ToLower(searchString)
+    local best, matches = nil, 0
+    for _, article in pairs(searchableList) do
+        local name = article.entryName
+        if name ~= nil then
+            local bare = stripQualifiers(name)
+            if bare ~= name and Locale.ToLower(bare) == target then
+                matches = matches + 1
+                if best == nil or article.entryCategory < best.entryCategory then
+                    best = article
+                end
+            end
+        end
+    end
+    if matches > 1 then
+        Log.warn(
+            "Civilopedia.findArticle: '"
+                .. tostring(searchString)
+                .. "' matches "
+                .. tostring(matches)
+                .. " qualified articles; using category "
+                .. tostring(best.entryCategory)
+                .. " entry "
+                .. tostring(best.entryID)
+        )
+    end
+    return best
+end
+
+-- Resolve the string Events.SearchForPediaEntry carries -- a TXT_KEY or a
+-- localized article name -- to an article. Returns (article, rendered):
+-- rendered is true when the base pedia's handler resolved the same string
+-- and has already drawn the article into the Controls, false when only the
+-- qualifier-stripping fallback found it and the caller still has to draw
+-- it (Civilopedia.selectFoundArticle).
+function Civilopedia.findArticle(searchString)
+    local article = searchableTextKeyList[searchString]
+    if article ~= nil then
+        return article, true
+    end
+    article = searchableList[Locale.ToLower(searchString)]
+    if article ~= nil then
+        return article, true
+    end
+    return findByBareName(searchString), false
+end
+
+-- Draw an article the base handler could not find, mirroring what its
+-- success branch does: select the category, then the article. Without
+-- this the Controls still hold the Game Concepts home page base fell back
+-- to, and both the sighted screen and our harvest would show it.
+function Civilopedia.selectFoundArticle(article)
+    SetSelectedCategory(article.entryCategory)
+    selectArticle(article.entryCategory, article.entryID, 1, "Civilopedia.selectFoundArticle")
+end
+
 -- Harvest the currently-rendered article and populate the reader tab
 -- with it. Callers must drive SelectArticle (via any path) before
 -- calling this so the live Controls contain the target's text.
@@ -1016,23 +1127,7 @@ end
 -- pushes the target onto the base pedia's history list (addToList=1) so
 -- subsequent Alt+Left can step back to the article the link was on.
 function followLink(handler, targetCat, targetID)
-    if
-        CivilopediaCategory ~= nil
-        and CivilopediaCategory[targetCat] ~= nil
-        and type(CivilopediaCategory[targetCat].SelectArticle) == "function"
-    then
-        local ok, err = pcall(CivilopediaCategory[targetCat].SelectArticle, targetID, 1)
-        if not ok then
-            Log.warn(
-                "Civilopedia followLink SelectArticle("
-                    .. tostring(targetCat)
-                    .. ", "
-                    .. tostring(targetID)
-                    .. ") failed: "
-                    .. tostring(err)
-            )
-        end
-    end
+    selectArticle(targetCat, targetID, 1, "Civilopedia followLink")
     Civilopedia.openArticle(handler, targetCat, targetID)
 end
 
@@ -1068,20 +1163,7 @@ local function stepHistory(handler, direction, label, boundaryKey)
     currentTopic = targetTopic
     local cat = article.entryCategory
     SetSelectedCategory(cat)
-    if CivilopediaCategory[cat] ~= nil and type(CivilopediaCategory[cat].SelectArticle) == "function" then
-        local ok, err = pcall(CivilopediaCategory[cat].SelectArticle, article.entryID, 0)
-        if not ok then
-            Log.warn(
-                label
-                    .. " SelectArticle("
-                    .. tostring(cat)
-                    .. ", "
-                    .. tostring(article.entryID)
-                    .. ") failed: "
-                    .. tostring(err)
-            )
-        end
-    end
+    selectArticle(cat, article.entryID, 0, label)
     Civilopedia.openArticle(handler, cat, article.entryID)
 end
 
@@ -1372,23 +1454,7 @@ end
 -- pedia's own SelectArticle, then harvests leaves from the rendered
 -- controls. Flat list, autoDrillToLevel = 1.
 function Civilopedia.buildReader(handler, category, entryID)
-    if
-        CivilopediaCategory ~= nil
-        and CivilopediaCategory[category] ~= nil
-        and type(CivilopediaCategory[category].SelectArticle) == "function"
-    then
-        local ok, err = pcall(CivilopediaCategory[category].SelectArticle, entryID, 1)
-        if not ok then
-            Log.warn(
-                "Civilopedia SelectArticle("
-                    .. tostring(category)
-                    .. ", "
-                    .. tostring(entryID)
-                    .. ") failed: "
-                    .. tostring(err)
-            )
-        end
-    end
+    selectArticle(category, entryID, 1, "Civilopedia buildReader")
 
     local leaves = {}
     Civilopedia._harvestInto(leaves, handler, category)

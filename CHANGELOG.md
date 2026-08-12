@@ -21,6 +21,7 @@ New Features and improvements:
 - In the F2 city table, Production is now the last column, after Resource Demanded.
 
 Bug fixes:
+- Ctrl+I now opens the Civilopedia on Vox Populi's unique units, buildings and wonders instead of Game Concepts.
 - Fighters, bombers, missiles and nukes now appear under Air in the scanner instead of Civilian.
 - Reading one of your aircraft now includes its level and experience.
 - Enter on a carrier or an air-stocked city lists aircraft with your military units instead of after your civilians.

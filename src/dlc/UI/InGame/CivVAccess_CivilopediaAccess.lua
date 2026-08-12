@@ -291,7 +291,9 @@ end
 -- chunk) runs first and does SetSelectedCategory + SelectArticle, so
 -- by the time our listener runs the article text is already rendered
 -- in the sighted Controls -- we just need to harvest + land our UI on
--- the reader tab.
+-- the reader tab. The exception is a name base's own two indexes miss
+-- (Vox Populi's qualified article names); there Civilopedia.findArticle
+-- still resolves it and we drive the render ourselves.
 --
 -- searchString == "OPEN_VIA_HOTKEY" is the bare-Ctrl+I toggle; base
 -- handles the show/hide and there is no article to navigate to.
@@ -299,13 +301,17 @@ Log.installEvent(Events, "SearchForPediaEntry", function(searchString)
     if searchString == nil or searchString == "" or searchString == "OPEN_VIA_HOTKEY" then
         return
     end
-    local article = searchableTextKeyList[searchString]
-    if article == nil then
-        article = searchableList[Locale.ToLower(searchString)]
-    end
+    local article, rendered = Civilopedia.findArticle(searchString)
     if article == nil then
         Log.warn("CivilopediaAccess: no article for search string '" .. tostring(searchString) .. "'")
         return
+    end
+    if not rendered then
+        -- Only our qualifier-stripping fallback found it, so base's
+        -- listener took its not-found branch and parked the screen on
+        -- Game Concepts. Draw the real article before anything harvests
+        -- the Controls.
+        Civilopedia.selectFoundArticle(article)
     end
     if ContextPtr:IsHidden() then
         pendingTarget = { kind = "article", cat = article.entryCategory, entryID = article.entryID }
