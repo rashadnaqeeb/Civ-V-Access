@@ -64,8 +64,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_EMPTY"] = "vide"
 
 -- ===== Pre-jump return =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"] = "aucun saut à annuler"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_SET"] = "analyse {1_Dir}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_CLEARED"] = "direction effacée"
 
 -- ===== Search =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT"] = "recherche"
@@ -99,9 +97,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_SEARCH"] = "Contrôle pl
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_SEARCH"] = "Rechercher dans les entrées du scanner"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN"] = "Retour arrière"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN"] = "Retourner le curseur à la case d'avant le saut"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_DIRECTION"] = "Contrôle plus touches fléchées"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DIRECTION"] =
-    "Limiter le scanner à une direction cardinale ; appuyer à nouveau pour effacer"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_GROUP"] = "Catégories personnalisées"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_ADD"] = "Ajouter une catégorie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_DELETE"] = "Supprimer une catégorie"

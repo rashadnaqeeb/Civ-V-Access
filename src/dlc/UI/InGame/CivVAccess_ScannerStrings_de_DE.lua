@@ -52,8 +52,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_EMPTY"] = "leer"
 
 -- ===== Pre-jump return =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"] = "kein Sprung zum Zurückkehren"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_SET"] = "scannt {1_Dir}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_CLEARED"] = "richtung aufgehoben"
 
 -- ===== Search =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT"] = "Suche"
@@ -80,9 +78,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_SEARCH"] = "Strg plus F"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_SEARCH"] = "Scanner-Einträge durchsuchen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN"] = "Rücktaste"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN"] = "Cursor zur Zelle vor dem Sprung zurück"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_DIRECTION"] = "Strg plus Pfeiltasten"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DIRECTION"] =
-    "Scanner auf eine Himmelsrichtung eingrenzen; erneut drücken zum Aufheben"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_GROUP"] = "Benutzerdefinierte Kategorien"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_ADD"] = "Kategorie hinzufügen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_DELETE"] = "Kategorie löschen"

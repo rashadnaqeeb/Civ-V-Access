@@ -53,8 +53,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_EMPTY"] = "puste"
 
 -- ===== Pre-jump return =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_JUMP_NO_RETURN"] = "brak punktu powrotu"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_SET"] = "skanowanie {1_Dir}"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_CLEARED"] = "kierunek wyczyszczony"
 
 -- ===== Search =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SEARCH_PROMPT"] = "wyszukaj"
@@ -81,9 +79,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_SEARCH"] = "Control plus
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_SEARCH"] = "Wyszukaj wpisy skanera"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN"] = "Backspace"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN"] = "Wróć kursorem do pola sprzed skoku"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_DIRECTION"] = "Control plus klawisze strzałek"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DIRECTION"] =
-    "Zawęź skaner do jednego kierunku kompasowego; naciśnij ponownie, by wyczyścić"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_GROUP"] = "Kategorie niestandardowe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_ADD"] = "Dodaj kategorię"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CUSTOM_DELETE"] = "Usuń kategorię"

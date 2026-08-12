@@ -180,6 +180,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT"] = "Влево ил�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT"] = "Shift плюс влево или вправо"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN"] = "Ctrl плюс вверх или вниз"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN"] = "Alt плюс вверх или вниз"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_HOME_END"] = "Alt плюс Home или End"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_TAB"] = "Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB"] = "Shift плюс Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F1"] = "F1"
@@ -199,6 +200,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP"] =
     "К предыдущей или следующей группе"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"] =
     "Просмотр текущего элемента по разделам"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST"] =
+    "Первый или последний раздел"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB"] = "Следующая вкладка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB"] = "Предыдущая вкладка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER"] = "Прочитать заголовок экрана"

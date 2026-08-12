@@ -176,6 +176,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_LEFT_RIGHT"] = "Left または R
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_LEFT_RIGHT"] = "Shift + Left または Right"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_CTRL_UP_DOWN"] = "Control + Up または Down"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN"] = "Alt + 上または下"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_HOME_END"] = "Alt + Home または End"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_TAB"] = "Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB"] = "Shift + Tab"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_F1"] = "F1"
@@ -192,6 +193,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG"] = "値を大きな
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP"] = "前または次のグループへジャンプ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"] =
     "現在の項目をセクション別に読み上げ"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST"] = "先頭または末尾のセクション"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB"] = "次のタブ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB"] = "前のタブ"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER"] = "画面のヘッダーを読み上げ"

@@ -759,8 +759,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_ADJUST_BIG"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_JUMP_GROUP"] =
     "Перейти к предыдущей или следующей группе"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_UP_DOWN"] = "Alt плюс вверх или вниз"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_KEY_ALT_HOME_END"] = "Alt плюс Home или End"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_SECTIONS"] =
     "Просмотр текущего элемента по разделам"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_REVIEW_FIRST_LAST"] =
+    "Первый или последний раздел"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_NEXT_TAB"] = "Следующая вкладка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_PREV_TAB"] = "Предыдущая вкладка"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_HELP_DESC_READ_HEADER"] = "Прочитать заголовок экрана"
