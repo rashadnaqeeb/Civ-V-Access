@@ -13,16 +13,15 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - Alt+Home and Alt+End jump to the first or last section when reviewing an item with Alt+Up and Alt+Down.
-- Removed the scanner's Ctrl+arrow direction scope.
-- Vox Populi and Community Patch support now tracks Vox Populi 5.4.2.
-- Under Vox Populi, Shift+R and Shift+P read the tech and policy cost breakdowns, including what one more city would add.
-- Ctrl+N names the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
-- When exploration shows two named masses were one all along, the older name wins and the merge is announced once.
+- Removed the scanner's Ctrl+arrow direction feature. It was not particularly useful and generated many false bug reports.
+- Vox Populi and Community Patch support now tracks Vox Populi 5.4.2. This is not save compatible with Vox Populi 5.3.3.
+- Ctrl+N allows you to name the landmass or ocean at the cursor; the name is spoken when the cursor crosses onto it and replaces "Landmass N" in the scanner.
+- When exploration shows two named masses were one all along, the older name wins and the merge is announced.
 - In the F2 city table, Production is now the last column, after Resource Demanded.
-- The end-game screen and the replay viewer now read the graph data: pick a civ, then a turn, then hear every recorded figure for it.
+- The end-game screen and the replay viewer now read the graph data as a list.
 
 Bug fixes:
-- Ctrl+I now opens the Civilopedia on Vox Populi's unique units, buildings and wonders instead of Game Concepts.
+- Ctrl+I now opens the Civilopedia on Vox Populi's unique units, buildings and wonders.
 - Fighters, bombers, missiles and nukes now appear under Air in the scanner instead of Civilian.
 - Reading one of your aircraft now includes its level and experience.
 - Enter on a carrier or an air-stocked city lists aircraft with your military units instead of after your civilians.
