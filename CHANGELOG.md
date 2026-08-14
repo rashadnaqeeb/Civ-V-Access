@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-08-14
+
 Bug fixes:
 - The game no longer freezes at random when a cloud-synced Documents folder stalls.
 
