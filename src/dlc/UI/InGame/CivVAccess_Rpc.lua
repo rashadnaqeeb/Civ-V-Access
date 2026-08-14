@@ -1,9 +1,14 @@
 -- MCP bridge endpoint. The proxy injects an `rpc` table (poll / respond)
 -- hardwired to a mailbox directory under Documents\My Games; the external
--- MCP server (tools/mcp/) drops one request at a time into it. A TickPump
--- subscriber consumes at most one request per tick, executes the named
--- query against live game state on the game thread, and hands back a JSON
--- reply. Queries are whitelisted and read-only -- except point_cursor,
+-- MCP server (tools/mcp/) drops one request at a time into it. The proxy
+-- watches that directory on its own thread and hands the request over in
+-- memory, so rpc.poll() is a lock-and-pop with no file access -- see the
+-- mailbox block in src/proxy/proxy.c for why the game thread must never
+-- wait on that directory. A TickPump subscriber consumes at most one
+-- request per tick, executes the named query against live game state on
+-- the game thread, and hands back a JSON reply through rpc.respond (which
+-- does write inline, but only ever after a request actually arrived).
+-- Queries are whitelisted and read-only -- except point_cursor,
 -- which moves the mod's own map cursor (mod-side state, never game state)
 -- so the assistant can physically point at a tile. Every value is read
 -- fresh at execution time (no caching), and map reads are filtered through
@@ -18,7 +23,7 @@
 -- The TickPump subscription is re-established on every onInGameBoot; see
 -- CivVAccess_Boot.lua for why install-once guards are wrong across
 -- load-from-game. TickPump may run a subscriber more than once per frame;
--- poll() consumes the request file, so the extra call reads nothing.
+-- poll() empties the handoff slot, so the extra call reads nothing.
 
 Rpc = {}
 

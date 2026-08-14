@@ -1433,26 +1433,61 @@ static void register_browser(lua_State *L) {
 /* === MCP bridge mailbox ===
    File-RPC endpoint for the external MCP server (tools/mcp/). The server
    writes <dir>\request.txt (atomically: temp then rename); the DLC's
-   CivVAccess_Rpc.lua calls rpc.poll() once per frame on the game thread,
-   runs the whitelisted query, and hands the JSON reply to rpc.respond(),
-   which lands atomically at <dir>\response.json. Both paths are hardwired
-   here -- Lua supplies file contents only, never a path -- so a sandboxed
-   script can at most talk to our own mailbox, not the filesystem. */
+   CivVAccess_Rpc.lua calls rpc.poll() once per frame, runs the whitelisted
+   query, and hands the JSON reply to rpc.respond(), which lands atomically
+   at <dir>\response.json. Both paths are hardwired here -- Lua supplies
+   file contents only, never a path -- so a sandboxed script can at most
+   talk to our own mailbox, not the filesystem.
+
+   The mailbox is watched from a dedicated worker thread, never the game
+   thread. The Lua side subscribes unconditionally, so before this the
+   game thread ran a GetFileAttributesW on a Documents path every frame
+   for every player, whether or not anyone was driving the bridge. A stock
+   Windows 11 install commonly redirects Documents into OneDrive, where
+   that call goes through the cloud-files filter driver and can block for
+   seconds when the sync engine stalls. Blocking the game thread there is
+   a hard freeze with no recovery, and in multiplayer it stalls every
+   other player behind the wedged client. The worker absorbs that stall
+   instead: it drains request.txt into a one-slot handoff and rpc.poll()
+   only pops that slot under a lock, so no frame ever waits on the disk.
+
+   rpc.respond stays inline on the caller's thread. It runs only after a
+   request actually arrived, i.e. only in a session genuinely driving the
+   bridge, and keeping it synchronous preserves the real write-success
+   return that the Lua side logs on failure. */
 
 #define RPC_MAX_REQUEST (1024 * 1024)
+/* Worker cadence. A bridge round trip answers a human-scale assistant
+   question, so a quarter second of pickup latency is invisible; the point
+   of the interval is that a stalled filesystem call now costs a background
+   thread and nothing the player can feel. */
+#define RPC_POLL_INTERVAL_MS 250
 
 static wchar_t g_rpcDir[MAX_PATH];
-static int g_rpcDirState = 0; /* 0 = untried, 1 = usable, -1 = failed */
+/* 0 = resolving, 1 = usable, -1 = failed. Written once by the worker
+   before it polls, read by rpc.respond on the game thread. */
+static volatile LONG g_rpcDirState = 0;
+/* Init once-guard, and the flag that tells rpc.poll the critical section
+   below is live. Separate because the guard is claimed before the section
+   exists and the flag is only raised once the worker is actually running. */
+static volatile LONG g_rpcWorkerClaimed = 0;
+static volatile LONG g_rpcWorkerReady = 0;
 
-static int rpc_dir_ok(void) {
+/* One-slot handoff, worker -> game thread. The server keeps at most one
+   request outstanding, so a newer request replaces an unread older one:
+   answering the stale one would spend a frame's work on a reply the server
+   has already stopped waiting for. */
+static CRITICAL_SECTION g_rpcLock;
+static char *g_rpcPending = NULL;
+static DWORD g_rpcPendingLen = 0;
+
+static int rpc_dir_resolve(void) {
     wchar_t docs[MAX_PATH];
     int r;
     char *u;
-    if (g_rpcDirState != 0) return g_rpcDirState == 1;
     if (FAILED(SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL,
                                 SHGFP_TYPE_CURRENT, docs))) {
-        proxy_log("rpc_dir_ok: SHGetFolderPathW(CSIDL_PERSONAL) failed\n");
-        g_rpcDirState = -1;
+        proxy_log("rpc_dir_resolve: SHGetFolderPathW(CSIDL_PERSONAL) failed\n");
         return 0;
     }
     _snwprintf(g_rpcDir, MAX_PATH - 1,
@@ -1461,59 +1496,127 @@ static int rpc_dir_ok(void) {
     g_rpcDir[MAX_PATH - 1] = 0;
     r = SHCreateDirectoryExW(NULL, g_rpcDir, NULL);
     if (r != ERROR_SUCCESS && r != ERROR_ALREADY_EXISTS && r != ERROR_FILE_EXISTS) {
-        proxy_log("rpc_dir_ok: SHCreateDirectoryExW failed (%d)\n", r);
-        g_rpcDirState = -1;
+        proxy_log("rpc_dir_resolve: SHCreateDirectoryExW failed (%d)\n", r);
         return 0;
     }
-    g_rpcDirState = 1;
     u = wide_to_utf8(g_rpcDir);
-    if (u) { proxy_log("rpc_dir_ok: mailbox at %s\n", u); free(u); }
+    if (u) { proxy_log("rpc_dir_resolve: mailbox at %s\n", u); free(u); }
     return 1;
 }
 
-/* rpc.poll() -> request string | nil. Consumes the request file. */
-static int lr_poll(lua_State *L) {
+/* Worker-thread body of one mailbox pass. Every filesystem call the bridge
+   makes on the read side lives here. */
+static void rpc_drain_request(void) {
     wchar_t reqPath[MAX_PATH];
     HANDLE h;
     DWORD size, got;
-    char *buf;
+    char *buf, *stale;
 
-    if (!rpc_dir_ok()) return 0;
     _snwprintf(reqPath, MAX_PATH - 1, L"%s\\request.txt", g_rpcDir);
     reqPath[MAX_PATH - 1] = 0;
-    /* Cheap per-frame check: bail before opening when no request is
-       pending, which is the overwhelmingly common case. */
-    if (GetFileAttributesW(reqPath) == INVALID_FILE_ATTRIBUTES) return 0;
-    /* Exclusive open: if the server is mid-rename we miss this frame and
+    /* Cheap check first: no request pending is the overwhelmingly common
+       case, and this is the call that can stall on a cloud-backed
+       Documents folder -- which is exactly why it runs off the game
+       thread. */
+    if (GetFileAttributesW(reqPath) == INVALID_FILE_ATTRIBUTES) return;
+    /* Exclusive open: if the server is mid-rename we miss this pass and
        pick the request up on the next. */
     h = CreateFileW(reqPath, GENERIC_READ, 0, NULL, OPEN_EXISTING,
                     FILE_ATTRIBUTE_NORMAL, NULL);
-    if (h == INVALID_HANDLE_VALUE) return 0;
+    if (h == INVALID_HANDLE_VALUE) return;
     size = GetFileSize(h, NULL);
     if (size == INVALID_FILE_SIZE || size > RPC_MAX_REQUEST) {
-        proxy_log("lr_poll: bad request size %lu\n", (unsigned long)size);
+        proxy_log("rpc_drain_request: bad request size %lu\n", (unsigned long)size);
         CloseHandle(h);
         DeleteFileW(reqPath);
-        return 0;
+        return;
     }
     buf = (char *)malloc(size + 1);
     if (!buf) {
-        proxy_log("lr_poll: malloc(%lu) failed\n", (unsigned long)size);
+        proxy_log("rpc_drain_request: malloc(%lu) failed\n", (unsigned long)size);
         CloseHandle(h);
-        return 0;
+        return;
     }
     got = 0;
     if (!ReadFile(h, buf, size, &got, NULL) || got != size) {
-        proxy_log("lr_poll: ReadFile failed (%lu of %lu, err=%lu)\n",
+        proxy_log("rpc_drain_request: ReadFile failed (%lu of %lu, err=%lu)\n",
                   (unsigned long)got, (unsigned long)size, GetLastError());
         CloseHandle(h);
         free(buf);
         DeleteFileW(reqPath);
-        return 0;
+        return;
     }
     CloseHandle(h);
     DeleteFileW(reqPath);
-    ORIG_lua_pushlstring(L, buf, (size_t)got);
+
+    EnterCriticalSection(&g_rpcLock);
+    stale = g_rpcPending;
+    g_rpcPending = buf;
+    g_rpcPendingLen = got;
+    LeaveCriticalSection(&g_rpcLock);
+    if (stale) {
+        proxy_log("rpc_drain_request: replaced an unread request "
+                  "(no in-game context polled it)\n");
+        free(stale);
+    }
+}
+
+/* Runs for the life of the process; the proxy has no unload path (it is
+   lua51_Win32.dll, resident until exit) so there is nothing to tear down. */
+static DWORD WINAPI rpc_worker_thread(LPVOID arg) {
+    (void)arg;
+    if (!rpc_dir_resolve()) {
+        InterlockedExchange(&g_rpcDirState, -1);
+        proxy_log("rpc_worker: mailbox unavailable; MCP bridge disabled this session\n");
+        return 1;
+    }
+    InterlockedExchange(&g_rpcDirState, 1);
+    for (;;) {
+        rpc_drain_request();
+        Sleep(RPC_POLL_INTERVAL_MS);
+    }
+}
+
+static void rpc_start_worker(void) {
+    HANDLE h;
+    /* register_rpc runs on whichever engine thread creates a Lua state, and
+       runs again for every later state, so claim the init exactly once. */
+    if (InterlockedCompareExchange(&g_rpcWorkerClaimed, 1, 0) != 0) return;
+    InitializeCriticalSection(&g_rpcLock);
+    h = CreateThread(NULL, 0, rpc_worker_thread, NULL, 0, NULL);
+    if (h) {
+        CloseHandle(h);
+        InterlockedExchange(&g_rpcWorkerReady, 1);
+        proxy_log("rpc_start_worker: mailbox poller spawned\n");
+    } else {
+        /* g_rpcWorkerReady stays 0, so rpc.poll never touches the lock and
+           the bridge is simply inert for the session. */
+        proxy_log("rpc_start_worker: CreateThread FAILED err=%lu; "
+                  "MCP bridge disabled this session\n", GetLastError());
+    }
+}
+
+/* rpc.poll() -> request string | nil. Pops the worker's one-slot handoff.
+   Touches no files, so a stalled sync filter driver can never freeze the
+   game thread here. */
+static int lr_poll(lua_State *L) {
+    LONG ready;
+    char *buf;
+    DWORD len;
+
+    ready = g_rpcWorkerReady;
+    MemoryBarrier();
+    if (!ready) return 0;
+
+    EnterCriticalSection(&g_rpcLock);
+    buf = g_rpcPending;
+    len = g_rpcPendingLen;
+    g_rpcPending = NULL;
+    g_rpcPendingLen = 0;
+    LeaveCriticalSection(&g_rpcLock);
+
+    if (!buf) return 0;
+    ORIG_lua_pushlstring(L, buf, (size_t)len);
     free(buf);
     return 1;
 }
@@ -1526,9 +1629,14 @@ static int lr_respond(lua_State *L) {
     wchar_t tmpPath[MAX_PATH], outPath[MAX_PATH];
     HANDLE h;
     DWORD wrote;
+    LONG dirState;
     int ok = 0;
 
-    if (rpc_dir_ok() && s) {
+    /* Only reachable after poll handed back a request, which means the
+       worker resolved the mailbox long before this. */
+    dirState = g_rpcDirState;
+    MemoryBarrier();
+    if (dirState == 1 && s) {
         _snwprintf(tmpPath, MAX_PATH - 1, L"%s\\response.tmp", g_rpcDir);
         tmpPath[MAX_PATH - 1] = 0;
         _snwprintf(outPath, MAX_PATH - 1, L"%s\\response.json", g_rpcDir);
@@ -1560,6 +1668,7 @@ static void register_rpc(lua_State *L) {
     int top = ORIG_lua_gettop(L);
     ORIG_luaL_register(L, "rpc", rpc_funcs);
     ORIG_lua_settop(L, top);
+    rpc_start_worker();
     proxy_log("register_rpc: L=%p done\n", (void*)L);
 }
 
