@@ -45,6 +45,7 @@ PORT_MARKERS = [
     b'CivVAccessMissionDispatched',
     b'CivVAccessUnitMoved',
     b'CivVAccessCityStateGreeting',
+    b'CivVAccessDrainEvents',
 ]
 
 

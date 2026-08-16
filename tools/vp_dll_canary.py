@@ -45,6 +45,7 @@ PORT_MARKERS = [
     b'CivVAccessUnitMoved',
     b'GetSquadDestination',
     b'GeneratePathWithFlags',
+    b'CivVAccessDrainEvents',
 ]
 
 def main(dll):

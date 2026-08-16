@@ -136,14 +136,31 @@ both sides, by roughly two orders of magnitude. If a hang is reported again,
 capture dumps the same way and check whether thread 0 is on a `Mutant` and some
 other thread is in `RtlEnterCriticalSection` under a `LuaSupport::Call*` frame.
 
-## Still to do
+## Coverage
 
-The Community Patch / Vox Populi fork (`dist/engine-vp`) has not been given the
-queue yet. Its seam reports the drain binding absent, so `EngineEvents` falls
-back to registering on `GameEvents` and VP behaves exactly as it did before —
-correct, but still carrying the old exposure. Porting the queue there is the
-same change: copy `CivVAccessEventQueue.{h,cpp}`, convert the two hook sites,
-and add the `CivVAccessDrainEvents` binding.
+All three forks carry the queue: the vanilla overlay in `src/engine/`, the
+LekMod fork on the sibling clone's `civvaccess` branch, and the
+Community-Patch / Vox Populi fork on its clone's `civvaccess` branch. Both DLL
+canaries assert `CivVAccessDrainEvents` is present, so a re-pin rebase that
+drops the port fails the gate rather than silently reverting to synchronous
+hooks.
+
+Two fork-specific notes for future re-pins:
+
+- The CP/VP fork's `setXY` reuses an outer `pkScriptSystem` that the engine's
+  own `UnitSetXY` hook still needs, so its converted site drops only the
+  `pkScriptSystem &&` from the condition rather than removing the variable.
+- `build_vp_clang_sdk.py` compiles an explicit source list, not a glob, so
+  `CivVAccessEventQueue.cpp` had to be added to `CPP` there. The vanilla and
+  LekMod builds glob `*.cpp` and picked it up on their own.
+
+Refreshing the VP fork DLL does not require a modpack re-bake. The bake's only
+relationship to it is a file copy into
+`Mods/(1) Community Patch (v NNN)/CvGameCore_Expansion2.dll` inside the staged
+package, with no manifest reference or digest, so copying the rebuilt DLL over
+that path in `build/modpack-out` and `build/modpack-cp-out` reproduces exactly
+what a re-bake would produce for the engine. Everything else in the package
+comes from the merged database and is unaffected by an engine rebuild.
 
 ## Reproducing the analysis
 
