@@ -27,10 +27,11 @@
 #include "../CvGameTextMgr.h"
 #include "../CvReplayMessage.h"
 // CIVVACCESS: Game.GetCycleUnits / Game.GetBuildRoutePath /
-// Game.GetClosestSearchedPlot bindings.
+// Game.GetClosestSearchedPlot / Game.CivVAccessDrainEvents bindings.
 #include "../CvUnitCycler.h"
 #include "../CvAStar.h"
 #include "../CvGameCoreUtils.h"
+#include "../CivVAccessEventQueue.h"
 
 #define Method(func) RegisterMethod(L, l##func, #func);
 
@@ -56,6 +57,7 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 	Method(GetCycleUnits);
 	Method(GetBuildRoutePath);
 	Method(GetClosestSearchedPlot);
+	Method(CivVAccessDrainEvents);
 
 	Method(SelectionListMove);
 	Method(SelectionListGameNetMessage);
@@ -466,6 +468,43 @@ int CvLuaGame::lGetCycleUnits(lua_State* L)
 		pNode = kCycler.NextNode(pNode);
 	}
 	return 1;
+}
+//------------------------------------------------------------------------------
+// CIVVACCESS: Drain the deferred engine-event queue. The mod's two hottest
+// hooks (plot revealed, unit moved) fire from inside the simulation on the
+// game-core thread, where calling Lua deadlocks against the UI thread; they
+// queue instead and the UI thread collects them here once per tick. See
+// CivVAccessEventQueue.h for the deadlock this avoids.
+//
+// Returns (events, bOverflowed). events is a 1-indexed array; each entry is
+// itself an array whose [1] is the hook name and [2..] are its integer
+// arguments, oldest event first. bOverflowed is true when events were dropped
+// since the last drain, which the Lua side logs and self-heals from.
+int CvLuaGame::lCivVAccessDrainEvents(lua_State* L)
+{
+	// One batch per frame. Sized to move a heavy turn's backlog in a couple of
+	// drains rather than stalling the tick on a single huge one.
+	const int MAX_BATCH = 2048;
+	static CivVAccessEventQueue::Event s_aEvents[MAX_BATCH];
+
+	const int iCount = CivVAccessEventQueue::Drain(s_aEvents, MAX_BATCH);
+
+	lua_createtable(L, iCount, 0);
+	for(int i = 0; i < iCount; ++i)
+	{
+		const CivVAccessEventQueue::Event& kEvent = s_aEvents[i];
+		lua_createtable(L, kEvent.iArgc + 1, 0);
+		lua_pushstring(L, kEvent.szName);
+		lua_rawseti(L, -2, 1);
+		for(int j = 0; j < kEvent.iArgc; ++j)
+		{
+			lua_pushinteger(L, kEvent.aiArgs[j]);
+			lua_rawseti(L, -2, j + 2);
+		}
+		lua_rawseti(L, -2, i + 1);
+	}
+	lua_pushboolean(L, CivVAccessEventQueue::TakeOverflowed());
+	return 2;
 }
 //------------------------------------------------------------------------------
 // CIVVACCESS: Wraps GC.GetBuildRouteFinder() so route-to mission preview

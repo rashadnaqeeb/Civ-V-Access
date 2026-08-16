@@ -135,7 +135,7 @@ function Invoke-SeamGuard {
     $forkMethods = @(
         "GetMissionQueue", "GeneratePath", "GeneratePathWithFlags", "GetPath", "ComputePath",
         "GetBestBuildRoute", "GetBuildRoutePath", "GetClosestSearchedPlot",
-        "HasLineOfSight", "GetCycleUnits",
+        "HasLineOfSight", "GetCycleUnits", "CivVAccessDrainEvents",
         "GetMemberDelegationDetails", "GetMemberKnowledgeDetails", "GetMemberVoteOpinionDetails",
         # Squads (CP-DLL fork only; all routed through the EngineData seam)
         "GetSquadNumber", "AssignToSquad", "RemoveFromSquad", "DoSquadMovement",

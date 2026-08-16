@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- Fixed a freeze that could lock up a multiplayer game until the affected player was closed.
+
 ## [2.3.1] - 2026-08-14
 
 Bug fixes:

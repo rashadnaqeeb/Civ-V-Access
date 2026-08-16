@@ -21,6 +21,11 @@ include("CivVAccess_SpeechPipeline")
 include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")
+-- Dispatches the hooks the fork queues instead of raising on the game-core
+-- thread. After TickPump (it subscribes the drain) and EngineData (it probes
+-- the drain binding through the seam); before any consumer that registers a
+-- deferred hook.
+include("CivVAccess_EngineEvents")
 include("CivVAccess_Nav")
 -- Recommendations Core defines the Recommendations.* helpers that the
 -- PlotSections.recommendation Read function invokes, so load it before
@@ -373,6 +378,10 @@ local function onInGameBoot()
     HandlerStack.insertAt(ScannerHandler.create(), 2)
     TickPump.install(ContextPtr)
     Cursor.init()
+    -- Ahead of every consumer: it clears the deferred-hook handler table that
+    -- RevealAnnounce / MassNames / UnitMoveLog register into below, and arms
+    -- the drain that feeds them.
+    EngineEvents.installListeners()
     UnitControl.installListeners()
     Turn.installListeners()
     HotseatCursor.installListeners()

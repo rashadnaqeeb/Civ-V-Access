@@ -39,6 +39,19 @@
 -- The attention cue is the engine's MP turn-end chat ding, the same sound
 -- MultiplayerTurnEnd plays for a remote player ending their turn.
 --
+-- Sampling cadence. Every read below (Game.*, Players[], Network.*) crosses
+-- into the game core, and the engine serialises those behind the game-core
+-- lock while the UI thread holds the script lock. The game core takes those
+-- two in the opposite order whenever it calls out to Lua from inside doTurn,
+-- so a UI thread sitting inside an engine read is one half of a deadlock --
+-- see docs/llm-docs/mp-deadlock.md. Running this poll on every frame, in
+-- networked multiplayer only, kept the UI thread inside that window a large
+-- fraction of the time. One sample per wall-clock second is ample for a
+-- sixty-second reminder and cuts the exposure by two orders of magnitude.
+-- Sampling this slowly cannot miss the transition it watches for: the
+-- engine's pull-back persists until the player re-submits, so a later sample
+-- still observes submitted -> not-submitted within the turn.
+--
 -- Listeners (the TickPump subscription) are re-established on every
 -- onInGameBoot; see CivVAccess_Boot.lua for why install-once guards are wrong
 -- across load-from-game.
@@ -87,9 +100,17 @@ local function announce()
     MessageBuffer.append(text, "notification")
 end
 
--- Per-frame poll, driven by the TickPump subscription.
+-- Poll driven by the TickPump subscription, rate-limited to one sample per
+-- wall-clock second. The gate runs before any engine read -- that is the whole
+-- point of it -- and _now's one-second resolution makes it idempotent when
+-- TickPump fires the subscriber more than once in a frame.
 function MPEndTurnReminder._poll()
     local S = civvaccess_shared
+    local sampleAt = MPEndTurnReminder._now()
+    if S.mpReminderLastSample == sampleAt then
+        return
+    end
+    S.mpReminderLastSample = sampleAt
     if not Game:IsNetworkMultiPlayer() then
         return
     end
@@ -157,5 +178,6 @@ function MPEndTurnReminder.installListeners()
     civvaccess_shared.mpReminderSubmitted = false
     civvaccess_shared.mpReminderArmed = false
     civvaccess_shared.mpReminderLastAlert = nil
+    civvaccess_shared.mpReminderLastSample = nil
     TickPump.subscribe(SUBSCRIBER_NAME, MPEndTurnReminder._poll)
 end

@@ -18,6 +18,10 @@ local isMP, gameTurn, sent
 local meOpts, others
 local connected
 local clock
+-- Counts crossings into the game core. Every one of these is taken with the
+-- script lock held, which is the half of the MP deadlock this module owns, so
+-- the sampling gate is guarded by counting them rather than by timing.
+local engineReads
 
 local function makePlayer(opts)
     return {
@@ -42,7 +46,11 @@ local function makePlayer(opts)
     }
 end
 
+-- The poll samples at most once per wall-clock second, so a test that drove it
+-- twice on the same clock value would have the second call gated out. Advancing
+-- one second per call mirrors the real sampling cadence.
 local function poll()
+    clock = clock + 1
     MPEndTurnReminder._poll()
 end
 
@@ -75,9 +83,11 @@ local function setup()
         [3] = { human = false },
     }
     connected = {}
+    engineReads = 0
 
     Game = {
         IsNetworkMultiPlayer = function()
+            engineReads = engineReads + 1
             return isMP
         end,
         GetActivePlayer = function()
@@ -171,10 +181,12 @@ function M.test_repeats_every_interval()
     submit()
     cancel()
     T.eq(#spoken, 1)
-    clock = 1059
+    local alertedAt = clock
+    -- poll() advances the clock itself, so aim one short of the interval.
+    clock = alertedAt + 58
     poll()
     T.eq(#spoken, 1, "no repeat before the interval elapses")
-    clock = 1060
+    clock = alertedAt + 59
     poll()
     T.eq(#spoken, 2, "repeats once a full interval has passed")
 end
@@ -242,6 +254,32 @@ function M.test_inactive_turn_is_silent()
     submit()
     cancel()
     T.eq(#spoken, 0, "nothing to act on when our turn is not active")
+end
+
+-- sampling cadence ---------------------------------------------------------
+
+function M.test_repeated_polls_in_one_second_read_the_engine_once()
+    setup()
+    MPEndTurnReminder._poll()
+    MPEndTurnReminder._poll()
+    MPEndTurnReminder._poll()
+    T.eq(engineReads, 1, "extra polls within the same second must not re-enter the game core")
+    clock = clock + 1
+    MPEndTurnReminder._poll()
+    T.eq(engineReads, 2, "the next second samples again")
+end
+
+function M.test_cancellation_is_still_caught_at_one_hertz()
+    setup()
+    -- A second between samples is the real cadence; the engine's pull-back
+    -- persists until re-submit, so the transition still lands on a later sample.
+    sent = true
+    clock = clock + 1
+    MPEndTurnReminder._poll()
+    sent = false
+    clock = clock + 30
+    MPEndTurnReminder._poll()
+    T.eq(#spoken, 1, "a pull-back observed a full sample later still alerts")
 end
 
 -- install ------------------------------------------------------------------

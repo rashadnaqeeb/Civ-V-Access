@@ -113,6 +113,13 @@ civvaccess_shared = civvaccess_shared or {}
 civvaccess_shared.modules = civvaccess_shared.modules or {}
 civvaccess_shared.modules.EngineData = EngineData
 
+-- EngineEvents: the dispatcher every deferred-hook consumer registers through,
+-- so it has to exist before RevealAnnounce / MassNames / UnitMoveLog install.
+-- Loaded without Game.CivVAccessDrainEvents in the polyfill, so it starts in
+-- its fallback mode and those suites keep asserting against GameEvents; the
+-- engine_events suite installs the binding itself to drive the deferred path.
+dofile("src/dlc/UI/InGame/CivVAccess_EngineEvents.lua")
+
 -- Audio: capturing stub for the proxy's miniaudio binding so PlotAudio and
 -- Cursor suites can assert bed / fog / stinger / cancel_all call ordering
 -- without touching real audio. Stays here (not in the polyfill) for the
@@ -217,6 +224,7 @@ T.register("keylayout", require("keylayout_test"))
 T.register("engine_data", require("engine_data_test"))
 T.register("engine_data_vp", require("engine_data_vp_test"))
 T.register("engine_data_lekmod", require("engine_data_lekmod_test"))
+T.register("engine_events", require("engine_events_test"))
 T.register("tick_pump", require("tick_pump_test"))
 T.register("baseline_handler", require("baseline_handler_test"))
 T.register("pulldown_probe", require("pulldown_probe_test"))

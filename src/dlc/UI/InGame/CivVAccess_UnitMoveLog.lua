@@ -255,7 +255,7 @@ function UnitMoveLog.installListeners()
     _pending = {}
     _order = {}
     _flushScheduled = false
-    Log.installEvent(GameEvents, "CivVAccessUnitMoved", onUnitMoved, "UnitMoveLog")
+    EngineEvents.on("CivVAccessUnitMoved", onUnitMoved, "UnitMoveLog")
     Log.installEvent(Events, "ActivePlayerTurnEnd", UnitMoveLog._onTurnEnd, "UnitMoveLog")
     if Game.IsHotSeat() then
         Log.installEvent(

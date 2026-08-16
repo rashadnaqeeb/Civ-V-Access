@@ -43,6 +43,7 @@ protected:
 	static int lGetCycleUnits(lua_State* L);
 	static int lGetBuildRoutePath(lua_State* L);
 	static int lGetClosestSearchedPlot(lua_State* L);
+	static int lCivVAccessDrainEvents(lua_State* L);
 
 	static int lSelectionListMove(lua_State* L);
 	static int lSelectionListGameNetMessage(lua_State* L);

@@ -585,8 +585,7 @@ function RevealAnnounce.installListeners()
     -- detection on its own.
     _campOrRuinKind = {}
     bootstrapCampOrRuinSnapshot()
-    Log.installEvent(
-        GameEvents,
+    EngineEvents.on(
         "CivVAccessPlotRevealed",
         recordFirstReveal,
         "RevealAnnounce",

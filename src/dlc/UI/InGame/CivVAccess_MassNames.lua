@@ -458,8 +458,7 @@ end
 function MassNames.installListeners()
     hydrate()
     rebuild()
-    Log.installEvent(
-        GameEvents,
+    EngineEvents.on(
         "CivVAccessPlotRevealed",
         Log.safeListener("MassNames.onPlotRevealed", MassNames._onPlotRevealed),
         "MassNames",

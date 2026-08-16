@@ -51,6 +51,32 @@ function EngineData.forkPresent()
         and Game.GetClosestSearchedPlot ~= nil
 end
 
+-- Extension binding: Game.CivVAccessDrainEvents() -- collects the engine
+-- events the fork queued instead of dispatching them to Lua from the
+-- game-core thread. Calling Lua from inside the simulation deadlocks against
+-- the UI thread; the queue and the reasoning behind it are documented in
+-- CivVAccessEventQueue.h in the engine overlay. Returns (batch, overflowed),
+-- where batch is a 1-indexed array of { hookName, arg... } entries, oldest
+-- first, and overflowed reports events dropped since the last drain.
+--
+-- Reported unavailable on any engine whose fork predates the queue (a stock
+-- DLL, a sighted partner's install, or a Community-Patch fork not yet
+-- re-pinned). CivVAccess_EngineEvents then registers its handlers straight on
+-- GameEvents and behaves exactly as before, so this stays a capability probe
+-- rather than a hard requirement.
+function EngineData.deferredEventsAvailable()
+    return Game ~= nil and Game.CivVAccessDrainEvents ~= nil
+end
+
+-- Degrades to an empty batch so a caller looping the result simply finds
+-- nothing to dispatch.
+function EngineData.drainEngineEvents()
+    if not EngineData.deferredEventsAvailable() then
+        return {}, false
+    end
+    return Game.CivVAccessDrainEvents()
+end
+
 -- Drift read: bidirectional melee damage for a unit-vs-unit attack.
 -- Returns (damage to defender, damage to attacker), MELEE ONLY -- the
 -- caller adds volleyDamage onto the spoken damage-to-defender itself.
