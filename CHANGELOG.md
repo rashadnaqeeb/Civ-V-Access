@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- LekMod support now tracks LekMod v35.
+
 ## [2.3.2] - 2026-08-17
 
 New Features and improvements:

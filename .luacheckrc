@@ -232,7 +232,8 @@ globals = {
     -- Civ V UI Context convention: every screen defines these at module
     -- scope; base files install them and our *Access wrappers frequently
     -- replace them with a chaining version that calls the captured prior.
-    "InputHandler", "ShowHideHandler", "OnUpdate",
+    -- OnStagingUpdate is LekMod's name for the StagingRoom per-frame update.
+    "InputHandler", "ShowHideHandler", "OnUpdate", "OnStagingUpdate",
 
     -- Base-game handler functions our wrappers chain onto. Sourced from the
     -- base .lua files we ship but don't lint (MainMenu, OtherMenu, LoadMenu,

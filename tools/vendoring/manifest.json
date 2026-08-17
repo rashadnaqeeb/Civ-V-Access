@@ -152,7 +152,15 @@
           "old": "                <EditBox Size=\"825,23\" MaxLength=\"255\" KeepFocus=\"1\" Anchor=\"L,C\" Font=\"TwCenMT18\" ID=\"ChatEntry\" />\r\n",
           "new": "                <EditBox Size=\"825,23\" MaxLength=\"255\" Anchor=\"L,C\" Font=\"TwCenMT18\" ID=\"ChatEntry\" />\r\n"
         }
-      ]
+      ],
+      "lekmod": {
+        "edits": [
+          {
+            "old": "                <EditBox Size=\"1135,23\" MaxLength=\"255\" KeepFocus=\"1\" Anchor=\"L,C\" Font=\"TwCenMT18\" ID=\"ChatEntry\" />\r\n",
+            "new": "                <EditBox Size=\"1135,23\" MaxLength=\"255\" Anchor=\"L,C\" Font=\"TwCenMT18\" ID=\"ChatEntry\" />\r\n"
+          }
+        ]
+      }
     },
     "FrontEnd/MultiplayerSelect.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/MultiplayerSelect.{lua,xml}.\r\n-- Flattened to UI/FrontEnd/ because include() resolves by bare filename\r\n-- stem. Contents above the bootstrap marker are a verbatim copy of the\r\n-- base-game file.\r\n",
@@ -975,7 +983,19 @@
     },
     "Options/OptionsMenu.lua": {
       "prefix": "include(\"CivVAccess_ProbeBoot\")\r\n\r\n",
-      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OptionsAccess\")\r\n"
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OptionsAccess\")\r\n",
+      "lekmod": {
+        "edits": [
+          {
+            "old": "ContextPtr:SetShowHideHandler(\r\nfunction( isHide, isInit )\r\n",
+            "new": "function ShowHideHandler( isHide, isInit )\r\n"
+          },
+          {
+            "old": "end)\r\n\r\n-------------------------------------------------\r\n-------------------------------------------------\r\n-- NEW: also check ConfirmResetAllHotkeysPopup\r\n",
+            "new": "end\r\nContextPtr:SetShowHideHandler( ShowHideHandler );\r\n\r\n-------------------------------------------------\r\n-------------------------------------------------\r\n-- NEW: also check ConfirmResetAllHotkeysPopup\r\n"
+          }
+        ]
+      }
     },
     "Options/OptionsMenu.xml": {},
     "TechTree/TechTree.lua": {

@@ -927,6 +927,14 @@ end
 -- inside StartCountdown picks up our wrapped OnUpdate (SetUpdate reads the
 -- OnUpdate global by name at call time).
 --
+-- LekMod names the per-frame update OnStagingUpdate and arms it through
+-- EnsureStagingUpdate(), which StopCountdown calls instead of ClearUpdate
+-- because the draft ban column and the version check need a tick every frame.
+-- SetUpdate is replace-semantics, so on that body TickPump cannot own the
+-- Context's update as well -- whichever armed last would silently unhook the
+-- other. There we wrap OnStagingUpdate and pump TickPump from inside it, and
+-- leave arming to EnsureStagingUpdate.
+--
 -- Floor-based per-second speech: at each tick we floor g_fCountdownTimer and
 -- speak once per new integer in [1..5]. `countdownExpired` distinguishes a
 -- natural tick-to-zero stop (no cancel announce) from a mid-countdown
@@ -944,7 +952,8 @@ local function wrapCountdown()
 
     local baseStartCountdown = StartCountdown
     local baseStopCountdown = StopCountdown
-    local baseOnUpdate = OnUpdate
+    local stagingUpdate = type(EnsureStagingUpdate) == "function" and type(OnStagingUpdate) == "function"
+    local baseOnUpdate = stagingUpdate and OnStagingUpdate or OnUpdate
 
     if
         type(baseStartCountdown) ~= "function"
@@ -966,9 +975,11 @@ local function wrapCountdown()
     StopCountdown = function(...)
         local wasActive = (g_fCountdownTimer or -1) > 0
         baseStopCountdown(...)
-        -- Base StopCountdown calls ContextPtr:ClearUpdate(), which removes our
-        -- TickPump wiring. Re-arm so deferred callbacks fire after a countdown.
-        TickPump.install(ContextPtr)
+        if not stagingUpdate then
+            -- Base StopCountdown calls ContextPtr:ClearUpdate(), which removes our
+            -- TickPump wiring. Re-arm so deferred callbacks fire after a countdown.
+            TickPump.install(ContextPtr)
+        end
         if wasActive and not _countdownExpired then
             SpeechPipeline.speakInterrupt(Text.key("TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"))
         end
@@ -976,7 +987,7 @@ local function wrapCountdown()
         _countdownExpired = false
     end
 
-    OnUpdate = function(fDTime)
+    local wrappedUpdate = function(fDTime)
         local before = g_fCountdownTimer or -1
         if before > 0 and (before - fDTime) <= 0 then
             _countdownExpired = true
@@ -990,6 +1001,18 @@ local function wrapCountdown()
                 _lastSpokenCountdownInt = cur
             end
         end
+        if stagingUpdate then
+            TickPump.tick()
+        end
+    end
+
+    if stagingUpdate then
+        OnStagingUpdate = wrappedUpdate
+        -- The body's own show pass already armed SetUpdate with the pre-wrap
+        -- value, so re-arm through its entry point to pick up the wrapper.
+        EnsureStagingUpdate()
+    else
+        OnUpdate = wrappedUpdate
     end
 end
 
@@ -1372,13 +1395,19 @@ local function wrappedShowHide(bIsHide, bIsInit)
         closeLeaveConfirm(false)
         return
     end
-    -- Base ShowHideHandler calls StopCountdown() on every show (to clear any
-    -- leftover countdown), which calls ContextPtr:ClearUpdate() and wipes the
-    -- TickPump wiring BaseMenu.install set at module load. Re-arm it here so
-    -- deferred callbacks (BaseMenuEditMode TakeFocus, etc.) keep running.
-    TickPump.install(ContextPtr)
     installListeners()
+    -- wrapCountdown first: on a body that owns the Context update permanently
+    -- (LekMod's EnsureStagingUpdate) it arms the wrapper, which pumps TickPump
+    -- itself, and installing TickPump here would unhook that body's own
+    -- per-frame work.
     wrapCountdown()
+    if type(EnsureStagingUpdate) ~= "function" then
+        -- Base ShowHideHandler calls StopCountdown() on every show (to clear any
+        -- leftover countdown), which calls ContextPtr:ClearUpdate() and wipes the
+        -- TickPump wiring BaseMenu.install set at module load. Re-arm it here so
+        -- deferred callbacks (BaseMenuEditMode TakeFocus, etc.) keep running.
+        TickPump.install(ContextPtr)
+    end
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
     -- every show, so the shared slot table is populated by the time we build
     -- items here.

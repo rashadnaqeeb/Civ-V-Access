@@ -124,8 +124,17 @@ function Invoke-Native {
 
 function Get-Git {
     param([string[]]$GitArgs)
+    # git reports progress and summaries on stderr even when it succeeds (fetch is
+    # the usual one). Under ErrorActionPreference=Stop the 2>&1 merge turns that
+    # first stderr line into a terminating NativeCommandError before the exit-code
+    # check ever runs, so a healthy fetch aborts the phase. Drop to Continue across
+    # the call and read $LASTEXITCODE for the real success signal.
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $out = & git -C $ClonePath @GitArgs 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $gitExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+    if ($gitExit -ne 0) {
         throw "git $($GitArgs -join ' ') failed: $out"
     }
     return ($out | Out-String).Trim()
