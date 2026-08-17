@@ -1,6 +1,6 @@
 {
   "mod": "2.3.1",
-  "supported_vp": "Release-5.4.2",
+  "supported_vp": "Release-5.4.4",
   "supported_lekmod": "9545382dbb300023503e58f74452845e77e81b53",
   "components": {
     "core":           "1.31.1",
