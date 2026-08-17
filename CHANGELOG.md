@@ -11,8 +11,11 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.3.2] - 2026-08-17
+
 New Features and improvements:
 - A new setting brings back the Ctrl+arrow scanner direction scope, off by default.
+- Vox Populi and Community Patch support now tracks Vox Populi 5.4.4.
 
 Bug fixes:
 - Fixed a freeze that could lock up a multiplayer game until the affected player was closed.
