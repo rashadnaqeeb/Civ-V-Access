@@ -261,6 +261,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "El escáner reproduce pitido direccional"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "Mostrar solo los puntos de ruta de la unidad seleccionada en el escáner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_SCOPE"] =
+    "El escáner puede limitar las entradas a una dirección"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
     "Mostrar solo los puntos de ruta de la unidad seleccionada en la lectura de casilla"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Leer subtítulos"

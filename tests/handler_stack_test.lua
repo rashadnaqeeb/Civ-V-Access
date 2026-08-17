@@ -519,6 +519,75 @@ function M.test_collectHelpEntries_common_does_not_duplicate_handler_label()
     HandlerStack.commonHelpEntries = {}
 end
 
+function M.test_collectHelpEntries_when_predicate_gates_the_row()
+    setup()
+    local enabled = false
+    local a = makeHandler("a", {
+        helpEntries = {
+            { keyLabel = "Up/Down", description = "nav" },
+            {
+                keyLabel = "Ctrl+Arrows",
+                description = "opt-in feature",
+                when = function()
+                    return enabled
+                end,
+            },
+        },
+    })
+    HandlerStack.push(a)
+    T.eq(#HandlerStack.collectHelpEntries(), 1, "a declined entry is not listed")
+    -- Evaluated per open, so flipping the setting mid-session is reflected
+    -- without re-creating the handler.
+    enabled = true
+    local entries = HandlerStack.collectHelpEntries()
+    T.eq(#entries, 2)
+    T.eq(entries[2].keyLabel, "Ctrl+Arrows")
+end
+
+function M.test_collectHelpEntries_declined_entry_leaves_label_to_lower_handler()
+    setup()
+    local a = makeHandler(
+        "a",
+        { helpEntries = {
+            { keyLabel = "Escape", description = "lower meaning" },
+        } }
+    )
+    local b = makeHandler("b", {
+        helpEntries = {
+            {
+                keyLabel = "Escape",
+                description = "gated meaning",
+                when = function()
+                    return false
+                end,
+            },
+        },
+    })
+    HandlerStack.push(a)
+    HandlerStack.push(b)
+    local entries = HandlerStack.collectHelpEntries()
+    T.eq(#entries, 1)
+    T.eq(entries[1].description, "lower meaning", "a declined entry must not claim its keyLabel")
+end
+
+function M.test_collectHelpEntries_throwing_when_drops_row_and_logs()
+    setup()
+    local a = makeHandler("a", {
+        helpEntries = {
+            {
+                keyLabel = "Ctrl+Arrows",
+                description = "opt-in feature",
+                when = function()
+                    error("predicate blew up")
+                end,
+            },
+        },
+    })
+    HandlerStack.push(a)
+    T.eq(#HandlerStack.collectHelpEntries(), 0, "a throwing predicate drops the row")
+    T.truthy(#errors > 0, "and the failure is logged rather than swallowed")
+end
+
 -- purgeDeadEnv ----------------------------------------------------------
 --
 -- Reproduces the FrontEnd-to-InGame skin transition that wipes the

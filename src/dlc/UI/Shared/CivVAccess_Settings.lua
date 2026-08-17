@@ -249,6 +249,22 @@ local getScannerCoords, setScannerCoords = defineBoolPref("scannerCoords", "Scan
 local getScannerCompassDirection, setScannerCompassDirection =
     defineBoolPref("scannerCompassDirection", "ScannerCompassDirection", false)
 
+-- Scanner directional-scope toggle. Off by default. When on, Ctrl+arrow
+-- narrows the scanner to a 90-degree compass arc fanning out from the hex
+-- cursor, so the list answers "what is to my west" instead of "what is
+-- nearest"; pressing the active direction again clears it. ScannerNav reads
+-- the cache live in setDirection. Any write drops an active scope: turning
+-- the feature off would otherwise leave a direction quietly filtering the
+-- list with the only keys that clear it now inert.
+local getScannerDirectionScope, setScannerDirectionScope = defineBoolPref(
+    "scannerDirectionScope",
+    "ScannerDirectionScope",
+    false,
+    function()
+        civvaccess_shared.scannerDirection = nil
+    end
+)
+
 -- Scanner group-cities-by-civ toggle. Off by default. When on, the
 -- scanner's Cities category collapses each civilization's cities (the
 -- player's own included) into one item named for the civ, and
@@ -720,6 +736,11 @@ local function buildItems()
             textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY",
             getValue = getScannerWaypointsSelectedOnly,
             setValue = setScannerWaypointsSelectedOnly,
+        }),
+        BaseMenuItems.VirtualToggle({
+            textKey = "TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_SCOPE",
+            getValue = getScannerDirectionScope,
+            setValue = setScannerDirectionScope,
         }),
     }
     -- Custom scanner categories live only in-game (the scanner exists only

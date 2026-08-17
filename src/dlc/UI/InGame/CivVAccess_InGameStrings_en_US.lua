@@ -1159,6 +1159,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Scanner plays directional beep"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "Show only selected unit waypoints in scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_SCOPE"] = "Scanner can limit entries to one direction"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
     "Show only selected unit waypoints in tile readout"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Read subtitles"

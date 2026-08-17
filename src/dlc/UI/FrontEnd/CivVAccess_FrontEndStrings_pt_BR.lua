@@ -246,6 +246,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Scanner reproduz bipe direcional"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "Exibir apenas pontos de passagem da unidade selecionada no scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_SCOPE"] =
+    "Scanner pode limitar entradas a uma direção"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
     "Exibir apenas pontos de passagem da unidade selecionada na leitura do hexágono"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Ler legendas"

@@ -16,9 +16,11 @@
 --                      subs) should set this to an empty {} to opt in explicitly.
 --                      keyLabel is a TXT_KEY for a merged, human-readable chord
 --                      label ("Up/Down", "Ctrl+Shift+Left/Right"); description
---                      is a TXT_KEY. See CivVAccess_Help.lua and
---                      BaseMenuHelp's MenuHelpEntries / ListNavHelpEntries
---                      templates.
+--                      is a TXT_KEY. An entry may carry `when` (fn -> bool),
+--                      evaluated every time the overlay opens, for a binding
+--                      whose availability follows a live setting. See
+--                      CivVAccess_Help.lua and BaseMenuHelp's MenuHelpEntries /
+--                      ListNavHelpEntries templates.
 --   onActivate         (fn(self), optional) fired on push / re-exposure
 --                      (becomes top of stack).
 --   onSuspend          (fn(self), optional) fired when this handler stops being
@@ -576,6 +578,29 @@ HandlerStack.commonHelpEntries = {
     },
 }
 
+-- An entry carrying `when` is listed only while its predicate holds, so a
+-- binding behind a live setting is advertised exactly when it fires. Declined
+-- entries never claim their keyLabel, leaving a lower handler's meaning for
+-- the same chord free to surface. A throwing predicate drops the row and logs:
+-- a help list that promises a dead key sends the user hunting for a feature
+-- that isn't there.
+local function helpEntryActive(entry)
+    if entry.when == nil then
+        return true
+    end
+    local ok, active = pcall(entry.when)
+    if not ok then
+        Log.error(
+            "HandlerStack.collectHelpEntries: `when` predicate for '"
+                .. tostring(entry.keyLabel)
+                .. "' failed: "
+                .. tostring(active)
+        )
+        return false
+    end
+    return active == true
+end
+
 -- Walk the stack top-to-bottom (mirroring InputRouter's dispatch walk),
 -- collecting authored helpEntries from each reachable handler. Stops after
 -- the first capturesAllInput handler (inclusive). Deduplicates by the
@@ -586,15 +611,18 @@ HandlerStack.commonHelpEntries = {
 function HandlerStack.collectHelpEntries()
     local seen = {}
     local out = {}
+    local function take(e)
+        local k = tostring(e.keyLabel)
+        if not seen[k] and helpEntryActive(e) then
+            seen[k] = true
+            out[#out + 1] = e
+        end
+    end
     for i = #_shared.stack, 1, -1 do
         local h = _shared.stack[i]
         if type(h.helpEntries) == "table" then
             for _, e in ipairs(h.helpEntries) do
-                local k = tostring(e.keyLabel)
-                if not seen[k] then
-                    seen[k] = true
-                    out[#out + 1] = e
-                end
+                take(e)
             end
         end
         if h.capturesAllInput then
@@ -602,11 +630,7 @@ function HandlerStack.collectHelpEntries()
         end
     end
     for _, e in ipairs(HandlerStack.commonHelpEntries) do
-        local k = tostring(e.keyLabel)
-        if not seen[k] then
-            seen[k] = true
-            out[#out + 1] = e
-        end
+        take(e)
     end
     return out
 end

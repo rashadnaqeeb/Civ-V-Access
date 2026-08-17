@@ -123,6 +123,9 @@ Entries are organized into a hierarchy of categories (cities, units, resources, 
 - **Backspace** — return the cursor to its position before the jump
 - **End** — repeat distance and direction from the cursor
 - **Ctrl+F** — search all scanner entries by name
+- **Ctrl+arrow keys** — scope the scanner to that compass direction; press the same direction again to clear. Off by default; turn on "Scanner can limit entries to one direction" in the F12 settings menu
+
+By default the scanner walks the nearest thing in any direction. With the setting on, the arrow keys let you narrow it to one: **Ctrl+Left** scopes to west, **Ctrl+Up** to north, and so on, fanning out a quarter-circle that way from the cursor so only things in that direction show up. This answers "what's to my west" instead of "what's nearest". The scope stays on the category you're already in, and it tracks the cursor as you move, dropping things that fall behind you, so you can sweep an area by walking the cursor through it. Press the same direction again to clear the scope.
 
 Each entry is announced with its exact hex distance and direction from the cursor. An orange highlight is applied to the selected item to help a sighted person watching understand what you're looking at.
 

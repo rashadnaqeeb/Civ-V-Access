@@ -857,6 +857,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] =
     "Сканер воспроизводит направленный сигнал"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "Показывать только путевые точки выбранного юнита в сканере"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_SCOPE"] =
+    "Сканер может ограничить записи одним направлением"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
     "Показывать только путевые точки выбранного юнита в описании клетки"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Читать субтитры"

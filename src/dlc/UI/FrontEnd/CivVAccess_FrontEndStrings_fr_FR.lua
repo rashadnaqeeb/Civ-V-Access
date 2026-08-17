@@ -241,6 +241,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_GROUP_NAMED_UNITS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_BEEP"] = "Le scanner joue un bip directionnel"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_WAYPOINTS_SELECTED_ONLY"] =
     "Afficher uniquement les points de passage de l'unité sélectionnée dans le scanner"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_SCANNER_DIRECTION_SCOPE"] =
+    "Le scanner peut limiter les entrées à une direction"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_CURSOR_WAYPOINTS_SELECTED_ONLY"] =
     "Afficher uniquement les points de passage de l'unité sélectionnée dans la lecture de case"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SETTINGS_READ_SUBTITLES"] = "Lire les sous-titres"

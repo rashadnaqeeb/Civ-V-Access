@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- A new setting brings back the Ctrl+arrow scanner direction scope, off by default.
+
 Bug fixes:
 - Fixed a freeze that could lock up a multiplayer game until the affected player was closed.
 

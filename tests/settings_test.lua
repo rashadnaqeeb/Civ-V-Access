@@ -395,8 +395,9 @@ function M.test_scanner_group_layout()
     local children = groupChildren(SCANNER_GROUP)
     T.eq(
         #children,
-        7,
-        "auto-move + coords + compass direction + group cities + group named units + direction beep + waypoints scope"
+        8,
+        "auto-move + coords + compass direction + group cities + group named units + direction beep"
+            .. " + waypoints scope + direction scope"
     )
     T.eq(children[1].kind, "checkbox", "auto-move")
     T.eq(children[2].kind, "checkbox", "coords")
@@ -405,6 +406,7 @@ function M.test_scanner_group_layout()
     T.eq(children[5].kind, "checkbox", "group named units")
     T.eq(children[6].kind, "checkbox", "direction beep")
     T.eq(children[7].kind, "checkbox", "waypoints selected only")
+    T.eq(children[8].kind, "checkbox", "direction scope")
 end
 
 function M.test_scanner_auto_move_flip_writes_shared_and_prefs()
@@ -459,6 +461,26 @@ function M.test_scanner_direction_beep_default_off_and_flip()
     groupChildren(SCANNER_GROUP)[6]:activate(HandlerStack.active())
     T.eq(civvaccess_shared.scannerDirectionBeep, true)
     T.eq(prefsStore["ScannerDirectionBeep"], true)
+end
+
+function M.test_scanner_direction_scope_default_off_and_flip()
+    setup()
+    Settings.open()
+    T.eq(civvaccess_shared.scannerDirectionScope, false, "opt-in: defaults off")
+    groupChildren(SCANNER_GROUP)[8]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.scannerDirectionScope, true)
+    T.eq(prefsStore["ScannerDirectionScope"], true)
+end
+
+function M.test_scanner_direction_scope_flip_clears_an_active_scope()
+    setup()
+    Settings.open()
+    -- A scope set from the map must not survive the toggle: the Ctrl+arrow
+    -- keys that clear it go inert with the feature, which would leave the
+    -- scanner quietly filtered with no way back.
+    civvaccess_shared.scannerDirection = "W"
+    groupChildren(SCANNER_GROUP)[8]:activate(HandlerStack.active())
+    T.eq(civvaccess_shared.scannerDirection, nil)
 end
 
 -- Notifications group ---------------------------------------------------

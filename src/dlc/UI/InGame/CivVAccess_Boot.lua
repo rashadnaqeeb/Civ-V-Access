@@ -295,6 +295,9 @@ local function onInGameBoot()
     -- every Cursor.move with "edge of range" until this Context reloads.
     civvaccess_shared.mapScope = nil
     civvaccess_shared.mapAnnouncer = nil
+    -- Clear any directional scanner scope from a prior game in this
+    -- lua_State so it doesn't silently filter a fresh game's scanner.
+    civvaccess_shared.scannerDirection = nil
     -- Menu cue bank seats first: PlotAudio / Beacons / ScannerBeep below
     -- collectively claim ~31 of the proxy's 48 slots, and BaseMenu's cues
     -- (menu_wrap, drillable) otherwise lazy-load on first wrap / first

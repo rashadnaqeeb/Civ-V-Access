@@ -86,6 +86,17 @@ ScannerHandler.HELP_ENTRIES = {
         keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_RETURN",
         description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_RETURN",
     },
+    -- Listed only while the directional scope is enabled in F12 Settings.
+    -- collectHelpEntries evaluates `when` at open time, so the row appears
+    -- and disappears with the toggle instead of going stale until the next
+    -- game -- advertising a key that does nothing is worse than omitting it.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_SCANNER_HELP_KEY_DIRECTION",
+        description = "TXT_KEY_CIVVACCESS_SCANNER_HELP_DESC_DIRECTION",
+        when = function()
+            return civvaccess_shared.scannerDirectionScope == true
+        end,
+    },
 }
 
 function ScannerHandler.create()
@@ -154,6 +165,19 @@ function ScannerHandler.create()
             bind(Keys.VK_END, MOD_NONE, call(ScannerNav.distanceFromCursor), "Distance from cursor to entry"),
             bind(Keys.F, MOD_CTRL, call(ScannerNav.openSearch), "Search scanner entries"),
             bind(Keys.VK_BACK, MOD_NONE, call(ScannerNav.returnToPreJump), "Return to pre-jump cell"),
+            -- Directional scope, opt-in via F12 Settings. Ctrl+arrow
+            -- constrains the scanner to a 90-degree arc fanning out from the
+            -- cursor; pressing the active direction again clears it. Base game
+            -- uses bare arrows for camera pan (no value to a blind player);
+            -- Ctrl+arrows are free. The keys stay bound with the feature off --
+            -- ScannerNav.setDirection reads the toggle live and returns nil,
+            -- which speak() drops -- because Baseline's capturesAllInput wall
+            -- below swallows Ctrl+arrows either way, so gating registration
+            -- would buy nothing and cost a mid-session toggle its effect.
+            bind(Keys.VK_UP, MOD_CTRL, cycle(ScannerNav.setDirection, "N"), "Scan north"),
+            bind(Keys.VK_DOWN, MOD_CTRL, cycle(ScannerNav.setDirection, "S"), "Scan south"),
+            bind(Keys.VK_LEFT, MOD_CTRL, cycle(ScannerNav.setDirection, "W"), "Scan west"),
+            bind(Keys.VK_RIGHT, MOD_CTRL, cycle(ScannerNav.setDirection, "E"), "Scan east"),
         },
         -- Empty on purpose: BaselineHandler surfaces the scanner keys from
         -- HELP_ENTRIES above so they land between the surveyor and

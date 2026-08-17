@@ -440,6 +440,10 @@ local function pushHexMap()
     -- have to roll back the hooks manually below.
     civvaccess_shared.mapScope = hexMapScope
     civvaccess_shared.mapAnnouncer = hexTileAnnouncement
+    -- Start the city-hex scanner unscoped by direction: a direction set out on
+    -- the map would otherwise compound with mapScope and could prune the small
+    -- city radius to nothing, indistinguishable from a genuinely empty result.
+    civvaccess_shared.scannerDirection = nil
 
     local pushed = HandlerStack.push({
         name = "CityView.HexMap",
@@ -470,11 +474,16 @@ local function pushHexMap()
         onDeactivate = function()
             civvaccess_shared.mapScope = nil
             civvaccess_shared.mapAnnouncer = nil
+            -- The scanner bindings are folded into this sub (see above), so a
+            -- direction set in city-hex mode would otherwise leak out and
+            -- silently filter the whole-map scanner with no audible cue.
+            civvaccess_shared.scannerDirection = nil
         end,
     })
     if not pushed then
         civvaccess_shared.mapScope = nil
         civvaccess_shared.mapAnnouncer = nil
+        civvaccess_shared.scannerDirection = nil
     end
 end
 

@@ -25,6 +25,11 @@
 
 ScannerNav = {}
 
+-- Half-width of a scoped direction's arc: pi/4 makes the four cardinal arcs
+-- (centers in HexGeom.DIRECTION_ARC_CENTER) tile the full circle with no gaps
+-- or overlaps.
+local ARC_HALF_WIDTH = math.pi / 4
+
 local _catIdx = 1
 local _subIdx = 1
 local _itemIdx = 0
@@ -54,6 +59,15 @@ end
 -- in formatInstance / distanceFromCursor.
 if civvaccess_shared.scannerCompassDirection == nil then
     civvaccess_shared.scannerCompassDirection = Prefs.getBool("ScannerCompassDirection", false)
+end
+
+-- Hydrate the directional-scope toggle on the same shared table. Off by
+-- default: the scope narrows the scanner to a quarter-circle, which is a
+-- deliberate "what is to my west" mode rather than the nearest-in-any-
+-- direction walk most scanning wants. setDirection reads the field live, so
+-- the Ctrl+arrow keys go dead the moment it is turned back off.
+if civvaccess_shared.scannerDirectionScope == nil then
+    civvaccess_shared.scannerDirectionScope = Prefs.getBool("ScannerDirectionScope", false)
 end
 
 -- Returns the spoken direction segment from (cx, cy) to the entry plot.
@@ -172,7 +186,14 @@ end
 -- entries whose plotIndex resolves outside the scope. One funnel covers
 -- both rebuildSnapshot and applySearch so every consumer sees the same
 -- scoped list.
-local function gatherEntries()
+--
+-- When civvaccess_shared.scannerDirection is set AND the caller supplies
+-- an arc origin, additionally keep only entries whose plot falls inside
+-- the 90-degree compass arc fanning out from (arcOriginX, arcOriginY).
+-- The origin is the live hex cursor so "scanning west" and a result's
+-- spoken "west" agree. applySearch passes no origin, so a name search
+-- spans the whole map regardless of the active direction.
+local function gatherEntries(arcOriginX, arcOriginY)
     local entries = {}
     local activePlayer = Game.GetActivePlayer()
     local activeTeam = Game.GetActiveTeam()
@@ -186,13 +207,25 @@ local function gatherEntries()
             end
         end
     end
+    -- One pass applies both filters so each plot is resolved once even when a
+    -- city-view scope and a direction are active together.
     local scope = civvaccess_shared.mapScope
-    if scope ~= nil then
+    local dir = civvaccess_shared.scannerDirection
+    local arcActive = dir ~= nil and arcOriginX ~= nil
+    if scope ~= nil or arcActive then
+        local center = arcActive and HexGeom.DIRECTION_ARC_CENTER[dir] or nil
         local kept = {}
         for _, entry in ipairs(entries) do
             local plot = Map.GetPlotByIndex(entry.plotIndex)
-            if plot ~= nil and scope(plot:GetX(), plot:GetY()) then
-                kept[#kept + 1] = entry
+            if plot ~= nil then
+                local x, y = plot:GetX(), plot:GetY()
+                local keep = (scope == nil or scope(x, y))
+                if keep and arcActive then
+                    keep = HexGeom.bearingInArc(arcOriginX, arcOriginY, x, y, center, ARC_HALF_WIDTH)
+                end
+                if keep then
+                    kept[#kept + 1] = entry
+                end
             end
         end
         entries = kept
@@ -211,9 +244,18 @@ end
 
 -- Build a fresh snapshot whose sort origin is (originX, originY). The
 -- caller decides whether that's the live cursor (explicit reorient) or
--- the previous snapshot's origin (identity-preserving refresh).
-local function rebuildSnapshot(originX, originY)
-    local entries = gatherEntries()
+-- the previous snapshot's origin (identity-preserving refresh). applyArc
+-- gates the directional scope: when true, the same origin is handed to
+-- gatherEntries as the arc apex so a set direction prunes the list;
+-- when false the arc is ignored (Home / End never lose the focused item
+-- to the scope). With no direction active both values collapse to the
+-- unscoped gather.
+local function rebuildSnapshot(originX, originY, applyArc)
+    local arcX, arcY
+    if applyArc then
+        arcX, arcY = originX, originY
+    end
+    local entries = gatherEntries(arcX, arcY)
     local customDefs = ScannerFavorites ~= nil and ScannerFavorites.customCategoryDefs() or nil
     _snapshot = ScannerSnap.build(entries, originX, originY, customDefs)
 end
@@ -241,7 +283,7 @@ end
 -- old category identity into the new snapshot rather than trusting a stale
 -- _catIdx (which would mis-aim the hint and let the custom-first full scan
 -- silently relocate the user into a mirrored custom category).
-local function rebuildAndLocate()
+local function rebuildAndLocate(applyArc)
     if isSearchSnapshot() then
         return false
     end
@@ -253,16 +295,19 @@ local function rebuildAndLocate()
         local cat = currentCategory()
         hintKey = cat ~= nil and cat.key or nil
     end
-    -- Anchor the sort origin to the live cursor on the first build; afterwards
-    -- preserve the previous snapshot's origin so distances stay stable across
-    -- identity-preserving rebuilds.
+    -- Re-anchor the sort origin to the live cursor on the first build and on
+    -- directional item / instance cycles (so the arc tracks the cursor as it
+    -- roams and prunes entries that fall out of it). Otherwise preserve the
+    -- previous snapshot's origin so distances stay stable across identity-
+    -- preserving rebuilds. (Home / End pass applyArc = false and keep the
+    -- stable origin even with a direction active.)
     local originX, originY
-    if isFirstBuild then
+    if isFirstBuild or (civvaccess_shared.scannerDirection ~= nil and applyArc) then
         originX, originY = cursorOriginOrDefault()
     else
         originX, originY = _snapshot.cursorX, _snapshot.cursorY
     end
-    rebuildSnapshot(originX, originY)
+    rebuildSnapshot(originX, originY, applyArc)
     if key ~= nil then
         local hintCat = categoryIndexByKey(hintKey)
         local ci, si, ii, ini = ScannerSnap.locate(_snapshot, key, hintCat, hintSub)
@@ -300,7 +345,7 @@ local function rebuildFromCursor()
     local cat = currentCategory()
     local prevKey = cat ~= nil and cat.key or nil
     local cx, cy = cursorOriginOrDefault()
-    rebuildSnapshot(cx, cy)
+    rebuildSnapshot(cx, cy, true)
     reanchorCategory(prevKey)
     _itemIdx, _instIdx = 0, 0
 end
@@ -486,7 +531,7 @@ local function fireScannerHighlight(targetX, targetY)
 end
 
 -- withGroupName: landings that change which item is current (category /
--- subcategory / item cycles, search commit) pass true so
+-- subcategory / item cycles, search commit, direction set) pass true so
 -- a grouped item leads with its item name. Instance steps pass false --
 -- the group is already known there. formatInstance drops the prefix
 -- whenever it matches the instance's own spoken name, so ungrouped items
@@ -670,7 +715,7 @@ local function stepFromZero(dir, n)
 end
 
 function ScannerNav.cycleItem(dir)
-    rebuildAndLocate()
+    rebuildAndLocate(true)
     local sub = currentSub()
     if sub == nil or #sub.items == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -688,7 +733,7 @@ function ScannerNav.cycleItem(dir)
 end
 
 function ScannerNav.cycleInstance(dir)
-    rebuildAndLocate()
+    rebuildAndLocate(true)
     local item = currentItem()
     if item == nil or #item.instances == 0 then
         return Text.key("TXT_KEY_CIVVACCESS_SCANNER_EMPTY")
@@ -791,7 +836,7 @@ function ScannerNav.cycleCustomFlat(slot, dir)
     local continuing = atOrigin and cat ~= nil and cat.key == def.key and _subIdx == 1 and currentInstance() ~= nil
     if continuing then
         -- Identity-preserving rebuild, like the item / instance cycles.
-        rebuildAndLocate()
+        rebuildAndLocate(true)
         cat = currentCategory()
         continuing = cat ~= nil and cat.key == def.key and _subIdx == 1
     end
@@ -872,7 +917,7 @@ end
 -- entry label is required because the user just pressed Home on it and
 -- already knows.
 function ScannerNav.jumpToEntry()
-    rebuildAndLocate()
+    rebuildAndLocate(false)
     ensureCurrentInstanceValid()
     local inst = currentInstance()
     if inst == nil then
@@ -889,7 +934,7 @@ end
 -- End is the user's on-demand "give me the precise hex breakdown" probe,
 -- distinct from the per-cycle readout which the toggle reshapes.
 function ScannerNav.distanceFromCursor()
-    rebuildAndLocate()
+    rebuildAndLocate(false)
     ensureCurrentInstanceValid()
     local inst = currentInstance()
     if inst == nil then
@@ -994,6 +1039,46 @@ function ScannerNav.applySearch(query)
     return announceWithLabel(currentCategory())
 end
 
+-- Ctrl+arrow: scope the scanner to one compass direction, or clear the
+-- scope when the active direction is pressed again. The arc fans out from
+-- the hex cursor (the scanner's distance/direction origin), so "scanning
+-- west" and a result's spoken "west" always agree. dirCode is one of
+-- "N" / "S" / "E" / "W".
+--
+-- Opt-in feature: with the F12 toggle off the whole scope is inert and the
+-- press has nothing to say, so it returns nil and the caller's speak() is
+-- a no-op. The gate is read live here rather than at binding-registration
+-- time because the Scanner handler is created once per game, while the
+-- toggle can flip mid-session.
+function ScannerNav.setDirection(dirCode)
+    if not civvaccess_shared.scannerDirectionScope then
+        return nil
+    end
+    -- Search snapshots are frozen slices; drop back to the normal snapshot
+    -- first (the cycleCategory escape-hatch pattern) so the direction
+    -- scopes the real category list, not the synthetic search one.
+    if isSearchSnapshot() then
+        _catIdx = _preSearchCatIdx or 1
+        _snapshot = nil
+    end
+    if civvaccess_shared.scannerDirection == dirCode then
+        civvaccess_shared.scannerDirection = nil
+        -- Refresh the now-unscoped list while keeping the focused item
+        -- (applyArc = false, like End: clearing the scope must not prune).
+        rebuildAndLocate(false)
+        return Text.key("TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_CLEARED")
+    end
+    civvaccess_shared.scannerDirection = dirCode
+    rebuildFromCursor()
+    landOnCurrentSub()
+    ensureCurrentInstanceValid()
+    autoMoveIfEnabled()
+    return Text.format(
+        "TXT_KEY_CIVVACCESS_SCANNER_DIRECTION_SET",
+        HexGeom.dirText("TXT_KEY_CIVVACCESS_DIR_" .. dirCode)
+    ) .. ". " .. announceCurrent(true)
+end
+
 -- Test seam: exercise the rebuild + prune + announce pipeline without
 -- touching indices. Production dispatches through cycle entry points
 -- with dir = +/-1 only; suites use this to probe the rebuild and
@@ -1001,7 +1086,7 @@ end
 -- instance gets pruned) rather than relying on cycle(0) as an implicit
 -- stay-put contract.
 function ScannerNav._refresh()
-    rebuildAndLocate()
+    rebuildAndLocate(true)
     ensureCurrentInstanceValid()
     autoMoveIfEnabled()
     return announceCurrent(true)
