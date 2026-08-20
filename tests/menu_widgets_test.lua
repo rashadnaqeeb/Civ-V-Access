@@ -1,6 +1,7 @@
 -- BaseMenuItems widgets and Button-list navigation. Covers Button-list
--- navigation, disabled-but-visible walking, Checkbox / Slider / PullDown
--- widgets, and the VirtualSlider / VirtualToggle settings-menu items.
+-- navigation, disabled-but-visible walking, Checkbox / Slider / PullDown /
+-- PulldownSlider widgets, and the VirtualSlider / VirtualToggle settings-menu
+-- items.
 -- Shared setup / helpers / state live in tests/menu_test_setup.lua;
 -- aliased below for terse test bodies.
 local T = require("support")
@@ -656,6 +657,121 @@ function M.test_sub_pop_advances_cursor_off_hidden_item()
     InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
     T.eq(h._indices[1], 2, "cursor advanced off the now-hidden pulldown")
     T.truthy(#speaks >= 1, "re-activation announced the new current item")
+end
+
+-- PulldownSlider -------------------------------------------------------
+--
+-- A pulldown walked with Left / Right instead of drilled into. Entries come
+-- from the probe and each landing fires the screen's own selection callback,
+-- so these cover the stepping, the ends of the list, and the paths where
+-- there is nothing to step through.
+
+-- Builds a pulldown of numbers 0..count-1 whose selection callback records
+-- the void and updates the button text, the way a screen repopulating its
+-- own pulldown does.
+local function makeNumberPullDown(count, current)
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    patchProbeFromPullDown(pd)
+    pd:ClearEntries()
+    local picked = {}
+    pd:RegisterSelectionCallback(function(v1)
+        picked[#picked + 1] = v1
+        pd:GetButton():SetText(tostring(v1))
+    end)
+    for v = 0, count - 1 do
+        local inst = {}
+        pd:BuildEntry("InstanceOne", inst)
+        inst.Button:SetText(tostring(v))
+        inst.Button:SetVoid1(v)
+    end
+    pd:GetButton():SetText(tostring(current))
+    return pd, picked
+end
+
+local function pushPulldownSlider()
+    local h = BaseMenu.create({
+        name = "T",
+        displayName = "Screen",
+        items = { BaseMenuItems.PulldownSlider({ controlName = "PD", textKey = "LBL_PD" }) },
+    })
+    HandlerStack.push(h)
+    clearArr(speaks)
+    return h
+end
+
+function M.test_pulldown_slider_right_commits_the_next_entry()
+    setup()
+    local _, picked = makeNumberPullDown(4, 1)
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(#picked, 1, "one selection committed")
+    T.eq(picked[1], 2, "void of the next entry")
+    T.eq(speaks[#speaks].text, "LBL_PD, 2", "new value announced")
+end
+
+function M.test_pulldown_slider_left_commits_the_previous_entry()
+    setup()
+    local _, picked = makeNumberPullDown(4, 1)
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
+    T.eq(picked[1], 0, "void of the previous entry")
+end
+
+function M.test_pulldown_slider_stops_at_the_end_of_the_list()
+    setup()
+    local _, picked = makeNumberPullDown(4, 3)
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(#picked, 0, "nothing committed past the last entry")
+    T.eq(speaks[#speaks].text, "LBL_PD, 3", "value re-announced")
+end
+
+function M.test_pulldown_slider_shift_uses_the_big_step()
+    setup()
+    local _, picked = makeNumberPullDown(11, 0)
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_RIGHT, 1, WM_KEYDOWN) -- mod 1 = Shift
+    T.eq(picked[1], 5, "five entries on")
+end
+
+function M.test_pulldown_slider_steps_in_from_the_end_when_the_value_is_off_the_list()
+    setup()
+    local pd, picked = makeNumberPullDown(4, 0)
+    pd:GetButton():SetText("9")
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_LEFT, 0, WM_KEYDOWN)
+    T.eq(picked[1], 3, "landed on the last entry")
+end
+
+function M.test_pulldown_slider_does_not_commit_while_disabled()
+    setup()
+    local pd, picked = makeNumberPullDown(4, 1)
+    pd:SetDisabled(true)
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.eq(#picked, 0, "a disabled pulldown does not move")
+    T.truthy(string.find(speaks[#speaks].text, "1", 1, true), "value still announced")
+end
+
+function M.test_pulldown_slider_without_captured_entries_warns()
+    setup()
+    local pd = makePullDownWithMetatable()
+    populateControls({ PD = pd })
+    pd:GetButton():SetText("2")
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_RIGHT, 0, WM_KEYDOWN)
+    T.truthy(#warns >= 1, "missing probe state warns")
+    T.eq(speaks[#speaks].text, "LBL_PD, 2", "current value still announced")
+end
+
+function M.test_pulldown_slider_enter_re_announces_instead_of_opening_a_list()
+    setup()
+    makeNumberPullDown(4, 1)
+    pushPulldownSlider()
+    InputRouter.dispatch(Keys.VK_RETURN, 0, WM_KEYDOWN)
+    T.eq(HandlerStack.count(), 1, "no sub-menu pushed")
+    T.eq(speaks[#speaks].text, "LBL_PD, 1")
 end
 
 -- VirtualSlider --------------------------------------------------------

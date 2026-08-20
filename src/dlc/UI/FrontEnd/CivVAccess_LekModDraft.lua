@@ -696,7 +696,10 @@ end
 
 -- The Draft tab: the phase, who it waits on, the rules, and the host's
 -- controls. The rules widgets are LekMod's own, so a non-host reaches them
--- read-only (the engine disables them) and still hears every setting.
+-- read-only (the engine disables them) and still hears every setting. Each
+-- numeric rule is a slider over LekMod's pulldown: every one of them is a
+-- short run of numbers the host nudges, and the values stay LekMod's, so a
+-- range it changes upstream needs nothing here.
 function LekModDraft.tabItems()
     if not LekModDraft.present() then
         return {}
@@ -708,20 +711,20 @@ function LekModDraft.tabItems()
             itemsFn = readinessItems,
             cached = false,
         }),
-        BaseMenuItems.Pulldown({
+        BaseMenuItems.PulldownSlider({
             controlName = "DraftBansPull",
             textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_BANS",
         }),
-        BaseMenuItems.Pulldown({
+        BaseMenuItems.PulldownSlider({
             controlName = "DraftPicksPull",
             textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_PICKS",
         }),
-        BaseMenuItems.Pulldown({
+        BaseMenuItems.PulldownSlider({
             controlName = "DraftCoastalsPull",
             textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_COASTALS",
             tooltipKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_COASTALS_TT",
         }),
-        BaseMenuItems.Pulldown({
+        BaseMenuItems.PulldownSlider({
             controlName = "DraftInlandsPull",
             textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS",
             tooltipKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT",

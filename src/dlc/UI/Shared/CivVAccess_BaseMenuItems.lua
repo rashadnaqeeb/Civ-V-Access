@@ -876,6 +876,59 @@ local function pulldownCurrentValue(item)
     return tostring(text)
 end
 
+-- Pulldowns override the shared isActivatable to also check the inner
+-- button's IsDisabled. Base code commonly disables the clickable area via
+-- pulldown:GetButton():SetDisabled(true) rather than the pulldown userdata
+-- itself -- e.g., AdvancedSetup disables the Map Size pulldown's button when
+-- the selected map locks to one size. Without this both-sides check, the
+-- pulldown would still report activatable and let the user open a no-op
+-- sub-menu.
+local function pulldownIsActivatable(self)
+    if not isNavigable(self) then
+        return false
+    end
+    if self._control:IsDisabled() then
+        return false
+    end
+    local ok, btn = pcall(function()
+        return self._control:GetButton()
+    end)
+    if ok and btn ~= nil then
+        local okD, disabled = pcall(function()
+            return btn:IsDisabled()
+        end)
+        if okD and disabled then
+            return false
+        end
+    end
+    return true
+end
+
+-- Label plus selected value, for the two item kinds that present a pulldown.
+local function pulldownValueParts(item)
+    -- Team-style pulldowns don't set the button's text; instead a sibling
+    -- label (e.g. Controls.TeamLabel) holds the selected value. Callers pass
+    -- valueFn to source the value from there.
+    local v
+    if item._valueFn ~= nil then
+        local ok, result = pcall(item._valueFn, item._control)
+        if ok and result ~= nil then
+            v = tostring(result)
+        end
+    end
+    if v == nil then
+        v = pulldownCurrentValue(item)
+    end
+    local label = resolveLabel(item)
+    -- If labelFn was sourced from the button's own text (the civ / slot
+    -- pulldown pattern), label and value are identical; emit once rather
+    -- than "X, X".
+    if v ~= nil and v ~= "" and v ~= label then
+        return { label, v }
+    end
+    return { label }
+end
+
 -- Child item class for pulldown entries. Not a public factory; built inline
 -- when Pulldown.activate opens the sub-menu.
 --
@@ -1028,58 +1081,9 @@ function BaseMenuItems.Pulldown(spec)
     end
     copyCommonFields(spec, item)
     item.isNavigable = isNavigable
-    -- Pulldowns override the shared isActivatable to also check the inner
-    -- button's IsDisabled. Base code commonly disables the clickable area
-    -- via pulldown:GetButton():SetDisabled(true) rather than the pulldown
-    -- userdata itself -- e.g., AdvancedSetup disables the Map Size
-    -- pulldown's button when the selected map locks to one size. Without
-    -- this both-sides check, the pulldown would still report activatable
-    -- and let the user open a no-op sub-menu.
-    function item:isActivatable()
-        if not isNavigable(self) then
-            return false
-        end
-        if self._control:IsDisabled() then
-            return false
-        end
-        local ok, btn = pcall(function()
-            return self._control:GetButton()
-        end)
-        if ok and btn ~= nil then
-            local okD, disabled = pcall(function()
-                return btn:IsDisabled()
-            end)
-            if okD and disabled then
-                return false
-            end
-        end
-        return true
-    end
+    item.isActivatable = pulldownIsActivatable
     function item:announce(menu)
-        -- Team-style pulldowns don't set the button's text; instead a
-        -- sibling label (e.g. Controls.TeamLabel) holds the selected
-        -- value. Callers pass valueFn to source the value from there.
-        local v
-        if self._valueFn ~= nil then
-            local ok, result = pcall(self._valueFn, self._control)
-            if ok and result ~= nil then
-                v = tostring(result)
-            end
-        end
-        if v == nil then
-            v = pulldownCurrentValue(self)
-        end
-        local label = resolveLabel(self)
-        local parts
-        -- If labelFn was sourced from the button's own text (the civ /
-        -- slot pulldown pattern), label and value are identical; emit
-        -- once rather than "X, X".
-        if v ~= nil and v ~= "" and v ~= label then
-            parts = { label, v }
-        else
-            parts = { label }
-        end
-        return composeSpeech(self, parts)
+        return composeSpeech(self, pulldownValueParts(self))
     end
     function item:activate(menu)
         local pulldown = self._control
@@ -1158,6 +1162,141 @@ function BaseMenuItems.Pulldown(spec)
         HandlerStack.push(child)
     end
     function item:adjust(menu, dir, big) end
+    return item
+end
+
+-- Pulldown slider ---------------------------------------------------------
+--
+-- The same widget as Pulldown, presented as a slider: Left / Right walk its
+-- entries in list order and commit each one as they land, rather than Enter
+-- opening a sub-menu to pick from. For pulldowns holding a run of numbers
+-- (the LekMod draft's bans and picks per player), where drilling into a list
+-- and walking it is a lot of keypresses for a value the user is nudging.
+--
+-- The entries come from the probe, so the range is whatever the screen built:
+-- nothing here knows what the values are or how many there should be, and a
+-- screen that rebuilds its list with different bounds needs no change our
+-- side. Landing on an entry fires the pulldown's own selection callback with
+-- that entry's voids -- the same commit the sub-menu's Choice makes -- so the
+-- value takes the screen's own path.
+--
+-- Spec: the common label / tooltip fields, Pulldown's optional valueFn for
+-- screens that keep the selected value in a sibling label, and step / bigStep
+-- counted in entries (1 and 5).
+
+local function pulldownEntryText(inst)
+    local ok, text = pcall(function()
+        return inst.Button:GetText()
+    end)
+    if not ok or text == nil then
+        return nil
+    end
+    return tostring(text)
+end
+
+-- Commit one entry. Mirrors Choice's two wiring patterns: a top-level
+-- selection callback taking the entry's voids, or a per-entry button callback
+-- for the screens that wire each entry with its own closure.
+local function firePulldownEntry(item, inst)
+    local callback = PullDownProbe.callbackFor(item._control)
+    if callback ~= nil then
+        local v1, v2
+        pcall(function()
+            v1 = inst.Button:GetVoid1()
+            v2 = inst.Button:GetVoid2()
+        end)
+        local ok, err = pcall(callback, v1, v2)
+        if not ok then
+            Log.error(
+                "BaseMenu pulldown slider '" .. tostring(item.controlName) .. "' callback failed: " .. tostring(err)
+            )
+        end
+        return
+    end
+    local perEntry = PullDownProbe.buttonCallbackFor(inst.Button, Mouse.eLClick)
+    if perEntry == nil then
+        Log.warn(
+            "BaseMenu pulldown slider '"
+                .. tostring(item.controlName)
+                .. "': no selection callback captured, the value will not change"
+        )
+        return
+    end
+    local ok, err = pcall(perEntry)
+    if not ok then
+        Log.error(
+            "BaseMenu pulldown slider '" .. tostring(item.controlName) .. "' entry callback failed: " .. tostring(err)
+        )
+    end
+end
+
+function BaseMenuItems.PulldownSlider(spec)
+    assertLabel(spec, "PulldownSlider")
+    assertTooltip(spec, "PulldownSlider")
+    Log.check(
+        spec.valueFn == nil or type(spec.valueFn) == "function",
+        "PulldownSlider.valueFn must be a function if provided"
+    )
+    local item = {
+        kind = "slider",
+        _control = resolveControl(spec, "PulldownSlider"),
+        _valueFn = spec.valueFn,
+        step = spec.step or 1,
+        bigStep = spec.bigStep or 5,
+    }
+    copyCommonFields(spec, item)
+    item.isNavigable = isNavigable
+    item.isActivatable = pulldownIsActivatable
+    function item:announce(menu)
+        return composeSpeech(self, pulldownValueParts(self))
+    end
+    function item:activate(menu)
+        SpeechPipeline.speakInterrupt(self:announce(menu))
+    end
+    function item:adjust(menu, dir, big)
+        if not self:isActivatable() then
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+            return
+        end
+        local entries = PullDownProbe.entriesFor(self._control)
+        if entries == nil or #entries == 0 then
+            Log.warn(
+                "BaseMenu '"
+                    .. tostring(menu.name)
+                    .. "' pulldown slider '"
+                    .. tostring(self.controlName)
+                    .. "': no entries captured"
+            )
+            SpeechPipeline.speakInterrupt(self:announce(menu))
+            return
+        end
+        local current = pulldownCurrentValue(self)
+        local index
+        for i, inst in ipairs(entries) do
+            if pulldownEntryText(inst) == current then
+                index = i
+                break
+            end
+        end
+        -- A value no entry carries (a screen that left a stale label, or a
+        -- range that shrank under another setting): step in from the end the
+        -- user is heading away from, so the first press lands on a real entry
+        -- instead of doing nothing.
+        if index == nil then
+            index = dir > 0 and 0 or #entries + 1
+        end
+        local target = index + (big and self.bigStep or self.step) * dir
+        if target < 1 then
+            target = 1
+        end
+        if target > #entries then
+            target = #entries
+        end
+        if target ~= index then
+            firePulldownEntry(self, entries[target])
+        end
+        SpeechPipeline.speakInterrupt(self:announce(menu))
+    end
     return item
 end
 
