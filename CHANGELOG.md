@@ -12,18 +12,14 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 ## [Unreleased]
 
 New Features and improvements:
-- LekMod support now tracks LekMod v35.1.
-- LekMod's civ draft is now playable: bans, readying up, picking from your draft, and swapping drafts.
-- The LekMod lobby's new Draft tab holds the draft rules, ban readiness, and the host's draft controls.
-- Combat details with X say when land units can cross a water tile, and name a road or railroad a bridge carries.
+- LekMod support now tracks LekMod v35.1, up from v34.
+- LekMod's new civ draft feature is accessible, and means that the multiplayer lobby has a third tab for managing its settings.
+- Combat details with X say when land units can cross a water tile, because of a bridge in LekMod, for example.
 
 Bug fixes:
-- Ranged attack previews speak again on LekMod.
-- Melee and city attack previews speak the right strengths and damage on LekMod.
-- The relationships screen names all ten LekMod city-state personalities.
-- A city's ranged strike preview speaks its strike strength instead of its defense strength.
+- A city's ranged strike preview speaks its strike strength instead of its defense strength in LekMod.
 - Ctrl+Shift+Space now ends the turn past the Social Policy prompt when Allow Policy Saving is on.
-- Cities the barbarians hold now show in the scanner, marked barbarian-held; captured city-states stay under City States.
+- Cities the barbarians hold in Vox Populi now show in the scanner under City States, as opposed to disappearing entirely.
 
 ## [2.3.2] - 2026-08-17
 
