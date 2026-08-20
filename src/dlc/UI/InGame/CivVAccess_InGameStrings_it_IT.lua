@@ -432,6 +432,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "in territorio {1_Ci
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "nel tuo territorio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} percento difesa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in zona di controllo nemica"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "le unità terrestri possono attraversare"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
     one = "{1_N} nemico nelle vicinanze",
     other = "{1_N} nemici nelle vicinanze",
@@ -1342,12 +1343,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Fine turno annulla
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Tutti ti stanno aspettando. Termina il tuo turno."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Proposta in attesa del tuo voto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Accordo in attesa della tua risposta"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "Politica saltata, cultura mantenuta"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control più spazio o Control più Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "Termina il turno, o annuncia e apre il primo blocco"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Control più Shift più spazio o Control più Shift più Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "Termina il turno ignorando il messaggio sulle unità senza ordini; gli altri blocchi vengono comunque annunciati e aperti"
+    "Termina il turno ignorando il messaggio sulle unità senza ordini, o quello sulla politica quando è attiva l'opzione che permette di mantenere la cultura non spesa; gli altri blocchi vengono comunque annunciati e aperti"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
 -- key speaks one composed line; conditional clauses join with comma. Help
 -- entries describe the underlying readout, not the panel item, since the

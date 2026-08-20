@@ -403,6 +403,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "{1_CivAdjective} �
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "자국 영토 내"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "방어 {1_Pct}%"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "적 통제 지역 내"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "육상 유닛 통행 가능"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
     other = "인근 적 {1_N}",
 }
@@ -1113,13 +1114,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] =
     "모두가 기다리고 있습니다. 턴을 종료하십시오."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "투표를 기다리는 결의안이 있습니다"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "응답을 기다리는 거래가 있습니다"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] =
+    "정책을 건너뛰었고 문화는 유지되었습니다"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control 플러스 Space 또는 Control 플러스 Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
     "턴 종료, 또는 첫 번째 차단 항목을 알리고 열기"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Control 플러스 Shift 플러스 Space 또는 Control 플러스 Shift 플러스 Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "유닛 명령 필요 알림을 무시하고 턴 종료. 다른 차단 항목은 계속 알리고 열림."
+    "유닛 명령 필요 알림을 무시하거나, 미사용 문화 이월 옵션이 켜져 있을 때는 정책 알림도 무시하고 턴 종료. 다른 차단 항목은 계속 알리고 열림."
 
 -- Empire status readouts
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SUPPLY_OVER"] = "유닛 상한 {1_Num} 초과"

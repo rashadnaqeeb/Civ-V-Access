@@ -69,6 +69,66 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE"] = "Сообщен�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_EMPTY"] = "Сообщений пока нет."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN"] = "Открыть чат"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_KEY_CLOSE"] = "Backslash или Escape"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TAB"] = "Драфт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_STATUS_READY"] = "баны готовы"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_STATUS_CHOOSING"] = "выбирает баны"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_STATUS_HOST_CONTROLS"] = "баны выбирает хост"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_BANS"] = "Ваши баны"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_BANS_VALUE"] = "Ваши баны, {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_HAND"] = "Ваш драфт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_HAND_VALUE"] = "Ваш драфт, {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BANS"] = "Баны"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BANS_VALUE"] = "Баны, {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND"] = "Драфт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_VALUE"] = "Драфт, {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_CHOOSE"] = "Выбрать бан"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_CLEAR"] = "Очистить этот бан"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_TAKEN"] = "{1_Civ}, бан уже занят"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BANS_READY"] = "Баны готовы"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_DELEGATE_BANS"] =
+    "Поручить хосту выбор ваших банов"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RECLAIM_BANS"] =
+    "Снова выбирать баны самостоятельно"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUEST"] = "Запросить обмен драфтами"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "Принять обмен драфтами"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] =
+    "Отменить запрос на обмен драфтами"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} хочет обменяться драфтами"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "{1_Name} и вы обменялись драфтами"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name}, баны готовы"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =
+    "Выбор банов; драфт можно создать, когда все будут готовы"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] =
+    "Драфты розданы; выберите свою цивилизацию"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_GAME_READY"] =
+    "Драфт заблокирован, пока хотя бы один игрок готов начать"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_HISTORY"] =
+    "Драфт доступен только для просмотра в текущей игре"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READINESS"] = "Готовность банов"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READINESS_ROW"] = "{1_Name}, {2_State}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_BANS"] = "Банов на игрока"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_PICKS"] = "Пиков на игрока"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_COASTALS"] =
+    "Гарантированные прибрежные цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_COASTALS_TT"] =
+    "Сколько прибрежных цивилизаций раздаётся каждому игроку"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] =
+    "Гарантированные внутренние цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
+    "Сколько цивилизаций, не отмеченных LekMod как прибрежные, раздаётся каждому игроку"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Только базовые цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] =
+    "Исключить сезонные цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
+    "Исключает цивилизации, помеченные LekMod как сезонные"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Создать драфт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] =
+    "Раздать всем игрокам их цивилизации"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Сбросить драфт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET_TT"] =
+    "Вернуться к фазе банов; баны сохраняются"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESTORE"] = "Восстановить предыдущий драфт"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESTORE_TT"] = "Снова раздать последний драфт"
 
 -- Lobby.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LOBBY_SERVERS_TAB"] = "Серверы"

@@ -649,6 +649,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "en territoire {1_Ci
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "en votre territoire"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} pour cent de défense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "en zone de contrôle ennemie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "franchissable par les unités terrestres"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
     one = "{1_N} ennemi proche",
     other = "{1_N} ennemis proches",
@@ -1570,13 +1571,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Fin de tour annul�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Tout le monde vous attend. Terminez votre tour."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Proposition en attente de votre vote"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Accord en attente de votre réponse"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "Politique passée, culture conservée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Contrôle plus espace ou Contrôle plus Entrée"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
     "Terminer le tour, ou annoncer et ouvrir le premier obstacle"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Contrôle plus Maj plus espace ou Contrôle plus Maj plus Entrée"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "Terminer le tour malgré l'invite d'ordres aux unités ; les autres obstacles sont annoncés et ouverts"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] = "Terminer le tour malgré l'invite d'ordres aux "
+    .. "unités, ou malgré l'invite de politique quand l'option qui conserve la culture non dépensée est activée ; "
+    .. "les autres obstacles sont annoncés et ouverts"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
 -- key speaks one composed line; conditional clauses join with comma. Help
 -- entries describe the underlying readout, not the panel item, since the

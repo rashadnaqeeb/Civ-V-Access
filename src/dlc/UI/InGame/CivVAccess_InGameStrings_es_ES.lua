@@ -753,6 +753,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "en territorio {1_Ci
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "en tu territorio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} por ciento de defensa"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "en zona de control enemiga"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "unidades terrestres pueden cruzar"
 -- Cursor-move prefix used by the optional adjacent-enemy warning (Settings
 -- toggle). Counts visible enemy units across the six neighbor tiles; same
 -- predicate as the X-key ZoC line but drops the IsCombatUnit filter so
@@ -1769,12 +1770,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Fin de turno cance
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Todos te están esperando. Termina tu turno."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Propuesta pendiente de tu voto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Acuerdo pendiente de tu respuesta"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "Política omitida, cultura conservada"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control más espacio o Control más Intro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "Terminar turno, o anunciar y abrir el primer bloqueo"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Control más Mayúsculas más espacio o Control más Mayúsculas más Intro"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "Terminar turno ignorando el aviso de unidades sin órdenes; otros bloqueos se anuncian y abren igualmente"
+    "Terminar turno ignorando el aviso de unidades sin órdenes, o el aviso de política cuando está activada la opción que conserva la cultura no gastada; otros bloqueos se anuncian y abren igualmente"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
 -- key speaks one composed line; conditional clauses join with comma. Help
 -- entries describe the underlying readout, not the panel item, since the

@@ -532,6 +532,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "in Eurem Gebiet"
 -- ===== Defense and zone of control =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} Prozent Verteidigung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in feindlichem Einflussbereich"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "Landeinheiten können überqueren"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
     one = "{1_N} Feind in der Nähe",
     other = "{1_N} Feinde in der Nähe",
@@ -1311,12 +1312,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "Rundenende abgebro
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Alle warten auf Euch. Beendet Eure Runde."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Vorschlag wartet auf Eure Abstimmung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Abkommen wartet auf Eure Antwort"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "Sozialpolitik übersprungen, Kultur behalten"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Strg plus Leertaste oder Strg plus Eingabe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "Runde beenden oder erste Blockade ansagen und öffnen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Strg plus Umschalt plus Leertaste oder Strg plus Umschalt plus Eingabe"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "Runde trotz der Abfrage für Einheiten ohne Befehle beenden; andere Blockaden werden weiterhin angesagt und geöffnet"
+    "Runde trotz der Abfrage für Einheiten ohne Befehle beenden, oder trotz der Sozialpolitik-Abfrage, wenn unverbrauchte Kultur aufgespart werden darf; andere Blockaden werden weiterhin angesagt und geöffnet"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
 -- key speaks one composed line; conditional clauses join with comma. Help
 -- entries describe the underlying readout, not the panel item, since the

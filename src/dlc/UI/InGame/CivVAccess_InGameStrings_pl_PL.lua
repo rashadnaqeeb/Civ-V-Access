@@ -447,6 +447,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "na terytorium {1_Ci
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "na twoim terytorium"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} procent obrony"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "w strefie kontroli wroga"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "jednostki lądowe mogą przejść"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
     one = "{1_N} pobliski wróg",
     few = "{1_N} pobliskich wrogów",
@@ -1283,13 +1284,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_CANCELED"] = "zakończenie tury 
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Wszyscy czekają na ciebie. Zakończ turę."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Propozycja oczekuje na twój głos"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Umowa oczekuje na twoją odpowiedź"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "Instytucja pominięta, kultura zachowana"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control plus spacja lub Control plus Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
     "Zakończ turę lub ogłoś i otwórz pierwsze zdarzenie blokujące"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Control plus Shift plus spacja lub Control plus Shift plus Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "Zakończ turę pomijając monit o jednostkach bez rozkazów; inne zdarzenia blokujące nadal są ogłaszane i otwierane"
+    "Zakończ turę pomijając monit o jednostkach bez rozkazów lub monit o instytucji, gdy włączona jest opcja zachowywania kultury; inne zdarzenia blokujące nadal są ogłaszane i otwierane"
 
 -- Empire status readouts
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SUPPLY_OVER"] = "{1_Num} powyżej limitu jednostek"

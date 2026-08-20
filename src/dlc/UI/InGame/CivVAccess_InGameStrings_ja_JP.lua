@@ -453,6 +453,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "{1_CivAdjective} �
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "自国の領土内"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} パーセント防御"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "敵の支配地域内"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "陸上ユニットが渡れる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_NEARBY_ENEMIES"] = {
     other = "{1_N} 近くに敵",
 }
@@ -1143,13 +1144,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] =
     "全員があなたを待っています. ターンを終了してください."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "投票待ちの提案があります"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "返答待ちの取引があります"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "社会制度をスキップ, 文化力は維持"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control + Space または Control + Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] =
     "ターン終了, またはブロッカーを通知して最初のブロッカーを開く"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Control + Shift + Space または Control + Shift + Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "行動命令待ちのユニットプロンプトを無視してターン終了. その他のブロッカーは引き続き通知して開く"
+    "行動命令待ちのユニットプロンプト, または文化力を持ち越せる設定が有効な場合は社会制度プロンプトを無視してターン終了. その他のブロッカーは引き続き通知して開く"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_SUPPLY_OVER"] = "ユニット上限を{1_Num}超過"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_RESEARCH_ACTIVE"] = {
     other = "{2_Tech}まで{1_Turns}ターン, 科学力+{3_Rate}",
