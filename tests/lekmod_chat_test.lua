@@ -84,16 +84,28 @@ function M.test_version_handshake_is_dropped()
     T.eq(LekModChat.classify("#LEKVER#v35.006").kind, "drop")
 end
 
--- LekMod publishes the handshake and announcement prefixes on its own global;
--- when it is loaded those win, so a change upstream cannot quietly bring the
--- spam back.
+-- LekMod publishes every protocol prefix on its own global; when it is loaded
+-- those win, so a change upstream cannot quietly bring the spam back.
 function M.test_prefixes_follow_lekmod_when_published()
     setup()
-    LekmodVersion = { HANDSHAKE_PREFIX = "#LEKVER2#", GAME_CHAT_PREFIX = "#LGAME2#" }
+    LekmodVersion = {
+        LOBBY_CHAT_REQ = "#LCHREQ2#",
+        LOBBY_CHAT_CLEAR = "#LCHCLEAR2#",
+        LOBBY_CHAT_PREFIX = "#LCH2#",
+        DRAFT_PREFIX = "#LDRAFT2#",
+        OLD_HANDSHAKE_PREFIX = "#LEKVER2#",
+        GAME_CHAT_PREFIX = "#LGAME2#",
+    }
+    T.eq(LekModChat.classify("#LCHREQ2#").kind, "drop")
+    T.eq(LekModChat.classify("#LCHCLEAR2#").kind, "clear")
+    T.eq(LekModChat.classify("#LDRAFT2#BAN|3|-1").kind, "drop")
     T.eq(LekModChat.classify("#LEKVER2#v36").kind, "drop")
-    local system = LekModChat.classify("#LGAME2#Player was kicked")
+    local system = LekModChat.classify("#LGAME2#Draft created.")
     T.eq(system.kind, "system")
-    T.eq(system.text, "Player was kicked")
+    T.eq(system.text, "Draft created.")
+    local history = LekModChat.classify("#LCH2#1|Alice|hello")
+    T.eq(history.kind, "history")
+    T.eq(history.text, "hello")
 end
 
 -- LekMod's own announcements (kick notices, the draft's lifecycle lines) are

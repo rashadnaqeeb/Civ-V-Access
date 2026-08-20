@@ -342,18 +342,57 @@ civvaccess_shared.version = "$ModVersion"
     [System.IO.File]::WriteAllText($dst, $body, [System.Text.UTF8Encoding]::new($false))
 }
 
-# Resolve LekMod's standard-UI set into Lua\UI: clear it, then copy every
-# tmp/ui body in de-ignored and flattened by stem (the engine indexes UI by bare
-# stem, and ui_check writes flat names too). tmp/ui is purely standard sources --
+# Resolve LekMod's standard-UI set into Lua\UI: copy every tmp/ui body in
+# de-ignored and flattened by stem (the engine indexes UI by bare stem, and
+# ui_check writes flat names too). tmp/ui is purely standard sources --
 # EUI variants live in tmp/eui -- so reading only tmp/ui forces the standard set
 # regardless of any EUI present. Drops tmp/ afterwards.
+#
+# Whatever LekMod ships in Lua\UI that tmp/ui has no body for stays put: those
+# files are part of the standard set too, reached by stem from a tmp/ui screen
+# (the city-state personality helper) rather than staged with it. ui_check.bat
+# keeps the same files by backing each one up around its wipe.
+#
+# The exception is a screen our own accessibility overlay also ships, named by
+# $OverlayUiDir. Our copy wins that stem on priority, so keeping LekMod's half
+# of the screen would pair its layout against our body -- which is bodied from
+# whatever root the vendor chain resolved, not necessarily LekMod's. Both
+# halves of such a screen go, matched on the bare stem, so a leftover layout
+# cannot outlive the body it belongs to. The sighted profile ships no overlay
+# and passes nothing, which leaves LekMod's own pairs intact.
+#
+# Then the stamp: LekMod's FrontEnd holds the main menu behind its legal screen
+# until LekmodUiConfigured reports the standard UI resolved, which ui_check.bat
+# writes at the end of its run. This function is our ui_check, so it writes it.
 function Resolve-CivVAccessLekModStandardUI {
-    param([Parameter(Mandatory)][string]$LekModDir)
+    param(
+        [Parameter(Mandatory)][string]$LekModDir,
+        [string]$OverlayUiDir
+    )
     $tmpUi = Join-Path $LekModDir 'Lua\tmp\ui'
     if (-not (Test-Path $tmpUi)) { throw "LekMod tmp/ui not found at $tmpUi (clone incomplete?)." }
     $uiDest = Join-Path $LekModDir 'Lua\UI'
-    if (Test-Path $uiDest) { Remove-Item -LiteralPath $uiDest -Recurse -Force }
     New-Item -ItemType Directory -Path $uiDest -Force | Out-Null
+
+    if ($OverlayUiDir) {
+        if (-not (Test-Path $OverlayUiDir)) { throw "Vendor overlay UI not found at $OverlayUiDir. Run: py tools/vendoring/vendor.py generate --engine lekmod --out build/vendor/lekmod" }
+        # Bare stems tmp/ui stages, and bare stems our overlay ships.
+        $staged = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+        foreach ($f in Get-ChildItem -LiteralPath $tmpUi -Recurse -File) {
+            $n = $f.Name -replace '\.ignore$', ''
+            if ($n -match '\.(lua|xml)$') { [void]$staged.Add([System.IO.Path]::GetFileNameWithoutExtension($n)) }
+        }
+        $ours = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+        foreach ($f in Get-ChildItem -LiteralPath $OverlayUiDir -Recurse -File -Include '*.lua', '*.xml') {
+            [void]$ours.Add($f.BaseName)
+        }
+        foreach ($f in Get-ChildItem -LiteralPath $uiDest -File) {
+            if (-not $staged.Contains($f.BaseName) -and $ours.Contains($f.BaseName)) {
+                Remove-Item -LiteralPath $f.FullName -Force
+            }
+        }
+    }
+
     $copied = 0
     foreach ($f in Get-ChildItem -LiteralPath $tmpUi -Recurse -File) {
         $name = $f.Name
@@ -363,6 +402,9 @@ function Resolve-CivVAccessLekModStandardUI {
         $copied++
     }
     Write-Host "  Resolved $copied standard-UI files into Lua\UI"
+    $stamp = Join-Path $uiDest 'LekmodUiConfigured.lua'
+    [System.IO.File]::WriteAllText($stamp, "LekmodUiConfigured = true`r`n", [System.Text.UTF8Encoding]::new($false))
+    Write-Host "  Wrote the ui_check stamp: LekmodUiConfigured.lua"
     $tmp = Join-Path $LekModDir 'Lua\tmp'
     if (Test-Path $tmp) { Remove-Item -LiteralPath $tmp -Recurse -Force }
 }

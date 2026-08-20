@@ -460,7 +460,10 @@ function Deploy-LekModDlc {
     Write-Host "  $cloneLekMod -> $dst"
     Copy-Item -LiteralPath $cloneLekMod -Destination $dst -Recurse -Force
 
-    Resolve-CivVAccessLekModStandardUI -LekModDir $dst
+    # Blind ships our accessibility overlay, which shadows some of LekMod's own
+    # screens; sighted ships none, so LekMod's copies stand on their own.
+    $overlayUi = if ($Profile -eq 'blind') { Join-Path $vendorStageDir 'UI' } else { '' }
+    Resolve-CivVAccessLekModStandardUI -LekModDir $dst -OverlayUiDir $overlayUi
 
     Write-Host "Replacing LekMod engine DLL with our fork:"
     Write-Host "  $forkLekmodDll -> $dst\$engineDllName"

@@ -1,20 +1,20 @@
 {
   "mod": "2.3.2",
   "supported_vp": "Release-5.4.4",
-  "supported_lekmod": "52f2d230b1d2ccba4c5bb714b1594b2dd23f4674",
+  "supported_lekmod": "4568374f3c0e1f988982ce3225c5cae1dafef224",
   "components": {
     "core":           "1.32.0",
     "engine":         "1.5.0",
     "engine_vp":      "0.4.0",
-    "engine_lekmod":  "0.3.1",
+    "engine_lekmod":  "0.3.2",
     "runtime":        "1.5.2",
     "cinematics":     "1.0.0",
     "vp_overlay":     "0.8.0",
     "cp_overlay":     "0.8.0",
-    "lekmod_overlay": "0.9.0",
+    "lekmod_overlay": "0.9.1",
     "vp_modpack":     "0.4.0",
     "cp_modpack":     "0.4.0",
     "vp_runtime":     "0.1.1",
-    "lekmod_dlc":     "0.5.0"
+    "lekmod_dlc":     "0.5.1"
   }
 }

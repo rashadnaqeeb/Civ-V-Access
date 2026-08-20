@@ -40,7 +40,8 @@
               (the DLC). A non-empty LEKMOD/ diff means the port leaked into
               content and the deploy would ship a forked DLC. Also confirms the
               standard-UI staging tree (LEKMOD/Lua/tmp/ui) the vendor and
-              deploy steps read is present.
+              deploy steps read is present, and flags a changed ui_check.bat,
+              which our deploy reimplements.
 
       vendor  Run the vendoring tool's vanilla verify (must still reproduce the
               committed tree byte-for-byte) and re-stage the LekMod overlay,
@@ -274,6 +275,20 @@ function Invoke-ModsPhase {
         throw "Standard-UI staging tree missing at $tmpUi -- the vendor and deploy steps read it. Is the clone fully checked out?"
     }
     Write-Host "Standard-UI staging tree present." -ForegroundColor Green
+
+    # Our deploy is LekMod's ui_check.bat (Resolve-CivVAccessLekModStandardUI in
+    # tools/dlc-assembly.ps1). Everything that script does past copying bodies is
+    # ours to carry, and getting it wrong breaks the install with nothing in any
+    # log to say why -- v35.1 added a stamp file LekMod's FrontEnd gates the main
+    # menu on. Surface the diff; only a human can say what it means for us.
+    $uiCheckChanged = Get-Git @('diff', '--name-only', "$OldPin..$newCommit", '--', 'LEKMOD/ui_check.bat')
+    if ($uiCheckChanged) {
+        Write-Host "ui_check.bat changed in this drop. Our deploy reimplements it -- read the diff and mirror whatever it does past copying bodies:" -ForegroundColor Yellow
+        Write-Host "  git -C `"$ClonePath`" diff $OldPin..$newCommit -- LEKMOD/ui_check.bat"
+    }
+    else {
+        Write-Host "ui_check.bat unchanged since the old pin." -ForegroundColor Green
+    }
 }
 
 function Invoke-VendorPhase {

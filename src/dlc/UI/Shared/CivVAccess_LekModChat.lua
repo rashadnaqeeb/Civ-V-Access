@@ -2,10 +2,10 @@
 --
 -- LekMod carries several of its own protocols over Network.SendChat, and its
 -- own OnChat handlers filter every one of them out before anything reaches the
--- visible chat box: the civ-draft state sync, the multiplayer version
--- handshake, the lobby chat-history replay a joiner receives, and its "Game:"
--- system announcements (kick notices, ui_check warnings, and the draft's own
--- lifecycle lines). Our chat listeners subscribe to Events.GameMessageChat
+-- visible chat box: the civ-draft state sync, the lobby chat-history replay a
+-- joiner receives, its "Game:" system announcements (the draft's own lifecycle
+-- lines), and a retired version handshake an out-of-date client can still
+-- send. Our chat listeners subscribe to Events.GameMessageChat
 -- directly, which is upstream of all that filtering, so without this module a
 -- blind player hears raw packets read out ("hash L DRAFT hash BAN pipe 3 pipe
 -- minus 1") on every ban any player edits.
@@ -15,12 +15,11 @@
 -- these prefixes, so vanilla and VP always fall through to the ordinary-chat
 -- return.
 --
--- Prefixes are LekMod's, from Lekmod_version.lua (handshake / system) and the
--- file-local constants in StagingRoom.lua and Lekmod_staging_draft.lua (the
--- lobby-history and draft protocols). The two exposed as fields on LekMod's
--- LekmodVersion global are read from there when it is loaded, so a change
--- upstream cannot silently reintroduce the spam; the rest are pinned here and
--- re-checked on a re-pin.
+-- Prefixes are LekMod's, published as fields on its LekmodVersion global. Each
+-- is read from there when that global is loaded, so a change upstream cannot
+-- silently reintroduce the spam. The constants below are the fallback for the
+-- Contexts that never load Lekmod_version.lua and for the offline suite, and
+-- are re-checked on a re-pin.
 
 LekModChat = {}
 
@@ -31,9 +30,7 @@ local HISTORY_PREFIX = "#LCH#"
 local HISTORY_REQUEST = "#LCHREQ#"
 local HISTORY_CLEAR = "#LCHCLEAR#"
 
--- LekMod's own value wins where it publishes one; the constant is the
--- fallback for Contexts that never loaded Lekmod_version.lua and for the
--- offline suite.
+-- LekMod's own value wins where it publishes one.
 local function prefix(field, fallback)
     if type(LekmodVersion) == "table" and type(LekmodVersion[field]) == "string" then
         return LekmodVersion[field]
@@ -72,7 +69,7 @@ end
 -- Classify one incoming chat message. Returns nil for ordinary player chat
 -- (the caller announces it as usual), otherwise a table whose `kind` is:
 --   "drop"     LekMod machinery with nothing for the player: the draft state
---              sync, the version handshake, a history request. Discard.
+--              sync, a legacy version handshake, a history request. Discard.
 --   "clear"    the host telling a joining client to wipe its chat history
 --              before the replay arrives. Discard the message and drop any
 --              log the caller keeps.
@@ -86,25 +83,25 @@ function LekModChat.classify(text)
     if type(text) ~= "string" or text == "" then
         return nil
     end
-    if text == HISTORY_REQUEST then
+    if text == prefix("LOBBY_CHAT_REQ", HISTORY_REQUEST) then
         return { kind = "drop" }
     end
-    if text == HISTORY_CLEAR then
+    if text == prefix("LOBBY_CHAT_CLEAR", HISTORY_CLEAR) then
         return { kind = "clear" }
     end
-    if startsWith(text, DRAFT_PREFIX) then
+    if startsWith(text, prefix("DRAFT_PREFIX", DRAFT_PREFIX)) then
         return { kind = "drop" }
     end
-    local handshake = prefix("HANDSHAKE_PREFIX", HANDSHAKE_PREFIX)
-    if startsWith(text, handshake) then
+    if startsWith(text, prefix("OLD_HANDSHAKE_PREFIX", HANDSHAKE_PREFIX)) then
         return { kind = "drop" }
     end
     local system = prefix("GAME_CHAT_PREFIX", SYSTEM_PREFIX)
     if startsWith(text, system) then
         return { kind = "system", text = string.sub(text, #system + 1) }
     end
-    if startsWith(text, HISTORY_PREFIX) then
-        local entry = decodeHistory(string.sub(text, #HISTORY_PREFIX + 1))
+    local history = prefix("LOBBY_CHAT_PREFIX", HISTORY_PREFIX)
+    if startsWith(text, history) then
+        local entry = decodeHistory(string.sub(text, #history + 1))
         if entry ~= nil then
             return entry
         end

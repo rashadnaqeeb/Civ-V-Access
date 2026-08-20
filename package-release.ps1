@@ -467,7 +467,7 @@ function Stage-LekmodDlc {
 
     Write-Host "  Copying LekMod DLC tree (large)..."
     Copy-Item -Path (Join-Path $src '*') -Destination $dlcStage -Recurse -Force
-    Resolve-CivVAccessLekModStandardUI -LekModDir $dlcStage
+    Resolve-CivVAccessLekModStandardUI -LekModDir $dlcStage -OverlayUiDir (Join-Path $vendorLekmodDir 'UI')
     Copy-Item -LiteralPath $engineLekmodFork -Destination (Join-Path $dlcStage 'CvGameCore_Expansion2.dll') -Force
 
     Write-Host "  Copying Lekmap map scripts..."
