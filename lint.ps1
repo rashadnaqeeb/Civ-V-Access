@@ -1,4 +1,4 @@
-# Lints and format-checks the mod's Lua source.
+﻿# Lints and format-checks the mod's Lua source.
 # Runs luacheck (semantic) and stylua (formatting) back to back. Both are
 # read-only by default; pass -Fix to let stylua rewrite files in place.
 # Expects tools/bin/luacheck.exe and tools/bin/stylua.exe (both gitignored).
@@ -81,7 +81,9 @@ function Invoke-Tool {
 # ship them verbatim) for the known-drifted method names outside
 # EngineData itself and fails on any hit. The name lists are the VP port
 # plan's drift audit plus the fork's extension bindings; each VP re-pin's
-# value-audit diff is what keeps them current.
+# value-audit diff is what keeps them current. A LekMod re-pin feeds the
+# same list: v35's combat-prediction rewrite resignatured GetMaxAttackStrength
+# and GetMaxDefenseStrength and deleted GetMaxRangedCombatStrength outright.
 #
 # Two tiers, because the failure modes differ. DRIFT reads exist on every
 # engine but differ in value / signature; only code that runs on more than
@@ -104,6 +106,8 @@ function Invoke-SeamGuard {
     # name matching it.
     $driftMethods = @(
         "GetCombatDamage", "GetMaxDefenseStrength", "DefenseModifier",
+        "GetMaxAttackStrength", "GetMaxRangedCombatStrength",
+        "GetPersonality", "IsAllowsWalkWater",
         "GetExcessHappiness", "GetHappinessFromBuildings", "GetHappinessFromPolicies",
         "GetUnhappinessFromCityCount", "GetUnhappinessFromCapturedCityCount",
         "GetUnhappinessFromCityPopulation", "GetUnhappinessFromCityForUI",

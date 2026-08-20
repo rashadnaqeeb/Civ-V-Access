@@ -89,7 +89,19 @@ end
 --                  defender's current-damage input so the counterattack
 --                  comes from the wounded defender the melee will
 --                  actually face.
-function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage, volleyDamage)
+--   targetPlot     the plot the defender stands on. Unused here (this
+--                  engine's damage call takes only strengths and
+--                  pre-resolved damage); LekMod's whole-matchup predictor
+--                  needs it.
+function EngineData.meleeDamage(
+    attacker,
+    defender,
+    attackStrength,
+    defenseStrength,
+    supportDamage,
+    volleyDamage,
+    _targetPlot
+)
     local toDefender = attacker:GetCombatDamage(
         attackStrength,
         defenseStrength,
@@ -115,12 +127,45 @@ end
 -- for the outgoing hit, attacker-is-city for the city's counter, with the
 -- city supplying its own current damage for the counter. VP collapses this
 -- into GetMeleeCombatDamageCity.
-function EngineData.cityMeleeDamage(attacker, city, attackStrength, cityStrength, supportDamage)
+function EngineData.cityMeleeDamage(attacker, city, attackStrength, cityStrength, supportDamage, _targetPlot)
     local toCity =
         attacker:GetCombatDamage(attackStrength, cityStrength, attacker:GetDamage() + supportDamage, false, false, true)
     local toAttacker = attacker:GetCombatDamage(cityStrength, attackStrength, city:GetDamage(), false, true, false)
         + supportDamage
     return toCity, toAttacker
+end
+
+-- Drift read: the attacker's strength for a matchup, melee or ranged.
+-- One intent for both because LekMod answers them with a single call that
+-- takes the whole matchup, while this engine keeps two differently shaped
+-- getters: GetMaxAttackStrength for melee (from-plot, to-plot, defender)
+-- and GetMaxRangedCombatStrength for ranged (defender or city, attacking,
+-- for-ranged-attack). Exactly one of defender / defenderCity is non-nil.
+function EngineData.maxAttackStrength(attacker, fromPlot, toPlot, defender, defenderCity, bRangedAttack)
+    if bRangedAttack then
+        return attacker:GetMaxRangedCombatStrength(defender, defenderCity, true, true)
+    end
+    return attacker:GetMaxAttackStrength(fromPlot, toPlot, defender)
+end
+
+-- Drift read: the strength a unit defends with against a ranged attack.
+-- The resolution chain lives here rather than at the call site because it
+-- is engine-shaped: this engine reads the defender's own ranged strength
+-- and falls back to its defense strength for the cases where that number
+-- is meaningless (embarked, no ranged strength, sea domain, support-fire
+-- units), mirroring EnemyUnitPanel.lua. LekMod's predictor answers the
+-- whole question in one call instead.
+function EngineData.rangedDefenseStrength(defender, attacker, toPlot)
+    local strength
+    if defender:IsEmbarked() then
+        strength = defender:GetEmbarkedUnitDefense()
+    else
+        strength = defender:GetMaxRangedCombatStrength(attacker, nil, false, true)
+    end
+    if strength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA or defender:IsRangedSupportFire() then
+        strength = EngineData.maxDefenseStrength(defender, toPlot, attacker, true)
+    end
+    return strength
 end
 
 -- Drift read: a defender's maximum defense strength on a plot against an
@@ -143,6 +188,26 @@ end
 -- + feature + improvement components).
 function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHelp)
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, bHelp)
+end
+
+-- Drift read: can land units walk over this water plot right now? LekMod
+-- adds shallows, a water feature that a pontoon bridge or a polder turns
+-- into ground land units cross, and Plot:IsAllowsWalkWater answers it
+-- live -- pillaging the improvement stops the crossing while the feature
+-- itself still reads the same. The binding exists on no other engine, so
+-- the vanilla body is inert and the crossable-water clause never speaks in
+-- a vanilla session.
+function EngineData.plotAllowsWalkWater(_plot)
+    return false
+end
+
+-- Drift read: the route on a plot as the player's team remembers it.
+-- LekMod widens the question: an improvement flagged ActsAsRoute (the
+-- pontoon bridge, the polder) carries a road or, once the owning team has
+-- the right tech, a railroad, without the plot ever holding a route of its
+-- own. Vanilla has only real routes.
+function EngineData.plotRouteType(plot, team, debug)
+    return plot:GetRevealedRouteType(team, debug)
 end
 
 -- Drift read: the "defends near capital" combat modifier for a unit fighting
@@ -749,6 +814,27 @@ end
 --   vassals     the serving teams' ids (empty when none)
 function EngineData.vassalInfo(team)
     return { isVassal = false, master = nil, tenure = 0, numVassals = 0, vassals = {} }
+end
+
+-- Drift read: the text key naming a city-state's personality, or nil when
+-- it has none we can name. Vanilla's personalities are a fixed four-value
+-- C++ enum and GetPersonality returns one of its constants. LekMod keeps
+-- that enum at four values for save compatibility but moves the real set
+-- into a data table, so there GetPersonality returns a row index and only
+-- the first four still line up with the constants -- which is why this is
+-- an intent rather than a shared comparison chain.
+function EngineData.minorPersonalityTextKey(playerId)
+    local personality = Players[playerId]:GetPersonality()
+    if personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_FRIENDLY then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY"
+    elseif personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_NEUTRAL then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL"
+    elseif personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_HOSTILE then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_HOSTILE"
+    elseif personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_IRRATIONAL then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_IRRATIONAL"
+    end
+    return nil
 end
 
 -- Drift read: the player credited with a city's original capital for

@@ -213,16 +213,10 @@ end
 --     iData3 the friendship boost. Reproduces the modded popup's
 --     strGiftString composition, including the friendship-only and
 --     nothing-gained fallbacks.
+-- Neutral is the fallback rather than silence: this key names the greeting
+-- the popup is built around, so it has to resolve to something.
 local function minorPersonalityKey(minorCivID)
-    local p = Players[minorCivID]:GetPersonality()
-    if p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_FRIENDLY then
-        return "TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY"
-    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_HOSTILE then
-        return "TXT_KEY_CITY_STATE_PERSONALITY_HOSTILE"
-    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_IRRATIONAL then
-        return "TXT_KEY_CITY_STATE_PERSONALITY_IRRATIONAL"
-    end
-    return "TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL"
+    return EngineData.minorPersonalityTextKey(minorCivID) or "TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL"
 end
 
 local function cityStateGiftString(minorCivID, iData2, iData3, bFirst, szSuffix)

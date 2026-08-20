@@ -642,7 +642,11 @@ function CitySpeech.rangedPreview(city, defenderUnit, defenderCity)
     if damage > maxHP then
         damage = maxHP
     end
-    local myStr = Locale.ToNumber(city:GetStrengthValue() / 100, "#.##")
+    -- bForRangeStrike: the strike is what this number describes, and on the
+    -- engines that separate the two a city's range-strike strength leaves
+    -- out its building defense. Vanilla's binding reads no argument and
+    -- returns its single strength either way.
+    local myStr = Locale.ToNumber(city:GetStrengthValue(true) / 100, "#.##")
     local theirStr = Locale.ToNumber(theirStrength / 100, "#.##")
     return Text.format("TXT_KEY_CIVVACCESS_CITY_RANGED_PREVIEW", name, myStr, theirStr, damage)
 end

@@ -32,29 +32,3 @@ v35 also rebuilt the lobby into three pages (players, draft, options) and added 
 layout below 1320 pixels that hides the summary strip. Page mode is state a blind host has
 no way to perceive, so whatever covers the draft has to announce the current page and make
 switching pages reachable.
-
-## Combat preview could use LekMod's own predictor
-
-v35 added `Game.GetCombatDamage`, which takes the full matchup (attacker and defender units
-or cities, interceptor, plot, and the ranged / bombing / air-sweep flags) and resolves the
-damage through the engine's own combat info. Our preview instead re-enumerates modifiers by
-explicit named-binding calls, which is why each LekMod drop's new modifier lines have to be
-added by hand. Routing the preview through this binding on LekMod would remove that
-per-drop coupling. It is an accuracy and maintenance win, not a missing surface, so it is
-lower priority than the two gaps above.
-
-## City-state personalities
-
-Added in v35. A `LEKMOD_MINOR_CIV_PERSONALITIES` table assigns every city-state one of ten
-personalities (friendly, neutral, hostile, irrational, wealthy, impoverished, pirate
-republic, theocratic, pacifistic, isolationist). It changes the greeting line the city-state
-speaks, and swaps the gift and bully button labels and their tooltips.
-
-`LEKMOD/Lua/UI/CityStatePersonalityHelper.lua` composes the display. It is consumed by
-`CityStateDiploPopup`, which we override. Note it lives under `Lua/UI` directly rather than
-in the `tmp/ui` staging tree, so `ui_check.bat` preserves it across its own regeneration
-instead of copying it in.
-
-Today the personality reaches the player only as tooltip text and as a colored name inside
-that tooltip, so it is effectively invisible. Coverage means the personality is part of what
-the city-state diplo popup speaks, since it changes how worthwhile gifting and bullying are.

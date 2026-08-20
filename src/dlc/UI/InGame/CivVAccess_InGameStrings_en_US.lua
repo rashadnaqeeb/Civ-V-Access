@@ -870,6 +870,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_CIV_TERRITORY"] = "in {1_CivAdjective}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_IN_YOUR_TERRITORY"] = "in your territory"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DEFENSE_MOD"] = "{1_Pct} percent defense"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ZONE_OF_CONTROL"] = "in enemy zone of control"
+-- Water a land unit can walk over, spoken in the X-key combat readout.
+-- LekMod's shallows become crossable once a pontoon bridge or a polder
+-- stands on them, and stop being crossable the moment it is pillaged, so
+-- this speaks the live state rather than the feature.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_WATER_CROSSABLE"] = "land units can cross"
 -- Cursor-move prefix used by the optional adjacent-enemy warning (Settings
 -- toggle). Counts visible enemy units across the six neighbor tiles; same
 -- predicate as the X-key ZoC line but drops the IsCombatUnit filter so

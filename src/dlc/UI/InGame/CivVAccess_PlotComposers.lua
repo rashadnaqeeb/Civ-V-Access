@@ -302,6 +302,14 @@ function PlotComposers.combat(plot)
     if def ~= 0 then
         out[#out + 1] = Text.format("TXT_KEY_CIVVACCESS_DEFENSE_MOD", def)
     end
+    -- Water a land unit can walk over. Gated on IsWater because the flag
+    -- rides the improvement, and LekMod also sets it on a land polder,
+    -- where "land units can cross" would be nonsense. Live state: the
+    -- crossing ends when the improvement carrying it is pillaged, while
+    -- the feature underneath still reads the same.
+    if plot:IsWater() and EngineData.plotAllowsWalkWater(plot) then
+        out[#out + 1] = Text.key("TXT_KEY_CIVVACCESS_WATER_CROSSABLE")
+    end
     local cost, impassable = tileMoveCost(plot)
     if impassable then
         out[#out + 1] = Text.key("TXT_KEY_PEDIA_IMPASSABLE")

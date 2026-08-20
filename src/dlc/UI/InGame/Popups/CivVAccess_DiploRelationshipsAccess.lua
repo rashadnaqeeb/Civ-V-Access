@@ -772,19 +772,15 @@ end
 
 -- ===== Minor civ helpers ==============================================
 
--- Personality word: friendly / neutral / hostile / irrational.
+-- Personality word. Four of them on vanilla and VP, ten on LekMod, which is
+-- why the mapping from what GetPersonality returns to a name lives in the
+-- EngineData seam. Empty when the engine names none.
 local function personalityWord(iOther)
-    local p = Players[iOther]:GetPersonality()
-    if p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_FRIENDLY then
-        return Text.key("TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY")
-    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_NEUTRAL then
-        return Text.key("TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL")
-    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_HOSTILE then
-        return Text.key("TXT_KEY_CITY_STATE_PERSONALITY_HOSTILE")
-    elseif p == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_IRRATIONAL then
-        return Text.key("TXT_KEY_CITY_STATE_PERSONALITY_IRRATIONAL")
+    local key = EngineData.minorPersonalityTextKey(iOther)
+    if key == nil then
+        return ""
     end
-    return ""
+    return Text.key(key)
 end
 
 -- Bonuses currently flowing from this CS to us (Friends / Allies grants).

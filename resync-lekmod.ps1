@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Re-pin Civ V Access's LekMod support to a new upstream LekMod drop: rebase +
     rebuild the engine fork, confirm the pulled-in DLC is pristine upstream,
@@ -28,7 +28,12 @@
               the conflicting commit named. The conflicts concentrate in the
               CvAStar pathfinder (3 real merges) -- re-test path preview after.
               If the canary is not GOOD the committed dist/engine-lekmod DLL is
-              restored from git, so a bad build never lands.
+              restored from git, so a bad build never lands. Then the binding
+              surface gate: the drop's Lua registrations, preprocessor state
+              resolved, must still include every vanilla binding our own Lua
+              calls. A removal is invisible to the value audit (the call errors
+              at speech time in a swallowed handler), which is how v35's
+              deletion of Unit:GetMaxRangedCombatStrength got through.
 
       mods    Confirm the rebase pulled a pristine upstream DLC: our port
               commits must touch only LEKMOD_DLL/ (the engine), never LEKMOD/
@@ -97,6 +102,7 @@ $versionsPath = Join-Path $repoRoot 'versions.json'
 $forkDllRel   = 'dist\engine-lekmod\CvGameCore_Expansion2.dll'
 $forkDll      = Join-Path $repoRoot $forkDllRel
 $canaryScript = Join-Path $repoRoot 'tools\lekmod_dll_canary.py'
+$surfaceScript = Join-Path $repoRoot 'tools\lekmod_binding_surface.py'
 $vendorScript = Join-Path $repoRoot 'tools\vendoring\vendor.py'
 $vendorStage  = Join-Path $repoRoot 'build\vendor\lekmod'
 $reviewDir    = Join-Path $repoRoot 'build\resync'
@@ -234,6 +240,18 @@ function Invoke-EnginePhase {
     }
 
     Write-Host "GOOD. Fork DLL at $forkDll passed the canary." -ForegroundColor Green
+
+    # A removed Lua binding is invisible to the value audit: the call errors at
+    # speech time inside a handler the engine swallows. v35 deleted
+    # Unit:GetMaxRangedCombatStrength that way (its Method() registration moved
+    # into the off arm of the combat-predictor #if) and nothing caught it, so
+    # every re-pin now diffs the registration surface against the vanilla SDK.
+    Write-Step "Binding surface gate"
+    & py $surfaceScript --clone $ClonePath
+    if ($LASTEXITCODE -ne 0) {
+        throw "This drop removed a Lua binding our own code calls (listed above). Route the call through the EngineData seam with a LekMod body that uses the replacement, add the name to lint.ps1's drift list, then re-run -Phase engine."
+    }
+
     Write-Host "(civvaccess rebased; $backupBranch still points at the pre-rebase state until you delete it.)"
 }
 

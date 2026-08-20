@@ -16,10 +16,17 @@
 --   * Bare getters return display scale. LekMod added times-100 culture
 --     storage, but the bare getters still return the displayed value, so
 --     tourism / culture / yield reads pass through exactly as on vanilla.
---   * The Lua binding surface is purely additive: ~100 methods added across
---     City / Player / Unit / Plot / Game / Team, zero removed or resignatured.
---     Nothing the seam calls changed, so every drift-read body is the vanilla
---     getter and bestDefender keeps the vanilla positional signature.
+--   * The Lua binding surface is almost entirely additive: ~100 methods added
+--     across City / Player / Unit / Plot / Game / Team, so nearly every
+--     drift-read body is the vanilla getter and bestDefender keeps the
+--     vanilla positional signature. The exception is combat prediction,
+--     which v35 rebuilt: Unit:GetMaxAttackStrength and
+--     Unit:GetMaxDefenseStrength were resignatured around the whole matchup,
+--     Unit:GetMaxRangedCombatStrength was removed, and Game.GetCombatDamage
+--     replaced the per-unit damage calls. Those bodies are the seam's real
+--     divergence here; the rest still pass through. A removal is invisible
+--     to a re-pin's value audit, so resync-lekmod diffs the registration
+--     surface against the vanilla SDK to catch the next one.
 --
 -- Two categories live here, as on vanilla:
 --   * Drift reads -- plain passthroughs (per the findings above, none actually
@@ -87,75 +94,121 @@ function EngineData.drainEngineEvents()
     return Game.CivVAccessDrainEvents()
 end
 
--- Drift read: bidirectional melee damage for a unit-vs-unit attack.
--- Returns (damage to defender, damage to attacker), MELEE ONLY -- the
--- caller adds volleyDamage onto the spoken damage-to-defender itself.
--- Vanilla has no single call for this, so it synthesizes both sides from
--- two GetCombatDamage calls. VP replaces this with a single
--- GetMeleeCombatDamage that returns both sides at once, which is why the
--- seam is shaped as "give me both numbers for this matchup" rather than
--- exposing GetCombatDamage directly.
+-- LekMod v35 moved combat prediction off CvUnit / CvCity and onto CvGame
+-- behind LEKMOD_COMBAT_PREDICTOR_IMPROVEMENTS, and the shape of the answer
+-- changed with it: Game.GetCombatDamage takes the whole matchup (attacker,
+-- attacker city, defender, defender city, interceptor, plot, ranged /
+-- bombing / sweep flags) and returns both sides at once as
+-- { Attacker = {...}, Defender = {...} }. Per-combat damage is
+-- FinalDamage - CurrentDamage; FinalDamage is cumulative damage after the
+-- fight. Same rewrite retired Unit:GetCombatDamage's iCurrentDamage
+-- argument (the body now derives the wounded ratio from the unit's own
+-- getDamage) and dropped the "cities do not do less damage when wounded"
+-- branch, so the old per-unit calls silently stopped modelling pre-resolved
+-- damage. Our fork adds two optional trailing arguments here to carry it
+-- back; without the fork DLL they are ignored and the numbers degrade to
+-- the stock predictor's rather than throwing.
 --
--- Two pre-resolved damages feed the melee math, one per direction:
---   supportDamage  defensive fire support already dealt TO THE ATTACKER
---                  (the defender's adjacent ranged ally fires first).
---                  Folds into the attacker's current-damage input -- on
---                  this engine wounds scale damage output -- and onto the
---                  attacker's incoming total, exactly as EnemyUnitPanel
---                  does.
+-- The two pre-resolved damages, one per direction (contract as in the
+-- vanilla file):
+--   supportDamage  defensive fire support already dealt TO THE ATTACKER.
+--                  Crosses as the attacker's extra damage taken, so the
+--                  melee it deals comes from the wounded attacker, and is
+--                  added onto the attacker's incoming total.
 --   volleyDamage   the attacker's own opening volley already dealt TO THE
---                  DEFENDER (ranged support fire, the Impi spear throw;
---                  the engine resolves it as a ranged attack before the
---                  melee, CvUnitCombat.cpp:2855). Folds into the
---                  defender's current-damage input so the counterattack
---                  comes from the wounded defender the melee will
---                  actually face.
-function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage, volleyDamage)
-    local toDefender = attacker:GetCombatDamage(
-        attackStrength,
-        defenseStrength,
-        attacker:GetDamage() + supportDamage,
+--                  DEFENDER. Crosses as the defender's extra damage taken,
+--                  so the counterattack comes from the wounded defender.
+--                  The caller adds it onto the spoken damage-to-defender.
+--   targetPlot     the plot the fight happens on. Required here: the
+--                  predictor takes the matchup, not bare strengths, so the
+--                  strength arguments this seam still carries for the
+--                  vanilla and VP bodies do not cross into the call.
+local function combatPrediction(
+    attacker,
+    attackerCity,
+    defender,
+    defenderCity,
+    targetPlot,
+    bRanged,
+    attackerExtra,
+    defenderExtra
+)
+    return Game.GetCombatDamage(
+        attacker,
+        attackerCity,
+        defender,
+        defenderCity,
+        nil,
+        targetPlot,
+        bRanged,
         false,
         false,
-        false
+        attackerExtra,
+        defenderExtra
     )
-    local toAttacker = defender:GetCombatDamage(
-        defenseStrength,
-        attackStrength,
-        defender:GetDamage() + volleyDamage,
-        false,
-        false,
-        false
-    ) + supportDamage
-    return toDefender, toAttacker
+end
+
+-- Damage one side deals in the previewed combat. The engine reports where
+-- the loser ends up, not what it lost, so the delta is ours to take; it
+-- clamps at 0 because the predictor's mutual-kill correction can leave a
+-- side's final damage below where it started.
+local function damageDealt(side)
+    return math.max(0, side.FinalDamage - side.CurrentDamage)
+end
+
+function EngineData.meleeDamage(
+    attacker,
+    defender,
+    _attackStrength,
+    _defenseStrength,
+    supportDamage,
+    volleyDamage,
+    targetPlot
+)
+    local prediction = combatPrediction(attacker, nil, defender, nil, targetPlot, false, supportDamage, volleyDamage)
+    return damageDealt(prediction.Defender), damageDealt(prediction.Attacker) + supportDamage
 end
 
 -- Drift read: bidirectional melee damage for a unit-vs-city attack. Returns
--- (damage to city, damage to attacker). Both numbers come from the
--- attacker's GetCombatDamage with the city flags set -- defender-is-city
--- for the outgoing hit, attacker-is-city for the city's counter, with the
--- city supplying its own current damage for the counter. VP collapses this
--- into GetMeleeCombatDamageCity.
-function EngineData.cityMeleeDamage(attacker, city, attackStrength, cityStrength, supportDamage)
-    local toCity =
-        attacker:GetCombatDamage(attackStrength, cityStrength, attacker:GetDamage() + supportDamage, false, false, true)
-    local toAttacker = attacker:GetCombatDamage(cityStrength, attackStrength, city:GetDamage(), false, true, false)
-        + supportDamage
-    return toCity, toAttacker
+-- (damage to city, damage to attacker). The city rides the predictor's
+-- defender-city slot, which restores the rule the rewrite cost us on the
+-- old path: a city's counterattack does not weaken with the ATTACKER's
+-- wounds. Cities take no fire support of their own, so only the attacker's
+-- extra damage crosses.
+function EngineData.cityMeleeDamage(attacker, city, _attackStrength, _cityStrength, supportDamage, targetPlot)
+    local prediction = combatPrediction(attacker, nil, nil, city, targetPlot, false, supportDamage, 0)
+    return damageDealt(prediction.Defender), damageDealt(prediction.Attacker) + supportDamage
+end
+
+-- Drift read: the attacker's strength for a matchup, melee or ranged (see
+-- the vanilla file for why both live behind one intent). v35 rebuilt
+-- GetMaxAttackStrength around the whole matchup and deleted
+-- GetMaxRangedCombatStrength outright -- its Lua registration is compiled
+-- out under the predictor define -- so the ranged answer comes from the
+-- same call with the ranged flag set.
+function EngineData.maxAttackStrength(attacker, fromPlot, toPlot, defender, defenderCity, bRangedAttack)
+    return attacker:GetMaxAttackStrength(toPlot, defender, defenderCity, nil, bRangedAttack, false, false, fromPlot)
+end
+
+-- Drift read: the strength a unit defends with against a ranged attack.
+-- One call, where vanilla needs a chain: v35's GetMaxDefenseStrength reads
+-- the matchup and already answers with the embarked defense, the defender's
+-- ranged strength, or its melee strength as the case warrants, which is
+-- exactly what LekMod's own combat panel relies on.
+function EngineData.rangedDefenseStrength(defender, attacker, toPlot)
+    return EngineData.maxDefenseStrength(defender, toPlot, attacker, true)
 end
 
 -- Drift read: a defender's maximum defense strength on a plot against an
--- attacker. VP inserted a from-plot parameter into the signature, so the
--- seam carries the attacker (whose plot the VP body passes); the vanilla
--- body ignores it. bFromRangedAttack distinguishes the melee caller (false)
--- from the ranged caller (true). assumeVolleyDamage is the attacker's
--- pre-melee volley (see meleeDamage): VP's strength math scales with
--- damage, so its body assumes the volley already landed; on this engine
--- strength does not scale with wounds (the volley enters the melee math
--- through meleeDamage's current-damage inputs instead), so the parameter
--- is correctly unused here.
-function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack, assumeVolleyDamage)
-    return defender:GetMaxDefenseStrength(toPlot, attacker, bFromRangedAttack)
+-- attacker. v35 rebuilt this one around the matchup too, so the seam's
+-- three arguments spread out: the attacker keeps its slot, an attacker-city
+-- and interceptor slot open up between it and the flags, and
+-- bFromRangedAttack becomes the first of three attack-kind flags. Strength
+-- does not scale with wounds on this engine, so assumeVolleyDamage stays
+-- unused here; the volley reaches the numbers through meleeDamage's
+-- extra-damage-taken argument instead.
+function EngineData.maxDefenseStrength(defender, toPlot, attacker, bFromRangedAttack, _assumeVolleyDamage)
+    return defender:GetMaxDefenseStrength(toPlot, attacker, nil, nil, bFromRangedAttack, false, false)
 end
 
 -- Drift read: the defense modifier a plot grants a defender. VP inserted a
@@ -164,6 +217,64 @@ end
 -- + feature + improvement components).
 function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHelp)
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, bHelp)
+end
+
+-- Drift read: can land units walk over this water plot right now? LekMod's
+-- shallows are a water feature that only a pontoon bridge or a polder makes
+-- crossable -- the feature alone never does, since the improvement column
+-- carries the flag and the feature table has no equivalent -- and pillaging
+-- that improvement ends the crossing while the feature still reads the
+-- same. Plot:IsAllowsWalkWater is the live answer to all of it. The
+-- capability probe covers a stock-BNW DLL left in place under a LekMod
+-- content install, where the binding is absent; there the clause simply
+-- does not speak.
+function EngineData.plotAllowsWalkWater(plot)
+    if plot.IsAllowsWalkWater == nil then
+        return false
+    end
+    return plot:IsAllowsWalkWater()
+end
+
+-- Drift read: the route on a plot as the player's team remembers it. On
+-- LekMod that is two questions. A plot can hold an ordinary route, and an
+-- improvement flagged ActsAsRoute (the pontoon bridge, the polder) can
+-- carry one without the plot holding a route at all -- a road once the
+-- owning team has the improvement's route tech, upgrading to a railroad at
+-- its railroad tech, and nothing while the improvement is pillaged. The
+-- engine answers this with GetImprovementActsAsRouteType, which is bound to
+-- no Lua entry point, so the rules are reproduced here from CvPlot.cpp.
+-- Pillage state is server truth with no revealed variant, so it is gated on
+-- visibility the way the improvement scanner gates its own pillage read.
+local function improvementRouteType(plot, team, debug)
+    local impId = plot:GetRevealedImprovementType(team, debug)
+    if impId == nil or impId < 0 then
+        return -1
+    end
+    if plot:IsVisible(team, debug) and plot:IsImprovementPillaged() then
+        return -1
+    end
+    local row = GameInfo.Improvements[impId]
+    if row == nil or not row.ActsAsRoute then
+        return -1
+    end
+    local techs = Teams[team]:GetTeamTechs()
+    local railTech = row.ActsAsRailroadTech and GameInfo.Technologies[row.ActsAsRailroadTech]
+    if railTech ~= nil and techs:HasTech(railTech.ID) then
+        return GameInfoTypes.ROUTE_RAILROAD
+    end
+    local routeTech = row.ActsAsRouteTech and GameInfo.Technologies[row.ActsAsRouteTech]
+    if routeTech == nil or techs:HasTech(routeTech.ID) then
+        return GameInfoTypes.ROUTE_ROAD
+    end
+    return -1
+end
+
+function EngineData.plotRouteType(plot, team, debug)
+    local routeId = plot:GetRevealedRouteType(team, debug)
+    if routeId ~= nil and routeId >= 0 then
+        return routeId
+    end
+    return improvementRouteType(plot, team, debug)
 end
 
 -- Drift read: the "defends near capital" combat modifier for a unit fighting
@@ -874,6 +985,24 @@ end
 --   vassals     the serving teams' ids (empty when none)
 function EngineData.vassalInfo(team)
     return { isVassal = false, master = nil, tenure = 0, numVassals = 0, vassals = {} }
+end
+
+-- Drift read: the text key naming a city-state's personality. LekMod widens
+-- the set from vanilla's four to ten but keeps the C++ enum at its original
+-- four values so old saves still load, moving the real set into the
+-- Minor_Civ_Personalities table. GetPersonality therefore returns a row
+-- index, and comparing it against the enum constants -- correct on every
+-- other engine -- silently drops the six personalities added past them.
+-- The table is the source of truth here, so the row's own Description is
+-- the name.
+function EngineData.minorPersonalityTextKey(playerId)
+    local personality = Players[playerId]:GetPersonality()
+    local row = GameInfo.Minor_Civ_Personalities[personality]
+    if row == nil then
+        Log.warn("EngineData.minorPersonalityTextKey: no personality row " .. tostring(personality))
+        return nil
+    end
+    return row.Description
 end
 
 -- Drift read: the player credited with a city's original capital for

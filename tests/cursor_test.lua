@@ -1521,6 +1521,29 @@ function M.test_combat_tile_cost_zero_feature_movement_does_not_override()
     )
 end
 
+-- Water a land unit can walk over, LekMod's shallows carrying a pontoon
+-- bridge or a polder. The seam answers false on every other engine, so the
+-- clause is silent there; the land case guards the other direction, since
+-- LekMod also sets the walk-water flag on a land polder, where the same
+-- flag would otherwise produce nonsense.
+function M.test_combat_speaks_crossable_water_only_on_water()
+    setup()
+    GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }
+    GameInfo.Terrains[2] = { Description = "Coast", Movement = 1 }
+    GameInfo.Features[11] = { Description = "Shallows", Type = "FEATURE_SHALLOWS", Movement = 2 }
+    local prior = EngineData.plotAllowsWalkWater
+    EngineData.plotAllowsWalkWater = function()
+        return true
+    end
+    local crossed = PlotComposers.combat(T.fakePlot({ terrain = 2, feature = 11, water = true }))
+    local land = PlotComposers.combat(T.fakePlot({ terrain = 1 }))
+    EngineData.plotAllowsWalkWater = prior
+    local silent = PlotComposers.combat(T.fakePlot({ terrain = 2, feature = 11, water = true }))
+    T.truthy(crossed:find("land units can cross", 1, true), "bridged water must say so: " .. crossed)
+    T.truthy(not land:find("land units can cross", 1, true), "a land plot must never claim the crossing: " .. land)
+    T.truthy(not silent:find("land units can cross", 1, true), "plain water is not crossable: " .. silent)
+end
+
 function M.test_combat_includes_route_name()
     setup()
     GameInfo.Terrains[1] = { Description = "Plains", Movement = 1 }

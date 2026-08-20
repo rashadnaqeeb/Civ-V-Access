@@ -249,9 +249,13 @@ PlotSections.improvement = pillagedSection(
     embassyOwnerSuffix
 )
 
+-- The route lookup goes through the seam because LekMod lets an improvement
+-- carry a road or railroad without the plot holding a route of its own (a
+-- pontoon bridge over shallows), and that improvement-borne route is what
+-- decides whether a unit crossing here pays route movement.
 PlotSections.route = pillagedSection(
     function(p, t, d)
-        return p:GetRevealedRouteType(t, d)
+        return EngineData.plotRouteType(p, t, d)
     end,
     "Routes",
     function(p)

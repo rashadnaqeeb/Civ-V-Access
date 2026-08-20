@@ -95,7 +95,18 @@ end
 --                  extraDefenderDamage, the same argument VP's own
 --                  EnemyUnitPanel passes, so the mutual-kill correction
 --                  sees the wounded defender.
-function EngineData.meleeDamage(attacker, defender, attackStrength, defenseStrength, supportDamage, volleyDamage)
+--   targetPlot     the plot the defender stands on. Unused here: VP's
+--                  GetMeleeCombatDamage takes the matchup as strengths
+--                  plus the other unit, not the ground it happens on.
+function EngineData.meleeDamage(
+    attacker,
+    defender,
+    attackStrength,
+    defenseStrength,
+    supportDamage,
+    volleyDamage,
+    _targetPlot
+)
     local toDefender, toAttacker =
         attacker:GetMeleeCombatDamage(attackStrength, defenseStrength, false, defender, volleyDamage)
     return toDefender, toAttacker + supportDamage
@@ -106,9 +117,40 @@ end
 -- the city's own strength internally, so the seam's cityStrength argument
 -- (which the caller still speaks as the city's combat strength) does not
 -- cross into the call. supportDamage handling matches meleeDamage.
-function EngineData.cityMeleeDamage(attacker, city, attackStrength, cityStrength, supportDamage)
+function EngineData.cityMeleeDamage(attacker, city, attackStrength, cityStrength, supportDamage, _targetPlot)
     local toCity, toAttacker = attacker:GetMeleeCombatDamageCity(attackStrength, city, false)
     return toCity, toAttacker + supportDamage
+end
+
+-- Drift read: the attacker's strength for a matchup, melee or ranged (see
+-- the vanilla file for why both live behind one intent). VP keeps
+-- vanilla's GetMaxAttackStrength signature. Its GetMaxRangedCombatStrength
+-- drops the trailing bForRangedAttack argument, which changes nothing here
+-- -- a Lua C function ignores arguments past the ones it reads -- so the
+-- call text stays the same as vanilla's.
+function EngineData.maxAttackStrength(attacker, fromPlot, toPlot, defender, defenderCity, bRangedAttack)
+    if bRangedAttack then
+        return attacker:GetMaxRangedCombatStrength(defender, defenderCity, true, true)
+    end
+    return attacker:GetMaxAttackStrength(fromPlot, toPlot, defender)
+end
+
+-- Drift read: the strength a unit defends with against a ranged attack.
+-- Same resolution chain as vanilla (VP did not change which number is
+-- meaningful for an embarked / sea / support-fire defender); the
+-- divergence it hides is inside maxDefenseStrength, whose VP signature
+-- carries the from-plot.
+function EngineData.rangedDefenseStrength(defender, attacker, toPlot)
+    local strength
+    if defender:IsEmbarked() then
+        strength = defender:GetEmbarkedUnitDefense()
+    else
+        strength = defender:GetMaxRangedCombatStrength(attacker, nil, false, true)
+    end
+    if strength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA or defender:IsRangedSupportFire() then
+        strength = EngineData.maxDefenseStrength(defender, toPlot, attacker, true)
+    end
+    return strength
 end
 
 -- Drift read: a defender's maximum defense strength on a plot against an
@@ -136,6 +178,22 @@ end
 -- modifiers included, matching the vanilla three-argument call.
 function EngineData.plotDefenseModifier(plot, attackerTeam, bIgnoreBuilding, bHelp)
     return plot:DefenseModifier(attackerTeam, bIgnoreBuilding, false, bHelp)
+end
+
+-- Drift read: can land units walk over this water plot right now? Inert on
+-- VP. The Community Patch DLL carries the C++ CvPlot::IsAllowsWalkWater but
+-- binds no Lua entry point for it, and no VP content builds a walk-water
+-- improvement, so there is nothing for the crossable-water clause to say
+-- here. See the LekMod file for the engine this exists for.
+function EngineData.plotAllowsWalkWater(_plot)
+    return false
+end
+
+-- Drift read: the route on a plot as the player's team remembers it. VP
+-- ships no improvement that acts as a route, so the plot's own revealed
+-- route is the whole answer, as on vanilla.
+function EngineData.plotRouteType(plot, team, debug)
+    return plot:GetRevealedRouteType(team, debug)
 end
 
 -- Drift read: the "defends near capital" combat modifier (see the vanilla
@@ -945,6 +1003,24 @@ function EngineData.vassalInfo(team)
         numVassals = team:GetNumVassals(),
         vassals = vassals,
     }
+end
+
+-- Drift read: the text key naming a city-state's personality (see the
+-- vanilla file for the contract). VP keeps vanilla's four-value
+-- personality enum and adds no personality data table, so GetPersonality
+-- still returns one of the enum constants.
+function EngineData.minorPersonalityTextKey(playerId)
+    local personality = Players[playerId]:GetPersonality()
+    if personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_FRIENDLY then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY"
+    elseif personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_NEUTRAL then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_NEUTRAL"
+    elseif personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_HOSTILE then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_HOSTILE"
+    elseif personality == MinorCivPersonalityTypes.MINOR_CIV_PERSONALITY_IRRATIONAL then
+        return "TXT_KEY_CITY_STATE_PERSONALITY_IRRATIONAL"
+    end
+    return nil
 end
 
 -- Drift read: the player credited with a city's original capital for

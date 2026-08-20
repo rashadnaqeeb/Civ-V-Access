@@ -767,9 +767,10 @@ end
 
 -- Bidirectional damage preview for a melee attack by `actor` into
 -- `defender` on `targetPlot`. Clones base-game EnemyUnitPanel.lua's
--- VSUnit melee branch: GetMaxAttackStrength / GetMaxDefenseStrength +
--- bidirectional GetCombatDamage, plus every per-side modifier the
--- panel lists and the overall combat-prediction verdict. Returns ""
+-- VSUnit melee branch: each side's strength and the bidirectional damage
+-- through the EngineData seam (the engines disagree on both the shape of
+-- those calls and which of them still exist), plus every per-side modifier
+-- the panel lists and the overall combat-prediction verdict. Returns ""
 -- when either side's strength resolves to 0 (caller speaks its own
 -- "no target" fallback).
 local COMBAT_PREDICTION_KEYS = {
@@ -1177,7 +1178,7 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
         volleyDmg = actor:GetRangeCombatDamage(defender, nil, false)
     end
 
-    local myStrength = actor:GetMaxAttackStrength(actor:GetPlot(), targetPlot, defender)
+    local myStrength = EngineData.maxAttackStrength(actor, actor:GetPlot(), targetPlot, defender, nil, false)
     local theirStrength = EngineData.maxDefenseStrength(defender, targetPlot, actor, false, volleyDmg)
     if myStrength <= 0 or theirStrength <= 0 then
         return ""
@@ -1204,7 +1205,7 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
         end
     else
         local myDmg, theirDmg =
-            EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg, volleyDmg)
+            EngineData.meleeDamage(actor, defender, myStrength, theirStrength, supportDmg, volleyDmg, targetPlot)
         myDmg = myDmg + volleyDmg
         parts =
             { Text.format("TXT_KEY_CIVVACCESS_UNIT_PREVIEW_ATTACK", name, myStr, theirStr, result, theirDmg, myDmg) }
@@ -1233,28 +1234,18 @@ function UnitSpeech.meleePreview(actor, defender, targetPlot)
 end
 
 -- Ranged preview. Clones the bRanged branch of EnemyUnitPanel.lua's
--- UpdateCombatOddsUnitVsUnit: GetMaxRangedCombatStrength for the
--- attacker; for the defender, GetEmbarkedUnitDefense when embarked,
--- GetMaxRangedCombatStrength otherwise, falling back to
--- GetMaxDefenseStrength when the defender has no ranged strength /
--- is a sea unit / is a support-fire unit. Air attackers also preview
--- intercept damage and the visible interceptor count.
+-- UpdateCombatOddsUnitVsUnit. Both strengths come from the EngineData
+-- seam: which number a unit defends a ranged attack with (its own ranged
+-- strength, its embarked defense, or its melee defense) is decided
+-- differently per engine, so that whole chain lives there. Air attackers
+-- also preview intercept damage and the visible interceptor count.
 function UnitSpeech.rangedPreview(actor, defender, targetPlot)
-    local myStrength = actor:GetMaxRangedCombatStrength(defender, nil, true, true)
+    local myStrength = EngineData.maxAttackStrength(actor, nil, targetPlot, defender, nil, true)
     if myStrength <= 0 then
         return ""
     end
     local myDmg = actor:GetRangeCombatDamage(defender, nil, false)
-
-    local theirStrength
-    if defender:IsEmbarked() then
-        theirStrength = defender:GetEmbarkedUnitDefense()
-    else
-        theirStrength = defender:GetMaxRangedCombatStrength(actor, nil, false, true)
-    end
-    if theirStrength == 0 or defender:GetDomainType() == DomainTypes.DOMAIN_SEA or defender:IsRangedSupportFire() then
-        theirStrength = EngineData.maxDefenseStrength(defender, targetPlot, actor, true)
-    end
+    local theirStrength = EngineData.rangedDefenseStrength(defender, actor, targetPlot)
 
     local theirDmg = 0
     local interceptors = 0
@@ -1300,12 +1291,11 @@ end
 
 -- Bidirectional damage preview for a melee attack by `actor` into a
 -- `city`. Mirrors EnemyUnitPanel.lua's VS_City melee branch
--- (line ~309-352): GetMaxAttackStrength against a nil unit + city plot,
--- city's GetStrengthValue for defense, plus the bAttackerIsCity /
--- bDefenderIsCity boolean flags GetCombatDamage takes for unit-vs-city
--- combat math. Cities don't take fire-support hits (they are the
--- defender, not adjacent to one), but the attacker can if the city
--- has a friend nearby that fires support; mirrored from base.
+-- (line ~309-352): the attacker's strength against a city target and the
+-- bidirectional damage both through the EngineData seam, the city's own
+-- GetStrengthValue for its defense. Cities don't take fire-support hits
+-- (they are the defender, not adjacent to one), but the attacker can if
+-- the city has a friend nearby that fires support; mirrored from base.
 function UnitSpeech.cityMeleePreview(actor, city, targetPlot)
     local fromPlot = actor:GetPlot()
 
@@ -1315,12 +1305,13 @@ function UnitSpeech.cityMeleePreview(actor, city, targetPlot)
         fireSupportDmg = fireSupport:GetRangeCombatDamage(actor, nil, false)
     end
 
-    local myStrength = actor:GetMaxAttackStrength(fromPlot, targetPlot, nil)
+    local myStrength = EngineData.maxAttackStrength(actor, fromPlot, targetPlot, nil, city, false)
     local theirStrength = city:GetStrengthValue()
     if myStrength <= 0 or theirStrength <= 0 then
         return ""
     end
-    local myDmg, theirDmg = EngineData.cityMeleeDamage(actor, city, myStrength, theirStrength, fireSupportDmg)
+    local myDmg, theirDmg =
+        EngineData.cityMeleeDamage(actor, city, myStrength, theirStrength, fireSupportDmg, targetPlot)
 
     local maxCityHP = city:GetMaxHitPoints()
     if myDmg > maxCityHP then
@@ -1345,13 +1336,13 @@ function UnitSpeech.cityMeleePreview(actor, city, targetPlot)
 end
 
 -- Ranged variant of cityMeleePreview. Mirrors the bRanged branch of
--- EnemyUnitPanel.lua's city block (line ~305): GetMaxRangedCombatStrength
--- + GetRangeCombatDamage against the city. Air attackers get the city's
--- defensive air strike damage and visible interceptor count. No
+-- EnemyUnitPanel.lua's city block (line ~305): the seam's ranged attack
+-- strength + GetRangeCombatDamage against the city. Air attackers get
+-- the city's defensive air strike damage and visible interceptor count. No
 -- fire-support: cities aren't adjacent to a defender that would fire on
 -- behalf of the city in a ranged exchange.
 function UnitSpeech.cityRangedPreview(actor, city, targetPlot)
-    local myStrength = actor:GetMaxRangedCombatStrength(nil, city, true, true)
+    local myStrength = EngineData.maxAttackStrength(actor, nil, targetPlot, nil, city, true)
     if myStrength <= 0 then
         return ""
     end

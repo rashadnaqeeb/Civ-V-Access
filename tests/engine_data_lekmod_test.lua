@@ -398,4 +398,256 @@ function M.test_lekmod_supply_limit_absent()
     T.eq(vanilla.supplyLimited(), true, "vanilla enforces the unit supply limit")
 end
 
+-- ===== v35 combat predictor ==========================================
+--
+-- LekMod v35 moved prediction onto CvGame, resignatured the strength
+-- getters around the whole matchup, and deleted GetMaxRangedCombatStrength.
+-- The failure these pin is silent and severe: the old argument order feeds
+-- a plot where the engine reads a unit, and the Lua instance layer does no
+-- type check, so the engine reinterpret-casts whatever it is handed.
+
+local function mkPrediction(attackerCurrent, attackerFinal, defenderCurrent, defenderFinal)
+    return {
+        Attacker = { CurrentDamage = attackerCurrent, FinalDamage = attackerFinal },
+        Defender = { CurrentDamage = defenderCurrent, FinalDamage = defenderFinal },
+    }
+end
+
+function M.test_lekmod_melee_damage_carries_pre_resolved_damage_into_the_predictor()
+    local lekmod, env = loadSeam(LEKMOD_PATH)
+    local seen
+    env.Game = {
+        GetCombatDamage = function(atk, atkCity, def, defCity, interceptor, plot, ranged, bombing, sweep, aX, dX)
+            seen = {
+                attacker = atk,
+                attackerCity = atkCity,
+                defender = def,
+                defenderCity = defCity,
+                interceptor = interceptor,
+                plot = plot,
+                ranged = ranged,
+                bombing = bombing,
+                sweep = sweep,
+                attackerExtra = aX,
+                defenderExtra = dX,
+            }
+            return mkPrediction(10, 34, 20, 51)
+        end,
+    }
+    local toDefender, toAttacker = lekmod.meleeDamage("atk", "def", 500, 400, 9, 6, "plot")
+    T.eq(toDefender, 31, "damage dealt is the final-minus-current delta, melee only")
+    T.eq(toAttacker, 33, "24 from the melee plus the 9 fire support already taken")
+    T.eq(seen.attacker, "atk")
+    T.eq(seen.defender, "def", "the defender rides the defender-unit slot")
+    T.eq(seen.attackerCity, nil)
+    T.eq(seen.defenderCity, nil)
+    T.eq(seen.plot, "plot", "the predictor takes the matchup, so the plot must cross")
+    T.eq(seen.ranged, false)
+    T.eq(seen.attackerExtra, 9, "fire support wounds the attacker before it swings")
+    T.eq(seen.defenderExtra, 6, "the volley wounds the defender before it counterattacks")
+end
+
+-- The city rides the defender-CITY slot. In the unit slot the predictor
+-- would scale the city's counterattack by the attacking unit's wounds --
+-- the "cities do not do less damage when wounded" rule that v35's rewrite
+-- dropped from the old per-unit call.
+function M.test_lekmod_city_melee_damage_uses_the_defender_city_slot()
+    local lekmod, env = loadSeam(LEKMOD_PATH)
+    local seen
+    env.Game = {
+        GetCombatDamage = function(atk, atkCity, def, defCity, _interceptor, plot, _r, _b, _s, aX, dX)
+            seen = {
+                attacker = atk,
+                attackerCity = atkCity,
+                defender = def,
+                defenderCity = defCity,
+                plot = plot,
+                attackerExtra = aX,
+                defenderExtra = dX,
+            }
+            return mkPrediction(0, 12, 30, 70)
+        end,
+    }
+    local toCity, toAttacker = lekmod.cityMeleeDamage("atk", "city", 700, 600, 5, "plot")
+    T.eq(toCity, 40)
+    T.eq(toAttacker, 17, "12 from the city plus the 5 fire support already taken")
+    T.eq(seen.defenderCity, "city")
+    T.eq(seen.defender, nil, "a city in the unit slot would weaken with the attacker's wounds")
+    T.eq(seen.attackerCity, nil)
+    T.eq(seen.defenderExtra, 0, "a city takes no pre-melee volley")
+end
+
+function M.test_lekmod_max_attack_strength_matches_the_v35_argument_order()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local seen
+    local attacker = {
+        GetMaxAttackStrength = function(_, toPlot, def, defCity, interceptor, ranged, bombing, sweep, fromPlot)
+            seen = {
+                toPlot = toPlot,
+                defender = def,
+                defenderCity = defCity,
+                interceptor = interceptor,
+                ranged = ranged,
+                bombing = bombing,
+                sweep = sweep,
+                fromPlot = fromPlot,
+            }
+            return 815
+        end,
+        GetMaxRangedCombatStrength = function()
+            error("GetMaxRangedCombatStrength is not registered on v35")
+        end,
+    }
+    T.eq(lekmod.maxAttackStrength(attacker, "from", "to", "def", nil, false), 815)
+    T.eq(seen.toPlot, "to", "the target plot leads on v35, where vanilla leads with the from-plot")
+    T.eq(seen.defender, "def")
+    T.eq(seen.fromPlot, "from", "the from-plot moved to the tail")
+    T.eq(seen.ranged, false)
+
+    lekmod.maxAttackStrength(attacker, nil, "to", nil, "city", true)
+    T.eq(seen.defenderCity, "city")
+    T.eq(seen.ranged, true, "the ranged answer is the same call with the flag set")
+end
+
+-- v35's GetMaxDefenseStrength reads the matchup and already picks the
+-- embarked / ranged / melee number, so the vanilla resolution chain must
+-- not run here -- its two getters are stubbed to fail if it does.
+function M.test_lekmod_ranged_defense_strength_is_one_matchup_call()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local seen
+    local defender = {
+        GetMaxDefenseStrength = function(_, toPlot, atk, atkCity, interceptor, ranged, bombing, sweep)
+            seen = {
+                toPlot = toPlot,
+                attacker = atk,
+                attackerCity = atkCity,
+                interceptor = interceptor,
+                ranged = ranged,
+                bombing = bombing,
+                sweep = sweep,
+            }
+            return 640
+        end,
+        IsEmbarked = function()
+            error("the v35 defense call resolves embarkation itself")
+        end,
+        GetMaxRangedCombatStrength = function()
+            error("GetMaxRangedCombatStrength is not registered on v35")
+        end,
+    }
+    T.eq(lekmod.rangedDefenseStrength(defender, "atk", "to"), 640)
+    T.eq(seen.toPlot, "to")
+    T.eq(seen.attacker, "atk")
+    T.eq(seen.attackerCity, nil, "the attacker-city slot opens up between the attacker and the flags")
+    T.eq(seen.ranged, true)
+    T.eq(seen.bombing, false)
+end
+
+-- ===== Shallows =======================================================
+
+function M.test_lekmod_plot_allows_walk_water_probes_the_binding()
+    local lekmod = loadSeam(LEKMOD_PATH)
+    local bridged = {
+        IsAllowsWalkWater = function()
+            return true
+        end,
+    }
+    T.truthy(lekmod.plotAllowsWalkWater(bridged), "a walk-water improvement makes the water crossable")
+    T.falsy(lekmod.plotAllowsWalkWater({}), "a stock DLL lacks the binding; degrade, do not throw")
+end
+
+-- A pontoon bridge carries a route without the plot holding one, which is
+-- what the tile read has to name; pillaging it takes the route away while
+-- the improvement itself still reads the same.
+function M.test_lekmod_plot_route_type_reads_an_improvement_that_acts_as_a_route()
+    local lekmod, env = loadSeam(LEKMOD_PATH)
+    env.GameInfoTypes = { ROUTE_ROAD = 0, ROUTE_RAILROAD = 1 }
+    env.GameInfo = {
+        Improvements = {
+            [7] = { ActsAsRoute = true, ActsAsRouteTech = "TECH_ENGINEERING", ActsAsRailroadTech = "TECH_RAILROAD" },
+            [8] = { ActsAsRoute = false },
+        },
+        Technologies = {
+            TECH_ENGINEERING = { ID = 40 },
+            TECH_RAILROAD = { ID = 60 },
+        },
+    }
+    local known = {}
+    env.Teams = {
+        [1] = {
+            GetTeamTechs = function()
+                return {
+                    HasTech = function(_, id)
+                        return known[id] == true
+                    end,
+                }
+            end,
+        },
+    }
+    local function mkPlot(opts)
+        return {
+            GetRevealedRouteType = function()
+                return opts.route or -1
+            end,
+            GetRevealedImprovementType = function()
+                return opts.improvement or -1
+            end,
+            IsVisible = function()
+                return opts.visible ~= false
+            end,
+            IsImprovementPillaged = function()
+                return opts.pillaged or false
+            end,
+        }
+    end
+
+    T.eq(lekmod.plotRouteType(mkPlot({ improvement = 7 }), 1, false), -1, "no tech yet, so the bridge carries nothing")
+    known[40] = true
+    T.eq(lekmod.plotRouteType(mkPlot({ improvement = 7 }), 1, false), 0, "the route tech makes it a road")
+    known[60] = true
+    T.eq(lekmod.plotRouteType(mkPlot({ improvement = 7 }), 1, false), 1, "the railroad tech upgrades it")
+    T.eq(
+        lekmod.plotRouteType(mkPlot({ improvement = 7, pillaged = true }), 1, false),
+        -1,
+        "a pillaged bridge carries no route"
+    )
+    T.eq(lekmod.plotRouteType(mkPlot({ improvement = 8 }), 1, false), -1, "an ordinary improvement is not a route")
+    T.eq(lekmod.plotRouteType(mkPlot({ route = 3, improvement = 7 }), 1, false), 3, "a real route on the plot wins")
+end
+
+-- ===== City-state personalities =======================================
+
+-- LekMod keeps the four-value C++ enum for save compatibility and moves the
+-- real ten-personality set into a data table, so GetPersonality returns a row
+-- index. Comparing it against the enum constants -- what every other engine
+-- needs -- drops the six added past them.
+function M.test_lekmod_minor_personality_comes_from_the_data_table()
+    local lekmod, env = loadSeam(LEKMOD_PATH)
+    env.GameInfo = {
+        Minor_Civ_Personalities = {
+            [0] = { Description = "TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY" },
+            [7] = { Description = "TXT_KEY_CITY_STATE_PERSONALITY_PIRATE_REPUBLIC" },
+        },
+    }
+    local personality = 7
+    env.Players = {
+        [3] = {
+            GetPersonality = function()
+                return personality
+            end,
+        },
+    }
+    T.eq(
+        lekmod.minorPersonalityTextKey(3),
+        "TXT_KEY_CITY_STATE_PERSONALITY_PIRATE_REPUBLIC",
+        "a personality past the enum's four must still name itself"
+    )
+    personality = 0
+    T.eq(
+        lekmod.minorPersonalityTextKey(3),
+        "TXT_KEY_CITY_STATE_PERSONALITY_FRIENDLY",
+        "the table is the source of truth for the original four too"
+    )
+end
+
 return M
