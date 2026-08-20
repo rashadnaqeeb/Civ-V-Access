@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.3.3] - 2026-08-20
+
 New Features and improvements:
 - LekMod support now tracks LekMod v35.1, up from v34.
 - LekMod's new civ draft feature is accessible, and means that the multiplayer lobby has a third tab for managing its settings.
