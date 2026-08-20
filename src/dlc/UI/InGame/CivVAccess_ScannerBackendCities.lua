@@ -1,33 +1,47 @@
 -- Scanner backend: cities (My / Teammate / City States / Neutral / Enemy)
--- and barbarian camps. Iterates Players[p]:Cities() across every major +
--- minor slot, gating each player by Teams[activeTeam]:IsHasMet; partitions
--- ownership against the active team's war state. Barb camps come from a
--- separate plot sweep for IMPROVEMENT_BARBARIAN_CAMP -- they're
--- improvements, not cities, but live under Cities because that's the
--- hostile-settlement mental slot.
+-- and barbarian camps. Iterates Players[p]:Cities() across every major,
+-- minor and barbarian slot and partitions ownership against the active
+-- team's war state. Barb camps come from a separate plot sweep for
+-- IMPROVEMENT_BARBARIAN_CAMP -- they're improvements, not cities, but live
+-- under Cities because that's the hostile-settlement mental slot.
 
 ScannerBackendCities = {
     name = "cities",
 }
 
-local MAX_PLAYERS = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 64
+-- Inclusive bound: BARBARIAN_PLAYER is MAX_CIV_PLAYERS itself, the slot
+-- straight after the last minor civ, and barbarians keep the cities they
+-- capture, so the sweep has to reach that slot.
+local MAX_PLAYER_INDEX = (GameDefines and GameDefines.MAX_CIV_PLAYERS) or 63
 
--- Which Cities subcategory a non-barbarian city falls into, from the
--- active team's perspective. War check leads so an at-war city-state
--- bucks into enemy alongside hostile major civs (the relationship the
--- user is acting on is "they're shooting at me"); city-states at peace
--- get their own bucket so they don't crowd the major-civ neutral list.
--- Same-team-but-different-player owners route into `teammate` rather
--- than `my` so cycling through your own cities isn't padded with cities
--- you can't manage. Returns nil if the owner team is the barb slot
--- (cities shouldn't exist there, but be defensive at the boundary).
-local function citySubcategory(cityOwnerId, activePlayerId, activeTeam)
+-- Which Cities subcategory a city falls into, from the active team's
+-- perspective. War check leads so an at-war city-state bucks into enemy
+-- alongside hostile major civs (the relationship the user is acting on is
+-- "they're shooting at me"); city-states at peace get their own bucket so
+-- they don't crowd the major-civ neutral list. Same-team-but-different-
+-- player owners route into `teammate` rather than `my` so cycling through
+-- your own cities isn't padded with cities you can't manage.
+--
+-- Barbarians hold what they take rather than razing it, so their slot owns
+-- real cities and routes by ORIGINAL owner, not current. A city-state the
+-- barbarians overran stays under city_states: recapturing it resurrects
+-- the city-state (CvPlayer::CanLiberatePlayerCity resolves the now-dead
+-- original owner through CanLiberatePlayer), so it is still the same
+-- city-state the player was tracking, on the same spot, and it would
+-- otherwise drop out of the list the moment it fell. Anything else the
+-- barbarians hold is an enemy city -- you are always at war with them.
+-- Either way the entry's name carries the barbarian marker, so the bucket
+-- never implies the city is in friendly hands.
+local function citySubcategory(city, cityOwnerId, owner, activePlayerId, activeTeam)
+    if owner:IsBarbarian() then
+        local originalOwner = Players[city:GetOriginalOwner()]
+        if originalOwner ~= nil and originalOwner:IsMinorCiv() then
+            return "city_states"
+        end
+        return "enemy"
+    end
     if cityOwnerId == activePlayerId then
         return "my"
-    end
-    local owner = Players[cityOwnerId]
-    if owner == nil then
-        return nil
     end
     local ownerTeamId = owner:GetTeam()
     if ownerTeamId == activeTeam then
@@ -58,41 +72,46 @@ end
 -- individual cities become that item's instances, each speaking its own
 -- name via instanceName. City-states keep one item per city: they are
 -- one-city civs, and grouping would announce their only city as
--- "<state>. <same state's city>" noise.
+-- "<state>. <same state's city>" noise. Barbarian holdings stay ungrouped
+-- for the mirror-image reason -- they are not a polity the player tracks
+-- as one thing but a set of separate recapture targets, and collapsing
+-- them would seat a "Barbarians" item inside City States that hides which
+-- city-state is under the boot.
 local function scanCities(activePlayer, activeTeam, out)
     local groupByCiv = civvaccess_shared.scannerGroupCitiesByCiv == true
-    for playerId = 0, MAX_PLAYERS - 1 do
+    for playerId = 0, MAX_PLAYER_INDEX do
         local player = Players[playerId]
-        if player ~= nil and player:IsAlive() and not player:IsBarbarian() then
-            local sub = citySubcategory(playerId, activePlayer, activeTeam)
-            if sub ~= nil then
-                local civName, civItemKey
-                if groupByCiv and not player:IsMinorCiv() then
-                    civName = Text.key(player:GetCivilizationShortDescriptionKey())
-                    civItemKey = "civ:" .. playerId
-                end
-                for city in player:Cities() do
-                    local plot = city:Plot()
-                    if plot ~= nil and plot:IsRevealed(activeTeam) then
-                        local cityId = city:GetID()
-                        local cityName = Text.key(city:GetNameKey())
-                        out[#out + 1] = {
-                            plotIndex = plot:GetPlotIndex(),
-                            backend = ScannerBackendCities,
-                            data = {
-                                kind = "city",
-                                ownerId = playerId,
-                                cityId = cityId,
-                            },
-                            category = "cities",
-                            subcategory = sub,
-                            itemName = civName or cityName,
-                            itemKey = civItemKey,
-                            instanceName = civName and cityName or nil,
-                            key = "cities:city:" .. playerId .. ":" .. cityId,
-                            sortKey = 0,
-                        }
+        if player ~= nil and player:IsAlive() then
+            local isBarb = player:IsBarbarian()
+            local civName, civItemKey
+            if groupByCiv and not player:IsMinorCiv() and not isBarb then
+                civName = Text.key(player:GetCivilizationShortDescriptionKey())
+                civItemKey = "civ:" .. playerId
+            end
+            for city in player:Cities() do
+                local plot = city:Plot()
+                if plot ~= nil and plot:IsRevealed(activeTeam) then
+                    local cityId = city:GetID()
+                    local cityName = Text.key(city:GetNameKey())
+                    if isBarb then
+                        cityName = Text.format("TXT_KEY_CIVVACCESS_SCANNER_CITY_BARBARIAN_HELD", cityName)
                     end
+                    out[#out + 1] = {
+                        plotIndex = plot:GetPlotIndex(),
+                        backend = ScannerBackendCities,
+                        data = {
+                            kind = "city",
+                            ownerId = playerId,
+                            cityId = cityId,
+                        },
+                        category = "cities",
+                        subcategory = citySubcategory(city, playerId, player, activePlayer, activeTeam),
+                        itemName = civName or cityName,
+                        itemKey = civItemKey,
+                        instanceName = civName and cityName or nil,
+                        key = "cities:city:" .. playerId .. ":" .. cityId,
+                        sortKey = 0,
+                    }
                 end
             end
         end

@@ -685,7 +685,7 @@ end
 -- doesn't supply GetNameKey, so wrap it.
 local function makeCity(opts)
     local plot = opts.plot
-    local c = T.fakeCity({ owner = opts.owner, id = opts.id })
+    local c = T.fakeCity({ owner = opts.owner, id = opts.id, originalOwner = opts.originalOwner })
     c._plot = plot
     function c:Plot()
         return self._plot
@@ -696,15 +696,16 @@ local function makeCity(opts)
     return c
 end
 
--- Install a player owning one city. `minor` flips IsMinorCiv. team
--- defaults to playerId so each player sits on its own team unless the
--- caller pins them together.
+-- Install a player owning one city. `minor` flips IsMinorCiv, `barb`
+-- flips IsBarbarian. team defaults to playerId so each player sits on its
+-- own team unless the caller pins them together.
 local function installCityOwner(playerId, opts)
     opts = opts or {}
     Players[playerId] = T.fakePlayer({
         team = opts.team or playerId,
         cities = { opts.city },
         isMinor = opts.minor or false,
+        isBarbarian = opts.barb or false,
     })
 end
 
@@ -891,6 +892,66 @@ function M.test_city_grouping_off_keeps_per_city_items()
     T.eq(#out, 1)
     T.eq(out[1].itemName, "TXT_KEY_CITY_ANTIUM")
     T.eq(out[1].itemKey, nil)
+    T.eq(out[1].instanceName, nil)
+end
+
+function M.test_city_barbarian_held_city_state_stays_in_city_states()
+    -- Barbarians hold the cities they take, so the city-state's slot dies
+    -- and its city moves to the barbarian slot. Routing by original owner
+    -- keeps it in City States, where the player was already tracking it,
+    -- because recapturing it resurrects the city-state. The name carries
+    -- the marker so the bucket can't read as "still standing".
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam()
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 63, id = 1, plot = plot, originalOwner = 22, nameKey = "TXT_KEY_CITY_GENEVA" })
+    plot._city = city
+    installCityOwner(22, { team = 22, minor = true })
+    installCityOwner(63, { city = city, team = 63, barb = true })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1, "a barbarian-held city must not drop out of the scanner")
+    T.eq(out[1].subcategory, "city_states", "barbarian-held city-state must stay under city_states")
+    T.eq(out[1].itemName, "TXT_KEY_CITY_GENEVA, barbarian-held", "the entry must say the barbarians hold it")
+end
+
+function M.test_city_barbarian_held_major_city_routes_to_enemy()
+    -- A major's city the barbarians took was never a city-state, so it has
+    -- no business in City States -- it is an enemy city like any other,
+    -- since you are always at war with the barbarians.
+    setup()
+    loadCitiesBackend()
+    Teams[0] = T.fakeTeam()
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 63, id = 1, plot = plot, originalOwner = 1, nameKey = "TXT_KEY_CITY_ANTIUM" })
+    plot._city = city
+    installCityOwner(1, { team = 1, minor = false })
+    installCityOwner(63, { city = city, team = 63, barb = true })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].subcategory, "enemy", "barbarian-held major city must bucket under enemy")
+end
+
+function M.test_city_grouping_keeps_barbarian_cities_per_city()
+    -- Barbarian holdings are separate recapture targets, not a polity, and
+    -- collapsing them would seat a "Barbarians" item inside City States
+    -- that hides which city-state is under the boot.
+    setup()
+    loadCitiesBackend()
+    civvaccess_shared.scannerGroupCitiesByCiv = true
+    Teams[0] = T.fakeTeam()
+    local plot = makePlotAt(0, 0, 0, { isCity = true })
+    local city = makeCity({ owner = 63, id = 1, plot = plot, originalOwner = 22, nameKey = "TXT_KEY_CITY_GENEVA" })
+    plot._city = city
+    installCityOwner(22, { team = 22, minor = true })
+    installCityOwner(63, { city = city, team = 63, barb = true })
+    mapFromPlots({ plot })
+    local out = ScannerBackendCities.Scan(0, 0)
+    T.eq(#out, 1)
+    T.eq(out[1].itemName, "TXT_KEY_CITY_GENEVA, barbarian-held", "barbarian city keeps its own marked name")
+    T.eq(out[1].itemKey, nil, "barbarian city must not carry a grouping itemKey")
     T.eq(out[1].instanceName, nil)
 end
 

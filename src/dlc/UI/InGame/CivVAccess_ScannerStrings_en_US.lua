@@ -68,6 +68,14 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ELEVATION"] = "Elevation"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_LANDMASSES"] = "Landmasses"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_OCEANS"] = "Oceans"
 
+-- Barbarians keep the cities they capture, so a city-state that fell to
+-- them still sits in the City States list (recapturing it puts the
+-- city-state back). The name leads with the city so it still answers to
+-- the name the player knows -- in speech and in scanner search -- and
+-- tails the marker so they never mistake it for a city-state still
+-- standing.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CITY_BARBARIAN_HELD"] = "{1_Name}, barbarian-held"
+
 -- Item labels for contiguous unrevealed tiles, clustered into one entry
 -- per connected region under terrain > base. The cluster form leads with
 -- the tile count so the user hears the magnitude of the unknown region

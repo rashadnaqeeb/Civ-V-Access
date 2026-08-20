@@ -16,6 +16,7 @@ New Features and improvements:
 
 Bug fixes:
 - Ctrl+Shift+Space now ends the turn past the Social Policy prompt when Allow Policy Saving is on.
+- Cities the barbarians hold now show in the scanner, marked barbarian-held; captured city-states stay under City States.
 
 ## [2.3.2] - 2026-08-17
 
