@@ -214,6 +214,81 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_COMPOSE"] = "Message"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_EMPTY"] = "No messages yet."
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_OPEN"] = "Open chat"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_HELP_KEY_CLOSE"] = "Backslash or Escape"
+-- LekMod civ draft, in the multiplayer staging room. Present only when that
+-- mod is running, so these are silent in a normal game. Terms follow LekMod's
+-- own vocabulary where a player would say the same word to a teammate: bans,
+-- picks, coastal, seasonal, and "draft" for the hand of civilizations a
+-- player is dealt. LekMod's own UI is English-only, so these translations are
+-- the only localized text in that screen.
+--
+-- The tab label, then the ban-phase state words that tail a player's seat
+-- summary and fill the readiness list.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TAB"] = "Draft"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_STATUS_READY"] = "bans ready"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_STATUS_CHOOSING"] = "choosing bans"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_STATUS_HOST_CONTROLS"] = "host chooses their bans"
+-- Your own bans and dealt civilizations, at the top of the Players tab. The
+-- plain form is spoken while there is nothing to list yet; the _VALUE form
+-- carries the civilization names.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_BANS"] = "Your bans"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_BANS_VALUE"] = "Your bans, {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_HAND"] = "Your draft"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_YOUR_HAND_VALUE"] = "Your draft, {1_Civs}"
+-- The same two, inside another player's seat.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BANS"] = "Bans"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BANS_VALUE"] = "Bans, {1_Civs}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND"] = "Draft"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_VALUE"] = "Draft, {1_Civs}"
+-- An empty ban slot, and the entry that empties a filled one. Ban slots are
+-- interchangeable, so they are not numbered.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_CHOOSE"] = "Choose a ban"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_CLEAR"] = "Clear this ban"
+-- Spoken when another player banned that civilization while this player was
+-- choosing it; LekMod empties the slot instead and says nothing.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_TAKEN"] = "{1_Civ} was already banned"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BANS_READY"] = "Bans ready"
+-- A player may let the host choose their bans for them, and take that back.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_DELEGATE_BANS"] = "Let the host choose your bans"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RECLAIM_BANS"] = "Choose your own bans again"
+-- Swapping whole drafts is mutual: each player asks against the other, and
+-- the second ask completes it. The label says which way a pending ask points.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUEST"] = "Ask to swap drafts"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "Accept the draft swap"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "Withdraw your swap request"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} wants to swap drafts"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "Swapped drafts with {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} readied bans"
+-- Draft tab. The phase line leads the tab; the readiness list answers who the
+-- lobby is waiting for.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =
+    "Banning; the draft can be created once everyone is ready"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] = "Drafts dealt; pick your civilization"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_GAME_READY"] = "Draft locked while a player is ready to start"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_HISTORY"] = "The draft can only be read in an ongoing game"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READINESS"] = "Ban readiness"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READINESS_ROW"] = "{1_Name}, {2_State}"
+-- Draft rules, host-editable and readable by everyone. Coastal is LekMod's
+-- own tag on a civilization, not a game mechanic, hence the explanations.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_BANS"] = "Bans per player"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_PICKS"] = "Picks per player"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_COASTALS"] = "Guaranteed coastal civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_COASTALS_TT"] = "How many coastal civilizations each player is dealt"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Guaranteed inland civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
+    "How many civilizations each player is dealt that LekMod does not mark coastal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Vanilla civilizations only"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Exclude seasonal civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
+    "Leaves out the civilizations LekMod marks as seasonal"
+-- Host actions. Create deals every participant their civilizations; reset
+-- goes back to the ban phase without discarding the bans already made;
+-- restore deals the last draft again after a reset.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Create draft"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "Deal every player their civilizations"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Reset draft"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET_TT"] = "Go back to the ban phase; bans are kept"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESTORE"] = "Restore the previous draft"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESTORE_TT"] = "Deal the last draft again"
 -- Lobby (PickerReader over the server listing). Row format reads as
 -- "<server>, <members>, <map>" so the distinguishing server name comes
 -- first; Members format speaks "X of Y" instead of the engine's "X/Y"

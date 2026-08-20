@@ -16,6 +16,12 @@
 -- surface: Civ V kills WorldView's env on load-from-game and a flag-
 -- gated registration would lock the mod to the dead listener forever.
 -- Boot.lua re-includes this module on every onInGameBoot.
+--
+-- LekMod sends its own announcements (kick notices, setup warnings) over
+-- this event under a prefix its own UI strips before display, so every
+-- message is classified before it is treated as chat. Nothing off LekMod.
+
+include("CivVAccess_LekModChat")
 
 ChatBuffer = {}
 
@@ -69,7 +75,18 @@ local function onChat(fromPlayer, toPlayer, text, eTargetType)
     if text == nil or text == "" then
         return
     end
-    local line = formatLine(fromPlayer, toPlayer, text, eTargetType)
+    local line
+    local classified = LekModChat.classify(text)
+    if classified ~= nil then
+        if classified.kind ~= "system" then
+            return
+        end
+        -- The sending playerID is whichever client broadcast the
+        -- announcement, not its author, so it goes out unattributed.
+        line = classified.text
+    else
+        line = formatLine(fromPlayer, toPlayer, text, eTargetType)
+    end
     appendLog({
         fromPlayer = fromPlayer,
         toPlayer = toPlayer,

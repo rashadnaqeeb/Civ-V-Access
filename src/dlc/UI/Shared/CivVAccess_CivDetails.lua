@@ -105,15 +105,11 @@ function CivDetails.richLabel(row)
     return table.concat(parts, ", ")
 end
 
--- Returns the pulldown-ordered label list used by AdvancedSetup's civ
--- pulldown (both the human's and each per-slot one). Index 1 is the
--- "random" entry base builds first; indices 2..N+1 are the playable
--- civilizations sorted by leader description, matching the order base's
--- Civs.FullSync feeds BuildEntry.
-function CivDetails.pulldownLabels()
-    local labels = {
-        Text.key("TXT_KEY_RANDOM_LEADER") .. ", " .. Text.key("TXT_KEY_RANDOM_CIV"),
-    }
+-- Every playable civilization, one row carrying the fields richLabel needs,
+-- ordered by localized leader name. The join drops civs with no leader, which
+-- is how the game's own civ pulldowns build their list, so screens that offer
+-- a civ choice all offer the same set.
+function CivDetails.playableRows()
     local sql = [[SELECT
         Civilizations.ID,
         Civilizations.Type,
@@ -131,10 +127,47 @@ function CivDetails.pulldownLabels()
     table.sort(entries, function(a, b)
         return Locale.Compare(a[1], b[1]) == -1
     end)
+    local rows = {}
     for _, entry in ipairs(entries) do
-        labels[#labels + 1] = CivDetails.richLabel(entry[2])
+        rows[#rows + 1] = entry[2]
+    end
+    return rows
+end
+
+-- Returns the pulldown-ordered label list used by AdvancedSetup's civ
+-- pulldown (both the human's and each per-slot one). Index 1 is the
+-- "random" entry base builds first; indices 2..N+1 are the playable
+-- civilizations sorted by leader description, matching the order base's
+-- Civs.FullSync feeds BuildEntry.
+function CivDetails.pulldownLabels()
+    local labels = {
+        Text.key("TXT_KEY_RANDOM_LEADER") .. ", " .. Text.key("TXT_KEY_RANDOM_CIV"),
+    }
+    for _, row in ipairs(CivDetails.playableRows()) do
+        labels[#labels + 1] = CivDetails.richLabel(row)
     end
     return labels
+end
+
+-- Rich label for one civilization ID, for screens that identify a civ by ID
+-- rather than by pulldown position (the staging room's civ pulldown, LekMod's
+-- draft). Built once per Context: the label text is derived from the game
+-- database, which does not change within a session -- a DLC or mods toggle
+-- rebuilds the Context and reloads this chunk, clearing the table with it.
+-- Returns nil for a civ that is not playable (or not in the database).
+local _richByID
+
+function CivDetails.richLabelForID(civID)
+    if civID == nil or civID < 0 then
+        return nil
+    end
+    if _richByID == nil then
+        _richByID = {}
+        for _, row in ipairs(CivDetails.playableRows()) do
+            _richByID[row.ID] = CivDetails.richLabel(row)
+        end
+    end
+    return _richByID[civID]
 end
 
 return CivDetails

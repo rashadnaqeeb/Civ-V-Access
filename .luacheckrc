@@ -187,6 +187,7 @@ globals = {
     "ChooseProductionLogic", "ChooseTechLogic", "ProductionHelpText", "BuildingInvest",
     "BeliefAdvisor",
     "NotificationAnnounce", "LekModAlertAnnounce",
+    "LekModChat", "LekModDraft",
     "Recommendations",
     "SocialPolicyLogic",
     "TechTreeLogic",
@@ -270,6 +271,22 @@ globals = {
     -- the current article during Alt+Left / Alt+Right navigation and
     -- write the cursor as it steps through history.
     "currentTopic", "endTopic", "listOfTopicsViewed",
+
+    -- LekMod's staging-room civ draft. The Draft_* entry points and the
+    -- g_Draft* state tables are defined by Lekmod_staging_draft.lua, which
+    -- StagingRoom.lua includes; LekmodVersion carries the protocol prefixes.
+    -- All absent off LekMod, which is why the layer feature-detects them, and
+    -- the protocol wrapper replaces Draft_HandleProtocol, so they are writable
+    -- rather than read-only.
+    "LekmodVersion",
+    "Draft_ApplyBanSelection", "Draft_AllHumansBanReady", "Draft_GetPoolForPlayer",
+    "Draft_GetTakenBans", "Draft_HandleProtocol", "Draft_IsHistoryOnly",
+    "Draft_OnBanSwapClick", "Draft_OnCreateDraft", "Draft_OnDelegateBanControl",
+    "Draft_OnDraftCivIconClicked", "Draft_OnDraftRulesTab", "Draft_OnOptionsTab",
+    "Draft_OnPlayersTab", "Draft_OnResetDraft", "Draft_OnRestorePreviousDraft",
+    "Draft_UpdatePageTabView",
+    "g_DraftBanHostControl", "g_DraftBanReady", "g_DraftBans", "g_DraftLocked",
+    "g_DraftRules", "g_DraftSwapDesire", "g_PendingBan", "g_PreviousDraftSnapshot",
 }
 
 -- Per-directory overrides.

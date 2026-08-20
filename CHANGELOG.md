@@ -13,6 +13,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - LekMod support now tracks LekMod v35.
+- LekMod's civ draft is now playable: bans, readying up, picking from your draft, and swapping drafts.
+- The LekMod lobby's new Draft tab holds the draft rules, ban readiness, and the host's draft controls.
 - Combat details with X say when land units can cross a water tile, and name a road or railroad a bridge carries.
 
 Bug fixes:

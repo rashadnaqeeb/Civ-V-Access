@@ -132,6 +132,12 @@
       "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_MPGameSetupAccess\")"
     },
     "FrontEnd/Multiplayer/GameSetup/MPGameSetupScreen.xml": {},
+    "FrontEnd/Multiplayer/Lekmod_staging_draft.lua": {
+      "engines": [
+        "lekmod"
+      ],
+      "suffix": "\r\n-- CivVAccess: promote the ban / draft policy predicates this file keeps\r\n-- file-local. The access layer has to answer \"can this ban still be edited\"\r\n-- and \"does this slot take part in the draft\" exactly as the visible UI\r\n-- does; re-deriving them our side would drift silently when LekMod changes\r\n-- the rules. A rename upstream leaves a nil here, which our layer logs.\r\ncivvaccess_shared._lekmodDraft = {\r\n\tcanEditBans = CanEditBansForPlayer,\r\n\tlockedByGameReady = IsDraftLockedByGameReady,\r\n\tisParticipant = IsBanParticipantSlot,\r\n\tisAI = IsAISlot,\r\n\tisHumanRequired = IsHumanRequiredSlot,\r\n\thumanOrder = GetHumanPlayerOrder,\r\n\tdraftOrder = GetDraftPlayerOrder,\r\n\tcanSelectDraftCiv = CanSelectDraftCivForPlayer,\r\n}\r\n"
+    },
     "FrontEnd/Multiplayer/Lobby.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/Multiplayer/Lobby.{lua,xml}.\r\n-- Contents below (up to the bootstrap marker at the bottom) are a verbatim\r\n-- copy of the base-game file.\r\n",
       "suffix": "\r\n\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_LobbyAccess\")"

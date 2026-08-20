@@ -1,5 +1,6 @@
--- StagingRoom accessibility wiring. Two-tab BaseMenu.
---   Players tab: LocalReadyCheck (top-level for speed), your-seat Group
+-- StagingRoom accessibility wiring. Two-tab BaseMenu, three on LekMod.
+--   Players tab: LocalReadyCheck (top-level for speed), the LekMod draft's
+--     own-bans and own-hand groups where that mod is running, your-seat Group
 --     (wraps the fixed Host-grid Controls), then one Group per populated
 --     non-local slot from civvaccess_shared._stagingSlotInstances, then
 --     LaunchButton (rarely visible -- host + loading-save only) and Back.
@@ -8,13 +9,18 @@
 --     scenario check, and Groups for Victory Conditions / Game Options /
 --     DLC Allowed built off the same InstanceManager m_AllocatedInstances
 --     tables MPGameSetup uses (identical because both include MPGameOptions).
+--   Draft tab (LekMod only): the civ draft's phase, readiness, rules and host
+--     controls. See CivVAccess_LekModDraft.
 --
--- Tab showPanel calls base's OnPlayersPageTab / OnOptionsPageTab so the
--- visual panels flip with our tab. OnOptionsPageTab also triggers
--- UpdateGameOptionsDisplay which populates the manager instances; our tab
--- onActivate then rebuilds items so the Options list reflects the fresh
--- allocation. Before first Options flip the manager tables are empty, so
--- rebuild must be lazy.
+-- Tab showPanel flips the visual panel with our tab. Which call does that
+-- depends on the body: base pairs OnPlayersPageTab / OnOptionsPageTab against
+-- a single boolean, while LekMod replaced that with a three-way page mode and
+-- its own Draft_On*Tab entry points -- calling base's pair there leaves the
+-- visible page where it was, so the LekMod entry points win when present.
+-- The options flip also triggers UpdateGameOptionsDisplay which populates the
+-- manager instances; our tab onActivate then rebuilds items so the Options
+-- list reflects the fresh allocation. Before first Options flip the manager
+-- tables are empty, so rebuild must be lazy.
 --
 -- Slot instance access: StagingRoom.lua's m_SlotInstances is a local table.
 -- Our StagingRoom.lua override appends one line that stashes the table ref
@@ -32,7 +38,9 @@
 -- a host-forced un-ready (you have to be told the host cleared your ready).
 -- Chat messages come through Events.GameMessageChat directly; the inline
 -- announce is suppressed only while the F2 chat panel is the active handler
--- (so the user's focus there isn't stepped on).
+-- (so the user's focus there isn't stepped on). That event is upstream of a
+-- body's own protocol filtering, so LekModChat classifies each message first
+-- and the machinery LekMod carries over chat never reaches speech.
 --
 -- Countdown: base's StartCountdown / StopCountdown are wrapped so the access
 -- layer can announce "launching in ten" at start, a per-second count for the
@@ -53,6 +61,8 @@
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_CivDetails")
 include("CivVAccess_MPGameSetupShared")
+include("CivVAccess_LekModChat")
+include("CivVAccess_LekModDraft")
 
 local priorShowHide = ShowHideHandler
 -- Base StagingRoom InputHandler grabs focus to Controls.ChatEntry on every
@@ -96,31 +106,12 @@ end
 
 -- Rich civ labels for the civ pulldown's sub-menu entries, identifying each
 -- entry by its civilization ID (SetVoids places civID at Void2; Random uses
--- civID == -1). Cached at first access because DB.Query results don't change
--- across a session (DLC / mods toggles rebuild the Context, which reloads
--- this chunk and clears the cache).
-local _civRichByID
+-- civID == -1).
 local function civRichLabelForID(civID)
     if civID == nil or civID == -1 then
         return Text.key("TXT_KEY_RANDOM_LEADER") .. ", " .. Text.key("TXT_KEY_RANDOM_CIV")
     end
-    if _civRichByID == nil then
-        _civRichByID = {}
-        local sql = [[SELECT
-            Civilizations.ID,
-            Civilizations.Type,
-            Civilizations.ShortDescription,
-            Leaders.Type AS LeaderType,
-            Leaders.Description AS LeaderDescription
-            FROM Civilizations, Leaders, Civilization_Leaders WHERE
-            Civilizations.Type = Civilization_Leaders.CivilizationType AND
-            Leaders.Type = Civilization_Leaders.LeaderheadType AND
-            Civilizations.Playable = 1]]
-        for row in DB.Query(sql) do
-            _civRichByID[row.ID] = CivDetails.richLabel(row)
-        end
-    end
-    return _civRichByID[civID]
+    return CivDetails.richLabelForID(civID)
 end
 
 -- entryAnnounceFn contract: (inst, index) -> string. inst.Button carries
@@ -284,6 +275,13 @@ local function slotSummary(playerID)
             parts[#parts + 1] = conn
         end
     end
+    -- LekMod's civ draft, once a lobby is actually running one: whether this
+    -- player has readied their bans is what the ban phase is spent waiting on,
+    -- and it is the state the seat summary is polled for.
+    local draftStatus = LekModDraft.slotStatus(playerID)
+    if draftStatus then
+        parts[#parts + 1] = draftStatus
+    end
     -- Safety net: the user reported a blank leading line. If every branch
     -- above declined to add a part (unmapped status, nil nickname, random
     -- civ, no team, not ready, not host), the Group would announce as the
@@ -430,7 +428,7 @@ end
 -- a playerID via GetPlayerIDBySelectionIndex; passing the playerID directly
 -- would hit the 0 == local-player branch and misfire on the caller.
 local function slotChildren(slotIndex, instance)
-    return {
+    local items = {
         BaseMenuItems.Pulldown({
             control = instance.CivPulldown,
             textKey = "TXT_KEY_CIVVACCESS_CIVILIZATION",
@@ -488,6 +486,13 @@ local function slotChildren(slotIndex, instance)
             end,
         }),
     }
+    -- LekMod's civ draft keeps a parallel column of ban boxes and dealt-hand
+    -- icons beside the roster; folded in here so one seat answers everything
+    -- about that player. Empty off LekMod.
+    for _, item in ipairs(LekModDraft.slotChildren(instance.playerID)) do
+        items[#items + 1] = item
+    end
+    return items
 end
 
 -- Local-seat drill-in children. Same shape, but widgets live on the Host
@@ -574,6 +579,14 @@ local function playersItems()
             end
         end,
     })
+
+    -- Your own draft bans and hand, above the roster: the ban you are about to
+    -- make and the civ you are about to pick are what a draft lobby is spent
+    -- doing, and LekMod pins its own ban box above the player list for the
+    -- same reason. Empty off LekMod.
+    for _, item in ipairs(LekModDraft.localItems()) do
+        items[#items + 1] = item
+    end
 
     local localID = Matchmaking.GetLocalID()
     items[#items + 1] = BaseMenuItems.Group({
@@ -1068,9 +1081,13 @@ local function chatMessagesItems()
     -- on open). User can arrow down through older history.
     for i = #log, 1, -1 do
         local e = log[i]
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG", e.name, e.text),
-        })
+        -- A nameless entry is an announcement the game made rather than a
+        -- message a player sent; it reads as itself, with nobody to attribute.
+        local label = e.text
+        if e.name ~= nil then
+            label = Text.format("TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG", e.name, e.text)
+        end
+        items[#items + 1] = BaseMenuItems.Text({ labelText = label })
     end
     return items
 end
@@ -1253,6 +1270,23 @@ local function onChat(fromPlayer, toPlayer, text, eTargetType)
     if text == nil or text == "" then
         return
     end
+    -- LekMod carries its draft sync, version handshake, and chat-history
+    -- replay over the same event, and attributes its own announcements to
+    -- whichever client broadcast them. Nothing here fires off LekMod.
+    local classified = LekModChat.classify(text)
+    if classified ~= nil then
+        if classified.kind == "clear" then
+            civvaccess_shared._stagingChatLog = {}
+        elseif classified.kind == "history" then
+            appendChatEntry(classified.name, classified.text)
+        elseif classified.kind == "system" then
+            appendChatEntry(nil, classified.text)
+            if not chatPanelActive() then
+                SpeechPipeline.speakQueued(classified.text)
+            end
+        end
+        return
+    end
     local n = resolveNick(fromPlayer)
     appendChatEntry(n, text)
     if chatPanelActive() then
@@ -1408,6 +1442,11 @@ local function wrappedShowHide(bIsHide, bIsInit)
         -- deferred callbacks (BaseMenuEditMode TakeFocus, etc.) keep running.
         TickPump.install(ContextPtr)
     end
+    -- LekMod's draft applies remote changes inside Draft_HandleProtocol and
+    -- shows them only as redrawn icons; wrapping it is what makes them speak.
+    -- Re-checked on every show because the body redefines that global whenever
+    -- the Context re-initialises.
+    LekModDraft.installAnnounce()
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
     -- every show, so the shared slot table is populated by the time we build
     -- items here.
@@ -1428,42 +1467,88 @@ local function tabPlaceholder()
     }
 end
 
+-- Flip the visible page to match our tab. LekMod replaced base's two-page
+-- boolean with a three-way page mode, and its own Draft_On*Tab entry points
+-- are the only ones that set it -- base's pair short-circuits on a boolean
+-- that is already false and leaves the screen on whichever page it was on.
+-- So prefer the LekMod entry point wherever it exists.
+local function showPlayersPanel()
+    if type(Draft_OnPlayersTab) == "function" then
+        Draft_OnPlayersTab()
+    elseif type(OnPlayersPageTab) == "function" then
+        OnPlayersPageTab()
+    end
+end
+
+local function showOptionsPanel()
+    -- Force the base to populate the Options panel Controls
+    -- (PopulateMapSizePulldown / RefreshMapScripts /
+    -- UpdateGameOptionsDisplay) before we read their state.
+    MPGameSetupShared.invalidateMapLabels()
+    if type(Draft_OnOptionsTab) == "function" then
+        Draft_OnOptionsTab()
+    elseif type(OnOptionsPageTab) == "function" then
+        OnOptionsPageTab()
+    end
+end
+
+local stagingTabs = {
+    {
+        name = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",
+        showPanel = showPlayersPanel,
+        onActivate = function(self)
+            self.setItems(playersItems(), self._tabIndex)
+        end,
+        items = tabPlaceholder(),
+    },
+    {
+        name = "TXT_KEY_CIVVACCESS_STAGING_OPTIONS_TAB",
+        showPanel = showOptionsPanel,
+        onActivate = function(self)
+            self.setItems(optionsItems(), self._tabIndex)
+        end,
+        items = tabPlaceholder(),
+    },
+}
+
+-- LekMod's third lobby page. Tabs are fixed at install, and so is whether the
+-- draft loaded in this Context, so building the tab conditionally here is what
+-- keeps vanilla and VP at two tabs.
+if LekModDraft.present() then
+    local function draftTabItems()
+        local items = LekModDraft.tabItems()
+        items[#items + 1] = BaseMenuItems.Button({
+            controlName = "BackButton",
+            textKey = "TXT_KEY_BACK_BUTTON",
+            activate = function()
+                if type(HandleExitRequest) == "function" then
+                    HandleExitRequest()
+                end
+            end,
+        })
+        return items
+    end
+    stagingTabs[#stagingTabs + 1] = {
+        name = "TXT_KEY_CIVVACCESS_DRAFT_TAB",
+        showPanel = function()
+            if type(Draft_OnDraftRulesTab) == "function" then
+                Draft_OnDraftRulesTab()
+            end
+        end,
+        onActivate = function(self)
+            self.setItems(draftTabItems(), self._tabIndex)
+        end,
+        items = tabPlaceholder(),
+    }
+end
+
 handler = BaseMenu.install(ContextPtr, {
     name = "StagingRoom",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_STAGING_ROOM"),
     priorShowHide = wrappedShowHide,
     priorInput = priorInput,
     onEscape = onStagingEscape,
-    tabs = {
-        {
-            name = "TXT_KEY_CIVVACCESS_STAGING_PLAYERS_TAB",
-            showPanel = function()
-                if type(OnPlayersPageTab) == "function" then
-                    OnPlayersPageTab()
-                end
-            end,
-            onActivate = function(self)
-                self.setItems(playersItems(), self._tabIndex)
-            end,
-            items = tabPlaceholder(),
-        },
-        {
-            name = "TXT_KEY_CIVVACCESS_STAGING_OPTIONS_TAB",
-            showPanel = function()
-                -- Force the base to populate the Options panel Controls
-                -- (PopulateMapSizePulldown / RefreshMapScripts /
-                -- UpdateGameOptionsDisplay) before we read their state.
-                MPGameSetupShared.invalidateMapLabels()
-                if type(OnOptionsPageTab) == "function" then
-                    OnOptionsPageTab()
-                end
-            end,
-            onActivate = function(self)
-                self.setItems(optionsItems(), self._tabIndex)
-            end,
-            items = tabPlaceholder(),
-        },
-    },
+    tabs = stagingTabs,
 })
 
 -- Backslash opens the chat panel. Backslash is unbound by every Civ V XML

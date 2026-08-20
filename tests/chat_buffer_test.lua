@@ -65,8 +65,10 @@ local function setup()
     }
 
     -- Real MessageBuffer so the "chat" category routing is exercised, not a
-    -- stub that could drift from production.
+    -- stub that could drift from production. LekModChat is include()d by
+    -- ChatBuffer in game; include is a no-op here, so it loads explicitly.
     dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_LekModChat.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_ChatBuffer.lua")
 end
 

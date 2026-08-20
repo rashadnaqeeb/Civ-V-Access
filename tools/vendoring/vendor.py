@@ -316,10 +316,15 @@ def lekmod_roots(game_dir, lekmod_dir):
     # resolves stems found in no earlier root -- it can never change how an
     # existing override resolves.
     civ = os.path.join(lekmod_dir, "LEKMOD", "Lua", "Civilizations")
+    # Shared helper chunks the UI screens include by stem (the lobby drafter and
+    # its staging-room UI) live under Lua/Utilities, outside the staged tmp/ui
+    # set. Same last-precedence placement as the per-civ root for the same
+    # reason -- it only resolves stems no earlier root ships.
+    util = os.path.join(lekmod_dir, "LEKMOD", "Lua", "Utilities")
     return (
         [ignore_suffix_root("LEKMOD", ui)]
         + vanilla_roots(game_dir)
-        + [dir_root("LEKMODCIV", civ)]
+        + [dir_root("LEKMODCIV", civ), dir_root("LEKMODUTIL", util)]
     )
 
 
