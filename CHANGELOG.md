@@ -14,6 +14,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - LekMod support now tracks LekMod v35.
 
+Bug fixes:
+- Ctrl+Shift+Space now ends the turn past the Social Policy prompt when Allow Policy Saving is on.
+
 ## [2.3.2] - 2026-08-17
 
 New Features and improvements:

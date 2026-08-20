@@ -40,6 +40,17 @@
 -- after a successful DoControl(CONTROL_ENDTURN/FORCEENDTURN). The line is
 -- "Waiting for players", matching the engine's own button relabel.
 --
+-- Policy Saving: the GAMEOPTION_POLICY_SAVING setup option does not stop
+-- the engine raising ENDTURN_BLOCKING_POLICY -- it only makes the policy
+-- notification user-dismissable (CvNotifications::MayUserDismiss). Base
+-- ActionInfoPanel.lua puts that dismiss on a right-click of the End Turn
+-- button (UI.RemoveNotification on the blocking index), and it is the game's
+-- only path to banking culture instead of spending it, so the force-end keys
+-- are its keyboard seat: dismiss, then carry on with whatever the engine
+-- reports next. Dismissing suppresses the prompt until the next policy is
+-- adopted, so this is a once-per-decision action rather than a per-turn one.
+-- With the option off the engine refuses the dismiss, so we don't attempt it.
+--
 -- Multiplayer un-ready: if the player already submitted (HasSentNetTurn-
 -- Complete) pressing an end-turn key un-readies them, matching base
 -- behavior -- otherwise a player who submitted early would be stuck
@@ -102,6 +113,17 @@ local UNIT_BLOCKERS = {
 
 local speak = SpeechPipeline.speakInterrupt
 
+-- Interrupt by default. Queued when a line has already been spoken for this
+-- keypress (the policy-dismiss confirmation) and the follow-up must land
+-- behind it instead of clipping it.
+local function say(text, queued)
+    if queued then
+        SpeechPipeline.speakQueued(text)
+    else
+        SpeechPipeline.speakInterrupt(text)
+    end
+end
+
 -- Once-per-turn acknowledgement of LekMod MP soft prompts (a pending proposal
 -- vote / incoming deal). The first end-turn press announces and opens each
 -- pending prompt; once every pending prompt has been acknowledged a further
@@ -156,8 +178,8 @@ end
 -- Announce the blocker label and run the engine's take-me-to-the-blocker
 -- action. Shared between Ctrl+Space (always on a blocker) and Ctrl+Shift+
 -- Space (when the blocker isn't one the engine will force past).
-local function announceAndOpenBlocker(player, blockerType)
-    speak(blockerText(player, blockerType))
+local function announceAndOpenBlocker(player, blockerType, queued)
+    say(blockerText(player, blockerType), queued)
     if UNIT_BLOCKERS[blockerType] or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNIT_PROMOTION then
         focusBlockerUnit(player, blockerType)
     else
@@ -193,10 +215,27 @@ end
 -- wave completion in network MP, so without this the user gets silence
 -- between pressing end-turn and the wave finishing (could be minutes).
 -- Skips hotseat: there's no waiting -- hotseat hands off via PlayerChange.
-local function announceSubmitted()
+local function announceSubmitted(queued)
     if Game:IsNetworkMultiPlayer() then
-        speak(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"))
+        say(Text.key("TXT_KEY_WAITING_FOR_PLAYERS"), queued)
     end
+end
+
+-- Dismiss the policy prompt so the culture banks instead of being spent (see
+-- the header). Returns true when the blocker actually cleared. The engine
+-- gates the dismiss on MayUserDismiss, which refuses without the setup
+-- option, so a surviving blocker means the caller should fall back to the
+-- normal announce-and-open rather than pretend the culture was saved.
+local function dismissPolicyBlocker(player)
+    if not Game.IsOption(GameOptionTypes.GAMEOPTION_POLICY_SAVING) then
+        return false
+    end
+    UI.RemoveNotification(player:GetEndTurnBlockingNotificationIndex())
+    if player:GetEndTurnBlockingType() == EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY then
+        Log.warn("Turn: policy blocker survived UI.RemoveNotification; falling back to announce-and-open")
+        return false
+    end
+    return true
 end
 
 -- LekMod MP soft prompts: a pending proposal vote or incoming deal that the
@@ -257,6 +296,16 @@ local function forceEndTurn()
         return
     end
     local blockerType = player:GetEndTurnBlockingType()
+    -- Policy Saving (see the header): bank the culture, announce it, then
+    -- re-read the blocker and proceed with whatever sits behind the prompt --
+    -- the turn itself when nothing does. The confirmation is spoken up front
+    -- so the follow-up line queues behind it.
+    local savedPolicy = false
+    if blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY and dismissPolicyBlocker(player) then
+        savedPolicy = true
+        speak(Text.key("TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"))
+        blockerType = player:GetEndTurnBlockingType()
+    end
     -- Engine's CONTROL_FORCEENDTURN (CvGame.cpp:3712) only ends the turn
     -- when the blocker is NONE or UNITS. Calling DoControl on any other
     -- blocker is a silent no-op, so we read first and fall back to the
@@ -266,10 +315,10 @@ local function forceEndTurn()
         or blockerType == EndTurnBlockingTypes.ENDTURN_BLOCKING_UNITS
     then
         Game.DoControl(GameInfoTypes.CONTROL_FORCEENDTURN)
-        announceSubmitted()
+        announceSubmitted(savedPolicy)
         return
     end
-    announceAndOpenBlocker(player, blockerType)
+    announceAndOpenBlocker(player, blockerType, savedPolicy)
 end
 
 local function onActivePlayerTurnStart()

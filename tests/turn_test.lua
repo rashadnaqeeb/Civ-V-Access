@@ -32,6 +32,7 @@ local GAME_TEXT = {
 local spoken
 local doControlCalls
 local activateNotificationCalls
+local removeNotificationCalls
 local selectedUnits
 local lookAtPlots
 local sendUnreadyCalls
@@ -62,6 +63,7 @@ local function setup()
 
     doControlCalls = {}
     activateNotificationCalls = {}
+    removeNotificationCalls = {}
     selectedUnits = {}
     lookAtPlots = {}
     sendUnreadyCalls = 0
@@ -87,9 +89,16 @@ local function setup()
     Game.IsNetworkMultiPlayer = function()
         return false
     end
+    -- Allow Policy Saving off by default; the policy-dismiss suites turn it on.
+    Game.IsOption = function(_option)
+        return false
+    end
 
     UI.ActivateNotification = function(idx)
         activateNotificationCalls[#activateNotificationCalls + 1] = idx
+    end
+    UI.RemoveNotification = function(idx)
+        removeNotificationCalls[#removeNotificationCalls + 1] = idx
     end
     UI.SelectUnit = function(u)
         selectedUnits[#selectedUnits + 1] = u
@@ -578,6 +587,126 @@ function M.test_force_end_turn_respects_is_processing_messages()
         return true
     end
     Turn._forceEndTurn()
+    T.eq(#doControlCalls, 0)
+end
+
+-- Policy Saving dismiss -------------------------------------------------
+
+-- Seats a POLICY blocker that clears once UI.RemoveNotification runs, which
+-- is what the engine does when Allow Policy Saving is on. `after` is what
+-- GetEndTurnBlockingType reports post-dismiss, so a suite can park another
+-- blocker behind the policy prompt.
+local function seatDismissablePolicyBlocker(after)
+    Game.IsOption = function(option)
+        return option == GameOptionTypes.GAMEOPTION_POLICY_SAVING
+    end
+    local dismissed = false
+    activePlayer.GetEndTurnBlockingType = function()
+        if dismissed then
+            return after or EndTurnBlockingTypes.NO_ENDTURN_BLOCKING_TYPE
+        end
+        return EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY
+    end
+    UI.RemoveNotification = function(idx)
+        removeNotificationCalls[#removeNotificationCalls + 1] = idx
+        dismissed = true
+    end
+end
+
+function M.test_force_end_turn_dismisses_policy_blocker_and_ends_turn()
+    -- Allow Policy Saving only makes the policy notification dismissable
+    -- (CvNotifications::MayUserDismiss); base ActionInfoPanel.lua spends that
+    -- on a right-click of the End Turn button. Ctrl+Shift+Space is our
+    -- keyboard seat for it: dismiss, confirm the culture is kept, end the turn.
+    -- Without this the policy screen is the only way past the blocker and a
+    -- blind player cannot save policies at all.
+    setup()
+    seatDismissablePolicyBlocker()
+    Turn._forceEndTurn()
+    T.eq(removeNotificationCalls[1], 7)
+    T.eq(spoken[1].text, "Policy skipped, culture kept")
+    T.eq(#doControlCalls, 1)
+    T.eq(doControlCalls[1], GameInfoTypes.CONTROL_FORCEENDTURN)
+    T.eq(#activateNotificationCalls, 0)
+end
+
+function M.test_force_end_turn_leaves_policy_blocker_alone_without_the_option()
+    -- Option off: the engine refuses the dismiss, so attempting it would be a
+    -- silent no-op that swallowed the keypress. Behave exactly as before --
+    -- announce the blocker and open the policy screen.
+    setup()
+    activePlayer.GetEndTurnBlockingType = function()
+        return EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY
+    end
+    Turn._forceEndTurn()
+    T.eq(#removeNotificationCalls, 0)
+    T.eq(spoken[1].text, "Choose Policy")
+    T.eq(activateNotificationCalls[1], 7)
+    T.eq(#doControlCalls, 0)
+end
+
+function M.test_force_end_turn_falls_back_when_policy_dismiss_is_refused()
+    -- Option reads on but the blocker survives the dismiss (engine disagreed).
+    -- Speaking "culture kept" here would be a flat lie about what the press
+    -- did, so fall through to announce-and-open and log why.
+    setup()
+    Game.IsOption = function(option)
+        return option == GameOptionTypes.GAMEOPTION_POLICY_SAVING
+    end
+    activePlayer.GetEndTurnBlockingType = function()
+        return EndTurnBlockingTypes.ENDTURN_BLOCKING_POLICY
+    end
+    Turn._forceEndTurn()
+    T.eq(#removeNotificationCalls, 1)
+    T.eq(spoken[1].text, "Choose Policy")
+    T.eq(activateNotificationCalls[1], 7)
+    T.eq(#doControlCalls, 0)
+    T.eq(#loggedWarnings, 1)
+end
+
+function M.test_force_end_turn_queues_the_next_blocker_behind_the_policy_line()
+    -- A second blocker can sit behind the policy prompt. Its announcement is
+    -- an interrupt on every other path, which would clip the confirmation the
+    -- player just earned, so it queues when the dismiss spoke first.
+    setup()
+    seatDismissablePolicyBlocker(EndTurnBlockingTypes.ENDTURN_BLOCKING_PRODUCTION)
+    Turn._forceEndTurn()
+    T.eq(#spoken, 2)
+    T.eq(spoken[1].text, "Policy skipped, culture kept")
+    T.eq(spoken[1].interrupt, true)
+    T.eq(spoken[2].text, "Choose Production")
+    T.eq(spoken[2].interrupt, false)
+    T.eq(activateNotificationCalls[1], 7)
+    T.eq(#doControlCalls, 0)
+end
+
+function M.test_force_end_turn_queues_mp_submit_line_behind_the_policy_line()
+    -- Same clipping risk on the network-MP submit line, which interrupts on
+    -- the ordinary force-end path.
+    setup()
+    Game.IsNetworkMultiPlayer = function()
+        return true
+    end
+    seatDismissablePolicyBlocker()
+    Turn._forceEndTurn()
+    T.eq(#spoken, 2)
+    T.eq(spoken[1].text, "Policy skipped, culture kept")
+    T.eq(spoken[1].interrupt, true)
+    T.eq(spoken[2].text, "Waiting for players")
+    T.eq(spoken[2].interrupt, false)
+end
+
+function M.test_end_turn_never_dismisses_the_policy_blocker()
+    -- Ctrl+Space stays the "show me the blocker" key even with Allow Policy
+    -- Saving on. Banking culture suppresses the prompt until the next policy
+    -- is adopted, so it belongs behind the deliberate two-modifier chord, not
+    -- the key the player hits every turn.
+    setup()
+    seatDismissablePolicyBlocker()
+    Turn._endTurnDispatch()
+    T.eq(#removeNotificationCalls, 0)
+    T.eq(spoken[1].text, "Choose Policy")
+    T.eq(activateNotificationCalls[1], 7)
     T.eq(#doControlCalls, 0)
 end
 

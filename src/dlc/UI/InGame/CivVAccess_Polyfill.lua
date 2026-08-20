@@ -105,6 +105,9 @@ UI = UI
             return InterfaceModeTypes.INTERFACEMODE_SELECTION
         end,
     }
+if UI.RemoveNotification == nil then
+    UI.RemoveNotification = function(_idx) end
+end
 if UI.GetHeadSelectedCity == nil then
     UI.GetHeadSelectedCity = function()
         return nil
@@ -257,6 +260,24 @@ if Game.IsHotSeat == nil then
     Game.IsHotSeat = function()
         return false
     end
+end
+-- Setup game options (Allow Policy Saving and friends). Default false so a
+-- module dofiled without explicit setup behaves as if every option is off;
+-- suites that exercise an option-on path overwrite the function.
+if Game.IsOption == nil then
+    Game.IsOption = function(_option)
+        return false
+    end
+end
+
+-- GameOptionTypes enum. Only the options mod code branches on are listed.
+-- Numeric values are placeholders -- production compares against the engine's
+-- own table and the lookups here are by name.
+GameOptionTypes = GameOptionTypes or {
+    GAMEOPTION_POLICY_SAVING = 0,
+}
+if GameOptionTypes.GAMEOPTION_POLICY_SAVING == nil then
+    GameOptionTypes.GAMEOPTION_POLICY_SAVING = 0
 end
 
 Players = Players or {}

@@ -1934,12 +1934,15 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_MP_TURN_REMINDER"] = "Everyone is waiting
 -- incoming deal awaiting your response. End turn again to proceed past either.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_VOTE_PENDING"] = "Proposal awaiting your vote"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_DEAL_PENDING"] = "Deal awaiting your response"
+-- Force end turn past the policy prompt with Allow Policy Saving on: the
+-- culture stays banked and the prompt stops asking until a policy is adopted.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_END_TURN_POLICY_SAVED"] = "Policy skipped, culture kept"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_END"] = "Control plus space, or Control plus Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_END"] = "End turn, or announce and open the first blocker"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_KEY_FORCE"] =
     "Control plus Shift plus space, or Control plus Shift plus Enter"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_HELP_DESC_FORCE"] =
-    "End turn past the units-need-orders prompt; other blockers still announce and open"
+    "End turn past the units-need-orders prompt, or past the policy prompt when Allow Policy Saving is on; other blockers still announce and open"
 -- Empire status readouts (T/R/G/H/F/P/I bare-letter keys in baseline). Each
 -- key speaks one composed line; conditional clauses join with comma. Help
 -- entries describe the underlying readout, not the panel item, since the
