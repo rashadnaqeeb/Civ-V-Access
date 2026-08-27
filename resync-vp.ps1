@@ -230,9 +230,26 @@ function Invoke-EnginePhase {
     }
     else {
         Write-Host "Building the fork DLL (build_vp_clang_sdk.py --config release)..."
+        # The build script expects clang-cl / lld-link on PATH; the LLVM installer
+        # does not add them by default.
+        if (-not (Get-Command clang-cl.exe -ErrorAction SilentlyContinue)) {
+            $llvmBin = 'C:\Program Files\LLVM\bin'
+            if (Test-Path (Join-Path $llvmBin 'clang-cl.exe')) { $env:PATH = "$llvmBin;$($env:PATH)" }
+        }
+        # On an ARM64 host clang-cl defaults to aarch64, so the script's x86-only
+        # flags (-msse3) are rejected; -m32 alone does not retarget. Inject the
+        # x86 target through clang's driver override without editing the fork's
+        # script. lld-link already gets /MACHINE:x86 from the script.
+        $priorOverride = $env:CCC_OVERRIDE_OPTIONS
+        if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -and -not $priorOverride) {
+            $env:CCC_OVERRIDE_OPTIONS = '^--target=i686-pc-windows-msvc'
+        }
         Push-Location $ClonePath
         try { Invoke-Native 'py' @('build_vp_clang_sdk.py', '--config', 'release') 'Engine build' }
-        finally { Pop-Location }
+        finally {
+            Pop-Location
+            $env:CCC_OVERRIDE_OPTIONS = $priorOverride
+        }
         if (-not (Test-Path $builtDll)) { throw "Build reported success but $builtDll is missing." }
     }
 

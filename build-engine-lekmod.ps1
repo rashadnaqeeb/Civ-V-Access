@@ -25,7 +25,7 @@
         (same toolchain as build-engine.ps1)
 
 .PARAMETER LekModRepo
-    Override the LekMod clone root. Defaults to ~/Documents/Lekmod.
+    Override the LekMod clone root. Defaults to the Lekmod checkout beside this repo, then ~/Documents/Lekmod.
 
 .PARAMETER Clean
     Delete build/engine-lekmod/ intermediates before building.
@@ -56,12 +56,13 @@ function Resolve-LekModProjDir {
     param([string]$Explicit)
     $candidates = @()
     if ($Explicit) { $candidates += $Explicit }
+    $candidates += (Join-Path (Split-Path -Parent $repoRoot) 'Lekmod')
     $candidates += (Join-Path $HOME 'Documents\Lekmod')
     foreach ($c in $candidates) {
         $proj = Join-Path $c "LEKMOD_DLL\$projectName"
         if (Test-Path (Join-Path $proj 'CvGameCoreDLL.def')) { return (Resolve-Path $proj).Path }
     }
-    throw "Could not find the LekMod DLL project. Clone https://github.com/EnormousApplePie/Lekmod to ~/Documents/Lekmod (and check out the civvaccess branch), or pass -LekModRepo."
+    throw "Could not find the LekMod DLL project. Clone https://github.com/EnormousApplePie/Lekmod beside this repo or to ~/Documents/Lekmod (and check out the civvaccess branch), or pass -LekModRepo."
 }
 
 function Assert-Toolchain {
