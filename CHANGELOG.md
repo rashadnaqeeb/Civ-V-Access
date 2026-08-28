@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.3.4] - 2026-08-28
+
 New Features and improvements:
 - LekMod support now tracks LekMod v35.2.
 - Vox Populi and Community Patch support now tracks Vox Populi 5.4.5.
