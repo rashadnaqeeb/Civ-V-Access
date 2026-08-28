@@ -756,10 +756,44 @@ static HWINEVENTHOOK    g_focusHook        = NULL;
    Default off; the Settings "Keep game running in background" toggle
    drives it at runtime through civvaccess_shared.set_keep_focus, whose
    Lua-side default must mirror this one. Only effective while
-   g_keepFocusUsable says the window is a candidate (see
-   keepfocus_try_install). */
+   keepfocus_window_usable says the window is a candidate. */
 static int              g_keepFocusSpoof   = 0;
-static int              g_keepFocusUsable  = 0;
+/* The subclassed game window (set by keepfocus_try_install, below the
+   audio section). Declared here because the usable check needs it. */
+static HWND             g_gameWnd          = NULL;
+/* Last value keepfocus_window_usable logged, so the log records
+   transitions (boot window gaining its caption, a later switch to
+   exclusive fullscreen) rather than every evaluation. -1 = never. */
+static int              g_keepFocusUsableLogged = -1;
+
+/* Whether the game window is a keep-focus candidate RIGHT NOW. Only
+   windowed mode qualifies: in DX9 exclusive fullscreen the device is lost
+   on alt-tab regardless of what the window believes, and hiding the
+   deactivation would fight the engine's minimize-and-reset path. The
+   check keys on WS_CAPTION, which the game's windowed mode has and its
+   exclusive fullscreen lacks.
+
+   Evaluated on every use rather than cached at subclass time: the
+   subclass installs from the first lua_setfenv, at the very start of
+   engine boot, when the window still carries its bare creation style
+   (WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, no caption yet) --
+   a snapshot taken then said "not usable" for the whole session even in
+   windowed mode. The engine also restyles the same HWND on a
+   fullscreen / windowed switch in Options without recreating it, so a
+   cached answer goes stale in both directions. One GetWindowLongPtr per
+   call is cheap enough to pay on each gated message. */
+static int keepfocus_window_usable(void) {
+    int usable = 0;
+    if (g_gameWnd != NULL && IsWindow(g_gameWnd)) {
+        LONG style = (LONG)GetWindowLongPtrA(g_gameWnd, GWL_STYLE);
+        usable = ((style & WS_CAPTION) == WS_CAPTION) ? 1 : 0;
+    }
+    if (usable != g_keepFocusUsableLogged) {
+        g_keepFocusUsableLogged = usable;
+        proxy_log("keepfocus: window usable=%d\n", usable);
+    }
+    return usable;
+}
 
 static int our_window_foreground(void) {
     HWND fg = GetForegroundWindow();
@@ -778,7 +812,7 @@ static void apply_focus_volume(void) {
        Keep-focus mode bypasses the mute entirely: the whole point of that
        mode is a game that stays alive and audible in the background. */
     ma_engine_set_volume(&g_audioEngine,
-                         (g_isFocused || (g_keepFocusSpoof && g_keepFocusUsable))
+                         (g_isFocused || (g_keepFocusSpoof && keepfocus_window_usable()))
                              ? 1.0f : 0.0f);
 }
 
@@ -1690,23 +1724,28 @@ static void register_rpc(lua_State *L) {
    the spoof) gates a swallow of all keyboard and mouse input messages
    while the window is not truly foreground.
 
-   Only windowed mode qualifies (g_keepFocusUsable): in DX9 exclusive
-   fullscreen the device is lost on alt-tab regardless of what the window
-   believes, and hiding the deactivation would fight the engine's
-   minimize-and-reset path. The style check keys on WS_CAPTION, which the
-   game's windowed mode has and its exclusive fullscreen lacks.
+   Only windowed mode qualifies; keepfocus_window_usable (above, with the
+   focus globals) reads the window style live on each gated message
+   rather than caching a boot-time answer -- see its comment for why.
 
    The subclass installs from the lua_setfenv hook -- the engine's main
    thread, the window's own thread -- and re-installs if the engine
-   recreates the window (graphics-mode change), re-evaluating the style
-   gate each time. */
+   recreates the window (graphics-mode change). */
 
 static WNDPROC g_origWndProc = NULL;
-static HWND    g_gameWnd = NULL;
 static int     g_wndUnicode = 0;
 
+/* Messages the spoof cares about; the live style check runs only for
+   these so the common traffic (paint, timers, ...) pays nothing. */
+static int keepfocus_msg_gated(UINT msg) {
+    return msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
+           msg == WM_KILLFOCUS || msg == WM_NCACTIVATE ||
+           (msg >= WM_KEYFIRST && msg <= WM_KEYLAST) ||
+           (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST);
+}
+
 static LRESULT CALLBACK keepfocus_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-    if (g_keepFocusSpoof && g_keepFocusUsable) {
+    if (g_keepFocusSpoof && keepfocus_msg_gated(msg) && keepfocus_window_usable()) {
         if (msg == WM_ACTIVATEAPP) {
             proxy_log("keepfocus: WM_ACTIVATEAPP(%d)%s\n", (int)wp,
                       wp == 0 ? " swallowed" : "");
@@ -1738,7 +1777,8 @@ static int lp_set_keep_focus(lua_State *L) {
     if (enabled != g_keepFocusSpoof) {
         g_keepFocusSpoof = enabled;
         apply_focus_volume();
-        proxy_log("lp_set_keep_focus: %d\n", enabled);
+        proxy_log("lp_set_keep_focus: %d usable=%d\n", enabled,
+                  keepfocus_window_usable());
     }
     return 0;
 }
@@ -1773,8 +1813,10 @@ static void keepfocus_try_install(void) {
     if (f.best == NULL || f.bestArea < 640 * 480) return;
     g_gameWnd = f.best;
     g_wndUnicode = IsWindowUnicode(g_gameWnd) ? 1 : 0;
+    /* Logged for the record only; the keep-focus gate re-reads the style
+       live (keepfocus_window_usable), since at this point -- first
+       lua_setfenv of the boot -- the window has not been styled yet. */
     style = (LONG)GetWindowLongPtrA(g_gameWnd, GWL_STYLE);
-    g_keepFocusUsable = (style & WS_CAPTION) == WS_CAPTION ? 1 : 0;
     if (g_wndUnicode) {
         g_origWndProc = (WNDPROC)SetWindowLongPtrW(g_gameWnd, GWLP_WNDPROC,
                                                    (LONG_PTR)keepfocus_wndproc);
@@ -1796,7 +1838,7 @@ static void keepfocus_try_install(void) {
     GetClassNameA(g_gameWnd, cls, sizeof(cls));
     proxy_log("keepfocus_try_install: hwnd=%p class=%s unicode=%d style=0x%08lX usable=%d enabled=%d\n",
               (void*)g_gameWnd, cls, g_wndUnicode, (unsigned long)style,
-              g_keepFocusUsable, g_keepFocusSpoof);
+              keepfocus_window_usable(), g_keepFocusSpoof);
 }
 
 /* === Hooked exports === */

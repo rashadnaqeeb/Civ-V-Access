@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- The Keep game running in background setting now takes effect in windowed mode instead of being silently ignored.
+
 ## [2.3.3] - 2026-08-20
 
 New Features and improvements:
