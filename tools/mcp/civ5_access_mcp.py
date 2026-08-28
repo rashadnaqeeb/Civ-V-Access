@@ -132,7 +132,11 @@ resource quantities); drop filler and meta-commentary.
 
 def documents_dir():
     """The shell's Documents folder (CSIDL_PERSONAL), honoring redirection --
-    same call the proxy DLL makes, so both ends agree on the mailbox."""
+    same call the proxy DLL makes, so both ends agree on the mailbox. Off
+    Windows (a Mac hosting the game in a VM whose Documents folder is the
+    Mac's), it is ~/Documents."""
+    if os.name != "nt":
+        return os.path.expanduser("~/Documents")
     buf = ctypes.create_unicode_buffer(260)
     result = ctypes.windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf)
     if result != 0:
