@@ -9,7 +9,10 @@
     duality and no modpack bake (its prebaked DLC is used directly). The clone
     at ~/Documents/Lekmod IS the LekMod repo: upstream content (LEKMOD/ DLC +
     LEKMOD_DLL/ source) lives on `main`, and our engine additions ride a
-    `civvaccess` branch on top. Re-pinning is therefore one rebase of that
+    `civvaccess` branch on top. Two remotes: `origin` is our GitHub fork
+    (rashadnaqeeb/Lekmod, where civvaccess is pushed) and `upstream` is the
+    real LekMod repo (EnormousApplePie/Lekmod). The pin is always taken from
+    `upstream`; the script refuses to run without that remote. Re-pinning is therefore one rebase of that
     branch onto the new upstream; the new DLC tree comes along in the same tree.
 
     Like the VP re-pin this is a guided orchestrator, not fire-and-forget: the
@@ -62,7 +65,7 @@
     data the engine loads directly, so nothing is merged.
 
 .PARAMETER NewRef
-    The upstream LekMod ref to pin to (default origin/main). LekMod ships no
+    The upstream LekMod ref to pin to (default upstream/main). LekMod ships no
     version tags, so the recorded pin is the resolved commit SHA. Pass the
     current pin's ref to dry-run the plumbing as a near no-op.
 
@@ -88,7 +91,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$NewRef = 'origin/main',
+    [string]$NewRef = 'upstream/main',
     [ValidateSet('engine', 'mods', 'vendor', 'finish')]
     [string]$Phase,
     [string]$ClonePath,
@@ -108,6 +111,7 @@ $vendorScript = Join-Path $repoRoot 'tools\vendoring\vendor.py'
 $vendorStage  = Join-Path $repoRoot 'build\vendor\lekmod'
 $reviewDir    = Join-Path $repoRoot 'build\resync'
 $backupBranch = 'civvaccess-resync-backup'
+$upstreamUrl  = 'https://github.com/EnormousApplePie/Lekmod.git'
 
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
     $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Lekmod'
@@ -173,6 +177,28 @@ function Assert-CleanCloneOnFork {
     }
 }
 
+# The clone's origin is our GitHub fork, which is only as fresh as the last time
+# someone synced it -- pinning from it silently re-pins to a stale drop (or, for
+# a tag-based pin, fails to find the tag at all). Every fetch here goes to the
+# upstream remote, and its absence is a hard stop with the fix spelled out.
+function Get-NormalizedRemoteUrl {
+    param([string]$U)
+    $U = $U.Trim().TrimEnd('/')
+    if ($U.EndsWith('.git', [System.StringComparison]::OrdinalIgnoreCase)) { $U = $U.Substring(0, $U.Length - 4) }
+    return $U.ToLowerInvariant()
+}
+
+function Assert-UpstreamRemote {
+    $url = ''
+    try { $url = Get-Git @('remote', 'get-url', 'upstream') } catch { }
+    if ([string]::IsNullOrWhiteSpace($url)) {
+        throw "The clone at $ClonePath has no 'upstream' remote. Add it and re-run:`n  git -C `"$ClonePath`" remote add upstream $upstreamUrl"
+    }
+    if ((Get-NormalizedRemoteUrl $url) -ne (Get-NormalizedRemoteUrl $upstreamUrl)) {
+        throw "The clone's 'upstream' remote points at $url, expected $upstreamUrl."
+    }
+}
+
 # Resolve NewRef to a concrete commit. LekMod has no tags, so the pin is a SHA.
 function Resolve-NewCommit {
     try { return Get-Git @('rev-parse', "$NewRef^{commit}") }
@@ -187,8 +213,9 @@ function Invoke-EnginePhase {
     Write-Step "Engine fork: $OldPin -> $NewRef"
     Assert-CleanCloneOnFork
 
+    Assert-UpstreamRemote
     Write-Host "Fetching upstream..."
-    Get-Git @('fetch', 'origin', '--tags') | Out-Null
+    Get-Git @('fetch', 'upstream', '--tags') | Out-Null
     try { Get-Git @('rev-parse', '--verify', "$OldPin^{commit}") | Out-Null }
     catch { throw "Old pin $OldPin (from versions.json supported_lekmod) is not a commit in the clone." }
     $newCommit = Resolve-NewCommit

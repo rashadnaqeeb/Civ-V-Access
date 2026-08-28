@@ -60,7 +60,9 @@
 
 .PARAMETER NewTag
     The Community-Patch-DLL release tag to pin to (e.g. Release-5.3.3). Pass
-    the current pin to dry-run the plumbing as a near no-op smoke test.
+    the current pin to dry-run the plumbing as a near no-op smoke test. Tags
+    are fetched from the clone's `upstream` remote (LoneGazebo/Community-Patch-DLL);
+    `origin` is our GitHub fork and only carries the tags someone pushed to it.
 
 .PARAMETER Phase
     Run a single phase (engine | mods | vendor | finish | modpack | cp-modpack)
@@ -69,7 +71,9 @@
 
 .PARAMETER ClonePath
     Path to the Community-Patch-DLL clone (fork branch civvaccess). Defaults
-    to the sibling directory next to this repo.
+    to the sibling directory next to this repo. Must have an `upstream` remote
+    pointing at LoneGazebo/Community-Patch-DLL; the engine phase refuses to
+    run without it.
 
 .PARAMETER ModsDir
     Override the auto-detected installed MODS directory (holds (1) Community
@@ -106,6 +110,7 @@ $vendorScript = Join-Path $repoRoot 'tools\vendoring\vendor.py'
 $vendorStage  = Join-Path $repoRoot 'build\vendor\vp'
 $reviewDir    = Join-Path $repoRoot 'build\resync'
 $backupBranch = 'civvaccess-resync-backup'
+$upstreamUrl  = 'https://github.com/LoneGazebo/Community-Patch-DLL.git'
 $modNames     = @('(1) Community Patch', '(2) Vox Populi')
 
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
@@ -168,6 +173,28 @@ function Assert-CleanCloneOnFork {
     }
 }
 
+# The clone's origin is our GitHub fork, which is only as fresh as the last time
+# someone synced it -- pinning from it silently re-pins to a stale drop (or, for
+# a tag-based pin, fails to find the tag at all). Every fetch here goes to the
+# upstream remote, and its absence is a hard stop with the fix spelled out.
+function Get-NormalizedRemoteUrl {
+    param([string]$U)
+    $U = $U.Trim().TrimEnd('/')
+    if ($U.EndsWith('.git', [System.StringComparison]::OrdinalIgnoreCase)) { $U = $U.Substring(0, $U.Length - 4) }
+    return $U.ToLowerInvariant()
+}
+
+function Assert-UpstreamRemote {
+    $url = ''
+    try { $url = Get-Git @('remote', 'get-url', 'upstream') } catch { }
+    if ([string]::IsNullOrWhiteSpace($url)) {
+        throw "The clone at $ClonePath has no 'upstream' remote. Add it and re-run:`n  git -C `"$ClonePath`" remote add upstream $upstreamUrl"
+    }
+    if ((Get-NormalizedRemoteUrl $url) -ne (Get-NormalizedRemoteUrl $upstreamUrl)) {
+        throw "The clone's 'upstream' remote points at $url, expected $upstreamUrl."
+    }
+}
+
 # ---------------------------------------------------------------- phases
 
 function Invoke-EnginePhase {
@@ -176,10 +203,11 @@ function Invoke-EnginePhase {
     Write-Step "Engine fork: $OldTag -> $NewTag"
     Assert-CleanCloneOnFork
 
+    Assert-UpstreamRemote
     Write-Host "Fetching upstream tags..."
-    Get-Git @('fetch', 'origin', '--tags') | Out-Null
+    Get-Git @('fetch', 'upstream', '--tags') | Out-Null
     try { Get-Git @('rev-parse', '--verify', "refs/tags/$NewTag^{commit}") | Out-Null }
-    catch { throw "Tag $NewTag not found in the clone after fetch. Check the tag name." }
+    catch { throw "Tag $NewTag not found in the clone after fetching upstream. Check the tag name against LoneGazebo/Community-Patch-DLL's releases." }
     try { Get-Git @('rev-parse', '--verify', "refs/tags/$OldTag^{commit}") | Out-Null }
     catch { throw "Old pin $OldTag (from versions.json) is not a tag in the clone." }
 
