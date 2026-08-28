@@ -51,8 +51,11 @@
               then write the old..new Lua-binding diff for the value audit.
               Stops here for human review.
 
-      finish  (Requires -ReviewConfirmed.) Deploy the LekMod stack and record
-              the new pin in versions.json. Run only after reviewing the drift
+      finish  (Requires -ReviewConfirmed.) Deploy the LekMod stack, record
+              the new pin in versions.json, and bump the component versions
+              the re-pin moved: engine_lekmod when the fork DLL differs from
+              the last release's, lekmod_overlay and lekmod_dlc always. Each
+              bumps once per release cycle. Run only after reviewing the drift
               report and the binding diff, AND re-deriving the MP-options
               control->option table (see below). Leaves the install in the
               player-facing LekMod state.
@@ -112,6 +115,8 @@ $vendorStage  = Join-Path $repoRoot 'build\vendor\lekmod'
 $reviewDir    = Join-Path $repoRoot 'build\resync'
 $backupBranch = 'civvaccess-resync-backup'
 $upstreamUrl  = 'https://github.com/EnormousApplePie/Lekmod.git'
+
+. (Join-Path $repoRoot 'tools\component-versions.ps1')
 
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
     $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Lekmod'
@@ -377,11 +382,20 @@ function Invoke-FinishPhase {
     Write-Step "Record the new pin"
     Set-SupportedLekmod $newCommit
     Write-Host "versions.json supported_lekmod -> $newCommit" -ForegroundColor Green
+
+    Write-Step "Bump the component versions this re-pin moved"
+    $baseline = Get-ReleaseBaseline -RepoRoot $repoRoot
+    Step-ComponentVersion -Name 'engine_lekmod' -VersionsPath $versionsPath -Baseline $baseline -RepoRoot $repoRoot `
+        -ChangedPaths @($forkDllRel -replace '\\', '/') -Why 'fork DLL rebuilt'
+    Step-ComponentVersion -Name 'lekmod_overlay' -VersionsPath $versionsPath -Baseline $baseline `
+        -Why 'vendor overlay regenerated against the new upstream'
+    Step-ComponentVersion -Name 'lekmod_dlc' -VersionsPath $versionsPath -Baseline $baseline `
+        -Why 'upstream DLC re-pulled with the fork swapped in'
+
     Write-Host @"
 
 Re-pin mechanics done. The install is in the player-facing LekMod state, where
 the play audit runs. Still by hand:
-  - bump the engine_lekmod component version in versions.json if the DLL changed
   - run the live LekMod audit (voting system end to end, MP game-options host
     flow, combat-preview modifiers, the GameplayAlertMessage triggers)
   - re-run a static Language_en_US diff of the new LekMod drop against vanilla

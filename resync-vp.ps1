@@ -36,16 +36,22 @@
       finish  (Requires -ReviewConfirmed.) Stage the modpack bake via
               stage-vp-modpack-bake.ps1 (fork DLL into MODS, ValidateGameDatabase
               on, any active package removed; the accessibility DLC on disk is
-              left as-is) and record the new pin in versions.json. Run only
-              after reviewing the drift report and the binding diff. If the
+              left as-is), record the new pin in versions.json, and bump the
+              component versions the re-pin moved: engine_vp when the fork DLL
+              differs from the last release's, vp_overlay and cp_overlay
+              always, vp_runtime when the substrate files changed upstream
+              since the last release's pin. Each bumps once per release cycle.
+              Run only after reviewing the drift report and the binding diff.
+              If the
               install was in a non-VP state, run deploy.ps1 -State vp and then
               stage-vp-modpack-bake.ps1 again first, so the merged-DB session
               runs with the VP-flavored DLC rather than another state's.
 
       modpack A terminal phase. After a clean CP+VP session has produced a
               fresh merged database (build-modpack refuses a modpack-launch
-              cache), bake the VP modpack and deploy it, leaving the install in
-              the player-facing VP modpack state where the play audit runs.
+              cache), bake the VP modpack, bump vp_modpack, and deploy it,
+              leaving the install in the player-facing VP modpack state where
+              the play audit runs.
 
       cp-modpack
               The other terminal phase, for the Community-Patch-only modpack.
@@ -55,6 +61,7 @@
               so it cannot share the modpack phase's run. Produce a CP-only
               merged DB first (flip to vanilla, enable ONLY (1) Community Patch
               through the Mods menu, play to the map, quit), then run this.
+              Bumps cp_modpack after the bake.
 
     With no -Phase, the script runs engine, mods, and vendor, then stops with
     the review checklist and the exact finish command. finish, modpack, and
@@ -107,6 +114,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot     = Split-Path -Parent $MyInvocation.MyCommand.Path
 $versionsPath = Join-Path $repoRoot 'versions.json'
 $forkDllDest  = Join-Path $repoRoot 'dist\engine-vp\CvGameCore_Expansion2.dll'
+$forkDllRel   = 'dist/engine-vp/CvGameCore_Expansion2.dll'
 $canaryScript = Join-Path $repoRoot 'tools\vp_dll_canary.py'
 $vendorScript = Join-Path $repoRoot 'tools\vendoring\vendor.py'
 $vendorStage  = Join-Path $repoRoot 'build\vendor\vp'
@@ -114,6 +122,11 @@ $reviewDir    = Join-Path $repoRoot 'build\resync'
 $backupBranch = 'civvaccess-resync-backup'
 $upstreamUrl  = 'https://github.com/LoneGazebo/Community-Patch-DLL.git'
 $modNames     = @('(1) Community Patch', '(2) Vox Populi')
+# The plain-VP substrate package-release.ps1 ships as vp-runtime (see
+# Stage-VpRuntime there); vp_runtime bumps only when these moved upstream.
+$substratePaths = @('VPUI', 'MinorCivSounds_VoxPopuli.xml', 'VPUI Text/VPUI_tips_en_us.xml', 'Expansion2_VoxPopuli.Civ5Pkg')
+
+. (Join-Path $repoRoot 'tools\component-versions.ps1')
 
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
     $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Community-Patch-DLL'
@@ -354,6 +367,7 @@ When both are clear (and the seam-guard list updated), finish with:
 }
 
 function Invoke-FinishPhase {
+    param([string]$OldTag)
     if (-not $ReviewConfirmed) {
         throw "finish requires -ReviewConfirmed. Review the drift report and the Lua-binding diff first (see the vendor phase output)."
     }
@@ -364,12 +378,34 @@ function Invoke-FinishPhase {
     Write-Step "Record the new pin"
     Set-SupportedVp $NewTag
     Write-Host "versions.json supported_vp -> $NewTag" -ForegroundColor Green
+
+    Write-Step "Bump the component versions this re-pin moved"
+    $baseline = Get-ReleaseBaseline -RepoRoot $repoRoot
+    Step-ComponentVersion -Name 'engine_vp' -VersionsPath $versionsPath -Baseline $baseline -RepoRoot $repoRoot `
+        -ChangedPaths @($forkDllRel) -Why 'fork DLL rebuilt'
+    foreach ($overlay in @('vp_overlay', 'cp_overlay')) {
+        Step-ComponentVersion -Name $overlay -VersionsPath $versionsPath -Baseline $baseline `
+            -Why 'vendor overlay regenerated against the new upstream'
+    }
+    # vp-runtime is cut from the clone, so its "changed since the last release"
+    # is a clone diff from the pin that release shipped, not a repo diff.
+    $substrateBase = if ($baseline.Versions -and $baseline.Versions.supported_vp) { $baseline.Versions.supported_vp } else { $OldTag }
+    & git -C $ClonePath diff --quiet "$substrateBase" "$NewTag" -- @substratePaths
+    switch ($LASTEXITCODE) {
+        0 { Write-Host "  vp_runtime stays (substrate files unchanged upstream since $substrateBase)" }
+        1 {
+            Step-ComponentVersion -Name 'vp_runtime' -VersionsPath $versionsPath -Baseline $baseline `
+                -Why "substrate files changed upstream since $substrateBase"
+        }
+        default { throw "git diff $substrateBase $NewTag in the clone failed (exit $LASTEXITCODE); cannot decide whether vp_runtime moved." }
+    }
+    Write-Host "vp_modpack / cp_modpack bump in the modpack / cp-modpack phases, once each bake exists."
+
     Write-Host @"
 
 Re-pin mechanics done. The install is staged for the modpack bake (fork DLL in
 MODS, ValidateGameDatabase on); its prior state is otherwise untouched. Still by
 hand, per the release prerequisites:
-  - bump the engine_vp component version in versions.json if the DLL changed
   - restate the supported VP version in the release notes / CHANGELOG
   - play one clean CP+VP session through the Mods menu (Squads off) to produce
     the merged database
@@ -379,6 +415,8 @@ hand, per the release prerequisites:
   - to keep the Community-Patch-only modpack current too: flip to vanilla,
     play one session with ONLY (1) Community Patch enabled to produce a CP-only
     merged DB, then run ./resync-vp.ps1 -NewTag $NewTag -Phase cp-modpack
+    (skipping it leaves cp_modpack unbumped, and package-release.ps1's
+    fork-staleness guard will refuse to let that slide quietly)
   - once satisfied, delete the $backupBranch snapshot in the clone
   - commit dist/engine-vp + versions.json + any manifest recipe fixes
 "@
@@ -390,6 +428,10 @@ function Invoke-ModpackPhase {
     if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
         throw "build-modpack.ps1 failed (exit $LASTEXITCODE). It needs a clean CP+VP merged cache DB; play one clean CP+VP session through the Mods menu (Squads off), then re-run -Phase modpack."
     }
+
+    Write-Step "Bump vp_modpack (new merged database and fork DLL baked in)"
+    Step-ComponentVersion -Name 'vp_modpack' -VersionsPath $versionsPath -Baseline (Get-ReleaseBaseline -RepoRoot $repoRoot) `
+        -Why 'modpack rebaked'
 
     Write-Step "Deploy the modpack (player-facing end state)"
     & (Join-Path $repoRoot 'deploy.ps1') -State vp
@@ -412,6 +454,10 @@ function Invoke-CpModpackPhase {
         throw "build-modpack-cp.ps1 failed (exit $LASTEXITCODE). It needs a clean Community-Patch-only cache DB (BALANCE_VP off); flip to vanilla, play one session with ONLY (1) Community Patch enabled through the Mods menu, then re-run -Phase cp-modpack."
     }
 
+    Write-Step "Bump cp_modpack (new merged database and fork DLL baked in)"
+    Step-ComponentVersion -Name 'cp_modpack' -VersionsPath $versionsPath -Baseline (Get-ReleaseBaseline -RepoRoot $repoRoot) `
+        -Why 'modpack rebaked'
+
     Write-Step "Deploy the Community-Patch-only modpack (player-facing CP end state)"
     & (Join-Path $repoRoot 'deploy.ps1') -State cp
     if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "deploy.ps1 -State cp failed (exit $LASTEXITCODE)." }
@@ -433,7 +479,7 @@ switch ($Phase) {
     'engine'  { Invoke-EnginePhase -OldTag $oldTag }
     'mods'    { Invoke-ModsPhase }
     'vendor'  { Invoke-VendorPhase -OldTag $oldTag }
-    'finish'  { Invoke-FinishPhase }
+    'finish'  { Invoke-FinishPhase -OldTag $oldTag }
     'modpack' { Invoke-ModpackPhase }
     'cp-modpack' { Invoke-CpModpackPhase }
     default {
