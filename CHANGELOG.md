@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - LekMod support now tracks LekMod v35.2.
+- Vox Populi and Community Patch support now tracks Vox Populi 5.4.5.
 
 Bug fixes:
 - The Keep game running in background setting now takes effect in windowed mode instead of being silently ignored.

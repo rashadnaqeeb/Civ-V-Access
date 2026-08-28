@@ -33,12 +33,14 @@
               then write the old..new Lua-binding diff for the value audit.
               Stops here for human review.
 
-      finish  (Requires -ReviewConfirmed.) Deploy the VP stack (the transient
-              mod-overlay used to generate the merged database and smoke-test
-              the fork) and record the new pin in versions.json. Run only
-              after reviewing the drift report and the binding diff. Leaves
-              the install in mod-overlay state; the modpack phase lands it
-              back in the player-facing state.
+      finish  (Requires -ReviewConfirmed.) Stage the modpack bake via
+              stage-vp-modpack-bake.ps1 (fork DLL into MODS, ValidateGameDatabase
+              on, any active package removed; the accessibility DLC on disk is
+              left as-is) and record the new pin in versions.json. Run only
+              after reviewing the drift report and the binding diff. If the
+              install was in a non-VP state, run deploy.ps1 -State vp and then
+              stage-vp-modpack-bake.ps1 again first, so the merged-DB session
+              runs with the VP-flavored DLC rather than another state's.
 
       modpack A terminal phase. After a clean CP+VP session has produced a
               fresh merged database (build-modpack refuses a modpack-launch
