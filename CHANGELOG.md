@@ -16,7 +16,7 @@ New Features and improvements:
 - Vox Populi and Community Patch support now tracks Vox Populi 5.4.5.
 
 Bug fixes:
-- The Keep game running in background setting now takes effect in windowed mode instead of being silently ignored.
+- The Keep game running in background setting now works on ARM Windows in windowed mode.
 
 ## [2.3.3] - 2026-08-20
 
