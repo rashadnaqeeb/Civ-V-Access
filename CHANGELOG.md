@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- LekMod support now tracks LekMod v35.2.
+
 Bug fixes:
 - The Keep game running in background setting now takes effect in windowed mode instead of being silently ignored.
 

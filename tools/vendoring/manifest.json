@@ -989,19 +989,7 @@
     },
     "Options/OptionsMenu.lua": {
       "prefix": "include(\"CivVAccess_ProbeBoot\")\r\n\r\n",
-      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OptionsAccess\")\r\n",
-      "lekmod": {
-        "edits": [
-          {
-            "old": "ContextPtr:SetShowHideHandler(\r\nfunction( isHide, isInit )\r\n",
-            "new": "function ShowHideHandler( isHide, isInit )\r\n"
-          },
-          {
-            "old": "end)\r\n\r\n-------------------------------------------------\r\n-------------------------------------------------\r\n-- NEW: also check ConfirmResetAllHotkeysPopup\r\n",
-            "new": "end\r\nContextPtr:SetShowHideHandler( ShowHideHandler );\r\n\r\n-------------------------------------------------\r\n-------------------------------------------------\r\n-- NEW: also check ConfirmResetAllHotkeysPopup\r\n"
-          }
-        ]
-      }
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_OptionsAccess\")\r\n"
     },
     "Options/OptionsMenu.xml": {},
     "TechTree/TechTree.lua": {

@@ -361,9 +361,10 @@ civvaccess_shared.version = "$ModVersion"
 # cannot outlive the body it belongs to. The sighted profile ships no overlay
 # and passes nothing, which leaves LekMod's own pairs intact.
 #
-# Then the stamp: LekMod's FrontEnd holds the main menu behind its legal screen
-# until LekmodUiConfigured reports the standard UI resolved, which ui_check.bat
-# writes at the end of its run. This function is our ui_check, so it writes it.
+# Then the gate: LekMod's FrontEnd holds the main menu behind its legal screen
+# until ui_check.bat has marked the standard UI resolved (a stamp file in two
+# places plus a flag flipped in FrontEnd.lua itself, as of v35.2). This function
+# is our ui_check, so it writes all of that.
 function Resolve-CivVAccessLekModStandardUI {
     param(
         [Parameter(Mandatory)][string]$LekModDir,
@@ -402,9 +403,29 @@ function Resolve-CivVAccessLekModStandardUI {
         $copied++
     }
     Write-Host "  Resolved $copied standard-UI files into Lua\UI"
-    $stamp = Join-Path $uiDest 'LekmodUiConfigured.lua'
-    [System.IO.File]::WriteAllText($stamp, "LekmodUiConfigured = true`r`n", [System.Text.UTF8Encoding]::new($false))
-    Write-Host "  Wrote the ui_check stamp: LekmodUiConfigured.lua"
+    # v35.2 gates the main menu three ways, all written by ui_check.bat: the
+    # stamp under Lua\UI (v35.1's location), the same stamp under Lua\Utilities
+    # (include() cannot see Lua\UI, so the DLC's own include path gets a copy),
+    # and a literal flag flipped inside FrontEnd.lua itself. Mirror all three.
+    $utf8 = [System.Text.UTF8Encoding]::new($false)
+    foreach ($stampDir in @($uiDest, (Join-Path $LekModDir 'Lua\Utilities'))) {
+        New-Item -ItemType Directory -Path $stampDir -Force | Out-Null
+        $stamp = Join-Path $stampDir 'LekmodUiConfigured.lua'
+        [System.IO.File]::WriteAllText($stamp, "LekmodUiConfigured = true`r`n", $utf8)
+    }
+    Write-Host "  Wrote the ui_check stamp: LekmodUiConfigured.lua (Lua\UI and Lua\Utilities)"
+    $frontEnd = Join-Path $uiDest 'FrontEnd.lua'
+    if (Test-Path $frontEnd) {
+        $body = [System.IO.File]::ReadAllText($frontEnd)
+        $flipped = $body.Replace('local LEKMOD_UI_CHECK_DONE = false', 'local LEKMOD_UI_CHECK_DONE = true')
+        if ($flipped -ne $body) {
+            [System.IO.File]::WriteAllText($frontEnd, $flipped, $utf8)
+            Write-Host "  Flipped LEKMOD_UI_CHECK_DONE in FrontEnd.lua"
+        }
+        else {
+            Write-Host "  WARNING: FrontEnd.lua has no 'local LEKMOD_UI_CHECK_DONE = false' to flip; if LekMod moved the ui_check gate again, the main menu may not open." -ForegroundColor Yellow
+        }
+    }
     $tmp = Join-Path $LekModDir 'Lua\tmp'
     if (Test-Path $tmp) { Remove-Item -LiteralPath $tmp -Recurse -Force }
 }
