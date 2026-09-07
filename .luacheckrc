@@ -157,7 +157,7 @@ globals = {
     "InstalledPanel", "LoadMenu", "LoadReplayMenu", "Lobby", "SaveMenu",
     "CivDetails", "Civilopedia", "CivilopediaCategory", "PediaSearch",
     "AudioCueMode", "VolumeControl", "Settings", "Verbosity",
-    "CameraTracker", "NavigableGraph",
+    "CameraTracker", "NavigableGraph", "MapGenProgress",
 
     -- InGame modules
     "EngineData", "EngineEvents",

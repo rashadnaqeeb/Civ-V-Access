@@ -29,7 +29,7 @@ must not re-pull a 600 MB package).
 | `vp-modpack` | baked `ZCivVAccessVP` package (CP-DLL fork embedded) | `Assets/DLC/ZCivVAccessVP` | none |
 | `cp-modpack` | baked `ZCivVAccessCP` package (CP-DLL fork embedded) | `Assets/DLC/ZCivVAccessCP` | none |
 | `vp-runtime` | VP substrate: VPUI DLC, VP `Expansion2.Civ5Pkg`, `MinorCivSounds_VoxPopuli.xml`, `VPUI_tips_*.xml` | `Assets/DLC/VPUI`; `Assets/DLC/Expansion2/Expansion2.Civ5Pkg`; `.../Sounds/XML/`; `Documents/.../Text/` | stock `Expansion2.Civ5Pkg` to `DLC_CivVAccess.backup/...stock` before overwrite |
-| `lekmod-dlc` | LekMod prebaked DLC (UI resolved by stem, our LekMod fork pre-swapped in, LekMod GUID kept) plus LekMod's Lekmap map scripts | `Assets/DLC/LEKMOD` (`dlc/` root) and `Assets/Maps/Lekmap` (`maps/` root) | none (shipped whole; removed on flip) |
+| `lekmod-dlc` | LekMod prebaked DLC (UI resolved by stem, our LekMod fork pre-swapped in, LekMod GUID kept) plus LekMod's Lekmap map scripts (Pangaea v6.2 carries the spliced map-generation progress hook) | `Assets/DLC/LEKMOD` (`dlc/` root) and `Assets/Maps/Lekmap` (`maps/` root) | none (shipped whole; removed on flip) |
 | `lekmod-overlay` | LekMod vendor overlay + LekMod seam; sets our DLC priority to 350 | overlaid on `core-blind`; our DLC `Priority` raised | none |
 
 Sighted-MP partners of a mod host install the host's heavy component itself

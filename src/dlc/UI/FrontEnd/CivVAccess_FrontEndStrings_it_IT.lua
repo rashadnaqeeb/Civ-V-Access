@@ -141,6 +141,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unità unica"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Edificio unico"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Miglioramento unico"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Caricamento partita"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap ha rifiutato la mappa e ne sta generando un'altra. Continua finché una mappa non supera i controlli sulle posizioni di partenza, fino a un massimo di {1_Cap} tentativi, il che può richiedere diversi minuti."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Tentativo di mappa {1_Attempt}, {2_Seconds} secondo.",
+    other = "Tentativo di mappa {1_Attempt}, {2_Seconds} secondi.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Mappa accettata al tentativo {1_Attempt} dopo {2_Seconds} secondo. Il caricamento continua.",
+    other = "Mappa accettata al tentativo {1_Attempt} dopo {2_Seconds} secondi. Il caricamento continua.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap ha rinunciato dopo {1_Attempt} mappe in {2_Seconds} secondo e ha mantenuto l'ultima. Le posizioni di partenza potrebbero essere squilibrate. Il caricamento continua.",
+    other = "Lekmap ha rinunciato dopo {1_Attempt} mappe in {2_Seconds} secondi e ha mantenuto l'ultima. Le posizioni di partenza potrebbero essere squilibrate. Il caricamento continua.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "sostituisce {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"

@@ -155,6 +155,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unité unique"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Bâtiment unique"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Amélioration unique"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Chargement de la partie"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap a rejeté la carte et en génère une autre. Il continue jusqu'à ce qu'une carte réussisse ses vérifications de position de départ, jusqu'à {1_Cap} tentatives, ce qui peut prendre plusieurs minutes."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Tentative de carte {1_Attempt}, {2_Seconds} seconde.",
+    other = "Tentative de carte {1_Attempt}, {2_Seconds} secondes.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Carte acceptée à la tentative {1_Attempt} après {2_Seconds} seconde. Le chargement continue.",
+    other = "Carte acceptée à la tentative {1_Attempt} après {2_Seconds} secondes. Le chargement continue.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap a abandonné après {1_Attempt} cartes en {2_Seconds} seconde et a gardé la dernière. Les positions de départ peuvent être inégales. Le chargement continue.",
+    other = "Lekmap a abandonné après {1_Attempt} cartes en {2_Seconds} secondes et a gardé la dernière. Les positions de départ peuvent être inégales. Le chargement continue.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "remplace {1_Name}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_STATE"] = "{1_Label}, {2_State}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_LABEL_VALUE"] = "{1_Label} {2_Value}"

@@ -168,6 +168,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "고유 유닛"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "고유 건물"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "고유 지형 개발"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "게임 불러오는 중"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap이 맵을 거부하고 새 맵을 생성하고 있습니다. 맵이 시작 위치 검사를 통과할 때까지 계속되며, 최대 {1_Cap}회 시도하고 몇 분이 걸릴 수 있습니다."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    other = "맵 시도 {1_Attempt}회, {2_Seconds}초.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    other = "{1_Attempt}번째 시도에서 {2_Seconds}초 만에 맵이 승인되었습니다. 불러오기가 계속됩니다.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    other = "Lekmap이 {2_Seconds}초 동안 맵 {1_Attempt}개를 시도한 후 포기하고 마지막 맵을 유지했습니다. 시작 위치가 고르지 않을 수 있습니다. 불러오기가 계속됩니다.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "{1_Name} 대체"
 
 -- =====  Generic widget templates  =====

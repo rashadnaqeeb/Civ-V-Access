@@ -158,6 +158,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "固有ユニット"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "固有建造物"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "固有改善"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "ゲームを読み込み中"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmapがマップを却下し, 別のマップを生成しています. 各プレイヤーの開始地点が条件を満たすまで, 最大{1_Cap}回まで繰り返します. 数分かかる場合があります."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    other = "マップ試行{1_Attempt}回目, {2_Seconds}秒経過.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    other = "マップは{1_Attempt}回目の試行, {2_Seconds}秒後に承認されました. 読み込みを継続します.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    other = "Lekmapは{1_Attempt}回のマップ生成, {2_Seconds}秒後に諦め, 最後のマップをそのまま使用しました. 開始地点が不均衡になる場合があります. 読み込みを継続します.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "{1_Name} と入れ替え"
 
 -- Generic widget templates.

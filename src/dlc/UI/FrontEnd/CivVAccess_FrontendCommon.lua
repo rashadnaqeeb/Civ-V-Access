@@ -29,6 +29,9 @@ include("CivVAccess_Text")
 include("CivVAccess_Icons")
 include("CivVAccess_SpeechEngine")
 include("CivVAccess_SpeechPipeline")
+-- Map-generation progress reporter, published to civvaccess_shared by
+-- FrontendBoot for the patched Lekmap script to call during a launch.
+include("CivVAccess_MapGenProgress")
 include("CivVAccess_HandlerStack")
 include("CivVAccess_InputRouter")
 include("CivVAccess_TickPump")

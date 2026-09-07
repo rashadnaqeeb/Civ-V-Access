@@ -175,6 +175,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Уникальный ю�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Уникальное здание"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Уникальное улучшение"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Загрузка игры"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap отклоняет карту и создаёт новую. Так будет продолжаться, пока карта не пройдёт проверку стартовых позиций, до {1_Cap} попыток, что может занять несколько минут."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Попытка карты {1_Attempt}, {2_Seconds} секунда.",
+    few = "Попытка карты {1_Attempt}, {2_Seconds} секунды.",
+    many = "Попытка карты {1_Attempt}, {2_Seconds} секунд.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Карта принята, попытка {1_Attempt}, {2_Seconds} секунда. Загрузка продолжается.",
+    few = "Карта принята, попытка {1_Attempt}, {2_Seconds} секунды. Загрузка продолжается.",
+    many = "Карта принята, попытка {1_Attempt}, {2_Seconds} секунд. Загрузка продолжается.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap сдаётся после {1_Attempt} карт, {2_Seconds} секунда, оставлена последняя карта. Стартовые позиции могут быть неравными. Загрузка продолжается.",
+    few = "Lekmap сдаётся после {1_Attempt} карт, {2_Seconds} секунды, оставлена последняя карта. Стартовые позиции могут быть неравными. Загрузка продолжается.",
+    many = "Lekmap сдаётся после {1_Attempt} карт, {2_Seconds} секунд, оставлена последняя карта. Стартовые позиции могут быть неравными. Загрузка продолжается.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "заменяет {1_Name}"
 
 -- Generic templates.

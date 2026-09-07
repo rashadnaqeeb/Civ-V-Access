@@ -311,6 +311,7 @@ T.register("replay_graph_rows", require("replay_graph_rows_test"))
 T.register("squad_roster", require("squad_roster_test"))
 T.register("squad_focus", require("squad_focus_test"))
 T.register("squad_speech", require("squad_speech_test"))
+T.register("map_gen_progress", require("map_gen_progress_test"))
 -- Registered last: MassNames leaves module-level state (names, membership)
 -- behind, and the scanner / cursor suites that consult the MassNames global
 -- must see either the fresh copies their own setups dofile or nil.

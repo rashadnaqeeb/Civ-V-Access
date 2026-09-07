@@ -352,6 +352,29 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unique unit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Unique building"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Unique improvement"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Loading game"
+-- Map-generation progress (CivVAccess_MapGenProgress), spoken from inside
+-- LekMod's Lekmap Pangaea map script while it regenerates the map until
+-- one passes its spawn checks. Nothing is spoken for a map accepted on the
+-- first pass. "Lekmap" is the map script's proper name; keep it as is.
+-- {1_Cap} is the script's own regeneration limit (300).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap rejected the map and is generating another. It keeps going until a map passes its spawn checks, up to {1_Cap} tries, which can take several minutes."
+-- Periodic tick, every ten seconds or so. {1_Attempt} is the pass number,
+-- {2_Seconds} the whole seconds spent so far (also the plural count).
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Map attempt {1_Attempt}, {2_Seconds} second.",
+    other = "Map attempt {1_Attempt}, {2_Seconds} seconds.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Map accepted on attempt {1_Attempt} after {2_Seconds} second. Loading continues.",
+    other = "Map accepted on attempt {1_Attempt} after {2_Seconds} seconds. Loading continues.",
+}
+-- The script hit its limit and kept the last map it made; that map failed
+-- the spawn checks, so the starts may be uneven.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap gave up after {1_Attempt} maps in {2_Seconds} second and kept the last one. Starts may be uneven. Loading continues.",
+    other = "Lekmap gave up after {1_Attempt} maps in {2_Seconds} seconds and kept the last one. Starts may be uneven. Loading continues.",
+}
 -- Appended to the load-screen unique-unit / unique-building label so the
 -- user hears what the unique stands in for ("Jaguar, unique unit, replaces
 -- Warrior"). Matches the Replaces: row sighted players see on hover after

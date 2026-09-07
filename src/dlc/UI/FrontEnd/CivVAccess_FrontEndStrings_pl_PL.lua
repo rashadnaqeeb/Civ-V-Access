@@ -158,6 +158,23 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unikalna jednostka"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Unikalny budynek"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Unikalne ulepszenie"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Wczytywanie gry"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap odrzucił mapę i generuje kolejną. Powtarza to, dopóki mapa nie przejdzie kontroli pozycji startowych, maksymalnie {1_Cap} prób, co może potrwać kilka minut."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Próba mapy {1_Attempt}, {2_Seconds} sekunda.",
+    few = "Próba mapy {1_Attempt}, {2_Seconds} sekundy.",
+    many = "Próba mapy {1_Attempt}, {2_Seconds} sekund.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Mapa zaakceptowana przy próbie {1_Attempt} po {2_Seconds} sekundzie. Wczytywanie trwa dalej.",
+    few = "Mapa zaakceptowana przy próbie {1_Attempt} po {2_Seconds} sekundach. Wczytywanie trwa dalej.",
+    many = "Mapa zaakceptowana przy próbie {1_Attempt} po {2_Seconds} sekundach. Wczytywanie trwa dalej.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap poddał się po {1_Attempt} próbach i {2_Seconds} sekundzie, zachowując ostatnią mapę. Pozycje startowe mogą być nierówne. Wczytywanie trwa dalej.",
+    few = "Lekmap poddał się po {1_Attempt} próbach i {2_Seconds} sekundach, zachowując ostatnią mapę. Pozycje startowe mogą być nierówne. Wczytywanie trwa dalej.",
+    many = "Lekmap poddał się po {1_Attempt} próbach i {2_Seconds} sekundach, zachowując ostatnią mapę. Pozycje startowe mogą być nierówne. Wczytywanie trwa dalej.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "zastępuje {1_Name}"
 
 -- Generic templates.

@@ -497,3 +497,106 @@ function New-CivVAccessModdedDlc {
         Add-Content -LiteralPath $ingame -Value (Get-CivVAccessIngameAddinBlock -Engine $Engine) -Encoding UTF8
     }
 }
+
+# ---------------------------------------------------------------------------
+# LekMod's Lekmap map scripts, plus the accessibility progress hook.
+#
+# Lekmap ships from the LekMod clone's Lekmap/ sibling (deploy.ps1 and
+# package-release.ps1 both route through Install-CivVAccessLekmap) with one
+# anchored edit. Lekmap Pangaea v6.2 regenerates the whole map until it passes
+# its own spawn checks, up to 300 passes; with exactly six civs (the standard
+# LekMod lobby) its validation rejects most maps, so a launch can sit on the
+# loading screen for minutes, and a screen-reader user hears nothing that
+# tells a long regeneration from a hang. Add-CivVAccessLekmapProgressHook
+# splices into that script a guarded local function that calls the reporter
+# the accessibility DLC publishes on the proxy's cross-context
+# civvaccess_shared table (CivVAccess_MapGenProgress.lua), plus a call at the
+# top of each regeneration pass and one after the loop. The hook pcalls the
+# reporter and is a no-op without the accessibility layer, so the sighted
+# profile (which ships the same maps) and a reporter-side failure both leave
+# map generation untouched. Speech never touches the map RNG, so peers that
+# each generate the map from the shared seed stay in sync.
+#
+# The edit is anchored on exact lines of the v6.2 script and throws when an
+# anchor is missing or ambiguous, so a LekMod re-pin that reshapes the script
+# fails the deploy loudly instead of silently dropping the progress speech.
+# lekmod-support.md's re-pin runbook covers re-anchoring. The clone itself is
+# never edited: the splice happens on the copy, so the re-pin's pristine
+# check on the clone still holds.
+function Add-CivVAccessLekmapProgressHook {
+    param([Parameter(Mandatory)][string]$LekmapDir)
+
+    $script = Join-Path $LekmapDir 'LekmapPangaeaFractalv6.2.lua'
+    if (-not (Test-Path $script)) {
+        throw "Lekmap Pangaea v6.2 script not found at $script. The Civ V Access map-generation progress hook is anchored on that script; if LekMod renamed or replaced it, re-anchor Add-CivVAccessLekmapProgressHook in tools/dlc-assembly.ps1 (see docs/llm-docs/lekmod-support.md)."
+    }
+    $body = [System.IO.File]::ReadAllText($script)
+    if ($body.Contains('CivVAccess_MapGen(')) {
+        throw "Lekmap script at $script already carries the Civ V Access progress hook. The source tree should be pristine upstream; the hook is spliced into the copy only."
+    }
+    $nl = if ($body.Contains("`r`n")) { "`r`n" } else { "`n" }
+
+    $glue = @'
+-- Civ V Access (accessibility layer for blind players): speak regeneration
+-- progress for screen-reader users. Spliced in by the Civ V Access deploy /
+-- package step (tools/dlc-assembly.ps1); the logic lives in the accessibility
+-- DLC (CivVAccess_MapGenProgress.lua) and is reached through the proxy's
+-- cross-context civvaccess_shared table. A no-op without the accessibility
+-- layer, and never allowed to raise into map generation.
+local function CivVAccess_MapGen(event, ...)
+	local shared = civvaccess_shared
+	local hook = type(shared) == "table" and shared.mapGenProgress or nil
+	if hook ~= nil then
+		local ok, err = pcall(hook, event, ...)
+		if not ok then
+			print("CivVAccess map-gen hook failed: " .. tostring(err))
+		end
+	elseif event == "attempt" and tolk ~= nil and tolk.output ~= nil then
+		-- Speech is present but the DLC reporter is not: plain English fallback.
+		local attempt = ...
+		if type(attempt) == "number" and attempt > 1 then
+			pcall(tolk.output, "Generating map, attempt " .. tostring(attempt), true)
+		end
+	end
+end
+'@
+    $glue = (($glue -replace "`r`n", "`n") -replace "`n", $nl).TrimEnd()
+
+    # Each edit names an anchor that must occur exactly once in the script and
+    # the text spliced in before or after it. Indentation matches the script's
+    # own tabs.
+    $edits = @(
+        @{ Name = 'GenMap definition'; Anchor = "function GenMap()$nl"; Before = "$glue$nl$nl" },
+        @{ Name = 'pass start'; Anchor = "`t`tprint(""Generating Map"");$nl"; After = "`t`tCivVAccess_MapGen(""attempt"", attempts, attempt_cap, os.clock() - time)$nl" },
+        @{ Name = 'loop end'; Anchor = "`tlocal elapsed_time = os.clock()-time$nl"; After = "`tCivVAccess_MapGen(""done"", accept_map, attempts, attempt_cap, elapsed_time)$nl" }
+    )
+    foreach ($e in $edits) {
+        $count = [regex]::Matches($body, [regex]::Escape($e.Anchor)).Count
+        if ($count -ne 1) {
+            throw "Civ V Access progress hook: the '$($e.Name)' anchor occurs $count times in $script (expected exactly once). LekMod changed Lekmap Pangaea v6.2; re-anchor Add-CivVAccessLekmapProgressHook in tools/dlc-assembly.ps1 (see docs/llm-docs/lekmod-support.md)."
+        }
+        $replacement = if ($e.Before) { $e.Before + $e.Anchor } else { $e.Anchor + $e.After }
+        $body = $body.Replace($e.Anchor, $replacement)
+    }
+    [System.IO.File]::WriteAllText($script, $body, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "  Spliced the Civ V Access map-generation progress hook into LekmapPangaeaFractalv6.2.lua"
+}
+
+# Copy the Lekmap tree from the clone to its install / staging location
+# (replacing anything already there) and splice the progress hook into the
+# copy. Both deploy.ps1 (-State lekmod, Assets\Maps\Lekmap) and
+# package-release.ps1 (the lekmod-dlc zip's maps/ root) go through here so the
+# shipped maps never differ from the locally deployed ones.
+function Install-CivVAccessLekmap {
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Destination
+    )
+    if (-not (Test-Path $Source)) {
+        throw "Lekmap map scripts not found at $Source (expected the Lekmap directory beside LEKMOD in the LekMod clone). Pass -LekModClone."
+    }
+    if (Test-Path $Destination) { Remove-Item -LiteralPath $Destination -Recurse -Force }
+    New-Item -ItemType Directory -Path (Split-Path -Parent $Destination) -Force | Out-Null
+    Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
+    Add-CivVAccessLekmapProgressHook -LekmapDir $Destination
+}

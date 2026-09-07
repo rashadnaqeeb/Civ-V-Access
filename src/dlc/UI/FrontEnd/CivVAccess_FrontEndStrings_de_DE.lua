@@ -159,6 +159,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Einzigartige Einheit"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Einzigartiges Gebäude"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Einzigartige Modernisierung"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Spiel wird geladen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap hat die Karte abgelehnt und erzeugt nun eine neue. Das geht so lange weiter, bis eine Karte die Startpositionsprüfung besteht, höchstens {1_Cap} Versuche lang, was mehrere Minuten dauern kann."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Kartenversuch {1_Attempt}, {2_Seconds} Sekunde.",
+    other = "Kartenversuch {1_Attempt}, {2_Seconds} Sekunden.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Karte bei Versuch {1_Attempt} nach {2_Seconds} Sekunde akzeptiert. Das Spiel wird weiter geladen.",
+    other = "Karte bei Versuch {1_Attempt} nach {2_Seconds} Sekunden akzeptiert. Das Spiel wird weiter geladen.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap hat nach {1_Attempt} Karten in {2_Seconds} Sekunde aufgegeben und die letzte behalten. Die Startpositionen können ungleichmäßig sein. Das Spiel wird weiter geladen.",
+    other = "Lekmap hat nach {1_Attempt} Karten in {2_Seconds} Sekunden aufgegeben und die letzte behalten. Die Startpositionen können ungleichmäßig sein. Das Spiel wird weiter geladen.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "ersetzt {1_Name}"
 
 -- Generic templates.

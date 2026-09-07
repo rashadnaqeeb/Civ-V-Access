@@ -470,8 +470,8 @@ function Stage-LekmodDlc {
     Resolve-CivVAccessLekModStandardUI -LekModDir $dlcStage -OverlayUiDir (Join-Path $vendorLekmodDir 'UI')
     Copy-Item -LiteralPath $engineLekmodFork -Destination (Join-Path $dlcStage 'CvGameCore_Expansion2.dll') -Force
 
-    Write-Host "  Copying Lekmap map scripts..."
-    Copy-Item -LiteralPath $lekmapSrc -Destination $mapsStage -Recurse -Force
+    Write-Host "  Copying Lekmap map scripts (with the map-generation progress hook)..."
+    Install-CivVAccessLekmap -Source $lekmapSrc -Destination $mapsStage
     return $stage
 }
 

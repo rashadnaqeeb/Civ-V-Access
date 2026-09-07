@@ -13,6 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - LekMod support now tracks LekMod v35.3.
+- LekMod's Lekmap Pangaea map now reports its progress while it regenerates. Lekmap throws away and remakes the map until one passes its spawn checks, which can take minutes in a six-player game and used to be silent. You now hear why the load is taking long, a short update every ten seconds or so, and when the map is accepted. A map accepted first time stays quiet as before.
 
 Bug fixes:
 - The Alt+direction attack confirm now belongs to the unit that heard the preview. Bringing a second unit up to the same enemy from another side speaks its own preview first instead of attacking on the first press.

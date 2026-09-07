@@ -167,6 +167,20 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "Unidad única"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "Edificio único"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "Mejora única"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "Cargando partida"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap ha rechazado el mapa y está generando otro. Sigue generando mapas hasta que uno supere sus comprobaciones de posición inicial, hasta {1_Cap} intentos, lo que puede tardar varios minutos."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    one = "Intento de mapa {1_Attempt}, {2_Seconds} segundo.",
+    other = "Intento de mapa {1_Attempt}, {2_Seconds} segundos.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    one = "Mapa aceptado en el intento {1_Attempt} tras {2_Seconds} segundo. La carga continúa.",
+    other = "Mapa aceptado en el intento {1_Attempt} tras {2_Seconds} segundos. La carga continúa.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    one = "Lekmap se rindió tras {1_Attempt} mapas en {2_Seconds} segundo y conservó el último. Las posiciones iniciales pueden ser desiguales. La carga continúa.",
+    other = "Lekmap se rindió tras {1_Attempt} mapas en {2_Seconds} segundos y conservó el último. Las posiciones iniciales pueden ser desiguales. La carga continúa.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "sustituye a {1_Name}"
 
 -- Generic widget state templates

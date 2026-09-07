@@ -153,6 +153,17 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_UNIT"] = "獨特單位"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_BUILDING"] = "獨特建築"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_UNIQUE_IMPROVEMENT"] = "獨特改良設施"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_LOADING"] = "載入遊戲"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_REGENERATING"] =
+    "Lekmap 已拒絕這張地圖, 正在生成另一張. 它會持續進行, 直到有地圖通過起始位置檢查為止, 最多可嘗試 {1_Cap} 次, 這可能需要幾分鐘."
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ATTEMPT"] = {
+    other = "地圖第 {1_Attempt} 次嘗試, 已耗時 {2_Seconds} 秒.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_ACCEPTED"] = {
+    other = "地圖已在第 {1_Attempt} 次嘗試後通過, 共耗時 {2_Seconds} 秒. 繼續載入.",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_MAPGEN_GAVE_UP"] = {
+    other = "Lekmap 已在嘗試 {1_Attempt} 張地圖, 耗時 {2_Seconds} 秒後放棄, 並保留了最後一張. 各方起始位置可能不平衡. 繼續載入.",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_REPLACES"] = "取代 {1_Name}"
 
 -- Generic widget templates.

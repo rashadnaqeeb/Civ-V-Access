@@ -25,3 +25,9 @@ if not civvaccess_shared.frontendAnnounced then
         Text.format("TXT_KEY_CIVVACCESS_BOOT_FRONTEND", civvaccess_shared.version or "unknown")
     )
 end
+
+-- Publish the map-generation progress reporter for the patched Lekmap
+-- script (see CivVAccess_MapGenProgress). Not once-guarded: the reporter
+-- closes over this Context's SpeechPipeline / Text, and any Context's copy
+-- serves, so the latest include simply wins.
+MapGenProgress.install()
