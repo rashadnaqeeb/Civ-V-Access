@@ -251,11 +251,11 @@ local function directMove(dir)
     -- Melee-attack confirm gate. Screen-reader users can't see the
     -- hover preview a mouse user does, so a second press into the same
     -- target plot is the cheap "are you sure" check.
-    if UnitControlCombat.consumeCombatConfirm(target) then
+    if UnitControlCombat.consumeCombatConfirm(unit, target) then
         commitDirectMove(unit, target, tx, ty, enemy or enemyCity)
         return
     end
-    UnitControlCombat.armCombatConfirm(target)
+    UnitControlCombat.armCombatConfirm(unit, target)
     if enemy ~= nil then
         speakInterrupt(UnitSpeech.meleePreview(unit, enemy, target))
     else

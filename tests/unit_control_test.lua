@@ -467,4 +467,102 @@ function M.test_action_key_label_unmapped_type_returns_nil()
     T.eq(UnitControl.actionKeyLabel("COMMAND_PROMOTION"), nil)
 end
 
+-- ===== Alt+direction combat-confirm latch =====
+-- The first Alt+direction into an enemy speaks a preview and arms a
+-- latch; the second commits. The latch must describe one attack by one
+-- unit from one plot. Keying it on the target plot alone let a second
+-- unit approach the same enemy from the other side and commit on its
+-- first press, because the first unit's preview had already armed the
+-- plot. Each key (unit, owner, from-plot, target) gets a miss test so a
+-- regression that drops one shows up as a wrong assertion.
+
+local function mkActor(opts)
+    opts = opts or {}
+    local u = {
+        _id = opts.id or 1,
+        _owner = opts.owner or 0,
+        _x = opts.x or 0,
+        _y = opts.y or 0,
+    }
+    function u:GetID()
+        return self._id
+    end
+    function u:GetOwner()
+        return self._owner
+    end
+    function u:GetX()
+        return self._x
+    end
+    function u:GetY()
+        return self._y
+    end
+    return u
+end
+
+local function mkPlot(index)
+    return {
+        GetPlotIndex = function()
+            return index
+        end,
+    }
+end
+
+function M.test_combat_confirm_second_press_by_same_unit_commits()
+    setup()
+    local warrior = mkActor({ id = 1, x = 0, y = 0 })
+    local enemy = mkPlot(50)
+    T.eq(UnitControlCombat.consumeCombatConfirm(warrior, enemy), false)
+    UnitControlCombat.armCombatConfirm(warrior, enemy)
+    T.eq(UnitControlCombat.consumeCombatConfirm(warrior, enemy), true)
+    -- Consumed: a third press starts over rather than committing again.
+    T.eq(UnitControlCombat.consumeCombatConfirm(warrior, enemy), false)
+end
+
+function M.test_combat_confirm_other_unit_on_same_target_does_not_commit()
+    setup()
+    local west = mkActor({ id = 1, x = 0, y = 0 })
+    local east = mkActor({ id = 2, x = 2, y = 0 })
+    local enemy = mkPlot(50)
+    UnitControlCombat.armCombatConfirm(west, enemy)
+    -- Second warrior arriving from the other side gets its own preview,
+    -- not the first warrior's commit.
+    T.eq(UnitControlCombat.consumeCombatConfirm(east, enemy), false)
+end
+
+function M.test_combat_confirm_same_unit_from_new_plot_does_not_commit()
+    setup()
+    local warrior = mkActor({ id = 1, x = 0, y = 0 })
+    local enemy = mkPlot(50)
+    UnitControlCombat.armCombatConfirm(warrior, enemy)
+    -- The unit moved between presses; the preview it heard was for the
+    -- old approach.
+    warrior._x = 2
+    T.eq(UnitControlCombat.consumeCombatConfirm(warrior, enemy), false)
+end
+
+function M.test_combat_confirm_different_target_does_not_commit()
+    setup()
+    local warrior = mkActor({ id = 1, x = 0, y = 0 })
+    UnitControlCombat.armCombatConfirm(warrior, mkPlot(50))
+    T.eq(UnitControlCombat.consumeCombatConfirm(warrior, mkPlot(51)), false)
+end
+
+function M.test_combat_confirm_same_id_other_owner_does_not_commit()
+    setup()
+    local mine = mkActor({ id = 1, owner = 0, x = 0, y = 0 })
+    local theirs = mkActor({ id = 1, owner = 1, x = 0, y = 0 })
+    local enemy = mkPlot(50)
+    UnitControlCombat.armCombatConfirm(mine, enemy)
+    T.eq(UnitControlCombat.consumeCombatConfirm(theirs, enemy), false)
+end
+
+function M.test_combat_confirm_clear_drops_armed_latch()
+    setup()
+    local warrior = mkActor({ id = 1, x = 0, y = 0 })
+    local enemy = mkPlot(50)
+    UnitControlCombat.armCombatConfirm(warrior, enemy)
+    UnitControlCombat.clearCombatConfirm()
+    T.eq(UnitControlCombat.consumeCombatConfirm(warrior, enemy), false)
+end
+
 return M

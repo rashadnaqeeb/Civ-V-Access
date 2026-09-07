@@ -27,33 +27,56 @@ UnitControlCombat = {}
 -- Module-local rather than civvaccess_shared because a Context re-entry
 -- should drop any in-flight confirm window.
 --
--- Keyed on the target plot's index, mirroring UnitTargetMode's
--- _pendingFallback. State changes that should invalidate the latch
--- (selection cycle, the actor moving, a different direction pressed)
--- naturally compute a different target plot index, so the consume check
+-- Keyed on the whole attack, not just the target plot: which unit is
+-- attacking (owner + unit ID), the plot it attacks from, and the plot it
+-- attacks into. The preview the first tap spoke is only valid for that
+-- exact attack. Keying on the target alone let a second unit walk up to
+-- the same enemy from the other side and commit on its first press,
+-- because the latch armed by the first unit's preview still matched the
+-- plot. A different direction from the same unit, the unit moving, or a
+-- selection cycle each change one of the keys, so the consume check
 -- silently misses without explicit clear hooks.
-local _combatConfirm = { targetPlotIndex = nil }
+local _combatConfirm = nil
 
 function UnitControlCombat.clearCombatConfirm()
-    _combatConfirm.targetPlotIndex = nil
+    _combatConfirm = nil
 end
 
--- Consume the confirm latch when `target` (a plot) matches the armed
--- target plot. Returns true and clears on match; returns false (without
--- arming) on miss. Pair with armCombatConfirm to arm on the first tap.
-function UnitControlCombat.consumeCombatConfirm(target)
-    if target == nil then
+local function combatConfirmKey(actor, target)
+    return {
+        owner = actor:GetOwner(),
+        unitID = actor:GetID(),
+        fromX = actor:GetX(),
+        fromY = actor:GetY(),
+        targetPlotIndex = target:GetPlotIndex(),
+    }
+end
+
+local function combatConfirmMatches(a, b)
+    return a.owner == b.owner
+        and a.unitID == b.unitID
+        and a.fromX == b.fromX
+        and a.fromY == b.fromY
+        and a.targetPlotIndex == b.targetPlotIndex
+end
+
+-- Consume the confirm latch when `actor` attacking `target` (a plot)
+-- from its current plot matches the armed attack. Returns true and
+-- clears on match; returns false (without arming) on miss. Pair with
+-- armCombatConfirm to arm on the first tap.
+function UnitControlCombat.consumeCombatConfirm(actor, target)
+    if actor == nil or target == nil or _combatConfirm == nil then
         return false
     end
-    if _combatConfirm.targetPlotIndex == target:GetPlotIndex() then
+    if combatConfirmMatches(_combatConfirm, combatConfirmKey(actor, target)) then
         UnitControlCombat.clearCombatConfirm()
         return true
     end
     return false
 end
 
-function UnitControlCombat.armCombatConfirm(target)
-    _combatConfirm.targetPlotIndex = target:GetPlotIndex()
+function UnitControlCombat.armCombatConfirm(actor, target)
+    _combatConfirm = combatConfirmKey(actor, target)
 end
 
 local speakQueued = SpeechPipeline.speakQueued
