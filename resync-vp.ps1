@@ -131,7 +131,7 @@ $substratePaths = @('VPUI', 'MinorCivSounds_VoxPopuli.xml', 'VPUI Text/VPUI_tips
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
     $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Community-Patch-DLL'
 }
-$ClonePath = (Resolve-Path -LiteralPath $ClonePath).Path
+$ClonePath = (Resolve-Path -LiteralPath $ClonePath).ProviderPath
 
 if ([string]::IsNullOrWhiteSpace($ModsDir)) {
     $civ5Docs = Join-Path $env:USERPROFILE "Documents\My Games\Sid Meier's Civilization 5"
@@ -155,6 +155,10 @@ function Invoke-Native {
 
 function Get-Git {
     param([string[]]$GitArgs)
+    # git writes progress (fetch, checkout) to stderr; under Windows PowerShell
+    # 5.1 the merged stream would turn that into a terminating error with the
+    # script-wide Stop preference. The exit code is the failure signal here.
+    $ErrorActionPreference = 'Continue'
     $out = & git -C $ClonePath @GitArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "git $($GitArgs -join ' ') failed: $out"
@@ -282,9 +286,12 @@ function Invoke-EnginePhase {
         # On an ARM64 host clang-cl defaults to aarch64, so the script's x86-only
         # flags (-msse3) are rejected; -m32 alone does not retarget. Inject the
         # x86 target through clang's driver override without editing the fork's
-        # script. lld-link already gets /MACHINE:x86 from the script.
+        # script. lld-link already gets /MACHINE:x86 from the script. Set it
+        # unconditionally: the DLL is x86 on every host, and an x64-emulated
+        # shell (Git Bash's Windows PowerShell 5.1) reports AMD64 on an ARM64
+        # machine, so a PROCESSOR_ARCHITECTURE check silently skips the fix.
         $priorOverride = $env:CCC_OVERRIDE_OPTIONS
-        if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -and -not $priorOverride) {
+        if (-not $priorOverride) {
             $env:CCC_OVERRIDE_OPTIONS = '^--target=i686-pc-windows-msvc'
         }
         Push-Location $ClonePath

@@ -121,7 +121,7 @@ $upstreamUrl  = 'https://github.com/EnormousApplePie/Lekmod.git'
 if ([string]::IsNullOrWhiteSpace($ClonePath)) {
     $ClonePath = Join-Path (Split-Path -Parent $repoRoot) 'Lekmod'
 }
-$ClonePath = (Resolve-Path -LiteralPath $ClonePath).Path
+$ClonePath = (Resolve-Path -LiteralPath $ClonePath).ProviderPath
 
 # ---------------------------------------------------------------- helpers
 
