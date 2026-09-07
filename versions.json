@@ -1,9 +1,9 @@
 {
-  "mod": "2.3.4",
+  "mod": "2.3.5",
   "supported_vp": "Release-5.4.6",
   "supported_lekmod": "70aa6ad5e343845903719aea48f55bbba8edebb8",
   "components": {
-    "core":           "1.33.1",
+    "core":           "1.34.0",
     "engine":         "1.5.0",
     "engine_vp":      "0.4.2",
     "engine_lekmod":  "0.3.4",
