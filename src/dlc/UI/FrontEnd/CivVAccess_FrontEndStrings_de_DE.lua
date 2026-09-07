@@ -50,6 +50,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} ist jetzt Gastgeber"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} hat die Verbindung getrennt"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} wurde rausgeworfen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT"] = "Den Platztausch mit {1_Name} annehmen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING"] = "Platztausch angefragt, warten auf {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED"] =
+    "Platztausch angefragt; {1_Name} muss auch zu Eurem Platz wechseln"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED"] = "{1_Name} möchte mit Euch die Plätze tauschen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED"] = "Plätze getauscht. Ihr seid jetzt {1_Seat}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Start in 10 Sekunden"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Countdown abgebrochen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
@@ -86,7 +92,27 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "Den Draft-Tausch a
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "Eure Tauschanfrage zurückziehen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} möchte Drafts tauschen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "Draft mit {1_Name} getauscht"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT"] = "Den Draft sofort mit diesem Platz tauschen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED"] = "Tausch angefragt; {1_Name} muss noch annehmen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"] = "Tauschanfrage zurückgezogen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} hat Bans bereit gemeldet"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT"] =
+    "Öffnet die Liste der Zivilisationen, die Ihr als Ban wählen könnt"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE"] = "Draft-Regeln: {1_Rules}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS"] = {
+    one = "{1_Count} Ban pro Spieler",
+    other = "{1_Count} Bans pro Spieler",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS"] = {
+    one = "{1_Count} Pick pro Spieler",
+    other = "{1_Count} Picks pro Spieler",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS"] = "{1_Count} garantierte Küstenzivilisationen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS"] = "{1_Count} garantierte Binnenlandzivilisationen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"] = "Eure Bans sind nicht mehr bereit"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN"] = "{1_Name} hat Euch die eigenen Bans überlassen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK"] = "{1_Name} hat die eigenen Bans zurückgenommen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT"] = "Euer Draft: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =
     "Bans werden gewählt; der Draft kann erstellt werden, sobald alle bereit sind"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] = "Drafts ausgeteilt; wählt Eure Zivilisation"

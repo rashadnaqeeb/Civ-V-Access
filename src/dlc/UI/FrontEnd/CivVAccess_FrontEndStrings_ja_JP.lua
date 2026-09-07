@@ -51,6 +51,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} がホストになった"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} が切断した"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} が退出させられた"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT"] = "{1_Name} との席の交換を承諾"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING"] =
+    "席の交換を申し出中, {1_Name} の承諾待ち"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED"] =
+    "席の交換を申し出た. {1_Name} もあなたの席と交換する必要がある"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED"] = "{1_Name} が席の交換を希望"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED"] = "席を交換した. 現在の座席: {1_Seat}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "10秒後にゲーム開始"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "カウントダウンがキャンセルされた"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
@@ -87,7 +94,25 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "ドラフト交換
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "交換の申し出を取り消す"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} がドラフトの交換を希望"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "{1_Name} とドラフトを交換した"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT"] = "この席とドラフトを今すぐ交換する"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED"] =
+    "ドラフトの交換を申し出た, {1_Name} の承諾待ち"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"] = "交換の申し出を取り消した"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} がバンの準備を完了"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT"] = "バンできる文明の一覧を開く"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE"] = "ドラフトルール: {1_Rules}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS"] = {
+    other = "プレイヤーごとのバン数, {1_Count}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS"] = {
+    other = "プレイヤーごとのピック数, {1_Count}",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS"] = "沿岸文明の保証数, {1_Count}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS"] = "内陸文明の保証数, {1_Count}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"] = "バンの準備完了を解除しました"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN"] = "{1_Name} がバンの選択をあなたに任せた"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK"] = "{1_Name} がバンを選び直した"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT"] = "あなたのドラフト: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =
     "バン中. 全員の準備が完了するとドラフトを作成できる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] = "ドラフトが配布された. 文明を選択"

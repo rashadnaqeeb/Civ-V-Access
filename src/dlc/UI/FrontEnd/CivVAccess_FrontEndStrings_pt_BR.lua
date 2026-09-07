@@ -50,6 +50,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} agora é o anfitrião"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} desconectou"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} foi expulso"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT"] = "Aceitar a troca de assento com {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING"] = "Troca de assento pedida, aguardando {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED"] =
+    "Troca de assento pedida; {1_Name} também precisa trocar para o seu assento"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED"] = "{1_Name} quer trocar de assento com você"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED"] = "Assentos trocados. Agora você é {1_Seat}"
 
 -- ===== Launch countdown =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Iniciando em 10 segundos"
@@ -88,7 +94,26 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "Aceitar a troca de
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "Retirar seu pedido de troca"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} quer trocar drafts"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "Drafts trocados com {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT"] = "Trocar drafts com este assento agora"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED"] = "Troca pedida; aguardando {1_Name} aceitar"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"] = "Pedido de troca retirado"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} deixou os banimentos prontos"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT"] = "Abre a lista de civilizações que você pode banir"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE"] = "Regras do draft: {1_Rules}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS"] = {
+    one = "{1_Count} banimento por jogador",
+    other = "{1_Count} banimentos por jogador",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS"] = {
+    one = "{1_Count} escolha por jogador",
+    other = "{1_Count} escolhas por jogador",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS"] = "{1_Count} costeira garantida"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS"] = "{1_Count} interiorana garantida"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"] = "Seus banimentos não estão mais prontos"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN"] = "{1_Name} deixou você escolher seus banimentos"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK"] = "{1_Name} escolheu seus próprios banimentos novamente"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT"] = "Seu draft: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =
     "Banindo; o draft pode ser criado quando todos estiverem prontos"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] = "Drafts distribuídos; escolha sua civilização"

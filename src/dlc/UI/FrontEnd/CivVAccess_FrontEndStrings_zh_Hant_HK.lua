@@ -50,6 +50,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} 現在是創建人"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} 已斷線"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} 已被踢出"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT"] = "接受與 {1_Name} 的席位交換"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING"] = "席位交換已要求, 等待 {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED"] =
+    "席位交換已要求; {1_Name} 也需要交換至您的席位"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED"] = "{1_Name} 想要與您交換席位"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED"] = "席位已交換. 您現在是 {1_Seat}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "10 秒後開始遊戲"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "倒計時已取消"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
@@ -86,7 +92,24 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "接受選秀交換
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "撤回您的選秀交換請求"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} 想要交換選秀"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "已與 {1_Name} 交換選秀"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT"] = "立即與此席位交換選秀"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED"] = "交換已要求; 等待 {1_Name} 接受"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"] = "選秀交換請求已撤回"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} 的禁用已就緒"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT"] = "開啟您可以禁用的文明清單"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE"] = "選秀規則: {1_Rules}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS"] = {
+    other = "每位玩家禁用 {1_Count} 個文明",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS"] = {
+    other = "每位玩家選擇 {1_Count} 個文明",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS"] = "{1_Count} 個保證沿海文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS"] = "{1_Count} 個保證內陸文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"] = "您的禁用已不再就緒"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN"] = "{1_Name} 讓您選擇他們的禁用"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK"] = "{1_Name} 重新自行選擇了他們的禁用"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT"] = "您的選秀: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] = "禁用中; 所有人就緒後即可創建選秀"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] = "選秀已發放; 請選擇您的文明"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_GAME_READY"] = "有玩家就緒開始遊戲時, 選秀鎖定"

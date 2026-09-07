@@ -45,6 +45,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} è ora il host"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} disconnesso"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} è stato espulso"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT"] = "Accetta lo scambio di posto con {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING"] = "Scambio di posto richiesto, in attesa di {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED"] =
+    "Scambio di posto richiesto; anche {1_Name} deve scambiare con il tuo posto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED"] = "{1_Name} vuole scambiare il posto con te"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED"] = "Posti scambiati. Ora sei {1_Seat}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_START"] = "Avvio tra 10 secondi"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_CANCEL"] = "Conto alla rovescia annullato"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_COUNTDOWN_TICK"] = "{1_Seconds}"
@@ -79,7 +85,26 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "Accetta lo scambio
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "Ritira la tua richiesta di scambio"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} vuole scambiare i draft"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "Scambiato il draft con {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT"] = "Scambia subito i draft con questo posto"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED"] = "Scambio richiesto; in attesa che {1_Name} accetti"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"] = "Richiesta di scambio ritirata"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} ha i ban pronti"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT"] = "Apre l'elenco delle civiltà che puoi bannare"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE"] = "Regole del draft: {1_Rules}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS"] = {
+    one = "{1_Count} ban per giocatore",
+    other = "{1_Count} ban per giocatore",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS"] = {
+    one = "{1_Count} pick per giocatore",
+    other = "{1_Count} pick per giocatore",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS"] = "{1_Count} costiere garantite"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS"] = "{1_Count} dell'entroterra garantite"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"] = "I tuoi ban non sono più pronti"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN"] = "{1_Name} ti ha fatto scegliere i suoi ban"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK"] = "{1_Name} ha ripreso i suoi ban"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT"] = "Il tuo draft: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =
     "Fase dei ban; il draft può essere creato quando tutti sono pronti"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_DEALT"] = "Draft distribuiti; scegli la tua civiltà"

@@ -215,36 +215,102 @@ local EXCLUDED_GAME_OPTION_TYPES = {
 -- row (the control probe / GameInfo lookup returns nil) rather than erroring;
 -- re-derive from the On*Checked handlers when re-pinning. Turn-mode options
 -- are intentionally absent (shared with EXCLUDED_GAME_OPTION_TYPES).
+--
+-- The two headline checkboxes (AI Options, Additional Options) each fold a
+-- block of sub-options: LekMod hides a sub-option's enclosing *Box container
+-- while its headline is off, and disables the sub-option itself only while
+-- the headline is on. So `box` names that container as the row's visibility
+-- gate. Without it the checkbox control alone reads as shown and enabled,
+-- and a player could toggle options the screen is not offering -- for a
+-- non-host that means writing a game option locally that the host never
+-- sees, and hearing a setting that is not the lobby's. Re-derive the box
+-- names from the SetHide calls in UpdateGameOptionsDisplay on every re-pin.
 local LEKMOD_MP_OPTION_CONTROLS = {
     { control = "AIOptionsCheck", option = "GAMEOPTION_AI_OPTIONS" },
-    { control = "AIAlwaysAcceptWhitePeaceCheck", option = "GAMEOPTION_AI_GIMP_ALWAYS_WHITE_PEACE" },
-    { control = "AICannotAccumulateCultureCheck", option = "GAMEOPTION_AI_GIMP_NO_CULTURE" },
-    { control = "AICannotBuildSettlersCheck", option = "GAMEOPTION_AI_GIMP_NO_BUILDING_SETTLERS" },
-    { control = "AICannotBuildWorldWondersCheck", option = "GAMEOPTION_AI_GIMP_NO_WORLD_WONDER" },
-    { control = "AICannotCoupCityStatesCheck", option = "GAMEOPTION_AI_GIMP_NO_COUP" },
-    { control = "AICannotFoundReligionCheck", option = "GAMEOPTION_AI_GIMP_NO_RELIGION_FOUNDING" },
-    { control = "AICannotSpreadReligionCSCheck", option = "GAMEOPTION_AI_GIMP_NO_MINOR_RELIGION_SPREAD" },
-    { control = "AICannotSpreadRelHumansCheck", option = "GAMEOPTION_AI_GIMP_NO_RELIGION_SPREAD" },
-    { control = "AICannotVoteInCongressCheck", option = "GAMEOPTION_AI_NO_VOTE" },
-    { control = "AICannotBeLiberatedCheck", option = "GAMEOPTION_AI_GIMP_NO_LIBERATION" },
-    { control = "AICannotHaveWealsWithHumansCheck", option = "GAMEOPTION_AI_GIMP_NO_DEALS" },
-    { control = "DisableAIDemographicsCheck", option = "GAMEOPTION_AI_GIMP_NO_DEMOGRAPHICS" },
-    { control = "NoAIStartAdvantageCheck", option = "GAMEOPTION_AI_HANDICAP_START" },
-    { control = "NoPenaltyForExpansionCheck", option = "GAMEOPTION_DISABLE_RECKLESS_EXPANDER" },
-    { control = "NoXPFromAICheck", option = "GAMEOPTION_AI_XP_CAP" },
+    {
+        control = "AIAlwaysAcceptWhitePeaceCheck",
+        option = "GAMEOPTION_AI_GIMP_ALWAYS_WHITE_PEACE",
+        box = "AIAlwaysAcceptWhitePeaceBox",
+    },
+    {
+        control = "AICannotAccumulateCultureCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_CULTURE",
+        box = "AICannotAccumulateCultureBox",
+    },
+    {
+        control = "AICannotBuildSettlersCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_BUILDING_SETTLERS",
+        box = "AICannotBuildSettlersBox",
+    },
+    {
+        control = "AICannotBuildWorldWondersCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_WORLD_WONDER",
+        box = "AICannotBuildWorldWondersBox",
+    },
+    {
+        control = "AICannotCoupCityStatesCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_COUP",
+        box = "AICannotCoupCityStatesBox",
+    },
+    {
+        control = "AICannotFoundReligionCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_RELIGION_FOUNDING",
+        box = "AICannotFoundReligionBox",
+    },
+    {
+        control = "AICannotSpreadReligionCSCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_MINOR_RELIGION_SPREAD",
+        box = "AICannotSpreadReligionCSBox",
+    },
+    {
+        control = "AICannotSpreadRelHumansCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_RELIGION_SPREAD",
+        box = "AICannotSpreadReligionHumansBox",
+    },
+    { control = "AICannotVoteInCongressCheck", option = "GAMEOPTION_AI_NO_VOTE", box = "AICannotVoteInCongressBox" },
+    {
+        control = "AICannotBeLiberatedCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_LIBERATION",
+        box = "AICannotBeLiberatedBox",
+    },
+    {
+        control = "AICannotHaveWealsWithHumansCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_DEALS",
+        box = "AICannotHaveWealsWithHumansBox",
+    },
+    {
+        control = "DisableAIDemographicsCheck",
+        option = "GAMEOPTION_AI_GIMP_NO_DEMOGRAPHICS",
+        box = "DisableAIDemographicsBox",
+    },
+    { control = "NoAIStartAdvantageCheck", option = "GAMEOPTION_AI_HANDICAP_START", box = "NoAIStartAdvantageBox" },
+    {
+        control = "NoPenaltyForExpansionCheck",
+        option = "GAMEOPTION_DISABLE_RECKLESS_EXPANDER",
+        box = "NoPenaltyForExpansionBox",
+    },
+    { control = "NoXPFromAICheck", option = "GAMEOPTION_AI_XP_CAP", box = "NoXPFromAIBox" },
     { control = "AdditionalOptionsCheck", option = "GAMEOPTION_ADDITIONAL" },
-    { control = "AllowPolicySavingCheck", option = "GAMEOPTION_POLICY_SAVING" },
-    { control = "AllowPromotionSavingCheck", option = "GAMEOPTION_PROMOTION_SAVING" },
-    { control = "AlternateScoreCalculationsCheck", option = "GAMEOPTION_TWEAKED_SCORING" },
-    { control = "CompleteKillsCheck", option = "GAMEOPTION_COMPLETE_KILLS" },
-    { control = "DisableStartBiasCheck", option = "GAMEOPTION_DISABLE_START_BIAS" },
-    { control = "NoAncientRuinsCheck", option = "GAMEOPTION_NO_GOODY_HUTS" },
-    { control = "NoBarbariansCheck", option = "GAMEOPTION_NO_BARBARIANS" },
-    { control = "NoCityRazingCheck", option = "GAMEOPTION_NO_CITY_RAZING" },
-    { control = "NoEspionageCheck", option = "GAMEOPTION_NO_ESPIONAGE" },
-    { control = "OneCityChallengeCheck", option = "GAMEOPTION_ONE_CITY_CHALLENGE" },
-    { control = "RagingBarbariansCheck", option = "GAMEOPTION_RAGING_BARBARIANS" },
-    { control = "RandomPersonalitiesCheck", option = "GAMEOPTION_RANDOM_PERSONALITIES" },
+    { control = "AllowPolicySavingCheck", option = "GAMEOPTION_POLICY_SAVING", box = "AllowPolicySavingBox" },
+    { control = "AllowPromotionSavingCheck", option = "GAMEOPTION_PROMOTION_SAVING", box = "AllowPromotionSavingBox" },
+    {
+        control = "AlternateScoreCalculationsCheck",
+        option = "GAMEOPTION_TWEAKED_SCORING",
+        box = "AlternateScoreCalculationsBox",
+    },
+    { control = "CompleteKillsCheck", option = "GAMEOPTION_COMPLETE_KILLS", box = "CompleteKillsBox" },
+    { control = "DisableStartBiasCheck", option = "GAMEOPTION_DISABLE_START_BIAS", box = "DisableStartBiasBox" },
+    { control = "NoAncientRuinsCheck", option = "GAMEOPTION_NO_GOODY_HUTS", box = "NoAncientRuinsBox" },
+    { control = "NoBarbariansCheck", option = "GAMEOPTION_NO_BARBARIANS", box = "NoBarbariansBox" },
+    { control = "NoCityRazingCheck", option = "GAMEOPTION_NO_CITY_RAZING", box = "NoCityRazingBox" },
+    { control = "NoEspionageCheck", option = "GAMEOPTION_NO_ESPIONAGE", box = "NoEspionageBox" },
+    { control = "OneCityChallengeCheck", option = "GAMEOPTION_ONE_CITY_CHALLENGE", box = "OneCityChallengeBox" },
+    { control = "RagingBarbariansCheck", option = "GAMEOPTION_RAGING_BARBARIANS", box = "RagingBarbariansBox" },
+    {
+        control = "RandomPersonalitiesCheck",
+        option = "GAMEOPTION_RANDOM_PERSONALITIES",
+        box = "RandomPersonalitiesBox",
+    },
 }
 
 -- LekMod wires these checkboxes with RegisterCallback(Mouse.eLClick, On*Checked)
@@ -279,8 +345,24 @@ local function lekmodMPOptionItems()
         local control = Controls[entry.control]
         local row = GameInfo.GameOptions[entry.option]
         if control ~= nil and row ~= nil and row.Description ~= nil then
+            local box
+            if entry.box ~= nil then
+                box = Controls[entry.box]
+                if box == nil then
+                    -- The gate is what keeps a folded sub-option unreachable;
+                    -- an offline re-pin cannot catch a renamed container.
+                    Log.warn(
+                        "MPGameSetupShared LekMod option '"
+                            .. entry.option
+                            .. "': visibility box '"
+                            .. entry.box
+                            .. "' missing; the row will be reachable while folded"
+                    )
+                end
+            end
             items[#items + 1] = BaseMenuItems.Checkbox({
                 control = control,
+                visibilityControl = box,
                 labelText = Text.key(row.Description),
                 tooltipText = row.Help and Text.key(row.Help) or nil,
                 activateCallback = lekmodMPOptionActivate(control, entry.option),

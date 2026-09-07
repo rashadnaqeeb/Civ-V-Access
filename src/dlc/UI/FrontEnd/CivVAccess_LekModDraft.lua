@@ -332,78 +332,125 @@ end
 -- picker was opened for, so the slot is named the same way a click would name
 -- it. When another player claimed the civ while we were choosing, LekMod
 -- clears the slot instead of setting it, and says nothing -- compare the slot
--- before and after so the player is told rather than left with a ban that
--- quietly went missing.
-local function applyBan(playerID, slotIndex, civID)
+-- before and after and return the civ that was refused, so the caller can tell
+-- the player rather than leave them with a ban that quietly went missing.
+-- Speech is the caller's: the chooser closes first and lets the slot
+-- re-announce, and only then queues the refusal, so neither line cuts the
+-- other off.
+local function commitBan(playerID, slotIndex, civID)
     if not canEditBans(playerID) then
-        return
+        return nil
     end
     g_PendingBan = { playerID = playerID, slotIndex = slotIndex }
     local ok, err = pcall(Draft_ApplyBanSelection, civID)
     if not ok then
         g_PendingBan = nil
         Log.error("LekModDraft: Draft_ApplyBanSelection failed: " .. tostring(err))
-        return
+        return nil
     end
     if civID ~= nil and civID >= 0 and banAt(playerID, slotIndex) ~= civID then
-        SpeechPipeline.speakInterrupt(Text.format("TXT_KEY_CIVVACCESS_DRAFT_BAN_TAKEN", civShortLabel(civID) or ""))
+        return civID
     end
+    return nil
 end
 
--- Children of one ban slot: clear (when the slot holds a civ) then every
--- available civ. Rebuilt on each drill, so a civ another player banned in the
--- meantime is already gone from the list.
-local function banChoiceItems(playerID, slotIndex)
+local function banTakenText(civID)
+    return Text.format("TXT_KEY_CIVVACCESS_DRAFT_BAN_TAKEN", civShortLabel(civID) or "")
+end
+
+-- The chooser for one ban slot: a pushed select-and-close list, the shape
+-- every pulldown sub-menu has, because that is what LekMod's own picker is --
+-- it closes on the pick. A drill-in group would leave the player inside a
+-- list of eighty civilizations after choosing, with the slot's new value never
+-- spoken. Closing hands control back to the slot item, which re-announces
+-- with the civ just banned. Type-ahead finds a civ by its first letters, and
+-- the list opens on the slot's current ban so re-confirming it is one press.
+local BAN_CHOOSER_HANDLER = "StagingRoom/DraftBan"
+
+local function openBanChooser(playerID, slotIndex, title)
+    local current = banAt(playerID, slotIndex)
     local items = {}
-    if banAt(playerID, slotIndex) ~= nil then
+    local initialIndex
+    local function choose(civID)
+        local refused = commitBan(playerID, slotIndex, civID)
+        HandlerStack.removeByName(BAN_CHOOSER_HANDLER, true)
+        if refused ~= nil then
+            SpeechPipeline.speakQueued(banTakenText(refused))
+        end
+    end
+    if current ~= nil then
         items[#items + 1] = BaseMenuItems.Choice({
             textKey = "TXT_KEY_CIVVACCESS_DRAFT_BAN_CLEAR",
             activate = function()
-                applyBan(playerID, slotIndex, -1)
+                choose(-1)
             end,
         })
     end
     for _, row in ipairs(availableBanChoices(playerID, slotIndex)) do
         local civID = row.ID
         items[#items + 1] = BaseMenuItems.Choice({
-            -- By ID rather than from the row: the list is rebuilt every time
-            -- the slot is opened, and the by-ID labels are built once for the
-            -- whole Context instead of re-querying four tables per civ.
+            -- By ID rather than from the row: the by-ID labels are built once
+            -- for the whole Context instead of re-querying four tables per civ.
             labelText = civDetailLabel(civID) or tostring(civID),
             selectedFn = function()
-                return banAt(playerID, slotIndex) == civID
+                return current == civID
             end,
             activate = function()
-                applyBan(playerID, slotIndex, civID)
+                choose(civID)
             end,
         })
+        if current == civID then
+            initialIndex = #items
+        end
     end
-    return items
+    HandlerStack.push(BaseMenu.create({
+        name = BAN_CHOOSER_HANDLER,
+        displayName = title,
+        items = items,
+        initialIndex = initialIndex,
+        escapePops = true,
+    }))
 end
 
--- One item per ban slot while the slots are yours to set: each drills into the
--- civ list, and an empty one says so rather than carrying a slot number
--- nobody needs (bans are a set; which box holds which civ means nothing).
--- Read-only, the empty slots are dropped entirely and each ban that was made
--- becomes a line carrying the full civ detail.
+-- Close the chooser without re-announcing whatever is beneath it. For the
+-- lobby's hide path: a launch, a kick, or the host backing out can take the
+-- screen away while a player is mid-choice, and the chooser would otherwise
+-- stay on the stack over whatever screen comes next. Inert off LekMod: the
+-- name is never on the stack there.
+function LekModDraft.closePanels()
+    HandlerStack.drainAndRemove(BAN_CHOOSER_HANDLER, false)
+end
+
+-- One item per ban slot while the slots are yours to set: each opens the
+-- chooser, and an empty one says so rather than carrying a slot number nobody
+-- needs (bans are a set; which box holds which civ means nothing). Read-only,
+-- the empty slots are dropped entirely and each ban that was made becomes a
+-- line carrying the full civ detail.
 local function banSlotItems(playerID)
     local items = {}
     local editable = canEditBans(playerID)
     for i = 1, bansPerPlayer() do
         local slotIndex = i
         if editable then
-            items[#items + 1] = BaseMenuItems.Group({
-                labelFn = function()
-                    local civID = banAt(playerID, slotIndex)
-                    if civID == nil then
-                        return Text.key("TXT_KEY_CIVVACCESS_DRAFT_BAN_CHOOSE")
-                    end
-                    return civShortLabel(civID) or tostring(civID)
+            local function label()
+                local civID = banAt(playerID, slotIndex)
+                if civID == nil then
+                    return Text.key("TXT_KEY_CIVVACCESS_DRAFT_BAN_CHOOSE")
+                end
+                return civShortLabel(civID) or tostring(civID)
+            end
+            items[#items + 1] = BaseMenuItems.Choice({
+                labelFn = label,
+                tooltipKey = "TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT",
+                -- Editability can close between the list being built and the
+                -- press (another player readied, the host locked the draft);
+                -- the chooser would open on a slot LekMod then refuses.
+                disabledFn = function()
+                    return not canEditBans(playerID)
                 end,
-                itemsFn = function()
-                    return banChoiceItems(playerID, slotIndex)
+                activate = function()
+                    openBanChooser(playerID, slotIndex, label())
                 end,
-                cached = false,
             })
         else
             local civID = banAt(playerID, slotIndex)
@@ -455,6 +502,15 @@ end
 -- Human Required seat there is nobody to answer, so LekMod swaps immediately.
 -- The label carries which way a pending request points, since that is the
 -- whole state of the flow and the screen shows it only as a pulsing glow.
+-- The press says what it did: a request goes out with nothing to show for it
+-- until the other player answers, and LekMod's only sign of it is that same
+-- glow. A completed swap is spoken when its packet lands (every peer,
+-- including the one who clicked, receives it), so nothing is said for that
+-- here or it would be said twice.
+local function isUnattendedSeat(playerID)
+    return ask("isAI", false, playerID) == true or ask("isHumanRequired", false, playerID) == true
+end
+
 local function swapItem(playerID)
     local function pending()
         if type(g_DraftSwapDesire) ~= "table" then
@@ -475,6 +531,8 @@ local function swapItem(playerID)
                 return Text.key("TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT")
             elseif state == "outgoing" then
                 return Text.key("TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL")
+            elseif isUnattendedSeat(playerID) then
+                return Text.key("TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT")
             end
             return Text.key("TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUEST")
         end,
@@ -482,7 +540,14 @@ local function swapItem(playerID)
             return isHistoryOnly() or PreGame.IsHotSeatGame() or gameReadyLock() or not isParticipant(playerID)
         end,
         activate = function()
+            local before = pending()
             drive("Draft_OnBanSwapClick", Draft_OnBanSwapClick, playerID)
+            local after = pending()
+            if after == "outgoing" and before ~= "outgoing" then
+                SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED", playerName(playerID)))
+            elseif before == "outgoing" and after == nil then
+                SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"))
+            end
         end,
     })
 end
@@ -642,9 +707,14 @@ end
 -- are driven as plain choices rather than bound to controls that would be
 -- invisible (and so unreachable) from our Draft tab; each entry point
 -- re-checks its own preconditions anyway. A non-host gets no entries at all
--- rather than a row of permanently disabled ones.
+-- rather than a row of permanently disabled ones. Hotseat gets none either:
+-- LekMod hides the buttons there (the draft syncs over network chat, which
+-- hotseat has no use for), and Draft_OnCreateDraft itself does not check.
+-- Each action speaks its outcome straight away through the state diff (the
+-- host's hand once dealt) instead of waiting for the host's own packets to
+-- echo back.
 local function hostActionItems()
-    if not Matchmaking.IsHost() or isHistoryOnly() then
+    if not Matchmaking.IsHost() or isHistoryOnly() or PreGame.IsHotSeatGame() then
         return {}
     end
     local items = {}
@@ -659,6 +729,7 @@ local function hostActionItems()
         end,
         activate = function()
             drive("Draft_OnCreateDraft", Draft_OnCreateDraft)
+            LekModDraft.announceChanges()
         end,
     })
     items[#items + 1] = BaseMenuItems.Choice({
@@ -667,6 +738,7 @@ local function hostActionItems()
         disabledFn = gameReadyLock,
         activate = function()
             drive("Draft_OnResetDraft", Draft_OnResetDraft)
+            LekModDraft.announceChanges()
         end,
     })
     -- Restore is offered only once a draft has been made and cleared; before
@@ -688,6 +760,7 @@ local function hostActionItems()
             end,
             activate = function()
                 drive("Draft_OnRestorePreviousDraft", Draft_OnRestorePreviousDraft)
+                LekModDraft.announceChanges()
             end,
         })
     end
@@ -747,30 +820,114 @@ end
 
 -- Remote changes ------------------------------------------------------
 
--- LekMod syncs the draft as chat packets, applied in Draft_HandleProtocol and
--- shown only as redrawn icons and colour changes. Wrapping it is what turns a
--- remote change into speech; the state is already applied by the time we run,
--- so the announcement reads the new value rather than guessing from the
--- packet.
+-- LekMod syncs the draft two ways at once: as chat packets applied in
+-- Draft_HandleProtocol, and as PreGame game options the host broadcasts with
+-- the rest of the lobby settings (rules, and the ready bits a client reads
+-- back on every PreGameDirty). Either can land first, and both show the
+-- change only as redrawn icons and colour. So the announcements are a diff of
+-- the draft's state against the last state spoken, not a reading of any one
+-- packet: announceChanges() runs after every packet and after every lobby
+-- refresh, and whichever path carried a change speaks it once.
 --
 -- Ban edits are deliberately silent: every player broadcasts on every change
 -- to every ban, and reading those out would bury the lobby. So are the draft
 -- being created, reset and restored -- the host broadcasts a chat
 -- announcement for each of those, which the chat listener already speaks, and
 -- saying it twice is worse than saying it once in LekMod's own words. What is
--- left is what LekMod says nothing about: readiness, a swap aimed at you, and
--- a swap going through.
+-- left is what LekMod says nothing about: readiness, the rules, a player
+-- handing the host their bans, a swap aimed at you, a swap going through, and
+-- the hand you were just dealt.
+--
+-- Your own actions never announce here: your readiness, your rules edits as
+-- host, your swap requests, all speak at the keypress. The diff skips the
+-- local seat on readiness and swap requests, and skips the rules for the
+-- host, who is the only one able to change them.
 
--- A ban readied is the ban phase's only real progress signal. The diff covers
--- the host replaying other players' readiness to a client that just joined,
--- which is the one burst worth hearing: it says who the lobby is waiting for.
-local function announceReadyDeltas(priorReady)
-    if type(g_DraftBanReady) ~= "table" then
+local function copyFlags(source)
+    local out = {}
+    if type(source) == "table" then
+        for k, v in pairs(source) do
+            out[k] = v
+        end
+    end
+    return out
+end
+
+-- The rules as one comparable string, and as one spoken line.
+local function rulesKey()
+    local r = g_DraftRules
+    if type(r) ~= "table" then
+        return ""
+    end
+    return table.concat({
+        tostring(r.bansPerPlayer),
+        tostring(r.picksPerPlayer),
+        tostring(r.guaranteedCoastals),
+        tostring(r.guaranteedInlands),
+        tostring(r.vanillaOnly == true),
+        tostring(r.seasonalBans == true),
+    }, "|")
+end
+
+local function rulesText()
+    local r = g_DraftRules
+    if type(r) ~= "table" then
+        return nil
+    end
+    local bans = tonumber(r.bansPerPlayer) or 0
+    local picks = tonumber(r.picksPerPlayer) or 0
+    local parts = {
+        Text.formatPlural("TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS", bans, bans),
+        Text.formatPlural("TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS", picks, picks),
+    }
+    local coast = tonumber(r.guaranteedCoastals)
+    if coast ~= nil and coast >= 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS", coast)
+    end
+    local inland = tonumber(r.guaranteedInlands)
+    if inland ~= nil and inland >= 0 then
+        parts[#parts + 1] = Text.format("TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS", inland)
+    end
+    if r.vanillaOnly == true then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA")
+    end
+    if r.seasonalBans == true then
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL")
+    end
+    return Text.format("TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE", table.concat(parts, ", "))
+end
+
+local function snapshotState()
+    return {
+        ready = copyFlags(g_DraftBanReady),
+        desire = copyFlags(g_DraftSwapDesire),
+        hostControl = copyFlags(g_DraftBanHostControl),
+        rules = rulesKey(),
+        locked = isLocked(),
+        hand = handSummary(localID()),
+    }
+end
+
+local _spoken = nil
+
+-- Take the current state as already spoken. Called when the lobby shows, so
+-- a restored lobby save does not read every restored flag out as news, and
+-- so a fresh join hears the host's replay of who is ready and what the rules
+-- are, which is the one burst worth hearing.
+function LekModDraft.resetSnapshot()
+    if not LekModDraft.present() then
+        _spoken = nil
         return
     end
+    _spoken = snapshotState()
+end
+
+-- A ban readied is the ban phase's only real progress signal; a player taking
+-- their ready back is not, and stays quiet.
+local function announceReadyDeltas(before, now)
     local me = localID()
-    for pid, ready in pairs(g_DraftBanReady) do
-        if ready == true and priorReady[pid] ~= true and pid ~= me then
+    for pid, ready in pairs(now) do
+        if ready == true and before[pid] ~= true and pid ~= me then
             SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE", playerName(pid)))
         end
     end
@@ -779,26 +936,86 @@ end
 -- A swap request aimed at you is the one packet that asks the player to act,
 -- and the screen carries it only as a pulsing highlight. A request pointed
 -- somewhere else, or one being withdrawn, stays quiet.
-local function announceSwapDeltas(priorDesire)
-    if type(g_DraftSwapDesire) ~= "table" then
-        return
-    end
+local function announceSwapDeltas(before, now)
     local me = localID()
-    for pid, target in pairs(g_DraftSwapDesire) do
-        if target == me and priorDesire[pid] ~= me then
+    for pid, target in pairs(now) do
+        if target == me and before[pid] ~= me then
             SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED", playerName(pid)))
         end
     end
 end
 
-local function snapshotFlags(source)
-    local out = {}
-    if type(source) == "table" then
-        for k, v in pairs(source) do
-            out[k] = v
+-- A player handing their bans to the host, or taking them back, asks the host
+-- to act; nobody else needs it read out.
+local function announceHostControlDeltas(before, now)
+    if not Matchmaking.IsHost() then
+        return
+    end
+    local me = localID()
+    for pid, ceded in pairs(now) do
+        if pid ~= me and ceded == true and before[pid] ~= true then
+            SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN", playerName(pid)))
         end
     end
-    return out
+    for pid, ceded in pairs(before) do
+        if pid ~= me and ceded == true and now[pid] ~= true then
+            SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK", playerName(pid)))
+        end
+    end
+end
+
+-- The rules reach a client with no announcement from LekMod, and a change
+-- clears everyone's ban readiness on the way: a client who had readied is
+-- silently un-readied. Speak the new rules, then that consequence.
+local function announceRulesDeltas(before, now)
+    if Matchmaking.IsHost() or before.rules == now.rules then
+        return
+    end
+    local line = rulesText()
+    if line ~= nil then
+        SpeechPipeline.speakQueued(line)
+    end
+    local me = localID()
+    if before.ready[me] == true and now.ready[me] ~= true then
+        SpeechPipeline.speakQueued(Text.key("TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"))
+    end
+end
+
+-- Being dealt a hand, or receiving a different one in a swap, is the moment
+-- the player has to act on, and the only sign is a new row of icons.
+local function announceHandDeltas(before, now)
+    if not now.locked or now.hand == nil then
+        return
+    end
+    if before.locked and before.hand == now.hand then
+        return
+    end
+    SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT", now.hand))
+end
+
+-- Speak whatever changed since the last call, then remember the new state.
+-- Safe to call from every path that may have moved the draft; a call that
+-- finds nothing new is silent.
+function LekModDraft.announceChanges()
+    if not LekModDraft.present() then
+        return
+    end
+    local now = snapshotState()
+    local before = _spoken
+    _spoken = now
+    if before == nil then
+        return
+    end
+    local ok, err = pcall(function()
+        announceReadyDeltas(before.ready, now.ready)
+        announceRulesDeltas(before, now)
+        announceHostControlDeltas(before.hostControl, now.hostControl)
+        announceSwapDeltas(before.desire, now.desire)
+        announceHandDeltas(before, now)
+    end)
+    if not ok then
+        Log.error("LekModDraft: draft announcement failed: " .. tostring(err))
+    end
 end
 
 -- A completed swap is the one draft change LekMod broadcasts without saying
@@ -823,36 +1040,31 @@ local function announceSwapCompleted(text)
     SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE", playerName(other)))
 end
 
--- Speak what the packet just changed. Called after LekMod applied it.
-function LekModDraft._announceProtocol(before, text)
-    announceReadyDeltas(before.ready)
-    announceSwapDeltas(before.desire)
-    if type(text) == "string" then
-        announceSwapCompleted(text)
-    end
-end
-
 -- Re-wrapping is keyed on the live function, not a flag: a Context re-init
 -- redefines Draft_HandleProtocol from a fresh chunk, and a flag would leave
 -- that fresh copy unwrapped and the draft silent for the rest of the session.
+-- The swap-completed line comes before the diff so "swapped with Alice" leads
+-- into the hand that swap delivered.
 function LekModDraft.installAnnounce()
     if not LekModDraft.present() or type(Draft_HandleProtocol) ~= "function" then
         return
+    end
+    if _spoken == nil then
+        LekModDraft.resetSnapshot()
     end
     if Draft_HandleProtocol == civvaccess_shared._lekmodDraftProtocolWrapper then
         return
     end
     local prior = Draft_HandleProtocol
     local wrapped = function(fromPlayer, text)
-        local before = {
-            ready = snapshotFlags(g_DraftBanReady),
-            desire = snapshotFlags(g_DraftSwapDesire),
-        }
         local result = prior(fromPlayer, text)
-        local ok, err = pcall(LekModDraft._announceProtocol, before, text)
-        if not ok then
-            Log.error("LekModDraft: draft announcement failed: " .. tostring(err))
+        if type(text) == "string" then
+            local ok, err = pcall(announceSwapCompleted, text)
+            if not ok then
+                Log.error("LekModDraft: swap announcement failed: " .. tostring(err))
+            end
         end
+        LekModDraft.announceChanges()
         return result
     end
     civvaccess_shared._lekmodDraftProtocolWrapper = wrapped
@@ -862,5 +1074,5 @@ end
 -- Test seams.
 LekModDraft._banSummary = banSummary
 LekModDraft._handSummary = handSummary
-LekModDraft._applyBan = applyBan
+LekModDraft._commitBan = commitBan
 LekModDraft._banSlotItems = banSlotItems

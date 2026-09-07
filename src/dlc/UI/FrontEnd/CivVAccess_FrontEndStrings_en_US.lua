@@ -190,6 +190,18 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_CHAT_MSG"] = "{1_Name}: {2_Text}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_HOST_MIGRATION"] = "{1_Name} is now the host"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_DISCONNECT"] = "{1_Name} disconnected"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_KICKED"] = "{1_Name} was kicked"
+-- The base seat swap (moving into another player's slot, which is how a
+-- player takes over a civ in a reloaded save). The screen shows a pending
+-- wish only as a glow on the target's swap button. ACCEPT and PENDING are
+-- the swap button's label while a wish stands in that direction; REQUESTED
+-- is spoken on the press; WANTED when someone's wish for your seat lands;
+-- SWAPPED when the move goes through, with the seat you now hold.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT"] = "Accept the seat swap with {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING"] = "Seat swap requested, waiting for {1_Name}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED"] =
+    "Seat swap requested; {1_Name} must also swap to your seat"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED"] = "{1_Name} wants to swap seats with you"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED"] = "Seats swapped. You are now {1_Seat}"
 -- Launch countdown. Base runs a 10-second auto-launch timer with a "Game
 -- Starts In: N" banner; we speak the intro once, then integer seconds
 -- 5 down to 1, then let LaunchGame fire. Cancel text plays if the timer
@@ -257,7 +269,37 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_ACCEPT"] = "Accept the draft s
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_CANCEL"] = "Withdraw your swap request"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED"] = "{1_Name} wants to swap drafts"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE"] = "Swapped drafts with {1_Name}"
+-- Against an AI or an empty Human Required seat there is nobody to answer, so
+-- LekMod swaps at once.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_INSTANT"] = "Swap drafts with this seat now"
+-- What the swap press did, since a request shows on screen only as a glow.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_REQUESTED"] = "Swap requested; waiting for {1_Name} to accept"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_SWAP_WITHDRAWN"] = "Swap request withdrawn"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE"] = "{1_Name} readied bans"
+-- A ban slot opens a chooser; the tooltip tells a first-time player what the
+-- press does.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_BAN_SLOT_TT"] = "Opens the list of civilizations you can ban"
+-- Remote changes LekMod shows only as redrawn icons. The rules line is
+-- spoken to clients whenever the host's rules reach them (on joining, and on
+-- every change); a change also clears everyone's ban readiness, which is
+-- said only to a player who had readied.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE"] = "Draft rules: {1_Rules}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS"] = {
+    one = "{1_Count} ban per player",
+    other = "{1_Count} bans per player",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS"] = {
+    one = "{1_Count} pick per player",
+    other = "{1_Count} picks per player",
+}
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS"] = "{1_Count} guaranteed coastal"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULES_INLANDS"] = "{1_Count} guaranteed inland"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED"] = "Your bans are no longer ready"
+-- Heard by the host when a player hands over their bans, or takes them back.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN"] = "{1_Name} let you choose their bans"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK"] = "{1_Name} took their bans back"
+-- The hand just dealt, or the one a swap just delivered.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT"] = "Your draft: {1_Civs}"
 -- Draft tab. The phase line leads the tab; the readiness list answers who the
 -- lobby is waiting for.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING"] =

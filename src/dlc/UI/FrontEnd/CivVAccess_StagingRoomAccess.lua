@@ -124,6 +124,22 @@ local function civEntryAnnounce(inst)
     return civRichLabelForID(inst.Button:GetVoid2())
 end
 
+-- Which civ entry is the committed one, by the same Void2 civID. The text
+-- match the framework falls back on finds nothing here: the selected civ is
+-- shown in a sibling CivLabel, not on the pulldown's own button, and LekMod's
+-- entries carry their name on a CivName label with the Button text blank.
+-- Without this the sub-menu opens on Random every time.
+local function civEntrySelectedFor(playerIDFn)
+    return function(inst)
+        local civID = inst.Button:GetVoid2()
+        local current = PreGame.GetCivilization(playerIDFn())
+        if current == nil or current < 0 then
+            return civID == nil or civID == -1
+        end
+        return civID == current
+    end
+end
+
 -- Mirrors Community Patch's unmet-civ concealment in UpdatePlayer: with
 -- the KEEP_UNMET_PLAYERS_UNKNOWN game option, civs outside the local
 -- player's team are hidden -- in a loaded game until actually met
@@ -436,6 +452,9 @@ local function slotChildren(slotIndex, instance)
                 return labelText(instance.CivLabel)
             end,
             entryAnnounceFn = civEntryAnnounce,
+            entrySelectedFn = civEntrySelectedFor(function()
+                return instance.playerID
+            end),
         }),
         BaseMenuItems.Pulldown({
             control = instance.TeamPulldown,
@@ -467,12 +486,39 @@ local function slotChildren(slotIndex, instance)
                 openKickConfirm(instance.playerID, nickName(instance.playerID) or Text.key("TXT_KEY_PLAYER_TYPE_HUMAN"))
             end,
         }),
+        -- The base seat swap. The label carries which way a pending wish
+        -- points, since the screen shows that only as a glow. A press against
+        -- a human seat is a request the other player has to answer, so it is
+        -- spoken as one; against an empty or AI seat the engine moves you at
+        -- once, and the move is spoken when the roster refresh reports it.
         BaseMenuItems.Button({
             control = instance.SwapButton,
-            labelText = Text.key("TXT_KEY_MP_SWAP_BUTTON_TT"),
+            labelFn = function()
+                local me = Matchmaking.GetLocalID()
+                local pid = instance.playerID
+                if desiredSlotOf(pid) == me then
+                    return Text.format("TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_ACCEPT", nickName(pid) or slotSummary(pid))
+                end
+                if desiredSlotOf(me) == pid then
+                    return Text.format(
+                        "TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_PENDING",
+                        nickName(pid) or slotSummary(pid)
+                    )
+                end
+                return Text.key("TXT_KEY_MP_SWAP_BUTTON_TT")
+            end,
             activate = function()
-                if type(OnSwapPlayer) == "function" then
-                    OnSwapPlayer(slotIndex)
+                if type(OnSwapPlayer) ~= "function" then
+                    return
+                end
+                local pid = instance.playerID
+                local me = Matchmaking.GetLocalID()
+                local mutual = PreGame.GetSlotStatus(pid) == SlotStatus.SS_TAKEN and desiredSlotOf(pid) ~= me
+                OnSwapPlayer(slotIndex)
+                if mutual then
+                    SpeechPipeline.speakQueued(
+                        Text.format("TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_REQUESTED", nickName(pid) or slotSummary(pid))
+                    )
                 end
             end,
         }),
@@ -507,6 +553,7 @@ local function localSeatChildren()
                 return labelText(Controls.CivLabel)
             end,
             entryAnnounceFn = civEntryAnnounce,
+            entrySelectedFn = civEntrySelectedFor(Matchmaking.GetLocalID),
         }),
         BaseMenuItems.Pulldown({
             controlName = "TeamPulldown",
@@ -656,6 +703,24 @@ local function playersItems()
             end
         end,
     })
+    -- LekMod adds a Civilopedia button to the lobby (its draft is where a
+    -- player weighs civs they may never have played). It queues the same
+    -- front-end pedia the Other menu opens, over the lobby, and LekMod's
+    -- own handler marks the return so the lobby does not rebuild itself.
+    -- The control does not exist off LekMod, so the item is built only when
+    -- it does rather than logging a missing control on every vanilla lobby.
+    if Controls.CivilopediaButton ~= nil then
+        items[#items + 1] = BaseMenuItems.Button({
+            controlName = "CivilopediaButton",
+            textKey = "TXT_KEY_CIVILOPEDIA",
+            tooltipKey = "TXT_KEY_CIVILOPEDIA_TOOLTIP",
+            activate = function()
+                if type(OnCivilopediaButton) == "function" then
+                    OnCivilopediaButton()
+                end
+            end,
+        })
+    end
     -- Dedicated-server / observer mode only (IsInGameScreen): base swaps Back
     -- for Exit and adds the Strategic View toggle, gating both via control
     -- visibility. Our items inherit that gating, so they are non-navigable in
@@ -815,6 +880,22 @@ end
 
 -- Delta tracking ------------------------------------------------------
 
+-- The seat a player has asked to move into, or nil. This is the whole state
+-- of the base game's seat swap: a press on another seat's swap button records
+-- a wish against that seat, an empty or AI seat is granted at once, and a
+-- human-occupied one completes when both players wish for each other's seat.
+-- The screen shows a wish as a glow on the target's swap button.
+local function desiredSlotOf(playerID)
+    if type(Network.GetPlayerDesiredSlot) ~= "function" then
+        return nil
+    end
+    local ok, slot = pcall(Network.GetPlayerDesiredSlot, playerID)
+    if not ok or slot == nil or slot < 0 then
+        return nil
+    end
+    return slot
+end
+
 -- Per-playerID snapshot. _snapshot is kept on civvaccess_shared so that a
 -- Context re-instantiation during the session doesn't start speaking
 -- "Alice: Egypt" for state that was already true.
@@ -827,15 +908,24 @@ local function snapshotFor(playerID)
         ready = PreGame.IsReady(playerID),
         nick = PreGame.GetNickName(playerID),
         connected = Network.IsPlayerConnected(playerID),
+        desired = desiredSlotOf(playerID),
     }
 end
 
-local function takeSnapshot()
+-- Every seat, plus which seat is ours: a completed seat swap is the one
+-- lobby change that moves the local player's ID, and it is announced from
+-- that move rather than from the two seats' contents changing.
+local function buildSnapshot()
     local snap = {}
     for pid = 0, MAX_SLOTS - 1 do
         snap[pid] = snapshotFor(pid)
     end
-    civvaccess_shared._stagingSnapshot = snap
+    snap._localID = Matchmaking.GetLocalID()
+    return snap
+end
+
+local function takeSnapshot()
+    civvaccess_shared._stagingSnapshot = buildSnapshot()
 end
 
 local function displayName(playerID, snap)
@@ -875,19 +965,36 @@ end
 -- silently clears your ready flag, and you have to be told. A user-initiated
 -- un-ready is announced by the checkbox itself, so a one-shot flag suppresses
 -- the duplicate.
+--
+-- A completed seat swap moves the local player's ID. It is spoken as one
+-- line naming the seat you now hold, and the two seats that traded contents
+-- (yours before and yours after) skip their per-field deltas that pass: read
+-- as changes they would describe your own arrival as another player's
+-- civ and name changing. A seat-swap request aimed at you is spoken when it
+-- lands; one you sent was spoken at the keypress, and one between two other
+-- players is theirs.
 local function announceDeltas(newSnap, oldSnap)
     if oldSnap == nil then
         return
     end
     local localID = Matchmaking.GetLocalID()
     local selfToggledReady = civvaccess_shared._stagingLocalReadySelfToggle
+    local swappedFrom
+    if oldSnap._localID ~= nil and oldSnap._localID ~= localID then
+        swappedFrom = oldSnap._localID
+        SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAPPED", slotSummary(localID)))
+    end
     for pid = 0, MAX_SLOTS - 1 do
         local o = oldSnap[pid]
         local n = newSnap[pid]
-        if o ~= nil and n ~= nil then
+        if o ~= nil and n ~= nil and pid ~= swappedFrom and not (swappedFrom ~= nil and pid == localID) then
             local name = displayName(pid, n)
             local joined = pid ~= localID and not o.connected and n.connected and isPresenceSlot(n.status)
             local left = pid ~= localID and o.connected and not n.connected
+
+            if pid ~= localID and n.desired == localID and o.desired ~= localID then
+                SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_SEAT_SWAP_WANTED", name))
+            end
 
             if joined then
                 SpeechPipeline.speakQueued(Text.format("TXT_KEY_CIVVACCESS_STAGING_JOINED", name))
@@ -957,11 +1064,20 @@ end
 local _lastSpokenCountdownInt
 local _countdownExpired = false
 
+-- File-scope guard, not a civvaccess_shared flag: the Context re-initialises
+-- when the allowed-DLC set changes between lobbies, and the fresh chunk
+-- defines new StartCountdown / StopCountdown / OnStagingUpdate globals. A
+-- shared flag would survive that and leave them unwrapped: no countdown
+-- speech, and on LekMod no TickPump pumping either, since that rides the
+-- wrapped update. This local resets with the chunk, so each Context wraps
+-- its own globals exactly once.
+local countdownWrapped = false
+
 local function wrapCountdown()
-    if civvaccess_shared._stagingCountdownWrapped then
+    if countdownWrapped then
         return
     end
-    civvaccess_shared._stagingCountdownWrapped = true
+    countdownWrapped = true
 
     local baseStartCountdown = StartCountdown
     local baseStopCountdown = StopCountdown
@@ -974,7 +1090,7 @@ local function wrapCountdown()
         or type(baseOnUpdate) ~= "function"
     then
         Log.warn("StagingRoomAccess: countdown globals missing; skipping wrap")
-        civvaccess_shared._stagingCountdownWrapped = nil
+        countdownWrapped = false
         return
     end
 
@@ -1244,12 +1360,13 @@ local function refreshAndAnnounce()
         return
     end
     local old = civvaccess_shared._stagingSnapshot
-    local new = {}
-    for pid = 0, MAX_SLOTS - 1 do
-        new[pid] = snapshotFor(pid)
-    end
+    local new = buildSnapshot()
     announceDeltas(new, old)
     civvaccess_shared._stagingSnapshot = new
+    -- LekMod's draft also moves on these events: the host's settings
+    -- broadcast carries the rules and ready bits, which the body pulls back
+    -- into its draft state on PreGameDirty with no chat packet involved.
+    LekModDraft.announceChanges()
 end
 
 local function onChat(fromPlayer, toPlayer, text, eTargetType)
@@ -1427,6 +1544,7 @@ local function wrappedShowHide(bIsHide, bIsInit)
         closeChatPanel(false)
         closeHotJoinPanel(false)
         closeLeaveConfirm(false)
+        LekModDraft.closePanels()
         return
     end
     installListeners()
@@ -1447,6 +1565,10 @@ local function wrappedShowHide(bIsHide, bIsInit)
     -- Re-checked on every show because the body redefines that global whenever
     -- the Context re-initialises.
     LekModDraft.installAnnounce()
+    -- Draft_Init has just restored whatever a loaded lobby save carried;
+    -- that is the starting state, not news. What the host replays after
+    -- this (other players' readiness, the rules) is.
+    LekModDraft.resetSnapshot()
     -- Base ShowHideHandler ran CreateSlots on first init and RefreshPlayerList
     -- every show, so the shared slot table is populated by the time we build
     -- items here.

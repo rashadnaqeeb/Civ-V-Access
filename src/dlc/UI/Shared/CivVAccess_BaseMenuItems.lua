@@ -549,8 +549,11 @@ function BaseMenuItems.Checkbox(spec)
         kind = "checkbox",
         _control = resolveControl(spec, "Checkbox"),
         _activateCallback = spec.activateCallback,
+        -- A live userdata gate, for callers that resolved the container
+        -- themselves (dynamic rows whose gate is looked up per entry).
+        _visibilityControl = spec.visibilityControl,
     }
-    if spec.visibilityControlName ~= nil then
+    if item._visibilityControl == nil and spec.visibilityControlName ~= nil then
         item.visibilityControlName = spec.visibilityControlName
         item._visibilityControl = Controls[spec.visibilityControlName]
         if item._visibilityControl == nil then
@@ -1059,11 +1062,23 @@ function BaseMenuItems.Pulldown(spec)
         spec.onSelected == nil or type(spec.onSelected) == "function",
         "Pulldown.onSelected must be a function if provided"
     )
+    Log.check(
+        spec.entrySelectedFn == nil or type(spec.entrySelectedFn) == "function",
+        "Pulldown.entrySelectedFn must be a function if provided"
+    )
     local item = {
         kind = "pulldown",
         _control = resolveControl(spec, "Pulldown"),
         _valueFn = spec.valueFn,
         _entryAnnounceFn = spec.entryAnnounceFn,
+        -- Optional (inst, index) -> bool naming the committed entry. The
+        -- default matches each entry's button text against the pulldown's
+        -- own label, which finds nothing when the entry text lives on a
+        -- sibling control (LekMod's civ entries name the civ on CivName and
+        -- leave Button blank) or when the value sits in a separate label
+        -- (the staging room's civ / team / slot pulldowns). With it the
+        -- sub-menu opens on the committed entry instead of the first.
+        _entrySelectedFn = spec.entrySelectedFn,
         _onSelected = spec.onSelected,
     }
     if spec.visibilityControlName ~= nil then
@@ -1108,6 +1123,7 @@ function BaseMenuItems.Pulldown(spec)
         local initialIndex
         local fallbackUsed = 0
         local entryAnnounceFn = self._entryAnnounceFn
+        local entrySelectedFn = self._entrySelectedFn
         local onSelected = self._onSelected
         for i, inst in ipairs(entries) do
             local cb = topCallback
@@ -1126,16 +1142,28 @@ function BaseMenuItems.Pulldown(spec)
                 end
             end
             local isSelected = false
-            if currentText ~= nil then
+            if entrySelectedFn ~= nil then
+                local ok, sel = pcall(entrySelectedFn, inst, i)
+                if not ok then
+                    Log.warn(
+                        "BaseMenu pulldown '"
+                            .. tostring(self.controlName)
+                            .. "' entrySelectedFn failed: "
+                            .. tostring(sel)
+                    )
+                elseif sel == true then
+                    isSelected = true
+                end
+            elseif currentText ~= nil then
                 local ok, t = pcall(function()
                     return inst.Button:GetText()
                 end)
                 if ok and t ~= nil and tostring(t) == currentText then
                     isSelected = true
-                    if initialIndex == nil then
-                        initialIndex = i
-                    end
                 end
+            end
+            if isSelected and initialIndex == nil then
+                initialIndex = i
             end
             childItems[i] =
                 buildChoice(inst.Button, cb, useVoids, self.controlName, announceOverride, isSelected, onSelected)

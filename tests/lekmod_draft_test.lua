@@ -5,7 +5,7 @@
 --   * inUse, which keeps a lobby that ignores the draft from hearing about it
 --   * slotStatus, the ban-phase tail on a seat summary
 --   * the ban and draft summaries a player polls
---   * applyBan's rejection notice, the one place LekMod fails silently
+--   * commitBan's refused-civ return, the one place LekMod fails silently
 --   * the protocol announcements, which are the only signal a remote change
 --     gives at all
 --
@@ -43,6 +43,9 @@ local function setup()
     end
     Text.format = function(k, a, b)
         return k .. "|" .. tostring(a) .. (b ~= nil and ("|" .. tostring(b)) or "")
+    end
+    Text.formatPlural = function(k, _count, ...)
+        return Text.format(k, ...)
     end
 
     SpeechPipeline = {
@@ -102,7 +105,7 @@ local function setup()
     end
 
     -- The packets our announcements diff across, applied as LekMod applies
-    -- them. Only the three ops the layer reacts to are modelled.
+    -- them. Only the ops the layer reacts to are modelled.
     Draft_HandleProtocol = function(_fromPlayer, text)
         local op, rest = string.match(text, "^#LDRAFT#([^|]+)|(.*)$")
         if op == "BANREADY" then
@@ -116,6 +119,33 @@ local function setup()
             local a, b = string.match(rest, "^(%d+)|(%d+)|")
             g_DraftSwapDesire[tonumber(a)] = nil
             g_DraftSwapDesire[tonumber(b)] = nil
+        elseif op == "RULES" then
+            local bans, picks, coast, inland, vanilla, seasonal =
+                string.match(rest, "^(%-?%d+)|(%-?%d+)|(%-?%d+)|(%-?%d+)|(%d+)|(%d+)$")
+            g_DraftRules = {
+                bansPerPlayer = tonumber(bans),
+                picksPerPlayer = tonumber(picks),
+                guaranteedCoastals = tonumber(coast),
+                guaranteedInlands = tonumber(inland),
+                vanillaOnly = tonumber(vanilla) == 1,
+                seasonalBans = tonumber(seasonal) == 1,
+            }
+            g_DraftBanReady = {}
+        elseif op == "BANCTRL" then
+            local pid, flag = string.match(rest, "^(%d+)|(%d+)$")
+            g_DraftBanHostControl[tonumber(pid)] = tonumber(flag) == 1
+        elseif op == "DRAFT" then
+            local pid, list = string.match(rest, "^(%d+)|(.*)$")
+            local pool = {}
+            for id in string.gmatch(list, "%d+") do
+                pool[#pool + 1] = tonumber(id)
+            end
+            pools[tonumber(pid)] = pool
+        elseif op == "LOCK" then
+            g_DraftLocked = string.sub(rest, 1, 1) == "1"
+        elseif op == "RESET" then
+            g_DraftLocked = false
+            pools = {}
         end
     end
 
@@ -286,13 +316,13 @@ function M.test_hand_summary_is_nil_until_a_draft_is_dealt()
     T.eq(LekModDraft._handSummary(0), "Rome, Korea, Zulu")
 end
 
--- Applying a ban -------------------------------------------------------
+-- Committing a ban -----------------------------------------------------
 
 -- LekMod names the slot from g_PendingBan, the slot its own picker was opened
 -- for, so our commit has to set it the way a click would.
-function M.test_apply_ban_names_the_slot_it_commits()
+function M.test_commit_ban_names_the_slot_it_commits()
     setup()
-    LekModDraft._applyBan(0, 2, 3)
+    LekModDraft._commitBan(0, 2, 3)
     T.eq(#applied, 1)
     T.eq(applied[1].playerID, 0)
     T.eq(applied[1].slotIndex, 2)
@@ -300,16 +330,17 @@ function M.test_apply_ban_names_the_slot_it_commits()
     T.eq(g_PendingBan, nil, "pending slot cleared after the commit")
 end
 
-function M.test_apply_ban_is_quiet_when_it_takes()
+function M.test_commit_ban_reports_nothing_when_it_takes()
     setup()
-    LekModDraft._applyBan(0, 1, 1)
+    T.eq(LekModDraft._commitBan(0, 1, 1), nil)
     T.eq(#spoken, 0)
 end
 
 -- When another player claimed the civ first, LekMod empties the slot instead
 -- of setting it and says nothing at all -- the player would be left with a
--- ban that silently went missing.
-function M.test_apply_ban_reports_a_civ_someone_else_banned()
+-- ban that silently went missing. The commit hands the refused civ back for
+-- the chooser to speak once the slot has re-announced.
+function M.test_commit_ban_reports_a_civ_someone_else_banned()
     setup()
     Draft_ApplyBanSelection = function(civID)
         local pending = g_PendingBan
@@ -318,23 +349,20 @@ function M.test_apply_ban_reports_a_civ_someone_else_banned()
         g_DraftBans[pending.playerID][pending.slotIndex] = -1
         applied[#applied + 1] = { civID = civID }
     end
-    LekModDraft._applyBan(0, 1, 1)
-    T.eq(#spoken, 1)
-    T.eq(spoken[1], "TXT_KEY_CIVVACCESS_DRAFT_BAN_TAKEN|Rome")
+    T.eq(LekModDraft._commitBan(0, 1, 1), 1, "the refused civ comes back")
 end
 
 -- Clearing a slot is a commit of -1, and lands the slot empty on purpose.
 function M.test_clearing_a_ban_is_not_reported_as_taken()
     setup()
     g_DraftBans[0] = { 1, -1 }
-    LekModDraft._applyBan(0, 1, -1)
-    T.eq(#spoken, 0)
+    T.eq(LekModDraft._commitBan(0, 1, -1), nil)
 end
 
-function M.test_apply_ban_refuses_a_locked_slot()
+function M.test_commit_ban_refuses_a_locked_slot()
     setup()
     g_DraftBanReady[0] = true
-    LekModDraft._applyBan(0, 1, 1)
+    LekModDraft._commitBan(0, 1, 1)
     T.eq(#applied, 0, "no commit while your bans are readied")
 end
 
@@ -436,6 +464,132 @@ function M.test_a_redefined_handler_is_wrapped_again()
     LekModDraft.installAnnounce()
     Draft_HandleProtocol(1, "#LDRAFT#SWAPREQ|1|0")
     T.eq(spoken[1], "TXT_KEY_CIVVACCESS_DRAFT_SWAP_WANTED|Alice")
+end
+
+-- Two sync paths ---------------------------------------------------------
+
+-- The host's settings broadcast can carry a change to a client before, or
+-- instead of, the chat packet. The lobby refresh calls announceChanges after
+-- the body has pulled that state back; the change speaks once, from
+-- whichever path saw it first.
+function M.test_a_change_seen_on_lobby_refresh_speaks_once()
+    setup()
+    LekModDraft.installAnnounce()
+    g_DraftBanReady[1] = true
+    LekModDraft.announceChanges()
+    T.eq(spoken[1], "TXT_KEY_CIVVACCESS_DRAFT_READY_ANNOUNCE|Alice")
+    Draft_HandleProtocol(1, "#LDRAFT#BANREADY|1|1")
+    LekModDraft.announceChanges()
+    T.eq(#spoken, 1, "the packet and the next refresh find nothing new")
+end
+
+-- A restored lobby save carries every flag from the earlier session; what
+-- it restores is the starting state, not news.
+function M.test_reset_snapshot_makes_the_current_state_old()
+    setup()
+    g_DraftBanReady[1] = true
+    g_DraftSwapDesire[2] = 0
+    LekModDraft.resetSnapshot()
+    LekModDraft.announceChanges()
+    T.eq(#spoken, 0)
+end
+
+-- Rules -------------------------------------------------------------------
+
+local function asClient()
+    Matchmaking.IsHost = function()
+        return false
+    end
+end
+
+-- The rules reach a client with no announcement from LekMod, and this is
+-- also how a joining player first hears what the lobby's rules are.
+function M.test_a_client_hears_the_rules_when_they_arrive()
+    setup()
+    asClient()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#RULES|3|4|1|-1|1|0")
+    T.eq(#spoken, 1)
+    T.eq(
+        spoken[1],
+        "TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE|"
+            .. "TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS|3, TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS|4, "
+            .. "TXT_KEY_CIVVACCESS_DRAFT_RULES_COASTALS|1, TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"
+    )
+end
+
+-- A rules change clears everyone's ban readiness on the way. A client who
+-- had readied is told; one who had not has lost nothing.
+function M.test_a_rules_change_tells_a_readied_client_they_are_no_longer_ready()
+    setup()
+    asClient()
+    g_DraftBanReady[0] = true
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#RULES|3|3|-1|-1|0|0")
+    T.eq(#spoken, 2)
+    T.eq(spoken[2], "TXT_KEY_CIVVACCESS_DRAFT_READY_CLEARED")
+end
+
+-- The host is the only one who can change the rules, and hears each edit at
+-- the keypress; the echo of their own packet must not read it all back.
+function M.test_the_host_does_not_hear_their_own_rules_echo()
+    setup()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(0, "#LDRAFT#RULES|3|4|-1|-1|0|0")
+    T.eq(#spoken, 0)
+end
+
+-- Hands --------------------------------------------------------------------
+
+-- Being dealt a hand is the moment to act on, and LekMod's "draft created"
+-- chat line does not say what the hand is. The hand is spoken when the lock
+-- packet lands, after every DRAFT packet has filled the pools.
+function M.test_a_client_hears_their_hand_when_the_draft_locks()
+    setup()
+    asClient()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#DRAFT|0|1,3")
+    T.eq(#spoken, 0, "a pool is not a hand until the draft locks")
+    Draft_HandleProtocol(1, "#LDRAFT#DRAFT|1|2")
+    Draft_HandleProtocol(1, "#LDRAFT#LOCK|1")
+    T.eq(spoken[1], "TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT|Rome, Zulu")
+    Draft_HandleProtocol(1, "#LDRAFT#LOCK|1")
+    T.eq(#spoken, 1, "a repeated lock is not a new hand")
+end
+
+-- A swap delivers a different hand; it follows the swapped-with line.
+function M.test_a_swap_reads_the_hand_it_delivered()
+    setup()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#DRAFT|0|1")
+    Draft_HandleProtocol(1, "#LDRAFT#DRAFT|1|2,3")
+    Draft_HandleProtocol(1, "#LDRAFT#LOCK|1")
+    spoken = {}
+    pools[0], pools[1] = pools[1], pools[0]
+    Draft_HandleProtocol(1, "#LDRAFT#SWAP|0|1|2,3|1")
+    T.eq(spoken[1], "TXT_KEY_CIVVACCESS_DRAFT_SWAP_DONE|Alice")
+    T.eq(spoken[2], "TXT_KEY_CIVVACCESS_DRAFT_HAND_DEALT|Korea, Zulu")
+end
+
+-- Ban control ------------------------------------------------------------
+
+-- A player handing the host their bans asks the host to act; the screen
+-- shows it as a status label in that player's ban box.
+function M.test_the_host_hears_a_player_hand_over_their_bans()
+    setup()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#BANCTRL|1|1")
+    T.eq(spoken[1], "TXT_KEY_CIVVACCESS_DRAFT_HOST_GIVEN|Alice")
+    Draft_HandleProtocol(1, "#LDRAFT#BANCTRL|1|0")
+    T.eq(spoken[2], "TXT_KEY_CIVVACCESS_DRAFT_HOST_TAKEN_BACK|Alice")
+end
+
+function M.test_other_players_do_not_hear_ban_control_changes()
+    setup()
+    asClient()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#BANCTRL|1|1")
+    T.eq(#spoken, 0)
 end
 
 return M
