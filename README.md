@@ -352,3 +352,15 @@ If you hit a bug or a crash, please zip the log folder at `%USERPROFILE%\Documen
 - **Austin Hicks (ahicks)** — My mods continue to be inspired by the example of Factorio Access. His new project, Seentell, helped provide the descriptions for the opening cinematic.
 - **Brad Renshaw (chaosbringer216)** — For suffering through my endless complaining about mod-related problems and somehow parsing them into good ideas. And also for telling me to make everything a table. He was right!
 - **Keltosh_** — Kind enough to teach me about audio and sound design while tolerating my horrible French.
+
+## License
+
+Copyright (C) 2026 Rashad Naqeeb
+
+This mod is licensed under the GNU General Public License version 3; see [LICENSE](LICENSE). You are free to use, study, change and share it, but anything you distribute that is based on it must be released under the same license, with its full source code.
+
+Additional permission under GNU GPL version 3 section 7: if you modify this program, or any covered work, by linking or combining it with Sid Meier's Civilization V (or a modified version of it), including its engine, libraries and game core DLL, containing parts covered by the terms of their own licenses, the licensors of this program grant you additional permission to convey the resulting work.
+
+Files in this repo that are modified copies of Civilization V's own UI files, and the game core DLL source under `src/engine/`, are based on code by Firaxis Games and remain under Firaxis's terms. The GPL covers this project's own code.
+
+Bundled third-party components keep their own licenses.
