@@ -22,6 +22,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+# luacheck cannot find .luacheckrc from a UNC root; rerun from a mapped drive
+# letter (see tools/local-drive.ps1).
+. (Join-Path $root "tools\local-drive.ps1")
+if (Test-UncRoot $root) {
+    exit (Invoke-FromMappedDrive $root "lint.ps1" @{ Fix = $Fix; Paths = $Paths })
+}
+
 Set-Location $root
 
 $luacheck = Join-Path $root "tools\bin\luacheck.exe"

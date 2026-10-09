@@ -3,6 +3,12 @@
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+# A UNC root breaks the cmd.exe file walk in text_rule_test; rerun from a
+# mapped drive letter (see tools/local-drive.ps1).
+. (Join-Path $root "tools\local-drive.ps1")
+if (Test-UncRoot $root) { exit (Invoke-FromMappedDrive $root "test.ps1") }
+
 Set-Location $root
 
 $lua = Join-Path $root "third_party\lua51\lua5.1.exe"
