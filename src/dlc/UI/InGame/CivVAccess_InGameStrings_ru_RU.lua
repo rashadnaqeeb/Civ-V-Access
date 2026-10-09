@@ -1146,6 +1146,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "Открыть экран демографии"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Открыть совет советников"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR"] = "Панель запуска"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_ITEM"] = "{1_Screen}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC"] =
+    "Открыть панель запуска, список всех экранов с их клавишами. Экраны, требующие вашего внимания, идут первыми"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_GOLD"] =
     "золотой кубок, рекомендация советника"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_TROPHY_SILVER"] =

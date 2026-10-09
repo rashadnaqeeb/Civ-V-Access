@@ -27,6 +27,7 @@ Bug fixes:
 - Units keep their squad when upgraded by an ancient ruin or replaced by a unique unit.
 - Squad moves now place units around the whole squad, and setting up an escort no longer fortifies or sleeps the wrong unit.
 - Adding a unit to a squad with Alt+Right now focuses that unit, and the squad editor drops removed units from its list.
+-all of the above are bugs in the vox populi code that I attempted to fix, so mileage may vary about how well it all works.
 
 ## [2.3.5] - 2026-09-07
 

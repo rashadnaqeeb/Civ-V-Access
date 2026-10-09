@@ -938,6 +938,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "統計画面を開く"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "アドバイザーの助言を開く"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR"] = "ランチバー"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_ITEM"] = "{1_Screen}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC"] =
+    "ランチバーを開く. 全画面の一覧とそのキーを表示. 対応が必要な画面が先頭に並ぶ"
 
 -- City view
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "都市"

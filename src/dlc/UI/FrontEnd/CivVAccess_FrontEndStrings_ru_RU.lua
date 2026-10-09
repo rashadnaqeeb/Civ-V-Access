@@ -158,10 +158,12 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "Сколько цивилизаций, не отмеченных LekMod как прибрежные, раздаётся каждому игроку"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Только базовые цивилизации"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] =
-    "Исключить сезонные цивилизации"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Исключает цивилизации, помеченные LekMod как сезонные"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] =
+    "Только цивилизации NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Банит все цивилизации, которых нет в списке NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] =
+    "Цивилизации турнира: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Создать драфт"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] =
     "Раздать всем игрокам их цивилизации"

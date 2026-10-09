@@ -886,6 +886,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "인구 통계 화면 열기"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "보좌관 조언 열기"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR"] = "실행 막대"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_ITEM"] = "{1_Screen}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC"] =
+    "실행 막대 열기, 모든 화면과 해당 키 목록. 주의가 필요한 화면이 먼저 나옵니다"
 
 -- CityView hub
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "도시"

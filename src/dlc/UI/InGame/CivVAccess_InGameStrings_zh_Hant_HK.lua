@@ -857,6 +857,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "開啟人口統計資料畫面"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "開啟顧問建議"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR"] = "啟動列"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_ITEM"] = "{1_Screen}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC"] =
+    "開啟啟動列, 列出所有畫面及其按鍵. 需要您留意的畫面排在最前"
 
 -- CityView hub
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "城市"

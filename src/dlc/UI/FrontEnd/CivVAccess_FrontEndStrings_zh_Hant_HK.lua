@@ -124,8 +124,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "保證內陸文�
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "每位玩家獲發的文明中, 未被 LekMod 標記為沿海的數量"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "僅限原版文明"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "排除季節性文明"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] = "排除 LekMod 標記為季節性的文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "僅限 NQ Tournament 11 文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] = "禁用所有不在 NQ Tournament 11 名單上的文明"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "錦標賽文明: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "創建選秀"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "為每位玩家發放文明"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "重置選秀"

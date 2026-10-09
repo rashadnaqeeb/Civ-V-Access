@@ -131,9 +131,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Civilisations int
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "Combien de civilisations non marquées comme côtières par LekMod sont distribuées à chaque joueur"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Civilisations de base uniquement"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Exclure les civilisations saisonnières"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Laisse de côté les civilisations que LekMod marque comme saisonnières"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "Civilisations du NQ Tournament 11 uniquement"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Bannit toutes les civilisations absentes de la liste du NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "Civilisations du tournoi : {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Créer le tirage"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "Distribuer à chaque joueur ses civilisations"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Réinitialiser le tirage"

@@ -1060,6 +1060,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "Demografien öffnen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Beraterrat öffnen"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR"] = "Startleiste"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_ITEM"] = "{1_Screen}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC"] =
+    "Startleiste öffnen, eine Liste aller Bildschirme mit ihrer Taste; Bildschirme, die Eure Aufmerksamkeit brauchen, stehen zuerst"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_CITY_RAIL_CONNECTED"] = "Bahnverbindung"
 -- CityView hub.
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCREEN_CITY_VIEW"] = "Stadt"

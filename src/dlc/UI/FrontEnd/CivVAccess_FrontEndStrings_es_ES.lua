@@ -140,9 +140,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Civilizaciones in
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "Cuántas civilizaciones que LekMod no marca como costeras se reparten a cada jugador"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Solo civilizaciones originales"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Excluir civilizaciones estacionales"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Deja fuera las civilizaciones que LekMod marca como estacionales"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "Solo civilizaciones de NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Veta todas las civilizaciones que no están en la lista de NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "Civilizaciones del torneo: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Crear reparto"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "Repartir sus civilizaciones a cada jugador"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Reiniciar reparto"

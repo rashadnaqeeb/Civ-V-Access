@@ -121,9 +121,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Civiltà dell'ent
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "Quante civiltà non contrassegnate da LekMod come costiere riceve ogni giocatore"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Solo civiltà vanilla"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Escludi le civiltà stagionali"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Esclude le civiltà che LekMod contrassegna come stagionali"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "Solo civiltà di NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Banna ogni civiltà che non è nell'elenco di NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "Civiltà del torneo: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Crea il draft"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "Distribuisce a ogni giocatore le proprie civiltà"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Reimposta il draft"

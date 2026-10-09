@@ -131,9 +131,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Garantierte Binne
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "Wie viele Zivilisationen jeder Spieler erhält, die LekMod nicht als Küstenzivilisation markiert"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Nur Zivilisationen aus dem Grundspiel"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Saisonale Zivilisationen ausschließen"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Lässt die Zivilisationen aus, die LekMod als saisonal markiert"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "Nur Zivilisationen aus NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Bannt jede Zivilisation, die nicht auf der Liste von NQ Tournament 11 steht"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "Turnierzivilisationen: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Draft erstellen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "Allen Spielern ihre Zivilisationen austeilen"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Draft zurücksetzen"

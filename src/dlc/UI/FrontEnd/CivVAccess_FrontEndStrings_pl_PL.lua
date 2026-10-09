@@ -135,9 +135,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Gwarantowane cywi
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "Ile cywilizacji, których LekMod nie oznacza jako przybrzeżne, otrzymuje każdy gracz"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Tylko cywilizacje z gry podstawowej"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Wyklucz cywilizacje sezonowe"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Pomija cywilizacje oznaczone przez LekMod jako sezonowe"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "Tylko cywilizacje z NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Banuje każdą cywilizację, której nie ma na liście NQ Tournament 11"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "Cywilizacje turniejowe: {1_Civs}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE"] = "Utwórz draft"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_CREATE_TT"] = "Rozdaj każdemu graczowi jego cywilizacje"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RESET"] = "Zresetuj draft"

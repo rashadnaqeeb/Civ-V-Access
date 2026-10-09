@@ -991,6 +991,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_KEY_F9"] = "F9"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_FKEY_HELP_DESC_F9"] = "Apri la schermata demografica"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_KEY"] = "F10"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_ADVISOR_COUNSEL_HELP_DESC"] = "Apri i consigli del consigliere"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR"] = "Barra di avvio"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_ITEM"] = "{1_Screen}, {2_Key}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC"] =
+    "Apri la barra di avvio, un elenco di tutte le schermate con il loro tasto. Le schermate che richiedono la tua attenzione vengono per prime"
 -- CityView hub. Preamble is spoken on open (and via F1). Yield names lead
 -- each token so distinguishing information is at the front -- "food 3"
 -- not "3 food" -- per the concise-announcement rule.
