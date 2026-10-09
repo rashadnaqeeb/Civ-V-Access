@@ -391,6 +391,12 @@ function PickerReader.create()
                     -- semantics that don't apply there.
                     onAltLeft = config.readerOnAltLeft,
                     onAltRight = config.readerOnAltRight,
+                    -- Optional readerOnActivate hook: runs after the reader
+                    -- cursor resets to the first item and before the
+                    -- landing announcement, so a caller can seat the cursor
+                    -- elsewhere (Civilopedia's history back / forward
+                    -- restoring a remembered position).
+                    onActivate = config.readerOnActivate,
                 },
             },
             onEscape = function(handler)

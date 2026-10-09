@@ -186,7 +186,12 @@ local handler = session.install(ContextPtr, {
     pickerBuildSearchable = Civilopedia.buildFlatSearchable,
     readerOnAltLeft = Civilopedia.goBack,
     readerOnAltRight = Civilopedia.goForward,
+    readerOnActivate = Civilopedia.onReaderActivate,
     onShow = function(h)
+        -- Remembered reader positions last only while the pedia is open;
+        -- base keeps its history across a close, but every article starts
+        -- at its first line again after a reopen.
+        Civilopedia.forgetReaderPositions()
         -- Clear the pedia-transit flag set by an underlying screen's
         -- BaseMenu / BaseTable Ctrl+I binding. The flag stays armed only
         -- through the engine's queue-popup cascade (other-screen-hide

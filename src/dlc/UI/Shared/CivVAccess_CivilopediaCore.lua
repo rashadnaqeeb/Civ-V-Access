@@ -495,6 +495,60 @@ local function resolveRelationshipCategory(def, currentCat)
     return nil
 end
 
+-- Reader cursor memory for history back / forward. Each history entry
+-- (topic index into listOfTopicsViewed) remembers where the reader cursor
+-- sat when the user left it by following a link or stepping history, so
+-- Alt+Left back onto an article lands on the line they left rather than
+-- its first line. Leaving any other way (Ctrl+Up/Down, the picker) records
+-- nothing, and only a history step restores. The article ref
+-- is stored beside the index because a fresh pick after stepping back
+-- truncates forward history and reuses those topic slots for other
+-- articles. readerArticle is the history entry the reader tab is showing;
+-- it is nil while the reader shows a category intro, which never enters
+-- history, so the intro's cursor is not filed under whichever article
+-- preceded it. Everything here is wiped each time the pedia opens.
+local readerArticle = nil
+local readerPositions = {}
+local pendingReaderIndex = nil
+
+local function noteReaderArticle()
+    readerArticle = listOfTopicsViewed[currentTopic]
+end
+
+-- Called from the reader tab only (link follow, history step), so the
+-- level-1 cursor is the reader's; reader items are a flat list.
+local function rememberReaderPosition(handler)
+    if readerArticle == nil then
+        return
+    end
+    if listOfTopicsViewed[currentTopic] ~= readerArticle then
+        return
+    end
+    readerPositions[currentTopic] = { article = readerArticle, index = handler._indices[1] }
+end
+
+-- PickerReader readerOnActivate: seat the cursor a history step staged.
+-- The re-harvested article can come back shorter than when the position
+-- was recorded; the cursor then stays on the first line.
+function Civilopedia.onReaderActivate(handler)
+    local idx = pendingReaderIndex
+    pendingReaderIndex = nil
+    if idx == nil then
+        return
+    end
+    local item = handler.tabs[READER_TAB_IDX]._items[idx]
+    if item == nil or not item:isNavigable() then
+        return
+    end
+    handler.setIndex(idx)
+end
+
+function Civilopedia.forgetReaderPositions()
+    readerArticle = nil
+    readerPositions = {}
+    pendingReaderIndex = nil
+end
+
 -- Forward declaration: followLink closes over handler + target cat/id and
 -- rebuilds the reader in place. Defined below the scraper so the scraper
 -- can reference it without a cycle.
@@ -691,6 +745,7 @@ local function introEntry(entryFactory, cat, spec)
     local entrySpec = {
         id = tostring(cat) .. ":intro",
         buildReader = function(handler)
+            readerArticle = nil
             local fn = CivilopediaCategory and CivilopediaCategory[cat] and CivilopediaCategory[cat].DisplayHomePage
             if type(fn) == "function" then
                 local ok, err = pcall(fn)
@@ -1041,6 +1096,7 @@ local function harvestIntoReader(handler, cat, entryID)
     if type(handler.setPickerReaderSelection) == "function" then
         handler.setPickerReaderSelection(makeEntryID(cat, entryID))
     end
+    noteReaderArticle()
     local leaves = {}
     local ok, err = pcall(Civilopedia._harvestInto, leaves, handler, cat)
     if not ok then
@@ -1058,10 +1114,12 @@ end
 
 -- Shared tail of every in-reader navigation: harvest + setItems, then
 -- programmatic switchToTab(force=true) to re-announce even though the
--- reader is already the active tab.
+-- reader is already the active tab. A cursor restore staged by a history
+-- step applies to this open only.
 function Civilopedia.openArticle(handler, cat, entryID)
     harvestIntoReader(handler, cat, entryID)
     handler.switchToTab(READER_TAB_IDX)
+    pendingReaderIndex = nil
 end
 
 -- Staging variant used when the pedia is hidden and is about to be
@@ -1127,6 +1185,7 @@ end
 -- pushes the target onto the base pedia's history list (addToList=1) so
 -- subsequent Alt+Left can step back to the article the link was on.
 function followLink(handler, targetCat, targetID)
+    rememberReaderPosition(handler)
     selectArticle(targetCat, targetID, 1, "Civilopedia followLink")
     Civilopedia.openArticle(handler, targetCat, targetID)
 end
@@ -1137,7 +1196,8 @@ end
 -- addToList=0 (skip-add) to avoid polluting history with the navigation
 -- itself. Our picker-driven buildReader and link-follow paths both pass
 -- addToList=1, so history is populated automatically; these two functions
--- just walk the cursor and drive the re-harvest.
+-- just walk the cursor and drive the re-harvest, landing the reader on the
+-- line the user last left the target article at.
 --
 -- At the boundary (no-more-history either way) we speak a short "no
 -- previous / no next" message rather than staying silent: the user has
@@ -1160,7 +1220,12 @@ local function stepHistory(handler, direction, label, boundaryKey)
         SpeechPipeline.speakInterrupt(Text.key(boundaryKey))
         return
     end
+    rememberReaderPosition(handler)
     currentTopic = targetTopic
+    local saved = readerPositions[targetTopic]
+    if saved ~= nil and saved.article == article then
+        pendingReaderIndex = saved.index
+    end
     local cat = article.entryCategory
     SetSelectedCategory(cat)
     selectArticle(cat, article.entryID, 0, label)
@@ -1455,6 +1520,7 @@ end
 -- controls. Flat list, autoDrillToLevel = 1.
 function Civilopedia.buildReader(handler, category, entryID)
     selectArticle(category, entryID, 1, "Civilopedia buildReader")
+    noteReaderArticle()
 
     local leaves = {}
     Civilopedia._harvestInto(leaves, handler, category)

@@ -375,6 +375,9 @@ files["tests/"] = {
         -- the way PopulateList does so Civilopedia.findArticle has a corpus
         -- to resolve against.
         "searchableList", "searchableTextKeyList",
+        -- The pedia's category setter and a relationship InstanceManager;
+        -- the history suite stands in for the base pedia's article render.
+        "SetSelectedCategory", "g_UniqueUnitsManager",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
     -- setup helpers and per-test locals are often declared but only used

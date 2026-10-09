@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- After following a Civilopedia link, Alt+Left and Alt+Right return you to the line you left each article on, until you close the Civilopedia.
+
 ## [2.3.5] - 2026-09-07
 
 New Features and improvements:
