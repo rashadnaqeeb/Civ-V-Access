@@ -503,10 +503,9 @@ function New-CivVAccessModdedDlc {
 #
 # Lekmap ships from the LekMod clone's Lekmap/ sibling (deploy.ps1 and
 # package-release.ps1 both route through Install-CivVAccessLekmap) with one
-# anchored edit. Lekmap Pangaea v6.2 regenerates the whole map until it passes
-# its own spawn checks, up to 300 passes; with exactly six civs (the standard
-# LekMod lobby) its validation rejects most maps, so a launch can sit on the
-# loading screen for minutes, and a screen-reader user hears nothing that
+# anchored edit. Lekmap Pangaea v6.3 regenerates the whole map until it passes
+# its own spawn checks, up to 300 passes; its validation rejects most maps,
+# so a launch can sit on the loading screen for minutes, and a screen-reader user hears nothing that
 # tells a long regeneration from a hang. Add-CivVAccessLekmapProgressHook
 # splices into that script a guarded local function that calls the reporter
 # the accessibility DLC publishes on the proxy's cross-context
@@ -517,7 +516,7 @@ function New-CivVAccessModdedDlc {
 # map generation untouched. Speech never touches the map RNG, so peers that
 # each generate the map from the shared seed stay in sync.
 #
-# The edit is anchored on exact lines of the v6.2 script and throws when an
+# The edit is anchored on exact lines of the v6.3 script and throws when an
 # anchor is missing or ambiguous, so a LekMod re-pin that reshapes the script
 # fails the deploy loudly instead of silently dropping the progress speech.
 # lekmod-support.md's re-pin runbook covers re-anchoring. The clone itself is
@@ -526,9 +525,9 @@ function New-CivVAccessModdedDlc {
 function Add-CivVAccessLekmapProgressHook {
     param([Parameter(Mandatory)][string]$LekmapDir)
 
-    $script = Join-Path $LekmapDir 'LekmapPangaeaFractalv6.2.lua'
+    $script = Join-Path $LekmapDir 'LekmapPangaeaFractalv6.3.lua'
     if (-not (Test-Path $script)) {
-        throw "Lekmap Pangaea v6.2 script not found at $script. The Civ V Access map-generation progress hook is anchored on that script; if LekMod renamed or replaced it, re-anchor Add-CivVAccessLekmapProgressHook in tools/dlc-assembly.ps1 (see docs/llm-docs/lekmod-support.md)."
+        throw "Lekmap Pangaea v6.3 script not found at $script. The Civ V Access map-generation progress hook is anchored on that script; if LekMod renamed or replaced it, re-anchor Add-CivVAccessLekmapProgressHook in tools/dlc-assembly.ps1 (see docs/llm-docs/lekmod-support.md)."
     }
     $body = [System.IO.File]::ReadAllText($script)
     if ($body.Contains('CivVAccess_MapGen(')) {
@@ -573,13 +572,13 @@ end
     foreach ($e in $edits) {
         $count = [regex]::Matches($body, [regex]::Escape($e.Anchor)).Count
         if ($count -ne 1) {
-            throw "Civ V Access progress hook: the '$($e.Name)' anchor occurs $count times in $script (expected exactly once). LekMod changed Lekmap Pangaea v6.2; re-anchor Add-CivVAccessLekmapProgressHook in tools/dlc-assembly.ps1 (see docs/llm-docs/lekmod-support.md)."
+            throw "Civ V Access progress hook: the '$($e.Name)' anchor occurs $count times in $script (expected exactly once). LekMod changed Lekmap Pangaea v6.3; re-anchor Add-CivVAccessLekmapProgressHook in tools/dlc-assembly.ps1 (see docs/llm-docs/lekmod-support.md)."
         }
         $replacement = if ($e.Before) { $e.Before + $e.Anchor } else { $e.Anchor + $e.After }
         $body = $body.Replace($e.Anchor, $replacement)
     }
     [System.IO.File]::WriteAllText($script, $body, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "  Spliced the Civ V Access map-generation progress hook into LekmapPangaeaFractalv6.2.lua"
+    Write-Host "  Spliced the Civ V Access map-generation progress hook into LekmapPangaeaFractalv6.3.lua"
 }
 
 # Copy the Lekmap tree from the clone to its install / staging location

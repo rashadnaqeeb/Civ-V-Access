@@ -2,7 +2,7 @@
 --
 -- LekMod v35 added a draft to the multiplayer lobby: the host sets rules (bans
 -- and picks per player, guaranteed coastal and inland counts, vanilla-only,
--- seasonal exclusions), every player bans civilizations out of the shared
+-- a tournament civ list), every player bans civilizations out of the shared
 -- pool and readies, the host deals each participant a hand, and players pick
 -- their civ from that hand or swap whole hands with each other. On screen it
 -- is nothing but ban boxes, civ icons, and colour highlights.
@@ -306,9 +306,25 @@ end
 
 -- Ban editing ---------------------------------------------------------
 
--- The civs still available for one ban slot: everything playable except what
--- some player has already banned, minus this slot's own current pick, which
--- stays listed so it can be re-confirmed exactly as in LekMod's own picker.
+-- The civ IDs a set of draft rules still allows (vanilla-only, the tournament
+-- list), from LekMod's own filter so the two can't disagree. Nil means no
+-- filter: the rules allow every playable civ, or the drop predates the filter.
+local function rulesAllowSet(rules)
+    if type(LekmodDrafter) ~= "table" or type(LekmodDrafter.RulesAllowSet) ~= "function" then
+        return nil
+    end
+    local ok, result = pcall(LekmodDrafter.RulesAllowSet, rules)
+    if not ok then
+        Log.error("LekModDraft: LekmodDrafter.RulesAllowSet failed: " .. tostring(result))
+        return nil
+    end
+    return result
+end
+
+-- The civs still available for one ban slot: everything the rules allow
+-- except what some player has already banned, minus this slot's own current
+-- pick, which stays listed so it can be re-confirmed exactly as in LekMod's
+-- own picker.
 local function availableBanChoices(playerID, slotIndex)
     local taken = {}
     if type(Draft_GetTakenBans) == "function" then
@@ -319,9 +335,10 @@ local function availableBanChoices(playerID, slotIndex)
             Log.error("LekModDraft: Draft_GetTakenBans failed: " .. tostring(result))
         end
     end
+    local allow = rulesAllowSet(g_DraftRules)
     local rows = {}
     for _, row in ipairs(CivDetails.playableRows()) do
-        if taken[row.ID] == nil then
+        if taken[row.ID] == nil and (allow == nil or allow[row.ID]) then
             rows[#rows + 1] = row
         end
     end
@@ -676,6 +693,27 @@ local function phaseText()
     return Text.key("TXT_KEY_CIVVACCESS_DRAFT_PHASE_BANNING")
 end
 
+-- The civs the tournament rule keeps, which LekMod lists on screen under the
+-- checkbox. Asked of LekMod's filter with that rule alone, so the list is the
+-- one the rule would apply. Nil on a drop without the tournament list.
+local function tournamentCivsText()
+    if type(LekmodDrafter) ~= "table" or type(LekmodDrafter.IsTournamentCiv) ~= "function" then
+        return nil
+    end
+    local allow = rulesAllowSet({ seasonalBans = true })
+    if allow == nil then
+        return nil
+    end
+    local names = {}
+    for civID in pairs(allow) do
+        names[#names + 1] = civShortLabel(civID) or tostring(civID)
+    end
+    table.sort(names, function(a, b)
+        return Locale.Compare(a, b) == -1
+    end)
+    return Text.format("TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS", table.concat(names, ", "))
+end
+
 -- Ban readiness for every human seat, so "who are we waiting for" is one place
 -- rather than a walk through the roster. AI and unclaimed seats are absent:
 -- they never hold the draft up.
@@ -806,12 +844,17 @@ function LekModDraft.tabItems()
             controlName = "DraftVanillaCheck",
             textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA",
         }),
+        -- LekMod keeps the control and rules field named for seasonal bans,
+        -- but since v35.4 the box restricts the pool to its tournament list.
         BaseMenuItems.Checkbox({
             controlName = "DraftSeasonalCheck",
-            textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL",
-            tooltipKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT",
+            textKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT",
+            tooltipKey = "TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT",
         }),
     }
+    if tournamentCivsText() ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({ labelFn = tournamentCivsText })
+    end
     for _, item in ipairs(hostActionItems()) do
         items[#items + 1] = item
     end
@@ -892,7 +935,7 @@ local function rulesText()
         parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA")
     end
     if r.seasonalBans == true then
-        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL")
+        parts[#parts + 1] = Text.key("TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT")
     end
     return Text.format("TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE", table.concat(parts, ", "))
 end
@@ -1076,3 +1119,5 @@ LekModDraft._banSummary = banSummary
 LekModDraft._handSummary = handSummary
 LekModDraft._commitBan = commitBan
 LekModDraft._banSlotItems = banSlotItems
+LekModDraft._availableBanChoices = availableBanChoices
+LekModDraft._tournamentCivsText = tournamentCivsText

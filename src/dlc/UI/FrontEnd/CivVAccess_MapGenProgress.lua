@@ -1,8 +1,7 @@
 -- Map-generation progress speech for map scripts that regenerate the whole
--- map until it passes their own checks. LekMod's Lekmap Pangaea v6.2 does
--- this up to 300 times, and with exactly six civs (the standard LekMod
--- lobby) its spawn validation rejects most maps, so a launch can sit on
--- the loading screen for minutes. A sighted player at least sees the
+-- map until it passes their own checks. LekMod's Lekmap Pangaea v6.3 does
+-- this up to 300 times, and its spawn validation rejects most maps, so a
+-- launch can sit on the loading screen for minutes. A sighted player at least sees the
 -- screen stay up; a screen-reader user hears nothing and cannot tell a
 -- long regeneration from a hang.
 --

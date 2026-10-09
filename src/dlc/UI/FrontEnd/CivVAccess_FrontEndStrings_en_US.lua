@@ -319,9 +319,13 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS"] = "Guaranteed inland
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_INLANDS_TT"] =
     "How many civilizations each player is dealt that LekMod does not mark coastal"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_VANILLA"] = "Vanilla civilizations only"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL"] = "Exclude seasonal civilizations"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_SEASONAL_TT"] =
-    "Leaves out the civilizations LekMod marks as seasonal"
+-- NQ Tournament 11 is the name of a LekMod community tournament; keep it as is.
+-- The list itself is read out by the next item.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"] = "NQ Tournament 11 civilizations only"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT_TT"] =
+    "Bans every civilization not on the NQ Tournament 11 list"
+-- {1_Civs} is a comma-separated list of civilization names.
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS"] = "Tournament civilizations: {1_Civs}"
 -- Host actions. Create deals every participant their civilizations; reset
 -- goes back to the ban phase without discarding the bans already made;
 -- restore deals the last draft again after a reset.

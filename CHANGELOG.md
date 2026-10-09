@@ -15,6 +15,11 @@ New Features and improvements:
 - After following a Civilopedia link, Alt+Left and Alt+Right return you to the line you left each article on, until you close the Civilopedia.
 - Shift+Tab on the map opens a launch bar listing every screen with its key; screens that need your attention come first.
 - The scanner has a new Pillaged Improvements category, split by owner like Improvements; it replaces the My Pillaged subcategory.
+- LekMod support now tracks LekMod v35.4, including the Lekmap Pangaea v6.3 map.
+- The LekMod draft's tournament rule is named correctly, and the Draft tab reads out the civilizations it allows.
+
+Bug fixes:
+- The LekMod ban list no longer offers civilizations the draft rules exclude.
 
 ## [2.3.5] - 2026-09-07
 

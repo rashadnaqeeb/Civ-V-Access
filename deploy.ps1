@@ -472,7 +472,7 @@ function Deploy-LekModDlc {
     # LekMod's Lekmap map scripts install to Assets/Maps/Lekmap (LekMod's own
     # install location), not under the DLC. The game scans Assets/Maps for them.
     # The shared installer copies the tree and splices the map-generation
-    # progress hook into Lekmap Pangaea v6.2 (tools/dlc-assembly.ps1).
+    # progress hook into Lekmap Pangaea v6.3 (tools/dlc-assembly.ps1).
     $lekmapSrc = Join-Path $LekModClone 'Lekmap'
     Remove-LekmapMaps -Game $Game
     $lekmapDst = Join-Path $Game $lekmapMapsRel

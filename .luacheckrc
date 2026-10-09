@@ -275,11 +275,12 @@ globals = {
 
     -- LekMod's staging-room civ draft. The Draft_* entry points and the
     -- g_Draft* state tables are defined by Lekmod_staging_draft.lua, which
-    -- StagingRoom.lua includes; LekmodVersion carries the protocol prefixes.
+    -- StagingRoom.lua includes; LekmodVersion carries the protocol prefixes,
+    -- and LekmodDrafter (Lekmod_drafter.lua) the rules' civ filter.
     -- All absent off LekMod, which is why the layer feature-detects them, and
     -- the protocol wrapper replaces Draft_HandleProtocol, so they are writable
     -- rather than read-only.
-    "LekmodVersion",
+    "LekmodVersion", "LekmodDrafter",
     "Draft_ApplyBanSelection", "Draft_AllHumansBanReady", "Draft_GetPoolForPlayer",
     "Draft_GetTakenBans", "Draft_HandleProtocol", "Draft_IsHistoryOnly",
     "Draft_OnBanSwapClick", "Draft_OnCreateDraft", "Draft_OnDelegateBanControl",

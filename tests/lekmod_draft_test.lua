@@ -93,6 +93,21 @@ local function setup()
     Draft_GetPoolForPlayer = function(playerID)
         return pools[playerID]
     end
+    Draft_GetTakenBans = function()
+        return {}
+    end
+    -- Drops before v35.4 have no rules filter; tests that need one install it.
+    LekmodDrafter = nil
+
+    CivDetails = {
+        playableRows = function()
+            return { { ID = 1 }, { ID = 2 }, { ID = 3 } }
+        end,
+    }
+    Locale = Locale or {}
+    Locale.Compare = function(a, b)
+        return a < b and -1 or (a > b and 1 or 0)
+    end
 
     -- Stands in for LekMod's commit: records the call and writes the ban,
     -- which is what our code reads back to detect a rejected pick.
@@ -590,6 +605,75 @@ function M.test_other_players_do_not_hear_ban_control_changes()
     LekModDraft.installAnnounce()
     Draft_HandleProtocol(1, "#LDRAFT#BANCTRL|1|1")
     T.eq(#spoken, 0)
+end
+
+-- Ban choices ----------------------------------------------------------
+
+local function choiceIDs(rows)
+    local ids = {}
+    for _, row in ipairs(rows) do
+        ids[#ids + 1] = row.ID
+    end
+    return table.concat(ids, ",")
+end
+
+function M.test_ban_choices_leave_out_civs_already_banned()
+    setup()
+    Draft_GetTakenBans = function()
+        return { [2] = 1 }
+    end
+    T.eq(choiceIDs(LekModDraft._availableBanChoices(0, 1)), "1,3")
+end
+
+-- Since v35.4 LekMod's own picker hides civs the rules exclude (vanilla-only,
+-- the tournament list); ours has to offer the same set.
+function M.test_ban_choices_follow_the_rules_filter()
+    setup()
+    g_DraftRules.seasonalBans = true
+    LekmodDrafter = {
+        RulesAllowSet = function(rules)
+            if rules.seasonalBans then
+                return { [1] = true, [2] = true }
+            end
+            return nil
+        end,
+    }
+    Draft_GetTakenBans = function()
+        return { [2] = 1 }
+    end
+    T.eq(choiceIDs(LekModDraft._availableBanChoices(0, 1)), "1")
+end
+
+function M.test_tournament_list_names_the_allowed_civs_in_order()
+    setup()
+    LekmodDrafter = {
+        IsTournamentCiv = function() end,
+        RulesAllowSet = function(rules)
+            if rules.seasonalBans then
+                return { [3] = true, [1] = true }
+            end
+            return nil
+        end,
+    }
+    T.eq(LekModDraft._tournamentCivsText(), "TXT_KEY_CIVVACCESS_DRAFT_TOURNAMENT_CIVS|Rome, Zulu")
+end
+
+function M.test_no_tournament_list_on_a_drop_without_one()
+    setup()
+    T.eq(LekModDraft._tournamentCivsText(), nil)
+end
+
+function M.test_the_rules_line_names_the_tournament_rule()
+    setup()
+    asClient()
+    LekModDraft.installAnnounce()
+    Draft_HandleProtocol(1, "#LDRAFT#RULES|2|3|-1|-1|0|1")
+    T.eq(
+        spoken[1],
+        "TXT_KEY_CIVVACCESS_DRAFT_RULES_ANNOUNCE|"
+            .. "TXT_KEY_CIVVACCESS_DRAFT_RULES_BANS|2, TXT_KEY_CIVVACCESS_DRAFT_RULES_PICKS|3, "
+            .. "TXT_KEY_CIVVACCESS_DRAFT_RULE_TOURNAMENT"
+    )
 end
 
 return M
