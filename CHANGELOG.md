@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.3.6] - 2026-10-09
+
 New Features and improvements:
 - After following a Civilopedia link, Alt+Left and Alt+Right return you to the line you left each article on, until you close the Civilopedia.
 - Shift+Tab on the map opens a launch bar listing every screen with its key; screens that need your attention come first.
