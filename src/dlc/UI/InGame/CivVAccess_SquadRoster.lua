@@ -44,6 +44,11 @@ SquadRoster.WAKE_SENTRY = WAKE_SENTRY
 SquadRoster.WAKE_EACH = WAKE_EACH
 SquadRoster.WAKE_ALL = WAKE_ALL
 
+-- A new squad escorts its civilians by default: without it each civilian walks
+-- to the destination alone, at its own speed and unprotected. Matches the
+-- default of VP's own squad options.
+local DEFAULT_ESCORT = true
+
 -- Same store identity as Bookmarks: one ModUserData/<guid>-1.db file holds
 -- both the bookmark blobs and the squad roster, keyed apart by sub-key. The
 -- GUID matches src/dlc/CivVAccess_2.Civ5Pkg; version stays 1 unless a
@@ -195,7 +200,7 @@ function SquadRoster.allocate()
     while r[num] ~= nil do
         num = num + 1
     end
-    r[num] = { name = nil, escort = false, wakeMode = WAKE_SENTRY }
+    r[num] = { name = nil, escort = DEFAULT_ESCORT, wakeMode = WAKE_SENTRY }
     persist()
     return num
 end
@@ -210,7 +215,7 @@ function SquadRoster.ensure(num)
     if r[num] ~= nil then
         return false
     end
-    r[num] = { name = nil, escort = false, wakeMode = WAKE_SENTRY }
+    r[num] = { name = nil, escort = DEFAULT_ESCORT, wakeMode = WAKE_SENTRY }
     return true
 end
 

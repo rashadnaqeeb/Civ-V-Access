@@ -136,6 +136,32 @@ function SquadFocusCore.prevUnit()
     return stepUnit(-1)
 end
 
+-- Squad mutations (assign, remove, cancel move) go through the engine's network
+-- command channel and land a tick or more after the call, so a read made right
+-- after one sees the old state. Re-check isApplied each tick and run fn once it
+-- holds. Past the poll budget fn still runs against whatever the engine now
+-- reports (the command was refused, or the unit died), logged so the stall
+-- leaves a trace.
+local APPLY_POLL_TICKS = 12
+
+function SquadFocusCore.whenApplied(isApplied, fn, label)
+    local ticks = 0
+    local function poll()
+        ticks = ticks + 1
+        if isApplied() then
+            fn()
+            return
+        end
+        if ticks < APPLY_POLL_TICKS then
+            TickPump.runOnce(poll)
+        else
+            Log.warn("SquadFocusCore: " .. label .. " not applied after " .. ticks .. " ticks")
+            fn()
+        end
+    end
+    TickPump.runOnce(poll)
+end
+
 -- Point focus at a specific squad number (e.g. after Alt+Right adds a unit
 -- and the focus should move to that squad). No-op when the number isn't a
 -- live squad. Resets the unit cursor to the squad's first member.

@@ -17,9 +17,16 @@ New Features and improvements:
 - The scanner has a new Pillaged Improvements category, split by owner like Improvements; it replaces the My Pillaged subcategory.
 - LekMod support now tracks LekMod v35.4, including the Lekmap Pangaea v6.3 map.
 - The LekMod draft's tournament rule is named correctly, and the Draft tab reads out the civilizations it allows.
+- New Vox Populi squads escort their civilians by default.
 
 Bug fixes:
 - The LekMod ban list no longer offers civilizations the draft rules exclude.
+- A Vox Populi squad now stops as a whole when a member spots an enemy or ancient ruin, keeping escorted civilians with their escort.
+- A squad set to wake when all arrive no longer sleeps forever after a member dies, leaves the squad, or can't finish its move.
+- A squad no longer reads as moving after it arrives, so Alt+Up no longer cancels its units' standing orders.
+- Units keep their squad when upgraded by an ancient ruin or replaced by a unique unit.
+- Squad moves now place units around the whole squad, and setting up an escort no longer fortifies or sleeps the wrong unit.
+- Adding a unit to a squad with Alt+Right now focuses that unit, and the squad editor drops removed units from its list.
 
 ## [2.3.5] - 2026-09-07
 

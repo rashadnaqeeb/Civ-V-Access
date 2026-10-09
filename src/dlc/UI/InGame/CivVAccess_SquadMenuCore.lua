@@ -9,7 +9,9 @@
 -- orchestrator. It stands alone there -- see the openSquad header.
 --
 -- Liveness. The editor's member rows are rebuilt via menu.setItems on every
--- removal so a removed unit's row disappears at once. The orchestrator's
+-- removal so a removed unit's row disappears; engine squad mutations apply a
+-- tick or more after the call, so those rebuilds wait for the engine through
+-- SquadFocusCore.whenApplied rather than reading stale state. The orchestrator's
 -- squad list is rebuilt via setItems on add / delete (the structural changes
 -- to the list); a rename only changes a row's label, which the row's labelFn
 -- re-reads live on re-exposure, so no list rebuild is needed there.
@@ -69,7 +71,8 @@ local function buildSquadItems(num)
     local items = {}
 
     -- Live member rows: Enter removes the unit and rebuilds the list so the
-    -- removed row disappears at once.
+    -- removed row disappears. The removal lands a tick or more later, so the
+    -- rebuild waits until the engine no longer has the unit in this squad.
     for _, member in ipairs(members(num)) do
         local unit = member
         items[#items + 1] = BaseMenuItems.Text({
@@ -77,9 +80,15 @@ local function buildSquadItems(num)
                 return SquadSpeech.unitRow(unit)
             end,
             onActivate = function(_, menu)
+                local ownerID, unitID = unit:GetOwner(), unit:GetID()
                 EngineData.removeFromSquad(unit)
-                menu.setItems(buildSquadItems(num))
                 speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_REMOVED", SquadRoster.getName(num)))
+                SquadFocusCore.whenApplied(function()
+                    local u = Players[ownerID]:GetUnitByID(unitID)
+                    return u == nil or EngineData.squadNumber(u) ~= num
+                end, function()
+                    menu.setItems(buildSquadItems(num))
+                end, "remove unit " .. tostring(unitID) .. " from squad " .. tostring(num))
             end,
         })
     end
@@ -99,14 +108,18 @@ local function buildSquadItems(num)
 
     -- Cancel move: only present while the squad is actually moving. Cancels
     -- the engine move, then rebuilds the list so this row disappears (the
-    -- squad is no longer moving) the moment the cancel lands.
+    -- squad is no longer moving) once the cancel lands a tick or more later.
     if squadIsMoving(num) then
         items[#items + 1] = BaseMenuItems.Text({
             textKey = "TXT_KEY_CIVVACCESS_SQUAD_CANCEL_MOVE",
             onActivate = function(_, menu)
                 EngineData.cancelSquadMove(repMember(num))
-                menu.setItems(buildSquadItems(num))
                 speak(Text.format("TXT_KEY_CIVVACCESS_SQUAD_MOVE_CANCELED", SquadRoster.getName(num)))
+                SquadFocusCore.whenApplied(function()
+                    return not squadIsMoving(num)
+                end, function()
+                    menu.setItems(buildSquadItems(num))
+                end, "cancel move of squad " .. tostring(num))
             end,
         })
     end

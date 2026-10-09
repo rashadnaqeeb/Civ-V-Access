@@ -1341,9 +1341,9 @@ function EngineData.squadMovePreviewTurns(unit, destPlot)
     return unit:GetSquadMovementPreviewTurns(destPlot)
 end
 
--- Read: is the squad currently mid-move (any member has an active move mission)?
--- The authoritative "is moving" signal -- the stored destination persists after
--- arrival in the alert/wake-each modes, so it is not a reliable substitute.
+-- Read: is the squad currently mid-move (any member still on its squad move)?
+-- An ordinary move given to one member does not count. The authoritative "is
+-- moving" signal; the fork clears the destination when the move ends.
 function EngineData.squadIsMoving(unit)
     return unit:IsSquadMoving()
 end

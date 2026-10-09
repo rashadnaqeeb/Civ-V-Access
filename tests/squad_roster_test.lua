@@ -72,7 +72,7 @@ end
 function M.test_allocate_creates_default_entry()
     setup()
     local n = SquadRoster.allocate()
-    T.eq(SquadRoster.getEscort(n), false)
+    T.eq(SquadRoster.getEscort(n), true)
     T.eq(SquadRoster.getWakeMode(n), SquadRoster.WAKE_SENTRY)
 end
 
@@ -146,16 +146,16 @@ function M.test_settings_round_trip_through_hydrate()
     setup()
     local n = SquadRoster.allocate()
     SquadRoster.rename(n, "Alpha")
-    SquadRoster.setEscort(n, true)
+    SquadRoster.setEscort(n, false)
     SquadRoster.setWakeMode(n, SquadRoster.WAKE_EACH)
     SquadRoster.allocate() -- 2, left at defaults
     civvaccess_shared.squadRoster = {}
     SquadRoster.hydrateForCurrentGame()
     T.eq(SquadRoster.getName(1), "Alpha")
-    T.eq(SquadRoster.getEscort(1), true)
+    T.eq(SquadRoster.getEscort(1), false)
     T.eq(SquadRoster.getWakeMode(1), SquadRoster.WAKE_EACH)
     T.eq(SquadRoster.exists(2), true)
-    T.eq(SquadRoster.getEscort(2), false, "second squad keeps its defaults")
+    T.eq(SquadRoster.getEscort(2), true, "second squad keeps its defaults")
 end
 
 function M.test_name_with_delimiters_round_trips()

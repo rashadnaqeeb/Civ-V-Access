@@ -13,7 +13,8 @@
 --   Alt+Left       remove the focused member from its squad, or delete the
 --                  squad outright once it is empty.
 --   Alt+Right      add the head-selected unit to the focused squad and move
---                  focus onto it; on the create-new slot (the only position
+--                  focus onto it once the engine applies the add; on the
+--                  create-new slot (the only position
 --                  when no squads exist yet), create one, add the unit, and
 --                  open the new squad's editor.
 --   Alt+Up         open the move sub-mode for the focused squad; on a squad
@@ -188,12 +189,30 @@ local function addSelectedUnit()
     -- MovementMode applies to all members, so pushing it through the just-
     -- added unit re-asserts the squad's mode across the whole group.
     EngineData.setSquadEndMovementMode(unit, SquadRoster.getWakeMode(num))
-    -- Move focus onto the added unit so an immediate Alt+Left removes it.
-    SquadFocusCore.focusOnUnit(unit)
+    -- The assign lands a tick or more later, so the unit still reads as in its
+    -- old squad (or none) here. Point the squad cursor at the target now, then
+    -- once the engine has the unit in it, move the unit cursor onto it (so an
+    -- immediate Alt+Left removes it) and, for a brand-new squad, open its
+    -- editor, which announces the squad and lists the new member. The unit is
+    -- re-resolved by ID each tick in case it dies in between.
+    SquadFocusCore.setSquad(num)
+    local ownerID, unitID = unit:GetOwner(), unit:GetID()
+    local function resolve()
+        return Players[ownerID]:GetUnitByID(unitID)
+    end
+    SquadFocusCore.whenApplied(function()
+        local u = resolve()
+        return u == nil or EngineData.squadNumber(u) == num
+    end, function()
+        local u = resolve()
+        if u ~= nil then
+            SquadFocusCore.focusOnUnit(u)
+        end
+        if created then
+            SquadMenuCore.openSquad(num)
+        end
+    end, "assign unit " .. tostring(unitID) .. " to squad " .. tostring(num))
     if created then
-        -- A brand-new squad has settings worth tuning right away; drop the
-        -- player into its editor, which announces the squad and its new member.
-        SquadMenuCore.openSquad(num)
         return
     end
     if prior >= 0 and prior ~= num then
