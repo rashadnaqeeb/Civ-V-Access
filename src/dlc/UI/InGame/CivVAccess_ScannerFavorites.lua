@@ -1,7 +1,7 @@
 -- User-defined custom scanner categories. Each one clusters a handful of
 -- the taxonomy's category / subcategory filters so a player who reaches for
 -- the same few scopes every turn cycles to them in one place instead of
--- hunting the full 13-category list. Custom categories sort to the front of
+-- hunting the full category list. Custom categories sort to the front of
 -- the category cycle (Ctrl+PageUp/Down); an empty one is skipped by the same
 -- categoryHasItems filter that hides any empty category.
 --

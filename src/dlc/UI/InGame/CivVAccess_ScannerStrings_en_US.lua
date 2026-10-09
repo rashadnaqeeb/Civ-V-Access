@@ -33,6 +33,7 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_TEAMMATE"] = "Team
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_NEUTRAL"] = "Neutral Units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_UNITS_ENEMY"] = "Enemy Units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS"] = "Improvements"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_PILLAGED"] = "Pillaged Improvements"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_WORKED_TILES"] = "Worked tiles"
 -- The yields category's six subs reuse the yield icon labels
 -- (TXT_KEY_CIVVACCESS_ICON_FOOD et al), so only the category label is
@@ -56,7 +57,6 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_MOUNTED"] = "Mounted Units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_CIVILIAN"] = "Civilian Units"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_BARBARIANS"] = "Barbarians"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_MY"] = "My"
-CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_MY_PILLAGED"] = "My Pillaged"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_TEAMMATE"] = "Teammate"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL"] = "Neutral"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY"] = "Enemy"

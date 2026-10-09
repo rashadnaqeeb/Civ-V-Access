@@ -1082,10 +1082,10 @@ function M.test_improvement_unowned_routes_neutral()
     T.eq(out[1].subcategory, "neutral")
 end
 
-function M.test_improvement_pillaged_mine_routes_to_my_pillaged()
-    -- Repair-list carve-out: a pillaged improvement owned by the active
-    -- player must move out of `my` into `my_pillaged` so `my` reads as
-    -- productive improvements only.
+function M.test_improvement_pillaged_mine_routes_to_pillaged_my()
+    -- A pillaged improvement leaves the improvements category for the
+    -- pillaged one, keeping its owner sub, so improvements reads as
+    -- working improvements only and pillaged / My is the repair list.
     setup()
     loadImprovementsBackend()
     GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
@@ -1105,18 +1105,17 @@ function M.test_improvement_pillaged_mine_routes_to_my_pillaged()
     local healthyMine = impPlot(1, 0, 1, 5, 0, false)
     mapFromPlots({ pillagedMine, healthyMine })
     local out = ScannerBackendImprovements.Scan(0, 0)
-    local subByPlot = {}
+    local byPlot = {}
     for _, e in ipairs(out) do
-        subByPlot[e.plotIndex] = e.subcategory
+        byPlot[e.plotIndex] = e.category .. "/" .. e.subcategory
     end
-    T.eq(subByPlot[0], "my_pillaged", "pillaged improvement of mine must land in my_pillaged")
-    T.eq(subByPlot[1], "my", "healthy improvement of mine must stay in my")
+    T.eq(byPlot[0], "pillaged/my", "pillaged improvement of mine must land in pillaged / my")
+    T.eq(byPlot[1], "improvements/my", "healthy improvement of mine must stay in improvements / my")
 end
 
-function M.test_improvement_pillaged_enemy_stays_in_enemy()
-    -- Repair list is player-scoped; enemy/neutral pillaged improvements
-    -- stay in their owner sub so we don't carve a parallel pillaged
-    -- bucket the user can't act on.
+function M.test_improvement_pillaged_enemy_routes_to_pillaged_enemy()
+    -- Every owner's pillaged improvements move to the pillaged category,
+    -- not just the player's own.
     setup()
     loadImprovementsBackend()
     GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
@@ -1138,7 +1137,8 @@ function M.test_improvement_pillaged_enemy_stays_in_enemy()
     mapFromPlots({ pillagedEnemy })
     local out = ScannerBackendImprovements.Scan(0, 0)
     T.eq(#out, 1)
-    T.eq(out[1].subcategory, "enemy", "pillaged enemy improvement must stay in enemy, not move to my_pillaged")
+    T.eq(out[1].category, "pillaged")
+    T.eq(out[1].subcategory, "enemy", "pillaged enemy improvement keeps its owner sub")
 end
 
 function M.test_improvement_teammate_routes_to_teammate()
@@ -1167,10 +1167,9 @@ function M.test_improvement_teammate_routes_to_teammate()
     T.eq(out[1].subcategory, "teammate", "healthy teammate-owned improvement must bucket under teammate")
 end
 
-function M.test_improvement_pillaged_teammate_stays_in_teammate()
-    -- Workers can only repair improvements on tiles you own outright,
-    -- not on a teammate's tile. There's no parallel `teammate_pillaged`
-    -- repair-list bucket -- pillaged teammate tiles stay in `teammate`.
+function M.test_improvement_pillaged_teammate_routes_to_pillaged_teammate()
+    -- A teammate's pillaged tile is not the player's to repair, so it
+    -- must land in pillaged / teammate rather than pillaged / my.
     setup()
     loadImprovementsBackend()
     GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
@@ -1192,15 +1191,16 @@ function M.test_improvement_pillaged_teammate_stays_in_teammate()
     mapFromPlots({ pillagedTeammate })
     local out = ScannerBackendImprovements.Scan(0, 0)
     T.eq(#out, 1)
-    T.eq(out[1].subcategory, "teammate", "teammate pillaged improvement must stay in teammate, not move to my_pillaged")
+    T.eq(out[1].category, "pillaged")
+    T.eq(out[1].subcategory, "teammate", "teammate pillaged improvement must bucket under teammate")
 end
 
-function M.test_improvement_pillaged_mine_on_fogged_plot_stays_in_my()
+function M.test_improvement_pillaged_mine_on_fogged_plot_stays_in_improvements()
     -- IsImprovementPillaged reads server truth and would leak the
     -- pillage state of a tile that has gone under fog since the player
     -- last saw it. The visibility gate routes such tiles by last-seen
-    -- state -- a healthy farm stays in `my` until the player sees the
-    -- pillage themselves.
+    -- state -- a healthy farm stays in improvements until the player sees
+    -- the pillage themselves.
     setup()
     loadImprovementsBackend()
     GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
@@ -1220,12 +1220,13 @@ function M.test_improvement_pillaged_mine_on_fogged_plot_stays_in_my()
     mapFromPlots({ fogged })
     local out = ScannerBackendImprovements.Scan(0, 0)
     T.eq(#out, 1)
-    T.eq(out[1].subcategory, "my", "pillaged-but-fogged improvement must not leak via my_pillaged")
+    T.eq(out[1].category, "improvements", "pillaged-but-fogged improvement must not leak into pillaged")
+    T.eq(out[1].subcategory, "my")
 end
 
-function M.test_improvement_pillaged_unowned_stays_in_neutral()
-    -- A no-man's-land fort that has been pillaged must stay in neutral
-    -- (RevealedOwner == -1 short-circuits before the pillaged check).
+function M.test_improvement_pillaged_unowned_routes_to_pillaged_neutral()
+    -- A no-man's-land fort that has been pillaged lands in pillaged /
+    -- neutral, the same owner sub an unowned healthy fort takes.
     setup()
     loadImprovementsBackend()
     GameInfoTypes.IMPROVEMENT_BARBARIAN_CAMP = -1
@@ -1237,6 +1238,7 @@ function M.test_improvement_pillaged_unowned_stays_in_neutral()
     mapFromPlots({ fort })
     local out = ScannerBackendImprovements.Scan(0, 0)
     T.eq(#out, 1)
+    T.eq(out[1].category, "pillaged")
     T.eq(out[1].subcategory, "neutral")
 end
 

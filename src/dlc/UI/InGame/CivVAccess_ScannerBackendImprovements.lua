@@ -1,5 +1,5 @@
--- Scanner backend: improvements (My / My Pillaged / Teammate / Neutral
--- / Enemy by owner team stance). Reads plot:GetRevealedImprovementType
+-- Scanner backend: improvements and pillaged improvements, each split
+-- My / Teammate / Neutral / Enemy by owner team stance. Reads plot:GetRevealedImprovementType
 -- (activeTeam) so the scanner matches the engine's own rendering under
 -- fog. Skips the barb-camp and goody-hut improvements (handled by the
 -- Cities and Special backends respectively) and the road / railroad
@@ -12,14 +12,11 @@
 -- end up with RevealedOwner == -1, which buckets to Neutral per the
 -- design's explicit "unowned improvements fall under Neutral" rule).
 --
--- The pillaged carve-out is exclusive AND player-only: a pillaged
--- improvement on a tile the active player owns moves out of `my` into
--- `my_pillaged`, so `my` reads as productive improvements and
--- `my_pillaged` reads as a repair list. Teammate-owned tiles bucket
--- into `teammate` regardless of pillage state because workers can only
--- repair on tiles you own outright, so a teammate's pillaged tile
--- isn't repair-list material -- there's no parallel `teammate_pillaged`
--- bucket. Enemy / neutral pillaged improvements stay in their owner sub.
+-- Pillaged improvements are exclusive to their own `pillaged` category:
+-- a pillaged improvement emits there and NOT under `improvements`, so
+-- `improvements` reads as working improvements and `pillaged` reads as
+-- the repair list (My) plus the damage war has done elsewhere (Teammate,
+-- Neutral, Enemy). Both categories share the owner split.
 --
 -- Pillage state is gated on current visibility (plot:IsVisible). The
 -- engine-side IsImprovementPillaged() is a raw m_bImprovementPillaged
@@ -27,7 +24,8 @@
 -- updates on tiles that have gone under fog since the player last saw
 -- them. The engine itself only renders the pillaged appearance when
 -- FOGOFWARMODE_OFF; we mirror that. When the tile is fogged, the entry
--- routes by last-seen state -- a healthy improvement stays in `my`.
+-- routes by last-seen state -- a healthy improvement stays in
+-- `improvements`.
 
 ScannerBackendImprovements = {
     name = "improvements",
@@ -40,12 +38,12 @@ local SKIP_TYPES = {
     "IMPROVEMENT_RAILROAD",
 }
 
-local function ownerSubcategory(ownerId, activePlayerId, activeTeam, isPillaged)
+local function ownerSubcategory(ownerId, activePlayerId, activeTeam)
     if ownerId < 0 then
         return "neutral"
     end
     if ownerId == activePlayerId then
-        return isPillaged and "my_pillaged" or "my"
+        return "my"
     end
     local owner = Players[ownerId]
     if owner == nil then
@@ -53,10 +51,6 @@ local function ownerSubcategory(ownerId, activePlayerId, activeTeam, isPillaged)
     end
     local ownerTeamId = owner:GetTeam()
     if ownerTeamId == activeTeam then
-        -- Teammate-owned: routes to `teammate` regardless of pillage
-        -- state. Workers cannot repair improvements on a teammate's
-        -- tile, so a `teammate_pillaged` bucket would surface entries
-        -- the player can't act on.
         return "teammate"
     end
     if Teams[activeTeam]:IsAtWar(ownerTeamId) then
@@ -89,7 +83,7 @@ function ScannerBackendImprovements.Scan(activePlayer, activeTeam)
                     -- IsVisible so a fogged tile that was last seen
                     -- healthy doesn't leak its current pillage state.
                     local isPillaged = plot:IsVisible(activeTeam, isDebug) and plot:IsImprovementPillaged()
-                    local sub = ownerSubcategory(ownerId, activePlayer, activeTeam, isPillaged)
+                    local sub = ownerSubcategory(ownerId, activePlayer, activeTeam)
                     out[#out + 1] = {
                         plotIndex = i,
                         backend = ScannerBackendImprovements,
@@ -97,7 +91,7 @@ function ScannerBackendImprovements.Scan(activePlayer, activeTeam)
                             improvementId = impId,
                             ownerId = ownerId,
                         },
-                        category = "improvements",
+                        category = isPillaged and "pillaged" or "improvements",
                         subcategory = sub,
                         itemName = Text.key(row.Description),
                         key = "improvements:" .. i,
@@ -120,8 +114,9 @@ function ScannerBackendImprovements.ValidateEntry(entry, _cursorPlotIndex)
     if plot:GetRevealedImprovementType(activeTeam, isDebug) ~= entry.data.improvementId then
         return false
     end
-    -- Owner classification drift (conquest, eviction) and pillage /
-    -- repair flips the entry between subs; the snapshot rebuild on
+    -- Owner classification drift (conquest, eviction) moves the entry
+    -- between subs and pillage / repair moves it between the
+    -- improvements and pillaged categories; the snapshot rebuild on
     -- turn start or Ctrl+PageUp re-emits it under the new sub. Between
     -- rebuilds we keep it where it is -- a re-bucket mid-snapshot would
     -- reorder unexpectedly.

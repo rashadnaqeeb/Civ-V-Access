@@ -33,6 +33,7 @@ function M.test_category_order_fixed()
     local expected = {
         "cities",
         "improvements",
+        "pillaged",
         "recommendations",
         "units_my",
         "units_teammate",
@@ -112,14 +113,16 @@ function M.test_resources_subs_in_usage_order()
     T.eq(subs[3], "bonus")
 end
 
-function M.test_improvements_subs_owner_order()
+function M.test_improvement_categories_share_the_owner_subs()
     setup()
-    local subs = subKeys("improvements")
-    T.eq(subs[1], "my")
-    T.eq(subs[2], "my_pillaged")
-    T.eq(subs[3], "teammate")
-    T.eq(subs[4], "neutral")
-    T.eq(subs[5], "enemy")
+    for _, cat in ipairs({ "improvements", "pillaged" }) do
+        local subs = subKeys(cat)
+        T.eq(#subs, 4, cat .. " sub count")
+        T.eq(subs[1], "my", cat)
+        T.eq(subs[2], "teammate", cat)
+        T.eq(subs[3], "neutral", cat)
+        T.eq(subs[4], "enemy", cat)
+    end
 end
 
 function M.test_special_subs()

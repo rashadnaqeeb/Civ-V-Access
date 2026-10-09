@@ -74,17 +74,25 @@ ScannerCore.CATEGORIES = {
         },
     },
     {
-        -- `my_pillaged` is exclusive: an improvement of yours that is
-        -- pillaged emits there and NOT under `my`, so `my` reads as
-        -- "productive improvements I own" and `my_pillaged` reads as a
-        -- repair list. Enemy / neutral pillaged improvements stay in
-        -- their owner sub (no parallel pillaged bucket for them -- the
-        -- repair-list use case is player-scoped).
+        -- Working improvements only; pillaged ones emit under `pillaged`
+        -- below instead, never both.
         key = "improvements",
         label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_IMPROVEMENTS",
         subcategories = {
             { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
-            { key = "my_pillaged", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY_PILLAGED" },
+            { key = "teammate", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_TEAMMATE" },
+            { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
+            { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
+        },
+    },
+    {
+        -- Pillaged improvements, split by owner like `improvements`. My
+        -- is the repair list; the other subs show what war has damaged
+        -- elsewhere. Filled by the improvements backend.
+        key = "pillaged",
+        label = "TXT_KEY_CIVVACCESS_SCANNER_CATEGORY_PILLAGED",
+        subcategories = {
+            { key = "my", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_MY" },
             { key = "teammate", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_TEAMMATE" },
             { key = "neutral", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_NEUTRAL" },
             { key = "enemy", label = "TXT_KEY_CIVVACCESS_SCANNER_SUB_ENEMY" },
