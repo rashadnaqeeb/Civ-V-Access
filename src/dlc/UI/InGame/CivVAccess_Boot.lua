@@ -117,6 +117,11 @@ include("CivVAccess_SquadMenuCore")
 include("CivVAccess_SquadMapMode")
 include("CivVAccess_HotseatCursorRestore")
 include("CivVAccess_TaskList")
+-- Screen registry and the Shift+Tab launch bar over it. Before
+-- BaselineHandler, whose screen chords open GameScreens entries; after
+-- Turn (blocker text), SquadMapMode, and Settings, which entries call.
+include("CivVAccess_GameScreens")
+include("CivVAccess_LaunchBar")
 include("CivVAccess_BaselineHandler")
 -- Scanner modules. Strings first so Text.key lookups by Nav / Handler
 -- find mod-authored keys. Core registers the backend registry that

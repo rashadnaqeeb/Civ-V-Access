@@ -255,6 +255,9 @@ local function openMenu()
     SquadMenuCore.open()
 end
 
+-- The launch bar's squads row opens the menu the same way F11 does.
+SquadMapMode.openMenu = openMenu
+
 function SquadMapMode.getBindings()
     local bindings = {
         bind(Keys.VK_UP, MOD_NONE, cycleSquad(SquadFocusCore.nextSquad), "Next squad"),

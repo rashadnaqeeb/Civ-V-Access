@@ -197,6 +197,7 @@ globals = {
     "ReplayGraphRows",
     "LeagueOverviewRow", "LeagueOverviewVote", "LeagueOverviewProposal",
     "TaskList",
+    "GameScreens", "LaunchBar",
     "Turn", "TurnTimer",
     "UnitSpeech", "UnitActionMenu", "UnitTargetMode", "UnitControl",
     "UnitControlCombat", "UnitControlMovement", "UnitControlSelection",

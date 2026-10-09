@@ -188,6 +188,9 @@ local function setup()
         -- crash setCursor in those suites.
         onCursorMove = function() end,
     }
+    -- Screen chords open GameScreens entries; the real registry is loaded
+    -- so the F10 dispatch test exercises the production popup call.
+    dofile("src/dlc/UI/InGame/CivVAccess_GameScreens.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_BaselineHandler.lua")
 end
 

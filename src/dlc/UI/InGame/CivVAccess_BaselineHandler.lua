@@ -133,6 +133,11 @@ local MOVEMENT_AND_INFO_HELP_ENTRIES = {
 }
 
 local FUNCTION_KEY_HELP_ENTRIES = {
+    -- Launch bar first: it lists every screen the rows below open.
+    {
+        keyLabel = "TXT_KEY_CIVVACCESS_HELP_KEY_SHIFT_TAB",
+        description = "TXT_KEY_CIVVACCESS_LAUNCH_BAR_HELP_DESC",
+    },
     -- Engine F1-F9 passthroughs. These aren't Baseline bindings -- the
     -- passthroughKeys table lets the keycode reach the engine's own
     -- advisor-screen / civilopedia / tech-tree / victory / info-screen
@@ -296,17 +301,15 @@ function BaselineHandler.create()
         bind(Keys.I, MOD_CTRL, function()
             Cursor.pedia()
         end, "Civilopedia for tile contents"),
-        bind(Keys.VK_F10, MOD_NONE, function()
-            -- Engine's native hotkey for this popup is KB_V, which Baseline
-            -- swallows as an unbound letter; F10 (strategic view) is
-            -- repurposed since blind players have no use for the visual
-            -- toggle. Data1 = 1 asks the popup to queue at InGameUtmost
-            -- priority and toggle-close if already visible.
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_ADVISOR_COUNSEL,
-                Data1 = 1,
-            })
-        end, "Open advisor counsel"),
+        -- Screen chords. Each opens a GameScreens entry, which owns the
+        -- popup call and speaks the entry's disabled line when this game
+        -- has the screen switched off; the comments here record why each
+        -- key was free to take.
+        --
+        -- Engine's native hotkey for advisor counsel is KB_V, which
+        -- Baseline swallows as an unbound letter; F10 (strategic view) is
+        -- repurposed since blind players have no use for the visual toggle.
+        bind(Keys.VK_F10, MOD_NONE, GameScreens.opener("advisorCounsel"), "Open advisor counsel"),
         -- Culture Overview has no engine hotkey at all (the screen opens
         -- only via the top-bar tourism icon and DiploCorner button), so
         -- without a chord, blind players cannot reach it. C alone is the
@@ -314,57 +317,20 @@ function BaselineHandler.create()
         -- dispatch. Engine's native Ctrl+C (CONTROL_SELECT_OF_TYPE,
         -- "select units of same type on plot") and Ctrl+C as Citadel
         -- build for Great Generals are both already swallowed by
-        -- Baseline's letter capture, so the chord is free for us. Gated
-        -- on GAMEOPTION_NO_CULTURE_OVERVIEW_UI so the binding speaks a
-        -- disabled state rather than silently no-opping.
-        bind(Keys.C, MOD_CTRL, function()
-            if Game.IsOption("GAMEOPTION_NO_CULTURE_OVERVIEW_UI") then
-                speak(Text.key("TXT_KEY_CIVVACCESS_CO_DISABLED"))
-                return
-            end
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_CULTURE_OVERVIEW,
-                Data1 = 1,
-            })
-        end, "Open Culture Overview"),
+        -- Baseline's letter capture, so the chord is free for us.
+        bind(Keys.C, MOD_CTRL, GameScreens.opener("culture"), "Open Culture Overview"),
         -- Trade Route Overview. No engine hotkey at all (sighted players
         -- reach it via the trade-unit panel and DiploCorner). Plain T is
         -- empire-status turn / date / supply readout; Ctrl+T is distinct
         -- under (key, mods) dispatch and unbound by every CIV5 XML
         -- (Controls / Commands / Missions / Automates / Builds / Interface-
-        -- Modes), so the chord is free. Data1=1 toggles the popup closed
-        -- when already visible (matches the Culture Overview pattern); Data2
-        -- selects the landing tab (1=Your TR).
-        bind(Keys.T, MOD_CTRL, function()
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_TRADE_ROUTE_OVERVIEW,
-                Data1 = 1,
-                Data2 = 1,
-            })
-        end, "Open Trade Route Overview"),
-        -- League Overview (World Congress / United Nations). Engine reads
-        -- popupInfo.Data1 as the league ID (not a toggle flag like TRO/CO),
-        -- so we look up the active league's ID and pass it directly. -1
-        -- when no league exists -- engine then shows the "not founded"
-        -- panel and our wrapper speaks the matching no-league state.
-        -- Engine's native Ctrl+L is "Load game in-game"; Baseline's
+        -- Modes), so the chord is free.
+        bind(Keys.T, MOD_CTRL, GameScreens.opener("tradeRoutes"), "Open Trade Route Overview"),
+        -- League Overview (World Congress / United Nations). Engine's
+        -- native Ctrl+L is "Load game in-game"; Baseline's
         -- capturesAllInput barrier already swallowed it. In-game load
         -- remains reachable via Esc menu.
-        bind(Keys.L, MOD_CTRL, function()
-            local leagueId = -1
-            if Game.GetNumActiveLeagues() > 0 then
-                for i = 0, math.max(Game.GetNumLeaguesEverFounded() - 1, 0) do
-                    if Game.GetLeague(i) ~= nil then
-                        leagueId = i
-                        break
-                    end
-                end
-            end
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_LEAGUE_OVERVIEW,
-                Data1 = leagueId,
-            })
-        end, "Open World Congress overview"),
+        bind(Keys.L, MOD_CTRL, GameScreens.opener("league"), "Open World Congress overview"),
         -- Religion Overview. Engine's Ctrl+R toggles the resource-icon
         -- overlay (visual-only, no value to a blind player). Engine has a
         -- native Ctrl+P binding for the same screen, but Ctrl+P collides
@@ -373,62 +339,27 @@ function BaselineHandler.create()
         -- Builds / Missions / Interface-Modes (bare R is BUILD_ROAD,
         -- Alt+R is RAILROAD/REBASE, Ctrl+Alt+R is REMOVE_ROUTE,
         -- Ctrl+Shift+R is ROUTE_TO -- none of which dispatch on Ctrl+R
-        -- alone). Data1=1 toggles the popup closed when already visible
-        -- (matches the Culture / Trade Route Overview pattern). Gated on
-        -- GAMEOPTION_NO_RELIGION so the binding speaks a disabled state
-        -- rather than silently no-opping when religion is off.
-        bind(Keys.R, MOD_CTRL, function()
-            if Game.IsOption(GameOptionTypes.GAMEOPTION_NO_RELIGION) then
-                speak(Text.key("TXT_KEY_CIVVACCESS_STATUS_FAITH_OFF"))
-                return
-            end
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_RELIGION_OVERVIEW,
-                Data1 = 1,
-            })
-        end, "Open Religion Overview"),
+        -- alone).
+        bind(Keys.R, MOD_CTRL, GameScreens.opener("religion"), "Open Religion Overview"),
         -- Espionage Overview (BNW only). Engine's native Ctrl+E was added in
         -- G&K and kept in BNW for this same popup; Baseline's
         -- capturesAllInput barrier already swallows it, so we re-fire the
-        -- engine event here. Data1=1 toggles closed if already visible
-        -- (matches the Culture / Trade Route / Religion Overview pattern).
-        -- Gated on GAMEOPTION_NO_ESPIONAGE so the binding speaks a disabled
-        -- state rather than silently no-opping when the host disabled
-        -- espionage.
-        bind(Keys.E, MOD_CTRL, function()
-            if Game.IsOption("GAMEOPTION_NO_ESPIONAGE") then
-                speak(Text.key("TXT_KEY_CIVVACCESS_ESPIONAGE_DISABLED"))
-                return
-            end
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_ESPIONAGE_OVERVIEW,
-                Data1 = 1,
-            })
-        end, "Open Espionage Overview"),
+        -- engine event here.
+        bind(Keys.E, MOD_CTRL, GameScreens.opener("espionage"), "Open Espionage Overview"),
         -- Multiplayer chat. Backslash is unbound in every Civ V XML so the
-        -- chord is free across base / G&K / BNW. SP no-ops with a spoken
-        -- marker; MP fires the cross-Context bridge LuaEvents.CivVAccess-
-        -- ChatToggle that ChatAccess (seated in DiploCorner's env via our
-        -- DiploCorner.lua override) listens for. Game:IsNetworkMultiPlayer
-        -- returns false in hot-seat too, which is correct -- hot-seat has
-        -- no networking and no chat.
-        bind(VK_OEM_5, MOD_NONE, function()
-            if not Game:IsNetworkMultiPlayer() then
-                speak(Text.key("TXT_KEY_CIVVACCESS_CHAT_SP_NOOP"))
-                return
-            end
-            LuaEvents.CivVAccessChatToggle()
-        end, "Toggle multiplayer chat"),
-        -- Map display settings (Ctrl+M). Fires the cross-Context bridge
-        -- LuaEvents.CivVAccessMapSettingsToggle that MiniMapPanelAccess
-        -- (seated in MiniMapPanel's env) listens for; the toggle logic needs
-        -- the panel's GetMapOptions / On*Checked handlers, which aren't
-        -- reachable from here. Engine's native Ctrl+M (move same-type units
-        -- on plot) is contextual / mouse-first and already swallowed by
-        -- Baseline's letter wall, so the chord is free.
-        bind(Keys.M, MOD_CTRL, function()
-            LuaEvents.CivVAccessMapSettingsToggle()
-        end, "Open map settings"),
+        -- chord is free across base / G&K / BNW. Single player speaks a
+        -- no-chat marker.
+        bind(VK_OEM_5, MOD_NONE, GameScreens.opener("chat"), "Toggle multiplayer chat"),
+        -- Map display settings (Ctrl+M). Engine's native Ctrl+M (move
+        -- same-type units on plot) is contextual / mouse-first and already
+        -- swallowed by Baseline's letter wall, so the chord is free.
+        bind(Keys.M, MOD_CTRL, GameScreens.opener("mapSettings"), "Open map settings"),
+        -- Launch bar: one list of every screen above plus the engine's F-row
+        -- screens. Tab is the unit action menu; Shift+Tab is bound by no
+        -- engine XML and nothing else at the map layer.
+        bind(Keys.VK_TAB, MOD_SHIFT, function()
+            LaunchBar.open()
+        end, "Open launch bar"),
         -- Name the landmass / ocean under the cursor (MassNames). Engine's
         -- plain N is Mine (worker build) and Nuke (interface mode); no
         -- engine XML binds Ctrl+N, and Baseline's letter wall swallows the
@@ -446,29 +377,9 @@ function BaselineHandler.create()
     -- the CP-DLL capability probe because the vanilla DLL also registers
     -- the MODDER_* popup enums, so the enum table is not a discriminator.
     -- Ctrl+E is the Espionage Overview; Shift joins the two E chords.
-    -- Data1=1 toggles closed when already visible (vendor OnPopup honors
-    -- it, matching the Culture / Religion / Espionage Overview pattern).
-    -- Speaks a disabled line when none of the five VP event game options
-    -- is on -- the vendor gates its dropdown row on the same five.
     if Game.IsCustomModOption ~= nil then
-        bindings[#bindings + 1] = bind(Keys.E, MOD_CTRL + MOD_SHIFT, function()
-            if
-                not (
-                    Game.IsOption("GAMEOPTION_GOOD_EVENTS")
-                    or Game.IsOption("GAMEOPTION_NEUTRAL_EVENTS")
-                    or Game.IsOption("GAMEOPTION_BAD_EVENTS")
-                    or Game.IsOption("GAMEOPTION_TRADE_EVENTS")
-                    or Game.IsOption("GAMEOPTION_CIV_SPECIFIC_EVENTS")
-                )
-            then
-                speak(Text.key("TXT_KEY_CIVVACCESS_EVENTS_DISABLED"))
-                return
-            end
-            Events.SerialEventGameMessagePopup({
-                Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_6,
-                Data1 = 1,
-            })
-        end, "Open Events Overview")
+        bindings[#bindings + 1] =
+            bind(Keys.E, MOD_CTRL + MOD_SHIFT, GameScreens.opener("events"), "Open Events Overview")
 
         -- The Vassal and Corporations overviews ship their UI addins with
         -- Vox Populi only (registered in VP's modinfo, not Community
@@ -482,33 +393,15 @@ function BaselineHandler.create()
             -- Vassal Overview, opened via BUTTONPOPUP_MODDER_11. Bare V is
             -- the engine's Advisor Counsel binding (already swallowed by
             -- Baseline's letter wall) and no CIV5 XML binds Ctrl+V, so the
-            -- chord is free. Data1=1 toggles closed when already visible
-            -- (vendor OnPopup honors it). Speaks a disabled line when the
-            -- vassalage game option is off -- the vendor gates its dropdown
-            -- row on the same option.
-            bindings[#bindings + 1] = bind(Keys.V, MOD_CTRL, function()
-                if not Game.IsOption("GAMEOPTION_ENABLE_VASSALAGE") then
-                    speak(Text.key("TXT_KEY_CIVVACCESS_VASSALAGE_DISABLED"))
-                    return
-                end
-                Events.SerialEventGameMessagePopup({
-                    Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_11,
-                    Data1 = 1,
-                })
-            end, "Open Vassal Overview")
+            -- chord is free.
+            bindings[#bindings + 1] = bind(Keys.V, MOD_CTRL, GameScreens.opener("vassals"), "Open Vassal Overview")
 
             -- Corporations Overview, opened via BUTTONPOPUP_MODDER_5. Ctrl+C
             -- is the Culture Overview; Shift joins the two C chords the way
             -- Shift joined the two E chords. No CIV5 XML binds Ctrl+Shift+C,
-            -- so the chord is free. Data1=1 toggles closed when already
-            -- visible (vendor OnPopup honors it). No game option gates
-            -- corporations under VP, so there is no disabled-state line.
-            bindings[#bindings + 1] = bind(Keys.C, MOD_CTRL + MOD_SHIFT, function()
-                Events.SerialEventGameMessagePopup({
-                    Type = ButtonPopupTypes.BUTTONPOPUP_MODDER_5,
-                    Data1 = 1,
-                })
-            end, "Open Corporations Overview")
+            -- so the chord is free.
+            bindings[#bindings + 1] =
+                bind(Keys.C, MOD_CTRL + MOD_SHIFT, GameScreens.opener("corporations"), "Open Corporations Overview")
         end
     end
 

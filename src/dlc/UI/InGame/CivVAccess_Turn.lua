@@ -152,6 +152,10 @@ local function blockerText(player, blockerType)
     return Text.key(key)
 end
 
+-- The launch bar speaks the same blocker text after the screen that
+-- resolves it.
+Turn.blockerText = blockerText
+
 -- Mirrors ActionInfoPanel.lua:141-161. UNIT_PROMOTION iterates looking for
 -- an IsPromotionReady unit; the other unit blockers use the player-level
 -- GetFirstReadyUnit helper.
