@@ -11,6 +11,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-22
+
 New Features and improvements:
 - The American Civil War scenario is playable from the Scenarios menu, thanks to Ahmad_SA.
 - In scenarios, Shift+B opens the briefing as a list you can arrow through.
