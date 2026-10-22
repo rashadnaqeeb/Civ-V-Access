@@ -5,7 +5,8 @@
 -- the popup, the announcer buffers the message and opens the same dismiss menu
 -- the reward popups get (the message, then a Close button), closes it when the
 -- box reports itself processed, and reopens it if the box comes back on screen
--- with the same message. Real modules dofiled over the shared menu
+-- with the same message. A message that arrives between the player's turns
+-- waits for the start of their turn. Real modules dofiled over the shared menu
 -- harness: SpeechPipeline (capturing through _speakAction), TextFilter, Text,
 -- BaseMenu, HandlerStack, MessageBuffer, RewardReview,
 -- ShadowedTextPopupAnnounce, and TextPopupAccess for the probe it publishes.
@@ -27,7 +28,7 @@ local OTHER_POPUP = 46
 
 local EVENT_TEXT = "PRO-UNION EVENT: Emancipation Proclamation[NEWLINE][NEWLINE]Freedom proclaimed."
 
-local popupListeners, shownListeners, processedListeners, dequeued, box
+local popupListeners, shownListeners, processedListeners, turnEndListeners, turnStartListeners, dequeued, box
 
 local function setup()
     Setup.fresh()
@@ -52,6 +53,17 @@ local function setup()
     Events.SerialEventGameMessagePopupProcessed = {
         Add = function(fn)
             processedListeners[#processedListeners + 1] = fn
+        end,
+    }
+    turnEndListeners, turnStartListeners = {}, {}
+    Events.ActivePlayerTurnEnd = {
+        Add = function(fn)
+            turnEndListeners[#turnEndListeners + 1] = fn
+        end,
+    }
+    Events.ActivePlayerTurnStart = {
+        Add = function(fn)
+            turnStartListeners[#turnStartListeners + 1] = fn
         end,
     }
     UIManager = UIManager or {}
@@ -95,6 +107,18 @@ end
 local function fireProcessed(popupType)
     for _, fn in ipairs(processedListeners) do
         fn(popupType, 0)
+    end
+end
+
+local function fireTurnEnd()
+    for _, fn in ipairs(turnEndListeners) do
+        fn()
+    end
+end
+
+local function fireTurnStart()
+    for _, fn in ipairs(turnStartListeners) do
+        fn()
     end
 end
 
@@ -259,6 +283,94 @@ function M.test_a_new_message_is_read_instead_of_the_previous_one()
     T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
     T.falsy(spokenSince(before):find("Emancipation", 1, true), "the previous message is not read again")
     T.eq(#buffered(), 2)
+end
+
+-- A scenario script can raise its message between your turns: Scramble for
+-- Africa announces each natural wonder any explorer finds, so an AI's find
+-- lands while the AIs still move and their leaders may cut in after a few
+-- words. The game's own popups for your turn show once it starts, so such a
+-- message waits for the start of your turn, and speaks queued there rather
+-- than cutting off the turn line.
+function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
+    setup()
+    pushMap()
+    local before = #speaks
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    T.eq(HandlerStack.active().name, "Map", "nothing opens while the other civs take their turns")
+    T.eq(#speaks, before)
+    T.eq(#buffered(), 0)
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "Map", "a leader hiding and showing the box opens nothing yet")
+    fireTurnStart()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens when your turn starts")
+    T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true))
+    T.eq(#buffered(), 1)
+    for i = before + 1, #speaks do
+        T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
+    end
+end
+
+function M.test_does_not_reopen_an_earlier_message_while_a_new_one_waits()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    fireTurnEnd()
+    box.hidden = false
+    local before = #speaks
+    firePopup({ Type = TEXT_POPUP, Text = "The Ottomans now hold the longest railroad." })
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "Map")
+    T.eq(spokenSince(before), "", "neither the earlier message nor the new one is read yet")
+    fireTurnStart()
+    T.eq(HandlerStack.active().preamble, "The Ottomans now hold the longest railroad.")
+end
+
+-- While held, the box is on screen but silent, so the player may close it
+-- unaware. The message is still theirs to hear when their turn starts.
+function M.test_a_held_message_whose_box_closed_is_still_read_at_your_turn()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    local before = #speaks
+    fireTurnStart()
+    T.eq(HandlerStack.active().name, "Map", "no box on screen, so no menu")
+    T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "read all the same")
+    T.eq(#buffered(), 1)
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "a box that was only waiting gets its menu when it shows")
+    T.eq(#buffered(), 1)
+end
+
+function M.test_reads_at_once_again_once_your_turn_has_started()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    fireTurnStart()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+end
+
+function M.test_a_new_game_does_not_inherit_the_hold()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    ShadowedTextPopupAnnounce.install()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "a game loaded after a turn ended starts unheld")
 end
 
 function M.test_close_with_no_box_on_screen_closes_the_menu()

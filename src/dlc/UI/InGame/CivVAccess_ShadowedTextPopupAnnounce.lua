@@ -33,6 +33,17 @@
 -- listener hears of it, and a frame later that listener has opened the menu
 -- on the new message instead.
 --
+-- A scenario script can also raise its message between the player's turns:
+-- Scramble for Africa announces each natural wonder any explorer finds, so
+-- an AI's find lands while the AIs still move and their leaders may cut
+-- in after a few words. The game's own popups for the player's turn show once
+-- it starts, so a message that arrives between ActivePlayerTurnEnd and
+-- ActivePlayerTurnStart is held and presented when the turn starts. It speaks
+-- queued there, behind the turn line Turn.lua queues, rather than cutting it
+-- off. The box is on screen but silent while held, so the player may close it
+-- unaware: a held message whose box is gone at turn start is read and
+-- buffered all the same, and the menu opens on it if the box comes back.
+--
 -- The message rides in on the same SerialEventGameMessagePopup the box itself
 -- listens to, and the box shows popupInfo.Text through LocalizeAndSetText, so
 -- the menu reads exactly what is on screen: Text.key resolves a TXT_KEY the
@@ -73,6 +84,14 @@ local _pending = nil
 -- more urgent popup. Replaced by the next message the menu opens on.
 local _shownText = nil
 
+-- True from the player's turn end to the start of their next turn.
+local _betweenTurns = false
+
+-- The latest message that arrived between turns, presented at turn start.
+-- Outlives the box's processed report: a leader can hide the box, or the
+-- player close it, while the message waits.
+local _held = nil
+
 local function lookUpBox()
     return ContextPtr:LookUpControl(TEXT_POPUP_PATH)
 end
@@ -107,7 +126,9 @@ local function menuOpen()
     return false
 end
 
-local function openMenu(text)
+-- queued: speak behind whatever is already speaking rather than cutting it
+-- off, for a held message opening at turn start beside the turn line.
+local function openMenu(text, queued)
     _shownText = text
     HandlerStack.removeByName(MENU_NAME, false)
     local handler = BaseMenu.create({
@@ -127,6 +148,9 @@ local function openMenu(text)
         -- The showing box takes Esc before this menu sees it. Esc only gets
         -- here if the box is gone, and then nothing else will close the menu.
         escapePops = true,
+        -- Skips the name line, the only part of the opening that interrupts;
+        -- the message and Close then queue.
+        silentDisplayName = queued == true,
     })
     RewardReview.install(handler, function()
         return { text }
@@ -134,11 +158,11 @@ local function openMenu(text)
     HandlerStack.push(handler)
 end
 
-local function openPending()
+local function openPending(queued)
     local text = _pending
     _pending = nil
     MessageBuffer.append(text, "notification")
-    openMenu(text)
+    openMenu(text, queued)
 end
 
 -- A frame after the box showed with no message pending. A new message the box
@@ -154,13 +178,21 @@ function ShadowedTextPopupAnnounce._onPopup(popupInfo)
     if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_TEXT or hookAlive() then
         return
     end
-    _pending = Text.key(popupInfo.Text)
+    local text = Text.key(popupInfo.Text)
+    if _betweenTurns then
+        _held = text
+        return
+    end
+    _pending = text
     if boxShowing() then
         openPending()
     end
 end
 
 function ShadowedTextPopupAnnounce._onPopupShown()
+    if _betweenTurns then
+        return
+    end
     if _pending ~= nil then
         if boxShowing() then
             openPending()
@@ -178,9 +210,35 @@ function ShadowedTextPopupAnnounce._onPopupProcessed(popupType)
     HandlerStack.removeByName(MENU_NAME, true)
 end
 
+function ShadowedTextPopupAnnounce._onTurnEnd()
+    _betweenTurns = true
+end
+
+function ShadowedTextPopupAnnounce._onTurnStart()
+    _betweenTurns = false
+    local text = _held
+    if text == nil then
+        return
+    end
+    _held = nil
+    if boxShowing() then
+        _pending = text
+        openPending(true)
+        return
+    end
+    -- No box on screen: the player closed it while it waited, or it waits
+    -- behind another popup. Read it either way; if the box comes back, the
+    -- menu reopens on it.
+    MessageBuffer.append(text, "notification")
+    _shownText = text
+    SpeechPipeline.speakQueued(text)
+end
+
 function ShadowedTextPopupAnnounce.install()
     _pending = nil
     _shownText = nil
+    _betweenTurns = false
+    _held = nil
     Log.installEvent(
         Events,
         "SerialEventGameMessagePopup",
@@ -201,6 +259,20 @@ function ShadowedTextPopupAnnounce.install()
         Log.safeListener("ShadowedTextPopupAnnounce.processed", ShadowedTextPopupAnnounce._onPopupProcessed),
         "ShadowedTextPopupAnnounce",
         "a shadowed text popup's menu will stay open after its box closes"
+    )
+    Log.installEvent(
+        Events,
+        "ActivePlayerTurnEnd",
+        Log.safeListener("ShadowedTextPopupAnnounce.turnEnd", ShadowedTextPopupAnnounce._onTurnEnd),
+        "ShadowedTextPopupAnnounce",
+        "a message between turns will be read at once"
+    )
+    Log.installEvent(
+        Events,
+        "ActivePlayerTurnStart",
+        Log.safeListener("ShadowedTextPopupAnnounce.turnStart", ShadowedTextPopupAnnounce._onTurnStart),
+        "ShadowedTextPopupAnnounce",
+        "a message held between turns will not be read"
     )
     Log.info("ShadowedTextPopupAnnounce: installed")
 end
