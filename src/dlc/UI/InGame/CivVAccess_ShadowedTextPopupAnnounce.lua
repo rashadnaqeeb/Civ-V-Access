@@ -24,6 +24,15 @@
 -- message pending and the box visible. The box may also show inside its own
 -- popup listener, before ours runs, so the message listener checks too.
 --
+-- A more urgent popup (an AI leader's greeting) can hide the box while its menu
+-- is open and show it again once that popup closes. The hide reports the box
+-- processed just as a dismissal does, so the menu closes with it. The message
+-- the menu opened on is kept, and a show that finds the box visible with no
+-- message pending reopens the menu on it, without buffering it again. That
+-- reopen waits a frame: the box can show its next message before our message
+-- listener hears of it, and a frame later that listener has opened the menu
+-- on the new message instead.
+--
 -- The message rides in on the same SerialEventGameMessagePopup the box itself
 -- listens to, and the box shows popupInfo.Text through LocalizeAndSetText, so
 -- the menu reads exactly what is on screen: Text.key resolves a TXT_KEY the
@@ -59,6 +68,11 @@ end
 -- the menu opens and when the box reports itself processed.
 local _pending = nil
 
+-- Text of the message the menu last opened on. Outlives the box's processed
+-- report, so the menu can reopen on it when the box comes back from behind a
+-- more urgent popup. Replaced by the next message the menu opens on.
+local _shownText = nil
+
 local function lookUpBox()
     return ContextPtr:LookUpControl(TEXT_POPUP_PATH)
 end
@@ -84,10 +98,17 @@ local function closeBox()
     UIManager:DequeuePopup(box)
 end
 
-local function openMenu()
-    local text = _pending
-    _pending = nil
-    MessageBuffer.append(text, "notification")
+local function menuOpen()
+    for i = 1, HandlerStack.count() do
+        if HandlerStack.at(i).name == MENU_NAME then
+            return true
+        end
+    end
+    return false
+end
+
+local function openMenu(text)
+    _shownText = text
     HandlerStack.removeByName(MENU_NAME, false)
     local handler = BaseMenu.create({
         name = MENU_NAME,
@@ -113,19 +134,39 @@ local function openMenu()
     HandlerStack.push(handler)
 end
 
+local function openPending()
+    local text = _pending
+    _pending = nil
+    MessageBuffer.append(text, "notification")
+    openMenu(text)
+end
+
+-- A frame after the box showed with no message pending. A new message the box
+-- showed from inside its own listener has opened the menu on itself by now, so
+-- a box still showing without the menu is back with the message it showed.
+local function reopenOnReturnedBox()
+    if _pending == nil and _shownText ~= nil and boxShowing() and not menuOpen() then
+        openMenu(_shownText)
+    end
+end
+
 function ShadowedTextPopupAnnounce._onPopup(popupInfo)
     if popupInfo.Type ~= ButtonPopupTypes.BUTTONPOPUP_TEXT or hookAlive() then
         return
     end
     _pending = Text.key(popupInfo.Text)
     if boxShowing() then
-        openMenu()
+        openPending()
     end
 end
 
 function ShadowedTextPopupAnnounce._onPopupShown()
-    if _pending ~= nil and boxShowing() then
-        openMenu()
+    if _pending ~= nil then
+        if boxShowing() then
+            openPending()
+        end
+    elseif _shownText ~= nil then
+        TickPump.runOnce(reopenOnReturnedBox)
     end
 end
 
@@ -139,6 +180,7 @@ end
 
 function ShadowedTextPopupAnnounce.install()
     _pending = nil
+    _shownText = nil
     Log.installEvent(
         Events,
         "SerialEventGameMessagePopup",

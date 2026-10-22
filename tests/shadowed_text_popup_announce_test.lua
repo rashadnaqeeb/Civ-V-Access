@@ -3,8 +3,9 @@
 -- open with no hook: the box takes Enter and Esc itself and nothing tells the
 -- player it is up. Unless the hook's liveness probe says TextPopupAccess owns
 -- the popup, the announcer buffers the message and opens the same dismiss menu
--- the reward popups get (the message, then a Close button), and closes it when
--- the box reports itself processed. Real modules dofiled over the shared menu
+-- the reward popups get (the message, then a Close button), closes it when the
+-- box reports itself processed, and reopens it if the box comes back on screen
+-- with the same message. Real modules dofiled over the shared menu
 -- harness: SpeechPipeline (capturing through _speakAction), TextFilter, Text,
 -- BaseMenu, HandlerStack, MessageBuffer, RewardReview,
 -- ShadowedTextPopupAnnounce, and TextPopupAccess for the probe it publishes.
@@ -110,6 +111,15 @@ local function spoken()
     return table.concat(out, " | ")
 end
 
+-- What was spoken after the first `count` utterances.
+local function spokenSince(count)
+    local out = {}
+    for i = count + 1, #speaks do
+        out[#out + 1] = speaks[i].text
+    end
+    return table.concat(out, " | ")
+end
+
 -- A stand-in for the map handler the box opens over.
 local function pushMap()
     HandlerStack.push(BaseMenu.create({
@@ -194,6 +204,61 @@ function M.test_box_processed_before_showing_drops_the_message()
     box.hidden = false
     fireShown()
     T.eq(HandlerStack.active(), nil)
+end
+
+-- A more urgent popup (an AI leader's greeting) can hide the box while its
+-- menu is open and show it again once that popup closes. The hide reports the
+-- box processed just as a dismissal does, so the menu closes with it; it must
+-- come back with the box, or the box sits on screen silent and takes the
+-- player's next Enter.
+function M.test_reopens_when_the_box_comes_back_after_a_more_urgent_popup()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    T.eq(HandlerStack.active().name, "Map", "the menu closes while the box is hidden")
+    box.hidden = false
+    local before = #speaks
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu comes back with the box")
+    T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "the message is read again")
+    T.eq(#buffered(), 1, "but buffered only once")
+    local after = #speaks
+    fireShown()
+    TickPump.tick()
+    T.eq(#speaks, after, "a later show while the menu is open does not read it again")
+end
+
+function M.test_a_dismissed_box_does_not_come_back()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "Map", "another popup showing does not bring back a closed box's menu")
+end
+
+-- The box can show its next message from inside its own popup listener, before
+-- the announcer hears of that message. The menu must read the new message,
+-- never the one the box showed before.
+function M.test_a_new_message_is_read_instead_of_the_previous_one()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    box.hidden = false
+    local before = #speaks
+    fireShown()
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    TickPump.tick()
+    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
+    T.falsy(spokenSince(before):find("Emancipation", 1, true), "the previous message is not read again")
+    T.eq(#buffered(), 2)
 end
 
 function M.test_close_with_no_box_on_screen_closes_the_menu()

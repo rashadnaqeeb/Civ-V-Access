@@ -11,6 +11,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+Bug fixes:
+- A scenario event message that another popup interrupts is read again when it comes back on screen.
+
 ## [2.4.0] - 2026-10-22
 
 New Features and improvements:
