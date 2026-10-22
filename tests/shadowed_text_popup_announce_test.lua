@@ -366,16 +366,22 @@ function M.test_parks_a_box_that_shows_later_between_turns()
     T.eq(#dequeued, 1, "taken off once it shows")
 end
 
--- The park waits a frame; a turn that starts first keeps the box on screen.
+-- The park waits a frame; a turn that starts first keeps the box on screen,
+-- and the menu opens on it at once, still queued behind the turn line.
 function M.test_a_turn_starting_before_the_park_keeps_the_box()
     setup()
     pushMap()
     fireTurnEnd()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    local before = #speaks
     fireTurnStart()
     TickPump.tick()
     T.eq(#dequeued, 0)
     T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+    T.truthy(#speaks > before, "the message is read")
+    for i = before + 1, #speaks do
+        T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
+    end
 end
 
 function M.test_does_not_reopen_an_earlier_message_while_a_new_one_waits()
