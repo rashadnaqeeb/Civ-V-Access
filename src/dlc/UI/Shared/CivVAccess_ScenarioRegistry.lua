@@ -15,6 +15,11 @@ local SCENARIOS = {
         briefingLabel = "TXT_KEY_CIVIL_WAR_SCENARIO_BRIEFING_BUTTON",
         briefingText = "TXT_KEY_CIVIL_WAR_SCENARIO_CIV5_DAWN_TEXT",
     },
+    -- Scramble for Africa
+    ["f2eb1642-3334-4d2c-8db1-08e6aede3532"] = {
+        briefingLabel = "TXT_KEY_SCRAMBLE_AFRICA_BRIEFING_BUTTON",
+        briefingText = "TXT_KEY_SCRAMBLE_AFRICA_CIV5_DAWN_TEXT",
+    },
 }
 
 function ScenarioRegistry.isSupported(modId)
