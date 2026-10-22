@@ -3,9 +3,10 @@
  *
  * Replaces lua51_Win32.dll. Forwards all calls to lua51_original.dll,
  * hooks luaL_openlibs to inject Tolk screen reader bindings into every Lua
- * state, and hooks lua_setfenv to propagate the tolk, civvaccess_shared,
+ * state, hooks lua_setfenv to propagate the tolk, civvaccess_shared,
  * civvaccess_keys, audio, browser, and rpc tables into every sandboxed
- * environment. The
+ * environment, and hooks luaL_loadbuffer to append the accessibility
+ * bootstrap to known scenario copies of wrapped screens. The
  * accessibility payload itself ships as a DLC at Assets/DLC/DLC_CivVAccess/
  * and is ingested natively by the engine at boot; the proxy does not
  * activate any mod.
@@ -151,7 +152,8 @@ TRAMPOLINE(luaL_checkoption, 10) TRAMPOLINE(luaL_checkstack, 11)
 TRAMPOLINE(luaL_checktype, 12)   TRAMPOLINE(luaL_checkudata, 13)
 TRAMPOLINE(luaL_error, 14)       TRAMPOLINE(luaL_findtable, 15)
 TRAMPOLINE(luaL_getmetafield, 16) TRAMPOLINE(luaL_gsub, 17)
-TRAMPOLINE(luaL_loadbuffer, 18)  TRAMPOLINE(luaL_loadfile, 19)
+/* 18 = luaL_loadbuffer - hooked */
+TRAMPOLINE(luaL_loadfile, 19)
 TRAMPOLINE(luaL_loadstring, 20)  TRAMPOLINE(luaL_newmetatable, 21)
 /* 22 = luaL_newstate - hooked */
 TRAMPOLINE(luaL_openlib, 23)
@@ -1975,6 +1977,110 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
        audio injection performed above. */
 
     return ((fn)orig[I_lua_setfenv])(L, index);
+}
+
+/* === Scenario screen bootstrap ===
+   The mod's copy of a screen such as SocialPolicyPopup is the game's file
+   with one include line appended, which loads the screen's accessibility
+   wrapper. A scenario that imports its own copy of such a screen into the
+   VFS shadows ours, so the line never runs and the screen stays silent:
+   Scramble for Africa ships its own SocialPolicyPopup. When the game loads
+   one of these known scenario copies, append the same line, so the wrapper
+   runs inside the scenario's own screen exactly as it does in the game's.
+
+   Chunk names are matched on their ending, case-insensitively, with '/' read
+   as '\'. The game loads its UI chunks through luaL_loadbuffer, named by
+   their VFS path (e.g. Assets\DLC\Expansion2\Scenarios\ScrambleAfricaScenario
+   \SocialPolicyPopup.lua), and the hook logs each scenario chunk it sees. */
+
+typedef struct {
+    const char *nameEnd;    /* lowercase, backslash separators */
+    const char *bootstrap;  /* appended after the chunk's own text */
+} ScenarioScreen;
+
+static const ScenarioScreen g_scenarioScreens[] = {
+    { "\\scenarios\\scrambleafricascenario\\socialpolicypopup.lua",
+      "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SocialPolicyPopupAccess\")\r\n" },
+};
+
+static char lower_path_char(char c) {
+    if (c == '/') return '\\';
+    if (c >= 'A' && c <= 'Z') return (char)(c - 'A' + 'a');
+    return c;
+}
+
+static int chunk_name_ends_with(const char *name, const char *end) {
+    size_t n = strlen(name);
+    size_t e = strlen(end);
+    size_t i;
+    if (e > n) return 0;
+    name += n - e;
+    for (i = 0; i < e; i++) {
+        if (lower_path_char(name[i]) != end[i]) return 0;
+    }
+    return 1;
+}
+
+static int chunk_name_contains(const char *name, const char *needle) {
+    size_t e = strlen(needle);
+    size_t i;
+    for (; *name != '\0'; name++) {
+        for (i = 0; i < e && name[i] != '\0'; i++) {
+            if (lower_path_char(name[i]) != needle[i]) break;
+        }
+        if (i == e) return 1;
+    }
+    return 0;
+}
+
+static const char *scenario_bootstrap_for(const char *chunkname) {
+    size_t i;
+    if (chunkname == NULL) return NULL;
+    for (i = 0; i < sizeof(g_scenarioScreens) / sizeof(g_scenarioScreens[0]); i++) {
+        if (chunk_name_ends_with(chunkname, g_scenarioScreens[i].nameEnd)) {
+            return g_scenarioScreens[i].bootstrap;
+        }
+    }
+    return NULL;
+}
+
+/* Logs each chunk loaded from a scenario folder, and any SocialPolicyPopup
+   wherever it loads from, so the debug log shows the exact name the game
+   passed and whether the include went in. */
+static void log_scenario_chunk(const char *chunkname, const char *bootstrap) {
+    if (chunkname == NULL) return;
+    if (bootstrap == NULL && !chunk_name_contains(chunkname, "\\scenarios\\")
+        && !chunk_name_ends_with(chunkname, "\\socialpolicypopup.lua")) {
+        return;
+    }
+    proxy_log("luaL_loadbuffer: %s%s\n", chunkname, bootstrap != NULL ? " (wrapper include appended)" : "");
+}
+
+__declspec(dllexport) int __cdecl luaL_loadbuffer(lua_State *L, const char *buff, size_t sz, const char *name) {
+    typedef int (__cdecl *fn)(lua_State *, const char *, size_t, const char *);
+    const char *bootstrap = scenario_bootstrap_for(name);
+    size_t extra;
+    char *patched;
+    int result;
+
+    /* A precompiled chunk starts with ESC; text can't be appended to it. */
+    if (bootstrap != NULL && sz > 0 && buff[0] == '\033') bootstrap = NULL;
+    log_scenario_chunk(name, bootstrap);
+    if (bootstrap == NULL) {
+        return ((fn)orig[I_luaL_loadbuffer])(L, buff, sz, name);
+    }
+    extra = strlen(bootstrap);
+    patched = (char *)malloc(sz + extra);
+    if (patched == NULL) {
+        proxy_log("luaL_loadbuffer: malloc(%lu) failed, %s loads without its wrapper\n",
+                  (unsigned long)(sz + extra), name);
+        return ((fn)orig[I_luaL_loadbuffer])(L, buff, sz, name);
+    }
+    memcpy(patched, buff, sz);
+    memcpy(patched + sz, bootstrap, extra);
+    result = ((fn)orig[I_luaL_loadbuffer])(L, patched, sz + extra, name);
+    free(patched);
+    return result;
 }
 
 /* === DLL Entry === */
