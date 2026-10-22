@@ -40,9 +40,12 @@
 -- it starts, so a message that arrives between ActivePlayerTurnEnd and
 -- ActivePlayerTurnStart is held and presented when the turn starts. It speaks
 -- queued there, behind the turn line Turn.lua queues, rather than cutting it
--- off. The box is on screen but silent while held, so the player may close it
--- unaware: a held message whose box is gone at turn start is read and
--- buffered all the same, and the menu opens on it if the box comes back.
+-- off. A frame after its box shows between turns, the box is taken off the
+-- screen, where no stray Enter or Esc can close it unheard, and put back at
+-- its own priority when the turn starts; the menu opens on the message once
+-- it shows. A held message whose box is gone at turn start anyway (the game
+-- closed it, or a key landed in the frame before) is read and buffered all
+-- the same, and the menu opens on it if the box comes back.
 --
 -- The message rides in on the same SerialEventGameMessagePopup the box itself
 -- listens to, and the box shows popupInfo.Text through LocalizeAndSetText, so
@@ -91,6 +94,14 @@ local _betweenTurns = false
 -- Outlives the box's processed report: a leader can hide the box, or the
 -- player close it, while the message waits.
 local _held = nil
+
+-- True while the held message's box is off the screen, to go back on when
+-- the turn starts.
+local _parked = false
+
+-- The pending message is a held one whose box was put back: its menu speaks
+-- queued when the box shows.
+local _pendingQueued = false
 
 local function lookUpBox()
     return ContextPtr:LookUpControl(TEXT_POPUP_PATH)
@@ -161,8 +172,21 @@ end
 local function openPending(queued)
     local text = _pending
     _pending = nil
+    _pendingQueued = false
     MessageBuffer.append(text, "notification")
     openMenu(text, queued)
+end
+
+-- A frame after the held message's box showed between turns: take it off the
+-- screen until the turn starts. A held message exists only between turns, so
+-- a turn that started meanwhile leaves the box be. Its hide reports it
+-- processed, as a leader's greeting hiding it does.
+local function parkBox()
+    if _held == nil or not boxShowing() then
+        return
+    end
+    _parked = true
+    UIManager:DequeuePopup(lookUpBox())
 end
 
 -- A frame after the box showed with no message pending. A new message the box
@@ -181,9 +205,13 @@ function ShadowedTextPopupAnnounce._onPopup(popupInfo)
     local text = Text.key(popupInfo.Text)
     if _betweenTurns then
         _held = text
+        if boxShowing() then
+            TickPump.runOnce(parkBox)
+        end
         return
     end
     _pending = text
+    _pendingQueued = false
     if boxShowing() then
         openPending()
     end
@@ -191,11 +219,14 @@ end
 
 function ShadowedTextPopupAnnounce._onPopupShown()
     if _betweenTurns then
+        if _held ~= nil and boxShowing() then
+            TickPump.runOnce(parkBox)
+        end
         return
     end
     if _pending ~= nil then
         if boxShowing() then
-            openPending()
+            openPending(_pendingQueued)
         end
     elseif _shownText ~= nil then
         TickPump.runOnce(reopenOnReturnedBox)
@@ -207,6 +238,7 @@ function ShadowedTextPopupAnnounce._onPopupProcessed(popupType)
         return
     end
     _pending = nil
+    _pendingQueued = false
     HandlerStack.removeByName(MENU_NAME, true)
 end
 
@@ -216,6 +248,8 @@ end
 
 function ShadowedTextPopupAnnounce._onTurnStart()
     _betweenTurns = false
+    local parked = _parked
+    _parked = false
     local text = _held
     if text == nil then
         return
@@ -226,9 +260,17 @@ function ShadowedTextPopupAnnounce._onTurnStart()
         openPending(true)
         return
     end
-    -- No box on screen: the player closed it while it waited, or it waits
-    -- behind another popup. Read it either way; if the box comes back, the
-    -- menu reopens on it.
+    local box = lookUpBox()
+    if parked and box ~= nil then
+        -- Put the box back; the menu opens on the message once it shows.
+        _pending = text
+        _pendingQueued = true
+        UIManager:QueuePopup(box, PopupPriority.TextPopup)
+        return
+    end
+    -- No box on screen: the game closed it while it waited, a key landed
+    -- before it came off the screen, or it waits behind another popup. Read
+    -- it either way; if the box comes back, the menu reopens on it.
     MessageBuffer.append(text, "notification")
     _shownText = text
     SpeechPipeline.speakQueued(text)
@@ -239,6 +281,8 @@ function ShadowedTextPopupAnnounce.install()
     _shownText = nil
     _betweenTurns = false
     _held = nil
+    _parked = false
+    _pendingQueued = false
     Log.installEvent(
         Events,
         "SerialEventGameMessagePopup",

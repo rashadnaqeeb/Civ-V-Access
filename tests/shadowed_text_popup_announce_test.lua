@@ -28,7 +28,7 @@ local OTHER_POPUP = 46
 
 local EVENT_TEXT = "PRO-UNION EVENT: Emancipation Proclamation[NEWLINE][NEWLINE]Freedom proclaimed."
 
-local popupListeners, shownListeners, processedListeners, turnEndListeners, turnStartListeners, dequeued, box
+local popupListeners, shownListeners, processedListeners, turnEndListeners, turnStartListeners, dequeued, queued, box
 
 local function setup()
     Setup.fresh()
@@ -67,9 +67,18 @@ local function setup()
         end,
     }
     UIManager = UIManager or {}
+    -- Dequeuing hides a Context, as the engine does; queuing only records the
+    -- call, and a test shows the box itself when the queue would.
     UIManager.DequeuePopup = function(_, ctx)
         dequeued[#dequeued + 1] = ctx
+        ctx.hidden = true
     end
+    queued = {}
+    UIManager.QueuePopup = function(_, ctx, priority)
+        queued[#queued + 1] = { ctx = ctx, priority = priority }
+    end
+    PopupPriority = PopupPriority or {}
+    PopupPriority.TextPopup = PopupPriority.TextPopup or 4
     -- The box shows as soon as it queues unless a test holds it back.
     box = { hidden = false }
     function box:IsHidden()
@@ -289,8 +298,10 @@ end
 -- Africa announces each natural wonder any explorer finds, so an AI's find
 -- lands while the AIs still move and their leaders may cut in after a few
 -- words. The game's own popups for your turn show once it starts, so such a
--- message waits for the start of your turn, and speaks queued there rather
--- than cutting off the turn line.
+-- message waits for the start of your turn. Its box is taken off the screen
+-- meanwhile, where no stray Enter or Esc can close it, and put back when your
+-- turn starts, where the menu speaks queued rather than cutting off the turn
+-- line.
 function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
     setup()
     pushMap()
@@ -301,19 +312,51 @@ function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
     T.eq(HandlerStack.active().name, "Map", "nothing opens while the other civs take their turns")
     T.eq(#speaks, before)
     T.eq(#buffered(), 0)
-    box.hidden = true
+    TickPump.tick()
+    T.eq(#dequeued, 1, "the box is taken off the screen a frame after it shows")
+    T.eq(dequeued[1], box)
     fireProcessed(TEXT_POPUP)
+    fireTurnStart()
+    T.eq(#queued, 1, "and put back when your turn starts")
+    T.eq(queued[1].ctx, box)
+    T.eq(queued[1].priority, PopupPriority.TextPopup, "at its own priority")
+    T.eq(HandlerStack.active().name, "Map", "the menu waits for the box to show")
     box.hidden = false
     fireShown()
-    TickPump.tick()
-    T.eq(HandlerStack.active().name, "Map", "a leader hiding and showing the box opens nothing yet")
-    fireTurnStart()
-    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens when your turn starts")
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens with the box")
     T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true))
     T.eq(#buffered(), 1)
     for i = before + 1, #speaks do
         T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
     end
+end
+
+-- A box that waits behind a leader's greeting shows once the talk is over, and
+-- comes off the screen then.
+function M.test_parks_a_box_that_shows_later_between_turns()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    box.hidden = true
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    TickPump.tick()
+    T.eq(#dequeued, 0, "nothing on screen to take off yet")
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(#dequeued, 1, "taken off once it shows")
+end
+
+-- The park waits a frame; a turn that starts first keeps the box on screen.
+function M.test_a_turn_starting_before_the_park_keeps_the_box()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireTurnStart()
+    TickPump.tick()
+    T.eq(#dequeued, 0)
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
 end
 
 function M.test_does_not_reopen_an_earlier_message_while_a_new_one_waits()
@@ -331,11 +374,14 @@ function M.test_does_not_reopen_an_earlier_message_while_a_new_one_waits()
     T.eq(HandlerStack.active().name, "Map")
     T.eq(spokenSince(before), "", "neither the earlier message nor the new one is read yet")
     fireTurnStart()
+    box.hidden = false
+    fireShown()
     T.eq(HandlerStack.active().preamble, "The Ottomans now hold the longest railroad.")
 end
 
--- While held, the box is on screen but silent, so the player may close it
--- unaware. The message is still theirs to hear when their turn starts.
+-- A held box can still go before it comes off the screen: the game closes it,
+-- or a stray key lands in the frame before. The message is still the player's
+-- to hear when their turn starts.
 function M.test_a_held_message_whose_box_closed_is_still_read_at_your_turn()
     setup()
     pushMap()
