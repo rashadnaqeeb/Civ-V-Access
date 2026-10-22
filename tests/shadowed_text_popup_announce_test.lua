@@ -29,9 +29,14 @@ local OTHER_POPUP = 46
 local EVENT_TEXT = "PRO-UNION EVENT: Emancipation Proclamation[NEWLINE][NEWLINE]Freedom proclaimed."
 
 local popupListeners, shownListeners, processedListeners, turnEndListeners, turnStartListeners, dequeued, queued, box
+local debugs
 
 local function setup()
     Setup.fresh()
+    debugs = {}
+    Log.debug = function(m)
+        debugs[#debugs + 1] = m
+    end
     T.installLocaleStrings({
         TXT_KEY_TEST_BRIEFING = "Brother against brother.",
         TXT_KEY_CLOSE = "Close",
@@ -142,6 +147,17 @@ local function spoken()
         out[i] = s.text
     end
     return table.concat(out, " | ")
+end
+
+-- Whether a debug line containing `fragment` was logged: the hold's steps are
+-- logged so a session's Lua.log shows which path a message took.
+local function logged(fragment)
+    for _, m in ipairs(debugs) do
+        if m:find(fragment, 1, true) then
+            return true
+        end
+    end
+    return false
 end
 
 -- What was spoken after the first `count` utterances.
@@ -312,14 +328,17 @@ function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
     T.eq(HandlerStack.active().name, "Map", "nothing opens while the other civs take their turns")
     T.eq(#speaks, before)
     T.eq(#buffered(), 0)
+    T.truthy(logged("holding a message that arrived between turns"), "the hold is logged")
     TickPump.tick()
     T.eq(#dequeued, 1, "the box is taken off the screen a frame after it shows")
     T.eq(dequeued[1], box)
+    T.truthy(logged("off the screen"), "the park is logged")
     fireProcessed(TEXT_POPUP)
     fireTurnStart()
     T.eq(#queued, 1, "and put back when your turn starts")
     T.eq(queued[1].ctx, box)
     T.eq(queued[1].priority, PopupPriority.TextPopup, "at its own priority")
+    T.truthy(logged("put the held message's box back"), "the put-back is logged")
     T.eq(HandlerStack.active().name, "Map", "the menu waits for the box to show")
     box.hidden = false
     fireShown()
@@ -394,6 +413,7 @@ function M.test_a_held_message_whose_box_closed_is_still_read_at_your_turn()
     T.eq(HandlerStack.active().name, "Map", "no box on screen, so no menu")
     T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "read all the same")
     T.eq(#buffered(), 1)
+    T.truthy(logged("no box on screen at turn start"), "the read without a box is logged")
     box.hidden = false
     fireShown()
     TickPump.tick()

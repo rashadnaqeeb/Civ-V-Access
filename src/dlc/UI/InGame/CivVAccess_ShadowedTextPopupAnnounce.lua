@@ -186,6 +186,7 @@ local function parkBox()
         return
     end
     _parked = true
+    Log.debug("ShadowedTextPopupAnnounce: took the held message's box off the screen until the turn starts")
     UIManager:DequeuePopup(lookUpBox())
 end
 
@@ -205,6 +206,7 @@ function ShadowedTextPopupAnnounce._onPopup(popupInfo)
     local text = Text.key(popupInfo.Text)
     if _betweenTurns then
         _held = text
+        Log.debug("ShadowedTextPopupAnnounce: holding a message that arrived between turns: " .. text:sub(1, 80))
         if boxShowing() then
             TickPump.runOnce(parkBox)
         end
@@ -265,12 +267,14 @@ function ShadowedTextPopupAnnounce._onTurnStart()
         -- Put the box back; the menu opens on the message once it shows.
         _pending = text
         _pendingQueued = true
+        Log.debug("ShadowedTextPopupAnnounce: put the held message's box back for the turn")
         UIManager:QueuePopup(box, PopupPriority.TextPopup)
         return
     end
     -- No box on screen: the game closed it while it waited, a key landed
     -- before it came off the screen, or it waits behind another popup. Read
     -- it either way; if the box comes back, the menu reopens on it.
+    Log.debug("ShadowedTextPopupAnnounce: no box on screen at turn start; reading the held message")
     MessageBuffer.append(text, "notification")
     _shownText = text
     SpeechPipeline.speakQueued(text)
