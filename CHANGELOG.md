@@ -14,6 +14,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - The American Civil War scenario is playable from the Scenarios menu, thanks to Ahmad_SA.
 - In scenarios, Shift+B opens the briefing as a list you can arrow through.
+- Vox Populi and Community Patch support now tracks Vox Populi 5.4.8.
 
 Bug fixes:
 - In ranged attack mode, a submarine aimed at land now says it can only strike sea targets.
