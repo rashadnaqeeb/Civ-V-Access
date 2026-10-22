@@ -1624,6 +1624,10 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "il reste {1_Time}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "il reste {1_Large} {2_Small}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCENARIO_TURNS_REMAINING"] = {
+    one = "{1_Turns} tour restant",
+    other = "{1_Turns} tours restants",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 -- Section labels for Shift+letter detail readouts. Inserted as
 -- "{Label}: " between sections by newDetail.compose() at transitions
@@ -1739,6 +1743,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
 -- active tasks exist (the common case outside scenarios and tutorials).
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Maj plus T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_DESC"] = "Lire les tâches actives du scénario"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_KEY"] = "Maj plus B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_DESC"] = "Lire le briefing du scénario"
 -- GameMenu (Esc pause menu) tab labels and mod-list payloads. Tab labels
 -- sit alongside the engine-keyed Details tab (TXT_KEY_POPUP_GAME_DETAILS).
 -- The Mods tab lists every mod active in the current save: NO_MODS for the

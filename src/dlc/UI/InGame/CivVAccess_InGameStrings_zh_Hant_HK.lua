@@ -1119,6 +1119,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "{1_Time}剩餘"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "{1_Large}{2_Small}剩餘"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCENARIO_TURNS_REMAINING"] = {
+    other = "剩餘 {1_Turns} 回合",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 
 -- ===== Section labels =====
@@ -1206,6 +1209,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
 -- ===== Task list readout =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Shift 加 T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_DESC"] = "讀取當前情境任務"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_KEY"] = "Shift 加 B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_DESC"] = "讀取情境簡介"
 
 -- ===== Game menu =====
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "操作"

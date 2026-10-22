@@ -1184,6 +1184,9 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "残り{1_Time}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "残り{1_Large}{2_Small}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCENARIO_TURNS_REMAINING"] = {
+    other = "残り{1_Turns}ターン",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_GOLDEN_AGE"] = "黄金時代"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_SECTION_RELIGIONS"] = "宗教"
@@ -1265,6 +1268,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Shift + T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_DESC"] =
     "アクティブなシナリオのタスクを読み上げる"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_KEY"] = "Shift + B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_DESC"] = "シナリオの概要を読み上げる"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "アクション"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_MODS_TAB"] = "Mod"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_NO_MODS"] = "有効なModなし."

@@ -1340,6 +1340,11 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"] = {
 }
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT"] = "pozostało {1_Time}"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT_TWO"] = "pozostało {1_Large} {2_Small}"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_SCENARIO_TURNS_REMAINING"] = {
+    one = "pozostała {1_Turns} tura",
+    few = "pozostały {1_Turns} tury",
+    many = "pozostało {1_Turns} tur",
+}
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_LUXURY_INVENTORY_ITEM"] = "{1_Name} {2_Count}"
 
 -- Section labels for Shift+letter detail readouts
@@ -1440,6 +1445,8 @@ CivVAccess_Strings["TXT_KEY_CIVVACCESS_STATUS_HELP_DESC_TOURISM_DETAIL"] =
 -- Task list readout
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_KEY"] = "Shift plus T"
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_TASKLIST_HELP_DESC"] = "Odczytaj aktywne zadania scenariusza"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_KEY"] = "Shift plus B"
+CivVAccess_Strings["TXT_KEY_CIVVACCESS_BRIEFING_HELP_DESC"] = "Odczytaj odprawę scenariusza"
 
 -- GameMenu tab labels and mod-list payloads
 CivVAccess_Strings["TXT_KEY_CIVVACCESS_GAMEMENU_ACTIONS_TAB"] = "Akcje"
