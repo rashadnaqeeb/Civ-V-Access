@@ -2,7 +2,9 @@
 -- tutorials crash the game with no explanation and the mod has no plans
 -- to support them, so making them undiscoverable beats letting players
 -- hit the crash. ScenariosButton is hidden when no Firaxis scenarios are
--- installed; BaseMenu's live :IsHidden() check transparently skips it.
+-- installed, and on the Vox Populi, Community Patch and LekMod installs,
+-- whose copies of SinglePlayer.lua always hide it; BaseMenu's live
+-- :IsHidden() check transparently skips it.
 --
 -- StartGameButton carries a dynamic settings-summary tooltip set via
 -- Controls.StartGameButton:SetToolTipString inside the screen's own
