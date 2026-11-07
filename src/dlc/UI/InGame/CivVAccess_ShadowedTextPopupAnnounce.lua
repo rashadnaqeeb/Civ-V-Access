@@ -33,6 +33,12 @@
 -- listener hears of it, and a frame later that listener has opened the menu
 -- on the new message instead.
 --
+-- Such a popup can also take the screen in the frame the box shows (Who's
+-- Winning at turn start), so the box reports itself processed before its show
+-- reaches us, with its message unread. So a processed report never drops a
+-- waiting message: the box either comes back with it, or a new message has
+-- replaced it.
+--
 -- A scenario script can also raise its message between the player's turns:
 -- Scramble for Africa announces each natural wonder any explorer finds, so
 -- an AI's find lands while the AIs still move and their leaders may cut
@@ -79,7 +85,8 @@ local function hookAlive()
 end
 
 -- Text of the box's latest message, waiting for the box to show. Cleared when
--- the menu opens and when the box reports itself processed.
+-- the menu opens. Outlives the box's processed report, which a more urgent
+-- popup taking the screen sets off just as a dismissal does.
 local _pending = nil
 
 -- Text of the message the menu last opened on. Outlives the box's processed
@@ -239,8 +246,6 @@ function ShadowedTextPopupAnnounce._onPopupProcessed(popupType)
     if popupType ~= ButtonPopupTypes.BUTTONPOPUP_TEXT then
         return
     end
-    _pending = nil
-    _pendingQueued = false
     HandlerStack.removeByName(MENU_NAME, true)
 end
 

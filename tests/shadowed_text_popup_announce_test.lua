@@ -245,14 +245,40 @@ function M.test_waits_for_a_queued_box_to_show()
     T.eq(#buffered(), 1, "a later show does not reopen the menu")
 end
 
-function M.test_box_processed_before_showing_drops_the_message()
+-- A more urgent popup can take the screen in the frame the box shows, so the
+-- box reports itself processed before its show reaches the announcer. That
+-- report looks like a dismissal, but the box is only waiting, and it comes back
+-- with its message unread.
+function M.test_a_box_pushed_aside_as_it_shows_keeps_its_message()
     setup()
+    pushMap()
     box.hidden = true
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
     fireProcessed(TEXT_POPUP)
+    fireShown()
+    T.eq(HandlerStack.active().name, "Map", "no menu while the box is off the screen")
+    T.eq(#buffered(), 0)
     box.hidden = false
     fireShown()
-    T.eq(HandlerStack.active(), nil)
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens when the box comes back")
+    T.truthy(spoken():find("Emancipation Proclamation", 1, true))
+    T.eq(#buffered(), 1)
+end
+
+-- The box shows only its latest message, so a new one replaces any still
+-- waiting and the older one can't be read over it.
+function M.test_a_new_message_replaces_one_still_waiting_for_its_box()
+    setup()
+    pushMap()
+    box.hidden = true
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireProcessed(TEXT_POPUP)
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
+    T.falsy(spoken():find("Emancipation", 1, true), "the replaced message is not read")
+    T.eq(#buffered(), 1)
 end
 
 -- A more urgent popup (an AI leader's greeting) can hide the box while its
@@ -381,6 +407,35 @@ function M.test_a_turn_starting_before_the_park_keeps_the_box()
     T.truthy(#speaks > before, "the message is read")
     for i = before + 1, #speaks do
         T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
+    end
+end
+
+-- A popup of the player's turn (Who's Winning) can take the screen just as the
+-- box goes back. The box shows and hides at once, and its show reaches the
+-- announcer with the box already hidden. The held message is still unread, and
+-- still speaks queued, when the box comes back.
+function M.test_a_held_message_outlasts_a_popup_that_takes_its_box_back()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    fireTurnStart()
+    fireProcessed(TEXT_POPUP)
+    fireShown()
+    fireShown()
+    T.eq(HandlerStack.active().name, "Map", "no menu over the popup that took the screen")
+    T.eq(#buffered(), 0)
+    local before = #speaks
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens when the box comes back")
+    T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true))
+    T.eq(#buffered(), 1)
+    for i = before + 1, #speaks do
+        T.falsy(speaks[i].interrupt, "still queued rather than cutting anything off")
     end
 end
 
