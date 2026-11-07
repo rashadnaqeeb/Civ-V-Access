@@ -84,9 +84,10 @@ local function hookAlive()
     return alive == true
 end
 
--- Text of the box's latest message, waiting for the box to show. Cleared when
--- the menu opens. Outlives the box's processed report, which a more urgent
--- popup taking the screen sets off just as a dismissal does.
+-- The box's latest message, waiting for the box to show: its text, and queued
+-- when its menu speaks behind the turn line. Cleared when the menu opens.
+-- Outlives the box's processed report, which a more urgent popup taking the
+-- screen sets off just as a dismissal does.
 local _pending = nil
 
 -- Text of the message the menu last opened on. Outlives the box's processed
@@ -105,10 +106,6 @@ local _held = nil
 -- True while the held message's box is off the screen, to go back on when
 -- the turn starts.
 local _parked = false
-
--- The pending message is a held one whose box was put back: its menu speaks
--- queued when the box shows.
-local _pendingQueued = false
 
 local function lookUpBox()
     return ContextPtr:LookUpControl(TEXT_POPUP_PATH)
@@ -176,18 +173,17 @@ local function openMenu(text, queued)
     HandlerStack.push(handler)
 end
 
-local function openPending(queued)
-    local text = _pending
+local function openPending()
+    local text, queued = _pending.text, _pending.queued
     _pending = nil
-    _pendingQueued = false
     MessageBuffer.append(text, "notification")
     openMenu(text, queued)
 end
 
--- A frame after the held message's box showed between turns: take it off the
--- screen until the turn starts. A held message exists only between turns, so
--- a turn that started meanwhile leaves the box be. Its hide reports it
--- processed, as a leader's greeting hiding it does.
+-- A frame after a message or a show between turns: takes the held message's
+-- box off the screen until the turn starts. A held message exists only between
+-- turns, so a turn that started meanwhile leaves the box be. Its hide reports
+-- it processed, as a leader's greeting hiding it does.
 local function parkBox()
     if _held == nil or not boxShowing() then
         return
@@ -201,7 +197,7 @@ end
 -- showed from inside its own listener has opened the menu on itself by now, so
 -- a box still showing without the menu is back with the message it showed.
 local function reopenOnReturnedBox()
-    if _pending == nil and _shownText ~= nil and boxShowing() and not menuOpen() then
+    if _pending == nil and boxShowing() and not menuOpen() then
         openMenu(_shownText)
     end
 end
@@ -214,13 +210,10 @@ function ShadowedTextPopupAnnounce._onPopup(popupInfo)
     if _betweenTurns then
         _held = text
         Log.debug("ShadowedTextPopupAnnounce: holding a message that arrived between turns: " .. text:sub(1, 80))
-        if boxShowing() then
-            TickPump.runOnce(parkBox)
-        end
+        TickPump.runOnce(parkBox)
         return
     end
-    _pending = text
-    _pendingQueued = false
+    _pending = { text = text }
     if boxShowing() then
         openPending()
     end
@@ -228,14 +221,12 @@ end
 
 function ShadowedTextPopupAnnounce._onPopupShown()
     if _betweenTurns then
-        if _held ~= nil and boxShowing() then
-            TickPump.runOnce(parkBox)
-        end
+        TickPump.runOnce(parkBox)
         return
     end
     if _pending ~= nil then
         if boxShowing() then
-            openPending(_pendingQueued)
+            openPending()
         end
     elseif _shownText ~= nil then
         TickPump.runOnce(reopenOnReturnedBox)
@@ -263,17 +254,15 @@ function ShadowedTextPopupAnnounce._onTurnStart()
     end
     _held = nil
     if boxShowing() then
-        _pending = text
-        openPending(true)
+        _pending = { text = text, queued = true }
+        openPending()
         return
     end
-    local box = lookUpBox()
-    if parked and box ~= nil then
+    if parked then
         -- Put the box back; the menu opens on the message once it shows.
-        _pending = text
-        _pendingQueued = true
+        _pending = { text = text, queued = true }
         Log.debug("ShadowedTextPopupAnnounce: put the held message's box back for the turn")
-        UIManager:QueuePopup(box, PopupPriority.TextPopup)
+        UIManager:QueuePopup(lookUpBox(), PopupPriority.TextPopup)
         return
     end
     -- No box on screen: the game closed it while it waited, a key landed
@@ -291,7 +280,6 @@ function ShadowedTextPopupAnnounce.install()
     _betweenTurns = false
     _held = nil
     _parked = false
-    _pendingQueued = false
     Log.installEvent(
         Events,
         "SerialEventGameMessagePopup",

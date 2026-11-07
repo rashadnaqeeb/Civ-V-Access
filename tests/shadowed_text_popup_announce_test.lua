@@ -336,6 +336,24 @@ function M.test_a_new_message_is_read_instead_of_the_previous_one()
     T.eq(#buffered(), 2)
 end
 
+-- The reopen waits a frame, and a message can land in that frame while its box
+-- is still queued. The box that shows then holds the new message.
+function M.test_a_waiting_message_stops_the_reopen_of_the_one_before()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    fireShown()
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    box.hidden = false
+    local before = #speaks
+    TickPump.tick()
+    T.eq(spokenSince(before), "", "the earlier message is not read again")
+    fireShown()
+    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
+end
+
 -- A scenario script can raise its message between your turns: Scramble for
 -- Africa announces each natural wonder any explorer finds, so an AI's find
 -- lands while the AIs still move and their leaders may cut in after a few
@@ -390,6 +408,34 @@ function M.test_parks_a_box_that_shows_later_between_turns()
     fireShown()
     TickPump.tick()
     T.eq(#dequeued, 1, "taken off once it shows")
+end
+
+-- The box can show from inside its own popup listener, before the announcer
+-- hears of the message, so the message starts the park too.
+function M.test_parks_a_box_already_up_when_its_message_arrives()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    TickPump.tick()
+    T.eq(#dequeued, 1)
+end
+
+-- Only a box this hold took off the screen goes back on it.
+function M.test_a_later_hold_does_not_inherit_an_earlier_park()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    fireTurnStart()
+    T.eq(#queued, 1)
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    fireTurnStart()
+    T.eq(#queued, 1, "this hold's box never came off the screen")
+    T.truthy(spoken():find("Blockade runner", 1, true), "read all the same")
 end
 
 -- The park waits a frame; a turn that starts first keeps the box on screen,
@@ -473,6 +519,9 @@ function M.test_a_held_message_whose_box_closed_is_still_read_at_your_turn()
     fireTurnStart()
     T.eq(HandlerStack.active().name, "Map", "no box on screen, so no menu")
     T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "read all the same")
+    for i = before + 1, #speaks do
+        T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
+    end
     T.eq(#buffered(), 1)
     T.truthy(logged("no box on screen at turn start"), "the read without a box is logged")
     box.hidden = false
@@ -498,6 +547,46 @@ function M.test_a_new_game_does_not_inherit_the_hold()
     ShadowedTextPopupAnnounce.install()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
     T.eq(HandlerStack.active().name, "ShadowedTextPopup", "a game loaded after a turn ended starts unheld")
+end
+
+function M.test_a_new_game_does_not_inherit_a_held_message()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    ShadowedTextPopupAnnounce.install()
+    local before = #speaks
+    fireTurnStart()
+    T.eq(spokenSince(before), "")
+end
+
+function M.test_a_new_game_does_not_inherit_a_parked_box()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    TickPump.tick()
+    ShadowedTextPopupAnnounce.install()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    fireTurnStart()
+    T.eq(#queued, 0)
+end
+
+-- Neither a message waiting for its box nor the last one read carries over: a
+-- box that shows in the new game holds nothing of the old one.
+function M.test_a_new_game_does_not_inherit_a_message_for_its_box()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    ShadowedTextPopupAnnounce.install()
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "Map")
 end
 
 function M.test_close_with_no_box_on_screen_closes_the_menu()
