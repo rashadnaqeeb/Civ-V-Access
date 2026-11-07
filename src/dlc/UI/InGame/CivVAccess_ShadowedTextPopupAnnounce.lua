@@ -42,16 +42,33 @@
 -- A scenario script can also raise its message between the player's turns:
 -- Scramble for Africa announces each natural wonder any explorer finds, so
 -- an AI's find lands while the AIs still move and their leaders may cut
--- in after a few words. The game's own popups for the player's turn show once
--- it starts, so a message that arrives between ActivePlayerTurnEnd and
--- ActivePlayerTurnStart is held and presented when the turn starts. It speaks
--- queued there, behind the turn line Turn.lua queues, rather than cutting it
--- off. A frame after its box shows between turns, the box is taken off the
--- screen, where no stray Enter or Esc can close it unheard, and put back at
--- its own priority when the turn starts; the menu opens on the message once
--- it shows. A held message whose box is gone at turn start anyway (the game
--- closed it, or a key landed in the frame before) is read and buffered all
--- the same, and the menu opens on it if the box comes back.
+-- in after a few words. So a message that arrives after ActivePlayerTurnEnd
+-- is held until the game begins the player's next turn. The game raises its
+-- own popups for the turn (a great person born) while it processes the turn,
+-- which ends with PlayerDoTurn for that player, and ActivePlayerTurnStart
+-- queues the turn line and the other turn-start announcements only after
+-- that. So in the scenarios ScenarioRegistry supports, the games that replace
+-- the box in practice, the hold ends on the active player's PlayerDoTurn, and
+-- the held message opens alongside the game's own popups, ahead of those
+-- announcements rather than cutting them off. Those scenarios listen to
+-- PlayerDoTurn themselves, so ours rides along with calls into Lua the game
+-- already makes; every other game, single player or multiplayer, runs
+-- without it. PlayerDoTurn runs inside the simulation, on the game-core
+-- thread (docs/llm-docs/mp-deadlock.md describes the two threads), not the UI
+-- thread the screen belongs to, so the hook only ends the hold and the next
+-- frame presents the message. ActivePlayerTurnStart ends the hold too: for a
+-- turn that starts without that processing, and in any other game that
+-- replaces the box. A message raised once the turn has begun replaces one
+-- still held, since the box shows only its latest message.
+--
+-- A frame after a held message's box shows, the box is taken off the screen,
+-- where no stray Enter or Esc can close it unheard, and put back at its own
+-- priority when the hold ends; the menu opens on the message once it shows. A
+-- held message whose box is gone when the hold ends anyway (the game closed
+-- it, or a key landed in the frame before) is read and buffered all the same,
+-- and the menu opens on it if the box comes back. Only a held message's box
+-- comes off the screen: one from the player's own turn that shows only after
+-- the turn ends (a multiplayer turn timer ran out) opens its menu as usual.
 --
 -- The message rides in on the same SerialEventGameMessagePopup the box itself
 -- listens to, and the box shows popupInfo.Text through LocalizeAndSetText, so
@@ -84,10 +101,9 @@ local function hookAlive()
     return alive == true
 end
 
--- The box's latest message, waiting for the box to show: its text, and queued
--- when its menu speaks behind the turn line. Cleared when the menu opens.
--- Outlives the box's processed report, which a more urgent popup taking the
--- screen sets off just as a dismissal does.
+-- Text of the box's latest message, waiting for the box to show. Cleared when
+-- the menu opens. Outlives the box's processed report, which a more urgent
+-- popup taking the screen sets off just as a dismissal does.
 local _pending = nil
 
 -- Text of the message the menu last opened on. Outlives the box's processed
@@ -98,7 +114,8 @@ local _shownText = nil
 -- True from the player's turn end to the start of their next turn.
 local _betweenTurns = false
 
--- The latest message that arrived between turns, presented at turn start.
+-- The latest message that arrived between turns, presented as the player's
+-- turn begins.
 -- Outlives the box's processed report: a leader can hide the box, or the
 -- player close it, while the message waits.
 local _held = nil
@@ -141,9 +158,7 @@ local function menuOpen()
     return false
 end
 
--- queued: speak behind whatever is already speaking rather than cutting it
--- off, for a held message opening at turn start beside the turn line.
-local function openMenu(text, queued)
+local function openMenu(text)
     _shownText = text
     HandlerStack.removeByName(MENU_NAME, false)
     local handler = BaseMenu.create({
@@ -163,9 +178,6 @@ local function openMenu(text, queued)
         -- The showing box takes Esc before this menu sees it. Esc only gets
         -- here if the box is gone, and then nothing else will close the menu.
         escapePops = true,
-        -- Skips the name line, the only part of the opening that interrupts;
-        -- the message and Close then queue.
-        silentDisplayName = queued == true,
     })
     RewardReview.install(handler, function()
         return { text }
@@ -174,18 +186,18 @@ local function openMenu(text, queued)
 end
 
 local function openPending()
-    local text, queued = _pending.text, _pending.queued
+    local text = _pending
     _pending = nil
     MessageBuffer.append(text, "notification")
-    openMenu(text, queued)
+    openMenu(text)
 end
 
--- A frame after a message or a show between turns: takes the held message's
--- box off the screen until the turn starts. A held message exists only between
--- turns, so a turn that started meanwhile leaves the box be. Its hide reports
+-- A frame after a held message arrives or its box shows: takes the box off
+-- the screen until the player's turn begins. A turn that began meanwhile
+-- leaves the box be, for the message to be presented on it. Its hide reports
 -- it processed, as a leader's greeting hiding it does.
 local function parkBox()
-    if _held == nil or not boxShowing() then
+    if not _betweenTurns or not boxShowing() then
         return
     end
     _parked = true
@@ -213,14 +225,17 @@ function ShadowedTextPopupAnnounce._onPopup(popupInfo)
         TickPump.runOnce(parkBox)
         return
     end
-    _pending = { text = text }
+    -- The box shows only its latest message, so this one replaces any still
+    -- held from the other civs' turns.
+    _held = nil
+    _pending = text
     if boxShowing() then
         openPending()
     end
 end
 
 function ShadowedTextPopupAnnounce._onPopupShown()
-    if _betweenTurns then
+    if _held ~= nil then
         TickPump.runOnce(parkBox)
         return
     end
@@ -244,8 +259,7 @@ function ShadowedTextPopupAnnounce._onTurnEnd()
     _betweenTurns = true
 end
 
-function ShadowedTextPopupAnnounce._onTurnStart()
-    _betweenTurns = false
+local function releaseHold()
     local parked = _parked
     _parked = false
     local text = _held
@@ -254,15 +268,22 @@ function ShadowedTextPopupAnnounce._onTurnStart()
     end
     _held = nil
     if boxShowing() then
-        _pending = { text = text, queued = true }
+        _pending = text
         openPending()
         return
     end
     if parked then
-        -- Put the box back; the menu opens on the message once it shows.
-        _pending = { text = text, queued = true }
+        -- Put the box back. With nothing outranking it, the box shows inside
+        -- this call, but its show reaches us a frame or more later, by when
+        -- the turn-start announcements may have queued; so the menu opens on
+        -- it at once. Behind another popup, the menu waits for the box to
+        -- show.
+        _pending = text
         Log.debug("ShadowedTextPopupAnnounce: put the held message's box back for the turn")
         UIManager:QueuePopup(lookUpBox(), PopupPriority.TextPopup)
+        if boxShowing() then
+            openPending()
+        end
         return
     end
     -- No box on screen: the game closed it while it waited, a key landed
@@ -271,7 +292,23 @@ function ShadowedTextPopupAnnounce._onTurnStart()
     Log.debug("ShadowedTextPopupAnnounce: no box on screen at turn start; reading the held message")
     MessageBuffer.append(text, "notification")
     _shownText = text
-    SpeechPipeline.speakQueued(text)
+    SpeechPipeline.speakInterrupt(text)
+end
+
+-- Runs inside the game's turn processing, on the game-core thread rather than
+-- the UI thread the screen belongs to: it only ends the hold, and the next
+-- frame presents the message.
+function ShadowedTextPopupAnnounce._onPlayerDoTurn(iPlayer)
+    if iPlayer ~= Game.GetActivePlayer() then
+        return
+    end
+    _betweenTurns = false
+    TickPump.runOnce(releaseHold)
+end
+
+function ShadowedTextPopupAnnounce._onTurnStart()
+    _betweenTurns = false
+    releaseHold()
 end
 
 function ShadowedTextPopupAnnounce.install()
@@ -308,12 +345,24 @@ function ShadowedTextPopupAnnounce.install()
         "ShadowedTextPopupAnnounce",
         "a message between turns will be read at once"
     )
+    -- Only the supported scenarios follow the game's turn processing; see the
+    -- header for why.
+    if ScenarioRegistry.active() ~= nil then
+        Log.debug("ShadowedTextPopupAnnounce: following the turn processing in this scenario")
+        Log.installEvent(
+            GameEvents,
+            "PlayerDoTurn",
+            Log.safeListener("ShadowedTextPopupAnnounce.playerDoTurn", ShadowedTextPopupAnnounce._onPlayerDoTurn),
+            "ShadowedTextPopupAnnounce",
+            "a held message will wait for the turn start and may cut off its announcements"
+        )
+    end
     Log.installEvent(
         Events,
         "ActivePlayerTurnStart",
         Log.safeListener("ShadowedTextPopupAnnounce.turnStart", ShadowedTextPopupAnnounce._onTurnStart),
         "ShadowedTextPopupAnnounce",
-        "a message held between turns will not be read"
+        "a message held between turns may not be read"
     )
     Log.info("ShadowedTextPopupAnnounce: installed")
 end

@@ -8,11 +8,13 @@
 -- with the same message. A message that arrives between the player's turns
 -- waits for the start of their turn. Real modules dofiled over the shared menu
 -- harness: SpeechPipeline (capturing through _speakAction), TextFilter, Text,
--- BaseMenu, HandlerStack, MessageBuffer, RewardReview,
+-- BaseMenu, HandlerStack, MessageBuffer, RewardReview, ScenarioRegistry,
 -- ShadowedTextPopupAnnounce, and TextPopupAccess for the probe it publishes.
--- Seams: the popup events (their listeners are captured so tests fire
--- synthetic popups), the box's Context lookup (a stub whose hidden flag stands
--- in for the popup queue), UIManager, and the game text.
+-- Seams: the popup and turn events and PlayerDoTurn (their listeners are
+-- captured so tests fire them in the game's order), the active player, the
+-- game's activated mods (American Civil War unless a test says otherwise), the
+-- box's Context lookup (a stub whose hidden flag stands in for the popup
+-- queue), UIManager, and the game text.
 
 local T = require("support")
 local Setup = require("menu_test_setup")
@@ -28,11 +30,18 @@ local OTHER_POPUP = 46
 
 local EVENT_TEXT = "PRO-UNION EVENT: Emancipation Proclamation[NEWLINE][NEWLINE]Freedom proclaimed."
 
+local CIVIL_WAR = "55fd836a-72e5-4aba-bbcf-3395b05a0e70"
+
 local popupListeners, shownListeners, processedListeners, turnEndListeners, turnStartListeners, dequeued, queued, box
 local debugs
+local doTurnListeners
 
-local function setup()
+local function setup(activatedMods)
     Setup.fresh()
+    activatedMods = activatedMods or { { ID = CIVIL_WAR, Version = 1 } }
+    Modding.GetActivatedMods = function()
+        return activatedMods
+    end
     debugs = {}
     Log.debug = function(m)
         debugs[#debugs + 1] = m
@@ -71,6 +80,16 @@ local function setup()
             turnStartListeners[#turnStartListeners + 1] = fn
         end,
     }
+    doTurnListeners = {}
+    GameEvents = GameEvents or {}
+    GameEvents.PlayerDoTurn = {
+        Add = function(fn)
+            doTurnListeners[#doTurnListeners + 1] = fn
+        end,
+    }
+    Game.GetActivePlayer = function()
+        return 0
+    end
     UIManager = UIManager or {}
     -- Dequeuing hides a Context, as the engine does; queuing only records the
     -- call, and a test shows the box itself when the queue would.
@@ -101,6 +120,7 @@ local function setup()
     dofile("src/dlc/UI/InGame/CivVAccess_MessageBuffer.lua")
     MessageBuffer._reset()
     dofile("src/dlc/UI/InGame/Popups/CivVAccess_RewardReview.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_ScenarioRegistry.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_ShadowedTextPopupAnnounce.lua")
     ShadowedTextPopupAnnounce.install()
 end
@@ -133,6 +153,14 @@ end
 local function fireTurnStart()
     for _, fn in ipairs(turnStartListeners) do
         fn()
+    end
+end
+
+-- The game runs PlayerDoTurn as each player's turn begins; the active
+-- player's comes before ActivePlayerTurnStart.
+local function firePlayerDoTurn(iPlayer)
+    for _, fn in ipairs(doTurnListeners) do
+        fn(iPlayer)
     end
 end
 
@@ -360,8 +388,7 @@ end
 -- words. The game's own popups for your turn show once it starts, so such a
 -- message waits for the start of your turn. Its box is taken off the screen
 -- meanwhile, where no stray Enter or Esc can close it, and put back when your
--- turn starts, where the menu speaks queued rather than cutting off the turn
--- line.
+-- turn starts, where its menu opens like any popup's.
 function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
     setup()
     pushMap()
@@ -389,9 +416,7 @@ function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
     T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens with the box")
     T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true))
     T.eq(#buffered(), 1)
-    for i = before + 1, #speaks do
-        T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
-    end
+    T.truthy(speaks[before + 1].interrupt, "opens like any popup")
 end
 
 -- A box that waits behind a leader's greeting shows once the talk is over, and
@@ -408,6 +433,22 @@ function M.test_parks_a_box_that_shows_later_between_turns()
     fireShown()
     TickPump.tick()
     T.eq(#dequeued, 1, "taken off once it shows")
+end
+
+-- A message from the player's own turn whose box only shows once that turn
+-- has ended (a multiplayer turn timer ran out while it waited behind another
+-- popup) is not held, so its box stays up and the menu opens on it.
+function M.test_a_box_from_your_turn_that_shows_after_it_ends_is_read()
+    setup()
+    pushMap()
+    box.hidden = true
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireTurnEnd()
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(#dequeued, 0, "not taken off the screen")
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "read once it shows")
 end
 
 -- The box can show from inside its own popup listener, before the announcer
@@ -438,28 +479,129 @@ function M.test_a_later_hold_does_not_inherit_an_earlier_park()
     T.truthy(spoken():find("Blockade runner", 1, true), "read all the same")
 end
 
--- The park waits a frame; a turn that starts first keeps the box on screen,
--- and the menu opens on it at once, still queued behind the turn line.
-function M.test_a_turn_starting_before_the_park_keeps_the_box()
+-- Only the supported scenarios replace the box in practice, so only there does
+-- the module follow the game's turn processing. Every other game, single
+-- player or multiplayer, runs without the listener.
+function M.test_an_ordinary_game_never_follows_the_turn_processing()
+    setup({})
+    fireTurnEnd()
+    fireTurnStart()
+    T.eq(#doTurnListeners, 0)
+    T.eq(logged("following the turn processing"), false)
+end
+
+function M.test_a_supported_scenario_follows_the_turn_processing()
+    setup()
+    T.eq(#doTurnListeners, 1)
+    T.truthy(logged("following the turn processing"), "the listener is logged")
+end
+
+-- The game begins the player's turn with its turn processing, which raises the
+-- game's own popups for the turn (a great person born) before
+-- ActivePlayerTurnStart queues the turn-start announcements. A message raised
+-- there is no longer between turns, so it shows at once, as those popups do.
+-- The active player here is not player 0, as for the second human in hotseat.
+function M.test_a_message_raised_as_your_turn_begins_is_not_held()
+    setup()
+    Game.GetActivePlayer = function()
+        return 3
+    end
+    pushMap()
+    fireTurnEnd()
+    firePlayerDoTurn(3)
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    TickPump.tick()
+    T.eq(#dequeued, 0, "not taken off the screen")
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "opens at once")
+end
+
+-- A box parked through the other civs' turns goes back the moment the player's
+-- turn begins, beside the game's own popups for the turn, not after the
+-- turn-start announcements.
+function M.test_a_parked_box_goes_back_as_your_turn_begins()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    firePlayerDoTurn(1)
+    TickPump.tick()
+    T.eq(#queued, 0, "another civ's turn beginning changes nothing")
+    firePlayerDoTurn(0)
+    T.eq(#queued, 0, "nothing touches the screen from inside the game's turn processing")
+    TickPump.tick()
+    T.eq(#queued, 1, "put back before ActivePlayerTurnStart")
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+    fireTurnStart()
+    T.eq(#queued, 1, "the turn start finds nothing left to put back")
+    T.eq(#buffered(), 1)
+end
+
+-- With nothing outranking it, the box shows inside the call that puts it
+-- back, and its show reaches us a frame or more later. The menu opens at once,
+-- ahead of the turn-start announcements, instead of waiting for that show.
+function M.test_a_box_put_back_that_shows_at_once_opens_the_menu_at_once()
+    setup()
+    pushMap()
+    UIManager.QueuePopup = function(_, ctx, priority)
+        queued[#queued + 1] = { ctx = ctx, priority = priority }
+        ctx.hidden = false
+    end
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "opens without waiting for the show")
+    fireShown()
+    TickPump.tick()
+    T.eq(#buffered(), 1, "the late show adds nothing")
+end
+
+-- The park waits a frame; a turn that begins in that frame keeps the box on
+-- screen, and the menu opens on it at once.
+function M.test_a_turn_beginning_before_the_park_keeps_the_box()
     setup()
     pushMap()
     fireTurnEnd()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
     local before = #speaks
-    fireTurnStart()
+    firePlayerDoTurn(0)
     TickPump.tick()
     T.eq(#dequeued, 0)
     T.eq(HandlerStack.active().name, "ShadowedTextPopup")
     T.truthy(#speaks > before, "the message is read")
-    for i = before + 1, #speaks do
-        T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
-    end
+    T.truthy(speaks[before + 1].interrupt, "opens like any popup, ahead of the turn-start announcements")
+end
+
+-- The box shows one message at a time, so a message raised as the turn begins
+-- replaces one still held from the other civs' turns.
+function M.test_a_message_raised_as_your_turn_begins_replaces_a_held_one()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    firePlayerDoTurn(0)
+    box.hidden = false
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    TickPump.tick()
+    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
+    T.eq(#queued, 0, "the replaced message's box is not put back")
 end
 
 -- A popup of the player's turn (Who's Winning) can take the screen just as the
 -- box goes back. The box shows and hides at once, and its show reaches the
--- announcer with the box already hidden. The held message is still unread, and
--- still speaks queued, when the box comes back.
+-- announcer with the box already hidden. The held message is still unread when
+-- the box comes back.
 function M.test_a_held_message_outlasts_a_popup_that_takes_its_box_back()
     setup()
     pushMap()
@@ -480,9 +622,7 @@ function M.test_a_held_message_outlasts_a_popup_that_takes_its_box_back()
     T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens when the box comes back")
     T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true))
     T.eq(#buffered(), 1)
-    for i = before + 1, #speaks do
-        T.falsy(speaks[i].interrupt, "still queued rather than cutting anything off")
-    end
+    T.truthy(speaks[before + 1].interrupt, "opens like any popup")
 end
 
 function M.test_does_not_reopen_an_earlier_message_while_a_new_one_waits()
@@ -519,9 +659,7 @@ function M.test_a_held_message_whose_box_closed_is_still_read_at_your_turn()
     fireTurnStart()
     T.eq(HandlerStack.active().name, "Map", "no box on screen, so no menu")
     T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "read all the same")
-    for i = before + 1, #speaks do
-        T.falsy(speaks[i].interrupt, "queued behind the turn line rather than cutting it off")
-    end
+    T.truthy(speaks[before + 1].interrupt, "read with an interrupt, as a popup's opening is")
     T.eq(#buffered(), 1)
     T.truthy(logged("no box on screen at turn start"), "the read without a box is logged")
     box.hidden = false
@@ -529,15 +667,6 @@ function M.test_a_held_message_whose_box_closed_is_still_read_at_your_turn()
     TickPump.tick()
     T.eq(HandlerStack.active().name, "ShadowedTextPopup", "a box that was only waiting gets its menu when it shows")
     T.eq(#buffered(), 1)
-end
-
-function M.test_reads_at_once_again_once_your_turn_has_started()
-    setup()
-    pushMap()
-    fireTurnEnd()
-    fireTurnStart()
-    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
-    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
 end
 
 function M.test_a_new_game_does_not_inherit_the_hold()

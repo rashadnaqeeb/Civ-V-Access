@@ -13,7 +13,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 Bug fixes:
 - A scenario event message that another popup interrupts is read when it comes back on screen.
-- Scenario event messages that arrive while the other civs take their turns appear and are read when your turn starts.
+- Scenario event messages from the other civs' turns are read as your turn starts, ahead of its other announcements.
 
 ## [2.4.0] - 2026-10-22
 
