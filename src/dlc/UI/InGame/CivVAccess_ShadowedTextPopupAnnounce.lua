@@ -58,8 +58,10 @@
 -- thread the screen belongs to, so the hook only ends the hold and the next
 -- frame presents the message. ActivePlayerTurnStart ends the hold too: for a
 -- turn that starts without that processing, and in any other game that
--- replaces the box. A message raised once the turn has begun replaces one
--- still held, since the box shows only its latest message.
+-- replaces the box. The box shows only its latest message, so a later one
+-- replaces a message still held or waiting for the box, whether it arrives
+-- between turns or once the turn has begun; the replaced one then goes to the
+-- buffer unread.
 --
 -- A frame after a held message's box shows, the box is taken off the screen,
 -- where no stray Enter or Esc can close it unheard, and put back at its own
@@ -78,7 +80,8 @@
 -- which reads false once its Context's env is wiped (game exit, load from
 -- game) and is never refreshed when a shadowing mod keeps the wrapper from
 -- loading at all. Each message is also buffered under notification, matching
--- NotificationAnnounce, so it stays reviewable after its box closes.
+-- NotificationAnnounce, so it stays reviewable after its box closes, or once a
+-- later message has replaced it.
 
 ShadowedTextPopupAnnounce = {}
 
@@ -102,8 +105,9 @@ local function hookAlive()
 end
 
 -- Text of the box's latest message, waiting for the box to show. Cleared when
--- the menu opens. Outlives the box's processed report, which a more urgent
--- popup taking the screen sets off just as a dismissal does.
+-- the menu opens, or buffered and cleared when a later message replaces it.
+-- Outlives the box's processed report, which a more urgent popup taking the
+-- screen sets off just as a dismissal does.
 local _pending = nil
 
 -- Text of the message the menu last opened on. Outlives the box's processed
@@ -115,7 +119,7 @@ local _shownText = nil
 local _betweenTurns = false
 
 -- The latest message that arrived between turns, presented as the player's
--- turn begins.
+-- turn begins. One that a later message replaces first goes to the buffer.
 -- Outlives the box's processed report: a leader can hide the box, or the
 -- player close it, while the message waits.
 local _held = nil
@@ -219,14 +223,18 @@ function ShadowedTextPopupAnnounce._onPopup(popupInfo)
         return
     end
     local text = Text.key(popupInfo.Text)
+    -- The box shows only its latest message, so this one replaces any message
+    -- still held or waiting for the box, which is then never presented: buffer
+    -- that one, so it stays reviewable. MessageBuffer.append skips nil.
+    MessageBuffer.append(_held, "notification")
+    MessageBuffer.append(_pending, "notification")
+    _pending = nil
     if _betweenTurns then
         _held = text
         Log.debug("ShadowedTextPopupAnnounce: holding a message that arrived between turns: " .. text:sub(1, 80))
         TickPump.runOnce(parkBox)
         return
     end
-    -- The box shows only its latest message, so this one replaces any still
-    -- held from the other civs' turns.
     _held = nil
     _pending = text
     if boxShowing() then

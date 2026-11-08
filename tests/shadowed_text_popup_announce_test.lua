@@ -294,7 +294,7 @@ function M.test_a_box_pushed_aside_as_it_shows_keeps_its_message()
 end
 
 -- The box shows only its latest message, so a new one replaces any still
--- waiting and the older one can't be read over it.
+-- waiting and the older one can't be read over it. It goes to the buffer.
 function M.test_a_new_message_replaces_one_still_waiting_for_its_box()
     setup()
     pushMap()
@@ -306,7 +306,9 @@ function M.test_a_new_message_replaces_one_still_waiting_for_its_box()
     fireShown()
     T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
     T.falsy(spoken():find("Emancipation", 1, true), "the replaced message is not read")
-    T.eq(#buffered(), 1)
+    local entries = buffered()
+    T.eq(#entries, 2, "the replaced message is buffered too")
+    T.eq(entries[1].text, EVENT_TEXT)
 end
 
 -- A more urgent popup (an AI leader's greeting) can hide the box while its
@@ -581,7 +583,8 @@ function M.test_a_turn_beginning_before_the_park_keeps_the_box()
 end
 
 -- The box shows one message at a time, so a message raised as the turn begins
--- replaces one still held from the other civs' turns.
+-- replaces one still held from the other civs' turns. The held one stays
+-- reviewable in the buffer.
 function M.test_a_message_raised_as_your_turn_begins_replaces_a_held_one()
     setup()
     pushMap()
@@ -596,6 +599,64 @@ function M.test_a_message_raised_as_your_turn_begins_replaces_a_held_one()
     TickPump.tick()
     T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
     T.eq(#queued, 0, "the replaced message's box is not put back")
+    T.eq(#buffered(), 2, "the replaced message is buffered too")
+end
+
+-- Two messages can arrive during the same AI turns, two explorers' finds in
+-- Scramble for Africa. The first box comes off the screen, which reports it
+-- processed, so the game shows the second, and the box goes back for the turn
+-- with only that one. The first is never presented; it goes to the buffer, in
+-- the order the messages came.
+function M.test_a_held_message_a_later_one_replaces_stays_in_the_buffer()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    box.hidden = false
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    local before = #speaks
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.", "the box's latest message is presented")
+    T.falsy(spokenSince(before):find("Emancipation", 1, true), "the replaced message is not read over it")
+    local entries = buffered()
+    T.eq(#entries, 2)
+    T.eq(entries[1].text, EVENT_TEXT, "the replaced message first")
+    T.eq(entries[1].category, "notification")
+    T.eq(entries[2].text, "Blockade runner arrives.")
+end
+
+-- A message from the player's own turn can still be waiting for its box when
+-- the turn ends, and a message from the AI turns then replaces it there. Only
+-- the held one is presented, on the box it took over, and each message is
+-- buffered once.
+function M.test_a_message_still_waiting_as_your_turn_ends_gives_way_to_a_held_one()
+    setup()
+    pushMap()
+    box.hidden = true
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    TickPump.tick()
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    T.truthy(spoken():find("Blockade runner", 1, true), "the held message is read")
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.", "the menu opens on what the box shows")
+    local entries = buffered()
+    T.eq(#entries, 2, "each message buffered once")
+    T.eq(entries[1].text, EVENT_TEXT)
+    T.eq(entries[2].text, "Blockade runner arrives.")
 end
 
 -- A popup of the player's turn (Who's Winning) can take the screen just as the
