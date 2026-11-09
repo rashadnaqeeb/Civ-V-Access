@@ -5,15 +5,18 @@
 -- the popup, the announcer buffers the message and opens the same dismiss menu
 -- the reward popups get (the message, then a Close button), closes it when the
 -- box reports itself processed, and reopens it if the box comes back on screen
--- with the same message. A message that arrives between the player's turns
--- waits for the start of their turn. Real modules dofiled over the shared menu
+-- with the same messages. Outside hotseat, a message that arrives once the
+-- player's turn is over waits for the start of their next turn, and every
+-- message the box replaced before it was read is read with the one that
+-- replaced it, oldest first. Real modules dofiled over the shared menu
 -- harness: SpeechPipeline (capturing through _speakAction), TextFilter, Text,
 -- BaseMenu, HandlerStack, MessageBuffer, RewardReview, ScenarioRegistry,
 -- ShadowedTextPopupAnnounce, and TextPopupAccess for the probe it publishes.
 -- Seams: the popup and turn events and PlayerDoTurn (their listeners are
--- captured so tests fire them in the game's order), the active player, the
--- game's activated mods (American Civil War unless a test says otherwise), the
--- box's Context lookup (a stub whose hidden flag stands in for the popup
+-- captured so tests fire them in the game's order), the active player and the
+-- game's flag for whether their turn is active, whether the game is hotseat,
+-- the game's activated mods (American Civil War unless a test says otherwise),
+-- the box's Context lookup (a stub whose hidden flag stands in for the popup
 -- queue), UIManager, and the game text.
 
 local T = require("support")
@@ -35,6 +38,12 @@ local CIVIL_WAR = "55fd836a-72e5-4aba-bbcf-3395b05a0e70"
 local popupListeners, shownListeners, processedListeners, turnEndListeners, turnStartListeners, dequeued, queued, box
 local debugs
 local doTurnListeners
+-- The game's flag for whether the active player's turn is active. It turns off
+-- before ActivePlayerTurnEnd reaches Lua and on before that player's
+-- PlayerDoTurn, as CvPlayer::setTurnActive does.
+local turnActive
+-- Whether the game is hotseat, where each turn goes to the next human.
+local hotSeat
 
 local function setup(activatedMods)
     Setup.fresh()
@@ -90,6 +99,26 @@ local function setup(activatedMods)
     Game.GetActivePlayer = function()
         return 0
     end
+    turnActive = true
+    -- Only the active player's turn follows the flag; any other player's reads
+    -- the opposite, so a read of the wrong player shows.
+    Players = setmetatable({}, {
+        __index = function(_, iPlayer)
+            return {
+                IsTurnActive = function()
+                    if iPlayer == Game.GetActivePlayer() then
+                        return turnActive
+                    end
+                    return not turnActive
+                end,
+            }
+        end,
+    })
+    hotSeat = false
+    PreGame = PreGame or {}
+    PreGame.IsHotSeatGame = function()
+        return hotSeat
+    end
     UIManager = UIManager or {}
     -- Dequeuing hides a Context, as the engine does; queuing only records the
     -- call, and a test shows the box itself when the queue would.
@@ -144,24 +173,48 @@ local function fireProcessed(popupType)
     end
 end
 
+-- The game ends the turn: its flag goes off, then ActivePlayerTurnEnd reaches
+-- Lua.
 local function fireTurnEnd()
+    turnActive = false
     for _, fn in ipairs(turnEndListeners) do
         fn()
     end
 end
 
 local function fireTurnStart()
+    turnActive = true
     for _, fn in ipairs(turnStartListeners) do
         fn()
     end
 end
 
 -- The game runs PlayerDoTurn as each player's turn begins; the active
--- player's comes before ActivePlayerTurnStart.
+-- player's comes before ActivePlayerTurnStart, with their turn already active.
 local function firePlayerDoTurn(iPlayer)
+    if iPlayer == Game.GetActivePlayer() then
+        turnActive = true
+    end
     for _, fn in ipairs(doTurnListeners) do
         fn(iPlayer)
     end
+end
+
+-- The game has run the units' queued moves after End Turn and ended the turn,
+-- and ActivePlayerTurnEnd hasn't reached Lua yet.
+local function gameEndsTurn()
+    turnActive = false
+end
+
+-- The game has begun the turn and processes it, before ActivePlayerTurnStart.
+local function gameBeginsTurn()
+    turnActive = true
+end
+
+-- A game loaded mid-session starts in the player's turn and installs afresh.
+local function loadGame()
+    turnActive = true
+    ShadowedTextPopupAnnounce.install()
 end
 
 local function buffered()
@@ -294,8 +347,9 @@ function M.test_a_box_pushed_aside_as_it_shows_keeps_its_message()
 end
 
 -- The box shows only its latest message, so a new one replaces any still
--- waiting and the older one can't be read over it. It goes to the buffer.
-function M.test_a_new_message_replaces_one_still_waiting_for_its_box()
+-- waiting. The menu reads both, oldest first, Alt+Down reviews them in that
+-- order, and each is buffered as the menu opens.
+function M.test_a_message_still_waiting_for_its_box_is_read_with_the_next()
     setup()
     pushMap()
     box.hidden = true
@@ -304,11 +358,19 @@ function M.test_a_new_message_replaces_one_still_waiting_for_its_box()
     firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
     box.hidden = false
     fireShown()
-    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
-    T.falsy(spoken():find("Emancipation", 1, true), "the replaced message is not read")
+    local said = spoken()
+    local older = said:find("Emancipation Proclamation", 1, true)
+    local newer = said:find("Blockade runner arrives.", 1, true)
+    T.truthy(older and newer and older < newer, "both are read, oldest first")
     local entries = buffered()
-    T.eq(#entries, 2, "the replaced message is buffered too")
-    T.eq(entries[1].text, EVENT_TEXT)
+    T.eq(#entries, 2, "each is buffered once")
+    T.eq(entries[1].text, EVENT_TEXT, "in the order they came")
+    T.eq(entries[2].text, "Blockade runner arrives.")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(speaks[#speaks].text, "PRO-UNION EVENT: Emancipation Proclamation", "the review starts at the oldest")
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
+    T.eq(speaks[#speaks].text, "Blockade runner arrives.", "and goes on to the newest")
 end
 
 -- A more urgent popup (an AI leader's greeting) can hide the box while its
@@ -334,6 +396,32 @@ function M.test_reopens_when_the_box_comes_back_after_a_more_urgent_popup()
     fireShown()
     TickPump.tick()
     T.eq(#speaks, after, "a later show while the menu is open does not read it again")
+end
+
+-- A more urgent popup can push the box aside just before the turn ends. When
+-- the box comes back during the other civs' turns, the menu doesn't reopen
+-- there: the box comes off the screen, and the message is read again as the
+-- next turn begins, without being buffered twice.
+function M.test_a_box_back_after_your_turn_ends_waits_for_the_next_turn()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    box.hidden = true
+    fireProcessed(TEXT_POPUP)
+    fireTurnEnd()
+    box.hidden = false
+    fireShown()
+    TickPump.tick()
+    T.eq(HandlerStack.active().name, "Map", "no menu during the other civs' turns")
+    T.eq(#dequeued, 1, "the box comes off the screen")
+    local before = #speaks
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+    T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "read again as the turn begins")
+    T.eq(#buffered(), 1, "buffered once")
 end
 
 function M.test_a_dismissed_box_does_not_come_back()
@@ -421,47 +509,93 @@ function M.test_holds_a_message_that_arrives_between_turns_until_your_turn()
     T.truthy(speaks[before + 1].interrupt, "opens like any popup")
 end
 
--- A box that waits behind a leader's greeting shows once the talk is over, and
--- comes off the screen then.
-function M.test_parks_a_box_that_shows_later_between_turns()
-    setup()
-    pushMap()
-    fireTurnEnd()
-    box.hidden = true
-    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
-    TickPump.tick()
-    T.eq(#dequeued, 0, "nothing on screen to take off yet")
-    box.hidden = false
-    fireShown()
-    TickPump.tick()
-    T.eq(#dequeued, 1, "taken off once it shows")
-end
-
--- A message from the player's own turn whose box only shows once that turn
--- has ended (a multiplayer turn timer ran out while it waited behind another
--- popup) is not held, so its box stays up and the menu opens on it.
-function M.test_a_box_from_your_turn_that_shows_after_it_ends_is_read()
+-- A message from the player's own turn can still be waiting for its box when
+-- the game ends the turn: End Turn ran the units' queued moves, which raised
+-- it, or a multiplayer turn timer ran out. ActivePlayerTurnEnd may not have
+-- reached Lua yet, but the game's own flag says the turn is over, so the box
+-- that shows then is held like one from the other civs' turns.
+function M.test_a_box_that_shows_after_the_game_ends_your_turn_is_held()
     setup()
     pushMap()
     box.hidden = true
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
-    fireTurnEnd()
+    gameEndsTurn()
     box.hidden = false
+    local before = #speaks
     fireShown()
+    T.eq(HandlerStack.active().name, "Map", "not opened during the other civs' turns")
+    T.eq(spokenSince(before), "")
     TickPump.tick()
-    T.eq(#dequeued, 0, "not taken off the screen")
-    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "read once it shows")
+    T.eq(#dequeued, 1, "taken off the screen")
 end
 
--- The box can show from inside its own popup listener, before the announcer
--- hears of the message, so the message starts the park too.
-function M.test_parks_a_box_already_up_when_its_message_arrives()
+-- The units' queued moves run once End Turn is pressed, and the game ends the
+-- turn a few frames later. A message they raise, an explorer's dig in Scramble
+-- for Africa, can reach the announcer before ActivePlayerTurnEnd does. The
+-- game's own flag already says the turn is over, so it is held.
+function M.test_a_message_after_the_game_ends_your_turn_is_held()
     setup()
     pushMap()
-    fireTurnEnd()
+    gameEndsTurn()
+    local before = #speaks
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    T.eq(HandlerStack.active().name, "Map", "not opened during the other civs' turns")
+    T.eq(spokenSince(before), "")
+    T.truthy(logged("the game had already ended your turn"), "the hold says why")
     TickPump.tick()
-    T.eq(#dequeued, 1)
+    T.eq(#dequeued, 1, "its box comes off the screen")
+end
+
+-- The menu can open on a message from the units' queued moves in the frames
+-- before the game ends the turn. When the turn ends, the box comes off the
+-- screen, which closes the menu, and the message is read again as the next turn
+-- begins, without being buffered twice.
+function M.test_a_menu_open_as_your_turn_ends_is_read_again_at_your_turn()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+    fireTurnEnd()
+    TickPump.tick()
+    T.eq(#dequeued, 1, "the box comes off the screen")
+    T.truthy(logged("read again as your next turn starts"), "the cut is logged")
+    fireProcessed(TEXT_POPUP)
+    T.eq(HandlerStack.active().name, "Map", "and the menu closes with it")
+    local before = #speaks
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    T.eq(#queued, 1, "the box goes back as your turn begins")
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+    T.truthy(spokenSince(before):find("Emancipation Proclamation", 1, true), "the message is read again")
+    T.eq(#buffered(), 1, "but buffered once")
+end
+
+-- Two messages from the units' queued moves: the menu opens on the first in
+-- the frames before the game ends the turn, and the second arrives after.
+-- Taking the box off the screen for the second cuts the first short, so both
+-- are read as the next turn begins, the first one first.
+function M.test_a_menu_cut_short_by_a_held_message_is_read_ahead_of_it()
+    setup()
+    pushMap()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    gameEndsTurn()
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    TickPump.tick()
+    T.eq(#dequeued, 1, "the box comes off the screen")
+    fireProcessed(TEXT_POPUP)
+    fireTurnEnd()
+    local before = #speaks
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    box.hidden = false
+    fireShown()
+    local said = spokenSince(before)
+    local older = said:find("Emancipation Proclamation", 1, true)
+    local newer = said:find("Blockade runner arrives.", 1, true)
+    T.truthy(older and newer and older < newer, "both are read, the cut one first")
+    T.eq(#buffered(), 2, "each is buffered once")
 end
 
 -- Only a box this hold took off the screen goes back on it.
@@ -492,6 +626,19 @@ function M.test_an_ordinary_game_never_follows_the_turn_processing()
     T.eq(logged("following the turn processing"), false)
 end
 
+-- With no listener on the turn processing, the hold lasts until
+-- ActivePlayerTurnStart, though the game has begun the turn by then.
+function M.test_elsewhere_the_hold_lasts_until_the_turn_start()
+    setup({})
+    pushMap()
+    fireTurnEnd()
+    gameBeginsTurn()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    T.eq(HandlerStack.active().name, "Map", "held while the game processes the turn")
+    fireTurnStart()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "read as the turn starts")
+end
+
 function M.test_a_supported_scenario_follows_the_turn_processing()
     setup()
     T.eq(#doTurnListeners, 1)
@@ -502,7 +649,8 @@ end
 -- game's own popups for the turn (a great person born) before
 -- ActivePlayerTurnStart queues the turn-start announcements. A message raised
 -- there is no longer between turns, so it shows at once, as those popups do.
--- The active player here is not player 0, as for the second human in hotseat.
+-- The active player here is not player 0, so the release follows the active
+-- player rather than the first civ.
 function M.test_a_message_raised_as_your_turn_begins_is_not_held()
     setup()
     Game.GetActivePlayer = function()
@@ -515,6 +663,83 @@ function M.test_a_message_raised_as_your_turn_begins_is_not_held()
     TickPump.tick()
     T.eq(#dequeued, 0, "not taken off the screen")
     T.eq(HandlerStack.active().name, "ShadowedTextPopup", "opens at once")
+end
+
+-- In hotseat the next turn belongs to another human, and an AI's diplomacy
+-- waits for a human's turn, so no leader cuts in during the AI turns. Nothing
+-- is held: a message opens at once, for the human whose turn just ended.
+function M.test_hotseat_holds_nothing()
+    setup()
+    hotSeat = true
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    TickPump.tick()
+    T.eq(#dequeued, 0, "not taken off the screen")
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "opens at once")
+end
+
+-- The turn's own popups (a great person born, a chooser) can stand in front of
+-- the box when it goes back. ActivePlayerTurnStart then finds the hold already
+-- over: the box waits behind them, nothing is read over them, and the menu
+-- opens once the box shows.
+function M.test_a_box_put_back_behind_another_popup_waits_through_the_turn_start()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    T.eq(#queued, 1, "put back, behind the popup in front")
+    local before = #speaks
+    fireTurnStart()
+    T.eq(spokenSince(before), "", "nothing is read over that popup")
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens once the box shows")
+    T.eq(#buffered(), 1, "buffered once")
+end
+
+-- A message from the turn processing can still be waiting for its box behind
+-- the turn's own popups when ActivePlayerTurnStart comes. It was never held,
+-- so the turn start leaves it be, and its menu opens once the box shows.
+function M.test_a_message_from_the_turn_processing_waits_behind_another_popup()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePlayerDoTurn(0)
+    TickPump.tick()
+    box.hidden = true
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    local before = #speaks
+    fireTurnStart()
+    T.eq(spokenSince(before), "", "nothing is read over the popup in front")
+    box.hidden = false
+    fireShown()
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup", "the menu opens once the box shows")
+end
+
+-- The box shows one message at a time, so a message raised as the turn begins
+-- joins one still held from the other civs' turns. The menu reads both, oldest
+-- first, and the release that follows finds nothing left to put back.
+function M.test_a_message_raised_as_your_turn_begins_is_read_after_a_held_one()
+    setup()
+    pushMap()
+    fireTurnEnd()
+    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
+    fireShown()
+    TickPump.tick()
+    fireProcessed(TEXT_POPUP)
+    firePlayerDoTurn(0)
+    box.hidden = false
+    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
+    TickPump.tick()
+    T.eq(HandlerStack.active().preamble, EVENT_TEXT .. " Blockade runner arrives.", "both, oldest first")
+    T.eq(#queued, 0, "the held message's box is not put back")
+    T.eq(#buffered(), 2, "each is buffered once")
 end
 
 -- A box parked through the other civs' turns goes back the moment the player's
@@ -582,32 +807,12 @@ function M.test_a_turn_beginning_before_the_park_keeps_the_box()
     T.truthy(speaks[before + 1].interrupt, "opens like any popup, ahead of the turn-start announcements")
 end
 
--- The box shows one message at a time, so a message raised as the turn begins
--- replaces one still held from the other civs' turns. The held one stays
--- reviewable in the buffer.
-function M.test_a_message_raised_as_your_turn_begins_replaces_a_held_one()
-    setup()
-    pushMap()
-    fireTurnEnd()
-    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
-    fireShown()
-    TickPump.tick()
-    fireProcessed(TEXT_POPUP)
-    firePlayerDoTurn(0)
-    box.hidden = false
-    firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
-    TickPump.tick()
-    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.")
-    T.eq(#queued, 0, "the replaced message's box is not put back")
-    T.eq(#buffered(), 2, "the replaced message is buffered too")
-end
-
 -- Two messages can arrive during the same AI turns, two explorers' finds in
--- Scramble for Africa. The first box comes off the screen, which reports it
+-- Scramble for Africa, or an explorer's dig at the end of the player's turn
+-- and an AI's find. The first box comes off the screen, which reports it
 -- processed, so the game shows the second, and the box goes back for the turn
--- with only that one. The first is never presented; it goes to the buffer, in
--- the order the messages came.
-function M.test_a_held_message_a_later_one_replaces_stays_in_the_buffer()
+-- with only that one on it. The menu reads both, oldest first.
+function M.test_every_message_held_through_the_ai_turns_is_read_oldest_first()
     setup()
     pushMap()
     fireTurnEnd()
@@ -625,20 +830,24 @@ function M.test_a_held_message_a_later_one_replaces_stays_in_the_buffer()
     TickPump.tick()
     box.hidden = false
     fireShown()
-    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.", "the box's latest message is presented")
-    T.falsy(spokenSince(before):find("Emancipation", 1, true), "the replaced message is not read over it")
+    T.eq(HandlerStack.active().name, "ShadowedTextPopup")
+    local said = spokenSince(before)
+    local older = said:find("Emancipation Proclamation", 1, true)
+    local newer = said:find("Blockade runner arrives.", 1, true)
+    T.truthy(older and newer and older < newer, "both are read, oldest first")
+    T.truthy(logged("reading 2 messages, oldest first"), "the count is logged")
     local entries = buffered()
     T.eq(#entries, 2)
-    T.eq(entries[1].text, EVENT_TEXT, "the replaced message first")
+    T.eq(entries[1].text, EVENT_TEXT, "buffered in the order they came")
     T.eq(entries[1].category, "notification")
     T.eq(entries[2].text, "Blockade runner arrives.")
 end
 
 -- A message from the player's own turn can still be waiting for its box when
--- the turn ends, and a message from the AI turns then replaces it there. Only
--- the held one is presented, on the box it took over, and each message is
--- buffered once.
-function M.test_a_message_still_waiting_as_your_turn_ends_gives_way_to_a_held_one()
+-- the turn ends, and a message from the AI turns then joins it. With no box on
+-- screen as the turn begins, both are read, oldest first, and the menu opens
+-- on both when the box shows. Each message is buffered once.
+function M.test_held_messages_with_no_box_at_your_turn_are_all_read()
     setup()
     pushMap()
     box.hidden = true
@@ -646,13 +855,17 @@ function M.test_a_message_still_waiting_as_your_turn_ends_gives_way_to_a_held_on
     fireTurnEnd()
     firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
     TickPump.tick()
+    local before = #speaks
     firePlayerDoTurn(0)
     TickPump.tick()
-    T.truthy(spoken():find("Blockade runner", 1, true), "the held message is read")
+    local said = spokenSince(before)
+    local older = said:find("Emancipation Proclamation", 1, true)
+    local newer = said:find("Blockade runner arrives.", 1, true)
+    T.truthy(older and newer and older < newer, "both are read, oldest first")
     box.hidden = false
     fireShown()
     TickPump.tick()
-    T.eq(HandlerStack.active().preamble, "Blockade runner arrives.", "the menu opens on what the box shows")
+    T.eq(HandlerStack.active().preamble, EVENT_TEXT .. " Blockade runner arrives.", "the menu opens on both")
     local entries = buffered()
     T.eq(#entries, 2, "each message buffered once")
     T.eq(entries[1].text, EVENT_TEXT)
@@ -734,7 +947,7 @@ function M.test_a_new_game_does_not_inherit_the_hold()
     setup()
     pushMap()
     fireTurnEnd()
-    ShadowedTextPopupAnnounce.install()
+    loadGame()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
     T.eq(HandlerStack.active().name, "ShadowedTextPopup", "a game loaded after a turn ended starts unheld")
 end
@@ -744,10 +957,11 @@ function M.test_a_new_game_does_not_inherit_a_held_message()
     pushMap()
     fireTurnEnd()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
-    ShadowedTextPopupAnnounce.install()
+    loadGame()
     local before = #speaks
     fireTurnStart()
     T.eq(spokenSince(before), "")
+    T.eq(#Setup.errors, 0, "and the turn start finds nothing held")
 end
 
 function M.test_a_new_game_does_not_inherit_a_parked_box()
@@ -756,7 +970,7 @@ function M.test_a_new_game_does_not_inherit_a_parked_box()
     fireTurnEnd()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
     TickPump.tick()
-    ShadowedTextPopupAnnounce.install()
+    loadGame()
     fireTurnEnd()
     firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
     fireTurnStart()
@@ -772,11 +986,12 @@ function M.test_a_new_game_does_not_inherit_a_message_for_its_box()
     box.hidden = true
     fireProcessed(TEXT_POPUP)
     firePopup({ Type = TEXT_POPUP, Text = "Blockade runner arrives." })
-    ShadowedTextPopupAnnounce.install()
+    loadGame()
     box.hidden = false
     fireShown()
     TickPump.tick()
     T.eq(HandlerStack.active().name, "Map")
+    T.eq(#Setup.errors, 0, "and the show finds nothing to reopen")
 end
 
 function M.test_close_with_no_box_on_screen_closes_the_menu()
@@ -796,13 +1011,6 @@ function M.test_esc_that_reaches_the_menu_closes_it()
     firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
     InputRouter.dispatch(Keys.VK_ESCAPE, 0, WM_KEYDOWN)
     T.eq(HandlerStack.active().name, "Map", "the player is never stuck in the menu")
-end
-
-function M.test_alt_down_reviews_the_message_line_by_line()
-    setup()
-    firePopup({ Type = TEXT_POPUP, Text = EVENT_TEXT })
-    InputRouter.dispatch(Keys.VK_DOWN, MOD_ALT, WM_KEYDOWN)
-    T.eq(speaks[#speaks].text, "PRO-UNION EVENT: Emancipation Proclamation")
 end
 
 function M.test_stays_silent_while_the_hook_is_alive()
@@ -841,7 +1049,7 @@ end
 
 function M.test_ignores_other_popup_types()
     setup()
-    firePopup({ Type = OTHER_POPUP, Data1 = 1, Data2 = -1 })
+    firePopup({ Type = OTHER_POPUP, Data1 = 1, Data2 = -1, Text = EVENT_TEXT })
     T.eq(HandlerStack.active(), nil)
     T.eq(#speaks, 0)
     T.eq(#buffered(), 0)

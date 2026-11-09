@@ -14,6 +14,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 Bug fixes:
 - A scenario event message that another popup interrupts is read when it comes back on screen.
 - Scenario event messages from the other civs' turns are read as your turn starts, ahead of its other announcements.
+- Scenario event messages from your units' moves after you end your turn, such as a finished dig, wait for your next turn.
+- When scenario event messages pile up, all of them are read, oldest first.
 
 ## [2.4.0] - 2026-10-22
 
