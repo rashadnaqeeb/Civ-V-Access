@@ -14,6 +14,9 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - The Scramble for Africa scenario is playable from the Scenarios menu.
 
+Bug fixes:
+- Single Player hides Scenarios on Vox Populi, Community Patch and LekMod installs, where they aren't supported.
+
 ## [2.4.0] - 2026-10-22
 
 New Features and improvements:
