@@ -18,7 +18,7 @@ EXPORTS
     luaL_findtable = _fwd_luaL_findtable
     luaL_getmetafield = _fwd_luaL_getmetafield
     luaL_gsub = _fwd_luaL_gsub
-    luaL_loadbuffer = _fwd_luaL_loadbuffer
+    luaL_loadbuffer
     luaL_loadfile = _fwd_luaL_loadfile
     luaL_loadstring = _fwd_luaL_loadstring
     luaL_newmetatable = _fwd_luaL_newmetatable

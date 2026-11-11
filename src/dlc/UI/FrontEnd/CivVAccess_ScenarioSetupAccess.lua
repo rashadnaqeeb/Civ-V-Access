@@ -1,9 +1,9 @@
 -- Scenario setup screen accessibility wiring for Firaxis BNW scenarios whose
 -- Custom entry point uses the side / difficulty / Start template; American
--- Civil War's includes it. ScenariosMenu loads the screen by full path from
--- the scenario's mod folder; the engine still runs our stem override of its
--- Lua, so this wrapper sits in the screen's own Context like any other Access
--- wrapper.
+-- Civil War's and Scramble for Africa's include it. ScenariosMenu loads the
+-- screen by full path from the scenario's mod folder; the engine still runs
+-- our stem override of its Lua, so this wrapper sits in the screen's own
+-- Context like any other Access wrapper.
 --
 -- The base screen picks a side from a mouse-only list that
 -- CivilizationButton toggles and a difficulty from an inline list, and its

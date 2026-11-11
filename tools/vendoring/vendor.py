@@ -263,14 +263,18 @@ def vanilla_roots(game_dir):
     return [
         dir_root("BNW", os.path.join(assets, "DLC", "Expansion2", "UI")),
         dir_root("base", os.path.join(assets, "UI")),
-        # The American Civil War scenario's mod folder, consulted only for
-        # stems that ship nowhere in BNW or base: its setup screen, the Custom
-        # entry point ScenariosMenu loads from the mod folder by path. The
-        # scenario's own TextPopup copy resolves to BNW or base first, so this
-        # root changes no existing override.
+        # The BNW scenario mod folders, consulted only for stems that ship
+        # nowhere in BNW or base: each scenario's setup screen, the Custom
+        # entry point ScenariosMenu loads from the mod folder by path. Their
+        # own copies of base screens (TextPopup, SocialPolicyPopup) resolve to
+        # BNW or base first, so these roots change no existing override.
         mod_root(
             "CivilWarScenario",
             os.path.join(assets, "DLC", "Expansion2", "Scenarios", "CivilWarScenario"),
+        ),
+        mod_root(
+            "ScrambleAfricaScenario",
+            os.path.join(assets, "DLC", "Expansion2", "Scenarios", "ScrambleAfricaScenario"),
         ),
         # Shared-DLC UI, lowest precedence: consulted only for stems that
         # exist nowhere in BNW or base (e.g. ChangeSmtpPassword, the pitboss

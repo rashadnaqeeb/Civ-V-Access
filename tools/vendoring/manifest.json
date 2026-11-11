@@ -195,13 +195,30 @@
         }
       ]
     },
+    "FrontEnd/Scenarios/ScrambleForAfricaLoadScreen.lua": {
+      "prefix": "-- Civ V Access: scenario screen override.\r\n-- Target: Assets/DLC/Expansion2/Scenarios/ScrambleAfricaScenario/ScrambleForAfricaLoadScreen.lua.\r\n-- ProbeBoot runs BEFORE the scenario file so the button probe captures\r\n-- StartButton's anonymous click handler, which keyboard Start invokes.\r\n-- Contents below (between ProbeBoot and the bootstrap marker at the bottom)\r\n-- are a verbatim copy of the scenario file apart from the marked edit.\r\ninclude(\"CivVAccess_ProbeBoot\")\r\n",
+      "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ScenarioSetupAccess\")\r\n",
+      "edits": [
+        {
+          "old": "\t\tcontrolTable.Button:RegisterCallback(Mouse.eLClick, function() DifficultySelected(controlTable, info.ID); end);\r\n",
+          "new": "\t\tcontrolTable.Button:RegisterCallback(Mouse.eLClick, function() DifficultySelected(controlTable, info.ID); end);\r\n\t\t-- CivVAccess: promote each difficulty entry so the access layer can select it\r\n\t\t-- the way a click does; DifficultySelected needs the entry to move the highlight.\r\n\t\tg_CivVAccessDifficultyButtons = g_CivVAccessDifficultyButtons or {};\r\n\t\tg_CivVAccessDifficultyButtons[info.ID] = controlTable;\r\n"
+        }
+      ]
+    },
     "FrontEnd/ScenariosMenu.lua": {
       "suffix": "\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_ScenariosMenuAccess\")\r\n"
     },
     "FrontEnd/ScenariosMenu.xml": {},
     "FrontEnd/SinglePlayer.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/SinglePlayer.{lua,xml}. Contents above the\r\n-- bootstrap marker are a verbatim copy of the base-game file.\r\n",
-      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SinglePlayerAccess\")\r\n"
+      "suffix": "\r\n\r\n-- Civ V Access accessibility mod bootstrap.\r\ninclude(\"CivVAccess_SinglePlayerAccess\")\r\n",
+      "edits": [
+        {
+          "engines": ["vp", "cp", "lekmod"],
+          "old": "    Controls.ScenariosButton:SetHide(bHideScenariosButton);\r\n",
+          "new": "    -- CivVAccess: hidden on this install. A Firaxis scenario blocks other DLC\r\n    -- and rebuilds a stock ruleset, and this install's overhaul ships as a\r\n    -- DLC, so a scenario here runs on an engine and data the mod was never\r\n    -- checked against.\r\n    Controls.ScenariosButton:SetHide(true);\r\n"
+        }
+      ]
     },
     "FrontEnd/ToolTips.lua": {
       "prefix": "-- Civ V Access: base-game override.\r\n-- Target: Assets/UI/FrontEnd/ToolTips.{lua,xml} (base game; not overridden by\r\n-- Expansion/Expansion2). Contents above the bootstrap marker are a verbatim\r\n-- copy of the base-game file. Rationale for this target: 15 lines, leaf, always loaded at\r\n-- front-end init (before MainMenu), and very unlikely to be patched.\r\n",

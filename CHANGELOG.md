@@ -11,7 +11,11 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
 
+New Features and improvements:
+- The Scramble for Africa scenario is playable from the Scenarios menu.
+
 Bug fixes:
+- Single Player hides Scenarios on Vox Populi, Community Patch and LekMod installs, where they aren't supported.
 - A scenario event message that another popup interrupts is read when it comes back on screen.
 - Scenario event messages from the other civs' turns are read as your turn starts, ahead of its other announcements.
 - Scenario event messages from your units' moves after you end your turn, such as a finished dig, wait for your next turn.
