@@ -1994,7 +1994,10 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
    code runs also gets a prefix, the way the mod's copy of a setup screen
    starts with ProbeBoot so Start's click handler is captured. The prefix
    shares the chunk's first line, so the line numbers in errors stay those
-   of the scenario's file.
+   of the scenario's file. An entry can also add text right after an anchor
+   in the chunk, on the anchor's own line, the way the mod's copy of a setup
+   screen promotes each difficulty entry so the wrapper can select it. If
+   the anchor isn't there, the chunk loads without that text.
 
    Chunk names are matched on their ending, case-insensitively, with '/' read
    as '\'. The game loads its UI chunks through luaL_loadbuffer, named by
@@ -2007,19 +2010,25 @@ __declspec(dllexport) int __cdecl lua_setfenv(lua_State *L, int index) {
 typedef struct {
     const char *nameEnd;    /* lowercase, backslash separators */
     const char *prefix;     /* put ahead of the chunk's own text, or NULL */
+    const char *anchor;     /* text the insert follows, or NULL */
+    const char *insert;     /* added right after the anchor */
     const char *bootstrap;  /* appended after the chunk's own text */
 } ScenarioScreen;
 
 static const ScenarioScreen g_scenarioScreens[] = {
     { "\\scenarios\\scrambleafricascenario\\socialpolicypopup.lua",
-      NULL, WRAPPER_INCLUDE("CivVAccess_SocialPolicyPopupAccess") },
+      NULL, NULL, NULL, WRAPPER_INCLUDE("CivVAccess_SocialPolicyPopupAccess") },
     { NEW_WORLD_DELUXE_UI "newworldscenarioloadscreen.lua",
-      "include(\"CivVAccess_ProbeBoot\"); ", WRAPPER_INCLUDE("CivVAccess_ScenarioSetupAccess") },
-    { NEW_WORLD_DELUXE_UI "socialpolicypopup.lua", NULL, WRAPPER_INCLUDE("CivVAccess_SocialPolicyPopupAccess") },
-    { NEW_WORLD_DELUXE_UI "choosepantheonpopup.lua", NULL, WRAPPER_INCLUDE("CivVAccess_ChoosePantheonPopupAccess") },
-    { NEW_WORLD_DELUXE_UI "newerapopup.lua", NULL, WRAPPER_INCLUDE("CivVAccess_NewEraPopupAccess") },
-    { NEW_WORLD_DELUXE_UI "religionoverview.lua", NULL, WRAPPER_INCLUDE("CivVAccess_ReligionOverviewAccess") },
-    { NEW_WORLD_DELUXE_UI "victoryprogress.lua", NULL, WRAPPER_INCLUDE("CivVAccess_VictoryProgressAccess") },
+      "include(\"CivVAccess_ProbeBoot\"); ",
+      "DifficultySelected(controlTable, info.ID); end);",
+      " g_CivVAccessDifficultyButtons = g_CivVAccessDifficultyButtons or {};"
+      " g_CivVAccessDifficultyButtons[info.ID] = controlTable;",
+      WRAPPER_INCLUDE("CivVAccess_ScenarioSetupAccess") },
+    { NEW_WORLD_DELUXE_UI "socialpolicypopup.lua", NULL, NULL, NULL, WRAPPER_INCLUDE("CivVAccess_SocialPolicyPopupAccess") },
+    { NEW_WORLD_DELUXE_UI "choosepantheonpopup.lua", NULL, NULL, NULL, WRAPPER_INCLUDE("CivVAccess_ChoosePantheonPopupAccess") },
+    { NEW_WORLD_DELUXE_UI "newerapopup.lua", NULL, NULL, NULL, WRAPPER_INCLUDE("CivVAccess_NewEraPopupAccess") },
+    { NEW_WORLD_DELUXE_UI "religionoverview.lua", NULL, NULL, NULL, WRAPPER_INCLUDE("CivVAccess_ReligionOverviewAccess") },
+    { NEW_WORLD_DELUXE_UI "victoryprogress.lua", NULL, NULL, NULL, WRAPPER_INCLUDE("CivVAccess_VictoryProgressAccess") },
 };
 
 static char lower_path_char(char c) {
@@ -2050,6 +2059,18 @@ static int chunk_name_contains(const char *name, const char *needle) {
         if (i == e) return 1;
     }
     return 0;
+}
+
+/* Offset just past the first occurrence of needle in a chunk that isn't
+   NUL-terminated, or (size_t)-1 when it doesn't occur. */
+static size_t offset_after(const char *buff, size_t sz, const char *needle) {
+    size_t n = strlen(needle);
+    size_t i;
+    if (n == 0 || n > sz) return (size_t)-1;
+    for (i = 0; i + n <= sz; i++) {
+        if (buff[i] == needle[0] && memcmp(buff + i, needle, n) == 0) return i + n;
+    }
+    return (size_t)-1;
 }
 
 static const ScenarioScreen *scenario_screen_for(const char *chunkname) {
@@ -2083,6 +2104,8 @@ __declspec(dllexport) int __cdecl luaL_loadbuffer(lua_State *L, const char *buff
     typedef int (__cdecl *fn)(lua_State *, const char *, size_t, const char *);
     const ScenarioScreen *screen = scenario_screen_for(name);
     size_t pre;
+    size_t at = (size_t)-1;
+    size_t ins = 0;
     size_t post;
     char *patched;
     int result;
@@ -2094,17 +2117,31 @@ __declspec(dllexport) int __cdecl luaL_loadbuffer(lua_State *L, const char *buff
         return ((fn)orig[I_luaL_loadbuffer])(L, buff, sz, name);
     }
     pre = screen->prefix != NULL ? strlen(screen->prefix) : 0;
+    if (screen->anchor != NULL) {
+        at = offset_after(buff, sz, screen->anchor);
+        if (at == (size_t)-1) {
+            proxy_log("luaL_loadbuffer: anchor not found in %s, loading without the insert\n", name);
+        } else {
+            ins = strlen(screen->insert);
+        }
+    }
     post = strlen(screen->bootstrap);
-    patched = (char *)malloc(pre + sz + post);
+    patched = (char *)malloc(pre + sz + ins + post);
     if (patched == NULL) {
         proxy_log("luaL_loadbuffer: malloc(%lu) failed, %s loads without its wrapper\n",
-                  (unsigned long)(pre + sz + post), name);
+                  (unsigned long)(pre + sz + ins + post), name);
         return ((fn)orig[I_luaL_loadbuffer])(L, buff, sz, name);
     }
     if (pre > 0) memcpy(patched, screen->prefix, pre);
-    memcpy(patched + pre, buff, sz);
-    memcpy(patched + pre + sz, screen->bootstrap, post);
-    result = ((fn)orig[I_luaL_loadbuffer])(L, patched, pre + sz + post, name);
+    if (ins > 0) {
+        memcpy(patched + pre, buff, at);
+        memcpy(patched + pre + at, screen->insert, ins);
+        memcpy(patched + pre + at + ins, buff + at, sz - at);
+    } else {
+        memcpy(patched + pre, buff, sz);
+    }
+    memcpy(patched + pre + sz + ins, screen->bootstrap, post);
+    result = ((fn)orig[I_luaL_loadbuffer])(L, patched, pre + sz + ins + post, name);
     free(patched);
     return result;
 }
