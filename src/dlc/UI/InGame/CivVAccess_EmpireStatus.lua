@@ -220,13 +220,14 @@ local function timerClause()
     return Text.format("TXT_KEY_CIVVACCESS_TURN_TIMER_LEFT", timerUnit(secs, "TXT_KEY_CIVVACCESS_TURN_TIMER_SECONDS"))
 end
 
--- Turns left before a World Builder scenario's turn limit, the count the
--- scenario's own on-screen counter shows (the American Civil War map presets
--- 50). Ordinary games carry a limit too, derived from the game speed when time
--- victory is on, so the clause is gated to a loaded scenario with a real limit.
--- Counted the way the engine ends the game and F8's turns row reads it.
+-- Turns left before a scenario's turn limit, the count the scenario's own
+-- on-screen counter shows (the American Civil War map presets 50, Conquest of
+-- the New World Deluxe's setup sets 150). Ordinary games carry a limit too,
+-- derived from the game speed when time victory is on, so the clause is gated
+-- to a scenario with a real limit. Counted the way the engine ends the game
+-- and F8's turns row reads it.
 local function scenarioTurnsClause()
-    if not PreGame.GetLoadWBScenario() or Game.GetMaxTurns() <= 0 then
+    if not ScenarioRegistry.inScenario() or Game.GetMaxTurns() <= 0 then
         return nil
     end
     local remaining = Game.GetMaxTurns() - Game.GetElapsedGameTurns()

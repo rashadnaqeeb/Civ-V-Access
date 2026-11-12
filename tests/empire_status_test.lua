@@ -54,6 +54,7 @@ local function setup()
     dofile("src/dlc/UI/Shared/CivVAccess_TextFilter.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_SpeechPipeline.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Text.lua")
+    dofile("src/dlc/UI/Shared/CivVAccess_ScenarioRegistry.lua")
     dofile("src/dlc/UI/InGame/CivVAccess_EmpireStatus.lua")
 
     options = {}
@@ -88,12 +89,17 @@ local function setup()
     Game.GetGameTurnYear = function()
         return 1620
     end
-    -- An ordinary game by default: no World Builder scenario, no turn limit.
-    -- Scenario turn-line tests set a loaded scenario with its preset limit.
-    -- The game starts at turn 0, so elapsed turns equal the game turn.
+    -- An ordinary game by default: no World Builder scenario, no turn limit,
+    -- no scenario mod active. Scenario turn-line tests set a loaded scenario
+    -- with its preset limit, or an active supported scenario's mod. The game
+    -- starts at turn 0, so elapsed turns equal the game turn.
     scenario = { loaded = false, maxTurns = 0 }
     PreGame.GetLoadWBScenario = function()
         return scenario.loaded
+    end
+    Modding = Modding or {}
+    Modding.GetActivatedMods = function()
+        return scenario.mods or {}
     end
     Game.GetMaxTurns = function()
         return scenario.maxTurns
@@ -423,6 +429,14 @@ function M.test_turn_appends_scenario_turns_remaining()
     setup()
     scenario = { loaded = true, maxTurns = 50 }
     T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 3 turns remaining")
+end
+
+-- Conquest of the New World Deluxe builds its map from a script, so the game
+-- isn't a World Builder scenario, yet its own counter shows its 150-turn limit.
+function M.test_turn_appends_turns_remaining_in_a_supported_map_script_scenario()
+    setup()
+    scenario = { loaded = false, maxTurns = 150, mods = { { ID = "34fb6c19-10dd-4b65-b143-fd00b2c0826f" } } }
+    T.eq(EmpireStatus._turnLine(), "Turn: 47, 1620 AD, 103 turns remaining")
 end
 
 function M.test_turn_scenario_turns_remaining_singular()

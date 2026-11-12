@@ -31,6 +31,14 @@ function ScenarioRegistry.isSupported(modId)
     return SCENARIOS[modId] ~= nil
 end
 
+-- Whether this game is a scenario. A World Builder scenario map says so
+-- through PreGame. A supported scenario that builds its map from a script,
+-- such as Conquest of the New World Deluxe, leaves that flag off, though its
+-- own screens still show the scenario's turn limit and score.
+function ScenarioRegistry.inScenario()
+    return PreGame.GetLoadWBScenario() or ScenarioRegistry.active() ~= nil
+end
+
 -- The supported scenario this game is running, or nil. Read from the game's
 -- activated mods on every call.
 function ScenarioRegistry.active()
