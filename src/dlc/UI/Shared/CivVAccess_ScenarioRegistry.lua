@@ -20,6 +20,11 @@ local SCENARIOS = {
         briefingLabel = "TXT_KEY_SCRAMBLE_AFRICA_BRIEFING_BUTTON",
         briefingText = "TXT_KEY_SCRAMBLE_AFRICA_CIV5_DAWN_TEXT",
     },
+    -- Conquest of the New World Deluxe
+    ["34fb6c19-10dd-4b65-b143-fd00b2c0826f"] = {
+        briefingLabel = "TXT_KEY_NEWWORLD_SCENARIO_BRIEFING",
+        briefingText = "TXT_KEY_NEWWORLDDLX_SCENARIO_CIV5_NEWWORLD_BRIEFING_TEXT",
+    },
 }
 
 function ScenarioRegistry.isSupported(modId)

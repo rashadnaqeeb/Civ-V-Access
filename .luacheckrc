@@ -390,13 +390,13 @@ files["tests/"] = {
         -- The pedia's category setter and a relationship InstanceManager;
         -- the history suite stands in for the base pedia's article render.
         "SetSelectedCategory", "g_UniqueUnitsManager",
-        -- A scenario setup screen's own globals (its civ table, current
-        -- picks, the setters a pick commits through, and the difficulty
-        -- entries the vendor override promotes), plus the engine DB its side
-        -- lookup queries; the scenario-setup suite stubs them as the base
-        -- screen would define them.
+        -- A scenario setup screen's own globals (its civ table under either
+        -- name, current picks, the setters a pick commits through, and the
+        -- difficulty entries the vendor override or the proxy promotes),
+        -- plus the engine DB its side lookup queries; the scenario-setup
+        -- suite stubs them as the base screen would define them.
         "DB",
-        "ktScenarioCivilizations", "g_CurrentPlayerIndex", "g_CurrentDifficulty",
+        "ktScenarioCivilizations", "ScenarioCivilizations", "g_CurrentPlayerIndex", "g_CurrentDifficulty",
         "g_CivVAccessDifficultyButtons", "SetPlayerIndex", "DifficultySelected",
     },
     -- Test suites are tables of test_* functions returned via `return M`;
