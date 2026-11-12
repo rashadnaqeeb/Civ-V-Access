@@ -96,7 +96,23 @@ local function beliefTypeText(belief)
     return Text.format("TXT_KEY_CIVVACCESS_RELIGION_BELIEF_TYPE", word)
 end
 
+-- The religion the screen counts as the player's. Conquest of the New World
+-- Deluxe's copy of the screen defines GetMyReligion, which gives every
+-- European side its church: Spain and England found theirs, and France, the
+-- Netherlands and Portugal share them.
+local function yourReligion(player)
+    if GetMyReligion ~= nil then
+        return GetMyReligion(player:GetID())
+    end
+    return EngineData.ownedReligion(player)
+end
+
 local function religiousStatusText(player)
+    -- Conquest of the New World Deluxe's copy words its own status line to
+    -- match the church it counts as yours.
+    if GetMyReligion ~= nil then
+        return GetReligiousStatus()
+    end
     local eReligion = EngineData.ownedReligion(player)
     if eReligion ~= -1 then
         local key = isCP() and "TXT_KEY_CIVVACCESS_RELIGION_STATUS_CONTROLLER"
@@ -163,7 +179,7 @@ local function buildYourReligionItems()
         labelText = religiousStatusText(player),
         pediaNameFn = function()
             local p = Players[Game.GetActivePlayer()]
-            local eReligion = EngineData.ownedReligion(p)
+            local eReligion = yourReligion(p)
             if eReligion ~= -1 then
                 return religionPediaName(eReligion)
             end
@@ -171,7 +187,7 @@ local function buildYourReligionItems()
         end,
     })
 
-    local eOwned = EngineData.ownedReligion(player)
+    local eOwned = yourReligion(player)
     if eOwned ~= -1 then
         for _, v in ipairs(Game.GetBeliefsInReligion(eOwned)) do
             local belief = GameInfo.Beliefs[v]
@@ -186,76 +202,92 @@ local function buildYourReligionItems()
         end
     end
 
+    -- The faith readout, its sources and the Great People each follow the
+    -- control that shows them. Conquest of the New World Deluxe's own copy of
+    -- this screen has none of the three, since Great Prophets are off there.
+    --
     -- Faith readout. The bare engine row "Faith 47 of 200" is ambiguous
     -- without the visual context sighted players get, so the engine's
     -- hover-tooltip explanation ("Need minimum of N Faith for next Great
     -- Prophet") is appended inline.
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            local p = Players[Game.GetActivePlayer()]
-            local minFaith = p:GetMinimumFaithNextGreatProphet()
-            return TextFilter.filter(
-                Text.format("TXT_KEY_RO_FAITH", p:GetFaith(), minFaith)
-                    .. ", "
-                    .. Text.format("TXT_KEY_RO_FAITH_TOOLTIP", minFaith)
-            )
-        end,
-    })
+    if Controls.CurrentFaith ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                local p = Players[Game.GetActivePlayer()]
+                local minFaith = p:GetMinimumFaithNextGreatProphet()
+                return TextFilter.filter(
+                    Text.format("TXT_KEY_RO_FAITH", p:GetFaith(), minFaith)
+                        .. ", "
+                        .. Text.format("TXT_KEY_RO_FAITH_TOOLTIP", minFaith)
+                )
+            end,
+        })
+    end
     -- Each source suppressed when zero so the pre-Industrial / no-religion
     -- state doesn't speak three "+0" lines.
-    local fromCities = player:GetFaithPerTurnFromCities()
-    if fromCities ~= 0 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_FROM_CITIES", fromCities)),
-        })
-    end
-    local fromMinors = player:GetFaithPerTurnFromMinorCivs()
-    if fromMinors ~= 0 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_FROM_MINORS", fromMinors)),
-        })
-    end
-    local fromReligion = player:GetFaithPerTurnFromReligion()
-    if fromReligion ~= 0 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_FROM_RELIGION", fromReligion)),
-        })
+    if Controls.FaithModifierStack ~= nil then
+        local fromCities = player:GetFaithPerTurnFromCities()
+        if fromCities ~= 0 then
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_FROM_CITIES", fromCities)),
+            })
+        end
+        local fromMinors = player:GetFaithPerTurnFromMinorCivs()
+        if fromMinors ~= 0 then
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_FROM_MINORS", fromMinors)),
+            })
+        end
+        local fromReligion = player:GetFaithPerTurnFromReligion()
+        if fromReligion ~= 0 then
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = TextFilter.filter(Text.format("TXT_KEY_TP_FAITH_FROM_RELIGION", fromReligion)),
+            })
+        end
     end
 
     -- Possible Great People -- units the player can buy with faith right
     -- now in any city. Mirrors engine RefreshYourReligion's filter chain
     -- (capital cost > 0, IsCanPurchaseAnyCity, DoesUnitPassFaithPurchaseCheck).
-    local greatPeople = {}
-    local capital = player:GetCapitalCity()
-    if capital ~= nil then
-        for info in GameInfo.Units({ Special = "SPECIALUNIT_PEOPLE" }) do
-            local infoID = info.ID
-            local cost = capital:GetUnitFaithPurchaseCost(infoID, true)
-            if
-                cost > 0
-                and player:IsCanPurchaseAnyCity(false, true, infoID, -1, YieldTypes.YIELD_FAITH)
-                and player:DoesUnitPassFaithPurchaseCheck(infoID)
-            then
-                greatPeople[#greatPeople + 1] = Text.key(info.Description)
+    if Controls.GreatPersonList ~= nil then
+        local greatPeople = {}
+        local capital = player:GetCapitalCity()
+        if capital ~= nil then
+            for info in GameInfo.Units({ Special = "SPECIALUNIT_PEOPLE" }) do
+                local infoID = info.ID
+                local cost = capital:GetUnitFaithPurchaseCost(infoID, true)
+                if
+                    cost > 0
+                    and player:IsCanPurchaseAnyCity(false, true, infoID, -1, YieldTypes.YIELD_FAITH)
+                    and player:DoesUnitPassFaithPurchaseCheck(infoID)
+                then
+                    greatPeople[#greatPeople + 1] = Text.key(info.Description)
+                end
             end
         end
+        table.sort(greatPeople, function(a, b)
+            return Locale.Compare(a, b) == -1
+        end)
+        local gpLabel = Text.key("TXT_KEY_RO_POSSIBLE_GP")
+        if #greatPeople > 0 then
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = Text.format("TXT_KEY_CIVVACCESS_LABELED_LIST", gpLabel, table.concat(greatPeople, ", ")),
+            })
+        else
+            items[#items + 1] = BaseMenuItems.Text({
+                labelText = Text.format(
+                    "TXT_KEY_CIVVACCESS_LABELED_LIST",
+                    gpLabel,
+                    Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE")
+                ),
+            })
+        end
     end
-    table.sort(greatPeople, function(a, b)
-        return Locale.Compare(a, b) == -1
-    end)
-    local gpLabel = Text.key("TXT_KEY_RO_POSSIBLE_GP")
-    if #greatPeople > 0 then
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format("TXT_KEY_CIVVACCESS_LABELED_LIST", gpLabel, table.concat(greatPeople, ", ")),
-        })
-    else
-        items[#items + 1] = BaseMenuItems.Text({
-            labelText = Text.format(
-                "TXT_KEY_CIVVACCESS_LABELED_LIST",
-                gpLabel,
-                Text.key("TXT_KEY_RO_YR_NO_GREAT_PEOPLE")
-            ),
-        })
+
+    -- Conquest of the New World Deluxe's own copy of this screen has no
+    -- automatic purchase menu, so there is nothing to offer.
+    if Controls.AutomaticPurchasePD == nil then
+        return items
     end
 
     -- The engine builds entry text and the current-selection text with a

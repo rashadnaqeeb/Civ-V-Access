@@ -343,6 +343,10 @@ files["tests/"] = {
         -- sub-menu helper; the choose-pantheon suite stubs them to drive a
         -- pick without a Context.
         "SelectPantheon", "OnYes", "ChooseConfirmSub",
+        -- The religion overview's own functions in Conquest of the New World
+        -- Deluxe's copy; the religion-overview suite stubs them as that copy
+        -- defines them.
+        "GetMyReligion", "GetReligiousStatus",
         -- Engine enums only the ChooseProduction suite needs; shimmed in
         -- that suite's setup rather than in the polyfill.
         "OrderTypes", "AdvisorTypes",
