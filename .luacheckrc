@@ -339,6 +339,10 @@ files["tests/"] = {
         -- The policy screen's switch-ideology function; the social-policy
         -- suite stubs it to see whether the switch row asks for a switch.
         "ChooseChangeIdeology",
+        -- The pantheon screen's pick and confirm functions and the confirm
+        -- sub-menu helper; the choose-pantheon suite stubs them to drive a
+        -- pick without a Context.
+        "SelectPantheon", "OnYes", "ChooseConfirmSub",
         -- Engine enums only the ChooseProduction suite needs; shimmed in
         -- that suite's setup rather than in the polyfill.
         "OrderTypes", "AdvisorTypes",
