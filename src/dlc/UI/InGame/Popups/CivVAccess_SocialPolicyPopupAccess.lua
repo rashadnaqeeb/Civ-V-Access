@@ -1,9 +1,15 @@
 -- SocialPolicyPopup accessibility. BUTTONPOPUP_CHOOSEPOLICY wraps the BNW
--- social-policy screen as a two-tab BaseMenu: Policies (9 classical branches,
--- each drillable for its policies in unlock-order) and Ideology (3 level
--- groups of tenet slots, plus public opinion and switch-ideology). Tab 2 is a
--- no-op "not yet embraced" placeholder when the player has no ideology, and a
--- disabled notice when GAMEOPTION_NO_POLICIES is set.
+-- social-policy screen as a tabbed BaseMenu: Policies (9 classical branches,
+-- each drillable for its policies in unlock-order), left out on a screen
+-- without the policies part, and Ideology (3 level groups of tenet slots, plus
+-- public opinion and switch-ideology). The Ideology tab is a no-op "not yet
+-- embraced" placeholder when the player has no ideology, and a disabled
+-- notice when GAMEOPTION_NO_POLICIES is set.
+--
+-- Conquest of the New World Deluxe runs this wrapper inside its own copy of
+-- the screen, which is the ideology part alone: it has no policy confirm, so
+-- there is no Policies tab, and no public opinion or switch-ideology
+-- controls, so those rows are left out.
 --
 -- Pure helpers (branch status, tier ordering, slot gating, speech composition,
 -- preamble) live in CivVAccess_SocialPolicyLogic for offline-test coverage.
@@ -34,8 +40,11 @@ include("CivVAccess_SocialPolicyLogic")
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
 
-local TAB_POLICIES = 1
-local TAB_IDEOLOGY = 2
+-- No Policies tab on a screen without the policy confirm, as in Conquest of
+-- the New World Deluxe's ideology-only copy; the Ideology tab is then the
+-- only one.
+local TAB_POLICIES = Controls.PolicyConfirm ~= nil and 1 or nil
+local TAB_IDEOLOGY = TAB_POLICIES ~= nil and 2 or 1
 
 local SUB_POLICY_CONFIRM = "PolicyConfirm"
 local SUB_TENET_PICKER = "TenetPicker"
@@ -431,7 +440,7 @@ local function activateSwitchIdeology()
         announceReadOnly()
         return
     end
-    if Controls.SwitchIdeologyButton == nil or Controls.SwitchIdeologyButton:IsDisabled() then
+    if Controls.SwitchIdeologyButton:IsDisabled() then
         return
     end
     local ok, err = pcall(ChooseChangeIdeology)
@@ -644,23 +653,24 @@ local function buildIdeologyTabItems()
         })
     end
 
-    items[#items + 1] = BaseMenuItems.Text({
-        labelFn = function()
-            local player = currentPlayer()
-            if player == nil then
-                return ""
-            end
-            return SocialPolicyLogic.buildPublicOpinionSpeech(player)
-        end,
-        pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
-    })
-
-    -- Switch-ideology is a commit action, omitted in the read-only spy view.
-    if not _espionageView then
+    if Controls.PublicOpinion ~= nil then
         items[#items + 1] = BaseMenuItems.Text({
             labelFn = function()
-                local disabled = Controls.SwitchIdeologyButton ~= nil and Controls.SwitchIdeologyButton:IsDisabled()
-                if disabled then
+                local player = currentPlayer()
+                if player == nil then
+                    return ""
+                end
+                return SocialPolicyLogic.buildPublicOpinionSpeech(player)
+            end,
+            pediaName = "TXT_KEY_SOCIALPOLICY_IDEOLOGY_HEADING3_TITLE",
+        })
+    end
+
+    -- Switch-ideology is a commit action, omitted in the read-only spy view.
+    if not _espionageView and Controls.SwitchIdeologyButton ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({
+            labelFn = function()
+                if Controls.SwitchIdeologyButton:IsDisabled() then
                     return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY_DISABLED")
                 end
                 return Text.key("TXT_KEY_CIVVACCESS_SOCIALPOLICY_SWITCH_IDEOLOGY")
@@ -697,6 +707,12 @@ local function wrappedPriorShowHide(bIsHide, bIsInit)
     end
 end
 
+local tabs = {}
+if TAB_POLICIES ~= nil then
+    tabs[TAB_POLICIES] = { name = "TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_POLICIES", items = {} }
+end
+tabs[TAB_IDEOLOGY] = { name = "TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_IDEOLOGY", items = {} }
+
 mainHandler = BaseMenu.install(ContextPtr, {
     name = "SocialPolicyPopup",
     displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY"),
@@ -725,26 +741,19 @@ mainHandler = BaseMenu.install(ContextPtr, {
         else
             handler.displayName = Text.key("TXT_KEY_CIVVACCESS_SCREEN_SOCIAL_POLICY")
         end
-        handler.setInitialTabIndex(_openToIdeologyTab and TAB_IDEOLOGY or TAB_POLICIES)
+        handler.setInitialTabIndex((_openToIdeologyTab or TAB_POLICIES == nil) and TAB_IDEOLOGY or TAB_POLICIES)
         _openToIdeologyTab = false
         -- _initialized survives the hide only on a Ctrl+I pedia round trip;
         -- rebuilding then would collapse the user's drill-in to the branch /
         -- level heading. Data changes still land through EventPoliciesDirty.
         if not handler._initialized then
-            handler.setItems(buildPoliciesTabItems(), TAB_POLICIES)
+            if TAB_POLICIES ~= nil then
+                handler.setItems(buildPoliciesTabItems(), TAB_POLICIES)
+            end
             handler.setItems(buildIdeologyTabItems(), TAB_IDEOLOGY)
         end
     end,
-    tabs = {
-        {
-            name = "TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_POLICIES",
-            items = {},
-        },
-        {
-            name = "TXT_KEY_CIVVACCESS_SOCIALPOLICY_TAB_IDEOLOGY",
-            items = {},
-        },
-    },
+    tabs = tabs,
 })
 
 -- ========== Event listeners ==========
@@ -775,11 +784,13 @@ Events.EventPoliciesDirty.Add(function()
     if ContextPtr:IsHidden() then
         return
     end
-    local ok1, err1 = pcall(function()
-        mainHandler.setItems(buildPoliciesTabItems(), TAB_POLICIES)
-    end)
-    if not ok1 then
-        Log.error("SocialPolicyPopupAccess Dirty/Policies rebuild failed: " .. tostring(err1))
+    if TAB_POLICIES ~= nil then
+        local ok1, err1 = pcall(function()
+            mainHandler.setItems(buildPoliciesTabItems(), TAB_POLICIES)
+        end)
+        if not ok1 then
+            Log.error("SocialPolicyPopupAccess Dirty/Policies rebuild failed: " .. tostring(err1))
+        end
     end
     local ok2, err2 = pcall(function()
         mainHandler.setItems(buildIdeologyTabItems(), TAB_IDEOLOGY)

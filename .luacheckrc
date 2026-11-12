@@ -336,6 +336,9 @@ files["tests/"] = {
         -- TextPopup's close handler; the shadowed-text-popup suite stubs it
         -- to load TextPopupAccess without a Context.
         "OnCloseButtonClicked",
+        -- The policy screen's switch-ideology function; the social-policy
+        -- suite stubs it to see whether the switch row asks for a switch.
+        "ChooseChangeIdeology",
         -- Engine enums only the ChooseProduction suite needs; shimmed in
         -- that suite's setup rather than in the polyfill.
         "OrderTypes", "AdvisorTypes",
