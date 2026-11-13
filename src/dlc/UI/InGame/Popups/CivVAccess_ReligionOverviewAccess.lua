@@ -1,10 +1,10 @@
 -- Accessibility wrapper for the engine's ReligionOverview popup
 -- (BUTTONPOPUP_RELIGION_OVERVIEW). Three-tab TabbedShell over the engine's
--- own three-tab screen: tab 1 Your Religion (status, beliefs, faith
--- readout, possible great people, automatic-purchase pulldown), tab 2
--- World Religions (one row per founded religion plus an OVERALL STATUS
--- footer), tab 3 Beliefs (one Group per religion / pantheon, drilling
--- into each religion's beliefs).
+-- own three-tab screen: tab 1 Your Religion (status, beliefs, a supported
+-- scenario's religion note, faith readout, possible great people,
+-- automatic-purchase pulldown), tab 2 World Religions (one row per founded
+-- religion plus an OVERALL STATUS footer), tab 3 Beliefs (one Group per
+-- religion / pantheon, drilling into each religion's beliefs).
 --
 -- The screen is opened by the engine's existing entry points (Faith string
 -- in the top panel, additional-info dropdown, engine Ctrl+P) and by our
@@ -28,6 +28,7 @@
 include("CivVAccess_PopupBoot")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_PullDownProbe")
+include("CivVAccess_ScenarioRegistry")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -200,6 +201,14 @@ local function buildYourReligionItems()
         if belief ~= nil then
             items[#items + 1] = buildBeliefRow(belief)
         end
+    end
+
+    -- A supported scenario's own note on how religion works there. Conquest
+    -- of the New World Deluxe's top bar shows it in the faith tooltip, and
+    -- its briefing points players there for the religion rules.
+    local scenario = ScenarioRegistry.active()
+    if scenario ~= nil and scenario.religionNote ~= nil then
+        items[#items + 1] = BaseMenuItems.Text({ labelText = Text.key(scenario.religionNote) })
     end
 
     -- The faith readout, its sources and the Great People each follow the

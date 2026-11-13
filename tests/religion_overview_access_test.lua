@@ -7,10 +7,16 @@
 -- readout, its sources and the Great People follow their controls the same
 -- way, and that copy has none of them. It also counts a European side's
 -- church as its religion, though only Spain and England found theirs, and
--- words the status line itself; the tab reads both from the screen.
+-- words the status line itself; the tab reads both from the screen. In that
+-- scenario the tab also reads the scenario's note on how religion works
+-- there, which no other supported scenario has.
 
 local T = require("support")
 local M = {}
+
+local NEW_WORLD_DELUXE = "34fb6c19-10dd-4b65-b143-fd00b2c0826f"
+local CIVIL_WAR = "55fd836a-72e5-4aba-bbcf-3395b05a0e70"
+local RELIGION_NOTE = "TXT_KEY_NEWWORLD_SCENARIO_TP_RELIGION_TOOLTIP"
 
 local tabs
 local spec
@@ -24,7 +30,9 @@ local STOCK_SCREEN = {
     end,
 }
 
-local function load(controls, screen)
+-- Load the wrapper over the given screen controls and copy of the screen, in
+-- a game running the given mods (an ordinary game by default).
+local function load(controls, screen, mods)
     screen = screen or STOCK_SCREEN
     warnings = {}
     Log.warn = function(msg)
@@ -41,6 +49,11 @@ local function load(controls, screen)
     dofile("src/dlc/UI/Shared/CivVAccess_TickPump.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_Nav.lua")
     dofile("src/dlc/UI/Shared/CivVAccess_BaseMenuItems.lua")
+    Modding = Modding or {}
+    Modding.GetActivatedMods = function()
+        return mods or {}
+    end
+    dofile("src/dlc/UI/Shared/CivVAccess_ScenarioRegistry.lua")
 
     include = function() end
     InputHandler = nil
@@ -229,7 +242,7 @@ local function loadNewWorldDeluxe()
         GetReligiousStatus = function()
             return "Founder of Protestantism"
         end,
-    })
+    }, { { ID = NEW_WORLD_DELUXE } })
 end
 
 function M.test_your_religion_lists_the_beliefs_of_the_church_the_screen_counts_as_yours()
@@ -257,6 +270,23 @@ end
 function M.test_your_religion_status_opens_the_church_in_the_pedia()
     loadNewWorldDeluxe()
     T.eq(tabs[1].items[1].pediaNameFn(), "Protestantism")
+end
+
+-- The scenario's top bar shows its note on how religion works there in the
+-- faith tooltip, and its briefing points players to it; Your Religion reads
+-- it after the church's beliefs.
+function M.test_your_religion_reads_the_scenarios_religion_note()
+    loadNewWorldDeluxe()
+    local items = tabs[1].items
+    T.eq(items[#items].labelText, RELIGION_NOTE)
+end
+
+-- A supported scenario without such a note reads as an ordinary game does.
+function M.test_your_religion_reads_no_note_in_a_scenario_without_one()
+    load({})
+    local ordinary = yourReligionText()
+    load({}, nil, { { ID = CIVIL_WAR } })
+    T.eq(yourReligionText(), ordinary)
 end
 
 return M
