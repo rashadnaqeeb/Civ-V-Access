@@ -1,0 +1,426 @@
+{
+  "manifestVersion": 1,
+  "id": "civ-v-access",
+  "name": "Civ V Access",
+  "description": "Screen-reader accessibility for Sid Meier's Civilization V with Brave New World, Vox Populi, the Community Patch or LekMod: speech, keyboard navigation of the whole game and map, a scanner, audio beacons and audio-described intros. Also installs the matching setup for sighted multiplayer partners.",
+  "authors": [
+    "Rashad Naqeeb"
+  ],
+  "license": "MIT",
+  "game": "civilization-v",
+  "platforms": [
+    "windows"
+  ],
+  "distributions": {
+    "steam": "supported"
+  },
+  "options": [
+    {
+      "id": "profile",
+      "label": "Who will play with this install?",
+      "default": "blind",
+      "choices": [
+        {
+          "value": "blind",
+          "label": "A blind player",
+          "description": "The full mod: speech, keyboard navigation and audio-described intro movies."
+        },
+        {
+          "value": "sighted",
+          "label": "A sighted player who plays multiplayer against a blind user",
+          "description": "Only what your game needs to match theirs; no speech code runs. Uninstall it before playing with people who don't have the mod."
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "label": "Which version of the game?",
+      "default": "vanilla",
+      "choices": [
+        {
+          "value": "vanilla",
+          "label": "Brave New World, with no other mods"
+        },
+        {
+          "value": "vp",
+          "label": "Vox Populi (with the Community Patch)"
+        },
+        {
+          "value": "cp",
+          "label": "Community Patch only"
+        },
+        {
+          "value": "lekmod",
+          "label": "LekMod"
+        }
+      ]
+    }
+  ],
+  "preserve": [
+    {
+      "path": "${gameDir}/lua51_Win32.dll",
+      "as": "${gameDir}/lua51_original.dll"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/CvGameCore_Expansion2.dll",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/CvGameCore_Expansion2.vanilla.dll"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Expansion2.Civ5Pkg",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/Expansion2.Civ5Pkg.stock"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_en_US.wmv",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_en_US.wmv"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_de_DE.wma",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_de_DE.wma"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_es_ES.wma",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_es_ES.wma"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_fr_FR.wma",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_fr_FR.wma"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_it_IT.wma",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_it_IT.wma"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_pl_PL.wma",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_pl_PL.wma"
+    },
+    {
+      "path": "${gameDir}/Assets/DLC/Expansion2/Civ5XP2_Opening_Movie_ru_RU.wma",
+      "as": "${gameDir}/Assets/DLC/DLC_CivVAccess.backup/cinematics/Civ5XP2_Opening_Movie_ru_RU.wma"
+    }
+  ],
+  "install": [
+    {
+      "step": "expect",
+      "checks": [
+        {
+          "platform": "windows",
+          "message": "Civ V Access runs on Windows only."
+        },
+        {
+          "not": {
+            "processRunning": [
+              "CivilizationV",
+              "CivilizationV_DX11",
+              "CivilizationV_Tablet"
+            ]
+          },
+          "message": "Civilization V is running. Quit the game, then install again."
+        },
+        {
+          "fileExists": "${gameDir}/Assets/DLC/Expansion2/CvGameCore_Expansion2.dll",
+          "message": "Civ V Access needs the Brave New World expansion. Install it, or verify the game files in Steam, then try again."
+        }
+      ]
+    },
+    {
+      "step": "delete-files",
+      "paths": [
+        "${gameDir}/Assets/DLC/DLC_CivVAccess/**/*",
+        "${gameDir}/Assets/DLC/DLC_CivVAccess",
+        "${gameDir}/Assets/DLC/ZCivVAccessVP/**/*",
+        "${gameDir}/Assets/DLC/ZCivVAccessVP",
+        "${gameDir}/Assets/DLC/ZCivVAccessCP/**/*",
+        "${gameDir}/Assets/DLC/ZCivVAccessCP",
+        "${gameDir}/Assets/DLC/VPUI/**/*",
+        "${gameDir}/Assets/DLC/VPUI",
+        "${gameDir}/Assets/DLC/LEKMOD*/**/*",
+        "${gameDir}/Assets/DLC/LEKMOD*",
+        "${gameDir}/Assets/Maps/Lekmap/**/*",
+        "${gameDir}/Assets/Maps/Lekmap",
+        "${gameDir}/Assets/DLC/Expansion2/Sounds/XML/MinorCivSounds_VoxPopuli.xml",
+        "${userData}/Text/VPUI_tips_en_us.xml",
+        "${gameDir}/Tolk.dll",
+        "${gameDir}/SAAPI32.dll",
+        "${gameDir}/dolapi32.dll",
+        "${gameDir}/nvdaControllerClient32.dll",
+        "${gameDir}/BoyCtrl.dll",
+        "${gameDir}/boyctrl.ini",
+        "${gameDir}/ZDSRAPI.dll",
+        "${gameDir}/ZDSRAPI.ini",
+        "${gameDir}/proxy_debug.log",
+        "${gameDir}/CivVAccess/**/*",
+        "${gameDir}/CivVAccess",
+        "${gameDir}/Assets/DLC/CivVAccess/**/*",
+        "${gameDir}/Assets/DLC/CivVAccess",
+        "${userData}/MODS/Civ-V-Access (v 1)/**/*",
+        "${userData}/MODS/Civ-V-Access (v 1)"
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "core-blind",
+      "when": {
+        "option": {
+          "profile": "blind"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/DLC_CivVAccess"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "core-sighted",
+      "when": {
+        "option": {
+          "profile": "sighted"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/DLC_CivVAccess"
+        }
+      ]
+    },
+    {
+      "step": "ensure-dirs",
+      "when": {
+        "option": {
+          "profile": "sighted"
+        }
+      },
+      "paths": [
+        "${gameDir}/Assets/DLC/DLC_CivVAccess/UI/FrontEnd",
+        "${gameDir}/Assets/DLC/DLC_CivVAccess/UI/InGame",
+        "${gameDir}/Assets/DLC/DLC_CivVAccess/UI/Shared",
+        "${gameDir}/Assets/DLC/DLC_CivVAccess/UI/TechTree"
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "vp-overlay",
+      "when": {
+        "option": {
+          "profile": "blind",
+          "state": "vp"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/DLC_CivVAccess"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "cp-overlay",
+      "when": {
+        "option": {
+          "profile": "blind",
+          "state": "cp"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/DLC_CivVAccess"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "lekmod-overlay",
+      "when": {
+        "option": {
+          "profile": "blind",
+          "state": "lekmod"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/DLC_CivVAccess"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "runtime",
+      "when": {
+        "option": {
+          "profile": "blind"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "cinematics",
+      "when": {
+        "option": {
+          "profile": "blind"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/Expansion2"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "engine",
+      "when": {
+        "option": {
+          "state": "vanilla"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/Expansion2"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "vp-modpack",
+      "when": {
+        "option": {
+          "state": "vp"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/ZCivVAccessVP"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "cp-modpack",
+      "when": {
+        "option": {
+          "state": "cp"
+        }
+      },
+      "routes": [
+        {
+          "from": "**",
+          "to": "${gameDir}/Assets/DLC/ZCivVAccessCP"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "vp-runtime",
+      "when": {
+        "option": {
+          "state": "vp"
+        }
+      },
+      "routes": [
+        {
+          "from": "game/**",
+          "to": "${gameDir}"
+        },
+        {
+          "from": "docs/**",
+          "to": "${userData}"
+        }
+      ]
+    },
+    {
+      "step": "extract-archive",
+      "artifact": "lekmod-dlc",
+      "when": {
+        "option": {
+          "state": "lekmod"
+        }
+      },
+      "routes": [
+        {
+          "from": "dlc/**",
+          "to": "${gameDir}/Assets/DLC/LEKMOD"
+        },
+        {
+          "from": "maps/**",
+          "to": "${gameDir}/Assets/Maps/Lekmap"
+        }
+      ]
+    },
+    {
+      "step": "expect",
+      "checks": [
+        {
+          "fileExists": "${gameDir}/Assets/DLC/DLC_CivVAccess/CivVAccess_2.Civ5Pkg",
+          "message": "The download didn't contain the mod (no CivVAccess_2.Civ5Pkg)."
+        }
+      ]
+    },
+    {
+      "step": "edit-ini",
+      "when": {
+        "fileExists": "${userData}/config.ini"
+      },
+      "file": "${userData}/config.ini",
+      "ops": [
+        {
+          "op": "set",
+          "key": "LoggingEnabled",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "step": "delete-files",
+      "paths": [
+        "${userData}/cache/*"
+      ]
+    },
+    {
+      "step": "ensure-dirs",
+      "paths": [
+        "${userData}/cache"
+      ]
+    },
+    {
+      "step": "notice",
+      "when": {
+        "option": {
+          "profile": "sighted"
+        }
+      },
+      "message": "Installed for a sighted multiplayer partner. Uninstall Civ V Access before playing with people who don't have the mod; your game won't match theirs otherwise."
+    }
+  ],
+  "uninstall": [
+    {
+      "step": "delete-files",
+      "paths": [
+        "${gameDir}/proxy_debug.log",
+        "${userData}/cache/*",
+        "${gameDir}/Assets/DLC/DLC_CivVAccess/**/*",
+        "${gameDir}/Assets/DLC/DLC_CivVAccess"
+      ]
+    },
+    {
+      "step": "ensure-dirs",
+      "paths": [
+        "${userData}/cache"
+      ]
+    }
+  ]
+}

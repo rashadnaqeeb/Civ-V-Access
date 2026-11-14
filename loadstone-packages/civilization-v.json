@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 1,
+  "kind": "game",
+  "id": "civilization-v",
+  "name": "Sid Meier's Civilization V",
+  "detect": {
+    "steam": { "appId": 8930, "dirName": "Sid Meier's Civilization V" },
+    "markers": ["CivilizationV.exe"]
+  },
+  "userData": {
+    "windows": "${documents}/My Games/Sid Meier's Civilization 5"
+  }
+}
