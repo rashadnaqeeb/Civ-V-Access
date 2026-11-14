@@ -23,7 +23,7 @@ REPO = Path(__file__).resolve().parent.parent
 INGAME = REPO / "src" / "dlc" / "UI" / "InGame"
 FRONTEND = REPO / "src" / "dlc" / "UI" / "FrontEnd"
 
-LOCALES = ["de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP", "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK"]
+LOCALES = ["cs_CZ", "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP", "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK"]
 
 # Pairs of (en_US_path, locale_path_template).
 GROUPS = [

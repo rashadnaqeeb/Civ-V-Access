@@ -34,7 +34,7 @@ from pathlib import Path
 
 LOCALES = [
     "fr_FR", "de_DE", "es_ES", "it_IT", "ja_JP",
-    "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK",
+    "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK", "cs_CZ",
 ]
 
 STEMS = {

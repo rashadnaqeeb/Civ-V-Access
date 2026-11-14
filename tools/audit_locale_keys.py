@@ -29,7 +29,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 LOCALES = [
-    "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP",
+    "cs_CZ", "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP",
     "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK",
 ]
 
@@ -53,6 +53,7 @@ REQUIRED_PLURAL_FORMS = {
     "fr_FR": {"one", "other"},
     "pl_PL": {"one", "few", "many"},
     "ru_RU": {"one", "few", "many"},
+    "cs_CZ": {"one", "few", "other"},
     "ja_JP": {"other"},
     "ko_KR": {"other"},
     "zh_Hant_HK": {"other"},

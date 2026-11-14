@@ -6,14 +6,18 @@
 -- by letter to the user.
 --
 -- This is a text-scan over mod-authored Lua files; it does not load them.
--- Two files are allow-listed: the wrapper itself and the test polyfill that
--- stubs Locale for the offline harness.
+-- Three files are allow-listed: the wrapper itself, the test polyfill that
+-- stubs Locale for the offline harness, and the strings loader. The loader
+-- runs before the wrapper exists (it decides which strings the wrapper will
+-- serve) and its one lookup is a language probe whose result is compared,
+-- never spoken.
 
 local M = {}
 
 local ALLOWED = {
     ["src/dlc/UI/Shared/CivVAccess_Text.lua"] = true,
     ["src/dlc/UI/InGame/CivVAccess_Polyfill.lua"] = true,
+    ["src/dlc/UI/Shared/CivVAccess_StringsLoader.lua"] = true,
 }
 
 local function repoRelative(absPath)
