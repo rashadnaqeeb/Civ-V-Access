@@ -46,7 +46,7 @@ STEMS = {
 }
 
 LOCALES = ["fr_FR", "de_DE", "es_ES", "it_IT", "ja_JP",
-           "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK"]
+           "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK", "cs_CZ"]
 
 # Forms the locale's plural rule (CivVAccess_PluralRules.lua) can return
 # for an integer count.
@@ -56,6 +56,7 @@ REQUIRED = {
     "pt_BR": {"one", "other"}, "pl_PL": {"one", "few", "many"},
     "ru_RU": {"one", "few", "many"}, "ja_JP": {"other"},
     "ko_KR": {"other"}, "zh_Hant_HK": {"other"},
+    "cs_CZ": {"one", "few", "other"},
 }
 
 PH = re.compile(r"\{(\d+)_[A-Za-z0-9]+\}")
@@ -144,7 +145,7 @@ def main():
         for f in failures:
             print("  " + f)
         sys.exit(1)
-    print(f"OK - all 10 locales match en_US across all {len(STEMS)} stems")
+    print(f"OK - all {len(LOCALES)} locales match en_US across all {len(STEMS)} stems")
 
 
 if __name__ == "__main__":

@@ -29,17 +29,29 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 LOCALES = [
-    "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP",
+    "cs_CZ", "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP",
     "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK",
 ]
 
-# stem -> directory holding that stem's files.
-STEMS = {
-    "CivVAccess_InGameStrings": REPO / "src" / "dlc" / "UI" / "InGame",
-    "CivVAccess_ScannerStrings": REPO / "src" / "dlc" / "UI" / "InGame",
-    "CivVAccess_SurveyorStrings": REPO / "src" / "dlc" / "UI" / "InGame",
-    "CivVAccess_FrontEndStrings": REPO / "src" / "dlc" / "UI" / "FrontEnd",
-}
+UI = REPO / "src" / "dlc" / "UI"
+EN_SUFFIX = "_en_US.lua"
+
+
+def discover_stems():
+    """stem -> directory, for every en_US strings file under the UI tree.
+
+    Found by walking rather than listed, so a feature that adds a strings
+    file is audited without anyone remembering to register it here.
+    """
+    stems = {}
+    for path in sorted(UI.rglob("CivVAccess_*Strings" + EN_SUFFIX)):
+        stems[path.name[: -len(EN_SUFFIX)]] = path.parent
+    if not stems:
+        sys.exit(f"audit_locale_keys: no en_US strings files found under {UI}")
+    return stems
+
+
+STEMS = discover_stems()
 
 # Plural keywords each locale's rule in CivVAccess_PluralRules.lua can
 # return for integer counts -- the forms a plural bundle must define.
@@ -53,6 +65,7 @@ REQUIRED_PLURAL_FORMS = {
     "fr_FR": {"one", "other"},
     "pl_PL": {"one", "few", "many"},
     "ru_RU": {"one", "few", "many"},
+    "cs_CZ": {"one", "few", "other"},
     "ja_JP": {"other"},
     "ko_KR": {"other"},
     "zh_Hant_HK": {"other"},
@@ -60,13 +73,18 @@ REQUIRED_PLURAL_FORMS = {
 
 ASSIGN = re.compile(r'^CivVAccess_Strings\["([^"]+)"\]\s*=\s*(.*)$')
 FORM = re.compile(r"^\s*(one|two|few|many|other|zero)\s*=")
+INLINE_FORM = re.compile(r"\b(one|two|few|many|other|zero)\s*=")
+STRING_LITERAL = re.compile(r'"(?:[^"\\]|\\.)*"')
 
 
 def parse(path):
     """Map each key to ('string', None) or ('bundle', frozenset(forms)).
 
-    Assumes the stylua-formatted layout the repo enforces: a plural
-    bundle opens with `= {` and closes with `}` alone on its own line.
+    Assumes the stylua-formatted layouts the repo enforces. A plural
+    bundle either opens with `= {` and closes with `}` alone on its own
+    line, or sits whole on the assignment line (`= { other = "..." }`):
+    stylua leaves a table on one line when it was written that way and
+    fits the width, which is how a single-form CJK bundle tends to land.
     """
     lines = path.read_text(encoding="utf-8").splitlines()
     result = {}
@@ -87,7 +105,16 @@ def parse(path):
         while rest == "" and j + 1 < n:
             j += 1
             rest = lines[j].strip()
-        if rest.startswith("{"):
+        if rest.startswith("{") and rest.endswith("}"):
+            # One-line bundle. Scanning ahead for a closing-brace line here
+            # would run to the next multi-line bundle (or end of file) and
+            # swallow every key in between, reporting them all as missing.
+            # Blank the string values first so a form word inside the text
+            # is not mistaken for a form.
+            forms = set(INLINE_FORM.findall(STRING_LITERAL.sub('""', rest)))
+            result[key] = ("bundle", frozenset(forms))
+            i = j + 1
+        elif rest.startswith("{"):
             forms = set()
             k = j + 1
             while k < n and not lines[k].lstrip().startswith("}"):

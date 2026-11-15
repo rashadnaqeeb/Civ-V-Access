@@ -20,7 +20,12 @@ You may wish to disable the Steam overlay, from Steam settings/in game/enable St
 
 ## Languages and keyboards
 
-The mod is translated into English, French, German, Spanish, Italian, Japanese, Korean, Polish, Brazilian Portuguese, Russian, and Traditional Chinese.
+The mod is translated into English, Czech, French, German, Spanish, Italian, Japanese, Korean, Polish, Brazilian Portuguese, Russian, and Traditional Chinese.
+
+Civilization V itself does not come in Czech or Brazilian Portuguese. To play in either, install a community translation of the game, and the mod speaks that language too:
+
+- Czech: [the Jetro team's translation](https://hernipreklady.cz/seznam-prekladu/civilization-v). It replaces the game's English text, so there is nothing to select afterwards.
+- Brazilian Portuguese: [Civ5-PTBR](https://github.com/Anpix/Civ5-PTBR). After installing it, choose Português as the written language in the game's options.
 
 This guide names keys as they sit on a US keyboard. Alternate layouts (AZERTY, QWERTZ, Italian) are auto-detected so everything still works, though a few keys won't be where the guide's letters suggest. **Shift+/** lists every active key using the names matching your own layout, so it always reflects which key to actually press.
 

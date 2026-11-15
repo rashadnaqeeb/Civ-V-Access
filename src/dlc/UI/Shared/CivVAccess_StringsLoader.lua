@@ -41,9 +41,11 @@ StringsLoader = {}
 --
 -- Distinct values seen in Civ V's Languages table: en_US, de_DE, es_ES,
 -- fr_FR, it_IT, ja_JP, ko_KR, pl_PL, ru_RU, zh_Hant_HK. pt_BR is registered
--- by the Civ5-PTBR community language pack rather than Firaxis. The keys
--- here are commented out until a corresponding translation file ships.
+-- by the Civ5-PTBR community language pack rather than Firaxis. cs_CZ is
+-- registered by nothing at all -- see the Czech note below. The keys here
+-- are commented out until a corresponding translation file ships.
 local supportedLocales = {
+    cs_CZ = true,
     de_DE = true,
     es_ES = true,
     fr_FR = true,
@@ -61,7 +63,7 @@ local supportedLocales = {
 -- is independent in Civ V and governs voice acting only -- using it here
 -- would skip the overlay for any player who reads in one locale but keeps
 -- English voice acting (the common Asian-locale config).
-local function activeLocale()
+local function engineLocale()
     if Locale ~= nil and Locale.GetCurrentLanguage ~= nil then
         local lang = Locale.GetCurrentLanguage()
         if lang ~= nil and lang.Type ~= nil then
@@ -69,6 +71,40 @@ local function activeLocale()
         end
     end
     return "en_US"
+end
+
+-- Czech has no language slot of its own. The only Czech translation of the
+-- game, the civ5_allinone_cz fan patch, overwrites the en_US text files in
+-- place and registers no language, so the engine goes on reporting en_US
+-- while every base-game string it hands back is Czech. Left alone, that
+-- session would speak the game in Czech and the mod in English. So when the
+-- engine says en_US, ask it for one base-game string the patch translates:
+-- an answer in Czech means the session is Czech and the cs_CZ overlay is
+-- the one to load. A player who instead hand-edits Language = cs_CZ into
+-- config.ini reports cs_CZ directly and never reaches the probe.
+local CZECH_PROBE_KEY = "TXT_KEY_YES_BUTTON"
+local CZECH_PROBE_TEXT = "Ano"
+
+local function engineSpeaksCzech()
+    if Locale == nil or Locale.ConvertTextKey == nil then
+        return false
+    end
+    return Locale.ConvertTextKey(CZECH_PROBE_KEY) == CZECH_PROBE_TEXT
+end
+
+local function activeLocale()
+    local code = engineLocale()
+    if code == "en_US" and engineSpeaksCzech() then
+        return "cs_CZ"
+    end
+    return code
+end
+
+-- The locale mod-authored text is spoken in: the engine's text language,
+-- or cs_CZ under the Czech fan patch. PluralRules resolves its rule through
+-- this too, so an overlay and its plural forms can never disagree.
+function StringsLoader.activeLocale()
+    return activeLocale()
 end
 
 -- Apply the active locale's overlay for the given strings stem on top of

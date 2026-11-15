@@ -20,22 +20,19 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-INGAME = REPO / "src" / "dlc" / "UI" / "InGame"
-FRONTEND = REPO / "src" / "dlc" / "UI" / "FrontEnd"
+UI = REPO / "src" / "dlc" / "UI"
+EN_SUFFIX = "_en_US.lua"
 
-LOCALES = ["de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP", "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK"]
+LOCALES = ["cs_CZ", "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP", "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK"]
 
-# Pairs of (en_US_path, locale_path_template).
-GROUPS = [
-    (INGAME / "CivVAccess_InGameStrings_en_US.lua",
-     lambda loc: INGAME / f"CivVAccess_InGameStrings_{loc}.lua"),
-    (INGAME / "CivVAccess_ScannerStrings_en_US.lua",
-     lambda loc: INGAME / f"CivVAccess_ScannerStrings_{loc}.lua"),
-    (INGAME / "CivVAccess_SurveyorStrings_en_US.lua",
-     lambda loc: INGAME / f"CivVAccess_SurveyorStrings_{loc}.lua"),
-    (FRONTEND / "CivVAccess_FrontEndStrings_en_US.lua",
-     lambda loc: FRONTEND / f"CivVAccess_FrontEndStrings_{loc}.lua"),
-]
+
+def locale_sibling(en_path: Path, loc: str) -> Path:
+    return en_path.with_name(en_path.name[: -len(EN_SUFFIX)] + f"_{loc}.lua")
+
+
+# Every en_US strings file under the UI tree, found by walking rather than
+# listed so a new strings file is checked without being registered here.
+EN_FILES = sorted(UI.rglob("CivVAccess_*Strings" + EN_SUFFIX))
 
 # Single-line: CivVAccess_Strings["KEY"] = "VALUE"
 SINGLE = re.compile(r'CivVAccess_Strings\["([^"]+)"\]\s*=\s*"((?:[^"\\]|\\.)*)"')
@@ -120,12 +117,14 @@ def has_translatable_content(val: str) -> bool:
 
 
 def main():
+    if not EN_FILES:
+        sys.exit(f"find_locale_leaks: no en_US strings files found under {UI}")
     leaks_by_locale = {loc: [] for loc in LOCALES}
-    for en_path, loc_template in GROUPS:
+    for en_path in EN_FILES:
         en = extract(en_path)
         en_keys = key_set(en_path)
         for loc in LOCALES:
-            loc_path = loc_template(loc)
+            loc_path = locale_sibling(en_path, loc)
             loc_strings = extract(loc_path)
             loc_keys = key_set(loc_path)
             for key in sorted(en_keys):

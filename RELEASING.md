@@ -4,7 +4,7 @@ Maintainer doc. The external installer drives off GitHub Releases; this doc desc
 
 ## What a release is
 
-A GitHub Release tagged `vX.Y.Z` with fourteen assets attached: twelve component zips, `SHA256SUMS`, and `CivVAccessInstaller.exe`. The component zips split into the five vanilla components and the seven mod-state components (Vox Populi, Community-Patch-only, LekMod). See `docs/llm-docs/installer-states.md` for the authoritative component catalog and the state-to-component matrix; this list is the release-side summary.
+A GitHub Release tagged `vX.Y.Z` with fifteen assets attached: twelve component zips, `SHA256SUMS`, `loadstone-release.json` (for the Loadstone mod manager, see step 6b), and `CivVAccessInstaller.exe`. The component zips split into the five vanilla components and the seven mod-state components (Vox Populi, Community-Patch-only, LekMod). See `docs/llm-docs/installer-states.md` for the authoritative component catalog and the state-to-component matrix; this list is the release-side summary.
 
 Vanilla components (every install needs some subset):
 
@@ -131,7 +131,9 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
    git push origin vX.Y.Z
    ```
 
-7. **Create the GitHub Release.** Drive it from the gh CLI, attaching all twelve component zips plus `SHA256SUMS` plus the installer exe (fourteen assets). The body points at the changelog rather than duplicating it. Omitting any mod-state zip strands every player on that state - the installer can't fetch a component the release doesn't carry.
+6b. **Write the Loadstone release manifest.** On the Mac, run `./package-loadstone.sh`. It writes `dist/release/loadstone-release.json`, which the Loadstone mod manager reads: `loadstone-packages/civ-v-access.json` frozen for this version (the install options for profile and state, the steps, the game files kept and restored), the twelve zips' hashes, each zip tagged with the options it serves, and this version's CHANGELOG section as the release notes. It needs the Loadstone checkout at `../../loadstone` (github.com/rashadnaqeeb/loadstone) or `LOADSTONE_DIR`. The manifest names each zip by its exact file name, so run it after the final `package-release.ps1` run.
+
+7. **Create the GitHub Release.** Drive it from the gh CLI, attaching all twelve component zips plus `SHA256SUMS`, `loadstone-release.json`, and the installer exe (fifteen assets). The body points at the changelog rather than duplicating it. Omitting any mod-state zip strands every player on that state - the installer can't fetch a component the release doesn't carry.
 
    ```
    gh release create vX.Y.Z \
@@ -148,12 +150,13 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
      dist/release/vp-runtime-*.zip \
      dist/release/lekmod-dlc-*.zip \
      dist/release/SHA256SUMS \
+     dist/release/loadstone-release.json \
      dist/installer/CivVAccessInstaller.exe \
      --title "vX.Y.Z" \
      --notes "See [CHANGELOG.md](https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/CHANGELOG.md) for details."
    ```
 
-   After it returns, confirm the asset count is fourteen (`gh release view vX.Y.Z --json assets --jq '.assets | length'`). The installer hits `GET /repos/rashadnaqeeb/Civ-V-Access/releases/latest` to discover the newest release, parses each asset's filename to map it to a component, and downloads only the components whose `sha256:` digest differs from what's recorded in the local install manifest.
+   After it returns, confirm the asset count is fifteen (`gh release view vX.Y.Z --json assets --jq '.assets | length'`). The installer hits `GET /repos/rashadnaqeeb/Civ-V-Access/releases/latest` to discover the newest release, parses each asset's filename to map it to a component, and downloads only the components whose `sha256:` digest differs from what's recorded in the local install manifest.
 
 8. **Verify the installer round-trip.** On a clean machine (or after `./deploy.ps1 -Uninstall` locally), download `CivVAccessInstaller.exe` from the new release page and run it. Confirm: it detects the game install, asks the profile question on first run, downloads each component, verifies digests, and lands a working install. Exercise at least one mod state (Vox Populi, Community Patch, or LekMod) here, since the step 5 smoke test only covers vanilla - this is the only check that the mod-state zips were uploaded and resolve. For an upgrade test, point an existing install at the new release; confirm the digest skip excludes unchanged components and the changelog slice shows what changed.
 
@@ -164,5 +167,5 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
 - Don't ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands the installer.
 - Don't ship a release that breaks the install-manifest schema without a `mod` major bump. The installer keys its parsing off the schema.
 - Don't bump a component's version without a corresponding source change. The packager treats a bumped version as "rebuild from source," which produces a fresh digest and forces every player to redownload that component on update - even though the source bytes are identical.
-- Don't drop any mod-state zip from the `gh release create` upload. The packager builds all twelve; uploading only the vanilla five leaves VP, CP, and LekMod players unable to fetch their components. Verify fourteen assets after publishing.
+- Don't drop any mod-state zip from the `gh release create` upload. The packager builds all twelve; uploading only the vanilla five leaves VP, CP, and LekMod players unable to fetch their components. Verify fifteen assets after publishing.
 - Don't ignore the packager's fork-staleness warning. A fork rebuilt without bumping its embedding component (`vp_modpack` / `cp_modpack` for `engine_vp`, `lekmod_dlc` for `engine_lekmod`) ships the prior zip with a stale fork inside - a silent MP desync.

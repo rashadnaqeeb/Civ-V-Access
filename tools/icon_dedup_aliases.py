@@ -30,11 +30,20 @@ values come from that pack's XML, fetched from the repo -- the --dump
 mode below reads the local game install and so covers only the ten
 Firaxis locales, not pt_BR.
 
+cs_CZ is special in its own way: Civ V ships no Czech, and the only Czech
+translation, the civ5_allinone_cz fan patch (hernipreklady.cz), registers
+no locale at all -- it overwrites the en_US text in place. Its alias values
+come from that patch's text; on an install carrying the patch, --dump
+prints the Czech text under the en_US label. Czech also inflects the label
+word next to the icon ("+1 ke [ICON_CULTURE] kultuře", "+1 k [ICON_MOVES]
+pohybu"), so the value is the inflected form the patch pairs with the icon
+most often rather than whatever one source TXT_KEY happens to print.
+
 Vox Populi icons are special the other way: the icon-plus-word pairing
 lives in VP's own mod text, and VP ships en_US text ONLY (no localized
 overlays). So in every locale a VP session renders that label in English,
 and the adjacent word the matcher must collapse against is the English
-label in all ten locales -- not a per-locale word, and not findable by
+label in every locale -- not a per-locale word, and not findable by
 --dump (which reads the base-game install, not the VP mod). For these the
 table below carries the same English value across every locale, sourced
 from VP's belief / building / help prose rather than from game XML. The
@@ -69,7 +78,7 @@ REPO = Path(__file__).resolve().parent.parent
 # Locales the script writes. en_US is the source of truth and is edited by
 # hand, so it is not in this list.
 LOCALES = [
-    "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP",
+    "cs_CZ", "de_DE", "es_ES", "fr_FR", "it_IT", "ja_JP",
     "ko_KR", "pl_PL", "pt_BR", "ru_RU", "zh_Hant_HK",
 ]
 
@@ -87,6 +96,7 @@ ALIASES = {
         # fr_FR / ru_RU: the icon sits next to "+1", no label word adjacent.
         # ko_KR: primary spoken form already equals the adjacent word.
         "values": {
+            "cs_CZ": "pohybu",        # fan patch: "+1 k [ICON_MOVES] pohybu a platí..."
             "de_DE": "Fortbew.",      # "+1 Fortbew. [ICON_MOVES] und zahlen..."
             "es_ES": "movimiento",    # "+1 al Movimiento [ICON_MOVES], solo..."
             "fr_FR": "",              # "Mouvement +1 [ICON_MOVES] pour..."
@@ -105,6 +115,9 @@ ALIASES = {
         # en_US: "...greatly increases the [ICON_CULTURE] Cultural output..."
         # fr_FR / it_IT / ja_JP / ko_KR / zh: primary already collapses.
         "values": {
+            # fan patch: this key reads "[ICON_CULTURE] kulturní přínos", but
+            # "+N ke [ICON_CULTURE] kultuře" outnumbers it a hundred to one.
+            "cs_CZ": "kultuře",
             "de_DE": "Kulturertrag", # "...den [ICON_CULTURE] Kulturertrag einer Stadt..."
             "es_ES": "cultural",     # "...la producción cultural [ICON_CULTURE] de una ciudad."
             "fr_FR": "",             # "...la production de [ICON_CULTURE] culture d'une ville."
@@ -121,7 +134,7 @@ ALIASES = {
     # VP's belief / building / trait / help text (e.g. NewBeliefText.xml,
     # BeliefTextChanges.sql), which VP ships in en_US only. A VP session in
     # any locale therefore renders these labels in English, so the word
-    # adjacent to the icon is the English label in all ten locales. The
+    # adjacent to the icon is the English label in every locale. The
     # localized primary spoken form never collapses against an English
     # label, so every locale needs the English alias -- no "" entries and
     # no per-locale variation. (The "[ICON_CITIZEN] Population" pairing is

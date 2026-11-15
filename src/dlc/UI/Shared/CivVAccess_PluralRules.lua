@@ -64,6 +64,19 @@ local function russianPlural(n)
     return "many"
 end
 
+-- Czech CLDR: one (n=1), few (n in 2..4), other (0 and 5 up). Unlike Polish
+-- and Russian the few form does not recur at 22..24, and no integer takes
+-- "many" (CLDR reserves it for fractions).
+local function czechPlural(n)
+    if n == 1 then
+        return "one"
+    end
+    if n >= 2 and n <= 4 then
+        return "few"
+    end
+    return "other"
+end
+
 -- Japanese / Korean / Chinese: no plural distinction at all.
 local function noPlural(_n)
     return "other"
@@ -78,6 +91,7 @@ local rules = {
     fr_FR = frenchPlural,
     pl_PL = polishPlural,
     ru_RU = russianPlural,
+    cs_CZ = czechPlural,
     ja_JP = noPlural,
     ko_KR = noPlural,
     zh_Hant_HK = noPlural,
@@ -94,7 +108,13 @@ local function currentRule()
         return cachedRule
     end
     local code
-    if Locale and Locale.GetCurrentLanguage then
+    if StringsLoader and StringsLoader.activeLocale then
+        -- The overlay loader's own resolution, so a session it treats as
+        -- Czech (the fan patch sits on the en_US slot) gets Czech plurals
+        -- to go with its Czech strings. Every Context that loads strings
+        -- has the loader; the engine read below covers one that does not.
+        code = StringsLoader.activeLocale()
+    elseif Locale and Locale.GetCurrentLanguage then
         local lang = Locale.GetCurrentLanguage()
         if lang and lang.Type then
             code = lang.Type
@@ -110,7 +130,9 @@ end
 -- ship treats fractional values as plural -- "1.5 moves" is plural in
 -- English, French, Russian, Polish, and the no-plural East Asian locales
 -- already collapse to "other" anyway -- so this stays correct without
--- per-locale fraction handling.
+-- per-locale fraction handling. Czech is the one approximation: its
+-- fractions want the genitive singular ("1,5 tahu") where "other" gives the
+-- genitive plural, a difference of one ending.
 function PluralRules.select(count)
     if type(count) ~= "number" then
         return "other"

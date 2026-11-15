@@ -156,6 +156,53 @@ function M.test_pl_one_for_twenty_one_diverges_from_ru()
     teardown()
 end
 
+-- ===== Czech =====
+-- Three forms, but few stops at 4: 22-24 take other where Polish and
+-- Russian come back round to few, and no integer selects many. Zero and
+-- the teens are other.
+
+function M.test_cs_one_for_one()
+    setup("cs_CZ")
+    T.eq(PluralRules.select(1), "one")
+    teardown()
+end
+
+function M.test_cs_few_for_two_to_four()
+    setup("cs_CZ")
+    T.eq(PluralRules.select(2), "few")
+    T.eq(PluralRules.select(3), "few")
+    T.eq(PluralRules.select(4), "few")
+    teardown()
+end
+
+function M.test_cs_other_for_zero_and_five_up()
+    setup("cs_CZ")
+    T.eq(PluralRules.select(0), "other")
+    T.eq(PluralRules.select(5), "other")
+    T.eq(PluralRules.select(11), "other")
+    T.eq(PluralRules.select(12), "other")
+    T.eq(PluralRules.select(14), "other")
+    T.eq(PluralRules.select(21), "other")
+    T.eq(PluralRules.select(100), "other")
+    teardown()
+end
+
+function M.test_cs_other_for_twenty_two_diverges_from_pl_and_ru()
+    -- Czech: "22 tahů". Polish and Russian both return few here.
+    setup("cs_CZ")
+    T.eq(PluralRules.select(22), "other")
+    T.eq(PluralRules.select(23), "other")
+    T.eq(PluralRules.select(24), "other")
+    teardown()
+end
+
+function M.test_cs_other_for_non_integer()
+    setup("cs_CZ")
+    T.eq(PluralRules.select(1.5), "other")
+    T.eq(PluralRules.select(2.5), "other")
+    teardown()
+end
+
 -- ===== Japanese / Korean / Chinese =====
 
 function M.test_ja_other_for_everything()

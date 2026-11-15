@@ -169,6 +169,17 @@ Two independent implementations exist; their currency requirements differ:
   release assets instead of the local repo. It conforms to this document's
   transition matrix, enforced by per-cell tests in `installer-tests`.
 
+- The Loadstone package (`loadstone-packages/civ-v-access.json`, released by
+  `package-loadstone.sh`) is a third, declarative implementation for the Loadstone
+  mod manager. Profile and state are install options; each step and each release
+  zip carries the option condition that selects it, so its step list mirrors the
+  state-to-component matrix above. Teardown is not spelled out per transition:
+  every Loadstone install first removes the previous install's files and puts back
+  the stock files it replaced (its `preserve` list, which reuses this installer's
+  backup paths so it adopts their backups), then deletes whatever a hand install
+  or this installer left in the removable footprint. A change to the matrix or the
+  footprint must update it too.
+
 The dev scripts and the installer cannot share code across the PowerShell/C#
 boundary, so this document is the shared spec both conform to. When a re-pin or a
 mod change alters teardown, update both the dev scripts and this spec; the

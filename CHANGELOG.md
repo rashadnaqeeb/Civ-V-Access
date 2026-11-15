@@ -13,6 +13,8 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 New Features and improvements:
 - The Scramble for Africa scenario is playable from the Scenarios menu.
+- The mod now speaks Czech when the game runs the Czech fan translation.
+- Civ V Access can be installed and updated with the Loadstone mod manager. It asks the same profile and game-version questions as the installer, keeps the original game files it replaces and puts them back on uninstall, and picks up an install made by the old installer, backups included.
 - The Conquest of the New World Deluxe scenario is playable from the Scenarios menu.
 
 Bug fixes:

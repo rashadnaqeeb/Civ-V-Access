@@ -1,21 +1,23 @@
 ---
 name: sync-translations
-description: Sync the 10 non-en_US locale strings files to match en_US after en_US has changed. Use when the user asks to sync translations, propagate string changes to locales, update locale files after a feature, or run the translation-sync pipeline. Reads the diff between en_US and the last locale commit, then updates fr_FR / de_DE / es_ES / it_IT / ja_JP / ko_KR / pl_PL / pt_BR / ru_RU / zh_Hant_HK to match.
+description: Sync the 11 non-en_US locale strings files to match en_US after en_US has changed. Use when the user asks to sync translations, propagate string changes to locales, update locale files after a feature, or run the translation-sync pipeline. Reads the diff between en_US and the last locale commit, then updates fr_FR / de_DE / es_ES / it_IT / ja_JP / ko_KR / pl_PL / pt_BR / ru_RU / zh_Hant_HK / cs_CZ to match.
 ---
 
 # Sync locale strings with en_US
 
 ## Goal
 
-The en_US strings files are the source of truth. The 10 locale overlays (fr_FR, de_DE, es_ES, it_IT, ja_JP, ko_KR, pl_PL, pt_BR, ru_RU, zh_Hant_HK) get updated only by this skill: they should always match the en_US key set, with locale-appropriate translations of every value.
+The en_US strings files are the source of truth. The 11 locale overlays (fr_FR, de_DE, es_ES, it_IT, ja_JP, ko_KR, pl_PL, pt_BR, ru_RU, zh_Hant_HK, cs_CZ) get updated only by this skill: they should always match the en_US key set, with locale-appropriate translations of every value.
 
-pt_BR is the Civ5-PTBR community language pack (not a Firaxis-shipped locale); the other 9 are official. The sync treatment is identical -- pt_BR is a full peer of the official locales, not an afterthought.
+pt_BR is the Civ5-PTBR community language pack (not a Firaxis-shipped locale); cs_CZ is the civ5_allinone_cz fan translation, which registers no locale at all and overwrites the game's en_US text in place (StringsLoader detects it and loads the cs_CZ overlay). The other 9 are official. The sync treatment is identical -- pt_BR and cs_CZ are full peers of the official locales, not afterthoughts.
+
+cs_CZ has no `<LOCALE>` game-text folder to grep, so its conventions and vocabulary lock are written down in `.claude/skills/sync-translations/cs_CZ.md`. Read that file before editing any Czech string inline, and tell the cs_CZ agent to read it first (in place of the game-XML step of the prompt below).
 
 This skill handles three kinds of drift, computed as a diff between en_US-now and en_US-at-last-sync (the most recent commit at which every locale's key set still matched en_US):
 
-- ADDED keys: present in en_US-now, absent at base. Translate fresh into all 10 locales.
-- REMOVED keys: present at base, absent in en_US-now. Delete from all 10 locales.
-- CHANGED keys: present in both, value differs. Retranslate in all 10 locales using the new English.
+- ADDED keys: present in en_US-now, absent at base. Translate fresh into all 11 locales.
+- REMOVED keys: present at base, absent in en_US-now. Delete from all 11 locales.
+- CHANGED keys: present in both, value differs. Retranslate in all 11 locales using the new English.
 
 The en_US source files are the stems registered in the `STEMS` table of `.claude/skills/sync-translations/diff.py` (mirrored in `validate.py`): the four core UI stems (InGame, FrontEnd, Scanner, Surveyor) plus one description-strings stem per F2 describe feature. The scripts' tables are the authoritative list; when a feature adds a new strings stem, it must be registered in both or the sync silently skips it.
 
@@ -78,7 +80,7 @@ For inline, read the existing locale file to confirm the surrounding vocabulary,
 - the new keys are prose / multi-sentence / domain-loaded, OR
 - you are unsure of register or vocabulary in any locale.
 
-Dispatch all 10 in a single message (one Agent call per locale, batched). Ten parallel Sonnet agents run fine in one wave; there is no need to split into smaller waves.
+Dispatch all 11 in a single message (one Agent call per locale, batched). Eleven parallel Sonnet agents run fine in one wave; there is no need to split into smaller waves.
 
 Use `model: "sonnet"` on every Agent call. Opus times out on translation tasks; this is documented in translate-strings.
 
@@ -110,6 +112,7 @@ When dispatching, hand each agent a self-contained brief. Fresh agents have zero
         <GAME>/Assets/DLC/Expansion/Gameplay/XML/Text/<LOCALE>/*.xml
         <GAME>/Assets/DLC/Expansion2/Gameplay/XML/Text/<LOCALE>/*.xml
         and adopt the canonical word the base game uses. Format: <Row Tag="TXT_KEY_X"><Text>localized</Text></Row>.
+      (cs_CZ has no such folders: replace this bullet with "Read .claude/skills/sync-translations/cs_CZ.md in full and follow its rules and vocabulary lock; Czech plural bundles take one, few, other.")
 
     Diff to apply (JSON):
     <orchestrator inserts the per-stem subset of build/sync-translations/diff.json relevant to this locale -- the same diff applies to all locales, so the full JSON is fine>
@@ -148,7 +151,7 @@ After all locale updates land (inline or via agents), run the validator:
 
     py .claude/skills/sync-translations/validate.py
 
-It checks every registered stem across all 10 locales and reports every problem at once: locale file exists, key set matches en_US (no missing / extra keys), every en_US plural bundle is a bundle in the locale with that locale's required CLDR keywords (and a scalar stays a scalar), `{N_*}` placeholder index sets match en_US per key, and no file carries a UTF-8 BOM. It exits nonzero and lists each failure, or prints OK.
+It checks every registered stem across all 11 locales and reports every problem at once: locale file exists, key set matches en_US (no missing / extra keys), every en_US plural bundle is a bundle in the locale with that locale's required CLDR keywords (and a scalar stays a scalar), `{N_*}` placeholder index sets match en_US per key, and no file carries a UTF-8 BOM. It exits nonzero and lists each failure, or prints OK.
 
 Fix every failure -- edit the locale file directly, or re-dispatch the locale's agent on the broken subset -- and re-run until it prints OK. Strip a BOM by rewriting the file without its first 3 bytes. Do not proceed to deploy while the validator fails.
 
@@ -190,13 +193,14 @@ Don't commit. Don't open a PR. The user reviews first.
 
 - `.claude/skills/sync-translations/diff.py` -- orchestrator that finds the base rev, dumps en_US strings at base and HEAD via Lua, and emits a JSON diff per stem.
 - `.claude/skills/sync-translations/dump_strings.lua` -- the Lua dumper invoked by diff.py and validate.py. Loads a strings file via dofile and emits its CivVAccess_Strings table as JSON.
-- `.claude/skills/sync-translations/validate.py` -- structural validator run in Step 5: file existence, key sets, plural-bundle CLDR shape, placeholder indices, and BOM check across every registered stem and all 10 locales.
+- `.claude/skills/sync-translations/validate.py` -- structural validator run in Step 5: file existence, key sets, plural-bundle CLDR shape, placeholder indices, and BOM check across every registered stem and all 11 locales.
+- `.claude/skills/sync-translations/cs_CZ.md` -- the Czech conventions and vocabulary lock, standing in for the game-text folder Czech does not have.
 
 ## What NOT to do
 
 - Do not regenerate locale files from scratch. This is an incremental sync; preserve unchanged translations.
 - Do not touch the en_US file -- it is the source of truth, this skill consumes it but never writes to it.
-- Do not flip the StringsLoader supportedLocales table. All 10 locales should already be enabled; this skill never adds a new locale (translate-strings handles the 9 official ones; pt_BR is community-seeded).
+- Do not flip the StringsLoader supportedLocales table. All 11 locales should already be enabled; this skill never adds a new locale (translate-strings handles the 9 official ones; pt_BR and cs_CZ are community-seeded).
 - Do not use Opus for subagents. It times out on translation work. Sonnet handles a 30-key sync slice in a few minutes.
 - Do not trust an agent's self-report on counts; verify on disk against the diff JSON.
 - Do not slot prose-heavy changes (multi-sentence descriptions, leader-portrait edits) into the same agent as short-string edits without flagging the prose for extra accent verification. The prose is where accent-stripping regresses first.
