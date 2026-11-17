@@ -14,8 +14,7 @@
 --
 -- Only the scenarios ScenarioRegistry supports are offered. Starting any
 -- other strands the player: the base game and Gods and Kings scenarios
--- switch to a ruleset the mod's payload never loads into, and the remaining
--- Brave New World ones open setup screens the mod doesn't read yet.
+-- switch to a ruleset the mod's payload never loads into.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_ScenarioRegistry")

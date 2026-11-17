@@ -3,18 +3,23 @@
 -- Civil War's and Scramble for Africa's include it. ScenariosMenu loads the
 -- screen by full path from the scenario's mod folder; the engine still runs
 -- our stem override of its Lua, so this wrapper sits in the screen's own
--- Context like any other Access wrapper.
+-- Context like any other Access wrapper. Conquest of the New World Deluxe
+-- imports its own copy of its setup screen, which hides a stem override, so
+-- the proxy gives that copy the same ProbeBoot prefix, difficulty promotion
+-- and include.
 --
 -- The base screen picks a side from a mouse-only list that
 -- CivilizationButton toggles and a difficulty from an inline list, and its
 -- InputHandler maps both Enter and Esc to OnBack while swallowing every other
 -- key. Here each pick is a select-and-close chooser off the setup menu, the
 -- shape of every pulldown sub-menu. A side commits through the base
--- SetPlayerIndex global with the ktScenarioCivilizations slot it plays. A
--- difficulty commits through DifficultySelected with the on-screen entry the
--- vendor override promotes onto g_CivVAccessDifficultyButtons, so the
--- highlight moves with the choice. Start is an anonymous base callback,
--- captured by the ProbeBoot the vendor override runs ahead of the base file.
+-- SetPlayerIndex global with the slot it plays in the screen's side list,
+-- which Conquest of the New World Deluxe names ScenarioCivilizations and the
+-- other scenarios name ktScenarioCivilizations. A difficulty commits through
+-- DifficultySelected with the on-screen entry promoted onto
+-- g_CivVAccessDifficultyButtons, so the highlight moves with the choice.
+-- Start is an anonymous base callback, captured by the ProbeBoot that runs
+-- ahead of the base file.
 
 include("CivVAccess_FrontendCommon")
 include("CivVAccess_CivDetails")
@@ -47,7 +52,7 @@ local function openSideChooser()
     }
     local initialIndex = 1
     local sides = {}
-    for slot, civType in pairs(ktScenarioCivilizations) do
+    for slot, civType in pairs(ktScenarioCivilizations or ScenarioCivilizations) do
         local row = CivDetails.rowForType(civType)
         if row ~= nil then
             sides[#sides + 1] = { name = Text.key(row.LeaderDescription), row = row, slot = slot }

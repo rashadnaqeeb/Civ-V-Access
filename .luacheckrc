@@ -336,6 +336,17 @@ files["tests/"] = {
         -- TextPopup's close handler; the shadowed-text-popup suite stubs it
         -- to load TextPopupAccess without a Context.
         "OnCloseButtonClicked",
+        -- The policy screen's switch-ideology function; the social-policy
+        -- suite stubs it to see whether the switch row asks for a switch.
+        "ChooseChangeIdeology",
+        -- The pantheon screen's pick and confirm functions and the confirm
+        -- sub-menu helper; the choose-pantheon suite stubs them to drive a
+        -- pick without a Context.
+        "SelectPantheon", "OnYes", "ChooseConfirmSub",
+        -- The religion overview's own functions in Conquest of the New World
+        -- Deluxe's copy; the religion-overview suite stubs them as that copy
+        -- defines them.
+        "GetMyReligion", "GetReligiousStatus",
         -- Engine enums only the ChooseProduction suite needs; shimmed in
         -- that suite's setup rather than in the polyfill.
         "OrderTypes", "AdvisorTypes",
@@ -390,13 +401,13 @@ files["tests/"] = {
         -- The pedia's category setter and a relationship InstanceManager;
         -- the history suite stands in for the base pedia's article render.
         "SetSelectedCategory", "g_UniqueUnitsManager",
-        -- A scenario setup screen's own globals (its civ table, current
-        -- picks, the setters a pick commits through, and the difficulty
-        -- entries the vendor override promotes), plus the engine DB its side
-        -- lookup queries; the scenario-setup suite stubs them as the base
-        -- screen would define them.
+        -- A scenario setup screen's own globals (its civ table under either
+        -- name, current picks, the setters a pick commits through, and the
+        -- difficulty entries the vendor override or the proxy promotes),
+        -- plus the engine DB its side lookup queries; the scenario-setup
+        -- suite stubs them as the base screen would define them.
         "DB",
-        "ktScenarioCivilizations", "g_CurrentPlayerIndex", "g_CurrentDifficulty",
+        "ktScenarioCivilizations", "ScenarioCivilizations", "g_CurrentPlayerIndex", "g_CurrentDifficulty",
         "g_CivVAccessDifficultyButtons", "SetPlayerIndex", "DifficultySelected",
     },
     -- Test suites are tables of test_* functions returned via `return M`;

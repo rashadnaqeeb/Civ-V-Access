@@ -148,6 +148,7 @@ local function setup()
 
     calls = { sides = {}, difficulties = {}, back = 0, start = 0 }
     ktScenarioCivilizations = { [0] = "CIVILIZATION_ENGLAND", [1] = "CIVILIZATION_AMERICA" }
+    ScenarioCivilizations = nil
     g_CurrentPlayerIndex = nil
     g_CurrentDifficulty = 3
     GameInfo.HandicapInfos = gameInfoTable(HANDICAPS)
@@ -222,6 +223,15 @@ function M.test_side_chooser_offers_random_then_sides_by_leader_name()
     T.eq(chooser.name, "ScenarioSetup/Civilization")
     T.eq(labels(chooser), "Random Leader, Random Civilization | Abraham Lincoln, Union | Jefferson Davis, Confederacy")
     T.eq(chooser._indices[1], 1, "opens on the current pick")
+end
+
+-- Conquest of the New World Deluxe's screen names its side list
+-- ScenarioCivilizations, without the kt prefix the other scenarios use.
+function M.test_side_chooser_reads_a_side_list_without_the_kt_prefix()
+    setup()
+    ScenarioCivilizations, ktScenarioCivilizations = ktScenarioCivilizations, nil
+    local chooser = openChooser(loadAndShow(), CIV)
+    T.eq(labels(chooser), "Random Leader, Random Civilization | Abraham Lincoln, Union | Jefferson Davis, Confederacy")
 end
 
 -- Ctrl+I on a side opens that civilization's Civilopedia article, as on every

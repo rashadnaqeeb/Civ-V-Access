@@ -5,7 +5,9 @@
 -- Each entry names two of the scenario's own text keys: its Briefing button
 -- label and the briefing that button opens. The button sits on the
 -- scenario's turns-left panel, a mouse-only UI addin out of the mod's reach,
--- so ScenarioBriefing reads the same text instead.
+-- so ScenarioBriefing reads the same text instead. An entry can also name the
+-- scenario's note on how religion works there, which its top bar shows in
+-- the faith tooltip; the religion overview reads it.
 
 ScenarioRegistry = {}
 
@@ -20,10 +22,24 @@ local SCENARIOS = {
         briefingLabel = "TXT_KEY_SCRAMBLE_AFRICA_BRIEFING_BUTTON",
         briefingText = "TXT_KEY_SCRAMBLE_AFRICA_CIV5_DAWN_TEXT",
     },
+    -- Conquest of the New World Deluxe
+    ["34fb6c19-10dd-4b65-b143-fd00b2c0826f"] = {
+        briefingLabel = "TXT_KEY_NEWWORLD_SCENARIO_BRIEFING",
+        briefingText = "TXT_KEY_NEWWORLDDLX_SCENARIO_CIV5_NEWWORLD_BRIEFING_TEXT",
+        religionNote = "TXT_KEY_NEWWORLD_SCENARIO_TP_RELIGION_TOOLTIP",
+    },
 }
 
 function ScenarioRegistry.isSupported(modId)
     return SCENARIOS[modId] ~= nil
+end
+
+-- Whether this game is a scenario. A World Builder scenario map says so
+-- through PreGame. A supported scenario that builds its map from a script,
+-- such as Conquest of the New World Deluxe, leaves that flag off, though its
+-- own screens still show the scenario's turn limit and score.
+function ScenarioRegistry.inScenario()
+    return PreGame.GetLoadWBScenario() or ScenarioRegistry.active() ~= nil
 end
 
 -- The supported scenario this game is running, or nil. Read from the game's

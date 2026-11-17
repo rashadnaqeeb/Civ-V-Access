@@ -14,6 +14,11 @@
 local T = require("support")
 local M = {}
 
+local NEW_WORLD_DELUXE = "34fb6c19-10dd-4b65-b143-fd00b2c0826f"
+
+-- The mods the game reports active; an ordinary game unless a test sets one.
+local activeMods
+
 local function setup()
     Log.warn = function() end
     Log.error = function() end
@@ -92,6 +97,12 @@ local function setup()
     PreGame.GetLoadWBScenario = function()
         return false
     end
+    activeMods = {}
+    Modding = Modding or {}
+    Modding.GetActivatedMods = function()
+        return activeMods
+    end
+    dofile("src/dlc/UI/Shared/CivVAccess_ScenarioRegistry.lua")
 
     EngineData = EngineData or {}
 
@@ -370,6 +381,32 @@ function M.test_score_columns_append_kick_for_host()
     local cols = VictoryProgressAccess.buildScoreColumns()
     -- Kick is the far-right column when host in network MP.
     T.eq(cols[#cols].name, "TXT_KEY_CIVVACCESS_VP_COL_KICK")
+end
+
+local function hasColumn(cols, name)
+    for _, c in ipairs(cols) do
+        if c.name == name then
+            return true
+        end
+    end
+    return false
+end
+
+-- Conquest of the New World Deluxe builds its map from a script, so the game
+-- isn't a World Builder scenario, yet its own Victory Progress shows the
+-- scenario's four score columns.
+function M.test_score_columns_include_the_scenario_columns_in_a_supported_scenario()
+    setup()
+    activeMods = { { ID = NEW_WORLD_DELUXE } }
+    local cols = VictoryProgressAccess.buildScoreColumns()
+    for i = 1, 4 do
+        T.truthy(hasColumn(cols, "TXT_KEY_VP_SCENARIO" .. i), "scenario column " .. i)
+    end
+end
+
+function M.test_score_columns_leave_out_the_scenario_columns_in_an_ordinary_game()
+    setup()
+    T.eq(hasColumn(VictoryProgressAccess.buildScoreColumns(), "TXT_KEY_VP_SCENARIO1"), false)
 end
 
 function M.test_score_columns_omit_kick_when_not_host()

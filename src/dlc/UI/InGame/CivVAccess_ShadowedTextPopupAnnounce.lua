@@ -69,8 +69,8 @@
 -- processes the turn, which ends with PlayerDoTurn for that player, and
 -- ActivePlayerTurnStart queues the turn line and the other turn-start
 -- announcements only after that. So in the scenarios ScenarioRegistry
--- supports, the games that replace the box in practice, the hold ends on the
--- active player's PlayerDoTurn, and the held messages open alongside the
+-- supports, which include the games that replace the box, the hold ends on
+-- the active player's PlayerDoTurn, and the held messages open alongside the
 -- game's own popups, ahead of those announcements rather than cutting them
 -- off. Those scenarios listen to PlayerDoTurn themselves, so ours rides along
 -- with calls into Lua the game already makes; every other game, single player

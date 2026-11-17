@@ -6,7 +6,7 @@
 --                 hover tooltip (DLC/Expansion2/UI/InGame/DiploList.lua):
 --                 Total, Cities, Population, Land, Wonders, Tech, Future
 --                 Tech, Policies, Great Works, Religion, plus Scenario1-4
---                 when a WB scenario is loaded. Tech / Future Tech /
+--                 in a WB or supported scenario. Tech / Future Tech /
 --                 Policies / Religion columns drop when their respective
 --                 game options disable the system. Default order is Total
 --                 descending (the vanilla F8 ranking); Enter on any header
@@ -35,6 +35,7 @@ include("CivVAccess_PopupBoot")
 include("CivVAccess_TabbedShell")
 include("CivVAccess_BaseTableCore")
 include("CivVAccess_OverviewCivLabels")
+include("CivVAccess_ScenarioRegistry")
 
 local priorInput = InputHandler
 local priorShowHide = ShowHideHandler
@@ -245,7 +246,10 @@ local function buildScoreColumns()
             return p:GetScoreFromVassals()
         end)
     end
-    if PreGame.GetLoadWBScenario() then
+    -- The scenario's own score categories: the stock screen shows them for a
+    -- World Builder scenario, and Conquest of the New World Deluxe's copy
+    -- always.
+    if ScenarioRegistry.inScenario() then
         cols[#cols + 1] = scoreColumn("TXT_KEY_VP_SCENARIO1", function(p)
             return p:GetScoreFromScenario1()
         end)
