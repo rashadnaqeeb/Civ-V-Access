@@ -18,13 +18,6 @@ New Features and improvements:
 - Civ V Access now installs and updates through the Loadstone mod manager, which replaces the old installer. It asks the same profile and game-version questions as the old installer, keeps the original game files it replaces and puts them back on uninstall, and picks up an install made by the old installer, backups included.
 - The Conquest of the New World Deluxe scenario is playable from the Scenarios menu.
 
-Bug fixes:
-- Single Player hides Scenarios on Vox Populi, Community Patch and LekMod installs, where they aren't supported.
-- A scenario event message that another popup interrupts is read when it comes back on screen.
-- Scenario event messages from the other civs' turns are read as your turn starts, ahead of its other announcements.
-- Scenario event messages from your units' moves after you end your turn, such as a finished dig, wait for your next turn.
-- When scenario event messages pile up, all of them are read, oldest first.
-
 ## [2.4.0] - 2026-10-22
 
 New Features and improvements:
