@@ -8,7 +8,7 @@ The mod requires the Brave New World expansion, and will not work without it. Ho
 
 ## Installing and updating the mod
 
-The installer handles installing the mod, updating it, and uninstalling it. [Click here to download the installer](https://github.com/rashadnaqeeb/Civ-V-Access/raw/main/dist/installer/CivVAccessInstaller.exe).
+The mod installs through [Loadstone](https://github.com/bradjrenshaw/loadstone), an accessible mod manager for screen-reader accessibility mods. Download `Loadstone.exe` from [Loadstone's latest release](https://github.com/bradjrenshaw/loadstone/releases/latest), run it, choose Civ V Access in the list of mods, and press Install. It asks who will play with the install and which version of the game you play, then installs the mod. The same page in Loadstone updates the mod and uninstalls it. If you used the old Civ V Access installer, Loadstone takes over that install, backups included.
 
 You may wish to disable the Steam overlay, from Steam settings/in game/enable Steam overlay. This is an overlay that is inaccessible and intercepts the Shift+Tab key, and makes accessibility mods in general very difficult to use. You may also wish to disable the F12 Steam screenshot key, from the same menu, which regularly interferes with mod keys across games.
 
@@ -283,7 +283,7 @@ Civ V supports both hotseat (passing one computer back and forth) and networked 
 
 **Networked play.** Hosting on your local network works without fuss and with minimal lag. On Steam's public matchmaking, regional filters can hide games hosted by friends in other regions; the workaround is to host the game yourself and invite friends through your Steam friends list, which bypasses the filter.
 
-If you want to play online with sighted friends, they must run the mod installer on their machine and choose "As a sighted player who plays multiplayer against a blind user". This installs the minimum needed for their game to match yours; no speech code runs on their side.
+If you want to play online with sighted friends, they must install the mod with Loadstone on their machine and choose "A sighted player who plays multiplayer against a blind user". This installs the minimum needed for their game to match yours; no speech code runs on their side.
 
 ### Playing with a sighted player
 
@@ -300,7 +300,7 @@ Beyond the unmodified game, the mod supports three popular Civilization V overha
 - **Vox Populi** — builds on the Community Patch and reworks nearly every system in the game, a complete rebalance.
 - **LekMod** — the most widely used multiplayer mod, adding dozens of new civilizations.
 
-You install any of these through the installer rather than setting them up separately, and you switch between them, or back to the unmodified game, by running the installer again. Only one can be active at a time. Each is downloaded once and kept, so switching back is fast.
+You install any of these through Loadstone rather than setting them up separately, and you switch between them, or back to the unmodified game, by changing the mod's install options in Loadstone. Only one can be active at a time. Each is downloaded once and kept, so switching back is fast.
 
 ## Squads
 

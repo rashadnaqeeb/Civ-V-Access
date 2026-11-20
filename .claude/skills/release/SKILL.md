@@ -1,13 +1,13 @@
 ---
 name: release
-description: Cut a new GitHub Release of Civ V Access. Use when the user says "/release X.Y.Z" or asks to ship/publish a new version. Bumps versions.json (mod plus per-component), updates CHANGELOG.md, rebuilds any changed components, packages the release zips, smoke-tests the local install, commits, tags, pushes, and creates the GitHub Release with all assets attached.
+description: Cut a new GitHub Release of Civ V Access. Use when the user says "/release X.Y.Z" or asks to ship/publish a new version. Bumps versions.json (mod plus per-component), updates CHANGELOG.md, rebuilds any changed components, packages the release zips and the Loadstone release manifest, smoke-tests the local install, commits, tags, pushes, and creates the GitHub Release with all assets attached.
 ---
 
 # Cut a Civ V Access release
 
 ## Goal
 
-Take the maintainer's chosen mod version `X.Y.Z` and produce a published GitHub Release at tag `vX.Y.Z` with the fourteen assets the player-facing installer expects: twelve component zips, `SHA256SUMS`, and `CivVAccessInstaller.exe`. The twelve zips are the five vanilla components (`core-blind`, `core-sighted`, `engine`, `runtime`, `cinematics`) plus the seven mod-state components (`vp-overlay`, `cp-overlay`, `lekmod-overlay`, `vp-modpack`, `cp-modpack`, `vp-runtime`, `lekmod-dlc`). Dropping any mod-state zip strands every VP / CP / LekMod player - the installer can't fetch a component the release doesn't carry. `docs/llm-docs/installer-states.md` is the authoritative component catalog.
+Take the maintainer's chosen mod version `X.Y.Z` and produce a published GitHub Release at tag `vX.Y.Z` with the fourteen assets Loadstone and installers from before Loadstone expect: twelve component zips, `SHA256SUMS`, and `loadstone-release.json`. The twelve zips are the five vanilla components (`core-blind`, `core-sighted`, `engine`, `runtime`, `cinematics`) plus the seven mod-state components (`vp-overlay`, `cp-overlay`, `lekmod-overlay`, `vp-modpack`, `cp-modpack`, `vp-runtime`, `lekmod-dlc`). Dropping any mod-state zip strands every VP / CP / LekMod player - no installer can fetch a component the release doesn't carry. `docs/llm-docs/installer-states.md` is the authoritative component catalog.
 
 This skill is the executable form of `RELEASING.md`. It does the per-step work end-to-end. The diff vs. the prev tag is enough to decide bump levels and draft the changelog body, so the only human gate is the final push (a remote action). Everything else runs.
 
@@ -53,13 +53,13 @@ Then the seven mod-state component versions (`vp_overlay`, `cp_overlay`, `lekmod
 - Fork coupling: if `engine_vp` changed since the prev tag, bump `vp_modpack` and `cp_modpack` (both embed that fork). If `engine_lekmod` changed, bump `lekmod_dlc`. The packager warns on this exact coupling, but set it here rather than relying on the warning.
 - First-release exception: any mod-state component the prev tag's `versions.json` didn't have (the prev release predates VP/LekMod support) has no prior asset to fetch, so it builds from source this release regardless of its version field. That makes step 3's build prerequisites mandatory for this release.
 
-Components with empty diffs (and mod-state components left unbumped per the rules above) do NOT bump - they ship under their existing version (the installer's per-asset digest skip handles dedup).
+Components with empty diffs (and mod-state components left unbumped per the rules above) do NOT bump - they ship under their existing version (the per-asset digest skip in Loadstone's download cache and installers from before Loadstone handles dedup).
 
 For components with non-empty diffs, decide the bump level from the diff itself. The bump rules (from RELEASING.md):
 
 - **Patch**: fixes that don't change the install-manifest schema, asset naming, or any cross-component contract.
 - **Minor**: new features, new engine bindings, new strings or sounds. Anything user-visible that isn't a fix.
-- **Major**: install-manifest schema break or asset-naming break. Reserve for "tell players to redownload the installer" events. Never auto-pick major - if the diff genuinely looks like a schema break, stop and ask.
+- **Major**: install-manifest schema break or asset-naming break. Reserve for "tell players on installers from before Loadstone to switch to Loadstone" events. Never auto-pick major - if the diff genuinely looks like a schema break, stop and ask.
 
 Read the file list and skim `git diff --stat <prev-tag> -- <paths>`. New files under `src/dlc/UI/`, new `TXT_KEY_CIVVACCESS_*` keys, new `CIVVACCESS:` engine bindings, new `.wav` files, or new modules under `src/dlc/UI/Shared/` are minor signals. Pure edits to existing files - typo fixes, string rewording, behavior tweaks, refactors - are patch. Decide and proceed; report the decisions in the final summary so the user can interject if they disagree.
 
@@ -69,7 +69,6 @@ For each vanilla component whose source tree changed since the prev tag, the cor
 
 - `src/proxy/` changed → `./build-proxy.ps1` (writes `dist/proxy/lua51_Win32.dll`).
 - `src/engine/` changed → `./build-engine.ps1` (writes `dist/engine/CvGameCore_Expansion2.dll`, ~1-2 minutes).
-- `installer/` changed → `./build-installer.ps1` (writes `dist/installer/CivVAccessInstaller.exe`).
 
 Run these now if needed. Run them sequentially - they each write under `dist/` and the package step in step 6 reads from there. The cinematics and core components don't have a build step; they ship straight from source.
 
@@ -99,11 +98,11 @@ This is the only place the mod's "internal" version is set. `deploy.ps1` and `pa
 
 ### Step 5: update CHANGELOG.md
 
-If `## [Unreleased]` already has body content, the user wrote it - keep it verbatim. Otherwise, draft a body from `git log --oneline <prev-tag>..HEAD` plus the per-component diff summary. Mirror RELEASING.md's tone: terse, user-visible only, no internal refactors / test changes / build-script tweaks. The body is what the installer shows the player on update, so it reads to a non-developer.
+If `## [Unreleased]` already has body content, the user wrote it - keep it verbatim. Otherwise, draft a body from `git log --oneline <prev-tag>..HEAD` plus the per-component diff summary. Mirror RELEASING.md's tone: terse, user-visible only, no internal refactors / test changes / build-script tweaks. The body is what Loadstone and installers from before Loadstone show the player on update, so it reads to a non-developer.
 
 Then rewrite the file: replace the line `## [Unreleased]` with `## [X.Y.Z] - YYYY-MM-DD` (today's date) followed by the body, and prepend a fresh empty `## [Unreleased]` section above it.
 
-The exact `## [X.Y.Z] - YYYY-MM-DD` header format is byte-stable - the installer parses for it. ASCII hyphens, today's date in `YYYY-MM-DD`. Get today's date from the session context (`Today's date is ...` in the system prompt) or `Get-Date -Format yyyy-MM-dd`.
+The exact `## [X.Y.Z] - YYYY-MM-DD` header format is byte-stable - installers from before Loadstone parse for it. ASCII hyphens, today's date in `YYYY-MM-DD`. Get today's date from the session context (`Today's date is ...` in the system prompt) or `Get-Date -Format yyyy-MM-dd`.
 
 ### Step 6: package
 
@@ -127,6 +126,8 @@ After it succeeds, verify all twelve expected zips exist with the expected names
 - `dist/release/lekmod-dlc-<lekmod_dlc-version>.zip`
 - `dist/release/SHA256SUMS`
 
+Then write the Loadstone release manifest: run `./package-loadstone.sh` on the Mac (the repo folder is shared between the Mac and the Windows VM; when this session runs on Windows, ask the user to run it there). It writes `dist/release/loadstone-release.json`: `loadstone-packages/civ-v-access.json` frozen for this version, each of the twelve zips hashed and tagged with the install options it serves, and this version's CHANGELOG section as the notes, so step 5 must be done first. It names each zip by its exact file name, so run it after the final `package-release.ps1` run, and re-run it if any zip is rebuilt. It needs the Loadstone checkout at `../../loadstone` or `LOADSTONE_DIR`.
+
 ### Step 7: smoke test
 
 Wipe the local install, then redeploy from the just-built `dist/` and `src/`:
@@ -145,9 +146,9 @@ The deploy script auto-detects the game dir via Steam registry / library folders
 
 If any field doesn't match, stop and investigate - the deploy script reads from versions.json, so a mismatch means the file edit didn't land or the deploy didn't run.
 
-This is the same `dist/` and `src/` content the package script just zipped, so a clean local deploy gives high confidence in what the installer will deliver. Don't try to launch the game; the manifest verification is enough.
+This is the same `dist/` and `src/` content the package script just zipped, so a clean local deploy gives high confidence in what Loadstone will deliver. Don't try to launch the game; the manifest verification is enough.
 
-This smoke test covers only the vanilla-blind path. The seven mod-state zips ship unverified by this skill - the modpack states can't be auto-deployed (they need the manual merged-DB bakes). That's expected; the maintainer's installer round-trip (step 12) is where at least one mod state gets exercised. Don't try to deploy a mod state here as a substitute.
+This smoke test covers only the vanilla-blind path. The seven mod-state zips ship unverified by this skill - the modpack states can't be auto-deployed (they need the manual merged-DB bakes). That's expected; the maintainer's Loadstone round-trip (step 12) is where at least one mod state gets exercised. Don't try to deploy a mod state here as a substitute.
 
 ### Step 8: commit
 
@@ -157,11 +158,10 @@ Stage and commit. With no rebuilds in step 3 (the common case for a core-only re
 - `CHANGELOG.md` (always)
 - `dist/proxy/lua51_Win32.dll` (only if `build-proxy.ps1` ran)
 - `dist/engine/CvGameCore_Expansion2.dll` (only if `build-engine.ps1` ran)
-- `dist/installer/CivVAccessInstaller.exe` (only if `build-installer.ps1` ran)
 
-`dist/release/*.zip` and `SHA256SUMS` are NOT committed - they're release artifacts, not source. They live in `dist/release/` only long enough for `gh release create` to upload them.
+`dist/release/*.zip`, `SHA256SUMS` and `loadstone-release.json` are NOT committed - they're release artifacts, not source. They live in `dist/release/` only long enough for `gh release create` to upload them.
 
-Commit message: `Release vX.Y.Z`. Per CLAUDE.md memory, do **not** include the Claude Co-Authored-By trailer; this repo's hooks reject it.
+Commit message: `Release vX.Y.Z`. Follow CLAUDE.md's commit-message format.
 
 ```
 git add versions.json CHANGELOG.md <any dist artifacts>
@@ -194,12 +194,12 @@ The Bash tool runs `/usr/bin/bash`, so this must be a single-line bash invocatio
 Run it as one line. All twelve component zips must be attached, not just the vanilla five - omitting a mod-state zip publishes a release that strands every player on that state:
 
 ```
-gh release create vX.Y.Z dist/release/core-blind-*.zip dist/release/core-sighted-*.zip dist/release/engine-*.zip dist/release/runtime-*.zip dist/release/cinematics-*.zip dist/release/vp-overlay-*.zip dist/release/cp-overlay-*.zip dist/release/lekmod-overlay-*.zip dist/release/vp-modpack-*.zip dist/release/cp-modpack-*.zip dist/release/vp-runtime-*.zip dist/release/lekmod-dlc-*.zip dist/release/SHA256SUMS dist/installer/CivVAccessInstaller.exe --title "vX.Y.Z" --notes "See [CHANGELOG.md](https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/CHANGELOG.md) for details."
+gh release create vX.Y.Z dist/release/core-blind-*.zip dist/release/core-sighted-*.zip dist/release/engine-*.zip dist/release/runtime-*.zip dist/release/cinematics-*.zip dist/release/vp-overlay-*.zip dist/release/cp-overlay-*.zip dist/release/lekmod-overlay-*.zip dist/release/vp-modpack-*.zip dist/release/cp-modpack-*.zip dist/release/vp-runtime-*.zip dist/release/lekmod-dlc-*.zip dist/release/SHA256SUMS dist/release/loadstone-release.json --title "vX.Y.Z" --notes "See [CHANGELOG.md](https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/CHANGELOG.md) for details."
 ```
 
-The body intentionally points at the changelog rather than duplicating it. The installer parses `CHANGELOG.md` for the slice between the player's old and new versions; the GitHub Release body is just a courtesy for humans browsing the Releases page.
+The body intentionally points at the changelog rather than duplicating it. Loadstone shows the version's CHANGELOG section from `loadstone-release.json`, and installers from before Loadstone parse `CHANGELOG.md` for the slice between the player's old and new versions; the GitHub Release body is just a courtesy for humans browsing the Releases page.
 
-After it returns, run `gh release view vX.Y.Z --json name,tagName,assets --jq '{name, tagName, count: (.assets | length), assets: [.assets[].name]}'` and verify all 14 assets are listed (twelve zips + `SHA256SUMS` + `CivVAccessInstaller.exe`).
+After it returns, run `gh release view vX.Y.Z --json name,tagName,assets --jq '{name, tagName, count: (.assets | length), assets: [.assets[].name]}'` and verify all 14 assets are listed (twelve zips + `SHA256SUMS` + `loadstone-release.json`).
 
 ### Step 12: report and hand off the round-trip check
 
@@ -209,9 +209,9 @@ Tell the user:
 - The CHANGELOG entry that was committed.
 - That the smoke test passed (manifest read back the new versions), noting it covered only the vanilla-blind path.
 - That the release is published with all 14 assets.
-- **Action item for the user**: download `CivVAccessInstaller.exe` from the new release page and run it on a clean machine (or after `./deploy.ps1 -Uninstall` locally). Confirm it detects the game install, asks the profile question on first run, downloads each component, verifies digests, and lands a working install. Exercise at least one mod state (Vox Populi, Community Patch, or LekMod) - that's the only check the mod-state zips were uploaded and resolve, since the skill's smoke test is vanilla-only. For an upgrade test, point an existing install at the new release; confirm the digest skip excludes unchanged components and the changelog slice shows what changed.
+- **Action item for the user**: install Civ V Access from Loadstone on a clean machine (or after `./deploy.ps1 -Uninstall` locally). Confirm it detects the game install, asks the profile and game-version questions, downloads the chosen components, verifies their hashes, and lands a working install. Exercise at least one mod state (Vox Populi, Community Patch, or LekMod) - that's the only check the mod-state zips were uploaded and resolve, since the skill's smoke test is vanilla-only. For an upgrade test, press Update on an existing Loadstone install; confirm the digest skip excludes unchanged components and the changelog slice shows what changed.
 
-The installer round-trip can't be automated from this skill - it requires interactive WinForms. The user does it manually and reports back if anything's off.
+The Loadstone round-trip can't be automated from this skill - it is interactive. The user does it manually and reports back if anything's off.
 
 Don't open a PR. The release commit goes straight on main; tags + GitHub Release are the deliverable.
 
@@ -224,8 +224,8 @@ Don't open a PR. The release commit goes straight on main; tags + GitHub Release
 - Mod version always bumps - it's the release tag and the changelog key.
 - Never rotate the engine DLL GUID. It's the multiplayer compatibility key. The engine version in versions.json is independent of the GUID.
 - Never rename existing release assets. Don't delete a published release. Players who installed an older version may re-resolve their digests against historical releases as part of a re-verify path.
-- Never ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands the installer.
-- Major mod bumps are reserved for install-manifest schema breaks. The installer cannot self-update, so a major mod bump is a "tell players to redownload the installer" event. Don't auto-pick major; if the diff looks like a schema break, stop and ask.
+- Never ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands installers from before Loadstone.
+- Major mod bumps are reserved for install-manifest schema breaks. Installers from before Loadstone cannot self-update, so a major mod bump is a "tell those players to switch to Loadstone" event. Don't auto-pick major; if the diff looks like a schema break, stop and ask.
 - Commits in this repo do NOT carry a Claude Co-Authored-By trailer.
 - Pushing and `gh release create` are remote actions. Confirm before pushing. After push, the release create is the natural follow-on, no second confirm needed.
 
@@ -233,9 +233,9 @@ Don't open a PR. The release commit goes straight on main; tags + GitHub Release
 
 - Don't skip step 3 (rebuilds) if a component's source changed. The packager will fail anyway, but the failure mode is downstream and confusing; running the right builder up front is the cheap path. The same goes for the mod-state build inputs (vendor trees, modpack bakes, LekMod clone) when a mod-state component builds from source - stage them first or stop and tell the user what's missing.
 - Don't upload only the vanilla zips. The packager builds all twelve; an upload missing the mod-state ones publishes a release that strands VP / CP / LekMod players. Verify fourteen assets after publishing.
-- Don't skip the smoke test (step 7). It's the last barrier between a typo in versions.json and a stranded installer.
+- Don't skip the smoke test (step 7). It's the last barrier between a typo in versions.json and a broken install.
 - Don't include `dist/release/` zips or `SHA256SUMS` in the commit. Those are release artifacts, not source; only the `gh release create` upload needs them.
 - Don't run `./test.ps1`. It's a Lua harness; it can't see the version bump or the build artifacts. The deploy + manifest read in step 7 is the relevant smoke test.
 - Don't force-push. Don't push tags before main. Don't skip the user's push confirmation.
-- Don't try to verify the installer round-trip yourself. It's interactive; the user does it.
+- Don't try to verify the Loadstone round-trip yourself. It's interactive; the user does it.
 - Don't draft a long GitHub Release body. The body points at CHANGELOG.md and that's it - by design, so the changelog stays the single source of truth.

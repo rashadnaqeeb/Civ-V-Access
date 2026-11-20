@@ -5,8 +5,9 @@ All notable changes to Civ V Access are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The installer parses this file to show players the entries between the version
-they had installed and the one they are updating to. Each version section must
+Loadstone shows each release's section, and installers from before Loadstone
+parse this file to show players the entries between the version they had
+installed and the one they are updating to. Each version section must
 start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 
 ## [Unreleased]
@@ -14,7 +15,7 @@ start with `## [X.Y.Z] - YYYY-MM-DD` on its own line for the parser to find it.
 New Features and improvements:
 - The Scramble for Africa scenario is playable from the Scenarios menu.
 - The mod now speaks Czech when the game runs the Czech fan translation.
-- Civ V Access can be installed and updated with the Loadstone mod manager. It asks the same profile and game-version questions as the installer, keeps the original game files it replaces and puts them back on uninstall, and picks up an install made by the old installer, backups included.
+- Civ V Access now installs and updates through the Loadstone mod manager, which replaces the old installer. It asks the same profile and game-version questions as the old installer, keeps the original game files it replaces and puts them back on uninstall, and picks up an install made by the old installer, backups included.
 - The Conquest of the New World Deluxe scenario is playable from the Scenarios menu.
 
 Bug fixes:

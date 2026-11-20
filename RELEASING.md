@@ -1,10 +1,10 @@
 # Releasing Civ V Access
 
-Maintainer doc. The external installer drives off GitHub Releases; this doc describes how to cut one.
+Maintainer doc. Players install and update through the Loadstone mod manager, which reads GitHub Releases; this doc describes how to cut one. The mod no longer ships an installer of its own, but copies of the old `CivVAccessInstaller.exe` are still on players' machines and still update from releases, so the asset names, digests and changelog format below stay compatible with them.
 
 ## What a release is
 
-A GitHub Release tagged `vX.Y.Z` with fifteen assets attached: twelve component zips, `SHA256SUMS`, `loadstone-release.json` (for the Loadstone mod manager, see step 6b), and `CivVAccessInstaller.exe`. The component zips split into the five vanilla components and the seven mod-state components (Vox Populi, Community-Patch-only, LekMod). See `docs/llm-docs/installer-states.md` for the authoritative component catalog and the state-to-component matrix; this list is the release-side summary.
+A GitHub Release tagged `vX.Y.Z` with fourteen assets attached: twelve component zips, `SHA256SUMS`, and `loadstone-release.json` (for the Loadstone mod manager, see step 6b). The component zips split into the five vanilla components and the seven mod-state components (Vox Populi, Community-Patch-only, LekMod). See `docs/llm-docs/installer-states.md` for the authoritative component catalog and the state-to-component matrix; this list is the release-side summary.
 
 Vanilla components (every install needs some subset):
 
@@ -14,7 +14,7 @@ Vanilla components (every install needs some subset):
 - `runtime-X.Y.Z.zip` - `lua51_Win32.dll` proxy plus the Tolk screen-reader bridges. Blind path only. Versioned by `components.runtime`.
 - `cinematics-X.Y.Z.zip` - audio-described BNW opening movies. Blind path only. Largest asset (~110 MB). Versioned by `components.cinematics`.
 
-Mod-state components (the installer pulls the subset its chosen state needs):
+Mod-state components (an install pulls the subset its chosen state needs):
 
 - `vp-overlay-X.Y.Z.zip` / `cp-overlay-X.Y.Z.zip` / `lekmod-overlay-X.Y.Z.zip` - the per-engine vendor-UI delta over `core-blind`, with the matching EngineData seam and the pre-baked InGame.lua addin block. Versioned by `components.vp_overlay` / `cp_overlay` / `lekmod_overlay`.
 - `vp-modpack-X.Y.Z.zip` / `cp-modpack-X.Y.Z.zip` - the baked `ZCivVAccess*` packages, each embedding the CP-DLL engine fork. Versioned by `components.vp_modpack` / `cp_modpack`. Large.
@@ -26,11 +26,11 @@ The fork DLLs are not standalone components - they ride inside their hosts (both
 The two non-zip assets:
 
 - `SHA256SUMS` - one line per component zip, format `<hex>  <filename>`. Informational; GitHub computes its own per-asset digest, exposed through the API as `sha256:<hex>`.
-- `CivVAccessInstaller.exe` - the single-file player-facing installer. Same exe attached to every release so a fixed link to "latest" always pulls a working installer; rebuild it (via `./build-installer.ps1`) when `installer/` source has changed since the last release. Players download this once; it self-resolves all subsequent updates from the GitHub Release API.
+- `loadstone-release.json` - the Loadstone release manifest (step 6b): the install steps frozen for this version and each zip's SHA-256.
 
-Component asset versions can lag the mod's. If `components.engine` is `1.0.0` in mod `1.5.0`, the release attaches `engine-1.0.0.zip` (not `engine-1.5.0.zip`). For the digest skip to actually fire, the new release's `engine-1.0.0.zip` must be byte-identical to the one shipped in the previous release - GitHub computes a fresh sha256 per asset on upload, and even an mtime change inside the zip yields a different digest. `package-release.ps1` guarantees this by downloading the previous release's same-named asset and re-uploading it verbatim, instead of re-zipping from local source. Authoritative input is `versions.json`: if a component's version field hasn't moved since the previous tag, the script fetches the previous release's bytes; if it has moved, the script rebuilds from source. Asset filename format is enforced by the installer's `AssetMap.Parse` regex - don't deviate.
+Component asset versions can lag the mod's. If `components.engine` is `1.0.0` in mod `1.5.0`, the release attaches `engine-1.0.0.zip` (not `engine-1.5.0.zip`). For the digest skip (Loadstone's download cache, and the old installer's per-asset skip) to actually fire, the new release's `engine-1.0.0.zip` must be byte-identical to the one shipped in the previous release - GitHub computes a fresh sha256 per asset on upload, and even an mtime change inside the zip yields a different digest. `package-release.ps1` guarantees this by downloading the previous release's same-named asset and re-uploading it verbatim, instead of re-zipping from local source. Authoritative input is `versions.json`: if a component's version field hasn't moved since the previous tag, the script fetches the previous release's bytes; if it has moved, the script rebuilds from source. Asset filename format is what installers from before Loadstone match with their `AssetMap.Parse` regex - don't deviate.
 
-The release body should point at `CHANGELOG.md` rather than duplicate the entry. The installer parses `CHANGELOG.md` for the slice between the player's old and new versions, so the per-release body is just a courtesy for humans browsing the Releases page.
+The release body should point at `CHANGELOG.md` rather than duplicate the entry. Loadstone shows the version's CHANGELOG section (frozen into `loadstone-release.json`), and installers from before Loadstone parse `CHANGELOG.md` for the slice between the player's old and new versions, so the per-release body is just a courtesy for humans browsing the Releases page.
 
 ## Versioning
 
@@ -61,7 +61,7 @@ Versions live in `versions.json` at repo root. All semver:
 
 `mod` is the release tag and the changelog key. It bumps on every release. `supported_vp` and `supported_lekmod` are the upstream pins (not release-asset versions); they move on a re-pin via `resync-vp.ps1` / `resync-lekmod.ps1`, not as part of cutting a release.
 
-Each component version is independent and bumps only when that component's source tree changed since the last tag. The point: if engine didn't change between mod 1.4.0 and mod 1.5.0, the 1.5.0 release ships `engine-1.0.0.zip` (or whatever the engine's last-changed version is). The packager fetches the bytes of that asset from the previous GitHub release and re-uploads them verbatim, so the API digest stays identical and the installer's per-asset digest skip fires. `core` covers both `core-blind` and `core-sighted` since both are zipped from `src/dlc/`; the digest skip handles the case where only the blind payload changed.
+Each component version is independent and bumps only when that component's source tree changed since the last tag. The point: if engine didn't change between mod 1.4.0 and mod 1.5.0, the 1.5.0 release ships `engine-1.0.0.zip` (or whatever the engine's last-changed version is). The packager fetches the bytes of that asset from the previous GitHub release and re-uploads them verbatim, so the digest stays identical and unchanged components aren't downloaded again. `core` covers both `core-blind` and `core-sighted` since both are zipped from `src/dlc/`; the digest skip handles the case where only the blind payload changed.
 
 `engine_vp` and `engine_lekmod` are not release assets - the forks are embedded in their hosts. They exist so the packager can detect a fork rebuilt without bumping the component that embeds it: `engine_vp` couples to `vp_modpack` and `cp_modpack` (both embed the CP-DLL fork), `engine_lekmod` couples to `lekmod_dlc`. If a fork version moved but its embedding component did not, `package-release.ps1` emits a loud warning - heed it and bump the embedding component, or the release reuses the prior zip with a stale fork inside (a silent MP desync / wrong-numbers ship). The fork version itself never appears in a filename.
 
@@ -69,7 +69,7 @@ Bump rules apply to every version field individually:
 
 - **Patch** (`1.0.0` to `1.0.1`): fixes that don't change the install-manifest schema, asset naming, or any cross-component contract. The common case.
 - **Minor** (`1.0.0` to `1.1.0`): new features, new engine bindings, new strings or sounds. Anything user-visible that isn't a fix.
-- **Major** (`1.0.0` to `2.0.0`): install-manifest schema break or asset-naming break - things the installer can't transparently upgrade through. Reserve major bumps; the installer cannot self-update, so a major mod bump is a "tell players to redownload the installer" event. Component-level major bumps don't have the same stakes - they're informational since the digest skip is what determines fetch-vs-skip.
+- **Major** (`1.0.0` to `2.0.0`): install-manifest schema break or asset-naming break - things installers from before Loadstone can't transparently upgrade through. Reserve major bumps; those installers cannot self-update, so a major mod bump is a "tell players to switch to Loadstone" event. Component-level major bumps don't have the same stakes - they're informational since the digest skip is what determines fetch-vs-skip.
 
 What touches each component:
 
@@ -98,11 +98,11 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
    - If `engine_vp` moved since the last tag, bump `vp_modpack` and `cp_modpack` (both embed that fork). If `engine_lekmod` moved, bump `lekmod_dlc`. The packager warns on exactly this coupling if you forget; don't rely on the warning, set it here.
    - `vp_modpack` / `cp_modpack` / `vp_runtime` / `lekmod_dlc` otherwise move only on a re-pin, where `resync-vp.ps1` / `resync-lekmod.ps1` set them (via `tools/component-versions.ps1`: the finish phase bumps the fork version when the DLL differs from the last release's, the overlays always, `vp_runtime` when the substrate changed upstream, `lekmod_dlc` always; each modpack phase bumps its modpack after the bake). Each field bumps once per release cycle, so a re-pin already reflected in `versions.json` needs nothing more here. Don't hand-bump them for a plain release.
 
-   If a component didn't change since the last tag, leave its version alone. The packager will see the unchanged version field and pull that component's zip byte-for-byte from the previous GitHub release rather than rebuild it - the API digest then stays stable and the installer's per-asset digest skip fires for that component. (Exception: the very first release that introduces a component has no prior asset to fetch, so that component builds from source regardless - see step 3.)
+   If a component didn't change since the last tag, leave its version alone. The packager will see the unchanged version field and pull that component's zip byte-for-byte from the previous GitHub release rather than rebuild it - the digest then stays stable and that component isn't downloaded again. (Exception: the very first release that introduces a component has no prior asset to fetch, so that component builds from source regardless - see step 3.)
 
-2. **Prepend a CHANGELOG entry.** Open `CHANGELOG.md`, replace `## [Unreleased]` with the new version header `## [X.Y.Z] - YYYY-MM-DD`, then add a fresh `## [Unreleased]` section above it. List user-visible changes; the installer shows this exact text to the player on update. The version-header format must stay byte-stable because the installer parses it.
+2. **Prepend a CHANGELOG entry.** Open `CHANGELOG.md`, replace `## [Unreleased]` with the new version header `## [X.Y.Z] - YYYY-MM-DD`, then add a fresh `## [Unreleased]` section above it. List user-visible changes; Loadstone and installers from before Loadstone show this exact text to the player on update. The version-header format must stay byte-stable because those installers parse it.
 
-3. **Build any changed components.** For the vanilla forks: `./build-proxy.ps1` if `src/proxy/` changed, `./build-engine.ps1` if `src/engine/` changed, `./build-installer.ps1` if `installer/` changed. These write into `dist/` and the outputs are committed - including `dist/installer/CivVAccessInstaller.exe`, which gives players a stable raw URL (see `README.md`) that always serves the current installer. Commit any rebuilt artifact in the same commit as the version + CHANGELOG bump.
+3. **Build any changed components.** For the vanilla forks: `./build-proxy.ps1` if `src/proxy/` changed, `./build-engine.ps1` if `src/engine/` changed. These write into `dist/` and the outputs are committed. Commit any rebuilt artifact in the same commit as the version + CHANGELOG bump.
 
    The mod-state components stage from non-committed build trees, and any component being built from source this release (because its version bumped, or because no prior release shipped it) needs its inputs present first. `package-release.ps1` fails up front naming the missing input, but assembling them is the slow part, so do it now:
    - Overlays (`vp-overlay` / `cp-overlay` / `lekmod-overlay`) need `build/vendor/vp`, `build/vendor/cp`, `build/vendor/lekmod`, generated the same way `resync-*.ps1` does it. The source flags are not optional: `--mods` defaults to the player's `Documents` MODS folder, which in a modpack-deployed install does not hold the VP/CP mod, so a bare `generate --engine vp` reads empty source and ~11 recipes fail. Point `--mods` (and `--clone`) at the sibling Community-Patch-DLL clone, where the re-sync mirrors the mod tree:
@@ -119,9 +119,9 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
 
 4. **Package.** Run `./package-release.ps1`. Produces twelve `dist/release/*.zip` + `SHA256SUMS`. Fails up front if any expected build artifact is missing. Each zip is named with its component's own version pulled from `versions.json`. Components whose version field is unchanged since the previous tag are downloaded from that previous GitHub release rather than rebuilt - the script reports `(reused from vX.Y.Z)` for those and `(built)` for the rest. Reuse requires `gh` to be authenticated; if it isn't, the fetch fails with a message pointing at `gh auth login`. Watch the output for the fork-staleness warning (`engine_vp changed ... but vp-modpack stayed ...`); if it fires, you under-bumped in step 1 - fix `versions.json` and re-run. To iterate on a single component without re-zipping the large ones, use `-Only <prefix>` (it does not rewrite `SHA256SUMS`, so finish with a full run).
 
-5. **Smoke test.** Wipe the local install (`./deploy.ps1 -Uninstall`), then reinstall (`./deploy.ps1`). Confirm the install manifest at `Assets/DLC/DLC_CivVAccess/CivVAccess.install.json` shows the new mod version and the right per-component versions, and confirm the game boots and speech works. This exercises only the vanilla-blind path; the seven mod-state zips ship unverified by this step (the modpack states can't be auto-deployed - they need the manual merged-DB bakes). The package script's zips are produced from the same `dist/`, `src/`, and build trees the deploy scripts read, so a clean local deploy gives high confidence in the vanilla path; for the mod states, rely on the installer round-trip in step 8 and exercise at least one mod state there.
+5. **Smoke test.** Wipe the local install (`./deploy.ps1 -Uninstall`), then reinstall (`./deploy.ps1`). Confirm the install manifest at `Assets/DLC/DLC_CivVAccess/CivVAccess.install.json` shows the new mod version and the right per-component versions, and confirm the game boots and speech works. This exercises only the vanilla-blind path; the seven mod-state zips ship unverified by this step (the modpack states can't be auto-deployed - they need the manual merged-DB bakes). The package script's zips are produced from the same `dist/`, `src/`, and build trees the deploy scripts read, so a clean local deploy gives high confidence in the vanilla path; for the mod states, rely on the Loadstone round-trip in step 8 and exercise at least one mod state there.
 
-6. **Commit and tag.** Commit the `versions.json` + CHANGELOG bump, plus any `dist/` artifact step 3 rebuilt (`dist/proxy/lua51_Win32.dll`, `dist/engine/CvGameCore_Expansion2.dll`, `dist/engine-lekmod/CvGameCore_Expansion2.dll`, `dist/installer/CivVAccessInstaller.exe` - add only the ones that actually changed). The `dist/release/*.zip` and `SHA256SUMS` are release artifacts, not source; do not commit them. Tag the commit `vX.Y.Z` (matching the `mod` field). Push main and the tag.
+6. **Commit and tag.** Commit the `versions.json` + CHANGELOG bump, plus any `dist/` artifact step 3 rebuilt (`dist/proxy/lua51_Win32.dll`, `dist/engine/CvGameCore_Expansion2.dll`, `dist/engine-lekmod/CvGameCore_Expansion2.dll` - add only the ones that actually changed). The `dist/release/*.zip` and `SHA256SUMS` are release artifacts, not source; do not commit them. Tag the commit `vX.Y.Z` (matching the `mod` field). Push main and the tag.
 
    ```
    git add versions.json CHANGELOG.md  # plus any rebuilt dist artifacts
@@ -133,7 +133,7 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
 
 6b. **Write the Loadstone release manifest.** On the Mac, run `./package-loadstone.sh`. It writes `dist/release/loadstone-release.json`, which the Loadstone mod manager reads: `loadstone-packages/civ-v-access.json` frozen for this version (the install options for profile and state, the steps, the game files kept and restored), the twelve zips' hashes, each zip tagged with the options it serves, and this version's CHANGELOG section as the release notes. It needs the Loadstone checkout at `../../loadstone` (github.com/rashadnaqeeb/loadstone) or `LOADSTONE_DIR`. The manifest names each zip by its exact file name, so run it after the final `package-release.ps1` run.
 
-7. **Create the GitHub Release.** Drive it from the gh CLI, attaching all twelve component zips plus `SHA256SUMS`, `loadstone-release.json`, and the installer exe (fifteen assets). The body points at the changelog rather than duplicating it. Omitting any mod-state zip strands every player on that state - the installer can't fetch a component the release doesn't carry.
+7. **Create the GitHub Release.** Drive it from the gh CLI, attaching all twelve component zips plus `SHA256SUMS` and `loadstone-release.json` (fourteen assets). The body points at the changelog rather than duplicating it. Omitting any mod-state zip strands every player on that state - no installer can fetch a component the release doesn't carry.
 
    ```
    gh release create vX.Y.Z \
@@ -151,21 +151,20 @@ Quick check before editing `versions.json`: `git diff <last-tag> -- src/engine/`
      dist/release/lekmod-dlc-*.zip \
      dist/release/SHA256SUMS \
      dist/release/loadstone-release.json \
-     dist/installer/CivVAccessInstaller.exe \
      --title "vX.Y.Z" \
      --notes "See [CHANGELOG.md](https://github.com/rashadnaqeeb/Civ-V-Access/blob/main/CHANGELOG.md) for details."
    ```
 
-   After it returns, confirm the asset count is fifteen (`gh release view vX.Y.Z --json assets --jq '.assets | length'`). The installer hits `GET /repos/rashadnaqeeb/Civ-V-Access/releases/latest` to discover the newest release, parses each asset's filename to map it to a component, and downloads only the components whose `sha256:` digest differs from what's recorded in the local install manifest.
+   After it returns, confirm the asset count is fourteen (`gh release view vX.Y.Z --json assets --jq '.assets | length'`). Loadstone fetches `releases/latest/download/loadstone-release.json`; the old installer hits `GET /repos/rashadnaqeeb/Civ-V-Access/releases/latest` to discover the newest release, parses each asset's filename to map it to a component, and downloads only the components whose `sha256:` digest differs from what's recorded in the local install manifest.
 
-8. **Verify the installer round-trip.** On a clean machine (or after `./deploy.ps1 -Uninstall` locally), download `CivVAccessInstaller.exe` from the new release page and run it. Confirm: it detects the game install, asks the profile question on first run, downloads each component, verifies digests, and lands a working install. Exercise at least one mod state (Vox Populi, Community Patch, or LekMod) here, since the step 5 smoke test only covers vanilla - this is the only check that the mod-state zips were uploaded and resolve. For an upgrade test, point an existing install at the new release; confirm the digest skip excludes unchanged components and the changelog slice shows what changed.
+8. **Verify the Loadstone round-trip.** On a clean machine (or after `./deploy.ps1 -Uninstall` locally), install Civ V Access from Loadstone. Confirm: it detects the game install, asks the profile and game-version questions, downloads the chosen components, verifies their hashes, and lands a working install. Exercise at least one mod state (Vox Populi, Community Patch, or LekMod) here, since the step 5 smoke test only covers vanilla - this is the only check that the mod-state zips were uploaded and resolve. For an upgrade test, press Update on an existing Loadstone install; confirm unchanged components come from its download cache and the release notes show what changed.
 
 ## What not to do
 
 - Don't rename existing release assets. Players who installed an older version may re-resolve their digests against historical releases as part of a re-verify path.
 - Don't delete a published release. Same reason.
-- Don't ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands the installer.
-- Don't ship a release that breaks the install-manifest schema without a `mod` major bump. The installer keys its parsing off the schema.
+- Don't ship a release whose `versions.json` doesn't match what's actually built. The deploy script and packager both stamp those numbers into install manifests and asset filenames; lying about them strands installers from before Loadstone.
+- Don't ship a release that breaks the install-manifest schema without a `mod` major bump. Installers from before Loadstone key their parsing off the schema.
 - Don't bump a component's version without a corresponding source change. The packager treats a bumped version as "rebuild from source," which produces a fresh digest and forces every player to redownload that component on update - even though the source bytes are identical.
-- Don't drop any mod-state zip from the `gh release create` upload. The packager builds all twelve; uploading only the vanilla five leaves VP, CP, and LekMod players unable to fetch their components. Verify fifteen assets after publishing.
+- Don't drop any mod-state zip from the `gh release create` upload. The packager builds all twelve; uploading only the vanilla five leaves VP, CP, and LekMod players unable to fetch their components. Verify fourteen assets after publishing.
 - Don't ignore the packager's fork-staleness warning. A fork rebuilt without bumping its embedding component (`vp_modpack` / `cp_modpack` for `engine_vp`, `lekmod_dlc` for `engine_lekmod`) ships the prior zip with a stale fork inside - a silent MP desync.

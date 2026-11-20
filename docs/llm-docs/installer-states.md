@@ -1,8 +1,8 @@
 # Installer state and component spec
 
-Build spec for the multi-state player installer. The installer fetches prebuilt
-components from a GitHub release, keeps them in a persistent content-addressed
-cache (LocalAppData, keyed by digest), and applies a target state by removing
+Build spec for the multi-state player install, which Loadstone performs from
+`loadstone-packages/civ-v-access.json`. It fetches prebuilt components from a
+GitHub release, keeps them in a persistent cache keyed by SHA-256, and applies a target state by removing
 the current state's footprint and extracting the target's components. Downloads
 happen only on a cache miss, so each state's heavy payload is fetched once ever
 and switch-back is offline. Uninstall is the only removal; it tears down the
@@ -165,25 +165,27 @@ Two independent implementations exist; their currency requirements differ:
   to lag. Its sighted-MP profile (`-Profile sighted`) installs the same host
   content as the blind deploy minus the local-only accessibility runtime; it is
   off the player path and may lag.
-- The player installer (C#) is a parallel implementation that deploys from
-  release assets instead of the local repo. It conforms to this document's
-  transition matrix, enforced by per-cell tests in `installer-tests`.
-
 - The Loadstone package (`loadstone-packages/civ-v-access.json`, released by
-  `package-loadstone.sh`) is a third, declarative implementation for the Loadstone
-  mod manager. Profile and state are install options; each step and each release
+  `package-loadstone.sh`) is the player installer: a declarative implementation
+  for the Loadstone mod manager that deploys from release assets instead of the
+  local repo. Profile and state are install options; each step and each release
   zip carries the option condition that selects it, so its step list mirrors the
   state-to-component matrix above. Teardown is not spelled out per transition:
   every Loadstone install first removes the previous install's files and puts back
-  the stock files it replaced (its `preserve` list, which reuses this installer's
+  the stock files it replaced (its `preserve` list, which reuses the retired C# installer's
   backup paths so it adopts their backups), then deletes whatever a hand install
-  or this installer left in the removable footprint. A change to the matrix or the
+  or the C# installer left in the removable footprint. A change to the matrix or the
   footprint must update it too.
 
-The dev scripts and the installer cannot share code across the PowerShell/C#
-boundary, so this document is the shared spec both conform to. When a re-pin or a
-mod change alters teardown, update both the dev scripts and this spec; the
-installer's tests then catch its own drift against the spec.
+The dev scripts and the Loadstone package cannot share code, so this document is
+the shared spec both conform to. When a re-pin or a mod change alters teardown,
+update the dev scripts, the Loadstone package, and this spec together.
+
+The C# installer that used to implement this spec (`CivVAccessInstaller.exe`) is
+retired; its source is gone. The last build stays committed at
+`dist/installer/CivVAccessInstaller.exe` so old links keep working, and copies on
+players' machines still update from releases, which is why asset names, the
+install-manifest schema and the CHANGELOG header format stay as they were.
 
 ## Resolved decisions
 

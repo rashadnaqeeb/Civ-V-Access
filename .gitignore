@@ -112,9 +112,7 @@ __pycache__/
 # source of truth for shipped binaries; the local zips are byproducts.
 dist/release/
 
-# dist/installer/CivVAccessInstaller.exe IS committed - the file at that path
-# gives players a stable raw link
+# dist/installer/CivVAccessInstaller.exe IS committed - the last build of the
+# retired installer, kept so old links to its raw URL
 # (https://github.com/rashadnaqeeb/Civ-V-Access/raw/main/dist/installer/CivVAccessInstaller.exe)
-# that survives across releases. Rebuild via build-installer.ps1 only when
-# installer/ source changed since the last release; commit the new exe in the
-# same commit as the corresponding versions.json + CHANGELOG bump.
+# keep working. Players now install through Loadstone; it is never rebuilt.
