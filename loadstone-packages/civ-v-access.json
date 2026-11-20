@@ -1,8 +1,19 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "id": "civ-v-access",
   "name": "Civ V Access",
-  "description": "Screen-reader accessibility for Sid Meier's Civilization V with Brave New World, Vox Populi, the Community Patch or LekMod: speech, keyboard navigation of the whole game and map, a scanner, audio beacons and audio-described intros. Also installs the matching setup for sighted multiplayer partners.",
+  "description": {
+    "en": "Screen-reader accessibility for Sid Meier's Civilization V with Brave New World, Vox Populi, the Community Patch or LekMod: speech, keyboard navigation of the whole game and map, a scanner, audio beacons and audio-described intros. Also installs the matching setup for sighted multiplayer partners.",
+    "de": "Screenreader-Barrierefreiheit für Sid Meier's Civilization V mit Brave New World, Vox Populi, dem Community Patch oder LekMod: Sprachausgabe, Tastaturnavigation durch das gesamte Spiel und die Karte, ein Scanner, akustische Leitsignale und audiobeschriebene Intro-Filmsequenzen. Installiert außerdem die passende Einrichtung für sehende Mehrspielerpartner.",
+    "es": "Accesibilidad con lector de pantalla para Sid Meier's Civilization V con Brave New World, Vox Populi, el Community Patch o LekMod: voz, navegación con teclado por todo el juego y el mapa, un escáner, balizas sonoras y cinemáticas de introducción con audiodescripción. También instala la configuración correspondiente para compañeros videntes de multijugador.",
+    "fr": "Accessibilité au lecteur d'écran pour Sid Meier's Civilization V avec Brave New World, Vox Populi, le Community Patch ou LekMod : support vocal, navigation au clavier dans tout le jeu et sur la carte, un scanner, des balises sonores et des cinématiques d'introduction audiodécrites. Installe aussi la configuration correspondante pour les partenaires voyants en multijoueur.",
+    "it": "Accessibilità con screen reader per Sid Meier's Civilization V con Brave New World, Vox Populi, il Community Patch o LekMod: supporto vocale, navigazione da tastiera in tutto il gioco e sulla mappa, uno scanner, segnali audio di orientamento e filmati introduttivi con audiodescrizione. Installa anche la configurazione corrispondente per i compagni vedenti in multigiocatore.",
+    "ja": "Brave New World、Vox Populi、Community Patch、LekMod に対応した Sid Meier's Civilization V をスクリーンリーダーで遊べるようにします。音声サポート、ゲーム全体とマップのキーボード操作、スキャナー、オーディオビーコン、音声解説付きのオープニングシネマティックを備えています。晴眼のマルチプレイ相手向けの対応する構成もインストールします。",
+    "ko": "Brave New World, Vox Populi, Community Patch 또는 LekMod를 적용한 Sid Meier's Civilization V용 스크린 리더 접근성 모드입니다. 음성 지원, 게임 전체와 지도의 키보드 탐색, 스캐너, 오디오 비컨, 음성 해설 인트로 시네마틱을 제공합니다. 비장애 멀티플레이어 상대를 위한 맞춤 구성도 설치합니다.",
+    "pl": "Dostępność z czytnikiem ekranu dla Sid Meier's Civilization V z Brave New World, Vox Populi, Community Patch lub LekMod: obsługa mowy, nawigacja klawiaturą po całej grze i mapie, skaner, sygnały dźwiękowe i kinematyki wprowadzające z audiodeskrypcją. Instaluje też odpowiednią konfigurację dla widzących partnerów w trybie wieloosobowym.",
+    "ru": "Поддержка экранного диктора в Sid Meier's Civilization V с Brave New World, Vox Populi, Community Patch или LekMod: озвучивание, управление с клавиатуры во всей игре и на карте, сканер, звуковые маяки и вступительные видеоролики с тифлокомментарием. Также устанавливает соответствующую конфигурацию для зрячих партнёров по сетевой игре.",
+    "zh-Hant": "為 Sid Meier's Civilization V（Brave New World、Vox Populi、Community Patch 或 LekMod）提供螢幕閱讀器無障礙支援：語音支援、整個遊戲與地圖的鍵盤導覽、掃描器、音訊信標，以及附音訊描述的開場動畫。亦會為視力正常的多人遊戲夥伴安裝相應的設定。"
+  },
   "authors": [
     "Rashad Naqeeb"
   ],
@@ -17,41 +28,151 @@
   "options": [
     {
       "id": "profile",
-      "label": "Who will play with this install?",
+      "label": {
+        "en": "Who will play with this install?",
+        "de": "Wer spielt mit dieser Installation?",
+        "es": "¿Quién va a jugar con esta instalación?",
+        "fr": "Qui jouera avec cette installation ?",
+        "it": "Chi giocherà con questa installazione?",
+        "ja": "このインストールでプレイするのは誰ですか？",
+        "ko": "이 설치로 플레이할 사람은 누구입니까?",
+        "pl": "Kto będzie grać na tej instalacji?",
+        "ru": "Кто будет играть на этой установке?",
+        "zh-Hant": "誰會使用這個安裝來遊玩？"
+      },
       "default": "blind",
       "choices": [
         {
           "value": "blind",
-          "label": "A blind player",
-          "description": "The full mod: speech, keyboard navigation and audio-described intro movies."
+          "label": {
+            "en": "A blind player",
+            "de": "Ein blinder Spieler",
+            "es": "Un jugador ciego",
+            "fr": "Un joueur aveugle",
+            "it": "Un giocatore non vedente",
+            "ja": "視覚障害のあるプレイヤー",
+            "ko": "시각장애 플레이어",
+            "pl": "Niewidomy gracz",
+            "ru": "Незрячий игрок",
+            "zh-Hant": "失明玩家"
+          },
+          "description": {
+            "en": "The full mod: speech, keyboard navigation and audio-described intro movies.",
+            "de": "Die vollständige Mod: Sprachausgabe, Tastaturnavigation und audiobeschriebene Intro-Filmsequenzen.",
+            "es": "El mod completo: voz, navegación con teclado y cinemáticas de introducción con audiodescripción.",
+            "fr": "Le mod complet : support vocal, navigation au clavier et cinématiques d'introduction audiodécrites.",
+            "it": "La mod completa: supporto vocale, navigazione da tastiera e filmati introduttivi con audiodescrizione.",
+            "ja": "完全版のモッドです。音声サポート、キーボード操作、音声解説付きのオープニングシネマティックを含みます。",
+            "ko": "전체 모드입니다: 음성 지원, 키보드 탐색, 음성 해설 인트로 시네마틱 포함.",
+            "pl": "Pełny mod: obsługa mowy, nawigacja klawiaturą i kinematyki wprowadzające z audiodeskrypcją.",
+            "ru": "Полный мод: озвучивание, управление с клавиатуры и вступительные видеоролики с тифлокомментарием.",
+            "zh-Hant": "完整模組：語音支援、鍵盤導覽，以及附音訊描述的開場動畫。"
+          }
         },
         {
           "value": "sighted",
-          "label": "A sighted player who plays multiplayer against a blind user",
-          "description": "Only what your game needs to match theirs; no speech code runs. Uninstall it before playing with people who don't have the mod."
+          "label": {
+            "en": "A sighted player who plays multiplayer against a blind user",
+            "de": "Ein sehender Spieler, der im Mehrspielermodus gegen einen blinden Nutzer spielt",
+            "es": "Un jugador vidente que juega multijugador contra un usuario ciego",
+            "fr": "Un joueur voyant qui joue en multijoueur contre un utilisateur aveugle",
+            "it": "Un giocatore vedente che gioca in multigiocatore con un utente non vedente",
+            "ja": "視覚障害のあるユーザーとマルチプレイをする晴眼のプレイヤー",
+            "ko": "시각장애 사용자와 멀티플레이어를 즐기는 비장애 플레이어",
+            "pl": "Gracz widzący, który gra w trybie wieloosobowym z osobą niewidomą",
+            "ru": "Зрячий игрок, играющий по сети с незрячим пользователем",
+            "zh-Hant": "與失明玩家進行多人遊戲的視力正常玩家"
+          },
+          "description": {
+            "en": "Only what your game needs to match theirs; no speech code runs. Uninstall it before playing with people who don't have the mod.",
+            "de": "Nur das, was Ihr Spiel braucht, um zum Spiel des anderen Spielers zu passen; es läuft kein Sprachausgabecode. Deinstallieren Sie die Mod, bevor Sie mit Personen spielen, die sie nicht haben.",
+            "es": "Solo lo que tu juego necesita para coincidir con el suyo; no se ejecuta ningún código de voz. Desinstálalo antes de jugar con personas que no tengan el mod.",
+            "fr": "Uniquement ce dont votre jeu a besoin pour correspondre au leur ; aucun code vocal ne s'exécute. Désinstallez-le avant de jouer avec des personnes qui n'ont pas le mod.",
+            "it": "Solo ciò che serve al tuo gioco per corrispondere al loro; non viene eseguito alcun codice vocale. Disinstalla la mod prima di giocare con persone che non la hanno.",
+            "ja": "相手のゲームと一致させるのに必要なものだけをインストールします。音声コードは動作しません。このモッドを導入していない人とプレイする前に、アンインストールしてください。",
+            "ko": "상대방의 게임과 맞추는 데 필요한 항목만 설치합니다. 음성 코드는 실행되지 않습니다. 이 모드가 없는 사람과 플레이하기 전에 제거하십시오.",
+            "pl": "Tylko to, czego twoja gra potrzebuje, aby zgadzać się z ich grą; kod mowy nie jest uruchamiany. Odinstaluj moda przed grą z osobami, które go nie mają.",
+            "ru": "Только то, что нужно вашей игре для совместимости с их игрой; код озвучивания не выполняется. Удалите мод, прежде чем играть с теми, у кого его нет.",
+            "zh-Hant": "只安裝令你的遊戲與對方一致所需的內容；不會執行任何語音程式碼。與未安裝此模組的玩家遊玩前，請先解除安裝。"
+          }
         }
       ]
     },
     {
       "id": "state",
-      "label": "Which version of the game?",
+      "label": {
+        "en": "Which version of the game?",
+        "de": "Welche Version des Spiels?",
+        "es": "¿Qué versión del juego?",
+        "fr": "Quelle version du jeu ?",
+        "it": "Quale versione del gioco?",
+        "ja": "どのバージョンのゲームですか？",
+        "ko": "어떤 버전의 게임입니까?",
+        "pl": "Która wersja gry?",
+        "ru": "Какая версия игры?",
+        "zh-Hant": "哪個版本的遊戲？"
+      },
       "default": "vanilla",
       "choices": [
         {
           "value": "vanilla",
-          "label": "Brave New World, with no other mods"
+          "label": {
+            "en": "Brave New World, with no other mods",
+            "de": "Brave New World, ohne weitere Mods",
+            "es": "Brave New World, sin otros mods",
+            "fr": "Brave New World, sans autre mod",
+            "it": "Brave New World, senza altre mod",
+            "ja": "Brave New World（他のモッドなし）",
+            "ko": "Brave New World, 다른 모드 없음",
+            "pl": "Brave New World, bez innych modów",
+            "ru": "Brave New World, без других модов",
+            "zh-Hant": "Brave New World，不含其他模組"
+          }
         },
         {
           "value": "vp",
-          "label": "Vox Populi (with the Community Patch)"
+          "label": {
+            "en": "Vox Populi (with the Community Patch)",
+            "de": "Vox Populi (mit dem Community Patch)",
+            "es": "Vox Populi (con el Community Patch)",
+            "fr": "Vox Populi (avec le Community Patch)",
+            "it": "Vox Populi (con il Community Patch)",
+            "ja": "Vox Populi（Community Patch を含む）",
+            "ko": "Vox Populi(Community Patch 포함)",
+            "pl": "Vox Populi (z Community Patch)",
+            "ru": "Vox Populi (с Community Patch)",
+            "zh-Hant": "Vox Populi（連同 Community Patch）"
+          }
         },
         {
           "value": "cp",
-          "label": "Community Patch only"
+          "label": {
+            "en": "Community Patch only",
+            "de": "Nur Community Patch",
+            "es": "Solo Community Patch",
+            "fr": "Community Patch uniquement",
+            "it": "Solo Community Patch",
+            "ja": "Community Patch のみ",
+            "ko": "Community Patch만",
+            "pl": "Tylko Community Patch",
+            "ru": "Только Community Patch",
+            "zh-Hant": "僅 Community Patch"
+          }
         },
         {
           "value": "lekmod",
-          "label": "LekMod"
+          "label": {
+            "en": "LekMod",
+            "de": "LekMod",
+            "es": "LekMod",
+            "fr": "LekMod",
+            "it": "LekMod",
+            "ja": "LekMod",
+            "ko": "LekMod",
+            "pl": "LekMod",
+            "ru": "LekMod",
+            "zh-Hant": "LekMod"
+          }
         }
       ]
     }
@@ -104,7 +225,18 @@
       "checks": [
         {
           "platform": "windows",
-          "message": "Civ V Access runs on Windows only."
+          "message": {
+            "en": "Civ V Access runs on Windows only.",
+            "de": "Civ V Access läuft nur unter Windows.",
+            "es": "Civ V Access solo funciona en Windows.",
+            "fr": "Civ V Access ne fonctionne que sous Windows.",
+            "it": "Civ V Access funziona solo su Windows.",
+            "ja": "Civ V Access は Windows でのみ動作します。",
+            "ko": "Civ V Access는 Windows에서만 실행됩니다.",
+            "pl": "Civ V Access działa tylko w systemie Windows.",
+            "ru": "Civ V Access работает только в Windows.",
+            "zh-Hant": "Civ V Access 只能在 Windows 上執行。"
+          }
         },
         {
           "not": {
@@ -114,11 +246,33 @@
               "CivilizationV_Tablet"
             ]
           },
-          "message": "Civilization V is running. Quit the game, then install again."
+          "message": {
+            "en": "Civilization V is running. Quit the game, then install again.",
+            "de": "Civilization V läuft gerade. Beenden Sie das Spiel und installieren Sie dann erneut.",
+            "es": "Civilization V se está ejecutando. Cierra el juego y vuelve a instalar.",
+            "fr": "Civilization V est en cours d'exécution. Quittez le jeu, puis relancez l'installation.",
+            "it": "Civilization V è attualmente in esecuzione. Chiudi il gioco, poi ripeti l'installazione.",
+            "ja": "Civilization V が実行中です。ゲームを終了してから、もう一度インストールしてください。",
+            "ko": "Civilization V가 실행 중입니다. 게임을 종료한 후 다시 설치해 주십시오.",
+            "pl": "Civilization V jest obecnie uruchomione. Zamknij grę, a następnie zainstaluj ponownie.",
+            "ru": "Civilization V сейчас запущена. Закройте игру и повторите установку.",
+            "zh-Hant": "Civilization V 目前正在執行。請先關閉遊戲，然後再次安裝。"
+          }
         },
         {
           "fileExists": "${gameDir}/Assets/DLC/Expansion2/CvGameCore_Expansion2.dll",
-          "message": "Civ V Access needs the Brave New World expansion. Install it, or verify the game files in Steam, then try again."
+          "message": {
+            "en": "Civ V Access needs the Brave New World expansion. Install it, or verify the game files in Steam, then try again.",
+            "de": "Civ V Access benötigt die Erweiterung Brave New World. Installieren Sie sie oder überprüfen Sie die Spieldateien in Steam und versuchen Sie es dann erneut.",
+            "es": "Civ V Access necesita la expansión Brave New World. Instálala o verifica los archivos del juego en Steam y vuelve a intentarlo.",
+            "fr": "Civ V Access nécessite l'extension Brave New World. Installez-la ou vérifiez les fichiers du jeu dans Steam, puis réessayez.",
+            "it": "Civ V Access richiede l'espansione Brave New World. Installala oppure verifica i file di gioco su Steam, poi riprova.",
+            "ja": "Civ V Access には Brave New World 拡張が必要です。拡張をインストールするか、Steam でゲームファイルの整合性を確認してから、もう一度お試しください。",
+            "ko": "Civ V Access는 Brave New World 확장팩이 필요합니다. 확장팩을 설치하거나 Steam에서 게임 파일 무결성을 확인한 후 다시 시도하십시오.",
+            "pl": "Civ V Access wymaga dodatku Brave New World. Zainstaluj go lub zweryfikuj pliki gry w Steam, a następnie spróbuj ponownie.",
+            "ru": "Civ V Access требует дополнение Brave New World. Установите его или проверьте целостность файлов игры в Steam, затем повторите попытку.",
+            "zh-Hant": "Civ V Access 需要 Brave New World 資料片。請安裝資料片，或在 Steam 驗證遊戲檔案，然後再試一次。"
+          }
         }
       ]
     },
@@ -366,7 +520,18 @@
       "checks": [
         {
           "fileExists": "${gameDir}/Assets/DLC/DLC_CivVAccess/CivVAccess_2.Civ5Pkg",
-          "message": "The download didn't contain the mod (no CivVAccess_2.Civ5Pkg)."
+          "message": {
+            "en": "The download didn't contain the mod (no CivVAccess_2.Civ5Pkg).",
+            "de": "Der Download enthielt die Mod nicht (keine CivVAccess_2.Civ5Pkg).",
+            "es": "La descarga no contenía el mod (falta CivVAccess_2.Civ5Pkg).",
+            "fr": "Le téléchargement ne contenait pas le mod (CivVAccess_2.Civ5Pkg absent).",
+            "it": "Il download non conteneva la mod (manca CivVAccess_2.Civ5Pkg).",
+            "ja": "ダウンロードにモッドが含まれていませんでした（CivVAccess_2.Civ5Pkg がありません）。",
+            "ko": "다운로드에 모드가 포함되어 있지 않습니다(CivVAccess_2.Civ5Pkg 없음).",
+            "pl": "Pobrany plik nie zawierał moda (brak CivVAccess_2.Civ5Pkg).",
+            "ru": "Загрузка не содержала мод (нет файла CivVAccess_2.Civ5Pkg).",
+            "zh-Hant": "下載內容並未包含此模組（缺少 CivVAccess_2.Civ5Pkg）。"
+          }
         }
       ]
     },
@@ -403,7 +568,18 @@
           "profile": "sighted"
         }
       },
-      "message": "Installed for a sighted multiplayer partner. Uninstall Civ V Access before playing with people who don't have the mod; your game won't match theirs otherwise."
+      "message": {
+        "en": "Installed for a sighted multiplayer partner. Uninstall Civ V Access before playing with people who don't have the mod; your game won't match theirs otherwise.",
+        "de": "Für einen sehenden Mehrspielerpartner installiert. Deinstallieren Sie Civ V Access, bevor Sie mit Personen spielen, die die Mod nicht haben; sonst stimmt Ihr Spiel nicht mit deren Spiel überein.",
+        "es": "Instalado para un compañero vidente de multijugador. Desinstala Civ V Access antes de jugar con personas que no tengan el mod; de lo contrario, tu juego no coincidirá con el suyo.",
+        "fr": "Installé pour un partenaire voyant en multijoueur. Désinstallez Civ V Access avant de jouer avec des personnes qui n'ont pas le mod ; sinon votre jeu ne correspondra pas au leur.",
+        "it": "Installato per un compagno vedente in multigiocatore. Disinstalla Civ V Access prima di giocare con persone che non hanno la mod; altrimenti il tuo gioco non corrisponderà al loro.",
+        "ja": "晴眼のマルチプレイ相手向けにインストールしました。このモッドを導入していない人とプレイする前に、Civ V Access をアンインストールしてください。そうしないと、あなたのゲームが相手のゲームと一致しません。",
+        "ko": "비장애 멀티플레이어 상대용으로 설치되었습니다. 이 모드가 없는 사람과 플레이하기 전에 Civ V Access를 제거하십시오. 그렇지 않으면 게임이 상대방과 일치하지 않습니다.",
+        "pl": "Zainstalowano dla widzącego partnera w trybie wieloosobowym. Odinstaluj Civ V Access przed grą z osobami, które nie mają moda; w przeciwnym razie twoja gra nie będzie zgodna z ich grą.",
+        "ru": "Установлено для зрячего партнёра по сетевой игре. Удалите Civ V Access, прежде чем играть с теми, у кого нет мода; иначе ваша игра не совпадёт с их игрой.",
+        "zh-Hant": "已為視力正常的多人遊戲夥伴安裝。與未安裝此模組的玩家遊玩前，請先解除安裝 Civ V Access，否則你的遊戲將無法與對方一致。"
+      }
     }
   ],
   "uninstall": [
